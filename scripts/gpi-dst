@@ -1,0 +1,8 @@
+#!/bin/csh -f
+#
+# Stand alone script to launch GPI DRP IDL program.
+#
+
+cd "${GPI_DIR}/dst/"
+idl -e dst
+

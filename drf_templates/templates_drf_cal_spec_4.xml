@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DRF LogPath="E:\pipeline\log\" ReductionType="CAL - SPEC" name='Bad-pixel mapping'>
+<dataset InputDir="" Name="" OutputDir="E:\GPIdatabase\">
+   <fits FileName="" />
+</dataset>
+<module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
+<module name="Find Bad pixels from flats" Save="1" gpitv="2" suffix='-bp' />
+<module name="Accumulate Images" Method="OnDisk" />
+<module name="Combine bad pixel maps" Save="1" gpitv="2" combmethod="OR" />
+</DRF>

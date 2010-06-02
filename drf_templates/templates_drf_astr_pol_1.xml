@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DRF LogPath="E:\pipeline\log\" ReductionType="ASTR - POL" name="Basic Polarization Sequence">
+<dataset InputDir="" Name="" OutputDir="E:\GPIdatabase\">
+   <fits FileName="" />
+</dataset>
+<module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="       0" suffix="" gpitv="0" />
+<module name="Assemble Polarization Cube" CalibrationFile="AUTOMATIC" Rotate="0" Save="0" gpitv="2" />
+<module name="Divide by Polarized Flat Field" CalibrationFile="AUTOMATIC" Save="1" gpitv="0" />
+<module name="Rotate North Up" Method="CUBIC" Show="0" Save="0" gpitv="2" />
+<module name="Accumulate Images" Method="OnDisk" />
+<module name="Combine Polarization Sequence" Save="1" gpitv="10" />
+</DRF>

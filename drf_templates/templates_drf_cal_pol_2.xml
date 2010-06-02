@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DRF LogPath="E:\pipeline\log\" ReductionType="CAL - POL" name='Create Polarized Flat-field'>
+<dataset InputDir="" Name="" OutputDir="E:\GPIdatabase\">
+   <fits FileName="" />
+</dataset>
+<module name="Accumulate Images" Method="InMemory" />
+<module name="Combine 2D images" Method="Mean" suffix='mean' Save="0" gpitv="0" />
+<module name="Assemble Polarization Cube" CalibrationFile="AUTOMATIC" Rotate="0" Save="0" gpitv="2" />
+<module name="Normalize polarimetry flats" Save="1" gpitv="2" />
+</DRF>

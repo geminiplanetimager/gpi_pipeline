@@ -1,0 +1,8 @@
+#!/bin/csh -f
+#
+# Stand alone script to launch GPI DRP IDL program.
+
+cd "${GPI_PIPELINE_DIR}/drp_code/"
+
+idl -e gpidrfgui
+

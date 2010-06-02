@@ -1,0 +1,6 @@
+INPUTCAL: E:\GPIdatabase\GPIreduced\
+OUTPUT: E:\GPIdatabase\GPIreduced\
+TEMPDRF: E:\pipeline\drf_templates\
+LOG: E:\pipeline\log\
+DRF: E:\pipeline\drfs\
+QUEUE: E:\pipeline\tests\

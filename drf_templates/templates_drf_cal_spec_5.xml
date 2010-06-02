@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DRF LogPath="E:\pipeline\\log\" ReductionType="CAL - SPEC" name='Add set of missing keywords'>
+<dataset InputDir="" Name="" OutputDir="E:\GPIdatabase\GPIreduced\">
+   <fits FileName="" />
+</dataset>
+<module name="Add Gemini and GPI keywords." overwrite="1" keyword1="FILTER1" value1="H" keyword2="OBSTYPE" value2="Xenon" Save="       1" suffix="-keyw" gpitv="4" />
+</DRF>
