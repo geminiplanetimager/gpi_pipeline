@@ -66,42 +66,42 @@ if cc ne 0 then medianspectrum[indNan]=!VALUES.F_NAN
 medtot=median(medianspectrum)
 
 for xsi=0,nlens-1 do begin
-print, 'Extract flat-field..line#',xsi
-  for ysi=0,nlens-1 do begin
+	message,/info, 'Extracting flat-field; Removing lamp spectrum...lenslet row # '+string(xsi)
+  	for ysi=0,nlens-1 do begin
 		if finite(xmini[xsi,ysi]) then begin
-		  valx=xmini[xsi,ysi]+indgen(sdpx)
-      lambint=wavcal[xsi,ysi,2]+wavcal[xsi,ysi,3]*(valx-wavcal[xsi,ysi,0])*(1./cos(wavcal[xsi,ysi,4]))
-;    if (xsi eq 140) && (ysi eq 140) then stop
-;    Transmfiltnominal=pipeline_getfilter(lambint,filter=filter)
-;    spectrum0=reform(cubef3D[xsi,ysi,*])
-;    spectrum=spectrum0/Transmfiltnominal
-    spectrum=reform(cubef3D[xsi,ysi,*])
-      ;if Modules[thisModuleIndex].method eq 'blackbody' then   lampspec=planck(10000*lambint,tempelamp)/median(planck(10000*lambint,tempelamp))
-      ;linear fit:
-      ;do not use pixels on the edges of spectrum, use central part
-      sz=n_elements(lambint)
-      offsetpix=floor(sz/4)-1
-      indforfit=offsetpix+indgen(sz-2*offsetpix)
-      if Modules[thisModuleIndex].method eq 'linfit' then  begin
-           res=linfit(lambint[indforfit], (spectrum)[indforfit] )
-          lampspec=res[0]+res[1]*lambint
-      endif
-      if Modules[thisModuleIndex].method eq 'polyfit' then  begin
-           res=POLY_FIT(lambint[indforfit], (spectrum)[indforfit], 2, MEASURE_ERRORS=measure_errors, SIGMA=sigma) 
-          lampspec=res[0]+res[1]*lambint+res[2]*(lambint)^2.
-      endif
-      if Modules[thisModuleIndex].method eq 'blackbody' then  begin
-          tempelampe = 3200
-          lampspec=(planck(10000*lambint,tempelampe)/mean(planck(10000*lambint,tempelampe)))*mean((spectrum)[indforfit])
-      endif
-      
-   ;toDO:implement other methods
-      ; remove the linear fit.
-      Result[xsi,ysi,*] = reform(( spectrum/lampspec) *medianspectrum[xsi,ysi] /medtot, 1,1,sz)
-      ;Result[xsi,ysi,*] = reform(( spectrum0/lampspec) *medianspectrum[xsi,ysi] /medtot, 1,1,sz)
-      ;if (xsi gt 140) && (ysi gt 140) then stop
-    endif
-  endfor
+			valx=xmini[xsi,ysi]+indgen(sdpx)
+      		lambint=wavcal[xsi,ysi,2]+wavcal[xsi,ysi,3]*(valx-wavcal[xsi,ysi,0])*(1./cos(wavcal[xsi,ysi,4]))
+			;    if (xsi eq 140) && (ysi eq 140) then stop
+			;    Transmfiltnominal=pipeline_getfilter(lambint,filter=filter)
+			;    spectrum0=reform(cubef3D[xsi,ysi,*])
+			;    spectrum=spectrum0/Transmfiltnominal
+    		spectrum=reform(cubef3D[xsi,ysi,*])
+		  ;if Modules[thisModuleIndex].method eq 'blackbody' then   lampspec=planck(10000*lambint,tempelamp)/median(planck(10000*lambint,tempelamp))
+		  ;linear fit:
+		  ;do not use pixels on the edges of spectrum, use central part
+		  	sz=n_elements(lambint)
+		  	offsetpix=floor(sz/4)-1
+		  	indforfit=offsetpix+indgen(sz-2*offsetpix)
+		  	if Modules[thisModuleIndex].method eq 'linfit' then  begin
+			   res=linfit(lambint[indforfit], (spectrum)[indforfit] )
+			  lampspec=res[0]+res[1]*lambint
+		  	endif
+		  	if Modules[thisModuleIndex].method eq 'polyfit' then  begin
+			   res=POLY_FIT(lambint[indforfit], (spectrum)[indforfit], 2, MEASURE_ERRORS=measure_errors, SIGMA=sigma) 
+			  lampspec=res[0]+res[1]*lambint+res[2]*(lambint)^2.
+		  	endif
+		  	if Modules[thisModuleIndex].method eq 'blackbody' then  begin
+			  tempelampe = 3200
+			  lampspec=(planck(10000*lambint,tempelampe)/mean(planck(10000*lambint,tempelampe)))*mean((spectrum)[indforfit])
+		  	endif
+		  
+	   		;toDO:implement other methods
+		  ; remove the linear fit.
+		  Result[xsi,ysi,*] = reform(( spectrum/lampspec) *medianspectrum[xsi,ysi] /medtot, 1,1,sz)
+		  ;Result[xsi,ysi,*] = reform(( spectrum0/lampspec) *medianspectrum[xsi,ysi] /medtot, 1,1,sz)
+		  ;if (xsi gt 140) && (ysi gt 140) then stop
+    	endif
+	endfor
 endfor
 
 *(dataset.currframe[0])=Result

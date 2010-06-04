@@ -267,7 +267,7 @@ PRO launcher::cleanup
 
 	for i=0,self.max_sess-1 do if obj_valid(self.sessions[i]) then obj_destroy, self.sessions[i]
 
-	varnames = ['gpi_gui_queue_flags', 'gpi_gui_queue', 'gpi_gui_queue_args']
+	varnames = ['gpi_gui_queue_flags', 'gpi_gui_queue', 'gpi_gui_queue_args']+self.username
 	for i=0,n_elements(varnames)-1 do begin
 		shmunmap, varnames[i]
 	endfor
@@ -285,11 +285,12 @@ FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, cle
 
 	self.max_sess = n_elements(self.sessions)
 	self.queuelen=10
-	self.semaphore_name='GPI_DRP_'+getenv('USER') ; unique for each user in a multi-user system!
+	self.username=getenv('USER')
+	self.semaphore_name='GPI_DRP_'+self.username ; unique for each user in a multi-user system!
 
 	if keyword_set(clear_shm) then begin
 		message,/info, "Clearing all shared memory..."
-		varnames = ['gpi_gui_queue_flags', 'gpi_gui_queue', 'gpi_gui_queue_args']
+		varnames = ['gpi_gui_queue_flags', 'gpi_gui_queue', 'gpi_gui_queue_args']+self.username
 		for i=0,n_elements(varnames)-1 do begin
 			shmmap, varnames[i], template=bytarr(1),/destroy
 			shmunmap, varnames[i]
@@ -319,12 +320,12 @@ FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, cle
 		return, 0
 	endif
 
-	shmmap, 'gpi_gui_queue_flags', template=bytarr(self.queuelen)
-	self.cmd_queue_flags = ptr_new(shmvar('gpi_gui_queue_flags'))
-	shmmap, 'gpi_gui_queue', template=bytarr(80,self.queuelen)
-	self.cmd_queue = ptr_new(shmvar('gpi_gui_queue'))
-	shmmap, 'gpi_gui_queue_args', template=bytarr(512,self.queuelen)
-	self.cmd_queue_args = ptr_new(shmvar('gpi_gui_queue_args'))
+	shmmap, 'gpi_gui_queue_flags'+self.username, template=bytarr(self.queuelen)
+	self.cmd_queue_flags = ptr_new(shmvar('gpi_gui_queue_flags'+self.username))
+	shmmap, 'gpi_gui_queue'+self.username, template=bytarr(80,self.queuelen)
+	self.cmd_queue = ptr_new(shmvar('gpi_gui_queue'+self.username))
+	shmmap, 'gpi_gui_queue_args'+self.username, template=bytarr(512,self.queuelen)
+	self.cmd_queue_args = ptr_new(shmvar('gpi_gui_queue_args'+self.username))
 
 	self->clear_queue
 
@@ -388,6 +389,7 @@ PRO launcher__define
 
 	s = {launcher, $
 		semaphore_name: '', $
+		username: '', $
 		baseid: 0L, $
 		queuelen: 0L, $
 		exit_on_close: 0L, $

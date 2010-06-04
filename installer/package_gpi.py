@@ -2,6 +2,7 @@
 import os, sys, fnmatch
 import glob
 import subprocess
+import fileinput
 
 # A script to package GPI IFS DRP code into Zip files for easy distribution.
 # By Marshall
@@ -34,13 +35,16 @@ def cleanup():
     # put things back as they were at first
     runcmd('mv tmp/dst_zem/* dst')
     runcmd('mv tmp/dst/PSFs dst')
-    #runcmd('mv tmp/detector_data/* dst/detector_data/')
-    runcmd('mv tmp/detector_data dst')
+    runcmd('mv tmp/detector_data/* dst/detector_data/')
     runcmd('rmdir tmp/dst_zem/')
     runcmd('rmdir tmp/dst')
     runcmd('rmdir tmp/detector_data')
     runcmd('rmdir tmp')
 
+def update_textfile_version(filename, version=release_version):
+    for line in fileinput.FileInput(filename, inplace=1):
+        if line.startswith('version = '): 
+            line = "version = '%s'" % release_version
 
 
 
@@ -55,6 +59,9 @@ if __name__ == "__main__":
 
 
     """
+
+    update_textfile_version('pipeline/drp_code/gpi_pipeline_version.pro')
+    update_textfile_version('pipeline/installer/install_gpi_drp.py')
 
     if skipLarge:
         print "Creating Zip files (except the really large Zemax and Detector ones)"

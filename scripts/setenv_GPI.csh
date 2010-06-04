@@ -26,5 +26,5 @@ setenv GPI_RAW_DATA_DIR "$GPI_IFS_DIR/data/raw/"
 setenv GPI_DRP_OUTPUT_DIR "$GPI_IFS_DIR/data/reduced/"
 
 # make sure the startup scripts are in your $PATH
-setenv PATH "${PATH}:${GPI_PIPELINE_DIR}/scripts"
+setenv PATH "${PATH}:${GPI_PIPELINE_DIR}scripts"
 setenv IDL_PATH "${IDL_PATH}:+${GPI_IFS_DIR}"

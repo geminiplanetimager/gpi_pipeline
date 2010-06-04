@@ -17,6 +17,10 @@
 function gpiprogressbar::checkquit
 	return, self.quit
 end
+function gpiprogressbar::checkabort
+	return, self.abort
+end
+
 
 
 PRO gpiprogressbar::update
@@ -68,6 +72,18 @@ pro gpiprogressbar::event,ev
 			 endif
              return
          endif
+         if uval eq 'abort' then begin
+			 conf = dialog_message("Are you sure you want to abort the current DRF?",/question,title="Confirm abort",/default_no,/center)
+			 if conf eq "Yes" then begin
+				 ;message,/info, 'Setting pipeline QUIT flag'
+				 self.abort =1 ;widget_control, ev.top,/DESTROY
+				 ; TODO actually close the entire GPI pipeline now...
+				 ;  Actually closing the pipeline requires the main loop to call
+				 ;  checkquit()
+			 endif
+             return
+         endif
+
       endif else begin
          if tag_names(ev,/STRUCTURE_NAME) eq 'WIDGET_BASE' then begin ; resize
 			 ;print, "new size: ", ev.x, ev.y
@@ -96,11 +112,16 @@ pro gpiprogressbar::set_status, action
 	self->set, (*self.state).wLabelAction, 'Status:  ', action
 end
 pro gpiprogressbar::set_DRF, DRF
-
+	
 	if size(DRF,/TNAME) eq "STRUCT" then begin
 		; we were passed a STRUCTQUEUEENTRY probably.
 		self->set, (*self.state).wLabelDRF,  '  Latest DRF:          ', DRF.name
 	endif else self->set, (*self.state).wLabelDRF,  '  Latest DRF:          ', DRF
+
+	; reset the self.abort flag (in case it was set for the previous DRF) 
+	; - we've started a new DRF so might want to abort again?
+	self.abort=0
+
 end
 pro gpiprogressbar::set_FITS, FITS, number=number, nbtot=nbtot
 	; save these for use elsewhere?
@@ -268,6 +289,7 @@ function gpiprogressbar::init
 
 
 	;---- quit button
+	q=widget_button(wChildBase,VALUE='Abort current DRF',UVALUE='abortDRF', resource_name='red_button')
 	q=widget_button(wChildBase,VALUE='Quit GPI DRP',UVALUE='quit', resource_name='red_button')
 
 
@@ -321,6 +343,7 @@ MAXLOG = 1000
 st = {gpiprogressbar, $
 	state: ptr_new(),$
 	quit: 0L, $
+	abort: 0L, $
 	;eventlog: strarr(maxlog), $
 	;drflog: strarr(maxlog), $
 	maxlog: MAXLOG, $

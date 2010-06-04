@@ -67,7 +67,7 @@ calfiletype='badpix'
     badpixmap=*pmd_badpixmapFrame
 
 
- sxaddhist, functionname+": get bad pixel map", *(dataset.headers[numfile])
+ sxaddhist, functionname+": Loaded bad pixel map", *(dataset.headers[numfile])
  sxaddhist, functionname+": "+Modules[thisModuleIndex].CalibrationFile, *(dataset.headers[numfile])
 
 

@@ -39,6 +39,9 @@
 		if ( NOT file_test ( c_File ) ) then $
 		   return, error ('ERROR IN CALL ('+strtrim(functionName)+'): Calibration File  ' + $
 						  strtrim(string(c_File),2) + ' not found.' )
+
+		; FIXME add some lines here to log the calibration filename to the
+		; header automatically
 	endif
 
 

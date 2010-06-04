@@ -40,7 +40,8 @@ function combine2Dframes, DataSet, Modules, Backbone
 	im0 = accumulate_getimage(dataset, 0, hdr0)
 	;imtab=dblarr(naxis(0),naxis(1),numfile)
 	sz = [0, sxpar(hdr0,'NAXIS1'), sxpar(hdr0,'NAXIS2')]
-	imtab = dblarr(sz[1], sz[2], nfiles)
+	; create an array of the same type as the input file:
+	imtab = make_array(sz[1], sz[2], nfiles, type=size(im0,/type))
 
 
 

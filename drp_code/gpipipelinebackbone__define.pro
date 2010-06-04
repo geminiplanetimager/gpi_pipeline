@@ -42,6 +42,7 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file
         ;MaxMemorySizeOfFITSData,    $        ; Max allowed allocation of <fits/> files memory
         ;READWHOLEFRAME,    $ ; Read primary data mask for drpFITSToDataSet
 		backbone_comm, $				; Object pointer for main backbone (for access in subroutines & modules) 
+		loadedcalfiles, $		; object holding loaded calibration files (as pointers)
         DEBUG                    ; is DEBUG mode enabled?
 	
 
@@ -67,13 +68,14 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file
         }
     
     if ~(keyword_set(config_file)) then config_file="DRSConfig.xml"
+	ver = gpi_pipeline_version()
 
     print, "                                                    "
     PRINT, "*****************************************************"
     print, "*                                                   *"
     PRINT, "*          GPI DATA REDUCTION PIPELINE              *"
     print, "*                                                   *"
-    print, "*                   VERSION 0.15                    *"
+    print, "*                   VERSION "+ver+"                    *"
     print, "*                                                   *"
     print, "*          Jerome Maire, Marshall Perrin et al.     *"
     print, "*                                                   *"
@@ -112,6 +114,8 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file
 		; be fixed probably. - MP
 
 		backbone_comm = self ; stick into common block for global access
+
+		loadedcalfiles = obj_new('gpiloadedcalfiles') ; in common block for access inside the primitives
 
     ENDIF ELSE BEGIN
         Self -> ErrorHandler
@@ -306,10 +310,10 @@ PRO gpiPipelineBackbone::gpitv, filename_or_data, session=session, header=header
 			; check for the error case where some other user already owns
 			; /tmp/temp.fits on a multiuser machine. If necessary, fall back to
 			; another filename with an appended number. 
-			if file_test(tempfile,/write) then begin
+			if not file_test(tempfile,/write) then begin
 				for i=0,100 do begin
 					tempfile = tmppath+path_sep()+'temp'+strc(i)+'.fits'
-					if not file_test(tempfile,/write) then break
+					if file_test(tempfile,/write) then break
 				endfor
 				if i eq 100 then begin
 					self->Log, "Could not open **any** filename for writing in "+getenv('IDL_TMPDIR')+" after 100 attempts. Cannot send file to GPItv."
@@ -361,7 +365,6 @@ PRO gpiPipelineBackbone::Run, QueueDir
         ENDIF
 
         CurrentDRF = self->GetNextDRF(Queuedir, found=nfound)
-        ;IF CurrentDRF.Name NE '' THEN BEGIN
         IF nfound gt 0 THEN BEGIN
             self->log, 'Found file: ' + CurrentDRF.Name, /GENERAL
                     wait, 1.0   ; Wait 1 seconds to make sure file is fully written.
@@ -374,7 +377,7 @@ PRO gpiPipelineBackbone::Run, QueueDir
             ;Self.ConfigParser -> ParseFile, drpXlateFileName(CONFIG_FILENAME)
             ;Self.ConfigParser -> getParameters, Self
         
-              if ~(keyword_set(debug)) then CATCH, parserError else parserError=0 ; only catch if DEBUG is not set.
+            if ~(keyword_set(debug)) then CATCH, parserError else parserError=0 ; only catch if DEBUG is not set.
             IF parserError EQ 0 THEN BEGIN
 				self.progressbar->set_action, "Parsing DRF"
                 PipelineConfig.continueAfterDRFParsing = 1    ; Assume it will be Ok to continue
@@ -409,6 +412,9 @@ PRO gpiPipelineBackbone::Run, QueueDir
                 ENDIF ELSE BEGIN
                     PRINT, "Failure"
                     self->SetDRFStatus, CurrentDRF, 'failed'
+					self.progressbar->set_status, "Last DRF **failed**!    Watching for new DRFs but idle."
+					self.progressbar->Set_action, '--'
+             
                 ENDELSE
                 ; Free any remaining memory here
                 IF PTR_VALID(Self.Data) THEN BEGIN
@@ -427,7 +433,7 @@ PRO gpiPipelineBackbone::Run, QueueDir
             ENDIF ELSE BEGIN  ; ENDIF continueAfterDRFParsing EQ 1
               ; This code if continueAfterDRFParsing == 0
               self->log, 'gpiPipelineBackbone::Run: Reduction failed due to parsing error in file ' + DRFFileName, /GENERAL
-              drpSetStatus, CurrentDRF, QueueDir, 'failed'
+              self->SetDRFStatus, CurrentDRF, 'failed'
               ; If we failed with outstanding data, then clean it up.
               IF PTR_VALID(Self.Data) THEN BEGIN
                 FOR i = N_ELEMENTS(*Self.Data)-1, 0, -1 DO BEGIN
@@ -438,7 +444,6 @@ PRO gpiPipelineBackbone::Run, QueueDir
                 ENDFOR
               ENDIF
             ENDELSE
-        ;    drpMemoryMarkSimple, 'xh'
         ENDIF
 
         ;wait, 1 ; Only check for new files at most once per second
@@ -501,11 +506,8 @@ FUNCTION gpiPipelineBackbone::Reduce
         self->Log, 'Reducing file: ' + (*self.Data).fileNames[IndexFrame], /GENERAL, /DRF, depth=2
 		self.progressbar->Set_FITS, (*self.Data).fileNames[IndexFrame], number=indexframe,nbtot=(*self.Data).validframecount
 
-        ;(*self.data).currframe        = ptr_new(READFITS(*((*self.data).frames[IndexFrame]), Header, /SILENT))
         filename= *((*self.Data).frames[IndexFrame])
-        ;inputname = (*self.Data).inputdir+path_sep()+(*self.Data).fileNames[IndexFrame]
-        ;print, (*self.Data).inputdir+path_sep()+filename
-        ;(*self.data).currframe        = ptr_new(READFITS((*self.Data).inputdir+path_sep()+filename , Header, /SILENT))
+
 		self.progressbar->set_action, "Reading FITS file "+filename
 		if ~file_test(filename,/read) then begin
 	    	self->Log, "ERROR: Unable to read file "+filename, /GENERAL, /DRF
@@ -544,28 +546,11 @@ FUNCTION gpiPipelineBackbone::Reduce
         SXADDPAR, *(*self.data).Headers[IndexFrame], "DATAFILE", filename
 
         SXDELPAR, header, 'END'
-        *(*self.data).Headers[IndexFrame]=[header,*(*self.data).Headers[IndexFrame]]
-        SXADDPAR, *(*self.data).Headers[IndexFrame], "END",''
+        *(*self.data).Headers[IndexFrame]=[header,*(*self.data).Headers[IndexFrame], 'END            ']
+        ;SXADDPAR, *(*self.data).Headers[IndexFrame], "END",''		; don't use SXADDPAR for 'END', it gets the syntax wrong and breaks pyfits.
         
         suffix=''
 
-        ; FIXME this ought to be read in from a configuration file somewhere,
-        ; not be hard-coded here in the software. 
-;        filter = strcompress(sxpar( header ,'FILTER1', count=fcount),/REMOVE_ALL)
-;        if fcount eq 0 then filter = strcompress(sxpar( header ,'FILTER'),/REMOVE_ALL)
-
-;        tabband=[['Z'],['Y'],['J'],['H'],['K'],['K1'],['K2']]
-;        parseband=WHERE(STRCMP( tabband, filter, /FOLD_CASE) EQ 1)
-;        case parseband of
-;            -1: CommonWavVect=-1
-;            0:  CommonWavVect=[0.95, 1.14, 37]
-;            1:  CommonWavVect=[0.95, 1.14, 37]
-;            2:  CommonWavVect=[1.12, 1.35, 37]
-;            3: CommonWavVect=[1.5, 1.8, 37]
-;            4:  ;CommonWavVect=[1.5, 1.8, 37]
-;            5:  CommonWavVect=[1.9, 2.19, 40]
-;            6: CommonWavVect=[2.13, 2.4, 40]
-;        endcase
 
         ; Iterate over the modules in the 'Modules' array and run each.
         status = OK
@@ -578,6 +563,11 @@ FUNCTION gpiPipelineBackbone::Reduce
                 status = Self -> RunModule(*self.Modules, indexModules)
 
             ENDIF
+			if self.progresbar->checkabort() then begin
+				self->Log, "User pressed ABORT button! Aborting DRF",/general, /drf
+				status = NOT_OK
+				break
+			endif
         ENDFOR
 
         ; Log the result.
@@ -590,12 +580,11 @@ FUNCTION gpiPipelineBackbone::Reduce
 
         if debug ge 1 then print, "########### end of file "+strc(indexframe+1)+" ################"
     ENDFOR
-	self->Log, "DRF Complete!",/general,/DRF
+	if status eq OK then self->Log, "DRF Complete!",/general,/DRF
     if debug ge 1 then print, "########### end of reduction for that DRF  ################"
     PRINT, ''
     PRINT, SYSTIME(/UTC)
     PRINT, ''
-    ;self.progressbar->Update,*self.Modules,indexModules, (*self.data).validframecount, IndexFrame,' Done'
     self.progressbar->Update, *self.Modules,indexModules, (*self.data).validframecount, IndexFrame,' Done.'
 
     RETURN, status

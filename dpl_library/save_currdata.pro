@@ -35,6 +35,7 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
     COMMON PIP
 
 	getmyname, functionname
+	version = gpi_pipeline_version()
 
     ;for i=0, nFrames-1 do begin
     if keyword_set(level2) then i=level2-1 else $
@@ -66,9 +67,11 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
        ;writefits, c_File1, float(*DataSet.IntFrames(i)), /APPEND
        ;writefits, c_File1, byte(*DataSet.IntAuxFrames(i)), /APPEND
     	if ( keyword_set( savedata ) ) then begin 
+			sxaddpar, saveheader, 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
 		   writefits, c_File1, savedata, saveheader
 		   curr_hdr = saveheader
 		endif else begin
+			sxaddpar, *DataSet.Headers[i], 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
 			writefits, c_File1, *DataSet.currFrame, *DataSet.Headers[i]
 			DataSet.OutputFilenames[i] = c_File1
 			curr_hdr = *DataSet.Headers[i]

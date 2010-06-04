@@ -153,6 +153,9 @@ PRO gpicaldatabase::write
 end
 
 ;----------
+PRO gpicaldatabase::rescan ; an alias
+	self->rescan_directory 
+end
 ; Create a new calibrations DB by reading all files in a given directory
 PRO gpicaldatabase::rescan_directory
 	files = file_search(self.caldir+path_sep()+"*.fits")
@@ -319,7 +322,7 @@ function gpicaldatabase::get_best_cal, type, date, filter, prism, itime=itime, $
 	types.description=reform(types_str[1,*])
 	types.match_on=reform(types_str[2,*])
 
-stop
+
 
 	itype = where(types.name eq type, matchct)
 	if matchct ne 1 then begin
