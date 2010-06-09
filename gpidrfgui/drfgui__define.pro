@@ -1170,7 +1170,8 @@ pro drfgui::event,ev
 	end
  
     'about': begin
-      tmpstr=['GPI DRF-GUI $Revision: 1.22 $ - GPI 3d data-reduction package', $
+		ver=strc(gpi_pipeline_version())
+		tmpstr=['GPI DRF-GUI Revision: '+ver+'  - GPI 3d data-reduction package', $
               '', $
               'Copyright _,_ by the University of Montreal ' + $
                '(UdeM), Canada', $
