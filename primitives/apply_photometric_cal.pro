@@ -29,6 +29,7 @@
 
 function apply_photometric_cal, DataSet, Modules, Backbone
 
+primitive_version= '$Id$' ; get version from subversion to store in header history
 calfiletype='Gridratio' ; this is probably the wrong type??
 @__start_primitive
 

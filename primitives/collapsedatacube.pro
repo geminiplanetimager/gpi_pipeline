@@ -24,6 +24,7 @@
 ;  2010-04-23 JM created
 ;-
 function collapsedatacube, DataSet, Modules, Backbone
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 	if tag_exist( Modules[thisModuleIndex], "method") then method=Modules[thisModuleIndex].method else method='total'

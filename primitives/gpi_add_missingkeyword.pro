@@ -22,6 +22,7 @@ common PIP
 COMMON APP_CONSTANTS
 
 
+primitive_version= '$Id$' ; get version from subversion to store in header history
    functionName = 'gpi_add_missingkeyword'
  
   thisModuleIndex = Backbone->GetCurrentModuleIndex()  

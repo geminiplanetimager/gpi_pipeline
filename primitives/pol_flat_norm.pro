@@ -24,6 +24,7 @@
 ;-
 
 function pol_flat_norm, DataSet, Modules, Backbone
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
   cube=*(dataset.currframe[0])

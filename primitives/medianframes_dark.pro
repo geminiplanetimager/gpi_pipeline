@@ -24,6 +24,7 @@
 function medianframes_dark, im
 common PIP
 
+primitive_version= '$Id$' ; get version from subversion to store in header history
   getmyname, functionname
 ;test if last file of listfilenames
 if numfile eq n_elements(listfilenames)-1  then begin

@@ -24,6 +24,7 @@
 ;   2009-04-22 MDP: Created, based on DST's cubeextract_polarized. 
 ;+
 function rotate_north_up, DataSet, Modules, Backbone
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
     cube=*(dataset.currframe[0])

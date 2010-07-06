@@ -29,6 +29,7 @@
 ;  JM 2010-03-10: add handle of x0,y0 ref point with PSFcenter
 ;
 function addwcs, DataSet, Modules, Backbone
+primitive_version= '$Id$' ; get version from subversion to store in header history
 calfiletype='plate'
 @__start_primitive
 

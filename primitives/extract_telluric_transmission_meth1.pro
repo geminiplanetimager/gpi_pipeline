@@ -34,6 +34,7 @@ function extract_telluric_transmission_meth1, DataSet, Modules, Backbone
 common PIP
 COMMON APP_CONSTANTS
 
+primitive_version= '$Id$' ; get version from subversion to store in header history
 
     getmyname, functionname
   thisModuleIndex = Backbone->GetCurrentModuleIndex()

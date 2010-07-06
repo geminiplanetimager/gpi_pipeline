@@ -31,6 +31,7 @@
 ;
 function ApplyDarkCorrection, DataSet, Modules, Backbone
 
+primitive_version= '$Id$' ; get version from subversion to store in header history
 calfiletype = 'dark'
 @__start_primitive
 ;;		common APP_CONSTANTS

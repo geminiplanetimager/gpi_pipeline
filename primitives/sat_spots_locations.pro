@@ -23,6 +23,7 @@
 ;- 
 
 function sat_spots_locations, DataSet, Modules, Backbone
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
   cubef3D=*(dataset.currframe[0])

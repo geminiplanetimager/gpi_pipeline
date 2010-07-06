@@ -31,6 +31,7 @@
 ;- 
 
 function Interpol_Spec_OnCommWavVect, DataSet, Modules, Backbone
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
    ;get the datacube from the dataset.currframe

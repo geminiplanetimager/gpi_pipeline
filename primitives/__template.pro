@@ -24,6 +24,7 @@
 
 function save_output, DataSet, Modules, Backbone
 
+primitive_version= '$Id$' ; get version from subversion to store in header history
 calfiletype=''   ; set this to some non-null value e.g. 'dark' if you want to load a cal file.
 @__start_primitive
 

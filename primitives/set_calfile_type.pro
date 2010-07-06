@@ -22,6 +22,7 @@
 ;-  
 
 function set_calfile_type, DataSet, Modules, Backbone
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 	if tag_exist( Modules[thisModuleIndex], "filetype") then if strc(Modules[thisModuleIndex].filetype) ne "" then filetype = string(Modules[thisModuleIndex].filetype)

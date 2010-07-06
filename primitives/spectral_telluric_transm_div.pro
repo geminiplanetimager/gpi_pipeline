@@ -25,6 +25,7 @@
 ;-
 
 function spectral_telluric_transm_div, DataSet, Modules, Backbone
+primitive_version= '$Id$' ; get version from subversion to store in header history
 calfiletype='telluric'
 
 @__start_primitive

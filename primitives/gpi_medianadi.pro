@@ -30,6 +30,7 @@ Function gpi_medianADI, DataSet, Modules, Backbone
 common PIP
 COMMON APP_CONSTANTS
 
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 ;functionName = 'gpi_medianADI'
 

@@ -19,6 +19,10 @@
 	getmyname, functionname
 	thisModuleIndex = Backbone->GetCurrentModuleIndex()
 
+; record this primitive name AND its version in the header for traceability.
+	if ~(keyword_set(primitive_version)) then primitive_version="unknown"
+	sxaddhist, "Running "+functionname+"; version "+primitive_version, *(dataset.headers[numfile])
+
 ; if appropriate, attempt to locate and verify a calibration file.
 	if keyword_set(calfiletype) then begin
 

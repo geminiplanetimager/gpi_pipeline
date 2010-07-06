@@ -22,6 +22,7 @@
 ; 2010-01-28: MDP Created Templae.
 ;
 function gpi_cosmicrays, DataSet, Modules, Backbone
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 

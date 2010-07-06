@@ -213,6 +213,7 @@ end
 
 function pol_combine, DataSet, Modules, Backbone
 
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 	silent=1
 
@@ -267,6 +268,7 @@ function pol_combine, DataSet, Modules, Backbone
 		wp_mueller = DST_waveplate(angle=wpangle[i], /mueller,/silent)
 		;skyrotation_mueller =  mueller_rotate(parang)
 
+		; FIXME: Sky rotation!!
 		total_mueller_vert = woll_mueller_vert ## wp_mueller ## system_mueller ;## skyrotation_mueller
 		total_mueller_horiz = woll_mueller_horiz ## wp_mueller ## system_mueller ;## skyrotation_mueller
 

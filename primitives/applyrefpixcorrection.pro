@@ -31,6 +31,7 @@
 ;   2009-09-17 JM: added DRF parameters
 ;
 function ApplyRefPixCorrection, DataSet, Modules, Backbone
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 	im =  *(dataset.currframe[0])

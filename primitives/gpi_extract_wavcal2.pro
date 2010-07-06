@@ -44,6 +44,7 @@
 ;-
 
 function gpi_extract_wavcal2,  DataSet, Modules, Backbone
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
    

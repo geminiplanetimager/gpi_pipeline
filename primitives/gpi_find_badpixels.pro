@@ -20,6 +20,7 @@
 ;   2009-09-17 JM: added DRF parameters
 ;-
 function gpi_find_badpixels, DataSet, Modules, Backbone
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 ;;find deviation which is nbdev times greater or lower than the estimated value of the pixel if it was not bad. 

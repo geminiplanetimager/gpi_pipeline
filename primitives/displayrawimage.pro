@@ -25,6 +25,7 @@
 ;   2009-09-17 JM: added DRF parameters
 ;-
 function displayrawimage, DataSet, Modules, Backbone
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 ;;	common PIP
 ;;	COMMON APP_CONSTANTS

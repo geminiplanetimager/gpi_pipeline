@@ -25,6 +25,7 @@
 ;     Originally by Jerome Maire 2010-02-12
 ;
 function gpirotateimage, DataSet, Modules, Backbone
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
  
     rot_dir=uint(Modules[thisModuleIndex].Direction)

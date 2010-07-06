@@ -24,6 +24,7 @@
 
 function readbadpixmap, DataSet, Modules, Backbone
 
+primitive_version= '$Id$' ; get version from subversion to store in header history
 calfiletype='badpix'
 @__start_primitive
 

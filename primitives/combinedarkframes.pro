@@ -28,6 +28,7 @@
 ;  2010-03-08 JM: ISCALIB flag for Calib DB
 ;-
 function combinedarkframes, DataSet, Modules, Backbone
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 	if tag_exist( Modules[thisModuleIndex], "suffix") then suffix=Modules[thisModuleIndex].suffix else suffix=method

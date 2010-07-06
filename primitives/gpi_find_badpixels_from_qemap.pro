@@ -23,6 +23,7 @@ function gpi_find_badpixels_from_qemap, DataSet, Modules, Backbone
 common PIP
 COMMON APP_CONSTANTS
 
+primitive_version= '$Id$' ; get version from subversion to store in header history
 
    getmyname, functionname
 

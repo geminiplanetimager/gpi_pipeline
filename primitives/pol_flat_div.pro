@@ -25,6 +25,7 @@
 ;-
 
 function pol_flat_div, DataSet, Modules, Backbone
+primitive_version= '$Id$' ; get version from subversion to store in header history
 calfiletype='flat'
 @__start_primitive
 

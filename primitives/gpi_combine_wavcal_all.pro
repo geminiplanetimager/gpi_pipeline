@@ -23,6 +23,7 @@
 ;-
 
 function gpi_combine_wavcal_all,  DataSet, Modules, Backbone
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 	nfiles=dataset.validframecount
 
