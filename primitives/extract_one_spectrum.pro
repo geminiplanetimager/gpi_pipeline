@@ -34,7 +34,6 @@ function extract_one_spectrum, DataSet, Modules, Backbone
 common PIP
 COMMON APP_CONSTANTS
 
-
 primitive_version= '$Id$' ; get version from subversion to store in header history
 	getmyname, functionname
 
@@ -123,7 +122,7 @@ if cc eq 1 then units=calunits
 ;;;;method photometric
     cubcent2=main_image_stack
     phpadu = 1.0                    ; don't convert counts to electrons
-apr = [4.]
+apr = float(radi)
 skyrad = [6.,10.]
 ; Assume that all pixel values are good data
 badpix = [-1.,1e6];state.image_min-1, state.image_max+1
