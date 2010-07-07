@@ -563,7 +563,7 @@ FUNCTION gpiPipelineBackbone::Reduce
                 status = Self -> RunModule(*self.Modules, indexModules)
 
             ENDIF
-			if self.progresbar->checkabort() then begin
+			if self.progressbar->checkabort() then begin
 				self->Log, "User pressed ABORT button! Aborting DRF",/general, /drf
 				status = NOT_OK
 				break
