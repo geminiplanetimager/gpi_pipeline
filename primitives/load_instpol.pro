@@ -8,7 +8,7 @@
 ;
 ; PIPELINE COMMENT: 
 ; PIPELINE ARGUMENT: Name='suffix' type='string' default='default' Desc="choose the suffix"
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="instpol" Default="GPI-instpol.fits" Desc="Filename of the desired instrumental polarization file to be read" ;
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type="instpol" Default="GPI-instpol.fits" Desc="Filename of the desired instrumental polarization file to be read" 
 ; PIPELINE ORDER: 0.1
 ; PIPELINE TYPE: ALL/POL
 ;
