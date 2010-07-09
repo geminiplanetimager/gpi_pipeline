@@ -15,7 +15,7 @@
 ; PIPELINE ARGUMENT: Name="refwav" Type="float" Range="[0.8,2.4]" Default="1.65" Desc="Wavelength (microms) reference for Zemax/DRP comparison of spectra locations"
 ; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-ErrWavcal" Desc="Enter output suffix"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying wavcal file, 0: no display "
-; PIPELINE ORDER: 2.5
+; PIPELINE ORDER: 4.3
 ; PIPELINE TYPE: ALL-SPEC 
 ; PIPELINE SEQUENCE: 
 ;
@@ -58,8 +58,8 @@ if (Modules[thisModuleIndex].CalibrationFile eq '') then begin
         tiltp=dblarr(n_elements(zemdisplamraw))
         w3p=dblarr(n_elements(zemdisplamraw))
     for p=0,n_elements(zemdisplamraw)-1 do begin
-    tiltp(p)=atan((zemdispY[i,j,p]-zemdispY[i,j,0])/(zemdispX[i,j,p]-zemdispX[i,j,0]))
-    w3p(p)=(zemdisplamraw[p]-zemdisplamraw[0])/(sqrt(((zemdispY[i,j,p]-zemdispY[i,j,0]))^2+(zemdispX[i,j,p]-zemdispX[i,j,0])^2))
+    tiltp(p)=atan((zemdispY[i,j,p]-zemdispY[i,j,zemwavind])/(zemdispX[i,j,p]-zemdispX[i,j,zemwavind]))
+    w3p(p)=(zemdisplamraw[p]-zemdisplamraw[zemwavind])/(sqrt(((zemdispY[i,j,p]-zemdispY[i,j,zemwavind]))^2+(zemdispX[i,j,p]-zemdispX[i,j,zemwavind])^2))
         tilt[i,j]=median(tiltp)
     w3[i,j]=median(w3p)
   ;  w3d[i,j]=stddev(w3p)
@@ -128,8 +128,8 @@ print, 'mean diff x=',mean(diff[*,*,0],/nan),'y=',mean(diff[*,*,1],/nan)
 filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
 slash=strpos(filnm,path_sep(),/reverse_search)
 
-    fnameps=getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+filter+strc(zemwav)+'.ps'        
-  openps,fnameps, xsize=17, ysize=27
+    fnameps=getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+filter+strc(zemwav)        
+  openps,fnameps+'.ps', xsize=17, ysize=27
   !P.MULTI = [0, 1, 3, 0, 0] 
   PLOT, loc,hist1x, $ 
    TITLE = 'Histogram of localization error ('+string(zemwav,format='(g4.3)')+'microns) for '+filename+'-wav.-solution '+filter+' band', $ 
@@ -153,6 +153,47 @@ slash=strpos(filnm,path_sep(),/reverse_search)
    YTITLE = 'Number of spectra of That Value' ,ystyle=9,linestyle=0    
     
   closeps  
+  
+  ;plot dispersion for a specific spectrum
+  xs=65
+  ys=200
+  xwav=fltarr(n_elements(zemdisplamraw))
+  ywav=fltarr(n_elements(zemdisplamraw))
+  xwavzem=fltarr(n_elements(zemdisplamraw))
+  ywavzem=fltarr(n_elements(zemdisplamraw))
+  xzem=fltarr(n_elements(zemdisplamraw))
+  yzem=fltarr(n_elements(zemdisplamraw))
+  for ind=0,n_elements(zemdisplamraw)-1 do begin
+    wavcalind=change_wavcal_lambdaref( wavcal1, zemdisplamraw[ind])
+    xwav[ind]=wavcalind[xs,ys,0]
+    ywav[ind]=wavcalind[xs,ys,1]
+    wavcalind=change_wavcal_lambdaref( zemwavcal, zemdisplamraw[ind])
+    xwavzem[ind]=wavcalind[xs,ys,0]
+    ywavzem[ind]=wavcalind[xs,ys,1]
+    xzem[ind]=(rotate(transpose(zemdispX2[*,*,ind]),2)+4.)[xs,ys]
+    yzem[ind]=(rotate(transpose(zemdispY2[*,*,ind]),2)+4.)[xs,ys]
+  endfor  
+  
+  openps,fnameps+'disp_x'+strc(xs)+'_y'+strc(ys)+'.ps', xsize=17, ysize=27
+   !P.MULTI = [0, 1, 2, 0, 0] 
+   PLOT, zemdisplamraw,xwav, $ 
+   TITLE = 'Dispersion X  for '+filename+'-wav.-solution '+filter+' band', $ 
+   ;XTicklen=1.0, YTicklen=1.0, XGridStyle=1, YGridStyle=1, $
+   XTITLE = 'Wavelength (microms)', $ 
+   YTITLE = 'X-coordinate' ,ystyle=9,linestyle=0 ,yrange=[min([xwav,xwavzem,xzem]),max([xwav,xwavzem,xzem])]       
+   oplot, zemdisplamraw, xwavzem,psym=1
+   oplot, zemdisplamraw, xzem,psym=4
+   legend, ['from detector image','from Zemax  linear wav solution','raw Zemax locations'],psym=[-0,1,4],  /bottom, /right
+   
+   PLOT, zemdisplamraw,ywav, $ 
+   TITLE = 'Dispersion Y  for '+filename+'-wav.-solution '+filter+' band', $ 
+   ;XTicklen=1.0, YTicklen=1.0, XGridStyle=1, YGridStyle=1, $
+   XTITLE = 'Wavelength (microms)', $ 
+   YTITLE = 'Y-coordinate' ,ystyle=9,linestyle=0 ,yrange=[min([ywav,ywavzem,yzem]),max([ywav,ywavzem,yzem])]            
+   oplot, zemdisplamraw, ywavzem,psym=1
+   oplot, zemdisplamraw, yzem,psym=4
+   legend, ['from detector image','from Zemax  linear wav solution','raw Zemax locations'],psym=[-0,1,4],  /bottom, /right
+  closeps 
    set_plot,'win'
 
  end
