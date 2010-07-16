@@ -40,7 +40,8 @@
 ; 	 Jerome Maire 2008-10
 ;	  JM: nlens, w (initial guess), P (initial guess), cenx (or centrXpos), ceny (or centrYpos) as parameters
 ;   2009-09-17 JM: added DRF parameters
-;  2009-12-10 JM: initiate position at 1.5microns so we can take into account several 
+;   2009-12-10 JM: initiate position at 1.5microns so we can take into account several 
+;   2010-07-14 J.Maire:for DRP testing, correct for DST finite spectral resolution 
 ;-
 
 function gpi_extract_wavcal2,  DataSet, Modules, Backbone
@@ -127,20 +128,76 @@ case strcompress(bandeobs,/REMOVE_ALL) of
       bandwidth=0.3 ;bandwidth in microns
     end
   'K1':begin
-      if strmatch(lamp,'*Xenon*',/fold) then peakwavelen=[[2.027],[2.148]]
+      if strmatch(lamp,'*Xenon*',/fold) then peakwavelen=[[2.02678],[2.14759]]
       if strmatch(lamp,'*Argon*',/fold) then peakwavelen=[[1.997],[2.06],[2.099],[2.154]]
       if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.9],[2.19]]
       specpixlength=20. ;spec pix length for rough estimation of peak positions
       bandwidth=0.3 ;bandwidth in microns
     end
   'K2':begin
-      if strmatch(lamp,'*Xenon*',/fold) then peakwavelen=[[2.148],[2.32]]
+      if strmatch(lamp,'*Xenon*',/fold) then peakwavelen=[[2.14759],[2.31996]]
       if strmatch(lamp,'*Argon*',/fold) then peakwavelen=[[2.154],[2.2],[2.314],[2.397]]
       if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[2.13],[2.4]]
       specpixlength=20. ;spec pix length for rough estimation of peak positions
       bandwidth=0.27  ;bandwidth in microns
     end
 endcase
+    ;;2010-07-14 J.Maire: added for testing, 
+    ;; use it only for wavelength solution testing based on DST sim
+    ;;correct for finite DST spectral resolution !!
+    testdeb=1
+    if testdeb then begin
+              case strcompress(bandeobs,/REMOVE_ALL) of
+            'Y':begin
+                if strmatch(lamp,'*Xenon*',/fold) then relativethresh=0.5
+                if strmatch(lamp,'*Argon*',/fold) then relativethresh=0.5
+              end
+            'J':begin
+                if strmatch(lamp,'*Xenon*',/fold) then relativethresh=0.5
+                if strmatch(lamp,'*Argon*',/fold) then relativethresh=0.5
+              end
+            'H':begin
+                if strmatch(lamp,'*Xenon*',/fold) then relativethresh=0.2
+                if strmatch(lamp,'*Argon*',/fold) then relativethresh=0.5
+              end
+            'K1':begin
+                if strmatch(lamp,'*Xenon*',/fold) then relativethresh=0.2
+                if strmatch(lamp,'*Argon*',/fold) then relativethresh=0.5
+              end
+            'K2':begin
+                if strmatch(lamp,'*Xenon*',/fold) then relativethresh=0.2
+                if strmatch(lamp,'*Argon*',/fold) then relativethresh=0.28
+              end
+          endcase
+          DST_CODE_DIR= 'E:\testsvn3\dst';getenv()
+          readcol, DST_CODE_DIR+path_sep()+strmid(lamp,0,2)+'ArcLampG.txt', wavelen, strength
+          wavelen=1.e-4*wavelen
+          lambdadst=readfits(DST_CODE_DIR+path_sep()+'zemdispLam'+strcompress(bandeobs, /rem)+'.fits')
+          spect = fltarr(n_elements(lambdadst))
+        
+          wg = where(wavelen gt min(lambdadst) and wavelen lt max(lambdadst), gct)
+        
+          for i=0L,gct-1 do begin
+            diff = min(abs(lambdadst - wavelen[wg[i]]), closest)
+            spect[closest] += strength[wg[i]]
+          endfor
+          
+           mlensarr=rebin(spect,  n_elements(lambdadst))
+           seuil=(relativethresh)* max(mlensarr)
+           print, 'seuil=',seuil
+           lambdadstind=where(mlensarr gt seuil)
+           peakwavelen2=transpose(lambdadst[lambdadstind])
+           print, 'Testing: correct for finite DST spectral resolution...'
+           print, 'True reference peak for this lamp:',peakwavelen
+           print, 'Reference peak adopted:',peakwavelen2
+           peakwavelen=peakwavelen2
+           wavstr=''
+           for st=0,n_elements(peakwavelen)-1 do wavstr+=strcompress(string(peakwavelen[st]),/rem)+'/'
+           sxaddpar, h, "TESTWAV", wavstr, 'wav of detected peaks'
+           ;stop
+          
+    endif
+
 ;;localize first peak ;; this coordiantes depends strongly on data!!
 cenx=float(Modules[thisModuleIndex].centrXpos)
 ceny=float(Modules[thisModuleIndex].centrYpos)

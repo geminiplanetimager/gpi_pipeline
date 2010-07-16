@@ -40,6 +40,7 @@ nlens=(size(*(dataset.currframe[0])))[1]
    
      zemdisplamraw=readfits(rep+'zemdispLam'+filter+'.fits')
      void=min(abs(zemdisplamraw-zemwav),zemwavind)
+     print, 'Reference wav. at  ',zemdisplamraw[zemwavind] 
      wavcal2=change_wavcal_lambdaref( wavcal1, zemdisplamraw[zemwavind])
 
 if (Modules[thisModuleIndex].CalibrationFile eq '') then begin
@@ -57,9 +58,10 @@ if (Modules[thisModuleIndex].CalibrationFile eq '') then begin
   for j=0,nlens-1 do begin
         tiltp=dblarr(n_elements(zemdisplamraw))
         w3p=dblarr(n_elements(zemdisplamraw))
+      ;  if (abs(zemdispY[i,j,zemwavind]-1024.+1024.) lt 3.) && (abs(zemdispX[i,j,zemwavind]-1073.+1024.) lt 3.) then stop
     for p=0,n_elements(zemdisplamraw)-1 do begin
     tiltp(p)=atan((zemdispY[i,j,p]-zemdispY[i,j,zemwavind])/(zemdispX[i,j,p]-zemdispX[i,j,zemwavind]))
-    w3p(p)=(zemdisplamraw[p]-zemdisplamraw[zemwavind])/(sqrt(((zemdispY[i,j,p]-zemdispY[i,j,zemwavind]))^2+(zemdispX[i,j,p]-zemdispX[i,j,zemwavind])^2))
+    w3p(p)=abs(zemdisplamraw[p]-zemdisplamraw[zemwavind])/(sqrt(((zemdispY[i,j,p]-zemdispY[i,j,zemwavind]))^2+(zemdispX[i,j,p]-zemdispX[i,j,zemwavind])^2))
         tilt[i,j]=median(tiltp)
     w3[i,j]=median(w3p)
   ;  w3d[i,j]=stddev(w3p)
@@ -92,7 +94,7 @@ if (Modules[thisModuleIndex].CalibrationFile eq '') then begin
   zemwavcal[*,*,3]=rotate(transpose(w3),2)
   zemwavcal[*,*,4]=rotate(transpose(tilt),2)
  ; gpitve, zemwavcal & gpitv_activate
-  if fix(Modules[thisModuleIndex].gpitv) ne 0 then gpitv, zemwavcal
+  if fix(Modules[thisModuleIndex].gpitv) ne 0 then gpitve, zemwavcal 
   
   ;;create header
   mkhdr, hdr, zemwavcal
@@ -109,7 +111,7 @@ endelse
 
 
 ; gpitve, wavcal2-zemwavcal & gpitv_activate
- if fix(Modules[thisModuleIndex].gpitv) ne 0 then gpitv, wavcal2-zemwavcal 
+ if fix(Modules[thisModuleIndex].gpitv) ne 0 then stop ;gpitve, wavcal2-zemwavcal 
 diff=wavcal2-zemwavcal
 diffrel=100.*(wavcal2-zemwavcal)/wavcal2
 
@@ -128,17 +130,22 @@ print, 'mean diff x=',mean(diff[*,*,0],/nan),'y=',mean(diff[*,*,1],/nan)
 filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
 slash=strpos(filnm,path_sep(),/reverse_search)
 
-    fnameps=getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+filter+strc(zemwav)        
-  openps,fnameps+'.ps', xsize=17, ysize=27
+h=*(dataset.headers[numfile])
+testwav=SXPAR( h, 'TESTWAV',count=c1)
+if c1 ne 0 then testchr='nbpk'+strc(n_elements(strsplit(testwav,'/'))) else testchr=''
+
+    fnameps=getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+filter+testchr+strc(zemwav)        
+  openps,fnameps+'dst.ps', xsize=17, ysize=27
   !P.MULTI = [0, 1, 3, 0, 0] 
   PLOT, loc,hist1x, $ 
-   TITLE = 'Histogram of localization error ('+string(zemwav,format='(g4.3)')+'microns) for '+filename+'-wav.-solution '+filter+' band', $ 
+   TITLE = 'Histogram of localization error ('+string(zemwav,format='(g4.3)')+'um) for '+filename+'-wav.-solution '+filter+' band', $ 
     XTicklen=1.0, YTicklen=1.0, XGridStyle=1, YGridStyle=1, $
    XTITLE = 'localization difference (pix) , [bin_width='+string(((xmax-xmin)/fac),format='(F5.2)')+']', $ 
    YTITLE = 'Number of spectra of That Value' ,ystyle=9,linestyle=0 ,yrange=[0,max([hist1x,hist1y])]       
   OPLOT,loc,hist1y,linestyle=1
     ;legend,['x-positions (spectral axis)','y-positions'],linestyle=[0,1],box=0      ;,position=[-145,300]
     legend,['x-positions (spectral axis)','y-positions'],linestyle=[0,1],box=0
+    if c1 ne 0 then xyouts,-0.55,1000,'peak wav used:'+testwav 
     
     PLOT, locrel,histcoef, $ 
    TITLE = 'Histogram of linear coefficient relative error ('+string(zemwav,format='(g4.3)')+'microns) for '+filename+'-wav.-solution '+filter+' band', $ 
@@ -150,13 +157,13 @@ slash=strpos(filnm,path_sep(),/reverse_search)
    TITLE = 'Histogram of tilt error ('+string(zemwav,format='(g4.3)')+'microns) for '+filename+'-wav.-solution '+filter+' band', $ 
     XTicklen=1.0, YTicklen=1.0, XGridStyle=1, YGridStyle=1, $
    XTITLE = 'Tilt error [in degrees] , [bin_width='+string(((xmaxtilt-xmintilt)/bintilt),format='(F5.2)')+']', $ 
-   YTITLE = 'Number of spectra of That Value' ,ystyle=9,linestyle=0    
+   YTITLE = 'Number of spectra of That Value' ,ystyle=9,linestyle=0 , xrange=[-5.,5.] , psym=10  
     
   closeps  
-  
+ 
   ;plot dispersion for a specific spectrum
-  xs=65
-  ys=200
+  xs=137
+  ys=137
   xwav=fltarr(n_elements(zemdisplamraw))
   ywav=fltarr(n_elements(zemdisplamraw))
   xwavzem=fltarr(n_elements(zemdisplamraw))
@@ -170,29 +177,36 @@ slash=strpos(filnm,path_sep(),/reverse_search)
     wavcalind=change_wavcal_lambdaref( zemwavcal, zemdisplamraw[ind])
     xwavzem[ind]=wavcalind[xs,ys,0]
     ywavzem[ind]=wavcalind[xs,ys,1]
-    xzem[ind]=(rotate(transpose(zemdispX2[*,*,ind]),2)+4.)[xs,ys]
-    yzem[ind]=(rotate(transpose(zemdispY2[*,*,ind]),2)+4.)[xs,ys]
+    zemdispX3=zemdispX2[*,*,ind]
+    zemdispY3=zemdispY2[*,*,ind]
+    xzem[ind]=(rotate(transpose(zemdispX3),2)+4.)[xs,ys]
+    yzem[ind]=(rotate(transpose(zemdispY3),2)+4.)[xs,ys]
   endfor  
-  
-  openps,fnameps+'disp_x'+strc(xs)+'_y'+strc(ys)+'.ps', xsize=17, ysize=27
+ 
+  openps,fnameps+'disp_x'+strc(xs)+'_y'+strc(ys)+testchr+'dst.ps', xsize=17, ysize=27
    !P.MULTI = [0, 1, 2, 0, 0] 
    PLOT, zemdisplamraw,xwav, $ 
    TITLE = 'Dispersion X  for '+filename+'-wav.-solution '+filter+' band', $ 
    ;XTicklen=1.0, YTicklen=1.0, XGridStyle=1, YGridStyle=1, $
    XTITLE = 'Wavelength (microms)', $ 
-   YTITLE = 'X-coordinate' ,ystyle=9,linestyle=0 ,yrange=[min([xwav,xwavzem,xzem]),max([xwav,xwavzem,xzem])]       
-   oplot, zemdisplamraw, xwavzem,psym=1
+   YTITLE = 'X-coordinates [detector pixels]' ,ystyle=9,linestyle=0 ,yrange=[min([xwav,xwavzem,xzem]),max([xwav,xwavzem,xzem])]       
+   ;oplot, zemdisplamraw, xwavzem,psym=1
    oplot, zemdisplamraw, xzem,psym=4
-   legend, ['from detector image','from Zemax  linear wav solution','raw Zemax locations'],psym=[-0,1,4],  /bottom, /right
+   ;legend, ['from detector image','from Zemax  linear wav solution','raw Zemax locations'],psym=[-0,1,4],  /bottom, /right
+   legend, ['from detector image','raw Zemax locations'],psym=[-0,4],  /bottom, /right
+   xyouts,zemdisplamraw[4],xzem[34],'Maximal difference [detector pixels]= '+strcompress(string(max(abs(xwav-xzem))),/rem) 
    
    PLOT, zemdisplamraw,ywav, $ 
    TITLE = 'Dispersion Y  for '+filename+'-wav.-solution '+filter+' band', $ 
    ;XTicklen=1.0, YTicklen=1.0, XGridStyle=1, YGridStyle=1, $
    XTITLE = 'Wavelength (microms)', $ 
-   YTITLE = 'Y-coordinate' ,ystyle=9,linestyle=0 ,yrange=[min([ywav,ywavzem,yzem]),max([ywav,ywavzem,yzem])]            
-   oplot, zemdisplamraw, ywavzem,psym=1
+   YTITLE = 'Y-coordinates  [detector pixels]' ,ystyle=9,linestyle=0 ,yrange=[min([ywav,ywavzem,yzem]),max([ywav,ywavzem,yzem])]            
+   ;oplot, zemdisplamraw, ywavzem,psym=1
    oplot, zemdisplamraw, yzem,psym=4
-   legend, ['from detector image','from Zemax  linear wav solution','raw Zemax locations'],psym=[-0,1,4],  /bottom, /right
+   ;legend, ['from detector image','from Zemax  linear wav solution','raw Zemax locations'],psym=[-0,1,4],  /bottom, /right
+   legend, ['from detector image','raw Zemax locations'],psym=[-0,4],  /bottom, /right
+   xyouts,zemdisplamraw[4],yzem[34],'Maximal difference [detector pixels]= '+strcompress(string(max(abs(ywav-yzem))),/rem)
+   
   closeps 
    set_plot,'win'
 

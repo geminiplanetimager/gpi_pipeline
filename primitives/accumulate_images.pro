@@ -11,7 +11,7 @@
 ; OUTPUTS:
 ;
 ; PIPELINE COMMENT: Stores images for the combination routine
-; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="OnDisk|InMemory" Default="OnDisk" Desc="OnDisk|InMemory"
+; PIPELINE ARGUMENT: Name="Method" Type="string" Range="OnDisk|InMemory" Default="OnDisk" Desc="OnDisk|InMemory"
 ; PIPELINE ORDER: 4.0
 ; PIPELINE TYPE: ALL
 ; PIPELINE SEQUENCE: 02-03-11-23-24-
