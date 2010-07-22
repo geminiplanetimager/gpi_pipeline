@@ -10,52 +10,62 @@ import re
 
 
 class IFSController(object):
-    """ A class to implement an interface to the IFS, with appropriate checking and waiting etc. """
+    """ A class to implement an interface to the IFS, with appropriate checking and waiting etc. 
+    
+Main commands:
+    configureDetector(time_in_s, mode, nreads, ncoadds)
+    takeExposure(filename)  
+    moveMotor(axis, position)
+    initialize()    initializes the detector server & hardware
+    abortExposure()
+    
+    """
     def __init__(self, parent=None):
         self.parent=parent 
 
+        self.testMode = False  # should we just print commands without actually executing them?
+        self.writeall = True # are we writing ALL reads to disk? (does extra waiting if true)
 
         self.datestr=None
         self._check_datedir()
 
+
+    #--- class internal private commands follow ----
 
     def _check_datedir(self):
         """ Check the current YYMMDD output directory. Create it if necessary."""
         today = datetime.date.today()
         datestr = "%02d%02d%02d" % (today.year%100, today.month,today.day)
         if datestr != self.datestr:
-            self.log("New date - Updating date directory")
+            self._log("New date - Updating date directory")
             self.datestr = datestr
             self.datadir = '/net/hydrogen/data/projects/gpi/Detector/TestData'+os.sep+datestr
             if not os.path.isdir(self.datadir):
-                self.log("Creating directory "+self.datadir)
+                self._log("Creating directory "+self.datadir)
                 try:
                     os.mkdir(self.datadir)
                     os.chmod(self.datadir, 0755)
                 except:
-                    self.log("Could not create directory "+self.datadir)
+                    self._log("Could not create directory "+self.datadir)
 
-    def log(self,message):
+    def _log(self,message):
         """ Log a string, either by printing or by calling a higher level log function """
         if self.parent is not None:
             self.parent.log(message)
         else:
             print(message)
 
-    def runcmd(self, cmdstring):
+    def _runcmd(self, cmdstring):
         """ Execute a command. Log the command and its returned results. """
-        self.log(">    " +cmdstring)
+        self._log(">    " +cmdstring)
+        if self.testMode: return  # don't actually do anything
+
         sys.stdout.flush()   #make sure to flush output before starting subproc.
         p = subprocess.Popen(cmdstring, shell=True, stdout=subprocess.PIPE)
         stdout, stderr = p.communicate()
-        self.log(stdout)
+        self._log(stdout)
 
-    def configureDetector(self, time, mode, nreads, coadds=1):
-        self.log( "Configuring for %d %d %d %d" % (int(time*1000000.), mode, nreads, coadds)) 
-        self.runcmd('gpIfDetector_tester localhost configureExposure 0 %d %d %d %d' % (int(time*1000000.), mode, nreads, coadds))
-
-
-    def checkGMB(self, var='ifs.observation.exposureInProgress'):
+    def _checkGMB(self, var='ifs.observation.exposureInProgress'):
         """ Check the GMB and return the ifs.observation.cameraReady flag.
         Returns 1 if ready, 0 if not. 
         """
@@ -70,46 +80,64 @@ class IFSController(object):
         else:
             return  0
 
-    def checkGMB_camReady(self):
-        return self.checkGMB('ifs.observation.cameraReady')
+    def _checkGMB_camReady(self):
+        return self._checkGMB('ifs.observation.cameraReady')
 
-    def checkGMB_expInProgress(self):
-        return self.checkGMB('ifs.observation.exposureInProgress')
+    def _checkGMB_expInProgress(self):
+        return self._checkGMB('ifs.observation.exposureInProgress')
+
+    def _wait(self, sleeptime=1):
+        """ wait, while keeping the parent GUI alive if necessary """
+        for i in range(sleeptime*1):
+            time.sleep(1)
+            if self.parent is not None:
+                self.parent.root.update_idletasks()
+
+    #--- public interface commands follow ----
 
     def is_exposing(self):
-        return self.checkGMB_expInProgress()
+        return self._checkGMB_expInProgress()
+
+    def configureDetector(self, time, mode, nreads, coadds=1):
+        self._log( "Configuring for %d %d %d %d" % (int(time*1000000.), mode, nreads, coadds)) 
+        self._runcmd('gpIfDetector_tester localhost configureExposure 0 %d %d %d %d' % (int(time*1000000.), mode, nreads, coadds))
 
     def takeExposure(self, filename='test0001'):
         self._check_datedir()
 
         outpath = "Y:\\\\%s\\%s.fits" % (self.datestr, filename)
 
-        while self.checkGMB_expInProgress():
-            self.log("waiting for camera to be ready")
-            time.sleep(1)
+        while self._checkGMB_expInProgress():
+            self._log("waiting for camera to be ready")
+            self._wait(1)
 
-        self.runcmd('gpIfDetector_tester localhost startExposure "%s" 0' % outpath)
-        time.sleep(1) # wait for exposure to start before checking
+        self._runcmd('gpIfDetector_tester localhost startExposure "%s" 0' % outpath)
+        self._wait(1)# wait for exposure to start before checking
 
-        while self.checkGMB_expInProgress():
-            self.log("waiting for camera to finish exposing")
-            time.sleep(5)
+        while self._checkGMB_expInProgress():
+            self._log("waiting for camera to finish exposing")
+            self._wait(5)
 
-        self.log("waiting 30 s for FITS writing to finish")
-        if parent is None:
-            time.sleep(30)
-        else: # keep the GUI alive while waiting
-            for i in range(300):
-                time.sleep(0.1)
-                parent.root.update_idletasks()
+        if self.writeall:
+            self._log("waiting 30 s for FITS writing to finish")
+            self._wait(10)
+            self._log("waiting 20 s for FITS writing to finish")
+            self._wait(10)
+            self._log("waiting 10 s for FITS writing to finish")
+            self._wait(10)
 
-    def abort(self):
-        self.log("Abort is not implemented yet!")
+        self._log("Exposure complete!")
+
+    def abortExposure(self):
+        self._runcmd('gpIfDetector_tester localhost abortExposure 0' % outpath)
 
     def initialize(self):
-        #self.runcmd('startDetectorServerWindow &') # no, don't do this one
-        self.runcmd('gpIfDetector_tester localhost initializeServer $IFS_ROOT/config/gpIFDetector_cooldown08.cfg')
-        self.runcmd('gpIfDetector_tester localhost initializeHardware')
+        #self._runcmd('startDetectorServerWindow &') # no, don't do this one
+        self._runcmd('gpIfDetector_tester localhost initializeServer $IFS_ROOT/config/gpIFDetector_cooldown08.cfg')
+        self._runcmd('gpIfDetector_tester localhost initializeHardware')
+        self._log("Waiting 15 s for hardware to initialize")
+        self._wait(15)
+        self._log("Initialization complete.")
 
     def moveMotor(self,axis,position):
-        self.runcmd('$TLC_ROOT/scripts/gpMcdMove.csh 1 $MACHINE_NAME %d %d' % (int(axis), int(position)) 
+        self._runcmd('$TLC_ROOT/scripts/gpMcdMove.csh 1 $MACHINE_NAME %d %d' % (int(axis), int(position)) ) 

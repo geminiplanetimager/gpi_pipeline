@@ -103,16 +103,17 @@ class GPI_TempGUI(object):
 
         self._make_widgets()
 
-        self.oldfitslist=[]
+        self.oldfitsset=[]
 
         self.IFSController = gpiifs.IFSController(parent=self)
 
         self.datadir = self.IFSController.datadir # '/net/hydrogen/data/projects/gpi/Detector/TestData'+os.sep+self.entry_dir.get()
+        os.chdir(self.datadir)
+
         #if not os.path.isdir(self.datadir):
         #    self.log("Creating directory "+self.datadir)
         #    os.mkdir(self.datadir)
         #    os.chmod(self.datadir, 0755)
-        #os.chdir(self.datadir)
 
         self.file_logger=None
         self.logger = ViewLog(self.root, geometry='550x600+650+50',logpath=self.datadir)
@@ -272,7 +273,7 @@ class GPI_TempGUI(object):
 
     def doAbort(self):
         if  tkMessageBox.askokcancel(title="Confirm Abort",message="Are you sure you want to abort?"):
-            self.IFSController.abort()
+            self.IFSController.abortExposure()
 
     def configDet(self):
         parts = self.entry_mode.get().split()
@@ -319,23 +320,23 @@ class GPI_TempGUI(object):
             return
 
         directory = os.curdir
-        curlist = set(glob.glob(directory+os.sep+"*.fits"))
+        curfitsset = set(glob.glob(directory+os.sep+"*.fits"))
         if init:
             self.log("Now watching directory %s for new FITS files." % (self.datadir))
-            self.oldfitslist = curlist
-            #self.log("Ignoring already present FITS files" +' '.join(curlist))
-            self.log("Ignoring %d already present FITS files." % len(curlist))
+            self.oldfitsset = curfitsset
+            #self.log("Ignoring already present FITS files" +' '.join(curfitsset))
+            self.log("Ignoring %d already present FITS files." % len(curfitsset))
             return
 
 
-        newfiles = curlist - self.oldfitslist
+        newfiles = curfitsset - self.oldfitsset
         if len(newfiles) > 0:
             self.log("New FITS files!: "+ ' '.join(newfiles))
             for fn in newfiles: 
                 if self.updateKeywords(fn):
-                    self.oldfitslist.append(fn)
+                    self.oldfitsset.add(fn)
 
-        #self.oldfitslist=curlist
+        #self.oldfitsset=curfitsset
 
 
     def updateKeywords(self, filename):
