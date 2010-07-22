@@ -3,13 +3,10 @@ import os, sys
 import Tkinter
 import Tkinter as ttk
 from Tkinter import N,E,S,W
-#import Tix
 import ScrolledText
 import tkSimpleDialog
 import tkFileDialog, tkMessageBox
-import urllib,urllib2
 import re
-import tempfile
 import subprocess
 import glob
 import pyfits
@@ -18,8 +15,8 @@ import time
 
 import logging
 
-import zipfile
 
+import gpiifs
 
 
 #from IPython.Debugger import Tracer; stop = Tracer()
@@ -31,7 +28,12 @@ DEBUG=False
     #filenames=['pipeline_'+version+'.zip'] 
 
 ####################################
+
+
+####################################
+
 class GPIMechanism(object):
+    """ a wrapper class for a mechanism. Called to create each mech part of the GUI """
     def __init__(self, root, parent, name, positions, axis=0, keyword="KEYWORD",**formatting):
         self.name = name
         self.axis=axis
@@ -92,86 +94,6 @@ class GPIMechanism(object):
     def updatekey(self):
         return (self.keyword, self.value)
 
-
-
-
-####################################
-
-class IFSController(object):
-    """ A class to implement an interface to the IFS, with appropriate checking etc. """
-    def __init__(self, parent=None):
-        self.datestr=None
-        self._check_datedir()
-
-        self.parent=parent 
-
-    def _check_datedir(self):
-        today = datetime.date.today()
-        datestr = "%02d%02d%02d" % (today.year%100, today.month,today.day)
-        if datestr != self.datestr:
-            self.log("New date - Updating date directory")
-            self.datadir = '/net/hydrogen/data/projects/gpi/Detector/TestData'+os.sep+datestr
-            if not os.path.isdir(self.datadir):
-                self.log("Creating directory "+self.datadir)
-                os.mkdir(self.datadir)
-                os.chmod(self.datadir, 0755)
-     
-    def log(self,message):
-        """ Log a string, either by printing or by calling a higher level log function """
-        if parent is not None:
-            parent.log(message)
-        else:
-            print(message):
-
-    def runcmd(self):
-        """ Execute a command. Log the command and its returned results. """
-        self.log(">    " +cmdstring)
-        sys.stdout.flush()   #make sure to flush output before starting subproc.
-        p = subprocess.Popen(cmdstring, shell=True, stdout=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-        self.log(stdout)
-
-    def configureDetector( time, mode, nreads, coadds=1):
-        self.runcmd('gpIfDetector_tester localhost configureExposure 0 %d %d %d %d' % (time*1000000., mode, nreads, coadds))
-
-    def checkGMB_camReady(self):
-        """ Check the GMB and return the ifs.observation.cameraReady flag.
-        Returns 1 if ready, 0 if not. 
-        """
-
-        cmd = '$TLC_ROOT/bin/linux64/gpUtGmbReadVal -sim -connectAs IFS -name ifs.observation.exposureInProgress'
-
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-        r = re.search(' = <([0-1])>',stdout)
-        if r is not None:
-            return 1-int(r.group(1))
-        else:
-            return  0
-
-
-    def takeExposure(self, filename='test0001'):
-        self._check_datedir()
-        datestr = "%02d%02d%02d" % (today.year%100, today.month,today.day)
-
-        #outpath = "Y:\\\\%s\\darktests_%04d.fits" % (datestr, counter)
-        outpath = "Y:\\\\%s\\%s.fits" % (self.datestr, filename)
-
-        while not checkGMB_camReady():
-            print "waiting for camera to be ready"
-            time.sleep(1)
-
-        runcmd('gpIfDetector_tester localhost startExposure "%s" 0' % outpath)
-
-        while not checkGMB_camReady():
-            print "waiting for camera to finish exposing"
-            time.sleep(5)
-
-        print "waiting 30 s for FITS writing to finish"
-        time.sleep(30)
-
-
-
 ####################################
 
 class GPI_TempGUI(object):
@@ -184,14 +106,14 @@ class GPI_TempGUI(object):
 
         self.oldfitslist=[]
 
-        self.IFSController = IFSController(parent=self)
+        self.IFSController = gpiifs.IFSController(parent=self)
 
-        self.datadir = '/net/hydrogen/data/projects/gpi/Detector/TestData'+os.sep+self.entry_dir.get()
-        if not os.path.isdir(self.datadir):
-            self.log("Creating directory "+self.datadir)
-            os.mkdir(self.datadir)
-            os.chmod(self.datadir, 0755)
-        os.chdir(self.datadir)
+        self.datadir = self.IFSController.datadir # '/net/hydrogen/data/projects/gpi/Detector/TestData'+os.sep+self.entry_dir.get()
+        #if not os.path.isdir(self.datadir):
+        #    self.log("Creating directory "+self.datadir)
+        #    os.mkdir(self.datadir)
+        #    os.chmod(self.datadir, 0755)
+        #os.chdir(self.datadir)
 
         self.file_logger=None
         self.logger = ViewLog(self.root, geometry='550x600+650+50',logpath=self.datadir)
@@ -350,21 +272,22 @@ class GPI_TempGUI(object):
 
     def startSW(self):
         if  tkMessageBox.askokcancel(title="Confirm Start & Init",message="Are you sure you want to start the servers and initialize the hardware?"):
-            #self.runcmd('startDetectorServerWindow &')
-            self.runcmd('gpIfDetector_tester localhost initializeServer $IFS_ROOT/config/gpIFDetector_cooldown08.cfg')
-            self.runcmd('gpIfDetector_tester localhost initializeHardware')
+            self.IFSController.initialize()
 
 
     def configDet(self):
+        parts = self.entry_mode.get().split()
 
-        self.runcmd('gpIfDetector_tester localhost configureExposure 0 %d %s' % (  int(float(self.entry_itime.get())*1000000.), self.entry_mode.get()    ) )
+        self.IFSController.configureDetector( float(self.entry_itime.get())*1000000., parts[0], parts[1], parts[2] )
+        #self.runcmd('gpIfDetector_tester localhost configureExposure 0 %d %s' % (  float(self.entry_itime.get())*1000000., ) )
 
     def takeImage(self):
 
-        outpath = "Y:\\\\%s\\%s.fits" % (self.entry_dir.get(), self.entry_fn.get())
-        self.log("Taking an exposure to %s" % outpath)
+        self.IFSController.takeExposure(self.entry_fn.get() )
+        #outpath = "Y:\\\\%s\\%s.fits" % (self.entry_dir.get(), self.entry_fn.get())
+        #self.log("Taking an exposure to %s" % outpath)
 
-        self.runcmd('gpIfDetector_tester localhost startExposure "%s" 0' % outpath)
+        #self.runcmd('gpIfDetector_tester localhost startExposure "%s" 0' % outpath)
 
         #increment the filename:
         m =  re.search('(.*?)([0-9]+)',self.entry_fn.get())
@@ -374,39 +297,37 @@ class GPI_TempGUI(object):
             self.entry_fn.delete(0,Tkinter.END)
             self.entry_fn.insert(0,newfn)
 
-
-        #self.log("Not implemented yet!")
-
-    def is_camera_exposing(self):
-        """ check GMB to see if exposure is in progress. 
-	returns 1 if camera is exposing, 0 if not.  """
-	
-        vars = ['ifs.observation.cameraReady', 'ifs.observation.exposureInProgress']
-
-        results = []
-	for v in vars: 
-            cmd = '$TLC_ROOT/bin/linux64/gpUtGmbReadVal -sim -connectAs IFS -name '+v
-            p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            stdout, stderr = p.communicate()
-            r = re.search(' = <([0-1])>',stdout)
-            if r is not None:
-                results.append(int(r.group(1)))
-                #self.log(" %s = %d" % (v, int(r.group(1))) )
-        return results[1]
-    
+#
+#    def is_camera_exposing(self):
+#        """ check GMB to see if exposure is in progress. 
+#    returns 1 if camera is exposing, 0 if not.  """
+#    
+#        vars = ['ifs.observation.cameraReady', 'ifs.observation.exposureInProgress']
+#
+#        results = []
+#    for v in vars: 
+#            cmd = '$TLC_ROOT/bin/linux64/gpUtGmbReadVal -sim -connectAs IFS -name '+v
+#            p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#            stdout, stderr = p.communicate()
+#            r = re.search(' = <([0-1])>',stdout)
+#            if r is not None:
+#                results.append(int(r.group(1)))
+#                #self.log(" %s = %d" % (v, int(r.group(1))) )
+#        return results[1]
+#    
  
-    def checkGMB(self):
-        cmd = '$TLC_ROOT/bin/linux64/gpUtGmbReadVal -sim -connectAs IFS -name ifs.observation.cameraReady'
-
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-        self.log('>>    '+cmd)
-        self.log('      '+stdout)
-        r = re.search(' = <([0-1])>',stdout)
-        if r is not None:
-            self.log("    VALUE = %s" % r.group(1)) 
-        
-
+#    def checkGMB(self):
+#        cmd = '$TLC_ROOT/bin/linux64/gpUtGmbReadVal -sim -connectAs IFS -name ifs.observation.cameraReady'
+#
+#        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#        stdout, stderr = p.communicate()
+#        self.log('>>    '+cmd)
+#        self.log('      '+stdout)
+#        r = re.search(' = <([0-1])>',stdout)
+#        if r is not None:
+#            self.log("    VALUE = %s" % r.group(1)) 
+#        
+#
 
     def printKeywords(self):
         keywords = ['TARGET','COMMENTS','OBSERVER']
@@ -428,10 +349,9 @@ class GPI_TempGUI(object):
 
     def watchDir(self,init=False):
         self.watchid = self.root.after(1000,self.watchDir)
-        #self.log('.')
 
 
-        if self.is_camera_exposing(): 
+        if self.IFSController.is_camera_exposing(): 
             self.log(' still exposing - waiting.')
             return
 
@@ -462,10 +382,10 @@ class GPI_TempGUI(object):
             size = os.path.getsize(filename)
             while ((size != 8392320 ) & (size != 16784640)):
                 self.log('file %s not fully written to disk yet - waiting.' % filename)
-		for i in range(5):
-	            self.root.update_idletasks() # process events!
-       	            time.sleep(0.1)
-            	size = os.path.getsize(filename)
+                for i in range(5):
+                    self.root.update_idletasks() # process events!
+                    time.sleep(0.1)
+                size = os.path.getsize(filename)
 
             
             f = pyfits.open(filename,mode='update')
@@ -499,14 +419,11 @@ class GPI_TempGUI(object):
     def log(self, message):
         if self.logger is not None:
             self.logger.log(message)
-        #self.root.update_idletasks() # process events!
 
         
 
 #######################################################################     
 
-
-           
 class ViewLog(tkSimpleDialog.Dialog):
     """ Display log messages of a program """
 
@@ -589,11 +506,9 @@ class ViewLog(tkSimpleDialog.Dialog):
         self.t.configure(state=Tkinter.DISABLED)
         self.t.see(Tkinter.END)
 
-
 #######################################################################     
 
 if __name__ == "__main__":
-
 
     g = GPI_TempGUI()
 
