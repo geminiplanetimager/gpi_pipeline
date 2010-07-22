@@ -54,10 +54,10 @@ class IFSController(object):
         self.runcmd('gpIfDetector_tester localhost configureExposure 0 %d %d %d %d' % (int(time*1000000.), mode, nreads, coadds))
 
     def checkGMB_camReady(self):
-        return self.checkGMB(ifs.observation.cameraReady)
+        return self.checkGMB('ifs.observation.cameraReady')
 
     def checkGMB_expInProgress(self):
-        return self.checkGMB(ifs.observation.exposureInProgress)
+        return self.checkGMB('ifs.observation.exposureInProgress')
 
 
     def checkGMB(self, var='ifs.observation.exposureInProgress'):
