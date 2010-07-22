@@ -22,10 +22,6 @@ import gpiifs
 #from IPython.Debugger import Tracer; stop = Tracer()
 
 
-# Helpful flag:
-DEBUG=False
-#if DEBUG:
-    #filenames=['pipeline_'+version+'.zip'] 
 
 ####################################
 
@@ -97,23 +93,16 @@ class GPIMechanism(object):
 class GPI_TempGUI(object):
     def __init__(self, logger=None):
 
-        self.DEBUG=DEBUG
-        self.logger = None # needed so attribute is defined when creating IFSController
-
+        self.logger = None # needed so attribute is defined before creating IFSController
 
         self._make_widgets()
 
-        self.oldfitsset=[]
+        self.oldfitsset=set([])
 
         self.IFSController = gpiifs.IFSController(parent=self)
 
         self.datadir = self.IFSController.datadir # '/net/hydrogen/data/projects/gpi/Detector/TestData'+os.sep+self.entry_dir.get()
         os.chdir(self.datadir)
-
-        #if not os.path.isdir(self.datadir):
-        #    self.log("Creating directory "+self.datadir)
-        #    os.mkdir(self.datadir)
-        #    os.chmod(self.datadir, 0755)
 
         self.file_logger=None
         self.logger = ViewLog(self.root, geometry='550x600+650+50',logpath=self.datadir)
@@ -127,10 +116,9 @@ class GPI_TempGUI(object):
         self.watchid=None
         self.watchDir(init=True)
 
-
         self.root.protocol("WM_DELETE_WINDOW", self.quit)
         self.root.update()
-        
+
     def _make_widgets(self):
 
         self.root = Tkinter.Tk()
@@ -174,23 +162,21 @@ class GPI_TempGUI(object):
         #----
         mframe = ttk.LabelFrame(frame, text="Header Keywords:", padx=2, pady=2, bd=2, relief=Tkinter.GROOVE) #padding=(10,10,10,10)) #, padx=10, pady=10)
 
-                                                                            
         mr=0
         ttk.Label(mframe,text="TARGET:",  **formatting).grid(row=mr,column=1, stick=N+E+S+W)
         self.entry_target = ttk.Entry(mframe, )
         self.entry_target.grid(row=mr,column=2,stick=N+E+S+W)
         mr=mr+1
-   
+
         ttk.Label(mframe,text="COMMENTS:",  **formatting).grid(row=mr,column=1, stick=N+E+S+W)
         self.entry_comment = ttk.Entry(mframe, )
         self.entry_comment.grid(row=mr,column=2,stick=N+E+S+W)
         mr=mr+1
-   
+
         ttk.Label(mframe,text="OBSERVER:",  **formatting).grid(row=mr,column=1, stick=N+E+S+W)
         self.entry_obs= ttk.Entry(mframe, )
         self.entry_obs.grid(row=mr,column=2,stick=N+E+S+W)
         mr=mr+1
- 
 
         mframe.grid(row=r,stick=E+W) 
         r=r+1
@@ -199,7 +185,6 @@ class GPI_TempGUI(object):
         mframe = ttk.LabelFrame(frame, text="Actions:", padx=2, pady=2, bd=2, relief=Tkinter.GROOVE) #padding=(10,10,10,10)) #, padx=10, pady=10)
 
         mr=0
-
         ttk.Label(mframe, justify=Tkinter.LEFT, text=" Modes: 1=single, 2=CDS, 3=MCDS, 4=UTR ", 
               **formatting).grid(row=mr, columnspan=3, stick=W+E)
         mr=mr+1
@@ -209,7 +194,6 @@ class GPI_TempGUI(object):
         self.entry_mode.grid(row=mr,column=2,stick=N+E+S+W)
         self.entry_mode.insert(0,"2 2 1")
         mr=mr+1
-
 
         ttk.Label(mframe,text="ITIME:",  **formatting).grid(row=mr,column=1, stick=W)
         self.entry_itime = ttk.Entry(mframe,  width=10, )
@@ -236,7 +220,7 @@ class GPI_TempGUI(object):
  
         buttonbar = ttk.Frame(mframe, **formatting)
         buttonbar.grid(row=mr,column=0, columnspan=3)
-        ttk.Button(buttonbar, text="Start & Init", command=self.startSW, **formatting).grid(row=0,column=0)
+        ttk.Button(buttonbar, text="Initialize", command=self.startSW, **formatting).grid(row=0,column=0)
         ttk.Button(buttonbar, text="Configure", command=self.configDet, **formatting).grid(row=0,column=1)
         ttk.Button(buttonbar, text="Take Image", command=self.takeImage, **formatting).grid(row=0,column=2)
         ttk.Button(buttonbar, text="Print Keywords", command=self.printKeywords, **formatting).grid(row=0,column=3)
@@ -460,17 +444,20 @@ class ViewLog(tkSimpleDialog.Dialog):
         print "logger closed"
 
 
-    def log(self, message, log_level=logging.INFO):
+    def log(self, message, log_level=logging.INFO,nonewline=False):
         # write to file
         if self.file_logger is not None:
             self.file_logger.log(log_level, message)
         # and to screen
-        self.addText(message)
+        self.addText(message,nonewline=nonewline)
 
 
-    def addText(self,newtext):
+    def addText(self,newtext, nonewline=False):
         self.t.configure(state=Tkinter.NORMAL)
-        self.t.insert(Tkinter.END, newtext+"\n")
+        if nonewline:
+            self.t.insert(Tkinter.END, newtext)
+        else:
+            self.t.insert(Tkinter.END, newtext+"\n")
         self.t.configure(state=Tkinter.DISABLED)
         self.t.see(Tkinter.END)
 
@@ -479,8 +466,5 @@ class ViewLog(tkSimpleDialog.Dialog):
 if __name__ == "__main__":
 
     g = GPI_TempGUI()
-
-
     g.mainloop()
 
-    

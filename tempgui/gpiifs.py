@@ -12,12 +12,13 @@ import re
 class IFSController(object):
     """ A class to implement an interface to the IFS, with appropriate checking and waiting etc. 
     
-Main commands:
+Public commands:
+    initialize()            initializes the detector server & hardware
     configureDetector(time_in_s, mode, nreads, ncoadds)
     takeExposure(filename)  
     moveMotor(axis, position)
-    initialize()    initializes the detector server & hardware
-    abortExposure()
+    abortExposure()         aborts
+    is_exposing()           returns True or False, as appropriate
     
     """
     def __init__(self, parent=None):
@@ -48,12 +49,22 @@ Main commands:
                 except:
                     self._log("Could not create directory "+self.datadir)
 
-    def _log(self,message):
+    def _log(self,message,nonewline=False):
         """ Log a string, either by printing or by calling a higher level log function """
         if self.parent is not None:
-            self.parent.log(message)
+            self.parent.log(message,nonewline=nonewline)
         else:
             print(message)
+
+    def _dot(self):
+        """ print a dot."""
+        if self.parent is not None:
+            self.parent.log(".",nonewline=True)
+        else:
+            print ".",
+
+
+
 
     def _runcmd(self, cmdstring):
         """ Execute a command. Log the command and its returned results. """
@@ -92,7 +103,6 @@ Main commands:
             time.sleep(1)
             if self.parent is not None:
                 self.parent.root.update_idletasks()
-
     #--- public interface commands follow ----
 
     def is_exposing(self):
@@ -107,24 +117,34 @@ Main commands:
 
         outpath = "Y:\\\\%s\\%s.fits" % (self.datestr, filename)
 
-        while self._checkGMB_expInProgress():
-            self._log("waiting for camera to be ready")
-            self._wait(1)
+        if self._checkGMB_expInProgress():
+            self._log("waiting for camera to be ready",nonewline=True)
+            while self._checkGMB_expInProgress():
+                self._wait(1)
+                self._dot()
+            self._log("") # add newline after dots.
 
         self._runcmd('gpIfDetector_tester localhost startExposure "%s" 0' % outpath)
         self._wait(1)# wait for exposure to start before checking
 
-        while self._checkGMB_expInProgress():
+        if self._checkGMB_expInProgress():
             self._log("waiting for camera to finish exposing")
-            self._wait(5)
+            while self._checkGMB_expInProgress():
+                self._wait(1)
+                self._dot()
+            self._log("") # add newline after dots.
 
         if self.writeall:
-            self._log("waiting 30 s for FITS writing to finish")
-            self._wait(10)
-            self._log("waiting 20 s for FITS writing to finish")
-            self._wait(10)
-            self._log("waiting 10 s for FITS writing to finish")
-            self._wait(10)
+            self._log("waiting 30 s for FITS writing to finish",nonewline=True)
+            for i in range(30):
+                self._wait(1)
+                self._dot()
+
+#            self._wait(10)
+#            self._log("waiting 20 s for FITS writing to finish")
+#            self._wait(10)
+#            self._log("waiting 10 s for FITS writing to finish")
+#            self._wait(10)
 
         self._log("Exposure complete!")
 
