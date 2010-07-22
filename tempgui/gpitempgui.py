@@ -100,6 +100,7 @@ class GPI_TempGUI(object):
     def __init__(self, logger=None):
 
         self.DEBUG=DEBUG
+        self.logger = None # needed so attribute is defined when creating IFSController
 
 
         self._make_widgets()
@@ -278,7 +279,7 @@ class GPI_TempGUI(object):
     def configDet(self):
         parts = self.entry_mode.get().split()
 
-        self.IFSController.configureDetector( float(self.entry_itime.get())*1000000., parts[0], parts[1], parts[2] )
+        self.IFSController.configureDetector( float(self.entry_itime.get())*1000000., int(parts[0]), int(parts[1]), int(parts[2]) )
         #self.runcmd('gpIfDetector_tester localhost configureExposure 0 %d %s' % (  float(self.entry_itime.get())*1000000., ) )
 
     def takeImage(self):
@@ -316,7 +317,10 @@ class GPI_TempGUI(object):
 #        return results[1]
 #    
  
-#    def checkGMB(self):
+    def checkGMB(self):
+        val = self.IFSController.checkGMB_camReady()
+        self.log("    VALUE = %s" % string(val)) 
+
 #        cmd = '$TLC_ROOT/bin/linux64/gpUtGmbReadVal -sim -connectAs IFS -name ifs.observation.cameraReady'
 #
 #        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -368,26 +372,28 @@ class GPI_TempGUI(object):
         newfiles = curlist - self.oldfitslist
         if len(newfiles) > 0:
             self.log("New FITS files!: "+ ' '.join(newfiles))
-            for fn in newfiles: self.updateKeywords(fn)
+            for fn in newfiles: 
+                if self.updateKeywords(fn):
+                    self.oldfitslist.append(fn)
 
-        self.oldfitslist=curlist
+        #self.oldfitslist=curlist
 
 
     def updateKeywords(self, filename):
-        #try:
-        if 1:
+        try:
+        #if 1:
             # need to watch out for network latency/long compute times meaning that
             # the files are not fully written yet. In that case, wait for the write to finish.
             # FIXME - this code could be more robust, to avoid infinite loop potential etc
             size = os.path.getsize(filename)
             while ((size != 8392320 ) & (size != 16784640)):
                 self.log('file %s not fully written to disk yet - waiting.' % filename)
-                for i in range(5):
-                    self.root.update_idletasks() # process events!
-                    time.sleep(0.1)
-                size = os.path.getsize(filename)
+                return False
+                #for i in range(5):
+                    #self.root.update_idletasks() # process events!
+                    #time.sleep(0.1)
+                #size = os.path.getsize(filename)
 
-            
             f = pyfits.open(filename,mode='update')
             if 'TARGET' not in f[0].header.keys():  # check if it's already been updated
                 keywords = ['TARGET','COMMENTS','OBSERVER']
@@ -400,10 +406,12 @@ class GPI_TempGUI(object):
                     f[0].header.update(*m.updatekey() )
                 self.log("Updated FITS keywords in %s" % filename) 
             f.close()
+            return True # either we updated it or it was already updated
      
 
-        #except:
-            #self.log("ERROR: could not update FITS keywords in %s" % filename)
+        except:
+            self.log("ERROR: could not update FITS keywords in %s" % filename)
+            return False
 
     def _set_initial_filename(self):
         i=1

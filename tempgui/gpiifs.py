@@ -54,6 +54,13 @@ class IFSController(object):
         self.runcmd('gpIfDetector_tester localhost configureExposure 0 %d %d %d %d' % (int(time*1000000.), mode, nreads, coadds))
 
     def checkGMB_camReady(self):
+        return self.checkGMB(ifs.observation.cameraReady)
+
+    def checkGMB_expInProgress(self):
+        return self.checkGMB(ifs.observation.exposureInProgress)
+
+
+    def checkGMB(self, var='ifs.observation.exposureInProgress'):
         """ Check the GMB and return the ifs.observation.cameraReady flag.
         Returns 1 if ready, 0 if not. 
         """
@@ -64,12 +71,12 @@ class IFSController(object):
         stdout, stderr = p.communicate()
         r = re.search(' = <([0-1])>',stdout)
         if r is not None:
-            return 1-int(r.group(1))
+            return int(r.group(1))
         else:
             return  0
 
-    def is_camera_exposing():
-        return self.checkGMB_camReady() == 0
+    def is_camera_exposing(self):
+        return self.checkGMB_expInProgress()
 
     def takeExposure(self, filename='test0001'):
         self._check_datedir()
@@ -78,13 +85,13 @@ class IFSController(object):
         #outpath = "Y:\\\\%s\\darktests_%04d.fits" % (datestr, counter)
         outpath = "Y:\\\\%s\\%s.fits" % (self.datestr, filename)
 
-        while not self.checkGMB_camReady():
+        while self.checkGMB_expInProgress():
             self.log("waiting for camera to be ready")
             time.sleep(1)
 
         self.runcmd('gpIfDetector_tester localhost startExposure "%s" 0' % outpath)
 
-        while not checkGMB_camReady():
+        while self.checkGMB_expInProgress():
             self.log("waiting for camera to finish exposing")
             time.sleep(5)
 
