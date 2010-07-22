@@ -30,7 +30,6 @@ DEBUG=False
 ####################################
 
 
-####################################
 
 class GPIMechanism(object):
     """ a wrapper class for a mechanism. Called to create each mech part of the GUI """
@@ -65,8 +64,6 @@ class GPIMechanism(object):
 
         self.parent=parent
 
-
-        
     def move(self):
         if self.type == 'Discrete':
             sel = self.list.curselection()
@@ -74,7 +71,7 @@ class GPIMechanism(object):
                 self.parent.log( "Nothing selected!")
             else:
                 val = self.pos_names[int(self.list.curselection()[0])]
-    
+
                 pos = self.positions[val]
                 self.parent.log( "MOVE! motor: %s \t position %d \titem: %s " % (self.name,pos, val))
                 self.value=val
@@ -85,7 +82,8 @@ class GPIMechanism(object):
             self.pos.config(text="%10d" % (pos))
             self.parent.log("MOVE! motor: %s \tposition %d" % (self.name, pos))
 
-        self.parent.runcmd('$TLC_ROOT/scripts/gpMcdMove.csh 1 $MACHINE_NAME %d %d' % (self.axis, pos) )
+        #self.parent.IFSController.runcmd('$TLC_ROOT/scripts/gpMcdMove.csh 1 $MACHINE_NAME %d %d' % (self.axis, pos) )
+        self.parent.IFSController.moveMotor(self.axis, pos) 
 
 
     def printkey(self):
@@ -241,7 +239,7 @@ class GPI_TempGUI(object):
         ttk.Button(buttonbar, text="Configure", command=self.configDet, **formatting).grid(row=0,column=1)
         ttk.Button(buttonbar, text="Take Image", command=self.takeImage, **formatting).grid(row=0,column=2)
         ttk.Button(buttonbar, text="Print Keywords", command=self.printKeywords, **formatting).grid(row=0,column=3)
-        ttk.Button(buttonbar, text="GMB", command=self.checkGMB, **formatting).grid(row=0,column=4)
+        ttk.Button(buttonbar, text="Abort", command=self.doAbort, **formatting).grid(row=0,column=4)
         ttk.Button(buttonbar, text="Quit", command=self.quit, **formatting).grid(row=0,column=5)
 
         mframe.grid(row=r,stick=E+W) 
@@ -261,12 +259,9 @@ class GPI_TempGUI(object):
             self.log(' User quit GPITempGUI.py ')
             self.log(' ' )
 
-            # NO - don't do this - leave the detector server running so we can just restart the GUI
-            #self.runcmd('gpIfDetector_tester localhost shutdown 1')
 
             if self.watchid is not None:
                 self.root.after_cancel(self.watchid)
-            #self.logger.root.destroy()
             del self.logger
             self.root.destroy()
 
@@ -275,20 +270,16 @@ class GPI_TempGUI(object):
         if  tkMessageBox.askokcancel(title="Confirm Start & Init",message="Are you sure you want to start the servers and initialize the hardware?"):
             self.IFSController.initialize()
 
+    def doAbort(self):
+        if  tkMessageBox.askokcancel(title="Confirm Abort",message="Are you sure you want to abort?"):
+            self.IFSController.abort()
 
     def configDet(self):
         parts = self.entry_mode.get().split()
-
-        self.IFSController.configureDetector( float(self.entry_itime.get())*1000000., int(parts[0]), int(parts[1]), int(parts[2]) )
-        #self.runcmd('gpIfDetector_tester localhost configureExposure 0 %d %s' % (  float(self.entry_itime.get())*1000000., ) )
+        self.IFSController.configureDetector( float(self.entry_itime.get()), int(parts[0]), int(parts[1]), int(parts[2]) )
 
     def takeImage(self):
-
         self.IFSController.takeExposure(self.entry_fn.get() )
-        #outpath = "Y:\\\\%s\\%s.fits" % (self.entry_dir.get(), self.entry_fn.get())
-        #self.log("Taking an exposure to %s" % outpath)
-
-        #self.runcmd('gpIfDetector_tester localhost startExposure "%s" 0' % outpath)
 
         #increment the filename:
         m =  re.search('(.*?)([0-9]+)',self.entry_fn.get())
@@ -298,40 +289,10 @@ class GPI_TempGUI(object):
             self.entry_fn.delete(0,Tkinter.END)
             self.entry_fn.insert(0,newfn)
 
-#
-#    def is_camera_exposing(self):
-#        """ check GMB to see if exposure is in progress. 
-#    returns 1 if camera is exposing, 0 if not.  """
-#    
-#        vars = ['ifs.observation.cameraReady', 'ifs.observation.exposureInProgress']
-#
-#        results = []
-#    for v in vars: 
-#            cmd = '$TLC_ROOT/bin/linux64/gpUtGmbReadVal -sim -connectAs IFS -name '+v
-#            p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-#            stdout, stderr = p.communicate()
-#            r = re.search(' = <([0-1])>',stdout)
-#            if r is not None:
-#                results.append(int(r.group(1)))
-#                #self.log(" %s = %d" % (v, int(r.group(1))) )
-#        return results[1]
-#    
- 
     def checkGMB(self):
         val = self.IFSController.checkGMB_camReady()
         self.log("    VALUE = %s" % string(val)) 
 
-#        cmd = '$TLC_ROOT/bin/linux64/gpUtGmbReadVal -sim -connectAs IFS -name ifs.observation.cameraReady'
-#
-#        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-#        stdout, stderr = p.communicate()
-#        self.log('>>    '+cmd)
-#        self.log('      '+stdout)
-#        r = re.search(' = <([0-1])>',stdout)
-#        if r is not None:
-#            self.log("    VALUE = %s" % r.group(1)) 
-#        
-#
 
     def printKeywords(self):
         keywords = ['TARGET','COMMENTS','OBSERVER']
@@ -339,7 +300,6 @@ class GPI_TempGUI(object):
         self.log('-- keywords --')
         for k, e in zip(keywords, entries):
             self.log("%8s = '%s'" % (k, e.get()))
-        
         for m in self.motors:
             m.printkey()
         self.log(' ')
@@ -354,8 +314,7 @@ class GPI_TempGUI(object):
     def watchDir(self,init=False):
         self.watchid = self.root.after(1000,self.watchDir)
 
-
-        if self.IFSController.is_camera_exposing(): 
+        if self.IFSController.is_exposing(): 
             self.log(' still exposing - waiting.')
             return
 

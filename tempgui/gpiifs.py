@@ -10,7 +10,7 @@ import re
 
 
 class IFSController(object):
-    """ A class to implement an interface to the IFS, with appropriate checking etc. """
+    """ A class to implement an interface to the IFS, with appropriate checking and waiting etc. """
     def __init__(self, parent=None):
         self.parent=parent 
 
@@ -20,6 +20,7 @@ class IFSController(object):
 
 
     def _check_datedir(self):
+        """ Check the current YYMMDD output directory. Create it if necessary."""
         today = datetime.date.today()
         datestr = "%02d%02d%02d" % (today.year%100, today.month,today.day)
         if datestr != self.datestr:
@@ -33,7 +34,7 @@ class IFSController(object):
                     os.chmod(self.datadir, 0755)
                 except:
                     self.log("Could not create directory "+self.datadir)
-     
+
     def log(self,message):
         """ Log a string, either by printing or by calling a higher level log function """
         if self.parent is not None:
@@ -53,12 +54,6 @@ class IFSController(object):
         self.log( "Configuring for %d %d %d %d" % (int(time*1000000.), mode, nreads, coadds)) 
         self.runcmd('gpIfDetector_tester localhost configureExposure 0 %d %d %d %d' % (int(time*1000000.), mode, nreads, coadds))
 
-    def checkGMB_camReady(self):
-        return self.checkGMB('ifs.observation.cameraReady')
-
-    def checkGMB_expInProgress(self):
-        return self.checkGMB('ifs.observation.exposureInProgress')
-
 
     def checkGMB(self, var='ifs.observation.exposureInProgress'):
         """ Check the GMB and return the ifs.observation.cameraReady flag.
@@ -75,14 +70,18 @@ class IFSController(object):
         else:
             return  0
 
-    def is_camera_exposing(self):
+    def checkGMB_camReady(self):
+        return self.checkGMB('ifs.observation.cameraReady')
+
+    def checkGMB_expInProgress(self):
+        return self.checkGMB('ifs.observation.exposureInProgress')
+
+    def is_exposing(self):
         return self.checkGMB_expInProgress()
 
     def takeExposure(self, filename='test0001'):
         self._check_datedir()
-        #datestr = "%02d%02d%02d" % (today.year%100, today.month,today.day)
 
-        #outpath = "Y:\\\\%s\\darktests_%04d.fits" % (datestr, counter)
         outpath = "Y:\\\\%s\\%s.fits" % (self.datestr, filename)
 
         while self.checkGMB_expInProgress():
@@ -90,16 +89,27 @@ class IFSController(object):
             time.sleep(1)
 
         self.runcmd('gpIfDetector_tester localhost startExposure "%s" 0' % outpath)
+        time.sleep(1) # wait for exposure to start before checking
 
         while self.checkGMB_expInProgress():
             self.log("waiting for camera to finish exposing")
             time.sleep(5)
 
         self.log("waiting 30 s for FITS writing to finish")
-        time.sleep(30)
+        if parent is None:
+            time.sleep(30)
+        else: # keep the GUI alive while waiting
+            for i in range(300):
+                time.sleep(0.1)
+                parent.root.update_idletasks()
+
+    def abort(self):
+        self.log("Abort is not implemented yet!")
 
     def initialize(self):
-        #self.runcmd('startDetectorServerWindow &')
+        #self.runcmd('startDetectorServerWindow &') # no, don't do this one
         self.runcmd('gpIfDetector_tester localhost initializeServer $IFS_ROOT/config/gpIFDetector_cooldown08.cfg')
         self.runcmd('gpIfDetector_tester localhost initializeHardware')
 
+    def moveMotor(self,axis,position):
+        self.runcmd('$TLC_ROOT/scripts/gpMcdMove.csh 1 $MACHINE_NAME %d %d' % (int(axis), int(position)) 
