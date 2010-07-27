@@ -101,6 +101,8 @@ class GPI_TempGUI(object):
         self.logger = None # needed so attribute is defined before creating IFSController
 
         self._make_widgets()
+        self.last_image_fn=""
+        self.last_pupil_fn=""
 
         self.oldfitsset=set([])
 
@@ -122,6 +124,7 @@ class GPI_TempGUI(object):
         self.IFSController = gpiifs.IFSController(parent=self)
 
         self._set_initial_filename()
+        self._set_initial_pupil_filename()
         self.watchid=None
         self.watchDir(init=True)
 
@@ -213,7 +216,7 @@ class GPI_TempGUI(object):
         ttk.Label(mframe,text="s",  **formatting).grid(row=mr,column=2, stick=N+E+S+W)
         mr=mr+1
 
-        ttk.Label(mframe,text="Filename:",  **formatting).grid(row=mr,column=0, stick=W)
+        ttk.Label(mframe,text="Next Filename:",  **formatting).grid(row=mr,column=0, stick=W)
         self.entry_fn = ttk.Entry(mframe,  width=10, )
         self.entry_fn.grid(row=mr,column=1,stick=N+E+S+W)
         self.entry_fn.insert(0,'test0001')
@@ -227,6 +230,7 @@ class GPI_TempGUI(object):
         ttk.Button(buttonbar, text="Take Image", command=self.takeImage, **formatting).grid(row=0,column=2)
         #ttk.Button(buttonbar, text="Print Keywords", command=self.printKeywords, **formatting).grid(row=0,column=3)
         ttk.Button(buttonbar, text="Abort", command=self.doAbort, **formatting).grid(row=0,column=4)
+        ttk.Button(buttonbar, text="ds9", command=self.ds9, **formatting).grid(row=0,column=5)
         #ttk.Button(buttonbar, text="Quit", command=self.quit, **formatting).grid(row=0,column=5)
 
 
@@ -246,7 +250,7 @@ class GPI_TempGUI(object):
         ttk.Label(mframe,text="s",  **formatting).grid(row=mr,column=2, stick=N+E+S+W)
         mr=mr+1
 
-        ttk.Label(mframe,text="Filename:",  **formatting).grid(row=mr,column=0, stick=W)
+        ttk.Label(mframe,text="Next Filename:",  **formatting).grid(row=mr,column=0, stick=W)
         self.entry_pupilfn = ttk.Entry(mframe,  width=10, )
         self.entry_pupilfn.grid(row=mr,column=1,stick=N+E+S+W)
         self.entry_pupilfn.insert(0,'pupil0001')
@@ -258,6 +262,7 @@ class GPI_TempGUI(object):
         #ttk.Button(buttonbar, text="Initialize", command=self.startSW, **formatting).grid(row=0,column=0)
         ttk.Button(buttonbar, text="Configure", command=self.configPupil, **formatting).grid(row=0,column=1)
         ttk.Button(buttonbar, text="Take Image", command=self.takePupil, **formatting).grid(row=0,column=2)
+        ttk.Button(buttonbar, text="ds9", command=self.ds9pupil, **formatting).grid(row=0,column=3)
 
         mframe.grid_columnconfigure(0, minsize=150)
         mframe.grid_columnconfigure(1, minsize=150)
@@ -317,7 +322,8 @@ class GPI_TempGUI(object):
         for k, e, c in zip(keywords, entries, comm):
             self.IFSController.updateKeyword(k, e.get(), c)
         for m in self.motors:
-            self.IFSController.updateKeyword(*m.updatekey() , comment="Commanded motor position")
+            res = m.updatekey()
+            self.IFSController.updateKeyword(res[0], res[1] , "Commanded motor position")
             #f[0].header.update(*m.updatekey() )
  
 
@@ -326,12 +332,20 @@ class GPI_TempGUI(object):
             self.configPupil()
         self._store_keywords()
         self.IFSController.pupilExposure(self.entry_pupilfn.get(), time=self.pupil_exptime )
+	self.last_pupil_fn = self.entry_pupilfn.get()
         self._incr_filename(self.entry_pupilfn)
 
     def takeImage(self):
         self._store_keywords()
         self.IFSController.takeExposure(self.entry_fn.get() )
+	self.last_image_fn = self.entry_pupilfn.get()
         self._incr_filename(self.entry_fn)
+
+    def ds9(self):
+        self.runcmd("ds9 %s%s.fits &" % (self.IFSController.datadir+os.sep, self.last_image_fn))
+    def ds9pupil(self):
+        self.runcmd("ds9 %s%s.fits &" % (self.IFSController.pupildir+os.sep,self.last_pupil_fn))
+
 
     #def checkGMB(self):
         #val = self.IFSController.checkGMB_camReady()
@@ -424,6 +438,17 @@ class GPI_TempGUI(object):
         self.entry_fn.delete(0,Tkinter.END)
         self.entry_fn.insert(0,fn)
         self.log("Next filename set to %s.fits"% fn)
+
+    def _set_initial_pupil_filename(self):
+        i=1
+        fn = "pupil%04d" % i
+        while (os.path.exists(self.IFSController.pupildir+os.sep+fn+".fits")):
+            i+=1
+            fn = "pupil%04d" % i
+        self.entry_pupilfn.delete(0,Tkinter.END)
+        self.entry_pupilfn.insert(0,fn)
+        self.log("Next pupilcam filename set to %s.fits"% fn)
+
 
     def log(self, message, **kwargs):
         if self.logger is not None:

@@ -10,10 +10,10 @@ import numpy
 import glob
 
 import pylab as p
-from idlcompat import idllib
+#from idlcompat import idllib
 
 
-TESTMODE = True
+TESTMODE = False
 
 def smooth(x,window_len=11,window='hanning'):
     """smooth the data using a window with requested size.
@@ -185,9 +185,10 @@ class IFSHeaderFixer(object):
     def updateHeader(self, fitsfile):
 #       # need to watch out for network latency/long compute times meaning that
 #       # the files are not fully written yet. In that case, wait for the write to finish.
-        size = os.path.getsize(filename)
-        while ((size != 8392320 ) & (size != 16784640)):
-            self.log('file %s not fully written to disk yet - waiting.' % filename)
+#	valid sizes are: full IFS frames, or pupil camera size
+        size = os.path.getsize(fitsfile)
+        while ((size != 8392320 ) & (size != 16784640) & (size != 311040) ):
+            self._log('file %s not fully written to disk yet - waiting.' % fitsfile)
             return False
 
         try:
@@ -197,6 +198,7 @@ class IFSHeaderFixer(object):
                     f[0].header.update(k, self.values[k], self.comments[k])
                 f[0].header.add_history(' Header keywords updated by gpiifs.py')
             f.close()
+            return True
         except:
             return False
 
@@ -215,6 +217,7 @@ class IFSHeaderFixer(object):
             for fn in newfiles: 
                 if self.updateHeader(fn):
                     self.oldfitsset.add(fn)
+                    self._log("Updated header for "+fn)
 
 def getDataDir():
     """ for use in GUI startup only"""
@@ -418,7 +421,7 @@ class IFSController(object):
         self._wait(1)# wait for exposure to start before checking
 
         while self._checkGMB_PupilexpInProgress():
-            self._log("waiting for camera to finish exposing")
+            self._log("waiting for pupil camera to finish exposing")
             self._wait(5)
  
         self._log("Pupil exposure complete!")
