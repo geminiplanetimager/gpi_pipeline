@@ -397,10 +397,25 @@ class IFSController(object):
         self._wait(15)
         self._log("Initialization complete.")
 
+    def _setKeyword(self, value):
+        for f in self.fixers:
+            f.updateKeyword("MOTOR%d" % int(axis), value, "Commanded position of motor %d" % int(axis))
+
     def moveMotor(self,axis,position):
         self._runcmd('$TLC_ROOT/scripts/gpMcdMove.csh 1 $MACHINE_NAME %d %d' % (int(axis), int(position)) ) 
-        for f in self.fixers:
-            f.updateKeyword("MOTOR%d" % int(axis), int(position), "Commanded position of motor %d" % int(axis))
+        self._setKeyword(int(position))
+
+    def datumMotor(self,axis):
+        self._runcmd('$TLC_ROOT/scripts/gpMcdDatum.csh 1 $MACHINE_NAME %d' % int(axis) ) 
+        self._setKeyword('Datum')
+
+    def initMotor(self,axis,position):
+        self._runcmd('$TLC_ROOT/scripts/gpMcdMove.csh 1 $MACHINE_NAME %d %d' % (int(axis), int(position)) ) 
+        self._setKeyword('Initialized')
+
+    def abortMotor(self,axis,position):
+        self._runcmd('$TLC_ROOT/scripts/gpMcdStop.csh 1 $MACHINE_NAME %d' % int(axis) ) 
+        self._setKeyword('Aborted')
 
     def updateKeyword(self, keyword, value, comment=None):
         if TESTMODE:

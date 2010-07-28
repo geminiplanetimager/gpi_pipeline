@@ -55,8 +55,10 @@ class GPIMechanism(object):
             self.list.grid(row=0,column=1)
 
         ttk.Button(self.frame, text="Move", command=self.move, **formatting).grid(row=0,column=2)
+        ttk.Button(self.frame, text="Datum", command=self.datum, **formatting).grid(row=0,column=3)
+        #ttk.Button(self.frame, text="Stop", command=self.stop, **formatting).grid(row=0,column=4)
         self.pos=ttk.Label(self.frame,text=self.value, **formatting)
-        self.pos.grid(row=0,column=3)
+        self.pos.grid(row=0,column=4)
 
 
         self.frame.grid_columnconfigure(0, minsize=100)
@@ -86,6 +88,14 @@ class GPIMechanism(object):
         #self.parent.IFSController.runcmd('$TLC_ROOT/scripts/gpMcdMove.csh 1 $MACHINE_NAME %d %d' % (self.axis, pos) )
         self.parent.IFSController.moveMotor(self.axis, pos) 
 
+    def datum(self):
+        self.parent.IFSController.datumMotor(self.axis)
+
+    def stop(self):
+        self.parent.IFSController.abortMotor(self.axis)
+
+    def init(self):
+        self.parent.IFSController.initMotor(self.axis)
 
     def printkey(self):
         self.parent.log("%08s = '%s'" % (self.keyword, self.value))
@@ -109,6 +119,8 @@ class GPI_TempGUI(object):
 
         self.datadir = gpiifs.getDataDir() 
         #self.datadir = self.IFSController.datadir 
+        if not os.path.isdir(self.datadir):
+            os.makedirs(self.datadir)
         os.chdir(self.datadir)
 
         self.file_logger=None
@@ -131,6 +143,14 @@ class GPI_TempGUI(object):
         self.root.protocol("WM_DELETE_WINDOW", self.quit)
         self.root.update()
 
+    def _initall(self):
+        for m in self.motors:
+            m.init()
+    def _stopall(self):
+        for m in self.motors:
+            m.stop()
+
+
     def _make_widgets(self):
         self.root = Tkinter.Tk()
         self.root.title("GPITempGUI")
@@ -147,7 +167,9 @@ class GPI_TempGUI(object):
         mframe = ttk.LabelFrame(frame, text="Motors:", padx=2, pady=2, bd=2, relief=Tkinter.GROOVE) #padding=(10,10,10,10)) #, padx=10, pady=10)
 
         ttk.Label(mframe, justify=Tkinter.LEFT, text=" Click on desired position, then press MOVE. ", 
-              **formatting).grid(row=0, columnspan=3, stick=W+E)
+              **formatting).grid(row=0, columnspan=2, stick=W+E)
+        ttk.Button(mframe,  text="Init All", command=self._initall, **formatting).grid(row=0,column=3)
+        ttk.Button(mframe,  text="Stop All", command=self._stopall, **formatting).grid(row=0,column=4)
 
         self.motors=[]
         
@@ -166,7 +188,7 @@ class GPI_TempGUI(object):
         self.motors.append(  GPIMechanism(mframe, self, "%15s" % ("Focus"), None, axis=5, keyword='FOCUS', **formatting) )
         
         for i in range(len(self.motors)):
-            self.motors[i].frame.grid(row=i+1, columnspan=4, stick=W)
+            self.motors[i].frame.grid(row=i+1, columnspan=5, stick=W)
 
         mframe.grid(row=r,stick=E+W)
         r=r+1
