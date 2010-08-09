@@ -24,7 +24,7 @@
 ; PIPELINE ARGUMENT: Name="centrYpos" Type="int" Range="[0,2048]" Default="1024" Desc="Initial approximate y-position [pixel] of central peak at 1.5microns"
 ; PIPELINE ARGUMENT: Name="w" Type="float" Range="[0.,10.]" Default="4.8" Desc="Spectral spacing perpendicular to the dispersion axis at the detcetor in pixel"
 ; PIPELINE ARGUMENT: Name="P" Type="float" Range="[-7.,7.]" Default="-1.8" Desc="Micro-pupil pattern"
-; PIPELINE ARGUMENT: Name="wav_of_centrXYpos" Type="int" Range="[1,2]" Default="1" Desc="1 if centrX-Ypos is the smallest-wavelength peak of the band; 2 if centrX-Ypos refer to 1.5microns"
+; PIPELINE ARGUMENT: Name="wav_of_centrXYpos" Type="int" Range="[1,2]" Default="2" Desc="1 if centrX-Ypos is the smallest-wavelength peak of the band; 2 if centrX-Ypos refer to 1.5microns"
 ; PIPELINE ARGUMENT: Name="maxpos" Type="float" Range="[-7.,7.]" Default="2." Desc="Allowed maximum location fluctuation (in pixel) between adjacent mlens"
 ; PIPELINE ARGUMENT: Name="maxtilt" Type="float" Range="[-360.,360.]" Default="10." Desc="Allowed maximum tilt fluctuation (in degree) between adjacent mlens"
 ; PIPELINE ARGUMENT: Name="medfilter" Type="int" Range="[0,1]" Default="1" Desc="1: Median filtering of dispersion coeff and tilts with a (5x5) median filtering"
@@ -76,9 +76,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
    if strmatch(obstype,'*flat*',/fold) then begin
         im0=im
- ;       im = (SHIFT_DIFF(im, DIRECTION=3)>0.) ;works with spatial derivative of the image (this direction works for lambda_min edge)
+        im = (SHIFT_DIFF(im, DIRECTION=3)>0.) ;works with spatial derivative of the image (this direction works for lambda_min edge)
  stop
-        im = (SHIFT_DIFF(im>(2.*stddev(im0>0.)), DIRECTION=3)>0.) ;works with spatial derivative of the image (this direction works for lambda_min edge)
+ ;       im = (SHIFT_DIFF(im>(2.*stddev(im0>0.)), DIRECTION=3)>0.) ;works with spatial derivative of the image (this direction works for lambda_min edge)
    endif     
    
 	;if (size(im))[0] eq 0 then im=readfits(filename,h)
@@ -153,7 +153,7 @@ endcase
                 if strmatch(lamp,'*Argon*',/fold) then relativethresh=0.5
               end
             'J':begin
-                if strmatch(lamp,'*Xenon*',/fold) then relativethresh=0.5
+                if strmatch(lamp,'*Xenon*',/fold) then relativethresh=0.05
                 if strmatch(lamp,'*Argon*',/fold) then relativethresh=0.5
               end
             'H':begin
@@ -166,10 +166,11 @@ endcase
               end
             'K2':begin
                 if strmatch(lamp,'*Xenon*',/fold) then relativethresh=0.2
-                if strmatch(lamp,'*Argon*',/fold) then relativethresh=0.28
+                if strmatch(lamp,'*Argon*',/fold) then relativethresh=0.43
               end
           endcase
-          DST_CODE_DIR= 'E:\testsvn3\dst';getenv()
+          if   ~(strmatch(obstype,'*flat*',/fold)) then begin
+          DST_CODE_DIR= getenv('GPI_IFS_DIR')+path_sep()+'dst';getenv()
           readcol, DST_CODE_DIR+path_sep()+strmid(lamp,0,2)+'ArcLampG.txt', wavelen, strength
           wavelen=1.e-4*wavelen
           lambdadst=readfits(DST_CODE_DIR+path_sep()+'zemdispLam'+strcompress(bandeobs, /rem)+'.fits')
@@ -191,6 +192,7 @@ endcase
            print, 'True reference peak for this lamp:',peakwavelen
            print, 'Reference peak adopted:',peakwavelen2
            peakwavelen=peakwavelen2
+           endif
            wavstr=''
            for st=0,n_elements(peakwavelen)-1 do wavstr+=strcompress(string(peakwavelen[st]),/rem)+'/'
            sxaddpar, h, "TESTWAV", wavstr, 'wav of detected peaks'
@@ -235,7 +237,9 @@ edge_x1=4.
 edge_x2=4.
 edge_y1=4.
 edge_y2=4.
-
+if strmatch(obstype,'*flat*',/fold) then begin
+  wx=1. & wy=0.
+endif
 
  tight_pos=float(Modules[thisModuleIndex].maxpos)  
  tight_tilt=float(Modules[thisModuleIndex].maxtilt)  

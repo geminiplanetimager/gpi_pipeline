@@ -66,7 +66,7 @@ primitive_version= '$Id: gpi_combine_wavcal_locations_all.pro 11 2010-07-14 01:2
 		induniq=UNIQ(peakwav_vect, SORT(peakwav_vect)) 
     refwav=peakwav_vect[induniq]
     nbwav=n_elements(refwav)
-    
+ 
     ;;for each reference wav, calculate the mean x-y locations of the lamp peak
     wavcaltabgenx=dblarr(sz[1],sz[2],nbwav)
     wavcaltabgeny=dblarr(sz[1],sz[2],nbwav)
@@ -82,6 +82,7 @@ primitive_version= '$Id: gpi_combine_wavcal_locations_all.pro 11 2010-07-14 01:2
                 wavcaltabx[*,*,nn]=wavcaltmp[*,*,2*wv]
                 wavcaltaby[*,*,nn]=wavcaltmp[*,*,2*wv+1]
               endfor
+              
             if n_elements(indfile) gt 1 then begin
               print, 'median combin. of',n_elements(indfile),' files at ',refwav[rw],'um'
              wavcaltabgenx[*,*,rw]=median(wavcaltabx,/double,dimension=3,/even)
@@ -95,31 +96,40 @@ primitive_version= '$Id: gpi_combine_wavcal_locations_all.pro 11 2010-07-14 01:2
 		;; for a linear wavelength solution
 		if polydegree eq 1 then begin		
     		  tilt2=dblarr(sz[1],sz[2])
-      w3=dblarr(sz[1],sz[2])
+          w3=dblarr(sz[1],sz[2])
+          lam=dblarr(sz[1],sz[2])
       ;w3d=dblarr(nlens,nlens)
      for i=0,sz[1]-1 do begin
       for j=0,sz[2]-1 do begin
-            tiltp=dblarr(nbwav)
-            w3p=dblarr((nbwav))
+      ;if (j eq 137) && (i eq 137) then stop 
+            tiltp=dblarr(nbwav-1)
+            w3p=dblarr((nbwav-1))
           ;  if (abs(zemdispY[i,j,zemwavind]-1024.+1024.) lt 3.) && (abs(zemdispX[i,j,zemwavind]-1073.+1024.) lt 3.) then stop
-        for p=0,(nbwav)-1 do begin
-        tiltp(p)=atan((wavcaltabgeny[i,j,p]-wavcaltabgeny[i,j,0])/(wavcaltabgenx[i,j,p]-wavcaltabgenx[i,j,0]))
-        w3p(p)=abs(refwav[p]-refwav[0])/(sqrt(((wavcaltabgeny[i,j,p]-wavcaltabgeny[i,j,0]))^2+(wavcaltabgenx[i,j,p]-wavcaltabgenx[i,j,0])^2))
-            tilt2[i,j]=median(tiltp)
-        w3[i,j]=median(w3p)
+        for p=1,(nbwav)-1 do begin
+        tiltp(p-1)=atan((wavcaltabgeny[i,j,p]-wavcaltabgeny[i,j,0])/(wavcaltabgenx[i,j,p]-wavcaltabgenx[i,j,0]))
+        w3p(p-1)=abs(refwav[p]-refwav[0])/(sqrt(((wavcaltabgeny[i,j,p]-wavcaltabgeny[i,j,0]))^2+(wavcaltabgenx[i,j,p]-wavcaltabgenx[i,j,0])^2))
+            tilt2[i,j]=median(tiltp,/even)
+        w3[i,j]=median(w3p,/even)
       ;  w3d[i,j]=stddev(w3p)
         endfor
+        ;let's do again it with linfit for comparison
+            distance=fltarr(nbwav)
+            for rw=0, nbwav-1 do distance[rw]=sqrt( (wavcaltabgenx[i,j,rw]-wavcaltabgenx[i,j,0])^2.+(wavcaltabgeny[i,j,rw]-wavcaltabgeny[i,j,0])^2. )
+            ;;calculate  (linear) dispersion relation
+                if nbwav ge 2 then linfitcoef=linfit(distance,refwav)
+                w3[i,j]=linfitcoef[1]
+                lam[i,j]=linfitcoef[0]
        endfor
       endfor
     wavcalcomb=fltarr(sz[1],sz[2],5) ;Lin case
     wavcalcomb[*,*,0]=wavcaltabgenx[*,*,0]
     wavcalcomb[*,*,1]=wavcaltabgeny[*,*,0]
-    wavcalcomb[*,*,2]=refwav[0]
+    wavcalcomb[*,*,2]=lam;refwav[0]
     wavcalcomb[*,*,3]=w3[*,*]
     wavcalcomb[*,*,4]=tilt2[*,*]
 
     endif
-     
+
         ;; for a quadratic wavelength solution
     if polydegree eq 2 then     begin
  
@@ -166,7 +176,7 @@ primitive_version= '$Id: gpi_combine_wavcal_locations_all.pro 11 2010-07-14 01:2
 ;      endfor
   endif
 		*(dataset.currframe[0])=wavcalcomb
-
+;stop
 		basename=findcommonbasename(dataset.filenames[0:nfiles-1])
 		FXADDPAR, *(DataSet.Headers[numfile]), 'DATAFILE', basename+'.fits'
 		sxaddhist, functionname+": combined wavcal files:", *(dataset.headers[numfile])

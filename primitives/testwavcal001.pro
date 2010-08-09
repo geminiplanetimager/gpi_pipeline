@@ -11,9 +11,7 @@
 ; OUTPUTS:  
 ;
 ; PIPELINE COMMENT: Test the algorithm of the wavelength solution measurement by comparing with DST-Zemax reference wavelength solution.
-; PIPELINE ARGUMENT: Name="ZemaxwavsolFile" Type="wavcal" Default="" Desc="Enter Zemax wav. sol. filename or leave it blank if not already calculated"
-; PIPELINE ARGUMENT: Name="refwav" Type="float" Range="[0.8,2.4]" Default="1.65" Desc="Wavelength (microms) reference for Zemax/DRP comparison of spectra locations"
-; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-ErrWavcal" Desc="Enter output suffix"
+; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-ErrWavcal" Desc="Enter suffix of figures names"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying wavcal file, 0: no display "
 ; PIPELINE ORDER: 4.3
 ; PIPELINE TYPE: ALL-SPEC 
@@ -24,7 +22,7 @@
 ;- 
 
 function testwavcal001, DataSet, Modules, Backbone
-primitive_version= '$Id: testwavcal001.pro 11 2010-07-07 15:22:03 maire $' ; get version from subversion to store in header history
+primitive_version= '$Id: testwavcal001.pro 11 2010-08-09 10:22:03 maire $' ; get version from subversion to store in header history
 @__start_primitive
 
 ;;; First, if not already done, need to format the DST Zemax file as a DRP wavelength solution
@@ -34,7 +32,21 @@ rep=getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()
 ;nlens=281
 nlens=(size(*(dataset.currframe[0])))[1]
    wavcal1=*(dataset.currframe[0])
-   zemwav=float(Modules[thisModuleIndex].refwav)
+   ;zemwav=float(Modules[thisModuleIndex].refwav)
+   h=*(dataset.headers[0])
+     bandeobs=SXPAR( h, 'FILTER',count=c4)
+   if c4 eq 0 then bandeobs=SXPAR( h, 'FILTER1',count=c4)  
+case strcompress(bandeobs,/REMOVE_ALL) of
+  'Y':zemwav=1.05
+  'J':zemwav=1.25
+  'H':zemwav=1.65
+  'K1':zemwav=2.05
+  'K2':zemwav=2.2
+  else:zemwav=1.65
+endcase  
+   
+   
+   
           filter = strcompress(sxpar( header ,'FILTER1', count=fcount),/REMOVE_ALL)
         if fcount eq 0 then filter = strcompress(sxpar( header ,'FILTER'),/REMOVE_ALL)
    
@@ -94,7 +106,7 @@ if (Modules[thisModuleIndex].CalibrationFile eq '') then begin
   zemwavcal[*,*,3]=rotate(transpose(w3),2)
   zemwavcal[*,*,4]=rotate(transpose(tilt),2)
  ; gpitve, zemwavcal & gpitv_activate
-  if fix(Modules[thisModuleIndex].gpitv) ne 0 then gpitve, zemwavcal 
+ ; if fix(Modules[thisModuleIndex].gpitv) ne 0 then gpitve, zemwavcal 
   
   ;;create header
   mkhdr, hdr, zemwavcal
@@ -111,10 +123,9 @@ endelse
 
 
 ; gpitve, wavcal2-zemwavcal & gpitv_activate
- if fix(Modules[thisModuleIndex].gpitv) ne 0 then stop ;gpitve, wavcal2-zemwavcal 
+; if fix(Modules[thisModuleIndex].gpitv) ne 0 then stop ;gpitve, wavcal2-zemwavcal 
 diff=wavcal2-zemwavcal
 diffrel=100.*(wavcal2-zemwavcal)/wavcal2
-
 print, 'mean diff x=',mean(diff[*,*,0],/nan),'y=',mean(diff[*,*,1],/nan)
 
       xmax=0.5& xmin=-xmax 
@@ -125,7 +136,8 @@ print, 'mean diff x=',mean(diff[*,*,0],/nan),'y=',mean(diff[*,*,1],/nan)
        xmaxrel=50.& xminrel=-xmaxrel & binrel=10.*fac
     histcoef=HISTOGRAM(diffrel[*,*,3], min=xminrel,max=xmaxrel,nbins=binrel,locations=locrel)
        xmaxtilt=50.& xmintilt=-xmaxtilt & bintilt=10.*fac
-    histtilt=HISTOGRAM((180./!dpi)*diff[*,*,4], min=xmintilt,max=xmaxtilt,nbins=bintilt,locations=loctilt)
+       if (size(wavcal2))[3] eq 5 then slice=4 else slice=6 ;deal with slice# for Non-linear wavcal
+    histtilt=HISTOGRAM((180./!dpi)*(wavcal2[*,*,slice]-zemwavcal[*,*,4]), min=xmintilt,max=xmaxtilt,nbins=bintilt,locations=loctilt)
 
 filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
 slash=strpos(filnm,path_sep(),/reverse_search)
@@ -133,37 +145,101 @@ slash=strpos(filnm,path_sep(),/reverse_search)
 h=*(dataset.headers[numfile])
 testwav=SXPAR( h, 'TESTWAV',count=c1)
 if c1 ne 0 then testchr='nbpk'+strc(n_elements(strsplit(testwav,'/'))) else testchr=''
-
-    fnameps=getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+filter+testchr+strc(zemwav)        
+suffixplot=(Modules[thisModuleIndex].suffix)
+    fnameps=getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffixplot+filter+testchr+strc(zemwav)        
   openps,fnameps+'dst.ps', xsize=17, ysize=27
-  !P.MULTI = [0, 1, 3, 0, 0] 
+  !P.MULTI = [0, 1, 4, 0, 0] 
   PLOT, loc,hist1x, $ 
    TITLE = 'Histogram of localization error ('+string(zemwav,format='(g4.3)')+'um) for '+filename+'-wav.-solution '+filter+' band', $ 
     XTicklen=1.0, YTicklen=1.0, XGridStyle=1, YGridStyle=1, $
    XTITLE = 'localization difference (pix) , [bin_width='+string(((xmax-xmin)/fac),format='(F5.2)')+']', $ 
-   YTITLE = 'Number of spectra of That Value' ,ystyle=9,linestyle=0 ,yrange=[0,max([hist1x,hist1y])]       
+   YTITLE = 'Number of spectra of That Value' ,ystyle=9,linestyle=0 ,yrange=[0,max([hist1x,hist1y])] , xrange=[-1.,1.]      
   OPLOT,loc,hist1y,linestyle=1
     ;legend,['x-positions (spectral axis)','y-positions'],linestyle=[0,1],box=0      ;,position=[-145,300]
     legend,['x-positions (spectral axis)','y-positions'],linestyle=[0,1],box=0
-    if c1 ne 0 then xyouts,-0.55,1000,'peak wav used:'+testwav 
+    ;if c1 ne 0 then xyouts,-0.55,1000,'peak wav used:'+testwav 
     
-    PLOT, locrel,histcoef, $ 
-   TITLE = 'Histogram of linear coefficient relative error ('+string(zemwav,format='(g4.3)')+'microns) for '+filename+'-wav.-solution '+filter+' band', $ 
-    XTicklen=1.0, YTicklen=1.0, XGridStyle=1, YGridStyle=1, $
-   XTITLE = 'Relative error [%] , [bin_width='+string(((xmaxrel-xminrel)/binrel),format='(F5.2)')+']', $ 
-   YTITLE = 'Number of spectra of That Value' ,ystyle=9,linestyle=0    
+;    PLOT, locrel,histcoef, $ 
+;   TITLE = 'Histogram of linear coefficient relative error ('+string(zemwav,format='(g4.3)')+'microns) for '+filename+'-wav.-solution '+filter+' band', $ 
+;    XTicklen=1.0, YTicklen=1.0, XGridStyle=1, YGridStyle=1, $
+;   XTITLE = 'Relative error [%] , [bin_width='+string(((xmaxrel-xminrel)/binrel),format='(F5.2)')+']', $ 
+;   YTITLE = 'Number of spectra of That Value' ,ystyle=9,linestyle=0    
     
         PLOT, loctilt,histtilt, $ 
    TITLE = 'Histogram of tilt error ('+string(zemwav,format='(g4.3)')+'microns) for '+filename+'-wav.-solution '+filter+' band', $ 
     XTicklen=1.0, YTicklen=1.0, XGridStyle=1, YGridStyle=1, $
    XTITLE = 'Tilt error [in degrees] , [bin_width='+string(((xmaxtilt-xmintilt)/bintilt),format='(F5.2)')+']', $ 
-   YTITLE = 'Number of spectra of That Value' ,ystyle=9,linestyle=0 , xrange=[-5.,5.] , psym=10  
-    
-  closeps  
+   YTITLE = 'Number of spectra of That Value' ,ystyle=9,linestyle=0 , xrange=[-5.,5.] , psym=10
+   valmax=max(histtilt,maxind)
+   maxat=loctilt[maxind] 
+   int1=value_locate(histtilt[0:maxind], 0.5*valmax)
+   int2=value_locate(histtilt[maxind:(n_elements(histtilt)-1)], 0.5*valmax)+maxind
+   FWHM=  loctilt[int2]-loctilt[int1]
+    xyouts, 2,500,'max at='+strc(maxat,format='(3g0.2)')+'deg'+'  Fwhm='+strc(FWHM,format='(f4.2)')+'deg'
+
+
+      
+ for zind=0,n_elements(zemdisplamraw)-1 do begin
+  wavcalz=change_wavcal_lambdaref( wavcal1, zemdisplamraw[zind])
+    zemwavcalz=fltarr(szwcdrp[1],szwcdrp[2],szwcdrp[3])
+  zemwavcalz[*,*,0]=rotate(transpose(zemdispX2[*,*,zind]),2)+4.
+  zemwavcalz[*,*,1]=rotate(transpose(zemdispY2[*,*,zind]),2)+4.
+  diffz=wavcalz-zemwavcalz
+      hist1xz=HISTOGRAM(diffz[*,*,0], min=xmin,max=xmax,nbins=bin,locations=loc)
+    hist1yz=HISTOGRAM(diffz[*,*,1], min=xmin,max=xmax,nbins=bin,locations=loc)
+    cumx=reform(diffz[*,*,0],szwcdrp[1]*szwcdrp[2])
+    cumy=reform(diffz[*,*,1],szwcdrp[1]*szwcdrp[2])
+  if zind ne 0 then begin
+   histtotx+=hist1xz
+   histtoty+=hist1yz
+   histcumx=[histcumx,cumx]
+   histcumy=[histcumy,cumy]
+  endif else begin
+   histtotx=hist1xz
+   histtoty=hist1yz
+   histcumx=cumx
+   histcumy=cumy
+  endelse
+ endfor
+
+    PLOT, loc,histtotx, $ 
+   TITLE = 'Histogram of localization error (all wavelengths) for '+filename+'-wav.-solution '+filter+' band', $ 
+    XTicklen=1.0, YTicklen=1.0, XGridStyle=1, YGridStyle=1, $
+   XTITLE = 'localization difference (pix) , [bin_width='+string(((xmax-xmin)/fac),format='(F5.2)')+']', $ 
+   YTITLE = 'Number of spectra of That Value' ,ystyle=9,linestyle=0 ,yrange=[0,max([histtotx,histtoty])]       
+  OPLOT,loc,histtoty,linestyle=1
+    ;legend,['x-positions (spectral axis)','y-positions'],linestyle=[0,1],box=0      ;,position=[-145,300]
+    legend,['x-positions (spectral axis)','y-positions'],linestyle=[0,1],box=0
  
-  ;plot dispersion for a specific spectrum
-  xs=137
-  ys=137
+ histcumx2=total(HISTOGRAM(abs(histcumx), min=0.,max=2.*xmax,nbins=bin,locations=loccum),/cum)
+ histcumy2=total(HISTOGRAM(abs(histcumy), min=0.,max=2.*xmax,nbins=bin,locations=loccum),/cum)
+ void=where(finite(histcumx),cfx)
+ void=where(finite(histcumy),cfy)
+ histcumx3=(100./float(cfx))*histcumx2
+ histcumy3=(100./float(cfy))*histcumy2
+ 
+    PLOT, loccum,histcumx3, $ 
+   TITLE = 'Cum. hist. of localization error (all wavelengths) for '+filename+'-wav.-solution '+filter+' band', $ 
+    XTicklen=1.0, YTicklen=1.0, XGridStyle=1, YGridStyle=1, $
+   XTITLE = 'localization difference (pix) , [bin_width='+string(((xmax-xmin)/fac),format='(F5.2)')+']', $ 
+   YTITLE = 'Cum. # of spectra of That Value [%]' ,ystyle=9,linestyle=0 ,yrange=[0,100]       
+  OPLOT,loccum,histcumy3,linestyle=1
+    ;legend,['x-positions (spectral axis)','y-positions'],linestyle=[0,1],box=0      ;,position=[-145,300]
+    legend,['x-positions (spectral axis)','y-positions'],linestyle=[0,1],box=0
+ xyouts,0.2,30,'80% x:'+strc(loccum[value_locate(histcumx3,80.)],format='(f4.2)')+'pix  '+$
+        'y:'+strc(loccum[value_locate(histcumy3,80.)],format='(f4.2)')+'pix'
+  xyouts,0.2,20,'90% x:'+strc(loccum[value_locate(histcumx3,90.)],format='(f4.2)')+'pix  '+$
+        '90% y:'+strc(loccum[value_locate(histcumy3,90.)],format='(f4.2)')+'pix'
+   closeps  
+print,'80% x:'+strc(loccum[value_locate(histcumx3,80.)],format='(f4.2)')+'pix  '+$
+        'y:'+strc(loccum[value_locate(histcumy3,80.)],format='(f4.2)')+'pix'
+print,'90% x:'+strc(loccum[value_locate(histcumx3,90.)],format='(f4.2)')+'pix  '+$
+        '90% y:'+strc(loccum[value_locate(histcumy3,90.)],format='(f4.2)')+'pix'
+print,'max at='+strc(maxat,format='(3g0.2)')+'deg'+'  Fwhm='+strc(FWHM,format='(f4.2)')+'deg'
+
+  ;plot dispersion for a specific spectrum with coordinates (xs,ys)
+  xs=140
+  ys=140
   xwav=fltarr(n_elements(zemdisplamraw))
   ywav=fltarr(n_elements(zemdisplamraw))
   xwavzem=fltarr(n_elements(zemdisplamraw))
@@ -182,7 +258,7 @@ if c1 ne 0 then testchr='nbpk'+strc(n_elements(strsplit(testwav,'/'))) else test
     xzem[ind]=(rotate(transpose(zemdispX3),2)+4.)[xs,ys]
     yzem[ind]=(rotate(transpose(zemdispY3),2)+4.)[xs,ys]
   endfor  
- 
+
   openps,fnameps+'disp_x'+strc(xs)+'_y'+strc(ys)+testchr+'dst.ps', xsize=17, ysize=27
    !P.MULTI = [0, 1, 2, 0, 0] 
    PLOT, zemdisplamraw,xwav, $ 

@@ -1,6 +1,6 @@
 ;+
 ; NAME: gpi_extract_wavcal_locations
-; PIPELINE PRIMITIVE DESCRIPTION: Measure Wavelength Calibration locations
+; PIPELINE PRIMITIVE DESCRIPTION: Measure locations of Emission Lines
 ;
 ;	gpi_extract_wavcal detects positions of spectra in the image with narrow
 ;	band lamp image.
@@ -24,7 +24,7 @@
 ; PIPELINE ARGUMENT: Name="centrYpos" Type="int" Range="[0,2048]" Default="1024" Desc="Initial approximate y-position [pixel] of central peak at 1.5microns"
 ; PIPELINE ARGUMENT: Name="w" Type="float" Range="[0.,10.]" Default="4.8" Desc="Spectral spacing perpendicular to the dispersion axis at the detcetor in pixel"
 ; PIPELINE ARGUMENT: Name="P" Type="float" Range="[-7.,7.]" Default="-1.8" Desc="Micro-pupil pattern"
-; PIPELINE ARGUMENT: Name="wav_of_centrXYpos" Type="int" Range="[1,2]" Default="1" Desc="1 if centrX-Ypos is the smallest-wavelength peak of the band; 2 if centrX-Ypos refer to 1.5microns"
+; PIPELINE ARGUMENT: Name="wav_of_centrXYpos" Type="int" Range="[1,2]" Default="2" Desc="1 if centrX-Ypos is the smallest-wavelength peak of the band; 2 if centrX-Ypos refer to 1.5microns"
 ; PIPELINE ARGUMENT: Name="maxpos" Type="float" Range="[-7.,7.]" Default="2." Desc="Allowed maximum location fluctuation (in pixel) between adjacent mlens"
 ; PIPELINE ARGUMENT: Name="maxtilt" Type="float" Range="[-360.,360.]" Default="10." Desc="Allowed maximum tilt fluctuation (in degree) between adjacent mlens"
 ; PIPELINE ARGUMENT: Name="medfilter" Type="int" Range="[0,1]" Default="1" Desc="1: Median filtering of dispersion coeff and tilts with a (5x5) median filtering"
@@ -76,9 +76,9 @@ primitive_version= '$Id: gpi_extract_wavcal2.pro 11 2010-07-06 01:22:03Z maire $
 
    if strmatch(obstype,'*flat*',/fold) then begin
         im0=im
- ;       im = (SHIFT_DIFF(im, DIRECTION=3)>0.) ;works with spatial derivative of the image (this direction works for lambda_min edge)
- stop
-        im = (SHIFT_DIFF(im>(2.*stddev(im0>0.)), DIRECTION=3)>0.) ;works with spatial derivative of the image (this direction works for lambda_min edge)
+        im = (SHIFT_DIFF(im, DIRECTION=3)>0.) ;works with spatial derivative of the image (this direction works for lambda_min edge)
+ ;stop
+  ;      im = (SHIFT_DIFF(im>(2.*stddev(im0>0.)), DIRECTION=3)>0.) ;works with spatial derivative of the image (this direction works for lambda_min edge)
    endif     
    
 	;if (size(im))[0] eq 0 then im=readfits(filename,h)
@@ -109,15 +109,15 @@ case strcompress(bandeobs,/REMOVE_ALL) of
       if strmatch(lamp,'*Xenon*',/fold) then peakwavelen=[[1.084]]
       if strmatch(lamp,'*Argon*',/fold) then peakwavelen=[[1.0676]]
       if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[0.95],[1.14]]
-      specpixlength=14. ;spec pix length for rough estimation of peak positions
-      bandwidth=0.19  ;bandwidth in microns
+      specpixlength=15.;20.;;17.;14. ;spec pix length for rough estimation of peak positions
+      bandwidth=0.19;0.2;0.19  ;bandwidth in microns
     end
   'J':begin
       if strmatch(lamp,'*Xenon*',/fold) then peakwavelen=[[1.175],[1.263]]
       if strmatch(lamp,'*Argon*',/fold) then peakwavelen=[[1.246],[1.296]]
       if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.15],[1.33]] ;[[1.12],[1.35]]
-      specpixlength=15. ;spec pix length for rough estimation of peak positions
-      bandwidth=0.18; 0.23  ;bandwidth in microns
+      specpixlength=17.; 15. ;spec pix length for rough estimation of peak positions
+      bandwidth=0.3; 0.18; 0.23  ;bandwidth in microns !to check
     end
   'H':begin
       if strmatch(lamp,'*Xenon*',/fold) then peakwavelen=[[1.542],[1.605],[1.6732],[1.733]]
@@ -131,7 +131,7 @@ case strcompress(bandeobs,/REMOVE_ALL) of
       if strmatch(lamp,'*Xenon*',/fold) then peakwavelen=[[2.02678],[2.14759]]
       if strmatch(lamp,'*Argon*',/fold) then peakwavelen=[[1.997],[2.06],[2.099],[2.154]]
       if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.9],[2.19]]
-      specpixlength=20. ;spec pix length for rough estimation of peak positions
+      specpixlength=19. ;spec pix length for rough estimation of peak positions
       bandwidth=0.3 ;bandwidth in microns
     end
   'K2':begin
@@ -153,7 +153,7 @@ endcase
                 if strmatch(lamp,'*Argon*',/fold) then relativethresh=0.5
               end
             'J':begin
-                if strmatch(lamp,'*Xenon*',/fold) then relativethresh=0.5
+                if strmatch(lamp,'*Xenon*',/fold) then relativethresh=0.806
                 if strmatch(lamp,'*Argon*',/fold) then relativethresh=0.5
               end
             'H':begin
@@ -162,14 +162,15 @@ endcase
               end
             'K1':begin
                 if strmatch(lamp,'*Xenon*',/fold) then relativethresh=0.2
-                if strmatch(lamp,'*Argon*',/fold) then relativethresh=0.5
+                if strmatch(lamp,'*Argon*',/fold) then relativethresh=0.1;0.1;0.2;0.5
               end
             'K2':begin
                 if strmatch(lamp,'*Xenon*',/fold) then relativethresh=0.2
-                if strmatch(lamp,'*Argon*',/fold) then relativethresh=0.43 ;0.28
+                if strmatch(lamp,'*Argon*',/fold) then relativethresh=0.8;0.43 ;0.28
               end
           endcase
-          DST_CODE_DIR= 'E:\testsvn3\dst';getenv()
+        if   ~(strmatch(obstype,'*flat*',/fold)) then begin
+          DST_CODE_DIR= getenv('GPI_IFS_DIR')+path_sep()+'dst';getenv()
           readcol, DST_CODE_DIR+path_sep()+strmid(lamp,0,2)+'ArcLampG.txt', wavelen, strength
           wavelen=1.e-4*wavelen
           lambdadst=readfits(DST_CODE_DIR+path_sep()+'zemdispLam'+strcompress(bandeobs, /rem)+'.fits')
@@ -189,9 +190,12 @@ endcase
            peakwavelen2=transpose(lambdadst[lambdadstind])
            print, 'Testing: correct for finite DST spectral resolution...'
            print, 'True reference peak for this lamp:',peakwavelen
+           if (strmatch(strcompress(bandeobs,/REMOVE_ALL),'J')) && ~(strmatch(obstype,'*flat*',/fold)) then peakwavelen2=peakwavelen2[where(peakwavelen2 lt 1.28)]
+           if (strmatch(strcompress(bandeobs,/REMOVE_ALL),'Y')) && ~(strmatch(obstype,'*flat*',/fold)) then peakwavelen2=peakwavelen2[where(peakwavelen2 lt 1.13)]
            print, 'Reference peak adopted:',peakwavelen2
            peakwavelen=peakwavelen2
-           wavstr=''
+         endif  
+            wavstr=''
            for st=0,n_elements(peakwavelen)-1 do wavstr+=strcompress(string(peakwavelen[st]),/rem)+'/'
            sxaddpar, h, "TESTWAV", wavstr, 'wav of detected peaks'
            ;stop
@@ -202,9 +206,11 @@ endcase
 cenx=float(Modules[thisModuleIndex].centrXpos)
 ceny=float(Modules[thisModuleIndex].centrYpos)
 
+if strmatch(strcompress(bandeobs,/REMOVE_ALL),'Y') then specpixlength2=specpixlength+3. else specpixlength2=specpixlength
 if (Modules[thisModuleIndex].wav_of_centrXYpos) eq 2. then begin
     ;;from cenx at 1.5microns, estimate x-location of first peak to detect
-    cenx+=(peakwavelen[0]-1.5)*(18./0.3)
+   ; cenx+=(peakwavelen[0]-1.5)*(18./0.3)
+    cenx+=(peakwavelen[0]-1.5)*(specpixlength2/0.3)    
     print, 'estimate x-location of first peak at',peakwavelen[0], 'microns =',cenx
 endif
 
@@ -228,6 +234,9 @@ specpos[nlens/2,nlens/2,0:1]=cen1
 wx=0. & wy=0.
 wx=5. & wy=5. ; MDP change
 wx=0. & wy=0. ; JM change  wx=1. & wy=0. good for flat
+if strmatch(obstype,'*flat*',/fold) then begin
+  wx=1. & wy=0.
+endif
 hh=1. ; box for fit
 ;wcst=4.8 & Pcst=-1.8
 wcst=float(Modules[thisModuleIndex].w) & Pcst=float(Modules[thisModuleIndex].P)
@@ -250,24 +259,24 @@ if strcmp(obstype,'flat',4,/fold) then specpos[*,*,0]-=0.5 ;take account of spat
 ;;dispersion law & tilts
 ;;;;;;;;;;;;;;;;;;;;;;;;
 
-  if (tag_exist( Modules[thisModuleIndex], "tests")) && ( Modules[thisModuleIndex].tests eq 1 ) then begin
+;  if (tag_exist( Modules[thisModuleIndex], "tests")) && ( Modules[thisModuleIndex].tests eq 1 ) then begin
     dispeak=dblarr(nlens,nlens,2*n_elements(peakwavelen))+!VALUES.F_NAN 
     dispeak[*,*,0]=specpos[*,*,0]
     dispeak[*,*,1]=specpos[*,*,1]
    ; dispeak2=dblarr(nlens,nlens,n_elements(peakwavelen))+!VALUES.F_NAN
-      for xi=0,nlens-1 do begin
-        for yi=0,nlens-1 do begin
-            ;dispeak2[xi,yi,0]=splinefwhm(im[dispeak[xi,yi,0]-2:dispeak[xi,yi,0]+2,dispeak[xi,yi,1]-2:dispeak[xi,yi,1]+2])
-            ;dispeak2[xi,yi,0]=radplotfwhm(im,dispeak[xi,yi,0],dispeak[xi,yi,1])
-            ;dispeak2[xi,yi,0]=gaussfwhm(im[dispeak[xi,yi,0]-5:dispeak[xi,yi,0]+5,dispeak[xi,yi,1]-5:dispeak[xi,yi,1]+5])
-        endfor
-      endfor
-   endif else begin 
-    dispeak=0
-  endelse
+;      for xi=0,nlens-1 do begin
+;        for yi=0,nlens-1 do begin
+;            ;dispeak2[xi,yi,0]=splinefwhm(im[dispeak[xi,yi,0]-2:dispeak[xi,yi,0]+2,dispeak[xi,yi,1]-2:dispeak[xi,yi,1]+2])
+;            ;dispeak2[xi,yi,0]=radplotfwhm(im,dispeak[xi,yi,0],dispeak[xi,yi,1])
+;            ;dispeak2[xi,yi,0]=gaussfwhm(im[dispeak[xi,yi,0]-5:dispeak[xi,yi,0]+5,dispeak[xi,yi,1]-5:dispeak[xi,yi,1]+5])
+;        endfor
+;      endfor
+;   endif else begin 
+;    dispeak=0
+;  endelse
 
-;if strmatch(obstype,'*flat*',/fold) then im = (SHIFT_DIFF(im0, DIRECTION=4)>0.) ;works with spatial derivative of the image (lambda_max edge)
-if strmatch(obstype,'*flat*',/fold) then im = (SHIFT_DIFF(im0>(2.*stddev(im0>0.)), DIRECTION=4)>0.) ;works with spatial derivative of the image (lambda_max edge)
+if strmatch(obstype,'*flat*',/fold) then im = (SHIFT_DIFF(im0, DIRECTION=4)>0.) ;works with spatial derivative of the image (lambda_max edge)
+;if strmatch(obstype,'*flat*',/fold) then im = (SHIFT_DIFF(im0>(2.*stddev(im0>0.)), DIRECTION=4)>0.) ;works with spatial derivative of the image (lambda_max edge)
 
    specpos[*,*,2]=peakwavelen[0]
 if n_elements(peakwavelen) gt 1 then begin
@@ -278,12 +287,17 @@ if n_elements(peakwavelen) gt 1 then begin
   w3med=fltarr(nlens,nlens)
   w3=fltarr(n_elements(apprXpos)-1)
 ;wx=0. & wy=1.
-wx=1. & wy=0. ;flat
-
+wx=1. & wy=0. 
+if strmatch(obstype,'*flat*',/fold) then begin
+  wx=2. & wy=0.
+endif
 ;calculate now x-y locations of the other peaks and deduce linear dispersion coeffs and tilts
  for quadrant=1L,4 do find_spectra_dispersions_quadrant, quadrant,peakwavelen,apprXpos,apprYpos,nlens,w3,w3med,tilt,specpos,im,wx,wy,hh,szim,edge_x1,edge_x2,edge_y1,edge_y2, dispeak, dispeak2, tight_tilt
-  
  
+;  if strcmp(obstype,'flat',4,/fold) then dispeak[*,*,(size(dispeak))[3]-2]-=1.3 ;take account of spatial shift in derivative
+;   if strcmp(obstype,'flat',4,/fold) then dispeak[*,*,0]-=1.0
+;   if strcmp(obstype,'flat',4,/fold) then dispeak[*,*,(size(dispeak))[3]-1]-=0.8
+ stop
 endif ; verif si n_elements(peakwavelen) gt 1
 
 ; median filtering for bad detection on the edge where part of spectrum are absent...
