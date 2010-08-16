@@ -59,7 +59,7 @@ tilt0=tiltini
   ;if (quad eq 3)&&(j lt jlim1)  then print, 'pos:',specpos[nlens/2+i,nlens/2+j,0], specpos[nlens/2+i,nlens/2+j,1]
   ;if (quad eq 3) then stop
    inside=0
-   ;if (nlens/2+i eq 23) && (nlens/2+j eq 97) then stop
+;   if (nlens/2+i eq 143) && (nlens/2+j eq 143) then stop
     for p=1,n_elements(peakwavelen)-1 do begin ;for each peak in the spectrum
       if p eq 1 then  apprXpos[p]=apprXpos0[p]*cos(tilt0)
       if p gt 1 then  apprXpos[p]=apprXpos0[p]*cos(median(tilt[nlens/2+i,nlens/2+j,*]))
@@ -75,7 +75,7 @@ tilt0=tiltini
           dispeak[nlens/2+i,nlens/2+j,2*p+1]=pospeak[1]
           ;dispeak2[nlens/2+i,nlens/2+j,p]=splinefwhm(im[pospeak[0]-2:pospeak[0]+2,pospeak[1]-2:pospeak[1]+2])
           ;dispeak2[nlens/2+i,nlens/2+j,p]=radplotfwhm(im,pospeak[0],pospeak[1])
-          dispeak2[nlens/2+i,nlens/2+j,p]=gaussfwhm(im[pospeak[0]-5:pospeak[0]+5,pospeak[1]-5:pospeak[1]+5])
+    ;      dispeak2[nlens/2+i,nlens/2+j,p]=gaussfwhm(im[pospeak[0]-5:pospeak[0]+5,pospeak[1]-5:pospeak[1]+5])
         endif
         tilt[nlens/2+i,nlens/2+j,p-1]=atan((pospeak[1]-specpos[nlens/2+i,nlens/2+j,1])/(pospeak[0]-specpos[nlens/2+i,nlens/2+j,0]))
           ;if i eq 0 then print, 'peak #', p, ' at pos', pospeak, ' tilt(deg)=', (180./!dpi)*tilt[nlens/2+i,nlens/2+j,p-1]
