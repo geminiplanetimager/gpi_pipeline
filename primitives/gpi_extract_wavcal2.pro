@@ -41,7 +41,8 @@
 ;	  JM: nlens, w (initial guess), P (initial guess), cenx (or centrXpos), ceny (or centrYpos) as parameters
 ;   2009-09-17 JM: added DRF parameters
 ;   2009-12-10 JM: initiate position at 1.5microns so we can take into account several 
-;   2010-07-14 J.Maire:for DRP testing, correct for DST finite spectral resolution 
+;   2010-07-14 JM:for DRP testing, correct for DST finite spectral resolution 
+;   2010-08-16 JM: added bad pixel map
 ;-
 
 function gpi_extract_wavcal2,  DataSet, Modules, Backbone
@@ -245,7 +246,8 @@ endif
  tight_tilt=float(Modules[thisModuleIndex].maxtilt)  
 
 ;calculate now x-y locations of the first peak of all spectra (specpos[*,*,0] and specpos[*,*,1]): 
-for quadrant=1L,4 do find_spectra_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,specpos,im,edge_x1,edge_x2,edge_y1,edge_y2,tight_pos
+;for quadrant=1L,4 do find_spectra_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,specpos,im,edge_x1,edge_x2,edge_y1,edge_y2,tight_pos
+for quadrant=1L,4 do find_spectra_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,specpos,im,edge_x1,edge_x2,edge_y1,edge_y2,tight_pos,badpixmap=badpixmap
 
 if strcmp(obstype,'flat',4,/fold) then specpos[*,*,0]-=0.5 ;take account of spatial shift in derivative
 
