@@ -10,7 +10,8 @@
 ;
 ; HISTORY:
 ; 	 Jerome Maire 2008-10
-function localizepeak, im, cenx, ceny,wx,wy, hh
+;   JM 2010-08-16 : added badpixel map 
+function localizepeak, im, cenx, ceny,wx,wy, hh, badpixmap=badpixmap
 
 
 szim=size(im)
@@ -40,21 +41,36 @@ szim=size(im)
       ;yfit = mpfit2dpeak(padarr(im[ind1[0]-hh:ind1[0]+hh , ind1[1]-hh :ind1[1]+hh ],oversize), paramgauss0)
 	    ;yfit = GAUSS2DFIT(padarr(im[ind1[0]-hh:ind1[0]+hh , ind1[1]-hh :ind1[1]+hh ],oversize), paramgauss0)
 	    ;paramgauss1=paramgauss0[4:5] ;- (oversize-hh)/2.
-paramgauss1=centroid( im[ind1[0]-hh:ind1[0]+hh , ind1[1]-hh :ind1[1]+hh ])
+	     cen1=double(ind1)
 
-	;paramgauss1=centroid( im[ind1[0]-hh >0:ind1[0]+hh< (size(im))(1)-1 , ind1[1]-hh > 0:ind1[1]+hh < (size(im))(2)-1])
-		; centroid coord:
-	cen1=double(ind1)
-	; cent coord in initial image coord
-;	if (paramgauss1(4) ge 1) && (paramgauss1(4) lt szim(1)) then $
-;	cen1(0)=double(ind1(0))-hh+paramgauss1(4)
-;	if (paramgauss1(5) ge 1) && (paramgauss1(5) lt szim(2)) then $
-;	cen1(1)=double(ind1(1))-hh+paramgauss1(5)
-	if (paramgauss1(0) ge 0) && (paramgauss1(0) le 2.*hh+1.) then $
-	cen1(0)=double(ind1(0))-hh+paramgauss1(0)
-	if (paramgauss1(1) ge 0) && (paramgauss1(1) le 2.*hh+1.) then $
-	cen1(1)=double(ind1(1))-hh+paramgauss1(1)
+	     if keyword_set(badpixmap) then begin
+          if total(badpixmap[ind1[0]-hh:ind1[0]+hh , ind1[1]-hh :ind1[1]+hh ]) eq 0. then begin
+          paramgauss1=centroid( im[ind1[0]-hh:ind1[0]+hh , ind1[1]-hh :ind1[1]+hh ])
 
+          	;paramgauss1=centroid( im[ind1[0]-hh >0:ind1[0]+hh< (size(im))(1)-1 , ind1[1]-hh > 0:ind1[1]+hh < (size(im))(2)-1])
+          		; centroid coord:
+          
+          	; cent coord in initial image coord
+          ;	if (paramgauss1(4) ge 1) && (paramgauss1(4) lt szim(1)) then $
+          ;	cen1(0)=double(ind1(0))-hh+paramgauss1(4)
+          ;	if (paramgauss1(5) ge 1) && (paramgauss1(5) lt szim(2)) then $
+          ;	cen1(1)=double(ind1(1))-hh+paramgauss1(5)
+          	if (paramgauss1[0] ge 0) && (paramgauss1[0] le 2.*hh+1.) then $
+          	cen1[0]=double(ind1[0])-hh+paramgauss1(0)
+          	if (paramgauss1[1] ge 0) && (paramgauss1[1] le 2.*hh+1.) then $
+          	cen1[1]=double(ind1[1])-hh+paramgauss1[1]
+          endif else begin
+            cen1[0]=cenx & cen1[1]=ceny
+           endelse
+ 
+        endif else begin
+          paramgauss1=centroid( im[ind1[0]-hh:ind1[0]+hh , ind1[1]-hh :ind1[1]+hh ])
+           if (paramgauss1[0] ge 0) && (paramgauss1[0] le 2.*hh+1.) then $
+            cen1[0]=double(ind1[0])-hh+paramgauss1[0]
+            if (paramgauss1[1] ge 0) && (paramgauss1[1] le 2.*hh+1.) then $
+            cen1[1]=double(ind1[1])-hh+paramgauss1[1]
+       endelse  
+ 
 ;print, 'centroid=',cen1
 return,cen1
 

@@ -61,6 +61,7 @@ w=w0 & P=P0 ;initial guess
 ;print, 'w=',w,'  P=',P
   for i=0,ilim,idir do begin
   ;if (i gt 100) then stop
+     ;if (nlens/2+i eq 143) && (nlens/2+j eq 143) then stop
     ;calculate approximate position of the next spectrum with w&P
     if (abs(i)+abs(j) ne 0) then begin ;we already have position of the central spectrum 
       dx=idx[nlens/2+i,nlens/2+j]*W*P+jdy[nlens/2+i,nlens/2+j]*W
