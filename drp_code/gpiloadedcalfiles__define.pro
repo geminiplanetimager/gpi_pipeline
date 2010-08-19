@@ -7,6 +7,7 @@
 ;
 ; HISTORY:
 ; 	Began 2010-05-22 13:35:56 by Marshall Perrin 
+;   JM: corrected bug in gpiloadedcalfiles::get
 ;-
 
 
@@ -52,7 +53,8 @@ function gpiloadedcalfiles::get, type, header=header, filename=filename
 	wm = wm[0]
 
 	header = *(self.headers[wm])
-	filename= *(self.filenames[wm])
+	;filename= *(self.filenames[wm])
+	 filename= (self.filenames[wm]) ;JM changed pointer=>string
 	return, *(self.data[wm])
 
 
