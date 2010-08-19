@@ -21,6 +21,7 @@
 ;   2009-09-02 JM: hist added in header
 ;   2009-09-17 JM: added DRF parameters
 ;   2010-03-15 JM: added automatic detection
+;   2010-08-19 JM: fixed bug which created new pointer everytime this primitive was called
 ;-
 
 function readwavcal, DataSet, Modules, Backbone
@@ -60,8 +61,13 @@ calfiletype = 'wavecal'
                       ;strtrim(string(c_File),2) + ' not found.' )
 	
     ;open the wavecal file:
-    pmd_wavcalFrame        = ptr_new(READFITS(c_File, Header, /SILENT))
+    ; (JM-this following piece of code using pointer is unuseful right now 
+    ; as the common variable "wavcal" do the job. Maybe could serve later?)
+    if ~ptr_valid(pmd_wavcalFrame) then $
+    pmd_wavcalFrame        = ptr_new(READFITS(c_File, Header, /SILENT)) else $
+    *pmd_wavcalFrame = READFITS(c_File, Header, /SILENT)
     wavcal=*pmd_wavcalFrame
+    ptr_free, pmd_wavcalFrame
 
 
 ;    pmd_wavcalIntFrame     = ptr_new(READFITS(c_File, Header, EXT=1, /SILENT))
