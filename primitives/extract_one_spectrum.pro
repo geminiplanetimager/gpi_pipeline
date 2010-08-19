@@ -150,13 +150,15 @@ endif
 
 suffix+='-spec'
 
+hdr=*(dataset.headers[numfile])
+
 	thisModuleIndex = Backbone->GetCurrentModuleIndex()
     if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
 		  if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0
 		  wav_spec=[[lambda],[p1d],[phot_comp]] 
 		    sxaddpar, hdr, "SPECCENX", Modules[thisModuleIndex].xcenter, "x-locations in pixel on datacube where extraction has been made"
         sxaddpar, hdr, "SPECCENY", Modules[thisModuleIndex].ycenter, 'y-locations in pixel on datacube where extraction has been made'  
-    	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix ,savedata=wav_spec, display=display)
+    	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix ,savedata=wav_spec, saveheader=hdr,display=display)
     	if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
     endif else begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
@@ -165,6 +167,7 @@ suffix+='-spec'
 
 endif 
 ;drpPushCallStack, functionName
+
 return, ok
 
 
