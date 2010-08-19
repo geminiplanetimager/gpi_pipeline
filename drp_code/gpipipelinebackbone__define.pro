@@ -15,6 +15,7 @@
 ;                     by Marshall Perrin
 ;    2009-08 minor changes in Reduce function - JM 
 ;    2009-10-05 added ReduceOnLine function - JM
+;    2010-08-19 JM memory bug corrected (image pointer created even if already exist)
 ;
 ;-----------------------------------------------------------------------------------------------------
 
@@ -398,7 +399,6 @@ PRO gpiPipelineBackbone::Run, QueueDir
                 CATCH, /CANCEL
             ENDELSE
             IF PipelineConfig.continueAfterDRFParsing EQ 1 THEN BEGIN
-                
                 Self -> OpenLog, CurrentDRF.Name + '.log', /DRF
                 if ~strmatch(self.reductiontype,'On-Line Reduction') then $
                     Result = Self->Reduce() else $
@@ -417,15 +417,19 @@ PRO gpiPipelineBackbone::Run, QueueDir
              
                 ENDELSE
                 ; Free any remaining memory here
+           
                 IF PTR_VALID(Self.Data) THEN BEGIN
                     FOR i = N_ELEMENTS(*Self.Data)-1, 0, -1 DO BEGIN
                         ;PTR_FREE, (*Self.Data)[i].FlagFrames[*]
                         ;PTR_FREE, (*Self.Data)[i].UncertFrames[*]
+                        PTR_FREE, (*Self.Data)[i].ErrFrames[*]
+                        PTR_FREE, (*Self.Data)[i].QualFrames[*]
                         PTR_FREE, (*Self.Data)[i].currFrame[*]
                         PTR_FREE, (*Self.Data)[i].Headers[*]
                         PTR_FREE, (*Self.Data)[i].Frames[*]
                     ENDFOR
                 ENDIF ; PTR_VALID(Self.Data)
+
 
                 ; We are done with the DRF, so close its log file
                 CLOSE, LOG_DRF
@@ -501,6 +505,7 @@ FUNCTION gpiPipelineBackbone::Reduce
     ; can in turn contain some number of data files, which get stored in the
     ; 'frame' arrays etc. 
     self->Log, 'Reducing data set.', /GENERAL, /DRF, depth=1
+
     FOR IndexFrame = 0, (*self.Data).validframecount-1 DO BEGIN
         if debug ge 1 then print, "########### start of file "+strc(indexFrame+1)+" ################"
         self->Log, 'Reducing file: ' + (*self.Data).fileNames[IndexFrame], /GENERAL, /DRF, depth=2
@@ -516,12 +521,19 @@ FUNCTION gpiPipelineBackbone::Reduce
 		endif
 
 		fits_info, filename, n_ext = numext, /silent
+		if ~ptr_valid((*self.data).currframe) then begin
         if (numext EQ 0) then (*self.data).currframe        = ptr_new(READFITS(filename , Header, /SILENT))
         if (numext ge 1) then begin
             (*self.data).currframe        = ptr_new(mrdfits(filename , 1, Header, /SILENT))
-            headPHU = headfits(filename, exten=0)
-            
+            headPHU = headfits(filename, exten=0)            
         endif
+    endif else begin
+        if (numext EQ 0) then *((*self.data).currframe)        = (READFITS(filename , Header, /SILENT))
+        if (numext ge 1) then begin
+            *((*self.data).currframe)        = (mrdfits(filename , 1, Header, /SILENT))
+            headPHU = headfits(filename, exten=0)            
+        endif        
+    endelse    
         if n_elements( *((*self.data).currframe) ) eq 1 then if *((*self.data).currframe) eq -1 then begin
             self->Log, "ERROR: Unable to read file "+filename, /GENERAL, /DRF
             self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
@@ -581,11 +593,13 @@ FUNCTION gpiPipelineBackbone::Reduce
         if debug ge 1 then print, "########### end of file "+strc(indexframe+1)+" ################"
     ENDFOR
 	if status eq OK then self->Log, "DRF Complete!",/general,/DRF
+
     if debug ge 1 then print, "########### end of reduction for that DRF  ################"
     PRINT, ''
     PRINT, SYSTIME(/UTC)
     PRINT, ''
     self.progressbar->Update, *self.Modules,indexModules, (*self.data).validframecount, IndexFrame,' Done.'
+
 
     RETURN, status
 
