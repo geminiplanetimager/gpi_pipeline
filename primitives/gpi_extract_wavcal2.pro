@@ -78,7 +78,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
    if strmatch(obstype,'*flat*',/fold) then begin
         im0=im
         im = (SHIFT_DIFF(im, DIRECTION=3)>0.) ;works with spatial derivative of the image (this direction works for lambda_min edge)
- stop
+ ;stop
  ;       im = (SHIFT_DIFF(im>(2.*stddev(im0>0.)), DIRECTION=3)>0.) ;works with spatial derivative of the image (this direction works for lambda_min edge)
    endif     
    

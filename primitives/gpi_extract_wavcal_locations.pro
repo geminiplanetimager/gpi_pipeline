@@ -76,9 +76,9 @@ primitive_version= '$Id: gpi_extract_wavcal2.pro 11 2010-07-06 01:22:03Z maire $
 
    if strmatch(obstype,'*flat*',/fold) then begin
         im0=im
-        im = (SHIFT_DIFF(im, DIRECTION=3)>0.) ;works with spatial derivative of the image (this direction works for lambda_min edge)
+   ;     im = (SHIFT_DIFF(im, DIRECTION=3)>0.) ;works with spatial derivative of the image (this direction works for lambda_min edge)
  ;stop
-  ;      im = (SHIFT_DIFF(im>(2.*stddev(im0>0.)), DIRECTION=3)>0.) ;works with spatial derivative of the image (this direction works for lambda_min edge)
+        im = (SHIFT_DIFF(im>(2.*stddev(im0>0.)), DIRECTION=3)>0.) ;works with spatial derivative of the image (this direction works for lambda_min edge)
    endif     
    
 	;if (size(im))[0] eq 0 then im=readfits(filename,h)
@@ -205,8 +205,8 @@ endcase
 ;;localize first peak ;; this coordiantes depends strongly on data!!
 cenx=float(Modules[thisModuleIndex].centrXpos)
 ceny=float(Modules[thisModuleIndex].centrYpos)
-
-if strmatch(strcompress(bandeobs,/REMOVE_ALL),'Y') then specpixlength2=specpixlength+3. else specpixlength2=specpixlength
+stop
+if strmatch(strcompress(bandeobs,/REMOVE_ALL),'Y') then specpixlength2=specpixlength+4. else specpixlength2=specpixlength
 if (Modules[thisModuleIndex].wav_of_centrXYpos) eq 2. then begin
     ;;from cenx at 1.5microns, estimate x-location of first peak to detect
    ; cenx+=(peakwavelen[0]-1.5)*(18./0.3)
@@ -275,8 +275,8 @@ if strcmp(obstype,'flat',4,/fold) then specpos[*,*,0]-=0.5 ;take account of spat
 ;    dispeak=0
 ;  endelse
 
-if strmatch(obstype,'*flat*',/fold) then im = (SHIFT_DIFF(im0, DIRECTION=4)>0.) ;works with spatial derivative of the image (lambda_max edge)
-;if strmatch(obstype,'*flat*',/fold) then im = (SHIFT_DIFF(im0>(2.*stddev(im0>0.)), DIRECTION=4)>0.) ;works with spatial derivative of the image (lambda_max edge)
+;if strmatch(obstype,'*flat*',/fold) then im = (SHIFT_DIFF(im0, DIRECTION=4)>0.) ;works with spatial derivative of the image (lambda_max edge)
+if strmatch(obstype,'*flat*',/fold) then im = (SHIFT_DIFF(im0>(2.*stddev(im0>0.)), DIRECTION=4)>0.) ;works with spatial derivative of the image (lambda_max edge)
 
    specpos[*,*,2]=peakwavelen[0]
 if n_elements(peakwavelen) gt 1 then begin
@@ -297,7 +297,7 @@ endif
 ;  if strcmp(obstype,'flat',4,/fold) then dispeak[*,*,(size(dispeak))[3]-2]-=1.3 ;take account of spatial shift in derivative
 ;   if strcmp(obstype,'flat',4,/fold) then dispeak[*,*,0]-=1.0
 ;   if strcmp(obstype,'flat',4,/fold) then dispeak[*,*,(size(dispeak))[3]-1]-=0.8
- stop
+; stop
 endif ; verif si n_elements(peakwavelen) gt 1
 
 ; median filtering for bad detection on the edge where part of spectrum are absent...
