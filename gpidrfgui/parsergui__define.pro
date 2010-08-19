@@ -6,7 +6,7 @@
 ;
 ;
 ; author : 2010-02 J.Maire created
-
+; 2010-08-19 : JM added parsing of arclamp images
 
 
 
@@ -398,6 +398,12 @@ pro parsergui::addfile, filenames
         ;fitime=strarr(cindex) 
         for jj=0,cindex-1 do begin
 			finfo[jj] = self->get_obs_keywords(file[jj])
+  			;;we want Xenon&Argon considered as the same 'lamp' object for Y,K1,K2bands (for H&J, better to do separately to keep only meas. from Xenon)
+    			if (~strmatch(finfo[jj].filter,'[HJ]')) && (strmatch(finfo[jj].object,'Xenon') || strmatch(finfo[jj].object,'Argon')) then $
+    			    finfo[jj].object='Lamp'
+    		;; we also want Flat considered for wavelength solution in Y band
+    			 if strmatch(finfo[jj].object,'Flat*')  &&  strmatch(finfo[jj].filter,'Y') then $
+    			    finfo[jj].object='Lamp'
             ;self.filter=resolvekeyword( file, cindex,'filter1')
             ;ffilter[jj]  =self->resolvekeyword( file[jj], 1,'filter1')
             ;fmod[jj]     =self->resolvekeyword( file[jj], 1,'OBSTYPE')
@@ -503,7 +509,7 @@ pro parsergui::addfile, filenames
                 if cnd ge 1  then sequenceorder[indnotdefined]=nbobstype-1
                 indsortseq=sort(sequenceorder)
 
-				;stop
+			;	stop
                 
                 ;;for each filter and each obstype, create a drf
                 for fc=0,nbobstype-1 do begin
@@ -540,13 +546,21 @@ pro parsergui::addfile, filenames
                                     
                                     for fobj=0,n_elements(uniqobjects)-1 do begin
 										current.object = uniqobjects[fobj]
+										;these following 2 lines for adding Y-band flat-field in wav.solution measurement
+										currobstype=current.obstype
+                    if (self.flatreduc eq 1)  && (current.filter eq 'Y') &&$
+                     (current.obstype eq 'Wavecal')  then currobstype='[WF][al][va][et]*'
+                          
 										indfobject = where(finfo.filter eq current.filter and $
-													finfo.obstype eq current.obstype and $
+													;finfo.obstype eq current.obstype and $
+                          strmatch(finfo.obstype, currobstype,/fold) and $													
 													strmatch(finfo.dispersr,current.dispersr+"*",/fold) and $
 													strmatch(finfo.occulter,current.occulter+"*",/fold) and $
 													finfo.obsclass eq current.obsclass and $
 													finfo.itime eq current.itime and $
 													finfo.object eq current.object, cobj)
+													
+                      
 	
 										if cobj eq 0 then continue
                                         file_filt_obst_disp_occ_obs_itime_object = file[indfobject]
@@ -564,9 +578,10 @@ pro parsergui::addfile, filenames
                                             if  current.dispersr eq 'POLAR' then begin 
                                                 detectype=4
                                                 detecseq=2  
-                                            endif else begin              
+                                            endif else begin                                                          
                                                 detectype=3
-                                                detecseq=3   
+                                                if current.filter eq 'Y' then  detecseq=9 else $
+                                                detecseq=3                  
                                             endelse                     
                                         end
                                         'FLAT': begin
@@ -1472,7 +1487,7 @@ end
 ;-----------------------
 pro parsergui::post_init, _extra=_extra
 
-	widget_control, self.calibflatid, set_droplist_select=0; 1
+	widget_control, self.calibflatid, set_droplist_select= 1 ;0
 end
 
 ;-----------------------
@@ -1489,7 +1504,7 @@ PRO parsergui__define
               ;seqtab5:strarr(5),$    
               loadedinputdir:'',$
               calibflatid:0L,$
-              flatreduc:0,$
+              flatreduc:1,$
               ;loadedfilenames:ptr_new(/ALLOCATE_HEAP), $
               ;loadedmodules:ptr_new(/ALLOCATE_HEAP), $
               ;loadedmodulesstruc:ptr_new(/ALLOCATE_HEAP), $
