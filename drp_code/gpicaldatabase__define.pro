@@ -367,11 +367,27 @@ function gpicaldatabase::get_best_cal, type, date, filter, prism, itime=itime, $
 
 	timediff=min(abs( ((*self.data).JD)[imatches] - date ),minind)
 	if keyword_set(verbose) then message,/info, "Closest date offset is "+strc(timediff)
-	ibest = imatches[minind]
+	;combinaison of wav.cal. has same timediff than the most recent wav.cal of the combinaison
+	;so, keep only the combinaison (TO DO: use keyword DATAFILE instead of suffix filename?)
+	ibests=where(abs( ((*self.data).JD)[imatches] - date ) eq timediff,cc)
+
+	if cc gt 1 then begin
+;	countdatafiletab=intarr(cc)
+;	  for n=0,cc-1 do begin
+;	    Hdr=headfits(self.caldir+path_sep()+((*self.data).filename)[imatches[ibests]])
+;	    result = SXPAR( Hdr, 'DATAFILE',  COUNT=countdatafile)
+;	    countdatafiletab[n]=countdatafile
+;	  endfor
+;    void=max(countdatafiletab,maxdatafile)
+;	ibest=imatches[ibests[maxdatafile]]
+  endif else begin
+	  ibest = imatches[minind]
+	endelse
+	
     bestcalib=((*self.data).PATH)[ibest]+path_sep()+((*self.data).FILENAME)[ibest]
 	if keyword_set(verbose) then message,/info, "Returning best calib= "+bestcalib
 
-	if obj_valid(self.backbone) then self.backbone->Log, "GPICALDB: Returning best cal file= "+bestcalib
+	if obj_valid(self.backbone) then self.backbone->Log, "GPICALDB: Returning best cal file= "+bestcalib,/DRF,depth=2
 	
 	return, bestcalib
 
