@@ -31,37 +31,8 @@ calfiletype = 'wavecal'
 @__start_primitive
 
 
-;common PIP
-;COMMON APP_CONSTANTS
-
-
-    ;getmyname, functionName
-
-   ; save starting time
-   ;T = systime(1)
-
-    ;; identify and get the wavecal solution needed:  
-    ;thisModuleIndex = Backbone->GetCurrentModuleIndex()
-    ;c_File = (Modules[thisModuleIndex].CalibrationFile)
-    ;can be automatic detection based on data keywords:
-	;if strmatch(c_File, 'AUTOMATIC',/fold) then c_File = (Backbone_comm->Getgpicaldb())->get_best_cal_from_header( 'wavecal', *(dataset.headers)[numfile] )
-;    if strmatch(c_File, 'AUTOMATIC',/fold) then begin
-;;        dateobs=strcompress(sxpar( *(dataset.headers)[numfile], 'DATE-OBS',  COUNT=cc1),/rem)
-;;        timeobs=strcompress(sxpar( *(dataset.headers)[numfile], 'TIME-OBS',  COUNT=cc2),/rem)
-;        dateobs2 =  strc(sxpar(*(dataset.headers)[numfile], "DATE-OBS"))+"T"+strc(sxpar(*(dataset.headers)[numfile],"TIME-OBS"))
-;        dateobs3 = date_conv(dateobs2, "J")        
-;        filt=strcompress(sxpar( *(dataset.headers)[numfile], 'FILTER',  COUNT=cc3),/rem)
-;        prism=strcompress(sxpar( *(dataset.headers)[numfile], 'DISPERSR',  COUNT=cc4),/rem)
-;        gpicaldb = Backbone_comm->Getgpicaldb()
-;        c_File = gpicaldb->get_best_cal( 'wavecal', dateobs3, filt,prism)
-;   endif
-    ;error handling:
-    ;if (file_test( c_File ) EQ 0 ) then $
-       ;return, error('ERROR IN CALL ('+strtrim(functionName)+'): Wave Cal File  ' + $
-                      ;strtrim(string(c_File),2) + ' not found.' )
-	
     ;open the wavecal file:
-    ; (JM-this following piece of code using pointer is unuseful right now 
+    ; (JM: this following piece of code using pointer is unuseful right now 
     ; as the common variable "wavcal" do the job. Maybe could serve later?)
     if ~ptr_valid(pmd_wavcalFrame) then $
     pmd_wavcalFrame        = ptr_new(READFITS(c_File, Header, /SILENT)) else $

@@ -16,7 +16,7 @@
 ; PIPELINE COMMENT: Extract one spectrum from a datacube somewhere in the FOV specified by the user.
 ; PIPELINE ARGUMENT: Name="xcenter" Type="int" Range="[0,1000]" Default="141" Desc="x-locations in pixel on datacube where extraction will be made"
 ; PIPELINE ARGUMENT: Name="ycenter" Type="int" Range="[0,1000]" Default="141" Desc="y-locations in pixel on datacube where extraction will be made"
-; PIPELINE ARGUMENT: Name="radius" Type="float" Range="[0,1000]" Default="5." Desc="Aperture radius (in pixel i.e. mlens) to extract photometry for each wavelength. Set 0 for one mlens spectrum extraction."
+; PIPELINE ARGUMENT: Name="radius" Type="float" Range="[0,1000]" Default="5." Desc="Aperture radius (in pixel i.e. mlens) to extract photometry for each wavelength. "
 ; PIPELINE ARGUMENT: Name="method" Type="string"  Default="total" Range="[median|mean|total]"  Desc="method of photometry extraction:median,mean,total"
 ; PIPELINE ARGUMENT: Name="ps_figure" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose # of saved fig suffix name, 0: no ps figure "
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output (fits) on disk, 0: don't save"
@@ -62,7 +62,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
    radi = float(Modules[thisModuleIndex].radius)
    currmeth = Modules[thisModuleIndex].method
 
-;;method radial plot
+;;method#1: radial photometry (it doesn't remove sky background)
   if radi gt 0 then begin
       distsq=shift(dist(2*radi+1),radi,radi)
     inda=array_indices(distsq,where(distsq le radi))
@@ -75,67 +75,68 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     inda2x=inda[0,inda_out]
     inda2y=inda[1,inda_out]
     inda=[inda2x,inda2y]
-endif else begin
-inda=intarr(2,1)
-inda[0,0]=x
-inda[1,0]=y
-endelse
+  endif else begin
+    inda=intarr(2,1)
+    inda[0,0]=x
+    inda[1,0]=y
+  endelse
 
 
-if (size(main_image_stack))[0] eq 3 then begin
-  if radi gt 0 then begin
-  mi=dblarr((size(inda))(2),(size(main_image_stack))(3),/nozero)
-    for i=0,(size(inda))(2)-1 do $
-    mi[i,*]=main_image_stack[inda(0,i),inda(1,i), *]
-    p1d=fltarr((size(main_image_stack))(3))
-    if STRMATCH(currmeth,'Total',/fold) then $
-    p1d=total(mi,1,/nan)
-    if STRMATCH(currmeth,'Median',/fold) then $
-    p1d=median(mi,dimension=1)
-    if STRMATCH(currmeth,'Mean',/fold) then $
-    for i=0,(size(mi))(2)-1 do $
-    p1d[i]=mean(mi(*,i),/nan)
-    endif else begin
-    p1d=main_image_stack[x, y, *]
-    endelse
-
-
+  if (size(main_image_stack))[0] eq 3 then begin
+    if radi gt 0 then begin
+    mi=dblarr((size(inda))(2),(size(main_image_stack))(3),/nozero)
+      for i=0,(size(inda))(2)-1 do $
+      mi[i,*]=main_image_stack[inda(0,i),inda(1,i), *]
+      p1d=fltarr((size(main_image_stack))(3))
+      if STRMATCH(currmeth,'Total',/fold) then $
+      p1d=total(mi,1,/nan)
+      if STRMATCH(currmeth,'Median',/fold) then $
+      p1d=median(mi,dimension=1)
+      if STRMATCH(currmeth,'Mean',/fold) then $
+      for i=0,(size(mi))(2)-1 do $
+      p1d[i]=mean(mi(*,i),/nan)
+      endif else begin
+      p1d=main_image_stack[x, y, *]
+      endelse
 
       indf=where(finite(p1d))
       if (NLam gt 0)  then $
         xlam=(lambda)[indf] $
         else xlam=(indgen((size(main_image_stack))[3]))[indf]
 
+      ps_figure = Modules[thisModuleIndex].ps_figure 
+      calunits=sxpar( *(dataset.headers[numfile]), 'CUNIT',  COUNT=cc)
+      ifsunits=sxpar( *(dataset.headers[numfile]), 'IFSUNIT',  COUNT=ci)
+      units='counts/s'
+      if ci eq 1 then units=ifsunits 
+      if cc eq 1 then units=calunits 
 
-ps_figure = Modules[thisModuleIndex].ps_figure 
-calunits=sxpar( *(dataset.headers[numfile]), 'CUNIT',  COUNT=cc)
-ifsunits=sxpar( *(dataset.headers[numfile]), 'IFSUNIT',  COUNT=ci)
-units='counts/s'
-if ci eq 1 then units=ifsunits 
-if cc eq 1 then units=calunits 
+      s_Ext='-spectrum_x'+Modules[thisModuleIndex].xcenter+'_y'+Modules[thisModuleIndex].ycenter
+     filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
+     slash=strpos(filnm,path_sep(),/reverse_search)
+     psFilename = Modules[thisModuleIndex].OutputDir+'fig'+path_sep()+strmid(filnm, slash,strlen(filnm)-5-slash)+s_Ext+'.ps'
 
-  s_Ext='-spectrum_x'+Modules[thisModuleIndex].xcenter+'_y'+Modules[thisModuleIndex].ycenter
- filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
- slash=strpos(filnm,path_sep(),/reverse_search)
- psFilename = Modules[thisModuleIndex].OutputDir+strmid(filnm, slash,strlen(filnm)-5-slash)+s_Ext+'.ps'
-
-;;;;method photometric
+;;;;method#2 standard photometric measurement (DAOphot-like)
     cubcent2=main_image_stack
+    ;;set photometric aperture and parameters
     phpadu = 1.0                    ; don't convert counts to electrons
-apr = float(radi)
-skyrad = [6.,10.]
-; Assume that all pixel values are good data
-badpix = [-1.,1e6];state.image_min-1, state.image_max+1
+    apr = (1./2.)*lambda[0]*float(radi)
+    skyrad = (1./2.)*lambda[0]*[float(radi),float(radi)+2.] 
+    if (skyrad[1]-skyrad[0] lt 2.) then skyrad[1]=skyrad[0]+2.
+    ; Assume that all pixel values are good data
+    badpix = [-1.,1e6];state.image_min-1, state.image_max+1
     
     ;;do the photometry of the companion
-    phot_comp=fltarr(CommonWavVect[2])
+    phot_comp=fltarr(CommonWavVect[2])+!VALUES.F_NAN 
+    while (total(~finite(phot_comp)) ne 0) && (skyrad[1]-skyrad[0] lt 20.) do begin
       for i=0,CommonWavVect[2]-1 do begin
           aper, cubcent2[*,*,i], [x], [y], flux, errap, sky, skyerr, phpadu, (lambda[i]/lambda[0])*apr, $
-            skyrad, badpix, /flux, /silent ;, flux=abs(state.magunits-1)
+            (lambda[i]/lambda[0])*skyrad, badpix, /flux, /silent ;, flux=abs(state.magunits-1)
             print, 'slice#',i,' flux comp #'+'=',flux[0],'at positions ['+strc(x)+','+strc(y)+']',' sky=',sky[0]
-          phot_comp[i]=(flux[0]-sky[0])
+          phot_comp[i]=(flux[0])
       endfor
-
+      skyrad[1]+=1.
+    endwhile
      
 ; overplot the phot apertures on radial plot
 if (ps_figure gt 0)  then begin

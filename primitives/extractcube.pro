@@ -101,7 +101,9 @@ suffix='-spdc'
 
 ;save if asked and handle error if save function failed:
   thisModuleIndex = Backbone->GetCurrentModuleIndex()
- if tag_exist( Modules[thisModuleIndex], "Save") && tag_exist( Modules[thisModuleIndex], "suffix") then suffix=Modules[thisModuleIndex].suffix
+ if tag_exist( Modules[thisModuleIndex], "Save") && $
+ tag_exist( Modules[thisModuleIndex], "suffix") && $
+ (uint(Modules[thisModuleIndex].save) eq 1 ) then suffix=Modules[thisModuleIndex].suffix
  
 
     if ( Modules[thisModuleIndex].Save eq 1 ) then begin

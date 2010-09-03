@@ -114,7 +114,7 @@ case strcompress(bandeobs,/REMOVE_ALL) of
       bandwidth=0.19  ;bandwidth in microns
     end
   'J':begin
-      if strmatch(lamp,'*Xenon*',/fold) then peakwavelen=[[1.175],[1.263]]
+      if strmatch(lamp,'*Xenon*',/fold) then peakwavelen=[[1.155],[1.263]] ;take into account secondary peak[[1.175],[1.263]]
       if strmatch(lamp,'*Argon*',/fold) then peakwavelen=[[1.246],[1.296]]
       if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.15],[1.33]] ;[[1.12],[1.35]]
       specpixlength=15. ;spec pix length for rough estimation of peak positions
@@ -146,7 +146,7 @@ endcase
     ;;2010-07-14 J.Maire: added for testing, 
     ;; use it only for wavelength solution testing based on DST sim
     ;;correct for finite DST spectral resolution !!
-    testdeb=1
+    testdeb=0
     if testdeb then begin
               case strcompress(bandeobs,/REMOVE_ALL) of
             'Y':begin

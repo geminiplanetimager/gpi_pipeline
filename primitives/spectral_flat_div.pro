@@ -42,8 +42,7 @@ calfiletype = 'flat'
 
 	*(dataset.currframe[0]) /= specflat
 
-
-  ;  if tag_exist( Modules[thisModuleIndex], "Save") && tag_exist( Modules[thisModuleIndex], "suffix") then suffix+=Modules[thisModuleIndex].suffix
+;  if tag_exist( Modules[thisModuleIndex], "Save") && tag_exist( Modules[thisModuleIndex], "suffix") then suffix+=Modules[thisModuleIndex].suffix
   
 @__end_primitive
 end

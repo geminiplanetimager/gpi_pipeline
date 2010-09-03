@@ -1,6 +1,6 @@
 ;+
 ; NAME: sat_spots_locations
-; PIPELINE PRIMITIVE DESCRIPTION: Measure satellite spot locations
+; PIPELINE PRIMITIVE DESCRIPTION: Measure satellite spot locations 
 ;
 ;
 ; INPUTS: data-cube
@@ -11,9 +11,9 @@
 ;
 ; OUTPUTS:  
 ;
-; PIPELINE COMMENT: Calculate locations of sat.spots in datacubes
+; PIPELINE COMMENT: Calculate locations of sat.spots in datacubes (using GPItv)
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="spotsnbr" Type="int" Range="[1,4]" Default="2" Desc="How many spots in a slice of the datacube? "
+; PIPELINE ARGUMENT: Name="spotsnbr" Type="int" Range="[1,4]" Default="4" Desc="How many spots in a slice of the datacube? "
 ; PIPELINE ORDER: 2.44
 ; PIPELINE TYPE: ALL-SPEC
 ; PIPELINE SEQUENCE: 
@@ -28,18 +28,27 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
   cubef3D=*(dataset.currframe[0])
 
-lambda=dblarr((size(cubef3D))[3])
-lambdamin=CommonWavVect[0] &  lambdamax=CommonWavVect[1]
-CommonWavVect[2]=double((size(cubef3D))[3])
-for i=0,CommonWavVect(2)-1 do lambda[i]=lambdamin+(lambdamax-lambdamin)/(2.*CommonWavVect[2])+double(i)*(lambdamax-lambdamin)/(CommonWavVect[2])
+        ;get the common wavelength vector
+            ;error handle if extractcube not used before
+            if ((size(cubef3D))[0] ne 3) || (strlen(filter) eq 0)  then $
+            return, error('FAILURE ('+functionName+'): Datacube or filter not defined. Use extractcube module before.')        
+        cwv=get_cwv(filter)
+        CommonWavVect=cwv.CommonWavVect
+        lambda=cwv.lambda
+        lambdamin=CommonWavVect[0]
+        lambdamax=CommonWavVect[1]
        
        filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
        slash=strpos(filnm,path_sep(),/reverse_search)
        c_File = strmid(filnm, slash,strlen(filnm)-5-slash)+'.fits'
-void=dialog_message(/INF,'Use GPItv to locate sat.spots. Select the ''SAT SPOT LOCALIZE'' mouse mode, then click on the spots. Close GPItv after selection.')
-spotcalibfile=Modules[thisModuleIndex].OutputDir+path_sep()+'spotloc.fits'
-gpitv, cubef3D[*,*,floor(CommonWavVect[2]/2)], nbrsatspot=fix(Modules[thisModuleIndex].spotsnbr), satspotcalibfile=spotcalibfile & gpitv_activate
-;;todo:add header in this calibration file (important:wavelength used)
+       print, 'Click Ok in the dialog box that appears.'
+       print, 'Use GPItv to locate sat.spots. Select the ''SAT SPOT LOCALIZE'' mouse mode, then click on the spots.'
+       print, 'Look at the widget if spots have been well localized.'
+       print, 'Save our result using the widget and close GPItv after selection.'
+        void=dialog_message(/INF,'Use GPItv to locate sat.spots. Select the ''SAT SPOT LOCALIZE'' mouse mode, then click on the spots. Close GPItv after selection.')
+        spotcalibfile=Modules[thisModuleIndex].OutputDir+path_sep()+'spotloc'+filter+'.fits'
+        gpitve, cubef3D[*,*,floor(CommonWavVect[2]/2)], nbrsatspot=fix(Modules[thisModuleIndex].spotsnbr), satspotcalibfile=spotcalibfile & gpitv_activate
+
 
 ;;re-order sat locations (opposite,..)
 nbrspot=fix(Modules[thisModuleIndex].spotsnbr)

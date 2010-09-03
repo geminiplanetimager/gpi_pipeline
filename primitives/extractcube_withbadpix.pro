@@ -127,8 +127,10 @@ endif
 *(dataset.currframe[0])=cubef3D
 
 	thisModuleIndex = Backbone->GetCurrentModuleIndex()
-	 if tag_exist( Modules[thisModuleIndex], "Save") && tag_exist( Modules[thisModuleIndex], "suffix") then suffix=Modules[thisModuleIndex].suffix
- 
+ if tag_exist( Modules[thisModuleIndex], "Save") && $
+ tag_exist( Modules[thisModuleIndex], "suffix") && $
+ (uint(Modules[thisModuleIndex].save) eq 1 ) then suffix=Modules[thisModuleIndex].suffix
+  
     if ( Modules[thisModuleIndex].Save eq 1 ) then begin
        b_Stat = save_currdata ( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=fix(Modules[thisModuleIndex].gpitv) )
        if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')

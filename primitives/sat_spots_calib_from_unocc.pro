@@ -19,6 +19,7 @@
 ;
 ; HISTORY:
 ; 	Originally by Jerome Maire 2009-12
+;   JM 2010-08: routine optimized with simulated test data
 ;- 
 
 function sat_spots_calib_from_unocc, DataSet, Modules, Backbone
@@ -36,10 +37,15 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 ;;TOCHECK: unocculted image?
 ;;TOCHECK: is datacube registered?
 
-lambda=dblarr((size(cubef3D))[3])
-lambdamin=CommonWavVect[0] &  lambdamax=CommonWavVect[1]
-CommonWavVect[2]=double((size(cubef3D))[3])
-for i=0,CommonWavVect(2)-1 do lambda[i]=lambdamin+(lambdamax-lambdamin)/(2.*CommonWavVect[2])+double(i)*(lambdamax-lambdamin)/(CommonWavVect[2])
+        ;get the common wavelength vector
+            ;error handle if extractcube not used before
+            if ((size(cubef3D))[0] ne 3) || (strlen(filter) eq 0)  then $
+            return, error('FAILURE ('+functionName+'): Datacube or filter not defined. Use extractcube module before.')        
+        cwv=get_cwv(filter)
+        CommonWavVect=cwv.CommonWavVect
+        lambda=cwv.lambda
+        lambdamin=CommonWavVect[0]
+        lambdamax=CommonWavVect[1]
 
 
 
@@ -47,85 +53,57 @@ hdr= *(dataset.headers)[0]
 
 
 
-
+;; set the photometric apertures and parameters
 phpadu = 1.0                    ; don't convert counts to electrons
-apr = [3.]
-skyrad = [10.,12.]
+apr = [6.]   ;constant is ok as the same aperture radius is used for sat. and star itself
+skyrad = [6.,8.] 
+if (filter eq 'J')||(filter eq 'Y') then apr-=2.  ;satellite spots are close to the dark hole in these bands...
+if (filter eq 'J')||(filter eq 'Y') then skyrad-=2.
 ; Assume that all pixel values are good data
 badpix = [-1.,1e6]
 
 ;;; handle the spot locations
  SPOTWAVE=sxpar( *(dataset.headers[numfile]), 'SPOTWAVE',  COUNT=cc4)
- if cc4 gt 0 then begin
-  ;check how many spots locations is in the header (2 or 4)
-  void=sxpar( *(dataset.headers[numfile]), 'SPOT4x',  COUNT=cs)
-  if cs eq 1 then spotloc=fltarr(1+4,2) else spotloc=fltarr(1+2,2) ;1+ due for PSF center 
-        spotloc[0,0]=sxpar( *(dataset.headers[numfile]),"PSFCENTX")
-        spotloc[0,1]=sxpar( *(dataset.headers[numfile]),"PSFCENTY")      
-      for ii=1,(size(spotloc))[1]-1 do begin
-        spotloc[ii,0]=sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'x')
-        spotloc[ii,1]=sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'y')
-      endfor      
- endif else begin
-  SPOTWAVE=lambdamin
- print, 'NO SPOT LOCATIONS FOUND: assume PSF is centered'
-  print, 'Use hard-coded value for spot locations in function'+functionname
-    cs=0
-   if cs eq 1 then spotloc=fltarr(1+4) else spotloc=fltarr(1+2) ;1+ due for PSF center 
-        spotloc[0,0]=(size(cubef3D))[1]/2
-        spotloc[0,1]=(size(cubef3D))[1]/2  
-        print, 'Assume PSF center is [in pix on datacube slice]', spotloc[0,*] 
-        
-          if filter eq 'J' then begin 
-            spotloc[1,0]=106
-            spotloc[1,1]=123
-            spotloc[2,0]=169
-            spotloc[2,1]=154          
-          ;x=106 & y=123;spot1 location Jband
-          ;x=169 & y=154;spot2 location Jband
-          endif
-          if filter eq 'H' then begin
-            spotloc[1,0]=191
-            spotloc[1,1]=164
-            spotloc[2,0]=85
-            spotloc[2,1]=111           
-          ;x=191 & y=164;spot1 location Hband
-          ;x=85 & y=111;spot1 location Hband
-          endif
-          if filter eq 'K1' then begin
-            spotloc[1,0]=83
-            spotloc[1,1]=110
-            spotloc[2,0]=193
-            spotloc[2,1]=165
-          ;x=193 & y=165;spot2 location K1band 
-          ;x=83 & y=110;spot1 location K1band
-          endif
-          if filter eq 'K2' then begin
-            spotloc[1,0]=80
-            spotloc[1,1]=109
-            spotloc[2,0]=196
-            spotloc[2,1]=167         
-          ;x=80 & y=109;spot1 location K2band
-          ;x=196 & y=167;spot2 location K2band
-          endif
-          for ii=1,(size(spotloc))[1]-1 do $
-          print, 'ASSUME SPOT locations at '+lambdamin+' microms are',spotloc[ii,*]
-endelse
+   if cc4 gt 0 then begin
+    ;check how many spots locations is in the header (2 or 4)
+    void=sxpar( *(dataset.headers[numfile]), 'SPOT4x',  COUNT=cs)
+    if cs eq 1 then spotloc=fltarr(1+4,2) else spotloc=fltarr(1+2,2) ;1+ due for PSF center 
+          spotloc[0,0]=sxpar( *(dataset.headers[numfile]),"PSFCENTX")
+          spotloc[0,1]=sxpar( *(dataset.headers[numfile]),"PSFCENTY")      
+        for ii=1,(size(spotloc))[1]-1 do begin
+          spotloc[ii,0]=sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'x')
+          spotloc[ii,1]=sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'y')
+        endfor      
+   endif else begin
+      SPOTWAVE=lamdamin
+      print, 'NO SPOT LOCATIONS FOUND: assume PSF is centered'
+      print, 'Use hard-coded value for spot locations in function'+functionname
+        cs=0
+       if cs eq 1 then spotloc=fltarr(1+4) else spotloc=fltarr(1+2) ;1+ due for PSF center 
+            spotloc[0,0]=(size(cubef3D))[1]/2
+            spotloc[0,1]=(size(cubef3D))[1]/2  
+            print, 'Assume PSF center is [in pix on datacube slice]', spotloc[0,*] 
+            ;;; if spot location calibration is NOT available, 
+            ;;; enter hereafter the pixel coordinates of satellite images in datacube at the minimum wavelength 
+            ;;; in the format: spotloc=[[PSFcenterX,sat1-x,sat2-x,sat3-x,sat4-x],[PSFcenterY,sat1-y,sat2-y,sat3-y,sat4-y]]
+            ;;; Note that the spot location calibration can be obtained using the CAL-SPEC DRF templates in the DRF GUI.
+            ;;; Note also that the wavelength reference SPOTWAVE for these locations can be different. 
+            case strcompress(filter,/REMOVE_ALL) of
+              'Y':spotloc=[[1.,2.,3.,4.,5.],[10.,11.,12.,13.,14.]]
+              'J':spotloc=[[1.,2.,3.,4.,5.],[10.,11.,12.,13.,14.]]
+              'H':spotloc=[[1.,2.,3.,4.,5.],[10.,11.,12.,13.,14.]]
+              'K1':spotloc=[[1.,2.,3.,4.,5.],[10.,11.,12.,13.,14.]]
+              'K2':spotloc=[[1.,2.,3.,4.,5.],[10.,11.,12.,13.,14.]]
+            endcase
+              for ii=1,(size(spotloc))[1]-1 do $
+              print, 'ASSUME SPOT locations at '+lambdamin+' microms are',spotloc[ii,*]
+    endelse
 
 
-;;;; calculate sat locations for all slices of the cube
-;;extrapolate sat -spot at a given wavelength
-
-;  pos2=calc_satloc(spotloc2[0,0],spotloc2[0,1],PSFcenter,SPOTWAVE,lambda[floor(CommonWavVect[2]/2)+slic])
-;L2m=lambdamin
 cubcent2=cubef3D
-;wnf1 = where(~FINITE(cubcent2),nancount1)
-;if nancount1 gt 0 then cubcent2(wnf1)=0.
-;for i=0,CommonWavVect[2]-1 do cubcent2[*,*,i]=fftscale(cubcent[*,*,i],double(L2m)/double(lambda[i]),double(L2m)/double(lambda[i]),1e-7)
-
 
 ;;do the photometry of the spots
-intens_sat=fltarr((size(spotloc))[1],CommonWavVect[2])
+intens_sat=fltarr((size(spotloc))[1]-1,CommonWavVect[2])
 for spot=1,(size(spotloc))[1]-1 do begin
   for i=0,CommonWavVect[2]-1 do begin
       ;;extrapolate sat -spot at a given wavelength
@@ -134,13 +112,13 @@ for spot=1,(size(spotloc))[1]-1 do begin
         y=pos2[1]
       aper, cubcent2[*,*,i], [x], [y], flux, errap, sky, skyerr, phpadu, apr, $
         skyrad, badpix, /flux, /silent ;, flux=abs(state.magunits-1)
-        print, 'slice#',i,' flux sat #'+strc(spot)+'=',flux[0],' sky=',sky[0]
-      intens_sat[spot,i]=(flux[0]-sky[0])
+        print, 'slice#',i,' flux sat #'+strc(spot)+'=',flux[0],' at x=',x,' y=',y,' sky=',sky[0]
+      intens_sat[spot-1,i]=(flux[0]-sky[0])
   endfor
 
 endfor
 
-;;unocculted STAR location; ok if it is not perfectly centered
+;;unocculted STAR location; ok if it is not perfectly centered (as it use a centroid algo to localize center)
 inputS=dblarr(CommonWavVect[2])
 ;star location
 sidelen=20
@@ -152,13 +130,18 @@ for i=0,CommonWavVect[2]-1 do begin
       print, 'slice=',i,' star flux=',flux[0],' sky=',sky[0]
         inputS[i]=(flux[0]-sky[0])
 endfor
-print, 'Star/sat ratio 1:',inputS/intens_sat[0,*]
-print, 'Star/sat ratio 2:',inputS/intens_sat[1,*]
+nbspot=(size(spotloc))[1]-1
 
-gridratio=inputS*2./(intens_sat[0,*]+intens_sat[1,*])
+;print, 'Star/sat ratio 1:',inputS/intens_sat[0,*]
+;print, 'Star/sat ratio 2:',inputS/intens_sat[1,*]
 
+for i=0,nbspot-1 do $
+gridratio=inputS*float(nbspot)/total(intens_sat,1)
+
+print, 'nb spots=',float(nbspot)
+print, 'tot intens sat=',total(intens_sat,1)
 print, 'grid_ratios=',gridratio
-
+lambda_gridratio=[[lambda],[gridratio]]
 
 suffix+='-fluxcal'
 
@@ -172,7 +155,7 @@ suffix+='-fluxcal'
 	thisModuleIndex = Backbone->GetCurrentModuleIndex()
     if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
 		  if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
-    	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, savedata=gridratio ,saveheader=*(dataset.headers[numfile]),display=display)
+    	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, savedata=lambda_gridratio ,saveheader=*(dataset.headers[numfile]),display=display)
     	if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
     endif else begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $

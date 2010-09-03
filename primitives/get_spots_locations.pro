@@ -1,6 +1,6 @@
 ;+
 ; NAME: get_spots_locations
-; PIPELINE PRIMITIVE DESCRIPTION: Load satellite spot locations  
+; PIPELINE PRIMITIVE DESCRIPTION: Load Satellite Spot locations  
 ;
 ;	
 ;	
