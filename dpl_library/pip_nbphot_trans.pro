@@ -57,7 +57,7 @@ end
 ;    of a given magnitude in one of the UBVRIJHK bandpasses
 ;
 ; HISTORY:
-;   2007/11/21 J�r�me Maire
+;   2007/11/21 Jerome Maire
 ;-
 function n_phot_H, mag,             $
                  BAND=band,       $
@@ -71,7 +71,7 @@ band_tab   = $
 ;
 ;FIXME NOTE: Y band flux is entirely made up! - MDP
 zero_point = [7.59e7, 1.46e8, 9.71e7, 6.46e7, 3.9e7, 1.0e7, 1.97e7, 9.6e6, 4.5e6]
-;[ph/s/nm/m^2] ref:http://www.gemini.edu/sciops/instruments/instrumentIndex.html,
+;[ph/s/nm/m^2] ref:http://www.gemini.edu/sciops/instruments/instrumentIndex.html,http://www.gemini.edu/sciops/instruments/?q=sciops/instruments&q=node/10257
 ;These values were derived from the CIT system used in the STScI units conversin tool (UBVRI) and Cohen et al. (1992. AJ, 104, 1650; JHKL'M' from Vega and Sirius for 10 and 20um).]
 
 
