@@ -57,7 +57,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		FXADDPAR, *(DataSet.Headers[numfile]), 'DATAFILE', basename+'.fits'
 		sxaddhist, functionname+": combined wavcal files:", *(dataset.headers[numfile])
 		for i=0,nfiles do $ 
-			sxaddhist, functionname+": "+strmid(dataset.filenames[i], 0,strlen(dataset.filenames[i])-6)+suffix+'.fits', *(dataset.headers[numfile])
+			sxaddhist, functionname+": "+strmid(dataset.filenames[i], 0,strlen(dataset.filenames[i])-5)+suffix+'.fits', *(dataset.headers[numfile])
 
   ;update with the most recent dateobs and timeobs
   dateobs3=dblarr(nfiles)

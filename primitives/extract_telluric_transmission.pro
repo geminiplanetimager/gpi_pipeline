@@ -105,14 +105,15 @@ if ( Modules[thisModuleIndex].method eq 1 ) then begin
     if (skyrad[1]-skyrad[0] lt 2.) then skyrad[1]=skyrad[0]+2.
     ; Assume that all pixel values are good data
     badpix = [-1.,1e6];state.image_min-1, state.image_max+1
-    
+    hh=3.
     intens_sat=fltarr((size(spotloc))[1]-1,CommonWavVect[2])
     for spot=1,(size(spotloc))[1]-1 do begin
       for i=0,CommonWavVect[2]-1 do begin
           ;;extrapolate sat -spot at a given wavelength
           pos2=calc_satloc(spotloc[spot,0],spotloc[spot,1],spotloc[0,*],SPOTWAVE,lambda[i])
-            x=pos2[0]
-            y=pos2[1]
+          cent=centroid(cubcent2[pos2[0]-hh:pos2[0]+hh,pos2[1]-hh:pos2[1]+hh,i])
+            x=pos2[0]+cent[0]-hh
+            y=pos2[1]+cent[1]-hh
           aper, cubcent2[*,*,i], [x], [y], flux, errap, sky, skyerr, phpadu, (double(lambda[i])/double(lambdamin))*apr, $
             (double(lambda[i])/double(lambdamin))*skyrad, badpix, /flux, /silent ;, flux=abs(state.magunits-1)
             print, 'slice#',i,' flux sat #'+strc(spot)+'=',flux[0],'at positions ['+strc(x)+','+strc(y)+']',' sky=',sky[0]
@@ -126,9 +127,9 @@ if ( Modules[thisModuleIndex].method eq 1 ) then begin
    case strcompress(filter,/REMOVE_ALL) of
       'Y':exponent=0.
       'J':exponent=0.
-      'H':exponent=1.
-      'K1':exponent=1.
-      'K2':exponent=2.
+      'H':exponent=0.
+      'K1':exponent=0.
+      'K2':exponent=0.
   endcase
      
     for i=0,CommonWavVect[2]-1 do fluxsatmedabs[i]=((double(lambda[i])/double(lambdamin))^exponent)*mean(intens_sat[*,i],/nan) ;((double(lambda[i])/double(lambdamin))^1.)*mean(intens_sat[*,i],/nan)
@@ -147,37 +148,51 @@ endif
 
 ;;; get the theorithical spectrum of the star
 ;;;calculate number of photons at low spectral resolution
-case strcompress(filter,/REMOVE_ALL) of
-  'Y':specresolution=35.
-  'J':specresolution=38.
-  'H':specresolution=45.
-  'K1':specresolution=55.
-  'K2':specresolution=60.
-endcase
-
-lambdamin=lambda[0]
-lambdamax=lambda[n_elements(lambda)-1]
-dlam=((lambdamin+lambdamax)/2.)/specresolution
-nlam=(lambdamax-lambdamin)/dlam
-lambda_nominalres= lambdamin+(lambdamax-lambdamin)*(findgen(floor(nlam))/floor(nlam))+0.5*(lambdamax-lambdamin)/floor(nlam)
-
-nbphotnominal=pip_nbphot_trans(hdr,lambda_nominalres) 
-;;then resample on the common wavelength vector:
-          lambint=lambda_nominalres
-          ;for bandpass normalization
-          bandpassmoy=mean(lambint[1:(size(lambint))[1]-1]-lambint[0:(size(lambint))[1]-2],/DOUBLE)
-          bandpassmoy_interp=mean(lambda[1:(size(lambda))[1]-1]-lambda[0:(size(lambda))[1]-2],/DOUBLE)
-          norma=bandpassmoy_interp/bandpassmoy
-
-          nbphot = norma*INTERPOL( nbphotnominal, lambint, lambda )
+;case strcompress(filter,/REMOVE_ALL) of
+;  'Y':specresolution=35.
+;  'J':specresolution=38.
+;  'H':specresolution=45.
+;  'K1':specresolution=55.
+;  'K2':specresolution=60.
+;endcase
+;
+;lambdamin=lambda[0]
+;lambdamax=lambda[n_elements(lambda)-1]
+;dlam=((lambdamin+lambdamax)/2.)/specresolution
+;nlam=(lambdamax-lambdamin)/dlam
+;lambda_nominalres= lambdamin+(lambdamax-lambdamin)*(findgen(floor(nlam))/floor(nlam))+0.5*(lambdamax-lambdamin)/floor(nlam)
+;
+;nbphotnominal=pip_nbphot_trans(hdr,lambda_nominalres) 
+;;;then resample on the common wavelength vector:
+;          lambint=lambda_nominalres
+;          ;for bandpass normalization
+;          bandpassmoy=mean(lambint[1:(size(lambint))[1]-1]-lambint[0:(size(lambint))[1]-2],/DOUBLE)
+;          bandpassmoy_interp=mean(lambda[1:(size(lambda))[1]-1]-lambda[0:(size(lambda))[1]-2],/DOUBLE)
+;          norma=bandpassmoy_interp/bandpassmoy
+;
+;          nbphot = norma*INTERPOL( nbphotnominal, lambint, lambda )
+;
+;        cwv=get_cwv(filter)
+;        CommonWavVect=cwv.CommonWavVect        
+;        lambdamin=CommonWavVect[0]
+;        lambdamax=CommonWavVect[1]
+;nlambdapsf=37.
+;lambdapsf=fltarr(nlambdapsf)
+;  for i=0,n_elements(lambdapsf)-1 do lambdapsf[i]=lambdamin+double(i)*(lambdamax-lambdamin)/nlambdapsf
+;nbphot2=pip_nbphot_trans(hdr,lambdapsf) 
+nbphot2=pip_nbphot_trans_lowres(hdr,lambda)
+        
+;spec= decrease_spec_res(lambda, nbphot2,spotloc)
+;  stop        
 ;;; divide the sat. intensity by the star spectrum to obtain the telluric trans, then normalize it:
-fluxsatmedabs/=nbphot
+fluxsatmedabs/=nbphot2 ;nbphot
 fluxsatmedabs/=max(fluxsatmedabs)
 
 ;;this is a comparison of measured/synthetic telluric transmission for DRP tests:
 ;; comment it for real data, not needed...
 testtelluric=1
-if testtelluric eq 1 then test_telluric, lambda, DataSet.OutputFilenames[numfile],fluxsatmedabs
+;if testtelluric eq 1 then test_telluric, lambda, DataSet.OutputFilenames[numfile],fluxsatmedabs
+if testtelluric eq 1 then test_telluric, lambda, sxpar(*(DataSet.Headers[numfile]),'DATAFILE'),fluxsatmedabs
 
 ;window, 1
 ;plot, lambda,fluxsatmedabs

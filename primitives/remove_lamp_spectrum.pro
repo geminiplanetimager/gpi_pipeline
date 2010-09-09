@@ -92,7 +92,7 @@ for xsi=0,nlens-1 do begin
 			  lampspec=res[0]+res[1]*lambint+res[2]*(lambint)^2.
 		  	endif
 		  	if Modules[thisModuleIndex].method eq 'blackbody' then  begin
-			  tempelampe = 3200
+			  tempelampe = 1100
 			  lampspec=(planck(10000*lambint,tempelampe)/mean(planck(10000*lambint,tempelampe)))*mean((spectrum)[indforfit])
 		  	endif
 		  

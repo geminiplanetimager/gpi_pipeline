@@ -40,11 +40,11 @@ COMPSPEC=sxpar(hdrextr,'COMPSPEC') ;we could have compsep&comprot
 ;;get DST companion spectrum
 ;restore, 'E:\GPI\dst\'+strcompress(compspec,/rem)+'compspectrum.sav'
 case strcompress(filter,/REMOVE_ALL) of
-  'Y':specresolution=30.
-  'J':specresolution=38.
+  'Y':specresolution=35.
+  'J':specresolution=37.
   'H':specresolution=45.
-  'K1':specresolution=55.
-  'K2':specresolution=60.
+  'K1':specresolution=65.
+  'K2':specresolution=75.
 endcase
 
         ;get the common wavelength vector
@@ -97,21 +97,57 @@ end
 endcase
 readcol, fileSpectra[0], lamb, spec,/silent  
 
+
+    cwv=get_cwv(filter)
+        CommonWavVect=cwv.CommonWavVect        
+        lambdamin=CommonWavVect[0]
+        lambdamax=CommonWavVect[1]
+dlam=((lambdamin+lambdamax)/2.)/specresolution
+;is the sampling of this spectrum constant?
+; fit the spec on a constant wav. sampling
+bandloc = VALUE_LOCATE(Lamb, [lambdamin,lambdamax])
+dlam0=lamb[bandloc[0]+1]-lamb[bandloc[0]]
+extralam=VALUE_LOCATE(Lamb, [lambdamin])-VALUE_LOCATE(Lamb, [lambdamin-(lambda[1]-lambda[0])])
+nbchannel=floor((lamb[bandloc[1]+extralam]-lamb[bandloc[0]-extralam])/dlam0)
+lamb2= replicate(lamb[bandloc[0]-extralam],nbchannel)+(findgen(nbchannel))*replicate((lamb[bandloc[1]+extralam]-lamb[bandloc[0]-extralam])/float(nbchannel),nbchannel)
+spec2=  resample(lamb[bandloc[0]-extralam:bandloc[1]+extralam], spec[bandloc[0]-extralam:bandloc[1]+extralam],lamb2)
+
+fwhmloc = VALUE_LOCATE(Lamb2, [(lambda[0]),(lambda[0]+dlam)])
+fwhm=float(fwhmloc[1]-fwhmloc[0])
+print, 'fwhm=',fwhm
+gaus = PSF_GAUSSIAN( Npixel=3*fwhm, FWHM=fwhm, NDIMEN =1, /NORMAL )
+;bandloc2=VALUE_LOCATE(Lamb2, [lambdamin,lambdamax])
+LowSpec = CONVOL( (reform(Spec2)), gaus , /EDGE_TRUNCATE ) 
+
+
+
+
+;nlambdapsf=37.
+;lambdapsf=fltarr(nlambdapsf)
+;
+; ; for i=0,n_elements(lambdapsf)-1 do lambdapsf[i]=lambda[0]+(lambda[nlambdapsf-1]-lambda[0])/(2.*nlambdapsf)+double(i)*(lambda[nlambdapsf-1]-lambda[0])/nlambdapsf
+;for i=0,n_elements(lambdapsf)-1 do lambdapsf[i]=lambdamin+double(i)*(lambdamax-lambdamin)/nlambdapsf
+
   LowResolutionSpec=fltarr(n_elements(lambda))
   widthL=(lambda[1]-lambda[0])
   for i=0,n_elements(lambda)-1 do begin
-    dummy = VALUE_LOCATE(Lamb, [lambda(i)-widthL/2.])
-    dummy2 = VALUE_LOCATE(Lamb, [lambda(i)+widthL/2.])
-    if dummy eq dummy2 then LowResolutionSpec[i] = Spec(dummy) else $
-    LowResolutionSpec[i] = (1./((Lamb(dummy+1)-Lamb(dummy))*(dummy2-dummy)))*INT_TABULATED(Lamb(dummy:dummy2),Spec(dummy:dummy2),/DOUBLE)
+    dummy = VALUE_LOCATE(Lamb2, [lambda(i)-widthL/2.])
+    dummy2 = VALUE_LOCATE(Lamb2, [lambda(i)+widthL/2.])
+    if dummy eq dummy2 then LowResolutionSpec[i] = lowSpec(dummy) else $
+    LowResolutionSpec[i] = (1./((Lamb2(dummy+1)-Lamb2(dummy))*(dummy2-dummy)))*INT_TABULATED(Lamb2(dummy:dummy2),LowSpec(dummy:dummy2),/DOUBLE)
   endfor
 
 
 ;smooth to the resolution of the spectrograph:
-verylowspec=changeres(LowResolutionSpec, lambda,lambdalow)
+;verylowspec=changeres(LowResolutionSpec, lambda,lambdalow)
 ;then resample on the common wavelength vector:
-verylowspec2=changeres(verylowspec, lambdalow,lambda)
-theospectrum=(10.^(-(compmag-refmag)/2.5))*verylowspec2
+;verylowspec2=changeres(verylowspec, lambdalow,lambda)
+
+; xc=float(sxpar(hdrextr,'SPECCENX' ))
+; yc=float(sxpar(hdrextr,'SPECCENY' ))          
+;verylowspec2= decrease_spec_res(lambda, LowResolutionSpec,[[-1.,xc],[-1.,yc]])
+
+theospectrum=(10.^(-(compmag-refmag)/2.5))*LowResolutionSpec
 print, 'theo comp. spec=',theospectrum
 ewav=extr[*,0]
 espe=extr[*,2] ;indice 2 selects the standard photometric measurement (DAOphot-like)
@@ -121,7 +157,7 @@ truitime=float(sxpar(header,'TRUITIME'))
 starmag=double(SXPAR( header, 'Hmag'))
 ;;;PLOT RESULTS
 ;;prepare the plot
-maxvalue=max([(10.^(-(compmag-refmag)/2.5))*verylowspec2,espe])
+maxvalue=max([(10.^(-(compmag-refmag)/2.5))*LowResolutionSpec,espe])
 expo=floor(abs(alog10(maxvalue))+1.)
 factorexpo=10.^expo 
 thisLetter = "155B

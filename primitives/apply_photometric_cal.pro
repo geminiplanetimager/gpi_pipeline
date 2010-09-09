@@ -129,7 +129,17 @@ calfiletype='Gridratio'
 
 
 ;;;;;;theoretical flux:
-nbphot_juststar=pip_nbphot_trans(hdr,lambda)
+nlambdapsf=37.
+lambdapsf=fltarr(nlambdapsf)
+    cwv=get_cwv(filter)
+        CommonWavVect=cwv.CommonWavVect        
+        lambdamin=CommonWavVect[0]
+        lambdamax=CommonWavVect[1]
+  ;for i=0,n_elements(lambdapsf)-1 do lambdapsf[i]=lambda[0]+(lambda[nlambdapsf-1]-lambda[0])/(2.*nlambdapsf)+double(i)*(lambda[nlambdapsf-1]-lambda[0])/nlambdapsf
+ for i=0,n_elements(lambdapsf)-1 do lambdapsf[i]=lambdamin+double(i)*(lambdamax-lambdamin)/nlambdapsf
+
+;nbphot_juststar=pip_nbphot_trans(hdr,lambdapsf)
+nbphot_juststar=pip_nbphot_trans_lowres(hdr,lambda)
 
    magni=double(SXPAR( hdr, 'Hmag'))
    spect=strcompress(SXPAR( hdr, 'SPECTYPE'),/rem)
@@ -145,29 +155,31 @@ nbphot_juststar=pip_nbphot_trans(hdr,lambda)
    ifsunits=strcompress(SXPAR( hdr, 'IFSUNITS'),/rem)
 
 ;; normalize by commonwavvect[2] because widthL is the width of the entire band here
-   nbphotnormtheo=nbphot_juststar*CommonWavVect[2]/(SURFA*widthL*1e3*exposuretime) ;photons to [photons/s/nm/m^2]
-
+   nbphotnormtheo=nbphot_juststar*float(n_elements(lambdapsf))/(SURFA*widthL*1e3*exposuretime) ;photons to [photons/s/nm/m^2]
+nbphotnormtheosmoothed=nbphotnormtheo
+;;smooth to the resolution of the spectrograph:
+;case strcompress(filter,/REMOVE_ALL) of
+;  'Y':specresolution=30.
+;  'J':specresolution=39.
+;  'H':specresolution=45.
+;  'K1':specresolution=55.
+;  'K2':specresolution=60.
+;endcase
+;  lambda=dblarr(CommonWavVect[2])
+;  lambdamin=CommonWavVect[0] &  lambdamax=CommonWavVect[1]
+;  for i=0,CommonWavVect[2]-1 do lambda[i]=lambdamin+(lambdamax-lambdamin)/(2.*CommonWavVect[2])+double(i)*(lambdamax-lambdamin)/(CommonWavVect[2])
+;lambdamin=lambda[0]
+;lambdamax=lambda[n_elements(lambda)-1]
+;dlam=((lambdamin+lambdamax)/2.)/specresolution
+;nlam=(lambdamax-lambdamin)/dlam
+;lambdalow= lambdamin+(lambdamax-lambdamin)*(findgen(floor(nlam))/floor(nlam))
 ;smooth to the resolution of the spectrograph:
-case strcompress(filter,/REMOVE_ALL) of
-  'Y':specresolution=30.
-  'J':specresolution=39.
-  'H':specresolution=45.
-  'K1':specresolution=55.
-  'K2':specresolution=60.
-endcase
-  lambda=dblarr(CommonWavVect[2])
-  lambdamin=CommonWavVect[0] &  lambdamax=CommonWavVect[1]
-  for i=0,CommonWavVect[2]-1 do lambda[i]=lambdamin+(lambdamax-lambdamin)/(2.*CommonWavVect[2])+double(i)*(lambdamax-lambdamin)/(CommonWavVect[2])
-lambdamin=lambda[0]
-lambdamax=lambda[n_elements(lambda)-1]
-dlam=((lambdamin+lambdamax)/2.)/specresolution
-nlam=(lambdamax-lambdamin)/dlam
-lambdalow= lambdamin+(lambdamax-lambdamin)*(findgen(floor(nlam))/floor(nlam))
-;smooth to the resolution of the spectrograph:
-verylowspec=changeres(nbphotnormtheo, lambda,lambdalow)
+;verylowspec=changeres(nbphotnormtheo, lambda,lambdalow)
 ;then resample on the common wavelength vector:
-nbphotnormtheosmoothed=changeres(verylowspec, lambdalow,lambda)
+;nbphotnormtheosmoothed=changeres(verylowspec, lambdalow,lambda)
 
+;nbphot2=pip_nbphot_trans(hdr,lambda)           
+;nbphotnormtheosmoothed= decrease_spec_res(lambda, nbphotnormtheo,spotloc)
 ;;prepare the satellite flux ratio using a linear fit to reduce noise in the measurement
 lambdagrid=lambda_gridratio[*,0]
 rawgridratio=lambda_gridratio[*,1]

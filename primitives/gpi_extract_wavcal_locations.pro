@@ -76,9 +76,9 @@ primitive_version= '$Id: gpi_extract_wavcal2.pro 11 2010-07-06 01:22:03Z maire $
 
    if strmatch(obstype,'*flat*',/fold) then begin
         im0=im
-        im = (SHIFT_DIFF(im, DIRECTION=3)>0.) ;works with spatial derivative of the image (this direction works for lambda_min edge)
+    ;    im = (SHIFT_DIFF(im, DIRECTION=3)>0.) ;works with spatial derivative of the image (this direction works for lambda_min edge)
 
-   ;     im = (SHIFT_DIFF(im>(2.*stddev(im0>0.)), DIRECTION=3)>0.) ;works with spatial derivative of the image (this direction works for lambda_min edge)
+        im = (SHIFT_DIFF(im>(2.*stddev(im0>0.)), DIRECTION=3)>0.) ;works with spatial derivative of the image (this direction works for lambda_min edge)
    endif     
    
 	;if (size(im))[0] eq 0 then im=readfits(filename,h)
@@ -252,7 +252,7 @@ edge_y2=4.
 ;calculate now x-y locations of the first peak of all spectra (specpos[*,*,0] and specpos[*,*,1]): 
 for quadrant=1L,4 do find_spectra_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,specpos,im,edge_x1,edge_x2,edge_y1,edge_y2,tight_pos
 
-if strcmp(obstype,'flat',4,/fold) then specpos[*,*,0]-=0.5 ;take account of spatial shift in derivative
+if strcmp(obstype,'flat',4,/fold) then specpos[*,*,0]+=0.5 ;take account of spatial shift in derivative
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -275,8 +275,8 @@ if strcmp(obstype,'flat',4,/fold) then specpos[*,*,0]-=0.5 ;take account of spat
 ;    dispeak=0
 ;  endelse
 
-if strmatch(obstype,'*flat*',/fold) then im = (SHIFT_DIFF(im0, DIRECTION=4)>0.) ;works with spatial derivative of the image (lambda_max edge)
-;if strmatch(obstype,'*flat*',/fold) then im = (SHIFT_DIFF(im0>(2.*stddev(im0>0.)), DIRECTION=4)>0.) ;works with spatial derivative of the image (lambda_max edge)
+;if strmatch(obstype,'*flat*',/fold) then im = (SHIFT_DIFF(im0, DIRECTION=4)>0.) ;works with spatial derivative of the image (lambda_max edge)
+if strmatch(obstype,'*flat*',/fold) then im = (SHIFT_DIFF(im0>(2.*stddev(im0>0.)), DIRECTION=4)>0.) ;works with spatial derivative of the image (lambda_max edge)
 
    specpos[*,*,2]=peakwavelen[0]
 if n_elements(peakwavelen) gt 1 then begin
