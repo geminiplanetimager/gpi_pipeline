@@ -92,7 +92,7 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 			endelse
 		endif
 
-		;--- Update progress bara
+		;--- Update progress bar
 		(Backbone_comm->Getprogressbar() )->set_suffix, s_Ext
 
       
