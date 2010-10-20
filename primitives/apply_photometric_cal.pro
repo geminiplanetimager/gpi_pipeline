@@ -26,6 +26,7 @@
 ; 	Originally by Jerome Maire 2009-12
 ;   JM 2010-03 : added sat locations & choice of final units
 ;   JM 2010-08 : routine optimized with simulated test data
+;   2010-10-19 JM: split HISTORY keyword if necessary
 ;- 
 
 function apply_photometric_cal, DataSet, Modules, Backbone
@@ -243,9 +244,11 @@ for i=0,n_elements(convfac)-1 do $
 	FXADDPAR, *(dataset.headers)[numfile], 'CUNIT',  unitslist[unitschoice]  
 
 	suffix+='-phot'
-  sxaddhist, functionname+": applying photometric calib", *(dataset.headers[numfile])
-  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-  
+;  sxaddhist, functionname+": applying photometric calib", *(dataset.headers[numfile])
+;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
+  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": applying photometric calib"
+  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
+
 @__end_primitive
 
 

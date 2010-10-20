@@ -27,6 +27,7 @@
 ; HISTORY:
 ; 	JM 2009-12
 ;  JM 2010-03-10: add handle of x0,y0 ref point with PSFcenter
+;   2010-10-19 JM: split HISTORY keyword if necessary
 ;
 function addwcs, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -90,7 +91,9 @@ calfiletype='plate'
 	print, astr
 	*(dataset.headers)[numfile]=header
 		
-  sxaddhist, functionname+": updating wold coordinates", *(dataset.headers[numfile])
-  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
+;  sxaddhist, functionname+": updating wold coordinates", *(dataset.headers[numfile])
+;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
+  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": updating wold coordinates"
+  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
 @__end_primitive
 end

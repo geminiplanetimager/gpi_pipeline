@@ -58,7 +58,7 @@ COMMON APP_CONSTANTS
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
   getmyname, functionname
-
+@__start_primitive
  
 cubefin=*(dataset.currframe[0])
 ;thisModuleIndex = drpModuleIndexFromCallSequence(Modules, functionName)

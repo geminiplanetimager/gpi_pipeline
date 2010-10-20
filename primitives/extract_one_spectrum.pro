@@ -35,7 +35,8 @@ common PIP
 COMMON APP_CONSTANTS
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
-	getmyname, functionname
+	;getmyname, functionname
+	  @__start_primitive
 
    	; save starting time
    	T = systime(1)

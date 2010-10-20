@@ -22,6 +22,7 @@
 ;   2009-09-17 JM: added DRF parameters
 ;   2010-03-15 JM: added automatic detection
 ;   2010-08-19 JM: fixed bug which created new pointer everytime this primitive was called
+;   2010-10-19 JM: split HISTORY keyword if necessary
 ;-
 
 function readwavcal, DataSet, Modules, Backbone
@@ -45,8 +46,10 @@ calfiletype = 'wavecal'
 ;    pmd_wavcalIntAuxFrame  = ptr_new(READFITS(c_File, Header, EXT=2, /SILENT))
 
     ;update header:
-    sxaddhist, functionname+": get wav. calibration file", *(dataset.headers[numfile])
-    sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
+;    sxaddhist, functionname+": get wav. calibration file", *(dataset.headers[numfile])
+;    sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
+  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": get wav. calibration file"
+  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
 
 
 @__end_primitive 

@@ -43,6 +43,7 @@
 ;   2009-04-22 MDP: Created, based on DST's cubeextract_polarized. 
 ;   2009-09-17 JM: added DRF parameters
 ;   2009-10-08 JM: add gpitv display
+;   2010-10-19 JM: split HISTORY keyword if necessary
 ;+
 
 forward_function error
@@ -119,9 +120,10 @@ calfiletype='polcal'
 	polcube2 = fltarr(nx, ny, 2)+!values.f_nan
 	wpangle =  strc(sxpar(hdr, "WPANGLE"))
 	print, "    WP angle is "+strc(wpangle)
-	sxaddhist, functionname+": Extracting polarized slices using ", hdr
-	sxaddhist, functionname+": "+c_File, hdr
-
+	;sxaddhist, functionname+": Extracting polarized slices using ", hdr
+	;sxaddhist, functionname+": "+c_File, hdr
+  sxaddparlarge,hdr,'HISTORY',functionname+": Extracting polarized slices using "
+  sxaddparlarge,hdr,'HISTORY',functionname+": "+c_File
 
 	if keyword_set(mask) then mask = input*0
 

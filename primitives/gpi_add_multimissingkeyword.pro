@@ -25,7 +25,8 @@ COMMON APP_CONSTANTS
 
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
-   getmyname, functionname
+ ;  getmyname, functionname
+ @__start_primitive
  
   thisModuleIndex = Backbone->GetCurrentModuleIndex()  
    if tag_exist( Modules[thisModuleIndex], "keyword1") && tag_exist( Modules[thisModuleIndex], "value1") then $

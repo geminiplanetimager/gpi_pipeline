@@ -30,7 +30,7 @@ function extract, DataSet, Modules, Backbone
   COMMON APP_CONSTANTS
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
-
+  @__start_primitive
 
   header=*(dataset.headers[numfile])
   mode=SXPAR( header, 'FILTER2')

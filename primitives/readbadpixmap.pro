@@ -20,6 +20,7 @@
 ; 	Originally by Jerome Maire 2009-07
 ;   2009-09-02 JM: hist added in header 	
 ;   2009-09-17 JM: added DRF parameters
+;   2010-10-19 JM: split HISTORY keyword if necessary
 ;-
 
 function readbadpixmap, DataSet, Modules, Backbone
@@ -68,9 +69,10 @@ calfiletype='badpix'
     badpixmap=*pmd_badpixmapFrame
 
 
- sxaddhist, functionname+": Loaded bad pixel map", *(dataset.headers[numfile])
- sxaddhist, functionname+": "+Modules[thisModuleIndex].CalibrationFile, *(dataset.headers[numfile])
-
+; sxaddhist, functionname+": Loaded bad pixel map", *(dataset.headers[numfile])
+; sxaddhist, functionname+": "+Modules[thisModuleIndex].CalibrationFile, *(dataset.headers[numfile])
+  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": Loaded bad pixel map"
+  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
 
 
 return, ok

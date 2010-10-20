@@ -11,8 +11,8 @@
 ; OUTPUTS:  
 ;
 ; PIPELINE COMMENT: Test the photometry calibration by comparing extracted companion spectrum with DST initial spectrum.
-; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-photom" Desc="Enter suffix of figures names"
-; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying wavcal file, 0: no display "
+; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-photom" Desc="Enter suffix of figure name"
+; PIPELINE ARGUMENT: Name="title" Type="string" Default="" Desc="Enter figure title"
 ; PIPELINE ORDER: 2.52
 ; PIPELINE TYPE: ALL-SPEC 
 ; PIPELINE SEQUENCE: 
@@ -164,6 +164,7 @@ thisLetter = "155B
 greekLetter = '!9' + String(thisLetter) + '!X'
 print, greekLetter
 units=' W/m^2/'+greekLetter+'m'
+title=strcompress(SXPAR( hdrextr, 'SPECTYPE'),/rem)+' star, Exposure='+strcompress(string(sxpar(header,'EXPTIME')),/rem)+'s, '+Modules[thisModuleIndex].title
 
 basen=file_basename(res[0])
 basenwoext=strmid(basen,0,strlen(basen)-5)
@@ -174,10 +175,10 @@ deltaH=TeXtoIDL(" \Delta H=")
 print, 'units=',units
 expostr = TeXtoIDL(" 10^{-"+strc(expo)+"}")
 plot, ewav, factorexpo*espe,ytitle='Flux density ['+expostr+units+']', xtitle='Wavelength (' + greekLetter + 'm)',$
- xrange=[ewav[0],ewav[n_elements(ewav)-1]],yrange=[0,10.],psym=1, charsize=1.5 
+ xrange=[ewav[0],ewav[n_elements(ewav)-1]],yrange=[0,10.],psym=1, charsize=1.5, title=title 
 ;oplot, lambda,(2.55^(3.09))*30.*lowresolutionspec,linestyle=1
 oplot, lambda,factorexpo*theospectrum,linestyle=0
-legend,['measured spectrum','input '+strcompress(compspec,/rem)+' spectrum, H='+strc(compmag)+deltaH+strc(compmag-starmag)],psym=[1,-0]
+legend,['measured companion spectrum','input '+strcompress(compspec,/rem)+' spectrum, H='+strc(compmag)+deltaH+strc(compmag-starmag)],psym=[1,-0]
 
 plot,ewav,(espe-theospectrum),ytitle='Difference of Flux density ['+units+'] (meas.-theo.)', xtitle='Wavelength (' + greekLetter + 'm)', $
 xrange=[ewav[0],ewav[n_elements(ewav)-1]],psym=-1, charsize=1.5 

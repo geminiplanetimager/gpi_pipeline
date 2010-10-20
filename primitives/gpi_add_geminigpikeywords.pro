@@ -28,7 +28,8 @@ COMMON APP_CONSTANTS
 
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
-    getmyname, functionname
+   ; getmyname, functionname
+   @__start_primitive
  
  overwrite=0  
    thisModuleIndex = Backbone->GetCurrentModuleIndex()  

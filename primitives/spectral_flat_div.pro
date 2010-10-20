@@ -22,6 +22,7 @@
 ; 	2009-08-27: JM created
 ;   2009-09-17 JM: added DRF parameters
 ;   2009-10-09 JM added gpitv display
+;   2010-10-19 JM: split HISTORY keyword if necessary
 ;-
 
 function spectral_flat_div, DataSet, Modules, Backbone
@@ -36,9 +37,10 @@ calfiletype = 'flat'
 		return, error('FAILURE ('+functionName+'): Supplied flat field and data cube files do not have the same dimensions')
 
 	; update FITS header history
-	sxaddhist, functionname+": dividing by flat", *(dataset.headers[numfile])
-	sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-
+;	sxaddhist, functionname+": dividing by flat", *(dataset.headers[numfile])
+;	sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
+  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": dividing by flat"
+  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
 
 	*(dataset.currframe[0]) /= specflat
 

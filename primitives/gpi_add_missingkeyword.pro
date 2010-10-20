@@ -23,7 +23,8 @@ COMMON APP_CONSTANTS
 
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
-   functionName = 'gpi_add_missingkeyword'
+  ; functionName = 'gpi_add_missingkeyword'
+  @__start_primitive
  
   thisModuleIndex = Backbone->GetCurrentModuleIndex()  
    if tag_exist( Modules[thisModuleIndex], "keyword") && tag_exist( Modules[thisModuleIndex], "value") then $

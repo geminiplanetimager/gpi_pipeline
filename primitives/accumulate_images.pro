@@ -26,8 +26,8 @@ common PIP
 COMMON APP_CONSTANTS
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
-
-  getmyname, functionName
+  @__start_primitive
+  ;getmyname, functionName
    
   thisModuleIndex = Backbone->GetCurrentModuleIndex()
   nfiles=dataset.validframecount

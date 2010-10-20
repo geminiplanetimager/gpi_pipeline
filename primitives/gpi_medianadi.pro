@@ -24,6 +24,7 @@
 ;    Jerome Maire :- multiwavelength 2008-08
 ;    JM: adapted for GPI-pip
 ;   2009-09-17 JM: added DRF parameters
+;   2010-10-19 JM: split HISTORY keyword if necessary
 ;-
 
 Function gpi_medianADI, DataSet, Modules, Backbone
@@ -69,7 +70,8 @@ endif else begin
 endelse
   ;create header ;todo:change according with accumulate_images
   header=headfits(dataset.outputFileNames[0])
-  for ii=0, ((dataset.validframecount)-1) do sxaddhist,'Med. combin. of '+dataset.outputFileNames[ii],header
+  for ii=0, ((dataset.validframecount)-1) do sxaddparlarge,header,'HISTORY','Med. combin. of '+dataset.outputFileNames[ii]
+  
    *(dataset.headers[numfile])=header
    ; put the datacube in the dataset.currframe output structure:
     *(dataset.currframe[0])=immed

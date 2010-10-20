@@ -397,8 +397,9 @@ if numfile  eq ((dataset.validframecount)-1) then begin
                 b=aa[indim,n]
 
                 ;resolve the system ;resoud le systeme
-                c=invert(a,/double)#b
-                
+                if n_elements(a) ne 1 then $
+                c=invert(a,/double)#b 
+;                c = PSEUDO_INVERT(a ,/DOUBLE,EPS=0.2)#b
 ;                debugloci=0
 ;                if debugloci eq 1 then begin
 ;                  if n_elements(a) gt 1 then print, 'n_elem='+strc(n_elements(a))+' cond=',cond(a)
@@ -474,6 +475,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
       ;save the difference ;enregistre la difference
       suffix1=suffix+'-loci'+strcompress(string(il),/REMOVE_ALL)
       fname=tmpdir+prefix+nbr2txt(nlist[n],4)+suffix1+'.fits'
+      sxaddparlarge,*(dataset.headers[n]),'HISTORY',functionname+": LOCI done"
       sxaddhist,'Une rotation de '+strc(theta,format='(f7.3)')+$
       ' degres a ensuite ete appliquee.',h
       writefits,fname,im,h,/compress
@@ -489,6 +491,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
       imt(*,*,il)=readfits(tmpdir+prefix+nbr2txt(nlist[n],4)+suffix+strcompress(string(il),/REMOVE_ALL)+'.fits.gz',/SILENT,header)
       file_delete, tmpdir+prefix+nbr2txt(nlist[n],4)+suffix+strcompress(string(il),/REMOVE_ALL)+'.fits.gz'
     endfor
+      
       *(dataset.currframe[0])=imt
       *(dataset.headers[n])=header
 ;    if ( Modules[thisModuleIndex].Save eq 1 ) then begin

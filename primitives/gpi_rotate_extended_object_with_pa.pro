@@ -30,7 +30,7 @@ COMMON APP_CONSTANTS
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
    getmyname, functionName
-   
+   @__start_primitive
 
 ;;if all images have been processed into datacubes then start ADI processing...
 if numfile  eq ((dataset.validframecount)-1) then begin

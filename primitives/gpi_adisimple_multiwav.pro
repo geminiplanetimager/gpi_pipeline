@@ -55,6 +55,10 @@ if numfile  lt ((dataset.validframecount)-1) then return,0
   ;;get some parameters of datacubes, could have been already defined before; ToDo:check if already defined and remove this piece of code..
   dimcub=(size(*(dataset.currframe[0])))[1]  ;
   xc=dimcub/2 & yc=dimcub/2
+  filter=SXPAR( header, 'filter')
+         cwv=get_cwv(filter)
+        CommonWavVect=cwv.CommonWavVect
+  
   lambdamin=CommonWavVect[0]
   lambdamax=CommonWavVect[1]
   ;Common Wavelength Vector

@@ -21,6 +21,7 @@
 ;
 ; HISTORY:
 ; 	Originally by Jerome Maire 2009-12
+;   2010-10-19 JM: split HISTORY keyword if necessary
 ;- 
 
 function get_spots_locations, DataSet, Modules, Backbone
@@ -43,9 +44,10 @@ calfiletype='spotloc'
 	  sxaddpar, *(dataset.headers[numfile]), "SPOT"+strc(ii)+'y', spotloc[ii,1], "y-locations of spot #"+strc(ii)  
 	endfor
 
-  sxaddhist, functionname+": Loaded satellite spot locations", *(dataset.headers[numfile])
-  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-
+;  sxaddhist, functionname+": Loaded satellite spot locations", *(dataset.headers[numfile])
+;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
+  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": Loaded satellite spot locations"
+  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
 return, ok
 
 

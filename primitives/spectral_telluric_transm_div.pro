@@ -22,6 +22,7 @@
 ; 	2009-08-27: JM created
 ;   2009-09-17 JM: added DRF parameters
 ;   2009-10-09 JM added gpitv display
+;   2010-10-19 JM: split HISTORY keyword if necessary
 ;-
 
 function spectral_telluric_transm_div, DataSet, Modules, Backbone
@@ -37,8 +38,10 @@ calfiletype='telluric'
 
 ; TODO error check sizes of arrays, etc. 
 ; TODO update FITS header history
-	sxaddhist, functionname+": dividing by telluric transmission", *(dataset.headers[numfile])
-  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
+;	sxaddhist, functionname+": dividing by telluric transmission", *(dataset.headers[numfile])
+;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
+  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": dividing by telluric transmission"
+  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
   	datacube=*(dataset.currframe[0])
   	sz=size(datacube)
   	if sz[3] ne n_elements(tellurictrans) then return, error("Error: Telluric transmission do not have same dim than datacube!")

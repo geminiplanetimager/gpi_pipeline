@@ -32,8 +32,9 @@ common PIP
 COMMON APP_CONSTANTS
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
-
-    getmyname, functionname
+  @__start_primitive
+    ;getmyname, functionname
+    
   thisModuleIndex = Backbone->GetCurrentModuleIndex()
 
   cubef3D=*(dataset.currframe[0])
@@ -122,17 +123,7 @@ if ( Modules[thisModuleIndex].method eq 1 ) then begin
     
     endfor
     
-   ;this following exponent is for correcting spectral dependence of the flux given by the star PSF
-   ;it depends on Strehl ratio  
-   case strcompress(filter,/REMOVE_ALL) of
-      'Y':exponent=0.
-      'J':exponent=0.
-      'H':exponent=0.
-      'K1':exponent=0.
-      'K2':exponent=0.
-  endcase
-     
-    for i=0,CommonWavVect[2]-1 do fluxsatmedabs[i]=((double(lambda[i])/double(lambdamin))^exponent)*mean(intens_sat[*,i],/nan) ;((double(lambda[i])/double(lambdamin))^1.)*mean(intens_sat[*,i],/nan)
+    for i=0,CommonWavVect[2]-1 do fluxsatmedabs[i]=mean(intens_sat[*,i],/nan) ;((double(lambda[i])/double(lambdamin))^1.)*mean(intens_sat[*,i],/nan)
     
 endif
 

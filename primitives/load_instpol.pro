@@ -14,6 +14,7 @@
 ;
 ; HISTORY:
 ; 	2010-05-22 MDP: started
+;   2010-10-19 JM: split HISTORY keyword if necessary
 ;-  
 
 function save_output, DataSet, Modules, Backbone
@@ -26,9 +27,10 @@ calfiletype='instpol'   ; set this to some non-null value e.g. 'dark' if you wan
 
 	loadedcalfiles->load, c_file, calfiletype
 
- 	sxaddhist, functionname+": Loaded Instrumental Polarization:", *(dataset.headers[numfile])
- 	sxaddhist, functionname+": "+Modules[thisModuleIndex].CalibrationFile, *(dataset.headers[numfile])
-
+; 	sxaddhist, functionname+": Loaded Instrumental Polarization:", *(dataset.headers[numfile])
+; 	sxaddhist, functionname+": "+Modules[thisModuleIndex].CalibrationFile, *(dataset.headers[numfile])
+  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": Loaded Instrumental Polarization:"
+  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
 
 @__end_primitive
 
