@@ -301,7 +301,7 @@ function gpicaldatabase::get_best_cal, type, date, filter, prism, itime=itime, $
 	;  b) a long description for human consumption (and which is used in the Cals DB
 	;  c) how do we identify the best match?
 	
-	types_str =[['dark', 'Dark', 'itime'], $
+	types_str =[['dark', 'Dark', 'itimeFilt'], $
 			  	['wavecal', 'Wavelength Solution Cal File', 'FiltPrism'], $
 				['flat', 'Flat field', 'FiltPrism'], $
 				;['flat', 'Flat field', 'FiltPrism'], $
@@ -316,7 +316,7 @@ function gpicaldatabase::get_best_cal, type, date, filter, prism, itime=itime, $
 				['', '', ''], $
 				['', '', '']]
 	; reformat the above into a struct array.
-	aa = {type_struct, name: 'dark', description:'Dark', match_on:"itime"}
+	aa = {type_struct, name: 'dark', description:'Dark', match_on:"itimeFilt"}
 	types = replicate(aa, (size(types_str))[2])
 	types.name=reform(types_str[0,*])
 	types.description=reform(types_str[1,*])
@@ -350,6 +350,12 @@ function gpicaldatabase::get_best_cal, type, date, filter, prism, itime=itime, $
 	   		((*self.data).itime) eq itime,cc)
 		errdesc = 'with same ITIME'
 	end
+	 'itimeFilt': begin
+      imatches= where( strmatch((*self.data).type, types[itype].description+"*",/fold) and $
+        (((*self.data).itime) eq itime) and $
+        (((*self.data).filter) eq filter) ,cc) 
+    errdesc = 'with same ITIME and FILTER'
+  end
 	'FiltPrism': begin
 		 imatches= where( strmatch((*self.data).type, types[itype].description+"*",/fold) and $
 	   		(((*self.data).filter) eq filter ) and $

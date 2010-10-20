@@ -878,7 +878,7 @@ PRO gpiPipelineBackbone::OpenLog, LogFile, GENERAL = LogGeneral, DRF = LogDRF
       CLOSE, LOG_GENERAL
       FREE_LUN, LOG_GENERAL
       OPENW, LOG_GENERAL, LogFile, /GET_LUN
-      PRINTF, LOG_GENERAL, 'Data Reduction Pipeline'
+      PRINTF, LOG_GENERAL, 'Data Reduction Pipeline, version '+gpi_pipeline_version()
       PRINTF, LOG_GENERAL, 'Run On ' + SYSTIME(0)
       PRINTF, LOG_GENERAL, ''
 	  print, ""
