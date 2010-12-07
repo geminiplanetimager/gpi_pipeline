@@ -61,10 +61,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 			combined_im=total(imtab,/DOUBLE,3) /((size(imtab))[3])
 		end
 		'MEANCLIP': begin
-			message, 'Method MEANCLIP not implemented yet - bug Marshall to program it!'
+			message, 'Method MEANCLIP not implemented yet - bug Marshall to program it!',/info
+			return, NOT_OK
 		end
 		else: begin
-			message,"Invalid combination method '"+method+"' in call to Combine 2D Frames."
+			message,"Invalid combination method '"+method+"' in call to Combine 2D Frames.",/info
 			return, NOT_OK
 		endelse
 		endcase

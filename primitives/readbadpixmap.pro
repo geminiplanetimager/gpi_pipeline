@@ -54,7 +54,6 @@ calfiletype='badpix'
 ;;	;          dateobs3 = date_conv(dateobs3, "J")
 ;;	;        
 ;;	;;        filt=strcompress(sxpar( *(dataset.headers)[numfile], 'FILTER1',  COUNT=cc3),/rem)
-;;	;;        prism=strcompress(sxpar( *(dataset.headers)[numfile], 'DISPERSR',  COUNT=cc4),/rem)
 ;;	;        gpicaldb = Backbone_comm->Getgpicaldb()
 ;;	;        c_File = gpicaldb->get_best_cal( 'badpix', dateobs3)
 ;;	;   endif

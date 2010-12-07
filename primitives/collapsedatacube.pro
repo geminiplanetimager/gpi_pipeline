@@ -46,7 +46,7 @@ if sz[0] eq 3 then begin
 			collapsed_im=total(*(dataset.currframe),3,/NAN)
 		end
 		else: begin
-			message,"Invalid combination method '"+method+"' in call to Collapse datacube."
+			message,"Invalid combination method '"+method+"' in call to Collapse datacube.",/info
 			return, NOT_OK
 		endelse
 		endcase

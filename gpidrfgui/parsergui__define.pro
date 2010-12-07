@@ -407,10 +407,10 @@ pro parsergui::addfile, filenames
             ;self.filter=resolvekeyword( file, cindex,'filter1')
             ;ffilter[jj]  =self->resolvekeyword( file[jj], 1,'filter1')
             ;fmod[jj]     =self->resolvekeyword( file[jj], 1,'OBSTYPE')
-            ;fdisp[jj]    =self->resolvekeyword( file[jj], 1,'DISPERSR')
+            ;fdisp[jj]    =self->resolvekeyword( file[jj], 1,'prism')
             ;foccult[jj]  =self->resolvekeyword( file[jj], 1,'OCCULTER')
             ;fitime[jj]   =self->resolvekeyword( file[jj], 1,'ITIME')
-			pfile[jj] = pfile[jj]+"     "+finfo[jj].dispersr +" "+finfo[jj].filter+" "+finfo[jj].obstype+" "+string(finfo[jj].itime/1000.,format='(F5.1)')+"  "+finfo[jj].object
+			pfile[jj] = pfile[jj]+"     "+finfo[jj].prism +" "+finfo[jj].filter+" "+finfo[jj].obstype+" "+string(finfo[jj].itime/1000.,format='(F5.1)')+"  "+finfo[jj].object
         endfor
     	widget_control,storage.fname,set_value=pfile
 
@@ -529,9 +529,9 @@ pro parsergui::addfile, filenames
 ;                        else fileobstype =filefilt[indfobstypeflat]
 ;                    endif
 ;                    
-                    ;categorize by DISPERSR
+                    ;categorize by PRISM
                     for fd=0,n_elements(uniqdispersers)-1 do begin
-						current.dispersr = uniqdispersers[fd]
+						current.prism = uniqdispersers[fd]
                      
                         for fo=0,n_elements(uniqocculters)-1 do begin
 							current.occulter=uniqocculters[fo]
@@ -554,7 +554,7 @@ pro parsergui::addfile, filenames
 										indfobject = where(finfo.filter eq current.filter and $
 													;finfo.obstype eq current.obstype and $
                           strmatch(finfo.obstype, currobstype,/fold) and $													
-													strmatch(finfo.dispersr,current.dispersr+"*",/fold) and $
+													strmatch(finfo.prism,current.prism+"*",/fold) and $
 													strmatch(finfo.occulter,current.occulter+"*",/fold) and $
 													finfo.obsclass eq current.obsclass and $
 													finfo.itime eq current.itime and $
@@ -567,7 +567,7 @@ pro parsergui::addfile, filenames
                          
                                         ;identify which templates to use
 										print,  current.obstype ; uniqsortedobstype[indsortseq[fc]]
-										self->Log, "found sequence of type="+current.obstype+", prism="+current.dispersr+", filter="+current.filter
+										self->Log, "found sequence of type="+current.obstype+", prism="+current.prism+", filter="+current.filter
 										;stop
                                          case strupcase(current.obstype) of
                                         'DARK':begin
@@ -575,7 +575,7 @@ pro parsergui::addfile, filenames
                                             detecseq=2                        
                                         end
                                         'WAVECAL': begin 
-                                            if  current.dispersr eq 'POLAR' then begin 
+                                            if  current.prism eq 'POLAR' then begin 
                                                 detectype=4
                                                 detecseq=2  
                                             endif else begin                                                          
@@ -585,7 +585,7 @@ pro parsergui::addfile, filenames
                                             endelse                     
                                         end
                                         'FLAT': begin
-                                            if  current.dispersr eq 'POLAR' then begin 
+                                            if  current.prism eq 'POLAR' then begin 
 												; handle polarization flats
 												; differently: compute **both**
 												; extraction files and flat
@@ -603,7 +603,7 @@ pro parsergui::addfile, filenames
                                             endelse                             
                                         end
                                         'OBJECT': begin
-                                            if  current.dispersr eq 'POLAR' then begin 
+                                            if  current.prism eq 'POLAR' then begin 
                                                 detectype=2
                                                 detecseq=1  
                                             endif else begin 
@@ -681,7 +681,7 @@ pro parsergui::create_drf_from_template, templatename, fitsfiles, current, datet
 	; Columns are
 	; Filename, Recipe, Type, 
 	new_drf_properties = [self.drfpath+path_sep()+(*self.drf_summary).filename, (*self.drf_summary).name,   (*self.drf_summary).type, $
-		current.filter, current.obstype, current.dispersr, current.occulter, current.obsclass, string(current.exptime,format='(F7.1)'), current.object] 
+		current.filter, current.obstype, current.prism, current.occulter, current.obsclass, string(current.exptime,format='(F7.1)'), current.object] 
 
 	if self.nbdrfSelec eq 0 then (*self.currDRFSelec)= new_drf_properties else $
 		(*self.currDRFSelec)=[[(*self.currDRFSelec)],[new_drf_properties]]

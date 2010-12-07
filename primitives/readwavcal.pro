@@ -5,7 +5,7 @@
 ; 	Reads a wavelength calibration file from disk.
 ; 	The wavelength calibration is stored using pointers into the common block.
 ;
-; KEYWORDS: DATE-OBS,TIME-OBS,FILTER,DISPERSR
+; KEYWORDS: DATE-OBS,TIME-OBS,FILTER
 ; INPUTS:	CalibrationFile=	Filename of the desired wavelength calibration file to
 ; 						be read
 ; OUTPUTS: none

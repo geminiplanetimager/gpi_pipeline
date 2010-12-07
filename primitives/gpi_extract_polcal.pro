@@ -42,13 +42,13 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	if ct eq 0 then bandeobs= sxpar(h,'FILTER1')
 
    	; TODO verify image is a POL mode FLAT FIELD. 
-	disp = sxpar(h,'DISPERSR', count=ct)
-	if ct eq 0 then disp = sxpar(h,'FILTER2')
+	disp = sxpar(h,'PRISM', count=ct)
+	if ct eq 0 then disp = sxpar(h,'DISPERSR') ; for back compat
 
 	
-	if disp ne 'Polarimetry' then message,"Invalid input file: "+functionname+" requires a POLARIMETRY mode file"
-	if strpos(sxpar(h,'OBSTYPE') ,'Flat') eq -1 then message,"Invalid input file: "+functionname+" requires a FLAT FIELD file as its input"
-	
+	if disp ne 'Polarimetry' then return, error ('ERROR IN CALL ('+strtrim(functionName)+'): Invalid input file, which is not a POLARIMETRY mode file' )
+	if strpos(sxpar(h,'OBSTYPE') ,'Flat') eq -1 then  return, error ('ERROR IN CALL ('+strtrim(functionName)+'): Invalid input file, which is not a FLAT FIELD file' )
+
    
 	if (size(im))[0] eq 0 then im=readfits(filename,h)
 	szim=size(im)

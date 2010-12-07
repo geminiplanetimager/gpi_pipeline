@@ -91,9 +91,7 @@ calfiletype='plate'
 	print, astr
 	*(dataset.headers)[numfile]=header
 		
-;  sxaddhist, functionname+": updating wold coordinates", *(dataset.headers[numfile])
-;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": updating wold coordinates"
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
+  fxaddpar,*(dataset.headers[numfile]),'HISTORY',functionname+": updating wold coordinates"
+  fxaddpar,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
 @__end_primitive
 end

@@ -163,22 +163,25 @@ function drfgui::get_obs_keywords, filename
 	endif
     head=headfits( filename)
 	; FIXME check for invalid or missing keywords here!
+	;
+	itime=  sxpar(head, 'ITIME',    count=ct7)
+	if ct7 eq 0 then itime=  sxpar(head, 'ITIME0',    count=ct7)
 	obsstruct = {gpi_obs, $
 				OBSCLASS: strc(sxpar(head, 'OBSCLASS', count=ct0)), $
 				obstype:  strc(sxpar(head, 'obstype',  count=ct1)), $
 				OBSID:    strc(sxpar(head, 'OBSID',    count=ct2)), $
 				filter:   strc(sxpar(head, 'FILTER',   count=ct3)), $
-				DISPERSR: strc(sxpar(head, 'DISPERSR', count=ct4)), $
+				prism:    strc(sxpar(head, 'PRISM', count=ct4)), $
 				OCCULTER: strc(sxpar(head, 'OCCULTER', count=ct5)), $
 				LYOT:     strc(sxpar(head, 'LYOTMASK',     count=ct6)), $
-				ITIME:    sxpar(head, 'ITIME',    count=ct7), $
+				ITIME:    itime, $
 				EXPTIME:    sxpar(head, 'EXPTIME',    count=ct7b), $
 				OBJECT:   strc(sxpar(head, 'OBJECT',   count=ct8)), $
 				valid: 0}
 	if ct0+ct1+ct2+ct3+ct4+ct5+ct6+ct7+ct8 lt 9 then self.missingkeyw=1 else obsstruct.valid=1
 	;give some info on missing keyw:
 	vec=[ct0,ct1,ct2,ct3,ct4,ct5,ct6,ct7,ct8]
-	keytab=['OBSCLASS','obstype','OBSID', 'FILTER','DISPERSR','OCCULTER','LYOT','ITIME', 'OBJECT']
+	keytab=['OBSCLASS','obstype','OBSID', 'FILTER','PRISM','OCCULTER','LYOT','ITIME', 'OBJECT']
 	indzero=where(vec eq 0, cc)
 	if cc gt 0 then self->Log, 'Missing keyword(s):'+keytab[indzero]
 	
@@ -885,7 +888,7 @@ pro drfgui::event,ev
             endif
             ;;RESOLVE MOD
             ;self.ftype=self->resolvekeyword( file, cindex,'FILTER2')
-            self.fmod=self->resolvekeyword( file, cindex,'DISPERSR')
+            self.fmod=self->resolvekeyword( file, cindex,'PRISM')
             ;;RESOLVE TYPE
             self.ftype=self->resolvekeyword( file, cindex,'OBSTYPE')
             ;;RESOLVE CLASS

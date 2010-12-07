@@ -207,8 +207,8 @@ Function gpicaldatabase::add_new_cal, filename, header=header, nowrite=nowrite
 	if count ne 1 then message,/info, "Missing keyword: FILETYPE"
 	newcal.filter = strc(sxpar(header, "FILTER", count=count))
 	if count ne 1 then message,/info, "Missing keyword: FILTER"
-	newcal.prism= strc(sxpar(header, "DISPERSR", count=count))
-	if count ne 1 then message,/info, "Missing keyword: DISPERSR"
+	newcal.prism= strc(sxpar(header, "PRISM", count=count))
+	if count ne 1 then message,/info, "Missing keyword: PRISM"
 	newcal.apodizer= strc(sxpar(header, "APODIZ", count=count))
 	if count ne 1 then message,/info, "Missing keyword: APODIZ"
 	newcal.itime = (sxpar(header, "ITIME", count=count))
@@ -271,7 +271,7 @@ function gpicaldatabase::get_best_cal_from_header, type, header, _extra=_extra
    filt=strcompress(sxpar( header, 'FILTER',  COUNT=cc3),/rem)
    if cc3 eq 0 then filt=strcompress(sxpar( header, 'FILTER1',  COUNT=cc3),/rem)
 
-   prism=strcompress(sxpar( header, 'DISPERSR',  COUNT=cc4),/rem)
+   prism=strcompress(sxpar( header, 'PRISM',  COUNT=cc4),/rem)
 
    itime=sxpar(header, "ITIME", count=ci)
    if ci eq 0 then itime=sxpar(header, "INTIME", count=ci)
@@ -301,6 +301,10 @@ function gpicaldatabase::get_best_cal, type, date, filter, prism, itime=itime, $
 	;  b) a long description for human consumption (and which is used in the Cals DB
 	;  c) how do we identify the best match?
 	
+	; 2010-01-10 MDP: why does the code try to match dark files using itimeFilt?
+	; For dark images, the filter does not matter. I'm going to change this to
+	; just 'itime' unless someone has another opinion?
+
 	types_str =[['dark', 'Dark', 'itimeFilt'], $
 			  	['wavecal', 'Wavelength Solution Cal File', 'FiltPrism'], $
 				['flat', 'Flat field', 'FiltPrism'], $
