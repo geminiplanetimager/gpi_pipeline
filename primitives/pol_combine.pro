@@ -220,7 +220,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	header=*(dataset.headers[numfile])
 
 	nfiles=dataset.validframecount
-	if nfiles lt 4 then return error('FAILURE ('+functionName+'): At least 4 input polarizations files are required.')
+	if nfiles lt 4 then return, error('FAILURE ('+functionName+'): At least 4 input polarizations files are required.')
 
 	; Load the first file so we can figure out their size, etc. 
 	im0 = accumulate_getimage(dataset, 0, hdr0)
