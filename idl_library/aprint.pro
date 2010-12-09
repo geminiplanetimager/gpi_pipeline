@@ -24,6 +24,10 @@ function aprint,thing,nocompress=nocompress,_extra=_extra
 		; it's a string, so use quotes.
 		delimiter='", "' 
 		delim2 = '"'
+	endif else if size(thing,/type) eq 1 then begin
+		; it's a byte, which strjoin fails on for some reason.
+		; so cast to int and then retry this recursively.
+		return, aprint(fix(thing), nocompress=nocompress,_extra=_extra)
 	endif else begin
 		delimiter=', '
 		delim2 = ''

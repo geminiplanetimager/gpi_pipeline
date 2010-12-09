@@ -253,8 +253,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		print, "using port = "+port
 		sxaddhist, functionname+": using instr pol for port ="+port, hdr
 	system_mueller = DST_instr_pol(/mueller, port=port)
-  	woll_mueller_vert = mueller_linpol_rot(0)
-	woll_mueller_horiz= mueller_linpol_rot(90)
+  	woll_mueller_vert = mueller_linpol_rot(90) ; swapped by MP on 3:11 2012-12-8
+	woll_mueller_horiz= mueller_linpol_rot(0)
 
 
 	for i=0L,nfiles-1 do begin
@@ -291,6 +291,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	; check for singular values and set to zero if they are close to machine
 	; precision limit
+	print, "W:"
+	print, W
+	print, 'WSD:'
+	print, WSD
+
+	stop
 	wsingular = where(w lt (machar()).eps*5, nsing)
 	if nsing gt 0 then w[wsingular]=0
 	wsingular = where(wsd lt (machar()).eps*5, nsing)
