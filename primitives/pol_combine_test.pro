@@ -60,10 +60,8 @@ function pol_combine_for_test, measurements, wpangle, port=port
 
 	; check for singular values and set to zero if they are close to machine
 	; precision limit
-	print, "W:"
-	print, W
-	print, 'WSD:'
-	print, WSD
+	print, "    W:  "+aprint(W)
+	print, '    WSD:'+aprint(WSD)
 
 	wsingular = where(w lt (machar()).eps*5, nsing)
 	if nsing gt 0 then begin
@@ -83,8 +81,8 @@ function pol_combine_for_test, measurements, wpangle, port=port
 			stokes2[*] = svsol( usd, wsd, vsd, reform(sumdiffstack[*]))
 
 
-	print, "Measured Stokes v1: "+aprint(stokes)
-	print, "Measured Stokes v2: "+aprint(stokes2)
+	print, "Measured Stokes v1 (meas):    "+aprint(stokes)
+	print, "Measured Stokes v2 (sumdiff): "+aprint(stokes2)
 	;stop
 
 	return, stokes
@@ -106,9 +104,11 @@ pro  pol_combine_test, polstate=polstate, port=port
 	if ~(keyword_set(polstate)) then polstate = [1, 1., 0.0, 0.0]
 
 
-	wpangles = [0, 22.5, 45, 67.5]
 
-	n = n_elements(wpangles)
+	n = 4
+	wpstep = 22.5
+	wpangles = findgen(n)*wpstep
+
 	meas = fltarr(n,2)
 
 
@@ -118,19 +118,23 @@ pro  pol_combine_test, polstate=polstate, port=port
 
 
 	print, "Input State:      "+ aprint(polstate)
+	print, "Port:             "+port
+	print, "Waveplate:        "+strc(n)+" steps of "+strc(wpstep)+" deg."
+	print, ""
 
 	polstate = reform(polstate, 1,4)
+	print, "    Creating input 'measurements':"
 	for i=0L,n-1 do begin
 		M_wp = dst_waveplate(0, angle=wpangles[i], /mueller)
 		meas[i,0] = (M_vert  ## M_wp ## M_instrpol ## polstate)[0]
 		meas[i,1] = (M_horiz ## M_wp ## M_instrpol ## polstate)[0]
-		print, "Angle="+strc(wpangles[i])+"     meas = "+aprint( reform(meas[i,*]))
+		print, "    Angle="+strc(wpangles[i])+"     meas = "+aprint( reform(meas[i,*]))
 		;print, (M_vert  ## M_wp ## M_instrpol)[*,0]
 		;print, (M_horiz  ## M_wp ## M_instrpol)[*,0]
 	endfor 
 
 
-
+	print, "    Running 'pol_combine':"
 	ans = pol_combine_for_test( meas, wpangles, port=port)
 
 
