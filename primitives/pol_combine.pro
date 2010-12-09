@@ -298,6 +298,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	stop
 	wsingular = where(w lt (machar()).eps*5, nsing)
+
+
+        print, 'found '+strc(nsing)+'/'+strc(n_elements(w))+' singular values'
 	if nsing gt 0 then w[wsingular]=0
 	wsingular = where(wsd lt (machar()).eps*5, nsing)
 	if nsing gt 0 then wsd[wsingular]=0
