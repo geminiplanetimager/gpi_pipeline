@@ -234,7 +234,8 @@ end
 function drfgui::get_configParser
 
     if self.config_file eq '' then begin
-        FindPro, 'make_drsconfigxml', dirlist=dirlist
+        ;FindPro, 'make_drsconfigxml', dirlist=dirlist
+        dirlist=getenv('GPI_PIPELINE_DIR')+path_sep()+'dpl_library'+path_sep()
         if getenv('GPI_CONFIG_FILE') ne '' then self.config_file=getenv('GPI_CONFIG_FILE') $
         else self.config_file=dirlist[0]+"DRSConfig.xml"
 
@@ -1603,9 +1604,9 @@ pro drfgui::cleanup
 	ptr_free, self.curr_mod_indsort, self.currModSelec, self.order, self.indarg
 	ptr_free, self.currModSelecParamTab, self.indmodtot2avail, self.templates, self.template_types, self.drf_summary
 
-    widget_control,self.drfbase,/destroy
+if (xregistered ('drfgui') gt 0) then    widget_control,self.drfbase,/destroy
 	
-	heap_gc
+	;heap_gc
 end
 
 ;------------------------------------------------
@@ -1642,8 +1643,8 @@ pro drfgui::init_data, _extra=_Extra
 
 
         self.loadedDRF = 'none' ;self.tempdrfdir+'templates_drf_'+typename+'1.xml'
-        FindPro, 'drfgui__define', dirlist=dirlist,/noprint
-        self.dirpro=dirlist[0]
+        ;FindPro, 'drfgui__define', dirlist=dirlist,/noprint
+        self.dirpro=getenv('GPI_PIPELINE_DIR')+path_sep();+'gpidrfgui'+path_sep();dirlist[0]
 
 
 
