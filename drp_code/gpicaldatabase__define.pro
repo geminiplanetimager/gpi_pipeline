@@ -145,7 +145,7 @@ PRO gpicaldatabase::write
 
 	firstline = string("#PATH", "FILENAME", "TYPE", "PRISM", "FILT", "APODIZE", "LYOT", "PORT", "ITIME", "JD", "OTHER", $
 			format="(A-"+strc(mlen_p)+", A-"+strc(mlen_f)+", A-30,  A-10,     A-5     , A-8,         A-8,       A-6,     A-15,    A-15,   A-10)")
-	forprint, textout=calfile_txt, d.path, d.filename,  d.type, d.prism, d.filter, d.apodizer, d.lyot, d.issport, d.itime,  d.jd, d.other, $
+	forprint2, textout=calfile_txt, d.path, d.filename,  d.type, d.prism, d.filter, d.apodizer, d.lyot, d.issport, d.itime,  d.jd, d.other, $
 			format="(A-"+strc(mlen_p)+", A-"+strc(mlen_f)+", A-30,  A-10,     A-5     , A-8,         A-8,       A-6,     D-15.5,  D-15.5, A-10)", /silent, $
 			comment=firstline
 	message,/info, " Writing to "+calfile_txt
@@ -272,8 +272,10 @@ function gpicaldatabase::get_best_cal_from_header, type, header, _extra=_extra
    if cc3 eq 0 then filt=strcompress(sxpar( header, 'FILTER1',  COUNT=cc3),/rem)
 
    prism=strcompress(sxpar( header, 'PRISM',  COUNT=cc4),/rem)
+   if cc4 eq 0 then prism=strcompress(sxpar( header, 'PRISM',  COUNT=cc4),/rem)
 
-   itime=sxpar(header, "ITIME", count=ci)
+   itime=sxpar(header, "ITIME0", count=ci)
+   if ci eq 0 then itime=sxpar(header, "ITIME", count=ci)
    if ci eq 0 then itime=sxpar(header, "INTIME", count=ci)
 
 
@@ -313,9 +315,11 @@ function gpicaldatabase::get_best_cal, type, date, filter, prism, itime=itime, $
 				['plate', 'Plate scale & orientation', 'typeonly'], $
 				['spotloc', 'Spot Location Measurement', 'FiltPrism'], $
 				['Gridratio', 'Grid Ratio', 'FiltPrism'], $
+				['Fluxconv', 'Fluxconv', 'FiltPrism'], $
 				['telluric', 'Telluric Transmission', 'FiltPrism'], $
 				['polcal', 'Polarimetry Spots Cal File', 'FiltPrism'], $
 				['instpol', 'Instrumental Polarization', 'FiltPrism'], $
+				['distor', 'Distortion Measurement', 'typeonly'], $
 				['', '', 'FiltPrism'], $
 				['', '', ''], $
 				['', '', '']]
@@ -370,6 +374,7 @@ function gpicaldatabase::get_best_cal, type, date, filter, prism, itime=itime, $
     
 	if cc eq 0 then begin
 		message, "ERROR: --No matching cal files "+errdesc+" as requested in DB--",/info
+		void=error('ERROR: --No matching cal files '+errdesc+' as requested in DB--')
 		return, NOT_OK
 	endif
 	if keyword_set(verbose) then message,/info, "Found "+strc(cc)+" possible cal files; selecting best based on closest date."
@@ -390,6 +395,7 @@ function gpicaldatabase::get_best_cal, type, date, filter, prism, itime=itime, $
 ;	  endfor
 ;    void=max(countdatafiletab,maxdatafile)
 ;	ibest=imatches[ibests[maxdatafile]]
+  ibest = imatches[minind]
   endif else begin
 	  ibest = imatches[minind]
 	endelse
