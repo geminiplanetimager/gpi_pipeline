@@ -65,7 +65,8 @@ pro parsergui::startup
         self.drf_summary=       ptr_new(/ALLOCATE_HEAP)
         self.version=2.0
  
-        FindPro, 'make_drsconfigxml', dirlist=dirlist
+        ;FindPro, 'make_drsconfigxml', dirlist=dirlist
+        dirlist=getenv('GPI_PIPELINE_DIR')+path_sep()+'dpl_library'+path_sep()
         if getenv('GPI_CONFIG_FILE') ne '' then self.config_file=getenv('GPI_CONFIG_FILE') $
         else self.config_file=dirlist[0]+"DRSConfig.xml"
         ConfigParser = OBJ_NEW('gpiDRSConfigParser')
@@ -282,9 +283,8 @@ end
 
 
 ;-----------------------------------------
-pro parsergui::addfile, filenames
+pro parsergui::addfile, filenames, mode=mode
     ; Add a new file to the Input FITS files list. 
-
 
     widget_control,self.drfbase,get_uvalue=storage  
     index = (*storage.splitptr).selindex
@@ -413,7 +413,7 @@ pro parsergui::addfile, filenames
 			pfile[jj] = pfile[jj]+"     "+finfo[jj].prism +" "+finfo[jj].filter+" "+finfo[jj].obstype+" "+string(finfo[jj].itime/1000.,format='(F5.1)')+"  "+finfo[jj].object
         endfor
     	widget_control,storage.fname,set_value=pfile
-
+      (*storage.splitptr).printfname=pfile
         ;-- propose to correct invalid keywords, if necessary
         ; Do this by writing a DRF implementing the 'Add Gemini and GPI
         ; Keywords' module, and then putting it in the queue. 
@@ -592,7 +592,7 @@ pro parsergui::addfile, filenames
 												; fields from these data, in two
 												; passes
 												self->create_drf_from_template, self.tempdrfdir+path_sep()+"templates_drf_cal_pol_1.xml", file_filt_obst_disp_occ_obs_itime_object, current, datetimestr=datetimestr
-												self->create_drf_from_template, self.tempdrfdir+path_sep()+"templates_drf_cal_pol_2.xml", file_filt_obst_disp_occ_obs_itime_object, current, datetimestr=datetimestr
+												self->create_drf_from_template, self.tempdrfdir+path_sep()+"templates_drf_cal_pol_2.xml", file_filt_obst_disp_occ_obs_itime_object, current, datetimestr=datetimestr, mode=mode
 												;continue		aaargh can't continue inside a case. stupid IDL
 												detectype = -1
                                                 ;detectype=4
@@ -650,8 +650,8 @@ pro parsergui::addfile, filenames
                                         typetab=['astr_spec_','astr_pol_','cal_spec_','cal_pol_','online_']
                                         typename=typetab[detectype-1]           
 										drf_to_load = self.tempdrfdir+'templates_drf_'+typename+strc(detecseq)+'.xml'
-
-										self->create_drf_from_template, drf_to_load, file_filt_obst_disp_occ_obs_itime_object, current, datetimestr=datetimestr
+                    if keyword_set(mode) && (mode eq 2) then if (total(strmatch(remcharf(file_filt_obst_disp_occ_obs_itime_object,path_sep()),remcharf(file[cindex-1]+'*',path_sep()))) eq 0) then continue
+										self->create_drf_from_template, drf_to_load, file_filt_obst_disp_occ_obs_itime_object, current, datetimestr=datetimestr, mode=mode
 
                                     endfor ;loop on object
                                 endfor ;loop on itime
@@ -671,16 +671,48 @@ pro parsergui::addfile, filenames
 
 
 end
-
 ;-----------------------------------------
-pro parsergui::create_drf_from_template, templatename, fitsfiles, current, datetimestr=datetimestr
+pro parsergui::cleanfilelist, fitsfiles=fitsfiles
+    widget_control,self.drfbase,get_uvalue=storage
+      if ~keyword_set(fitsfiles) then begin
+          
+            (*storage.splitptr).findex = 0
+            (*storage.splitptr).selindex = 0
+            (*storage.splitptr).filename[*] = ''
+            (*storage.splitptr).printname[*] = '' 
+            (*storage.splitptr).printfname[*] = '' 
+            (*storage.splitptr).datefile[*] = ''  
+             widget_control,storage.fname,set_value=(*storage.splitptr).printname          
+            self->Log,'All items removed.'
+       endif else begin
+             oldind=(*storage.splitptr).findex
+            (*storage.splitptr).findex = n_elements(fitsfiles)
+            (*storage.splitptr).selindex = 0            
+            (*storage.splitptr).filename[0:n_elements(fitsfiles)-1] = fitsfiles
+
+            if n_elements(where((*storage.splitptr).printname) ne '') gt n_elements(fitsfiles) then begin
+              pn=(*storage.splitptr).printfname
+            (*storage.splitptr).printname[*] = '' 
+            (*storage.splitptr).printfname[*] = '' 
+              (*storage.splitptr).printname[0:n_elements(fitsfiles)-1]= pn[oldind-n_elements(fitsfiles):oldind-1]
+               (*storage.splitptr).printfname[0:n_elements(fitsfiles)-1]= pn[oldind-n_elements(fitsfiles):oldind-1]
+                widget_control,storage.fname,set_value=(*storage.splitptr).printfname
+            endif
+            (*storage.splitptr).datefile[*] = '' 
+            self->Log,'All items corresponding to old sequences removed.'
+       endelse     
+
+
+end
+;-----------------------------------------
+pro parsergui::create_drf_from_template, templatename, fitsfiles, current, datetimestr=datetimestr, mode=mode
 
 	self->loaddrf, templatename ,  /nodata
 	self->savedrf, fitsfiles, prefix=self.nbdrfSelec+1, datetimestr=datetimestr
 
-	; Columns are
-	; Filename, Recipe, Type, 
-	new_drf_properties = [self.drfpath+path_sep()+(*self.drf_summary).filename, (*self.drf_summary).name,   (*self.drf_summary).type, $
+
+	if widget_info(self.direct_id ,/button_set)  then chosenpath=self.queuepath else chosenpath=self.drfpath
+	new_drf_properties = [chosenpath+path_sep()+(*self.drf_summary).filename, (*self.drf_summary).name,   (*self.drf_summary).type, $
 		current.filter, current.obstype, current.prism, current.occulter, current.obsclass, string(current.exptime,format='(F7.1)'), current.object] 
 
 	if self.nbdrfSelec eq 0 then (*self.currDRFSelec)= new_drf_properties else $
@@ -693,7 +725,7 @@ pro parsergui::create_drf_from_template, templatename, fitsfiles, current, datet
     widget_control, self.tableSelected, set_value=(*self.currDRFSelec)[0:9,*]
 	widget_control, self.tableSelected, background_color=rebin(*self.table_BACKground_colors,3,2*10,/sample)    
 
-
+   if keyword_set(mode) && (mode eq 2) then self->cleanfilelist, fitsfiles=fitsfiles
 end
 
 
@@ -1027,12 +1059,14 @@ pro parsergui::event,ev
 			self->Log,'Queued '+self.selection
 		endelse
 	end
-
     'QUIT'    : begin
         if confirm(group=ev.top,message='Are you sure you want to close the Parser GUI?',$
             label0='Cancel',label1='Close', title='Confirm close') then obj_destroy, self
     end
-
+    'direct':begin
+        if widget_info(self.direct_id ,/button_set)  then chosenpath=self.queuepath else chosenpath=self.drfpath
+        self->Log,'All DRFs will be created in '+chosenpath
+    end
   
     else: begin
         addmsg, storage.info, 'Unknown event in event handler - ignoring it!'+uval
@@ -1105,9 +1139,9 @@ pro parsergui::savedrf, file, template=template, prefix=prefix, $
           ;(*self.drf_summary).filename = file_basename(newdrffilename)
 
         ;self->Log,'Now writing DRF...';+ self.drfpath+path_sep()+(*self.drf_summary).filename
-        
-        message,/info, "Writing to "+self.drfpath+path_sep()+(*self.drf_summary).filename 
-        OpenW, lun, self.drfpath+path_sep()+(*self.drf_summary).filename, /Get_Lun
+          if widget_info(self.direct_id ,/button_set)  then chosenpath=self.queuepath else chosenpath=self.drfpath
+        message,/info, "Writing to "+chosenpath+path_sep()+(*self.drf_summary).filename 
+        OpenW, lun, chosenpath+path_sep()+(*self.drf_summary).filename, /Get_Lun
         PrintF, lun, '<?xml version="1.0" encoding="UTF-8"?>' 
      
            
@@ -1440,11 +1474,15 @@ function parsergui::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
     drfbaseexec=widget_base(parserbase,/BASE_ALIGN_LEFT,/row)
     button2b=widget_button(drfbaseexec,value="Drop all DRFs in Queue",uvalue="DropAll", /tracking_events)
     button2b=widget_button(drfbaseexec,value="Drop selected DRF only",uvalue="DropOne", /tracking_events)
+     directbase = Widget_Base(drfbaseexec, UNAME='directbase' ,COLUMN=1 ,/NONEXCLUSIVE, frame=0)
+     self.direct_id =    Widget_Button(directbase, UNAME='direct'  $
+      ,/ALIGN_LEFT ,VALUE='Drop all DRFs in Queue by default',uvalue='direct' )
+     widget_control,self.direct_id, /set_button   
     space = widget_label(drfbaseexec,uvalue=" ",xsize=100,value='  ')
     button2b=widget_button(drfbaseexec,value="View/Edit in DRFGUI",uvalue="DRFGUI", /tracking_events)
     button2b=widget_button(drfbaseexec,value="Delete selected DRF",uvalue="Delete", /tracking_events)
 
-    space = widget_label(drfbaseexec,uvalue=" ",xsize=300,value='  ')
+    space = widget_label(drfbaseexec,uvalue=" ",xsize=200,value='  ')
     button3=widget_button(drfbaseexec,value="Close Parser GUI",uvalue="QUIT", /tracking_events, resource_name='red_button')
 
     self.textinfoid=widget_label(parserbase,uvalue="textinfo",xsize=900,value='  ')
@@ -1452,10 +1490,11 @@ function parsergui::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
     maxfilen=550
     filename=strarr(maxfilen)
     printname=strarr(maxfilen)
+     printfname=strarr(maxfilen)
     datefile=lonarr(maxfilen)
     findex=0
     selindex=0
-    splitptr=ptr_new({filename:filename,printname:printname,$
+    splitptr=ptr_new({filename:filename,printname:printname,printfname:printfname,$
       findex:findex,selindex:selindex,datefile:datefile, maxfilen:maxfilen})
 
     ;make and store data storage
@@ -1478,7 +1517,15 @@ function parsergui::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
         group:group,proj:proj, $
         self:self}
     widget_control,parserbase,set_uvalue=storage,/no_copy
-
+;if (not(xregistered('parsergui', /noshow))) then begin
+;    widget_control,drfbase,/realize
+;
+;  ;event loop
+;  ;-----------------------------------------
+;
+;  xmanager,'drfgui',drfbase,/no_block,group_leader=groupleader
+;    
+;endif
     return, parserbase
 
 end
@@ -1505,6 +1552,7 @@ PRO parsergui__define
               loadedinputdir:'',$
               calibflatid:0L,$
               flatreduc:1,$
+              direct_id:0L,$
               ;loadedfilenames:ptr_new(/ALLOCATE_HEAP), $
               ;loadedmodules:ptr_new(/ALLOCATE_HEAP), $
               ;loadedmodulesstruc:ptr_new(/ALLOCATE_HEAP), $
