@@ -7,7 +7,8 @@
 ; KEYWORDS:
 ; OUTPUTS:
 ;
-; PIPELINE COMMENT: Find hot pixels with dark images, deliver a badpix map (hot pixel =1, 0 elsewhere)
+; PIPELINE COMMENT: Find hot pixels with dark images with I gt threshold*mean(image), deliver a badpix map (hot pixel =1, 0 elsewhere)
+; PIPELINE ARGUMENT: Name="threshold" Type="float" Range="[0.,100.]" Default="0.7" Desc="deviation from mean intensity, see routine description"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 1.3
@@ -41,9 +42,14 @@ badpixmap=bytarr(2048,2048)
    header=*(dataset.headers[0])
     units=double(SXPAR( header, 'UNITS'))
     
+ thisModuleIndex = Backbone->GetCurrentModuleIndex()
+threshold=float(Modules[thisModuleIndex].nbdev)
+
+meandet = mean(det)
 
 
-hotbadpixind = where(det ge 10.)
+hotbadpixind = where(det ge (nbdev)*meandet,chbp)
+
 
 
 badpixmap[hotbadpixind]=1

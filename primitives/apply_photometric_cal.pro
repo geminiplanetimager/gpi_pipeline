@@ -37,7 +37,9 @@ calfiletype='Gridratio'
 
 
   	cubef3D=*(dataset.currframe[0])
-  	
+  	hdr= *(dataset.headers)[0]
+  	filter=strcompress(SXPAR( hdr, 'FILTER',count=cc), /rem)
+  	if cc eq 0 then filter=SXPAR( hdr, 'FILTER1',cc)
         ;get the common wavelength vector
             ;error handle if extractcube not used before
             if ((size(cubef3D))[0] ne 3) || (strlen(filter) eq 0)  then $
@@ -52,7 +54,7 @@ calfiletype='Gridratio'
     pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headerphot, /SILENT))
     lambda_gridratio=*pmd_fluxcalFrame
 
-	hdr= *(dataset.headers)[0]
+	
 
 
 
@@ -97,7 +99,7 @@ calfiletype='Gridratio'
     ;;extract photometry of SAT 
     ;;set photometric apertures and parameters:
     phpadu = 1.0                    ; don't convert counts to electrons
-    apr = lambda[0]*[3.] 
+    apr = lambda[0]*[5.];lambda[0]*[3.] 
     ; Assume that all pixel values are good data
     badpix = [-1.,1e6];state.image_min-1, state.image_max+1
     
@@ -106,7 +108,7 @@ calfiletype='Gridratio'
     ;;do the photometry of the spots
     intens_sat=fltarr((size(spotloc))[1]-1,CommonWavVect[2]) 
     for spot=1,(size(spotloc))[1]-1 do begin
-      skyrad = lambda[0]*[3.,4.]  
+      skyrad = lambda[0]*[5.,7.] ;skyrad = lambda[0]*[3.,4.]  
       if (skyrad[1]-skyrad[0] lt 2.) then skyrad[1]=skyrad[0]+2.
       intens_sat2=fltarr(1,CommonWavVect[2])+!VALUES.F_NAN
        while (total(~finite(intens_sat2)) ne 0) && (skyrad[1]-skyrad[0] lt 20.) do begin
@@ -156,7 +158,7 @@ nbphot_juststar=pip_nbphot_trans_lowres(hdr,lambda)
    ifsunits=strcompress(SXPAR( hdr, 'IFSUNITS'),/rem)
 
 ;; normalize by commonwavvect[2] because widthL is the width of the entire band here
-   nbphotnormtheo=nbphot_juststar*float(n_elements(lambdapsf))/(SURFA*widthL*1e3*exposuretime) ;photons to [photons/s/nm/m^2]
+   nbphotnormtheo=nbphot_juststar*float(n_elements(lambdapsf))/(SURFA*widthL*1.e3*exposuretime) ;photons to [photons/s/nm/m^2]
 nbphotnormtheosmoothed=nbphotnormtheo
 ;;smooth to the resolution of the spectrograph:
 ;case strcompress(filter,/REMOVE_ALL) of
@@ -193,6 +195,26 @@ gridratio= gridratiocoeff[0]+gridratiocoeff[1]*lambdagrid[*]
 convfac=fltarr(n_elements(nbphotnormtheosmoothed))
 for i=0,n_elements(nbphotnormtheosmoothed)-1 do $
 convfac[i]=((nbphotnormtheosmoothed[i])/(gaindetector*(gridratio[i])*(fluxsatmedabs[i])))
+
+;;;save the conversion factor in DB for eventual use with extended object
+  convfac_header=*(dataset.headers[numfile])
+  filetype='Fluxconv' 
+  sxaddpar, convfac_header,  "FILETYPE", filetype, "What kind of IFS file is this?"
+  sxaddpar, convfac_header,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+  save_suffix = strlowcase(strc(filetype)) ; or should the user specify this directly??
+   filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
+  slash=strpos(filnm,path_sep(),/reverse_search)
+  s_OutputDir=Modules[thisModuleIndex].OutputDir
+    ; test output dir and save the calibration
+    if file_test(s_OutputDir,/directory, /write) then begin
+    c_File = s_OutputDir+strmid(filnm, slash,strlen(filnm)-5-slash)+save_suffix+'.fits'
+    version = gpi_pipeline_version()
+    sxaddpar, saveheader, 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
+    savedata=[[lambda],[convfac]]
+    writefits, c_File, savedata, convfac_header
+    endif else print, "Directory "+s_OutputDir+" does not exist or is not writeable."+ ' CALIB Fluxconv not saved.'
+
+
 
 
 ;http://www.gemini.edu/sciops/instruments/?q=sciops/instruments&q=node/10257  

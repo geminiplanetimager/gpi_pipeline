@@ -67,7 +67,7 @@ valuesource=sxpar( *(dataset.headers)[numfile],keywordsource, count=cs)
   ;;these change to correct a badly calculated PA angle:
   if i eq 0 then begin
   valuesourceHA=double(sxpar( *(dataset.headers)[numfile],'HA', count=cs))
-  valuesource=parangle(valuesourceHA,valuesource,ten_string('-30:14:26.7'))
+  valuesource=gpiparangle(valuesourceHA,valuesource,ten_string('-30:14:26.7'))
   print, 'new PA=',valuesource
   endif
 

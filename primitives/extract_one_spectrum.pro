@@ -128,9 +128,13 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     badpix = [-1.,1e6];state.image_min-1, state.image_max+1
     
     ;;do the photometry of the companion
+    x0=x & y0=y & hh=3.
     phot_comp=fltarr(CommonWavVect[2])+!VALUES.F_NAN 
     while (total(~finite(phot_comp)) ne 0) && (skyrad[1]-skyrad[0] lt 20.) do begin
       for i=0,CommonWavVect[2]-1 do begin
+            cent=centroid(cubcent2[x0-hh:x0+hh,y0-hh:y0+hh,i])
+            x=x0+cent[0]-hh
+            y=y0+cent[1]-hh
           aper, cubcent2[*,*,i], [x], [y], flux, errap, sky, skyerr, phpadu, (lambda[i]/lambda[0])*apr, $
             (lambda[i]/lambda[0])*skyrad, badpix, /flux, /silent ;, flux=abs(state.magunits-1)
             print, 'slice#',i,' flux comp #'+'=',flux[0],'at positions ['+strc(x)+','+strc(y)+']',' sky=',sky[0]
@@ -149,7 +153,12 @@ if (ps_figure gt 0)  then begin
   closeps
   set_plot,'win'
 endif 
-
+if (ps_figure gt 0)  then begin
+  openps, psFilename
+  plot, xlam,phot_comp, xtitle='Wavelength (um)', psym=-1, yrange=[0,1.3*max(phot_comp)]
+  closeps
+  set_plot,'win'
+endif 
 suffix+='-spec'
 
 hdr=*(dataset.headers[numfile])

@@ -6,9 +6,11 @@
 ; OUTPUTS:
 ; PIPELINE ARGUMENT: Name="overwrite" Type="int"  Default="0" Desc="0:do not overwrite already existent keyword; 1:overwrite"
 ; PIPELINE ARGUMENT: Name="keyword1" Type="string"  Default="FILTER" Desc="Enter keyword name to add."
-; PIPELINE ARGUMENT: Name="value1" Type=""  Default="H" Desc="Enter value of the keyword to add."
+; PIPELINE ARGUMENT: Name="value1" Type="string"  Default="H" Desc="Enter value of the keyword to add."
 ; PIPELINE ARGUMENT: Name="keyword2" Type="string"  Default="OBSTYPE" Desc="Enter keyword name to add."
-; PIPELINE ARGUMENT: Name="value2" Type=""  Default="Xenon" Desc="Enter value of the keyword to add."
+; PIPELINE ARGUMENT: Name="value2" Type="string"  Default="wavecal" Desc="Enter value of the keyword to add."
+; PIPELINE ARGUMENT: Name="keyword3" Type="string"  Default="GCALLAMP" Desc="Enter keyword name to add."
+; PIPELINE ARGUMENT: Name="value3" Type="string"  Default="Xenon" Desc="Enter value of the keyword to add."
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-keyw" Desc="Enter output suffix"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "

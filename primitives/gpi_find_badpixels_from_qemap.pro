@@ -1,13 +1,14 @@
 ;+
 ; NAME: gpi_find_badpixels_from_qe_map
-; PIPELINE PRIMITIVE DESCRIPTION: Find Bad pixels from qe map
+; PIPELINE PRIMITIVE DESCRIPTION: Find Bad pixels from darks or qe map
 ;
 ;
 ;
 ; KEYWORDS:
 ; OUTPUTS:
 ;
-; PIPELINE COMMENT: Find hot/cold pixels from qe map. Find deviation which is nbdev times greater or lower than the mean value of frame. (bad pixel =1, 0 elsewhere)
+; PIPELINE COMMENT: Find hot/cold pixels from qe map. Find deviants with [Intensities gt (1 + nbdev) *  mean_value_of the frame] and [Intensities lt (1 - nbdev) *  mean_value_of the frame]. (bad pixel =1, 0 elsewhere)
+; PIPELINE ARGUMENT: Name="nbdev" Type="float" Range="[0.,100.]" Default="0.7" Desc="Allowed maximum location fluctuation (in pixel) between adjacent mlens"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-qebadpix" Desc="Enter output suffix"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
@@ -31,8 +32,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
    T = systime(1)
 
 
-;;find deviation which is nbdev times greater or lower than the estimated value of the pixel if it was not bad. 
-nbdev=0.7
+  thisModuleIndex = Backbone->GetCurrentModuleIndex()
+nbdev=float(Modules[thisModuleIndex].nbdev)
 
 
 badpixmap=bytarr(2048,2048)
@@ -41,8 +42,8 @@ badpixmap=bytarr(2048,2048)
  
 meandet = mean(det)
 
-badpixind = where(det le (1.-0.7)*meandet,cbp)
-hotbadpixind = where(det ge (1.+0.7)*meandet,chbp)
+badpixind = where(det le (1.-nbdev)*meandet,cbp)
+hotbadpixind = where(det ge (1.+nbdev)*meandet,chbp)
 
 if cbp ne 0 then badpixmap[badpixind]=1
 if chbp ne 0 then badpixmap[hotbadpixind]=1
