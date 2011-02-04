@@ -28,6 +28,12 @@
 PRO gpiPipeRun, QUEUE_DIR=queue_dir, config_file=config_file, noinit=noinit, $
 	noexit=noexit, rescanDB=rescanDB, flushqueue=flushqueue
 
+;setenv_gpi
+while gpi_is_setenv() eq 0 do begin
+      obj=obj_new('setenvir')
+      obj_destroy, obj
+endwhile
+
   ; check for the presence of a valid config, and load default if not.
   config_valid = keyword_set(getenv('GPI_QUEUE_DIR')) and  keyword_set(getenv('GPI_CONFIG_FILE'))
   if ~config_valid then BEGIN
@@ -51,6 +57,6 @@ PRO gpiPipeRun, QUEUE_DIR=queue_dir, config_file=config_file, noinit=noinit, $
 	x->Run, Queue_Dir
 
 	OBJ_DESTROY, x
-	if ~(keyword_set(noexit)) then exit
+	;if ~(keyword_set(noexit)) then exit
 
 END

@@ -34,6 +34,51 @@ end
 ;   Not directly invoked for queue events - see check_queue for those.
 PRO launcher::event, ev
 
+     ; Mouse-over help text display:
+      if (tag_names(ev, /structure_name) EQ 'WIDGET_TRACKING') then begin 
+        if (ev.ENTER EQ 1) then begin 
+        widget_control, ev.id, get_uvalue=uval
+              case uval of 
+                'Control':   begin
+                              textinfo='Start the reduction, controler ' & textinfo2='and administration console.'
+                              end
+                'GPItv':    begin
+                       textinfo='Start one or several GPItv ' & textinfo2='viewers.'
+                       end
+                'DRFGUI':     begin
+                     textinfo='Click to create your own DRF and ' & textinfo2='recipes.'
+                     end
+                'ParserGUI':   begin   
+                    textinfo='Click to launch the GPI parser ' & textinfo2='GUI.'
+                    end
+                'QueueView':    begin
+                      textinfo='Click to start the DRF queue ' & textinfo2='viewer.'
+                      end
+                'dst':         begin
+                        textinfo='Click to start the Data Simulation ' & textinfo2='Tool.'
+                        end
+                'AutomaticProcGUI':begin
+                      textinfo='Click to start an automatic, simple ' & textinfo2='data processing at the telescope.'
+                      end 
+                'makedatalogfile': begin
+                      textinfo='Click to create a txt data log-file ' & textinfo2='of a chosen directory.' 
+                      end
+                'quit':         begin
+                   textinfo='Click to close this window.'
+                   end
+              else:
+              endcase
+              widget_control,self.info1_id,set_value=textinfo
+              widget_control,self.info2_id,set_value=textinfo2
+          ;widget_control, event.ID, SET_VALUE='Press to Quit'   
+        endif else begin 
+              widget_control,self.info1_id,set_value='  '
+              widget_control,self.info2_id,set_value='  '
+          ;widget_control, event.id, set_value='what does this button do?'   
+        endelse 
+        return
+    endif
+      
 	; timer events
 	if tag_names(ev,/struct) eq 'WIDGET_TIMER' THEN begin
 		widget_control, self.baseid, timer=1 ; request another event (do this *before* checking queue for reliability)
@@ -50,12 +95,27 @@ PRO launcher::event, ev
 	endif
 
 	case action of
-
+;  'Control':begin
+;              ;self->launch,'gpipipelinebackbone', session=46
+;                oBridge = OBJ_NEW('IDL_IDLBridge')
+;                comm="gpipiperun"
+;                oBridge->Execute, comm, /NOWAIT
+;            end
+  'Setup':begin
+              objenv=obj_new('setenvir')
+              obj_destroy, objenv
+          end
+  'About':begin
+              tmpstr=about_message()
+              ret=dialog_message(tmpstr,/information,/center,dialog_parent=ev.top)
+          end
 	'GPItv': self->launch, 'gpitv'
 	'DRFGUI': self->launch, 'drfgui', session=40
 	'ParserGUI': self->launch, 'parsergui', session=41
 	'QueueView': self->launch, 'queueview', session=42
 	'dst': self->launch, 'dst', session=43
+	;'AutomaticProcGUI':self->launch, 'automaticproc', session=44
+	'makedatalogfile':self->launch, 'makedatalogfile', session=45
 	'quit': begin
 		conf = dialog_message("Are you sure you want to exit the GPI Data Reduction Pipeline?",/question,title="Confirm Close",/default_no,/center)
 		if conf eq "Yes" then obj_destroy, self
@@ -246,13 +306,17 @@ pro launcher::launch, objname, filename=filename, session=session, _extra=_extra
 	endif else begin
 		; need to create a new object
 
-		valid_cmds = ['gpitv', 'drfgui', 'parsergui', 'queueview', 'dst']
+		valid_cmds = ['gpitv', 'drfgui', 'parsergui', 'queueview', 'dst', 'automaticproc','makedatalogfile']
 
 		if total(strmatch(valid_cmds, objname,/fold_case)) eq 0 then begin
 			message,/info, 'Invalid command name: '+objname
 		endif else begin
-			if keyword_set(filename) then self.sessions[session] = obj_new(objname, filename, session=session, _extra=_extra) $
+		
+			if keyword_set(filename) then self.sessions[session] = obj_new(objname, filename, session=session) $
 									 else self.sessions[session] = obj_new(objname, session=session, _extra=_extra)
+;					if strmatch('gpipipelinebackbone', objname,/fold_case) eq 1 then begin
+;					    (self.sessions[session])->Run, GETENV('GPI_QUEUE_DIR')
+;					endif				 
 		endelse
 	endelse
 
@@ -266,7 +330,10 @@ PRO launcher::cleanup
 	;self->clear_queue
 
 	for i=0,self.max_sess-1 do if obj_valid(self.sessions[i]) then obj_destroy, self.sessions[i]
-
+  ptr_free, self.cmd_queue_flags
+  ptr_free, self.cmd_queue
+  ptr_free, self.cmd_queue_args
+  
 	varnames = ['gpi_gui_queue_flags', 'gpi_gui_queue', 'gpi_gui_queue_args']+self.username
 	for i=0,n_elements(varnames)-1 do begin
 		shmunmap, varnames[i]
@@ -281,8 +348,16 @@ end
 
 
 ;------------------
-FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, clear_shm=clear_shm
+FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, clear_shm=clear_shm, _extra=_extra
 
+ ;setenv_gpi
+ 
+while gpi_is_setenv() eq 0 do begin
+      obj=obj_new('setenvir')
+      obj_destroy, obj
+endwhile
+
+  
 	self.max_sess = n_elements(self.sessions)
 	self.queuelen=10
 	self.username=getenv('USER')
@@ -297,7 +372,7 @@ FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, cle
 		endfor
 
 		status = SEM_CREATE(self.semaphore_name,/destroy)  
-		SEM_DESTROY, self.semaphore_name
+		SEM_delete, self.semaphore_name
 
 
 		message,/info, "Memory cleared OK."
@@ -333,30 +408,42 @@ FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, cle
 
 
 		; create a GUI so we can generate Timer events
-		self.baseid = WIDGET_BASE(TITLE='Launcher',/tlb_size_events,  /tlb_kill_request_events,/row, /base_align_center, xoffset=100, RESOURCE_NAME='GPI_DRP')
+		self.baseid = WIDGET_BASE(TITLE='GPI-DPL Launcher',/tlb_size_events,  /tlb_kill_request_events,/row, /base_align_center, xoffset=100, RESOURCE_NAME='GPI_DRP',MBAR=bar)
+    basecol_id=WIDGET_BASE(self.baseid ,/column)
+    baseid2=WIDGET_BASE(basecol_id,/row,/BASE_ALIGN_CENTER )
+        ;FindPro, 'drfgui__define', dirlist=dirlist,/noprint
+        dirpro= getenv('GPI_PIPELINE_DIR');dirlist[0]
 
-        FindPro, 'drfgui__define', dirlist=dirlist,/noprint
-        dirpro=dirlist[0]
-
-		button_image = READ_BMP(dirpro+path_sep()+'gpi.bmp', /RGB) 
-		button_image = TRANSPOSE(button_image, [1,2,0]) 
-		sz = size(button_image)
-		logo = WIDGET_draw( self.baseid,   $
-			SCR_XSIZE=sz[1] ,SCR_YSIZE=sz[2])
+    if file_test(dirpro+path_sep()+'gpi.bmp') then begin
+  		button_image = READ_BMP(dirpro+path_sep()+'gpi.bmp', /RGB) 
+  		button_image = TRANSPOSE(button_image, [1,2,0]) 
+  		sz = size(button_image)
+  		logo = WIDGET_draw( baseid2,   $
+  			SCR_XSIZE=sz[1] ,SCR_YSIZE=sz[2])
+		endif	
 	
-		tmp = widget_label(self.baseid, value=' ')
-		frame = widget_base(self.baseid,/column)
+		tmp = widget_label(baseid2, value=' ')
+		frame = widget_base(baseid2,/column)
 
-		bclose = widget_button(frame,VALUE='GPItv',UVALUE='GPItv', resource_name='button')
-		bclose = widget_button(frame,VALUE='DRF GUI',UVALUE='DRFGUI', resource_name='button')
-		bclose = widget_button(frame,VALUE='Parser GUI',UVALUE='ParserGUI', resource_name='button')
-		bclose = widget_button(frame,VALUE='QueueView',UVALUE='QueueView', resource_name='button')
-		bclose = widget_button(frame,VALUE='DST',UVALUE='dst', resource_name='button')
+    menu = WIDGET_BUTTON(bar, VALUE='Setup',/MENU) 
+    file_bttn2=WIDGET_BUTTON(menu, VALUE='Setup environ. var.', UVALUE='Setup')
+    menu2 = WIDGET_BUTTON(bar, VALUE='About',/MENU) 
+    file_bttn2=WIDGET_BUTTON(menu2, VALUE='About', UVALUE='About')
+    bclose = widget_button(frame,VALUE='Parser GUI',UVALUE='ParserGUI', resource_name='button', /tracking_events)
+    bclose = widget_button(frame,VALUE='DRF GUI',UVALUE='DRFGUI', resource_name='button', /tracking_events)
+    bclose = widget_button(frame,VALUE='DRF QueueView',UVALUE='QueueView', resource_name='button', /tracking_events)
+		bclose = widget_button(frame,VALUE='GPItv',UVALUE='GPItv', resource_name='button', /tracking_events)
+		;bclose = widget_button(frame,VALUE='Automatic DPL GUI',UVALUE='AutomaticProcGUI', resource_name='button', /tracking_events)
+    bclose = widget_button(frame,VALUE='Data log-file',UVALUE='makedatalogfile', resource_name='button', /tracking_events)
+		bclose = widget_button(frame,VALUE='DST',UVALUE='dst', resource_name='button', /tracking_events)
 		tmp = widget_label(frame, value=' ')
 		bclose = widget_button(frame,VALUE='Quit ',UVALUE='quit', resource_name='red_button')
 
-		tmp = widget_label(self.baseid, value=' ')
-
+		tmp = widget_label(baseid2, value=' ')
+		
+    self.info1_id= widget_label(basecol_id, value=' ',xsize=200)
+    self.info2_id= widget_label(basecol_id, value=' ',xsize=200)
+    
 		widget_control, self.baseid,/realize
 		xmanager, 'launcher', self.baseid,/no_block
 		widget_control, self.baseid, set_uvalue=self
@@ -373,7 +460,7 @@ FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, cle
 
 
 	;if keyword_set(pipeline) then self->queue, "test"
-	if keyword_set(test) then self->queue, 'gpitv', filename='/Users/mperrin/GPI/gpitv/temp.fits', session=1
+	if keyword_set(test) then self->queue, 'gpitv', filename='/GPI/gpitv/temp.fits', session=1
 
 	if keyword_set(exit) then self.exit_on_close=1 ; exit IDL on close?
 
@@ -391,6 +478,8 @@ PRO launcher__define
 		semaphore_name: '', $
 		username: '', $
 		baseid: 0L, $
+		info1_id: 0L, $
+		info2_id: 0L, $
 		queuelen: 0L, $
 		exit_on_close: 0L, $
 		cmd_queue_flags: ptr_new(), $

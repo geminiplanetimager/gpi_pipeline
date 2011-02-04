@@ -10,18 +10,33 @@
 ; OUTPUTS:
 ;
 ; HISTORY:
-; 	Began 2010-01-19 19:48:56 by Marshall Perrin 
+;          2009 created by Jerome Maire
+; 	       2010-01-19 19:48:56 oriented object - Marshall Perrin 
 ;-
 
 ; Function to check if user pressed the quit button?
 function gpiprogressbar::checkquit
+ 
 	return, self.quit
+end
+pro gpiprogressbar::quit
+widget_control,self.base_wid,/destroy
 end
 function gpiprogressbar::checkabort
 	return, self.abort
 end
-
-
+function gpiprogressbar::flushqueue
+   return, self.flushq
+end
+function gpiprogressbar::rescandb
+   return, self.rescan
+end
+pro gpiprogressbar::flushqueue_end
+   self.flushq=0
+end
+pro gpiprogressbar::rescandb_end
+   self.rescan=0
+end
 
 PRO gpiprogressbar::update
   	WIDGET_CONTROL, (*self.State).wDrawProgress, get_VALUE=drawbar
@@ -61,6 +76,8 @@ end
 pro gpiprogressbar::event,ev
       widget_control, ev.id,GET_UVALUE=uval
       if size(uval,/TYPE) eq 7 then begin
+      if uval eq 'rescanDB' then self.rescan =1
+      if uval eq 'flushqueue' then self.flushq =1
          if uval eq 'quit' then begin
 			 conf = dialog_message("Are you sure you want to exit the GPI Data Reduction Pipeline?",/question,title="Confirm Close",/default_no,/center)
 			 if conf eq "Yes" then begin
@@ -286,8 +303,8 @@ function gpiprogressbar::init
 	lab = widget_label(w_log_base, value="Processed DRFs:")
 	wDRFLog = widget_text(w_log_base, ysize=5, xsize=100, /scroll,scr_xsize=595)
 
-
-
+  q=widget_button(wChildBase,VALUE='Rescan Calibration Database',UVALUE='rescanDB', resource_name='red_button')
+  q=widget_button(wChildBase,VALUE='Flush DRF queue',UVALUE='flushqueue', resource_name='red_button')
 	;---- quit button
 	q=widget_button(wChildBase,VALUE='Abort current DRF',UVALUE='abortDRF', resource_name='red_button')
 	q=widget_button(wChildBase,VALUE='Quit GPI DRP',UVALUE='quit', resource_name='red_button')
@@ -344,6 +361,8 @@ st = {gpiprogressbar, $
 	state: ptr_new(),$
 	quit: 0L, $
 	abort: 0L, $
+	flushq:0L,$
+	rescan:0L,$
 	;eventlog: strarr(maxlog), $
 	;drflog: strarr(maxlog), $
 	maxlog: MAXLOG, $

@@ -10,6 +10,5 @@
 ;-
 
 PRO launch_drp, _extra=_extra
-
 	o = obj_new('launcher', _extra=_extra)
 end

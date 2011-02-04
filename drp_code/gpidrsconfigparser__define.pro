@@ -13,6 +13,7 @@
 ;HISTORY:
 ;  Directly based on OSIRIS' drpConfigParser__define.pro
 ;  2009-04-20 MDP: Split to new function and renamed for GPI
+;  2010-10-22 JM: EXECUTE replaced by CALL_FUNCTION in startelement (for compilation)
 ;-----------------------------------------------------------------------------------------------------
 FUNCTION gpidrsconfigparser::init, verbose=verbose, silent=silent
   retval = Self->IDLffXMLSAX::Init()
@@ -95,14 +96,16 @@ PRO gpidrsconfigparser::StartElement, URI, Local, qName, AttNames, AttValues
 
 	CASE qName OF
 		'Config': BEGIN
-				MYPARAMETERS = [[AttNames], [AttValues]]
-				PARAMETERS = MYPARAMETERS
-				PARMTRANS = TRANSPOSE(PARAMETERS)
-				StructString = '*Self.Parms = CREATE_STRUCT('
-				FOR i = 1, ((N_ELEMENTS(PARMTRANS)/2)-1) DO StructString = StructString + "'" + PARMTRANS[0, i-1] + "', '" + PARMTRANS[1, i-1] + "', "
-				StructString = StructString + "'" + PARMTRANS[0, i-1] + "', '" + PARMTRANS[1, i-1] + "'"
-				StructString = StructString + ')'
-				retval = EXECUTE(StructString)
+;				MYPARAMETERS = [[AttNames], [AttValues]]
+;				PARAMETERS = MYPARAMETERS
+;				PARMTRANS = TRANSPOSE(PARAMETERS)
+;				StructString = '*Self.Parms = CREATE_STRUCT('
+;				FOR i = 1, ((N_ELEMENTS(PARMTRANS)/2)-1) DO StructString = StructString + "'" + PARMTRANS[0, i-1] + "', '" + PARMTRANS[1, i-1] + "', "
+;				StructString = StructString + "'" + PARMTRANS[0, i-1] + "', '" + PARMTRANS[1, i-1] + "'"
+				;StructString = StructString + ')'
+				;retval = EXECUTE(StructString) ;commented by JM: need to avoid EXECUTE function for compilation!
+				*Self.Parms = CALL_FUNCTION('CREATE_STRUCT',AttNames,AttValues)
+				if n_elements(AttNames) gt 1 then stop
 			END
 		'ARP_SPEC': Self.PipelineLabel = 'ARP_SPEC'
 		'Module': begin

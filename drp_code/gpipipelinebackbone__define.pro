@@ -28,7 +28,7 @@
 ;
 
 
-FUNCTION gpipipelinebackbone::Init, config_file=config_file
+FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session
     ; Application constants
     COMMON APP_CONSTANTS, $
         LOG_GENERAL,  $       ; File unit number of the general log file
@@ -67,8 +67,8 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file
                                                 ; gets done in memory versus
                                                 ; swapped to disk.
         }
-    
-    if ~(keyword_set(config_file)) then config_file="DRSConfig.xml"
+
+    if ~(keyword_set(config_file)) then config_file=GETENV('GPI_CONFIG_FILE') ;"DRSConfig.xml"
 	ver = gpi_pipeline_version()
 
     print, "                                                    "
@@ -102,11 +102,12 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file
         if file_test(config_file) then  Self.ConfigParser -> ParseFile, config_file
 
 	    self->SetupProgressBar
-
+      self.progressbar->log,"* GPI DATA REDUCTION PIPELINE  *"
+      self.progressbar->log,"* VERSION "+ver+"  *"
 		self.GPICalDB = obj_new('gpicaldatabase', backbone=self)
-
+    
 		self.progressbar->set_calibdir, self.GPICalDB->get_calibdir()
-
+    
 		self.launcher = obj_new('launcher',/pipeline)
 		
 		; This is stored in a common block variable so that it is accessible
@@ -356,6 +357,7 @@ PRO gpiPipelineBackbone::Run, QueueDir
     print, "    "
     print, "   Now polling for DRF files in "+queueDir
     print, "    "
+    self.progressbar->log,"   Now polling and waiting for DRF files in "+queueDir
     WHILE DRPCONTINUE EQ 1 DO BEGIN
         if ~(keyword_set(DEBUG)) then CATCH, Error else ERROR=0    ; Catch errors inside the pipeline. In debug mode, just let the code crash and stop
           IF Error EQ 1 THEN BEGIN
@@ -369,7 +371,7 @@ PRO gpiPipelineBackbone::Run, QueueDir
         IF nfound gt 0 THEN BEGIN
             self->log, 'Found file: ' + CurrentDRF.Name, /GENERAL
                     wait, 1.0   ; Wait 1 seconds to make sure file is fully written.
-			self.progressbar->set_DRF, CurrentDRF
+                    self.progressbar->set_DRF, CurrentDRF
             self->SetDRFStatus, CurrentDRF, 'working'
             ; Re-parse the configuration file, in case it has been changed.
             ;OPENR, lun, CONFIG_FILENAME_FILE, /GET_LUN
@@ -407,8 +409,8 @@ PRO gpiPipelineBackbone::Run, QueueDir
                 IF Result EQ OK THEN BEGIN
                     PRINT, "Success"
                     self->SetDRFStatus, CurrentDRF, 'done'
-					self.progressbar->set_status, "Last DRF done OK! Watching for new DRFs but idle."
-					self.progressbar->Set_action, '--'
+          					self.progressbar->set_status, "Last DRF done OK! Watching for new DRFs but idle."
+          					self.progressbar->Set_action, '--'
                 ENDIF ELSE BEGIN
                     PRINT, "Failure"
                     self->SetDRFStatus, CurrentDRF, 'failed'
@@ -462,11 +464,21 @@ PRO gpiPipelineBackbone::Run, QueueDir
 					message,/info, "User pressed QUIT on the progress bar!"
         			self->Log, "User pressed QUIT on the progress bar.  Exiting DRP."
 					;stop
-					;obj_destroy(self)
+					self.progressbar->Quit
+					 
+					obj_destroy,self
 					DRPCONTINUE=0
 					break
 					;exit
 				endif
+				if self.progressbar->flushqueue() then begin
+				    self->flushqueue, queuedir
+				    self.progressbar->flushqueue_end
+				endif    
+				if self.progressbar->rescandb() then begin
+				    self->rescan
+				    self.progressbar->rescandb_end
+				endif    
 			endif
 		endfor
     ENDWHILE
@@ -521,6 +533,7 @@ FUNCTION gpiPipelineBackbone::Reduce
 		endif
 
 		fits_info, filename, n_ext = numext, /silent
+		;numext=0 ;just for polcaltest!!!
 		if ~ptr_valid((*self.data).currframe) then begin
         if (numext EQ 0) then (*self.data).currframe        = ptr_new(READFITS(filename , Header, /SILENT))
         if (numext ge 1) then begin
@@ -534,6 +547,7 @@ FUNCTION gpiPipelineBackbone::Reduce
             headPHU = headfits(filename, exten=0)            
         endif        
     endelse    
+
         if n_elements( *((*self.data).currframe) ) eq 1 then if *((*self.data).currframe) eq -1 then begin
             self->Log, "ERROR: Unable to read file "+filename, /GENERAL, /DRF
             self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
@@ -561,6 +575,11 @@ FUNCTION gpiPipelineBackbone::Reduce
         *(*self.data).Headers[IndexFrame]=[header,*(*self.data).Headers[IndexFrame], 'END            ']
         ;SXADDPAR, *(*self.data).Headers[IndexFrame], "END",''		; don't use SXADDPAR for 'END', it gets the syntax wrong and breaks pyfits.
         
+            ;!!!!TEMPORARY will need modifs: use it for real ifs data, not DST!!!
+                  instrum=SXPAR( header, 'INSTRUME',count=c1)
+                  if ~strmatch(instrum,'*DST*') then $
+                  *((*self.data).currframe)=rotate(transpose(*((*self.data).currframe)),2)
+                
         suffix=''
 
 
@@ -627,171 +646,216 @@ end
 ; Run the specified commands in sequence to reduce the data online. 
 ;     This is for the realtime reduction.
 ;
+;
+;
+;FUNCTION gpiPipelineBackbone::ReduceOnLine
+;
+;  COMMON APP_CONSTANTS
+;  common PIP, lambda0, filename,wavcal,tilt, badpixmap, filter, dim, CommonWavVect, gpidisplay, meddec,suffix, header, heade,oBridge,listfilenames, numfile, painit,dir_sc, Dtel
+;
+;  PRINT, ''
+;  PRINT, SYSTIME(/UTC)
+;  PRINT, ''
+;
+;  self->SetupProgressBar
+;  ;#############################################################
+;  ;loop for detection of  new data then apply modules
+;  temploop=1 ; TODO:implement a little GUI for stopping this loop and change OnLine parameters
+;  while temploop eq 1 do begin  
+;    ;nn=0
+;    ;for i=0,ii-1 do begin ;find nb files to consider in order
+;    ;  folder=stateF.listcontent(i)  ;to create the fitsfileslist array
+;    ;  filetypes = '*.{fts,fits}'
+;    ;    string3 = folder + filetypes
+;    ;    fitsfiles =FILE_SEARCH(string3,/FOLD_CASE)
+;    ;    nn=nn+(n_elements(fitsfiles))
+;    ;endfor
+;    ;fitsfileslist =STRARR(nn)
+;
+;    ;n=0 ;list of files in fitsfileslist
+;    ;for i=0,ii-1 do begin
+;    folder=(*self.data).inputdir ;stateF.listcontent(i)
+;    filetypes = '*.{fts,fits}'
+;    fitsfiles =FILE_SEARCH(folder + path_sep() + filetypes,/FOLD_CASE)
+;    ;    fitsfileslist(n:n+n_elements(fitsfiles)-1) =fitsfiles
+;    n= n_elements(fitsfiles)
+;    ;endfor
+;
+;    ; retrieve creation date
+;    date=dblarr(n_elements(fitsfiles))
+;    for j=0,n_elements(date)-1 do begin
+;        Result = FILE_INFO(fitsfiles[j] )
+;        date(j)=Result.ctime
+;    endfor
+;    ;sort files with creation date
+;    list2=fitsfiles(REVERSE(sort(date)))
+;    list3=list2(0:n_elements(list2)-1)
+;    ;widget_control, stateF.listfile_id, SET_VALUE= list3 ;display the list
+;    ;stop
+;    ;stateF.newlist=list3
+;    ;;loop for detection of new files
+;    ;  oBridge = OBJ_NEW('IDL_IDLBridge');, CALLBACK='callback_searchnewfits')
+;    ;  oBridge->SetVar,"chang",0
+;    ;  oBridge->SetVar,"dir",folder;stateF.listcontent(0:ii-1)
+;    ;  oBridge->SetVar,"listfile",list3
+;    ;  oBridge->SetVar,"list_id",0;stateF.listfile_id
+;    ;  ;widget_control,stateF.button_id,GET_VALUE=val
+;    ; ; widget_control,stateF.button_id,GET_VALUE=val
+;    ;  oBridge->SetVar,"button_value",'void'
+;    ;
+;    ;comm2="chang=detectnewfits(dir,listfile,list_id,button_value)"
+;    ;oBridge->Execute, comm2, /NOWAIT
+;
+;    chang=''
+;    while chang eq '' do begin
+;      chang=gpidetectnewfits(folder,list3,0,'void')
+;      wait,1
+;    endwhile
+; 
+;    (*self.Data).validframecount=1
+;    (*self.Data).fileNames[0]=chang
+;    *((*self.Data).frames[0])=chang
+;    ;;;;;;;;;;;;;;;;;;;;;
+;    self->Log, 'Reducing data set.', /GENERAL, /DRF, depth=1
+;    FOR IndexFrame = 0, (*self.Data).validframecount-1 DO BEGIN
+;        if debug ge 1 then print, "########### start of file "+strc(indexFrame+1)+" ################"
+;        self->Log, 'Reducing file: ' + (*self.Data).fileNames[IndexFrame], /GENERAL, /DRF, depth=1
+;
+;        ;(*self.data).currframe        = ptr_new(READFITS(*((*self.data).frames[IndexFrame]), Header, /SILENT))
+;        filename= *((*self.Data).frames[IndexFrame])
+;        ;inputname = (*self.Data).inputdir+path_sep()+(*self.Data).fileNames[IndexFrame]
+;        ;print, (*self.Data).inputdir+path_sep()+filename
+;         ;(*self.data).currframe        = ptr_new(READFITS((*self.Data).inputdir+path_sep()+filename , Header, /SILENT))
+;         (*self.data).currframe        = ptr_new(READFITS(filename , Header, /SILENT))
+;        if n_elements( *((*self.data).currframe) ) eq 1 then if *((*self.data).currframe) eq -1 then begin
+;              self->Log, "ERROR: Unable to read file "+filename, /GENERAL, /DRF
+;              self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
+;              continue
+;        endif
+;
+;        ; NOTE: there are two redundant ways to get the current filename in the code right now:
+;        ;print, *((*self.data).frames[IndexFrame])
+;        ;print,  (*self.Data).inputdir+path_sep()+(*self.Data).fileNames[IndexFrame]
+;
+;        numfile=IndexFrame ; store the index in the common block
+;
+;
+;        ; update the headers - 
+;        ;  At this point the *(*self.data).Headers[IndexFrame] variable contains
+;        ;  ONLY the DRF appended in FITS header COMMENT form. 
+;        ;  Append this onto the REAL fits header we just read in from disk.
+;        ;
+;        SXADDPAR, *(*self.data).Headers[IndexFrame], "DATAFILE", filename
+;        SXDELPAR, header, 'END'
+;        *(*self.data).Headers[IndexFrame]=[header,*(*self.data).Headers[IndexFrame]]
+;        SXADDPAR, *(*self.data).Headers[IndexFrame], "END",''
+;        suffix=''
+;
+;        ; FIXME this ought to be read in from a configuration file somewhere,
+;        ; not be hard-coded here in the software. 
+;        filter = strcompress(sxpar( header ,'FILTER1', count=fcount),/REMOVE_ALL)
+;        if fcount eq 0 then filter = strcompress(sxpar( header ,'FILTER'),/REMOVE_ALL)
+;
+;        tabband=[['Z'],['Y'],['J'],['H'],['K'],['K1'],['K2']]
+;        parseband=WHERE(STRCMP( tabband, filter, /FOLD_CASE) EQ 1)
+;        case parseband of
+;            -1: CommonWavVect=-1
+;            0:  CommonWavVect=[0.95, 1.14, 37]
+;            1:  CommonWavVect=[0.95, 1.14, 37]
+;            2:  CommonWavVect=[1.12, 1.35, 37]
+;            3: CommonWavVect=[1.5, 1.8, 37]
+;            4:  ;CommonWavVect=[1.5, 1.8, 37]
+;            5:  CommonWavVect=[1.9, 2.19, 40]
+;            6: CommonWavVect=[2.13, 2.4, 40]
+;        endcase
+;        ;;detect type
+;        ;type = strcompress(sxpar( header ,'FILTER2', count=fcount),/REMOVE_ALL)
+;        ; if fcount eq 0 then type = strcompress(sxpar( header ,'DISPERSR'),/REMOVE_ALL)
+;        ;case type of
+;        ;            'Spectro': begin
+;        ;                   FindPro, 'gpidrfgui', dirlist=dirlist
+;                      
+;        caldat,systime(/julian),month,day,year, hour,minute,second
+;        datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
+;        hourstr = string(hour,minute,second,format='(i2.2,i2.2,i2.2)')  
+;        drffilename=datestr+'_'+hourstr+'_drf.waiting.xml'
+;        FILE_COPY, getenv('GPI_DRF_TEMPLATES_DIR')+'template_drf_online_1.xml', (*self.data).queuedir+path_sep()+drffilename
+;                        
+;        ;                      end
+;        ;        endcase
+;        ; Iterate over the modules in the 'Modules' array and run each.
+;        status = OK
+;        FOR indexModules = 0, N_ELEMENTS(*self.Modules)-1 DO BEGIN
+;            ; Continue if the current module's skip field equals 0 and no previous module
+;            ; has failed (Result = 1).
+;            IF ((*self.Modules)[indexModules].Skip EQ 0) AND (status EQ OK) THEN BEGIN
+;                ;Result = Self -> RunModule(Modules, indexModules, Data[IndexFrame], Backbone)
+;                status = Self -> RunModule(*self.Modules, indexModules)
+;            ENDIF
+;        ENDFOR
+;
+;        ; Log the result.
+;    if status eq GOTO_NEXT_FILE then self->Log, 'Continuing on to next file...', /GENERAL, /DRF, depth=2
+;        IF status EQ OK or status eq GOTO_NEXT_FILE THEN self->Log, 'Reduction successful: ' + filename, /GENERAL, /DRF $
+;        ELSE self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
+;
+;    if debug ge 1 then print, "########### end of file "+strc(indexframe+1)+" ################"
+;    ENDFOR
+;
+;    if debug ge 1 then print, "########### end of reduction for that DRF  ################"
+;    PRINT, ''
+;    PRINT, SYSTIME(/UTC)
+;    PRINT, ''
+;    self.progressbar->Update,*self.Modules,indexModules, (*self.data).validframecount, IndexFrame,' Done'
+;  endwhile
+;  RETURN, status
+;
+;END
+;
+;;-----------------------------------------------------------
+;; gpiPipelineBackbone::RunModule
+;;
+;
+;FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
+;
+;    COMMON APP_CONSTANTS
+;    common PIP
+;
+;    if debug ge 2 then message,/info, " Now running module "+Modules[ModNum].Name+', '+ Modules[ModNum].IDLCommand
+;    self->Log, "Running module "+string(Modules[ModNum].Name, format='(A30)')+" for frame "+strc(numfile), depth=2
+;    ; Execute the call sequence and pass the return value to DRP_EVALUATE
+;
+;      ; Add the currently executing module number to the Backbone structure
+;    self.CurrentlyExecutingModuleNumber = ModNum
+;
+;	; if we use call_function to run the module, then the IDL code will STOP at the location
+;	; of any error, instead of returning here... This is way better for
+;	; debugging (and perhaps should just always be how it works now. -MDP)
+;	status = call_function( Modules[ModNum].IDLCommand, *self.data, Modules, self )
+;
+;
+;    IF status EQ NOT_OK THEN BEGIN            ;  The module failed
+;        IF (STRCMP(!ERR_STRING, "Variable", 8, /FOLD_CASE) EQ 1) THEN BEGIN
+;            drpIOLock
+;            PRINT, "drpPipeline::RunModule: " + !ERROR_STATE.MSG
+;            PRINT, "drpPipeline::RunModule: " + !ERR_STRING
+;            PRINT, "drpPipeline::RunModule: " + CALL_STACK
+;            PRINT, "drpPipeline::RunModule: " + Modules[ModNum].CallSequence
+;            PRINT, "drpPipeline::RunModule: " + Modules[ModNum].Name
+;            drpIOUnlock
+;        ENDIF
+;        self->Log, 'ERROR: ' + !ERR_STRING, /GENERAL, /DRF
+;        self->Log, 'Module failed: ' + Modules[ModNum].Name, /GENERAL, /DRF
+;    ENDIF ELSE BEGIN                ;  The module succeeded
+;        self->Log, 'Module completed: ' + Modules[ModNum].Name,  /GENERAL, /DRF, DEPTH = 3
+;    ENDELSE
+;    self.CurrentlyExecutingModuleNumber = -1
+;
+;    RETURN, status
+;
+;END
+;
 
-
-FUNCTION gpiPipelineBackbone::ReduceOnLine
-
-  COMMON APP_CONSTANTS
-  common PIP, lambda0, filename,wavcal,tilt, badpixmap, filter, dim, CommonWavVect, gpidisplay, meddec,suffix, header, heade,oBridge,listfilenames, numfile, painit,dir_sc, Dtel
-
-  PRINT, ''
-  PRINT, SYSTIME(/UTC)
-  PRINT, ''
-
-  self->SetupProgressBar
-  ;#############################################################
-  ;loop for detection of  new data then apply modules
-  temploop=1 ; TODO:implement a little GUI for stopping this loop and change OnLine parameters
-  while temploop eq 1 do begin  
-    ;nn=0
-    ;for i=0,ii-1 do begin ;find nb files to consider in order
-    ;  folder=stateF.listcontent(i)  ;to create the fitsfileslist array
-    ;  filetypes = '*.{fts,fits}'
-    ;    string3 = folder + filetypes
-    ;    fitsfiles =FILE_SEARCH(string3,/FOLD_CASE)
-    ;    nn=nn+(n_elements(fitsfiles))
-    ;endfor
-    ;fitsfileslist =STRARR(nn)
-
-    ;n=0 ;list of files in fitsfileslist
-    ;for i=0,ii-1 do begin
-    folder=(*self.data).inputdir ;stateF.listcontent(i)
-    filetypes = '*.{fts,fits}'
-    fitsfiles =FILE_SEARCH(folder + path_sep() + filetypes,/FOLD_CASE)
-    ;    fitsfileslist(n:n+n_elements(fitsfiles)-1) =fitsfiles
-    n= n_elements(fitsfiles)
-    ;endfor
-
-    ; retrieve creation date
-    date=dblarr(n_elements(fitsfiles))
-    for j=0,n_elements(date)-1 do begin
-        Result = FILE_INFO(fitsfiles[j] )
-        date(j)=Result.ctime
-    endfor
-    ;sort files with creation date
-    list2=fitsfiles(REVERSE(sort(date)))
-    list3=list2(0:n_elements(list2)-1)
-    ;widget_control, stateF.listfile_id, SET_VALUE= list3 ;display the list
-    ;stop
-    ;stateF.newlist=list3
-    ;;loop for detection of new files
-    ;  oBridge = OBJ_NEW('IDL_IDLBridge');, CALLBACK='callback_searchnewfits')
-    ;  oBridge->SetVar,"chang",0
-    ;  oBridge->SetVar,"dir",folder;stateF.listcontent(0:ii-1)
-    ;  oBridge->SetVar,"listfile",list3
-    ;  oBridge->SetVar,"list_id",0;stateF.listfile_id
-    ;  ;widget_control,stateF.button_id,GET_VALUE=val
-    ; ; widget_control,stateF.button_id,GET_VALUE=val
-    ;  oBridge->SetVar,"button_value",'void'
-    ;
-    ;comm2="chang=detectnewfits(dir,listfile,list_id,button_value)"
-    ;oBridge->Execute, comm2, /NOWAIT
-
-    chang=''
-    while chang eq '' do begin
-      chang=gpidetectnewfits(folder,list3,0,'void')
-      wait,1
-    endwhile
- 
-    (*self.Data).validframecount=1
-    (*self.Data).fileNames[0]=chang
-    *((*self.Data).frames[0])=chang
-    ;;;;;;;;;;;;;;;;;;;;;
-    self->Log, 'Reducing data set.', /GENERAL, /DRF, depth=1
-    FOR IndexFrame = 0, (*self.Data).validframecount-1 DO BEGIN
-        if debug ge 1 then print, "########### start of file "+strc(indexFrame+1)+" ################"
-        self->Log, 'Reducing file: ' + (*self.Data).fileNames[IndexFrame], /GENERAL, /DRF, depth=1
-
-        ;(*self.data).currframe        = ptr_new(READFITS(*((*self.data).frames[IndexFrame]), Header, /SILENT))
-        filename= *((*self.Data).frames[IndexFrame])
-        ;inputname = (*self.Data).inputdir+path_sep()+(*self.Data).fileNames[IndexFrame]
-        ;print, (*self.Data).inputdir+path_sep()+filename
-         ;(*self.data).currframe        = ptr_new(READFITS((*self.Data).inputdir+path_sep()+filename , Header, /SILENT))
-         (*self.data).currframe        = ptr_new(READFITS(filename , Header, /SILENT))
-        if n_elements( *((*self.data).currframe) ) eq 1 then if *((*self.data).currframe) eq -1 then begin
-              self->Log, "ERROR: Unable to read file "+filename, /GENERAL, /DRF
-              self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
-              continue
-        endif
-
-        ; NOTE: there are two redundant ways to get the current filename in the code right now:
-        ;print, *((*self.data).frames[IndexFrame])
-        ;print,  (*self.Data).inputdir+path_sep()+(*self.Data).fileNames[IndexFrame]
-
-        numfile=IndexFrame ; store the index in the common block
-
-
-        ; update the headers - 
-        ;  At this point the *(*self.data).Headers[IndexFrame] variable contains
-        ;  ONLY the DRF appended in FITS header COMMENT form. 
-        ;  Append this onto the REAL fits header we just read in from disk.
-        ;
-        SXADDPAR, *(*self.data).Headers[IndexFrame], "DATAFILE", filename
-        SXDELPAR, header, 'END'
-        *(*self.data).Headers[IndexFrame]=[header,*(*self.data).Headers[IndexFrame]]
-        SXADDPAR, *(*self.data).Headers[IndexFrame], "END",''
-        suffix=''
-
-        ; FIXME this ought to be read in from a configuration file somewhere,
-        ; not be hard-coded here in the software. 
-        filter = strcompress(sxpar( header ,'FILTER1', count=fcount),/REMOVE_ALL)
-        if fcount eq 0 then filter = strcompress(sxpar( header ,'FILTER'),/REMOVE_ALL)
-
-        tabband=[['Z'],['Y'],['J'],['H'],['K'],['K1'],['K2']]
-        parseband=WHERE(STRCMP( tabband, filter, /FOLD_CASE) EQ 1)
-        case parseband of
-            -1: CommonWavVect=-1
-            0:  CommonWavVect=[0.95, 1.14, 37]
-            1:  CommonWavVect=[0.95, 1.14, 37]
-            2:  CommonWavVect=[1.12, 1.35, 37]
-            3: CommonWavVect=[1.5, 1.8, 37]
-            4:  ;CommonWavVect=[1.5, 1.8, 37]
-            5:  CommonWavVect=[1.9, 2.19, 40]
-            6: CommonWavVect=[2.13, 2.4, 40]
-        endcase
-        ;;detect type
-        ;type = strcompress(sxpar( header ,'FILTER2', count=fcount),/REMOVE_ALL)
-        ; if fcount eq 0 then type = strcompress(sxpar( header ,'DISPERSR'),/REMOVE_ALL)
-        ;case type of
-        ;            'Spectro': begin
-        ;                   FindPro, 'gpidrfgui', dirlist=dirlist
-                      
-        caldat,systime(/julian),month,day,year, hour,minute,second
-        datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
-        hourstr = string(hour,minute,second,format='(i2.2,i2.2,i2.2)')  
-        drffilename=datestr+'_'+hourstr+'_drf.waiting.xml'
-        FILE_COPY, getenv('GPI_DRF_TEMPLATES_DIR')+'template_drf_online_1.xml', (*self.data).queuedir+path_sep()+drffilename
-                        
-        ;                      end
-        ;        endcase
-        ; Iterate over the modules in the 'Modules' array and run each.
-        status = OK
-        FOR indexModules = 0, N_ELEMENTS(*self.Modules)-1 DO BEGIN
-            ; Continue if the current module's skip field equals 0 and no previous module
-            ; has failed (Result = 1).
-            IF ((*self.Modules)[indexModules].Skip EQ 0) AND (status EQ OK) THEN BEGIN
-                ;Result = Self -> RunModule(Modules, indexModules, Data[IndexFrame], Backbone)
-                status = Self -> RunModule(*self.Modules, indexModules)
-            ENDIF
-        ENDFOR
-
-        ; Log the result.
-    if status eq GOTO_NEXT_FILE then self->Log, 'Continuing on to next file...', /GENERAL, /DRF, depth=2
-        IF status EQ OK or status eq GOTO_NEXT_FILE THEN self->Log, 'Reduction successful: ' + filename, /GENERAL, /DRF $
-        ELSE self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
-
-    if debug ge 1 then print, "########### end of file "+strc(indexframe+1)+" ################"
-    ENDFOR
-
-    if debug ge 1 then print, "########### end of reduction for that DRF  ################"
-    PRINT, ''
-    PRINT, SYSTIME(/UTC)
-    PRINT, ''
-    self.progressbar->Update,*self.Modules,indexModules, (*self.data).validframecount, IndexFrame,' Done'
-  endwhile
-  RETURN, status
-
-END
 
 ;-----------------------------------------------------------
 ; gpiPipelineBackbone::RunModule
@@ -809,10 +873,10 @@ FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
       ; Add the currently executing module number to the Backbone structure
     self.CurrentlyExecutingModuleNumber = ModNum
 
-	; if we use call_function to run the module, then the IDL code will STOP at the location
-	; of any error, instead of returning here... This is way better for
-	; debugging (and perhaps should just always be how it works now. -MDP)
-	status = call_function( Modules[ModNum].IDLCommand, *self.data, Modules, self )
+  ; if we use call_function to run the module, then the IDL code will STOP at the location
+  ; of any error, instead of returning here... This is way better for
+  ; debugging (and perhaps should just always be how it works now. -MDP)
+  status = call_function( Modules[ModNum].IDLCommand, *self.data, Modules, self )
 
 
     IF status EQ NOT_OK THEN BEGIN            ;  The module failed
