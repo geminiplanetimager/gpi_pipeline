@@ -31,10 +31,10 @@
 ;    Jerome Maire 2008-10
 ;    2009-06 : JM fix a bug for w&P  when (i=0,j) not in the raw image
 ;    2010-03-05: JM added tight_pos keyword 
-;
+;    2010-08-15: JM added bad pixel map
 ;-
 
-pro find_spectra_positions_quadrant, quad,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,specpos,im,edge_x1,edge_x2,edge_y1,edge_y2,tight_pos
+pro find_spectra_positions_quadrant, quad,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,specpos,im,edge_x1,edge_x2,edge_y1,edge_y2,tight_pos, badpixmap=badpixmap
 
 case quad of 
   1: begin 
@@ -73,9 +73,9 @@ w=w0 & P=P0 ;initial guess
           ;if (idir eq -1)&& (j eq 115) then print, 'j=115 w=',w,'  P=',P
                    ; if (nlens/2+i eq 135) && (nlens/2+j eq 238) then stop
           ;;calculate centroid to have more accurate position
-            specpos[nlens/2+i,nlens/2+j,0:1]=localizepeak( im, cen1[0]+dx,cen1[1]+dy,wx,wy,hh)
+            specpos[nlens/2+i,nlens/2+j,0:1]=localizepeak( im, cen1[0]+dx,cen1[1]+dy,wx,wy,hh,badpixmap=badpixmap)
 ;if keyword_set(tight) then begin
-    if ((specpos[nlens/2+i,nlens/2+j,0]-(cen1[0]+dx))^2+(specpos[nlens/2+i,nlens/2+j,1]-(cen1[1]+dy))^2) gt double(tight_pos) then begin
+    if (((specpos[nlens/2+i,nlens/2+j,0]-(cen1[0]+dx))^2+(specpos[nlens/2+i,nlens/2+j,1]-(cen1[1]+dy))^2) gt double(tight_pos))  then begin
         specpos[nlens/2+i,nlens/2+j,0]=cen1[0]+dx
         specpos[nlens/2+i,nlens/2+j,1]=cen1[1]+dy
     endif
