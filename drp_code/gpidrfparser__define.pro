@@ -642,7 +642,11 @@ PRO gpidrfparser::newdataset, AttNames, AttValues
 
 	FOR i = 0, N_ELEMENTS(AttNames) - 1 DO BEGIN	; Place attribute values in the
 		CASE AttNames[i] OF			; variable fields.
-		'InputDir':	DataSet.InputDir = AttValues[i]
+		'InputDir':	begin
+		            if strlen(getenv(AttValues[i])) ne 0 then $
+		            DataSet.InputDir = getenv(AttValues[i]) else $
+		            DataSet.InputDir = AttValues[i]		            
+		            end
 		'Name': BEGIN
 			IF Self -> DataSetNameIsUnique(AttValues[i]) THEN BEGIN
 			  DataSet.Name = AttValues[i]
@@ -652,7 +656,11 @@ PRO gpidrfparser::newdataset, AttNames, AttValues
 				continueAfterDRFParsing = 0
 			ENDELSE
 	    END
-		'OutputDir':	DataSet.OutputDir = AttValues[i]
+		'OutputDir':	begin
+                if strlen(getenv(AttValues[i])) ne 0 then $
+                DataSet.OutputDir = getenv(AttValues[i]) else $
+                DataSet.OutputDir = AttValues[i]               
+                end
 		ELSE:
 		ENDCASE
 	END
