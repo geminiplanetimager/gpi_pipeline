@@ -11,7 +11,7 @@
 ;
 ; OUTPUTS:  
 ;
-; PIPELINE COMMENT: Calculate locations of sat.spots in datacubes (using GPItv)
+; PIPELINE COMMENT: Calculate locations of sat.spots in datacubes (using GPItv). Do not work with the IDL Virtual Machine.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="spotsnbr" Type="int" Range="[1,4]" Default="4" Desc="How many spots in a slice of the datacube? "
 ; PIPELINE ORDER: 2.44
@@ -47,9 +47,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
        print, 'Save our result using the widget and close GPItv after selection.'
         void=dialog_message(/INF,'Use GPItv to locate sat.spots. Select the ''SAT SPOT LOCALIZE'' mouse mode, then click on the spots. Close GPItv after selection.')
         spotcalibfile=Modules[thisModuleIndex].OutputDir+path_sep()+'spotloc'+filter+'.fits'
-        gpitve, cubef3D[*,*,floor(CommonWavVect[2]/2)], nbrsatspot=fix(Modules[thisModuleIndex].spotsnbr), satspotcalibfile=spotcalibfile & gpitv_activate
-
-
+        ;gpitve, cubef3D[*,*,floor(CommonWavVect[2]/2)], nbrsatspot=fix(Modules[thisModuleIndex].spotsnbr), satspotcalibfile=spotcalibfile & gpitv_activate
+        Backbone_comm->gpitv, cubef3D[*,*,floor(CommonWavVect[2]/2)], nbrsatspot=fix(Modules[thisModuleIndex].spotsnbr), satspotcalibfile=spotcalibfile, ses=20
+        
 ;;re-order sat locations (opposite,..)
 nbrspot=fix(Modules[thisModuleIndex].spotsnbr)
 spotloc=readfits(spotcalibfile)
