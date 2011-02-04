@@ -62,7 +62,8 @@ pro queueview::startup
         self.drf_summary=       ptr_new(/ALLOCATE_HEAP)
         self.version=2.0
  
-        FindPro, 'make_drsconfigxml', dirlist=dirlist,/noprint
+        ;FindPro, 'make_drsconfigxml', dirlist=dirlist,/noprint
+        dirlist=getenv('GPI_PIPELINE_DIR')+path_sep()+'dpl_library'+path_sep()
         if getenv('GPI_CONFIG_FILE') ne '' then self.config_file=getenv('GPI_CONFIG_FILE') $
         else self.config_file=dirlist[0]+"DRSConfig.xml"
         self.ConfigParser = OBJ_NEW('gpiDRSConfigParser',/silent)
