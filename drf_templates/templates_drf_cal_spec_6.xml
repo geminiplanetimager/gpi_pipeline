@@ -7,5 +7,5 @@
 <module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
 <module name="Assemble Spectral Datacube" Save="       0" suffix="" gpitv="" />
 <module name="Interpolate Wavelength Axis" Save="       1" suffix="-spdc" gpitv="2" />
-<module name="Measure satellite spot locations" Save="1" spotsnbr="2" />
+<module name="Measure satellite spot locations" Save="1" spotsnbr="4" />
 </DRF>
