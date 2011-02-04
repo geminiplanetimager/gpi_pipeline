@@ -43,7 +43,7 @@ naxis = sxpar( h ,'NAXIS*')
 		 pos=strpos(filename,'-',/REVERSE_SEARCH)
 		 ;TODO header update
 		 sxaddhist, functionname+":Combined darks:", h		 
-		 for i=1,numfile-1 do begin sxaddhist, listfilenames(i,*), h
+		 for i=1,numfile-1 do  sxaddhist, listfilenames(i,*), h
 		 sxaddpar, h, "FILETYPE", "dark", /savecomment
      sxaddpar, h, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
 		 

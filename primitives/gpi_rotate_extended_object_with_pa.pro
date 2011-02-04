@@ -137,7 +137,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
 ;          endfor ;loop annulus
 
           ;rotation to have same orientation than the first image
-          if silent eq 0 then print,' Rotation to have same orientation than the first image...'
+          if silent eq 0 then print,' Rotation to have same orientation than the first image...wavelength[um]=',lambda[il]
           theta=paall[n]-paall[0]
             x0=float(SXPAR( *(dataset.headers[n]), 'PSFCENTX',count=ccx))
             y0=float(SXPAR( *(dataset.headers[n]), 'PSFCENTY',count=ccy))
@@ -154,18 +154,18 @@ if numfile  eq ((dataset.validframecount)-1) then begin
     ;save the difference
       if tag_exist( Modules[thisModuleIndex], "suffix") then subsuffix=Modules[thisModuleIndex].suffix
     
-    ;subsuffix='-adim'  ;this the suffix that will be added to the name of the ADI residual  
+    ;subsuffix='-comb'  ;this the suffix that will be added to the name of the ADI residual  
 	  fname=strmid(fn,0,strpos(fn,suffix)-1)+suffix+subsuffix+'.fits'
 	  header=*(dataset.headers[n])
     sxaddhist,'One rotation of '+string(theta,format='(f7.3)')+$
       ' degrees has been applied.',header
       *(dataset.currframe[0])=im
       *(dataset.headers[numfile])=header
-thisModuleIndex = Backbone->GetCurrentModuleIndex()
-
+      thisModuleIndex = Backbone->GetCurrentModuleIndex()
+;stop
     if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
-      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix+subsuffix, display=display, saveheader=header)
+      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix+subsuffix, display=display, saveheader=header, level2=n+1)
       if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
     endif else begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
