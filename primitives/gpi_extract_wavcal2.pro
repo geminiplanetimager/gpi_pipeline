@@ -14,7 +14,7 @@
 ; INPUTS: 2D image from narrow band arclamp
 ; common needed:
 ;
-; KEYWORDS:OBSTYPE,FILTER
+; KEYWORDS:OBSTYPE,FILTER,GCALLAMP
 ; OUTPUTS:
 ;
 ; PIPELINE ORDER: 1.7
@@ -172,18 +172,19 @@ endcase
           endcase
           if   ~(strmatch(obstype,'*flat*',/fold)) then begin
           DST_CODE_DIR= getenv('GPI_IFS_DIR')+path_sep()+'dst';getenv()
+
           readcol, DST_CODE_DIR+path_sep()+strmid(lamp,0,2)+'ArcLampG.txt', wavelen, strength
           wavelen=1.e-4*wavelen
           lambdadst=readfits(DST_CODE_DIR+path_sep()+'zemdispLam'+strcompress(bandeobs, /rem)+'.fits')
           spect = fltarr(n_elements(lambdadst))
-        
+      
           wg = where(wavelen gt min(lambdadst) and wavelen lt max(lambdadst), gct)
         
           for i=0L,gct-1 do begin
             diff = min(abs(lambdadst - wavelen[wg[i]]), closest)
             spect[closest] += strength[wg[i]]
           endfor
-          
+      
            mlensarr=rebin(spect,  n_elements(lambdadst))
            seuil=(relativethresh)* max(mlensarr)
            print, 'seuil=',seuil
@@ -197,8 +198,8 @@ endcase
            wavstr=''
            for st=0,n_elements(peakwavelen)-1 do wavstr+=strcompress(string(peakwavelen[st]),/rem)+'/'
            sxaddpar, h, "TESTWAV", wavstr, 'wav of detected peaks'
-           stop
-          
+           ;stop
+       
     endif
 
 ;;localize first peak ;; this coordiantes depends strongly on data!!
@@ -245,6 +246,8 @@ endif
  tight_pos=float(Modules[thisModuleIndex].maxpos)  
  tight_tilt=float(Modules[thisModuleIndex].maxtilt)  
 
+
+
 ;calculate now x-y locations of the first peak of all spectra (specpos[*,*,0] and specpos[*,*,1]): 
 ;for quadrant=1L,4 do find_spectra_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,specpos,im,edge_x1,edge_x2,edge_y1,edge_y2,tight_pos
 for quadrant=1L,4 do find_spectra_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,specpos,im,edge_x1,edge_x2,edge_y1,edge_y2,tight_pos,badpixmap=badpixmap
@@ -288,7 +291,7 @@ wx=1. & wy=0. ;flat
 
 ;calculate now x-y locations of the other peaks and deduce linear dispersion coeffs and tilts
  for quadrant=1L,4 do find_spectra_dispersions_quadrant, quadrant,peakwavelen,apprXpos,apprYpos,nlens,w3,w3med,tilt,specpos,im,wx,wy,hh,szim,edge_x1,edge_x2,edge_y1,edge_y2, dispeak, dispeak2, tight_tilt
-  
+ 
  
 endif ; verif si n_elements(peakwavelen) gt 1
 
