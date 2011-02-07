@@ -5,6 +5,8 @@
 ;
 ;
 ; KEYWORDS:
+; GEM/GPI KEYWORDS:
+; DRP KEYWORDS: FILETYPE,ISCALIB
 ; OUTPUTS:
 ;
 ; PIPELINE COMMENT: Find Hot/cold pixels using flat-field images. find deviation which is nbdev times greater or lower than the estimated value of the pixel as if it was not hot/cold.
@@ -34,7 +36,16 @@ nbdev17=2.
 nbdev18=18.
 nbdevedge=[nbdev0,nbdev1,nbdev17,nbdev18]
 
-
+h=*(dataset.headers[numfile])
+filter=SXPAR( h, 'FILTER',count=c4)
+if c4 eq 0 then filter=SXPAR( h, 'FILTER1',count=c4)
+                    ;error handle if FILTER1 keyword not found
+                    if (filter eq '') then $
+                    return, error('FAILURE ('+functionName+'): FILTER1 keyword not found.') 
+        cwv=get_cwv(filter)
+        CommonWavVect=cwv.CommonWavVect        
+        lambdamin=CommonWavVect[0]
+        lambdamax=CommonWavVect[1]
 ;define length of detection boxes
 case strcompress(filter,/REMOVE_ALL) of
   'Y': specpixlength=15. ; rough estimation of spec pix length
@@ -114,6 +125,7 @@ print, 'nb bad-pixels detected =', total(double(badpixmap))
   sxaddhist, functionname+"from " + dataset.outputFileNames[numfile], *(dataset.headers[numfile])
 
 *(dataset.currframe[0])=badpixmap
+
 
 	; Set keywords for outputting files into the Calibrations DB
 	sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"

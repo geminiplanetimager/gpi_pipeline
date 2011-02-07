@@ -5,6 +5,8 @@
 ; This routine is used to do an "AND" combination of badpix maps extracted from several bands.
 ;
 ; INPUTS: bad pixel maps 
+; GEM/GPI KEYWORDS:
+; DRP KEYWORDS: FILETYPE,ISCALIB
 ;
 ; OUTPUTS:
 ; PIPELINE ORDER: 4.02
@@ -33,7 +35,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   nfiles=dataset.validframecount
 
 
-   sz=size(*(dataset.frames[0]))
+   sz=size(*(dataset.currframe[0]))
    
    badpixcomb=bytarr(sz[1],sz[2])
 

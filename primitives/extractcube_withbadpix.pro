@@ -54,9 +54,16 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 nlens=(size(wavcal))[1]
 dim=(size(det))[1]
+        filter = strcompress(sxpar( header ,'FILTER1', count=fcount),/REMOVE_ALL)
+        if fcount eq 0 then filter = strcompress(sxpar( header ,'FILTER'),/REMOVE_ALL)
+                    ;error handle if FILTER1 keyword not found
+                    if (filter eq '') then $
+                    return, error('FAILURE ('+functionName+'): FILTER1 keyword not found.') 
+        cwv=get_cwv(filter)
+        CommonWavVect=cwv.CommonWavVect        
+        lambdamin=CommonWavVect[0]
+        lambdamax=CommonWavVect[1]
 
-lambdamin=CommonWavVect[0]
-lambdamax=CommonWavVect[1]
 
 tilt=wavcal[*,*,4]
 ;what is the pixel corresponding to lambda_min?

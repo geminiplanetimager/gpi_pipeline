@@ -10,6 +10,8 @@
 ; KEYWORDS:
 ;	/Save	set to 1 to save the output image to a disk file. 
 ;
+; GEM/GPI KEYWORDS:
+; DRP KEYWORDS: FILETYPE, ISCALIB
 ; OUTPUTS:  datacube with slice at the same wavelength
 ;
 ; PIPELINE COMMENT: Fit the lamp spectrum and remove it (for delivering flat field cubes)
@@ -83,18 +85,24 @@ for xsi=0,nlens-1 do begin
 		  	sz=n_elements(lambint)
 		  	offsetpix=floor(sz/4)-1
 		  	indforfit=offsetpix+indgen(sz-2*offsetpix)
-		  	if Modules[thisModuleIndex].method eq 'linfit' then  begin
-			   res=linfit(lambint[indforfit], (spectrum)[indforfit] )
-			  lampspec=res[0]+res[1]*lambint
-		  	endif
-		  	if Modules[thisModuleIndex].method eq 'polyfit' then  begin
-			   res=POLY_FIT(lambint[indforfit], (spectrum)[indforfit], 2, MEASURE_ERRORS=measure_errors, SIGMA=sigma) 
-			  lampspec=res[0]+res[1]*lambint+res[2]*(lambint)^2.
-		  	endif
-		  	if Modules[thisModuleIndex].method eq 'blackbody' then  begin
-			  tempelampe = 1100
-			  lampspec=(planck(10000*lambint,tempelampe)/mean(planck(10000*lambint,tempelampe)))*mean((spectrum)[indforfit])
-		  	endif
+		  	meth=Modules[thisModuleIndex].method
+		  	case meth of 
+		  	  'linfit':begin
+		  	            res=linfit(lambint[indforfit], (spectrum)[indforfit] )
+                    lampspec=res[0]+res[1]*lambint
+		  	            end
+		  	  'polyfit':begin
+                    res=POLY_FIT(lambint[indforfit], (spectrum)[indforfit], 2, MEASURE_ERRORS=measure_errors, SIGMA=sigma) 
+                    lampspec=res[0]+res[1]*lambint+res[2]*(lambint)^2.                
+                    end
+          'blackbody':begin
+                    tempelampe = 1100
+                    lampspec=(planck(10000*lambint,tempelampe)/mean(planck(10000*lambint,tempelampe)))*mean((spectrum)[indforfit])
+                      end
+          else:   lampspec=replicate(mean((spectrum)[indforfit]), n_elements(lambint))
+         endcase        
+
+
 		  
 	   		;toDO:implement other methods
 		  ; remove the linear fit.
