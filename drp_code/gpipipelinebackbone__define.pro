@@ -577,8 +577,10 @@ FUNCTION gpiPipelineBackbone::Reduce
         
             ;!!!!TEMPORARY will need modifs: use it for real ifs data, not DST!!!
                   instrum=SXPAR( header, 'INSTRUME',count=c1)
-                  if ~strmatch(instrum,'*DST*') then $
-                  *((*self.data).currframe)=rotate(transpose(*((*self.data).currframe)),2)
+                  if ~strmatch(instrum,'*DST*') && (  sxpar( *(*self.data).Headers[IndexFrame], 'DRPVER' ) eq '' ) then begin
+                    *((*self.data).currframe)=rotate(transpose(*((*self.data).currframe)),2)
+                    print, 'Image rotated!'
+                  endif
                 
         suffix=''
 
