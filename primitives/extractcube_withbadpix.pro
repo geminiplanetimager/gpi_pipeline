@@ -49,7 +49,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     if cneg gt 0 then begin 
         print,'Found ',n_elements(negvalue), ' negative intensity(ies) in detector frame !'
         print,'Force negative value(s) to be 0.'
-        det[where(det lt 0.)]=0.
+        det[where(det lt 0.)]=1e-8
     endif
 
 nlens=(size(wavcal))[1]
@@ -94,9 +94,11 @@ for i=0,sdpx-1 do begin  ;through spaxels
   bordedge=[where(x3 ge dim-refpixwidth),where(x3 lt 0.+refpixwidth),where(y3 ge dim-refpixwidth),where(y3 lt 0.+refpixwidth)]
   ccedge=n_elements(bordedge)
   
+  if (size(badpixmap))[0] eq 0 then badpixmap=bytarr(2048,2048)
 ;;force badpix as Nan
 det_temp=det
-det_temp(where(badpixmap eq 1))=  !VALUES.F_NAN
+indbadpix=where(badpixmap eq 1,nbbadpix)
+if nbbadpix gt 0 then det_temp[indbadpix]=  !VALUES.F_NAN
   
 ;;test if only 1 (or0) badpix then sum, else put a 0. value
  zeroif2nan=total([[[det_temp[x3,y3]*det_temp[x3,y3+1]]],[[det_temp[x3,y3]*det_temp[x3,y3-1]]],$
@@ -114,11 +116,11 @@ det_temp(where(badpixmap eq 1))=  !VALUES.F_NAN
 endfor
 
 ;;interpolate where 2 or 3 badpixs were in the sum box
-ind2or3badpix=where(cubef3D eq 0.)
-ind2or3badpix3D=array_indices(cubef3D,ind2or3badpix)
+ind2or3badpix=where(cubef3D eq 0.,cbp)
+if cbp gt 0 then ind2or3badpix3D=array_indices(cubef3D,ind2or3badpix)
 ;cubef3D[ind2or3badpix]=interpolate(cubef3D, ind2or3badpix3D[0,*], ind2or3badpix3D[1,*],ind2or3badpix3D[2,*])
 
-if n_elements(ind2or3badpix) gt 0 then begin
+if n_elements(ind2or3badpix3D) gt 0 then begin
   for ii=0L, n_elements(ind2or3badpix)-1 do begin
      xmin=ind2or3badpix3D[0,ii]-1>0
      xmax=ind2or3badpix3D[0,ii]+1<(size(cubef3D))[1]-1
