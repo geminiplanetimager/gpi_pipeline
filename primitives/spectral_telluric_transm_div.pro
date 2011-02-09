@@ -7,6 +7,7 @@
 ; KEYWORDS:
 ;	/Save	set to 1 to save the output image to a disk file. 
 ;
+; DRP KEYWORDS: HISTORY
 ; OUTPUTS:  datacube with slice at the same wavelength
 ;
 ; PIPELINE COMMENT: Divides a spectral data-cube by a flat field data-cube.
