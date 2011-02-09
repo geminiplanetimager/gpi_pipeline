@@ -11,6 +11,8 @@
 ; KEYWORDS:
 ;	/Save	Set to 1 to save the output image to a disk file. 
 ;
+; GEM/GPI KEYWORDS:FILTER,IFSUNIT
+; DRP KEYWORDS: CUNIT,DATAFILE,SPECCENX,SPECCENY
 ; OUTPUTS:  
 ;
 ; PIPELINE COMMENT: Extract one spectrum from a datacube somewhere in the FOV specified by the user.

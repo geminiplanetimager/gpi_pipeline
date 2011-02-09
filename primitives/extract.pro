@@ -13,6 +13,8 @@
 ; common needed: filter, wavcal, tilt, (nlens)
 ;
 ; KEYWORDS:
+; GEM/GPI KEYWORDS:FILTER2
+; DRP KEYWORDS:   
 ; OUTPUTS:
 ;
 ; PIPELINE COMMENT: Extract a 3D datacube from a 2D image (Calls assemble spectral or polarimetric cube automatically depending on input data format)
