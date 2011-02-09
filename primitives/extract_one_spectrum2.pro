@@ -9,7 +9,10 @@
 ;
 ;
 ; KEYWORDS:
-;	/Save	Set to 1 to save the output image to a disk file. 
+;	/Save	Set to 1 to save the output image to a disk file.
+; KEYWORDS:
+; GEM/GPI KEYWORDS:FILTER,IFSUNIT
+; DRP KEYWORDS: CUNIT,DATAFILE,SPECCENX,SPECCENY
 ;
 ; OUTPUTS:  
 ;
@@ -101,11 +104,12 @@ primitive_version= '$Id: extract_one_spectrum2.pro 96 2010-10-20 13:47:13Z maire
       endelse
 
       indf=where(finite(p1d))
+      if (n_elements(indf) eq 1) then return,0
       if (NLam gt 0)  then $
         xlam=(lambda)[indf] $
         else xlam=(indgen((size(main_image_stack))[3]))[indf]
 
-      ps_figure = Modules[thisModuleIndex].ps_figure 
+      ps_figure = float(Modules[thisModuleIndex].ps_figure) 
       calunits=sxpar( *(dataset.headers[numfile]), 'CUNIT',  COUNT=cc)
       ifsunits=sxpar( *(dataset.headers[numfile]), 'IFSUNIT',  COUNT=ci)
       units='counts/s'
@@ -115,8 +119,8 @@ primitive_version= '$Id: extract_one_spectrum2.pro 96 2010-10-20 13:47:13Z maire
       s_Ext='-spectrum_x'+Modules[thisModuleIndex].xcenter+'_y'+Modules[thisModuleIndex].ycenter
      filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
      slash=strpos(filnm,path_sep(),/reverse_search)
-     psFilename = Modules[thisModuleIndex].OutputDir+'fig'+path_sep()+strmid(filnm, slash,strlen(filnm)-5-slash)+s_Ext+'.ps'
-
+     psFilename = Modules[thisModuleIndex].OutputDir+strmid(filnm, slash,strlen(filnm)-5-slash)+s_Ext+'.ps'
+print, 'ps filename:',psfilename
 ;;;;method#2 standard photometric measurement (DAOphot-like)
     cubcent2=main_image_stack
     ;;set photometric aperture and parameters
@@ -152,25 +156,77 @@ primitive_version= '$Id: extract_one_spectrum2.pro 96 2010-10-20 13:47:13Z maire
 ;  oplot, xlam,phot_comp
 ;  closeps
 ;  set_plot,'win'
-;endif 
-if (ps_figure gt 0)  then begin
+;endif
+if currmeth eq '' then photcomp=phot_comp else photcomp=p1d
+;;;;;estimate spectral resolution from H-band Argon lamp image 
+h=*(dataset.headers[0])
+obstype=SXPAR( h, 'OBSTYPE',count=c1)
+lamp=SXPAR( h, 'GCALLAMP',count=c2)
+
+ if strmatch(obstype, '*wavecal*') && strmatch(lamp, '*Argon*') then begin
+   indwav=where((xlam gt 1.68) AND (xlam lt 1.73))
+    res=gaussfit(xlam[indwav], photcomp[indwav],A,nterms=3)
+    fwhm=2.*sqrt(2.*alog(2.))*A[2]
+    print, 'FWHM=', fwhm
+    specres=1.7/FWHM
+    print, 'Spec Res=', specres
+    
+    ;;let's see what the resolution vs fov
+    specresfov=fltarr((size(main_image_stack))[1],(size(main_image_stack))[2])
+    for xx=0, (size(main_image_stack))[1]-1 do begin
+        for yy=0, (size(main_image_stack))[2]-1 do begin
+              spectrum=main_image_stack[xx,yy,*]
+              if n_elements(finite(spectrum) gt 5) then begin
+                res=gaussfit(xlam[indwav], spectrum[indwav],A,nterms=3)
+                fwhm=2.*sqrt(2.*alog(2.))*A[2]
+                specresfov[xx,yy]=1.7/FWHM
+              endif
+      endfor
+    endfor
+    plotc, specresfov, 3, 900,900,'micro-lens','micro-lens','Spectral resolution',valmin=40,valmax=60
+ endif
+ 
+ if strmatch(obstype, '*wavecal*') then begin
+    if strmatch(lamp, '*Argon*') then lampe='Ar'
+    if strmatch(lamp, '*Xenon*') then lampe='Xe'
+        readcol, getenv('GPI_IFS_DIR')+'dst'+path_sep()+lampe+'ArcLampG.txt', wavelen, strength
+      wavelen=1.e-4*wavelen
+        spect = fltarr(n_elements(xlam))      
+        wg = where(wavelen gt min(xlam) and wavelen lt max(xlam), gct)      
+        for i=0L,gct-1 do begin 
+          diff = min(abs(xlam - wavelen[wg[i]]), closest) 
+          spect[closest] += strength[wg[i]] 
+        endfor       
+      msp=max(spect)
+      spect=spect/msp
+      strength=strength/msp
+   endif
+
+if (ps_figure gt 0.)  then begin
   
-  if numfile eq 0 then begin
+ ; if numfile eq 0 then begin
+ ;if ~file_test(psFilename) then begin
     openps, psFilename
-    plot, xlam,phot_comp, xtitle='Wavelength (um)', psym=-1, yrange=[0,1.3*max(phot_comp)]
-  endif else begin
-  set_plot,'ps'
-    oplot, xlam,phot_comp
-  endelse
-  if numfile eq 2 then begin
+    plot, xlam,photcomp, xtitle='Wavelength (um)', ytitle='Intensity',psym=-1, yrange=[0,1.3*max(photcomp)]
+    if strmatch(obstype, '*wavecal*') then $
+    for i=0L,gct-1 do  plots, wavelen[wg[[i,i]]], max(photcomp)*[0, strength[wg[i]]], color=fsc_color('blue'), /clip
+    xyouts,xlam[3], 1.2*max(photcomp), 'Median spectrum of '+strc((size(inda))[2])+' spectra centered on mlens ['+strc(x0,format='(I3)')+','+strc(y0,format='(I3)')+']'
+     if n_elements(specres) gt 0 then xyouts,xlam[3], 1.1*max(photcomp), 'Spectral Resolution='+strc(specres, format='(g5.3)') 
+;  endif else begin
+;  set_plot,'ps'
+;    oplot, xlam,photcomp
+;  endelse
+  ;if numfile eq 2 then begin
     closeps
     
-  endif
+ ; endif
   set_plot,'win'
 endif 
 suffix+='-spec'
 
 hdr=*(dataset.headers[numfile])
+
+
 
 	thisModuleIndex = Backbone->GetCurrentModuleIndex()
     if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
