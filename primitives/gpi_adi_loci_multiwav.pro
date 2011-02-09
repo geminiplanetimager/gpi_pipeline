@@ -8,6 +8,8 @@
 ; common needed:
 ;
 ; KEYWORDS:
+; GEM/GPI KEYWORDS:COADDS,CRFOLLOW,DEC,EXPTIME,HA,PAR_ANG
+; DRP KEYWORDS: HISTORY,PSFCENTX,PSFCENTY
 ; OUTPUTS:
 ;  INPUTS:
 ;          nfwhm: number of fwhm to calculate the minimal distance for reference calculation
@@ -49,7 +51,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
   thisModuleIndex = Backbone->GetCurrentModuleIndex()
 
   nfiles=dataset.validframecount
-  
+
   ;;get PA angles of images for final ADI processing
   paall=dblarr(dataset.validframecount)
   haall=dblarr(dataset.validframecount)

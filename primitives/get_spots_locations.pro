@@ -11,6 +11,7 @@
 ; KEYWORDS:
 ;	/Save	Set to 1 to save the output image to a disk file. 
 ;
+; DRP KEYWORDS: PSFCENTX,PSFCENTY,SPOT[1-4][x-y],SPOTWAVE
 ; OUTPUTS:  
 ;
 ; PIPELINE COMMENT: Load sat spot locations from calibration file 

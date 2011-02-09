@@ -7,6 +7,8 @@
 ;
 ; INPUTS: 3D wavcal 
 ;
+; GEM/GPI KEYWORDS:DATE-OBS,FILTER,FILTER1,TIME-OBS
+; DRP KEYWORDS: DATAFILE
 ; OUTPUTS:
 
 ; PIPELINE COMMENT: Combine wavelength calibration from  flat and arc
