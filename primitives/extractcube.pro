@@ -7,7 +7,8 @@
 ;   This routine extracts data cube from an image using spatial summation along the dispersion axis
 ;     introduced suffix '-rawspdc' (raw spectral data-cube)
 ;
-; KEYWORDS: FILTER1
+; KEYWORDS: 
+; GEM/GPI KEYWORDS:FILTER1
 ; OUTPUTS:
 ;
 ; PIPELINE COMMENT: Extract a 3D datacube from a 2D image. Spatial integration (3 pixels) along the dispersion axis
