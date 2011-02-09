@@ -27,7 +27,8 @@
 ; INPUTS: detector image
 ; common needed: filter, wavcal, tilt, (nlens)
 ;
-; KEYWORDS:
+; GEM/GPI KEYWORDS:DEC,DISPERSR,FILTER,FILTER2,PAR_ANG,RA,WPANGLE
+; DRP KEYWORDS:CDELT1,CDELT2,CDELT3,CRPIX1,CRPIX2,CRPIX3,CRVAL1,CRVAL2,CRVAL3,CTYPE1,CTYPE2,CTYPE3,CUNIT1,CUNIT2,CUNIT3,EQUINOX,FILETYPE,HISTORY, PC1_1,PC1_2,PC2_1,PC2_2,PC3_3,RADESYS,WCSAXES
 ; OUTPUTS:
 ;
 ; PIPELINE COMMENT: Extract 2 perpendicular polarizations from a 2D image.
@@ -90,8 +91,8 @@ calfiletype='polcal'
 	; Validate the input data
 	if ~(keyword_set(forceh)) then begin
 		filt = strc(sxpar(hdr, "FILTER"))
-		mode= strc(sxpar(hdr, "PRISM", count=ct))
-		if ct eq 0 then mode= strc(sxpar(hdr, "DISPERSR", count=ct)) ; for back compatibility, do not remove till after first light when we can ignore old DST files
+		mode= strc(sxpar(hdr, "DISPERSR", count=ct))
+		if ct eq 0 then mode= strc(sxpar(hdr, "FILTER2", count=ct))
 
 		if mode ne "Polarimetry" then message, "That's not a polarimetry file!"
 	endif else begin
@@ -240,7 +241,6 @@ calfiletype='polcal'
 		dec = sxpar(hdr,"dec") 
 	endelse
 	;stop
-
 	sxaddhist, /comment, "  For specification of Stokes WCS axis, see ", hdr
 	sxaddhist, /comment, "  Greisen & Calabretta 2002 A&A 395, 1061, section 5.4", hdr
 

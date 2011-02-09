@@ -7,6 +7,9 @@
 ; common needed:
 ;
 ; KEYWORDS:
+; GEM/GPI KEYWORDS:
+; DRP KEYWORDS: NAXISi,FILETYPE,ISCALIB
+;
 ; OUTPUTS:
 ;
 ; PIPELINE COMMENT: Calculate the median frame of dark images

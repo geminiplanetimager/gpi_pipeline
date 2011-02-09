@@ -8,6 +8,8 @@
 ; common needed:
 ;
 ; KEYWORDS:
+; GEM/GPI KEYWORDS:
+; DRP KEYWORDS: CDELT3, CRPIX3,CRVAL3,CTYPE3,NAXIS3
 ; OUTPUTS:
 ;
 ; PIPELINE COMMENT: Collapse the wavelength dimension of a datacube via mean, median or total. 
@@ -46,11 +48,11 @@ if sz[0] eq 3 then begin
 			collapsed_im=total(*(dataset.currframe),3,/NAN)
 		end
 		else: begin
-			message,"Invalid combination method '"+method+"' in call to Collapse datacube.",/info
+			message,"Invalid combination method '"+method+"' in call to Collapse datacube."
 			return, NOT_OK
 		endelse
 		endcase
-		
+
     ;change keywords related to the common wavelength vector:
     sxdelpar, *(dataset.headers)[numfile], 'NAXIS3'
     sxdelpar, *(dataset.headers)[numfile], 'CDELT3'

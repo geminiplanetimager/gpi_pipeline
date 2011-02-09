@@ -8,6 +8,9 @@
 ; common needed:
 ;
 ; KEYWORDS:
+;
+; GEM/GPI KEYWORDS:
+; DRP KEYWORDS:  FILETYPE, ISCALIB,NAXIS1,NAXIS2
 ; OUTPUTS:
 ;
 ; PIPELINE COMMENT: Combine 2D dark images into a master file via mean or median. 
@@ -60,11 +63,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 			combined_im=total(imtab,/DOUBLE,3) /((size(imtab))[3])
 		end
 		'MEANCLIP': begin
-			message, 'Method MEANCLIP not implemented yet - bug Marshall to program it!',/info
-			return, NOT_OK
+			message, 'Method MEANCLIP not implemented yet - bug Marshall to program it!'
 		end
 		else: begin
-			message,"Invalid combination method '"+method+"' in call to Combine 2D Frames.",/info
+			message,"Invalid combination method '"+method+"' in call to Combine 2D Frames."
 			return, NOT_OK
 		endelse
 		endcase

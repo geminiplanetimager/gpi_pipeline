@@ -7,6 +7,8 @@
 ; KEYWORDS:
 ;	/Save	set to 1 to save the output image to a disk file. 
 ;
+; GEM/GPI KEYWORDS:
+; DRP KEYWORDS:HISTORY
 ; OUTPUTS:  datacube with slice flat-fielded
 ;
 ; PIPELINE COMMENT: Divides a 2-slice polarimetry file by a flat field.

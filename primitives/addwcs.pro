@@ -13,7 +13,8 @@
 ;
 ; OUTPUTS: 
 ; 	
-;
+; GEM/GPI KEYWORDS:
+; DRP KEYWORDS: CDELT1,CDELT2,CRPIX1,CRPIX2,CRVAL1,CRVAL2,CTYPE1,CTYPE2,HISTORY,PC1_1,PC2_2,PSFCENTX,PSFCENTY
 ;
 ; PIPELINE COMMENT: Add wcs info, assuming target star is precisely centered.
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="astrom" Default="GPI-astrom.fits"
@@ -41,7 +42,8 @@ calfiletype='plate'
 	header=*(dataset.headers)[numfile]
 	;;get current CRPA
 	obsCRPA=float(SXPAR( header, 'CRPA'))
-	
+
+
 	; handle of x0,y0 ref point 
 	x0=float(SXPAR( header, 'PSFCENTX',count=ccx))
     y0=float(SXPAR( header, 'PSFCENTY',count=ccy))
@@ -81,17 +83,21 @@ calfiletype='plate'
 		rot_mat=[ [ ct, st], [-st, ct] ]
 
 		;new values
-		crpix=transpose(rot_mat)#(crpix-1-[x0,y0])+1+[x0,y0]
+    crpix=transpose(rot_mat)#(crpix-1-[x0,y0])+1+[x0,y0]
 		cd=cd#rot_mat
 		astr.crpix=crpix
+		cd[0,0]*=-1. ;;;hmmm, need to be verified!
 		astr.cd=cd
+
 		;put in header
 		putast,header,astr
 	  ;  endif
 	print, astr
 	*(dataset.headers)[numfile]=header
 		
-  fxaddpar,*(dataset.headers[numfile]),'HISTORY',functionname+": updating wold coordinates"
-  fxaddpar,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
+;  sxaddhist, functionname+": updating wold coordinates", *(dataset.headers[numfile])
+;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
+  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": updating wold coordinates"
+  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
 @__end_primitive
 end

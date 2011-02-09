@@ -7,6 +7,8 @@
 ; KEYWORDS:
 ;	/Save	set to 1 to save the output image to a disk file. 
 ;
+; GEM/GPI KEYWORDS:
+; DRP KEYWORDS:NAXES,NAXISi,FILETYPE,ISCALIB
 ; OUTPUTS:  datacube with slice at the same wavelength
 ;
 ; PIPELINE COMMENT: Normalize a polarimetry-mode flat field to unity.
