@@ -9,7 +9,9 @@
 ; INPUTS: 
 ;
 ;
-; KEYWORDS:CDELT3,CRPIX3,CRVAL3,CTYPE3,CUNIT3
+; KEYWORDS:
+; GEM/GPI KEYWORDS:
+; DRP KEYWORDS: CDELT3,CRPIX3,CRVAL3,CTYPE3,CUNIT3
 ;	/Save	Set to 1 to save the output image to a disk file. 
 ;
 ; OUTPUTS:  datacube with slice at the same wavelength
