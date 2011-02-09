@@ -5,6 +5,7 @@
 ;
 ;
 ; KEYWORDS:
+; DRP KEYWORDS: FILETYPE,ISCALIB
 ; OUTPUTS:
 ;
 ; PIPELINE COMMENT: Find hot pixels with dark images with I gt threshold*mean(image), deliver a badpix map (hot pixel =1, 0 elsewhere)
@@ -58,6 +59,9 @@ suffix='-darkbadpix'
 *(dataset.currframe[0])=badpixmap
 
   thisModuleIndex = Backbone->GetCurrentModuleIndex()
+  sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
+  sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+  
     if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
       b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display)
