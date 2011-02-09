@@ -1,5 +1,5 @@
 ;+
-; NAME: SSSimpleDiff
+; NAME: simplespectraldiff
 ; PIPELINE PRIMITIVE DESCRIPTION: Simple SSDI 
 ;
 ; 		This recipe rescales and subtracts 2 frames in different user-defined bandwidths. This recipe is used for speckle suppression using the Marois et al (2000) algorithm.
@@ -21,6 +21,7 @@
 ;
 ; 	/Save		Set to 1 to save the output file to disk
 ;
+; DRP KEYWORDS: CDELT3,CRPIX3,CRVAL3,CTYPE3,NAXIS3
 ; OUTPUTS:
 ;
 ; ALGORITHM:

@@ -1,5 +1,5 @@
 ;+
-; NAME: Set Calibration Type
+; NAME: set_calfile_type
 ; PIPELINE PRIMITIVE DESCRIPTION: Set Calibration Type
 ;
 ;
@@ -7,6 +7,7 @@
 ;
 ;
 ; KEYWORDS:
+; DRP KEYWORDS: FILETYPE,ISCALIB
 ;
 ; OUTPUTS:  
 ;
