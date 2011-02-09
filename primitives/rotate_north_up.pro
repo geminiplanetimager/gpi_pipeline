@@ -9,6 +9,8 @@
 ; common needed: filter, wavcal, tilt, (nlens)
 ;
 ; KEYWORDS:
+; GEM/GPI KEYWORDS:RA,DEC,PAR_ANG
+; DRP KEYWORDS: CDELT1,CDELT2,CRPIX1,CRPIX2,CRVAL1,CRVAL2,NAXIS1,NAXIS2,PC1_1,PC1_2,PC2_1,PC2_2
 ; OUTPUTS:
 ;
 ; PIPELINE COMMENT: Rotate images so that north is up. 
