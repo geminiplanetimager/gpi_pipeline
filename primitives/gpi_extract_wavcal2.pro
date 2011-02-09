@@ -14,7 +14,9 @@
 ; INPUTS: 2D image from narrow band arclamp
 ; common needed:
 ;
-; KEYWORDS:OBSTYPE,FILTER,GCALLAMP
+; KEYWORDS:
+; GEM/GPI KEYWORDS:FILTER,FILTER1,GCALLAMP,GCALSHUT,OBSTYPE
+; DRP KEYWORDS: FILETYPE,HISTORY,ISCALIB
 ; OUTPUTS:
 ;
 ; PIPELINE ORDER: 1.7
@@ -33,6 +35,7 @@
 ; PIPELINE ARGUMENT: Name="gpitvim_dispgrid" Type="int" Range="[0,500]" Default="15" Desc="1-500: choose gpitv session for displaying image output and wavcal grid overplotted, 0: no display "
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying wavcal file, 0: no display "
 ; PIPELINE ARGUMENT: Name="tests" Type="int" Range="[0,3]" Default="0" Desc="1 for extensive tests "
+; PIPELINE ARGUMENT: Name="testsDST" Type="int" Range="[0,3]" Default="0" Desc="1 for DRP/DST tests "
 ; PIPELINE COMMENT: Derive wavelength calibration from an arc lamp or flat-field image.
 ; PIPELINE TYPE: CAL-SPEC
 ; PIPELINE SEQUENCE: 
@@ -146,8 +149,8 @@ endcase
     ;;2010-07-14 J.Maire: added for testing, 
     ;; use it only for wavelength solution testing based on DST sim
     ;;correct for finite DST spectral resolution !!
-    testdeb=1
-    if testdeb then begin
+    if (tag_exist( Modules[thisModuleIndex], "testsDST")) && ( fix(Modules[thisModuleIndex].testsDST) eq 1 ) then begin
+
               case strcompress(bandeobs,/REMOVE_ALL) of
             'Y':begin
                 if strmatch(lamp,'*Xenon*',/fold) then relativethresh=0.5
@@ -298,7 +301,7 @@ endif ; verif si n_elements(peakwavelen) gt 1
 ; median filtering for bad detection on the edge where part of spectrum are absent...
   thisModuleIndex = Backbone->GetCurrentModuleIndex()
  
-if tag_exist( Modules[thisModuleIndex], "medfilter") then if ( Modules[thisModuleIndex].medfilter eq 1 ) then begin
+if tag_exist( Modules[thisModuleIndex], "medfilter") then if ( fix(Modules[thisModuleIndex].medfilter) eq 1 ) then begin
   ;do the median filter for dispersion coeff:
   specpostemp=median(specpos[*,*,3],5)
   indNan=where(~finite(specpos[*,*,3]),cnan)
