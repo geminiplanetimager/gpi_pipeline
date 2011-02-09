@@ -8,7 +8,9 @@
 ; INPUTS: 3D wavcal 
 ;
 ; OUTPUTS:
-
+; GEM/GPI KEYWORDS:FILTER,FILTER1
+; DRP KEYWORDS: DATAFILE, DATE-OBS,TIME-OBS
+;
 ; PIPELINE COMMENT: Combine wavelength calibration from  flat and arc
 ; PIPELINE ARGUMENT: Name="polydegree" Type="int" Range="[1,2]" Default="1" Desc="1: linear wavelength solution, 2: quadratic wav. sol."
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
