@@ -171,7 +171,7 @@ PRO launcher::queue, cmdstr, _extra=_extra
 		l = n_elements(cmd_bytes)
 		la = n_elements(arg_bytes)
 		if l gt (size( *self.cmd_queue))[1] or la gt (size( *self.cmd_queue_args))[1]then begin
-			message,/info, "supplied command or argument listis TOO LONG"
+			message,/info, "supplied command or argument list is TOO LONG"
 		endif else begin
 			(*self.cmd_queue)[0:l-1,wopen[0]] = cmd_bytes
 			(*self.cmd_queue_args)[0:la-1,wopen[0]] = arg_bytes
@@ -312,7 +312,7 @@ pro launcher::launch, objname, filename=filename, session=session, _extra=_extra
 			message,/info, 'Invalid command name: '+objname
 		endif else begin
 		
-			if keyword_set(filename) then self.sessions[session] = obj_new(objname, filename, session=session) $
+			if keyword_set(filename) then self.sessions[session] = obj_new(objname, filename, session=session, _extra=_extra) $
 									 else self.sessions[session] = obj_new(objname, session=session, _extra=_extra)
 ;					if strmatch('gpipipelinebackbone', objname,/fold_case) eq 1 then begin
 ;					    (self.sessions[session])->Run, GETENV('GPI_QUEUE_DIR')

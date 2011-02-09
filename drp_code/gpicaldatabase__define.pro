@@ -215,7 +215,11 @@ Function gpicaldatabase::add_new_cal, filename, header=header, nowrite=nowrite
 	if count ne 1 then begin
 	  message,/info, "Missing keyword: ITIME"
       newcal.itime = (sxpar(header, "INTIME", count=count2))
-      if count2 ne 1 then  message,/info, "Missing keyword: INTIME"
+      if count2 ne 1 then  begin
+       message,/info, "Missing keyword: INTIME"
+       newcal.itime = (sxpar(header, "ITIME0", count=count3))
+       if count2 ne 1 then message,/info, "Missing keyword: ITIME0"
+      endif
     endif
 	newcal.lyot= strc(sxpar(header, "LYOT", count=count))
 	;if count ne 1 then message,/info, "Missing keyword: LYOT"  ; Missing in all DST files pre 2010-01-28!
@@ -277,7 +281,6 @@ function gpicaldatabase::get_best_cal_from_header, type, header, _extra=_extra
    itime=sxpar(header, "ITIME0", count=ci)
    if ci eq 0 then itime=sxpar(header, "ITIME", count=ci)
    if ci eq 0 then itime=sxpar(header, "INTIME", count=ci)
-
 
 	return, self->get_best_cal( type, dateobs3, filt, prism, itime=itime, _extra=_extra)
 
