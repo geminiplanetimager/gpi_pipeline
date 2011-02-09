@@ -10,6 +10,8 @@
 ; KEYWORDS:
 ;	/Save	Set to 1 to save the output image to a disk file. 
 ;
+; GEM/GPI KEYWORDS:CRPA,DATE-OBS,OBJECT,TIME-OBS
+; DRP KEYWORDS: FILETYPE,ISCALIB
 ; OUTPUTS:  plate scale & orientation
 ;
 ; PIPELINE COMMENT: Calculate astrometry from unocculted binaries; Calculate Separation and PA at date DATEOBS using the sixth orbit catalog.

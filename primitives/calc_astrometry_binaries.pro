@@ -10,6 +10,8 @@
 ; KEYWORDS:
 ;	/Save	Set to 1 to save the output image to a disk file. 
 ;
+; GEM/GPI KEYWORDS:CRPA
+; DRP KEYWORDS: FILETYPE,ISCALIB
 ; OUTPUTS:  plate scale & orientation
 ;
 ; PIPELINE COMMENT: Calculate astrometry from unocculted binaries
@@ -97,6 +99,7 @@ xaxis_pa=pa-mean(angle_xaxis_deg,/nan)
    xaxis_pa_at_zeroCRPA=xaxis_pa-obsCRPA
 
 Result=[pixelscale,xaxis_pa_at_zeroCRPA]
+
 
 
 *(dataset.currframe[0])=Result

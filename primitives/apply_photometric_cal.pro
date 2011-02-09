@@ -11,6 +11,8 @@
 ; KEYWORDS:
 ;	/Save	Set to 1 to save the output image to a disk file. 
 ;
+; GEM/GPI KEYWORDS:EXPTIME,FILTER,FILTER1,HMAG,IFSUNITS,SECDIAM,SPECTYPE,TELDIAM
+; DRP KEYWORDS: CUNIT,FILETYPE,FSCALE,HISTORY,ISCALIB,PSFCENTX,PSFCENTY,SPOT1x,SPOT1y,SPOT2x,SPOT2y,SPOT3x,SPOT3y,SPOT4x,SPOT4y,SPOTWAVE
 ; OUTPUTS:  
 ;
 ; PIPELINE COMMENT: Apply photometric calibration using satellite flux 
@@ -34,6 +36,7 @@ function apply_photometric_cal, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 calfiletype='Gridratio' 
 @__start_primitive
+
 
 
   	cubef3D=*(dataset.currframe[0])
@@ -144,7 +147,7 @@ lambdapsf=fltarr(nlambdapsf)
 ;nbphot_juststar=pip_nbphot_trans(hdr,lambdapsf)
 nbphot_juststar=pip_nbphot_trans_lowres(hdr,lambda)
 
-   magni=double(SXPAR( hdr, 'Hmag'))
+   magni=double(SXPAR( hdr, 'HMAG'))
    spect=strcompress(SXPAR( hdr, 'SPECTYPE'),/rem)
    Dtel=double(SXPAR( hdr, 'TELDIAM'))
    Obscentral=double(SXPAR( hdr, 'SECDIAM'))
@@ -213,7 +216,6 @@ convfac[i]=((nbphotnormtheosmoothed[i])/(gaindetector*(gridratio[i])*(fluxsatmed
     savedata=[[lambda],[convfac]]
     writefits, c_File, savedata, convfac_header
     endif else print, "Directory "+s_OutputDir+" does not exist or is not writeable."+ ' CALIB Fluxconv not saved.'
-
 
 
 
