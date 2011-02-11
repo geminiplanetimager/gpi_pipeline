@@ -146,9 +146,9 @@ plotc, reform(wavcal[*,*,3]), 9, tx,ty,'micro-lens','micro-lens','coeef wavcal'
 ;suffix+='-spec'
 
 
-lamzem=readfits('E:\testsvn3\DST\zemdispLamH.fits')
-zemY=readfits('E:\testsvn3\DST\zemdispXH.fits')+1024.
-zemX=readfits('E:\testsvn3\DST\zemdispYH.fits')+1024.
+lamzem=readfits(getenv('GPI_IFS_DIR')+path_sep()+'dst'+zemdispLamH.fits)
+zemY=readfits(getenv('GPI_IFS_DIR')+path_sep()+'dst'+zemdispXH.fits)+1024.
+zemX=readfits(getenv('GPI_IFS_DIR')+path_sep()+'dst'+zemdispYH.fits)+1024.
 shiftx=5
 shifty=-5
 zemX0=shift(zemX[*,*,0], shiftx,shifty)
@@ -185,8 +185,8 @@ zemY0=shift(zemY[*,*,0], shiftx,shifty)
  plotc, tilt3, 3, tx,ty,'micro-lens','micro-lens','Tilt of spectra [degrees]',valmin=valmin1,valmax=valmax1
   plotc, zemtilt2, 23, tx,ty,'Zemax micro-lens','Zemax  micro-lens','Tilt of spectra [degrees]',valmin=valmin1,valmax=valmax1
 
-  plotc, zemw2, 24, tx,ty,'Zemax micro-lens','Zemax micro-lens','w [detector pixel]';,valmin=valmin2,valmax=valmax2
-  plotc, w3, 4, tx,ty,'micro-lens','micro-lens','w [detector pixel]';,valmin=valmin2,valmax=valmax2
+  plotc, zemw2, 24, tx,ty,'Zemax micro-lens','Zemax micro-lens','spectral spacing w [detector pixel]';,valmin=valmin2,valmax=valmax2
+  plotc, w3, 4, tx,ty,'micro-lens','micro-lens','spectral spacing w [detector pixel]';,valmin=valmin2,valmax=valmax2
 
   plotc, dpzem2, 27, tx,ty,'Zemax micro-lens','Zemax micro-lens','Dispersion distance [detector pixel]',valmin=valmin2,valmax=valmax2
   plotc, dp, 7, tx,ty,'micro-lens','micro-lens','Dispersion distance [detector pixel]',valmin=valmin2,valmax=valmax2
@@ -197,12 +197,12 @@ zemY0=shift(zemY[*,*,0], shiftx,shifty)
 plotc, ((180./!dpi)*zemp2 mod 180.), 26, tx,ty,'Zemax micro-lens','Zemax micro-lens','P micro-pupil pattern',valmin=valmin4,valmax=valmax4
 plotc, ((180./!dpi)*p3 mod 180.), 6, tx,ty,'micro-lens','micro-lens','P micro-pupil pattern',valmin=valmin4,valmax=valmax4
 
-plotc, theta_zem2, 28, tx,ty,'Zemax micro-lens','Zemax micro-lens','Theta [degree]',valmin=valmin6,valmax=valmax6
-plotc, theta, 8, tx,ty,'micro-lens','micro-lens','Theta [degree]'  ,valmin=21.,valmax=22.
+plotc, theta_zem2, 28, tx,ty,'Zemax micro-lens','Zemax micro-lens','lenslet tilt Theta [degree]',valmin=valmin6,valmax=valmax6
+plotc, theta, 8, tx,ty,'micro-lens','micro-lens','lenslet tilt Theta [degree]'  ,valmin=21.,valmax=22.
 
 
-plotc, coefzem2, 29, tx,ty,'Zemax micro-lens','Zemax micro-lens','Dlambda [microms / detector pixel]',valmin=valmin9,valmax=valmax9
-plotc, reform(wavcal[*,*,3]), 9, tx,ty,'micro-lens','micro-lens','Dlambda [microms / detector pixel]',valmin=valmin9,valmax=valmax9
+plotc, coefzem2, 29, tx,ty,'Zemax micro-lens','Zemax micro-lens','slope of the linear dispersion [microms / detector pixel]',valmin=valmin9,valmax=valmax9
+plotc, reform(wavcal[*,*,3]), 9, tx,ty,'micro-lens','micro-lens','slope of the linear dispersion [microms / detector pixel]',valmin=valmin9,valmax=valmax9
 
 
 hdr=*(dataset.headers[numfile])
