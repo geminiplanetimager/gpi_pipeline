@@ -56,21 +56,19 @@ primitive_version= '$Id: wavcalplots.pro 96 2010-10-20 13:47:13Z maire $' ; get 
 	
 	thisModuleIndex = Backbone->GetCurrentModuleIndex()
 
- 
-;;;;;estimate spectral resolution from H-band Argon lamp image 
-h=*(dataset.headers[0])
-obstype=SXPAR( h, 'OBSTYPE',count=c1)
-lamp=SXPAR( h, 'GCALLAMP',count=c2)
 
- if strmatch(obstype, '*wavecal*') && strmatch(lamp, '*Argon*') then begin
-endif
- 
-tilt3= (180./!dpi)*(wavcal[*,*,4])
+
+ ;tilt of spectra:
+tilt3= (180./!dpi)*(wavcal[*,*,4]) ;
+;spectral spacing:
 w3=((wavcal[*,*,0]-shift(wavcal[*,*,0],0,1)))
 w3m=mean(w3)
+;dispersion distance
 dp=((sqrt( (wavcal[*,*,0]-shift(wavcal[*,*,0],2,-1))^2 + (wavcal[*,*,1]-shift(wavcal[*,*,1],2,-1))^2) ))
 dpm=mean(dp)
+;micro-pupil pattern:
 P3=sqrt(abs((dp-w3)/w3))
+;lenslet tilt:
 theta=(180./!dpi)*atan(1./P3)
 
 
@@ -84,75 +82,14 @@ plotc, dp, 7, tx,ty,'micro-lens','micro-lens','distance between spectra [detecto
 plotc, theta, 8, tx,ty,'micro-lens','micro-lens','distance between spectra [detector pixel]'
 plotc, reform(wavcal[*,*,3]), 9, tx,ty,'micro-lens','micro-lens','coeef wavcal'
 
-;
-;window,Xsize=800, YSize=800
-;;openps, 'tilt.ps', xsize=15,ysize=15
-;in=where(~finite(image))
-; image2=image
-; image2[in]=0.
-; image=image2
-;
-;ncolors=!D.Table_size
-;position=[0.1,0.1,0.9,0.9]
-;xsize=(position[2]-position[0])* !D.X_VSize
-;ysize=(position[3]-position[1])* !D.Y_VSize
-;xstart=position[0]* !D.X_VSize
-;ystart=position[1]* !D.Y_VSize
-;if !D.Name eq 'PS' then $
-;tv, image, XSize=xsize, YSize=ysize, xstart, ystart $
-;else $
-;tv, Congrid(image,xsize, ysize), xstart, ystart
-;erase, color=ncolors-1
-;barposition=[32,32,52,292]/320.0
-;imagePosition = [92,64,284,256]/320.0
-;colorbar=Replicate(1B,20)# BIndGen(256)
-;tvimage, BytScl(colorbar, Top=ncolors-2), Position=barPosition
-;TVImage, BytScl(image, Top=ncolors-2), Position=imagePosition
-;tvlct,255,255,255, ncolors-1
-;;plot, [0, !D.Table_Size], YRange=[0,!D.Table_Size], $
-;;      /NoData, Color=0, Position=barPosition, Xticks=1, $
-;;      /NoErase, XStyle=1, YStyle=1, XTickFormat='(A1)', $
-;;      YTicks=4
-;plot, [0, !D.Table_Size], YRange=[-12,12], $
-;      /NoData, Color=0, Position=barPosition, Xticks=1, $
-;      /NoErase, XStyle=1, YStyle=1, XTickFormat='(A1)', $
-;      YTicks=4,ytitle='Degrees', charsize=1.5
-;plot, Indgen((size(image))[1]),Indgen((size(image))[2]), /NoData , $
-;Position=imagePosition, /NoErase, $
-;XStyle=1, YStyle=1, Color=0   ,Ytitle='micro-lens',Xtitle='micro-lens', charsize=1.5
-;;closeps
-
-
-;if (ps_figure gt 0.)  then begin
-;  
-; ; if numfile eq 0 then begin
-; ;if ~file_test(psFilename) then begin
-;    openps, psFilename
-;    plot, xlam,photcomp, xtitle='Wavelength (um)', ytitle='Intensity',psym=-1, yrange=[0,1.3*max(photcomp)]
-;    if strmatch(obstype, '*wavecal*') then $
-;    for i=0L,gct-1 do  plots, wavelen[wg[[i,i]]], max(photcomp)*[0, strength[wg[i]]], color=fsc_color('blue'), /clip
-;    xyouts,xlam[3], 1.2*max(photcomp), 'Median spectrum of '+strc((size(inda))[2])+' spectra centered on mlens ['+strc(x0,format='(I3)')+','+strc(y0,format='(I3)')+']'
-;     if n_elements(specres) gt 0 then xyouts,xlam[3], 1.1*max(photcomp), 'Spectral Resolution='+strc(specres, format='(g5.3)') 
-;;  endif else begin
-;;  set_plot,'ps'
-;;    oplot, xlam,photcomp
-;;  endelse
-;  ;if numfile eq 2 then begin
-;    closeps
-;    
-; ; endif
-;  set_plot,'win'
-;endif 
-;suffix+='-spec'
-
 
 lamzem=readfits(getenv('GPI_IFS_DIR')+path_sep()+'dst'+zemdispLamH.fits)
 zemY=readfits(getenv('GPI_IFS_DIR')+path_sep()+'dst'+zemdispXH.fits)+1024.
 zemX=readfits(getenv('GPI_IFS_DIR')+path_sep()+'dst'+zemdispYH.fits)+1024.
-shiftx=5
-shifty=-5
-zemX0=shift(zemX[*,*,0], shiftx,shifty)
-zemY0=shift(zemY[*,*,0], shiftx,shifty)
+;shiftx=5 ;not needed
+;shifty=-5  
+;zemX0=zemX[*,*,0] ;zem locations at lambda_min ;shift(zemX[*,*,0], shiftx,shifty)
+;zemY0=zemY[*,*,0] ;zem locations at lambda_min ;shift(zemY[*,*,0], shiftx,shifty)
     zemtheoX=zemx
       zemtheoY=zemy
       zemtilt=(180./!dpi)*atan((zemtheoY[*,*,36]-zemtheoY[*,*,0])/(zemtheoX[*,*,36]-zemtheoX[*,*,0]))
