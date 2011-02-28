@@ -58,7 +58,7 @@ primitive_version= '$Id: extract_one_spectrum2.pro 96 2010-10-20 13:47:13Z maire
           NLam=0
           lambda=(indgen((size(main_image_stack))[3]))
         endelse
-	
+	mydevice = !D.NAME
 	thisModuleIndex = Backbone->GetCurrentModuleIndex()
 
    x = float(Modules[thisModuleIndex].xcenter)
@@ -240,7 +240,7 @@ if (ps_figure gt 0.)  then begin
     closeps
     
  ; endif
-  set_plot,'win'
+  SET_PLOT, mydevice
 endif 
 suffix+='-spec'
 
