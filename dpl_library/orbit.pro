@@ -17,6 +17,7 @@ function orbit,jd,a,e,i,w1,w2,t0,p,sep=sep,pa=pa
 ;	p: period (days)
 ;
 ; HISTORY:
+;   2009-10-01:JM created and tested 
 ;   2010-01-19: Documentation updated. MDP
 
 npt=n_elements(jd)

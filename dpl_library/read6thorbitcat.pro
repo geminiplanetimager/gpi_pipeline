@@ -59,7 +59,7 @@ Perr=dblarr(totbinary);Published formal errors in P. Units are the same as for P
 sma=dblarr(totbinary);The semi-major axis (a), followed by code indicating units ("a" = arcseconds, "m" = milliarcseconds).
 smaunit=strarr(totbinary)
 smaErr=dblarr(totbinary);Published formal errors in a. Units are the same as for i. 
-I=dblarr(totbinary);The inclination (i), in degrees.  
+Inc=dblarr(totbinary);The inclination (i), in degrees.  
 Ierr=dblarr(totbinary);Published formal errors in i. 
 N=dblarr(totbinary) ;The node (Omega), in degrees. An identified ascending node is indicated by an asterisk following the value.
 Nas=strarr(totbinary)
@@ -122,7 +122,7 @@ ref=strarr(totbinary); A code for the reference (usually based on the name of th
       sma[count-start]=double(checkconv(strmid(str,105,9)) )     
       smaunit[count-start]=strmid(str,114,1)
       smaErr[count-start]=double(checkconv(strmid(str,116,8)))
-      I[count-start]=double(checkconv(strmid(str,125,8))  )
+      Inc[count-start]=double(checkconv(strmid(str,125,8))  )
       Ierr[count-start]=double(checkconv(strmid(str,134,8)))
       N[count-start]=double(checkconv(strmid(str,143,8)))
       Nas[count-start]=strmid(str,151,1)
@@ -154,7 +154,7 @@ ref=strarr(totbinary); A code for the reference (usually based on the name of th
    c=0
    res=webget('http://simbad.u-strasbg.fr/simbad/sim-id?Ident='+nameweb+'&NbIdent=1#lab_ident')
    ;print, strpos(res.text,'<A HREF="http://astro.u-strasbg.fr/cgi-bin/Dic-Simbad?HIP">HIP</A>')
-   strhip='<A HREF="http://astro.u-strasbg.fr/cgi-bin/Dic-Simbad?HIP">HIP</A>'
+   strhip='<A HREF="http://cds.u-strasbg.fr/cgi-bin/Dic-Simbad?HIP">HIP</A>'
    for i=0,n_elements(res.text)-1 do begin
       if strmatch((res.text)[i],strhip+'*') then begin      
       c=1
@@ -198,7 +198,7 @@ ref=strarr(totbinary); A code for the reference (usually based on the name of th
   if Punit[ic] eq 'd' then pfac=1.
   if Punit[ic] eq 'y' then pfac=365.24
 
-  res=orbit(jd,sma_mas/1000.,e[ic],i[ic],o[ic],n[ic],tt,pfac*p[ic],sep=sep,pa=pa)
+  res=orbit(jd,sma_mas/1000.,e[ic],inc[ic],o[ic],n[ic],tt,pfac*p[ic],sep=sep,pa=pa)
   print, 'Orbital parameters for DD '+strcompress(string(DD[ic])),'  HD '+strcompress(string(HD[ic])),'  HIP',HIP[ic],'  sma[arcsec]=',sma_mas/1000.,'  e=',e[ic],'  i=',i[ic],'  o=',o[ic],'  n=',n[ic],'  t=',tt,'tunit=',Tunits[ic],'  p=',pfac*p[ic]
   print, 'Calculated Angular separation & Position Angle at DATEOBS&TIMEOBS',jd
   print,'  sep[arcsec]= ',sep

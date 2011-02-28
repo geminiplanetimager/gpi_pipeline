@@ -1,4 +1,4 @@
-;;this is a simple function for displaying some 2d data with colorbar
+;;this is a simple function for displaying some 2d data with colorbar --JM
 ;may not work perfectly...
 ;
 pro plotc, image, w, xsi,ysi,xtitle,ytitle,ztitle,valmin=valmin,valmax=valmax

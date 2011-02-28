@@ -11,11 +11,11 @@ function calc_centroid_spots,  x,y,image, maxaper, centroidaper,gauss=gauss
   if cc ne 0 then  image(badind )=0 ;TODO:median value
 
   ;windowing 1 & max
-  array= image(x1:x2,y1:y2)
+  array= image[x1:x2,y1:y2]
   max1=max(array,location)
   ind1 = ARRAY_INDICES(array, location)
-  ind1(0)=ind1(0)+x1
-  ind1(1)=ind1(1)+y1
+  ind1[0]=ind1[0]+x1
+  ind1[1]=ind1[1]+y1
  
       
  
