@@ -120,8 +120,8 @@ case strcompress(bandeobs,/REMOVE_ALL) of
       if strmatch(lamp,'*Xenon*',/fold) then peakwavelen=[[1.17],[1.263]] ;take into account secondary peak[[1.175],[1.263]]
       if strmatch(lamp,'*Argon*',/fold) then peakwavelen=[[1.246],[1.296]]
       if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.15],[1.33]] ;[[1.12],[1.35]]
-      specpixlength=15. ;spec pix length for rough estimation of peak positions
-      bandwidth=0.18; 0.23  ;bandwidth in microns
+      specpixlength=17. ;spec pix length for rough estimation of peak positions
+      bandwidth=0.23;0.18; 0.23  ;bandwidth in microns
     end
   'H':begin
       if strmatch(lamp,'*Xenon*',/fold) then peakwavelen=[[1.542],[1.605],[1.6732],[1.733]]
@@ -209,7 +209,7 @@ endcase
 cenx=float(Modules[thisModuleIndex].centrXpos)
 ceny=float(Modules[thisModuleIndex].centrYpos)
 
-if (Modules[thisModuleIndex].wav_of_centrXYpos) eq 2. then begin
+if fix(Modules[thisModuleIndex].wav_of_centrXYpos) eq 2. then begin
     ;;from cenx at 1.5microns, estimate x-location of first peak to detect
     cenx+=(peakwavelen[0]-1.5)*(18./0.3)
     print, 'estimate x-location of first peak at',peakwavelen[0], 'microns =',cenx

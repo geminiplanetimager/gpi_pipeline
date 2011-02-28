@@ -27,6 +27,7 @@
 ; PIPELINE ARGUMENT: Name="y3" Type="int" Range="[0,300]" Default="0" Desc="approximate y-location of first spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
 ; PIPELINE ARGUMENT: Name="x4" Type="int" Range="[0,300]" Default="0" Desc="approximate x-location of first spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
 ; PIPELINE ARGUMENT: Name="y4" Type="int" Range="[0,300]" Default="0" Desc="approximate y-location of first spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
+; PIPELINE ARGUMENT: Name="ReuseOutput" Type="int" Range="[0,1]" Default="0" Desc="1: keep output for following primitives, 0: don't keep"
 ; PIPELINE ORDER: 2.44
 ; PIPELINE TYPE: ALL-SPEC
 ; PIPELINE SEQUENCE: 
@@ -112,6 +113,7 @@ if nbrspot eq 4 then begin
     spotloc2[2,*]=  spotloc[ void[1],*]
     spotloc2[3,*]=  spotloc[ void[2],*]
 endif
+print, 'lambda ref=',lambda[floor(CommonWavVect[2]/2)]
 print, 'spotloc2=',spotloc2
 
 ;; calculate center of the PSF
@@ -133,29 +135,32 @@ endif
 ;print, lambda[floor(CommonWavVect[2]/2)],spotloc2[0,0],spotloc2[0,1]
 ;print, lambda[floor(CommonWavVect[2]/2)+slic],pos2[0],pos2[1]
 
-*(dataset.currframe[0])=[transpose(PSFcenter),spotloc2]
-  sxaddpar, *(dataset.headers[numfile]), "SPOTWAVE", lambda[floor(CommonWavVect[2]/2)], "Wavelength of ref for SPOT locations"
- 
 
+   sxaddpar, *(dataset.headers[numfile]), "SPOTWAVE", lambda[floor(CommonWavVect[2]/2)], "Wavelength of ref for SPOT locations"
+   sxaddpar, *(dataset.headers[numfile]), "PSFCENTX", PSFcenter[0], 'X-Locations of PSF center'
+   sxaddpar, *(dataset.headers[numfile]), "PSFCENTY", PSFcenter[1], 'Y-Locations of PSF center'
+for ii=1,nbrspot do begin
+ sxaddpar, *(dataset.headers[numfile]), "SPOT"+strc(ii)+'x', spotloc[ii-1,0], 'X-Locations of spot #'+strc(ii)
+ sxaddpar, *(dataset.headers[numfile]), "SPOT"+strc(ii)+'y', spotloc[ii-1,1], 'Y-Locations of spot #'+strc(ii)
+endfor
 suffix+='-spotloc'
 
   ; Set keywords for outputting files into the Calibrations DB
   sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?"
   sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
 
-;TODO header update
 
-@__end_primitive
-;;	  thisModuleIndex = Backbone->GetCurrentModuleIndex()
-;;	    if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
-;;	      if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
-;;	      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display)
-;;	      if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
-;;	    endif 
-;;	
-;;	
-;;	;;
-;;	return, ok
-;;	
-;;	
+if fix(Modules[thisModuleIndex].ReuseOutput) eq 0 then begin
+   if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
+      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, savedata=[transpose(PSFcenter),spotloc2],saveheader=*(dataset.headers[numfile]))
+      if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
+    endif 
+
+  return, ok
+endif else begin
+  *(dataset.currframe[0])=[transpose(PSFcenter),spotloc2]
+  @__end_primitive
+endelse
+
+
 end

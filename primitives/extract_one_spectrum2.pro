@@ -163,12 +163,31 @@ h=*(dataset.headers[0])
 obstype=SXPAR( h, 'OBSTYPE',count=c1)
 lamp=SXPAR( h, 'GCALLAMP',count=c2)
 
- if strmatch(obstype, '*wavecal*') && strmatch(lamp, '*Argon*') then begin
-   indwav=where((xlam gt 1.68) AND (xlam lt 1.73))
+ if strmatch(obstype, '*wavecal*')   then begin
+    case band of 
+     'H':begin
+            if strmatch(lamp, '*Argon*') then begin
+              lammin=1.68
+              lammax=1.73
+              refpic=1.7
+              calc_res=1
+            endif
+        end
+             'J':begin
+            if strmatch(lamp, '*Xenon*') then begin
+              lammin=1.24
+              lammax=1.28
+              refpic=1.26
+              calc_res=1
+            endif
+        end
+     endcase
+     if calc_res eq 1 then begin
+   indwav=where((xlam gt lammin) AND (xlam lt lammax))
     res=gaussfit(xlam[indwav], photcomp[indwav],A,nterms=3)
     fwhm=2.*sqrt(2.*alog(2.))*A[2]
     print, 'FWHM=', fwhm
-    specres=1.7/FWHM
+    specres=refpic/FWHM
     print, 'Spec Res=', specres
     
     ;;let's see what the resolution vs fov
@@ -176,20 +195,21 @@ lamp=SXPAR( h, 'GCALLAMP',count=c2)
     for xx=0, (size(main_image_stack))[1]-1 do begin
         for yy=0, (size(main_image_stack))[2]-1 do begin
               spectrum=main_image_stack[xx,yy,*]
-              if n_elements(finite(spectrum) gt 5) then begin
+              if (total(finite(spectrum)) gt 5) then begin
                 res=gaussfit(xlam[indwav], spectrum[indwav],A,nterms=3)
                 fwhm=2.*sqrt(2.*alog(2.))*A[2]
                 specresfov[xx,yy]=1.7/FWHM
               endif
       endfor
     endfor
-    plotc, specresfov, 3, 900,900,'micro-lens','micro-lens','Spectral resolution',valmin=40,valmax=60
+    plotc, specresfov, 30, 900,900,'micro-lens','micro-lens','Spectral resolution',valmin=30,valmax=60
+    endif
  endif
  
  if strmatch(obstype, '*wavecal*') then begin
     if strmatch(lamp, '*Argon*') then lampe='Ar'
     if strmatch(lamp, '*Xenon*') then lampe='Xe'
-        readcol, getenv('GPI_IFS_DIR')+'dst'+path_sep()+lampe+'ArcLampG.txt', wavelen, strength
+        readcol, getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()+lampe+'ArcLampG.txt', wavelen, strength
       wavelen=1.e-4*wavelen
         spect = fltarr(n_elements(xlam))      
         wg = where(wavelen gt min(xlam) and wavelen lt max(xlam), gct)      

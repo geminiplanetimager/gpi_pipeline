@@ -74,6 +74,7 @@ theta=(180./!dpi)*atan(1./P3)
 
 tx=900
 ty=900
+if 1 eq 0 then begin
 plotc, tilt3, 3, tx,ty,'micro-lens','micro-lens','Tilt of spectra [degrees]'
 plotc, w3, 4, tx,ty,'micro-lens','micro-lens','w [detector pixel]'
 plotc, p3, 5, tx,ty,'micro-lens','micro-lens','P micro-pupil pattern'
@@ -81,11 +82,11 @@ plotc, ((180./!dpi)*p3 mod 180.), 6, tx,ty,'micro-lens','micro-lens','P micro-pu
 plotc, dp, 7, tx,ty,'micro-lens','micro-lens','distance between spectra [detector pixel]'
 plotc, theta, 8, tx,ty,'micro-lens','micro-lens','distance between spectra [detector pixel]'
 plotc, reform(wavcal[*,*,3]), 9, tx,ty,'micro-lens','micro-lens','coeef wavcal'
+endif
 
-
-lamzem=readfits(getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()+zemdispLamH.fits)
-zemY=readfits(getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()+zemdispXH.fits)+1024.
-zemX=readfits(getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()+zemdispYH.fits)+1024.
+lamzem=readfits(getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()+'zemdispLam'+band+'.fits')
+zemY=readfits(getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()+'zemdispX'+band+'.fits')+1024.
+zemX=readfits(getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()+'zemdispY'+band+'.fits')+1024.
 ;shiftx=5 ;not needed
 ;shifty=-5  
 ;zemX0=zemX[*,*,0] ;zem locations at lambda_min ;shift(zemX[*,*,0], shiftx,shifty)
@@ -118,12 +119,13 @@ zemX=readfits(getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()+zemdispYH.fits)+
       
       coefzem2=rotate(transpose(coefzem),2)
       coefzem2[indout]= !VALUES.F_NAN
+      ;stop
  ;plotc, zemtilt, 13, tx,ty,'Zemax micro-lens','Zemax  micro-lens','Tilt of spectra [degrees]'
  plotc, tilt3, 3, tx,ty,'micro-lens','micro-lens','Tilt of spectra [degrees]',valmin=valmin1,valmax=valmax1
   plotc, zemtilt2, 23, tx,ty,'Zemax micro-lens','Zemax  micro-lens','Tilt of spectra [degrees]',valmin=valmin1,valmax=valmax1
 
-  plotc, zemw2, 24, tx,ty,'Zemax micro-lens','Zemax micro-lens','spectral spacing w [detector pixel]';,valmin=valmin2,valmax=valmax2
-  plotc, w3, 4, tx,ty,'micro-lens','micro-lens','spectral spacing w [detector pixel]';,valmin=valmin2,valmax=valmax2
+  plotc, zemw2, 24, tx,ty,'Zemax micro-lens','Zemax micro-lens','spectral spacing w [detector pixel]',valmin=valmin20,valmax=valmax20
+  plotc, w3, 4, tx,ty,'micro-lens','micro-lens','spectral spacing w [detector pixel]',valmin=valmin20+0.4,valmax=valmax20+0.4
 
   plotc, dpzem2, 27, tx,ty,'Zemax micro-lens','Zemax micro-lens','Dispersion distance [detector pixel]',valmin=valmin2,valmax=valmax2
   plotc, dp, 7, tx,ty,'micro-lens','micro-lens','Dispersion distance [detector pixel]',valmin=valmin2,valmax=valmax2
