@@ -878,19 +878,19 @@ FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
   ; if we use call_function to run the module, then the IDL code will STOP at the location
   ; of any error, instead of returning here... This is way better for
   ; debugging (and perhaps should just always be how it works now. -MDP)
-  status = call_function( Modules[ModNum].IDLCommand, *self.data, Modules, self )
 
+  status = call_function( Modules[ModNum].IDLCommand, *self.data, Modules, self ) 
 
     IF status EQ NOT_OK THEN BEGIN            ;  The module failed
-        IF (STRCMP(!ERR_STRING, "Variable", 8, /FOLD_CASE) EQ 1) THEN BEGIN
-            drpIOLock
-            PRINT, "drpPipeline::RunModule: " + !ERROR_STATE.MSG
-            PRINT, "drpPipeline::RunModule: " + !ERR_STRING
-            PRINT, "drpPipeline::RunModule: " + CALL_STACK
-            PRINT, "drpPipeline::RunModule: " + Modules[ModNum].CallSequence
-            PRINT, "drpPipeline::RunModule: " + Modules[ModNum].Name
-            drpIOUnlock
-        ENDIF
+;        IF (STRCMP(!ERR_STRING, "Variable", 8, /FOLD_CASE) EQ 1) THEN BEGIN
+;           
+;            PRINT, "drpPipeline::RunModule: " + !ERROR_STATE.MSG
+;            PRINT, "drpPipeline::RunModule: " + !ERR_STRING
+;            PRINT, "drpPipeline::RunModule: " + CALL_STACK
+;            PRINT, "drpPipeline::RunModule: " + Modules[ModNum].CallSequence
+;            PRINT, "drpPipeline::RunModule: " + Modules[ModNum].Name
+;            
+;        ENDIF
         self->Log, 'ERROR: ' + !ERR_STRING, /GENERAL, /DRF
         self->Log, 'Module failed: ' + Modules[ModNum].Name, /GENERAL, /DRF
     ENDIF ELSE BEGIN                ;  The module succeeded

@@ -276,7 +276,7 @@ function gpicaldatabase::get_best_cal_from_header, type, header, _extra=_extra
    if cc3 eq 0 then filt=strcompress(sxpar( header, 'FILTER1',  COUNT=cc3),/rem)
 
    prism=strcompress(sxpar( header, 'PRISM',  COUNT=cc4),/rem)
-   if cc4 eq 0 then prism=strcompress(sxpar( header, 'PRISM',  COUNT=cc4),/rem)
+   if cc4 eq 0 then prism=strcompress(sxpar( header, 'DISPERSR',  COUNT=cc4),/rem)
 
    itime=sxpar(header, "ITIME0", count=ci)
    if ci eq 0 then itime=sxpar(header, "ITIME", count=ci)
