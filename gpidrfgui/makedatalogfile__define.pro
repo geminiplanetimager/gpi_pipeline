@@ -121,6 +121,7 @@ case tag_names(ev, /structure_name) of
                 end
                 'quit':begin
                 widget_control, self.base_id, /destroy
+                obj_destroy, self
                 end
                 else:
           endcase  
