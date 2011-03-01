@@ -16,9 +16,16 @@
 ; INPUTS: 2D image from flat field  in polarization mode
 ;
 ; KEYWORDS:
+; GEM/GPI KEYWORDS:DISPERSR,FILTER,FILTER1,FILTER2,OBSTYPE
+; DRP KEYWORDS: FILETYPE,ISCALIB
 ; OUTPUTS:
 ;
 ; PIPELINE ORDER: 1.8
+; PIPELINE ARGUMENT: Name="nlens" Type="int" Range="[0,400]" Default="281" Desc="side length of  the  lenslet array "
+; PIPELINE ARGUMENT: Name="centrXpos" Type="int" Range="[0,2048]" Default="1024" Desc="Initial approximate x-position [pixel] of central peak at 1.5microns"
+; PIPELINE ARGUMENT: Name="centrYpos" Type="int" Range="[0,2048]" Default="1024" Desc="Initial approximate y-position [pixel] of central peak at 1.5microns"
+; PIPELINE ARGUMENT: Name="w" Type="float" Range="[0.,10.]" Default="4.8" Desc="Spectral spacing perpendicular to the dispersion axis at the detcetor in pixel"
+; PIPELINE ARGUMENT: Name="P" Type="float" Range="[-7.,7.]" Default="-1.8" Desc="Micro-pupil pattern"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1"
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[0,1]" Default="1"
 ; PIPELINE COMMENT: Derive polarization calibration files from a flat field image.
@@ -42,14 +49,14 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	if ct eq 0 then bandeobs= sxpar(h,'FILTER1')
 
    	; TODO verify image is a POL mode FLAT FIELD. 
-	disp = sxpar(h,'PRISM', count=ct)
-	if ct eq 0 then disp = sxpar(h,'DISPERSR') ; for back compat
+	disp = sxpar(h,'DISPERSR', count=ct)
+	if ct eq 0 then disp = sxpar(h,'FILTER2')
 
 	
-	if disp ne 'Polarimetry' then return, error ('ERROR IN CALL ('+strtrim(functionName)+'): Invalid input file, which is not a POLARIMETRY mode file' )
-	if strpos(sxpar(h,'OBSTYPE') ,'Flat') eq -1 then  return, error ('ERROR IN CALL ('+strtrim(functionName)+'): Invalid input file, which is not a FLAT FIELD file' )
+	if disp ne 'Polarimetry' then message,"Invalid input file: "+functionname+" requires a POLARIMETRY mode file"
+	if strpos(sxpar(h,'OBSTYPE') ,'Flat') eq -1 then message,"Invalid input file: "+functionname+" requires a FLAT FIELD file as its input"
+	
 
-   
 	if (size(im))[0] eq 0 then im=readfits(filename,h)
 	szim=size(im)
 
@@ -72,14 +79,14 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 ; 	TBD later. See notes in extractpol.pro
 
 
-nlens=281
+nlens=uint(Modules[thisModuleIndex].nlens)
 ; Create the SPOTPOS array, which stores the Gaussian-fit 
 ; spot locations. 
 ;
 ; NOTE: spotpos dimensions re-arranged relative to spectral version
 ; for better speed. And to add pol dimension of course.
 spotpos=dblarr(5,nlens,nlens,2)+!VALUES.D_NAN
-nspot_pixels=25
+nspot_pixels=45
 ; Now create the PIXELS and PIXVALS arrays, which store the actual
 ; X,Y, and values for each pixel, that we can use for optimal extraction
 spotpos_pixels = intarr(2,nspot_pixels, nlens, nlens, 2)
@@ -90,8 +97,10 @@ cen1=dblarr(2)	& cen1[0]=-1 & cen1[1]=-1
 wx=5 & wy=0
 hh=1.
 ;localize first peak ;; this coordiantes depends strongly on data!!
-  cenx=szim[1]/2.
-  ceny=szim[2]/2.
+cenx=float(Modules[thisModuleIndex].centrXpos)
+ceny=float(Modules[thisModuleIndex].centrYpos)
+;  cenx=szim[1]/2.
+;  ceny=szim[2]/2.
 
 while (~finite(cen1[0])) || (~finite(cen1[1])) || $
 		(cen1[0] lt 0) || (cen1[0] gt (size(im))[1]) || $
@@ -111,11 +120,12 @@ spotpos[0:1,nlens/2,nlens/2,0]=cen1
 
 wx=1. & wy=1.
 hh=1. ; box for fit
-wcst=4.8 & Pcst=-1.8
+wcst=float(Modules[thisModuleIndex].w) & Pcst=float(Modules[thisModuleIndex].P)
+;wcst=4.8 & Pcst=-1.8
 
 
 
-for quadrant=1L,4 do find_pol_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,spotpos,im, spotpos_pixels, spotpos_pixvals, display=display_flag
+for quadrant=1L,4 do find_pol_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,spotpos,im, spotpos_pixels, spotpos_pixvals, display=display_flag, badpixmap=badpixmap
 
 
 suffix="-"+strcompress(bandeobs,/REMOVE_ALL)+'-polcal'
@@ -159,6 +169,7 @@ if ( Modules[thisModuleIndex].Save eq 1 ) then begin
 	writefits, out_filename, spotpos_pixvals, /append
 end
 
+*(dataset.currframe[0])=spotpos
 if tag_exist( Modules[thisModuleIndex], "stopidl") then if keyword_set( Modules[thisModuleIndex].stopidl) then stop
 
 return, ok
