@@ -172,6 +172,7 @@ calc_res=0
               lammax=1.73
               refpic=1.7
               calc_res=1
+               nterm=3
             endif
         end
              'J':begin
@@ -180,6 +181,7 @@ calc_res=0
                   lammax=1.28
                   refpic=1.26
                   calc_res=1
+                   nterm=3
                 endif
             end
              'K1':begin
@@ -188,12 +190,23 @@ calc_res=0
                   lammax=2.05
                   refpic=2.02
                   calc_res=1
+                  nterm=3
                 endif
-        end
+                end
+              'K2':begin
+                if strmatch(lamp, '*Xenon*') then begin
+                  lammin=2.30
+                  lammax=2.34
+                  refpic=2.32
+                  calc_res=1
+                  nterm=4
+                endif
+                end
+                
      endcase
      if calc_res eq 1 then begin
    indwav=where((xlam gt lammin) AND (xlam lt lammax))
-    res=gaussfit(xlam[indwav], photcomp[indwav],A,nterms=3)
+    res=gaussfit(xlam[indwav], photcomp[indwav],A,nterms=nterm)
     fwhm=2.*sqrt(2.*alog(2.))*A[2]
     print, 'FWHM=', fwhm
     specres=refpic/FWHM
@@ -207,7 +220,7 @@ calc_res=0
               if (total(finite(spectrum)) gt 5) then begin
                 res=gaussfit(xlam[indwav], spectrum[indwav],A,nterms=3)
                 fwhm=2.*sqrt(2.*alog(2.))*A[2]
-                specresfov[xx,yy]=1.7/FWHM
+                specresfov[xx,yy]=refpic/FWHM
               endif
       endfor
     endfor
