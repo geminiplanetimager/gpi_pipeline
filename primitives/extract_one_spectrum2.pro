@@ -184,6 +184,16 @@ calc_res=0
                    nterm=3
                 endif
             end
+                         'Y':begin
+                if strmatch(lamp, '*Argon*') then begin
+                  lammin=1.05
+                  lammax=1.09
+                  refpic=1.07
+                  calc_res=1
+                   nterm=3
+                endif
+            end
+            
              'K1':begin
                 if strmatch(lamp, '*Xenon*') then begin
                   lammin=2.0

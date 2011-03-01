@@ -66,7 +66,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
    c3=1&lampshut='ON';lampshut=SXPAR( h, 'GCALSHUT',count=c3) ;will be implemented if necessary
    bandeobs=SXPAR( h, 'FILTER',count=c4)
    if c4 eq 0 then bandeobs=SXPAR( h, 'FILTER1',count=c4)
-   
+    instrum=SXPAR( h, 'INSTRUME',count=cinstru)
+    
              ;error handle if keywords are missing
             if (c1 eq 0) || (c2 eq 0) || (c3 eq 0)|| (c4 eq 0) || $
             (strlen(obstype) eq 0) || (strlen(lamp) eq 0) || (strlen(lampshut) eq 0)|| (strlen(bandeobs) eq 0) then $
@@ -107,21 +108,36 @@ cen1=dblarr(2)	& cen1[0]=-1 & cen1[1]=-1
 wx=0 & wy=0 ;define sidelength (2wx+1 by 2wy+1 ) of box for maximum intensity detection
 hh=1. ;define sidelength (2hh+1 by 2hh+1 ) of box for centroid intensity detection
 
-
 case strcompress(bandeobs,/REMOVE_ALL) of
   'Y':begin
-      if strmatch(lamp,'*Xenon*',/fold) then peakwavelen=[[1.084]]
-      if strmatch(lamp,'*Argon*',/fold) then peakwavelen=[[1.0676]]
+      if strmatch(lamp,'*Xenon*',/fold) then begin
+        if (cinstru eq 1) && strmatch(instrum,'*DST*') then peakwavelen=[[1.084]] else $
+          peakwavelen=[[1.084],[1.17454]]
+      endif
+      if strmatch(lamp,'*Argon*',/fold) then begin
+        if (cinstru eq 1) && strmatch(instrum,'*DST*') then peakwavelen=[[1.0676]] else $
+          peakwavelen=[[1.0676],[1.1445]]
+        endif
       if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[0.95],[1.14]]
-      specpixlength=14. ;spec pix length for rough estimation of peak positions
-      bandwidth=0.19  ;bandwidth in microns
+       if (cinstru eq 1) && strmatch(instrum,'*DST*') then begin
+            specpixlength=17. ;spec pix length for rough estimation of peak positions
+            bandwidth=0.2  ;bandwidth in microns
+        endif else begin
+          specpixlength=17. ;spec pix length for rough estimation of peak positions
+          bandwidth=0.2;0.18; 0.23  ;bandwidth in microns
+        endelse
     end
   'J':begin
       if strmatch(lamp,'*Xenon*',/fold) then peakwavelen=[[1.17],[1.263]] ;take into account secondary peak[[1.175],[1.263]]
       if strmatch(lamp,'*Argon*',/fold) then peakwavelen=[[1.246],[1.296]]
       if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.15],[1.33]] ;[[1.12],[1.35]]
-      specpixlength=17. ;spec pix length for rough estimation of peak positions
-      bandwidth=0.23;0.18; 0.23  ;bandwidth in microns
+      if (cinstru eq 1) && strmatch(instrum,'*DST*') then begin
+        specpixlength=15. ;spec pix length for rough estimation of peak positions
+        bandwidth=0.18; 0.23  ;bandwidth in microns
+        endif else begin
+        specpixlength=17. ;spec pix length for rough estimation of peak positions
+        bandwidth=0.23;0.18; 0.23  ;bandwidth in microns
+        endelse
     end
   'H':begin
       if strmatch(lamp,'*Xenon*',/fold) then peakwavelen=[[1.542],[1.605],[1.6732],[1.733]]
@@ -212,6 +228,9 @@ ceny=float(Modules[thisModuleIndex].centrYpos)
 if fix(Modules[thisModuleIndex].wav_of_centrXYpos) eq 2. then begin
     ;;from cenx at 1.5microns, estimate x-location of first peak to detect
     cenx+=(peakwavelen[0]-1.5)*(18./0.3)
+    ;make a slight correction for far Y-band spectra:
+    if (strcompress(bandeobs,/REMOVE_ALL) eq 'Y') && (cinstru eq 1) && strmatch(instrum,'*DST*') then cenx+=0. else $
+    if (strcompress(bandeobs,/REMOVE_ALL) eq 'Y') then cenx -=8.
     print, 'estimate x-location of first peak at',peakwavelen[0], 'microns =',cenx
 endif
 
