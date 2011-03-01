@@ -218,7 +218,7 @@ calc_res=0
         for yy=0, (size(main_image_stack))[2]-1 do begin
               spectrum=main_image_stack[xx,yy,*]
               if (total(finite(spectrum)) gt 5) then begin
-                res=gaussfit(xlam[indwav], spectrum[indwav],A,nterms=3)
+                res=gaussfit(xlam[indwav], spectrum[indwav],A,nterms=nterm)
                 fwhm=2.*sqrt(2.*alog(2.))*A[2]
                 specresfov[xx,yy]=refpic/FWHM
               endif
