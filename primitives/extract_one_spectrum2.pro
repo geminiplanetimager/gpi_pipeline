@@ -162,7 +162,8 @@ if currmeth eq '' then photcomp=phot_comp else photcomp=p1d
 h=*(dataset.headers[0])
 obstype=SXPAR( h, 'OBSTYPE',count=c1)
 lamp=SXPAR( h, 'GCALLAMP',count=c2)
-
+calc_res=0
+;;calculate spectral resolution onl in the following specific cases:
  if strmatch(obstype, '*wavecal*')   then begin
     case band of 
      'H':begin
@@ -174,12 +175,20 @@ lamp=SXPAR( h, 'GCALLAMP',count=c2)
             endif
         end
              'J':begin
-            if strmatch(lamp, '*Xenon*') then begin
-              lammin=1.24
-              lammax=1.28
-              refpic=1.26
-              calc_res=1
-            endif
+                if strmatch(lamp, '*Xenon*') then begin
+                  lammin=1.24
+                  lammax=1.28
+                  refpic=1.26
+                  calc_res=1
+                endif
+            end
+             'K1':begin
+                if strmatch(lamp, '*Xenon*') then begin
+                  lammin=2.0
+                  lammax=2.05
+                  refpic=2.02
+                  calc_res=1
+                endif
         end
      endcase
      if calc_res eq 1 then begin
