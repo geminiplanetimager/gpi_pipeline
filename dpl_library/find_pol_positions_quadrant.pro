@@ -50,7 +50,7 @@ forward_function mpfit, mpfitfun, mpfit2dpeak, mpfit2dpeak_gauss, $
 	  mpfit2dpeak_lorentz, mpfit2dpeak_moffat, mpfit2dpeak_u
 
 
-function localizepeak_mpfitpeak,  im, cenx, ceny,wx,wy, hh, pixels=pixels, pixvals=pixvals, disp=disp
+function localizepeak_mpfitpeak,  im, cenx, ceny,wx,wy, hh, pixels=pixels, pixvals=pixvals, disp=disp, badpixmap=badpixmap
 	; a drop-in replacement for localizepeak which calls MPFIT2DPeak
 	;
 	; TBD here. 
@@ -63,7 +63,17 @@ function localizepeak_mpfitpeak,  im, cenx, ceny,wx,wy, hh, pixels=pixels, pixva
 
 	; find the maximum location inside the specified box
 	; and get the corresponding coordinates in the full array
-	array=im(x1:x2,y1:y2)
+	array=im[x1:x2,y1:y2]
+	  if keyword_set(badpixmap) && total(badpixmap[x1:x2 , y1:y2 ]) ne 0. then begin
+	      weights=replicate(1.,x2-x1+1,y2-y1+1)
+	      indbp=where(badpixmap[x1:x2 , y1:y2 ] eq 1)
+	      array[indbp]=!values.f_nan
+	      if total(finite(array)) gt n_elements(array)/2 then begin
+	      fixpix, array,0, outim, /nan, /silent
+	      array=outim
+	      endif
+	  endif 
+	  if total(finite(array)) gt n_elements(array)/2 then begin
 	yfit = mpfit2dpeak(double(array), A,x, y,/gaussian,/tilt) ; force to double to match what localizepeak does.
 			; mpfit2dpeak is slow here, but not terribly slow. And besides this
 			; could easily be parallelized...
@@ -79,11 +89,16 @@ function localizepeak_mpfitpeak,  im, cenx, ceny,wx,wy, hh, pixels=pixels, pixva
 		;   (a) more than 1e-3 times the peak pixel in that subregion, and
 		;   (b) in the core of the best-fit gaussian (>1e-3)
 		; This is a fairly arbitrary cut and can probably be improved!!
+		if keyword_set(badpixmap) && total(badpixmap[x1:x2 , y1:y2 ]) ne 0. then begin
+		indbp=where(badpixmap[x1:x2 , y1:y2 ] eq 1,cbp)
+		if cbp gt 0 then array[indbp]=!values.f_nan
+		endif
 		indices, array, xx, yy
 		u= mpfit2dpeak_u(xx,yy,a,/tilt)
-		cutoff = alog(1e-3)/(-0.5)
-		ma = max(array)
-		wpeak = where( ((u lt cutoff) and (array gt 1e-3*ma)) or (array gt 0.2*ma) , wct)
+		cutoff = alog(1e-4)/(-0.5) ;alog(1e-3)/(-0.5)
+		ma = max(array,/nan)
+	;	wpeak = where( ((u lt cutoff) and (array gt 1e-3*ma)) or (array gt 0.2*ma) , wct)
+		wpeak = where( ((u lt cutoff) and (array gt 1e-4*ma)) or (array gt 0.01*ma) , wct)
 		if wct eq 0 then begin
 			; if we have no good pixel fits, then make the X and Y widths of the
 			; gaussian at least 1 pixel
@@ -92,20 +107,21 @@ function localizepeak_mpfitpeak,  im, cenx, ceny,wx,wy, hh, pixels=pixels, pixva
 			a2[2:3] >=1
 			u2= mpfit2dpeak_u(xx,yy,a2)
 			wpeak = where( (u2 lt cutoff) and (array gt 1e-3*max(array)) , wct)
-			if wct eq 0 then message, "Unfixable problem with lenslet pixel fit!"
+			if wct eq 0 then message, "Unfixable problem with lenslet pixel fit!",/info
 	
 		endif
-
-		pixels = array_indices(array,wpeak)
-		pixels[0,*] += x1 ; make them relative to the overall array
-		pixels[1,*] += y1
-		pixvals = array[wpeak]
-
-		npix = 25 ; enough to save for each lenslet?
+    if wct ne 0 then begin
+  		pixels = array_indices(array,wpeak)
+  		pixels[0,*] += x1 ; make them relative to the overall array
+  		pixels[1,*] += y1
+  		pixvals = array[wpeak]
+    endif 
+    
+		npix = 45 ; enough to save for each lenslet?
 				  ; NOTE: this **MUST** match the nspot_pixels value in
 				  ; gpi_extract_polcal.pro
 
-		if wct lt npix then begin
+		if (wct lt npix) && (wct ne 0) then begin
 			pixvals = [pixvals, replicate(!values.f_nan, npix-wct)]
 			pixels = [[pixels], [replicate(0, 2,npix-wct)]]
 		endif else if wct gt npix then begin
@@ -114,6 +130,10 @@ function localizepeak_mpfitpeak,  im, cenx, ceny,wx,wy, hh, pixels=pixels, pixva
 			pixvals=pixvals[s]
 			pixels =pixels[*,s]
 		endif
+		if (wct eq 0) then begin
+      pixvals = [replicate(!values.f_nan, npix-wct)]
+      pixels = [[replicate(0, 2,npix-wct)]]
+    endif
 
 
 	endif
@@ -147,14 +167,16 @@ function localizepeak_mpfitpeak,  im, cenx, ceny,wx,wy, hh, pixels=pixels, pixva
 	vals =  [A[4]+x1, A[5]+y1, A[6]*!radeg, hwxm_coeff*A[2], hwxm_coeff*A[3]]
 	return, vals
 
-
+endif else begin
+    return,replicate(!values.f_nan, 5)
+endelse
 
 end
 
 ;------------------------------
 
 pro find_pol_positions_quadrant, quad,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,spotpos,im, spotpos_pixels, spotpos_pixvals, $
-		display=display_flag
+		display=display_flag, badpixmap=badpixmap
 
 ; What is the default offset for the polarization spots?
 ;   The following values were determined from DST images on 2009-06-16;
@@ -192,7 +214,8 @@ statusline, "Fitting spots in column "+strc(abs(j-jlim1)+1) +" of "+strc(abs(jli
  ;print, "Fitting spots in column "+strc(abs(j-jlim1)+1) +" of "+strc(abs(jlim2-jlim1)+1)+"   "
 for i=0,ilim,idir do begin
 	;calculate approximate position of the next spectrum with w&P
-
+;if (nlens/2+i eq 144) && (nlens/2+j eq 141) then stop
+;if (nlens/2+i eq 132) && (nlens/2+j eq 141) then stop
 	; the central peak was already fit in gpi_extrac_polcal, but
 	; redo the central spot here to get both polarizations, 
 	; and all the spotpos_ stuff.
@@ -220,11 +243,11 @@ for i=0,ilim,idir do begin
 	  ;if (idir eq -1)&& (j eq 115) then print, 'j=115 w=',w,'  P=',P
 	  ;;calculate centroid to have more accurate position for both spots
 		mpfit_wx = 3
-		spotpos[*,nlens/2+i,nlens/2+j,0]=localizepeak_mpfitpeak( im, cen1[0]+dx,cen1[1]+dy,mpfit_wx,mpfit_wx,hh,pixels=pixels, pixvals=pixvals, disp=(((counter mod 200) eq 0) and keyword_set(display_flag) ) )
+		spotpos[*,nlens/2+i,nlens/2+j,0]=localizepeak_mpfitpeak( im, cen1[0]+dx,cen1[1]+dy,mpfit_wx,mpfit_wx,hh,pixels=pixels, pixvals=pixvals, disp=(((counter mod 200) eq 0) and keyword_set(display_flag) ) , badpixmap=badpixmap)
 		spotpos_pixvals[0,nlens/2+i,nlens/2+j,0] = pixvals
 		spotpos_pixels[0,0,nlens/2+i,nlens/2+j,0] = pixels
 
-		spotpos[*,nlens/2+i,nlens/2+j,1]=localizepeak_mpfitpeak( im, cen1[0]+dx+POL_DX,cen1[1]+dy+POL_DY,mpfit_wx,mpfit_wx,hh,pixels=pixels, pixvals=pixvals)
+		spotpos[*,nlens/2+i,nlens/2+j,1]=localizepeak_mpfitpeak( im, cen1[0]+dx+POL_DX,cen1[1]+dy+POL_DY,mpfit_wx,mpfit_wx,hh,pixels=pixels, pixvals=pixvals, badpixmap=badpixmap)
 		spotpos_pixvals[0,nlens/2+i,nlens/2+j,1] = pixvals
 		spotpos_pixels[0,0,nlens/2+i,nlens/2+j,1] = pixels
 
