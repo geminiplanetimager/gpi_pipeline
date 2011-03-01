@@ -34,7 +34,7 @@ else $
 tv, Congrid(image,xsize, ysize), xstart, ystart
 erase, color=ncolors-1
 ;barposition=[32,32,52,292]/320.0
-barposition=[42,32,62,292]/320.0
+barposition=[52,32,62,292]/320.0
 imagePosition = [92,64,284,256]/320.0
 colorbar=Replicate(1B,20)# BIndGen(256)
 tvimage, BytScl(colorbar, Top=ncolors-2), Position=barPosition
