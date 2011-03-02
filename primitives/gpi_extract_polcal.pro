@@ -134,7 +134,7 @@ fname = file_basename(filename, ".fits")+suffix+'.fits'
 
 ;we want wavcal with even side pixel length  -JM
 ; Why? -MP
-if (nlens mod 2) eq 1 then spotpos=spotpos[*,0:nlens-2,0:nlens-2,*]
+;if (nlens mod 2) eq 1 then spotpos=spotpos[*,0:nlens-2,0:nlens-2,*]
 
 ; Set keywords for outputting files into the Calibrations DB
 sxaddpar, h, "FILETYPE", "Polarimetry Spots Cal File", /savecomment
