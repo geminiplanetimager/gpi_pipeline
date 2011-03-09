@@ -27,7 +27,7 @@ function atmos_trans_forpipeline, wind=wind, Lamb=Lamb, airmass=airmass, hdr=hdr
 common PIP
 ;common DST_INPUT
 ;widthL=(lambda(1)-lambda(0))
-
+mydevice = !D.NAME
 
 fileTransAtmos='dpl_library'+path_sep()+'trans_16_15.dat' ;1.6mm Water vapour column, lambda[um] sampling 5A
 ref_airmass = 1.5
@@ -80,7 +80,7 @@ if ~keyword_set(wind) then wind=0
     plot, atmos_wavelen, atmos_trans_, xrange = lamb[[0,n_elements(lamb-1) ]], xtitle="Wavelength", ytitle="Atmospheric transmission"
     oplot, lamb, output_trans, psym=10,color=fsc_color('red')
 		closeps
-		set_plot,'win'
+		SET_PLOT, mydevice ;set_plot,'win'
 	endif
 ;	stop
 

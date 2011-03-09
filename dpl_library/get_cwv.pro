@@ -19,8 +19,8 @@ function get_cwv,filter
         parseband=WHERE(STRCMP( tabband, strcompress(filter,/rem), /FOLD_CASE) EQ 1)
         case parseband of
             -1: CommonWavVect=-1
-            0:  CommonWavVect=[0.95, 1.18, 37];[0.95, 1.14, 37]
-            1:  CommonWavVect=[0.95, 1.18, 37];[0.95, 1.14, 37]
+            0:  CommonWavVect=[0.95, 1.15, 37];[0.95, 1.14, 37]
+            1:  CommonWavVect=[0.95, 1.15, 37];[0.95, 1.14, 37]
             2:  CommonWavVect=[1.15, 1.33, 37] ;[1.12, 1.35, 37]
             3: CommonWavVect=[1.5, 1.8, 37]
             4:  ;CommonWavVect=[1.5, 1.8, 37]
