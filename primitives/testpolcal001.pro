@@ -24,7 +24,7 @@
 function testpolcal001, DataSet, Modules, Backbone
 primitive_version= '$Id: testpolcal001.pro 11 2010-10-28 10:22:03 maire $' ; get version from subversion to store in header history
 @__start_primitive
-
+mydevice = !D.NAME
 ;;; First, if not already done, need to format the DST Zemax file as a DRP wavelength solution
 rep=getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()
 
@@ -42,7 +42,7 @@ case strcompress(bandeobs,/REMOVE_ALL) of
   'J':zemwav=1.25
   'H':zemwav=1.65
   'K1':zemwav=2.05
-  'K2':zemwav=2.2
+  'K2':zemwav=2.25
   else:zemwav=1.65
 endcase  
    
@@ -128,7 +128,7 @@ if (Modules[thisModuleIndex].CalibrationFile eq '') then begin
             
   ;creation de la zem-wavcal au format DRP
   szwcdrp=size(wavcal1)
-  zemwavcal=fltarr(szwcdrp[2]+1,szwcdrp[3]+1,4)
+  zemwavcal=fltarr(szwcdrp[2],szwcdrp[3],4)
   zemwavcal[*,*,0]=transpose(zemdispX2[*,*]) ;rotate(transpose(zemdispX2[*,*]),1) ;+4.
   zemwavcal[*,*,1]=transpose(zemdispY2[*,*]);rotate(transpose(zemdispY2[*,*]),3) ;+4.
   zemwavcal[*,*,2]=transpose(zemdispX[*,*]) ;rotate(transpose(zemdispX2[*,*]),1) ;+4.
@@ -155,7 +155,7 @@ endelse
 ; gpitve, wavcal2-zemwavcal & gpitv_activate
 ; if fix(Modules[thisModuleIndex].gpitv) ne 0 then stop ;gpitve, wavcal2-zemwavcal
 sz=size(zemwavcal)
- wavcal2=fltarr(sz[1]-1,sz[2]-1,sz[3])
+ wavcal2=fltarr(sz[1],sz[2],sz[3])
 wavcal2[*,*,2]=reform(wavcal1[0,*,*,1])  ;only one polar state
 wavcal2[*,*,1]=reform(wavcal1[1,*,*,0])  ;only one polar state
 wavcal2[*,*,0]=reform(wavcal1[0,*,*,0])  
@@ -189,7 +189,7 @@ suffixplot=(Modules[thisModuleIndex].suffix)
   openps,fnameps+'dst.ps', xsize=17, ysize=27
   !P.MULTI = [0, 1, 2, 0, 0] 
   PLOT, loc,hist1x, $ 
-   TITLE = 'Histogram of localization error ('+string(zemwav,format='(g4.3)')+'um) for !c'+filename+' '+filter+' band', $ 
+   TITLE = 'Histogram of localization error for !c'+filename+' '+filter+' band', $ 
     XTicklen=1.0, YTicklen=1.0, XGridStyle=1, YGridStyle=1, $
    XTITLE = 'localization difference (pix) , [bin_width='+string(((xmax-xmin)/fac),format='(F5.2)')+']', $ 
    YTITLE = 'Number of lenslet of That Value' ,ystyle=9,linestyle=0 ,yrange=[0,max([hist1x,hist1y])] , xrange=[-1.,1.]      
@@ -280,7 +280,7 @@ suffixplot=(Modules[thisModuleIndex].suffix)
   xyouts,0.2,20,'Polar --:90% x:'+strc(loccum[value_locate(histcumx3,90.)],format='(f4.2)')+'pix  '+$
         '90% y:'+strc(loccum[value_locate(histcumy3,90.)],format='(f4.2)')+'pix'
    closeps  
-   set_plot,'win'
+    SET_PLOT, mydevice ;set_plot,'win'
 print,'80% x:'+strc(loccum[value_locate(histcumx3,80.)],format='(f4.2)')+'pix  '+$
         'y:'+strc(loccum[value_locate(histcumy3,80.)],format='(f4.2)')+'pix'
 print,'90% x:'+strc(loccum[value_locate(histcumx3,90.)],format='(f4.2)')+'pix  '+$

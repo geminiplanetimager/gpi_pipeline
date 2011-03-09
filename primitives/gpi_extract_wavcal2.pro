@@ -43,7 +43,7 @@
 ; 	 Jerome Maire 2008-10
 ;	  JM: nlens, w (initial guess), P (initial guess), cenx (or centrXpos), ceny (or centrYpos) as parameters
 ;   2009-09-17 JM: added DRF parameters
-;   2009-12-10 JM: initiate position at 1.5microns so we can take into account several 
+;   2009-12-10 JM: initiate position at 1.5microns so we can take into account several band
 ;   2010-07-14 JM:for DRP testing, correct for DST finite spectral resolution 
 ;   2010-08-16 JM: added bad pixel map
 ;-
@@ -111,16 +111,16 @@ hh=1. ;define sidelength (2hh+1 by 2hh+1 ) of box for centroid intensity detecti
 case strcompress(bandeobs,/REMOVE_ALL) of
   'Y':begin
       if strmatch(lamp,'*Xenon*',/fold) then begin
-        if (cinstru eq 1) && strmatch(instrum,'*DST*') then peakwavelen=[[1.084]] else $
+        if (cinstru eq 1) && strmatch(instrum,'*DST*') then  peakwavelen=[[1.084]] else $ ;peakwavelen=[[1.084],[1.17455]]-0.03 else $ ;
           peakwavelen=[[1.084],[1.17454]]
       endif
       if strmatch(lamp,'*Argon*',/fold) then begin
-        if (cinstru eq 1) && strmatch(instrum,'*DST*') then peakwavelen=[[1.0676]] else $
+        if (cinstru eq 1) && strmatch(instrum,'*DST*') then peakwavelen=[[1.07],[1.14]] else $;peakwavelen=[[1.0676]] else $
           peakwavelen=[[1.0676],[1.1445]]
         endif
       if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[0.95],[1.14]]
        if (cinstru eq 1) && strmatch(instrum,'*DST*') then begin
-            specpixlength=17. ;spec pix length for rough estimation of peak positions
+            specpixlength=15. ;spec pix length for rough estimation of peak positions
             bandwidth=0.2  ;bandwidth in microns
         endif else begin
           specpixlength=17. ;spec pix length for rough estimation of peak positions
@@ -128,7 +128,7 @@ case strcompress(bandeobs,/REMOVE_ALL) of
         endelse
     end
   'J':begin
-      if strmatch(lamp,'*Xenon*',/fold) then peakwavelen=[[1.17],[1.263]] ;take into account secondary peak[[1.175],[1.263]]
+      if strmatch(lamp,'*Xenon*',/fold) then peakwavelen=[[1.175],[1.263]] ;take into account secondary peak[[1.175],[1.263]]
       if strmatch(lamp,'*Argon*',/fold) then peakwavelen=[[1.246],[1.296]]
       if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.15],[1.33]] ;[[1.12],[1.35]]
       if (cinstru eq 1) && strmatch(instrum,'*DST*') then begin
@@ -169,7 +169,7 @@ endcase
 
               case strcompress(bandeobs,/REMOVE_ALL) of
             'Y':begin
-                if strmatch(lamp,'*Xenon*',/fold) then relativethresh=0.5
+                if strmatch(lamp,'*Xenon*',/fold) then relativethresh=0.35
                 if strmatch(lamp,'*Argon*',/fold) then relativethresh=0.5
               end
             'J':begin
@@ -194,6 +194,7 @@ endcase
 
           readcol, DST_CODE_DIR+path_sep()+strmid(lamp,0,2)+'ArcLampG.txt', wavelen, strength
           wavelen=1.e-4*wavelen
+          ;if (strcompress(bandeobs,/REMOVE_ALL) eq 'Y') && strmatch(lamp,'*Xenon*',/fold) then wavelen-=0.03
           lambdadst=readfits(DST_CODE_DIR+path_sep()+'zemdispLam'+strcompress(bandeobs, /rem)+'.fits')
           spect = fltarr(n_elements(lambdadst))
       
@@ -202,8 +203,7 @@ endcase
           for i=0L,gct-1 do begin
             diff = min(abs(lambdadst - wavelen[wg[i]]), closest)
             spect[closest] += strength[wg[i]]
-          endfor
-      
+          endfor  
            mlensarr=rebin(spect,  n_elements(lambdadst))
            seuil=(relativethresh)* max(mlensarr)
            print, 'seuil=',seuil

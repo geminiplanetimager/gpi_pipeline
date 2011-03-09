@@ -24,7 +24,7 @@
 function testphotometryextented001, DataSet, Modules, Backbone
 primitive_version= '$Id: testphotometryextented001.pro 11 2010-11-16 10:22:03 maire $' ; get version from subversion to store in header history
 @__start_primitive
-
+mydevice = !D.NAME
 
 
 ;;get last  measured companion spectrum
@@ -186,7 +186,7 @@ plot,ewav, 100.*abs(espe-theospectrum)/theospectrum,ytitle='Abs. relative Diff. 
  xrange=[ewav[0],ewav[n_elements(ewav)-1]],yrange=[0,100.],psym=-1, charsize=1.5 
 xyouts, ewav[2],70.,'mean error='+strc(mean(100.*abs(espe-theospectrum)/theospectrum), format='(f5.2)')+' %'
 closeps
-set_plot,'win'
+ SET_PLOT, mydevice ;set_plot,'win'
 
 return, ok
  end

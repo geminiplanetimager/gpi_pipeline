@@ -25,7 +25,7 @@
 function testdistortion001, DataSet, Modules, Backbone
 primitive_version= '$Id: testdistortion001.pro 11 2011-01-11 10:22:03 maire $' ; get version from subversion to store in header history
 @__start_primitive
-
+mydevice = !D.NAME
 
 
 ;;get last  measured companion spectrum
@@ -92,7 +92,7 @@ plot, lambda, 100.*err_relat_uncorr,ytitle='Median Relative Error [%]', xtitle='
 oplot, lambda,100.*err_relat_corr,linestyle=0
 legend,['Uncorrected distortion','Corrected distortion:'+method],linestyle=[1,0]
 closeps
-set_plot,'win'
+ SET_PLOT, mydevice ;set_plot,'win'
 
 return, ok
  end

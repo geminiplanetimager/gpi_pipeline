@@ -39,7 +39,7 @@ COMMON APP_CONSTANTS
 primitive_version= '$Id$' ; get version from subversion to store in header history
 	;getmyname, functionname
 	  @__start_primitive
-
+    mydevice = !D.NAME
    	; save starting time
    	T = systime(1)
 
@@ -159,7 +159,7 @@ if (ps_figure gt 0)  then begin
   openps, psFilename
   plot, xlam,phot_comp, xtitle='Wavelength (um)', psym=-1, yrange=[0,1.3*max(phot_comp)]
   closeps
-  set_plot,'win'
+ SET_PLOT, mydevice ; set_plot,'win'
 endif 
 suffix+='-spec'
 

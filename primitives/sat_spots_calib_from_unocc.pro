@@ -57,7 +57,7 @@ hdr= *(dataset.headers)[0]
 
 ;; set the photometric apertures and parameters
 phpadu = 1.0                    ; don't convert counts to electrons
-apr = [5.]   ;constant is ok as the same aperture radius is used for sat. and star itself
+apr = [6.]   ;constant is ok as the same aperture radius is used for sat. and star itself ;5
 skyrad = [6.,8.] 
 if (filter eq 'J')||(filter eq 'Y') then apr-=2.  ;satellite spots are close to the dark hole in these bands...
 if (filter eq 'J')||(filter eq 'Y') then skyrad-=2.
@@ -105,9 +105,10 @@ badpix = [-1.,1e6]
 cubcent2=cubef3D
 
 thisModuleIndex = Backbone->GetCurrentModuleIndex()
-tests=fix(Modules[thisModuleIndex].tests) ;we test this routine not with satellites but with two objects of known flux (their locations (vs wavelength) are constant) 
-
-
+if tag_exist( Modules[thisModuleIndex], "tests") then $
+tests=fix(Modules[thisModuleIndex].tests) else $;we test this routine not with satellites but with two objects of known flux (their locations (vs wavelength) are constant) 
+tests=0
+stop
 ;;do the photometry of the spots
 intens_sat=fltarr((size(spotloc))[1]-1,CommonWavVect[2])
 sidelen=4
@@ -118,13 +119,14 @@ for spot=1,(size(spotloc))[1]-1 do begin
       pos2=calc_satloc(spotloc[spot,0],spotloc[spot,1],spotloc[0,*],SPOTWAVE,lambda[i]) else $
       pos2=[spotloc[spot,0],spotloc[spot,1]]      
       getsatpos=centroid(subarr(cubcent2[*,*,i],sidelen,[pos2[0],pos2[1]]))
-      x=spotloc[spot,0]-sidelen/2.+getsatpos[0] & y=spotloc[spot,1]-sidelen/2.+getsatpos[1]
+      ;x=spotloc[spot,0]-sidelen/2.+getsatpos[0] & y=spotloc[spot,1]-sidelen/2.+getsatpos[1]
+      x=pos2[0]-sidelen/2.+getsatpos[0] & y=pos2[1]-sidelen/2.+getsatpos[1]
         ;x=pos2[0]
         ;y=pos2[1]
       aper, cubcent2[*,*,i], [x], [y], flux, errap, sky, skyerr, phpadu, apr, $
         skyrad, badpix, /flux, /silent ;, flux=abs(state.magunits-1)
         print, 'slice#',i,' flux sat #'+strc(spot)+'=',flux[0],' at x=',x,' y=',y,' sky=',sky[0]
-      intens_sat[spot-1,i]=(flux[0]-sky[0])
+      intens_sat[spot-1,i]=flux[0] ;(flux[0]-sky[0])
   endfor
 
 endfor
@@ -139,7 +141,7 @@ for i=0,CommonWavVect[2]-1 do begin
     aper, cubcent2[*,*,i], [x], [y], flux, errap, sky, skyerr, phpadu, apr, $
       skyrad, badpix, /flux, /silent 
       print, 'slice=',i,' star flux=',flux[0],' sky=',sky[0],' at x=',x,' y=',y
-        inputS[i]=(flux[0]-sky[0])
+        inputS[i]=flux[0] ;(flux[0]-sky[0])
 endfor
 nbspot=(size(spotloc))[1]-1
 

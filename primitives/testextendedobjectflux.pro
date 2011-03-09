@@ -26,7 +26,7 @@
 function testextendedobjectflux, DataSet, Modules, Backbone
 primitive_version= '$Id: testextendedobjectflux.pro 11 2010-11-25 10:22:03 maire $' ; get version from subversion to store in header history
 @__start_primitive
-
+mydevice = !D.NAME
 ;retrieve DST input parameters:
 InputObjFilename= Modules[thisModuleIndex].ComparisonFile
 InputObj=readfits(InputObjFilename)
@@ -133,6 +133,6 @@ legends=(Modules[thisModuleIndex].legendfig)
 ;             xyouts,-18.,max(histLin)/2.,'Linear Pol.'
 ;             if pairs eq 1 then oPLOT, loc,histLin2,psym=1   
   closeps
-   set_plot,'win'
+  SET_PLOT, mydevice ;  set_plot,'win'
 
  end

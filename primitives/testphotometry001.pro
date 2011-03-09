@@ -24,7 +24,7 @@
 function testphotometry001, DataSet, Modules, Backbone
 primitive_version= '$Id: testphotometry001.pro 11 2010-08-16 10:22:03 maire $' ; get version from subversion to store in header history
 @__start_primitive
-
+mydevice = !D.NAME
 
 
 ;;get last  measured companion spectrum
@@ -168,7 +168,7 @@ title=strcompress(SXPAR( hdrextr, 'SPECTYPE'),/rem)+' star, Exposure='+strcompre
 
 basen=file_basename(res[0])
 basenwoext=strmid(basen,0,strlen(basen)-5)
-openps,getenv('GPI_DRP_OUTPUT_DIR')+path_sep()+'fig'+path_sep()+basenwoext+'.ps', xsize=17, ysize=27 ;, ysize=10, xsize=15
+openps,getenv('GPI_DRP_OUTPUT_DIR')+path_sep()+basenwoext+'.ps', xsize=17, ysize=27 ;, ysize=10, xsize=15
   !P.MULTI = [0, 1, 3, 0, 0] 
 units=TeXtoIDL(" W/m^{2}/\mum")
 deltaH=TeXtoIDL(" \Delta H=")
@@ -186,7 +186,7 @@ plot,ewav, 100.*abs(espe-theospectrum)/theospectrum,ytitle='Abs. relative Diff. 
  xrange=[ewav[0],ewav[n_elements(ewav)-1]],yrange=[0,100.],psym=-1, charsize=1.5 
 xyouts, ewav[2],70.,'mean error='+strc(mean(100.*abs(espe-theospectrum)/theospectrum), format='(f5.2)')+' %'
 closeps
-set_plot,'win'
+ SET_PLOT, mydevice ;set_plot,'win'
 
 return, ok
  end

@@ -26,7 +26,7 @@
 function teststokesparam, DataSet, Modules, Backbone
 primitive_version= '$Id: testStokesparam.pro 11 2010-11-08 10:22:03 maire $' ; get version from subversion to store in header history
 @__start_primitive
-
+mydevice = !D.NAME
 ;retrieve DST input parameters:
 InputStokesFilename= Modules[thisModuleIndex].ComparisonFile
 InputStokes=readfits(InputStokesFilename)
@@ -51,6 +51,7 @@ sz=size(InputStokesband)
 ;reformat measurement with DST inputs format
 measurement=*(dataset.currframe[0]) 
 measStokes=shift(subarr(measurement,277),1,-2,0)
+;for i=0,3 do measStokes[*,*,i]=rotate(measStokes[*,*,i],1)
 
 
 ;  one acting on the pairs of sums and difference images. 
@@ -126,6 +127,6 @@ legends=(Modules[thisModuleIndex].legendfig)
              xyouts,-18.,max(histLin)/2.,'Linear Pol.'
              if pairs eq 1 then oPLOT, loc,histLin2,psym=1   
   closeps
-   set_plot,'win'
+   SET_PLOT, mydevice; set_plot,'win'
 
  end

@@ -25,6 +25,7 @@ function testwavcal001, DataSet, Modules, Backbone
 primitive_version= '$Id: testwavcal001.pro 11 2010-08-09 10:22:03 maire $' ; get version from subversion to store in header history
 @__start_primitive
 
+mydevice = !D.NAME
 ;;; First, if not already done, need to format the DST Zemax file as a DRP wavelength solution
   rep=getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()
   nlens=(size(*(dataset.currframe[0])))[1]
@@ -119,8 +120,8 @@ diff=wavcal2-zemwavcal
 diffrel=100.*(wavcal2-zemwavcal)/wavcal2
 print, 'mean diff x=',mean(diff[*,*,0],/nan),'y=',mean(diff[*,*,1],/nan)
     ;let's calculate histograms
-    xmax=0.5& xmin=-xmax 
-    fac=100.
+    xmax=1.5& xmin=-xmax 
+    fac=300.
     bin=fac
     hist1x=HISTOGRAM(diff[*,*,0], min=xmin,max=xmax,nbins=bin,locations=loc)
     hist1y=HISTOGRAM(diff[*,*,1], min=xmin,max=xmax,nbins=bin,locations=loc)
@@ -167,8 +168,9 @@ suffixplot=(Modules[thisModuleIndex].suffix)
     
  
 
- ; we want to compare localizations at ALL wavelength of the band:     
- for zind=0,n_elements(zemdisplamraw)-1 do begin
+ ; we want to compare localizations at ALL wavelength of the band:  
+ deb=5   
+ for zind=deb,n_elements(zemdisplamraw)-1-deb do begin
   wavcalz=change_wavcal_lambdaref( wavcal1, zemdisplamraw[zind])
     zemwavcalz=fltarr(szwcdrp[1],szwcdrp[2],szwcdrp[3])
   zemwavcalz[*,*,0]=rotate(transpose(zemdispX2[*,*,zind]),2)+4.
@@ -178,7 +180,7 @@ suffixplot=(Modules[thisModuleIndex].suffix)
     hist1yz=HISTOGRAM(diffz[*,*,1], min=xmin,max=xmax,nbins=bin,locations=loc)
     cumx=reform(diffz[*,*,0],szwcdrp[1]*szwcdrp[2])
     cumy=reform(diffz[*,*,1],szwcdrp[1]*szwcdrp[2])
-  if zind ne 0 then begin
+  if zind ne deb then begin
    histtotx+=hist1xz
    histtoty+=hist1yz
    histcumx=[histcumx,cumx]
@@ -200,8 +202,8 @@ suffixplot=(Modules[thisModuleIndex].suffix)
     ;legend,['x-positions (spectral axis)','y-positions'],linestyle=[0,1],box=0      ;,position=[-145,300]
     legend,['x-positions (spectral axis)','y-positions'],linestyle=[0,1],box=0
  
- histcumx2=total(HISTOGRAM(abs(histcumx), min=0.,max=2.*xmax,nbins=bin,locations=loccum),/cum)
- histcumy2=total(HISTOGRAM(abs(histcumy), min=0.,max=2.*xmax,nbins=bin,locations=loccum),/cum)
+ histcumx2=total(HISTOGRAM(abs(histcumx), min=0.,max=1.*xmax,nbins=2.*bin,locations=loccum),/cum)
+ histcumy2=total(HISTOGRAM(abs(histcumy), min=0.,max=1.*xmax,nbins=2.*bin,locations=loccum),/cum)
  void=where(finite(histcumx),cfx)
  void=where(finite(histcumy),cfy)
  histcumx3=(100./float(cfx))*histcumx2
@@ -217,10 +219,10 @@ suffixplot=(Modules[thisModuleIndex].suffix)
     legend,['x-positions (spectral axis)','y-positions'],linestyle=[0,1],box=0
  xyouts,0.2,30,'80% spectral channels with  localizations error less than x:'+strc(loccum[value_locate(histcumx3,80.)],format='(f4.2)')+'pix  '+$
         'y:'+strc(loccum[value_locate(histcumy3,80.)],format='(f4.2)')+'pix'
-  xyouts,0.2,20,'90% x:'+strc(loccum[value_locate(histcumx3,90.)],format='(f4.2)')+'pix  '+$
-        '90% y:'+strc(loccum[value_locate(histcumy3,90.)],format='(f4.2)')+'pix'
-        
-        
+  xyouts,0.2,20,'99.9% x:'+strc(loccum[value_locate(histcumx3,99.9)],format='(f4.2)')+'pix  '+$
+        '99.9% y:'+strc(loccum[value_locate(histcumy3,99.9)],format='(f4.2)')+'pix'
+   ;stop     
+   ;stop     
            PLOT, loctilt,histtilt, $ 
    TITLE = 'Histogram of tilt error  '+filter+' band', $ 
     XTicklen=1.0, YTicklen=1.0, XGridStyle=1, YGridStyle=1, $
@@ -297,6 +299,6 @@ print,'max at='+strc(maxat,format='(3g0.2)')+'deg'+'  Fwhm='+strc(FWHM,format='(
    xyouts,zemdisplamraw[4],yzem[34],'Maximal difference [detector pixels]= '+strcompress(string(max(abs(ywav-yzem))),/rem)
    
   closeps 
-   set_plot,'win'
+    SET_PLOT, mydevice ;set_plot,'win'
 
  end

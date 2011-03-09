@@ -24,7 +24,7 @@
 function testsatspotloc001, DataSet, Modules, Backbone
 primitive_version= '$Id: testsatspotloc001.pro 11 2011-02-11 10:22:03 maire $' ; get version from subversion to store in header history
 @__start_primitive
-
+mydevice = !D.NAME
 cubef3D=*(dataset.currframe[0])
     hdr= *(dataset.headers)[numfile]
     filter=strcompress(SXPAR( hdr, 'FILTER',count=cc), /rem)
@@ -88,7 +88,7 @@ for spot=1,4 do begin
   legend,['max. dist. [mlens]:'+strc(max(distance[*,spot]),format='(g5.2)')],linestyle=[0]
 endfor
 closeps
-set_plot,'win'
+  SET_PLOT, mydevice ;set_plot,'win'
 
 return, ok
  end

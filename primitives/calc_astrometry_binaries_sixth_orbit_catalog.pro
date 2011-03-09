@@ -111,7 +111,7 @@ print, ' angle x-axis [deg]', mean(angle_xaxis_deg,/nan)
 
 xaxis_pa=pa-mean(angle_xaxis_deg,/nan)
 ;;calculate this angle for CRPA=0.
-   obsCRPA=float(SXPAR( header, 'CRPA'))
+   obsCRPA=float(SXPAR( hdr, 'CRPA'))
    xaxis_pa_at_zeroCRPA=xaxis_pa-obsCRPA
 
 Result=[pixelscale,xaxis_pa_at_zeroCRPA]

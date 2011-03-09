@@ -207,7 +207,7 @@ endcase
 ;;localize first peak ;; this coordiantes depends strongly on data!!
 cenx=float(Modules[thisModuleIndex].centrXpos)
 ceny=float(Modules[thisModuleIndex].centrYpos)
-;stop
+
 if strmatch(strcompress(bandeobs,/REMOVE_ALL),'Y') then specpixlength2=specpixlength+4. else specpixlength2=specpixlength
 if (Modules[thisModuleIndex].wav_of_centrXYpos) eq 2. then begin
     ;;from cenx at 1.5microns, estimate x-location of first peak to detect

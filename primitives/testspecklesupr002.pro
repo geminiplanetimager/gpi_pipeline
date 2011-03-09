@@ -24,7 +24,7 @@
 function testspecklesupr002, DataSet, Modules, Backbone
 primitive_version= '$Id: testspecklesupr002.pro 11 2010-09-14 10:22:03 maire $' ; get version from subversion to store in header history
 @__start_primitive
-
+mydevice = !D.NAME
 
 COMPSPEC=sxpar(header,'COMPSPEC') 
 
@@ -395,6 +395,6 @@ endfor
 ;    ; xrange=[ewav[0],ewav[n_elements(ewav)-1]],yrange=[0,10.],psym=1, charsize=1.5, title=title
 ;    legend,['Attenuation: slice#7','Att. median (over wav.)'],linestyle=[0,2]
 ;    closeps
-  set_plot,'win'
+   SET_PLOT, mydevice ;set_plot,'win'
 return, ok
  end
