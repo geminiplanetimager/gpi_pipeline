@@ -103,8 +103,8 @@ if ( Modules[thisModuleIndex].method eq 1 ) then begin
     ;;do the photometry of the spots
     ;;;;set photometric apertures and parameters
     phpadu = 1.0                    ; don't convert counts to electrons
-    apr = lambda[0]*[4.] 
-    skyrad = lambda[0]*[4.,5.]
+    apr = 1.2*(lambda[n_elements(lambda)/2]*1.e-6/7.7)*(180.*3600./!dpi)/0.014 ;lambda[0]*[7.] ;lambda[0]*[5.] ;lambda[0]*[4.] 
+    skyrad = [apr,apr+2.] ;skyrad = lambda[0]*[7.,9.] ;lambda[0]*[5.,7.] ;lambda[0]*[4.,5.]
     if (skyrad[1]-skyrad[0] lt 2.) then skyrad[1]=skyrad[0]+2.
     ; Assume that all pixel values are good data
     badpix = [-1.,1e6];state.image_min-1, state.image_max+1
@@ -124,7 +124,7 @@ if ( Modules[thisModuleIndex].method eq 1 ) then begin
       endfor
     
     endfor
-    
+   
     for i=0,CommonWavVect[2]-1 do fluxsatmedabs[i]=mean(intens_sat[*,i],/nan) ;((double(lambda[i])/double(lambdamin))^1.)*mean(intens_sat[*,i],/nan)
     
 endif
@@ -179,7 +179,11 @@ nbphot2=pip_nbphot_trans_lowres(hdr,lambda)
 ;  stop        
 ;;; divide the sat. intensity by the star spectrum to obtain the telluric trans, then normalize it:
 fluxsatmedabs/=nbphot2 ;nbphot
-fluxsatmedabs/=max(fluxsatmedabs)
+maxflux=max(fluxsatmedabs,maxind)
+;kind of median filtering:
+almostmax=median(fluxsatmedabs[(maxind-2>0):((maxind+2)<(n_elements(fluxsatmedabs)-1))])
+fluxsatmedabs/=almostmax
+;fluxsatmedabs/=max(fluxsatmedabs)
 
 ;;this is a comparison of measured/synthetic telluric transmission for DRP tests:
 ;; comment it for real data, not needed...
@@ -202,9 +206,11 @@ if tag_exist( Modules[thisModuleIndex], "Save_telluric_transmission") && ( Modul
 
 endif
 if tag_exist( Modules[thisModuleIndex], "Correct_datacube")&& ( Modules[thisModuleIndex].Correct_datacube eq 1 ) then begin
+print, 'before corr=',(*(dataset.currframe[0]))[140,140,34]
   for ii=0,CommonWavVect[2]-1 do (*(dataset.currframe[0]))[*,*,ii]/=fluxsatmedabs[ii]
-
-
+print, 'after corr=',(*(dataset.currframe[0]))[140,140,34]  
+  print, 'Corrected from telluric transmission.'
+  
 if tag_exist( Modules[thisModuleIndex], "Save_corrected_datacube") && tag_exist( Modules[thisModuleIndex], "suffix") then suffix+=Modules[thisModuleIndex].suffix
 
     if tag_exist( Modules[thisModuleIndex], "Save_corrected_datacube") && ( Modules[thisModuleIndex].Save_corrected_datacube eq 1 ) then begin

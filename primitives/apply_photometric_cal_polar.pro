@@ -95,7 +95,7 @@ calfiletype='Gridratio'
               for ii=1,(size(spotloc))[1]-1 do $
               print, 'ASSUME SPOT locations at '+lambdamin+' microms are',spotloc[ii,*]
     endelse
-stop
+;stop
     ;;extract photometry of SAT 
     ;;set photometric apertures and parameters:
     phpadu = 1.0                    ; don't convert counts to electrons
@@ -139,7 +139,7 @@ stop
             ;  print, 'slice#',i,' flux sat #'+strc(spot)+'=',flux[0],' sky=',sky[0]
             ;intens_sat2[0,i]=(flux[0])
         endfor
-        stop  
+;        stop  
               StokesIspot=fltarr(n_elements(pos1))
               for in=0,n_elements(pos1)-1 do StokesIspot[in]=StokesI[pos1[in]]
               photomsat=total(StokesIspot)              
@@ -163,7 +163,7 @@ stop
     fluxsatmedabs=median(fluxsatmedabsspot)
 ;Todo?:Need to take in to account Enc.Energy in the aperture 
 
-stop
+;stop
 ;;;;;;theoretical flux:
 nlambdapsf=37.
 lambdapsf=fltarr(nlambdapsf)
@@ -176,13 +176,13 @@ lambdapsf=fltarr(nlambdapsf)
 
 ;nbphot_juststar=pip_nbphot_trans(hdr,lambdapsf)
 nbphot_juststar=pip_nbphot_trans_lowres(hdr,lambda)
-stop
+;stop
    magni=double(SXPAR( hdr, 'Hmag'))
    spect=strcompress(SXPAR( hdr, 'SPECTYPE'),/rem)
    Dtel=double(SXPAR( hdr, 'TELDIAM'))
    Obscentral=double(SXPAR( hdr, 'SECDIAM'))
    exposuretime=double(SXPAR( hdr, 'EXPTIME')) ;TODO use ITIME instead
-   stop
+ ;  stop
    ;BE SURE THAT EXPTIME IS IN SECONDS
    filter=SXPAR( hdr, 'FILTER')
    nlambda=n_elements(lambda)

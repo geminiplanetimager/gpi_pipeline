@@ -71,7 +71,7 @@ L2min=Modules[thisModuleIndex].L2min
 L2max=Modules[thisModuleIndex].L2max
 k=Modules[thisModuleIndex].k
 if ~(keyword_set(k)) then k=1.
-
+print, 'k=',k
 ;        cwv=get_cwv('H')
 ;        CommonWavVect=cwv.CommonWavVect
 lambdamin=CommonWavVect(0)

@@ -234,7 +234,7 @@ filnm=dataset.FileNames[numfile]
 if (size(suffix))[1] eq 0 then suffix=''
      slash=strpos(filnm,path_sep(),/reverse_search)
      ;psFilename = Modules[thisModuleIndex].OutputDir+'fig'+path_sep()+strmid(filnm, slash,strlen(filnm)-5-slash)+s_Ext+'.ps'
-      psFilename = Modules[thisModuleIndex].OutputDir+'fig'+path_sep()+strmid(filnm, 0,strlen(filnm)-5)+suffix+s_Ext+'.ps'
+      psFilename = Modules[thisModuleIndex].OutputDir+'test10_'+strmid(filnm, 0,strlen(filnm)-5)+suffix+s_Ext+'.ps'
    
     if total(finite(espe)) gt 30 then begin
     openps,psFilename, xsize=17, ysize=27 ;, ysize=10, xsize=15
@@ -256,7 +256,7 @@ if (size(suffix))[1] eq 0 then suffix=''
      indfini=where(finite(espe))
     xyouts, ewav[2],70.,'mean error='+strc(mean(100.*abs(espe[indfini]-theospectrum[indfini])/theospectrum[indfini]), format='(f5.2)')+' %'
     closeps
-    set_plot,'win'
+    SET_PLOT, mydevice ;set_plot,'win'
     endif
  ;;;now, look at the SNR in the initial datacube
   filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
@@ -328,8 +328,8 @@ attenuation=fltarr(CommonWavVect[2])
  ;stop    
      slash=strpos(filnm,path_sep(),/reverse_search)
      s_Ext='-atten_x'+strc(floor(loc_comp[0,0]))+'_y'+strc(floor(loc_comp[0,1]))
-     if strmatch(filnm,'.fits') then filnm=strmid(filnm, slash,strlen(filnm)-5-slash) else filnm=strmid(filnm, slash,strlen(filnm)-slash)
-psFilenameSNR =Modules[thisModuleIndex].OutputDir+'fig'+path_sep()+filnm+suffix+s_Ext+'ATTEN.ps'
+     if strmatch(filnm,'.fits') then filnm=strmid(filnm, slash+1,strlen(filnm)-5-slash) else filnm=strmid(filnm, slash+1,strlen(filnm)-slash)
+psFilenameSNR =Modules[thisModuleIndex].OutputDir+'test10_'+filnm+suffix+s_Ext+'ATTEN.ps'
 print, 'ps file:',psFilenameSNR
    openps,psFilenameSNR, xsize=17, ysize=27 ;, ysize=10, xsize=15
       !P.MULTI = [0, 1, 3, 0, 0] 
@@ -337,7 +337,7 @@ print, 'ps file:',psFilenameSNR
     ; xrange=[ewav[0],ewav[n_elements(ewav)-1]],yrange=[0,10.],psym=1, charsize=1.5, title=title
     legend,['Attenuation: rms noise ratio ADI/datacube at '+strc(compangsep[0],format='(g4.2)')+'", angle='+strc(compangsep[0],format='(g4.2)')],psym=[1]
     closeps
-  set_plot,'win'
+  SET_PLOT, mydevice ;set_plot,'win'
 
 ;;;; Attenuation vs radius
 dimcub=(size(im))[1]
@@ -368,7 +368,7 @@ attenuationr=fltarr(nrim,CommonWavVect[2])
 attenuationr7=attenuationr[*,7]
 attenuationrmoy=median(attenuationr, dimension=2)
 print, 'Atten vs rad (moy sur lambda)=',attenuationrmoy
-psFilenameSNR2 =Modules[thisModuleIndex].OutputDir+'fig'+path_sep()+filnm+suffix+s_Ext+'ATTEN2.ps'
+psFilenameSNR2 =Modules[thisModuleIndex].OutputDir+'test10_'+filnm+suffix+s_Ext+'ATTEN2.ps'
  openps,psFilenameSNR2, xsize=17, ysize=27 ;, ysize=10, xsize=15
       !P.MULTI = [0, 1, 3, 0, 0] 
     plot, rim, attenuationr7,ytitle='Attenuation', xtitle='radius [pixel]';,$

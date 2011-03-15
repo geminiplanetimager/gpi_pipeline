@@ -110,7 +110,7 @@ dlam0=lamb[bandloc[0]+1]-lamb[bandloc[0]]
 extralam=VALUE_LOCATE(Lamb, [lambdamin])-VALUE_LOCATE(Lamb, [lambdamin-(lambda[1]-lambda[0])])
 nbchannel=floor((lamb[bandloc[1]+extralam]-lamb[bandloc[0]-extralam])/dlam0)
 lamb2= replicate(lamb[bandloc[0]-extralam],nbchannel)+(findgen(nbchannel))*replicate((lamb[bandloc[1]+extralam]-lamb[bandloc[0]-extralam])/float(nbchannel),nbchannel)
-spec2=  resample(lamb[bandloc[0]-extralam:bandloc[1]+extralam], spec[bandloc[0]-extralam:bandloc[1]+extralam],lamb2)
+spec2=  resample(lamb[bandloc[0]-extralam:bandloc[1]+extralam], lamb[bandloc[0]-extralam:bandloc[1]+extralam]*spec[bandloc[0]-extralam:bandloc[1]+extralam],lamb2)
 
 fwhmloc = VALUE_LOCATE(Lamb2, [(lambda[0]),(lambda[0]+dlam)])
 fwhm=float(fwhmloc[1]-fwhmloc[0])
@@ -168,7 +168,7 @@ title=strcompress(SXPAR( hdrextr, 'SPECTYPE'),/rem)+' star, Exposure='+strcompre
 
 basen=file_basename(res[0])
 basenwoext=strmid(basen,0,strlen(basen)-5)
-openps,getenv('GPI_DRP_OUTPUT_DIR')+path_sep()+basenwoext+'.ps', xsize=17, ysize=27 ;, ysize=10, xsize=15
+openps,getenv('GPI_DRP_OUTPUT_DIR')+'test5_'+basenwoext+'.ps', xsize=17, ysize=27 ;, ysize=10, xsize=15
   !P.MULTI = [0, 1, 3, 0, 0] 
 units=TeXtoIDL(" W/m^{2}/\mum")
 deltaH=TeXtoIDL(" \Delta H=")

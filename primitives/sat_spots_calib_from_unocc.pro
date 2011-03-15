@@ -57,10 +57,13 @@ hdr= *(dataset.headers)[0]
 
 ;; set the photometric apertures and parameters
 phpadu = 1.0                    ; don't convert counts to electrons
-apr = [6.]   ;constant is ok as the same aperture radius is used for sat. and star itself ;5
-skyrad = [6.,8.] 
-if (filter eq 'J')||(filter eq 'Y') then apr-=2.  ;satellite spots are close to the dark hole in these bands...
-if (filter eq 'J')||(filter eq 'Y') then skyrad-=2.
+;apr = [6.]   ;constant is ok as the same aperture radius is used for sat. and star itself ;5
+   ;;apr is 2.*lambda/D (EE=94%) 2.7
+    apr = 1.4*(lambda[n_elements(lambda)/2]*1.e-6/7.7)*(180.*3600./!dpi)/0.014;[radaper];lambda[0]*[3.];lambda[0]*[5.];lambda[0]*[3.] 
+skyrad = [apr+2.,apr+6.]
+;skyrad = [6.,8.] 
+;if (filter eq 'J')||(filter eq 'Y') then apr-=1.  ;satellite spots are close to the dark hole in these bands...
+;if (filter eq 'J')||(filter eq 'Y') then skyrad-=2.1
 ; Assume that all pixel values are good data
 badpix = [-1.,1e6]
 
@@ -108,7 +111,7 @@ thisModuleIndex = Backbone->GetCurrentModuleIndex()
 if tag_exist( Modules[thisModuleIndex], "tests") then $
 tests=fix(Modules[thisModuleIndex].tests) else $;we test this routine not with satellites but with two objects of known flux (their locations (vs wavelength) are constant) 
 tests=0
-stop
+
 ;;do the photometry of the spots
 intens_sat=fltarr((size(spotloc))[1]-1,CommonWavVect[2])
 sidelen=4
@@ -123,8 +126,8 @@ for spot=1,(size(spotloc))[1]-1 do begin
       x=pos2[0]-sidelen/2.+getsatpos[0] & y=pos2[1]-sidelen/2.+getsatpos[1]
         ;x=pos2[0]
         ;y=pos2[1]
-      aper, cubcent2[*,*,i], [x], [y], flux, errap, sky, skyerr, phpadu, apr, $
-        skyrad, badpix, /flux, /silent ;, flux=abs(state.magunits-1)
+      aper, cubcent2[*,*,i], [x], [y], flux, errap, sky, skyerr, phpadu, (lambda[i]/lambda[0])*apr, $
+        (lambda[i]/lambda[0])*skyrad, badpix, /flux, /silent ;, flux=abs(state.magunits-1)
         print, 'slice#',i,' flux sat #'+strc(spot)+'=',flux[0],' at x=',x,' y=',y,' sky=',sky[0]
       intens_sat[spot-1,i]=flux[0] ;(flux[0]-sky[0])
   endfor
@@ -138,8 +141,8 @@ sidelen=20
 getstarpos=centroid(subarr(cubcent2[*,*,0],sidelen,spotloc[0,*]))
 x=spotloc[0,0]-sidelen/2.+getstarpos[0] & y=spotloc[0,1]-sidelen/2.+getstarpos[1]
 for i=0,CommonWavVect[2]-1 do begin
-    aper, cubcent2[*,*,i], [x], [y], flux, errap, sky, skyerr, phpadu, apr, $
-      skyrad, badpix, /flux, /silent 
+    aper, cubcent2[*,*,i], [x], [y], flux, errap, sky, skyerr, phpadu, (lambda[i]/lambda[0])*apr, $
+      (lambda[i]/lambda[0])*skyrad, badpix, /flux, /silent 
       print, 'slice=',i,' star flux=',flux[0],' sky=',sky[0],' at x=',x,' y=',y
         inputS[i]=flux[0] ;(flux[0]-sky[0])
 endfor
@@ -174,8 +177,27 @@ suffix+='-fluxcal'
       if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
           gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=*(dataset.headers)[numfile]
     endelse
-
-
+;stop
+if tests eq 1 then begin
+    mydevice = !D.NAME
+    thisLetter = "155B
+    greekLetter = '!9' + String(thisLetter) + '!X'
+    thisModuleIndex = Backbone->GetCurrentModuleIndex()
+    ;figtitle=(Modules[thisModuleIndex].title)
+    openps,getenv('GPI_DRP_OUTPUT_DIR')+path_sep()+'test04.ps', xsize=18, ysize=17 ;, ysize=10, xsize=15
+      ;!P.MULTI = [0, 1, 2, 0, 0] 
+;      plot, lambda, gridratio,ytitle='Grid ratio', xtitle='Wavelength (' + greekLetter + 'm)',$
+;       xrange=[lambda[0],lambda[n_elements(lambda)-1]],linestyle=0, psym=1,charsize=1.,yrange=[0.8e4,1.2e4];,title=''
+     plot, lambda, replicate(median(gridratio[10:n_elements(lambda)-10]),n_elements(lambda)),ytitle='Grid ratio', xtitle='Wavelength (' + greekLetter + 'm)',$
+       xrange=[lambda[0],lambda[n_elements(lambda)-1]],linestyle=0, psym=1,charsize=1.,yrange=[0.8e4,1.2e4];,title=''
+     ;  oplot,lambda, replicate(median(lambda_gridratio[10:nelem-10,1]),n_elements(lambda)),linestyle=1
+       oplot,lambda, replicate(1.e4,n_elements(lambda)),linestyle=1
+       ;legend,['measured grid ratio (mean)='+strc(mean(gridratio)),'DST flux ratio'],linestyle=[0,1],psym=[1,0]
+     ;  legend,['measured grid ratio (median)='+strc(median(gridratio))+'med tron='+strc(median(gridratio[10:n_elements(gridratio)-10])),'DST flux ratio'],linestyle=[0,1],psym=[1,0],/bottom
+        legend,['measured grid ratio (median)='+strc(median(gridratio[10:n_elements(gridratio)-10]))+' Err[%]='+strc(100.*((median(gridratio[10:n_elements(gridratio)-10])-1.e4)/1.e4),format='(g4.2)'),'DST flux ratio'],linestyle=[0,1],psym=[1,0],/bottom
+     closeps
+      SET_PLOT, mydevice ;set_plot,'win'
+endif
 ;drpPushCallStack, functionName
 return, ok
 

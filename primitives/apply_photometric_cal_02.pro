@@ -186,8 +186,10 @@ nbphotnormtheosmoothed=nbphotnormtheo
 ;;prepare the satellite flux ratio using a linear fit to reduce noise in the measurement
 lambdagrid=lambda_gridratio[*,0]
 rawgridratio=lambda_gridratio[*,1]
-gridratiocoeff=linfit(lambdagrid,rawgridratio)
-gridratio= gridratiocoeff[0]+gridratiocoeff[1]*lambdagrid[*]
+;gridratiocoeff=linfit(lambdagrid,rawgridratio)
+;gridratio= gridratiocoeff[0]+gridratiocoeff[1]*lambdagrid[*]
+nelem=n_elements(lambdagrid)
+gridratio=replicate(median(lambda_gridratio[10:nelem-10,1]),nelem)
 ;or use it directly with the following line:
 ;gridratio=lambda_gridratio[*,1]
 

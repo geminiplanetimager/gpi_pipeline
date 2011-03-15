@@ -185,7 +185,7 @@ h=*(dataset.headers[numfile])
 testwav=SXPAR( h, 'TESTWAV',count=c1)
 if c1 ne 0 then testchr='nbpk'+strc(n_elements(strsplit(testwav,'/'))) else testchr=''
 suffixplot=(Modules[thisModuleIndex].suffix)
-    fnameps=getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffixplot+filter+testchr+strc(zemwav)        
+    fnameps=getenv('GPI_DRP_OUTPUT_DIR')+'test2_'+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffixplot+filter+testchr+strc(zemwav)        
   openps,fnameps+'dst.ps', xsize=17, ysize=27
   !P.MULTI = [0, 1, 2, 0, 0] 
   PLOT, loc,hist1x, $ 

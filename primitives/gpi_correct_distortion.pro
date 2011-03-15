@@ -54,8 +54,8 @@ nwav=(size(cubef3D))[3]
 for ii=0, nwav-1 do cubef3D2[*,*,ii]=rotate(transpose(cubef3D[*,*,ii]),2)
 
 ;for ii=0, nwav-1 do cubef3D_corrected[*,*,ii]= interpolate(cubef3D2[*,*,ii],distormodelx,distormodely)
-for ii=0, nwav-1 do cubef3D_corrected[*,*,ii]= interpolate(cubef3D2[*,*,ii],xx+distormodelx,yy+distormodely)
-;for hh=0,nwav-1 do cubef3D_corrected[*,*,hh,0] = warp_tri(xx+(distormodelx),yy+(distormodely),xx,yy,cubef3D2[*,*,hh,0]) ;,/quintic
+;for ii=0, nwav-1 do cubef3D_corrected[*,*,ii]= interpolate(cubef3D2[*,*,ii],xx+distormodelx,yy+distormodely)
+for hh=0,nwav-1 do cubef3D_corrected[*,*,hh,0] = warp_tri(xx+(distormodelx),yy+(distormodely),xx,yy,cubef3D2[*,*,hh,0]) ;,/quintic
 
 for ii=0, nwav-1 do cubef3D3[*,*,ii]=rotate(transpose(cubef3D_corrected[*,*,ii]),2)
 ;stop

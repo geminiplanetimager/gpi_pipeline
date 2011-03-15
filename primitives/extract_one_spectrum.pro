@@ -123,9 +123,14 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     cubcent2=main_image_stack
     ;;set photometric aperture and parameters
     phpadu = 1.0                    ; don't convert counts to electrons
-    apr = (1./2.)*lambda[0]*float(radi)
-    skyrad = (1./2.)*lambda[0]*[float(radi),float(radi)+2.] 
-    if (skyrad[1]-skyrad[0] lt 2.) then skyrad[1]=skyrad[0]+2.
+    ;;apr is 2.5*lambda/D (EE=94%)
+    ;;apr is 2.5*lambda/D (EE=94%)
+    apr =  3.*(lambda[n_elements(lambda)/2]*1.e-6/7.7)*(180.*3600./!dpi)/0.014 ;lambda[0]*float(radi) ;(1./2.)*
+    skyrad =[apr+1.,apr+3]
+    print, 'Photometric aperture used:',apr
+    print, 'Aperture sky annulus  inner radius:',skyrad[0],' outer radius:',skyrad[1]
+    ;skyrad = lambda[0]*[float(radi)+2.,float(radi)+5.] ;(1./2.)*
+   ; if (skyrad[1]-skyrad[0] lt 2.) then skyrad[1]=skyrad[0]+2.
     ; Assume that all pixel values are good data
     badpix = [-1.,1e6];state.image_min-1, state.image_max+1
     
@@ -144,7 +149,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
       endfor
       skyrad[1]+=1.
     endwhile
-     
+     ;Need to take in to account Enc.Energy in the aperture (EE=94%): 
+      phot_comp*=(1./0.94)
 ; overplot the phot apertures on radial plot
 if (ps_figure gt 0)  then begin
   openps, psFilename

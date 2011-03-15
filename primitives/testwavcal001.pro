@@ -42,6 +42,7 @@ mydevice = !D.NAME
     'K2':zemwav=2.2
     else:zemwav=1.65
   endcase  
+   deb=5   
   filter = strcompress(sxpar( header ,'FILTER1', count=fcount),/REMOVE_ALL)
   if fcount eq 0 then filter = strcompress(sxpar( header ,'FILTER'),/REMOVE_ALL)
   zemdisplamraw=readfits(rep+'zemdispLam'+filter+'.fits')
@@ -145,7 +146,7 @@ if c1 ne 0 then testchr='nbpk'+strc(n_elements(strsplit(testwav,'/'))) else test
 suffixplot=(Modules[thisModuleIndex].suffix)
 ;    fnameps=getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffixplot+filter+testchr+strc(zemwav)        
 ;  openps,fnameps+'dst.ps', xsize=17, ysize=27
-  fnameps=getenv('GPI_DRP_OUTPUT_DIR')+'DRPtest01_'+filter+suffixplot        
+  fnameps=getenv('GPI_DRP_OUTPUT_DIR')+'test01_'+filter+suffixplot        
   openps,fnameps+'.ps', xsize=17, ysize=27
   !P.MULTI = [0, 1, 4, 0, 0] 
   ;this following plot is the histogram of localization difference at a specific wavelength
@@ -168,8 +169,7 @@ suffixplot=(Modules[thisModuleIndex].suffix)
     
  
 
- ; we want to compare localizations at ALL wavelength of the band:  
- deb=5   
+ ; compare localizations   
  for zind=deb,n_elements(zemdisplamraw)-1-deb do begin
   wavcalz=change_wavcal_lambdaref( wavcal1, zemdisplamraw[zind])
     zemwavcalz=fltarr(szwcdrp[1],szwcdrp[2],szwcdrp[3])
@@ -252,53 +252,7 @@ print,'90% x:'+strc(loccum[value_locate(histcumx3,90.)],format='(f4.2)')+'pix  '
         '90% y:'+strc(loccum[value_locate(histcumy3,90.)],format='(f4.2)')+'pix'
 print,'max at='+strc(maxat,format='(3g0.2)')+'deg'+'  Fwhm='+strc(FWHM,format='(f4.2)')+'deg'
 
-  ;plot dispersion for a specific spectrum with coordinates (xs,ys)
-  xs=140
-  ys=140
-  xwav=fltarr(n_elements(zemdisplamraw))
-  ywav=fltarr(n_elements(zemdisplamraw))
-  xwavzem=fltarr(n_elements(zemdisplamraw))
-  ywavzem=fltarr(n_elements(zemdisplamraw))
-  xzem=fltarr(n_elements(zemdisplamraw))
-  yzem=fltarr(n_elements(zemdisplamraw))
-  for ind=0,n_elements(zemdisplamraw)-1 do begin
-    wavcalind=change_wavcal_lambdaref( wavcal1, zemdisplamraw[ind])
-    xwav[ind]=wavcalind[xs,ys,0]
-    ywav[ind]=wavcalind[xs,ys,1]
-    wavcalind=change_wavcal_lambdaref( zemwavcal, zemdisplamraw[ind])
-    xwavzem[ind]=wavcalind[xs,ys,0]
-    ywavzem[ind]=wavcalind[xs,ys,1]
-    zemdispX3=zemdispX2[*,*,ind]
-    zemdispY3=zemdispY2[*,*,ind]
-    xzem[ind]=(rotate(transpose(zemdispX3),2)+4.)[xs,ys]
-    yzem[ind]=(rotate(transpose(zemdispY3),2)+4.)[xs,ys]
-  endfor  
-
-  openps,fnameps+'disp_x'+strc(xs)+'_y'+strc(ys)+testchr+'dst.ps', xsize=17, ysize=27
-   !P.MULTI = [0, 1, 2, 0, 0] 
-   PLOT, zemdisplamraw,xwav, $ 
-   TITLE = 'Dispersion X  for '+filename+'-wav.-solution '+filter+' band', $ 
-   ;XTicklen=1.0, YTicklen=1.0, XGridStyle=1, YGridStyle=1, $
-   XTITLE = 'Wavelength (microms)', $ 
-   YTITLE = 'X-coordinates [detector pixels]' ,ystyle=9,linestyle=0 ,yrange=[min([xwav,xwavzem,xzem]),max([xwav,xwavzem,xzem])]       
-   ;oplot, zemdisplamraw, xwavzem,psym=1
-   oplot, zemdisplamraw, xzem,psym=4
-   ;legend, ['from detector image','from Zemax  linear wav solution','raw Zemax locations'],psym=[-0,1,4],  /bottom, /right
-   legend, ['from detector image','raw Zemax locations'],psym=[-0,4],  /bottom, /right
-   xyouts,zemdisplamraw[4],xzem[34],'Maximal difference [detector pixels]= '+strcompress(string(max(abs(xwav-xzem))),/rem) 
-   
-   PLOT, zemdisplamraw,ywav, $ 
-   TITLE = 'Dispersion Y  for '+filename+'-wav.-solution '+filter+' band', $ 
-   ;XTicklen=1.0, YTicklen=1.0, XGridStyle=1, YGridStyle=1, $
-   XTITLE = 'Wavelength (microms)', $ 
-   YTITLE = 'Y-coordinates  [detector pixels]' ,ystyle=9,linestyle=0 ,yrange=[min([ywav,ywavzem,yzem]),max([ywav,ywavzem,yzem])]            
-   ;oplot, zemdisplamraw, ywavzem,psym=1
-   oplot, zemdisplamraw, yzem,psym=4
-   ;legend, ['from detector image','from Zemax  linear wav solution','raw Zemax locations'],psym=[-0,1,4],  /bottom, /right
-   legend, ['from detector image','raw Zemax locations'],psym=[-0,4],  /bottom, /right
-   xyouts,zemdisplamraw[4],yzem[34],'Maximal difference [detector pixels]= '+strcompress(string(max(abs(ywav-yzem))),/rem)
-   
-  closeps 
+ 
     SET_PLOT, mydevice ;set_plot,'win'
 
  end
