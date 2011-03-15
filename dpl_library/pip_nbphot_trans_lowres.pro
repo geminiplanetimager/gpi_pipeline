@@ -171,9 +171,9 @@ filter_trans=pipeline_getfilter(lamb, filter=filter) else filter_trans=1.
 width=lambda[n_elements(lambda)-1]-lambda[0]
 case strcompress(filter,/REMOVE_ALL) of
   'Y':specresolution=35.
-  'J':specresolution=37.
-  'H':specresolution=45.
-  'K1':specresolution=65.
+  'J':specresolution=45;37.
+  'H':specresolution=45;45.
+  'K1':specresolution=65;65.
   'K2':specresolution=75.
 endcase
          cwv=get_cwv(filter)
@@ -185,8 +185,8 @@ endcase
 dlam=((lambdamin+lambdamax)/2.)/specresolution
 fwhmloc = VALUE_LOCATE(Lamb, [(lambda[0]),(lambda[0]+dlam)])
 fwhm=float(fwhmloc[1]-fwhmloc[0])
-print, 'fwhm=',fwhm
-gaus = PSF_GAUSSIAN( Npixel=3*fwhm, FWHM=fwhm, NDIMEN =1, /NORMAL )
+;print, 'fwhm=',fwhm
+gaus = PSF_GAUSSIAN( Npixel=3.*fwhm, FWHM=fwhm, NDIMEN =1, /NORMAL )
 LowResGrndSpec = CONVOL( reform(HiResGrndSpec), gaus , /EDGE_TRUNCATE ) 
 
 	; MDP note: The following bit of extremely convoluted code integrates the
@@ -195,7 +195,8 @@ LowResGrndSpec = CONVOL( reform(HiResGrndSpec), gaus , /EDGE_TRUNCATE )
 	;  But this loop executes for such a very short time in practice that it doesn't
 	;  matter that it's terribly inefficient code...
 	;
-	; FIXME - how is the coronagraphic starlight suppression handled?
+	; FIXME - how is the coronagraphic starlight suppression handled? 
+	; JM: no need to handle coronag. suppression here as we are working with the satellite spots.
 
 locg=intarr(2)
 	for i=0,nlambda-1 do begin

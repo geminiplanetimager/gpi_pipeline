@@ -156,7 +156,7 @@ cd, current=cur_rep
               if getenv('GPI_PIPELINE_LOG_DIR') eq '' then setenv,'GPI_PIPELINE_LOG_DIR='+reppipeline+path_sep()+'log'+path_sep()
               if getenv('GPI_DRF_TEMPLATES_DIR') eq '' then  setenv,'GPI_DRF_TEMPLATES_DIR='+reppipeline+path_sep()+'drf_templates'+path_sep()
               if getenv('GPI_QUEUE_DIR') eq '' then setenv,'GPI_QUEUE_DIR='+reppipeline+path_sep()+'drf_queue'+path_sep()
-              if getenv('GPI_CONFIG_FILE') eq '' then setenv,'GPI_CONFIG_FILE='+reppipeline+path_sep()+'dpl_library'+path_sep()+'DRSConfig.xml'
+              if getenv('GPI_CONFIG_FILE') eq '' then setenv,'GPI_CONFIG_FILE='+reppipeline+path_sep()+'dpl_library'+path_sep()+'drsconfig.xml'
           endif
        endif
        
