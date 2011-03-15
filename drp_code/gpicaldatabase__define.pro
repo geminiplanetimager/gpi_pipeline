@@ -316,8 +316,8 @@ function gpicaldatabase::get_best_cal, type, date, filter, prism, itime=itime, $
 				;['flat', 'Flat field', 'FiltPrism'], $
 				['badpix', 'Bad Pixel Map', 'typeonly'], $
 				['plate', 'Plate scale & orientation', 'typeonly'], $
-				['spotloc', 'Spot Location Measurement', 'FiltPrism'], $
-				['Gridratio', 'Grid Ratio', 'FiltPrism'], $
+				['spotloc', 'Spot Location Measurement', 'FiltOnly'], $
+				['Gridratio', 'Grid Ratio', 'FiltOnly'], $
 				['Fluxconv', 'Fluxconv', 'FiltPrism'], $
 				['telluric', 'Telluric Transmission', 'FiltPrism'], $
 				['polcal', 'Polarimetry Spots Cal File', 'FiltPrism'], $
@@ -373,6 +373,11 @@ function gpicaldatabase::get_best_cal, type, date, filter, prism, itime=itime, $
 	   		(((*self.data).prism) eq prism) ,cc)
 		 errdesc = 'with same PRISM and FILTER'
 	end
+	 'FiltOnly': begin
+     imatches= where( strmatch((*self.data).type, types[itype].description+"*",/fold) and $
+        (((*self.data).filter) eq filter )  ,cc)
+     errdesc = 'with same FILTER'
+  end
 	endcase
     
 	if cc eq 0 then begin
