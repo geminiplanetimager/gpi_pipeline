@@ -29,7 +29,10 @@ primitive_version= '$Id: testStokesparam.pro 11 2010-11-08 10:22:03 maire $' ; g
 mydevice = !D.NAME
 ;retrieve DST input parameters:
 InputStokesFilename= Modules[thisModuleIndex].ComparisonFile
+  if strmatch(InputStokesFilename,'GPI_DST$*') then strreplace, InputStokesFilename, 'GPI_DST$', getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()+'testdata'+path_sep()
+
 InputStokes=readfits(InputStokesFilename)
+
 ;InputStokesband=reform(median(InputStokes[*,*,*,*],dimension=3))
 InputStokesband=reform(total(InputStokes[*,*,*,*],3))
 truitime=float(sxpar(header,'ITIME'))
@@ -43,7 +46,7 @@ InputStokesband*=(1./transmi)
    Obscentral=double(SXPAR( header, 'SECDIAM'))
    SURFA=!PI*(Dtel^2.)/4.-!PI*((Obscentral)^2.)/4.
    InputStokesband*=(1./SURFA) ;per m^2
-stop
+;stop
 sz=size(InputStokesband)
 ;InputStokesband[*,*,1]=fltarr(sz[1],sz[2])-InputStokesband[*,*,1]
 ;InputStokesband[*,*,2]=fltarr(sz[1],sz[2])-InputStokesband[*,*,2]
@@ -101,7 +104,7 @@ if fcount eq 0 then filter = strcompress(sxpar( h ,'FILTER'),/REMOVE_ALL)
 suffixplot=(Modules[thisModuleIndex].suffix)
 legends=(Modules[thisModuleIndex].legendfig)
 
-    fnameps=getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffixplot+filter        
+    fnameps=getenv('GPI_DRP_OUTPUT_DIR')+'test6_'+strmid(filnm,slash+1,STRLEN(filnm)-5-slash)+suffixplot+filter        
   openps,fnameps+'.ps', xsize=17, ysize=27
   xr=xmax
       !P.MULTI = [0, 2, 3, 0, 0] 
@@ -127,6 +130,29 @@ legends=(Modules[thisModuleIndex].legendfig)
              xyouts,-18.,max(histLin)/2.,'Linear Pol.'
              if pairs eq 1 then oPLOT, loc,histLin2,psym=1   
   closeps
+  
+  histcum=total(HISTOGRAM(abs(comparLinearPol), min=0.,max=1.*xmax,nbins=bin,locations=loccum),/cum)
+ ;void=where(finite(histcum),cfx)
+ histcum2=(100./max(histcum))*histcum
+  ; stop
+  openps,getenv('GPI_DRP_OUTPUT_DIR')+'test6.ps', xsize=17, ysize=27
+  xr=xmax
+      !P.MULTI = [0, 1, 2, 0, 0] 
+      PLOT, loc,histLin, $ 
+        XTicklen=1.0, YTicklen=1.0, XGridStyle=1, YGridStyle=1, $
+       XTITLE = 'Linear Pol. relative difference [%]', $ 
+       YTITLE = 'Number of lenslet of That Value' ,ystyle=9,linestyle=0 ,yrange=[0,max(histI)] , xrange=[-xr,xr] ;,/noerase
+        xyouts,-18.,max(histLin)/2.,'Linear Pol.'
+      PLOT,loccum,histcum2,yrange=[0,max(histcum2)] , xrange=[0,xr], XTITLE = 'Cumul. linear pol .relative difference [%]', YTITLE = 'Number of lenslet of That Value'
+             ; xyouts,-18.,max(histcum2)/2.,'Linear Pol'  
+        xyouts,0.2,30,' # mlens with linear pol. error less  10% :'+strc(histcum2[value_locate(loccum,10.)],format='(f7.2)')+'%'
+
+              
+  
+  closeps
+  
+  
+  
    SET_PLOT, mydevice; set_plot,'win'
 
  end
