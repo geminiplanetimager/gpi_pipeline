@@ -346,7 +346,7 @@ hh=30
 ;    legend,['Attenuation: rms noise ratio ADI/datacube at '+strc(compangsep[0],format='(g4.2)')+'", angle='+strc(compangsep[0],format='(g4.2)')],psym=[1]
 ;    closeps
 ; SET_PLOT, mydevice; set_plot,'win'
-stop
+;stop
 ;;;; Attenuation vs radius
 slice=18
         im1=im[*,*,slice]
