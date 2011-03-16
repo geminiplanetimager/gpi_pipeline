@@ -531,7 +531,7 @@ FUNCTION gpiPipelineBackbone::Reduce
             self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
             return,NOT_OK
 		endif
-
+stop
 		fits_info, filename, n_ext = numext, /silent
 		;numext=0 ;just for polcaltest!!!
 		if ~ptr_valid((*self.data).currframe) then begin
@@ -613,12 +613,18 @@ FUNCTION gpiPipelineBackbone::Reduce
 
         if debug ge 1 then print, "########### end of file "+strc(indexframe+1)+" ################"
     ENDFOR
+    if (*self.Data).validframecount eq 0 then begin    
+      self.progressbar->Update, *self.Modules,N_ELEMENTS(*self.Modules)-1, (*self.data).validframecount, 1,' No file processed.'
+      self->log, 'No file processed. ' , /GENERAL,/DRF
+      status=OK
+    endif
 	if status eq OK then self->Log, "DRF Complete!",/general,/DRF
 
     if debug ge 1 then print, "########### end of reduction for that DRF  ################"
     PRINT, ''
     PRINT, SYSTIME(/UTC)
     PRINT, ''
+    if ((*self.data).validframecount gt 0) then $
     self.progressbar->Update, *self.Modules,indexModules, (*self.data).validframecount, IndexFrame,' Done.'
 
 

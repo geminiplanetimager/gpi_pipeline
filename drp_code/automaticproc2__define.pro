@@ -462,7 +462,7 @@ end
 ; simple wrapper to call object routine
 PRO blocking_example_event, ev
     widget_control,ev.top,get_uvalue=storage
-   
+
     if size(storage,/tname) eq 'STRUCT' then storage.self->blocking_example_event2, ev else storage->blocking_example_event2, ev
 end
 PRO AUTOMATICPROC2::blocking_example_event2, event 
