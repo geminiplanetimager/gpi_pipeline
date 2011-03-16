@@ -68,7 +68,7 @@ pro parsergui::startup
         ;FindPro, 'make_drsconfigxml', dirlist=dirlist
         dirlist=getenv('GPI_PIPELINE_DIR')+path_sep()+'dpl_library'+path_sep()
         if getenv('GPI_CONFIG_FILE') ne '' then self.config_file=getenv('GPI_CONFIG_FILE') $
-        else self.config_file=dirlist[0]+"DRSConfig.xml"
+        else self.config_file=dirlist[0]+"drsconfig.xml"
         ConfigParser = OBJ_NEW('gpiDRSConfigParser')
   
         if file_test(self.config_file) then begin
@@ -260,6 +260,7 @@ function parsergui::getkeywords, filename
     ; get the necessary header keywords for automatically creating DRFs
 
     head=headfits( filenames[i])
+
     results = {ifshdr, $
             filter: sxpar(head, 'FILTER', count=ct_filter), $
             obstype: sxpar(head, 'OBSTYPE', count=ct_obstype), $
@@ -462,9 +463,9 @@ pro parsergui::addfile, filenames, mode=mode
             ;categorize by filter
             uniqfilter  = uniqvals(finfo.filter, /sort)
 			;uniqfilter = ['H', 'Y', 'J', "K1", "K2"] ; H first since it's primary science wvl?
-            uniqobstype = uniqvals(finfo.obstype, /sort)
+            uniqobstype = uniqvals(strlowcase(finfo.obstype), /sort)
 				; TODO - sort right order for obstype 
-            uniqobstype = uniqvals(finfo.obstype, /sort)
+           ; uniqobstype = uniqvals(finfo.obstype, /sort)
 			uniqdispersers = ['SPECT', 'POLAR']
 			uniqocculters = ['blank','fpm']
 			uniqobsclass = uniqvals(finfo.obsclass, /sort)
@@ -483,7 +484,7 @@ pro parsergui::addfile, filenames, mode=mode
                 filefilt = file[indffilter]
                 
                 ;categorize by obstype
-                uniqsortedobstype = uniqvals((finfo.obstype)[indffilter])
+                uniqsortedobstype = uniqvals(strlowcase((finfo.obstype)[indffilter]))
 
                 ;add  wav solution if not present and if flat-field should be reduced as wav sol
                 void=where(strmatch(uniqsortedobstype,'wavecal*',/fold),cwv)
