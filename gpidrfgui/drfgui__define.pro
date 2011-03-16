@@ -163,6 +163,12 @@ function drfgui::get_obs_keywords, filename
 	endif
     head=headfits( filename)
 	; FIXME check for invalid or missing keywords here!
+	pr=sxpar(head, 'PRISM', count=ct4)
+	if ct4 eq 0 then begin
+	    pr=sxpar(head, 'PRISM', count=ct4b)
+	    keywprism='DISPERSR'
+	 endif else  keywprism='PRISM'  
+	
 	;
 	itime=  sxpar(head, 'ITIME',    count=ct7)
 	if ct7 eq 0 then itime=  sxpar(head, 'ITIME0',    count=ct7)
@@ -171,7 +177,7 @@ function drfgui::get_obs_keywords, filename
 				obstype:  strc(sxpar(head, 'obstype',  count=ct1)), $
 				OBSID:    strc(sxpar(head, 'OBSID',    count=ct2)), $
 				filter:   strc(sxpar(head, 'FILTER',   count=ct3)), $
-				prism:    strc(sxpar(head, 'PRISM', count=ct4)), $
+				prism:    strc(sxpar(head, keywprism, count=ct4)), $
 				OCCULTER: strc(sxpar(head, 'OCCULTER', count=ct5)), $
 				LYOT:     strc(sxpar(head, 'LYOTMASK',     count=ct6)), $
 				ITIME:    itime, $
