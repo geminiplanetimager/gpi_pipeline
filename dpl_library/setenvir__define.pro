@@ -82,6 +82,10 @@ case tag_names(ev, /structure_name) of
               end
             'changeGDOD':begin
                  dir = DIALOG_PICKFILE(PATH=getenv('GPI_DRP_OUTPUT_DIR'), Title='Choose directory for GPI_DRP_OUTPUT_DIR',/must_exist , /directory)
+                 if ~(file_test(dir,/dir,/write)) then begin
+                  widget_control,self.information_id,set_value='Repertory inexistent or without writing permission.'
+                  dir=''
+                 endif 
                  if dir ne '' then widget_control, self.GDODdir_id, set_value=dir
                  setenv,'GPI_DRP_OUTPUT_DIR='+dir
               end
@@ -207,7 +211,7 @@ self.GRDDdir_id = WIDGET_TEXT(base8,Value=val,Uvalue='GPI_RAW_DATA_DIR',XSIZE=50
 button_id = WIDGET_BUTTON(base8,Value='Change dir...',Uvalue='changeGRDD',ysize=ys)
 
 base9=widget_base(base, /row)
-if file_test(getenv('GPI_DRP_OUTPUT_DIR'),/dir) then val=getenv('GPI_DRP_OUTPUT_DIR') else val=''
+if (file_test(getenv('GPI_DRP_OUTPUT_DIR'),/dir,/write)) then val=getenv('GPI_DRP_OUTPUT_DIR') else val=''
 void= widget_label(base9,Value='GPI_DRP_OUTPUT_DIR :',ysize=ys,XSIZE=xs, /tracking_events,Uvalue='GDOD')
 self.GDODdir_id = WIDGET_TEXT(base9,Value=val,Uvalue='GPI_DRP_OUTPUT_DIR',XSIZE=50)
 button_id = WIDGET_BUTTON(base9,Value='Change dir...',Uvalue='changeGDOD',ysize=ys)
