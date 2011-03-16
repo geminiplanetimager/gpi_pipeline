@@ -98,41 +98,54 @@ calfiletype='Gridratio'
               for ii=1,(size(spotloc))[1]-1 do $
               print, 'ASSUME SPOT locations at '+lambdamin+' microms are',spotloc[ii,*]
     endelse
-
-    ;;extract photometry of SAT 
+    
     ;;set photometric apertures and parameters:
     phpadu = 1.0                    ; don't convert counts to electrons
-    apr = lambda[0]*[5.];lambda[0]*[3.] 
+    radaper=(lambda[0])
+    ;;apr is 2.*lambda/D (EE=94%)
+    apr = 2.*(lambda[n_elements(lambda)/2]*1.e-6/7.7)*(180.*3600./!dpi)/0.014;[radaper];lambda[0]*[3.];lambda[0]*[5.];lambda[0]*[3.] 
+    if (filter eq 'J')||(filter eq 'Y') then apr-=1. ;satellite spots are close to the dark hole in these bands...
+    if (filter eq 'K1')||(filter eq 'K2') then apr-=4.  ;satellite spots are close to the dark hole in these bands...
     ; Assume that all pixel values are good data
     badpix = [-1.,1e6];state.image_min-1, state.image_max+1
     
     fluxsatmedabs=dblarr(CommonWavVect[2])
     cubcent2=cubef3D
+    hh=3
     ;;do the photometry of the spots
     intens_sat=fltarr((size(spotloc))[1]-1,CommonWavVect[2]) 
     for spot=1,(size(spotloc))[1]-1 do begin
-      skyrad = lambda[0]*[5.,7.] ;skyrad = lambda[0]*[3.,4.]  
-      if (skyrad[1]-skyrad[0] lt 2.) then skyrad[1]=skyrad[0]+2.
+      skyrad = [apr+2.,apr+6.] ;lambda[0]*[apr,apr+2.];lambda[0]*[5.,7.] ;skyrad = lambda[0]*[3.,4.]  
+      ;if (filter eq 'J')||(filter eq 'Y') then skyrad = [apr+2.,apr+5.]
+      ;if (skyrad[1]-skyrad[0] lt 2.) then skyrad[1]=skyrad[0]+2.
       intens_sat2=fltarr(1,CommonWavVect[2])+!VALUES.F_NAN
        while (total(~finite(intens_sat2)) ne 0) && (skyrad[1]-skyrad[0] lt 20.) do begin
         for i=0,CommonWavVect[2]-1 do begin
             ;;extrapolate sat -spot at a given wavelength
             pos2=calc_satloc(spotloc[spot,0],spotloc[spot,1],spotloc[0,*],SPOTWAVE,lambda[i])
-              x=pos2[0]
-              y=pos2[1]
+;              x=pos2[0]
+;              y=pos2[1]
+              x0=pos2[0]
+              y0=pos2[1]
+            cent=centroid(cubcent2[x0-hh:x0+hh,y0-hh:y0+hh,i])
+            x=x0+cent[0]-hh
+            y=y0+cent[1]-hh
+;            print, 'centroid at x=', x, 'y=', y, 'where val=',cubcent2[x,y,i] 
+;            print, cubcent2[x0-hh:x0+hh,y0-hh:y0+hh,i]
             aper, abs(cubcent2[*,*,i]), [x], [y], flux, errap, sky, skyerr, phpadu, (lambda[i]/lambda[0])*apr, $
               (lambda[i]/lambda[0])*skyrad, badpix, /flux, /silent 
               print, 'slice#',i,' flux sat #'+strc(spot)+'=',flux[0],' sky=',sky[0]
             intens_sat2[0,i]=(flux[0])
         endfor
         skyrad[1]+=1.
+        print, 'PHOTOM SKY outer RADIUS augmented +1 Rout='+strc(skyrad[1])
        endwhile
        intens_sat[spot-1,*]=intens_sat2[0,*]
     endfor
      ;;keep only mean values over the 4 spots
     for i=0,CommonWavVect[2]-1 do fluxsatmedabs[i]=mean(intens_sat[*,i],/nan)
-;Todo?:Need to take in to account Enc.Energy in the aperture 
-
+;Need to take in to account Enc.Energy in the aperture (EE=94%, 2.*lambda/D): 
+fluxsatmedabs*=(1./0.94)
 
 ;;;;;;theoretical flux:
 nlambdapsf=37.
@@ -160,7 +173,7 @@ nbphot_juststar=pip_nbphot_trans_lowres(hdr,lambda)
    gaindetector=1. ;1.1 ;from ph to count: IS IT IN THE KEYWORD LIST?
    ifsunits=strcompress(SXPAR( hdr, 'IFSUNITS'),/rem)
 
-;; normalize by commonwavvect[2] because widthL is the width of the entire band here
+;; normalize by n_elements(lambdapsf) because widthL is the width of the entire band here
    nbphotnormtheo=nbphot_juststar*float(n_elements(lambdapsf))/(SURFA*widthL*1.e3*exposuretime) ;photons to [photons/s/nm/m^2]
 nbphotnormtheosmoothed=nbphotnormtheo
 ;;smooth to the resolution of the spectrograph:
@@ -189,8 +202,16 @@ nbphotnormtheosmoothed=nbphotnormtheo
 ;;prepare the satellite flux ratio using a linear fit to reduce noise in the measurement
 lambdagrid=lambda_gridratio[*,0]
 rawgridratio=lambda_gridratio[*,1]
-gridratiocoeff=linfit(lambdagrid,rawgridratio)
-gridratio= gridratiocoeff[0]+gridratiocoeff[1]*lambdagrid[*]
+instrum=SXPAR( hdr, 'INSTRUME',count=cinstru)
+ ;if (cinstru eq 1) && strmatch(instrum,'*DST*') && strmatch(filter,'*K*') then gridratiocoeff=linfit(lambdagrid[15:n_elements(lambdagrid)-1],rawgridratio[15:n_elements(lambdagrid)-1]) else $
+;gridratiocoeff=linfit(lambdagrid,rawgridratio)
+;gridratio= gridratiocoeff[0]+gridratiocoeff[1]*lambdagrid[*]
+nelem=n_elements(lambdagrid)
+gridratio=replicate(median(lambda_gridratio[10:nelem-10,1]),nelem)
+;gridratiocoeff=linfit(lambdagrid,median(rawgridratio,3))
+;gridratio= gridratiocoeff[0]+gridratiocoeff[1]*lambdagrid[*]
+
+
 ;or use it directly with the following line:
 ;gridratio=lambda_gridratio[*,1]
 
@@ -199,6 +220,7 @@ convfac=fltarr(n_elements(nbphotnormtheosmoothed))
 for i=0,n_elements(nbphotnormtheosmoothed)-1 do $
 convfac[i]=((nbphotnormtheosmoothed[i])/(gaindetector*(gridratio[i])*(fluxsatmedabs[i])))
 
+print, 'convfac*exptime=',convfac*(exposuretime)
 ;;;save the conversion factor in DB for eventual use with extended object
   convfac_header=*(dataset.headers[numfile])
   filetype='Fluxconv' 
