@@ -22,7 +22,8 @@
 
 ; record this primitive name AND its version in the header for traceability.
 	if ~(keyword_set(primitive_version)) then primitive_version="unknown"
-  	fxaddpar,*(dataset.headers[numfile]),'HISTORY', "Running "+functionname+"; version "+primitive_version
+	;sxaddhist, "Running "+functionname+"; version "+primitive_version, *(dataset.headers[numfile])
+  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY', "Running "+functionname+"; version "+primitive_version
 ; if appropriate, attempt to locate and verify a calibration file.
 	if keyword_set(calfiletype) then begin
 
@@ -40,6 +41,9 @@
 				sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+":   "+c_File , *(dataset.headers[numfile])
 			endelse
 		endif
+
+    ;if needed, replace GPI_DRP_OUTPUT_DIR in filename
+      if strmatch(c_File,'GPI_DRP_OUTPUT_DIR$*') then strreplace, c_File, 'GPI_DRP_OUTPUT_DIR$', getenv('GPI_DRP_OUTPUT_DIR')
 
 		; in either case, does the requested file actually exist?
 		if ( NOT file_test ( c_File ) ) then $
