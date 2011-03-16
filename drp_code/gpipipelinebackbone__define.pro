@@ -531,7 +531,7 @@ FUNCTION gpiPipelineBackbone::Reduce
             self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
             return,NOT_OK
 		endif
-stop
+
 		fits_info, filename, n_ext = numext, /silent
 		;numext=0 ;just for polcaltest!!!
 		if ~ptr_valid((*self.data).currframe) then begin

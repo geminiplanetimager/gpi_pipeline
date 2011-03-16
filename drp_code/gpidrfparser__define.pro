@@ -601,7 +601,6 @@ PRO gpidrfparser::startelement, URI, Local, qName, AttNames, AttValues
                       validinstrsub=self->validkeyword( getenv('GPI_RAW_DATA_DIR')+DataFileName, 1,'INSTRSUB','IFS') 
                     endif   
              if   (validtelescop* validinstrum*validinstrsub eq 1) then begin   
-             stop
   					  (*Self.Data)[N].Filenames[(*Self.Data)[N].ValidFrameCount] = DataFileName
   					  (*Self.Data)[N].ValidFrameCount = (*Self.Data)[N].ValidFrameCount + 1
   					  self->Log, DataFileName +' is a valid GEMINI-GPI-IFS image.', /GENERAL, DEPTH=2
