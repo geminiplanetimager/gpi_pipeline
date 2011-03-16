@@ -269,18 +269,22 @@ end
 function gpicaldatabase::get_best_cal_from_header, type, header, _extra=_extra
 
 
-   dateobs2 =  strc(sxpar(header, "DATE-OBS"))+" "+strc(sxpar(header,"TIME-OBS"))
-   dateobs3 = date_conv(dateobs2, "J")
+    dateobs2 =  strc(sxpar(header, "DATE-OBS"))+" "+strc(sxpar(header,"TIME-OBS"))
+    dateobs3 = date_conv(dateobs2, "J")
 
-   filt=strcompress(sxpar( header, 'FILTER',  COUNT=cc3),/rem)
-   if cc3 eq 0 then filt=strcompress(sxpar( header, 'FILTER1',  COUNT=cc3),/rem)
+    filt=strcompress(sxpar( header, 'FILTER',  COUNT=cc3),/rem)
+    if cc3 eq 0 then filt=strcompress(sxpar( header, 'FILTER1',  COUNT=cc3),/rem)
 
-   prism=strcompress(sxpar( header, 'PRISM',  COUNT=cc4),/rem)
-   if cc4 eq 0 then prism=strcompress(sxpar( header, 'DISPERSR',  COUNT=cc4),/rem)
+    prism=strcompress(sxpar( header, 'PRISM',  COUNT=cc4),/rem)
+    if cc4 eq 0 then prism=strcompress(sxpar( header, 'DISPERSR',  COUNT=cc4),/rem)
 
-   itime=sxpar(header, "ITIME0", count=ci)
-   if ci eq 0 then itime=sxpar(header, "ITIME", count=ci)
-   if ci eq 0 then itime=sxpar(header, "INTIME", count=ci)
+    itime=sxpar(header, "ITIME0", count=ci)
+    if itime > 1e6 then begin
+	   message,/info,'ITIME0 keyword has an implausibly large value; trying ITIME instead. (This may be related to a data simulator bug).'
+	   ci=0
+	endif
+    if ci eq 0 then itime=sxpar(header, "ITIME", count=ci)
+    if ci eq 0 then itime=sxpar(header, "INTIME", count=ci)
 
 	return, self->get_best_cal( type, dateobs3, filt, prism, itime=itime, _extra=_extra)
 
@@ -383,6 +387,7 @@ function gpicaldatabase::get_best_cal, type, date, filter, prism, itime=itime, $
 	if cc eq 0 then begin
 		message, "ERROR: --No matching cal files "+errdesc+" as requested in DB--",/info
 		void=error('ERROR: --No matching cal files '+errdesc+' as requested in DB--')
+		stop
 		return, NOT_OK
 	endif
 	if keyword_set(verbose) then message,/info, "Found "+strc(cc)+" possible cal files; selecting best based on closest date."
