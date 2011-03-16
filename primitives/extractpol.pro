@@ -90,7 +90,8 @@ calfiletype='polcal'
 	; Validate the input data
 	if ~(keyword_set(forceh)) then begin
 		filt = strc(sxpar(hdr, "FILTER"))
-		mode= strc(sxpar(hdr, "DISPERSR", count=ct))
+		mode= strc(sxpar(hdr, "PRISM", count=ct))
+		if ct eq 0 then mode= strc(sxpar(hdr, "DISPERSR", count=ct))
 		if ct eq 0 then mode= strc(sxpar(hdr, "FILTER2", count=ct))
 
 		if mode ne "Polarimetry" then message, "That's not a polarimetry file!"

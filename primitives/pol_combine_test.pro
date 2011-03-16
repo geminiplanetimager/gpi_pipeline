@@ -1,11 +1,12 @@
 
 ;------------------------------------------
 
-function pol_combine_for_test, measurements, wpangle, port=port
+function pol_combine_for_test, measurements, wpangle, port=port, retardance=retardance
 	; This is the guts of the pol_combine routine, pulled out of the DRP and
 	; reworked to expect only a single spatial element's worth of data. 
 
 	if ~(keyword_set(port)) then port='side'
+	if ~(keyword_set(retardance)) then retardance=0.5
 
 	nfiles= n_elements(wpangle)
 	if nfiles lt 4 then return, error('FAILURE ('+functionName+'): At least 4 input polarizations files are required.')
@@ -36,7 +37,7 @@ function pol_combine_for_test, measurements, wpangle, port=port
 
 	for i=0L,nfiles-1 do begin
 		
-		wp_mueller = DST_waveplate(angle=wpangle[i], /mueller)
+		wp_mueller = DST_waveplate(angle=wpangle[i], /mueller, retardance=retardance)
 
 		total_mueller_vert = woll_mueller_vert ## wp_mueller ## system_mueller ;## skyrotation_mueller
 		total_mueller_horiz = woll_mueller_horiz ## wp_mueller ## system_mueller ;## skyrotation_mueller
@@ -96,17 +97,18 @@ end
 
 
 
-pro  pol_combine_test, polstate=polstate, port=port
+pro  pol_combine_test, polstate=polstate, port=port, n=n, wpstep=wpstep, retardance=retardance
 
 
 	;if ~(keyword_set(port)) then port='perfect'
 	if ~(keyword_set(port)) then port='side'
 	if ~(keyword_set(polstate)) then polstate = [1, 1., 0.0, 0.0]
+	if ~(keyword_set(retardance)) then retardance=0.5
 
 
 
-	n = 4
-	wpstep = 22.5
+	if ~(keyword_set(n)) then n = 4
+	if ~(keyword_set(wpstep)) then wpstep = 22.5
 	wpangles = findgen(n)*wpstep
 
 	meas = fltarr(n,2)
@@ -125,7 +127,7 @@ pro  pol_combine_test, polstate=polstate, port=port
 	polstate = reform(polstate, 1,4)
 	print, "    Creating input 'measurements':"
 	for i=0L,n-1 do begin
-		M_wp = dst_waveplate(0, angle=wpangles[i], /mueller)
+		M_wp = dst_waveplate(0, angle=wpangles[i], /mueller, retardance=retardance)
 		meas[i,0] = (M_vert  ## M_wp ## M_instrpol ## polstate)[0]
 		meas[i,1] = (M_horiz ## M_wp ## M_instrpol ## polstate)[0]
 		print, "    Angle="+strc(wpangles[i])+"     meas = "+aprint( reform(meas[i,*]))
@@ -135,7 +137,7 @@ pro  pol_combine_test, polstate=polstate, port=port
 
 
 	print, "    Running 'pol_combine':"
-	ans = pol_combine_for_test( meas, wpangles, port=port)
+	ans = pol_combine_for_test( meas, wpangles, port=port, retardance=retardance)
 
 
 	print, ""
