@@ -138,7 +138,7 @@ if numfile  lt ((dataset.validframecount)-1) then return,0
               if n_elements(ind) ne 1 then $
               ind=ind[0:(n_elements(ind)-1)<(nimmed-1)]
 
-              if silent eq 0 then print,'  selected images for the calculation of the median PSF ref.: ',fn ;strjoin(strtrim(*((dataset.frames)[(ind)]),2),',')
+              if silent eq 0 then print,'  selected images for the calculation of the median PSF ref.: ',(dataset.outputFileNames)[ind] ;fn ;strjoin(strtrim(*((dataset.frames)[(ind)]),2),',')
               if silent eq 0 then print,'  Read these images...'
               ;keep only this annulus for all images to be processed in the PSF ref. calculation
               im2=dblarr(count,n_elements(ind),/nozero)
