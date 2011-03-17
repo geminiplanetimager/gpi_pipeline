@@ -43,7 +43,7 @@ if numfile  lt ((dataset.validframecount)-1) then return,0
 
 
   nfiles=dataset.validframecount
-  silent=0
+  silent=1
   
   ;;get PA angles of images for final ADI processing
   paall=dblarr(dataset.validframecount)
@@ -58,8 +58,8 @@ if numfile  lt ((dataset.validframecount)-1) then return,0
   dimcub=(size(*(dataset.currframe[0])))[1]  ;
   xc=dimcub/2 & yc=dimcub/2
   filter=SXPAR( header, 'FILTER')
-         cwv=get_cwv(filter)
-        CommonWavVect=cwv.CommonWavVect
+  cwv=get_cwv(filter)
+  CommonWavVect=cwv.CommonWavVect
   
   lambdamin=CommonWavVect[0]
   lambdamax=CommonWavVect[1]
@@ -161,14 +161,14 @@ if numfile  lt ((dataset.validframecount)-1) then return,0
           ;rotation to have same orientation than the first image
           if silent eq 0 then print,' Rotation to have same orientation than the first image...'
           theta=paall[n]-paall[0]
-            x0=float(SXPAR( *(dataset.headers[n]), 'PSFCENTX',count=ccx))
-            y0=float(SXPAR( *(dataset.headers[n]), 'PSFCENTY',count=ccy))
-            hdr=*(dataset.headers[n]) ;JM 2010-03-19
-            if ((ccx eq 0) || (ccy eq 0) || ~finite(x0) || ~finite(y0))  then begin           
+          x0=float(SXPAR( *(dataset.headers[n]), 'PSFCENTX',count=ccx))
+          y0=float(SXPAR( *(dataset.headers[n]), 'PSFCENTY',count=ccy))
+          hdr=*(dataset.headers[n]) ;JM 2010-03-19
+		  if ((ccx eq 0) || (ccy eq 0) || ~finite(x0) || ~finite(y0))  then begin           
               if n ne 0 then im1s=gpi_adi_rotat(im1s,theta,missing=!values.f_nan,hdr=*(dataset.headers[n])) ;(do not rotate first image)
-            endif else begin
+          endif else begin
               if n ne 0 then im1s=gpi_adi_rotat(im1s,theta,x0,y0,missing=!values.f_nan,hdr=*(dataset.headers[n])) ;(do not rotate first image)
-            endelse  
+          endelse  
             *(dataset.headers[n])=hdr
           im[*,*,il]=im1s
         endfor ;loop on lambda

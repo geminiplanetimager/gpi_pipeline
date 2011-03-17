@@ -523,6 +523,8 @@ FUNCTION gpiPipelineBackbone::Reduce
         self->Log, 'Reducing file: ' + (*self.Data).fileNames[IndexFrame], /GENERAL, /DRF, depth=2
 		self.progressbar->Set_FITS, (*self.Data).fileNames[IndexFrame], number=indexframe,nbtot=(*self.Data).validframecount
 
+
+		;--- Read in the file 
         filename= *((*self.Data).frames[IndexFrame])
 
 		self.progressbar->set_action, "Reading FITS file "+filename
@@ -535,18 +537,18 @@ FUNCTION gpiPipelineBackbone::Reduce
 		fits_info, filename, n_ext = numext, /silent
 		;numext=0 ;just for polcaltest!!!
 		if ~ptr_valid((*self.data).currframe) then begin
-        if (numext EQ 0) then (*self.data).currframe        = ptr_new(READFITS(filename , Header, /SILENT))
-        if (numext ge 1) then begin
-            (*self.data).currframe        = ptr_new(mrdfits(filename , 1, Header, /SILENT))
-            headPHU = headfits(filename, exten=0)            
-        endif
-    endif else begin
-        if (numext EQ 0) then *((*self.data).currframe)        = (READFITS(filename , Header, /SILENT))
-        if (numext ge 1) then begin
-            *((*self.data).currframe)        = (mrdfits(filename , 1, Header, /SILENT))
-            headPHU = headfits(filename, exten=0)            
-        endif        
-    endelse    
+			if (numext EQ 0) then (*self.data).currframe        = ptr_new(READFITS(filename , Header, /SILENT))
+			if (numext ge 1) then begin
+				(*self.data).currframe        = ptr_new(mrdfits(filename , 1, Header, /SILENT))
+				headPHU = headfits(filename, exten=0)            
+			endif
+		endif else begin
+			if (numext EQ 0) then *((*self.data).currframe)        = (READFITS(filename , Header, /SILENT))
+			if (numext ge 1) then begin
+				*((*self.data).currframe)        = (mrdfits(filename , 1, Header, /SILENT))
+				headPHU = headfits(filename, exten=0)            
+			endif        
+		endelse    
 
         if n_elements( *((*self.data).currframe) ) eq 1 then if *((*self.data).currframe) eq -1 then begin
             self->Log, "ERROR: Unable to read file "+filename, /GENERAL, /DRF
@@ -561,25 +563,30 @@ FUNCTION gpiPipelineBackbone::Reduce
         numfile=IndexFrame ; store the index in the common block
 
 
-        ; update the headers - 
+        ;--- update the headers - append the DRF onto the actual FITS header
         ;  At this point the *(*self.data).Headers[IndexFrame] variable contains
         ;  ONLY the DRF appended in FITS header COMMENT form. 
         ;  Append this onto the REAL fits header we just read in from disk.
         ;
         if (numext GT 1) then begin
-          header=[headPHU,header]
+            header=[headPHU,header]
         endif
-        SXADDPAR, *(*self.data).Headers[IndexFrame], "DATAFILE", filename
+
+        FXADDPAR, *(*self.data).Headers[IndexFrame], "DATAFILE", file_basename(filename), "Original file name of DRP input", before="END"
+        FXADDPAR, *(*self.data).Headers[IndexFrame], "DATAPATH", file_dirname(filename), "Original path of DRP input", before="END"
 
         SXDELPAR, header, 'END'
         *(*self.data).Headers[IndexFrame]=[header,*(*self.data).Headers[IndexFrame], 'END            ']
         ;SXADDPAR, *(*self.data).Headers[IndexFrame], "END",''		; don't use SXADDPAR for 'END', it gets the syntax wrong and breaks pyfits.
         
+
+
+		;---- Rotate the image, if necessary -------
             ;!!!!TEMPORARY will need modifs: use it for real ifs data, not DST!!!
                   instrum=SXPAR( header, 'INSTRUME',count=c1)
                   if ~strmatch(instrum,'*DST*') && (  sxpar( *(*self.data).Headers[IndexFrame], 'DRPVER' ) eq '' ) then begin
                     *((*self.data).currframe)=rotate(transpose(*((*self.data).currframe)),2)
-                    print, 'Image rotated!'
+                    message,/info, 'Image rotated to match DST convention!'
                   endif
                 
         suffix=''
