@@ -1,6 +1,6 @@
 ;+
 ; NAME: sat_spots_locations
-; PIPELINE PRIMITIVE DESCRIPTION: Measure satellite spot locations 
+; PIPELINE PRIMITIVE DESCRIPTION: Measure satellite spot locations with GPItv
 ;
 ;
 ; INPUTS: data-cube
