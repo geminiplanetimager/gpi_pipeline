@@ -400,14 +400,8 @@ if numfile  eq ((dataset.validframecount)-1) then begin
 
                 ;resolve the system ;resoud le systeme
                 if n_elements(a) ne 1 then $
-                c=invert(a,/double)#b 
-;                c = PSEUDO_INVERT(a ,/DOUBLE,EPS=0.2)#b
-;                debugloci=0
-;                if debugloci eq 1 then begin
-;                  if n_elements(a) gt 1 then print, 'n_elem='+strc(n_elements(a))+' cond=',cond(a)
-;                  ;if (n_elements(a) gt 1) && (cond(a) gt 1e10) then stop
-;                  print,'coeffs=',c
-;                endif
+                c=invert(a,/double)#b else $
+                c=0.
 
 
                 ;construct the reference ;construit la reference
