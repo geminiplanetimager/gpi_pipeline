@@ -296,7 +296,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	print, 'WSD:'
 	print, WSD
 
-	stop
+        ;stop
 	wsingular = where(w lt (machar()).eps*5, nsing)
 
 
