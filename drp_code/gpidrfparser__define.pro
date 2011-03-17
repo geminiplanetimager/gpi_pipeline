@@ -588,19 +588,20 @@ PRO gpidrfparser::startelement, URI, Local, qName, AttNames, AttValues
 				if obj_valid(self.backbone) then self->drpFITSToDataSet, (*Self.Data)[N], (*Self.Data)[N].ValidFrameCount, DataFileName, FileControl
 				IF (self->do_continueAfterDRFParsing() EQ 1) or ~obj_valid(self.backbone)  THEN BEGIN
 					; FIXME check the file exists and is a valid GPI fits file 
-					   fits_info, getenv('GPI_RAW_DATA_DIR')+DataFileName, n_ext = numext, /silent
-                    if obj_valid(self.backbone) then begin
+					full_input_filename = (*self.data).inputdir + path_sep() + DataFileName
+					fits_info, full_input_filename, n_ext = numext, /silent
+                    ;if obj_valid(self.backbone) then begin
 ;                        if (numext EQ 0) then  head = headfits(DataFileName) 
 ;                        if (numext ge 1) then begin                            
 ;                            headPHU = headfits(filename)      
 ;                            head2 = headfits(filename, exten=1)
 ;                            head=[headPHU,head2]      
 ;                        endif
-                      validtelescop=self->validkeyword( getenv('GPI_RAW_DATA_DIR')+DataFileName, 1,'TELESCOP','Gemini')
-                      validinstrum= self->validkeyword( getenv('GPI_RAW_DATA_DIR')+DataFileName, 1,'INSTRUME','GPI')
-                      validinstrsub=self->validkeyword( getenv('GPI_RAW_DATA_DIR')+DataFileName, 1,'INSTRSUB','IFS') 
-                    endif   
-             if   (validtelescop* validinstrum*validinstrsub eq 1) then begin   
+                      validtelescop=self->validkeyword( full_input_filename, 1,'TELESCOP','Gemini')
+                      validinstrum= self->validkeyword( full_input_filename, 1,'INSTRUME','GPI')
+                      validinstrsub=self->validkeyword( full_input_filename, 1,'INSTRSUB','IFS') 
+                    ;endif   
+             if (validtelescop* validinstrum*validinstrsub eq 1) then begin   
   					  (*Self.Data)[N].Filenames[(*Self.Data)[N].ValidFrameCount] = DataFileName
   					  (*Self.Data)[N].ValidFrameCount = (*Self.Data)[N].ValidFrameCount + 1
   					  self->Log, DataFileName +' is a valid GEMINI-GPI-IFS image.', /GENERAL, DEPTH=2
@@ -638,25 +639,25 @@ END
 ; Given a list of filenames and keywords,
 ; Check that values are present for all of them.
 function gpidrfparser::validkeyword, file, cindex, keyw, requiredvalue,needalertdialog=needalertdialog
-      value=strarr(cindex)
-      matchedvalue=intarr(cindex)
-      ok=1
+    value=strarr(cindex)
+    matchedvalue=intarr(cindex)
+	ok=1
     for i=0, cindex-1 do begin
-      head=headfits( file[i])
-      value[i]=strcompress(sxpar( Head, keyw,  COUNT=cc),/rem)
-      if cc eq 0 then begin
-      self->log,'Absent '+keyw+' keyword for data: '+file(i)
-      ok=0
-      endif
-      if cc eq 1 then begin
-      matchedvalue=stregex(value[i],requiredvalue,/boolean,/fold_case)
-      if matchedvalue ne 1 then begin 
-        self->log,'Invalid '+keyw+' keyword for data: '+file(i)
-        self->log,keyw+' keyword found: '+value(i)
-        if keyword_set(needalertdialog) then void=dialog_message('Invalid '+keyw+' keyword for data: '+file(i)+' keyword found: '+value(i))
-        ok=0
-      endif
-      endif
+    	head=headfits( file[i])
+        value[i]=strcompress(sxpar( Head, keyw,  COUNT=cc),/rem)
+        if cc eq 0 then begin
+		  	self->log,'Absent '+keyw+' keyword for data: '+file(i)
+		  	ok=0
+      	endif
+      	if cc eq 1 then begin
+      		matchedvalue=stregex(value[i],requiredvalue,/boolean,/fold_case)
+      		if matchedvalue ne 1 then begin 
+        		self->log,'Invalid '+keyw+' keyword for data: '+file(i)
+        		self->log,keyw+' keyword found: '+value(i)
+        		if keyword_set(needalertdialog) then void=dialog_message('Invalid '+keyw+' keyword for data: '+file(i)+' keyword found: '+value(i))
+        		ok=0
+      		endif
+      	endif
       ;if ok ne 1 then self->log, 'File '+file[i]+' is missing required '+keyw+' keyword!'
     endfor  
  
