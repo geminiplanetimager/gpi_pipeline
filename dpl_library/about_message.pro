@@ -1,7 +1,7 @@
 function about_message
 
     ver=strc(gpi_pipeline_version())
-    tmpstr=['GPI DRF-GUI Revision: '+ver+'  - GPI 3d data-reduction package', $
+    tmpstr=['GPI DRP Revision: '+ver+'  - GPI 3d Data-Reduction Package', $
               '', $
               'Copyright _,_ by the University of Montreal ' + $
                '(UdeM), Canada', $
@@ -18,8 +18,8 @@ function about_message
               '  Jeff Chilcote, Quinn Konopacky ', $
               '', $
               'Acknowledgements:', $
-              '  ', $
-              '    which have helped improve GPI DRF-GUI', $
+              '  René Doyon, Kathleen Labrie', $
+              '    which have helped improve GPI DRP', $
               '  ', $
               ' ', $
               '', $
