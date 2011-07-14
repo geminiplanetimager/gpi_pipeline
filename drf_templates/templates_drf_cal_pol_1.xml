@@ -6,5 +6,5 @@
 <module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="0" suffix="-darksub" gpitv="0" />
 <module name="Accumulate Images" Method="InMemory" />
 <module name="Combine 2D images" Method="Mean" suffix='mean' Save="0" gpitv="0" />
-<module name="Measure Polarization Spot Calibration"  Save="1" Display="1"/>
+<module name="Measure Polarization Spot Calibration"  Save="1" Display="1" nlens="281" centrXpos="1024" centrYpos="1024" w="4.8" P="-1.8"/>
 </DRF>

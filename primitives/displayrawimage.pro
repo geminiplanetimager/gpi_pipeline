@@ -27,21 +27,12 @@
 function displayrawimage, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
-;;	common PIP
-;;	COMMON APP_CONSTANTS
-;;	
-;;	
-;;	   functionName = 'displayrawimage'
-;;	
+
  det=*(dataset.frames[numfile])
- ;thisModuleIndex = drpModuleIndexFromCallSequence(Modules, functionName)
-;;		thisModuleIndex = Backbone->GetCurrentModuleIndex()
  
  sesnum=fix(Modules[thisModuleIndex].gpitv)
  if (sesnum ne 0) then gpitvms, det, ses=sesnum
 
-
-;drpPushCallStack, functionName
 return, ok
 
 end

@@ -192,6 +192,8 @@ PRO gpidrfparser::parsefile, FileName, Backbone=backbone, ConfigParser, gui_obj=
 	(*self.modules).idlcommand=(*self.modules).name
 	; but for each module, check to see if there's a match in the lookup table
 	for i=0L,n_elements(*self.modules)-1 do begin
+
+
 		cmd = ConfigParser->GetIDLCommand((*self.modules)[i].Name, matched=matched)
 		if matched eq 0 then begin
 			message,/info, "No match found for "+(*self.modules)[i].Name+"; using that as the IDL command directly."
@@ -589,25 +591,24 @@ PRO gpidrfparser::startelement, URI, Local, qName, AttNames, AttValues
 				IF (self->do_continueAfterDRFParsing() EQ 1) or ~obj_valid(self.backbone)  THEN BEGIN
 					; FIXME check the file exists and is a valid GPI fits file 
 					full_input_filename = (*self.data).inputdir + path_sep() + DataFileName
-					fits_info, full_input_filename, n_ext = numext, /silent
-                    ;if obj_valid(self.backbone) then begin
-;                        if (numext EQ 0) then  head = headfits(DataFileName) 
-;                        if (numext ge 1) then begin                            
-;                            headPHU = headfits(filename)      
-;                            head2 = headfits(filename, exten=1)
-;                            head=[headPHU,head2]      
-;                        endif
-                      validtelescop=self->validkeyword( full_input_filename, 1,'TELESCOP','Gemini')
-                      validinstrum= self->validkeyword( full_input_filename, 1,'INSTRUME','GPI')
-                      validinstrsub=self->validkeyword( full_input_filename, 1,'INSTRSUB','IFS') 
-                    ;endif   
-             if (validtelescop* validinstrum*validinstrsub eq 1) then begin   
-  					  (*Self.Data)[N].Filenames[(*Self.Data)[N].ValidFrameCount] = DataFileName
-  					  (*Self.Data)[N].ValidFrameCount = (*Self.Data)[N].ValidFrameCount + 1
-  					  self->Log, DataFileName +' is a valid GEMINI-GPI-IFS image.', /GENERAL, DEPTH=2
-					  endif else begin
-					    self->Log, 'ALERT:'+ DataFileName +' is NOT a GEMINI-GPI-IFS image. File ignored!', /GENERAL, DEPTH=2
-					  endelse
+		
+					if not file_test(full_input_filename,/read) then begin
+					    self->Log, 'ERROR: The file "'+ full_input_filename+'" does not appear to exist on disk. Skipping this file and trying to continue anyway...', /GENERAL, DEPTH=2
+					endif else begin
+
+
+						fits_info, full_input_filename, n_ext = numext, /silent
+						validtelescop=self->validkeyword( full_input_filename, 1,'TELESCOP','Gemini')
+						validinstrum= self->validkeyword( full_input_filename, 1,'INSTRUME','GPI')
+						validinstrsub=self->validkeyword( full_input_filename, 1,'INSTRSUB','IFS') 
+						if (validtelescop* validinstrum*validinstrsub eq 1) then begin   
+							(*Self.Data)[N].Filenames[(*Self.Data)[N].ValidFrameCount] = DataFileName
+							(*Self.Data)[N].ValidFrameCount = (*Self.Data)[N].ValidFrameCount + 1
+							self->Log, DataFileName +' is a valid GEMINI-GPI-IFS image.', /GENERAL, DEPTH=2
+						endif else begin
+							self->Log, 'ERROR:'+ DataFileName +' is NOT a GEMINI-GPI-IFS image. File ignored!', /GENERAL, DEPTH=2
+						endelse
+					endelse
 				ENDIF
 			ENDIF ELSE BEGIN
 				self->Log, 'ERROR: <fits/> element is incomplete, Probably no filename', /GENERAL, DEPTH=2
@@ -739,6 +740,7 @@ END
 ; 	2006-04-20	Modified to allow arbitrary additional attributes in modules.
 ; 				Requires struct_merge.pro and struct_trimtags.pro
 ; 				 - Marshall Perrin
+; 	2011-07-13 MDP: Added check and error handler for null module name. 
 ;-----------------------------------------------------------------------------------------------------
 PRO gpidrfparser::newmodule, AttNames, AttValues
 
@@ -761,10 +763,18 @@ PRO gpidrfparser::newmodule, AttNames, AttValues
 		endelse
 	ENDFOR
 
-	IF N_ELEMENTS(*Self.Modules) EQ 0 THEN *Self.Modules = [Module] $	; Add to the array
-	ELSE *Self.Modules = struct_merge(*Self.Modules, Module)
 
-    if ~(keyword_set(self.silent)) then 	print,module.name
+	; verify that this module has a non-zero NAME element. 
+	if strc(Module.Name) eq '' then begin
+		message,/info, "WARNING: DRF parser encountered a <Module> element with no Name. Ignoring this null module."
+	endif else begin
+
+
+		IF N_ELEMENTS(*Self.Modules) EQ 0 THEN *Self.Modules = [Module] $	; Add to the array
+		ELSE *Self.Modules = struct_merge(*Self.Modules, Module)
+
+		if ~(keyword_set(self.silent)) then 	print, "DRF parser found a call to : "+module.name
+	endelse
 
 
 

@@ -15,6 +15,8 @@
 ;  /flushqueue		DELETE any DRFs present in the queue on startup (dangerous,
 ;  					mostly for debugging purposes)
 ;  /rescan			Rescan & recreate the calibration files DB on startup
+;  /verbose			Display more output than usual, mostly for debugging
+;  					purposes
 ;
 ; EXAMPLE:
 ;  IDL> gpipiperun, /noexit,  /rescanDB, /noguidrf, /parsergui
@@ -26,7 +28,7 @@
 ;   			the launcher.  - MDP
 ;-
 PRO gpiPipeRun, QUEUE_DIR=queue_dir, config_file=config_file, noinit=noinit, $
-	noexit=noexit, rescanDB=rescanDB, flushqueue=flushqueue
+	noexit=noexit, rescanDB=rescanDB, flushqueue=flushqueue, verbose=verbose
 
 ;setenv_gpi
 while gpi_is_setenv() eq 0 do begin
@@ -47,12 +49,11 @@ endwhile
   IF ~KEYWORD_SET(CONFIG_FILE) THEN CONFIG_FILE= GETENV('GPI_CONFIG_FILE')
 
 
-	x = OBJ_NEW('gpiPipelineBackbone', config_file=config_file)
+	x = OBJ_NEW('gpiPipelineBackbone', config_file=config_file, verbose=verbose)
 	
 	if keyword_set(flushqueue) then x->flushqueue, queue_dir
 	if keyword_set(rescanDB) then x->rescan
 
-	
 	
 	x->Run, Queue_Dir
 

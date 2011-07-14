@@ -28,7 +28,7 @@
 ;
 
 
-FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session
+FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session, verbose=verbose
     ; Application constants
     COMMON APP_CONSTANTS, $
         LOG_GENERAL,  $       ; File unit number of the general log file
@@ -69,6 +69,7 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session
         }
 
     if ~(keyword_set(config_file)) then config_file=GETENV('GPI_CONFIG_FILE') ;"DRSConfig.xml"
+	self.verbose = keyword_set(verbose)
 	ver = gpi_pipeline_version()
 
     print, "                                                    "
@@ -102,8 +103,8 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session
         if file_test(config_file) then  Self.ConfigParser -> ParseFile, config_file
 
 	    self->SetupProgressBar
-      self.progressbar->log,"* GPI DATA REDUCTION PIPELINE  *"
-      self.progressbar->log,"* VERSION "+ver+"  *"
+        self.progressbar->log,"* GPI DATA REDUCTION PIPELINE  *"
+        self.progressbar->log,"* VERSION "+ver+"  *"
 		self.GPICalDB = obj_new('gpicaldatabase', backbone=self)
     
 		self.progressbar->set_calibdir, self.GPICalDB->get_calibdir()
@@ -172,8 +173,9 @@ PRO gpiPipelineBackbone::Cleanup
 END
 
 
+
 ;-----------------------------------------------------------------------------------------------------
-; Procedure drpDefineStructs
+; Procedure DefineStructs
 ;
 ; DESCRIPTION:
 ;     drpDefineStructs defines the user defined structures used by the program
@@ -307,22 +309,33 @@ PRO gpiPipelineBackbone::gpitv, filename_or_data, session=session, header=header
 		if size(filename_or_data,/TNAME) ne 'STRING' then begin
 			; user provided an array - need to write it to a temp file on disk
 			tmppath = getenv('IDL_TMPDIR')
-			tempfile = tmppath+path_sep()+'temp.fits'
+			if strmid(tmppath, strlen(tmppath)-1) ne path_sep() then tmppath +=path_sep()  ; be careful if path sep char is on the end already or not
+			tempfile = tmppath+'temp.fits'
 
 			; check for the error case where some other user already owns
 			; /tmp/temp.fits on a multiuser machine. If necessary, fall back to
 			; another filename with an appended number. 
-			if not file_test(tempfile,/write) then begin
-				for i=0,100 do begin
-					tempfile = tmppath+path_sep()+'temp'+strc(i)+'.fits'
-					if file_test(tempfile,/write) then break
-				endfor
-				if i eq 100 then begin
+			;
+			i=self.TempFileNumber
+			i=(i+1) mod 100
+			tempfile = tmppath+'temp'+strc(i)+'.fits'
+	
+			catch, gpitv_send_error
+			if gpitv_send_error then begin
+				; try the next filename, except if we are at 100 tries already then
+				; give up 
+				i=(i+1) mod 100
+				tempfile = tmppath+'temp'+strc(i)+'.fits'
+				if i eq self.TempFileNumber-1 or (self.TempFileNumber eq 0 and i eq 99) then begin
 					self->Log, "Could not open **any** filename for writing in "+getenv('IDL_TMPDIR')+" after 100 attempts. Cannot send file to GPItv."
+					stop
 					return
 				endif
-			endif
+			endif 
+
 			writefits, tempfile, filename_or_data, header
+            CATCH, /CANCEL
+			self.TempFileNumber=i ; save last used temp file # for starting point next time this gets called
 			self.launcher->queue, 'gpitv', filename=tempfile, session=session, _extra=_extra
 
 		endif else begin
@@ -369,6 +382,7 @@ PRO gpiPipelineBackbone::Run, QueueDir
 
         CurrentDRF = self->GetNextDRF(Queuedir, found=nfound)
         IF nfound gt 0 THEN BEGIN
+			self.CurrentDRFname = CurrentDRF.name
             self->log, 'Found file: ' + CurrentDRF.Name, /GENERAL
                     wait, 1.0   ; Wait 1 seconds to make sure file is fully written.
                     self.progressbar->set_DRF, CurrentDRF
@@ -577,7 +591,10 @@ FUNCTION gpiPipelineBackbone::Reduce
 
         SXDELPAR, header, 'END'
         *(*self.data).Headers[IndexFrame]=[header,*(*self.data).Headers[IndexFrame], 'END            ']
-        ;SXADDPAR, *(*self.data).Headers[IndexFrame], "END",''		; don't use SXADDPAR for 'END', it gets the syntax wrong and breaks pyfits.
+		; ***WARNING***   don't use SXADDPAR for 'END', it gets the syntax wrong
+		; and breaks pyfits. i.e. do not try this following line. The above one
+		; is required. 
+        ;SXADDPAR, *(*self.data).Headers[IndexFrame], "END",''		
         
 
 
@@ -585,6 +602,7 @@ FUNCTION gpiPipelineBackbone::Reduce
             ;!!!!TEMPORARY will need modifs: use it for real ifs data, not DST!!!
                   instrum=SXPAR( header, 'INSTRUME',count=c1)
                   if ~strmatch(instrum,'*DST*') && (  sxpar( *(*self.data).Headers[IndexFrame], 'DRPVER' ) eq '' ) then begin
+					  if self.verbose then self->Log, "Image detected as IFS raw file, assumed vertical spectrum orientation. Must be reoriented to horizontal spectrum direction."
                     *((*self.data).currframe)=rotate(transpose(*((*self.data).currframe)),2)
                     message,/info, 'Image rotated to match DST convention!'
                   endif
@@ -892,6 +910,7 @@ FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
   ; of any error, instead of returning here... This is way better for
   ; debugging (and perhaps should just always be how it works now. -MDP)
 
+  	if self.verbose then  self->Log,"        idl command: "+Modules[ModNum].IDLCommand
   status = call_function( Modules[ModNum].IDLCommand, *self.data, Modules, self ) 
 
     IF status EQ NOT_OK THEN BEGIN            ;  The module failed
@@ -1130,8 +1149,11 @@ PRO gpiPipelineBackbone__define
 			launcher: obj_new(), $
 			gpicaldb: obj_new(), $
             ReductionType:'', $
+			CurrentDRFname: '', $
             CurrentlyExecutingModuleNumber:0, $
+			TempFileNumber: 0, $ ; Used for passing multiple files to multiple gpitv sessions. See self->gpitv pro above
 			generallogfilename: '', $
+			verbose: 0, $
             LogPath:''}
 
 END
