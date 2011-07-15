@@ -7,7 +7,17 @@
 ;
 ;   **currently a developmental/testing routine**
 ;
-;   T
+;   TODO: This algorithm would be more robust if it made use of existing
+;   wavelength solution information for masking out which pixels to use,
+;   probably. Actually this should be an option the user can select: use
+;   the image pixels or use a wavelength solution. Using the image pixels
+;   themselves is necessary for the case where you are trying to *create* 
+;   a wavelength solution, then once you have that you should probably use it
+;   instead. 
+;
+;   The problem with just using the image pixels is that it depends on the
+;   relative brightness of the background noise vs. the spectra, so it can fail
+;   if the SNR in the spectra is low or the background noise is especially high.
 ;
 ; KEYWORDS:
 ; 	gpitv=		session number for the GPITV window to display in.

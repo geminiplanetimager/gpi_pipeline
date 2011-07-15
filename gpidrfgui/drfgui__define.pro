@@ -767,7 +767,14 @@ pro drfgui::event,ev
             ;compare default type and user value type 
             typeflag = 1 & rangeflag = 1
             if type ne '' then $;keep the possibility to have no type control if default type has been set to ''
-            if (strcmp(typeName,type,/fold)) then typeflag=1 else typeflag=0
+			; Check to ensure the argument has the proper type. 
+				; Special case: it is acceptable to enter an INT type into an
+				; argument expecting a FLOAT, because of course the set of
+				; integers is a subset of the set of floats. 
+            if (strcmp(typeName,type,/fold))  $
+				or (strlowcase(type) eq 'float' and strlowcase(typename) eq 'int') then $
+				typeflag=1 $
+			else typeflag=0
 
             ;;verify user-value: range 
             if (strcmp('string',type,/fold) ne 1) && (strcmp('string',typeName,/fold) ne 1) && (type ne '') then begin
@@ -781,6 +788,7 @@ pro drfgui::event,ev
               if (typeflag eq 0) then err+='type '
               if (rangeflag eq 0) then err+='range '
               self->log,'Sorry, you entered a value with wrong: '+err
+			  res = dialog_message('Sorry, you tried to enter a value but it had the wrong '+err+". The value was NOT updated; please try again.",/error, title='Unable to set value')
               ;stop
             endif else begin 
               ;;
@@ -799,6 +807,7 @@ pro drfgui::event,ev
             endelse
         endif else begin
           self->log,'Sorry, you can only change the Value field. Edit the IDL source of the module to change or add Arguments. '
+		  res = dialog_message( 'Sorry, you can only change the Value field. Edit the IDL source of the module to change or add Arguments. ',/error, title='Unable to add new argument')
         endelse
       ENDIF
   end

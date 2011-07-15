@@ -46,6 +46,8 @@
 ;   2009-12-10 JM: initiate position at 1.5microns so we can take into account several band
 ;   2010-07-14 JM:for DRP testing, correct for DST finite spectral resolution 
 ;   2010-08-16 JM: added bad pixel map
+;   2011-07-14 MP: Reworked FITS keyword handling to provide more informative
+;   			error messages in case of missing or invalid keywords.
 ;-
 
 function gpi_extract_wavcal2,  DataSet, Modules, Backbone
@@ -53,29 +55,56 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 @__start_primitive
 
    
-   im=*(dataset.currframe[0]) 
-   h=*(dataset.headers[numfile])
-            ;error handle if image or header not well handled
-            if ((size(im))[0] eq 0) || (n_elements(h) eq 0)  then $
-            return, error('FAILURE ('+functionName+'): Failed to load data.') 
-   
+    im=*(dataset.currframe[0]) 
+    h=*(dataset.headers[numfile])
+
+	;error handle if image or header not well handled
+	if ((size(im))[0] eq 0) || (n_elements(h) eq 0)  then $
+	return, error('FAILURE ('+functionName+'): Failed to load data.') 
+
+
+	valid_header=1
+	; error handle missing FITS keywords
+	keywords_to_check = ['OBSTYPE', 'GCALLAMP', 'FILTER', 'INSTRUME']
+
+	for i=0L,n_elements(keywords_to_check)-1 do begin
+    	val=SXPAR( h, keywords_to_check[i],count=c)
+		if c eq 0 then begin
+			if keywords_to_check[i] eq 'FILTER' then begin
+				; for the case of FILTER, also fail back to try FILTER1
+				val=SXPAR( h, 'FILTER1',count=c)
+				if c eq 0 then valid_header=0
+			endif else begin
+				err=error('FAILURE ('+functionName+'): FITS header keyword '+keywords_to_check[i]+" is missing!")
+				valid_header=0
+			endelse
+		endif
+		if strlen(val) eq 0 then begin
+			err=error('FAILURE ('+functionName+'): FITS header keyword '+keywords_to_check[i]+" is a null string, which is an invalid value!")
+			valid_header=0
+		endif
+	endfor 
+
     obstype=SXPAR( h, 'OBSTYPE',count=c1)
-    if c1 eq 0 then return, error('FAILURE ('+functionName+'): FITS header is missing keyword OBSTYPE')
     lamp=SXPAR( h, 'GCALLAMP',count=c2)
-    if c2 eq 0 then return, error('FAILURE ('+functionName+'): FITS header is missing keyword GCALLAMP')
     c3=1&lampshut='ON';lampshut=SXPAR( h, 'GCALSHUT',count=c3) ;will be implemented if necessary
     bandeobs=SXPAR( h, 'FILTER',count=c4)
 	if c4 eq 0 then bandeobs=SXPAR( h, 'FILTER1',count=c4)
     instrum=SXPAR( h, 'INSTRUME',count=cinstru)
     
-	;error handle if keywords are missing
-	if (c1 eq 0) || (c2 eq 0) || (c3 eq 0)|| (c4 eq 0) || $
-	(strlen(obstype) eq 0) || (strlen(lamp) eq 0) || (strlen(lampshut) eq 0)|| (strlen(bandeobs) eq 0) then $
-	return, error('FAILURE ('+functionName+'): At least, one of the following keywords is missing: OBSTYPE,GCALLAMP,GCALSHUT,FILTER.') 
-
+;	;error handle if keywords are missing
+;	if (c1 eq 0) || (c2 eq 0) || (c3 eq 0)|| (c4 eq 0) then begin
+;		return, error('FAILURE ('+functionName+'): At least one of the following keywords is missing: OBSTYPE,GCALLAMP,GCALSHUT,FILTER.') 
+;	endif
+;	if (strlen(obstype) eq 0) || (strlen(lamp) eq 0) || (strlen(lampshut) eq 0)|| (strlen(bandeobs) eq 0) then begin
+;		return, error('FAILURE ('+functionName+'): At least one of the following keywords has an invalid value, a null string: OBSTYPE,GCALLAMP,GCALSHUT,FILTER.') 
+;
+;	endif
+;	
+;
 	;error handle if obstype is not 'wavecal' or 'flat' 
 	if (~strmatch(obstype,'*wavecal*',/fold_case)) && (~strmatch(obstype,'*flat*',/fold_case))  then $
-		return, error('FAILURE ('+functionName+'): this data are not wavecal or flat image.') 
+		return, error('FAILURE ('+functionName+'): The OBSTYPE keyword does not mark this data as a wavecal or flat image.') 
 
             ;to do : do something if gcalshut=off
 
@@ -157,6 +186,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		  if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[2.13],[2.4]]
 		  specpixlength=20. ;spec pix length for rough estimation of peak positions
 		  bandwidth=0.27  ;bandwidth in microns
+		end
+		else: begin
+			return, error('FAILURE ('+functionName+"): FITS header keyword FILTER isn't valid: "+bandeobs) 
+
+
 		end
 	endcase
     ;;2010-07-14 J.Maire: added for testing, 
@@ -384,12 +418,12 @@ writefits, strmid(output_filename, 0,strlen(output_filename)-5)+'testdis2'+'.fit
       b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display,savedata=specpos,saveheader=h,output_filename=output_filename)
       if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
       if tag_exist( Modules[thisModuleIndex], "gpitvim_dispgrid") && ( fix(Modules[thisModuleIndex].gpitvim_dispgrid) ne 0 ) then $
-           if strcmp(obstype,'flat',4,/fold) then im=im0
-          backbone_comm->gpitv, double(im), session=fix(Modules[thisModuleIndex].gpitvim_dispgrid), header=h, dispwavcalgrid=output_filename
+          if strcmp(obstype,'flat',4,/fold) then im=im0
+          backbone_comm->gpitv, double(im), session=fix(Modules[thisModuleIndex].gpitvim_dispgrid), header=h, dispwavcalgrid=output_filename, imname='Wavecal grid result from '+ Modules[thisModuleIndex].name
           ;gpitvms, double(im), ses=fix(Modules[thisModuleIndex].gpitvim_dispgrid),head=h,opt='dispwavcalgrid='+output_filename
     endif else begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
-          backbone_comm->gpitv, double(*DataSet.currFrame), session=fix(Modules[thisModuleIndex].gpitv), header=h
+          backbone_comm->gpitv, double(*DataSet.currFrame), session=fix(Modules[thisModuleIndex].gpitv), header=h, imname='Pipeline result from '+ Modules[thisModuleIndex].name
           ;gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=h
     endelse
 

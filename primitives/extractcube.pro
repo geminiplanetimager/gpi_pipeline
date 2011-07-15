@@ -102,19 +102,20 @@ suffix='-spdc'
 *(dataset.currframe[0])=cubef3D
 
 ;save if asked and handle error if save function failed:
-  thisModuleIndex = Backbone->GetCurrentModuleIndex()
- if tag_exist( Modules[thisModuleIndex], "Save") && $
- tag_exist( Modules[thisModuleIndex], "suffix") && $
- (uint(Modules[thisModuleIndex].save) eq 1 ) then suffix=Modules[thisModuleIndex].suffix
+  ;thisModuleIndex = Backbone->GetCurrentModuleIndex()
+ ;if tag_exist( Modules[thisModuleIndex], "Save") && $
+ ;tag_exist( Modules[thisModuleIndex], "suffix") && $
+ ;(uint(Modules[thisModuleIndex].save) eq 1 ) then suffix=Modules[thisModuleIndex].suffix
  
+;
+    ;if ( Modules[thisModuleIndex].Save eq 1 ) then begin
+       ;b_Stat = save_currdata ( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=fix(Modules[thisModuleIndex].gpitv) )
+       ;if ( b_Stat ne OK ) then  return, error('FAILURE ('+functionName+'): Failed to save dataset.')
+    ;end
 
-    if ( Modules[thisModuleIndex].Save eq 1 ) then begin
-       b_Stat = save_currdata ( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=fix(Modules[thisModuleIndex].gpitv) )
-       if ( b_Stat ne OK ) then  return, error('FAILURE ('+functionName+'): Failed to save dataset.')
-    end
 
-
-return, ok
+;return, ok
+@__end_primitive
 
 end
 
