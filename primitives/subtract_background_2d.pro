@@ -99,7 +99,9 @@ endfor
  masked_im[where(mask)] = !values.f_nan
  
  iters = fltarr(sz[1],sz[2], niter)
- iters[*,*,0] = fixnans(median(masked_im, mediansize))
+ ; get rid of any remaining NaNs just to be sure:
+ fixpix, median(masked_im, mediansize)  ,0,tmp,/nan
+ iters[*,*,0] = temporary(tmp)
  for n=1,niter-1 do begin
 	 print, "Convolving, iteration "+strc(n)
  	iters[where(~ mask) + n_elements(image)*(n-1)] = image[where(~ mask)]
@@ -121,7 +123,7 @@ endfor
  endif 
 
  ; show comparison in window?
- if keyword_set(before_and_after)
+ if keyword_set(before_and_after) then begin
 	window,0,xsize=1200,ysize=400
 	erase
 	mx=1100
