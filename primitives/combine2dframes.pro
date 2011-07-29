@@ -36,13 +36,14 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	if tag_exist( Modules[thisModuleIndex], "suffix") then suffix=Modules[thisModuleIndex].suffix else suffix='median'
 	if tag_exist( Modules[thisModuleIndex], "method") then method=Modules[thisModuleIndex].method else method='median'
-	header=*(dataset.headers[numfile])
+	;header=*(dataset.headers[numfile])
 
 	nfiles=dataset.validframecount
 
 	; Load the first file so we can figure out their size, etc. 
-	im0 = accumulate_getimage(dataset, 0, hdr0)
+	im0 = accumulate_getimage(dataset, 0, hdr,hdrext=hdrext)
 	;imtab=dblarr(naxis(0),naxis(1),numfile)
+	 if numext eq 0 then hdr0= hdr else hdr0= hdrext
 	sz = [0, sxpar(hdr0,'NAXIS1'), sxpar(hdr0,'NAXIS2')]
 	; create an array of the same type as the input file:
 	imtab = make_array(sz[1], sz[2], nfiles, type=size(im0,/type))
@@ -50,7 +51,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 
 	; read in all the images at once
-	for i=0,nfiles-1 do imtab[*,*,i] =  accumulate_getimage(dataset,i,hdr)
+	for i=0,nfiles-1 do imtab[*,*,i] =  accumulate_getimage(dataset,i,hdr,hdrext=hdrext)
 
 	; now combine them.
 	if nfiles gt 1 then begin

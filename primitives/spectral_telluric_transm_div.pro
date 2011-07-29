@@ -34,8 +34,10 @@ calfiletype='telluric'
 
 	
 	if ~file_test( c_File) then return, error("Telluric transmission file does not exist!")
-
-	tellurictrans = readfits( c_File)
+  
+  if numext eq 0 then $
+	tellurictrans = readfits( c_File) else $
+	tellurictrans = mrdfits( c_File,1)
 
 ; TODO error check sizes of arrays, etc. 
 ; TODO update FITS header history

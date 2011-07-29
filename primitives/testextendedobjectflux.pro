@@ -16,7 +16,7 @@
 ; PIPELINE ARGUMENT: Name="legendfig" Type="string"  Default="" Desc="If needed, enter a legend for figures"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying wavcal file, 0: no display "
 ; PIPELINE ORDER: 4.3
-; PIPELINE TYPE: ALL-POL 
+; PIPELINE TYPE: ALL-SPEC 
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:
@@ -73,6 +73,7 @@ measObj=transpose(shift(subarr(measurement,277),1,-2))
 ;comparisons begin here: 
 ;calculate relative difference [%] between input and output Stokesn param.
 comparobj=100.*(measobj-Inputobj)/Inputobj 
+;stop
 ;if pairs eq 1 then comparStokes2=100.*(measStokes2-InputStokesband)/InputStokesband       
 ;linear polar
 ;linpoldst=sqrt(((InputStokesband[*,*,1])^2.+(InputStokesband[*,*,2])^2.)/InputStokesband[*,*,0])
@@ -84,7 +85,7 @@ comparobj=100.*(measobj-Inputobj)/Inputobj
 ;endif     
   
  
- indsignal=where(inputobj gt 0.3*max(inputobj))
+ indsignal=where(inputobj gt 0.8*max(inputobj))
         ; if cz gt 0 then zemdispX[indout]=!VALUES.F_NAN 
 ;calculate histogram of relative difference        
 xmax=80.& xmin=-xmax 

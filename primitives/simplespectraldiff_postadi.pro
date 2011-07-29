@@ -131,7 +131,8 @@ thisModuleIndex = Backbone->GetCurrentModuleIndex()
       if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
     endif else begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
-          gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv)
+          ;gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv)
+          Backbone_comm->gpitv, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv)
     endelse
 
     

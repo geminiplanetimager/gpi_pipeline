@@ -97,6 +97,11 @@ endfor
 
 
 ;create keywords related to the common wavelength vector:
+FXADDPAR, *(dataset.headers)[numfile], 'NAXIS',3, after='BITPIX'
+FXADDPAR, *(dataset.headers)[numfile], 'NAXIS1',nlens, after='NAXIS'
+FXADDPAR, *(dataset.headers)[numfile], 'NAXIS2',nlens, after='NAXIS1'
+FXADDPAR, *(dataset.headers)[numfile], 'NAXIS3',CommonWavVect[2], after='NAXIS2'
+
 FXADDPAR, *(dataset.headers)[numfile], 'CDELT3', (CommonWavVect[1]-CommonWavVect[0])/(CommonWavVect[2]),'wav. increment'
 ; FIXME this CRPIX3 should probably be **1** in the FORTRAN index convention
 ; used in FITS file headers

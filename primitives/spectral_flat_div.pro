@@ -30,8 +30,9 @@ function spectral_flat_div, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 calfiletype = 'flat'
 @__start_primitive
-
-	specflat = readfits(c_File)
+  
+  fits_info, c_File, n_ext = numexten, /silent
+	if numexten eq 0 then specflat = readfits(c_File) else specflat = mrdfits(c_File,1)
 
 	; error check sizes of arrays, etc. 
 	if not array_equal( (size(*(dataset.currframe[0])))[1:3], (size(specflat))[1:3]) then $
@@ -43,7 +44,14 @@ calfiletype = 'flat'
   sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": dividing by flat"
   sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
 
+  ;not absolutely necessary but avoid divide by Nan or zero
+  bordnan=where(~finite(specflat),cc)
+  if cc gt 0 then specflat[bordnan]=1.
+  bordzero=where((specflat eq 0.),cz)
+  if cz gt 0 then specflat[bordzero]=1.
 	*(dataset.currframe[0]) /= specflat
+	if cc gt 0 then (*(dataset.currframe[0]))[bordnan]=!VALUES.F_NAN 
+	if cz gt 0 then specflat[bordzero]=!VALUES.F_NAN
 
 ;  if tag_exist( Modules[thisModuleIndex], "Save") && tag_exist( Modules[thisModuleIndex], "suffix") then suffix+=Modules[thisModuleIndex].suffix
   

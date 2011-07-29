@@ -51,15 +51,23 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 
 
-hdr= *(dataset.headers)[0]
+;hdr= *(dataset.headers)[0]
 
+    if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
 
 
 ;; set the photometric apertures and parameters
 phpadu = 1.0                    ; don't convert counts to electrons
 ;apr = [6.]   ;constant is ok as the same aperture radius is used for sat. and star itself ;5
    ;;apr is 2.*lambda/D (EE=94%) 2.7
-    apr = 1.4*(lambda[n_elements(lambda)/2]*1.e-6/7.7)*(180.*3600./!dpi)/0.014;[radaper];lambda[0]*[3.];lambda[0]*[5.];lambda[0]*[3.] 
+               case strcompress(filter,/REMOVE_ALL) of
+              'Y':apr0=1.4
+              'J':apr0=1.4
+              'H':apr0=1.4
+              'K1':apr0=1.4
+              'K2':apr0=1.4
+            endcase
+    apr = apr0*(lambda[n_elements(lambda)/2]*1.e-6/7.7)*(180.*3600./!dpi)/0.014;[radaper];lambda[0]*[3.];lambda[0]*[5.];lambda[0]*[3.] 
 skyrad = [apr+2.,apr+6.]
 ;skyrad = [6.,8.] 
 ;if (filter eq 'J')||(filter eq 'Y') then apr-=1.  ;satellite spots are close to the dark hole in these bands...
@@ -68,16 +76,16 @@ skyrad = [apr+2.,apr+6.]
 badpix = [-1.,1e6]
 
 ;;; handle the spot locations
- SPOTWAVE=sxpar( *(dataset.headers[numfile]), 'SPOTWAVE',  COUNT=cc4)
+ SPOTWAVE=sxpar( *(dataset.headers)[numfile], 'SPOTWAVE',  COUNT=cc4)
    if cc4 gt 0 then begin
     ;check how many spots locations is in the header (2 or 4)
-    void=sxpar( *(dataset.headers[numfile]), 'SPOT4x',  COUNT=cs)
+    void=sxpar( *(dataset.headers)[numfile], 'SPOT4x',  COUNT=cs)
     if cs eq 1 then spotloc=fltarr(1+4,2) else spotloc=fltarr(1+2,2) ;1+ due for PSF center 
-          spotloc[0,0]=sxpar( *(dataset.headers[numfile]),"PSFCENTX")
-          spotloc[0,1]=sxpar( *(dataset.headers[numfile]),"PSFCENTY")      
+          spotloc[0,0]=sxpar( *(dataset.headers)[numfile],"PSFCENTX")
+          spotloc[0,1]=sxpar( *(dataset.headers)[numfile],"PSFCENTY")      
         for ii=1,(size(spotloc))[1]-1 do begin
-          spotloc[ii,0]=sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'x')
-          spotloc[ii,1]=sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'y')
+          spotloc[ii,0]=sxpar( *(dataset.headers)[numfile],"SPOT"+strc(ii)+'x')
+          spotloc[ii,1]=sxpar( *(dataset.headers)[numfile],"SPOT"+strc(ii)+'y')
         endfor      
    endif else begin
       SPOTWAVE=lambdamin
@@ -111,16 +119,40 @@ thisModuleIndex = Backbone->GetCurrentModuleIndex()
 if tag_exist( Modules[thisModuleIndex], "tests") then $
 tests=fix(Modules[thisModuleIndex].tests) else $;we test this routine not with satellites but with two objects of known flux (their locations (vs wavelength) are constant) 
 tests=0
-
+ if tests eq 2 then begin ;only for DRP tests:this is because unfortunately occulted and unocculted reference PSF do not have spots at same locations
+                case strcompress(filter,/REMOVE_ALL) of
+                  'Y':begin
+                      spotloc=[[140.,2.,3.,4.,5.],[140.,11.,12.,13.,14.]] 
+                      SPOTWAVE=0.
+                     end
+                  'J':begin
+                      spotloc=[[140.,2.,3.,4.,5.],[140.,11.,12.,13.,14.]] 
+                      SPOTWAVE=0.
+                      end
+                  'H':
+                  'K1':begin 
+                      spotloc=[[140.,218.,114.5,63.,166.5],[140.,166.,218.,114.,62.5]] 
+                       SPOTWAVE=2.049
+                       end
+                  'K2':begin
+                      spotloc=[[140.,2.,3.,4.,5.],[140.,11.,12.,13.,14.]] 
+                       SPOTWAVE=0.
+                       end
+                endcase
+ endif
+;stop
+ for ii=1,(size(spotloc))[1]-1 do $
+              print, 'SPOT locations at ',SPOTWAVE,' microms are',spotloc[ii,*]
 ;;do the photometry of the spots
 intens_sat=fltarr((size(spotloc))[1]-1,CommonWavVect[2])
-sidelen=4
+sidelen=8
 for spot=1,(size(spotloc))[1]-1 do begin
   for i=0,CommonWavVect[2]-1 do begin
       ;;extrapolate sat -spot at a given wavelength
-      if tests eq 0 then $
+      if tests ne 1 then $
       pos2=calc_satloc(spotloc[spot,0],spotloc[spot,1],spotloc[0,*],SPOTWAVE,lambda[i]) else $
       pos2=[spotloc[spot,0],spotloc[spot,1]]      
+      print, 'pos ini=',pos2
       getsatpos=centroid(subarr(cubcent2[*,*,i],sidelen,[pos2[0],pos2[1]]))
       ;x=spotloc[spot,0]-sidelen/2.+getsatpos[0] & y=spotloc[spot,1]-sidelen/2.+getsatpos[1]
       x=pos2[0]-sidelen/2.+getsatpos[0] & y=pos2[1]-sidelen/2.+getsatpos[1]
@@ -134,10 +166,10 @@ for spot=1,(size(spotloc))[1]-1 do begin
 
 endfor
 
-;;unocculted STAR location; ok if it is not perfectly centered (as it use a centroid algo to localize center)
+;;unocculted STAR location; ok if it is not perfectly centered (it uses a centroid algo to localize center)
 inputS=dblarr(CommonWavVect[2])
 ;star location
-sidelen=20
+sidelen=8;20
 getstarpos=centroid(subarr(cubcent2[*,*,0],sidelen,spotloc[0,*]))
 x=spotloc[0,0]-sidelen/2.+getstarpos[0] & y=spotloc[0,1]-sidelen/2.+getstarpos[1]
 for i=0,CommonWavVect[2]-1 do begin
@@ -159,15 +191,21 @@ print, 'tot intens sat=',total(intens_sat,1)
 print, 'grid_ratios=',gridratio
 print, 'mean grid ratio=',mean(gridratio[0:n_elements(gridratio)-1], /nan) ;remove edges that can be affected by the interpolation on wavelength?
 print, 'median grid ratio=',median(gridratio[0:n_elements(gridratio)-1])
+print, 'applied median grid ratio=',median(gridratio[10:n_elements(gridratio)-10])
 lambda_gridratio=[[lambda],[gridratio]]
 
 suffix+='-fluxcal'
 
 
   ; Set keywords for outputting files into the Calibrations DB
-  sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Grid ratio", "What kind of IFS file is this?"
-  sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-
+  if tests ne 1 then begin
+    if numext eq 0 then begin
+      sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Grid ratio", "What kind of IFS file is this?"
+      sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+    endif else begin
+      sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Grid ratio", "What kind of IFS file is this?"
+      sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+    endelse
 	thisModuleIndex = Backbone->GetCurrentModuleIndex()
     if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
 		  if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
@@ -175,9 +213,10 @@ suffix+='-fluxcal'
     	if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
     endif else begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
-          gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=*(dataset.headers)[numfile]
+          ;gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=*(dataset.headers)[numfile]
+          Backbone_comm->gpitv, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv)
     endelse
-;stop
+   endif 
 if tests eq 1 then begin
     mydevice = !D.NAME
     thisLetter = "155B

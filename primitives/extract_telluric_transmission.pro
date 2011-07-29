@@ -51,11 +51,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         lambdamin=CommonWavVect[0]
         lambdamax=CommonWavVect[1]
 
-hdr= *(dataset.headers)[0]
+;hdr= *(dataset.headers)[0]
+if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
 
 
-
-
+;stop
 if ( Modules[thisModuleIndex].method eq 1 ) then begin
 ;;; handle the spot locations
 ;;; handle the spot locations
@@ -206,9 +206,9 @@ if tag_exist( Modules[thisModuleIndex], "Save_telluric_transmission") && ( Modul
 
 endif
 if tag_exist( Modules[thisModuleIndex], "Correct_datacube")&& ( Modules[thisModuleIndex].Correct_datacube eq 1 ) then begin
-print, 'before corr=',(*(dataset.currframe[0]))[140,140,34]
+;print, 'before corr=',(*(dataset.currframe[0]))[140,140,34]
   for ii=0,CommonWavVect[2]-1 do (*(dataset.currframe[0]))[*,*,ii]/=fluxsatmedabs[ii]
-print, 'after corr=',(*(dataset.currframe[0]))[140,140,34]  
+;print, 'after corr=',(*(dataset.currframe[0]))[140,140,34]  
   print, 'Corrected from telluric transmission.'
   
 if tag_exist( Modules[thisModuleIndex], "Save_corrected_datacube") && tag_exist( Modules[thisModuleIndex], "suffix") then suffix+=Modules[thisModuleIndex].suffix
@@ -219,7 +219,8 @@ if tag_exist( Modules[thisModuleIndex], "Save_corrected_datacube") && tag_exist(
     	if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
     endif else begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
-          gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=*(dataset.headers)[numfile]
+          ;gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=*(dataset.headers)[numfile]
+          Backbone_comm->gpitv, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv)
     endelse
 
 endif

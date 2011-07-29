@@ -5,6 +5,7 @@
 ;
 ; OUTPUTS:
 ; PIPELINE ARGUMENT: Name="overwrite" Type="int"  Default="0" Desc="0:do not overwrite already existent keyword; 1:overwrite"
+; PIPELINE ARGUMENT: Name="exten" Type="int"  Default="0" Desc="Choose the extension num to place your keyword(s). 0 for FITS or MEF-PHU. 1 for extension1."
 ; PIPELINE ARGUMENT: Name="keyword1" Type="string"  Default="FILTER" Desc="Enter keyword name to add."
 ; PIPELINE ARGUMENT: Name="value1" Type="string"  Default="H" Desc="Enter value of the keyword to add."
 ; PIPELINE ARGUMENT: Name="keyword2" Type="string"  Default="OBSTYPE" Desc="Enter keyword name to add."
@@ -38,7 +39,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
  overwrite=0.  
    thisModuleIndex = Backbone->GetCurrentModuleIndex()  
  if tag_exist( Modules[thisModuleIndex], "overwrite") then overwrite=float(Modules[thisModuleIndex].overwrite)
- 
+ if tag_exist( Modules[thisModuleIndex], "exten") then exten=float(Modules[thisModuleIndex].exten)
 
  tag = tag_names(Modules[thisModuleIndex])
  nkeyw = n_elements(where(strmatch(tag,'keywo*', /fold)))
@@ -51,32 +52,50 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
      value=Modules[thisModuleIndex].(indval)
      
 
-void=sxpar( *(dataset.headers)[numfile],keyword, count=cc)
+    if numext eq 0 then begin
+      hdr= *(dataset.headers)[numfile] 
+    endif else begin
+      if exten eq 0 then hdr= *(dataset.headersPHU)[numfile]
+      if exten eq 1 then hdr= *(dataset.headers)[numfile]
+    endelse
+void=sxpar( hdr,keyword, count=cc)
      if ( cc ne 0)  then begin
         if overwrite eq 1. then begin 
            if tag_exist( Modules[thisModuleIndex], keyw) && tag_exist( Modules[thisModuleIndex], val) then $
-           FXADDPAR, *(dataset.headers)[numfile], keyword, value
+           FXADDPAR, hdr, keyword, value
         endif
      endif else begin
             if tag_exist( Modules[thisModuleIndex], keyw) && tag_exist( Modules[thisModuleIndex], val) then $
-           FXADDPAR, *(dataset.headers)[numfile], keyword, value
+           FXADDPAR, hdr, keyword, value
      endelse 
      
   endfor
   
+    if numext eq 0 then begin
+      *(dataset.headers)[numfile] =hdr
+    endif else begin
+      if exten eq 0 then *(dataset.headersPHU)[numfile]=hdr
+      if exten eq 1 then *(dataset.headers)[numfile]=hdr
+    endelse
+    
+    
     if tag_exist( Modules[thisModuleIndex], "suffix") then suffix=Modules[thisModuleIndex].suffix
   
-    if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
-      if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
-      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display)
-      if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
-    endif else begin
-      if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
-          gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=*(dataset.headers)[numfile]
-    endelse
+  
+@__end_primitive
+    
+;    if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
+;      if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
+;      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display)
+;      if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
+;    endif else begin
+;      if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
+;          ;gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=*(dataset.headers)[numfile]
+;          Backbone_comm->gpitv, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv)
+;    endelse
 
    
-   return, ok
+ ;  return, ok
 ;writefits, fname, specpos,h
 
 end

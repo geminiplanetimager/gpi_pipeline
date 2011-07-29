@@ -43,8 +43,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 @__start_primitive
    
     im=*(dataset.currframe[0]) 
-    h=header
-    obstype=SXPAR( h, 'OBSTYPE')
+    
+    if numext eq 0 then h= *(dataset.headers)[numfile] else h= *(dataset.headersPHU)[numfile]
+   ; h=header
+  obstype=SXPAR( h, 'OBSTYPE')
 	bandeobs=SXPAR( h, 'FILTER', count=ct)
 	if ct eq 0 then bandeobs= sxpar(h,'FILTER1')
 
@@ -161,7 +163,7 @@ sxaddhist, " ",/blank, h
 ; Instead do it this way: 
 
 if ( Modules[thisModuleIndex].Save eq 1 ) then begin
-	b_Stat = save_currdata ( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=0 ,$
+	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=0 ,$
 		   savedata=spotpos, saveheader=h, output_filename=out_filename)
     if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
 

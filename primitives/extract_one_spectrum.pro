@@ -44,8 +44,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
    	T = systime(1)
 
   	main_image_stack=*(dataset.currframe[0])
-
-        band=strcompress(sxpar( *(dataset.headers[numfile]), 'FILTER',  COUNT=cc),/rem)
+        if numext eq 0 then hdr=*(dataset.headers[numfile]) else hdr=*(dataset.headersPHU[numfile])
+        band=strcompress(sxpar( hdr, 'FILTER',  COUNT=cc),/rem)
         if cc eq 1 then begin
           cwv=get_cwv(band)
           CommonWavVect=cwv.CommonWavVect
@@ -115,7 +115,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
       if cc eq 1 then units=calunits 
 
       s_Ext='-spectrum_x'+Modules[thisModuleIndex].xcenter+'_y'+Modules[thisModuleIndex].ycenter
-     filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
+     filnm=sxpar(hdr,'DATAFILE')
      slash=strpos(filnm,path_sep(),/reverse_search)
      psFilename = Modules[thisModuleIndex].OutputDir+'fig'+path_sep()+strmid(filnm, slash,strlen(filnm)-5-slash)+s_Ext+'.ps'
 
@@ -125,8 +125,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     phpadu = 1.0                    ; don't convert counts to electrons
     ;;apr is 2.5*lambda/D (EE=94%)
     ;;apr is 2.5*lambda/D (EE=94%)
-    apr =  3.*(lambda[n_elements(lambda)/2]*1.e-6/7.7)*(180.*3600./!dpi)/0.014 ;lambda[0]*float(radi) ;(1./2.)*
-    skyrad =[apr+1.,apr+3]
+    apr =  2.5*(lambda[0]*1.e-6/7.7)*(180.*3600./!dpi)/0.014 ;lambda[0]*float(radi) ;(1./2.)*
+    skyrad =[apr+1.,apr+3.]
     print, 'Photometric aperture used:',apr
     print, 'Aperture sky annulus  inner radius:',skyrad[0],' outer radius:',skyrad[1]
     ;skyrad = lambda[0]*[float(radi)+2.,float(radi)+5.] ;(1./2.)*
@@ -149,8 +149,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
       endfor
       skyrad[1]+=1.
     endwhile
-     ;Need to take in to account Enc.Energy in the aperture (EE=94%): 
-      phot_comp*=(1./0.94)
+     ;Need to take in to account Enc.Energy in the aperture (EE=9%): 
+      phot_comp*=(1./0.91)
 ; overplot the phot apertures on radial plot
 if (ps_figure gt 0)  then begin
   openps, psFilename
@@ -181,7 +181,8 @@ hdr=*(dataset.headers[numfile])
     	if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
     endif else begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
-          gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=*(dataset.headers)[numfile]
+          ;gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=*(dataset.headers)[numfile]
+          Backbone_comm->gpitv, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv)
     endelse
 
 endif 

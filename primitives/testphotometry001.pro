@@ -31,7 +31,13 @@ mydevice = !D.NAME
 compspecname=DataSet.OutputFilenames[numfile]
 compspecnamewoext=strmid(compspecname,0,strlen(compspecname)-5)
 res=file_search(compspecnamewoext+'*spec*fits')
-extr=readfits(res[0],hdrextr)
+if numext eq 0 then begin
+  extr=readfits(res[0],hdrextr) 
+endif else begin
+  extr= mrdfits(res[0], 1, hdr)
+  hdrextr= headfits(res[0], exten=0)
+endelse
+
 lambdaspec=extr[*,0]
 ;espe=extr[*,2]
 COMPMAG=float(sxpar(hdrextr,'COMPMAG'))
@@ -39,6 +45,9 @@ COMPSPEC=sxpar(hdrextr,'COMPSPEC') ;we could have compsep&comprot
 
 ;;get DST companion spectrum
 ;restore, 'E:\GPI\dst\'+strcompress(compspec,/rem)+'compspectrum.sav'
+         
+        filter = strcompress(sxpar( hdrextr ,'FILTER1', count=fcount),/REMOVE_ALL)
+        if fcount eq 0 then filter = strcompress(sxpar( hdrextr ,'FILTER', count=fcount),/REMOVE_ALL)
 case strcompress(filter,/REMOVE_ALL) of
   'Y':specresolution=35.
   'J':specresolution=37.
@@ -110,7 +119,10 @@ dlam0=lamb[bandloc[0]+1]-lamb[bandloc[0]]
 extralam=VALUE_LOCATE(Lamb, [lambdamin])-VALUE_LOCATE(Lamb, [lambdamin-(lambda[1]-lambda[0])])
 nbchannel=floor((lamb[bandloc[1]+extralam]-lamb[bandloc[0]-extralam])/dlam0)
 lamb2= replicate(lamb[bandloc[0]-extralam],nbchannel)+(findgen(nbchannel))*replicate((lamb[bandloc[1]+extralam]-lamb[bandloc[0]-extralam])/float(nbchannel),nbchannel)
-spec2=  resample(lamb[bandloc[0]-extralam:bandloc[1]+extralam], lamb[bandloc[0]-extralam:bandloc[1]+extralam]*spec[bandloc[0]-extralam:bandloc[1]+extralam],lamb2)
+;spec2=  resample(lamb[bandloc[0]-extralam:bandloc[1]+extralam], lamb[bandloc[0]-extralam:bandloc[1]+extralam]*spec[bandloc[0]-extralam:bandloc[1]+extralam],lamb2)
+spec2=  resample(lamb[bandloc[0]-extralam:bandloc[1]+extralam], spec[bandloc[0]-extralam:bandloc[1]+extralam],lamb2)
+
+
 
 fwhmloc = VALUE_LOCATE(Lamb2, [(lambda[0]),(lambda[0]+dlam)])
 fwhm=float(fwhmloc[1]-fwhmloc[0])

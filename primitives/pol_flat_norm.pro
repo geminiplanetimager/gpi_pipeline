@@ -43,13 +43,18 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	; FIXME
 	;;TO DO: complete header
-	sxaddpar, *(dataset.headers[numfile]), "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
-	sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Flat Field", "What kind of IFS file is this?"
+	if numext eq 0 then begin
+	  sxaddpar, *(dataset.headers[numfile]), "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+    sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Flat Field", "What kind of IFS file is this?"
+	endif else begin
+	  sxaddpar, *(dataset.headersPHU[numfile]), "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+    sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Flat Field", "What kind of IFS file is this?"
+	endelse
  sz = size(cube)
-    sxaddpar, hdr, "NAXES", sz[0], /saveComment
-    sxaddpar, hdr, "NAXIS1", sz[1], /saveComment
-    sxaddpar, hdr, "NAXIS2", sz[2], /saveComment
-    sxaddpar, hdr, "NAXIS3", sz[3], /saveComment
+    sxaddpar, *(dataset.headers[numfile]), "NAXIS", sz[0], /saveComment
+    sxaddpar, *(dataset.headers[numfile]), "NAXIS1", sz[1], /saveComment
+    sxaddpar, *(dataset.headers[numfile]), "NAXIS2", sz[2], /saveComment
+    sxaddpar, *(dataset.headers[numfile]), "NAXIS3", sz[3], /saveComment
 
 
 

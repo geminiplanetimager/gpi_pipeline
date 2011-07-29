@@ -14,7 +14,7 @@
 ; PIPELINE ARGUMENT: Name="Method" Type="string" Range="OnDisk|InMemory" Default="OnDisk" Desc="OnDisk|InMemory"
 ; PIPELINE ORDER: 4.0
 ; PIPELINE TYPE: ALL
-; PIPELINE SEQUENCE: 02-03-11-23-24-
+; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:
 ;  2009-07-22: MDP started
@@ -41,7 +41,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		; Store all images into memory for simultaneous access in the future
 		; TODO: error checking here to make sure that we have enough memory!
 
-		header=*(dataset.headers[numfile])
+		header=*(dataset.headers[numfile])		
+    if numext eq 1 then headerPHU= *(dataset.headersPHU)[numfile]
+    
 		*(dataset.frames[numfile]) = *dataset.currframe
 
 		backbone->Log, "	Accumulated file "+strc(numfile)+" in memory.",/DRF

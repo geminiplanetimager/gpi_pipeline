@@ -40,7 +40,7 @@ calfiletype='Gridratio'
 
 
   	cubef3D=*(dataset.currframe[0])
-  	hdr= *(dataset.headers)[0]
+  	if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
   	filter=strcompress(SXPAR( hdr, 'FILTER',count=cc), /rem)
   	if cc eq 0 then filter=SXPAR( hdr, 'FILTER1',cc)
         ;get the common wavelength vector
@@ -53,8 +53,10 @@ calfiletype='Gridratio'
         lambdamin=CommonWavVect[0]
         lambdamax=CommonWavVect[1]
 
-
-    pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headerphot, /SILENT))
+    fits_info, c_File, /silent, N_ext=n_ext
+    if n_ext eq 0 then  $
+    pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headerphot, /SILENT)) else $
+    pmd_fluxcalFrame        = ptr_new(mrdfits(c_File, 1, Headerphot, /SILENT)) 
     lambda_gridratio=*pmd_fluxcalFrame
 
 	
@@ -63,16 +65,16 @@ calfiletype='Gridratio'
 
 ;;extract photometry of SAT 
 ;;; handle the spot locations
- SPOTWAVE=sxpar( *(dataset.headers[numfile]), 'SPOTWAVE',  COUNT=cc4)
+ SPOTWAVE=sxpar( *(dataset.headers)[numfile], 'SPOTWAVE',  COUNT=cc4)
    if cc4 gt 0 then begin
     ;check how many spots locations is in the header (2 or 4)
-    void=sxpar( *(dataset.headers[numfile]), 'SPOT4x',  COUNT=cs)
+    void=sxpar( hdr, 'SPOT4x',  COUNT=cs)
     if cs eq 1 then spotloc=fltarr(1+4,2) else spotloc=fltarr(1+2,2) ;1+ due for PSF center 
-          spotloc[0,0]=sxpar( *(dataset.headers[numfile]),"PSFCENTX")
-          spotloc[0,1]=sxpar( *(dataset.headers[numfile]),"PSFCENTY")      
+          spotloc[0,0]=sxpar( *(dataset.headers)[numfile],"PSFCENTX")
+          spotloc[0,1]=sxpar( *(dataset.headers)[numfile],"PSFCENTY")      
         for ii=1,(size(spotloc))[1]-1 do begin
-          spotloc[ii,0]=sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'x')
-          spotloc[ii,1]=sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'y')
+          spotloc[ii,0]=sxpar( *(dataset.headers)[numfile],"SPOT"+strc(ii)+'x')
+          spotloc[ii,1]=sxpar( *(dataset.headers)[numfile],"SPOT"+strc(ii)+'y')
         endfor      
    endif else begin
       SPOTWAVE=lamdamin
@@ -103,12 +105,12 @@ calfiletype='Gridratio'
     phpadu = 1.0                    ; don't convert counts to electrons
     radaper=(lambda[0])
     ;;apr is 2.*lambda/D (EE=94%)
-    apr = 2.*(lambda[n_elements(lambda)/2]*1.e-6/7.7)*(180.*3600./!dpi)/0.014;[radaper];lambda[0]*[3.];lambda[0]*[5.];lambda[0]*[3.] 
-    if (filter eq 'J')||(filter eq 'Y') then apr-=1. ;satellite spots are close to the dark hole in these bands...
-    if (filter eq 'K1')||(filter eq 'K2') then apr-=4.  ;satellite spots are close to the dark hole in these bands...
+    apr = 2.5*(lambda[0]*1.e-6/7.7)*(180.*3600./!dpi)/0.014;[radaper];lambda[0]*[3.];lambda[0]*[5.];lambda[0]*[3.] 
+    if (filter eq 'J')||(filter eq 'Y') then apr-=3.;1. 
+    if (filter eq 'K1')||(filter eq 'K2') then apr-=6.  ;dark hole in these bands...
     ; Assume that all pixel values are good data
     badpix = [-1.,1e6];state.image_min-1, state.image_max+1
-    
+;stop
     fluxsatmedabs=dblarr(CommonWavVect[2])
     cubcent2=cubef3D
     hh=3
@@ -116,10 +118,13 @@ calfiletype='Gridratio'
     intens_sat=fltarr((size(spotloc))[1]-1,CommonWavVect[2]) 
     for spot=1,(size(spotloc))[1]-1 do begin
       skyrad = [apr+2.,apr+6.] ;lambda[0]*[apr,apr+2.];lambda[0]*[5.,7.] ;skyrad = lambda[0]*[3.,4.]  
+      ;if (filter eq 'K1')||(filter eq 'K2') then skyrad = [apr+4.,apr+5.]
       ;if (filter eq 'J')||(filter eq 'Y') then skyrad = [apr+2.,apr+5.]
       ;if (skyrad[1]-skyrad[0] lt 2.) then skyrad[1]=skyrad[0]+2.
       intens_sat2=fltarr(1,CommonWavVect[2])+!VALUES.F_NAN
+      countrad=0
        while (total(~finite(intens_sat2)) ne 0) && (skyrad[1]-skyrad[0] lt 20.) do begin
+       countrad+=1
         for i=0,CommonWavVect[2]-1 do begin
             ;;extrapolate sat -spot at a given wavelength
             pos2=calc_satloc(spotloc[spot,0],spotloc[spot,1],spotloc[0,*],SPOTWAVE,lambda[i])
@@ -134,21 +139,23 @@ calfiletype='Gridratio'
 ;            print, cubcent2[x0-hh:x0+hh,y0-hh:y0+hh,i]
             aper, abs(cubcent2[*,*,i]), [x], [y], flux, errap, sky, skyerr, phpadu, (lambda[i]/lambda[0])*apr, $
               (lambda[i]/lambda[0])*skyrad, badpix, /flux, /silent 
-              print, 'slice#',i,' flux sat #'+strc(spot)+'=',flux[0],' sky=',sky[0]
+              print, 'slice#',i,' flux sat #'+strc(spot)+'=',flux[0],' sky=',sky[0]$
+              , '(rad [pix]=',(lambda[i]/lambda[0])*apr,' skyrad=[',(lambda[i]/lambda[0])*skyrad,'])' $
+              , 'at pos=[',x,y,']'
             intens_sat2[0,i]=(flux[0])
         endfor
         skyrad[1]+=1.
-        print, 'PHOTOM SKY outer RADIUS augmented +1 Rout='+strc(skyrad[1])
+        if countrad gt 1 then print, 'PHOTOM SKY outer RADIUS augmented +1 Rout='+strc(skyrad[1])
        endwhile
        intens_sat[spot-1,*]=intens_sat2[0,*]
     endfor
      ;;keep only mean values over the 4 spots
     for i=0,CommonWavVect[2]-1 do fluxsatmedabs[i]=mean(intens_sat[*,i],/nan)
 ;Need to take in to account Enc.Energy in the aperture (EE=94%, 2.*lambda/D): 
-fluxsatmedabs*=(1./0.94)
+fluxsatmedabs*=(1./0.99)
 
 ;;;;;;theoretical flux:
-nlambdapsf=37.
+nlambdapsf=n_elements(lambda)
 lambdapsf=fltarr(nlambdapsf)
     cwv=get_cwv(filter)
         CommonWavVect=cwv.CommonWavVect        
@@ -202,15 +209,15 @@ nbphotnormtheosmoothed=nbphotnormtheo
 ;;prepare the satellite flux ratio using a linear fit to reduce noise in the measurement
 lambdagrid=lambda_gridratio[*,0]
 rawgridratio=lambda_gridratio[*,1]
-instrum=SXPAR( hdr, 'INSTRUME',count=cinstru)
+;instrum=SXPAR( hdr, 'INSTRUME',count=cinstru)
  ;if (cinstru eq 1) && strmatch(instrum,'*DST*') && strmatch(filter,'*K*') then gridratiocoeff=linfit(lambdagrid[15:n_elements(lambdagrid)-1],rawgridratio[15:n_elements(lambdagrid)-1]) else $
 ;gridratiocoeff=linfit(lambdagrid,rawgridratio)
 ;gridratio= gridratiocoeff[0]+gridratiocoeff[1]*lambdagrid[*]
 nelem=n_elements(lambdagrid)
-gridratio=replicate(median(lambda_gridratio[10:nelem-10,1]),nelem)
+gridratio=replicate(median(lambda_gridratio[10:nelem-10,1]),n_elements(lambdapsf))
 ;gridratiocoeff=linfit(lambdagrid,median(rawgridratio,3))
 ;gridratio= gridratiocoeff[0]+gridratiocoeff[1]*lambdagrid[*]
-
+;print, 'grid ratio', gridratio
 
 ;or use it directly with the following line:
 ;gridratio=lambda_gridratio[*,1]
@@ -219,10 +226,12 @@ gridratio=replicate(median(lambda_gridratio[10:nelem-10,1]),nelem)
 convfac=fltarr(n_elements(nbphotnormtheosmoothed))
 for i=0,n_elements(nbphotnormtheosmoothed)-1 do $
 convfac[i]=((nbphotnormtheosmoothed[i])/(gaindetector*(gridratio[i])*(fluxsatmedabs[i])))
-
+print, 'Applying grid ratio=',gridratio
 print, 'convfac*exptime=',convfac*(exposuretime)
 ;;;save the conversion factor in DB for eventual use with extended object
-  convfac_header=*(dataset.headers[numfile])
+  if numext eq 0 then $
+  convfac_header=*(dataset.headers[numfile]) else $
+  convfac_header=*(dataset.headersPHU[numfile])
   filetype='Fluxconv' 
   sxaddpar, convfac_header,  "FILETYPE", filetype, "What kind of IFS file is this?"
   sxaddpar, convfac_header,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
@@ -236,7 +245,10 @@ print, 'convfac*exptime=',convfac*(exposuretime)
     version = gpi_pipeline_version()
     sxaddpar, saveheader, 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
     savedata=[[lambda],[convfac]]
-    writefits, c_File, savedata, convfac_header
+  ;  writefits, c_File, savedata, convfac_header
+     b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, save_suffix,savedata=savedata, saveheader=convfac_header)
+      if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
+  
     endif else print, "Directory "+s_OutputDir+" does not exist or is not writeable."+ ' CALIB Fluxconv not saved.'
 
 

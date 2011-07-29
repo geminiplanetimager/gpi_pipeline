@@ -38,8 +38,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         lambda=cwv.lambda
         lambdamin=CommonWavVect[0]
         lambdamax=CommonWavVect[1]
+        
+       if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
        
-       filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
+       filnm=sxpar(hdr,'DATAFILE')
        slash=strpos(filnm,path_sep(),/reverse_search)
        c_File = strmid(filnm, slash,strlen(filnm)-5-slash)+'.fits'
        print, 'Click Ok in the dialog box that appears.'
@@ -88,14 +90,19 @@ endif
 ;print, lambda[floor(CommonWavVect[2]/2)+slic],pos2[0],pos2[1]
 
 *(dataset.currframe[0])=[transpose(PSFcenter),spotloc2]
-  sxaddpar, *(dataset.headers[numfile]), "SPOTWAVE", lambda(floor(CommonWavVect[2]/2)), "Wavelength of ref for SPOT locations"
+  sxaddpar, hdr, "SPOTWAVE", lambda(floor(CommonWavVect[2]/2)), "Wavelength of ref for SPOT locations"
  
-
+*(dataset.headers[numfile])=hdr
 suffix+='-spotloc'
 
   ; Set keywords for outputting files into the Calibrations DB
-  sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?"
-  sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+     if numext eq 0 then begin
+      sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?"
+      sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+    endif else begin
+      sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?"
+      sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+    endelse
 
 ;TODO header update
 

@@ -68,8 +68,8 @@ if cc ne 0 then medianspectrum[indNan]=!VALUES.F_NAN
 ;calculate median of median values
 medtot=median(medianspectrum)
 
-for xsi=0,nlens-1 do begin
-	message,/info, 'Extracting flat-field; Removing lamp spectrum...lenslet row # '+string(xsi)
+message,/info, 'Extracting flat-field; Removing lamp spectrum...'
+for xsi=0,nlens-1 do begin	
   	for ysi=0,nlens-1 do begin
 		if finite(xmini[xsi,ysi]) then begin
 			valx=xmini[xsi,ysi]+indgen(sdpx)
@@ -116,8 +116,13 @@ endfor
 *(dataset.currframe[0])=Result
 
 ; Set keywords for outputting files into the Calibrations DB
-sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Flat Field", "What kind of IFS file is this?"
-sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+if numext eq 0 then begin
+  sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Flat Field", "What kind of IFS file is this?"
+  sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+endif else begin
+  sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Flat Field", "What kind of IFS file is this?"
+  sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+endelse
 
 ;suffix='flat'
 @__end_primitive

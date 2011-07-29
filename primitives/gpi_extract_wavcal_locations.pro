@@ -47,12 +47,14 @@
 ;-
 
 function gpi_extract_wavcal_locations,  DataSet, Modules, Backbone
-primitive_version= '$Id: gpi_extract_wavcal2.pro 11 2010-07-06 01:22:03Z maire $' ; get version from subversion to store in header history
+primitive_version= '$Id: gpi_extract_wavcal_locations.pro 11 2010-07-06 01:22:03Z maire $' ; get version from subversion to store in header history
 @__start_primitive
 
    
    im=*(dataset.currframe[0]) 
-   h=*(dataset.headers[numfile])
+   
+    if numext eq 0 then h= *(dataset.headers)[numfile] else h= *(dataset.headersPHU)[numfile]
+  ; h=*(dataset.headers[numfile])
             ;error handle if image or header not well handled
             if ((size(im))[0] eq 0) || (n_elements(h) eq 0)  then $
             return, error('FAILURE ('+functionName+'): Failed to load data.') 
@@ -358,7 +360,9 @@ for qq=0,(size(specpos))[3]-1 do specpos[*,*,qq]=rotate(specpos[*,*,qq],2)
 
 for qq=0,(size(dispeak))[3]-1 do dispeak[*,*,qq]=rotate(dispeak[*,*,qq],2)
 *(dataset.currframe[0])=dispeak ;specpos
-*(dataset.headers[numfile])=h
+;*(dataset.headers[numfile])=h
+
+if numext eq 0 then *(dataset.headers)[numfile]=h else *(dataset.headersPHU)[numfile]=h
 ;stop
 ;if ( Modules[thisModuleIndex].Save eq 1 ) then begin
 ;       b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix,  savedata=specpos,saveheader=h)

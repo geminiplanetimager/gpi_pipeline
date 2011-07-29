@@ -14,7 +14,7 @@
 ; DRP KEYWORDS: FILETYPE,ISCALIB
 ; OUTPUTS:  plate scale & orientation
 ;
-; PIPELINE COMMENT: Calculate astrometry from unocculted binaries
+; PIPELINE COMMENT: Calculate astrometry from unocculted binaries using user-specified separation and PA at DATEOBS
 ; PIPELINE ARGUMENT: Name="rho" Type="float" Range="[0.,4.]" Default="1." Desc="Separation [arcsec] at date DATEOBS of observation of the binaries"
 ; PIPELINE ARGUMENT: Name="pa" Type="float" Range="[0.,360.]" Default="4.8" Desc="Position angle [degree] at date DATEOBS of observation of the binaries"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
@@ -41,7 +41,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
    	thisModuleIndex = Backbone->GetCurrentModuleIndex()
 
   	cubef3D=*(dataset.currframe[0])
-
+    if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
 
 	sz=size(cubef3D)
 	posmax1=intarr(2)
@@ -95,7 +95,8 @@ print, ' angle x-axis [deg]', mean(angle_xaxis_deg,/nan)
 pa=float(Modules[thisModuleIndex].pa) ;get current position angle of the binaries
 xaxis_pa=pa-mean(angle_xaxis_deg,/nan)
 ;;calculate this angle for CRPA=0.
-   obsCRPA=float(SXPAR( header, 'CRPA'))
+
+   obsCRPA=float(SXPAR( hdr, 'CRPA'))
    xaxis_pa_at_zeroCRPA=xaxis_pa-obsCRPA
 
 Result=[pixelscale,xaxis_pa_at_zeroCRPA]
@@ -104,24 +105,28 @@ Result=[pixelscale,xaxis_pa_at_zeroCRPA]
 
 *(dataset.currframe[0])=Result
 
-sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Plate scale & orientation", /savecomment
-sxaddpar, *(dataset.headers[numfile]), "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+sxaddpar, hdr, "FILETYPE", "Plate scale & orientation", /savecomment
+sxaddpar, hdr, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
 
+  if numext eq 0 then $
+  *(dataset.headers[numfile])=hdr else $
+  *(dataset.headersPHU[numfile])=hdr
 
-	
 	if tag_exist( Modules[thisModuleIndex], "suffix") then suffix=Modules[thisModuleIndex].suffix
+	@__end_primitive 
 	
-    if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
-		  if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
-    	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display)
-    	if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
-    endif else begin
-      if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
-          gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=*(dataset.headers)[numfile]
-    endelse
-
-
-return, ok
+;    if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
+;		  if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
+;    	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display)
+;    	if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
+;    endif else begin
+;      if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
+;          ;gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=*(dataset.headers)[numfile]
+;          Backbone_comm->gpitv, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv)
+;    endelse
+;
+;
+;return, ok
 
 
 end

@@ -37,7 +37,8 @@ calfiletype='Gridratio'
 
 
   	cubef3D=*(dataset.currframe[0])
-  	 hdr= *(dataset.headers)[0]
+  	
+    if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
     filter=strcompress(SXPAR( hdr, 'FILTER',count=cc), /rem)
     if cc eq 0 then filter=SXPAR( hdr, 'FILTER1',cc)
         ;get the common wavelength vector
@@ -51,7 +52,10 @@ calfiletype='Gridratio'
         lambdamax=CommonWavVect[1]
 
 
-    pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headerphot, /SILENT))
+      fits_info, c_File, /silent, N_ext=n_ext
+    if n_ext eq 0 then  $
+    pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headerphot, /SILENT)) else $
+    else  pmd_fluxcalFrame        = ptr_new(mrdfits(c_File, 1, Headerphot, /SILENT)) 
     lambda_gridratio=*pmd_fluxcalFrame
 
 	;hdr= *(dataset.headers)[0]

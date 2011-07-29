@@ -30,25 +30,28 @@ function get_spots_locations, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 calfiletype='spotloc'
 @__start_primitive
-
+ ; stop
 	loadedcalfiles->load, c_File, calfiletype
 	spotloc = loadedcalfiles->get(calfiletype, header=HeaderCalib)
-
+;stop
     ;pmd_fluxcalFrame        = ptr_new(READFITS(c_File, HeaderCalib, /SILENT))
     ;spotloc =*pmd_fluxcalFrame
     SPOTWAVE=strcompress(sxpar( HeaderCalib, 'SPOTWAVE',  COUNT=cc4),/rem)
-    sxaddpar, *(dataset.headers[numfile]), "SPOTWAVE", SPOTWAVE, "Wavelength of ref for SPOT locations"
-	sxaddpar, *(dataset.headers[numfile]), "PSFCENTX", spotloc[0,0], "x-locations of PSF Center"
-	sxaddpar, *(dataset.headers[numfile]), "PSFCENTY", spotloc[0,1], "y-locations of PSF Center"
+   ; if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
+    sxaddpar, *(dataset.headers)[numfile], "SPOTWAVE", SPOTWAVE, "Wavelength of ref for SPOT locations"
+	sxaddpar, *(dataset.headers)[numfile], "PSFCENTX", spotloc[0,0], "x-locations of PSF Center"
+	sxaddpar, *(dataset.headers)[numfile], "PSFCENTY", spotloc[0,1], "y-locations of PSF Center"
 	for ii=1,(size(spotloc))[1]-1 do begin
-	  sxaddpar, *(dataset.headers[numfile]), "SPOT"+strc(ii)+'x', spotloc[ii,0], "x-locations of spot #"+strc(ii)
-	  sxaddpar, *(dataset.headers[numfile]), "SPOT"+strc(ii)+'y', spotloc[ii,1], "y-locations of spot #"+strc(ii)  
+	  sxaddpar, *(dataset.headers)[numfile], "SPOT"+strc(ii)+'x', spotloc[ii,0], "x-locations of spot #"+strc(ii)
+	  sxaddpar, *(dataset.headers)[numfile], "SPOT"+strc(ii)+'y', spotloc[ii,1], "y-locations of spot #"+strc(ii)  
 	endfor
 
 ;  sxaddhist, functionname+": Loaded satellite spot locations", *(dataset.headers[numfile])
 ;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": Loaded satellite spot locations"
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
+  sxaddparlarge,*(dataset.headers)[numfile],'HISTORY',functionname+": Loaded satellite spot locations"
+  sxaddparlarge,*(dataset.headers)[numfile],'HISTORY',functionname+": "+c_File
+  
+    ;if numext eq 0 then  *(dataset.headers)[numfile]=hdr else  *(dataset.headersPHU)[numfile]=hdr
 return, ok
 
 

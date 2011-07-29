@@ -36,12 +36,16 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	if tag_exist( Modules[thisModuleIndex], "suffix") then suffix=Modules[thisModuleIndex].suffix else suffix=method
 	if tag_exist( Modules[thisModuleIndex], "method") then method=Modules[thisModuleIndex].method else method='median'
-	header=*(dataset.headers[numfile])
+	;header=*(dataset.headers[numfile])
 
 	nfiles=dataset.validframecount
 
 	; Load the first file so we can figure out their size, etc. 
-	im0 = accumulate_getimage(dataset, 0, hdr0)
+	;im0 = accumulate_getimage(dataset, 0, hdr0)
+
+	 im0 = accumulate_getimage(dataset, 0, hdr,hdrext=hdrext)
+  ;imtab=dblarr(naxis(0),naxis(1),numfile)
+   if numext eq 0 then hdr0= hdr else hdr0= hdrext
 	;imtab=dblarr(naxis(0),naxis(1),numfile)
 	sz = [0, sxpar(hdr0,'NAXIS1'), sxpar(hdr0,'NAXIS2')]
 	imtab = dblarr(sz[1], sz[2], nfiles)
@@ -88,8 +92,13 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	;*(dataset.headers[numfile]) = hdr0 ; NO!! DO NOT JUST REPLACE THIS HEADER - that screws up the 'DATAFILE' keyword used in
 										; save_currdata for the filename.
 	dataset.validframecount=1
-	sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Dark File", /savecomment
-	sxaddpar, *(dataset.headers[numfile]), "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+;	sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Dark File", /savecomment
+;	sxaddpar, *(dataset.headers[numfile]), "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+  sxaddpar, hdr, "FILETYPE", "Dark File", /savecomment
+  sxaddpar, hdr, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+  if numext eq 0 then $
+  *(dataset.headers[numfile])=hdr else $
+  *(dataset.headersPHU[numfile])=hdr
 
 @__end_primitive
 end

@@ -87,7 +87,8 @@ print, 'x-Pos of binary 2:',reform(gfit2[4,*])
 print, 'y-Pos of binary 2:',reform(gfit2[5,*])
 
 
-hdr= *(dataset.headers)[0]
+;hdr= *(dataset.headers)[0]
+if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr=*(dataset.headersPHU)[numfile]
 name=(SXPAR( hdr, 'OBJECT'))
 dateobs=(SXPAR( hdr, 'DATE-OBS'))
 timeobs=(SXPAR( hdr, 'TIME-OBS'))
@@ -119,24 +120,31 @@ Result=[pixelscale,xaxis_pa_at_zeroCRPA]
 
 *(dataset.currframe[0])=Result
 
-sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Plate scale & orientation", /savecomment
-sxaddpar, *(dataset.headers[numfile]), "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+sxaddpar, hdr, "FILETYPE", "Plate scale & orientation", /savecomment
+sxaddpar, hdr, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
 
+ if numext eq 0 then $
+  *(dataset.headers[numfile])=hdr else $
+  *(dataset.headersPHU[numfile])=hdr
 
-	
-	if tag_exist( Modules[thisModuleIndex], "suffix") then suffix=Modules[thisModuleIndex].suffix
-	
-    if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
-		  if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
-    	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display)
-    	if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
-    endif else begin
-      if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
-          gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=*(dataset.headers)[numfile]
-    endelse
-
-
-return, ok
+  if tag_exist( Modules[thisModuleIndex], "suffix") then suffix=Modules[thisModuleIndex].suffix
+  @__end_primitive 
+  
+;	
+;	if tag_exist( Modules[thisModuleIndex], "suffix") then suffix=Modules[thisModuleIndex].suffix
+;	
+;    if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
+;		  if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
+;    	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display)
+;    	if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
+;    endif else begin
+;      if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
+;          ;gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=*(dataset.headers)[numfile]
+;          Backbone_comm->gpitv, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv)
+;    endelse
+;
+;
+;return, ok
 
 
 end

@@ -30,7 +30,9 @@
 		c_File = (Modules[thisModuleIndex].CalibrationFile)
 
 		if strmatch(c_File, 'AUTOMATIC',/fold) then begin
-			c_File = (Backbone_comm->Getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headers)[numfile] )
+		  if numext eq 0 then $
+			c_File = (Backbone_comm->Getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headers)[numfile] ) $
+			else c_File = (Backbone_comm->Getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headersPHU)[numfile] ) 
 
 			if size(c_file,/tname) eq 'INT' then if c_file eq NOT_OK then begin
 				return, error('ERROR IN CALL ('+strtrim(functionName)+'): Calibration File could not be found in calibrations database.')

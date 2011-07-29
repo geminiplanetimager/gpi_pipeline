@@ -35,11 +35,17 @@ calfiletype = 'wavecal'
 
 
     ;open the wavecal file:
-    ; (JM: this following piece of code using pointer is unuseful right now 
-    ; as the common variable "wavcal" do the job. Maybe could serve later?)
-    if ~ptr_valid(pmd_wavcalFrame) then $
-    pmd_wavcalFrame        = ptr_new(READFITS(c_File, Header, /SILENT)) else $
-    *pmd_wavcalFrame = READFITS(c_File, Header, /SILENT)
+    ;rmq: pmd_wavcalFrame not used after...
+    fits_info, c_File, n_ext=n_ext
+    if n_ext eq 0 then begin
+      if ~ptr_valid(pmd_wavcalFrame) then $
+      pmd_wavcalFrame        = ptr_new(READFITS(c_File, Header, /SILENT)) else $
+      *pmd_wavcalFrame = READFITS(c_File, Header, /SILENT)
+    endif else begin
+      if ~ptr_valid(pmd_wavcalFrame) then $
+      pmd_wavcalFrame        = ptr_new(MRDFITS(c_File, 1, Header, /SILENT)) else $
+      *pmd_wavcalFrame = MRDFITS(c_File, 1, Header, /SILENT)      
+    endelse
     wavcal=*pmd_wavcalFrame
     ptr_free, pmd_wavcalFrame
 

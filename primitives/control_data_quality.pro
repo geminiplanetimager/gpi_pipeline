@@ -39,7 +39,8 @@ primitive_version= '$Id: control_data_quality.pro 96 2010-10-30 13:47:13Z maire 
 
     badquality=0
     drpmessage='ALERT '
-  	hdr= *(dataset.headers)[0]
+    if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr=*(dataset.headersPHU)[numfile]
+  	;hdr= *(dataset.headers)[0]
   	;;control GPI health
   	health=strcompress(SXPAR( hdr, 'GPIHEALT',count=cc), /rem)
   	if strmatch(health,'WARNING',/fold) || strmatch(health,'BAD',/fold) then begin

@@ -29,6 +29,7 @@ function gpi_combine_wavcal_locations_all,  DataSet, Modules, Backbone
 primitive_version= '$Id: gpi_combine_wavcal_locations_all.pro 11 2010-07-14 01:22:03Z maire $' ; get version from subversion to store in header history
 @__start_primitive
 	nfiles=dataset.validframecount
+if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
 
 	if nfiles gt 1 then begin
 
@@ -37,9 +38,9 @@ primitive_version= '$Id: gpi_combine_wavcal_locations_all.pro 11 2010-07-14 01:2
 		sz=size(accumulate_getimage( dataset, 0))
 		wavcalcomb=dblarr(sz[1],sz[2],sz[3])
 	   
-		header=*(dataset.headers)[numfile]
-		filter = strcompress(sxpar( header ,'FILTER', count=fcount),/REMOVE_ALL)
-		if fcount eq 0 then filter = strcompress(sxpar( header ,'FILTER1'),/REMOVE_ALL)
+		;header=*(dataset.headers)[numfile]
+		filter = strcompress(sxpar( hdr ,'FILTER', count=fcount),/REMOVE_ALL)
+		if fcount eq 0 then filter = strcompress(sxpar( hdr ,'FILTER1'),/REMOVE_ALL)
 		cwv=get_cwv(filter)
 		CommonWavVect=cwv.CommonWavVect
 		lambda=cwv.lambda
@@ -180,32 +181,33 @@ primitive_version= '$Id: gpi_combine_wavcal_locations_all.pro 11 2010-07-14 01:2
 		*(dataset.currframe[0])=wavcalcomb
 ;stop
 		basename=findcommonbasename(dataset.filenames[0:nfiles-1])
-		FXADDPAR, *(DataSet.Headers[numfile]), 'DATAFILE', basename+'.fits'
-		sxaddhist, functionname+": combined wavcal files:", *(dataset.headers[numfile])
+		FXADDPAR, hdr, 'DATAFILE', basename+'.fits'
+		sxaddhist, functionname+": combined wavcal files:", hdr ;*(dataset.headers[numfile])
 		for i=0,nfiles do $ 
-			sxaddhist, functionname+": "+strmid(dataset.filenames[i], 0,strlen(dataset.filenames[i])-6)+suffix+'.fits', *(dataset.headers[numfile])
+			sxaddhist, functionname+": "+strmid(dataset.filenames[i], 0,strlen(dataset.filenames[i])-6)+suffix+'.fits', hdr ;*(dataset.headers[numfile])
 
 ;update with the most recent dateobs and timeobs
   dateobs3=dblarr(nfiles)
   for n=0,nfiles-1 do begin
-   dateobs2 =  strc(sxpar(*(DataSet.Headers[n]), "DATE-OBS"))+" "+strc(sxpar(*(DataSet.Headers[n]),"TIME-OBS"))
+   dateobs2 =  strc(sxpar(hdr, "DATE-OBS"))+" "+strc(sxpar(hdr,"TIME-OBS"))
    dateobs3[n] = date_conv(dateobs2, "J")
   endfor
    recent=max(dateobs3,indrecent)
    ;;we add 1second to the last time-obs so the combinaison will the most recent
    dateobscomb=date_conv(dateobs3[indrecent]+1./24./60./60.,'F')
    datetimecomb=strsplit(dateobscomb,'T', /extract)
-   FXADDPAR, *(DataSet.Headers[numfile]), 'DATE-OBS', datetimecomb[0]
-   FXADDPAR, *(DataSet.Headers[numfile]), 'TIME-OBS', datetimecomb[1]
+   FXADDPAR, hdr, 'DATE-OBS', datetimecomb[0]
+   FXADDPAR, hdr, 'TIME-OBS', datetimecomb[1]
 
 
 		;suffix+='-comb'
 	endif else begin
-		sxaddhist, functionname+": Only one wavelength calibration supplied; nothing to combine!", *(dataset.headers[numfile])
+		sxaddhist, functionname+": Only one wavelength calibration supplied; nothing to combine!", hdr ;*(dataset.headers[numfile])
 
 
 	endelse
-	 
+	  
+       if numext eq 0 then *(dataset.headers)[numfile]=hdr else *(dataset.headersPHU)[numfile] =hdr
 @__end_primitive
 
 end

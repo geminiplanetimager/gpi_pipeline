@@ -10,6 +10,7 @@
 ;
 ;
 ; KEYWORDS:
+; GEM/GPI KEYWORDS:FILTER1
 ; OUTPUTS:
 ;
 ; PIPELINE COMMENT: Extract a 3D datacube from a 2D image taking account of the hot/cold pixel map (need to use also readbadpixmap with this primitive).
@@ -54,6 +55,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 nlens=(size(wavcal))[1]
 dim=(size(det))[1]
+        if numext eq 0 then header=*(dataset.headers)[numfile] else header=*(dataset.headersPHU)[numfile]
         filter = strcompress(sxpar( header ,'FILTER1', count=fcount),/REMOVE_ALL)
         if fcount eq 0 then filter = strcompress(sxpar( header ,'FILTER'),/REMOVE_ALL)
                     ;error handle if FILTER1 keyword not found

@@ -36,7 +36,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 calfiletype = 'dark'
 @__start_primitive
 
-	dark=readfits(c_File)
+  fits_info, c_File, /silent, N_ext=n_ext
+  if n_ext eq 0 then dark=readfits(c_File) else dark=mrdfits(c_File,1)
+  
+	;dark=readfits(c_File)
 	*(dataset.currframe[0]) -= dark
 
 ;  sxaddhist, functionname+": dark subtracted", *(dataset.headers[numfile])

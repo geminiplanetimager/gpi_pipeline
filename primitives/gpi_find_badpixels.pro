@@ -35,8 +35,9 @@ nbdev1=3.
 nbdev17=2.  
 nbdev18=18.
 nbdevedge=[nbdev0,nbdev1,nbdev17,nbdev18]
-
-h=*(dataset.headers[numfile])
+  
+   if numext eq 0 then h= *(dataset.headers)[numfile] else h= *(dataset.headersPHU)[numfile]
+;h=*(dataset.headers[numfile])
 filter=SXPAR( h, 'FILTER',count=c4)
 if c4 eq 0 then filter=SXPAR( h, 'FILTER1',count=c4)
                     ;error handle if FILTER1 keyword not found
@@ -128,8 +129,13 @@ print, 'nb bad-pixels detected =', total(double(badpixmap))
 
 
 	; Set keywords for outputting files into the Calibrations DB
-	sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
-	sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+	 if numext eq 0 then begin
+    sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
+    sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+  endif else begin
+    sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
+    sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+  endelse
 
 
 

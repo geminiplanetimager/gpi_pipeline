@@ -1,5 +1,5 @@
 ;+
-; NAME: gpi_medianADI
+; NAME: gpi_medianadi
 ;
 ; PIPELINE PRIMITIVE DESCRIPTION: Median ADI data-cubes
 ;     Median all ADI datacubes
@@ -27,7 +27,7 @@
 ;   2010-10-19 JM: split HISTORY keyword if necessary
 ;-
 
-Function gpi_medianADI, DataSet, Modules, Backbone
+Function gpi_medianadi, DataSet, Modules, Backbone
 common PIP
 COMMON APP_CONSTANTS
 

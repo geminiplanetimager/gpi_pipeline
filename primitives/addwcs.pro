@@ -1,4 +1,3 @@
-
 ;+
 ; NAME: Addwcs
 ; PIPELINE PRIMITIVE DESCRIPTION: Update World Coordinates
@@ -13,7 +12,7 @@
 ;
 ; OUTPUTS: 
 ; 	
-; GEM/GPI KEYWORDS:
+; GEM/GPI KEYWORDS:CRPA,RA,DEC
 ; DRP KEYWORDS: CDELT1,CDELT2,CRPIX1,CRPIX2,CRVAL1,CRVAL2,CTYPE1,CTYPE2,HISTORY,PC1_1,PC2_2,PSFCENTX,PSFCENTY
 ;
 ; PIPELINE COMMENT: Add wcs info, assuming target star is precisely centered.
@@ -35,11 +34,13 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 calfiletype='plate'
 @__start_primitive
 
-	calib=readfits(c_File)
+  fits_info, c_File, /silent, N_ext=n_ext
+  if n_ext eq 0 then calib=readfits(c_File) else calib=mrdfits(c_File,1)
+  
 	pixelscale=calib[0]
 	xaxis_pa_at_zeroCRPA=calib[1]
 	
-	header=*(dataset.headers)[numfile]
+	if numext eq 0 then header= *(dataset.headers)[numfile] else header=*(dataset.headersPHU)[numfile]
 	;;get current CRPA
 	obsCRPA=float(SXPAR( header, 'CRPA'))
 
@@ -93,11 +94,11 @@ calfiletype='plate'
 		putast,header,astr
 	  ;  endif
 	print, astr
-	*(dataset.headers)[numfile]=header
+	if numext eq 0 then *(dataset.headers)[numfile]=header else *(dataset.headersPHU)[numfile]=header
 		
 ;  sxaddhist, functionname+": updating wold coordinates", *(dataset.headers[numfile])
 ;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": updating wold coordinates"
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
+  sxaddparlarge,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": updating wold coordinates"
+  sxaddparlarge,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": "+c_File
 @__end_primitive
 end

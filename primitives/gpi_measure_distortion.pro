@@ -28,14 +28,23 @@ primitive_version= '$Id: gpi_measure_distortion.pro 78 2011-01-06 18:58:45Z mair
 
   cubef3D=*(dataset.currframe[0])
 
+;;;PUT YOUR CODE HERE for distortion measurement
 
-*(dataset.currframe[0])=
+
+;;;
+
+;*(dataset.currframe[0])=
 suffix+='-distor'
 
 
   ; Set keywords for outputting files into the Calibrations DB
-  sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Distortion Measurement", "What kind of IFS file is this?"
-  sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+ if numext eq 0 then begin
+    sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Distortion Measurement", "What kind of IFS file is this?"
+    sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+  endif else begin
+    sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Distortion Measurement", "What kind of IFS file is this?"
+    sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+  endelse
 
 @__end_primitive
 

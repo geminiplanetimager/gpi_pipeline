@@ -27,7 +27,7 @@
 ; INPUTS: detector image
 ; common needed: filter, wavcal, tilt, (nlens)
 ;
-; GEM/GPI KEYWORDS:DEC,DISPERSR,FILTER,FILTER2,PAR_ANG,RA,WPANGLE
+; GEM/GPI KEYWORDS:DEC,DISPERSR,PRISM,FILTER,FILTER2,PAR_ANG,RA,WPANGLE
 ; DRP KEYWORDS:CDELT1,CDELT2,CDELT3,CRPIX1,CRPIX2,CRPIX3,CRVAL1,CRVAL2,CRVAL3,CTYPE1,CTYPE2,CTYPE3,CUNIT1,CUNIT2,CUNIT3,EQUINOX,FILETYPE,HISTORY, PC1_1,PC1_2,PC2_1,PC2_2,PC3_3,RADESYS,WCSAXES
 ; OUTPUTS:
 ;
@@ -45,6 +45,7 @@
 ;   2009-09-17 JM: added DRF parameters
 ;   2009-10-08 JM: add gpitv display
 ;   2010-10-19 JM: split HISTORY keyword if necessary
+;   2011-06-07 JM: added FITS/MEF compatibility
 ;+
 
 forward_function error
@@ -60,7 +61,13 @@ calfiletype='polcal'
 ;;		getmyname, functionname
 
  input=*(dataset.currframe[0])
- hdr=*(dataset.headers[numfile])
+  if numext eq 0 then begin 
+    hdr=*(dataset.headers)[numfile] 
+  endif else begin 
+      hdr=*(dataset.headersPHU)[numfile]
+      hdrext=*(dataset.headers)[numfile]
+  endelse    
+ ;hdr=*(dataset.headers[numfile])
 
 
 
@@ -241,48 +248,53 @@ calfiletype='polcal'
 		dec = sxpar(hdr,"dec") 
 	endelse
 	;stop
-	sxaddhist, /comment, "  For specification of Stokes WCS axis, see ", hdr
-	sxaddhist, /comment, "  Greisen & Calabretta 2002 A&A 395, 1061, section 5.4", hdr
+	if numext eq 0 then begin
+	    hdrim=hdr
+	endif else begin
+	    hdrim=hdrext
+	endelse
+	sxaddhist, /comment, "  For specification of Stokes WCS axis, see ", hdrim
+	sxaddhist, /comment, "  Greisen & Calabretta 2002 A&A 395, 1061, section 5.4", hdrim
 
 
-	sxaddhist, functionname+": Creating WCS header", hdr
+	sxaddhist, functionname+": Creating WCS header", hdrim
     sz = size(polcube)
-    sxaddpar, hdr, "NAXIS", sz[0], /saveComment
-    sxaddpar, hdr, "NAXIS1", sz[1], /saveComment, after='NAXIS'
-    sxaddpar, hdr, "NAXIS2", sz[2], /saveComment, after='NAXIS1'
-    sxaddpar, hdr, "NAXIS3", sz[3], /saveComment, after='NAXIS2'
+    sxaddpar, hdrim, "NAXIS", sz[0], /saveComment
+    sxaddpar, hdrim, "NAXIS1", sz[1], /saveComment, after='NAXIS'
+    sxaddpar, hdrim, "NAXIS2", sz[2], /saveComment, after='NAXIS1'
+    sxaddpar, hdrim, "NAXIS3", sz[3], /saveComment, after='NAXIS2'
 
-	sxaddpar, hdr, "FILETYPE", "Stokes Cube", "What kind of IFS file is this?"
-    sxaddpar, hdr, "WCSAXES", 3, "Number of axes in WCS system"
-    sxaddpar, hdr, "CTYPE1", "RA---TAN","Right Ascension."
-    sxaddpar, hdr, "CTYPE2", "DEC--TAN","Declination."
-    sxaddpar, hdr, "CTYPE3", "STOKES",     "Polarization"
-    sxaddpar, hdr, "CUNIT1", "deg",  "R.A. unit is degrees, always"
-    sxaddpar, hdr, "CUNIT2", "deg",  "Declination unit is degrees, always"
-    sxaddpar, hdr, "CUNIT3", "N/A",       "Polarizations"
-    sxaddpar, hdr, "CRVAL1", ra, "R.A. at reference pixel"
-    sxaddpar, hdr, "CRVAL2", dec, "Declination at reference pixel"
-    sxaddpar, hdr, "CRVAL3", -6, " Stokes axis: image 0 is Y parallel, 1 is X parallel "
+	sxaddpar, hdrim, "FILETYPE", "Stokes Cube", "What kind of IFS file is this?"
+    sxaddpar, hdrim, "WCSAXES", 3, "Number of axes in WCS system"
+    sxaddpar, hdrim, "CTYPE1", "RA---TAN","Right Ascension."
+    sxaddpar, hdrim, "CTYPE2", "DEC--TAN","Declination."
+    sxaddpar, hdrim, "CTYPE3", "STOKES",     "Polarization"
+    sxaddpar, hdrim, "CUNIT1", "deg",  "R.A. unit is degrees, always"
+    sxaddpar, hdrim, "CUNIT2", "deg",  "Declination unit is degrees, always"
+    sxaddpar, hdrim, "CUNIT3", "N/A",       "Polarizations"
+    sxaddpar, hdrim, "CRVAL1", ra, "R.A. at reference pixel"
+    sxaddpar, hdrim, "CRVAL2", dec, "Declination at reference pixel"
+    sxaddpar, hdrim, "CRVAL3", -6, " Stokes axis: image 0 is Y parallel, 1 is X parallel "
 	; need to add 1 here to account for "IRAF/FITS" 1-based convention used for
 	; WCS coordinates
 	xcen=139 ; always perfectly centered for sims
 	ycen=139 
-    sxaddpar, hdr, "CRPIX1", xcen+1,         "Reference pixel location"
-    sxaddpar, hdr, "CRPIX2", ycen+1,         "Reference pixel location"
-    sxaddpar, hdr, "CRPIX3", 0,         "Reference pixel location"
-    sxaddpar, hdr, "CDELT1", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
-    sxaddpar, hdr, "CDELT2", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
-    sxaddpar, hdr, "CDELT3", 1, "Stokes axis: image 0 is Y parallel, 1 is X parallel"
+    sxaddpar, hdrim, "CRPIX1", xcen+1,         "Reference pixel location"
+    sxaddpar, hdrim, "CRPIX2", ycen+1,         "Reference pixel location"
+    sxaddpar, hdrim, "CRPIX3", 0,         "Reference pixel location"
+    sxaddpar, hdrim, "CDELT1", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
+    sxaddpar, hdrim, "CDELT2", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
+    sxaddpar, hdrim, "CDELT3", 1, "Stokes axis: image 0 is Y parallel, 1 is X parallel"
 
-    sxaddpar, hdr, "PC1_1", pc[0,0], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
-    sxaddpar, hdr, "PC1_2", pc[0,1], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
-    sxaddpar, hdr, "PC2_1", pc[1,0], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
-    sxaddpar, hdr, "PC2_2", pc[1,1], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
-    sxaddpar, hdr, "PC3_3", 1, "Stokes axis is unrotated"
+    sxaddpar, hdrim, "PC1_1", pc[0,0], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
+    sxaddpar, hdrim, "PC1_2", pc[0,1], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
+    sxaddpar, hdrim, "PC2_1", pc[1,0], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
+    sxaddpar, hdrim, "PC2_2", pc[1,1], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
+    sxaddpar, hdrim, "PC3_3", 1, "Stokes axis is unrotated"
     ; TODO WCS paper III suggests adding MJD-AVG to specify midpoint of
     ; observations for conversions to barycentric.
-    sxaddpar, hdr, "RADESYS", "FK5", "RA and Dec are in FK5"
-    sxaddpar, hdr, "EQUINOX", 2000.0, "RA, Dec equinox is J2000"
+    sxaddpar, hdrim, "RADESYS", "FK5", "RA and Dec are in FK5"
+    sxaddpar, hdrim, "EQUINOX", 2000.0, "RA, Dec equinox is J2000"
 
 
 
@@ -301,7 +313,12 @@ calfiletype='polcal'
 
 suffix='-podc'
 *(dataset.currframe[0])=polcube
-*(dataset.headers[numfile])=hdr
+if numext eq 0 then begin
+ *(dataset.headers[numfile])=hdrim 
+ endif else begin
+  *(dataset.headersPHU[numfile])=hdr
+ *(dataset.headers[numfile])=hdrim
+endelse 
 
 
 @__end_primitive 

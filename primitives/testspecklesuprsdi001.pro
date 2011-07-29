@@ -314,9 +314,9 @@ endif
   filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
   ;filnm+='I.fits' ;until DATAFILE problem of length in header is fixed
   ;slash=strpos(filnm,'phot',/reverse_search)
-       slash=strpos(filnm,path_sep(),/reverse_search)
-     filnm00 = strmid(filnm, slash+1,strlen(filnm)-1)  
-  filnm0=strmid(filnm00, 0,strlen(filnm00)-5)+suffix
+;       slash=strpos(filnm,path_sep(),/reverse_search)
+     ;filnm00 = strmid(filnm, 0,strlen(filnm)-1)  
+  filnm0=strmid(filnm, 0,strlen(filnm)-5)+suffix
   slash=strpos(filnm0,'-phot')
   filnm2=strmid(filnm0, 0,slash+5)+'.fits'
   print, 'opening initial cube:', filnm2

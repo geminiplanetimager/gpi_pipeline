@@ -45,8 +45,9 @@ if numfile  eq ((dataset.validframecount)-1) then begin
   ;;get PA angles of images for final ADI processing
   paall=dblarr(dataset.validframecount)
   for n=0,dataset.validframecount-1 do begin
-    header=*(dataset.headers[n])
-    paall[n]=double(SXPAR( header, 'PAR_ANG'))
+    if numext eq 0 then h= *(dataset.headers)[n] else h= *(dataset.headersPHU)[n]
+    ;header=*(dataset.headers[n])
+    paall[n]=double(SXPAR( h, 'PAR_ANG'))
   endfor
   
  ; dtmean=mean((abs(paall-shift(paall,-1)))[0:nfiles-2])*!dtor ;calculate the PA distance between acquisitions
@@ -138,10 +139,10 @@ if numfile  eq ((dataset.validframecount)-1) then begin
 ;              im1s[ia]=im1[ia]-im2
 ;            endelse; ci ne 0
 ;          endfor ;loop annulus
-
+;stop
           ;rotation to have same orientation than the first image
-          if silent eq 0 then print,' Rotation to have same orientation than the first image...wavelength[um]=',lambda[il]
           theta=paall[n]-paall[0]
+          if silent eq 0 then print,' Rotation of',theta,'[deg] in order to have same orientation than the first image...wavelength[um]=',lambda[il]
             x0=float(SXPAR( *(dataset.headers[n]), 'PSFCENTX',count=ccx))
             y0=float(SXPAR( *(dataset.headers[n]), 'PSFCENTY',count=ccy))
             hdr=*(dataset.headers[n]) ;JM 2010-03-19
@@ -172,7 +173,8 @@ if numfile  eq ((dataset.validframecount)-1) then begin
       if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
     endif else begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
-          gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv)
+          ;gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv)
+          Backbone_comm->gpitv, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv)
     endelse
     filename=fn
     ;update_progressbar,Modules,thisModuleIndex,Dataset.validframecount, n ,'working...',/adi    

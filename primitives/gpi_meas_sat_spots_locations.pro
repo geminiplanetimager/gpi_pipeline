@@ -135,6 +135,7 @@ endif
 ;print, lambda[floor(CommonWavVect[2]/2)],spotloc2[0,0],spotloc2[0,1]
 ;print, lambda[floor(CommonWavVect[2]/2)+slic],pos2[0],pos2[1]
 
+  ;if numext eq 0 then h= *(dataset.headers)[numfile] else h= *(dataset.headersPHU)[numfile]
 
    sxaddpar, *(dataset.headers[numfile]), "SPOTWAVE", lambda[floor(CommonWavVect[2]/2)], "Wavelength of ref for SPOT locations"
    sxaddpar, *(dataset.headers[numfile]), "PSFCENTX", PSFcenter[0], 'X-Locations of PSF center'
@@ -146,8 +147,13 @@ endfor
 suffix+='-spotloc'
 
   ; Set keywords for outputting files into the Calibrations DB
-  sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?"
-  sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+  if numext eq 0 then begin
+    sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?"
+    sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+  endif else begin
+    sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?"
+    sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+  endelse
 
 
 if fix(Modules[thisModuleIndex].ReuseOutput) eq 0 then begin

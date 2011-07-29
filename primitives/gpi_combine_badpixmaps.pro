@@ -1,5 +1,5 @@
 ;+
-; NAME: gpi_combine_badpixmap
+; NAME: gpi_combine_badpixmaps
 ; PIPELINE PRIMITIVE DESCRIPTION: Combine bad pixel maps
 ;
 ; This routine is used to do an "AND" combination of badpix maps extracted from several bands.
@@ -31,7 +31,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 @__start_primitive
    ;getmyname, functionName
    
-  thisModuleIndex = Backbone->GetCurrentModuleIndex()
+ ; thisModuleIndex = Backbone->GetCurrentModuleIndex()
   nfiles=dataset.validframecount
 
 
@@ -51,22 +51,29 @@ endelse
 suffix+='-comb'
 
   ; Set keywords for outputting files into the Calibrations DB
-  sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
-  sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+  if numext eq 0 then begin
+    sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
+    sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+  endif else begin
+    sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
+    sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+  endelse
+  
 
 ;TODO header update
-  thisModuleIndex = Backbone->GetCurrentModuleIndex()
-    if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
-      if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
-      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display)
-      if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
-    endif else begin
-      if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
-          gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=*(dataset.headers)[numfile]
-    endelse
-
-
-   return, ok
-
+;  thisModuleIndex = Backbone->GetCurrentModuleIndex()
+;    if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
+;      if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
+;      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display)
+;      if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
+;    endif else begin
+;      if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
+;          ;gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=*(dataset.headers)[numfile]
+;          Backbone_comm->gpitv, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv)
+;    endelse
+;
+;
+;   return, ok
+@__end_primitive
 
 end

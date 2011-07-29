@@ -32,9 +32,13 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		return, not OK
 	endif
 
+if numext eq 0 then begin
 	sxaddpar, *(dataset.headers[numfile]),  "FILETYPE", filetype, "What kind of IFS file is this?"
 	sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-
+endif else begin
+  sxaddpar, *(dataset.headersPHU[numfile]),  "FILETYPE", filetype, "What kind of IFS file is this?"
+  sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+endelse
 
 	save_suffix = strlowcase(strc(filetype)) ; or should the user specify this directly??
 	suffix = strlowcase(strc(filetype)) ; or should the user specify this directly??

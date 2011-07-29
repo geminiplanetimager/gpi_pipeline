@@ -49,10 +49,15 @@ calfiletype='Fluxconv'
         lambdamin=CommonWavVect[0]
         lambdamax=CommonWavVect[1]
        
-       hdr= *(dataset.headers)[0]
+      
+    if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
        exposuretime=double(SXPAR( hdr, 'EXPTIME')) ;TODO use ITIME instead
 
-    pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headerphot, /SILENT))
+      fits_info, c_File, /silent, N_ext=n_ext
+    if n_ext eq 0 then  $
+    pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headerphot, /SILENT)) else $
+      pmd_fluxcalFrame        = ptr_new(mrdfits(c_File, 1, Headerphot, /SILENT)) 
+    ;lambda_gridratio=*pmd_fluxcalFrame
     lambda_convfac=*pmd_fluxcalFrame
     
     ;;to do: be sure same wavelengths are used and n_elements is ok
@@ -60,7 +65,7 @@ calfiletype='Fluxconv'
     convfac=lambda_convfac[*,1]
  ;   fluxratio=*pmd_fluxcalFrame
 
-	hdr= *(dataset.headers)[0]
+	;hdr= *(dataset.headers)[0]
 
 
 
