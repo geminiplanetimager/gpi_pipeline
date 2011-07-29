@@ -92,11 +92,14 @@ pro parsergui::startup
 
 		; Get the directory, based on the directory adjacent to the raw data dir
 		; but with a name of /drfs
-		outdir = getenv('GPI_DRP_OUTPUT_DIR')
-		if (strmid(outdir,n_elements(outdir)-1) ne path_sep()) then outdir +=path_sep()
-		drfpath_i = strsplit(outdir,path_sep())
-		drfpath = strmid(outdir,0,drfpath_i[n_elements(drfpath_i)-1]) + "drfs"
-		if file_test(drfpath,/directory) then self.drfpath=drfpath else self.drfpath = current
+;		outdir = getenv('GPI_DRP_OUTPUT_DIR')
+;		if (strmid(outdir,n_elements(outdir)-1) ne path_sep()) then outdir +=path_sep()
+;		drfpath_i = strsplit(outdir,path_sep())
+;		drfpath = strmid(outdir,0,drfpath_i[n_elements(drfpath_i)-1]) + "drfs"
+;		if file_test(drfpath,/directory) then self.drfpath=drfpath else self.drfpath = current
+		
+		;due to directory Gemini writing permissions, write temporary DRF in the working directory
+		self.drfpath =getenv('GPI_IFS_DIR')
         self.queuepath =getenv('GPI_QUEUE_DIR')
 
 
@@ -310,6 +313,7 @@ pro parsergui::addfile, filenames, mode=mode
 
 
     w = where(filenames ne '', wcount) ; avoid blanks
+    if wcount eq 0 then void=dialog_message('No new files. Please add new files before parsing.')
     if wcount eq 0 then return
     filenames = filenames[w]
 
@@ -873,32 +877,45 @@ pro parsergui::event,ev
         if (w[0] ne -1) then begin
             result = result[w]
 
-            if ((cindex+n_elements(result)) gt n_elements(file)) then begin
-                nover = cindex+n_elements(result)-n_elements(file)
-                self->Log,'WAR: exceeding file number limit. '+$
-                    strtrim(nover,2)+' files ignored.'
-                result = result[0:n_elements(result)-1-nover]
-            endif
-            file[cindex:cindex+n_elements(result)-1] = result
-
-            for i=0,n_elements(result)-1 do begin
-                tmp = strsplit(result[i],path_sep(),/extract)
-                pfile[cindex+i] = tmp[n_elements(tmp)-1]+'    '
-            endfor
-
-            widget_control,storage.fname,set_value=pfile
-
-            cindex = cindex+n_elements(result)
-            (*storage.splitptr).selindex = max([0,cindex-1])
-            (*storage.splitptr).findex = cindex
-            (*storage.splitptr).filename = file
-            (*storage.splitptr).printname = pfile
-            (*storage.splitptr).datefile = datefile 
-
-            self->Log,strtrim(n_elements(result),2)+' files added.'
+;            if ((cindex+n_elements(result)) gt n_elements(file)) then begin
+;                nover = cindex+n_elements(result)-n_elements(file)
+;                self->Log,'WAR: exceeding file number limit. '+$
+;                    strtrim(nover,2)+' files ignored.'
+;                result = result[0:n_elements(result)-1-nover]
+;            endif
+;            file[cindex:cindex+n_elements(result)-1] = result
+;
+;            for i=0,n_elements(result)-1 do begin
+;                tmp = strsplit(result[i],path_sep(),/extract)
+;                pfile[cindex+i] = tmp[n_elements(tmp)-1]+'    '
+;            endfor
+;
+;            widget_control,storage.fname,set_value=pfile
+;
+;            cindex = cindex+n_elements(result)
+;            (*storage.splitptr).selindex = max([0,cindex-1])
+;            (*storage.splitptr).findex = cindex
+;            (*storage.splitptr).filename = file
+;            (*storage.splitptr).printname = pfile
+;            (*storage.splitptr).datefile = datefile 
+;
+;            self->Log,strtrim(n_elements(result),2)+' files added.'
         endif else begin
             self->Log,'search failed (no match).'
         endelse
+        
+        ;give the possibility to add other files:
+        ;resdiag=DIALOG_MESSAGE('Do you want to add other files before parsing? Answering No will start to parse selected data.', /QUESTION)
+        ;case resdiag of 
+        ;  'No':begin
+        ;      if result[0] ne '' then begin
+                self->AddFile, result
+         ;     endif
+        ;      end  
+        ;  'Yes':
+        ;  'Cancel':
+        ;endcase
+        
     end
     'FNAME' : begin
         (*storage.splitptr).selindex = ev.index
@@ -938,37 +955,41 @@ pro parsergui::event,ev
 
 		endif
 
-        case sortfieldind of 
-                0: begin
-                    juldattab=findgen(cindex)
+        case (self.sorttab)[sortfieldind] of 
+                'obs. date/time': begin
+                    juldattab=dblarr(cindex)
                     for i=0,cindex-1 do begin
                       dateobs=self->resolvekeyword( file[i], 1,'DATE-OBS')
                       timeobs=self->resolvekeyword( file[i], 1,'TIME-OBS')
                       if (dateobs[0] ne 0) &&  (timeobs[0] ne 0) then begin
                         ;head=headfits( timeobsfile[0])
-                        date=strsplit(dateobs,'-',/EXTRACT)
-                        time=strsplit(timeobs,':',/EXTRACT)
-                        juldattab[i] = JULDAY(date[1], date[2], date[0], time[0], time[1], time[2]) 
-                      endif
+                        dateo=strsplit(dateobs,'-',/EXTRACT)
+                        timeo=strsplit(timeobs,':',/EXTRACT)
+                        ;juldattab[i] = JULDAY(date[1], date[2], date[0], time[0], time[1], time[2])
+                        JULDATE, [float(dateo),float(timeo)], tmpjul
+                        juldattab[i]=tmpjul
+                      endif else begin
+                          self->Log, "DATE-OBS and TIME-OBS not found."
+                      endelse
                     endfor
+             
                     indsort=sort(juldattab)
-
                   end
-                1: begin
+                'OBSID': begin
                      obsid=strarr(cindex)
                     for i=0,cindex-1 do begin
                       obsid[i]=self->resolvekeyword( file[i], 1,'OBSID')
                     endfor
                     indsort=sort(obsid)
                 end
-                2:  begin
+                'alphabetic filename':  begin
                      alpha=strarr(cindex)
                     for i=0,cindex-1 do begin
                       alpha[i]= file[i]
                     endfor
                     indsort=sort(alpha)
                 end
-                3:begin
+                'file creation date':begin
                      ctime=findgen(cindex)
                     for i=0,cindex-1 do begin
                       ctime[i]= (file_info(file[i])).ctime
@@ -1068,7 +1089,10 @@ pro parsergui::event,ev
         if widget_info(self.direct_id ,/button_set)  then chosenpath=self.queuepath else chosenpath=self.drfpath
         self->Log,'All DRFs will be created in '+chosenpath
     end
-  
+      'about': begin
+              tmpstr=about_message()
+              ret=dialog_message(tmpstr,/information,/center,dialog_parent=ev.top)
+    end ;; case: 'about'
     else: begin
         addmsg, storage.info, 'Unknown event in event handler - ignoring it!'+uval
         message,/info, 'Unknown event in event handler - ignoring it!'+uval
@@ -1411,8 +1435,8 @@ function parsergui::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
         xsize=90,ysize=30, /tracking_events);,xoffset=310,yoffset=115)
     ;drfbasefilebutt2=widget_base(drfbasefilebutt,/BASE_ALIGN_LEFT,/row,frame=DEBUG_SHOWFRAMES)
     drfbasefilebutt2=drfbasefilebutt
-    sorttab=['obs. date/time','OBSID','alphabetic filename','file creation date']
-    self.sortfileid = WIDGET_DROPLIST( drfbasefilebutt2, title='Sort data by:',  Value=sorttab,uvalue='sortmethod')
+    self.sorttab=['obs. date/time','alphabetic filename','file creation date']
+    self.sortfileid = WIDGET_DROPLIST( drfbasefilebutt2, title='Sort data by:',  Value=self.sorttab,uvalue='sortmethod')
     drfbrowse = widget_button(drfbasefilebutt2,  $
                             XOFFSET=174 ,SCR_XSIZE=80, ysize= 30 $; ,SCR_YSIZE=23  $
                             ,/ALIGN_CENTER ,VALUE='Sort data',uvalue='sortdata')                          
@@ -1448,7 +1472,12 @@ function parsergui::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
                         
     calibflattab=['Flat-field extraction','Flat-field & Wav. solution extraction']
     self.calibflatid = WIDGET_DROPLIST( drfbaseidentseq, title='Reduction of flat-fields:  ', frame=0, Value=calibflattab, uvalue='flatreduction')
-                        
+        ;one nice logo 
+  button_image = READ_BMP(self.dirpro+path_sep()+'gpi.bmp', /RGB) 
+  button_image = TRANSPOSE(button_image, [1,2,0]) 
+  button = WIDGET_BUTTON(drfbaseident, VALUE=button_image,  $
+      SCR_XSIZE=100 ,SCR_YSIZE=95, sensitive=1 $
+       ,uvalue='about')                  
     ;drfbaseborderz=widget_base(drfbaseidentseq,/BASE_ALIGN_LEFT,/row)
     
 
@@ -1521,6 +1550,8 @@ function parsergui::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
 ;if (not(xregistered('parsergui', /noshow))) then begin
 ;    widget_control,drfbase,/realize
 ;
+    self->log, "This GUI helps you to parse a set of data."
+    self->log, "Add files to be processed and control created DRFs."
 ;  ;event loop
 ;  ;-----------------------------------------
 ;
@@ -1535,7 +1566,7 @@ end
 ;-----------------------
 pro parsergui::post_init, _extra=_extra
 
-	widget_control, self.calibflatid, set_droplist_select= 1 ;0
+	widget_control, self.calibflatid, set_droplist_select= 0;1 ;0
 end
 
 ;-----------------------

@@ -73,7 +73,7 @@ function drfgui::resolvecalibfile, filter, extfile, timeobs, calibfieldind
         for i=0, n_elements(listextfilt)-1 do begin
             head=headfits( listextfilt[i])
             if calibfieldind ne 1 then $
-            value[i]=strcompress(sxpar( Head, 'TIMEOBS',  COUNT=ck),/rem) $;put in JD
+            value[i]=strcompress(sxpar( Head, 'TIME-OBS',  COUNT=ck),/rem) $;put in JD
             else value[i]=(file_info(listextfilt[i])).mtime
         endfor
         if calibfieldind ne 1 then $
@@ -128,7 +128,8 @@ function drfgui::validkeyword, file, cindex, keyw, requiredvalue,storage,needale
       matchedvalue=intarr(cindex)
       ok=1
 	  for i=0, cindex-1 do begin
-		  head=headfits( file[i])
+	    ;fits_info, file[i],/silent, N_ext 
+		  head=headfits( file[i]) ;will scan PHU
 		  value[i]=strcompress(sxpar( Head, keyw,  COUNT=cc),/rem)
 		  if cc eq 0 then begin
 			self->log,'Absent '+keyw+' keyword for data: '+file(i)
@@ -165,7 +166,7 @@ function drfgui::get_obs_keywords, filename
 	; FIXME check for invalid or missing keywords here!
 	pr=sxpar(head, 'PRISM', count=ct4)
 	if ct4 eq 0 then begin
-	    pr=sxpar(head, 'PRISM', count=ct4b)
+	    pr=sxpar(head, 'DISPERSR', count=ct4b)
 	    keywprism='DISPERSR'
 	 endif else  keywprism='PRISM'  
 	
@@ -420,7 +421,7 @@ PRO  drfgui::Scan_Templates
     types = uniqvals(templates.type)
 
     ; What order should the template types be listed in, in the GUI?
-    type_order = [ "ASTR - SPEC", "ASTR - POL", "CAL - SPEC", "CAL - POL", "On-Line Reduction" ]
+    type_order = [ "ASTR - SPEC", "ASTR - POL", "CAL - SPEC", "CAL - POL"] ;, "On-Line Reduction" 
     
     ; FIXME check if there are any new types not specified in the above list but
     ; present in the templates?
@@ -767,14 +768,15 @@ pro drfgui::event,ev
             ;compare default type and user value type 
             typeflag = 1 & rangeflag = 1
             if type ne '' then $;keep the possibility to have no type control if default type has been set to ''
-			; Check to ensure the argument has the proper type. 
-				; Special case: it is acceptable to enter an INT type into an
-				; argument expecting a FLOAT, because of course the set of
-				; integers is a subset of the set of floats. 
+            ; Check to ensure the argument has the proper type. 
+              ; Special case: it is acceptable to enter an INT type into an
+              ; argument expecting a FLOAT, because of course the set of
+              ; integers is a subset of the set of floats. 
             if (strcmp(typeName,type,/fold))  $
-				or (strlowcase(type) eq 'float' and strlowcase(typename) eq 'int') then $
-				typeflag=1 $
-			else typeflag=0
+              or (strlowcase(type) eq 'float' and strlowcase(typename) eq 'int') then $
+              typeflag=1 $
+            else typeflag=0
+
 
             ;;verify user-value: range 
             if (strcmp('string',type,/fold) ne 1) && (strcmp('string',typeName,/fold) ne 1) && (type ne '') then begin
@@ -788,7 +790,8 @@ pro drfgui::event,ev
               if (typeflag eq 0) then err+='type '
               if (rangeflag eq 0) then err+='range '
               self->log,'Sorry, you entered a value with wrong: '+err
-			  res = dialog_message('Sorry, you tried to enter a value but it had the wrong '+err+". The value was NOT updated; please try again.",/error, title='Unable to set value')
+              res = dialog_message('Sorry, you tried to enter a value but it had the wrong '+err+". The value was NOT updated; please try again.",/error, title='Unable to set value')
+              
               ;stop
             endif else begin 
               ;;
@@ -807,7 +810,8 @@ pro drfgui::event,ev
             endelse
         endif else begin
           self->log,'Sorry, you can only change the Value field. Edit the IDL source of the module to change or add Arguments. '
-		  res = dialog_message( 'Sorry, you can only change the Value field. Edit the IDL source of the module to change or add Arguments. ',/error, title='Unable to add new argument')
+          res = dialog_message( 'Sorry, you can only change the Value field. Edit the IDL source of the module to change or add Arguments. ',/error, title='Unable to add new argument')
+          
         endelse
       ENDIF
   end
@@ -881,7 +885,7 @@ pro drfgui::event,ev
             validinstrum=self->validkeyword( file, cindex,'INSTRUME','GPI',storage)
             validinstrsub=self->validkeyword( file, cindex,'INSTRSUB','IFS',storage)     
             ;;DATA HEALTH
-            validhealth=self->validkeyword( file, cindex,'GPIHEALTH','good',storage)
+            validhealth=self->validkeyword( file, cindex,'GPIHEALT','good',storage)
             validstate=self->validkeyword( file, cindex,'GPISTATE','good',storage)
             validrawgemqa=self->validkeyword( file, cindex,'RAWGEMQA','good',storage)
 
@@ -910,6 +914,7 @@ pro drfgui::event,ev
             ;;RESOLVE CLASS
             ;self.fseq=resolvekeyword( file, cindex,'OBSCLASS')
 
+            
             isresolvebuttonset=widget_info(self.resolvetypeseq_id,/button_set)
             if isresolvebuttonset then begin
                 detectype=0
@@ -1159,7 +1164,7 @@ pro drfgui::event,ev
     end
     'rescan': begin
         self->scan_templates
-        self->update_available_modules, self.reductiontype, 1 ; needed before widget creation
+        ;self->update_available_modules, self.reductiontype, 1 ; needed before widget creation
     end
     'Move module up': begin
           selection = WIDGET_INFO((self.tableSelected), /TABLE_SELECT) 
@@ -1189,38 +1194,8 @@ pro drfgui::event,ev
 	end
  
     'about': begin
-		ver=strc(gpi_pipeline_version())
-		tmpstr=['GPI DRF-GUI Revision: '+ver+'  - GPI 3d data-reduction package', $
-              '', $
-              'Copyright _,_ by the University of Montreal ' + $
-               '(UdeM), Canada', $
-              '', $
-              'Programming (report bugs to):', $
-              '  Jerome Maire (UdeM, maire@astro.umontreal.ca)', $
-              '  Marshall Perrin (UCLA)', $
-              '', $
-              'Documentation:', $
-              '  Marshall Perrin (UCLA)', $
-              '  Jerome Maire (UdeM)', $
-              '', $
-              'This software has been tested by:', $
-              '  Jeff Chilcote, Quinn Konopacky ', $
-              '', $
-              'Acknowledgements:', $
-              '  ', $
-              '    which have helped improve GPI DRF-GUI', $
-              '  ', $
-              ' ', $
-              '', $
-              'The project web site is:', $
-              '  ', $
-              '', $
-              'When using this code, please cite the following paper:', $
-              '  Maire J., Perrin M. D., et al SPIE 2010' + $
-              '', $
-              '']
-
-        ret=dialog_message(tmpstr,/information,/center,dialog_parent=ev.top)
+              tmpstr=about_message()
+              ret=dialog_message(tmpstr,/information,/center,dialog_parent=ev.top)
     end ;; case: 'about'
     
     
@@ -1392,14 +1367,25 @@ pro drfgui::savedrf, file, storage,template=template, nopickfile=nopickfile
         OpenW, lun, self.drfpath+path_sep()+self.drffilename, /Get_Lun
         PrintF, lun, '<?xml version="1.0" encoding="UTF-8"?>' 
      
+        ;relative pathes with environment variables        
+            isrelativebuttonset=widget_info(self.relativepath_id,/button_set)
+            if isrelativebuttonset then begin
+              logpathtmp='GPI_PIPELINE_LOG_DIR'
+              inputdirtmp='GPI_RAW_DATA_DIR'
+              outputdirtmp='GPI_DRP_OUTPUT_DIR'
+            endif else begin
+              logpathtmp=self.logpath
+              inputdirtmp=self.inputdir
+              outputdirtmp=self.outputdir
+            endelse  
            
         if selectype eq 4 then begin
-            PrintF, lun, '<DRF LogPath="'+self.logpath+'" ReductionType="OnLine">'
+            PrintF, lun, '<DRF LogPath="'+logpathtmp+'" ReductionType="OnLine">'
         endif else begin
-            PrintF, lun, '<DRF LogPath="'+self.logpath+'" ReductionType="'+(*self.template_types)[selectype] +'">'
+            PrintF, lun, '<DRF LogPath="'+logpathtmp+'" ReductionType="'+(*self.template_types)[selectype] +'">'
         endelse
 
-         PrintF, lun, '<dataset InputDir="'+self.inputdir+'" Name="" OutputDir="'+self.outputdir+'">' 
+         PrintF, lun, '<dataset InputDir="'+inputdirtmp+'" Name="" OutputDir="'+outputdirtmp+'">' 
          ;PrintF, lun, '<dataset InputDir="'+''+'" Name="" OutputDir="'+self.outputdir+'">'
      
         FOR j=0,N_Elements(file)-1 DO BEGIN
@@ -1719,15 +1705,16 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 
 	file_menu = WIDGET_BUTTON(bar, VALUE='File', /MENU) 
 	;file_bttn1=WIDGET_BUTTON(file_menu, VALUE='Save Configuration..',   UVALUE='FILE1') 
-	file_bttn2=WIDGET_BUTTON(file_menu, VALUE='Open DRF...', UVALUE='LOADDRF') 
 	file_bttn2=WIDGET_BUTTON(file_menu, VALUE='Open DRF with Data...', UVALUE='LOADDRFWITHDATA') 
+	file_bttn2=WIDGET_BUTTON(file_menu, VALUE='Open DRF discarding data...', UVALUE='LOADDRF') 
 	file_bttn2=WIDGET_BUTTON(file_menu, VALUE='Save DRF as...', UVALUE='Create')
 	file_bttn2=WIDGET_BUTTON(file_menu, VALUE='Create DRF Template and Save as...', UVALUE='CreateTemplate')
 	file_bttn2=WIDGET_BUTTON(file_menu, VALUE='Quit DRFGUI', UVALUE='QUIT')
 	file_menu2 = WIDGET_BUTTON(bar, VALUE='Options', /MENU) 
-	file_bttn3=WIDGET_BUTTON(file_menu2, VALUE='Set default directories...', UVALUE='defaultdir') 
+	;file_bttn3=WIDGET_BUTTON(file_menu2, VALUE='Set default directories...', UVALUE='defaultdir') 
 	file_bttn3=WIDGET_BUTTON(file_menu2, VALUE='Rescan DRF Templates', UVALUE='rescan') 
-	file_bttn3=WIDGET_BUTTON(file_menu2, VALUE='Show/hide extra debugging/development modules', UVALUE='showhidden') 
+	;next line has been commented as this function is not perfectly free of bugs (when adding new modules, an error occurs)
+	;file_bttn3=WIDGET_BUTTON(file_menu2, VALUE='Show/hide extra debugging/development modules', UVALUE='showhidden') 
 	file_menu3 = WIDGET_BUTTON(bar, VALUE='Help', /MENU) 
 	file_bttn3=WIDGET_BUTTON(file_menu3, VALUE='About...', UVALUE='about') 
 
@@ -1785,6 +1772,11 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 	drfbrowse = widget_button(drfbaseborder3,  $
 						XOFFSET=174 ,SCR_XSIZE=75 ,SCR_YSIZE=23  $
 						,/ALIGN_CENTER ,VALUE='Change...',uvalue='logpath') 
+						
+	 base_radio = Widget_Base(drfbaseidentseq, UNAME='WID_BASE_diskc', COLUMN=1 ,/NONEXCLUSIVE, frame=0)
+  self.relativepath_id = Widget_Button(base_radio, UNAME='RELATIVEPATH' ,/ALIGN_LEFT ,VALUE='Input/output/log directories written with relative environment variables',UVALUE='relativepath')
+  widget_control, self.relativepath_id, /set_button
+						
 	drfbaseborder=widget_base(drfbaseidentseq,ysize=7,units=0)
 	drfbaseborder4=widget_base(drfbaseidentseq,/BASE_ALIGN_LEFT,/row) 
 	self.calibfiletab=['data closest date/time','most-recent','manual']
@@ -1795,7 +1787,7 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 	;drfbaseborder=widget_base(drfbaseidentseq,ysize=7,units=0) ; MDP removed - this is not used anywhere.
 	base_radio = Widget_Base(drfbaseidentseq, UNAME='WID_BASE_diskb', COLUMN=1 ,/NONEXCLUSIVE, frame=0)
 	self.resolvetypeseq_id = Widget_Button(base_radio, UNAME='RESOLVETYPESEQBUTTON' ,/ALIGN_LEFT ,VALUE='Resolve type/seq. when adding file(s)',UVALUE='autoresolvetypeseq')
-	widget_control, self.resolvetypeseq_id, /set_button
+	;widget_control, self.resolvetypeseq_id, /set_button
 	;*self.template_types=['ASTR - SPEC','ASTR - POL','CAL - SPEC','CAL - POL'] ;, 'On-Line Reduction'
 	;drfbaseborderz=widget_base(drfbaseidentseq,/BASE_ALIGN_LEFT,/row)
 	self.typeid = WIDGET_DROPLIST( drfbaseidentseq, title='Reduction type:    ', frame=0, Value=*self.template_types,uvalue='typefield',resource_name='XmDroplistButton')
@@ -1839,15 +1831,18 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 
 	; Create the status log window 
 	; widget ID gets stored into 'storage'
+	lab = widget_label(drfbasemoduleavailable, value="History:")
 	info=widget_text(drfbasemoduleavailable,/scroll, xsize=58,scr_xsize=400,ysize=nlines_status, /ALIGN_LEFT, uval="text_status",/tracking_events);xoffset=5,yoffset=5)
 
 
 	drfbasemoduleselected=widget_base(drfbasemodule,/BASE_ALIGN_LEFT,/column)
+	lab = widget_label(drfbasemoduleselected, value="Define your DRF with available modules:")
 	self.tableSelected = WIDGET_TABLE(drfbasemoduleselected, $; VALUE=data, $ ;/COLUMN_MAJOR, $ 
 			COLUMN_LABELS=['Module Name','Find Calibration File','Resolved Filename'],/resizeable_columns, $
 			xsize=3,ysize=20,uvalue='tableselected',value=(*self.currModSelec), /TRACKING_EVENTS,$
 			/NO_ROW_HEADERS, /SCROLL,y_SCROLL_SIZE =self.nlines_modules,scr_xsize=800,COLUMN_WIDTHS=[240,140,420],frame=1,/ALL_EVENTS,/CONTEXT_EVENTS, $
-			background_color=rebin(*self.table_BACKground_colors,3,2*3,/sample)    ) ;,/COLUMN_MAJOR                
+			background_color=rebin(*self.table_BACKground_colors,3,2*3,/sample)    ) ;,/COLUMN_MAJOR   
+	lab = widget_label(drfbasemoduleselected, value="Change values of parameters of the selected module [press Enter after each change. Validate new values with ENTER]:")             
 	self.tableArgs = WIDGET_TABLE(drfbasemoduleselected, $; VALUE=data, $ ;/COLUMN_MAJOR, $ 
 			COLUMN_LABELS=['Argument', 'Value','Description'], /resizeable_columns, $
 			xsize=3,ysize=20, /TRACKING_EVENTS,$
@@ -1860,7 +1855,7 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 	drfbaseexec=widget_base(drfbase,/BASE_ALIGN_LEFT,/row)
 	button2=widget_button(drfbaseexec,value="Save DRF as...",uvalue="Create", /tracking_events)
 	button2b=widget_button(drfbaseexec,value="Drop last saved DRF in Queue",uvalue="Drop", /tracking_events)
-	utton2c=widget_button(drfbaseexec,value="Save and drop DRF in Queue",uvalue="Save&Drop", /tracking_events)
+	;utton2c=widget_button(drfbaseexec,value="Save and drop DRF in Queue",uvalue="Save&Drop", /tracking_events)
 	spacer = widget_label(drfbaseexec, value=' ', xsize=250)
 
 	button3=widget_button(drfbaseexec,value="Add module",uvalue="Add module", /tracking_events);, $
@@ -1903,7 +1898,10 @@ function drfgui::init_widgets, _extra=_Extra, session=session
         self: self}
 	self.widget_log = info
     widget_control,drfbase,set_uvalue=storage,/no_copy
-
+    
+    self->log, "This GUI helps you to create a customized DRF."
+    self->log, "Add files to be processed and create a recipe"
+    self->log, " with modules to reduce data."
 
     self->changetype, 0 ; set to ASTR-SPEC type by default.
 
@@ -1963,9 +1961,11 @@ pro drfgui__define
               drfpath :'',$ 
               drffilename :'',$  
               queuepath :'',$  
-              sortfileid :0L,$       
+              sortfileid :0L,$  
+              sorttab:strarr(3),$       
               inputdir:'',$
               outputdir:'',$
+              relativepath_id:0L,$
               definputcaldir_id:0L,$
               inputcaldir:'',$
               outputdir_id:0L,$
