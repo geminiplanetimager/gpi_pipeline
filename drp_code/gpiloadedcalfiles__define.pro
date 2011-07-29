@@ -28,8 +28,10 @@ pro gpiloadedcalfiles::load, filename, type
 		return
 	endif else begin
 		if ~ file_test(filename) then message, "ERROR: requested file does not exist: "+filename
-
-		data = readfits(filename, header)
+    fits_info, filename, n_ext=n_ext
+    if n_ext eq 0 then $
+		data = readfits(filename, header) else $
+		data = mrdfits(filename, 1,header)
 		*(self.data[wm]) = data
 		*(self.headers[wm]) = header
 

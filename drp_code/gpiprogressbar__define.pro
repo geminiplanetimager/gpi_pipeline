@@ -77,6 +77,19 @@ pro gpiprogressbar::event,ev
       widget_control, ev.id,GET_UVALUE=uval
       if size(uval,/TYPE) eq 7 then begin
       if uval eq 'rescanDB' then self.rescan =1
+      if uval eq 'changedir' then begin
+          issetenvok=0
+          if issetenvok eq 0 then begin
+                  obj=obj_new('setenvir')
+                  if obj.quit eq 1 then issetenvok=-1
+                  obj_destroy, obj
+            while (issetenvok ne -1) && (gpi_is_setenv() eq 0)  do begin
+                  obj=obj_new('setenvir')
+                  if obj.quit eq 1 then issetenvok=-1
+                  obj_destroy, obj
+            endwhile
+          endif 
+      endif
       if uval eq 'flushqueue' then self.flushq =1
          if uval eq 'quit' then begin
 			 conf = dialog_message("Are you sure you want to exit the GPI Data Reduction Pipeline?",/question,title="Confirm Close",/default_no,/center)
@@ -307,6 +320,7 @@ function gpiprogressbar::init
   q=widget_button(wChildBase,VALUE='Flush DRF queue',UVALUE='flushqueue', resource_name='red_button')
 	;---- quit button
 	q=widget_button(wChildBase,VALUE='Abort current DRF',UVALUE='abortDRF', resource_name='red_button')
+	q=widget_button(wChildBase,VALUE='Change default directories',UVALUE='changedir', resource_name='red_button')
 	q=widget_button(wChildBase,VALUE='Quit GPI DRP',UVALUE='quit', resource_name='red_button')
 
 

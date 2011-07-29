@@ -28,6 +28,7 @@ pro structDataset__define
             currFrame:PTR_new(/ALLOCATE_HEAP), $
             Frames:PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP), $
             Headers:PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP), $
+            HeadersPHU:PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP), $
             ErrFrames:PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP), $
             QualFrames:PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)}
 end

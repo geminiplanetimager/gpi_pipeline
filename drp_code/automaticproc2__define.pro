@@ -11,7 +11,7 @@
 ;http://www.dfanning.com/programs/textbox.pro
 ;contribution:Jon Aymon University of California Berkeley August 2005
 ;
-;Jerome Maire - Universite de Montreal - 15.01.2011
+;Jerome Maire - 15.01.2011
 ;---------------------------------------------------------------------
 
 pro automaticproc2::run
@@ -29,7 +29,7 @@ dir=self.dirinit
         oldlistfile =FILE_SEARCH(string3,/FOLD_CASE)
     
         dateold=dblarr(n_elements(oldlistfile))
-        for j=0,n_elements(oldlistfile)-1 do begin
+        for j=0L,long(n_elements(oldlistfile)-1) do begin
         Result = FILE_INFO(oldlistfile[j] )
         dateold[j]=Result.ctime
         endfor
@@ -62,10 +62,10 @@ chang=''
       ;  fitsfileslist(n:n+n_elements(fitsfiles)-1) =fitsfiles
       ;  n=n+ n_elements(fitsfiles)
     ;endfor
-    
+    widget_control,self.information_id,set_value='Scanning...'
     ; retrieve creation date
       datefile=dblarr(n_elements(fitsfileslist))
-        for j=0,n_elements(datefile)-1 do begin
+        for j=0L,long(n_elements(datefile)-1) do begin
         Result = FILE_INFO(fitsfileslist[j] )
         datefile[j]=Result.ctime
         endfor
@@ -73,7 +73,7 @@ chang=''
         list2=fitsfileslist[REVERSE(sort(datefile))]
        ; list3=list2(0:n_elements(list2)-1)
     
-
+    
     ;;compare old and new file list
     if (max(datefile) gt max(dateold)) || (n_elements(datefile) gt n_elements(dateold)) then begin
       ;chang=1
@@ -82,7 +82,7 @@ chang=''
       chang=fitsfileslist[maxind]
       dateold=datefile
     endif
- 
+    widget_control,self.information_id,set_value='IDLE'
     if chang ne '' then begin
           widget_control, self.listfile_id, SET_VALUE= list2[0:(n_elements(list2)-1)<(self.maxnewfile-1)] ;display the list
           ;check if the file has been totally copied
@@ -330,15 +330,16 @@ PRO automaticproc2::cleanup
 ; Kill top-level base if it still exists
 if (xregistered ('automaticprocess')) then widget_control, self.wtFITS, /destroy
 if (xregistered ('drfgui') gt 0) then    widget_control,(self.parserobj).drfbase,/destroy
+
   self->parsergui::cleanup ; will destroy all widgets
 
   ;heap_gc
 
 
-if obj_valid(self.launcher) then begin
-    self.launcher->queue, 'quit' ; kill the other side of the link, too
-    obj_destroy, self.launcher ; kill this side.
-  endif
+;if obj_valid(self.launcher) then begin
+;    self.launcher->queue, 'quit' ; kill the other side of the link, too
+;    obj_destroy, self.launcher ; kill this side.
+;  endif
   
   
   obj_destroy, self
@@ -547,11 +548,23 @@ end
 function automaticproc2::init, groupleader, _extra=_extra
 ; Retrieve a FITS filename.
 ;setenv_gpi
-while gpi_is_setenv() eq 0 do begin
-      obj=obj_new('setenvir')
-      obj_destroy, obj
-endwhile
+;while gpi_is_setenv() eq 0 do begin
+;      obj=obj_new('setenvir')
+;      obj_destroy, obj
+;endwhile
 
+issetenvok=gpi_is_setenv(/first)
+if issetenvok eq 0 then begin
+        obj=obj_new('setenvir')
+        if obj.quit eq 1 then issetenvok=-1
+        obj_destroy, obj
+  while (issetenvok ne -1) && (gpi_is_setenv() eq 0)  do begin
+        obj=obj_new('setenvir')
+        if obj.quit eq 1 then issetenvok=-1
+        obj_destroy, obj
+  endwhile
+endif else if issetenvok eq -1 then return,0
+  if issetenvok eq -1 then return,0
 ;common filestateF
 ;FITSGETinit
 ;if n_params() eq 1 then stateF.commande=command
