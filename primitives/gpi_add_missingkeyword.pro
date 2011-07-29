@@ -27,13 +27,14 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
  
   if tag_exist( Modules[thisModuleIndex], "keyword") && tag_exist( Modules[thisModuleIndex], "value") then begin
 
-	  FXADDPAR, *(dataset.headers)[numfile], Modules[thisModuleIndex].keyword, Modules[thisModuleIndex].value
-	  backbone->Log, 'Added keyword "'+Modules[thisModuleIndex].keyword+'", value="'+Modules[thisModuleIndex].value+'".'
+    FXADDPAR, *(dataset.headers)[numfile], Modules[thisModuleIndex].keyword, Modules[thisModuleIndex].value
+    backbone->Log, 'Added keyword "'+Modules[thisModuleIndex].keyword+'", value="'+Modules[thisModuleIndex].value+'".'
   endif else begin
-	  backbone->Log, 'WARNING: Add missing keyword was called, but there were no arguments describing a keyword to add. Doing nothing.'
+    backbone->Log, 'WARNING: Add missing keyword was called, but there were no arguments describing a keyword to add. Doing nothing.'
   endelse
    
    
 @__end_primitive
+
 
 end

@@ -12,7 +12,9 @@
 ; 	the previous stage of processing. 
 ;
 ;
-;
+; 
+; GEM/GPI KEYWORDS:EXPTIME,ISS_PORT,PAR_ANG,WPANGLE
+; DRP KEYWORDS:CDELT3,CRPIX3,CRVAL3,CTYPE3,CUNIT3,DATAFILE,NAXISi,PC3_3
 ; ALGORITHM:
 ;
 ;
@@ -217,21 +219,27 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 @__start_primitive
 	silent=1
 
-	header=*(dataset.headers[numfile])
+	;header=*(dataset.headers[numfile])
 
 	nfiles=dataset.validframecount
-	if nfiles lt 4 then return, error('FAILURE ('+functionName+'): At least 4 input polarizations files are required.')
 
 	; Load the first file so we can figure out their size, etc. 
-	im0 = accumulate_getimage(dataset, 0, hdr0)
-	hdr=hdr0
+	if numext eq 0 then begin 
+	  im0 = accumulate_getimage(dataset, 0, hdr0)
+	  hdr=hdr0
+endif	else begin
+	  im0 = accumulate_getimage(dataset, 0, hdr,hdrext=hdrext)
+	endelse
+	
 
 
 	; Load all files at once. 
 	M = fltarr(4, nfiles*2)			; this will be the measurement matrix of coefficients for the Stokes parameters.
 	Msumdiff = fltarr(4, nfiles*2)	; a similar measurement matrix, for the sum and single-difference images. 
 
+  if numext gt 0 then hdr0=hdrext
 	sz = [0, sxpar(hdr0,'NAXIS1'), sxpar(hdr0,'NAXIS2'), sxpar(hdr0,'NAXIS3')]
+	if numext gt 0 then hdr0=hdr
 	exptime = sxpar(hdr0, "EXPTIME")
 	polstack = fltarr(sz[1], sz[2], sz[3]*nfiles)
 
@@ -253,12 +261,17 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		print, "using port = "+port
 		sxaddhist, functionname+": using instr pol for port ="+port, hdr
 	system_mueller = DST_instr_pol(/mueller, port=port)
-  	woll_mueller_vert = mueller_linpol_rot(90) ; swapped by MP on 3:11 2012-12-8
-	woll_mueller_horiz= mueller_linpol_rot(0)
-
+;  	woll_mueller_vert = mueller_linpol_rot(0)
+;	woll_mueller_horiz= mueller_linpol_rot(90)
+  woll_mueller_vert = mueller_linpol_rot(90)
+  woll_mueller_horiz= mueller_linpol_rot(0)
 
 	for i=0L,nfiles-1 do begin
+	if numext eq 0 then begin
 		polstack[0,0,i*2] = accumulate_getimage(dataset,i,hdr)
+	endif else begin
+	  polstack[0,0,i*2] = accumulate_getimage(dataset,i,hdr,hdrext=hdrext)
+	endelse	
 		wpangle[i] = sxpar(hdr, "WPANGLE")
 		parang = sxpar(hdr, "PAR_ANG") ; we want the original, not rotated or de-rotated
 										; since that's what set's how the
@@ -291,16 +304,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	; check for singular values and set to zero if they are close to machine
 	; precision limit
-	print, "W:"
-	print, W
-	print, 'WSD:'
-	print, WSD
-
-        ;stop
 	wsingular = where(w lt (machar()).eps*5, nsing)
-
-
-        print, 'found '+strc(nsing)+'/'+strc(n_elements(w))+' singular values'
 	if nsing gt 0 then w[wsingular]=0
 	wsingular = where(wsd lt (machar()).eps*5, nsing)
 	if nsing gt 0 then wsd[wsingular]=0
@@ -434,29 +438,47 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 ;
 ;	stop
 ;
-
-	sxaddhist, functionname+": Updating WCS header", hdr
+  if numext eq 0 then begin
+      hdrim=hdr
+  endif else begin
+      hdrim=hdrext
+  endelse
+	sxaddhist, functionname+": Updating WCS header", hdrim
 	; Assume all the rest of the WCS keywords are still OK...
     sz = size(Stokes)
-    sxaddpar, hdr, "NAXIS", sz[0], /saveComment
-    sxaddpar, hdr, "NAXIS1", sz[1], /saveComment
-    sxaddpar, hdr, "NAXIS2", sz[2], /saveComment
-    sxaddpar, hdr, "NAXIS3", sz[3], /saveComment
+    sxaddpar, hdrim, "NAXIS", sz[0], /saveComment
+    sxaddpar, hdrim, "NAXIS1", sz[1], /saveComment
+    sxaddpar, hdrim, "NAXIS2", sz[2], /saveComment
+    sxaddpar, hdrim, "NAXIS3", sz[3], /saveComment
 
-    sxaddpar, hdr, "CTYPE3", "STOKES",  "Polarization"
-    sxaddpar, hdr, "CUNIT3", "N/A",     "Polarizations"
-    sxaddpar, hdr, "CRVAL3", 1, 		" Stokes axis:  I Q U V "
-    sxaddpar, hdr, "CRPIX3", 0,         "Reference pixel location"
-    sxaddpar, hdr, "CDELT3", 1, 		" Stokes axis:  I Q U V "
-    sxaddpar, hdr, "PC3_3", 1, "Stokes axis is unrotated"
+    sxaddpar, hdrim, "CTYPE3", "STOKES",  "Polarization"
+    sxaddpar, hdrim, "CUNIT3", "N/A",     "Polarizations"
+    sxaddpar, hdrim, "CRVAL3", 1, 		" Stokes axis:  I Q U V "
+    sxaddpar, hdrim, "CRPIX3", 0,         "Reference pixel location"
+    sxaddpar, hdrim, "CDELT3", 1, 		" Stokes axis:  I Q U V "
+    sxaddpar, hdrim, "PC3_3", 1, "Stokes axis is unrotated"
 
 	; store the outputs: this should be the ONLY valid file in the stack now, 
 	; and adjust the # of files!
+;stop
+if numext eq 0 then begin
+ *(dataset.headers[numfile])=hdrim 
+ endif else begin
+  *(dataset.headersPHU[numfile])=hdr
+ *(dataset.headers[numfile])=hdrim
+endelse 
 
 	*(dataset.currframe)=Stokes
-	*(dataset.headers[numfile]) = hdr
+	;*(dataset.headers[numfile]) = hdr
 	suffix = "-stokesdc"
 
+	filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
+slash=strpos(filnm,path_sep(),/reverse_search)
+if numext eq 0 then writefits,getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+'diff.fits',Stokes2,hdr
+if numext gt 0 then begin
+  writefits,getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+'diff.fits','',hdrim
+  writefits,getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+'diff.fits',Stokes2,hdrim, /append
+endif  
 
 	@__end_primitive
 ;;		thisModuleIndex = Backbone->GetCurrentModuleIndex()

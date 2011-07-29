@@ -50,7 +50,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
             
             
         ;define the common wavelength vector with te FILTER1 keyword:
-        header=*(dataset.headers)[numfile]
+        if numext eq 0 then header=*(dataset.headers)[numfile] else header=*(dataset.headersPHU)[numfile]
         filter = strcompress(sxpar( header ,'FILTER1', count=fcount),/REMOVE_ALL)
         if fcount eq 0 then filter = strcompress(sxpar( header ,'FILTER'),/REMOVE_ALL)
                     ;error handle if FILTER1 keyword not found
@@ -72,7 +72,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     xmaxi=(change_wavcal_lambdaref( wavcal, lambdamax))[*,*,0]
     ;length of spectrum in pix
     ;sdpx=ceil(xmaxi(nlens/2,nlens/2))-xmini(nlens/2,nlens/2)+1
-    sdpx=max(ceil(xmaxi-xmini))+1 ;JM change 2009/08, from zemax sim, sdpx is greater when spec are far from center
+    xdiff=xmaxi-xmini
+    bordnan=where(~finite(xdiff),cc)
+    if cc gt 0 then xdiff[bordnan]=0.
+    sdpx=max(ceil(xdiff))+1 ;JM change 2009/08, from zemax sim, sdpx is greater when spec are far from center
     ;print, 'spdx=',sdpx
     ; after the above, sdpx gives the length of the spectra in pixels.
 
@@ -102,16 +105,16 @@ suffix='-spdc'
 *(dataset.currframe[0])=cubef3D
 
 ;save if asked and handle error if save function failed:
-  ;thisModuleIndex = Backbone->GetCurrentModuleIndex()
- ;if tag_exist( Modules[thisModuleIndex], "Save") && $
- ;tag_exist( Modules[thisModuleIndex], "suffix") && $
- ;(uint(Modules[thisModuleIndex].save) eq 1 ) then suffix=Modules[thisModuleIndex].suffix
- 
+;  thisModuleIndex = Backbone->GetCurrentModuleIndex()
+; if tag_exist( Modules[thisModuleIndex], "Save") && $
+; tag_exist( Modules[thisModuleIndex], "suffix") && $
+; (uint(Modules[thisModuleIndex].save) eq 1 ) then suffix=Modules[thisModuleIndex].suffix
+; 
 ;
-    ;if ( Modules[thisModuleIndex].Save eq 1 ) then begin
-       ;b_Stat = save_currdata ( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=fix(Modules[thisModuleIndex].gpitv) )
-       ;if ( b_Stat ne OK ) then  return, error('FAILURE ('+functionName+'): Failed to save dataset.')
-    ;end
+;    if ( Modules[thisModuleIndex].Save eq 1 ) then begin
+;       b_Stat = save_currdata ( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=fix(Modules[thisModuleIndex].gpitv) )
+;       if ( b_Stat ne OK ) then  return, error('FAILURE ('+functionName+'): Failed to save dataset.')
+;    end
 
 
 ;return, ok
