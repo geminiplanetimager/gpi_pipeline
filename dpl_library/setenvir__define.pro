@@ -20,7 +20,7 @@ case tag_names(ev, /structure_name) of
       'WIDGET_TRACKING': begin 
         if (ev.ENTER EQ 1) then begin 
               case uval of              
-                  'GID':textinfo='Directory of.'
+                  'GID':textinfo='Working directory.'
                   'GPD':textinfo='Directory of the Data Reduction Pipeline (DRP).'
                   'GPLD':textinfo='Directory where the DRP will place reduction log file.'  
                   'GDTD':textinfo='Directory of templates reduction sequences.'
@@ -102,29 +102,41 @@ case tag_names(ev, /structure_name) of
               end
               'Restore envir. var.':begin
                dir = DIALOG_PICKFILE(PATH=getenv('GPI_PIPELINE_DIR'), Title='Choose environment_variables*.sav',/must_exist,FILTER = ['environment_variables*.sav'] )
-               restore, dir
-               setenv,'GPI_IFS_DIR='+GID
-               setenv,'GPI_PIPELINE_DIR='+GPD
-               setenv,'GPI_PIPELINE_LOG_DIR='+GPLD
-               setenv,'GPI_DRF_TEMPLATES_DIR='+GDTD
-               setenv,'GPI_QUEUE_DIR='+GQD
-               setenv,'GPI_CONFIG_FILE='+GCF
-               setenv,'GPI_RAW_DATA_DIR='+GRDD
-               setenv,'GPI_DRP_OUTPUT_DIR='+GDOD
+               if dir ne -1 then begin
+                 restore, dir
+                 setenv,'GPI_IFS_DIR='+GID
+                 setenv,'GPI_PIPELINE_DIR='+GPD
+                 setenv,'GPI_PIPELINE_LOG_DIR='+GPLD
+                 setenv,'GPI_DRF_TEMPLATES_DIR='+GDTD
+                 setenv,'GPI_QUEUE_DIR='+GQD
+                 setenv,'GPI_CONFIG_FILE='+GCF
+                 setenv,'GPI_RAW_DATA_DIR='+GRDD
+                 setenv,'GPI_DRP_OUTPUT_DIR='+GDOD
+               endif
               end
-              'Ok':WIDGET_CONTROL,self.base, /DESTROY
-              else:
+              'Ok':begin
+                  WIDGET_CONTROL,self.base, /DESTROY
+                  self.quit=0
+                  end
+              'Exit':begin
+                    WIDGET_CONTROL,self.base, /DESTROY
+                    self.quit=1
+                    end 
+               else:
           endcase
       end
       endcase
 
 
 end
-
+function setenvir::act
+  return, self.quit
+end
 function setenvir::init
 self.base = widget_base(title='Environment variables', /column)
 base=self.base
 void = widget_label(base, value='Please verify or define environment variables hereafter.')
+void = widget_label(base, value='Writable directories:')
 ;base2 = widget_base(base, /row)
 ;basedesc = widget_base(base2, /column)
 ;basefilename = widget_base(base2, /column)
@@ -167,58 +179,78 @@ cd, current=cur_rep
  endelse     
 
 xs=180
+xs0=210
 ys=30
 base2=widget_base(base, /row)
 if file_test(getenv('GPI_IFS_DIR'),/dir) then val=getenv('GPI_IFS_DIR') else val=''
+void= widget_label(base2,Value='Working directory:',ysize=ys,XSIZE=xs0, /tracking_events,Uvalue='GID')
 void= widget_label(base2,Value='GPI_IFS_DIR :',ysize=ys,XSIZE=xs, /tracking_events,Uvalue='GID')
 self.GIDdir_id = WIDGET_TEXT(base2,Value=val,Uvalue='IFS_DIR',XSIZE=50)
 button_id = WIDGET_BUTTON(base2,Value='Change dir...',Uvalue='changeGID',ysize=ys)
 
-base3=widget_base(base, /row)
-if file_test(getenv('GPI_PIPELINE_DIR'),/dir) then val=getenv('GPI_PIPELINE_DIR') else val=''
-void= widget_label(base3,Value='GPI_PIPELINE_DIR :',ysize=ys,XSIZE=xs, /tracking_events,Uvalue='GPD')
-self.GPDdir_id = WIDGET_TEXT(base3,Value=val,Uvalue='PIPELINE_DIR',XSIZE=50)
-button_id = WIDGET_BUTTON(base3,Value='Change dir...',Uvalue='changeGPD',ysize=ys)
-
 base4=widget_base(base, /row)
 if file_test(getenv('GPI_PIPELINE_LOG_DIR'),/dir) then val=getenv('GPI_PIPELINE_LOG_DIR') else val=''
+void= widget_label(base4,Value='Dir. for produced log file:',ysize=ys,XSIZE=xs0, /tracking_events,Uvalue='GPLD')
 void= widget_label(base4,Value='GPI_PIPELINE_LOG_DIR :',ysize=ys,XSIZE=xs, /tracking_events,Uvalue='GPLD')
 self.GPLDdir_id = WIDGET_TEXT(base4,Value=val,Uvalue='PIPELINE_LOG_DIR',XSIZE=50)
 button_id = WIDGET_BUTTON(base4,Value='Change dir...',Uvalue='changeGPLD',ysize=ys)
 
-base5=widget_base(base, /row)
-if file_test(getenv('GPI_DRF_TEMPLATES_DIR'),/dir) then val=getenv('GPI_DRF_TEMPLATES_DIR') else val=''
-void= widget_label(base5,Value='GPI_DRF_TEMPLATES_DIR :',ysize=ys,XSIZE=xs, /tracking_events,Uvalue='GDTD')
-self.GDTDdir_id = WIDGET_TEXT(base5,Value=val,Uvalue='GPI_DRF_TEMPLATES_DIR',XSIZE=50)
-button_id = WIDGET_BUTTON(base5,Value='Change dir...',Uvalue='changeGDTD',ysize=ys)
 
 base6=widget_base(base, /row)
 if file_test(getenv('GPI_QUEUE_DIR'),/dir) then val=getenv('GPI_QUEUE_DIR') else val=''
+void= widget_label(base6,Value='DRF queue directory:',ysize=ys,XSIZE=xs0, /tracking_events,Uvalue='GQD')
 void= widget_label(base6,Value='GPI_QUEUE_DIR :',ysize=ys,XSIZE=xs, /tracking_events,Uvalue='GQD')
 self.GQDdir_id = WIDGET_TEXT(base6,Value=val,Uvalue='GPI_QUEUE_DIR',XSIZE=50)
 button_id = WIDGET_BUTTON(base6,Value='Change dir...',Uvalue='changeGQD',ysize=ys)
 
-base7=widget_base(base, /row)
-if file_test(getenv('GPI_CONFIG_FILE'),/read) then val=getenv('GPI_CONFIG_FILE') else val=''
-void= widget_label(base7,Value='GPI_CONFIG_FILE :',ysize=ys,XSIZE=xs, /tracking_events,Uvalue='GCF')
-self.GCF_id = WIDGET_TEXT(base7,Value=val,Uvalue='GPI_CONFIG_FILE',XSIZE=50)
-button_id = WIDGET_BUTTON(base7,Value='Change dir...',Uvalue='changeGCF',ysize=ys)
-
-base8=widget_base(base, /row)
-if file_test(getenv('GPI_RAW_DATA_DIR'),/dir) then val=getenv('GPI_RAW_DATA_DIR') else val=''
-void= widget_label(base8,Value='GPI_RAW_DATA_DIR :',ysize=ys,XSIZE=xs, /tracking_events,Uvalue='GRDD')
-self.GRDDdir_id = WIDGET_TEXT(base8,Value=val,Uvalue='GPI_RAW_DATA_DIR',XSIZE=50)
-button_id = WIDGET_BUTTON(base8,Value='Change dir...',Uvalue='changeGRDD',ysize=ys)
 
 base9=widget_base(base, /row)
 if (file_test(getenv('GPI_DRP_OUTPUT_DIR'),/dir,/write)) then val=getenv('GPI_DRP_OUTPUT_DIR') else val=''
+void= widget_label(base9,Value='Reduced data dir.:',ysize=ys,XSIZE=xs0, /tracking_events,Uvalue='GDOD')
 void= widget_label(base9,Value='GPI_DRP_OUTPUT_DIR :',ysize=ys,XSIZE=xs, /tracking_events,Uvalue='GDOD')
 self.GDODdir_id = WIDGET_TEXT(base9,Value=val,Uvalue='GPI_DRP_OUTPUT_DIR',XSIZE=50)
 button_id = WIDGET_BUTTON(base9,Value='Change dir...',Uvalue='changeGDOD',ysize=ys)
 
+void = widget_label(base, value='')
+void = widget_label(base, value='The following need to be writable only for avanced customized reduction:')
+
+base5=widget_base(base, /row)
+if file_test(getenv('GPI_DRF_TEMPLATES_DIR'),/dir) then val=getenv('GPI_DRF_TEMPLATES_DIR') else val=''
+void= widget_label(base5,Value='Dir. of pre-defined recipes:',ysize=ys,XSIZE=xs0, /tracking_events,Uvalue='GDTD')
+void= widget_label(base5,Value='GPI_DRF_TEMPLATES_DIR :',ysize=ys,XSIZE=xs, /tracking_events,Uvalue='GDTD')
+self.GDTDdir_id = WIDGET_TEXT(base5,Value=val,Uvalue='GPI_DRF_TEMPLATES_DIR',XSIZE=50)
+button_id = WIDGET_BUTTON(base5,Value='Change dir...',Uvalue='changeGDTD',ysize=ys)
+
+
+base7=widget_base(base, /row)
+if file_test(getenv('GPI_CONFIG_FILE'),/read) then val=getenv('GPI_CONFIG_FILE') else val=''
+void= widget_label(base7,Value='Config file of reduction modules:',ysize=ys,XSIZE=xs0, /tracking_events,Uvalue='GCF')
+void= widget_label(base7,Value='GPI_CONFIG_FILE :',ysize=ys,XSIZE=xs, /tracking_events,Uvalue='GCF')
+self.GCF_id = WIDGET_TEXT(base7,Value=val,Uvalue='GPI_CONFIG_FILE',XSIZE=50)
+button_id = WIDGET_BUTTON(base7,Value='Change dir...',Uvalue='changeGCF',ysize=ys)
+
+
+void = widget_label(base, value='')
+void = widget_label(base, value='The following directories can be non-writable:')
+base3=widget_base(base, /row)
+if file_test(getenv('GPI_PIPELINE_DIR'),/dir) then val=getenv('GPI_PIPELINE_DIR') else val=''
+void= widget_label(base3,Value='Dir. of the pipeline (code or exec.):',ysize=ys,XSIZE=xs0, /tracking_events,Uvalue='GPD')
+void= widget_label(base3,Value='GPI_PIPELINE_DIR :',ysize=ys,XSIZE=xs, /tracking_events,Uvalue='GPD')
+self.GPDdir_id = WIDGET_TEXT(base3,Value=val,Uvalue='PIPELINE_DIR',XSIZE=50)
+button_id = WIDGET_BUTTON(base3,Value='Change dir...',Uvalue='changeGPD',ysize=ys)
+
+
+base8=widget_base(base, /row)
+if file_test(getenv('GPI_RAW_DATA_DIR'),/dir) then val=getenv('GPI_RAW_DATA_DIR') else val=''
+void= widget_label(base8,Value='Dir. of your data:',ysize=ys,XSIZE=xs0, /tracking_events,Uvalue='GRDD')
+void= widget_label(base8,Value='GPI_RAW_DATA_DIR :',ysize=ys,XSIZE=xs, /tracking_events,Uvalue='GRDD')
+self.GRDDdir_id = WIDGET_TEXT(base8,Value=val,Uvalue='GPI_RAW_DATA_DIR',XSIZE=50)
+button_id = WIDGET_BUTTON(base8,Value='Change dir...',Uvalue='changeGRDD',ysize=ys)
+
 button_id = WIDGET_BUTTON(base,Value='Save',Uvalue='Save envir. var.')
-button_id = WIDGET_BUTTON(base,Value='Restore envir. var.',Uvalue='Restore envir. var.')
+button_id = WIDGET_BUTTON(base,Value='Restore environment variables',Uvalue='Restore envir. var.')
 button_id = WIDGET_BUTTON(base,Value='Ok',Uvalue='Ok')
+button_id = WIDGET_BUTTON(base,Value='Quit',Uvalue='Exit')
 self.information_id= widget_label(base,Value=textinfo, xsize=600, /align_left, /sunken)
 WIDGET_CONTROL,base, /REALIZE 
     storage={self:self}
@@ -232,6 +264,7 @@ end
 pro setenvir__define
 state={ setenvir,$
       base:0L,$
+      quit:0L,$
       GIDdir_id:0L,$  
       GPDdir_id:0L,$  
       GPLDdir_id:0L,$   

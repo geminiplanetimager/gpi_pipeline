@@ -17,7 +17,7 @@
 ;-
 
 
-FUNCTION accumulate_getimage, dataset, index, hdr
+FUNCTION accumulate_getimage, dataset, index, hdr, hdrext=hdrext
 	common PIP
 	common APP_CONSTANTS
 
@@ -27,19 +27,38 @@ FUNCTION accumulate_getimage, dataset, index, hdr
 	case size( *(dataset.frames[index])   ,/TNAME ) of
 	'UNDEFINED': begin
 		; image was never read in the first place. 
-		image = readfits( dataset.inputdir + path_sep() + *(dataset.filenames[index]), hdr,/silent)
+		fits_info, dataset.inputdir + path_sep() + *(dataset.filenames[index]), n_ext = num_ext, /silent
+		if num_ext eq 0 then begin
+		  image = readfits( dataset.inputdir + path_sep() + *(dataset.filenames[index]), hdr,/silent) 
+		endif else begin
+		  image = mrdfits( dataset.inputdir + path_sep() + *(dataset.filenames[index]), 1,hdrext,/silent)
+		  hdr =   headfits(dataset.inputdir + path_sep() + *(dataset.filenames[index]), exten=0) 
+		endelse
 		return, image
 	end
 
 	; Option 2:  image was stored on disk, so read it in and return it
 	"STRING": begin
-		image = readfits(  *(dataset.frames[index]), hdr,/silent)
+	  fits_info,  *(dataset.frames[index]), n_ext = num_ext, /silent
+	  if num_ext eq 0 then begin
+		  image = readfits(  *(dataset.frames[index]), hdr,/silent) 
+    endif else begin
+		  image = mrdfits( *(dataset.frames[index]), 1, hdrext,/silent)
+		  hdr =   headfits(*(dataset.frames[index]), exten=0) 
+    endelse  
+		  
 		return, image
 	end
 
 	; Option 3: image was kept in memory so just hand that back.
 	else :begin
-		hdr = *(dataset.headers[index])
+	  if numext eq 0 then begin
+        hdr = *(dataset.headers[index])
+    endif else begin
+      hdr =   *(dataset.headersPHU[index])
+      hdrext =  *(dataset.headers[index])
+    endelse  
+	
 		return, *(dataset.frames[index])
 	end
 	endcase

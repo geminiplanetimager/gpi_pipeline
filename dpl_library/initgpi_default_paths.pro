@@ -47,13 +47,11 @@ end
 ;---------------
 
 pro initgpi_default_paths, err=err
-
 ;message, "Setting path environment variables to DEFAULT PATHS", /info
 err=0
-
 CASE !VERSION.OS_FAMILY OF  
 	'Windows': begin
-		GPI_PIPELINE_DIR='E:\GPI\pipeline'
+		GPI_PIPELINE_DIR='E:\testsvn3\pipeline' 
 		GPI_RAW_DATA_DIR='E:\GPIdatabase\Gemini\'
 		GPI_DRP_OUTPUT_DIR='E:\GPIdatabase\GPIreduced\'
 	end

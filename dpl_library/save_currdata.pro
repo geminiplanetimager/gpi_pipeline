@@ -31,7 +31,7 @@
 ;-
 
 
-function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=savedata, saveheader=saveheader, filenm=filenm, $
+function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=savedata, saveheader=saveheader, savePHU=savePHU, filenm=filenm, $
 		output_filename=c_File1, level2=level2
 
     COMMON APP_CONSTANTS
@@ -55,7 +55,9 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 		c_file = s_OutputDir + path_sep() + strmid(filnm, 0, dot) + s_Ext+'.fits'
 	endelse
 
-
+      caldat,systime(/julian),month,day,year, hour,minute,second
+      datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
+      hourstr = string(hour,minute,second,format='(i2.2,i2.2,i2.2)')  
 	; test output dir
 	if ~file_test(s_OutputDir,/directory, /write) then return, error("FAILURE: Directory "+s_OutputDir+" does not exist or is not writeable.",/alert)
 
@@ -75,14 +77,33 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	;writefits, c_File1, float(*DataSet.IntFrames(i)), /APPEND
 	;writefits, c_File1, byte(*DataSet.IntAuxFrames(i)), /APPEND
 	if ( keyword_set( savedata ) ) then begin 
-		fxaddpar, saveheader, 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
-		writefits, c_File1, savedata, saveheader
+	  if ~( keyword_set( saveheader ) ) then saveheader = *(dataset.headers[numfile])
+	  if numext eq 1 then if ~( keyword_set( savePHU ) ) then savePHU = *(dataset.headersPHU[numfile])
+		if numext eq 0 then begin
+		    fxaddpar, saveheader, 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
+		    fxaddpar, saveheader, 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
+				  writefits, c_File1, savedata, saveheader
+		endif else begin
+		    fxaddpar, savePHU, 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
+		    fxaddpar, savePHU, 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
+				  writefits, c_File1, 0, savePHU ;*(dataset.headersPHU[numfile])
+		  writefits, c_File1, savedata, saveheader, /append
+		endelse
 		curr_hdr = saveheader
 	endif else begin
-		fxaddpar, *DataSet.Headers[i], 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
-		writefits, c_File1, *DataSet.currFrame, *DataSet.Headers[i]
-		DataSet.OutputFilenames[i] = c_File1
-		curr_hdr = *DataSet.Headers[i]
+	  if numext eq 0 then begin
+		  fxaddpar, *DataSet.Headers[i], 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
+		  fxaddpar, *DataSet.Headers[i], 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
+      writefits, c_File1, *DataSet.currFrame, *DataSet.Headers[i]
+          curr_hdr = *DataSet.Headers[i]
+    endif else begin  
+      fxaddpar, *DataSet.HeadersPHU[i], 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
+      fxaddpar, *DataSet.HeadersPHU[i], 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
+      writefits, c_File1, 0, *DataSet.HeadersPHU[i]
+      writefits, c_File1, *DataSet.currFrame, *DataSet.Headers[i], /append
+          curr_hdr = *DataSet.HeadersPHU[i]
+    endelse  
+      DataSet.OutputFilenames[i] = c_File1  
 	endelse
 
 	if keyword_set(debug) then print, "  Data output ===>>> "+c_File1

@@ -149,7 +149,7 @@ function PIP_nbphot_trans_lowres, hdr, lambda, atmostrans=atmostrans, filtertran
 		; spect is in ?? units
 		; lamb is in Angstroms; convert it to microns
 	lamb  = reform(lamb/ 1e4)
-;stop
+
 	;Atmospheric Transmission
 	;==========================================
 	if keyword_set(atmostrans) then $
@@ -171,7 +171,7 @@ filter_trans=pipeline_getfilter(lamb, filter=filter) else filter_trans=1.
 width=lambda[n_elements(lambda)-1]-lambda[0]
 case strcompress(filter,/REMOVE_ALL) of
   'Y':specresolution=35.
-  'J':specresolution=45;37.
+  'J':specresolution=75;37.
   'H':specresolution=45;45.
   'K1':specresolution=65;65.
   'K2':specresolution=75.
@@ -224,7 +224,7 @@ locg=intarr(2)
 	 nbtot_phot=(nbphot* GroundSpec);*  transmission_instrument
 ;stop
 
-  if 0 then begin
+  if 1 then begin
 
     window, 20
     plot, lamb[locg[0]:locg[1]], HiResGrndSpec[locg[0]:locg[1]]/max(HiResGrndSpec[locg[0]+10:locg[1]]), xtitle="Wavelength", ytitle="star spec (normalized)"
