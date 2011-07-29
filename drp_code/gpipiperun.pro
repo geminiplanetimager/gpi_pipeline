@@ -15,8 +15,8 @@
 ;  /flushqueue		DELETE any DRFs present in the queue on startup (dangerous,
 ;  					mostly for debugging purposes)
 ;  /rescan			Rescan & recreate the calibration files DB on startup
-;  /verbose			Display more output than usual, mostly for debugging
-;  					purposes
+;  /verbose     Display more output than usual, mostly for debugging
+;           purposes
 ;
 ; EXAMPLE:
 ;  IDL> gpipiperun, /noexit,  /rescanDB, /noguidrf, /parsergui
@@ -31,11 +31,23 @@ PRO gpiPipeRun, QUEUE_DIR=queue_dir, config_file=config_file, noinit=noinit, $
 	noexit=noexit, rescanDB=rescanDB, flushqueue=flushqueue, verbose=verbose
 
 ;setenv_gpi
-while gpi_is_setenv() eq 0 do begin
-      obj=obj_new('setenvir')
-      obj_destroy, obj
-endwhile
+;while gpi_is_setenv() eq 0 do begin
+;      obj=obj_new('setenvir')
+;      obj_destroy, obj
+;endwhile
 
+issetenvok=gpi_is_setenv(/first)
+if issetenvok eq 0 then begin
+        obj=obj_new('setenvir')
+        if obj->act() eq 1 then issetenvok=-1
+        obj_destroy, obj
+  while (issetenvok ne -1) && (gpi_is_setenv() eq 0)  do begin
+        obj=obj_new('setenvir')
+        if obj->act() eq 1 then issetenvok=-1
+        obj_destroy, obj
+  endwhile
+endif else if issetenvok eq -1 then return
+  if issetenvok eq -1 then return
   ; check for the presence of a valid config, and load default if not.
   config_valid = keyword_set(getenv('GPI_QUEUE_DIR')) and  keyword_set(getenv('GPI_CONFIG_FILE'))
   if ~config_valid then BEGIN
@@ -54,6 +66,7 @@ endwhile
 	if keyword_set(flushqueue) then x->flushqueue, queue_dir
 	if keyword_set(rescanDB) then x->rescan
 
+	
 	
 	x->Run, Queue_Dir
 

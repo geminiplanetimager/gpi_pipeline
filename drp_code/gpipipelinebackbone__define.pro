@@ -69,8 +69,8 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session, ve
         }
 
     if ~(keyword_set(config_file)) then config_file=GETENV('GPI_CONFIG_FILE') ;"DRSConfig.xml"
-	self.verbose = keyword_set(verbose)
-	ver = gpi_pipeline_version()
+    self.verbose = keyword_set(verbose)
+    ver = gpi_pipeline_version()
 
     print, "                                                    "
     PRINT, "*****************************************************"
@@ -103,8 +103,8 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session, ve
         if file_test(config_file) then  Self.ConfigParser -> ParseFile, config_file
 
 	    self->SetupProgressBar
-        self.progressbar->log,"* GPI DATA REDUCTION PIPELINE  *"
-        self.progressbar->log,"* VERSION "+ver+"  *"
+      self.progressbar->log,"* GPI DATA REDUCTION PIPELINE  *"
+      self.progressbar->log,"* VERSION "+ver+"  *"
 		self.GPICalDB = obj_new('gpicaldatabase', backbone=self)
     
 		self.progressbar->set_calibdir, self.GPICalDB->get_calibdir()
@@ -158,6 +158,7 @@ PRO gpiPipelineBackbone::Cleanup
         FOR i = 0, N_ELEMENTS(*Self.Data)-1 DO BEGIN
             PTR_FREE, (*Self.Data)[i].Frames[*]
             PTR_FREE, (*Self.Data)[i].Headers[*]
+            PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
             PTR_FREE, (*Self.Data)[i].UncertFrames[*]
             PTR_FREE, (*Self.Data)[i].FlagFrames[*]
         END
@@ -171,7 +172,6 @@ PRO gpiPipelineBackbone::Cleanup
     endif
 
 END
-
 
 
 ;-----------------------------------------------------------------------------------------------------
@@ -309,35 +309,40 @@ PRO gpiPipelineBackbone::gpitv, filename_or_data, session=session, header=header
 		if size(filename_or_data,/TNAME) ne 'STRING' then begin
 			; user provided an array - need to write it to a temp file on disk
 			tmppath = getenv('IDL_TMPDIR')
+			     if ~file_test(tmppath, /write) then tmppath = getenv('GPI_IFS_DIR')
 			if strmid(tmppath, strlen(tmppath)-1) ne path_sep() then tmppath +=path_sep()  ; be careful if path sep char is on the end already or not
-			tempfile = tmppath+'temp.fits'
-
-			; check for the error case where some other user already owns
-			; /tmp/temp.fits on a multiuser machine. If necessary, fall back to
-			; another filename with an appended number. 
-			;
-			i=self.TempFileNumber
-			i=(i+1) mod 100
-			tempfile = tmppath+'temp'+strc(i)+'.fits'
-	
-			catch, gpitv_send_error
-			if gpitv_send_error then begin
-				; try the next filename, except if we are at 100 tries already then
-				; give up 
-				i=(i+1) mod 100
-				tempfile = tmppath+'temp'+strc(i)+'.fits'
-				if i eq self.TempFileNumber-1 or (self.TempFileNumber eq 0 and i eq 99) then begin
-					self->Log, "Could not open **any** filename for writing in "+getenv('IDL_TMPDIR')+" after 100 attempts. Cannot send file to GPItv."
-					stop
-					return
-				endif
-			endif 
-
-			writefits, tempfile, filename_or_data, header
-            CATCH, /CANCEL
-			self.TempFileNumber=i ; save last used temp file # for starting point next time this gets called
-			self.launcher->queue, 'gpitv', filename=tempfile, session=session, _extra=_extra
-
+      tempfile = tmppath+'temp.fits'
+			if file_test(tmppath, /write) then begin
+  			;tempfile = tmppath+path_sep()+'temp.fits'
+        
+    			; check for the error case where some other user already owns
+    			; /tmp/temp.fits on a multiuser machine. If necessary, fall back to
+    			; another filename with an appended number. 
+          ;
+          i=self.TempFileNumber
+          i=(i+1) mod 100
+          tempfile = tmppath+'temp'+strc(i)+'.fits'
+      
+          catch, gpitv_send_error
+          if gpitv_send_error then begin
+            ; try the next filename, except if we are at 100 tries already then
+            ; give up 
+            i=(i+1) mod 100
+            tempfile = tmppath+'temp'+strc(i)+'.fits'
+            if i eq self.TempFileNumber-1 or (self.TempFileNumber eq 0 and i eq 99) then begin
+    					self->Log, "Could not open **any** filename for writing in "+getenv('IDL_TMPDIR')+" after 100 attempts. Cannot send file to GPItv."
+    					return
+    				endif
+    			endif
+  
+  			writefits, tempfile, filename_or_data, header
+  			CATCH, /CANCEL
+        self.TempFileNumber=i ; save last used temp file # for starting point next time this gets called
+  			
+  			self.launcher->queue, 'gpitv', filename=tempfile, session=session, _extra=_extra
+       endif else begin
+        self->Log, "User do not have permissions to write in "+getenv('IDL_TMPDIR')+ " Output data not displayed."
+       endelse
 		endif else begin
 			self.launcher->queue, 'gpitv', filename=filename_or_data, session=session, _extra=_extra
 		endelse
@@ -382,7 +387,7 @@ PRO gpiPipelineBackbone::Run, QueueDir
 
         CurrentDRF = self->GetNextDRF(Queuedir, found=nfound)
         IF nfound gt 0 THEN BEGIN
-			self.CurrentDRFname = CurrentDRF.name
+              self.CurrentDRFname = CurrentDRF.name
             self->log, 'Found file: ' + CurrentDRF.Name, /GENERAL
                     wait, 1.0   ; Wait 1 seconds to make sure file is fully written.
                     self.progressbar->set_DRF, CurrentDRF
@@ -442,6 +447,7 @@ PRO gpiPipelineBackbone::Run, QueueDir
                         PTR_FREE, (*Self.Data)[i].QualFrames[*]
                         PTR_FREE, (*Self.Data)[i].currFrame[*]
                         PTR_FREE, (*Self.Data)[i].Headers[*]
+                        PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
                         PTR_FREE, (*Self.Data)[i].Frames[*]
                     ENDFOR
                 ENDIF ; PTR_VALID(Self.Data)
@@ -460,6 +466,7 @@ PRO gpiPipelineBackbone::Run, QueueDir
                   PTR_FREE, (*Self.Data)[i].FlagFrames[*]
                   PTR_FREE, (*Self.Data)[i].UncertFrames[*]
                   PTR_FREE, (*Self.Data)[i].Headers[*]
+                  PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
                   PTR_FREE, (*Self.Data)[i].Frames[*]
                 ENDFOR
               ENDIF
@@ -511,7 +518,7 @@ END
 FUNCTION gpiPipelineBackbone::Reduce
 
     COMMON APP_CONSTANTS
-    common PIP, lambda0, filename,wavcal,tilt, badpixmap, filter, dim, CommonWavVect, gpidisplay, meddec,suffix, header, heade,oBridge,listfilenames, numfile, painit,dir_sc, Dtel
+    common PIP, lambda0, filename,wavcal,tilt, badpixmap, filter, dim, CommonWavVect, gpidisplay, meddec,suffix, header, heade,oBridge,listfilenames, numfile, painit,dir_sc, Dtel,numext
 
     PRINT, ''
     PRINT, SYSTIME(/UTC)
@@ -582,8 +589,9 @@ FUNCTION gpiPipelineBackbone::Reduce
         ;  ONLY the DRF appended in FITS header COMMENT form. 
         ;  Append this onto the REAL fits header we just read in from disk.
         ;
-        if (numext GT 1) then begin
-            header=[headPHU,header]
+        if (numext GT 0) then begin
+           ; header=[headPHU,header]
+            *(*self.data).HeadersPHU[IndexFrame]=[headPHU]
         endif
 
         FXADDPAR, *(*self.data).Headers[IndexFrame], "DATAFILE", file_basename(filename), "Original file name of DRP input", before="END"
@@ -591,18 +599,34 @@ FUNCTION gpiPipelineBackbone::Reduce
 
         SXDELPAR, header, 'END'
         *(*self.data).Headers[IndexFrame]=[header,*(*self.data).Headers[IndexFrame], 'END            ']
-		; ***WARNING***   don't use SXADDPAR for 'END', it gets the syntax wrong
-		; and breaks pyfits. i.e. do not try this following line. The above one
-		; is required. 
-        ;SXADDPAR, *(*self.data).Headers[IndexFrame], "END",''		
+        ; ***WARNING***   don't use SXADDPAR for 'END', it gets the syntax wrong
+        ; and breaks pyfits. i.e. do not try this following line. The above one
+        ; is required. 
         
-
-
+        ;SXADDPAR, *(*self.data).Headers[IndexFrame], "END",''		; don't use SXADDPAR for 'END', it gets the syntax wrong and breaks pyfits.
+        
+        ;;is the frame from the entire detector or just just a section?
+        ;if numext eq 0 then datasec=SXPAR( header, 'DATASEC',count=cds) else instrum=SXPAR( headPHU, 'DATASEC',count=cds)
+        datasec=SXPAR(*(*self.data).Headers[IndexFrame], 'DATASEC',count=cds)
+        if cds eq 1 then begin
+          ; DATASSEC format is "[DETSTRTX:DETENDX,DETSTRTY:DETENDY]" from gpiheaders_20110425.xls (S. Goodsell)
+            DETSTRTX=strmid(datasec, 1, stregex(datasec,':')-1)
+            DETENDX=strmid(datasec, stregex(datasec,':')+1, stregex(datasec,',')-stregex(datasec,':')-1)
+            datasecy=strmid(datasec,stregex(datasec,','),strlen(datasec)-stregex(datasec,','))
+            DETSTRTY=strmid(datasecy, 1, stregex(datasecy,':')-1)
+            DETENDY=strmid(datasecy, stregex(datasecy,':')+1, stregex(datasecy,']')-stregex(datasecy,':')-1)
+            ;;DRP will always consider [0:2047,0,2047] frames:
+            if (DETSTRTX ne 0) || (DETENDX ne 2047) || (DETSTRTY ne 0) || (DETENDY ne 2047) then begin
+              tmpframe=dblarr(2048,2048)
+              tmpframe[DETSTRTX:DETENDX,DETSTRTY:DETENDY]=*((*self.data).currframe)
+              *((*self.data).currframe)=tmpframe
+            endif
+        endif
 		;---- Rotate the image, if necessary -------
             ;!!!!TEMPORARY will need modifs: use it for real ifs data, not DST!!!
-                  instrum=SXPAR( header, 'INSTRUME',count=c1)
+                  if numext eq 0 then instrum=SXPAR( header, 'INSTRUME',count=c1) else instrum=SXPAR( headPHU, 'INSTRUME',count=c1)
                   if ~strmatch(instrum,'*DST*') && (  sxpar( *(*self.data).Headers[IndexFrame], 'DRPVER' ) eq '' ) then begin
-					  if self.verbose then self->Log, "Image detected as IFS raw file, assumed vertical spectrum orientation. Must be reoriented to horizontal spectrum direction."
+                  if self.verbose then self->Log, "Image detected as IFS raw file, assumed vertical spectrum orientation. Must be reoriented to horizontal spectrum direction."             
                     *((*self.data).currframe)=rotate(transpose(*((*self.data).currframe)),2)
                     message,/info, 'Image rotated to match DST convention!'
                   endif
@@ -909,8 +933,7 @@ FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
   ; if we use call_function to run the module, then the IDL code will STOP at the location
   ; of any error, instead of returning here... This is way better for
   ; debugging (and perhaps should just always be how it works now. -MDP)
-
-  	if self.verbose then  self->Log,"        idl command: "+Modules[ModNum].IDLCommand
+    if self.verbose then  self->Log,"        idl command: "+Modules[ModNum].IDLCommand
   status = call_function( Modules[ModNum].IDLCommand, *self.data, Modules, self ) 
 
     IF status EQ NOT_OK THEN BEGIN            ;  The module failed
@@ -923,7 +946,7 @@ FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
 ;            PRINT, "drpPipeline::RunModule: " + Modules[ModNum].Name
 ;            
 ;        ENDIF
-        self->Log, 'ERROR: ' + !ERR_STRING, /GENERAL, /DRF
+;        self->Log, 'ERROR: ' + !ERR_STRING, /GENERAL, /DRF
         self->Log, 'Module failed: ' + Modules[ModNum].Name, /GENERAL, /DRF
     ENDIF ELSE BEGIN                ;  The module succeeded
         self->Log, 'Module completed: ' + Modules[ModNum].Name,  /GENERAL, /DRF, DEPTH = 3
@@ -1083,6 +1106,7 @@ PRO gpiPipelineBackbone::ErrorHandler, CurrentDRF, QueueDir
                     PTR_FREE, (*Self.Data)[i].FlagFrames[*]
                     PTR_FREE, (*Self.Data)[i].UncertFrames[*]
                     PTR_FREE, (*Self.Data)[i].Headers[*]
+                    PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
                     PTR_FREE, (*Self.Data)[i].Frames[*]
                 ENDFOR
             ENDIF
@@ -1149,11 +1173,11 @@ PRO gpiPipelineBackbone__define
 			launcher: obj_new(), $
 			gpicaldb: obj_new(), $
             ReductionType:'', $
-			CurrentDRFname: '', $
+      CurrentDRFname: '', $
             CurrentlyExecutingModuleNumber:0, $
-			TempFileNumber: 0, $ ; Used for passing multiple files to multiple gpitv sessions. See self->gpitv pro above
-			generallogfilename: '', $
-			verbose: 0, $
+      TempFileNumber: 0, $ ; Used for passing multiple files to multiple gpitv sessions. See self->gpitv pro above
+      generallogfilename: '', $
+      verbose: 0, $
             LogPath:''}
 
 END

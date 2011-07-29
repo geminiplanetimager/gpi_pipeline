@@ -167,7 +167,8 @@ PRO gpicaldatabase::rescan_directory
 		;self->Log, "Attempting to add file "+files[i]
 		status = self->add_new_cal( strtrim(files[i],2) )
 	endfor 
-
+  self->Log, "Database rescanning completed! "
+  print, "Database rescanning completed! "
 
 end
 
@@ -208,9 +209,17 @@ Function gpicaldatabase::add_new_cal, filename, header=header, nowrite=nowrite
 	newcal.filter = strc(sxpar(header, "FILTER", count=count))
 	if count ne 1 then message,/info, "Missing keyword: FILTER"
 	newcal.prism= strc(sxpar(header, "PRISM", count=count))
-	if count ne 1 then message,/info, "Missing keyword: PRISM"
-	newcal.apodizer= strc(sxpar(header, "APODIZ", count=count))
-	if count ne 1 then message,/info, "Missing keyword: APODIZ"
+	if count ne 1 then begin
+	  message,/info, "Missing keyword: PRISM"
+	  newcal.prism= strc(sxpar(header, "FILTER2", count=count2))
+	  if count2 ne 1 then  begin
+	  message,/info, "Missing keyword: FILTER2"
+	  newcal.prism= strc(sxpar(header, "DISPERSR", count=count3))
+	   if count3 ne 1 then message,/info, "Missing keyword: DISPERSR"
+	  endif
+	endif  
+	newcal.apodizer= strc(sxpar(header, "APODIZER", count=count))
+	if count ne 1 then message,/info, "Missing keyword: APODIZER"
 	newcal.itime = (sxpar(header, "ITIME", count=count))
 	if count ne 1 then begin
 	  message,/info, "Missing keyword: ITIME"
@@ -221,7 +230,7 @@ Function gpicaldatabase::add_new_cal, filename, header=header, nowrite=nowrite
        if count2 ne 1 then message,/info, "Missing keyword: ITIME0"
       endif
     endif
-	newcal.lyot= strc(sxpar(header, "LYOT", count=count))
+	newcal.lyot= strc(sxpar(header, "LYOTMASK", count=count))
 	;if count ne 1 then message,/info, "Missing keyword: LYOT"  ; Missing in all DST files pre 2010-01-28!
 	
 	newcal.issport = strc(sxpar(header, "ISS_PORT", count=count))
@@ -269,22 +278,18 @@ end
 function gpicaldatabase::get_best_cal_from_header, type, header, _extra=_extra
 
 
-    dateobs2 =  strc(sxpar(header, "DATE-OBS"))+" "+strc(sxpar(header,"TIME-OBS"))
-    dateobs3 = date_conv(dateobs2, "J")
+   dateobs2 =  strc(sxpar(header, "DATE-OBS"))+" "+strc(sxpar(header,"TIME-OBS"))
+   dateobs3 = date_conv(dateobs2, "J")
 
-    filt=strcompress(sxpar( header, 'FILTER',  COUNT=cc3),/rem)
-    if cc3 eq 0 then filt=strcompress(sxpar( header, 'FILTER1',  COUNT=cc3),/rem)
+   filt=strcompress(sxpar( header, 'FILTER',  COUNT=cc3),/rem)
+   if cc3 eq 0 then filt=strcompress(sxpar( header, 'FILTER1',  COUNT=cc3),/rem)
 
-    prism=strcompress(sxpar( header, 'PRISM',  COUNT=cc4),/rem)
-    if cc4 eq 0 then prism=strcompress(sxpar( header, 'DISPERSR',  COUNT=cc4),/rem)
+   prism=strcompress(sxpar( header, 'PRISM',  COUNT=cc4),/rem)
+   if cc4 eq 0 then prism=strcompress(sxpar( header, 'DISPERSR',  COUNT=cc4),/rem)
 
-    itime=sxpar(header, "ITIME0", count=ci)
-    if itime > 1e6 then begin
-	   message,/info,'ITIME0 keyword has an implausibly large value; trying ITIME instead. (This may be related to a data simulator bug).'
-	   ci=0
-	endif
-    if ci eq 0 then itime=sxpar(header, "ITIME", count=ci)
-    if ci eq 0 then itime=sxpar(header, "INTIME", count=ci)
+   itime=sxpar(header, "ITIME0", count=ci)
+   if ci eq 0 then itime=sxpar(header, "ITIME", count=ci)
+   if ci eq 0 then itime=sxpar(header, "INTIME", count=ci)
 
 	return, self->get_best_cal( type, dateobs3, filt, prism, itime=itime, _extra=_extra)
 
@@ -387,7 +392,6 @@ function gpicaldatabase::get_best_cal, type, date, filter, prism, itime=itime, $
 	if cc eq 0 then begin
 		message, "ERROR: --No matching cal files "+errdesc+" as requested in DB--",/info
 		void=error('ERROR: --No matching cal files '+errdesc+' as requested in DB--')
-		stop
 		return, NOT_OK
 	endif
 	if keyword_set(verbose) then message,/info, "Found "+strc(cc)+" possible cal files; selecting best based on closest date."
