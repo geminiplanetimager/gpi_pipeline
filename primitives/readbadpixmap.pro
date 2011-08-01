@@ -34,10 +34,8 @@ calfiletype='badpix'
     pmd_badpixmapFrame        = ptr_new(READFITS(c_File, Header, /SILENT))
     badpixmap=*pmd_badpixmapFrame
 
-; sxaddhist, functionname+": Loaded bad pixel map", *(dataset.headers[numfile])
-; sxaddhist, functionname+": "+Modules[thisModuleIndex].CalibrationFile, *(dataset.headers[numfile])
-    fxaddpar,*(dataset.headers[numfile]),'HISTORY',functionname+": Loaded bad pixel map"
-    fxaddpar,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
+    backbone->set_keyword,'HISTORY',functionname+": Loaded bad pixel map"
+    backbone->set_keyword,'HISTORY',functionname+": "+c_File
 
 
 return, ok

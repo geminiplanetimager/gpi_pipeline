@@ -1316,9 +1316,18 @@ end
 
 
 
-PRO gpiPipelineBackbone::set_keyword, keyword, value, comment, indexFrame=indexFrame, _Extra=_extra
+PRO gpiPipelineBackbone::set_keyword, keyword, value, comment, indexFrame=indexFrame, ext_num=ext_num, _Extra=_extra
 	; set a keyword in either the primary or extension header depending on what
 	; the keywords table says. 
+	;
+	; KEYWORDS:
+	; 	indexFrame 	which frame's header to write to? Default is the current
+	; 				frame as specified in the 'numframe' variable in PIP common block, but
+	;	 			you can select another header with this keyword. 
+	;	ext_num		This allows you to override the keyword config file if you
+	;				really know what you're doing. Set ext_num=0 to write to the PHU or
+	;				ext_num=1 to write to the image extension.
+	;
 	common PIP
 
 	if ~ptr_valid(self.keyword_info) then self->load_keyword_table
@@ -1330,19 +1339,28 @@ PRO gpiPipelineBackbone::set_keyword, keyword, value, comment, indexFrame=indexF
 
 	if ~(keyword_set(comment)) then comment='' 
 	wmatch = where( strmatch( (*self.keyword_info).keyword, keyword, /fold), matchct)
-	if matchct gt 0 then begin
-		; if we have a match write to that extension
-		ext_num = ( (*self.keyword_info).extension[wmatch[0]] eq 'extension' ) ? 1 : 0  ; try Pri if either PHU or Both
 
-		if ext_num eq 0 then fxaddpar,  *(*self.data).headersPHU[indexFrame], keyword, value, comment $
-		else  				 fxaddpar,  *(*self.data).headersExt[indexFrame], keyword, value, comment 
+
+	if n_elements(ext_num) eq 0 then begin 
+		; we should use the config file to determine where the keyword goes. 
+		if matchct gt 0 then begin
+			; if we have a match write to that extension
+			ext_num = ( (*self.keyword_info).extension[wmatch[0]] eq 'extension' ) ? 1 : 0  ; try Pri if either PHU or Both
+		endif else begin
+			message,/info, 'Keyword '+keyword+' not found in keywords config file; writing to Primary header...'
+			ext_num = 0
+		endelse
 	endif else begin
-		; if we have no match, then write keyword to the PHU 
-		message,/info, 'Keyword '+keyword+' not found in keywords config file; writing toPrimary header...'
-		fxaddpar,  *(*self.data).headersPHU[indexFrame], keyword,  value, comment
+		; the user has explicitly told us where to put it - check that the value
+		; supplied makes sense.
+		if ext_num gt 1 or ext_num lt 0 then message,/info, 'Invalid extension number - can only be 0 or 1. Writing keyword to primary header.'
+		ext_num=0
 	endelse
-	
 
+
+	if ext_num eq 0 then fxaddpar,  *(*self.data).headersPHU[indexFrame], keyword, value, comment $
+	else  				 fxaddpar,  *(*self.data).headersExt[indexFrame], keyword, value, comment 
+	
 
 
 end

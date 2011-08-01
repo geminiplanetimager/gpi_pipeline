@@ -32,8 +32,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
     cube=*(dataset.currframe[0])
     ;if numext eq 0 then hdr=*(dataset.headers)[numfile] else 
-	hdr   =*(dataset.headersPHU)[numfile]
-	hdrext=*(dataset.headersExt)[numfile]
+	;hdr   =*(dataset.headersPHU)[numfile]
+	;hdrext=*(dataset.headersExt)[numfile]
     ;hdr=*(dataset.headers[numfile])
     sz = size(cube)
     nslice = sz[3] ; works for either POL or SPEC modes
@@ -44,8 +44,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	if method ne 'CUBIC' and method ne 'FFT' then return, error("Invalid rotation method: "+method)
 
     ; ====== Rotation =======
-    d_PA = sxpar(hdr, "PA", pa_ct) ;PAR_ANG") ; in DEGREEs
-	if PA_ct eq 0 then  d_PA = sxpar(hdr, "PAR_ANG", pa_ct)
+    ;d_PA = sxpar(hdr, "PA", pa_ct) ;PAR_ANG") ; in DEGREEs
+	d_PA = backbone->get_keyword('PA', pa_ct) ; in degrees
+	if PA_ct eq 0 then  d_PA = backbone->get_keyword('PAR_ANG', pa_ct) 
     message,/info, "PA is "+strc(d_PA)
 
     ; we first pad into a 289x289 array. This is large enough to have the
@@ -151,8 +152,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     pc = [[cos(-d_PA*!dtor), -sin(-d_PA*!dtor)], $
           [sin(-d_PA*!dtor), cos(-d_PA*!dtor)]]
 
-    ra = sxpar(hdr,"RA") 
-    dec = sxpar(hdr,"dec") 
+    ra = backbone->get_keyword("RA") 
+    dec = backbone->get_keyword("dec") 
 
 ;    sxaddhist, /comment, "  For specification of Stokes WCS axis, see ", hdr
 ;    sxaddhist, /comment, "  Greisen & Calabretta 2002 A&A 395, 1061, section 5.4", hdr
@@ -166,24 +167,24 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 ;    sxaddpar, hdr, "CUNIT2", "deg",  "Declination unit is degrees, always"
 ;    sxaddpar, hdr, "CUNIT3", "N/A",       "Polarizations"
     sz = size(cube)
-    sxaddpar, hdrExt, "NAXIS1", sz[1], /saveComment
-    sxaddpar, hdrExt, "NAXIS2", sz[2], /saveComment
-    sxaddpar, hdrExt, "CRVAL1", ra, "R.A. at reference pixel"
-    sxaddpar, hdrExt, "CRVAL2", dec, "Declination at reference pixel"
-;    sxaddpar, hdrExt, "CRVAL3", -6, " Stokes axis: image 0 is Y parallel, 1 is X parallel "
+    backbone->set_keyword, "NAXIS1", sz[1], ext_num=1
+    backbone->set_keyword, "NAXIS2", sz[2], ext_num=1
+    backbone->set_keyword, "CRVAL1", ra, "R.A. at reference pixel"
+    backbone->set_keyword, "CRVAL2", dec, "Declination at reference pixel"
+;    backbone->set_keyword, "CRVAL3", -6, " Stokes axis: image 0 is Y parallel, 1 is X parallel "
     ; need to add 1 here to account for "IRAF/FITS" 1-based convention used for
     ; WCS coordinates
-    sxaddpar, hdrExt, "CRPIX1", xcen+1,         "Reference pixel location"
-    sxaddpar, hdrExt, "CRPIX2", ycen+1,         "Reference pixel location"
-;    sxaddpar, hdrExt, "CRPIX3", 0,         "Reference pixel location"
-    sxaddpar, hdrExt, "CDELT1", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
-    sxaddpar, hdrExt, "CDELT2", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
-;    sxaddpar, hdrExt, "CDELT3", 1, "Stokes axis: image 0 is Y parallel, 1 is X parallel"
+    backbone->set_keyword, "CRPIX1", xcen+1,         "Reference pixel location"
+    backbone->set_keyword, "CRPIX2", ycen+1,         "Reference pixel location"
+;    backbone->set_keyword, "CRPIX3", 0,         "Reference pixel location"
+    backbone->set_keyword, "CDELT1", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
+    backbone->set_keyword, "CDELT2", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
+;    backbone->set_keyword, "CDELT3", 1, "Stokes axis: image 0 is Y parallel, 1 is X parallel"
 
-    sxaddpar, hdrExt, "PC1_1", pc[0,0], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
-    sxaddpar, hdrExt, "PC1_2", pc[0,1], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
-    sxaddpar, hdrExt, "PC2_1", pc[1,0], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
-    sxaddpar, hdrExt, "PC2_2", pc[1,1], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
+    backbone->set_keyword, "PC1_1", pc[0,0], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
+    backbone->set_keyword, "PC1_2", pc[0,1], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
+    backbone->set_keyword, "PC2_1", pc[1,0], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
+    backbone->set_keyword, "PC2_2", pc[1,1], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
 ;    sxaddpar, hdr, "PC3_3", 1, "Stokes axis is unrotated"
     ; TODO WCS paper III suggests adding MJD-AVG to specify midpoint of
     ; observations for conversions to barycentric.
@@ -194,8 +195,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 
     *(dataset.currframe[0])=cube
-	*(dataset.headersPHU)[numfile] = hdr
-	*(dataset.headersExt)[numfile] = hdrext
+	;*(dataset.headersPHU)[numfile] = hdr
+	;*(dataset.headersExt)[numfile] = hdrext
     
     ;if numext eq 0 then *(dataset.headers)[numfile]=hdr else *(dataset.headersPHU)[numfile]=hdr
     ;*(dataset.headers[numfile])=hdr
