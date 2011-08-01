@@ -104,7 +104,8 @@ primitive_version= '$Id: displayrawimage.pro 417 2011-07-14 14:13:04Z perrin $' 
 		backbone->Log, "Identified "+strc(total(~mask))+" pixels for use as background pixels"
 	endif else begin ;======= use calibration file to determine the regions to use. =====
 		stop
-  		mode=SXPAR( header, 'PRISM', count=c)
+  		;mode=SXPAR( header, 'PRISM', count=c)
+		mode = backbone->get_keyword('DISPERSR', count=c)
 		case strupcase(strc(mode)) of
 	  	'SPECTRO':		begin
 			; load mask from spectral calib file
@@ -196,11 +197,13 @@ primitive_version= '$Id: displayrawimage.pro 417 2011-07-14 14:13:04Z perrin $' 
 
 
  *(dataset.currframe[0]) = subtracted
-  sxaddhist, "Subtracted 2D image background estimated from pixels between spectra", *(dataset.headersPHU[numfile])
+  ;sxaddhist, "Subtracted 2D image background estimated from pixels between spectra", *(dataset.headersPHU[numfile])
+  backbone->set_keyword, "HISTORY", "Subtracted 2D image background estimated from pixels between spectra"
   suffix='-bgsub2d'
 
   logstr = 'After background model sub, stddev of background pixels: '+strc(stddev(subtracted[where(~mask)]))
-  sxaddhist, logstr, *(dataset.headersPHU[numfile])
+  ;sxaddhist, logstr, *(dataset.headersPHU[numfile])
+  backbone->set_keyword, "HISTORY", logstr
   backbone->Log, logstr
 
 

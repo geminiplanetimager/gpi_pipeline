@@ -134,6 +134,24 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session, ve
 
 END
 
+;----------------------------------------------------------
+; gpiPipelineBackbone::free_dataset_pointers
+;		free all pointers from the dataset.
+;
+
+pro gpiPipelineBackbone::free_dataset_pointers
+    IF PTR_VALID(Self.Data) THEN $
+        FOR i = 0, N_ELEMENTS(*Self.Data)-1 DO BEGIN
+            PTR_FREE, (*Self.Data)[i].Frames[*]
+            PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
+            PTR_FREE, (*Self.Data)[i].HeadersExt[*]
+            PTR_FREE, (*Self.Data)[i].UncertFrames[*]
+            PTR_FREE, (*Self.Data)[i].QualFrames[*]
+        END
+end
+
+
+
 ;-----------------------------------------------------------
 ; gpiPipelineBackbone::Cleanup
 ;
@@ -154,15 +172,16 @@ PRO gpiPipelineBackbone::Cleanup
         obj_destroy, self.launcher ; kill this side.
     endif
 
-    IF PTR_VALID(Self.Data) THEN $
-        FOR i = 0, N_ELEMENTS(*Self.Data)-1 DO BEGIN
-            PTR_FREE, (*Self.Data)[i].Frames[*]
-            PTR_FREE, (*Self.Data)[i].Headers[*]
-            PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
-            PTR_FREE, (*Self.Data)[i].UncertFrames[*]
-            PTR_FREE, (*Self.Data)[i].FlagFrames[*]
-        END
-
+	self->free_dataset_pointers
+;    IF PTR_VALID(Self.Data) THEN $
+;        FOR i = 0, N_ELEMENTS(*Self.Data)-1 DO BEGIN
+;            PTR_FREE, (*Self.Data)[i].Frames[*]
+;            PTR_FREE, (*Self.Data)[i].Headers[*]
+;            PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
+;            PTR_FREE, (*Self.Data)[i].UncertFrames[*]
+;            PTR_FREE, (*Self.Data)[i].QualFrames[*]
+;        END
+;
     PTR_FREE, Self.Data
     PTR_FREE, Self.Modules
 
@@ -437,18 +456,17 @@ PRO gpiPipelineBackbone::Run, QueueDir
                 ENDELSE
                 ; Free any remaining memory here
            
-                IF PTR_VALID(Self.Data) THEN BEGIN
-                    FOR i = N_ELEMENTS(*Self.Data)-1, 0, -1 DO BEGIN
-                        ;PTR_FREE, (*Self.Data)[i].FlagFrames[*]
-                        ;PTR_FREE, (*Self.Data)[i].UncertFrames[*]
-                        PTR_FREE, (*Self.Data)[i].ErrFrames[*]
-                        PTR_FREE, (*Self.Data)[i].QualFrames[*]
-                        PTR_FREE, (*Self.Data)[i].currFrame[*]
-                        PTR_FREE, (*Self.Data)[i].Headers[*]
-                        PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
-                        PTR_FREE, (*Self.Data)[i].Frames[*]
-                    ENDFOR
-                ENDIF ; PTR_VALID(Self.Data)
+				self->free_dataset_pointers
+;                IF PTR_VALID(Self.Data) THEN BEGIN
+;                    FOR i = N_ELEMENTS(*Self.Data)-1, 0, -1 DO BEGIN
+;                        PTR_FREE, (*Self.Data)[i].UncertFrames[*]
+;                        PTR_FREE, (*Self.Data)[i].QualFrames[*]
+;                        PTR_FREE, (*Self.Data)[i].currFrame[*]
+;                        PTR_FREE, (*Self.Data)[i].HeadersExt[*]
+;                        PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
+;                        PTR_FREE, (*Self.Data)[i].Frames[*]
+;                    ENDFOR
+;                ENDIF ; PTR_VALID(Self.Data)
 
 
                 ; We are done with the DRF, so close its log file
@@ -459,15 +477,16 @@ PRO gpiPipelineBackbone::Run, QueueDir
               self->log, 'gpiPipelineBackbone::Run: Reduction failed due to parsing error in file ' + DRFFileName, /GENERAL
               self->SetDRFStatus, CurrentDRF, 'failed'
               ; If we failed with outstanding data, then clean it up.
-              IF PTR_VALID(Self.Data) THEN BEGIN
-                FOR i = N_ELEMENTS(*Self.Data)-1, 0, -1 DO BEGIN
-                  PTR_FREE, (*Self.Data)[i].FlagFrames[*]
-                  PTR_FREE, (*Self.Data)[i].UncertFrames[*]
-                  PTR_FREE, (*Self.Data)[i].Headers[*]
-                  PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
-                  PTR_FREE, (*Self.Data)[i].Frames[*]
-                ENDFOR
-              ENDIF
+			  self->free_dataset_pointers
+;              IF PTR_VALID(Self.Data) THEN BEGIN
+;                FOR i = N_ELEMENTS(*Self.Data)-1, 0, -1 DO BEGIN
+;                  PTR_FREE, (*Self.Data)[i].QualFrames[*]
+;                  PTR_FREE, (*Self.Data)[i].UncertFrames[*]
+;                  PTR_FREE, (*Self.Data)[i].Headers[*]
+;                  PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
+;                  PTR_FREE, (*Self.Data)[i].Frames[*]
+;                ENDFOR
+;              ENDIF
             ENDELSE
         ENDIF
 
@@ -692,6 +711,7 @@ END
 ;        -MP
 
 FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
+    COMMON APP_CONSTANTS
     common PIP
 	filename= *((*self.Data).frames[IndexFrame])
 
@@ -738,13 +758,13 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
 	approved_keywords = ['DISPERSR','DISPERSR', 'CALFILT', 'ADC',    'FILTER1' ]
 
 	for i=0L, n_elements(approved_keywords)-1 do begin
-		val_approved = self->get_keyword(approved_keyword[i], count=count, indexFrame=indexFrame)
+		val_approved = self->get_keyword(approved_keywords[i], count=count, indexFrame=indexFrame)
 		if count eq 0 then begin ; only try to update if we are missing the approved keyword.
 			; in that case, see if we have an obsolete keyword and then try to
 			; use it.
-			val_obsolete = self->get_keyword(obsolete_keyword[i], count=count, comment=comment, indexFrame=indexFrame)
-			if count gt 0 then self->set_keyword, approved_keyword[i], val_obsolete, comment=comment, indexFrame=indexFrame
-			message,/info, 'Converted obsolete keyword '+obsolete_keyword[i]+' into '+approved_keyword[i])
+			val_obsolete = self->get_keyword(obsolete_keywords[i], count=count, comment=comment, indexFrame=indexFrame)
+			if count gt 0 then self->set_keyword, approved_keywords[i], val_obsolete, comment=comment, indexFrame=indexFrame
+			message,/info, 'Converted obsolete keyword '+obsolete_keywords[i]+' into '+approved_keywords[i]
 		endif
 
 	endfor 
@@ -1228,15 +1248,16 @@ PRO gpiPipelineBackbone::ErrorHandler, CurrentDRF, QueueDir
         IF N_PARAMS() EQ 2 THEN BEGIN
             drpSetStatus, CurrentDRF, QueueDir, 'failed'
             ; If we failed with outstanding data, then clean it up.
-            IF PTR_VALID(Self.Data) THEN BEGIN
-                FOR i = N_ELEMENTS(*Self.Data)-1, 0, -1 DO BEGIN
-                    PTR_FREE, (*Self.Data)[i].FlagFrames[*]
-                    PTR_FREE, (*Self.Data)[i].UncertFrames[*]
-                    PTR_FREE, (*Self.Data)[i].Headers[*]
-                    PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
-                    PTR_FREE, (*Self.Data)[i].Frames[*]
-                ENDFOR
-            ENDIF
+			self->free_dataset_pointers
+;            IF PTR_VALID(Self.Data) THEN BEGIN
+;                FOR i = N_ELEMENTS(*Self.Data)-1, 0, -1 DO BEGIN
+;                    PTR_FREE, (*Self.Data)[i].QualFrames[*]
+;                    PTR_FREE, (*Self.Data)[i].UncertFrames[*]
+;                    PTR_FREE, (*Self.Data)[i].Headers[*]
+;                    PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
+;                    PTR_FREE, (*Self.Data)[i].Frames[*]
+;                ENDFOR
+;            ENDIF
         ENDIF
     ENDIF ELSE BEGIN
     ; Will this cause a recursion error?
@@ -1259,10 +1280,9 @@ PRO gpiPipelineBackbone::load_keyword_table
 	; this file will be in the same directory as drsconfig.xml
 	mod_config_file=GETENV('GPI_CONFIG_FILE')
 	keyword_config_file = file_dirname(mod_config_file) + path_sep() + 'keywordconfig.txt'
-	readcol, keyword_config_file, keywords, extensions, delimiter=str(09b) ; tab separated
-	self.keyword_info = ptr_new({keyword: keywords, extension: strlowcase(extensions)} )
-	
+	readcol, keyword_config_file, keywords, extensions, delimiter=string(09b), format='A,A' ; tab separated
 	; TODO: error checking!
+	self.keyword_info = ptr_new({keyword: strupcase(keywords), extension: strlowcase(extensions)} )
 
 end
 
@@ -1272,49 +1292,54 @@ FUNCTION gpiPipelineBackbone::get_keyword, keyword, count=count, comment=comment
 	common PIP
 
 	if ~ptr_valid(self.keyword_info) then self->load_keyword_table
-	if ~(keyword_set(indexFrame)) then indexFrame=numfile ; use value from common block if not explicitly provided.
+	if n_elements(indexFrame) eq 0 then indexFrame=numfile ; use value from common block if not explicitly provided.
+		; don't use if keyword_set in the above line - will fail for the case of
+		; indexframe=0. 
 
 
-	wmatch = where( strmatch( (*self.keyword_info).keyword, keyword, /fold, matchct)
+	wmatch = where( strmatch( (*self.keyword_info).keyword, keyword, /fold), matchct)
 	if matchct gt 0 then begin
 		; if we have a match try that extension
 		ext_num = ( (*self.keyword_info).extension[wmatch[0]] eq 'extension' ) ? 1 : 0  ; try Pri if either PHU or Both
 
-		if ext_num eq 0 then return, sxpar(  (*self.dataset).headersPHU[numfile], keyword, count==count, comment=comment)  $
-		else  				 return, sxpar(  (*self.dataset).headersExt[numfile], keyword, count==count, comment=comment)  
+		if ext_num eq 0 then return, sxpar(  *(*self.data).headersPHU[indexFrame], keyword, count=count, comment=comment)  $
+		else  				 return, sxpar(  *(*self.data).headersExt[indexFrame], keyword, count=count, comment=comment)  
 	endif else begin
 		; if we have no match, then try PHU first and if that fails try the
 		; extension
 		message,/info, 'Keyword '+keyword+' not found in keywords config file; trying Primary header...'
-		value = sxpar(  (*self.dataset).headersPHU[numfile], keyword, count==count) 
-		if count eq 0 then value =  sxpar(  (*self.dataset).headersExt[numfile], keyword, count==count, comment=comment)
+		value = sxpar(  *(*self.data).headersPHU[indexFrame], keyword, count=count) 
+		if count eq 0 then value =  sxpar(  *(*self.data).headersExt[indexFrame], keyword, count=count, comment=comment)
 		return, value
 	endelse
 end
 
 
 
-FUNCTION gpiPipelineBackbone::set_keyword, keyword, value, comment, indexFrame=indexFrame, _Extra=_extra
+PRO gpiPipelineBackbone::set_keyword, keyword, value, comment, indexFrame=indexFrame, _Extra=_extra
 	; set a keyword in either the primary or extension header depending on what
 	; the keywords table says. 
 	common PIP
 
 	if ~ptr_valid(self.keyword_info) then self->load_keyword_table
-	if ~(keyword_set(indexFrame)) then indexFrame=numfile ; use value from common block if not explicitly provided.
+	if n_elements(indexFrame) eq 0 then indexFrame=numfile ; use value from common block if not explicitly provided.
+		; don't use if keyword_set in the above line - will fail for the case of
+		; indexframe=0. 
 
 
-	;if ~(keyword_set(comment)) then comment='' ; leave comment undefined and fxaddpar will preserve any previous comments.
-	wmatch = where( strmatch( (*self.keyword_info).keyword, keyword, /fold, matchct)
+
+	if ~(keyword_set(comment)) then comment='' 
+	wmatch = where( strmatch( (*self.keyword_info).keyword, keyword, /fold), matchct)
 	if matchct gt 0 then begin
 		; if we have a match write to that extension
 		ext_num = ( (*self.keyword_info).extension[wmatch[0]] eq 'extension' ) ? 1 : 0  ; try Pri if either PHU or Both
 
-		if ext_num eq 0 then fxaddpar,  (*self.dataset).headersPHU[numfile], keyword, value, comment $
-		else  				 fxaddpar,  (*self.dataset).headersExt[numfile], keyword, value, comment 
+		if ext_num eq 0 then fxaddpar,  *(*self.data).headersPHU[indexFrame], keyword, value, comment $
+		else  				 fxaddpar,  *(*self.data).headersExt[indexFrame], keyword, value, comment 
 	endif else begin
 		; if we have no match, then write keyword to the PHU 
 		message,/info, 'Keyword '+keyword+' not found in keywords config file; writing toPrimary header...'
-		fxaddpar,  (*self.dataset).headersPHU[numfile], keyword,  value, comment
+		fxaddpar,  *(*self.data).headersPHU[indexFrame], keyword,  value, comment
 	endelse
 	
 

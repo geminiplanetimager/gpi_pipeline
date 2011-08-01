@@ -49,7 +49,7 @@ end
 PRO gpidrfparser::cleanup
 
 
-	self->free_current_dataset_pointers
+	self->free_dataset_pointers
 
     Self->IDLffXMLSAX::Cleanup
 
@@ -122,7 +122,7 @@ function gpidrfparser::get_drf_contents
 end
 ;
 ;------------------------------------------------------------
-PRO gpidrfparser::free_current_dataset_pointers
+PRO gpidrfparser::free_dataset_pointers
 	; This Cleanup supposes that there may be more than one dataset in a DRF
 	; though we do not currently create DRFs in this manner.
 	IF PTR_VALID(Self.UpdateLists) THEN BEGIN
@@ -137,7 +137,7 @@ PRO gpidrfparser::free_current_dataset_pointers
 	IF PTR_VALID(Self.Data) THEN BEGIN
 		FOR i = N_ELEMENTS(*Self.Data)-1, 0, -1 DO BEGIN
 			PTR_FREE, (*Self.Data)[i].QualFrames[*]
-			PTR_FREE, (*Self.Data)[i].ErrFrames[*]
+			PTR_FREE, (*Self.Data)[i].UncertFrames[*]
 			PTR_FREE, (*Self.Data)[i].HeadersExt[*]
 			PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
 			PTR_FREE, (*Self.Data)[i].Frames[*]
@@ -161,7 +161,7 @@ PRO gpidrfparser::parsefile, FileName, Backbone=backbone, ConfigParser, gui_obj=
 	if ~self.silent then print, "Parsing: "+filename 
 	; Free any previous structDataSet, structModule and structUpdateLists data
 	; See note for gpiDRFParser::Cleanup
-	self->free_current_dataset_pointers
+	self->free_dataset_pointers
 
 	self.most_recent_filename = Filename
 
@@ -230,7 +230,7 @@ PRO gpidrfparser::parsefile, FileName, Backbone=backbone, ConfigParser, gui_obj=
 ;    IF PTR_VALID(Self.Data) THEN BEGIN
 ;      FOR i = N_ELEMENTS(*Self.Data)-1, 0, -1 DO BEGIN
 ;        PTR_FREE, (*Self.Data)[i].QualFrames[*]
-;        PTR_FREE, (*Self.Data)[i].ErrFrames[*]
+;        PTR_FREE, (*Self.Data)[i].UncertFrames[*]
 ;        PTR_FREE, (*Self.Data)[i].Headers[*]
 ;        PTR_FREE, (*Self.Data)[i].Frames[*]
 ;      ENDFOR
@@ -289,7 +289,7 @@ PRO gpidrfparser::fatalerror, SystemID, LineNumber, ColumnNumber, Message
   self->Log, 'ColumnNumber: ' + STRTRIM(STRING(ColumnNumber),2), /GENERAL, DEPTH=2
   self->Log, '     Message: ' + Message, /GENERAL, DEPTH=2
 
-  self->free_current_dataset_pointers
+  self->free_dataset_pointers
 END
 
 
@@ -560,7 +560,7 @@ PRO gpidrfparser::startelement, URI, Local, qName, AttNames, AttValues
 			; TODO: Read in files here? For now just parse the XML.
 				if obj_valid(self.backbone) then begin
 					;self->drpFITSToDataSet, (*Self.Data)[N], (*Self.Data)[N].ValidFrameCount, DataFileName
-					*DataSet.Frames[ValidFrameCount] = DataSet.InputDir + path_sep() + dataFileName
+					(*self.data).Frames[(*self.data).ValidFrameCount] = ptr_new( (*self.data).InputDir + path_sep() + dataFileName )
 					if ~(keyword_set(self.silent)) then PRINT, FORMAT='(".",$)'
 				endif
 
@@ -591,23 +591,23 @@ PRO gpidrfparser::startelement, URI, Local, qName, AttNames, AttValues
 ;    				endif	else begin
 ;    				self->Log, 'ERROR: '+full_input_filename+'  do not exist.', /GENERAL, DEPTH=2
 ;    				endelse 
-          if not file_test(full_input_filename,/read) then begin
-              self->Log, 'ERROR: The file "'+ full_input_filename+'" does not appear to exist on disk. Skipping this file and trying to continue anyway...', /GENERAL, DEPTH=2
-          endif else begin
+          		if not file_test(full_input_filename,/read) then begin
+		              self->Log, 'ERROR: The file "'+ full_input_filename+'" does not appear to exist on disk. Skipping this file and trying to continue anyway...', /GENERAL, DEPTH=2
+		        endif else begin
 
 
-            fits_info, full_input_filename, n_ext = numext, /silent
-            validtelescop=self->validkeyword( full_input_filename, 1,'TELESCOP','Gemini')
-            validinstrum= self->validkeyword( full_input_filename, 1,'INSTRUME','GPI')
-            validinstrsub=self->validkeyword( full_input_filename, 1,'INSTRSUB','IFS') 
-            if (validtelescop* validinstrum*validinstrsub eq 1) then begin   
-              (*Self.Data)[N].Filenames[(*Self.Data)[N].ValidFrameCount] = DataFileName
-              (*Self.Data)[N].ValidFrameCount = (*Self.Data)[N].ValidFrameCount + 1
-              self->Log, DataFileName +' is a valid GEMINI-GPI-IFS image.', /GENERAL, DEPTH=2
-            endif else begin
-              self->Log, 'ERROR:'+ DataFileName +' is NOT a GEMINI-GPI-IFS image. File ignored!', /GENERAL, DEPTH=2
-            endelse
-          endelse
+	        	    fits_info, full_input_filename, n_ext = numext, /silent
+	            	validtelescop=self->validkeyword( full_input_filename, 1,'TELESCOP','Gemini')
+		            validinstrum= self->validkeyword( full_input_filename, 1,'INSTRUME','GPI')
+		            validinstrsub=self->validkeyword( full_input_filename, 1,'INSTRSUB','IFS') 
+		            if (validtelescop* validinstrum*validinstrsub eq 1) then begin   
+		              (*Self.Data)[N].Filenames[(*Self.Data)[N].ValidFrameCount] = DataFileName
+		              (*Self.Data)[N].ValidFrameCount = (*Self.Data)[N].ValidFrameCount + 1
+		              self->Log, DataFileName +' is a valid GEMINI-GPI-IFS image.', /GENERAL, DEPTH=2
+		            endif else begin
+		              self->Log, 'ERROR:'+ DataFileName +' is NOT a GEMINI-GPI-IFS image. File ignored!', /GENERAL, DEPTH=2
+		            endelse
+		          endelse
     				 
 				ENDIF
 			ENDIF ELSE BEGIN
@@ -689,7 +689,7 @@ PRO gpidrfparser::newdataset, AttNames, AttValues
 	DataSet.Frames = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
 	DataSet.HeadersPHU = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
 	DataSet.HeadersExt = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
-	DataSet.ErrFrames = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
+	DataSet.UncertFrames = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
 	DataSet.QualFrames = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
 
 	FOR i = 0, N_ELEMENTS(AttNames) - 1 DO BEGIN	; Place attribute values in the
