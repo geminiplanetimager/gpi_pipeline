@@ -48,31 +48,10 @@ end
 
 PRO gpidrfparser::cleanup
 
-	; This Cleanup supposes that there may be more than one dataset in a DRF
-	; though we do not currently create DRFs in this manner.
 
-	IF PTR_VALID(Self.UpdateLists) THEN BEGIN
-		FOR i = 0, N_ELEMENTS(*Self.UpdateLists)-1 DO BEGIN
-			PTR_FREE, (*Self.UpdateLists)[i].parameters
-		ENDFOR
-	ENDIF
+	self->free_current_dataset_pointers
 
-	IF PTR_VALID(Self.Data) THEN BEGIN
-		FOR i = N_ELEMENTS(*Self.Data)-1, 0, -1 DO BEGIN
-			PTR_FREE, (*Self.Data)[i].QualFrames[*]
-			PTR_FREE, (*Self.Data)[i].ErrFrames[*]
-			PTR_FREE, (*Self.Data)[i].Headers[*]
-			PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
-			PTR_FREE, (*Self.Data)[i].Frames[*]
-		ENDFOR
-	ENDIF
-
-
-	PTR_FREE, Self.UpdateLists
-	PTR_FREE, Self.Modules
-	PTR_FREE, Self.Data
-
-  Self->IDLffXMLSAX::Cleanup
+    Self->IDLffXMLSAX::Cleanup
 
 END
 
@@ -99,16 +78,16 @@ END
 ; 		tmg 2004/09/09 Add file reading control to select parts of data frames to be read
 ; 	2010-01-27: MDP: Removed lots of commented out old code, merged into GPIDRFParser
 ;-----------------------------------------------------------------------------------------------------
-PRO gpiDRFParser::drpFITSToDataSet, DataSet, ValidFrameCount, FileName, FileControl
+PRO gpiDRFParser::drpFITSToDataSet, DataSet, ValidFrameCount, FileName
 
 ;COMMON APP_CONSTANTS
 	; FIXME - need to put these back into the backbone obj while avoiding common
 	; blocks!
 
-    IF ValidFrameCount EQ 0 THEN BEGIN ; Reset current running total on first file of a DRF
-        CumulativeMemoryUsedByFITSData = 0L
-    ENDIF
-    MemoryBeforeReadingFITSFile = MEMORY(/CURRENT) ; Memory before reading all or part of file
+    ;IF ValidFrameCount EQ 0 THEN BEGIN ; Reset current running total on first file of a DRF
+        ;CumulativeMemoryUsedByFITSData = 0L
+    ;ENDIF
+    ;MemoryBeforeReadingFITSFile = MEMORY(/CURRENT) ; Memory before reading all or part of file
     *DataSet.Frames[ValidFrameCount] = DataSet.InputDir + path_sep() + FileName
     if ~(keyword_set(self.silent)) then PRINT, FORMAT='(".",$)'
 
@@ -143,6 +122,37 @@ function gpidrfparser::get_drf_contents
 end
 ;
 ;------------------------------------------------------------
+PRO gpidrfparser::free_current_dataset_pointers
+	; This Cleanup supposes that there may be more than one dataset in a DRF
+	; though we do not currently create DRFs in this manner.
+	IF PTR_VALID(Self.UpdateLists) THEN BEGIN
+		FOR i = 0, N_ELEMENTS(*Self.UpdateLists)-1 DO BEGIN
+			PTR_FREE, (*Self.UpdateLists)[i].parameters
+		ENDFOR
+	ENDIF
+
+
+
+	; Free any data sets which are currently read into memory
+	IF PTR_VALID(Self.Data) THEN BEGIN
+		FOR i = N_ELEMENTS(*Self.Data)-1, 0, -1 DO BEGIN
+			PTR_FREE, (*Self.Data)[i].QualFrames[*]
+			PTR_FREE, (*Self.Data)[i].ErrFrames[*]
+			PTR_FREE, (*Self.Data)[i].HeadersExt[*]
+			PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
+			PTR_FREE, (*Self.Data)[i].Frames[*]
+			PTR_FREE, (*Self.Data)[i].CurrFrame
+		ENDFOR
+	ENDIF
+	PTR_FREE, Self.UpdateLists
+	PTR_FREE, Self.Modules
+	PTR_FREE, Self.Data
+
+
+
+end
+
+;------------------------------------------------------------
 
 PRO gpidrfparser::parsefile, FileName, Backbone=backbone, ConfigParser, gui_obj=gui_obj, silent=silent, status=status
 
@@ -151,27 +161,7 @@ PRO gpidrfparser::parsefile, FileName, Backbone=backbone, ConfigParser, gui_obj=
 	if ~self.silent then print, "Parsing: "+filename 
 	; Free any previous structDataSet, structModule and structUpdateLists data
 	; See note for gpiDRFParser::Cleanup
-	IF PTR_VALID(Self.UpdateLists) THEN BEGIN
-		FOR i = 0, N_ELEMENTS(*Self.UpdateLists)-1 DO BEGIN
-			PTR_FREE, (*Self.UpdateLists)[i].parameters
-		ENDFOR
-	ENDIF
-
-	; Free any data sets which are currently read into memory
-	IF PTR_VALID(Self.Data) THEN BEGIN
-		FOR i = N_ELEMENTS(*Self.Data)-1, 0, -1 DO BEGIN
-			PTR_FREE, (*Self.Data)[i].QualFrames[*]
-			PTR_FREE, (*Self.Data)[i].ErrFrames[*]
-			PTR_FREE, (*Self.Data)[i].Headers[*]
-			PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
-			PTR_FREE, (*Self.Data)[i].Frames[*]
-			PTR_FREE, (*Self.Data)[i].CurrFrame
-		ENDFOR
-	ENDIF
-
-	PTR_FREE, Self.UpdateLists
-	PTR_FREE, Self.Modules
-	PTR_FREE, Self.Data
+	self->free_current_dataset_pointers
 
 	self.most_recent_filename = Filename
 
@@ -299,26 +289,7 @@ PRO gpidrfparser::fatalerror, SystemID, LineNumber, ColumnNumber, Message
   self->Log, 'ColumnNumber: ' + STRTRIM(STRING(ColumnNumber),2), /GENERAL, DEPTH=2
   self->Log, '     Message: ' + Message, /GENERAL, DEPTH=2
 
-	IF PTR_VALID(Self.UpdateLists) THEN BEGIN
-		FOR i = 0, N_ELEMENTS(*Self.UpdateLists)-1 DO BEGIN
-			PTR_FREE, (*Self.UpdateLists)[i].parameters
-		ENDFOR
-	ENDIF
-
-	IF PTR_VALID(Self.Data) THEN BEGIN
-		FOR i = N_ELEMENTS(*Self.Data)-1, 0, -1 DO BEGIN
-			PTR_FREE, (*Self.Data)[i].QualFrames[*]
-			PTR_FREE, (*Self.Data)[i].ErrFrames[*]
-			PTR_FREE, (*Self.Data)[i].Headers[*]
-			PTR_FREE, (*Self.Data)[i].Frames[*]
-		ENDFOR
-	ENDIF
-
-	PTR_FREE, Self.UpdateLists
-	PTR_FREE, Self.Modules
-	PTR_FREE, Self.Data
-
-	;pipelineConfig.continueAfterDRFParsing = 0
+  self->free_current_dataset_pointers
 END
 
 
@@ -439,7 +410,7 @@ PRO gpidrfparser::enddocument
 							ELSE:
 						ENDCASE
 						;HELP, *(*Self.Data)[indexDataSet].Headers[indexHeader]
-						SXADDPAR, *(*Self.Data)[indexDataSet].Headers[indexHeader], name, value, comment, BEFORE='COMMENT'
+						SXADDPAR, *(*Self.Data)[indexDataSet].HeadersPHU[indexHeader], name, value, comment, BEFORE='COMMENT'
 					ENDFOR
 				ENDIF
 			ENDFOR
@@ -502,34 +473,34 @@ PRO gpidrfparser::enddocument
     startHeader = 0
     stopHeader = (*Self.Data)[indexDataSet].ValidFrameCount - 1
     FOR indexHeader = startHeader, stopHeader DO BEGIN	; For all headers
-      SXADDPAR, *(*Self.Data)[indexDataSet].Headers[indexHeader], 'COMMENT', '////////////////////////////////////////////////////////////////////////'
+      SXADDPAR, *(*Self.Data)[indexDataSet].HeadersPHU[indexHeader], 'COMMENT', '////////////////////////////////////////////////////////////////////////'
       ; Save the file name as one or more comments
       ; Figure out how many 68 character strings there are in the file name string
       clen = STRLEN(myOwnFileName)
       n = (clen/68) + 1
       FOR j=0, n-1 DO BEGIN
         newsubstring = STRMID(myOwnFileName, j*68, 68)
-        SXADDPAR, *(*Self.Data)[indexDataSet].Headers[indexHeader], 'COMMENT', 'DRFN' + newsubstring
+        SXADDPAR, *(*Self.Data)[indexDataSet].HeadersPHU[indexHeader], 'COMMENT', 'DRFN' + newsubstring
       ENDFOR
       FOR i=0, N_ELEMENTS(fileAsStringArray)-1 DO BEGIN
         IF STRLEN(fileAsStringArray[i]) LT 68 THEN BEGIN
-          SXADDPAR, *(*Self.Data)[indexDataSet].Headers[indexHeader], 'COMMENT', 'DRF ' + fileAsStringArray[i]
+          SXADDPAR, *(*Self.Data)[indexDataSet].HeadersPHU[indexHeader], 'COMMENT', 'DRF ' + fileAsStringArray[i]
         ENDIF ELSE BEGIN
           ; Figure out how many 68 character strings there are in the current string
           clen = STRLEN(fileAsStringArray[i])
           n = (clen/68) + 1
           FOR j=0, n-1 DO BEGIN
             newsubstring = STRMID(fileAsStringArray[i], j*68, 68)
-            SXADDPAR, *(*Self.Data)[indexDataSet].Headers[indexHeader], 'COMMENT', 'DRFC' + newsubstring
+            SXADDPAR, *(*Self.Data)[indexDataSet].HeadersPHU[indexHeader], 'COMMENT', 'DRFC' + newsubstring
           ENDFOR
         ENDELSE
       ENDFOR
 
 	  if obj_valid(self.backbone) then if keyword_set(var_record) then begin	; record environment variables into header
-		  for j=0L,n_elements(var_record)-1 do SXADDPAR,  *(*Self.Data)[indexDataSet].Headers[indexHeader], 'COMMENT', 'DRFV'+ var_record[j]
+		  for j=0L,n_elements(var_record)-1 do SXADDPAR,  *(*Self.Data)[indexDataSet].HeadersPHU[indexHeader], 'COMMENT', 'DRFV'+ var_record[j]
 	  endif
 
-      SXADDPAR, *(*Self.Data)[indexDataSet].Headers[indexHeader], 'COMMENT', '\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\'
+      SXADDPAR, *(*Self.Data)[indexDataSet].HeadersPHU[indexHeader], 'COMMENT', '\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\'
     ENDFOR
   ENDFOR
 
@@ -587,11 +558,17 @@ PRO gpidrfparser::startelement, URI, Local, qName, AttNames, AttValues
 			END
 			IF DataFileName NE '' THEN BEGIN
 			; TODO: Read in files here? For now just parse the XML.
-				if obj_valid(self.backbone) then self->drpFITSToDataSet, (*Self.Data)[N], (*Self.Data)[N].ValidFrameCount, DataFileName, FileControl
+				if obj_valid(self.backbone) then begin
+					;self->drpFITSToDataSet, (*Self.Data)[N], (*Self.Data)[N].ValidFrameCount, DataFileName
+					*DataSet.Frames[ValidFrameCount] = DataSet.InputDir + path_sep() + dataFileName
+					if ~(keyword_set(self.silent)) then PRINT, FORMAT='(".",$)'
+				endif
+
+
 				IF (self->do_continueAfterDRFParsing() EQ 1) or ~obj_valid(self.backbone)  THEN BEGIN
 					; FIXME check the file exists and is a valid GPI fits file 
 					full_input_filename = (*self.data).inputdir + path_sep() + DataFileName
-					if file_test(full_input_filename) then begin
+					;if file_test(full_input_filename) then begin
 ;    					fits_info, full_input_filename, n_ext = numext, /silent
 ;                        ;if obj_valid(self.backbone) then begin
 ;    ;                        if (numext EQ 0) then  head = headfits(DataFileName) 
@@ -705,12 +682,13 @@ end
 PRO gpidrfparser::newdataset, AttNames, AttValues
 
 	;COMMON APP_CONSTANTS
-  MAXFRAMESINDATASETS =150;pipelineConfig.MAXFRAMESINDATASETS
+    ;MAXFRAMESINDATASETS =150;pipelineConfig.MAXFRAMESINDATASETS
 	DataSet = {structDataSet}			; Create a new structDataSet variable
+
 	MAXFRAMESINDATASETS = n_elements(DataSet.Frames)
 	DataSet.Frames = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
-	DataSet.Headers = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
 	DataSet.HeadersPHU = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
+	DataSet.HeadersExt = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
 	DataSet.ErrFrames = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
 	DataSet.QualFrames = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
 

@@ -72,7 +72,7 @@ PRO launcher::event, ev
                       textinfo='Click to start an automatic, simple ' & textinfo2='data processing at the telescope.'
                       end 
                 'makedatalogfile': begin
-                      textinfo='Click to create a txt data log-file ' & textinfo2='of a chosen directory.' 
+                      textinfo='Click to create a text logfile of' & textinfo2='FITS files in a chosen directory.' 
                       end
                 'quit':         begin
                    textinfo='Click to close this window.'
@@ -96,6 +96,12 @@ PRO launcher::event, ev
 		self->check_queue
 		return
 	endif
+	if tag_names(ev,/struct) eq 'WIDGET_KILL_REQUEST' then begin
+        conf = dialog_message("Are you sure you want to exit the GPI Data Reduction Pipeline?",/question,title="Confirm Close",/default_no,/center)
+        if conf eq "Yes" then obj_destroy, self
+		return
+	endif
+ 
 
 	; all other events
 	widget_control, ev.id, get_uvalue=action
@@ -124,19 +130,22 @@ PRO launcher::event, ev
 	'DRFGUI': self->launch, 'drfgui', session=40
 	'ParserGUI': self->launch, 'parsergui', session=41
 	'QueueView': self->launch, 'queueview', session=42
-	'dst': begin
-	        void=dialog_message('The Data Simulation Tool is not an official part of the Gemini DRP. Please contact J. Maire or M. Perrin to make the DST available.')
-	        ;self->launch, 'dst', session=43          
-	      end
-	;'AutomaticProcGUI':self->launch, 'automaticproc', session=44
-	'makedatalogfile':self->launch, 'makedatalogfile', session=45
-	'quit': begin
-		conf = dialog_message("Are you sure you want to exit the GPI Data Reduction Pipeline?",/question,title="Confirm Close",/default_no,/center)
-		if conf eq "Yes" then obj_destroy, self
+    'dst': begin
+		if not self.enable_dst then begin
+	            void=dialog_message('The Data Simulation Tool is not an official part of the Gemini DRP. Please contact J. Maire or M. Perrin to make the DST available.')
+		endif else begin
+			self->launch, 'dst', session=43
+		endelse
 	end
-	else: message,/info, "Unknown event: "+action
-	endcase
-	
+    ;'AutomaticProcGUI':self->launch, 'automaticproc', session=44
+    'makedatalogfile':self->launch, 'makedatalogfile', session=45
+    'quit': begin
+        conf = dialog_message("Are you sure you want to exit the GPI Data Reduction Pipeline?",/question,title="Confirm Close",/default_no,/center)
+        if conf eq "Yes" then obj_destroy, self
+    end
+    else: message,/info, "Unknown event: "+action
+    endcase
+    
 
 
 
@@ -158,7 +167,7 @@ PRO launcher::queue, cmdstr, _extra=_extra
 		return
 	endif
 
-	wq = where(*self.cmd_queue_flags, qct, comp=wopen)
+    wq = where(*self.cmd_queue_flags, qct, comp=wopen)
 	if qct lt self.queuelen  then begin
 		message,/info, 'adding "'+strc(cmdstr)+ '" to the gui queue'
 
@@ -180,7 +189,7 @@ PRO launcher::queue, cmdstr, _extra=_extra
 			arg_bytes = bytarr(3) ; null out at least the first 2
 		endelse
 
-		; stick into queue
+        ; stick into queue
 		cmd_bytes = [byte(cmdstr),0] ; be sure to null terminate the string!
 		l = n_elements(cmd_bytes)
 		la = n_elements(arg_bytes)
@@ -206,6 +215,11 @@ PRO launcher::clear_queue
 	message,/info, 'Clearing inter-IDL message queue'
 	;wait, 1 ; wait for other side to process any messages first
 
+	catch, lock_error
+	if lock_error ne 0 then begin
+		message,/info, 'Some kind of error when clearing the queue! Skipping for now.'
+		return
+	endif
 
 
     for i=0,9 do begin
@@ -227,59 +241,68 @@ PRO launcher::clear_queue
 
     SEM_RELEASE, self.semaphore_name
 
+	catch,/cancel
 
 end
 
 ;------------------
 PRO launcher::check_queue, ev
 
-	status = SEM_LOCK(self.semaphore_name) 
-	if status eq 0 then return
-
-
-	wq = where(*self.cmd_queue_flags, qct)
-	if qct gt 0  then begin
-
-		message,/info, 'found '+strc(qct)+ ' command(s) in the gui queue'
-		cmds = string(*self.cmd_queue)
-		
-
-		for i=0L,qct-1 do begin
-			command = (string(*self.cmd_queue))[wq[i]]
-			_extra=0 ; clear any previous _extra's from earlier iterations of the for loop
-
-			queue_arg_bytes = (*self.cmd_queue_args)[*,wq[i]]
-			; check if args are present
-			arg_sz1 = fix(queue_arg_bytes[0])
-
-			if arg_sz1 ge 1 then begin
-				; if so, undo the byte-packing that was done in the ::queue
-				; procedure, back into an _extra struct
-				arg_sz2 = fix(queue_arg_bytes[1])
-				arg_bytes = queue_arg_bytes[2:2+arg_sz1*arg_sz2-1]
-				arg_bytes = reform(arg_bytes, arg_sz1, arg_sz2)
-				arg_strings = string(arg_bytes)
-				nargs = arg_sz2/2
-				for iarg=0,arg_sz2/2-1 do begin
-					if keyword_set(_extra) then _extra = create_struct(arg_strings[2*iarg],  arg_strings[2*iarg+1], _extra) $
-						else _extra = create_struct(arg_strings[2*iarg],  arg_strings[2*iarg+1])
-				endfor
-			endif else nargs=0
-			message,/info, "Command is "+command+", with "+strc(nargs)+" argument(s)."
-			if nargs gt 0 then for iarg=0,nargs-1 do message,/info, "    "+arg_strings[2*iarg]+" = "+arg_strings[2*iarg+1]
-
-
-
-			(*self.cmd_queue_flags)[wq[i]] =0 ; mark it as done
-			; have to be extra careful with _extra here, because of the
-			; possibility that it could be set to 0, above, which causes a crash
-			; if you try setting _extra=0.
-			if keyword_set(_extra) then self->launch, cmds[wq[i]], _extra=_extra else self->launch, cmds[wq[i]]
-		endfor 
-
+	;catch, lock_error
+	lock_error=0
+	if lock_error ne 0 then begin
+		message,/info, 'Some kind of error when checking the queue! Skipping for now, will retry.'
+		return
 	endif
 
-	SEM_RELEASE, self.semaphore_name  
+    status = SEM_LOCK(self.semaphore_name) 
+    if status eq 0 then return
+
+
+    wq = where(*self.cmd_queue_flags, qct)
+    if qct gt 0  then begin
+
+        message,/info, 'found '+strc(qct)+ ' command(s) in the gui queue'
+        cmds = string(*self.cmd_queue)
+        
+
+        for i=0L,qct-1 do begin
+            command = (string(*self.cmd_queue))[wq[i]]
+            _extra=0 ; clear any previous _extra's from earlier iterations of the for loop
+
+            queue_arg_bytes = (*self.cmd_queue_args)[*,wq[i]]
+            ; check if args are present
+            arg_sz1 = fix(queue_arg_bytes[0])
+
+            if arg_sz1 ge 1 then begin
+                ; if so, undo the byte-packing that was done in the ::queue
+                ; procedure, back into an _extra struct
+                arg_sz2 = fix(queue_arg_bytes[1])
+                arg_bytes = queue_arg_bytes[2:2+arg_sz1*arg_sz2-1]
+                arg_bytes = reform(arg_bytes, arg_sz1, arg_sz2)
+                arg_strings = string(arg_bytes)
+                nargs = arg_sz2/2
+                for iarg=0,arg_sz2/2-1 do begin
+                    if keyword_set(_extra) then _extra = create_struct(arg_strings[2*iarg],  arg_strings[2*iarg+1], _extra) $
+                        else _extra = create_struct(arg_strings[2*iarg],  arg_strings[2*iarg+1])
+                endfor
+            endif else nargs=0
+            message,/info, "Command is "+command+", with "+strc(nargs)+" argument(s)."
+            if nargs gt 0 then for iarg=0,nargs-1 do message,/info, "    "+arg_strings[2*iarg]+" = "+arg_strings[2*iarg+1]
+
+
+
+            (*self.cmd_queue_flags)[wq[i]] =0 ; mark it as done
+            ; have to be extra careful with _extra here, because of the
+            ; possibility that it could be set to 0, above, which causes a crash
+            ; if you try setting _extra=0.
+            if keyword_set(_extra) then self->launch, cmds[wq[i]], _extra=_extra else self->launch, cmds[wq[i]]
+        endfor 
+
+    endif
+
+    SEM_RELEASE, self.semaphore_name  
+	catch,/cancel
 end
 
 
@@ -311,8 +334,7 @@ pro launcher::launch, objname, filename=filename, session=session, _extra=_extra
 			session=mnv[0]
 		endelse
 	endif
-
-	if obj_valid(self.sessions[session]) then begin
+    if obj_valid(self.sessions[session]) then begin
 		; object already exists, so re-use it if some new filename is supplied
 			if keyword_set(filename) then self.sessions[session]->open, filename,_extra=_extra else $
 				message,/info, "Unable to launch new window in session "+strc(session)+", since that session is already in use."
@@ -364,8 +386,8 @@ end
 ;------------------
 FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, clear_shm=clear_shm, _extra=_extra
 
- ;setenv_gpi
  
+; Ensure environment variables are set properly & to valid values. If not, ask the user to fix them.
 issetenvok=gpi_is_setenv(/first)
 if issetenvok eq 0 then begin
         obj=obj_new('setenvir')
@@ -407,7 +429,7 @@ endif else if issetenvok eq -1 then return,0
 	; see IDL 7 release notes at
 	; http://download.ittvis.com/idl_7.0/linux/relnotes.html
 	if !version.OS_Name eq 'Mac OS X' then PREF_SET, 'IDL_TMPDIR', '/tmp', /COMMIT
-    
+ 
 
 
 	status = SEM_CREATE(self.semaphore_name)  
@@ -417,7 +439,7 @@ endif else if issetenvok eq -1 then return,0
 		return, 0
 	endif
 
-	shmmap, 'gpi_gui_queue_flags'+self.username, template=bytarr(self.queuelen)
+    shmmap, 'gpi_gui_queue_flags'+self.username, template=bytarr(self.queuelen)
 	self.cmd_queue_flags = ptr_new(shmvar('gpi_gui_queue_flags'+self.username))
 	shmmap, 'gpi_gui_queue'+self.username, template=bytarr(80,self.queuelen)
 	self.cmd_queue = ptr_new(shmvar('gpi_gui_queue'+self.username))
@@ -431,8 +453,8 @@ endif else if issetenvok eq -1 then return,0
 
 		; create a GUI so we can generate Timer events
 		self.baseid = WIDGET_BASE(TITLE='GPI-DPL Launcher',/tlb_size_events,  /tlb_kill_request_events,/row, /base_align_center, xoffset=100, RESOURCE_NAME='GPI_DRP',MBAR=bar)
-    basecol_id=WIDGET_BASE(self.baseid ,/column)
-    baseid2=WIDGET_BASE(basecol_id,/row,/BASE_ALIGN_CENTER )
+		basecol_id=WIDGET_BASE(self.baseid ,/column)
+		baseid2=WIDGET_BASE(basecol_id,/row,/BASE_ALIGN_CENTER )
         ;FindPro, 'drfgui__define', dirlist=dirlist,/noprint
         dirpro= getenv('GPI_PIPELINE_DIR');dirlist[0]
 
@@ -447,24 +469,24 @@ endif else if issetenvok eq -1 then return,0
 		tmp = widget_label(baseid2, value=' ')
 		frame = widget_base(baseid2,/column)
 
-    menu = WIDGET_BUTTON(bar, VALUE='Setup',/MENU) 
-    file_bttn2=WIDGET_BUTTON(menu, VALUE='Setup environ. var.', UVALUE='Setup')
-    menu2 = WIDGET_BUTTON(bar, VALUE='About',/MENU) 
-    file_bttn2=WIDGET_BUTTON(menu2, VALUE='About', UVALUE='About')
-    bclose = widget_button(frame,VALUE='Parser GUI',UVALUE='ParserGUI', resource_name='button', /tracking_events)
-    bclose = widget_button(frame,VALUE='DRF GUI',UVALUE='DRFGUI', resource_name='button', /tracking_events)
-    bclose = widget_button(frame,VALUE='DRF QueueView',UVALUE='QueueView', resource_name='button', /tracking_events)
+        menu = WIDGET_BUTTON(bar, VALUE='Setup',/MENU) 
+        file_bttn2=WIDGET_BUTTON(menu, VALUE='Setup environ. var.', UVALUE='Setup')
+        menu2 = WIDGET_BUTTON(bar, VALUE='About',/MENU) 
+        file_bttn2=WIDGET_BUTTON(menu2, VALUE='About', UVALUE='About')
+        bclose = widget_button(frame,VALUE='Parser GUI',UVALUE='ParserGUI', resource_name='button', /tracking_events)
+        bclose = widget_button(frame,VALUE='DRF GUI',UVALUE='DRFGUI', resource_name='button', /tracking_events)
+        bclose = widget_button(frame,VALUE='DRF QueueView',UVALUE='QueueView', resource_name='button', /tracking_events)
 		bclose = widget_button(frame,VALUE='GPItv',UVALUE='GPItv', resource_name='button', /tracking_events)
 		;bclose = widget_button(frame,VALUE='Automatic DPL GUI',UVALUE='AutomaticProcGUI', resource_name='button', /tracking_events)
-    bclose = widget_button(frame,VALUE='Data log-file',UVALUE='makedatalogfile', resource_name='button', /tracking_events)
-		bclose = widget_button(frame,VALUE='DST',UVALUE='dst', resource_name='button', /tracking_events)
+        bclose = widget_button(frame,VALUE='Data log-file',UVALUE='makedatalogfile', resource_name='button', /tracking_events)
+		if self.enable_dst then bclose = widget_button(frame,VALUE='DST',UVALUE='dst', resource_name='button', /tracking_events)
 		tmp = widget_label(frame, value=' ')
-		bclose = widget_button(frame,VALUE='Quit ',UVALUE='quit', resource_name='red_button')
+		bclose = widget_button(frame,VALUE='Quit ',UVALUE='quit', resource_name='red_button',/tracking_events)
 
 		tmp = widget_label(baseid2, value=' ')
 		
-    self.info1_id= widget_label(basecol_id, value=' ',xsize=200)
-    self.info2_id= widget_label(basecol_id, value=' ',xsize=200)
+        self.info1_id= widget_label(basecol_id, value=' ',xsize=200)
+        self.info2_id= widget_label(basecol_id, value=' ',xsize=200)
     
 		widget_control, self.baseid,/realize
 		xmanager, 'launcher', self.baseid,/no_block
@@ -504,6 +526,7 @@ PRO launcher__define
 		info2_id: 0L, $
 		queuelen: 0L, $
 		exit_on_close: 0L, $
+		enable_dst: 0L, $
 		cmd_queue_flags: ptr_new(), $
 		cmd_queue: ptr_new(), $
 		cmd_queue_args: ptr_new(), $
