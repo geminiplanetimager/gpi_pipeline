@@ -43,23 +43,25 @@ calfiletype='Gridratio'
   	cubef3D=*(dataset.currframe[0])
   	;if numext eq 0 then hdr= *(dataset.headers)[numfile] else 
 	hdr= *(dataset.headersPHU)[numfile]
-  	filter=strcompress(SXPAR( hdr, 'FILTER',count=cc), /rem)
-  	if cc eq 0 then filter=SXPAR( hdr, 'FILTER1',cc)
+  	;filter=strcompress(SXPAR( hdr, 'FILTER',count=cc), /rem)
+	filter = backbone->get_keyword('FILTER')
+	filter = strc(filter)
+  	;if cc eq 0 then filter=SXPAR( hdr, 'FILTER1',cc)
         ;get the common wavelength vector
             ;error handle if extractcube not used before
-            if ((size(cubef3D))[0] ne 3) || (strlen(filter) eq 0)  then $
-            return, error('FAILURE ('+functionName+'): Datacube or filter not defined. Use extractcube module before.')        
-        cwv=get_cwv(filter)
-        CommonWavVect=cwv.CommonWavVect
-        lambda=cwv.lambda
-        lambdamin=CommonWavVect[0]
-        lambdamax=CommonWavVect[1]
+    if ((size(cubef3D))[0] ne 3) || (strlen(filter) eq 0)  then $
+        return, error('FAILURE ('+functionName+'): Datacube or filter not defined. Use extractcube module before.')        
+    cwv=get_cwv(filter)
+    CommonWavVect=cwv.CommonWavVect
+    lambda=cwv.lambda
+    lambdamin=CommonWavVect[0]
+    lambdamax=CommonWavVect[1]
 
     fits_info, c_File, /silent, N_ext=n_ext
     if n_ext eq 0 then  $
-    ;pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headerphot, /SILENT)) else $
-    ;pmd_fluxcalFrame        = ptr_new(mrdfits(c_File, 1, Headerphot, /SILENT)) 
-    pmd_fluxcalFrame        = ptr_new(gpi_readfits(c_File, Headerphot)) 
+    pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headerphot, /SILENT)) else $
+    pmd_fluxcalFrame        = ptr_new(mrdfits(c_File, 1, Headerphot, /SILENT)) 
+    ;pmd_fluxcalFrame        = ptr_new(gpi_readfits(c_File, Headerphot)) 
     lambda_gridratio=*pmd_fluxcalFrame
 
 	
@@ -68,16 +70,17 @@ calfiletype='Gridratio'
 
 ;;extract photometry of SAT 
 ;;; handle the spot locations
- SPOTWAVE=sxpar( *(dataset.headers)[numfile], 'SPOTWAVE',  COUNT=cc4)
+ ;SPOTWAVE=sxpar( *(dataset.headers)[numfile], 'SPOTWAVE',  COUNT=cc4)
+   SPOTWAVE=backbone->get_keyword('SPOTWAVE',  COUNT=cc4)
    if cc4 gt 0 then begin
     ;check how many spots locations is in the header (2 or 4)
     void=sxpar( hdr, 'SPOT4x',  COUNT=cs)
     if cs eq 1 then spotloc=fltarr(1+4,2) else spotloc=fltarr(1+2,2) ;1+ due for PSF center 
-          spotloc[0,0]=sxpar( *(dataset.headers)[numfile],"PSFCENTX")
-          spotloc[0,1]=sxpar( *(dataset.headers)[numfile],"PSFCENTY")      
+          spotloc[0,0]=backbone->get_keyword(,"PSFCENTX")
+          spotloc[0,1]=backbone->get_keyword(,"PSFCENTY")      
         for ii=1,(size(spotloc))[1]-1 do begin
-          spotloc[ii,0]=sxpar( *(dataset.headers)[numfile],"SPOT"+strc(ii)+'x')
-          spotloc[ii,1]=sxpar( *(dataset.headers)[numfile],"SPOT"+strc(ii)+'y')
+          spotloc[ii,0]=backbone->get_keyword(,"SPOT"+strc(ii)+'x')
+          spotloc[ii,1]=backbone->get_keyword(,"SPOT"+strc(ii)+'y')
         endfor      
    endif else begin
       SPOTWAVE=lamdamin
@@ -154,38 +157,38 @@ calfiletype='Gridratio'
     endfor
      ;;keep only mean values over the 4 spots
     for i=0,CommonWavVect[2]-1 do fluxsatmedabs[i]=mean(intens_sat[*,i],/nan)
-;Need to take in to account Enc.Energy in the aperture (EE=94%, 2.*lambda/D): 
-fluxsatmedabs*=(1./0.99)
+	;Need to take in to account Enc.Energy in the aperture (EE=94%, 2.*lambda/D): 
+	fluxsatmedabs*=(1./0.99)
 
-;;;;;;theoretical flux:
-nlambdapsf=n_elements(lambda)
-lambdapsf=fltarr(nlambdapsf)
+	;;;;;;theoretical flux:
+	nlambdapsf=n_elements(lambda)
+	lambdapsf=fltarr(nlambdapsf)
     cwv=get_cwv(filter)
         CommonWavVect=cwv.CommonWavVect        
         lambdamin=CommonWavVect[0]
         lambdamax=CommonWavVect[1]
-  ;for i=0,n_elements(lambdapsf)-1 do lambdapsf[i]=lambda[0]+(lambda[nlambdapsf-1]-lambda[0])/(2.*nlambdapsf)+double(i)*(lambda[nlambdapsf-1]-lambda[0])/nlambdapsf
- for i=0,n_elements(lambdapsf)-1 do lambdapsf[i]=lambdamin+double(i)*(lambdamax-lambdamin)/nlambdapsf
+    ;for i=0,n_elements(lambdapsf)-1 do lambdapsf[i]=lambda[0]+(lambda[nlambdapsf-1]-lambda[0])/(2.*nlambdapsf)+double(i)*(lambda[nlambdapsf-1]-lambda[0])/nlambdapsf
+    for i=0,n_elements(lambdapsf)-1 do lambdapsf[i]=lambdamin+double(i)*(lambdamax-lambdamin)/nlambdapsf
 
-;nbphot_juststar=pip_nbphot_trans(hdr,lambdapsf)
-nbphot_juststar=pip_nbphot_trans_lowres(hdr,lambda)
+    ;nbphot_juststar=pip_nbphot_trans(hdr,lambdapsf)
+    nbphot_juststar=pip_nbphot_trans_lowres(hdr,lambda)
 
-   magni=double(SXPAR( hdr, 'HMAG'))
-   spect=strcompress(SXPAR( hdr, 'SPECTYPE'),/rem)
-   Dtel=double(SXPAR( hdr, 'TELDIAM'))
-   Obscentral=double(SXPAR( hdr, 'SECDIAM'))
-   exposuretime=double(SXPAR( hdr, 'EXPTIME')) ;TODO use ITIME instead
+   magni=double(backbone->get_keyword( 'HMAG'))
+   spect=strcompress(backbone->get_keyword( 'SPECTYPE'),/rem)
+   Dtel=double(backbone->get_keyword( 'TELDIAM'))
+   Obscentral=double(backbone->get_keyword( 'SECDIAM'))
+   exposuretime=double(backbone->get_keyword( 'EXPTIME')) ;TODO use ITIME instead
    ;BE SURE THAT EXPTIME IS IN SECONDS
-   filter=SXPAR( hdr, 'FILTER')
+   filter=backbone->get_keyword( 'FILTER')
    nlambda=n_elements(lambda)
    widthL=(lambdamax-lambdamin)
    SURFA=!PI*(Dtel^2.)/4.-!PI*((Obscentral)^2.)/4.
    gaindetector=1. ;1.1 ;from ph to count: IS IT IN THE KEYWORD LIST?
-   ifsunits=strcompress(SXPAR( hdr, 'IFSUNITS'),/rem)
+   ifsunits=strcompress(backbone->get_keyword( 'IFSUNITS'),/rem)
 
 ;; normalize by n_elements(lambdapsf) because widthL is the width of the entire band here
    nbphotnormtheo=nbphot_juststar*float(n_elements(lambdapsf))/(SURFA*widthL*1.e3*exposuretime) ;photons to [photons/s/nm/m^2]
-nbphotnormtheosmoothed=nbphotnormtheo
+	nbphotnormtheosmoothed=nbphotnormtheo
 ;;smooth to the resolution of the spectrograph:
 ;case strcompress(filter,/REMOVE_ALL) of
 ;  'Y':specresolution=30.

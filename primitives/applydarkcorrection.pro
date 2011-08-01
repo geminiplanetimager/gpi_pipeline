@@ -36,22 +36,21 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 calfiletype = 'dark'
 @__start_primitive
 
-  fits_info, c_File, /silent, N_ext=n_ext
-  if n_ext eq 0 then dark=readfits(c_File) else dark=mrdfits(c_File,1)
+  ;fits_info, c_File, /silent, N_ext=n_ext
+  ;if n_ext eq 0 then dark=readfits(c_File) else dark=mrdfits(c_File,1)
+  	dark = gpi_readfits(c_File)
   
 	;dark=readfits(c_File)
 	*(dataset.currframe[0]) -= dark
 
-;  sxaddhist, functionname+": dark subtracted", *(dataset.headers[numfile])
-;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": dark subtracted"
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
+  	backbone->set_keyword,'HISTORY',functionname+": dark subtracted using file="
+  	backbone->set_keyword,'HISTORY',functionname+": "+c_File
   
-thisModuleIndex = Backbone->GetCurrentModuleIndex()
-  if tag_exist( Modules[thisModuleIndex], "Save") && tag_exist( Modules[thisModuleIndex], "suffix") then suffix+=Modules[thisModuleIndex].suffix
+	thisModuleIndex = Backbone->GetCurrentModuleIndex()
+  	if tag_exist( Modules[thisModuleIndex], "Save") && tag_exist( Modules[thisModuleIndex], "suffix") then suffix+=Modules[thisModuleIndex].suffix
   
 
-  suffix = 'darksub'
+  	suffix = 'darksub'
 @__end_primitive 
 
 

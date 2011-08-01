@@ -40,7 +40,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   	sz = size(*(dataset.currframe))
   
 	if sz[0] eq 3 then begin
-		sxaddhist, functionname+':   Collapsing datacube using method='+method, *(dataset.headersPHU[numfile]) ;header ;*(dataset.headers[numfile])
+		backbone->set_keyword, 'HISTORY', functionname+':   Collapsing datacube using method='+method;, *(dataset.headersPHU[numfile]) ;header ;*(dataset.headers[numfile])
 		backbone->Log, "	Combining datacube using method="+method
 		case STRUPCASE(method) of
 		'MEDIAN': begin  ;here the [* float(sz[3])] operation is for energy conservation in order to keep the same units.
@@ -65,13 +65,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	if tag_exist( Modules[thisModuleIndex], "suffix") then suffix2=suffix+Modules[thisModuleIndex].suffix
   
-   if tag_exist( Modules[thisModuleIndex],"ReuseOutput")  then begin
-   ; put the datacube in the dataset.currframe output structure:
-   *(dataset.currframe[0])=collapsed_im
-    Modules[thisModuleIndex].Save=1 ;will save output on disk, so outputfilenames changed
-    collapsed_im=0
-    suffix+=Modules[thisModuleIndex].suffix 
-    
+	if tag_exist( Modules[thisModuleIndex],"ReuseOutput")  then begin
+	   ; put the datacube in the dataset.currframe output structure:
+	   *(dataset.currframe[0])=collapsed_im
+		Modules[thisModuleIndex].Save=1 ;will save output on disk, so outputfilenames changed
+		collapsed_im=0
+		suffix+=Modules[thisModuleIndex].suffix 
     endif
     
   ;if numext eq 0 then $

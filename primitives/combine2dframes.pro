@@ -45,7 +45,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	im0 = accumulate_getimage(dataset, 0, hdr,hdrext=hdrext)
 	;imtab=dblarr(naxis(0),naxis(1),numfile)
 	 ;if numext eq 0 then hdr0= hdr else hdr0= hdrext
-	sz = [0, sxpar(hdrext,'NAXIS1'), sxpar(hdrext,'NAXIS2')]
+	sz = [0, backbone->get_keyword('NAXIS1'), backbone->get_keyword('NAXIS2')]
 	; create an array of the same type as the input file:
 	imtab = make_array(sz[1], sz[2], nfiles, type=size(im0,/type))
 
