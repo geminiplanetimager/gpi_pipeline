@@ -171,8 +171,9 @@ function drfgui::get_obs_keywords, filename
 	 endif else  keywprism='PRISM'  
 	
 	;
-	itime=  sxpar(head, 'ITIME',    count=ct7)
-	if ct7 eq 0 then itime=  sxpar(head, 'ITIME0',    count=ct7)
+	itime=  float(sxpar(head, 'ITIME',    count=ct7)) / 1e3 ; convert ms to seconds (dst data)
+	if ct7 eq 0 then itime=  float(sxpar(head, 'TRUITIME',    count=ct7))  ; in seconds already (real data)
+	if ct7 eq 0 then itime=  float(sxpar(head, 'ITIME0',    count=ct7)) / 1e6 ; convert microsec to seconds. (real data, requested itime)
 	obsstruct = {gpi_obs, $
 				OBSCLASS: strc(sxpar(head, 'OBSCLASS', count=ct0)), $
 				obstype:  strc(sxpar(head, 'obstype',  count=ct1)), $
@@ -191,6 +192,28 @@ function drfgui::get_obs_keywords, filename
 	keytab=['OBSCLASS','obstype','OBSID', 'FILTER','PRISM','OCCULTER','LYOT','ITIME', 'OBJECT']
 	indzero=where(vec eq 0, cc)
 	if cc gt 0 then self->Log, 'Missing keyword(s):'+keytab[indzero]
+
+
+
+	;------ Preprocess values to agree with (unclear) standard
+
+	update=0
+	if strmatch(obsstruct.prism, '*spec*',/fold_case) then begin
+		update=1
+		obsstruct.prism='SPECT'
+	endif
+	if strmatch(obsstruct.prism, '*woll*',/fold_case) or strmatch(obsstruct.prism, '*pol*',/fold_case)then begin
+		update=1
+		obsstruct.prism='POLAR'
+	endif
+	if strmatcH(obsstruct.occulter, '*none*',/fold_case) then begin
+		update=1
+		obsstruct.occulter ='blank'
+	endif
+	if update then message,/info, 'Updating parsed FITS keywords for '+filename+' to match standard form expected for parser (does not change actual FITS file)'
+
+
+	;------ end preprocessing
 	
 	
 	return, obsstruct
@@ -847,7 +870,6 @@ pro drfgui::event,ev
         endfor
         for i=0,n_elements(result)-1 do begin
             tmp = strsplit(result[i],'.',/extract)
-            ;if (n_elements(tmp) lt 5) then result[i] = ''
         endfor
 
         w = where(result ne '')
@@ -891,10 +913,8 @@ pro drfgui::event,ev
 
 
             ;; RESOLVE FILTER
-            ;stop  
             self.filter=self->resolvekeyword( file, cindex,'filter1')
 
-            ;TODO DISPLAY RESOLVED FILTER
             ;;RESOLVE TIMEOBS
 
             dateobsfile=self->resolvekeyword( file, cindex,'DATE-OBS',/date)
@@ -907,8 +927,7 @@ pro drfgui::event,ev
                       self.ftimeobs = JULDAY(date[1], date[2], date[0], timeobs[0], timeobs[1], timeobs[2]) 
             endif
             ;;RESOLVE MOD
-            ;self.ftype=self->resolvekeyword( file, cindex,'FILTER2')
-            self.fmod=self->resolvekeyword( file, cindex,'PRISM')
+            self.prism=self->resolvekeyword( file, cindex,'PRISM')
             ;;RESOLVE TYPE
             self.ftype=self->resolvekeyword( file, cindex,'OBSTYPE')
             ;;RESOLVE CLASS
@@ -918,10 +937,10 @@ pro drfgui::event,ev
             isresolvebuttonset=widget_info(self.resolvetypeseq_id,/button_set)
             if isresolvebuttonset then begin
                 detectype=0
-                if strmatch(self.fmod,'pol*',/fold) && strmatch(self.ftype,'obj*',/fold) then detectype=2
-                if strmatch(self.fmod,'pol*',/fold) && ~strmatch(self.ftype,'obj*',/fold) then detectype=4
-                if strmatch(self.fmod,'spec*',/fold) && strmatch(self.ftype,'obj*',/fold) then detectype=1
-                if strmatch(self.fmod,'spec*',/fold) && ~strmatch(self.ftype,'obj*',/fold) then detectype=3
+                if strmatch(self.prism,'pol*',/fold) && strmatch(self.ftype,'obj*',/fold) then detectype=2
+                if strmatch(self.prism,'pol*',/fold) && ~strmatch(self.ftype,'obj*',/fold) then detectype=4
+                if strmatch(self.prism,'spec*',/fold) && strmatch(self.ftype,'obj*',/fold) then detectype=1
+                if strmatch(self.prism,'spec*',/fold) && ~strmatch(self.ftype,'obj*',/fold) then detectype=3
                 detecseq=1
                 if strmatch(self.ftype,'flat*',/fold) then begin 
                     detecseq=1 & detectype=3 
@@ -1980,7 +1999,7 @@ pro drfgui__define
               tempdrfdir:'',$     
               filter:'',$ ;from data keywords
               ftimeobs:0.,$ ;from data keywords
-              fmod:'',$ ;from data keywords
+              prism:'',$ ;from data keywords
               ftype:'',$ ;from data keywords
               fseq:'',$ ;from data keywords
               reductiontype:'',$

@@ -90,14 +90,6 @@ pro parsergui::startup
         self.outputdir = getenv('GPI_DRP_OUTPUT_DIR')
         self.logpath = getenv('GPI_PIPELINE_LOG_DIR')
 
-		; Get the directory, based on the directory adjacent to the raw data dir
-		; but with a name of /drfs
-;		outdir = getenv('GPI_DRP_OUTPUT_DIR')
-;		if (strmid(outdir,n_elements(outdir)-1) ne path_sep()) then outdir +=path_sep()
-;		drfpath_i = strsplit(outdir,path_sep())
-;		drfpath = strmid(outdir,0,drfpath_i[n_elements(drfpath_i)-1]) + "drfs"
-;		if file_test(drfpath,/directory) then self.drfpath=drfpath else self.drfpath = current
-		
 		;due to directory Gemini writing permissions, write temporary DRF in the working directory
 		self.drfpath =getenv('GPI_IFS_DIR')
         self.queuepath =getenv('GPI_QUEUE_DIR')
@@ -259,30 +251,32 @@ pro parsergui::changetype, selectype, storage,notemplate=notemplate
 end
 
 ;-----------------------------------
-function parsergui::getkeywords, filename
-    ; get the necessary header keywords for automatically creating DRFs
-
-    head=headfits( filenames[i])
-
-    results = {ifshdr, $
-            filter: sxpar(head, 'FILTER', count=ct_filter), $
-            obstype: sxpar(head, 'OBSTYPE', count=ct_obstype), $
-            disp: sxpar(head, 'disp', count=ct_disp), $
-            occult: sxpar(head, 'occult', count=ct_occult), $
-            itime: sxpar(head, 'itime', count=ct_itime), $
-            exptime: sxpar(head, 'exptime', count=ct_itime), $
-            object: sxpar(head, 'object', count=ct_object) }
-
-    any_invalid = ct_filter eq 0 or ct_obstype eq 0 or ct_disp eq 0 or ct_occult eq 0 or ct_itime eq 0 or ct_object eq 0
-
-    if any_invalid then message, /info, "Header for "+filename+" is missing required keywords."
-
-    return, results
-
-
-
-end
-
+; This function appears to be called nowhere. - MP 2011-07-25
+; function parsergui::getkeywords, filename
+;     ; get the necessary header keywords for automatically creating DRFs
+; 
+;     head=headfits( filenames[i])
+; 
+;     results = {ifshdr, $
+;             filter: sxpar(head, 'FILTER', count=ct_filter), $
+;             obstype: sxpar(head, 'OBSTYPE', count=ct_obstype), $
+;             disp: sxpar(head, 'disp', count=ct_disp), $
+;             occult: sxpar(head, 'occult', count=ct_occult), $
+;             itime: sxpar(head, 'itime', count=ct_itime), $
+;             exptime: sxpar(head, 'exptime', count=ct_itime), $
+;             object: sxpar(head, 'object', count=ct_object) }
+;     stop
+; 
+;     any_invalid = ct_filter eq 0 or ct_obstype eq 0 or ct_disp eq 0 or ct_occult eq 0 or ct_itime eq 0 or ct_object eq 0
+; 
+;     if any_invalid then message, /info, "Header for "+filename+" is missing required keywords."
+; 
+;     return, results
+; 
+; 
+; 
+; end
+; 
 
 
 
@@ -336,7 +330,7 @@ pro parsergui::addfile, filenames, mode=mode
     if !VERSION.OS_FAMILY ne 'Windows' then self.inputdir = "/"+self.inputdir 
 
 
-	self->Log, "Loading and parsing files..."
+    self->Log, "Loading and parsing files..."
     ;-- Update information in the structs
     cindex = cindex+n_elements(filenames)
     (*storage.splitptr).selindex = max([0,cindex-1])
@@ -387,45 +381,36 @@ pro parsergui::addfile, filenames, mode=mode
     (*self.currDRFSelec)=strarr(10)
 
 
-    widget_control,storage.fname,set_value=pfile
+    widget_control,storage.fname,set_value=pfile ; update displayed filename information - temporary, just show filename
 
     if cindex gt 0 then begin ;assure that data are selected
 
         self.nbdrfSelec=0
         ;; RESOLVE FILTER(S) AND OBSTYPE(S)
-		tmp = self->get_obs_keywords(file[0])
-		finfo = replicate(tmp,cindex)
+        tmp = self->get_obs_keywords(file[0])
+        finfo = replicate(tmp,cindex)
 
-        ;ffilter=strarr(cindex) 
-        ;fmod=strarr(cindex) 
-        ;fdisp=strarr(cindex)  
-        ;foccult=strarr(cindex) 
-        ;fitime=strarr(cindex) 
         for jj=0,cindex-1 do begin
-			finfo[jj] = self->get_obs_keywords(file[jj])
-  			;;we want Xenon&Argon considered as the same 'lamp' object for Y,K1,K2bands (for H&J, better to do separately to keep only meas. from Xenon)
-    			if (~strmatch(finfo[jj].filter,'[HJ]')) && (strmatch(finfo[jj].object,'Xenon') || strmatch(finfo[jj].object,'Argon')) then $
-    			    finfo[jj].object='Lamp'
-    		;; we also want Flat considered for wavelength solution in Y band
-    			 if strmatch(finfo[jj].object,'Flat*')  &&  strmatch(finfo[jj].filter,'Y') then $
-    			    finfo[jj].object='Lamp'
-            ;self.filter=resolvekeyword( file, cindex,'filter1')
-            ;ffilter[jj]  =self->resolvekeyword( file[jj], 1,'filter1')
-            ;fmod[jj]     =self->resolvekeyword( file[jj], 1,'OBSTYPE')
-            ;fdisp[jj]    =self->resolvekeyword( file[jj], 1,'prism')
-            ;foccult[jj]  =self->resolvekeyword( file[jj], 1,'OCCULTER')
-            ;fitime[jj]   =self->resolvekeyword( file[jj], 1,'ITIME')
-			pfile[jj] = pfile[jj]+"     "+finfo[jj].prism +" "+finfo[jj].filter+" "+finfo[jj].obstype+" "+string(finfo[jj].itime/1000.,format='(F5.1)')+"  "+finfo[jj].object
+            finfo[jj] = self->get_obs_keywords(file[jj])
+              ;;we want Xenon&Argon considered as the same 'lamp' object for Y,K1,K2bands (for H&J, better to do separately to keep only meas. from Xenon)
+                if (~strmatch(finfo[jj].filter,'[HJ]')) && (strmatch(finfo[jj].object,'Xenon') || strmatch(finfo[jj].object,'Argon')) then $
+                    finfo[jj].object='Lamp'
+            ;; we also want Flat considered for wavelength solution in Y band
+                 if strmatch(finfo[jj].object,'Flat*')  &&  strmatch(finfo[jj].filter,'Y') then $
+                    finfo[jj].object='Lamp'
+            pfile[jj] = pfile[jj]+"     "+finfo[jj].prism +" "+finfo[jj].filter+" "+finfo[jj].obstype+" "+string(finfo[jj].itime,format='(F5.1)')+"  "+finfo[jj].object
         endfor
-    	widget_control,storage.fname,set_value=pfile
+        widget_control,storage.fname,set_value=pfile ; update displayed filename information - filenames plus parsed keywords
+
+
       (*storage.splitptr).printfname=pfile
         ;-- propose to correct invalid keywords, if necessary
         ; Do this by writing a DRF implementing the 'Add Gemini and GPI
         ; Keywords' module, and then putting it in the queue. 
         indnonvaliddatakeyw=where(finfo.valid eq 0, cinv)
         if cinv gt 0 then begin
-			self->Log, "Missing keywords detected for "+strc(cinv)+" files. Creating DRF to fix them"
-			for i=0,cinv-1 do self->Log, "   file: "+file[indnonvaliddatakeyw[i]]
+            self->Log, "Missing keywords detected for "+strc(cinv)+" files. Creating DRF to fix them"
+            for i=0,cinv-1 do self->Log, "   file: "+file[indnonvaliddatakeyw[i]]
             nonvaliddata=file[indnonvaliddatakeyw]
             indvaliddata=intersect(indnonvaliddatakeyw,indgen(cindex),countvalid,/xor)
             if countvalid eq 0 then file=''
@@ -443,47 +428,50 @@ pro parsergui::addfile, filenames, mode=mode
             self.loadedDRF = self.tempdrfdir+'templates_drf_'+typename+strc(detecseq)+'.xml'
             self->loaddrf, /nodata, /silent
             self->savedrf, nonvaliddata, prefix=self.nbdrfSelec+1
-			newdrf = ([self.drfpath+path_sep()+(*self.drf_summary).filename,(*self.drf_summary).name,(*self.template_types)[detectype-1] ,'','', '', '', '' ,'','']) 
+            newdrf = ([self.drfpath+path_sep()+(*self.drf_summary).filename,(*self.drf_summary).name,(*self.template_types)[detectype-1] ,'','', '', '', '' ,'','']) 
 
             if self.nbdrfSelec eq 0 then (*self.currDRFSelec)= newdrf else (*self.currDRFSelec)=([[(*self.currDRFSelec)],[newdrf]])
             self.nbdrfSelec+=1
             print, (*self.currDRFSelec)
-			self->Log, "Those files will be ignored from further analysis until after the keywords are fixed. "
+            self->Log, "Those files will be ignored from further analysis until after the keywords are fixed. "
         endif
 
 
         if n_elements(file) gt 0 then begin
 
-			; save starting date and time for use in DRF filenames
-      	  	caldat,systime(/julian),month,day,year, hour,minute,second
-	   	  	caldat,systime(/julian),month,day,year, hour,minute,second
-	      	datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
-	      	hourstr = string(hour,minute,format='(i2.2,i2.2)')  
-		  	datetimestr=datestr+'-'+hourstr
+            ; save starting date and time for use in DRF filenames
+                caldat,systime(/julian),month,day,year, hour,minute,second
+                 caldat,systime(/julian),month,day,year, hour,minute,second
+              datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
+              hourstr = string(hour,minute,format='(i2.2,i2.2)')  
+              datetimestr=datestr+'-'+hourstr
 
-	      
-			current = {gpi_obs}
+          
+            current = {gpi_obs}
 
             ;categorize by filter
             uniqfilter  = uniqvals(finfo.filter, /sort)
-			;uniqfilter = ['H', 'Y', 'J', "K1", "K2"] ; H first since it's primary science wvl?
+            ;uniqfilter = ['H', 'Y', 'J', "K1", "K2"] ; H first since it's primary science wvl?
             uniqobstype = uniqvals(strlowcase(finfo.obstype), /sort)
-				; TODO - sort right order for obstype 
+                ; TODO - sort right order for obstype 
            ; uniqobstype = uniqvals(finfo.obstype, /sort)
-			uniqdispersers = ['SPECT', 'POLAR']
-			uniqocculters = ['blank','fpm']
-			uniqobsclass = uniqvals(finfo.obsclass, /sort)
-			uniqitimes = uniqvals(finfo.itime, /sort)
-			uniqobjects = uniqvals(finfo.object, /sort)
+
+		    uniqprisms = uniqvals(finfo.prism)
+            uniqprisms = ['SPECT', 'POLAR']
+            uniqocculters = ['blank','fpm']
+            uniqobsclass = uniqvals(finfo.obsclass, /sort)
+            uniqitimes = uniqvals(finfo.itime, /sort)
+            uniqobjects = uniqvals(finfo.object, /sort)
 
 
 
             nbfilter=n_elements(uniqfilter)
-            message,/info, "Found FILTERS: "+strjoin(uniqfilter, ", ")
+            message,/info, "Now adding "+strc(n_elements(finfo))+" files. "
+            message,/info, "Input files include data from these FILTERS: "+strjoin(uniqfilter, ", ")
             
             ;for each filter category, categorize by obstype
             for ff=0,nbfilter-1 do begin
-				current.filter = uniqfilter[ff]
+                current.filter = uniqfilter[ff]
                 indffilter =  where(finfo.filter eq current.filter)
                 filefilt = file[indffilter]
                 
@@ -506,74 +494,68 @@ pro parsergui::addfile, filenames, mode=mode
                 sortedsequencetab=['Dark', 'Wavecal', 'Flat','Object']
 
                 for fc=0,nbobstype-1 do begin
-				   wm = where(strmatch(sortedsequencetab, uniqsortedobstype[fc]+'*',/fold),mct)
-				   ;if mct eq 1 then sequenceorder[fc]= mct[0]
-				   if mct eq 1 then sequenceorder[fc]= wm[0]
+                   wm = where(strmatch(sortedsequencetab, uniqsortedobstype[fc]+'*',/fold),mct)
+                   ;if mct eq 1 then sequenceorder[fc]= mct[0]
+                   if mct eq 1 then sequenceorder[fc]= wm[0]
                 endfor
                 indnotdefined=where(sequenceorder eq -1,cnd)
                 if cnd ge 1  then sequenceorder[indnotdefined]=nbobstype-1
                 indsortseq=sort(sequenceorder)
 
-			;	stop
                 
                 ;;for each filter and each obstype, create a drf
                 for fc=0,nbobstype-1 do begin
                     ;get files corresponding to one filt and one obstype
-                    ;indfobstype =  where(fmod[indffilter] eq uniqsortedobstype[fc])
-					current.obstype = uniqsortedobstype[indsortseq[fc]]
-;                    ;indfobstype =  where((finfo.obstype)[indffilter] eq  uniqsortedobstype[indsortseq[fc]], cindfobstype)
-;					indfobstype = where(finfo.filter eq current.filter and finfo.obstype eq current.obstype, cindfobstype)
-;					if cindfobstype eq 0 then continue
-;                    if cindfobstype gt 0 then fileobstype = file[indfobstype] 
-; 
-;                    ;add flat-field images if wav solution asked
-;                    if ( strmatch(uniqsortedobstype[indsortseq[fc]],'wavecal*',/fold)) && (self.flatreduc eq 1) then begin
-;                        indfobstypeflat =  where(strmatch((finfo.obstype)[indffilter],'flat*',/fold)) 
-;                        indfobstype = [indfobstype ,indfobstypeflat]
-;                        if cindfobstype gt 0 then fileobstype =  filefilt[indfobstype] $;[fileobstype,filefilt[indfobstypeflat]] $
-;                        else fileobstype =filefilt[indfobstypeflat]
-;                    endif
+                    current.obstype = uniqsortedobstype[indsortseq[fc]]
 ;                    
                     ;categorize by PRISM
-                    for fd=0,n_elements(uniqdispersers)-1 do begin
-						current.prism = uniqdispersers[fd]
+                    for fd=0,n_elements(uniqprisms)-1 do begin
+                        current.prism = uniqprisms[fd]
                      
                         for fo=0,n_elements(uniqocculters)-1 do begin
-							current.occulter=uniqocculters[fo]
+                            current.occulter=uniqocculters[fo]
                             
                             for fobs=0,n_elements(uniqobsclass)-1 do begin
-								current.obsclass=uniqobsclass[fobs]
+                                current.obsclass=uniqobsclass[fobs]
                                 
                                 for fitime=0,n_elements(uniqitimes)-1 do begin
 
-									current.itime = uniqitimes[fitime]	; in milliseconds
-									current.exptime = uniqitimes[fitime]/1000. ; in seconds
+                                    current.itime = uniqitimes[fitime]    ; in seconds, now
+                                    current.exptime = uniqitimes[fitime] ; in seconds
                                     
                                     for fobj=0,n_elements(uniqobjects)-1 do begin
-										current.object = uniqobjects[fobj]
-										;these following 2 lines for adding Y-band flat-field in wav.solution measurement
-										currobstype=current.obstype
-                    if (self.flatreduc eq 1)  && (current.filter eq 'Y') &&$
-                     (current.obstype eq 'Wavecal')  then currobstype='[WF][al][va][et]*'
+                                        current.object = uniqobjects[fobj]
+                                        ;these following 2 lines for adding Y-band flat-field in wav.solution measurement
+                                        currobstype=current.obstype
+                                        if (self.flatreduc eq 1)  && (current.filter eq 'Y') &&$
+                                        (current.obstype eq 'Wavecal')  then currobstype='[WF][al][va][et]*'
                           
-										indfobject = where(finfo.filter eq current.filter and $
-													;finfo.obstype eq current.obstype and $
-                          strmatch(finfo.obstype, currobstype,/fold) and $													
-													strmatch(finfo.prism,current.prism+"*",/fold) and $
-													strmatch(finfo.occulter,current.occulter+"*",/fold) and $
-													finfo.obsclass eq current.obsclass and $
-													finfo.itime eq current.itime and $
-													finfo.object eq current.object, cobj)
-													
+                                        indfobject = where(finfo.filter eq current.filter and $
+                                                    ;finfo.obstype eq current.obstype and $
+                                                    strmatch(finfo.obstype, currobstype,/fold) and $                                                    
+                                                    strmatch(finfo.prism,current.prism+"*",/fold) and $
+                                                    strmatch(finfo.occulter,current.occulter+"*",/fold) and $
+                                                    finfo.obsclass eq current.obsclass and $
+                                                    finfo.itime eq current.itime and $
+                                                    finfo.object eq current.object, cobj)
+                                                    
+										if self.debug then begin
+											message,/info, 'Now testing the following parameters: ('+strc(cobj)+' files match) '
+											help, current,/str
+										endif
+
+										if cobj gt 0 then stop
                       
-	
-										if cobj eq 0 then continue
+    
+                                        if cobj eq 0 then continue ; this particular combination of filter, obstype, prism, occulter, class, time, object has no files. 
+
+										; otherwise, try to match it:
                                         file_filt_obst_disp_occ_obs_itime_object = file[indfobject]
                          
                                         ;identify which templates to use
-										print,  current.obstype ; uniqsortedobstype[indsortseq[fc]]
-										self->Log, "found sequence of type="+current.obstype+", prism="+current.prism+", filter="+current.filter
-										;stop
+                                        print,  current.obstype ; uniqsortedobstype[indsortseq[fc]]
+                                        self->Log, "found sequence of type="+current.obstype+", prism="+current.prism+", filter="+current.filter
+                                        ;stop
                                          case strupcase(current.obstype) of
                                         'DARK':begin
                                             detectype=3
@@ -591,15 +573,15 @@ pro parsergui::addfile, filenames, mode=mode
                                         end
                                         'FLAT': begin
                                             if  current.prism eq 'POLAR' then begin 
-												; handle polarization flats
-												; differently: compute **both**
-												; extraction files and flat
-												; fields from these data, in two
-												; passes
-												self->create_drf_from_template, self.tempdrfdir+path_sep()+"templates_drf_cal_pol_1.xml", file_filt_obst_disp_occ_obs_itime_object, current, datetimestr=datetimestr
-												self->create_drf_from_template, self.tempdrfdir+path_sep()+"templates_drf_cal_pol_2.xml", file_filt_obst_disp_occ_obs_itime_object, current, datetimestr=datetimestr, mode=mode
-												;continue		aaargh can't continue inside a case. stupid IDL
-												detectype = -1
+                                                ; handle polarization flats
+                                                ; differently: compute **both**
+                                                ; extraction files and flat
+                                                ; fields from these data, in two
+                                                ; passes
+                                                self->create_drf_from_template, self.tempdrfdir+path_sep()+"templates_drf_cal_pol_1.xml", file_filt_obst_disp_occ_obs_itime_object, current, datetimestr=datetimestr
+                                                self->create_drf_from_template, self.tempdrfdir+path_sep()+"templates_drf_cal_pol_2.xml", file_filt_obst_disp_occ_obs_itime_object, current, datetimestr=datetimestr, mode=mode
+                                                ;continue        aaargh can't continue inside a case. stupid IDL
+                                                detectype = -1
                                                 ;detectype=4
                                                 ;detecseq=1  
                                             endif else begin              
@@ -643,7 +625,7 @@ pro parsergui::addfile, filenames, mode=mode
                                                                     detectype=1
                                                                     detecseq=1 
                                             endif else begin
-											   self->Log, "Not sure what to do about obstype '"+uniqsortedobstype[indsortseq[fc]]+"'. Going to try the 'Fix Keywords' recipe but that's just a guess."
+                                               self->Log, "Not sure what to do about obstype '"+uniqsortedobstype[indsortseq[fc]]+"'. Going to try the 'Fix Keywords' recipe but that's just a guess."
                                               ;add missing keywords
                                               detectype=3
                                               detecseq=5
@@ -651,12 +633,12 @@ pro parsergui::addfile, filenames, mode=mode
                                         end
                                         endcase
 
-										if detectype eq -1 then continue
+                                        if detectype eq -1 then continue
                                         typetab=['astr_spec_','astr_pol_','cal_spec_','cal_pol_','online_']
                                         typename=typetab[detectype-1]           
-										drf_to_load = self.tempdrfdir+'templates_drf_'+typename+strc(detecseq)+'.xml'
+                                        drf_to_load = self.tempdrfdir+'templates_drf_'+typename+strc(detecseq)+'.xml'
                     if keyword_set(mode) && (mode eq 2) then if (total(strmatch(remcharf(file_filt_obst_disp_occ_obs_itime_object,path_sep()),remcharf(file[cindex-1]+'*',path_sep()))) eq 0) then continue
-										self->create_drf_from_template, drf_to_load, file_filt_obst_disp_occ_obs_itime_object, current, datetimestr=datetimestr, mode=mode
+                                        self->create_drf_from_template, drf_to_load, file_filt_obst_disp_occ_obs_itime_object, current, datetimestr=datetimestr, mode=mode
 
                                     endfor ;loop on object
                                 endfor ;loop on itime
@@ -668,7 +650,7 @@ pro parsergui::addfile, filenames, mode=mode
         endif ;cond on n_elements(file) 
     endif ;condition on cindex>0, assure there are data to process
 
-	
+    
 
     void=where(file ne '',cnz)
     self->Log,strtrim(cnz,2)+' files added.'
@@ -712,23 +694,23 @@ end
 ;-----------------------------------------
 pro parsergui::create_drf_from_template, templatename, fitsfiles, current, datetimestr=datetimestr, mode=mode
 
-	self->loaddrf, templatename ,  /nodata
-	self->savedrf, fitsfiles, prefix=self.nbdrfSelec+1, datetimestr=datetimestr
+    self->loaddrf, templatename ,  /nodata
+    self->savedrf, fitsfiles, prefix=self.nbdrfSelec+1, datetimestr=datetimestr
 
 
-	if widget_info(self.direct_id ,/button_set)  then chosenpath=self.queuepath else chosenpath=self.drfpath
-	new_drf_properties = [chosenpath+path_sep()+(*self.drf_summary).filename, (*self.drf_summary).name,   (*self.drf_summary).type, $
-		current.filter, current.obstype, current.prism, current.occulter, current.obsclass, string(current.exptime,format='(F7.1)'), current.object] 
+    if widget_info(self.direct_id ,/button_set)  then chosenpath=self.queuepath else chosenpath=self.drfpath
+    new_drf_properties = [chosenpath+path_sep()+(*self.drf_summary).filename, (*self.drf_summary).name,   (*self.drf_summary).type, $
+        current.filter, current.obstype, current.prism, current.occulter, current.obsclass, string(current.exptime,format='(F7.1)'), current.object] 
 
-	if self.nbdrfSelec eq 0 then (*self.currDRFSelec)= new_drf_properties else $
-		(*self.currDRFSelec)=[[(*self.currDRFSelec)],[new_drf_properties]]
+    if self.nbdrfSelec eq 0 then (*self.currDRFSelec)= new_drf_properties else $
+        (*self.currDRFSelec)=[[(*self.currDRFSelec)],[new_drf_properties]]
 
 
-	self.nbdrfSelec+=1
+    self.nbdrfSelec+=1
 
-	widget_control, self.tableSelected, ysize=((size(*self.currDRFSelec))[2] > 20 )
+    widget_control, self.tableSelected, ysize=((size(*self.currDRFSelec))[2] > 20 )
     widget_control, self.tableSelected, set_value=(*self.currDRFSelec)[0:9,*]
-	widget_control, self.tableSelected, background_color=rebin(*self.table_BACKground_colors,3,2*10,/sample)    
+    widget_control, self.tableSelected, background_color=rebin(*self.table_BACKground_colors,3,2*10,/sample)    
 
    if keyword_set(mode) && (mode eq 2) then self->cleanfilelist, fitsfiles=fitsfiles
 end
@@ -775,11 +757,11 @@ pro parsergui::event,ev
               'WILDCARD': textinfo='Click to add files to input list using a wildcard (*.fits etc)'
               'REMOVE': textinfo='Click to remove currently highlighted file from the input list'
               'REMOVEALL': textinfo='Click to remove all files from the input list'
-			  'DRFGUI': textinfo='Click to load currently selected DRF into the DRFGUI editor'
-			  'Delete': textinfo='Click to delete the currently selected DRF. (Cannot be undone!)'
-			  'DropAll': textinfo='Click to add all DRFs to the execution queue.'
-			  'DropOne': textinfo='Click to add the currently selected DRF to the execution queue.'
-			  'QUIT': textinfo='Click to close this window.'
+              'DRFGUI': textinfo='Click to load currently selected DRF into the DRFGUI editor'
+              'Delete': textinfo='Click to delete the currently selected DRF. (Cannot be undone!)'
+              'DropAll': textinfo='Click to add all DRFs to the execution queue.'
+              'DropOne': textinfo='Click to add the currently selected DRF to the execution queue.'
+              'QUIT': textinfo='Click to close this window.'
               else:
               endcase
               widget_control,self.textinfoid,set_value=textinfo
@@ -798,14 +780,14 @@ pro parsergui::event,ev
             IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_TABLE_CELL_SEL') && (ev.sel_top ne -1) THEN BEGIN  ;LEFT CLICK
                 selection = WIDGET_INFO((self.tableSelected), /TABLE_SELECT) 
                 ;;uptade arguments tab
-				if n_elements((*self.currDRFSelec)) eq 0 then return
+                if n_elements((*self.currDRFSelec)) eq 0 then return
                 self.nbDRFSelec=n_elements((*self.currDRFSelec)[0,*])
                 ;print, self.nbDRFSelec
-				; FIXME check error condition for nothing selected here. 
+                ; FIXME check error condition for nothing selected here. 
                 indselected=selection[1]
-				if indselected lt self.nbDRFSelec then self.selection =(*self.currDRFSelec)[0,indselected]
+                if indselected lt self.nbDRFSelec then self.selection =(*self.currDRFSelec)[0,indselected]
                 ;if indselected lt self.nbDRFSelec then begin 
-					;print, "Starting DRFGUI with "+ (*self.currDRFSelec)[0,indselected]
+                    ;print, "Starting DRFGUI with "+ (*self.currDRFSelec)[0,indselected]
                     ;gpidrfgui, drfname=(*self.currDRFSelec)[0,indselected], self.drfbase
                 ;endif  
                      
@@ -827,14 +809,18 @@ pro parsergui::event,ev
 ;            ENDIF
     end      
     'ADDFILE' : begin
-		;-- Ask the user to select more input files:
-    	defdir = self->get_input_dir()
+        ;-- Ask the user to select more input files:
+		if self.last_used_input_dir eq '' then self.last_used_input_dir = self->get_input_dir()
+        ;defdir = self->get_input_dir()
 
-		result=dialog_pickfile(path=defdir,/multiple,/must_exist,$
-				title='Select Raw Data File(s)', filter=['*.fits','*.fits.gz'])
-		result = strtrim(result,2)
+        result=dialog_pickfile(path=self.last_used_input_dir,/multiple,/must_exist,$
+                title='Select Raw Data File(s)', filter=['*.fits','*.fits.gz'])
+        result = strtrim(result,2)
 
-		if result[0] ne '' then self->AddFile, result
+        if result[0] ne '' then begin
+			self.last_used_input_dir = file_dirname(result[0])
+			self->AddFile, result
+		endif
 
     end
     'flatreduction':begin
@@ -935,11 +921,11 @@ pro parsergui::event,ev
             self->Log,'All items removed.'
         endif
     end
-    'RB'    : begin
-    end
-	'sortmethod': begin
+    ;'RB'    : begin
+    ;end
+    'sortmethod': begin
         sortfieldind=widget_info(self.sortfileid,/DROPLIST_SELECT)
-	end
+    end
 
     'sortdata': begin
         sortfieldind=widget_info(self.sortfileid,/DROPLIST_SELECT)
@@ -948,12 +934,12 @@ pro parsergui::event,ev
         cindex = (*storage.splitptr).findex 
         datefile = (*storage.splitptr).datefile 
 
-		wgood = where(strc(file) ne '',goodct)
-		if goodct eq 0 then begin
-			self->Log, "No file have been selected - nothing to sort!"
-			return
+        wgood = where(strc(file) ne '',goodct)
+        if goodct eq 0 then begin
+            self->Log, "No file have been selected - nothing to sort!"
+            return
 
-		endif
+        endif
 
         case (self.sorttab)[sortfieldind] of 
                 'obs. date/time': begin
@@ -1007,64 +993,64 @@ pro parsergui::event,ev
     end
     
     'outputdir': begin
-		result = DIALOG_PICKFILE(TITLE='Select a OUTPUT Directory', /DIRECTORY,/MUST_EXIST)
-		if result ne '' then begin
-			self.outputdir = result
-			widget_control, self.outputdir_id, set_value=self.outputdir
-			self->log,'Output Directory changed to:'+self.outputdir
-		endif
+        result = DIALOG_PICKFILE(TITLE='Select a OUTPUT Directory', /DIRECTORY,/MUST_EXIST)
+        if result ne '' then begin
+            self.outputdir = result
+            widget_control, self.outputdir_id, set_value=self.outputdir
+            self->log,'Output Directory changed to:'+self.outputdir
+        endif
     end
     'logpath': begin
-		result= DIALOG_PICKFILE(TITLE='Select a LOG Path', /DIRECTORY,/MUST_EXIST)
-		if result ne '' then begin
-			self.logpath =result
-			widget_control, self.logpath_id, set_value=self.logpath
-			self->log,'Log path changed to: '+self.logpath
-		endif
+        result= DIALOG_PICKFILE(TITLE='Select a LOG Path', /DIRECTORY,/MUST_EXIST)
+        if result ne '' then begin
+            self.logpath =result
+            widget_control, self.logpath_id, set_value=self.logpath
+            self->log,'Log path changed to: '+self.logpath
+        endif
     end
-	'Delete': begin
-		selection = WIDGET_INFO((self.tableSelected), /TABLE_SELECT) 
-		indselected=selection[1]
-		if indselected lt 0 or indselected ge self.nbDRFselec then return ; nothing selected
-		self.selection=(*self.currDRFSelec)[0,indselected]
+    'Delete': begin
+        selection = WIDGET_INFO((self.tableSelected), /TABLE_SELECT) 
+        indselected=selection[1]
+        if indselected lt 0 or indselected ge self.nbDRFselec then return ; nothing selected
+        self.selection=(*self.currDRFSelec)[0,indselected]
 
 
-		if confirm(group=self.drfbase,message=['Are you sure you want to delete the file ',self.selection+"?"], label0='Cancel',label1='Delete', title="Confirm Delete") then begin
-			self->Log, 'Deleted file '+self.selection
-			file_delete, self.selection,/allow_nonexist
+        if confirm(group=self.drfbase,message=['Are you sure you want to delete the file ',self.selection+"?"], label0='Cancel',label1='Delete', title="Confirm Delete") then begin
+            self->Log, 'Deleted file '+self.selection
+            file_delete, self.selection,/allow_nonexist
 
-			if self.nbDRFSelec gt 1 then begin
-				indices = indgen(self.nbDRFSelec)
-				new_indices = indices[where(indices ne indselected)]
-				(*self.currDRFSelec) = (*self.currDRFSelec)[*, new_indices]
-				(*self.order)=(*self.currDRFSelec)[3,*]
-				self.nbDRFSelec-=1
-			endif else begin
-				self.nbDRFSelec=0
-				(*self.currDRFSelec)[*] = ''
-				(*self.order)=0
-			endelse
-	
-			;if (indselected ge 0) AND  (indselected lt self.nbDRFSelec) AND (self.nbDRFSelec ge 1) then begin
-				  ;if indselected eq 0 then (*self.currDRFSelec)=(*self.currDRFSelec)[*,indselected+1:self.nbDRFSelec-1]
-				  ;if indselected eq (self.nbDRFSelec-1) then (*self.currDRFSelec)=(*self.currDRFSelec)[*,0:indselected-1]
-				  ;if (indselected ne 0) AND (indselected ne self.nbDRFSelec-1) then (*self.currDRFSelec)=[[(*self.currDRFSelec)[*,0:indselected-1]],[(*self.currDRFSelec)[*,indselected+1:self.nbDRFSelec-1]]]
-				 
-				  
-			widget_control,   self.tableSelected,  set_value=(*self.currDRFSelec)[*,*], SET_TABLE_SELECT =[-1,-1,-1,-1] ; no selection
-			widget_control,   self.tableSelected, SET_TABLE_VIEW=[0,0]
-			  ;endif     
+            if self.nbDRFSelec gt 1 then begin
+                indices = indgen(self.nbDRFSelec)
+                new_indices = indices[where(indices ne indselected)]
+                (*self.currDRFSelec) = (*self.currDRFSelec)[*, new_indices]
+                (*self.order)=(*self.currDRFSelec)[3,*]
+                self.nbDRFSelec-=1
+            endif else begin
+                self.nbDRFSelec=0
+                (*self.currDRFSelec)[*] = ''
+                (*self.order)=0
+            endelse
+    
+            ;if (indselected ge 0) AND  (indselected lt self.nbDRFSelec) AND (self.nbDRFSelec ge 1) then begin
+                  ;if indselected eq 0 then (*self.currDRFSelec)=(*self.currDRFSelec)[*,indselected+1:self.nbDRFSelec-1]
+                  ;if indselected eq (self.nbDRFSelec-1) then (*self.currDRFSelec)=(*self.currDRFSelec)[*,0:indselected-1]
+                  ;if (indselected ne 0) AND (indselected ne self.nbDRFSelec-1) then (*self.currDRFSelec)=[[(*self.currDRFSelec)[*,0:indselected-1]],[(*self.currDRFSelec)[*,indselected+1:self.nbDRFSelec-1]]]
+                 
+                  
+            widget_control,   self.tableSelected,  set_value=(*self.currDRFSelec)[*,*], SET_TABLE_SELECT =[-1,-1,-1,-1] ; no selection
+            widget_control,   self.tableSelected, SET_TABLE_VIEW=[0,0]
+              ;endif     
 
-		endif
-	end
-	'DRFGUI': begin
-		if self.selection eq '' then return
+        endif
+    end
+    'DRFGUI': begin
+        if self.selection eq '' then return
             gpidrfgui, drfname=self.selection, self.drfbase
-	end
+    end
 
 
     'DropAll'  : begin
-				self->Log, "Adding all DRFs to queue in "+self.queuepath
+                self->Log, "Adding all DRFs to queue in "+self.queuepath
                 for ii=0,self.nbdrfSelec-1 do begin
                     if (*self.currDRFSelec)[0,ii] ne '' then begin
                           self->queue, (*self.currDRFSelec)[0,ii]
@@ -1073,14 +1059,14 @@ pro parsergui::event,ev
                 self->Log,'All DRFs have been succesfully added to the queue.'
               end
     'DropOne'  : begin
-		if self.selection eq '' then begin
-			  self->Log, "Nothing is currently selected!"
-			  return ; nothing selected
-		endif else begin
-			self->queue, self.selection
-			self->Log,'Queued '+self.selection
-		endelse
-	end
+        if self.selection eq '' then begin
+              self->Log, "Nothing is currently selected!"
+              return ; nothing selected
+        endif else begin
+            self->queue, self.selection
+            self->Log,'Queued '+self.selection
+        endelse
+    end
     'QUIT'    : begin
         if confirm(group=ev.top,message='Are you sure you want to close the Parser GUI?',$
             label0='Cancel',label1='Close', title='Confirm close') then obj_destroy, self
@@ -1104,20 +1090,20 @@ end
 ;--------------------------------------
 ; Save a DRF to a file on disk.
 ;   
-;   file		string array of FITS files for input to this DRF
+;   file        string array of FITS files for input to this DRF
 ;
-;   prefix=		prefix for filename
-;   datetimestr=	middle part of filename
-;   				(supplied so all parsed DRFs match in timestamp)
+;   prefix=        prefix for filename
+;   datetimestr=    middle part of filename
+;                   (supplied so all parsed DRFs match in timestamp)
 ;
-;   /template	save this as a template
+;   /template    save this as a template
 ;
 pro parsergui::savedrf, file, template=template, prefix=prefix, $
-	datetimestr=datetimestr
+    datetimestr=datetimestr
 
 
 
-	; Determine input FITS files
+    ; Determine input FITS files
     index = where(file ne '',count)
     selectype=self.currtype
 
@@ -1138,16 +1124,16 @@ pro parsergui::savedrf, file, template=template, prefix=prefix, $
 
     file = file[index]
 
-	; Determine filename to use for output
+    ; Determine filename to use for output
     if templatesflag then begin
       (*self.drf_summary).filename = self.loadedDRF ;to check
     endif else begin     
-	  if ~keyword_set(datetimestr) then begin
-      	  caldat,systime(/julian),month,day,year, hour,minute,second
-	      datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
-	      hourstr = string(hour,minute,format='(i2.2,i2.2)')  
-		  datetimestr=datestr+'-'+hourstr
-	  endif
+      if ~keyword_set(datetimestr) then begin
+            caldat,systime(/julian),month,day,year, hour,minute,second
+          datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
+          hourstr = string(hour,minute,format='(i2.2,i2.2)')  
+          datetimestr=datestr+'-'+hourstr
+      endif
       if keyword_set(prefix) then prefixname=string(prefix, format="(I03)") else prefixname=''
       (*self.drf_summary).filename=datetimestr+"_"+prefixname+'_drf.waiting.xml'
     endelse
@@ -1220,11 +1206,11 @@ end
 ;-------------------------------------
 pro parsergui::loaddrf, filename, storage, nodata=nodata, silent=silent
 
-	if keyword_set(filename) then self.loadedDRF=filename
+    if keyword_set(filename) then self.loadedDRF=filename
 
     if self.loadedDRF eq '' then return
 
-	debug=0
+    debug=0
 
 
     widget_control,self.drfbase,get_uvalue=storage  
@@ -1240,10 +1226,10 @@ pro parsergui::loaddrf, filename, storage, nodata=nodata, silent=silent
     ; then parse the DRF and get its contents
     Parser ->ParseFile, self.loadedDRF,  ConfigParser, silent=silent, status=status
 
-	if status eq -1 then begin
-		message, "Could not parse DRF: "+self.loadedDRF,/info
-		return
-	endif
+    if status eq -1 then begin
+        message, "Could not parse DRF: "+self.loadedDRF,/info
+        return
+    endif
 
 
     drf_summary = Parser->get_summary()
@@ -1252,7 +1238,7 @@ pro parsergui::loaddrf, filename, storage, nodata=nodata, silent=silent
     drf_module_names = drf_contents.modules.name
 
     
-	*self.drf_summary = drf_summary
+    *self.drf_summary = drf_summary
 
 
     ; if requested, load the filenames in that DRF
@@ -1281,11 +1267,11 @@ pro parsergui::loaddrf, filename, storage, nodata=nodata, silent=silent
     self.nbmoduleSelec=0
     indseqini=intarr(n_elements(drf_module_names))
     seq=((*self.ConfigDRS).names)[(*self.indmodtot2avail)[*self.curr_mod_indsort]] 
-	; seq is list of currently available modules, in alphabetical order
-	
+    ; seq is list of currently available modules, in alphabetical order
+    
     for ii=0,n_elements(drf_module_names)-1 do begin
          indseqini[ii]=where(strmatch(seq,(drf_module_names)[ii],/fold_case), matchct)
-		 ; indseqini is indices of the DRF's modules into the seq array.
+         ; indseqini is indices of the DRF's modules into the seq array.
          if matchct eq 0 then message,/info,"ERROR: no match for module="+ (drf_module_names)[ii]
     endfor
 
@@ -1309,23 +1295,23 @@ pro parsergui::loaddrf, filename, storage, nodata=nodata, silent=silent
     (*self.order)=float((*self.currModSelec)[3,*])
 
 ; MDP edit: Do not re-sort loaded DRFs - just use exactly what is in the
-; template. 	
-	(*self.currModSelec)[4,*]=strc(indseqini)
-;	    ;;todo:check out there are no duplicate order (sinon la table d argument va se meler) 
-;	    (*self.currModSelec)=(*self.currModSelec)[*,sort(*self.order)]  
-;	    (*self.currModSelec)[4,*]=strc(indseqini[sort(*self.order)])
-;	    (*self.order)=(*self.currModSelec)[3,*]
+; template.     
+    (*self.currModSelec)[4,*]=strc(indseqini)
+;        ;;todo:check out there are no duplicate order (sinon la table d argument va se meler) 
+;        (*self.currModSelec)=(*self.currModSelec)[*,sort(*self.order)]  
+;        (*self.currModSelec)[4,*]=strc(indseqini[sort(*self.order)])
+;        (*self.order)=(*self.currModSelec)[3,*]
 
 
-	if debug then if not array_equal(seq[indseqini], (*self.currModSelec)[0,*]) then message, "Module arrays appear confused"
+    if debug then if not array_equal(seq[indseqini], (*self.currModSelec)[0,*]) then message, "Module arrays appear confused"
     
     for ii=0,n_elements(drf_module_names)-1 do begin
-		if debug then print, "-----"
-		if debug then print, drf_module_names[ii]," / ",  (*self.currModSelec)[0,ii]
-		if drf_module_names[ii] ne (*self.currModSelec)[0,ii] then message,"Module names don't match..."
+        if debug then print, "-----"
+        if debug then print, drf_module_names[ii]," / ",  (*self.currModSelec)[0,ii]
+        if drf_module_names[ii] ne (*self.currModSelec)[0,ii] then message,"Module names don't match..."
         self->extractparam, float((*self.currModSelec)[4,ii])  ; loads indarg
 
-		if debug then print, "   has argument(s): "+ strjoin(((*self.ConfigDRS).argname)[[*self.indarg]], ", " )
+        if debug then print, "   has argument(s): "+ strjoin(((*self.ConfigDRS).argname)[[*self.indarg]], ", " )
 
         *self.currModSelecParamTab=strarr(n_elements(*self.indarg),3)
         if (*self.indarg)[0] ne -1 then begin
@@ -1336,17 +1322,17 @@ pro parsergui::loaddrf, filename, storage, nodata=nodata, silent=silent
         tag=tag_names((drf_contents.modules)[ii])
         for jj=0,n_elements(*self.indarg)-1 do begin
             indtag=where(strmatch( tag ,(*self.currModSelecParamTab)[jj,0],/fold), matchct)
-				if matchct eq 0 then begin
-					message,"ERROR: no match in DRF for module parameter='"+(*self.currModSelecParamTab)[jj,0]+"'",/info
-					message,"of module='"+(drf_module_names)[ii]+"'",/info
-					message,"Check whether the parameter list in the DRF file '"+self.loadeddrf+"' has the correct parameters for that module! ",/info
-				endif
+                if matchct eq 0 then begin
+                    message,"ERROR: no match in DRF for module parameter='"+(*self.currModSelecParamTab)[jj,0]+"'",/info
+                    message,"of module='"+(drf_module_names)[ii]+"'",/info
+                    message,"Check whether the parameter list in the DRF file '"+self.loadeddrf+"' has the correct parameters for that module! ",/info
+                endif
             argtab=((*self.ConfigDRS).argdefault)
             argtab[(*self.indarg)[jj]]=((drf_contents.modules)[ii]).(indtag[0]) ;use parentheses as Facilities exist to process structures in a general way using tag numbers rather than tag names
             ((*self.ConfigDRS).argdefault)=argtab
         ;    (*self.currModSelecParamTab)[jj,1]=
         endfor
-		if debug then print, "   has value(s): "+ strjoin(((*self.ConfigDRS).argdefault)[[*self.indarg]], ", " )
+        if debug then print, "   has value(s): "+ strjoin(((*self.ConfigDRS).argdefault)[[*self.indarg]], ", " )
     endfor
 
     ;display last paramtab
@@ -1365,15 +1351,17 @@ end
 ;------------------------------------------------
 pro parsergui::cleanup
 
-	ptr_free, self.currDRFselec
+    ptr_free, self.currDRFselec
 
-	
-	self->drfgui::cleanup ; will destroy all widgets
+    
+    self->drfgui::cleanup ; will destroy all widgets
 end
 
 
 ;------------------------------------------------
 function parsergui::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drfname,  ;,groupleader,group,proj
+
+	self.DEBUG = 1 ; print extra stuff?
 
     self->startup
 
@@ -1411,7 +1399,7 @@ function parsergui::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
     parserbase=self.drfbase
     ;create Menu
     file_menu = WIDGET_BUTTON(bar, VALUE='File', /MENU) 
-	file_bttn2=WIDGET_BUTTON(file_menu, VALUE='Quit Parser', UVALUE='QUIT')
+    file_bttn2=WIDGET_BUTTON(file_menu, VALUE='Quit Parser', UVALUE='QUIT')
 ;    ;file_bttn1=WIDGET_BUTTON(file_menu, VALUE='Save Configuration..',   UVALUE='FILE1') 
 ;    file_bttn2=WIDGET_BUTTON(file_menu, VALUE='Open DRF...', UVALUE='LOADDRF') 
 ;    file_bttn2=WIDGET_BUTTON(file_menu, VALUE='Open DRF with Data...', UVALUE='LOADDRFWITHDATA') 
@@ -1422,7 +1410,7 @@ function parsergui::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
 
     ;create file selector
     ;-----------------------------------------
-	DEBUG_SHOWFRAMES=0
+    DEBUG_SHOWFRAMES=0
     drfbasefilebutt=widget_base(parserbase,/BASE_ALIGN_LEFT,/row, frame=DEBUG_SHOWFRAMES, /base_align_center)
     label = widget_label(drfbasefilebutt, value="Input FITS Files:")
     button=widget_button(drfbasefilebutt,value="Add File(s)",uvalue="ADDFILE", $
@@ -1483,10 +1471,10 @@ function parsergui::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
 
         ; what colors to use for cell backgrounds? Alternate rows between
         ; white and off-white pale blue
-		self.table_BACKground_colors = ptr_new([[255,255,255],[240,240,255]])
+        self.table_BACKground_colors = ptr_new([[255,255,255],[240,240,255]])
 
 
-		xsize=10
+        xsize=10
         self.tableSelected = WIDGET_TABLE(parserbase, $; VALUE=data, $ ;/COLUMN_MAJOR, $ 
                 COLUMN_LABELS=['DRF Name','Recipe','Type','band','OBSTYPE','PRISM','OCCULTER','OBSCLASS','EXPTIME','OBJECT'],/resizeable_columns, $
                 xsize=xsize,ysize=20,uvalue='tableselec',value=(*self.currDRFSelec), /TRACKING_EVENTS,$
@@ -1494,10 +1482,10 @@ function parsergui::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
                     background_color=rebin(*self.table_BACKground_colors,3,2*10,/sample)    ) ;,/COLUMN_MAJOR                
 
         ; Create the status log window 
-		tmp = widget_label(parserbase, value="   " )
-		tmp = widget_label(parserbase, value="History: ")
+        tmp = widget_label(parserbase, value="   " )
+        tmp = widget_label(parserbase, value="History: ")
         info=widget_text(parserbase,/scroll, xsize=160,scr_xsize=800,ysize=nlines_status, /ALIGN_LEFT, uval="text_status",/tracking_events);xoffset=5,yoffset=5)
-		self.widget_log = info
+        self.widget_log = info
 
     ;;create execute and quit button
     ;-----------------------------------------
@@ -1592,7 +1580,9 @@ PRO parsergui__define
               currtype:0,$
               currseq:0,$
               nbdrfSelec:0,$
-			  selection: '', $
+              selection: '', $
+			  DEBUG:0, $
+			  last_used_input_dir: '', $ ; save the most recently used directory. Start there again on subsequent file additions
               currDRFSelec: ptr_new(), $
            INHERITS drfgui}
 

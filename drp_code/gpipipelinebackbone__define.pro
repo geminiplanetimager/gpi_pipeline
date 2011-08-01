@@ -704,6 +704,8 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
 
     if ~ptr_valid((*self.data).currframe) then (*self.data).currframe = ptr_new(/allocate_heap)
 
+	; Read in the file, and check whether it is a single image or has
+	; extensions.
     fits_info, filename, n_ext = numext, /silent
     if (numext EQ 0) then begin
 		; No extension present: Read primary image into the data array
@@ -728,11 +730,32 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
         return,NOT_OK 
     endif
 
-    ;--- update the headers - append the DRF onto the actual FITS header
+
+	;--- update the headers: fix obsolete keywords by changing them
+	;  to official standardized values. 
+	
+	obsolete_keywords = ['PRISM',   'FILTER3', 'FILTER2', 'FILTER4', 'FILTER']
+	approved_keywords = ['DISPERSR','DISPERSR', 'CALFILT', 'ADC',    'FILTER1' ]
+
+	for i=0L, n_elements(approved_keywords)-1 do begin
+		val_approved = self->get_keyword(approved_keyword[i], count=count, indexFrame=indexFrame)
+		if count eq 0 then begin ; only try to update if we are missing the approved keyword.
+			; in that case, see if we have an obsolete keyword and then try to
+			; use it.
+			val_obsolete = self->get_keyword(obsolete_keyword[i], count=count, comment=comment, indexFrame=indexFrame)
+			if count gt 0 then self->set_keyword, approved_keyword[i], val_obsolete, comment=comment, indexFrame=indexFrame
+			message,/info, 'Converted obsolete keyword '+obsolete_keyword[i]+' into '+approved_keyword[i])
+		endif
+
+	endfor 
+
+    ;--- update the headers: append the DRF onto the actual FITS header
     ;  At this point the *(*self.data).HeadersPHU[IndexFrame] variable contains
     ;  ONLY the DRF appended in FITS header COMMENT form. 
     ;  Append this onto the REAL fits header we just read in from disk.
     ;
+	;
+	;
     ;if (numext GT 0) then begin
         ;header=[headPHU,header]
         ;*(*self.data).HeadersPHU[IndexFrame]=[headPHU]
@@ -1244,40 +1267,43 @@ PRO gpiPipelineBackbone::load_keyword_table
 end
 
 
-FUNCTION gpiPipelineBackbone::get_keyword, keyword, count=count
+FUNCTION gpiPipelineBackbone::get_keyword, keyword, count=count, comment=comment, indexFrame=indexFrame
 	; get a keyword, either from primary or extension HDU
 	common PIP
 
 	if ~ptr_valid(self.keyword_info) then self->load_keyword_table
+	if ~(keyword_set(indexFrame)) then indexFrame=numfile ; use value from common block if not explicitly provided.
+
 
 	wmatch = where( strmatch( (*self.keyword_info).keyword, keyword, /fold, matchct)
 	if matchct gt 0 then begin
 		; if we have a match try that extension
 		ext_num = ( (*self.keyword_info).extension[wmatch[0]] eq 'extension' ) ? 1 : 0  ; try Pri if either PHU or Both
 
-		if ext_num eq 0 then return, sxpar(  (*self.dataset).headersPHU[numfile], keyword, count==count)  $
-		else  				 return, sxpar(  (*self.dataset).headersExt[numfile], keyword, count==count)  
+		if ext_num eq 0 then return, sxpar(  (*self.dataset).headersPHU[numfile], keyword, count==count, comment=comment)  $
+		else  				 return, sxpar(  (*self.dataset).headersExt[numfile], keyword, count==count, comment=comment)  
 	endif else begin
 		; if we have no match, then try PHU first and if that fails try the
 		; extension
 		message,/info, 'Keyword '+keyword+' not found in keywords config file; trying Primary header...'
 		value = sxpar(  (*self.dataset).headersPHU[numfile], keyword, count==count) 
-		if count eq 0 then value =  sxpar(  (*self.dataset).headersExt[numfile], keyword, count==count)
+		if count eq 0 then value =  sxpar(  (*self.dataset).headersExt[numfile], keyword, count==count, comment=comment)
 		return, value
 	endelse
 end
 
 
 
-FUNCTION gpiPipelineBackbone::set_keyword, keyword, value, comment=comment
+FUNCTION gpiPipelineBackbone::set_keyword, keyword, value, comment, indexFrame=indexFrame, _Extra=_extra
 	; set a keyword in either the primary or extension header depending on what
 	; the keywords table says. 
 	common PIP
 
 	if ~ptr_valid(self.keyword_info) then self->load_keyword_table
+	if ~(keyword_set(indexFrame)) then indexFrame=numfile ; use value from common block if not explicitly provided.
 
 
-	if ~(keyword_set(comment)) then comment=''
+	;if ~(keyword_set(comment)) then comment='' ; leave comment undefined and fxaddpar will preserve any previous comments.
 	wmatch = where( strmatch( (*self.keyword_info).keyword, keyword, /fold, matchct)
 	if matchct gt 0 then begin
 		; if we have a match write to that extension
