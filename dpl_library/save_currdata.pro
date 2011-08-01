@@ -31,6 +31,8 @@
 ; 	2011-08-01 MP: Revised for multi-extension FITS. save_currdata will now 
 ; 				always write its output as a primary header plus image
 ; 				extension. This is different from previous versions of the DRP!
+; 				Switched to mwrfits instead of writefits because it better
+; 				handles the EXTENT/XTENSION keywords needed for multi-ext FITS.
 ;
 ;-
 
@@ -91,10 +93,13 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 		;endif else begin
 		fxaddpar, savePHU, 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
 		fxaddpar, savePHU, 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
-		fxaddpar, savePHU, 'EXTEND', 'T', 'FITS file contains extensions'
-		fxaddpar, savePHU, 'NEXTEND', 1, 'FITS file contains extensions'
-		writefits, c_File1, 0, savePHU ;*(dataset.headersPHU[numfile])
-		writefits, c_File1, savedata, saveheader, /append
+		;fxaddpar, savePHU, 'EXTEND', 'T', 'FITS file contains extensions'
+		;fxaddpar, savePHU, 'NEXTEND', 1, 'FITS file contains extensions'
+		;writefits, c_File1, 0, savePHU ;*(dataset.headersPHU[numfile])
+		;writefits, c_File1, savedata, saveheader, /append
+		mwrfits, 0, c_File1, savePHU, /create
+		mwrfits, savedata, c_File1, saveheader
+ 
 		;endelse
 		curr_hdr = savePHU
 		curr_ext_hdr = saveheader
@@ -107,10 +112,12 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
     ;endif else begin  
       	fxaddpar, *DataSet.HeadersPHU[i], 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
       	fxaddpar, *DataSet.HeadersPHU[i], 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
-		fxaddpar, *DataSet.HeadersPHU[i], 'EXTEND', 'T', 'FITS file contains extensions'
-		fxaddpar, *DataSet.HeadersPHU[i], 'NEXTEND', 1, 'FITS file contains extensions'
-     	writefits, c_File1, 0, *DataSet.HeadersPHU[i]
-      	writefits, c_File1, *DataSet.currFrame, *DataSet.HeadersExt[i], /append
+		;fxaddpar, *DataSet.HeadersPHU[i], 'EXTEND', 'T', 'FITS file contains extensions'
+		;fxaddpar, *DataSet.HeadersPHU[i], 'NEXTEND', 1, 'FITS file contains extensions'
+		mwrfits, 0, c_File1, *DataSet.HeadersPHU[i], /create
+		mwrfits, *DataSet.currFrame, c_File1, *DataSet.HeadersExt[i]
+     	;writefits, c_File1, 0, *DataSet.HeadersPHU[i]
+      	;writefits, c_File1, *DataSet.currFrame, *DataSet.HeadersExt[i], /append
       	curr_hdr = *DataSet.HeadersPHU[i]
       	curr_ext_hdr = *DataSet.HeadersExt[i]
     	;endelse  
