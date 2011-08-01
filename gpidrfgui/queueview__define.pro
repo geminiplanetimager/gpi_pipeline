@@ -213,7 +213,7 @@ PRO queueview::refresh
 				; extension has changed - update it!
 				displayed[wm2] = 1
 				(*self.currDRFSelec)[0,i] = disk_files[wm2[0]] 
-				highest_updated = wm2
+				highest_updated = wm2[0] ; force scalar.
 			endif else begin	
 				; file vanished entirely
 				(*self.currDRFSelec)[0,i]  = "" 

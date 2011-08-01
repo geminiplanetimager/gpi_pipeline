@@ -558,42 +558,20 @@ PRO gpidrfparser::startelement, URI, Local, qName, AttNames, AttValues
 			END
 			IF DataFileName NE '' THEN BEGIN
 			; TODO: Read in files here? For now just parse the XML.
+				full_input_filename = gpi_expand_path((*self.data).inputdir + path_sep() + DataFileName)
 				if obj_valid(self.backbone) then begin
 					;self->drpFITSToDataSet, (*Self.Data)[N], (*Self.Data)[N].ValidFrameCount, DataFileName
-					(*self.data).Frames[(*self.data).ValidFrameCount] = ptr_new( (*self.data).InputDir + path_sep() + dataFileName )
+					(*self.data).Frames[(*self.data).ValidFrameCount] = ptr_new( full_input_filename )
 					if ~(keyword_set(self.silent)) then PRINT, FORMAT='(".",$)'
 				endif
 
 
 				IF (self->do_continueAfterDRFParsing() EQ 1) or ~obj_valid(self.backbone)  THEN BEGIN
 					; FIXME check the file exists and is a valid GPI fits file 
-					full_input_filename = (*self.data).inputdir + path_sep() + DataFileName
-					;if file_test(full_input_filename) then begin
-;    					fits_info, full_input_filename, n_ext = numext, /silent
-;                        ;if obj_valid(self.backbone) then begin
-;    ;                        if (numext EQ 0) then  head = headfits(DataFileName) 
-;    ;                        if (numext ge 1) then begin                            
-;    ;                            headPHU = headfits(filename)      
-;    ;                            head2 = headfits(filename, exten=1)
-;    ;                            head=[headPHU,head2]      
-;    ;                        endif
-;                          validtelescop=self->validkeyword( full_input_filename, 1,'TELESCOP','Gemini')
-;                          validinstrum= self->validkeyword( full_input_filename, 1,'INSTRUME','GPI')
-;                          validinstrsub=self->validkeyword( full_input_filename, 1,'INSTRSUB','IFS') 
-;                        ;endif   
-;                 if (validtelescop* validinstrum*validinstrsub eq 1) then begin   
-;      					  (*Self.Data)[N].Filenames[(*Self.Data)[N].ValidFrameCount] = DataFileName
-;      					  (*Self.Data)[N].ValidFrameCount = (*Self.Data)[N].ValidFrameCount + 1
-;      					  self->Log, DataFileName +' is a valid GEMINI-GPI-IFS image.', /GENERAL, DEPTH=2
-;    					  endif else begin
-;    					    self->Log, 'ALERT:'+ DataFileName +' is NOT a GEMINI-GPI-IFS image. File ignored!', /GENERAL, DEPTH=2
-;    					  endelse
-;    				endif	else begin
-;    				self->Log, 'ERROR: '+full_input_filename+'  do not exist.', /GENERAL, DEPTH=2
-;    				endelse 
-          		if not file_test(full_input_filename,/read) then begin
-		              self->Log, 'ERROR: The file "'+ full_input_filename+'" does not appear to exist on disk. Skipping this file and trying to continue anyway...', /GENERAL, DEPTH=2
-		        endif else begin
+
+					if not file_test(full_input_filename,/read) then begin
+						  self->Log, 'ERROR: The file "'+ full_input_filename+'" does not appear to exist on disk. Skipping this file and trying to continue anyway...', /GENERAL, DEPTH=2
+					endif else begin
 
 
 	        	    fits_info, full_input_filename, n_ext = numext, /silent

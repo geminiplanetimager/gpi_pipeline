@@ -1326,10 +1326,11 @@ pro parsergui::loaddrf, filename, storage, nodata=nodata, silent=silent
                     message,"ERROR: no match in DRF for module parameter='"+(*self.currModSelecParamTab)[jj,0]+"'",/info
                     message,"of module='"+(drf_module_names)[ii]+"'",/info
                     message,"Check whether the parameter list in the DRF file '"+self.loadeddrf+"' has the correct parameters for that module! ",/info
-                endif
-            argtab=((*self.ConfigDRS).argdefault)
-            argtab[(*self.indarg)[jj]]=((drf_contents.modules)[ii]).(indtag[0]) ;use parentheses as Facilities exist to process structures in a general way using tag numbers rather than tag names
-            ((*self.ConfigDRS).argdefault)=argtab
+                endif else begin
+	        	    argtab=((*self.ConfigDRS).argdefault)
+	    	        argtab[(*self.indarg)[jj]]=((drf_contents.modules)[ii]).(indtag[0]) ;use parentheses as Facilities exist to process structures in a general way using tag numbers rather than tag names
+		            ((*self.ConfigDRS).argdefault)=argtab
+				endelse
         ;    (*self.currModSelecParamTab)[jj,1]=
         endfor
         if debug then print, "   has value(s): "+ strjoin(((*self.ConfigDRS).argdefault)[[*self.indarg]], ", " )

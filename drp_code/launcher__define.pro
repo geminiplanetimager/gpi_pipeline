@@ -283,6 +283,10 @@ PRO launcher::check_queue, ev
                 arg_strings = string(arg_bytes)
                 nargs = arg_sz2/2
                 for iarg=0,arg_sz2/2-1 do begin
+					; apply environment variable substitution to any filenames:
+					if strupcase(arg_strings[2*iarg]) eq 'FILENAME' then arg_strings[2*iarg+1] = gpi_expand_path(arg_strings[2*iarg+1])
+
+
                     if keyword_set(_extra) then _extra = create_struct(arg_strings[2*iarg],  arg_strings[2*iarg+1], _extra) $
                         else _extra = create_struct(arg_strings[2*iarg],  arg_strings[2*iarg+1])
                 endfor

@@ -436,24 +436,31 @@ PRO gpiPipelineBackbone::Run, QueueDir
                 PipelineConfig.continueAfterDRFParsing = 0
                 CATCH, /CANCEL
             ENDELSE
-            IF PipelineConfig.continueAfterDRFParsing EQ 1 THEN BEGIN
-                Self -> OpenLog, CurrentDRF.Name + '.log', /DRF
-                if ~strmatch(self.reductiontype,'On-Line Reduction') then $
-                    Result = Self->Reduce() else $
-                    Result = Self->ReduceOnLine()
 
-                IF Result EQ OK THEN BEGIN
-                    PRINT, "Success"
-                    self->SetDRFStatus, CurrentDRF, 'done'
-                              self.progressbar->set_status, "Last DRF done OK! Watching for new DRFs but idle."
-                              self.progressbar->Set_action, '--'
-                ENDIF ELSE BEGIN
-                    PRINT, "Failure"
-                    self->SetDRFStatus, CurrentDRF, 'failed'
-                    self.progressbar->set_status, "Last DRF **failed**!    Watching for new DRFs but idle."
-                    self.progressbar->Set_action, '--'
-             
-                ENDELSE
+            IF PipelineConfig.continueAfterDRFParsing EQ 1 THEN BEGIN
+				if (*(self.data)).validframecount eq 0 then begin
+					self->Log, 'ERROR: That DRF was parsed OK, but no files could be loaded.'
+					result=NOT_OK
+				endif else begin
+
+					Self -> OpenLog, CurrentDRF.Name + '.log', /DRF
+					if ~strmatch(self.reductiontype,'On-Line Reduction') then $
+						Result = Self->Reduce() else $
+						Result = Self->ReduceOnLine()
+				endelse
+
+				IF Result EQ OK THEN BEGIN
+					PRINT, "Success"
+					self->SetDRFStatus, CurrentDRF, 'done'
+							  self.progressbar->set_status, "Last DRF done OK! Watching for new DRFs but idle."
+							  self.progressbar->Set_action, '--'
+				ENDIF ELSE BEGIN
+					PRINT, "Failure"
+					self->SetDRFStatus, CurrentDRF, 'failed'
+					self.progressbar->set_status, "Last DRF **failed**!    Watching for new DRFs but idle."
+					self.progressbar->Set_action, '--'
+			 
+				ENDELSE
                 ; Free any remaining memory here
            
 				self->free_dataset_pointers
@@ -563,7 +570,7 @@ FUNCTION gpiPipelineBackbone::Reduce
 
         load_status = self->load_and_preprocess_FITS_file(indexFrame)
         if load_status eq NOT_OK then begin
-            self->Log, "ERROR: Unable to load file "+indexFrame,/GENERAL,/DRF
+            self->Log, "ERROR: Unable to load file "+strc(indexFrame),/GENERAL,/DRF
             return, NOT_OK
         endif
         ;--- Read in the file 

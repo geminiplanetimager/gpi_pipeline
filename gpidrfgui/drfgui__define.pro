@@ -1389,13 +1389,13 @@ pro drfgui::savedrf, file, storage,template=template, nopickfile=nopickfile
         ;relative pathes with environment variables        
             isrelativebuttonset=widget_info(self.relativepath_id,/button_set)
             if isrelativebuttonset then begin
-              logpathtmp='GPI_PIPELINE_LOG_DIR'
-              inputdirtmp='GPI_RAW_DATA_DIR'
-              outputdirtmp='GPI_DRP_OUTPUT_DIR'
+              logpathtmp=gpi_path_relative_to_vars(self.logpath) ;'GPI_PIPELINE_LOG_DIR'
+              inputdirtmp=gpi_path_relative_to_vars(self.inputdir) ;'GPI_RAW_DATA_DIR'
+              outputdirtmp=gpi_path_relative_to_vars(self.outputdir) ;'GPI_DRP_OUTPUT_DIR'
             endif else begin
-              logpathtmp=self.logpath
-              inputdirtmp=self.inputdir
-              outputdirtmp=self.outputdir
+              logpathtmp=gpi_expand_path(self.logpath)
+              inputdirtmp=gpi_expand_path(self.inputdir)
+              outputdirtmp=gpi_expand_path(self.outputdir)
             endelse  
            
         if selectype eq 4 then begin
