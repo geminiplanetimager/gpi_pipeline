@@ -48,7 +48,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   ;imtab=dblarr(naxis(0),naxis(1),numfile)
    ;if numext eq 0 then hdr0= hdr else hdr0= hdrext
 	;imtab=dblarr(naxis(0),naxis(1),numfile)
-	sz = [0, sxpar(hdrext0,'NAXIS1'), sxpar(hdrext0,'NAXIS2')]
+	sz = [0, backbone->get_keyword('NAXIS1',ext_num=1), backbone->get_keyword('NAXIS2',ext_num=1)]
 	imtab = dblarr(sz[1], sz[2], nfiles)
 
 
@@ -58,7 +58,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	; now combine them.
 	if nfiles gt 1 then begin
-		fxaddpar, *(dataset.headersPHU[numfile]), 'HISTORY', functionname+":   Combining n="+strc(nfiles)+' files using method='+method
+		backbone->set_keyword, 'HISTORY', functionname+":   Combining n="+strc(nfiles)+' files using method='+method
 		;sxaddhist, functionname+":   Combining n="+strc(nfiles)+' files using method='+method, *(dataset.headers[numfile])
 		backbone->Log, "	Combining n="+strc(nfiles)+' files using method='+method
 		case STRUPCASE(method) of
@@ -78,7 +78,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		endcase
 	endif else begin
 
-		fxaddpar, *(dataset.headersPHU[numfile]), 'HISTORY', functionname+":   Only 1 file supplied, so nothing to combine."
+		backbone->set_keyword, 'HISTORY', functionname+":   Only 1 file supplied, so nothing to combine."
 		;sxaddhist, functionname+":   Only 1 file supplied, so nothing to combine.", *(dataset.headers[numfile])
 		message,/info, "Only one frame supplied - can't really combine it with anything..."
 
@@ -88,7 +88,6 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	 ;TODO header update
 	 pos=strpos(filename,'-',/REVERSE_SEARCH)
-	; writefits,strmid(filename,0,pos+1)+suffix+'.fits',im,h
 
 	; store the output into the backbone datastruct
 	*(dataset.currframe)=combined_im
@@ -97,8 +96,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	dataset.validframecount=1
 ;	sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Dark File", /savecomment
 ;	sxaddpar, *(dataset.headers[numfile]), "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
-  	sxaddpar,  *(dataset.headersPHU[numfile]), "FILETYPE", "Dark File", /savecomment
-  	sxaddpar,  *(dataset.headersPHU[numfile]), "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+  	backbone->set_keyword, "FILETYPE", "Dark File", /savecomment
+  	backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
   ;;if numext eq 0 then $
   ;*(dataset.headers[numfile])=hdr else $
   ;*(dataset.headersPHU[numfile])=hdr

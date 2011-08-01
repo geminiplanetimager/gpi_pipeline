@@ -41,8 +41,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		; Store all images into memory for simultaneous access in the future
 		; TODO: error checking here to make sure that we have enough memory!
 
-		header=*(dataset.headers[numfile])		
-    if numext eq 1 then headerPHU= *(dataset.headersPHU)[numfile]
+		;header=*(dataset.headers[numfile])		
+    	;if numext eq 1 then headerPHU= *(dataset.headersPHU)[numfile]
     
 		*(dataset.frames[numfile]) = *dataset.currframe
 

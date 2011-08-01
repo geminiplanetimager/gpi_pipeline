@@ -734,6 +734,7 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
 		*((*self.data).currframe)        = (READFITS(filename , Header, /SILENT))
 		pri_header=header
 		*(*self.data).HeadersExt[IndexFrame] = header
+		fxaddpar,  *(*self.data).HeadersExt[IndexFrame],'HISTORY', 'Input image has no extensions, so primary header copied to 1st extension'
 	endif
     if (numext ge 1) then begin
 		; at least one extension is present:  Read the 1st extention image into
@@ -750,6 +751,9 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
         return,NOT_OK 
     endif
 
+    fxaddpar, pri_header, 'EXTEND', 'T', 'FITS file contains extensions' ; these are required in any FITS with extensions
+    fxaddpar, pri_header, 'NEXTEND', 1, 'FITS file contains extensions'  ; so make sure they are present.
+
 
 	;--- update the headers: fix obsolete keywords by changing them
 	;  to official standardized values. 
@@ -758,11 +762,11 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
 	approved_keywords = ['DISPERSR','DISPERSR', 'CALFILT', 'ADC',    'FILTER1' ]
 
 	for i=0L, n_elements(approved_keywords)-1 do begin
-		val_approved = self->get_keyword(approved_keywords[i], count=count, indexFrame=indexFrame)
+		val_approved = self->get_keyword(approved_keywords[i], count=count, indexFrame=indexFrame,/silent)
 		if count eq 0 then begin ; only try to update if we are missing the approved keyword.
 			; in that case, see if we have an obsolete keyword and then try to
 			; use it.
-			val_obsolete = self->get_keyword(obsolete_keywords[i], count=count, comment=comment, indexFrame=indexFrame)
+			val_obsolete = self->get_keyword(obsolete_keywords[i], count=count, comment=comment, indexFrame=indexFrame,/silent)
 			if count gt 0 then self->set_keyword, approved_keywords[i], val_obsolete, comment=comment, indexFrame=indexFrame
 			message,/info, 'Converted obsolete keyword '+obsolete_keywords[i]+' into '+approved_keywords[i]
 		endif
@@ -785,7 +789,7 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
     FXADDPAR, *(*self.data).HeadersPHU[IndexFrame], "DATAPATH", file_dirname(filename), "Original path of DRP input", before="END"
 
     SXDELPAR, pri_header, 'END'
-    *(*self.data).HeadersExt[IndexFrame]=[pri_header,*(*self.data).HeadersPHU[IndexFrame], 'END            ']
+    *(*self.data).HeadersPHU[IndexFrame]=[pri_header,*(*self.data).HeadersPHU[IndexFrame], 'END            ']
     ; ***WARNING***   don't use SXADDPAR for 'END', it gets the syntax wrong
     ; and breaks pyfits. i.e. do not try this following line. The above one
     ; is required. 
@@ -814,11 +818,12 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
     ;---- Rotate the image, if necessary -------
     ;!!!!TEMPORARY will need modifs: use it for real ifs data, not DST!!!
       instrum=SXPAR( *(*self.data).HeadersPHU[IndexFrame], 'INSTRUME',count=c1)
-      if ~strmatch(instrum,'*DST*') && (  sxpar( *(*self.data).HeadersPHU[IndexFrame], 'DRPVER' ) eq '' ) then begin
-          if self.verbose then self->Log, "Image detected as IFS raw file, assumed vertical spectrum orientation. Must be reoriented to horizontal spectrum direction."
+	if ~strmatch(instrum,'*DST*') && (  sxpar( *(*self.data).HeadersPHU[IndexFrame], 'DRPVER' ) eq '' ) then begin
+    	if self.verbose then self->Log, "Image detected as IFS raw file, assumed vertical spectrum orientation. Must be reoriented to horizontal spectrum direction."
         *((*self.data).currframe)=rotate(transpose(*((*self.data).currframe)),2)
-        message,/info, 'Image rotated to match DST convention!'
-      endif
+		fxaddpar, *(*self.data).HeadersPHU[IndexFrame],  'HISTORY', 'Raw image rotated by 90 degrees'
+    	message,/info, 'Image rotated to match DST convention!'
+    endif
 
     return, OK
 end
@@ -835,7 +840,9 @@ pro  gpiPipelineBackbone::SetupProgressBar
         self.progressbar = OBJ_NEW('gpiprogressbar')
         self.progressbar->set_GenLogF, self.generallogfilename
 
-  endif
+  endif else begin
+	  message,/info, 'ERROR: progress bar window already initialized and running.'
+  endelse
 end
 
 
@@ -1287,8 +1294,19 @@ PRO gpiPipelineBackbone::load_keyword_table
 end
 
 
-FUNCTION gpiPipelineBackbone::get_keyword, keyword, count=count, comment=comment, indexFrame=indexFrame
+FUNCTION gpiPipelineBackbone::get_keyword, keyword, count=count, comment=comment, indexFrame=indexFrame, ext_num=ext_num, silent=silent
 	; get a keyword, either from primary or extension HDU
+	;	
+	; KEYWORDS:
+	; 	indexFrame 	which frame's header to read from? Default is the current
+	; 				frame as specified in the 'numframe' variable in PIP common block, but
+	;	 			you can select another header with this keyword. 
+	;	ext_num		This allows you to override the keyword config file if you
+	;				really know what you're doing. Set ext_num=0 to read from the PHU or
+	;				ext_num=1 to read from the image extension.
+	;	silent		suppress printed output to the screen.
+	;
+	
 	common PIP
 
 	if ~ptr_valid(self.keyword_info) then self->load_keyword_table
@@ -1297,26 +1315,54 @@ FUNCTION gpiPipelineBackbone::get_keyword, keyword, count=count, comment=comment
 		; indexframe=0. 
 
 
-	wmatch = where( strmatch( (*self.keyword_info).keyword, keyword, /fold), matchct)
-	if matchct gt 0 then begin
-		; if we have a match try that extension
-		ext_num = ( (*self.keyword_info).extension[wmatch[0]] eq 'extension' ) ? 1 : 0  ; try Pri if either PHU or Both
-
-		if ext_num eq 0 then return, sxpar(  *(*self.data).headersPHU[indexFrame], keyword, count=count, comment=comment)  $
-		else  				 return, sxpar(  *(*self.data).headersExt[indexFrame], keyword, count=count, comment=comment)  
+	; which header to try first?
+	if n_elements(ext_num) eq 0 then begin 
+		; we should use the config file to determine where the keyword goes. 
+		wmatch = where( strmatch( (*self.keyword_info).keyword, keyword, /fold), matchct)
+		if matchct gt 0 then begin
+			; if we have a match try that extension
+			ext_num = ( (*self.keyword_info).extension[wmatch[0]] eq 'extension' ) ? 1 : 0  ; try Pri if either PHU or Both
+		endif else begin
+			; if we have no match, then try PHU first and if that fails try the
+			; extension
+			if ~(keyword_set(silent)) then message,/info, 'Keyword '+keyword+' not found in keywords config file; trying Primary header...'
+			ext_num=0
+			;value = sxpar(  *(*self.data).headersPHU[indexFrame], keyword, count=count) 
+			;if count eq 0 then value =  sxpar(  *(*self.data).headersExt[indexFrame], keyword, count=count, comment=comment)
+			;return, value
+		endelse
 	endif else begin
-		; if we have no match, then try PHU first and if that fails try the
-		; extension
-		message,/info, 'Keyword '+keyword+' not found in keywords config file; trying Primary header...'
-		value = sxpar(  *(*self.data).headersPHU[indexFrame], keyword, count=count) 
-		if count eq 0 then value =  sxpar(  *(*self.data).headersExt[indexFrame], keyword, count=count, comment=comment)
-		return, value
+		; the user has explicitly told us where to get it - check that the value
+		; supplied makes sense.
+		if ext_num gt 1 or ext_num lt 0 then begin
+			if ~(keyword_set(silent)) then message,/info, 'Invalid extension number - can only be 0 or 1. Checking for keyword in primary header.'
+			ext_num=0
+		endif
 	endelse
+
+
+
+	; try the preferred header
+	if ext_num eq 0 then value= sxpar(  *(*self.data).headersPHU[indexFrame], keyword, count=count, comment=comment)  $
+	else  				 value= sxpar(  *(*self.data).headersExt[indexFrame], keyword, count=count, comment=comment)  
+
+	;if that failed, try the other header
+	if count eq 0 then begin
+		if ~(keyword_set(silent)) then message,/info,'Keyword not found in preferred header; trying the other HDU'
+		if ext_num eq 0 then value= sxpar(  *(*self.data).headersExt[indexFrame], keyword, count=count, comment=comment)  $
+		else  				 value= sxpar(  *(*self.data).headersPHU[indexFrame], keyword, count=count, comment=comment)  
+	endif
+	
+	return, value
+	
+
+
+
 end
 
 
 
-PRO gpiPipelineBackbone::set_keyword, keyword, value, comment, indexFrame=indexFrame, ext_num=ext_num, _Extra=_extra
+PRO gpiPipelineBackbone::set_keyword, keyword, value, comment, indexFrame=indexFrame, ext_num=ext_num, _Extra=_extra, silent=silent
 	; set a keyword in either the primary or extension header depending on what
 	; the keywords table says. 
 	;
@@ -1327,6 +1373,7 @@ PRO gpiPipelineBackbone::set_keyword, keyword, value, comment, indexFrame=indexF
 	;	ext_num		This allows you to override the keyword config file if you
 	;				really know what you're doing. Set ext_num=0 to write to the PHU or
 	;				ext_num=1 to write to the image extension.
+	;	silent		suppress printed output to the screen.
 	;
 	common PIP
 
@@ -1347,14 +1394,16 @@ PRO gpiPipelineBackbone::set_keyword, keyword, value, comment, indexFrame=indexF
 			; if we have a match write to that extension
 			ext_num = ( (*self.keyword_info).extension[wmatch[0]] eq 'extension' ) ? 1 : 0  ; try Pri if either PHU or Both
 		endif else begin
-			message,/info, 'Keyword '+keyword+' not found in keywords config file; writing to Primary header...'
+			if ~(keyword_set(silent)) then message,/info, 'Keyword '+keyword+' not found in keywords config file; writing to Primary header...'
 			ext_num = 0
 		endelse
 	endif else begin
 		; the user has explicitly told us where to put it - check that the value
 		; supplied makes sense.
-		if ext_num gt 1 or ext_num lt 0 then message,/info, 'Invalid extension number - can only be 0 or 1. Writing keyword to primary header.'
-		ext_num=0
+		if ext_num gt 1 or ext_num lt 0 then begin
+			if ~(keyword_set(silent)) then message,/info, 'Invalid extension number - can only be 0 or 1. Writing keyword to primary header.'
+			ext_num=0
+		endif
 	endelse
 
 

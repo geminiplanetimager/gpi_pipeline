@@ -12,7 +12,8 @@
 ;          filenm=		 Filename for writing (to override default file name)
 ;
 ;          SaveData=     Save this data INSTEAD of the current DataSet pointer
-;          SaveHeader=	 Header for writing along with the SaveData data.
+;          SaveHeader=	 Extension Header for writing along with the SaveData data.
+;          SavePHU=		 Primary header for writing along with the SaveData data.
 ;
 ; OUTPUT : Saves the dataset to disk
 ;
@@ -27,6 +28,9 @@
 ; 	2011-03-16: Improved file name generation code. Split DATAFILE into
 ; 				DATAFILE and DATAPATH and switched to fxpar to support very
 ; 				long path names using the FITS CONTINUE convention.
+; 	2011-08-01 MP: Revised for multi-extension FITS. save_currdata will now 
+; 				always write its output as a primary header plus image
+; 				extension. This is different from previous versions of the DRP!
 ;
 ;-
 
@@ -44,7 +48,7 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
     if keyword_set(level2) then i=level2-1 else i=numfile
 
 	;-- Generate output filename, starting from the input one.
-	filnm=fxpar(*(DataSet.Headers[i]),'DATAFILE')
+	filnm=fxpar(*(DataSet.HeadersPHU[i]),'DATAFILE')
 
 	; If a path separator is present, drop it:
 	slash=strpos(filnm,path_sep(),/reverse_search)
@@ -55,9 +59,9 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 		c_file = s_OutputDir + path_sep() + strmid(filnm, 0, dot) + s_Ext+'.fits'
 	endelse
 
-      caldat,systime(/julian),month,day,year, hour,minute,second
-      datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
-      hourstr = string(hour,minute,second,format='(i2.2,i2.2,i2.2)')  
+    caldat,systime(/julian),month,day,year, hour,minute,second
+    datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
+    hourstr = string(hour,minute,second,format='(i2.2,i2.2,i2.2)')  
 	; test output dir
 	if ~file_test(s_OutputDir,/directory, /write) then return, error("FAILURE: Directory "+s_OutputDir+" does not exist or is not writeable.",/alert)
 
@@ -78,40 +82,50 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	;writefits, c_File1, byte(*DataSet.IntAuxFrames(i)), /APPEND
 	if ( keyword_set( savedata ) ) then begin 
 	  if ~( keyword_set( saveheader ) ) then saveheader = *(dataset.headers[numfile])
-	  if numext eq 1 then if ~( keyword_set( savePHU ) ) then savePHU = *(dataset.headersPHU[numfile])
-		if numext eq 0 then begin
-		    fxaddpar, saveheader, 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
-		    fxaddpar, saveheader, 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
-				  writefits, c_File1, savedata, saveheader
-		endif else begin
-		    fxaddpar, savePHU, 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
-		    fxaddpar, savePHU, 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
-				  writefits, c_File1, 0, savePHU ;*(dataset.headersPHU[numfile])
-		  writefits, c_File1, savedata, saveheader, /append
-		endelse
-		curr_hdr = saveheader
+	  ;if numext eq 1 then 
+	  if ~( keyword_set( savePHU ) ) then savePHU = *(dataset.headersPHU[numfile])
+		;if numext eq 0 then begin
+		    ;fxaddpar, saveheader, 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
+		    ;fxaddpar, saveheader, 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
+				  ;writefits, c_File1, savedata, saveheader
+		;endif else begin
+		fxaddpar, savePHU, 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
+		fxaddpar, savePHU, 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
+		fxaddpar, savePHU, 'EXTEND', 'T', 'FITS file contains extensions'
+		fxaddpar, savePHU, 'NEXTEND', 1, 'FITS file contains extensions'
+		writefits, c_File1, 0, savePHU ;*(dataset.headersPHU[numfile])
+		writefits, c_File1, savedata, saveheader, /append
+		;endelse
+		curr_hdr = savePHU
+		curr_ext_hdr = saveheader
 	endif else begin
-	  if numext eq 0 then begin
-		  fxaddpar, *DataSet.Headers[i], 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
-		  fxaddpar, *DataSet.Headers[i], 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
-      writefits, c_File1, *DataSet.currFrame, *DataSet.Headers[i]
-          curr_hdr = *DataSet.Headers[i]
-    endif else begin  
-      fxaddpar, *DataSet.HeadersPHU[i], 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
-      fxaddpar, *DataSet.HeadersPHU[i], 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
-      writefits, c_File1, 0, *DataSet.HeadersPHU[i]
-      writefits, c_File1, *DataSet.currFrame, *DataSet.Headers[i], /append
-          curr_hdr = *DataSet.HeadersPHU[i]
-    endelse  
-      DataSet.OutputFilenames[i] = c_File1  
+	  ;if numext eq 0 then begin
+		  ;fxaddpar, *DataSet.Headers[i], 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
+		  ;fxaddpar, *DataSet.Headers[i], 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
+      ;writefits, c_File1, *DataSet.currFrame, *DataSet.Headers[i]
+          ;curr_hdr = *DataSet.Headers[i]
+    ;endif else begin  
+      	fxaddpar, *DataSet.HeadersPHU[i], 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
+      	fxaddpar, *DataSet.HeadersPHU[i], 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
+		fxaddpar, *DataSet.HeadersPHU[i], 'EXTEND', 'T', 'FITS file contains extensions'
+		fxaddpar, *DataSet.HeadersPHU[i], 'NEXTEND', 1, 'FITS file contains extensions'
+     	writefits, c_File1, 0, *DataSet.HeadersPHU[i]
+      	writefits, c_File1, *DataSet.currFrame, *DataSet.HeadersExt[i], /append
+      	curr_hdr = *DataSet.HeadersPHU[i]
+      	curr_ext_hdr = *DataSet.HeadersExt[i]
+    	;endelse  
+      	DataSet.OutputFilenames[i] = c_File1  
 	endelse
 
 	if keyword_set(debug) then print, "  Data output ===>>> "+c_File1
 	Backbone_comm->Log, "File output to: "+c_File1,/general,/DRF, depth=1
 
 	;--- GPI Calibrations DB ----
-	is_calib = fxpar(curr_hdr, "ISCALIB")
-	if strc(strupcase(is_calib)) eq "YES" then begin
+	; Is this a calibration file? 
+	;   (check both pri + ext headers just to be sure...)
+	is_calib_pri = strc(strupcase(fxpar(curr_hdr, "ISCALIB"))) eq 'YES'
+	is_calib_ext = strc(strupcase(fxpar(curr_hdr, "ISCALIB"))) eq 'YES'
+	if is_calib_pri or is_calib_ext then begin
 		gpicaldb = Backbone_comm->Getgpicaldb()
 		if obj_valid(gpicaldb) then begin
 			message,/info, "Adding file to GPI Calibrations DB."

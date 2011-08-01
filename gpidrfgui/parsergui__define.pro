@@ -544,7 +544,7 @@ pro parsergui::addfile, filenames, mode=mode
 											help, current,/str
 										endif
 
-										if cobj gt 0 then stop
+										;if cobj gt 0 then stop
                       
     
                                         if cobj eq 0 then continue ; this particular combination of filter, obstype, prism, occulter, class, time, object has no files. 
