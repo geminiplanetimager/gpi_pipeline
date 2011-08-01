@@ -25,9 +25,10 @@
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:
-;     JM 2009-12
+;  JM 2009-12
 ;  JM 2010-03-10: add handle of x0,y0 ref point with PSFcenter
-;   2010-10-19 JM: split HISTORY keyword if necessary
+;  2010-10-19 JM: split HISTORY keyword if necessary
+;  2011-08-01 MP: Update for multi-extension FITS
 ;
 function addwcs, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -35,14 +36,15 @@ calfiletype='plate'
 @__start_primitive
 
     
-	fits_info, c_File, /silent, N_ext=n_ext
-	if n_ext eq 0 then calib=readfits(c_File) else calib=mrdfits(c_File,1)
+	;fits_info, c_File, /silent, N_ext=n_ext
+	;if n_ext eq 0 then calib=readfits(c_File) else calib=mrdfits(c_File,1)
+	calib=gpi_readfits(c_file, cal_header)
   
 	pixelscale=calib[0]
 	xaxis_pa_at_zeroCRPA=calib[1]
 	
 	;if numext eq 0 then 
-	header= *(dataset.headersExt)[numfile]
+	;header= *(dataset.headersExt)[numfile]
 	;else header=*(dataset.headersPHU)[numfile]
 	;;get current CRPA
 	;obsCRPA=float(SXPAR( header, 'CRPA'))
@@ -50,32 +52,31 @@ calfiletype='plate'
 
 
     ; handle of x0,y0 ref point 
-    x0=float(SXPAR( header, 'PSFCENTX',count=ccx))
-    y0=float(SXPAR( header, 'PSFCENTY',count=ccy))
+    x0=float(backbone->get_keyword( 'PSFCENTX',count=ccx))
+    y0=float(backbone->get_keyword( 'PSFCENTY',count=ccy))
     if (ccx eq 0) || (ccy eq 0) || ~finite(x0) || ~finite(y0) then begin
         x0=((size(*(dataset.currframe[0])))(1))/2+1
         y0=((size(*(dataset.currframe[0])))(1))/2+1
     endif
 
 
-    FXADDPAR, header, 'CTYPE1', 'RA---TAN', 'the coordinate type for the first axis'
-    FXADDPAR, header, 'CRPIX1', x0, 'x-coordinate of ref pixel'
+    backbone->set_keyword, 'CTYPE1', 'RA---TAN', 'the coordinate type for the first axis'
+    backbone->set_keyword, 'CRPIX1', x0, 'x-coordinate of ref pixel'
     ra= float(SXPAR( Header, 'RA',count=c1))
-    FXADDPAR, header, 'CRVAL1', ra, 'RA at ref point' 
-    FXADDPAR, header, 'CDELT1', pixelscale/3600.
+    backbone->set_keyword, 'CRVAL1', ra, 'RA at ref point' 
+    backbone->set_keyword, 'CDELT1', pixelscale/3600.
 
-    FXADDPAR, header, 'CTYPE2', 'DEC--TAN', 'the coordinate type for the second axis'
-    FXADDPAR, header, 'CRPIX2', y0, 'y-coordinate of ref pixel'
+    backbone->set_keyword, 'CTYPE2', 'DEC--TAN', 'the coordinate type for the second axis'
+    backbone->set_keyword, 'CRPIX2', y0, 'y-coordinate of ref pixel'
     dec= float(SXPAR( Header, 'DEC',count=c2))
-    FXADDPAR, header, 'CRVAL2', double(SXPAR( Header, 'dec')), 'Dec at ref point'  ;TODOshould see gemini type convention
-    FXADDPAR, header, 'CDELT2', pixelscale/3600.
+    backbone->set_keyword, 'CRVAL2', double(SXPAR( Header, 'dec')), 'Dec at ref point'  ;TODOshould see gemini type convention
+    backbone->set_keyword, 'CDELT2', pixelscale/3600.
 
-    FXADDPAR, header, 'PC1_1', 1.
-    FXADDPAR, header, 'PC2_2', 1.
+    backbone->set_keyword, 'PC1_1', 1.
+    backbone->set_keyword, 'PC2_2', 1.
 
     
-
-    extast, header, astr
+    extast, *(dataset.headersExt)[numfile], astr
 
     deg=obsCRPA-xaxis_pa_at_zeroCRPA-90.
 
@@ -95,12 +96,12 @@ calfiletype='plate'
 	astr.cd=cd
 
 	;put in header
-	putast,header,astr
+	putast,*(dataset.headersExt)[numfile],astr
   	;  endif
     print, astr
-    *(dataset.headersExt)[numfile]=header
+    ;*(dataset.headersExt)[numfile]=header
         
-    fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": updating world coordinates"
-    fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": "+c_File
+    backbone->set_keyword,'HISTORY',functionname+": updating world coordinates"
+    backbone->set_keyword,'HISTORY',functionname+": "+c_File
 @__end_primitive
 end

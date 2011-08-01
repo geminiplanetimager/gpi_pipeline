@@ -23,6 +23,7 @@
 ;   2009-09-02 JM: hist added in header     
 ;   2009-09-17 JM: added DRF parameters
 ;   2010-10-19 JM: split HISTORY keyword if necessary
+;   2011-08-01 MP: Update for multi-extension FITS
 ;-
 
 function readbadpixmap, DataSet, Modules, Backbone
@@ -31,8 +32,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 calfiletype='badpix'
 @__start_primitive
 
-    pmd_badpixmapFrame        = ptr_new(READFITS(c_File, Header, /SILENT))
-    badpixmap=*pmd_badpixmapFrame
+    ;pmd_badpixmapFrame        = ptr_new(gpi_READFITS(c_File, Header, /SILENT))
+    badpixmap= gpi_READFITS(c_File, Header, /SILENT)
 
     backbone->set_keyword,'HISTORY',functionname+": Loaded bad pixel map"
     backbone->set_keyword,'HISTORY',functionname+": "+c_File

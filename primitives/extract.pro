@@ -35,8 +35,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   @__start_primitive
 
   header=*(dataset.headers[numfile])
-  mode=SXPAR( header, 'PRISM', count=c)
-  if c eq 0 then mode=SXPAR( header, 'FILTER2', count=c)
+  mode=backbone->get_keyword('PRISM', count=c)
+  ;if c eq 0 then mode=SXPAR( header, 'FILTER2', count=c)
 
   ; the return value will be the status flags OK/not_ok from
   ; whichever routine is actually executred...

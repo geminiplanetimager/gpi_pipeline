@@ -35,7 +35,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 @__start_primitive
 
 	im =  *(dataset.currframe[0])
-	hdr=*(dataset.headers[numfile])
+	;hdr=*(dataset.headers[numfile])
 
 
 	sz = size(im)
@@ -55,7 +55,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		if debug ge 3 then print, "       For channel "+strc(ir)+", REF BIAS is "+sigfig(refmean,4)+", NOISE SIGMA is "+sigfig(refsig, 4)
 		; now do the subtraction!
 		im[ir*chanwidth:((ir+1)*chanwidth-1) < (sz[1]-1), *] -= refmean
-		sxaddhist, " REFPIX:  readout "+strc(ir)+" mean="+strc(refmean)
+		backbone->set_keyword, "HISTORY", " REFPIX:  readout "+strc(ir)+" has mean="+strc(refmean)
 	endfor 
 
 	;TODO record the relevant numbers in the FITS headers!
@@ -63,7 +63,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 
 	*(dataset.currframe[0]) = im
-	*(dataset.headers[numfile]) = hdr
+	;*(dataset.headers[numfile]) = hdr
 
 suffix = 'refpixcorr'
 @__end_primitive

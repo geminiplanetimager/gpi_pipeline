@@ -20,6 +20,7 @@
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:
+; 	2011-08-01 MP: Updated for multi-extension FITS
 ;-  
 
 function set_calfile_type, DataSet, Modules, Backbone
@@ -32,13 +33,15 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		return, not OK
 	endif
 
-if numext eq 0 then begin
-	sxaddpar, *(dataset.headers[numfile]),  "FILETYPE", filetype, "What kind of IFS file is this?"
-	sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-endif else begin
-  sxaddpar, *(dataset.headersPHU[numfile]),  "FILETYPE", filetype, "What kind of IFS file is this?"
-  sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-endelse
+;if numext eq 0 then begin
+;	sxaddpar, *(dataset.headers[numfile]),  "FILETYPE", filetype, "What kind of IFS file is this?"
+;	sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+;endif else begin
+;  sxaddpar, *(dataset.headersPHU[numfile]),  "FILETYPE", filetype, "What kind of IFS file is this?"
+;  sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+;endelse
+	backbone->set_keyword,  "FILETYPE", filetype, "What kind of IFS file is this?"
+	backbone->set_keyword,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
 
 	save_suffix = strlowcase(strc(filetype)) ; or should the user specify this directly??
 	suffix = strlowcase(strc(filetype)) ; or should the user specify this directly??

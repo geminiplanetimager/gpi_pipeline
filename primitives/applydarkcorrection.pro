@@ -38,7 +38,7 @@ calfiletype = 'dark'
 
   ;fits_info, c_File, /silent, N_ext=n_ext
   ;if n_ext eq 0 then dark=readfits(c_File) else dark=mrdfits(c_File,1)
-  	dark = gpi_readfits(c_File)
+	dark = gpi_readfits(c_File)
   
 	;dark=readfits(c_File)
 	*(dataset.currframe[0]) -= dark

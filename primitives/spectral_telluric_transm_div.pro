@@ -24,6 +24,7 @@
 ;   2009-09-17 JM: added DRF parameters
 ;   2009-10-09 JM added gpitv display
 ;   2010-10-19 JM: split HISTORY keyword if necessary
+;   2011-08-01 MP: Update for multi-extension FITS files
 ;-
 
 function spectral_telluric_transm_div, DataSet, Modules, Backbone
@@ -35,19 +36,19 @@ calfiletype='telluric'
 	
 	if ~file_test( c_File) then return, error("Telluric transmission file does not exist!")
   
-  if numext eq 0 then $
-	tellurictrans = readfits( c_File) else $
-	tellurictrans = mrdfits( c_File,1)
+  ;if numext eq 0 then $
+	tellurictrans = gpi_readfits( c_File) ;else $
+	;tellurictrans = mrdfits( c_File,1)
 
 ; TODO error check sizes of arrays, etc. 
 ; TODO update FITS header history
 ;	sxaddhist, functionname+": dividing by telluric transmission", *(dataset.headers[numfile])
 ;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": dividing by telluric transmission"
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
+  	backbone->set_keyword,'HISTORY',functionname+": dividing by telluric transmission"
+   	backbone->set_keyword,'HISTORY',functionname+": "+c_File
   	datacube=*(dataset.currframe[0])
   	sz=size(datacube)
-  	if sz[3] ne n_elements(tellurictrans) then return, error("Error: Telluric transmission do not have same dim than datacube!")
+  	if sz[3] ne n_elements(tellurictrans) then return, error("Error: Telluric transmission does not have same dimensions as datacube!")
   
 	; TODO vectorize!
 	for ii=0,sz[1]-1 do begin

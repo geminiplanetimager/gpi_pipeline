@@ -52,18 +52,18 @@ calfiletype='polcal'
 @__start_primitive
 
 	input=*(dataset.currframe[0])
-  	if numext eq 0 then begin 
-    	hdr=*(dataset.headers)[numfile] 
-  	endif else begin 
-      hdr=*(dataset.headersPHU)[numfile]
-      hdrext=*(dataset.headers)[numfile]
- 	endelse    
+  	;if numext eq 0 then begin 
+    	;hdr=*(dataset.headers)[numfile] 
+  	;endif else begin 
+      ;hdr=*(dataset.headersPHU)[numfile]
+      ;hdrext=*(dataset.headers)[numfile]
+ 	;endelse    
 
     ; Validate the input data
-    filt = strc(sxpar(hdr, "FILTER"))
-    mode= strc(sxpar(hdr, "PRISM", count=ct))
-    if ct eq 0 then mode= strc(sxpar(hdr, "DISPERSR", count=ct))
-    if ct eq 0 then mode= strc(sxpar(hdr, "FILTER2", count=ct))
+    filt = strc(backbone->get_keyword( "FILTER"))
+    mode= strc(backbone->get_keyword( "DISPERSR", count=ct))
+    ;if ct eq 0 then mode= strc(backbone->get_keyword( "DISPERSR", count=ct))
+    ;if ct eq 0 then mode= strc(backbone->get_keyword( "FILTER2", count=ct))
     mode = strlowcase(mode)
     if mode ne "polarimetry" then message, "That's not a polarimetry file!"
 
@@ -77,13 +77,13 @@ calfiletype='polcal'
 
     polcube = fltarr(nx, ny, 2)+!values.f_nan
     polcube2 = fltarr(nx, ny, 2)+!values.f_nan
-    wpangle =  strc(sxpar(hdr, "WPANGLE"))
+    wpangle =  strc(backbone->get_keyword( "WPANGLE"))
 	backbone->Log, "    WP angle is "+strc(wpangle)
 
     ;sxaddhist, functionname+": Extracting polarized slices using ", hdr
     ;sxaddhist, functionname+": "+c_File, hdr
-    fxaddpar,hdr,'HISTORY',functionname+": Extracting polarized slices using "
-    fxaddpar,hdr,'HISTORY',functionname+": "+c_File
+    backbone->set_keyword, 'HISTORY',functionname+": Extracting polarized slices using "
+    backbone->set_keyword, 'HISTORY',functionname+": "+c_File
 
     if keyword_set(mask) then mask = input*0
 
@@ -123,68 +123,68 @@ calfiletype='polcal'
     ; coords. Hence the sense of the rotation is opposite the PA.
     pixelscale = 0.014
     ; rotation matrix.
-    d_PA = sxpar(hdr, "PAR_ANG") ; in DEGREEs
+    d_PA = backbone->get_keyword( "PAR_ANG") ; in DEGREEs
     pc = [[cos(-d_PA*!dtor), -sin(-d_PA*!dtor)], $
           [sin(-d_PA*!dtor), cos(-d_PA*!dtor)]]
-	ra = sxpar(hdr,"RA") 
+	ra = backbone->get_keyword("RA") 
 	if size(ra,/tname) eq 'STRING' then begin
 		; read in old-style incorrectly formatted as strings values.
 		if strc(ra) eq "" then ra=0.0 else $
-		ra = ten_string(sxpar(hdr,"RA"))*15 ; in deg
+		ra = ten_string(backbone->get_keyword("RA"))*15 ; in deg
 		stop
-		dec = ten_string(sxpar(hdr,"dec")) ; in deg
+		dec = ten_string(backbone->get_keyword("dec")) ; in deg
 	endif else begin ; read in properly formatted ones, already in decimal degrees
-		ra = sxpar(hdr,"RA") 
-		dec = sxpar(hdr,"dec") 
+		ra = backbone->get_keyword("RA") 
+		dec = backbone->get_keyword("dec") 
 	endelse
 	;stop
-	if numext eq 0 then begin
-	    hdrim=hdr
-	endif else begin
-	    hdrim=hdrext
-	endelse
-	sxaddhist, /comment, "  For specification of Stokes WCS axis, see ", hdrim
-	sxaddhist, /comment, "  Greisen & Calabretta 2002 A&A 395, 1061, section 5.4", hdrim
+	;if numext eq 0 then begin
+	    ;hdrim=hdr
+	;endif else begin
+	    ;hdrim=hdrext
+	;endelse
+	backbone->set_keyword, 'COMMENT', "  For specification of Stokes WCS axis, see "
+	backbone->set_keyword, 'COMMENT', "  Greisen & Calabretta 2002 A&A 395, 1061, section 5.4"
 
 
-    fxaddpar,hdrim, 'HISTORY', functionname+": Creating WCS header"
+    backbone->set_keyword, 'HISTORY', functionname+": Creating WCS header"
     sz = size(polcube)
-    sxaddpar, hdrim, "NAXIS", sz[0], /saveComment
-    sxaddpar, hdrim, "NAXIS1", sz[1], /saveComment, after='NAXIS'
-    sxaddpar, hdrim, "NAXIS2", sz[2], /saveComment, after='NAXIS1'
-    sxaddpar, hdrim, "NAXIS3", sz[3], /saveComment, after='NAXIS2'
+    backbone->set_keyword, "NAXIS", sz[0], /saveComment
+    backbone->set_keyword, "NAXIS1", sz[1], /saveComment, after='NAXIS'
+    backbone->set_keyword, "NAXIS2", sz[2], /saveComment, after='NAXIS1'
+    backbone->set_keyword, "NAXIS3", sz[3], /saveComment, after='NAXIS2'
 
-	sxaddpar, hdrim, "FILETYPE", "Stokes Cube", "What kind of IFS file is this?"
-    sxaddpar, hdrim, "WCSAXES", 3, "Number of axes in WCS system"
-    sxaddpar, hdrim, "CTYPE1", "RA---TAN","Right Ascension."
-    sxaddpar, hdrim, "CTYPE2", "DEC--TAN","Declination."
-    sxaddpar, hdrim, "CTYPE3", "STOKES",     "Polarization"
-    sxaddpar, hdrim, "CUNIT1", "deg",  "R.A. unit is degrees, always"
-    sxaddpar, hdrim, "CUNIT2", "deg",  "Declination unit is degrees, always"
-    sxaddpar, hdrim, "CUNIT3", "N/A",       "Polarizations"
-    sxaddpar, hdrim, "CRVAL1", ra, "R.A. at reference pixel"
-    sxaddpar, hdrim, "CRVAL2", dec, "Declination at reference pixel"
-    sxaddpar, hdrim, "CRVAL3", -6, " Stokes axis: image 0 is Y parallel, 1 is X parallel "
+	backbone->set_keyword, "FILETYPE", "Stokes Cube", "What kind of IFS file is this?"
+    backbone->set_keyword, "WCSAXES", 3, "Number of axes in WCS system"
+    backbone->set_keyword, "CTYPE1", "RA---TAN","Right Ascension."
+    backbone->set_keyword, "CTYPE2", "DEC--TAN","Declination."
+    backbone->set_keyword, "CTYPE3", "STOKES",     "Polarization"
+    backbone->set_keyword, "CUNIT1", "deg",  "R.A. unit is degrees, always"
+    backbone->set_keyword, "CUNIT2", "deg",  "Declination unit is degrees, always"
+    backbone->set_keyword, "CUNIT3", "N/A",       "Polarizations"
+    backbone->set_keyword, "CRVAL1", ra, "R.A. at reference pixel"
+    backbone->set_keyword, "CRVAL2", dec, "Declination at reference pixel"
+    backbone->set_keyword, "CRVAL3", -6, " Stokes axis: image 0 is Y parallel, 1 is X parallel "
     ; need to add 1 here to account for "IRAF/FITS" 1-based convention used for
     ; WCS coordinates
     xcen=139 ; always perfectly centered for sims
     ycen=139 
-    sxaddpar, hdrim, "CRPIX1", xcen+1,         "Reference pixel location"
-    sxaddpar, hdrim, "CRPIX2", ycen+1,         "Reference pixel location"
-    sxaddpar, hdrim, "CRPIX3", 0,         "Reference pixel location"
-    sxaddpar, hdrim, "CDELT1", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
-    sxaddpar, hdrim, "CDELT2", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
-    sxaddpar, hdrim, "CDELT3", 1, "Stokes axis: image 0 is Y parallel, 1 is X parallel"
+    backbone->set_keyword, "CRPIX1", xcen+1,         "Reference pixel location"
+    backbone->set_keyword, "CRPIX2", ycen+1,         "Reference pixel location"
+    backbone->set_keyword, "CRPIX3", 0,         "Reference pixel location"
+    backbone->set_keyword, "CDELT1", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
+    backbone->set_keyword, "CDELT2", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
+    backbone->set_keyword, "CDELT3", 1, "Stokes axis: image 0 is Y parallel, 1 is X parallel"
 
-    sxaddpar, hdrim, "PC1_1", pc[0,0], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
-    sxaddpar, hdrim, "PC1_2", pc[0,1], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
-    sxaddpar, hdrim, "PC2_1", pc[1,0], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
-    sxaddpar, hdrim, "PC2_2", pc[1,1], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
-    sxaddpar, hdrim, "PC3_3", 1, "Stokes axis is unrotated"
+    backbone->set_keyword, "PC1_1", pc[0,0], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
+    backbone->set_keyword, "PC1_2", pc[0,1], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
+    backbone->set_keyword, "PC2_1", pc[1,0], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
+    backbone->set_keyword, "PC2_2", pc[1,1], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
+    backbone->set_keyword, "PC3_3", 1, "Stokes axis is unrotated"
     ; TODO WCS paper III suggests adding MJD-AVG to specify midpoint of
     ; observations for conversions to barycentric.
-    sxaddpar, hdrim, "RADESYS", "FK5", "RA and Dec are in FK5"
-    sxaddpar, hdrim, "EQUINOX", 2000.0, "RA, Dec equinox is J2000"
+    backbone->set_keyword, "RADESYS", "FK5", "RA and Dec are in FK5"
+    backbone->set_keyword, "EQUINOX", 2000.0, "RA, Dec equinox is J2000"
 
 
 
@@ -192,12 +192,12 @@ calfiletype='polcal'
 
 	suffix='-podc'
 	*(dataset.currframe[0])=polcube
-	if numext eq 0 then begin
-	 *(dataset.headers[numfile])=hdrim 
-	 endif else begin
-	  *(dataset.headersPHU[numfile])=hdr
-	 *(dataset.headers[numfile])=hdrim
-	endelse 
+	;if numext eq 0 then begin
+	 ;*(dataset.headers[numfile])=hdrim 
+	 ;endif else begin
+	  ;*(dataset.headersPHU[numfile])=hdr
+	 ;*(dataset.headers[numfile])=hdrim
+	;endelse 
 
 
 @__end_primitive 

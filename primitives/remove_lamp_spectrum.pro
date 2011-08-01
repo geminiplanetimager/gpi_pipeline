@@ -116,14 +116,18 @@ endfor
 *(dataset.currframe[0])=Result
 
 ; Set keywords for outputting files into the Calibrations DB
-if numext eq 0 then begin
-  sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Flat Field", "What kind of IFS file is this?"
-  sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-endif else begin
-  sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Flat Field", "What kind of IFS file is this?"
-  sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-endelse
+	backbone->set_keyword,  "FILETYPE", 'Flat field', "What kind of IFS file is this?"
+	backbone->set_keyword,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
 
+;
+;if numext eq 0 then begin
+;  sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Flat Field", "What kind of IFS file is this?"
+;  sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+;endif else begin
+;  sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Flat Field", "What kind of IFS file is this?"
+;  sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+;endelse
+;
 ;suffix='flat'
 @__end_primitive
 
