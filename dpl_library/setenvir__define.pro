@@ -1,7 +1,15 @@
-
-
-;cont=gpi_is_setenv()
-;while gpi_is_setenv() eq 0 then setenv_widget
+;+
+;  setenvir
+;
+;  Utility GUI for setting GPI environment variables
+;
+; HISTORY:
+;    Originally by Jerome Maire. 
+;    2011-07-29 MP: Minor cleanup and usability enhancements, buttons rearranged
+;    & renamed, added validation of variables before setting, added this doc
+;    header. 
+;
+;-
 
 
 PRO setenvwid_event, ev
@@ -28,9 +36,11 @@ case tag_names(ev, /structure_name) of
                   'GCF' :textinfo='Config file of data reduction sequences (DRSConfig.xml).' 
                   'GRDD' :textinfo='Directory of raw data'
                   'GDOD':textinfo='Directory of DRP processed output data.'
-                  'Save':textinfo='It will save these environment variables for future use.'
-                  'Restore envir. var.':textinfo='Restore saved environment variables.'
-                  'Ok':textinfo='Start.'
+                  'Save envir. var.':textinfo='Save these environment variables to an IDL .sav file for future use.'
+                  'Restore envir. var.':textinfo='Restore saved environment variables from an IDL .sav file.'
+                  'Ok':textinfo='Set environment variables to these values.'
+				  'Exit': textinfo='Exit without applying changes'
+
               else:textinfo=' '
               endcase
               widget_control,self.information_id,set_value=textinfo
@@ -115,8 +125,12 @@ case tag_names(ev, /structure_name) of
                endif
               end
               'Ok':begin
-                  WIDGET_CONTROL,self.base, /DESTROY
-                  self.quit=0
+
+					is_valid = gpi_is_setenv()
+					if is_valid then begin
+	                  WIDGET_CONTROL,self.base, /DESTROY
+    	              self.quit=0
+					endif
                   end
               'Exit':begin
                     WIDGET_CONTROL,self.base, /DESTROY
@@ -212,7 +226,7 @@ self.GDODdir_id = WIDGET_TEXT(base9,Value=val,Uvalue='GPI_DRP_OUTPUT_DIR',XSIZE=
 button_id = WIDGET_BUTTON(base9,Value='Change dir...',Uvalue='changeGDOD',ysize=ys)
 
 void = widget_label(base, value='')
-void = widget_label(base, value='The following need to be writable only for avanced customized reduction:')
+void = widget_label(base, value='The following directories need to be writable only for advanced customized reduction:')
 
 base5=widget_base(base, /row)
 if file_test(getenv('GPI_DRF_TEMPLATES_DIR'),/dir) then val=getenv('GPI_DRF_TEMPLATES_DIR') else val=''
@@ -247,10 +261,11 @@ void= widget_label(base8,Value='GPI_RAW_DATA_DIR :',ysize=ys,XSIZE=xs, /tracking
 self.GRDDdir_id = WIDGET_TEXT(base8,Value=val,Uvalue='GPI_RAW_DATA_DIR',XSIZE=50)
 button_id = WIDGET_BUTTON(base8,Value='Change dir...',Uvalue='changeGRDD',ysize=ys)
 
-button_id = WIDGET_BUTTON(base,Value='Save',Uvalue='Save envir. var.')
-button_id = WIDGET_BUTTON(base,Value='Restore environment variables',Uvalue='Restore envir. var.')
-button_id = WIDGET_BUTTON(base,Value='Ok',Uvalue='Ok')
-button_id = WIDGET_BUTTON(base,Value='Quit',Uvalue='Exit')
+buttonbar = widget_base(base,column=4,/grid)
+button_id = WIDGET_BUTTON(buttonbar,Value='Set Variables',Uvalue='Ok',/tracking_events)
+button_id = WIDGET_BUTTON(buttonbar,Value='Save to File',Uvalue='Save envir. var.',/tracking_events)
+button_id = WIDGET_BUTTON(buttonbar,Value='Restore from File',Uvalue='Restore envir. var.',/tracking_events)
+button_id = WIDGET_BUTTON(buttonbar,Value='Quit',Uvalue='Exit',/tracking_events)
 self.information_id= widget_label(base,Value=textinfo, xsize=600, /align_left, /sunken)
 WIDGET_CONTROL,base, /REALIZE 
     storage={self:self}
