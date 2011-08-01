@@ -121,9 +121,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
         stop
     endif
-    sxaddhist, "Rotated by "+sigfig(d_PA, 4)+" deg to have north up",   *(dataset.headersPHU[numfile])
+    backbone->set_keyword, 'HISTORY', "Rotated by "+sigfig(d_PA, 4)+" deg to have north up"
     d_PA = 0.0
-    sxaddpar, *(dataset.headersPHU[numfile]), "PA", 0.0, 'Image is rotated to have north=up' ;/saveComment
+    backbone->set_keyword, "PA", 0.0, 'Image is rotated to have north=up' ;/saveComment
 
 
     ;atv, [[[cube]],[[cube_r]]],/bl

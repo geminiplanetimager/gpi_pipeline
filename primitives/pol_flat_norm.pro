@@ -45,13 +45,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	; FIXME
 	;;TO DO: complete header
-	sxaddpar, *(dataset.headersPHU[numfile]), "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
-    sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Flat Field", "What kind of IFS file is this?"
-    sxaddpar, *(dataset.headersExt[numfile]), "NAXIS", sz[0], /saveComment
-    sxaddpar, *(dataset.headersExt[numfile]), "NAXIS1", sz[1], /saveComment
-    sxaddpar, *(dataset.headersExt[numfile]), "NAXIS2", sz[2], /saveComment
-    sxaddpar, *(dataset.headersExt[numfile]), "NAXIS3", sz[3], /saveComment
-
+	backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+    backbone->set_keyword, "FILETYPE", "Flat Field", "What kind of IFS file is this?"
+    backbone->set_keyword, "NAXIS", sz[0]
+    backbone->set_keyword, "NAXIS1", sz[1]
+    backbone->set_keyword, "NAXIS2", sz[2]
+    backbone->set_keyword, "NAXIS3", sz[3]
 
 
 
