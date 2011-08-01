@@ -25,9 +25,10 @@
 ;
 ; OUTPUTS:
 ;
-; PIPELINE ARGUMENT: Name="thresh" Type="float" Range="[0,5]" Default="2" Desc="What multiple of the image median should be used as the threshhold for selecting spectra?"
+; PIPELINE ARGUMENT: Name="method" Type="string" Range="[threshhold|calfile]" Default="threshhold" Desc='Find background based on image value threshhold cut, or calibration file spectra/spot locations?'
+; PIPELINE ARGUMENT: Name="thresh" Type="float" Range="[0,5]" Default="2" Desc="What multiple of the image median should be used as the threshhold for selecting spectra? Suggested values 2 for spectral mode, 4 for polarimetry"
 ; PIPELINE ARGUMENT: Name="fwhm_x" Type="float" Range="[0,10]" Default="1" Desc="FWHM of the Gaussian for smoothing the background, in the X direction"
-; PIPELINE ARGUMENT: Name="fwhm_y" Type="float" Range="[0,10]" Default="7" Desc="FWHM of the Gaussian for smoothing the background, in the Y direction"
+; PIPELINE ARGUMENT: Name="fwhm_y" Type="float" Range="[0,10]" Default="7" Desc="FWHM of the Gaussian for smoothing the background, in the Y direction.  Suggested value 7 for spectra, 15 for polarimetry modes"
 ; PIPELINE ARGUMENT: Name="niter" Type="int" Range="[0,10]" Default="3" Desc="How many times to iterate the convolution fill towards convergence?"
 ; PIPELINE ARGUMENT: Name="before_and_after" Type="int" Range="[0,1]" Default="0" Desc="Show the before-and-after images for the user to see?"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="1" Desc="1-500: choose gpitv session for displaying output, 0: no display "
@@ -39,11 +40,13 @@
 ;
 ; HISTORY:
 ; 	Originally by Marshall Perrin, 2011-07-15
+;   2011-07-30 MP: Updated for multi-extension FITS
 ;-
 function subtract_background_2d, DataSet, Modules, Backbone
 primitive_version= '$Id: displayrawimage.pro 417 2011-07-14 14:13:04Z perrin $' ; get version from subversion to store in header history
 @__start_primitive
 
+ if tag_exist( Modules[thisModuleIndex], "method") then method=(Modules[thisModuleIndex].method) else method='threshhold'
  if tag_exist( Modules[thisModuleIndex], "thresh") then thresh=float(Modules[thisModuleIndex].thresh) else thresh=2
  if tag_exist( Modules[thisModuleIndex], "fwhm_x") then fwhm_x=float(Modules[thisModuleIndex].fwhm_x) else fwhm_x=1
  if tag_exist( Modules[thisModuleIndex], "fwhm_y") then fwhm_y=float(Modules[thisModuleIndex].fwhm_y) else fwhm_y=7
@@ -61,43 +64,89 @@ primitive_version= '$Id: displayrawimage.pro 417 2011-07-14 14:13:04Z perrin $' 
  ; or by invoking the wavelength solution, but for now we just do it using a 
  ; cut on the image pixels itself: values > thresh * median value are considered
  ; to be the spectra. 
- 
+ sz = size(image)
+ mask = bytarr(sz[1],sz[2])
 
- ; So: divide the image up into a number of chunks and apply the median threshhold
- ; separately to each chunk. This is done to accomodate any variations in
- ; average intensity across the FOV which would otherwise prevent a single
- ; median value for being appropriate for the whole image. 
-
-sz = size(image)
-mask = bytarr(sz[1],sz[2])
+ if strlowcase(method) eq 'threshhold' then begin
+	 ; So: divide the image up into a number of chunks and apply the median threshhold
+	 ; separately to each chunk. This is done to accomodate any variations in
+	 ; average intensity across the FOV which would otherwise prevent a single
+	 ; median value for being appropriate for the whole image. 
 
 
-chunkx = 4
-chunky = 4
-for ix=0L,chunkx-1 do begin
-for iy=0L,chunky-1 do begin
-	dx = sz[1]/chunkx
-	dy = sz[2]/chunky
-	image_part = image[ix*dx:(ix+1)*dx-1, iy*dy:(iy+1)*dy-1]
+	; was 4x4, let's try a finer local region because of variation in the background
+	; level. 
+	chunkx = 8
+	chunky = 8
+	for ix=0L,chunkx-1 do begin
+	for iy=0L,chunky-1 do begin
+		dx = sz[1]/chunkx
+		dy = sz[2]/chunky
+		image_part = image[ix*dx:(ix+1)*dx-1, iy*dy:(iy+1)*dy-1]
 
-	med = median(image_part)
-	mask[ix*dx:(ix+1)*dx-1, iy*dy:(iy+1)*dy-1] = $
-		image[ix*dx:(ix+1)*dx-1, iy*dy:(iy+1)*dy-1] gt 2*med
+		med = median(image_part)
+		mask[ix*dx:(ix+1)*dx-1, iy*dy:(iy+1)*dy-1] = $
+			image[ix*dx:(ix+1)*dx-1, iy*dy:(iy+1)*dy-1] gt 2*med
 
-endfor 
-endfor 
+	endfor 
+	endfor 
 
- 
- ; now expand the mask by 1 pixel in all directions to grab things close to
- ; the edges of the spectra. 1 pixel was chosen based on visual examination of
- ; how well the final mask works, and is also plausible based on the existence
- ; of interpixel capacitance that affects adjacent pixels at a ~few percent
- ; level. 
+	 
+	 ; now expand the mask by 1 pixel in all directions to grab things close to
+	 ; the edges of the spectra. 1 pixel was chosen based on visual examination of
+	 ; how well the final mask works, and is also plausible based on the existence
+	 ; of interpixel capacitance that affects adjacent pixels at a ~few percent
+	 ; level. 
 
-	kernel = [[0,1,0],[1,1,1],[0,1,0]]  ; This appears to work pretty well based on visual examination of the masked region
-	mask = dilate(mask, kernel)
+		kernel = [[0,1,0],[1,1,1],[0,1,0]]  ; This appears to work pretty well based on visual examination of the masked region
+		mask = dilate(mask, kernel)
 
-	backbone->Log, "Identified "+strc(total(~mask))+" pixels for use as background pixels"
+		backbone->Log, "Identified "+strc(total(~mask))+" pixels for use as background pixels"
+	endif else begin ;======= use calibration file to determine the regions to use. =====
+		stop
+  		mode=SXPAR( header, 'PRISM', count=c)
+		case strupcase(strc(mode)) of
+	  	'SPECTRO':		begin
+			; load mask from spectral calib file
+			; The following code is lifted directly from extractcube.
+			stop
+			cwv=get_cwv(filter)
+			CommonWavVect=cwv.CommonWavVect        
+			lambdamin=CommonWavVect[0]
+			lambdamax=CommonWavVect[1]
+			tilt=wavcal[*,*,4]
+			xmini=(change_wavcal_lambdaref( wavcal, lambdamin))[*,*,0]
+			xminifind=where(finite(xmini), wct)
+			if wct eq 0 then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
+			xmini(xminifind)=floor(xmini(xminifind))
+			xmaxi=(change_wavcal_lambdaref( wavcal, lambdamax))[*,*,0]
+			sdpx=max(ceil(xmaxi-xmini))+1 ;JM change 2009/08, from zemax sim, sdpx is greater when spec are far from center
+			for i=0,sdpx-1 do begin  ;through spaxels
+				cubef=dblarr(nlens,nlens) 
+				;get the locations on the image where intensities will be extracted:
+				x3=xmini+i
+				y3=wavcal[*,*,1]-(wavcal[*,*,0]-x3)*tan(tilt[*,*])	
+				;extract intensities on a 3x1 box:
+				; instead of extracting pixels, mask out those pixels.
+				mask[x3,y3] = 1
+				mask[x3,y3+1] = 1
+				mask[x3,y3-1] = 1
+			endfor
+			stop
+
+	  
+
+	  	end
+	  	'POLARIMETRY':	begin
+		; load mask from polarimetr cal file
+		stop
+
+	  	end
+	  	'UNDISPERSED':	return, error ('FAILURE ('+functionName+'): method=calfile not implemented for prism='+mode)
+	  	else: return, error ('FAILURE ('+functionName+'): method=calfile not implemented for prism='+mode)
+	  	endcase
+
+	endelse
 
  ; Now we want to fill in the regions that are masked out. Ideally we would do
  ; this with a convolution, but you can't meaningfully convolve an image full of
@@ -147,11 +196,11 @@ endfor
 
 
  *(dataset.currframe[0]) = subtracted
-  sxaddhist, "Subtracted 2D image background estimated from pixels between spectra", *(dataset.headers[numfile])
+  sxaddhist, "Subtracted 2D image background estimated from pixels between spectra", *(dataset.headersPHU[numfile])
   suffix='-bgsub2d'
 
   logstr = 'After background model sub, stddev of background pixels: '+strc(stddev(subtracted[where(~mask)]))
-  sxaddhist, logstr, *(dataset.headers[numfile])
+  sxaddhist, logstr, *(dataset.headersPHU[numfile])
   backbone->Log, logstr
 
 

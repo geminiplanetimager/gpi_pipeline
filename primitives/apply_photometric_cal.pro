@@ -29,6 +29,7 @@
 ;   JM 2010-03 : added sat locations & choice of final units
 ;   JM 2010-08 : routine optimized with simulated test data
 ;   2010-10-19 JM: split HISTORY keyword if necessary
+;   2011-07-30 MP: Updated for multi-extension FITS
 ;- 
 
 function apply_photometric_cal, DataSet, Modules, Backbone
@@ -40,7 +41,8 @@ calfiletype='Gridratio'
 
 
   	cubef3D=*(dataset.currframe[0])
-  	if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
+  	;if numext eq 0 then hdr= *(dataset.headers)[numfile] else 
+	hdr= *(dataset.headersPHU)[numfile]
   	filter=strcompress(SXPAR( hdr, 'FILTER',count=cc), /rem)
   	if cc eq 0 then filter=SXPAR( hdr, 'FILTER1',cc)
         ;get the common wavelength vector
@@ -55,8 +57,9 @@ calfiletype='Gridratio'
 
     fits_info, c_File, /silent, N_ext=n_ext
     if n_ext eq 0 then  $
-    pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headerphot, /SILENT)) else $
-    pmd_fluxcalFrame        = ptr_new(mrdfits(c_File, 1, Headerphot, /SILENT)) 
+    ;pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headerphot, /SILENT)) else $
+    ;pmd_fluxcalFrame        = ptr_new(mrdfits(c_File, 1, Headerphot, /SILENT)) 
+    pmd_fluxcalFrame        = ptr_new(gpi_readfits(c_File, Headerphot)) 
     lambda_gridratio=*pmd_fluxcalFrame
 
 	
@@ -229,14 +232,14 @@ convfac[i]=((nbphotnormtheosmoothed[i])/(gaindetector*(gridratio[i])*(fluxsatmed
 print, 'Applying grid ratio=',gridratio
 print, 'convfac*exptime=',convfac*(exposuretime)
 ;;;save the conversion factor in DB for eventual use with extended object
-  if numext eq 0 then $
-  convfac_header=*(dataset.headers[numfile]) else $
+  ;if numext eq 0 then $
+  ;convfac_header=*(dataset.headers[numfile]) else $
   convfac_header=*(dataset.headersPHU[numfile])
   filetype='Fluxconv' 
   sxaddpar, convfac_header,  "FILETYPE", filetype, "What kind of IFS file is this?"
   sxaddpar, convfac_header,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
   save_suffix = strlowcase(strc(filetype)) ; or should the user specify this directly??
-   filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
+  filnm=sxpar(*(DataSet.HeadersPHU[numfile]),'DATAFILE')
   slash=strpos(filnm,path_sep(),/reverse_search)
   s_OutputDir=Modules[thisModuleIndex].OutputDir
     ; test output dir and save the calibration
@@ -297,15 +300,15 @@ unitslist = ['Counts', 'Counts/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A
       endcase
    
 	*(dataset.currframe[0])=cubef3D
-for i=0,n_elements(convfac)-1 do $
-	FXADDPAR, *(dataset.headers)[numfile], 'FSCALE'+strc(i), convfac[i]*(exposuretime) ;fscale to convert from counts to 'ph/s/nm/m^2'
-	FXADDPAR, *(dataset.headers)[numfile], 'CUNIT',  unitslist[unitschoice]  
+	for i=0,n_elements(convfac)-1 do $
+		FXADDPAR, *(dataset.headersExt)[numfile], 'FSCALE'+strc(i), convfac[i]*(exposuretime) ;fscale to convert from counts to 'ph/s/nm/m^2'
+	FXADDPAR, *(dataset.headersExt)[numfile], 'CUNIT',  unitslist[unitschoice]  
 
 	suffix+='-phot'
 ;  sxaddhist, functionname+": applying photometric calib", *(dataset.headers[numfile])
 ;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": applying photometric calib"
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
+  fsxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": applying photometric calib"
+  fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": "+c_File
 
 @__end_primitive
 

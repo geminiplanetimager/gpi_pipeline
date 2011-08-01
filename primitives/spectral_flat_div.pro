@@ -5,7 +5,7 @@
 ; INPUTS: data-cube
 ;
 ; KEYWORDS:
-;	/Save	set to 1 to save the output image to a disk file. 
+;    /Save    set to 1 to save the output image to a disk file. 
 ;
 ; DRP KEYWORDS: HISTORY
 ; OUTPUTS:  datacube with slice at the same wavelength
@@ -20,10 +20,11 @@
 ; PIPELINE SEQUENCE: 3-
 ;
 ; HISTORY:
-; 	2009-08-27: JM created
+;     2009-08-27: JM created
 ;   2009-09-17 JM: added DRF parameters
 ;   2009-10-09 JM added gpitv display
 ;   2010-10-19 JM: split HISTORY keyword if necessary
+;   2011-07 JM: added check for NAN & zero
 ;-
 
 function spectral_flat_div, DataSet, Modules, Backbone
@@ -31,29 +32,27 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 calfiletype = 'flat'
 @__start_primitive
   
-  fits_info, c_File, n_ext = numexten, /silent
-	if numexten eq 0 then specflat = readfits(c_File) else specflat = mrdfits(c_File,1)
+    specflat = gpi_readfits(c_File)
 
-	; error check sizes of arrays, etc. 
-	if not array_equal( (size(*(dataset.currframe[0])))[1:3], (size(specflat))[1:3]) then $
-		return, error('FAILURE ('+functionName+'): Supplied flat field and data cube files do not have the same dimensions')
+    ; error check sizes of arrays, etc. 
+    if not array_equal( (size(*(dataset.currframe[0])))[1:3], (size(specflat))[1:3]) then $
+        return, error('FAILURE ('+functionName+'): Supplied flat field and data cube files do not have the same dimensions')
 
-	; update FITS header history
-;	sxaddhist, functionname+": dividing by flat", *(dataset.headers[numfile])
-;	sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": dividing by flat"
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
+    ; update FITS header history
+    fxaddpar,*(dataset.headers[numfile]),'HISTORY',functionname+": dividing by flat"
+    fxaddpar,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
 
-  ;not absolutely necessary but avoid divide by Nan or zero
-  bordnan=where(~finite(specflat),cc)
-  if cc gt 0 then specflat[bordnan]=1.
-  bordzero=where((specflat eq 0.),cz)
-  if cz gt 0 then specflat[bordzero]=1.
+    ;not absolutely necessary but avoid divide by Nan or zero
+    bordnan=where(~finite(specflat),cc)
+    if cc gt 0 then specflat[bordnan]=1.
+    bordzero=where((specflat eq 0.),cz)
+    if cz gt 0 then specflat[bordzero]=1.
+
 	*(dataset.currframe[0]) /= specflat
+
 	if cc gt 0 then (*(dataset.currframe[0]))[bordnan]=!VALUES.F_NAN 
 	if cz gt 0 then specflat[bordzero]=!VALUES.F_NAN
 
-;  if tag_exist( Modules[thisModuleIndex], "Save") && tag_exist( Modules[thisModuleIndex], "suffix") then suffix+=Modules[thisModuleIndex].suffix
   
 @__end_primitive
 end

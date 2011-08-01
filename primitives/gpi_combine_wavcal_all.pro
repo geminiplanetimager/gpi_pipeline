@@ -57,25 +57,25 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		endfor
 		*(dataset.currframe[0])=wavcalcomb
 
-		basename=findcommonbasename(dataset.filenames[0:nfiles-1])
-		FXADDPAR, hdr, 'DATAFILE', basename+'.fits'
-		sxaddhist, functionname+": combined wavcal files:", hdr
+        basename=findcommonbasename(dataset.filenames[0:nfiles-1])
+        FXADDPAR, *(DataSet.Headers[numfile]), 'DATAFILE', basename+'.fits'
+        sxaddhist, functionname+": combined "+strc(nfiles)+" wavcal files:", *(dataset.headers[numfile])
+        for i=0,nfiles-1 do $ 
+            sxaddhist, functionname+":    "+strmid(dataset.filenames[i], 0,strlen(dataset.filenames[i])-5)+suffix+'.fits   '+$
+                sxpar(*dataset.headers[i],'GCALLAMP'), *(dataset.headers[numfile])
 
-		for i=0,nfiles do $ 
-			sxaddhist, functionname+": "+strmid(dataset.filenames[i], 0,strlen(dataset.filenames[i])-5)+suffix+'.fits', *(dataset.headers[numfile])
-
-  ;update with the most recent dateobs and timeobs
-  dateobs3=dblarr(nfiles)
-  for n=0,nfiles-1 do begin
-   dateobs2 =  strc(sxpar(*(DataSet.Headers[n]), "DATE-OBS"))+" "+strc(sxpar(*(DataSet.Headers[n]),"TIME-OBS"))
-   dateobs3[n] = date_conv(dateobs2, "J")
-  endfor
-   recent=max(dateobs3,indrecent)
-   ;;we add 1second to the last time-obs so the combinaison will the most recent
-   dateobscomb=date_conv(dateobs3[indrecent]+1./24./60./60.,'F')
-   datetimecomb=strsplit(dateobscomb,'T', /extract)
-   FXADDPAR, hdr, 'DATE-OBS', datetimecomb[0]
-   FXADDPAR, hdr, 'TIME-OBS', datetimecomb[1]
+        ;update with the most recent dateobs and timeobs
+        dateobs3=dblarr(nfiles)
+        for n=0,nfiles-1 do begin
+            dateobs2 =  strc(sxpar(*(DataSet.Headers[n]), "DATE-OBS"))+" "+strc(sxpar(*(DataSet.Headers[n]),"TIME-OBS"))
+            dateobs3[n] = date_conv(dateobs2, "J")
+        endfor
+        recent=max(dateobs3,indrecent)
+           ;;we add 1second to the last time-obs so the combinaison will the most recent
+           dateobscomb=date_conv(dateobs3[indrecent]+1./24./60./60.,'F')
+           datetimecomb=strsplit(dateobscomb,'T', /extract)
+           FXADDPAR, *(DataSet.Headers[numfile]), 'DATE-OBS', datetimecomb[0]
+           FXADDPAR, *(DataSet.Headers[numfile]), 'TIME-OBS', datetimecomb[1]
 
 		;suffix+='-comb'
 	endif else begin

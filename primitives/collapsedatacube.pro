@@ -24,6 +24,7 @@
 
 ; HISTORY:
 ;  2010-04-23 JM created
+;   2011-07-30 MP: Updated for multi-extension FITS
 ;-
 function collapsedatacube, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -33,13 +34,13 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	;if tag_exist( Modules[thisModuleIndex], "suffix") then suffix=Modules[thisModuleIndex].suffix else suffix=method
 
-	header=*(dataset.headers[numfile])
+	;header=*(dataset.headersPHU[numfile])
 	;if numext eq 0 then header= *(dataset.headers)[numfile] else header= *(dataset.headersPHU)[numfile]
 	
-  sz = size(*(dataset.currframe))
+  	sz = size(*(dataset.currframe))
   
-if sz[0] eq 3 then begin
-		sxaddhist, functionname+':   Collapsing datacube using method='+method, header ;*(dataset.headers[numfile])
+	if sz[0] eq 3 then begin
+		sxaddhist, functionname+':   Collapsing datacube using method='+method, *(dataset.headersPHU[numfile]) ;header ;*(dataset.headers[numfile])
 		backbone->Log, "	Combining datacube using method="+method
 		case STRUPCASE(method) of
 		'MEDIAN': begin  ;here the [* float(sz[3])] operation is for energy conservation in order to keep the same units.
@@ -55,12 +56,12 @@ if sz[0] eq 3 then begin
 		endcase
 
     ;change keywords related to the common wavelength vector:
-    sxdelpar, header, 'NAXIS3'
-    sxdelpar, header, 'CDELT3'
-    sxdelpar, header, 'CRPIX3'
-    sxdelpar, header, 'CRVAL3'
-    sxdelpar, header, 'CTYPE3'
-    sxaddpar, header, 'NAXIS',2, /savecom
+    sxdelpar, *(dataset.headersExt[numfile]), 'NAXIS3'
+    sxdelpar, *(dataset.headersExt[numfile]), 'CDELT3'
+    sxdelpar, *(dataset.headersExt[numfile]), 'CRPIX3'
+    sxdelpar, *(dataset.headersExt[numfile]), 'CRVAL3'
+    sxdelpar, *(dataset.headersExt[numfile]), 'CTYPE3'
+    sxaddpar, *(dataset.headersExt[numfile]), 'NAXIS',2, /savecom
 
 	if tag_exist( Modules[thisModuleIndex], "suffix") then suffix2=suffix+Modules[thisModuleIndex].suffix
   
@@ -73,9 +74,9 @@ if sz[0] eq 3 then begin
     
     endif
     
-  if numext eq 0 then $
-  *(dataset.headers[numfile])=header else $
-  *(dataset.headersPHU[numfile])=header
+  ;if numext eq 0 then $
+  ;*(dataset.headers[numfile])=header else $
+  ;*(dataset.headersPHU[numfile])=header
 ;*(dataset.headers[numfile])=hdr
 
     if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin

@@ -28,7 +28,7 @@
 ;   2009-10-22 MDP: Created from mediancombine_darks, converted to use
 ;   				accumulator.
 ;   2010-01-25 MDP: Added support for multiple methods, MEAN method.
-;
+;   2011-07-30 MP: Updated for multi-extension FITS
 ;-
 function combine_3dcubes, DataSet, Modules, Backbone
 primitive_version= '$Id: combine_3dcubes.pro 278 2011-02-09 19:20:31Z maire $' ; get version from subversion to store in header history
@@ -36,14 +36,13 @@ primitive_version= '$Id: combine_3dcubes.pro 278 2011-02-09 19:20:31Z maire $' ;
 
 	if tag_exist( Modules[thisModuleIndex], "suffix") then suffix=Modules[thisModuleIndex].suffix else suffix='median'
 	if tag_exist( Modules[thisModuleIndex], "method") then method=Modules[thisModuleIndex].method else method='median'
-	header=*(dataset.headers[numfile])
 
 	nfiles=dataset.validframecount
 
 	; Load the first file so we can figure out their size, etc. 
-	im0 = accumulate_getimage(dataset, 0, hdr0)
+	im0 = accumulate_getimage(dataset, 0, hdr0, hdrext0)
 	;imtab=dblarr(naxis(0),naxis(1),numfile)
-	sz = [0, sxpar(hdr0,'NAXIS1'), sxpar(hdr0,'NAXIS2'), sxpar(hdr0,'NAXIS3')]
+	sz = [0, sxpar(hdrext0,'NAXIS1'), sxpar(hdrext0,'NAXIS2'), sxpar(hdrext0,'NAXIS3')]
 	; create an array of the same type as the input file:
 	imtab = make_array(sz[1], sz[2], sz[3], nfiles, type=size(im0,/type))
 
@@ -55,7 +54,7 @@ primitive_version= '$Id: combine_3dcubes.pro 278 2011-02-09 19:20:31Z maire $' ;
 
 	; now combine them.
 	if nfiles gt 1 then begin
-		sxaddhist, functionname+":   Combining n="+strc(nfiles)+' files using method='+method, *(dataset.headers[numfile])
+		fxaddpar, *(dataset.headersPHU[numfile]), 'HISTORY', functionname+":   Combining n="+strc(nfiles)+' files using method='+method
 		backbone->Log, "	Combining n="+strc(nfiles)+' files using method='+method
 		case STRUPCASE(method) of
 		'MEDIAN': begin 
@@ -76,16 +75,14 @@ primitive_version= '$Id: combine_3dcubes.pro 278 2011-02-09 19:20:31Z maire $' ;
 		endelse
 		endcase
 	endif else begin
-
-		sxaddhist, functionname+":   Only 1 file supplied, so nothing to combine.", *(dataset.headers[numfile])
+		fxaddpar, *(dataset.headersPHU[numfile]), 'HISTORY', functionname+":   Only 1 file supplied, so nothing to combine."
 		message,/info, "Only one frame supplied - can't really combine it with anything..."
 
 		combined_im = imtab[*,*,0]
 	endelse
 
 
-	 ;TODO header update
-	 pos=strpos(filename,'-',/REVERSE_SEARCH)
+	 ;pos=strpos(filename,'-',/REVERSE_SEARCH)
 	; writefits,strmid(filename,0,pos+1)+suffix+'.fits',im,h
 
 	; store the output into the backbone datastruct

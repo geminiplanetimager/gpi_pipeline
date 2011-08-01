@@ -20,7 +20,8 @@
 ;
 ; HISTORY:
 ; 2010-01-28: MDP Created Templae.
-;
+;   2011-07-30 MP: Updated for multi-extension FITS
+;-
 function gpi_cosmicrays, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
@@ -30,7 +31,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	message,/info, "--- No actual cleaning code written yet.... ---"
 	*(dataset.currframe[0]) -= 0
 
-	sxaddhist, functionname+": No Cosmic Ray Cleaning written yet...", *(dataset.headers[numfile])
+	sxaddhist, functionname+": No Cosmic Ray Cleaning written yet...", *(dataset.headersPHU[numfile])
 
   
 	suffix = "-crclean"	

@@ -28,6 +28,7 @@
 ;   2009-10-22 MDP: Created from mediancombine_darks, converted to use
 ;   				accumulator.
 ;   2010-01-25 MDP: Added support for multiple methods, MEAN method.
+;   2011-07-30 MP: Updated for multi-extension FITS
 ;
 ;-
 function combine2Dframes, DataSet, Modules, Backbone
@@ -43,8 +44,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	; Load the first file so we can figure out their size, etc. 
 	im0 = accumulate_getimage(dataset, 0, hdr,hdrext=hdrext)
 	;imtab=dblarr(naxis(0),naxis(1),numfile)
-	 if numext eq 0 then hdr0= hdr else hdr0= hdrext
-	sz = [0, sxpar(hdr0,'NAXIS1'), sxpar(hdr0,'NAXIS2')]
+	 ;if numext eq 0 then hdr0= hdr else hdr0= hdrext
+	sz = [0, sxpar(hdrext,'NAXIS1'), sxpar(hdrext,'NAXIS2')]
 	; create an array of the same type as the input file:
 	imtab = make_array(sz[1], sz[2], nfiles, type=size(im0,/type))
 
@@ -55,7 +56,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	; now combine them.
 	if nfiles gt 1 then begin
-		sxaddhist, functionname+":   Combining n="+strc(nfiles)+' files using method='+method, *(dataset.headers[numfile])
+		fxaddpar, *(dataset.headersPHU[numfile]), 'HISTORY', functionname+":   Combining n="+strc(nfiles)+' files using method='+method
 		backbone->Log, "	Combining n="+strc(nfiles)+' files using method='+method
 		case STRUPCASE(method) of
 		'MEDIAN': begin 
@@ -74,7 +75,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		endcase
 	endif else begin
 
-		sxaddhist, functionname+":   Only 1 file supplied, so nothing to combine.", *(dataset.headers[numfile])
+		fxaddpar, *(dataset.headersPHU[numfile]), 'HISTORY', functionname+":   Only 1 file supplied, so nothing to combine."
 		message,/info, "Only one frame supplied - can't really combine it with anything..."
 
 		combined_im = imtab[*,*,0]

@@ -4,11 +4,8 @@
 ;
 ; INPUTS: data-cube
 ;
-; KEYWORDS:
-;	/Save	set to 1 to save the output image to a disk file. 
-;
 ; GEM/GPI KEYWORDS:
-; DRP KEYWORDS:HISTORY
+; DRP KEYWORDS: HISTORY
 ; OUTPUTS:  datacube with slice flat-fielded
 ;
 ; PIPELINE COMMENT: Divides a 2-slice polarimetry file by a flat field.
@@ -21,10 +18,11 @@
 ;
 ;
 ; HISTORY:
-; 	2009-07-22: MDP created
+;   2009-07-22: MDP created
 ;   2009-09-17 JM: added DRF parameters
 ;   2009-10-09 JM added gpitv display
 ;   2010-10-19 JM: split HISTORY keyword if necessary
+;   2011-07-30 MP: Updated for multi-extension FITS
 ;-
 
 function pol_flat_div, DataSet, Modules, Backbone
@@ -32,20 +30,17 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 calfiletype='flat'
 @__start_primitive
 
-	polflat = readfits(c_File)
+    polflat = readfits(c_File)
 
-	; error check sizes of arrays, etc. 
-	if not array_equal( (size(*(dataset.currframe[0])))[1:3], (size(polflat))[1:3]) then $
-		return, error('FAILURE ('+functionName+'): Supplied flat field and data cube files do not have the same dimensions')
+    ; error check sizes of arrays, etc. 
+    if not array_equal( (size(*(dataset.currframe[0])))[1:3], (size(polflat))[1:3]) then $
+        return, error('FAILURE ('+functionName+'): Supplied flat field and data cube files do not have the same dimensions')
 
-	; update FITS header history
-;	sxaddhist, functionname+": dividing by flat", *(dataset.headers[numfile])
-;	sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": dividing by flat"
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
+    ; update FITS header history
+    fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": dividing by flat"
+    fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": "+c_File
 
-	*(dataset.currframe[0]) /= polflat
-
+    *(dataset.currframe) /= polflat
 
     if tag_exist( Modules[thisModuleIndex], "Save") && tag_exist( Modules[thisModuleIndex], "suffix") then suffix+=Modules[thisModuleIndex].suffix
   

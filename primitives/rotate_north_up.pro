@@ -24,13 +24,16 @@
 ;
 ; HISTORY:
 ;   2009-04-22 MDP: Created, based on DST's cubeextract_polarized. 
+;   2011-07-30 MP: Updated for multi-extension FITS
 ;+
 function rotate_north_up, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
     cube=*(dataset.currframe[0])
-    if numext eq 0 then hdr=*(dataset.headers)[numfile] else hdr=*(dataset.headersPHU)[numfile]
+    ;if numext eq 0 then hdr=*(dataset.headers)[numfile] else 
+	hdr   =*(dataset.headersPHU)[numfile]
+	hdrext=*(dataset.headersExt)[numfile]
     ;hdr=*(dataset.headers[numfile])
     sz = size(cube)
     nslice = sz[3] ; works for either POL or SPEC modes
@@ -41,8 +44,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	if method ne 'CUBIC' and method ne 'FFT' then return, error("Invalid rotation method: "+method)
 
     ; ====== Rotation =======
-    d_PA = sxpar(hdr, "PAR_ANG") ; in DEGREEs
-    print, "PAR_ANG is "+strc(d_PA)
+    d_PA = sxpar(hdr, "PA", pa_ct) ;PAR_ANG") ; in DEGREEs
+	if PA_ct eq 0 then  d_PA = sxpar(hdr, "PAR_ANG", pa_ct)
+    message,/info, "PA is "+strc(d_PA)
 
     ; we first pad into a 289x289 array. This is large enough to have the
     ; full FOV within it at all orientations. 
@@ -116,8 +120,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
         stop
     endif
-    sxaddhist, "Rotated by "+sigfig(d_PA, 4)+" deg to have north up",   *(dataset.headers[numfile])
+    sxaddhist, "Rotated by "+sigfig(d_PA, 4)+" deg to have north up",   *(dataset.headersPHU[numfile])
     d_PA = 0.0
+    sxaddpar, *(dataset.headersPHU[numfile]), "PA", 0.0, 'Image is rotated to have north=up' ;/saveComment
+
 
     ;atv, [[[cube]],[[cube_r]]],/bl
     cube=cube_r
@@ -160,24 +166,24 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 ;    sxaddpar, hdr, "CUNIT2", "deg",  "Declination unit is degrees, always"
 ;    sxaddpar, hdr, "CUNIT3", "N/A",       "Polarizations"
     sz = size(cube)
-    sxaddpar, hdr, "NAXIS1", sz[1], /saveComment
-    sxaddpar, hdr, "NAXIS2", sz[2], /saveComment
-    sxaddpar, hdr, "CRVAL1", ra, "R.A. at reference pixel"
-    sxaddpar, hdr, "CRVAL2", dec, "Declination at reference pixel"
-;    sxaddpar, hdr, "CRVAL3", -6, " Stokes axis: image 0 is Y parallel, 1 is X parallel "
+    sxaddpar, hdrExt, "NAXIS1", sz[1], /saveComment
+    sxaddpar, hdrExt, "NAXIS2", sz[2], /saveComment
+    sxaddpar, hdrExt, "CRVAL1", ra, "R.A. at reference pixel"
+    sxaddpar, hdrExt, "CRVAL2", dec, "Declination at reference pixel"
+;    sxaddpar, hdrExt, "CRVAL3", -6, " Stokes axis: image 0 is Y parallel, 1 is X parallel "
     ; need to add 1 here to account for "IRAF/FITS" 1-based convention used for
     ; WCS coordinates
-    sxaddpar, hdr, "CRPIX1", xcen+1,         "Reference pixel location"
-    sxaddpar, hdr, "CRPIX2", ycen+1,         "Reference pixel location"
-;    sxaddpar, hdr, "CRPIX3", 0,         "Reference pixel location"
-    sxaddpar, hdr, "CDELT1", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
-    sxaddpar, hdr, "CDELT2", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
-;    sxaddpar, hdr, "CDELT3", 1, "Stokes axis: image 0 is Y parallel, 1 is X parallel"
+    sxaddpar, hdrExt, "CRPIX1", xcen+1,         "Reference pixel location"
+    sxaddpar, hdrExt, "CRPIX2", ycen+1,         "Reference pixel location"
+;    sxaddpar, hdrExt, "CRPIX3", 0,         "Reference pixel location"
+    sxaddpar, hdrExt, "CDELT1", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
+    sxaddpar, hdrExt, "CDELT2", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
+;    sxaddpar, hdrExt, "CDELT3", 1, "Stokes axis: image 0 is Y parallel, 1 is X parallel"
 
-    sxaddpar, hdr, "PC1_1", pc[0,0], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
-    sxaddpar, hdr, "PC1_2", pc[0,1], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
-    sxaddpar, hdr, "PC2_1", pc[1,0], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
-    sxaddpar, hdr, "PC2_2", pc[1,1], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
+    sxaddpar, hdrExt, "PC1_1", pc[0,0], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
+    sxaddpar, hdrExt, "PC1_2", pc[0,1], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
+    sxaddpar, hdrExt, "PC2_1", pc[1,0], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
+    sxaddpar, hdrExt, "PC2_2", pc[1,1], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
 ;    sxaddpar, hdr, "PC3_3", 1, "Stokes axis is unrotated"
     ; TODO WCS paper III suggests adding MJD-AVG to specify midpoint of
     ; observations for conversions to barycentric.
@@ -188,7 +194,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 
     *(dataset.currframe[0])=cube
-    if numext eq 0 then *(dataset.headers)[numfile]=hdr else *(dataset.headersPHU)[numfile]=hdr
+	*(dataset.headersPHU)[numfile] = hdr
+	*(dataset.headersExt)[numfile] = hdrext
+    
+    ;if numext eq 0 then *(dataset.headers)[numfile]=hdr else *(dataset.headersPHU)[numfile]=hdr
     ;*(dataset.headers[numfile])=hdr
     
 @__end_primitive

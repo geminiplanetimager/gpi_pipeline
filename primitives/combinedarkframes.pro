@@ -28,7 +28,8 @@
 ;   2009-10-22 MDP: Created from mediancombine_darks, converted to use
 ;   				accumulator.
 ;   2010-01-25 MDP: Added support for multiple methods, MEAN method.
-;  2010-03-08 JM: ISCALIB flag for Calib DB
+;   2010-03-08 JM: ISCALIB flag for Calib DB
+;   2011-07-30 MP: Updated for multi-extension FITS
 ;-
 function combinedarkframes, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -45,9 +46,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	 im0 = accumulate_getimage(dataset, 0, hdr,hdrext=hdrext)
   ;imtab=dblarr(naxis(0),naxis(1),numfile)
-   if numext eq 0 then hdr0= hdr else hdr0= hdrext
+   ;if numext eq 0 then hdr0= hdr else hdr0= hdrext
 	;imtab=dblarr(naxis(0),naxis(1),numfile)
-	sz = [0, sxpar(hdr0,'NAXIS1'), sxpar(hdr0,'NAXIS2')]
+	sz = [0, sxpar(hdrext0,'NAXIS1'), sxpar(hdrext0,'NAXIS2')]
 	imtab = dblarr(sz[1], sz[2], nfiles)
 
 
@@ -57,7 +58,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	; now combine them.
 	if nfiles gt 1 then begin
-		sxaddhist, functionname+":   Combining n="+strc(nfiles)+' files using method='+method, *(dataset.headers[numfile])
+		fxaddpar, *(dataset.headersPHU[numfile]), 'HISTORY', functionname+":   Combining n="+strc(nfiles)+' files using method='+method
+		;sxaddhist, functionname+":   Combining n="+strc(nfiles)+' files using method='+method, *(dataset.headers[numfile])
 		backbone->Log, "	Combining n="+strc(nfiles)+' files using method='+method
 		case STRUPCASE(method) of
 		'MEDIAN': begin 
@@ -76,7 +78,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		endcase
 	endif else begin
 
-		sxaddhist, functionname+":   Only 1 file supplied, so nothing to combine.", *(dataset.headers[numfile])
+		fxaddpar, *(dataset.headersPHU[numfile]), 'HISTORY', functionname+":   Only 1 file supplied, so nothing to combine."
+		;sxaddhist, functionname+":   Only 1 file supplied, so nothing to combine.", *(dataset.headers[numfile])
 		message,/info, "Only one frame supplied - can't really combine it with anything..."
 
 		combined_im = imtab[*,*,0]
@@ -94,11 +97,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	dataset.validframecount=1
 ;	sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Dark File", /savecomment
 ;	sxaddpar, *(dataset.headers[numfile]), "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
-  sxaddpar, hdr, "FILETYPE", "Dark File", /savecomment
-  sxaddpar, hdr, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
-  if numext eq 0 then $
-  *(dataset.headers[numfile])=hdr else $
-  *(dataset.headersPHU[numfile])=hdr
+  	sxaddpar,  *(dataset.headersPHU[numfile]), "FILETYPE", "Dark File", /savecomment
+  	sxaddpar,  *(dataset.headersPHU[numfile]), "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+  ;;if numext eq 0 then $
+  ;*(dataset.headers[numfile])=hdr else $
+  ;*(dataset.headersPHU[numfile])=hdr
 
 @__end_primitive
 end

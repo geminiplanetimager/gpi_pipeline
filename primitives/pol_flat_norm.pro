@@ -23,38 +23,34 @@
 ; 	2009-07-22: MDP added doc header keywords
 ;   2009-09-17 JM: added DRF parameters
 ;   2009-10-09 JM added gpitv display
+;   2011-07-30 MP: Updated for multi-extension FITS
 ;-
 
 function pol_flat_norm, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
-  cube=*(dataset.currframe[0])
+  ;cube=*(dataset.currframe[0])
 
-  sz = size(cube)
+	;sz = size(cube)
+  sz = size(*(dataset.currframe))
 
   for pol=0,1 do begin
 	  ;wg = where(finite(cube[*,*,pol]), fct)
-	  cube[*,*,pol] /= median( cube[*,*,pol] )
+	  (*(dataset.currframe))[*,*,pol] /= median( (*(dataset.currframe))[*,*,pol] )
   endfor
 
 
-	*(dataset.currframe[0])=cube
+	;*(dataset.currframe[0])=cube
 
 	; FIXME
 	;;TO DO: complete header
-	if numext eq 0 then begin
-	  sxaddpar, *(dataset.headers[numfile]), "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
-    sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Flat Field", "What kind of IFS file is this?"
-	endif else begin
-	  sxaddpar, *(dataset.headersPHU[numfile]), "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+	sxaddpar, *(dataset.headersPHU[numfile]), "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
     sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Flat Field", "What kind of IFS file is this?"
-	endelse
- sz = size(cube)
-    sxaddpar, *(dataset.headers[numfile]), "NAXIS", sz[0], /saveComment
-    sxaddpar, *(dataset.headers[numfile]), "NAXIS1", sz[1], /saveComment
-    sxaddpar, *(dataset.headers[numfile]), "NAXIS2", sz[2], /saveComment
-    sxaddpar, *(dataset.headers[numfile]), "NAXIS3", sz[3], /saveComment
+    sxaddpar, *(dataset.headersExt[numfile]), "NAXIS", sz[0], /saveComment
+    sxaddpar, *(dataset.headersExt[numfile]), "NAXIS1", sz[1], /saveComment
+    sxaddpar, *(dataset.headersExt[numfile]), "NAXIS2", sz[2], /saveComment
+    sxaddpar, *(dataset.headersExt[numfile]), "NAXIS3", sz[3], /saveComment
 
 
 

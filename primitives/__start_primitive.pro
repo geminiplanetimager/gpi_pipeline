@@ -9,6 +9,7 @@
 ; HISTORY:
 ; 	Began 2010-04-08 19:25:24 by Marshall Perrin 
 ;   2010-10-19 JM: split HISTORY keyword if necessary
+;   2011-07-30 MP: Updated for multi-extension FITS
 ;-
 
 
@@ -23,24 +24,25 @@
 ; record this primitive name AND its version in the header for traceability.
 	if ~(keyword_set(primitive_version)) then primitive_version="unknown"
 	;sxaddhist, "Running "+functionname+"; version "+primitive_version, *(dataset.headers[numfile])
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY', "Running "+functionname+"; version "+primitive_version
+  sfaddpar,*(dataset.headersPHU[numfile]),'HISTORY', "Running "+functionname+"; version "+primitive_version
 ; if appropriate, attempt to locate and verify a calibration file.
 	if keyword_set(calfiletype) then begin
 
 		c_File = (Modules[thisModuleIndex].CalibrationFile)
 
 		if strmatch(c_File, 'AUTOMATIC',/fold) then begin
-		  if numext eq 0 then $
-			c_File = (Backbone_comm->Getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headers)[numfile] ) $
-			else c_File = (Backbone_comm->Getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headersPHU)[numfile] ) 
+		  ;if numext eq 0 then $
+			;c_File = (Backbone_comm->Getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headersPHU)[numfile] ) $
+			;else 
+		    c_File = (Backbone_comm->Getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headersPHU)[numfile] ) 
 
 			if size(c_file,/tname) eq 'INT' then if c_file eq NOT_OK then begin
 				return, error('ERROR IN CALL ('+strtrim(functionName)+'): Calibration File could not be found in calibrations database.')
 			endif else begin
 ;				sxaddhist, functionname+": Automatically resolved calibration file of type '"+calfiletype+"'.", *(dataset.headers[numfile])
 ;				sxaddhist, functionname+":   "+c_File , *(dataset.headers[numfile])
-				sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": Automatically resolved calibration file of type '"+calfiletype+"'.", *(dataset.headers[numfile])
-				sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+":   "+c_File , *(dataset.headers[numfile])
+				fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": Automatically resolved calibration file of type '"+calfiletype+"'."
+				fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+":   "+c_File 
 			endelse
 		endif
 
