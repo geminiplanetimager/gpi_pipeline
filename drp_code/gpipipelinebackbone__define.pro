@@ -656,7 +656,7 @@ FUNCTION gpiPipelineBackbone::Reduce
 ;                
 ;>>>>>>> .r430
 ;        suffix=''
-
+suffix=''
 
         ; Iterate over the modules in the 'Modules' array and run each.
         status = OK
@@ -1294,8 +1294,9 @@ PRO gpiPipelineBackbone::load_keyword_table
 	; this file will be in the same directory as drsconfig.xml
 	mod_config_file=GETENV('GPI_CONFIG_FILE')
 	keyword_config_file = file_dirname(mod_config_file) + path_sep() + 'keywordconfig.txt'
-	readcol, keyword_config_file, keywords, extensions, delimiter=string(09b), format='A,A' ; tab separated
+	readcol, keyword_config_file, keywords, extensions,  format='A,A',SKIPLINE=2,silent=1 ; tab separated
 	; TODO: error checking!
+	;JM: I removed the "delimiter=string(09b)," keyword in call to readcol (is it system dependent?)
 	self.keyword_info = ptr_new({keyword: strupcase(keywords), extension: strlowcase(extensions)} )
 
 end
