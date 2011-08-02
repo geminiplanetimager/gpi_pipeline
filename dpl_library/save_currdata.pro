@@ -38,7 +38,7 @@
 
 
 function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=savedata, saveheader=saveheader, savePHU=savePHU, filenm=filenm, $
-		output_filename=c_File1, level2=level2
+		output_filename=c_File1, level2=level2, addexten_var=addexten_var, addexten_qa=addexten_qa
 
     COMMON APP_CONSTANTS
     COMMON PIP
@@ -130,6 +130,9 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
       	DataSet.OutputFilenames[i] = c_File1  
 	endelse
 
+  if keyword_set(addexten_qa) then mwrfits, addexten_qa, c_File1
+  if keyword_set(addexten_var) then mwrfits, addexten_var, c_File1
+  
 	if keyword_set(debug) then print, "  Data output ===>>> "+c_File1
 	Backbone_comm->Log, "File output to: "+c_File1,/general,/DRF, depth=1
 
