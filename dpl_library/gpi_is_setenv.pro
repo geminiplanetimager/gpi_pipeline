@@ -47,7 +47,7 @@ endif else begin
 	drpvartabwritable=['GPI_IFS_DIR','GPI_PIPELINE_LOG_DIR',$
 			'GPI_QUEUE_DIR','GPI_DRP_OUTPUT_DIR']
 
-	txtmeswritable=' '
+	txtmeswritable=''
 	for ii=0, n_elements(drpvartabwritable)-1 do begin
 		if ~file_test(getenv(drpvartabwritable[ii]),/dir,/write) then txtmeswritable+= ' '+drpvartabwritable[ii]
 	endfor   
