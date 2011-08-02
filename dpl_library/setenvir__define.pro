@@ -108,11 +108,13 @@ case tag_names(ev, /structure_name) of
                   GCF= getenv('GPI_CONFIG_FILE')
                   GRDD=getenv('GPI_RAW_DATA_DIR')
                   GDOD=getenv('GPI_DRP_OUTPUT_DIR')
-                    save, GID,GPD,GPLD,GDTD,GQD,GCF,GRDD,GDOD,FILENAME = 'environment_variables.sav'
+                    ;select GPI_IFS_DIR directory for saving (need to be writable). PIPELINE_DIR could be non-writable
+                    save, GID,GPD,GPLD,GDTD,GQD,GCF,GRDD,GDOD,FILENAME = getenv('GPI_IFS_DIR')+path_sep()+'environment_variables.sav'
               end
               'Restore envir. var.':begin
-               dir = DIALOG_PICKFILE(PATH=getenv('GPI_PIPELINE_DIR'), Title='Choose environment_variables*.sav',/must_exist,FILTER = ['environment_variables*.sav'] )
-               if dir ne -1 then begin
+               dir = DIALOG_PICKFILE(PATH=getenv('GPI_IFS_DIR'), Title='Choose environment_variables*.sav',/must_exist,FILTER = ['environment_variables*.sav'] )
+               
+               if dir ne '' then begin
                  restore, dir
                  setenv,'GPI_IFS_DIR='+GID
                  setenv,'GPI_PIPELINE_DIR='+GPD
