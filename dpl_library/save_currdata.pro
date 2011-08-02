@@ -81,6 +81,10 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	end
 
 	if ( keyword_set( filenm ) ) then  c_File1=filenm
+	 ;update DATAFILE & DATAPATH keywords
+  FXADDPAR,  *(dataset.headersPHU[numfile]), "DATAFILE", file_basename(c_File1), "File name"
+  FXADDPAR,  *(dataset.headersPHU[numfile]), "DATAPATH", file_dirname(c_File1), "Path of DRP input", before="END"
+	
 	;writefits, c_File1, float(*DataSet.Frames(i)), *DataSet.Headers[i]
 	;writefits, c_File1, float(*DataSet.IntFrames(i)), /APPEND
 	;writefits, c_File1, byte(*DataSet.IntAuxFrames(i)), /APPEND
