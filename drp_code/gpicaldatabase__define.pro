@@ -206,35 +206,36 @@ Function gpicaldatabase::add_new_cal, filename, header=header, nowrite=nowrite
 	; check what kind of cal it is
 	newcal.type = sxpar(header, "FILETYPE", count=count)
 	if count ne 1 then message,/info, "Missing keyword: FILETYPE"
-	newcal.filter = strc(sxpar(header, "FILTER", count=count))
-	if count ne 1 then message,/info, "Missing keyword: FILTER"
-	newcal.prism= strc(sxpar(header, "PRISM", count=count))
-	if count ne 1 then begin
-	  message,/info, "Missing keyword: PRISM"
-	  newcal.prism= strc(sxpar(header, "FILTER2", count=count2))
-	  if count2 ne 1 then  begin
-	  message,/info, "Missing keyword: FILTER2"
-	  newcal.prism= strc(sxpar(header, "DISPERSR", count=count3))
+	newcal.filter = gpi_simplify_keyword_value(strc(sxpar(header, "FILTER1", count=count)))
+	if count ne 1 then message,/info, "Missing keyword: FILTER1"
+
+	;newcal.prism= strc(sxpar(header, "PRISM", count=count))
+	;if count ne 1 then begin
+	;  message,/info, "Missing keyword: PRISM"
+	;  newcal.prism= strc(sxpar(header, "FILTER2", count=count2))
+	;  if count2 ne 1 then  begin
+	;  message,/info, "Missing keyword: FILTER2"
+	  newcal.prism= gpi_simplify_keyword_value(strc(sxpar(header, "DISPERSR", count=count3)))
 	   if count3 ne 1 then message,/info, "Missing keyword: DISPERSR"
-	  endif
-	endif  
+	;  endif
+	;endif  
 	newcal.apodizer= strc(sxpar(header, "APODIZER", count=count))
 	if count ne 1 then message,/info, "Missing keyword: APODIZER"
-	newcal.itime = (sxpar(header, "ITIME", count=count))
-	if count ne 1 then begin
-	  message,/info, "Missing keyword: ITIME"
-      newcal.itime = (sxpar(header, "INTIME", count=count2))
-      if count2 ne 1 then  begin
-       message,/info, "Missing keyword: INTIME"
+	;newcal.itime = (sxpar(header, "ITIME", count=count))
+	;if count ne 1 then begin
+	  ;message,/info, "Missing keyword: ITIME"
+    ;  newcal.itime = (sxpar(header, "INTIME", count=count2))
+    ;  if count2 ne 1 then  begin
+    ;   message,/info, "Missing keyword: INTIME"
        newcal.itime = (sxpar(header, "ITIME0", count=count3))
-       if count2 ne 1 then message,/info, "Missing keyword: ITIME0"
-      endif
-    endif
+       if count3 ne 1 then message,/info, "Missing keyword: ITIME0"
+   ;   endif
+   ; endif
 	newcal.lyot= strc(sxpar(header, "LYOTMASK", count=count))
 	;if count ne 1 then message,/info, "Missing keyword: LYOT"  ; Missing in all DST files pre 2010-01-28!
 	
-	newcal.issport = strc(sxpar(header, "ISS_PORT", count=count))
-	if count ne 1 then message,/info, "Missing keyword: ISS_PORT"
+	newcal.issport = strc(sxpar(header, "INPORT", count=count))
+	if count ne 1 then message,/info, "Missing keyword: INPORT"
 	dateobs =  strc(sxpar(header, "DATE-OBS"))+"T"+strc(sxpar(header,"TIME-OBS"))
 	newcal.jd = string(date_conv(dateobs, "J"),f='(f15.5)')
 
@@ -281,15 +282,15 @@ function gpicaldatabase::get_best_cal_from_header, type, header, _extra=_extra
    dateobs2 =  strc(sxpar(header, "DATE-OBS"))+" "+strc(sxpar(header,"TIME-OBS"))
    dateobs3 = date_conv(dateobs2, "J")
 
-   filt=strcompress(sxpar( header, 'FILTER',  COUNT=cc3),/rem)
-   if cc3 eq 0 then filt=strcompress(sxpar( header, 'FILTER1',  COUNT=cc3),/rem)
+   filt=strcompress(gpi_simplify_keyword_value(sxpar( header, 'FILTER1',  COUNT=cc3)),/rem)
+  ; if cc3 eq 0 then filt=strcompress(sxpar( header, 'FILTER1',  COUNT=cc3),/rem)
 
-   prism=strcompress(sxpar( header, 'PRISM',  COUNT=cc4),/rem)
-   if cc4 eq 0 then prism=strcompress(sxpar( header, 'DISPERSR',  COUNT=cc4),/rem)
+   prism=strcompress(gpi_simplify_keyword_value(sxpar( header, 'DISPERSR',  COUNT=cc4)),/rem)
+   ;if cc4 eq 0 then prism=strcompress(sxpar( header, 'DISPERSR',  COUNT=cc4),/rem)
 
    itime=sxpar(header, "ITIME0", count=ci)
-   if ci eq 0 then itime=sxpar(header, "ITIME", count=ci)
-   if ci eq 0 then itime=sxpar(header, "INTIME", count=ci)
+   ;if ci eq 0 then itime=sxpar(header, "ITIME", count=ci)
+   ;if ci eq 0 then itime=sxpar(header, "INTIME", count=ci)
 
 	return, self->get_best_cal( type, dateobs3, filt, prism, itime=itime, _extra=_extra)
 

@@ -881,6 +881,7 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
 
    ; SXDELPAR, pri_header, 'END'
    ; *(*self.data).HeadersPHU[IndexFrame]=[pri_header,*(*self.data).HeadersPHU[IndexFrame], 'END            ']
+        SXDELPAR, *(*self.data).HeadersPHU[IndexFrame], '' ;remove blanks
         SXDELPAR, *(*self.data).HeadersPHU[IndexFrame], 'END'
     *(*self.data).HeadersPHU[IndexFrame]=[*(*self.data).HeadersPHU[IndexFrame], 'END            ']
     ; ***WARNING***   don't use SXADDPAR for 'END', it gets the syntax wrong
