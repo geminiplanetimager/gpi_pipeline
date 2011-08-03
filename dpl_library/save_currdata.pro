@@ -146,7 +146,7 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 		gpicaldb = Backbone_comm->Getgpicaldb()
 		if obj_valid(gpicaldb) then begin
 			message,/info, "Adding file to GPI Calibrations DB."
-			status = gpicaldb->Add_new_Cal( c_File1, header=curr_hdr)
+			status = gpicaldb->Add_new_Cal( c_File1, header=[curr_hdr,curr_ext_hdr])
 		endif else begin
 			message,/info, "*** ERROR: No Cal DB Object Loaded - cannot add file to DB ***"
 		endelse
