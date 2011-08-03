@@ -32,7 +32,7 @@ calfiletype='spotloc'
 @__start_primitive
 	;loadedcalfiles->load, c_File, calfiletype
 	;spotloc = loadedcalfiles->get(calfiletype, header=HeaderCalib)
-	 spotloc = gpi_readfits(calfiletype)
+	 spotloc = gpi_readfits(c_File,header=HeaderCalib)
     ;pmd_fluxcalFrame        = ptr_new(READFITS(c_File, HeaderCalib, /SILENT))
     ;spotloc =*pmd_fluxcalFrame
     SPOTWAVE=strcompress(sxpar( HeaderCalib, 'SPOTWAVE',  COUNT=cc4),/rem)

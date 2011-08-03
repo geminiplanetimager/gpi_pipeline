@@ -41,13 +41,13 @@ extr= gpi_readfits(res[0],header=hdrextr)
 
 lambdaspec=extr[*,0]
 ;espe=extr[*,2]
-COMPMAG=float(sxpar(hdrextr,'COMPMAG'))
-COMPSPEC=sxpar(hdrextr,'COMPSPEC') ;we could have compsep&comprot
+COMPMAG=float(sxpar(*(dataset.headersPHU[numfile]),'COMPMAG'))
+COMPSPEC=sxpar(*(dataset.headersPHU[numfile]),'COMPSPEC') ;we could have compsep&comprot
 
 ;;get DST companion spectrum
 ;restore, 'E:\GPI\dst\'+strcompress(compspec,/rem)+'compspectrum.sav'
          
-        filter = gpi_simplify_keyword_value(strcompress(sxpar( hdrextr ,'FILTER1', count=fcount),/REMOVE_ALL))
+        filter = gpi_simplify_keyword_value(strcompress(sxpar( *(dataset.headersPHU[numfile]) ,'FILTER1', count=fcount),/REMOVE_ALL))
         ;if fcount eq 0 then filter = strcompress(sxpar( hdrextr ,'FILTER', count=fcount),/REMOVE_ALL)
 case strcompress(filter,/REMOVE_ALL) of
   'Y':specresolution=35.

@@ -34,8 +34,8 @@ nlens=(size(*(dataset.currframe[0])))[3]
    wavcal1=*(dataset.currframe[0])
   
    ;zemwav=float(Modules[thisModuleIndex].refwav)
-   h=*(dataset.headers[0])
-     bandeobs=SXPAR( h, 'FILTER',count=c4)
+   h=*(dataset.headersPHU[0])
+     bandeobs=gpi_simplify_keyword_value(SXPAR( h, 'FILTER1',count=c4))
    if c4 eq 0 then bandeobs=SXPAR( h, 'FILTER1',count=c4)  
 case strcompress(bandeobs,/REMOVE_ALL) of
   'Y':zemwav=1.05
@@ -48,8 +48,8 @@ endcase
    
    
    
-          filter = strcompress(sxpar( header ,'FILTER1', count=fcount),/REMOVE_ALL)
-        if fcount eq 0 then filter = strcompress(sxpar( header ,'FILTER'),/REMOVE_ALL)
+          filter = gpi_simplify_keyword_value(strcompress(sxpar( h ,'FILTER1', count=fcount),/REMOVE_ALL))
+       ; if fcount eq 0 then filter = strcompress(sxpar( header ,'FILTER'),/REMOVE_ALL)
    
      zemdisplamraw=readfits(rep+'zemdispLam'+filter+'.fits')
      void=min(abs(zemdisplamraw-zemwav),zemwavind)
@@ -178,10 +178,10 @@ print, 'mean diff x=',mean(diff[*,*,0],/nan),'y=',mean(diff[*,*,1],/nan)
    ;    if (size(wavcal2))[3] eq 5 then slice=4 else slice=6 ;deal with slice# for Non-linear wavcal
    ; histtilt=HISTOGRAM((180./!dpi)*(wavcal1[*,*,slice]-zemwavcal[*,*,4]), min=xmintilt,max=xmaxtilt,nbins=bintilt,locations=loctilt)
 
-filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
+filnm=sxpar(*(DataSet.HeadersPHU[numfile]),'DATAFILE')
 slash=strpos(filnm,path_sep(),/reverse_search)
 
-h=*(dataset.headers[numfile])
+h=*(dataset.headersPHU[numfile])
 testwav=SXPAR( h, 'TESTWAV',count=c1)
 if c1 ne 0 then testchr='nbpk'+strc(n_elements(strsplit(testwav,'/'))) else testchr=''
 suffixplot=(Modules[thisModuleIndex].suffix)

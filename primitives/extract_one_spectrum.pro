@@ -45,7 +45,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
   	main_image_stack=*(dataset.currframe[0])
         ;if numext eq 0 then hdr=*(dataset.headers[numfile]) else hdr=*(dataset.headersPHU[numfile])
-        band = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
+        band = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=cc))
         ;band=strcompress(sxpar( hdr, 'FILTER',  COUNT=cc),/rem)
         if cc eq 1 then begin
           cwv=get_cwv(band)
@@ -118,7 +118,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
       if cc eq 1 then units=calunits 
 
       s_Ext='-spectrum_x'+Modules[thisModuleIndex].xcenter+'_y'+Modules[thisModuleIndex].ycenter
-     filnm==backbone->get_keyword('DATAFILE') ;sxpar(hdr,'DATAFILE')
+     filnm=backbone->get_keyword('DATAFILE') ;sxpar(hdr,'DATAFILE')
      slash=strpos(filnm,path_sep(),/reverse_search)
      psFilename = Modules[thisModuleIndex].OutputDir+'fig'+path_sep()+strmid(filnm, slash,strlen(filnm)-5-slash)+s_Ext+'.ps'
 

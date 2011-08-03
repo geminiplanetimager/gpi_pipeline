@@ -30,10 +30,10 @@ mydevice = !D.NAME
   rep=getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()
   nlens=(size(*(dataset.currframe[0])))[1]
   wavcal1=*(dataset.currframe[0])
-  h=*(dataset.headers[0])
+  h=*(dataset.headersPHU[0])
   ;need to know which filter is used to get the right zemax file 
-  bandeobs=SXPAR( h, 'FILTER',count=c4)
-  if c4 eq 0 then bandeobs=SXPAR( h, 'FILTER1',count=c4)  
+  bandeobs=gpi_simplify_keyword_value(SXPAR( h, 'FILTER1',count=c4))
+  ;if c4 eq 0 then bandeobs=SXPAR( h, 'FILTER1',count=c4)  
   case strcompress(bandeobs,/REMOVE_ALL) of
     'Y':zemwav=1.05
     'J':zemwav=1.25
@@ -43,8 +43,8 @@ mydevice = !D.NAME
     else:zemwav=1.65
   endcase  
    deb=5   
-  filter = strcompress(sxpar( header ,'FILTER1', count=fcount),/REMOVE_ALL)
-  if fcount eq 0 then filter = strcompress(sxpar( header ,'FILTER'),/REMOVE_ALL)
+  filter = gpi_simplify_keyword_value(strcompress(sxpar( h ,'FILTER1', count=fcount),/REMOVE_ALL))
+  ;if fcount eq 0 then filter = strcompress(sxpar( header ,'FILTER'),/REMOVE_ALL)
   zemdisplamraw=readfits(rep+'zemdispLam'+filter+'.fits')
   void=min(abs(zemdisplamraw-zemwav),zemwavind)
   print, 'Reference wav. at  ',zemdisplamraw[zemwavind] 
@@ -137,10 +137,10 @@ print, 'mean diff x=',mean(diff[*,*,0],/nan),'y=',mean(diff[*,*,1],/nan)
      histcumtilt2=(100./max(histcumtilt))*histcumtilt
     
 ;now, let's plot these histograms
-filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
+filnm=sxpar(*(DataSet.HeadersPHU[numfile]),'DATAFILE')
 slash=strpos(filnm,path_sep(),/reverse_search)
 
-h=*(dataset.headers[numfile])
+h=*(dataset.headersPHU[numfile])
 testwav=SXPAR( h, 'TESTWAV',count=c1)
 if c1 ne 0 then testchr='nbpk'+strc(n_elements(strsplit(testwav,'/'))) else testchr=''
 suffixplot=(Modules[thisModuleIndex].suffix)

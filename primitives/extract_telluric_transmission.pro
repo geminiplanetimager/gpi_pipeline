@@ -186,7 +186,7 @@ endif
 ;lambdapsf=fltarr(nlambdapsf)
 ;  for i=0,n_elements(lambdapsf)-1 do lambdapsf[i]=lambdamin+double(i)*(lambdamax-lambdamin)/nlambdapsf
 ;nbphot2=pip_nbphot_trans(hdr,lambdapsf) 
-nbphot2=pip_nbphot_trans_lowres(hdr,lambda)
+nbphot2=pip_nbphot_trans_lowres([*(dataset.headersPHU)[numfile],*(dataset.headersExt)[numfile]],lambda)
         
 ;spec= decrease_spec_res(lambda, nbphot2,spotloc)
 ;  stop        

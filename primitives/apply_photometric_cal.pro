@@ -73,13 +73,13 @@ calfiletype='Gridratio'
    SPOTWAVE=backbone->get_keyword('SPOTWAVE',  COUNT=cc4)
    if cc4 gt 0 then begin
     ;check how many spots locations is in the header (2 or 4)
-    void=sxpar( hdr, 'SPOT4x',  COUNT=cs)
+    void=backbone->get_keyword('SPOT4x',  COUNT=cs);=sxpar( hdr, 'SPOT4x',  COUNT=cs)
     if cs eq 1 then spotloc=fltarr(1+4,2) else spotloc=fltarr(1+2,2) ;1+ due for PSF center 
-          spotloc[0,0]=backbone->get_keyword(,"PSFCENTX")
-          spotloc[0,1]=backbone->get_keyword(,"PSFCENTY")      
+          spotloc[0,0]=backbone->get_keyword("PSFCENTX")
+          spotloc[0,1]=backbone->get_keyword("PSFCENTY")      
         for ii=1,(size(spotloc))[1]-1 do begin
-          spotloc[ii,0]=backbone->get_keyword(,"SPOT"+strc(ii)+'x')
-          spotloc[ii,1]=backbone->get_keyword(,"SPOT"+strc(ii)+'y')
+          spotloc[ii,0]=backbone->get_keyword("SPOT"+strc(ii)+'x')
+          spotloc[ii,1]=backbone->get_keyword("SPOT"+strc(ii)+'y')
         endfor      
    endif else begin
       SPOTWAVE=lamdamin
@@ -170,14 +170,14 @@ calfiletype='Gridratio'
     for i=0,n_elements(lambdapsf)-1 do lambdapsf[i]=lambdamin+double(i)*(lambdamax-lambdamin)/nlambdapsf
 
     ;nbphot_juststar=pip_nbphot_trans(hdr,lambdapsf)
-    nbphot_juststar=pip_nbphot_trans_lowres(hdr,lambda)
+    nbphot_juststar=pip_nbphot_trans_lowres([*(dataset.headersPHU)[numfile],*(dataset.headersExt)[numfile]],lambda)
 
    magni=double(backbone->get_keyword( 'HMAG'))
    spect=strcompress(backbone->get_keyword( 'SPECTYPE'),/rem)
    Dtel=double(backbone->get_keyword( 'TELDIAM'))
    Obscentral=double(backbone->get_keyword( 'SECDIAM'))
    exposuretime=double(backbone->get_keyword( 'ITIME')) ;TODO use ITIME instead
-   ;BE SURE THAT EXPTIME IS IN SECONDS
+   ;BE SURE THAT TIME keyword IS IN SECONDS
    ;filter=backbone->get_keyword( 'FILTER')
    nlambda=n_elements(lambda)
    widthL=(lambdamax-lambdamin)
@@ -186,7 +186,7 @@ calfiletype='Gridratio'
    ifsunits=strcompress(backbone->get_keyword( 'BUNIT'),/rem)
 
 ;; normalize by n_elements(lambdapsf) because widthL is the width of the entire band here
-   nbphotnormtheo=nbphot_juststar*float(n_elements(lambdapsf))/(SURFA*widthL*exposuretime) ;photons to [photons/s/nm/m^2]
+   nbphotnormtheo=nbphot_juststar*float(n_elements(lambdapsf))/(SURFA*widthL*1.e3*exposuretime) ;photons to [photons/s/nm/m^2]
 	nbphotnormtheosmoothed=nbphotnormtheo
 ;;smooth to the resolution of the spectrograph:
 ;case strcompress(filter,/REMOVE_ALL) of
@@ -307,7 +307,7 @@ unitslist = ['Counts', 'Counts/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A
 	*(dataset.currframe[0])=cubef3D
 	for i=0,n_elements(convfac)-1 do $
 	backbone->set_keyword, 'FSCALE'+strc(i), convfac[i]*(exposuretime), "scale to convert from counts to 'ph/s/nm/m^2", ext_num=1
-	backbone->set_keyword, 'CUNIT',  unitslist[unitschoice] ,"Data units" ext_num=0
+	backbone->set_keyword, 'CUNIT',  unitslist[unitschoice] ,"Data units", ext_num=0
 		;FXADDPAR, *(dataset.headersExt)[numfile], 'FSCALE'+strc(i), convfac[i]*(exposuretime) ;fscale to convert from counts to 'ph/s/nm/m^2'
 	;FXADDPAR, *(dataset.headersExt)[numfile], 'CUNIT',  unitslist[unitschoice]  
 

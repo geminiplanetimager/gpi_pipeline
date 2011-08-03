@@ -26,9 +26,9 @@ primitive_version= '$Id: testsatspotloc001.pro 11 2011-02-11 10:22:03 maire $' ;
 @__start_primitive
 mydevice = !D.NAME
 cubef3D=*(dataset.currframe[0])
-    hdr= *(dataset.headers)[numfile]
-    filter=strcompress(SXPAR( hdr, 'FILTER',count=cc), /rem)
-    if cc eq 0 then filter=SXPAR( hdr, 'FILTER1',cc)
+   ; hdr= *(dataset.headers)[numfile]
+    filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
+   ; if cc eq 0 then filter=SXPAR( hdr, 'FILTER1',cc)
         ;get the common wavelength vector
             ;error handle if extractcube not used before
             if  (strlen(filter) eq 0)  then $
@@ -38,14 +38,15 @@ cubef3D=*(dataset.currframe[0])
         lambda=cwv.lambda
         lambdamin=CommonWavVect[0]
         lambdamax=CommonWavVect[1]
-SPOTWAVE=sxpar( *(dataset.headers[numfile]), 'SPOTWAVE',  COUNT=cc4)
+;SPOTWAVE=sxpar( *(dataset.headers[numfile]), 'SPOTWAVE',  COUNT=cc4)
+SPOTWAVE=backbone->get_keyword('SPOTWAVE', count=cc4)
   
     spotloc=fltarr(5,2) ;1+ due for PSF center 
-          spotloc[0,0]=sxpar( *(dataset.headers[numfile]),"PSFCENTX")
-          spotloc[0,1]=sxpar( *(dataset.headers[numfile]),"PSFCENTY")      
+          spotloc[0,0]=backbone->get_keyword('PSFCENTX');sxpar( *(dataset.headers[numfile]),"PSFCENTX")
+          spotloc[0,1]=backbone->get_keyword('PSFCENTY');sxpar( *(dataset.headers[numfile]),"PSFCENTY")      
         for ii=1,(size(spotloc))[1]-1 do begin
-          spotloc[ii,0]=sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'x')
-          spotloc[ii,1]=sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'y')
+          spotloc[ii,0]=backbone->get_keyword("SPOT"+strc(ii)+'x') ;sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'x')
+          spotloc[ii,1]=backbone->get_keyword("SPOT"+strc(ii)+'y') ;sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'y')
         endfor  
         
 maxaper=3.
