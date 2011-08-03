@@ -744,8 +744,9 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
 		;fxaddpar,  *(*self.data).HeadersExt[IndexFrame],'HISTORY', 'Input image has no extensions, so primary header copied to 1st extension'
 		mkhdr,hdrext,*((*self.data).currframe)
 		sxaddpar,hdrext,"XTENSION","IMAGE","Image extension",before="SIMPLE"
-		sxaddpar,hdrext,"EXTNAME","SCI","Image extension contains science data",before="SIMPLE"
-		sxaddpar,hdrext,"EXTVER",1,"Number assigned to FITS extension",before="SIMPLE"
+		sxaddpar,hdrext,"EXTNAME","SCI","Image extension contains science data";,before="SIMPLE"
+		sxaddpar,hdrext,"EXTVER",1,"Number assigned to FITS extension";,before="SIMPLE"
+		sxdelpar, hdrext, "SIMPLE"
 		;add blank wcs keyword in extension (mandatory for all gemini data)
 		wcskeytab=["CTYPE1","CD1_1","CD1_2","CD2_1","CD2_2","CDELT1","CDELT2",$
 		  "CRPIX1","CRPIX2","CRVAL1","CRVAL2","CRVAL3","CTYPE1","CTYPE2"]
