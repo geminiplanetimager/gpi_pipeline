@@ -31,12 +31,13 @@ mydevice = !D.NAME
 compspecname=DataSet.OutputFilenames[numfile]
 compspecnamewoext=strmid(compspecname,0,strlen(compspecname)-5)
 res=file_search(compspecnamewoext+'*spec*fits')
-if numext eq 0 then begin
-  extr=readfits(res[0],hdrextr) 
-endif else begin
-  extr= mrdfits(res[0], 1, hdr)
-  hdrextr= headfits(res[0], exten=0)
-endelse
+;if numext eq 0 then begin
+;  extr=readfits(res[0],hdrextr) 
+;endif else begin
+;  extr= mrdfits(res[0], 1, hdr)
+;  hdrextr= headfits(res[0], exten=0)
+;endelse
+extr= gpi_readfits(res[0],header=hdrextr)
 
 lambdaspec=extr[*,0]
 ;espe=extr[*,2]
@@ -46,8 +47,8 @@ COMPSPEC=sxpar(hdrextr,'COMPSPEC') ;we could have compsep&comprot
 ;;get DST companion spectrum
 ;restore, 'E:\GPI\dst\'+strcompress(compspec,/rem)+'compspectrum.sav'
          
-        filter = strcompress(sxpar( hdrextr ,'FILTER1', count=fcount),/REMOVE_ALL)
-        if fcount eq 0 then filter = strcompress(sxpar( hdrextr ,'FILTER', count=fcount),/REMOVE_ALL)
+        filter = gpi_simplify_keyword_value(strcompress(sxpar( hdrextr ,'FILTER1', count=fcount),/REMOVE_ALL))
+        ;if fcount eq 0 then filter = strcompress(sxpar( hdrextr ,'FILTER', count=fcount),/REMOVE_ALL)
 case strcompress(filter,/REMOVE_ALL) of
   'Y':specresolution=35.
   'J':specresolution=37.
@@ -165,7 +166,7 @@ ewav=extr[*,0]
 espe=extr[*,2] ;indice 2 selects the standard photometric measurement (DAOphot-like)
 
 
-truitime=float(sxpar(header,'TRUITIME'))
+truitime=float(sxpar(header,'ITIME'))
 starmag=double(SXPAR( header, 'Hmag'))
 ;;;PLOT RESULTS
 ;;prepare the plot

@@ -47,6 +47,7 @@ if (Modules[thisModuleIndex].CalibrationFile) ne '' then calfiletype='spotloc'
   cubef3D=*(dataset.currframe[0])
 
         ;get the common wavelength vector
+         filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
             ;error handle if extractcube not used before
             if ((size(cubef3D))[0] ne 3) || (strlen(filter) eq 0)  then $
             return, error('FAILURE ('+functionName+'): Datacube or filter not defined. Use extractcube module before.')        
@@ -136,29 +137,37 @@ endif
 ;print, lambda[floor(CommonWavVect[2]/2)+slic],pos2[0],pos2[1]
 
   ;if numext eq 0 then h= *(dataset.headers)[numfile] else h= *(dataset.headersPHU)[numfile]
-
-   sxaddpar, *(dataset.headers[numfile]), "SPOTWAVE", lambda[floor(CommonWavVect[2]/2)], "Wavelength of ref for SPOT locations"
-   sxaddpar, *(dataset.headers[numfile]), "PSFCENTX", PSFcenter[0], 'X-Locations of PSF center'
-   sxaddpar, *(dataset.headers[numfile]), "PSFCENTY", PSFcenter[1], 'Y-Locations of PSF center'
+backbone->set_keyword,"SPOTWAVE", lambda[floor(CommonWavVect[2]/2)], "Wavelength of ref for SPOT locations", ext_num=1
+backbone->set_keyword,"PSFCENTX", PSFcenter[0], 'X-Locations of PSF center', ext_num=1
+backbone->set_keyword,"PSFCENTY", PSFcenter[1], 'Y-Locations of PSF center', ext_num=1
+;   sxaddpar, *(dataset.headers[numfile]), "SPOTWAVE", lambda[floor(CommonWavVect[2]/2)], "Wavelength of ref for SPOT locations"
+;   sxaddpar, *(dataset.headers[numfile]), "PSFCENTX", PSFcenter[0], 'X-Locations of PSF center'
+;   sxaddpar, *(dataset.headers[numfile]), "PSFCENTY", PSFcenter[1], 'Y-Locations of PSF center'
 for ii=1,nbrspot do begin
- sxaddpar, *(dataset.headers[numfile]), "SPOT"+strc(ii)+'x', spotloc[ii-1,0], 'X-Locations of spot #'+strc(ii)
- sxaddpar, *(dataset.headers[numfile]), "SPOT"+strc(ii)+'y', spotloc[ii-1,1], 'Y-Locations of spot #'+strc(ii)
+backbone->set_keyword,"SPOT"+strc(ii)+'x', spotloc[ii-1,0], 'X-Locations of spot #'+strc(ii), ext_num=1
+backbone->set_keyword, "SPOT"+strc(ii)+'y', spotloc[ii-1,1], 'Y-Locations of spot #'+strc(ii), ext_num=1
+; sxaddpar, *(dataset.headers[numfile]), "SPOT"+strc(ii)+'x', spotloc[ii-1,0], 'X-Locations of spot #'+strc(ii)
+; sxaddpar, *(dataset.headers[numfile]), "SPOT"+strc(ii)+'y', spotloc[ii-1,1], 'Y-Locations of spot #'+strc(ii)
 endfor
 suffix+='-spotloc'
 
   ; Set keywords for outputting files into the Calibrations DB
-  if numext eq 0 then begin
-    sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?"
-    sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-  endif else begin
-    sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?"
-    sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-  endelse
+ ; if numext eq 0 then begin
+  backbone->set_keyword, "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?", ext_num=0
+  backbone->set_keyword,"ISCALIB", "YES", 'This is a reduced calibration file of some type.', ext_num=0
+;    sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?"
+;    sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+;  endif else begin
+;  backbone->set_keyword, "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?", ext_num=0
+;  backbone->set_keyword,"ISCALIB", "YES", 'This is a reduced calibration file of some type.', ext_num=0
+;;    sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?"
+;;    sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+;  endelse
 
 
 if fix(Modules[thisModuleIndex].ReuseOutput) eq 0 then begin
    if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
-      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, savedata=[transpose(PSFcenter),spotloc2],saveheader=*(dataset.headers[numfile]))
+      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, savedata=[transpose(PSFcenter),spotloc2])
       if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
     endif 
 

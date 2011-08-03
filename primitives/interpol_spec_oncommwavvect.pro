@@ -40,6 +40,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
    cubef3D=*(dataset.currframe[0])
         
         ;get the common wavelength vector
+         filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
             ;error handle if extractcube not used before
             if ((size(cubef3D))[0] ne 3) || (strlen(filter) eq 0)  then $
             return, error('FAILURE ('+functionName+'): Datacube or filter not defined. Use extractcube module before.')        
@@ -97,18 +98,29 @@ endfor
 
 
 ;create keywords related to the common wavelength vector:
-FXADDPAR, *(dataset.headers)[numfile], 'NAXIS',3, after='BITPIX'
-FXADDPAR, *(dataset.headers)[numfile], 'NAXIS1',nlens, after='NAXIS'
-FXADDPAR, *(dataset.headers)[numfile], 'NAXIS2',nlens, after='NAXIS1'
-FXADDPAR, *(dataset.headers)[numfile], 'NAXIS3',CommonWavVect[2], after='NAXIS2'
+backbone->set_keyword,'NAXIS',3, ext_num=1
+backbone->set_keyword,'NAXIS1',nlens, ext_num=1
+backbone->set_keyword,'NAXIS2',nlens, ext_num=1
+backbone->set_keyword,'NAXIS3',CommonWavVect[2], ext_num=1
 
-FXADDPAR, *(dataset.headers)[numfile], 'CDELT3', (CommonWavVect[1]-CommonWavVect[0])/(CommonWavVect[2]),'wav. increment'
+backbone->set_keyword,'CDELT3',(CommonWavVect[1]-CommonWavVect[0])/(CommonWavVect[2]),'wav. increment', ext_num=1
 ; FIXME this CRPIX3 should probably be **1** in the FORTRAN index convention
-; used in FITS file headers
-FXADDPAR, *(dataset.headers)[numfile], 'CRPIX3', 0.,'pixel coordinate of reference point'
-FXADDPAR, *(dataset.headers)[numfile], 'CRVAL3', CommonWavVect[0]+(CommonWavVect[1]-CommonWavVect[0])/(2.*CommonWavVect[2]),'wav. at reference point'
-FXADDPAR, *(dataset.headers)[numfile], 'CTYPE3','WAVE'
-FXADDPAR, *(dataset.headers)[numfile], 'CUNIT3','microms'
+backbone->set_keyword,'CRPIX3',0.,'pixel coordinate of reference point', ext_num=1
+backbone->set_keyword,'CRVAL3',CommonWavVect[0]+(CommonWavVect[1]-CommonWavVect[0])/(2.*CommonWavVect[2]),'wav. at reference point', ext_num=1
+backbone->set_keyword,'CTYPE3','WAVE', ext_num=1
+backbone->set_keyword,'CUNIT3','microms', ext_num=1
+;FXADDPAR, *(dataset.headers)[numfile], 'NAXIS',3, after='BITPIX'
+;FXADDPAR, *(dataset.headers)[numfile], 'NAXIS1',nlens, after='NAXIS'
+;FXADDPAR, *(dataset.headers)[numfile], 'NAXIS2',nlens, after='NAXIS1'
+;FXADDPAR, *(dataset.headers)[numfile], 'NAXIS3',CommonWavVect[2], after='NAXIS2'
+;
+;FXADDPAR, *(dataset.headers)[numfile], 'CDELT3', (CommonWavVect[1]-CommonWavVect[0])/(CommonWavVect[2]),'wav. increment'
+;; FIXME this CRPIX3 should probably be **1** in the FORTRAN index convention
+;; used in FITS file headers
+;FXADDPAR, *(dataset.headers)[numfile], 'CRPIX3', 0.,'pixel coordinate of reference point'
+;FXADDPAR, *(dataset.headers)[numfile], 'CRVAL3', CommonWavVect[0]+(CommonWavVect[1]-CommonWavVect[0])/(2.*CommonWavVect[2]),'wav. at reference point'
+;FXADDPAR, *(dataset.headers)[numfile], 'CTYPE3','WAVE'
+;FXADDPAR, *(dataset.headers)[numfile], 'CUNIT3','microms'
 
 ; put the datacube in the dataset.currframe output structure:
 *(dataset.currframe[0])=Result

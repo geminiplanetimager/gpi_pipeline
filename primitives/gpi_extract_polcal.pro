@@ -47,7 +47,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     ;if numext eq 0 then h= *(dataset.headers)[numfile] else h= *(dataset.headersPHU)[numfile]
    ; h=header
     obstype=backbone->get_keyword('OBSTYPE')
-	bandeobs=backbone->get_keyword('FILTER', count=ct)
+	bandeobs=gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
 	mode=backbone->get_keyword('DISPERSR', count=ct)
     ;obstype=SXPAR( h, 'OBSTYPE')
     ;bandeobs=SXPAR( h, 'FILTER', count=ct)
@@ -58,13 +58,13 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     ;if ct eq 0 then disp = sxpar(h,'DISPERSR')
     ;if ct eq 0 then disp = sxpar(h,'FILTER2')
 
-    
-    if strlowcase(mode) ne 'polarimetry' then return, error('FAILURE ('+functionName+'): Invalid input -- a POLARIMETRY mode file is required.') 
-    if(~strmatch(obstype,'*wavecal*',/fold_case)) && (~strmatch(obstype,'*flat*',/fold_case)) then $
-        return, error('FAILURE ('+functionName+'): Invalid input -- The OBSTYPE keyword does not mark this data as a FLAT or WAVECAL image.') 
+
+    if ~strmatch(mode,'*wollaston*',/fold_case)  then return, error('FAILURE ('+functionName+'): Invalid input -- a POLARIMETRY mode file is required.') 
+    if(~strmatch(obstype,'*arc*',/fold_case)) && (~strmatch(obstype,'*flat*',/fold_case)) then $
+        return, error('FAILURE ('+functionName+'): Invalid input -- The OBSTYPE keyword does not mark this data as a FLAT or ARC image.') 
     
 
-    if (size(im))[0] eq 0 then im=readfits(filename,h)
+    ;if (size(im))[0] eq 0 then im=readfits(filename,h)
     szim=size(im)
 
 
@@ -166,7 +166,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 if ( Modules[thisModuleIndex].Save eq 1 ) then begin
 	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=0 ,$
-		   savedata=spotpos, saveheader=h, output_filename=out_filename)
+		   savedata=spotpos,  output_filename=out_filename)
     if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
 
     writefits, out_filename, spotpos_pixels, /append

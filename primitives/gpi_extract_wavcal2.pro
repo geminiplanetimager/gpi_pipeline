@@ -242,7 +242,7 @@ endcase
        
     endif
 
-;;localize first peak ;; this coordiantes depends strongly on data!!
+;;localize first peak ;; these coordinates depend strongly on data!!
 cenx=float(Modules[thisModuleIndex].centrXpos)
 ceny=float(Modules[thisModuleIndex].centrYpos)
 

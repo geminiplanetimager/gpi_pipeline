@@ -42,6 +42,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   cubef3D=*(dataset.currframe[0])
 
        ;get the common wavelength vector
+       filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
             ;error handle if extractcube not used before
             if ((size(cubef3D))[0] ne 3) || (strlen(filter) eq 0)  then $
             return, error('FAILURE ('+functionName+'): Datacube or filter not defined. Use extractcube module before.')        
@@ -52,48 +53,60 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         lambdamax=CommonWavVect[1]
 
 ;hdr= *(dataset.headers)[0]
-if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
+;if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
 
 
 ;stop
 if ( Modules[thisModuleIndex].method eq 1 ) then begin
 ;;; handle the spot locations
 ;;; handle the spot locations
- SPOTWAVE=sxpar( *(dataset.headers[numfile]), 'SPOTWAVE',  COUNT=cc4)
+SPOTWAVE=backbone->get_keyword('SPOTWAVE', count=cc4)  
+ ;SPOTWAVE=sxpar( *(dataset.headers)[numfile], 'SPOTWAVE',  COUNT=cc4)
    if cc4 gt 0 then begin
-    ;check how many spots locations is in the header (2 or 4)
-    void=sxpar( *(dataset.headers[numfile]), 'SPOT4x',  COUNT=cs)
-    if cs eq 1 then spotloc=fltarr(1+4,2) else spotloc=fltarr(1+2,2) ;1+ due for PSF center 
-          spotloc[0,0]=sxpar( *(dataset.headers[numfile]),"PSFCENTX")
-          spotloc[0,1]=sxpar( *(dataset.headers[numfile]),"PSFCENTY")      
+   spotloc=fltarr(5,2) ;1+ due for PSF center 
+          spotloc[0,0]=backbone->get_keyword('PSFCENTX');sxpar( *(dataset.headers[numfile]),"PSFCENTX")
+          spotloc[0,1]=backbone->get_keyword('PSFCENTY');sxpar( *(dataset.headers[numfile]),"PSFCENTY")      
         for ii=1,(size(spotloc))[1]-1 do begin
-          spotloc[ii,0]=sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'x')
-          spotloc[ii,1]=sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'y')
-        endfor      
-   endif else begin
-      SPOTWAVE=lamdamin
-      print, 'NO SPOT LOCATIONS FOUND: assume PSF is centered'
-      print, 'Use hard-coded value for spot locations in function'+functionname
-        cs=0
-       if cs eq 1 then spotloc=fltarr(1+4) else spotloc=fltarr(1+2) ;1+ due for PSF center 
-            spotloc[0,0]=(size(cubef3D))[1]/2
-            spotloc[0,1]=(size(cubef3D))[1]/2  
-            print, 'Assume PSF center is [in pix on datacube slice]', spotloc[0,*] 
-            ;;; if spot location calibration is NOT available, 
-            ;;; enter hereafter the pixel coordinates of satellite images in datacube at the minimum wavelength 
-            ;;; in the format: spotloc=[[PSFcenterX,sat1-x,sat2-x,sat3-x,sat4-x],[PSFcenterY,sat1-y,sat2-y,sat3-y,sat4-y]]
-            ;;; Note that the spot location calibration can be obtained using the CAL-SPEC DRF templates in the DRF GUI.
-            ;;; Note also that the wavelength reference SPOTWAVE for these locations can be different. 
-            case strcompress(filter,/REMOVE_ALL) of
-              'Y':spotloc=[[1.,2.,3.,4.,5.],[10.,11.,12.,13.,14.]]
-              'J':spotloc=[[1.,2.,3.,4.,5.],[10.,11.,12.,13.,14.]]
-              'H':spotloc=[[1.,2.,3.,4.,5.],[10.,11.,12.,13.,14.]]
-              'K1':spotloc=[[1.,2.,3.,4.,5.],[10.,11.,12.,13.,14.]]
-              'K2':spotloc=[[1.,2.,3.,4.,5.],[10.,11.,12.,13.,14.]]
-            endcase
-              for ii=1,(size(spotloc))[1]-1 do $
-              print, 'ASSUME SPOT locations at '+lambdamin+' microms are',spotloc[ii,*]
-    endelse
+          spotloc[ii,0]=backbone->get_keyword("SPOT"+strc(ii)+'x') ;sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'x')
+          spotloc[ii,1]=backbone->get_keyword("SPOT"+strc(ii)+'y') ;sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'y')
+        endfor  
+   endif
+
+; SPOTWAVE=sxpar( *(dataset.headers[numfile]), 'SPOTWAVE',  COUNT=cc4)
+;   if cc4 gt 0 then begin
+;    ;check how many spots locations is in the header (2 or 4)
+;    void=sxpar( *(dataset.headers[numfile]), 'SPOT4x',  COUNT=cs)
+;    if cs eq 1 then spotloc=fltarr(1+4,2) else spotloc=fltarr(1+2,2) ;1+ due for PSF center 
+;          spotloc[0,0]=sxpar( *(dataset.headers[numfile]),"PSFCENTX")
+;          spotloc[0,1]=sxpar( *(dataset.headers[numfile]),"PSFCENTY")      
+;        for ii=1,(size(spotloc))[1]-1 do begin
+;          spotloc[ii,0]=sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'x')
+;          spotloc[ii,1]=sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'y')
+;        endfor      
+;   endif else begin
+;      SPOTWAVE=lamdamin
+;      print, 'NO SPOT LOCATIONS FOUND: assume PSF is centered'
+;      print, 'Use hard-coded value for spot locations in function'+functionname
+;        cs=0
+;       if cs eq 1 then spotloc=fltarr(1+4) else spotloc=fltarr(1+2) ;1+ due for PSF center 
+;            spotloc[0,0]=(size(cubef3D))[1]/2
+;            spotloc[0,1]=(size(cubef3D))[1]/2  
+;            print, 'Assume PSF center is [in pix on datacube slice]', spotloc[0,*] 
+;            ;;; if spot location calibration is NOT available, 
+;            ;;; enter hereafter the pixel coordinates of satellite images in datacube at the minimum wavelength 
+;            ;;; in the format: spotloc=[[PSFcenterX,sat1-x,sat2-x,sat3-x,sat4-x],[PSFcenterY,sat1-y,sat2-y,sat3-y,sat4-y]]
+;            ;;; Note that the spot location calibration can be obtained using the CAL-SPEC DRF templates in the DRF GUI.
+;            ;;; Note also that the wavelength reference SPOTWAVE for these locations can be different. 
+;            case strcompress(filter,/REMOVE_ALL) of
+;              'Y':spotloc=[[1.,2.,3.,4.,5.],[10.,11.,12.,13.,14.]]
+;              'J':spotloc=[[1.,2.,3.,4.,5.],[10.,11.,12.,13.,14.]]
+;              'H':spotloc=[[1.,2.,3.,4.,5.],[10.,11.,12.,13.,14.]]
+;              'K1':spotloc=[[1.,2.,3.,4.,5.],[10.,11.,12.,13.,14.]]
+;              'K2':spotloc=[[1.,2.,3.,4.,5.],[10.,11.,12.,13.,14.]]
+;            endcase
+;              for ii=1,(size(spotloc))[1]-1 do $
+;              print, 'ASSUME SPOT locations at '+lambdamin+' microms are',spotloc[ii,*]
+;    endelse
 
 
     ;;extract photometry of SAT 
@@ -189,7 +202,7 @@ fluxsatmedabs/=almostmax
 ;; comment it for real data, not needed...
 testtelluric=1
 ;if testtelluric eq 1 then test_telluric, lambda, DataSet.OutputFilenames[numfile],fluxsatmedabs
-if testtelluric eq 1 then test_telluric, lambda, sxpar(*(DataSet.Headers[numfile]),'DATAFILE'),fluxsatmedabs
+if testtelluric eq 1 then test_telluric, lambda, sxpar(*(DataSet.HeadersPHU[numfile]),'DATAFILE'),fluxsatmedabs
 
 ;window, 1
 ;plot, lambda,fluxsatmedabs
@@ -198,8 +211,11 @@ if testtelluric eq 1 then test_telluric, lambda, sxpar(*(DataSet.Headers[numfile
 
 if tag_exist( Modules[thisModuleIndex], "Save_telluric_transmission") && ( Modules[thisModuleIndex].Save_telluric_transmission eq 1 ) then begin
    ; Set keywords for outputting files into the Calibrations DB
-  sxaddpar, hdr, "FILETYPE", "Telluric transmission", "What kind of IFS file is this?"
-  sxaddpar, hdr,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'  
+    backbone->set_keyword, "FILETYPE", "Telluric transmission", "What kind of IFS file is this?", ext_num=0
+    backbone->set_keyword,"ISCALIB", "YES", 'This is a reduced calibration file of some type.', ext_num=0
+ 
+;  sxaddpar, hdr, "FILETYPE", "Telluric transmission", "What kind of IFS file is this?"
+;  sxaddpar, hdr,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'  
   suffixtelluric='-tellucal'
       b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffixtelluric,savedata=fluxsatmedabs,saveheader=hdr)
       if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')

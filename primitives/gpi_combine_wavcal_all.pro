@@ -41,7 +41,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 ;		header=*(dataset.headers)[numfile]
 		;filter = strcompress(sxpar( hdr ,'FILTER', count=fcount),/REMOVE_ALL)
 		;if fcount eq 0 then filter = strcompress(sxpar( hdr ,'FILTER1'),/REMOVE_ALL)
-		filter=strc(backbone->get_keyword('FILTER1'))
+		filter=gpi_simplify_keyword_value(strc(backbone->get_keyword('FILTER1')))
 		cwv=get_cwv(filter)
 		CommonWavVect=cwv.CommonWavVect
 		lambda=cwv.lambda
@@ -64,7 +64,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		backbone->set_keyword,'HISTORY', functionname+": combined "+strc(nfiles)+" wavcal files:"
         ;sxaddhist, functionname+": combined "+strc(nfiles)+" wavcal files:", *(dataset.headers[numfile])
         for i=0,nfiles-1 do $ 
-        	backbone->set_keyword,'HISTORY', functionname+":    "+strmid(dataset.filenames[i], 0,strlen(dataset.filenames[i])-5)+suffix+'.fits   '+ sxpar(*dataset.headers[i],'GCALLAMP')
+        	backbone->set_keyword,'HISTORY', functionname+":    "+strmid(dataset.filenames[i], 0,strlen(dataset.filenames[i])-5)+suffix+'.fits   '+ backbone->get_keyword("GCALLAMP");sxpar(*dataset.headers[i],'GCALLAMP')
 
         ;update with the most recent dateobs and timeobs
         dateobs3=dblarr(nfiles)

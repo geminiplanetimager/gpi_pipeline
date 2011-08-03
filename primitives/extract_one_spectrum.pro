@@ -44,8 +44,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
    	T = systime(1)
 
   	main_image_stack=*(dataset.currframe[0])
-        if numext eq 0 then hdr=*(dataset.headers[numfile]) else hdr=*(dataset.headersPHU[numfile])
-        band=strcompress(sxpar( hdr, 'FILTER',  COUNT=cc),/rem)
+        ;if numext eq 0 then hdr=*(dataset.headers[numfile]) else hdr=*(dataset.headersPHU[numfile])
+        band = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
+        ;band=strcompress(sxpar( hdr, 'FILTER',  COUNT=cc),/rem)
         if cc eq 1 then begin
           cwv=get_cwv(band)
           CommonWavVect=cwv.CommonWavVect
@@ -108,14 +109,16 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         else xlam=(indgen((size(main_image_stack))[3]))[indf]
 
       ps_figure = Modules[thisModuleIndex].ps_figure 
-      calunits=sxpar( *(dataset.headers[numfile]), 'CUNIT',  COUNT=cc)
-      ifsunits=sxpar( *(dataset.headers[numfile]), 'IFSUNIT',  COUNT=ci)
+;      calunits=sxpar( *(dataset.headers[numfile]), 'CUNIT',  COUNT=cc)
+;      ifsunits=sxpar( *(dataset.headers[numfile]), 'BUNIT',  COUNT=ci)
+      calunits=backbone->get_keyword('CUNIT', count=cc)
+      ifsunits=backbone->get_keyword('BUNIT', count=ci)
       units='counts/s'
       if ci eq 1 then units=ifsunits 
       if cc eq 1 then units=calunits 
 
       s_Ext='-spectrum_x'+Modules[thisModuleIndex].xcenter+'_y'+Modules[thisModuleIndex].ycenter
-     filnm=sxpar(hdr,'DATAFILE')
+     filnm==backbone->get_keyword('DATAFILE') ;sxpar(hdr,'DATAFILE')
      slash=strpos(filnm,path_sep(),/reverse_search)
      psFilename = Modules[thisModuleIndex].OutputDir+'fig'+path_sep()+strmid(filnm, slash,strlen(filnm)-5-slash)+s_Ext+'.ps'
 
@@ -169,15 +172,17 @@ if (ps_figure gt 0)  then begin
 endif 
 suffix+='-spec'
 
-hdr=*(dataset.headers[numfile])
+;hdr=*(dataset.headers[numfile])
 
 	thisModuleIndex = Backbone->GetCurrentModuleIndex()
     if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
 		  if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0
 		  wav_spec=[[lambda],[p1d],[phot_comp]] 
-		    sxaddpar, hdr, "SPECCENX", Modules[thisModuleIndex].xcenter, "x-locations in pixel on datacube where extraction has been made"
-        sxaddpar, hdr, "SPECCENY", Modules[thisModuleIndex].ycenter, 'y-locations in pixel on datacube where extraction has been made'  
-    	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix ,savedata=wav_spec, saveheader=hdr,display=display)
+;		    sxaddpar, hdr, "SPECCENX", Modules[thisModuleIndex].xcenter, "x-locations in pixel on datacube where extraction has been made"
+;        sxaddpar, hdr, "SPECCENY", Modules[thisModuleIndex].ycenter, 'y-locations in pixel on datacube where extraction has been made'
+    backbone->set_keyword,"SPECCENX", Modules[thisModuleIndex].xcenter, "x-locations in pixel on datacube where extraction has been made",ext_num=1
+    backbone->set_keyword,"SPECCENY", Modules[thisModuleIndex].ycenter, 'y-locations in pixel on datacube where extraction has been made',ext_num=1
+    	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix ,savedata=wav_spec, display=display) ;saveheader=hdr,
     	if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
     endif else begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $

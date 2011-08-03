@@ -42,10 +42,9 @@ calfiletype='Gridratio'
 
   	cubef3D=*(dataset.currframe[0])
   	;if numext eq 0 then hdr= *(dataset.headers)[numfile] else 
-	hdr= *(dataset.headersPHU)[numfile]
+	;hdr= *(dataset.headersPHU)[numfile]
   	;filter=strcompress(SXPAR( hdr, 'FILTER',count=cc), /rem)
-	filter = backbone->get_keyword('FILTER')
-	filter = strc(filter)
+       filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
   	;if cc eq 0 then filter=SXPAR( hdr, 'FILTER1',cc)
         ;get the common wavelength vector
             ;error handle if extractcube not used before
@@ -57,13 +56,13 @@ calfiletype='Gridratio'
     lambdamin=CommonWavVect[0]
     lambdamax=CommonWavVect[1]
 
-    fits_info, c_File, /silent, N_ext=n_ext
-    if n_ext eq 0 then  $
-    pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headerphot, /SILENT)) else $
-    pmd_fluxcalFrame        = ptr_new(mrdfits(c_File, 1, Headerphot, /SILENT)) 
-    ;pmd_fluxcalFrame        = ptr_new(gpi_readfits(c_File, Headerphot)) 
-    lambda_gridratio=*pmd_fluxcalFrame
-
+;    fits_info, c_File, /silent, N_ext=n_ext
+;    if n_ext eq 0 then  $
+;    pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headerphot, /SILENT)) else $
+;    pmd_fluxcalFrame        = ptr_new(mrdfits(c_File, 1, Headerphot, /SILENT)) 
+;    ;pmd_fluxcalFrame        = ptr_new(gpi_readfits(c_File, Headerphot)) 
+;    lambda_gridratio=*pmd_fluxcalFrame
+    lambda_gridratio = gpi_readfits(c_File,header=Headerphot)
 	
 
 
@@ -177,17 +176,17 @@ calfiletype='Gridratio'
    spect=strcompress(backbone->get_keyword( 'SPECTYPE'),/rem)
    Dtel=double(backbone->get_keyword( 'TELDIAM'))
    Obscentral=double(backbone->get_keyword( 'SECDIAM'))
-   exposuretime=double(backbone->get_keyword( 'EXPTIME')) ;TODO use ITIME instead
+   exposuretime=double(backbone->get_keyword( 'ITIME')) ;TODO use ITIME instead
    ;BE SURE THAT EXPTIME IS IN SECONDS
-   filter=backbone->get_keyword( 'FILTER')
+   ;filter=backbone->get_keyword( 'FILTER')
    nlambda=n_elements(lambda)
    widthL=(lambdamax-lambdamin)
    SURFA=!PI*(Dtel^2.)/4.-!PI*((Obscentral)^2.)/4.
    gaindetector=1. ;1.1 ;from ph to count: IS IT IN THE KEYWORD LIST?
-   ifsunits=strcompress(backbone->get_keyword( 'IFSUNITS'),/rem)
+   ifsunits=strcompress(backbone->get_keyword( 'BUNIT'),/rem)
 
 ;; normalize by n_elements(lambdapsf) because widthL is the width of the entire band here
-   nbphotnormtheo=nbphot_juststar*float(n_elements(lambdapsf))/(SURFA*widthL*1.e3*exposuretime) ;photons to [photons/s/nm/m^2]
+   nbphotnormtheo=nbphot_juststar*float(n_elements(lambdapsf))/(SURFA*widthL*exposuretime) ;photons to [photons/s/nm/m^2]
 	nbphotnormtheosmoothed=nbphotnormtheo
 ;;smooth to the resolution of the spectrograph:
 ;case strcompress(filter,/REMOVE_ALL) of
@@ -239,20 +238,23 @@ print, 'convfac*exptime=',convfac*(exposuretime)
   ;convfac_header=*(dataset.headers[numfile]) else $
   convfac_header=*(dataset.headersPHU[numfile])
   filetype='Fluxconv' 
-  sxaddpar, convfac_header,  "FILETYPE", filetype, "What kind of IFS file is this?"
-  sxaddpar, convfac_header,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+    backbone->set_keyword, "FILETYPE", filetype, "What kind of IFS file is this?", ext_num=0
+    backbone->set_keyword,"ISCALIB", "YES", 'This is a reduced calibration file of some type.', ext_num=0
+;   sxaddpar, convfac_header,  "FILETYPE", filetype, "What kind of IFS file is this?"
+;  sxaddpar, convfac_header,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
   save_suffix = strlowcase(strc(filetype)) ; or should the user specify this directly??
-  filnm=sxpar(*(DataSet.HeadersPHU[numfile]),'DATAFILE')
+  ;filnm=sxpar(*(DataSet.HeadersPHU[numfile]),'DATAFILE')
+  filnm=backbone->get_keyword( 'DATAFILE')
   slash=strpos(filnm,path_sep(),/reverse_search)
   s_OutputDir=Modules[thisModuleIndex].OutputDir
     ; test output dir and save the calibration
     if file_test(s_OutputDir,/directory, /write) then begin
     c_File = s_OutputDir+strmid(filnm, slash,strlen(filnm)-5-slash)+save_suffix+'.fits'
     version = gpi_pipeline_version()
-    sxaddpar, saveheader, 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
+    ;sxaddpar, saveheader, 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
     savedata=[[lambda],[convfac]]
   ;  writefits, c_File, savedata, convfac_header
-     b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, save_suffix,savedata=savedata, saveheader=convfac_header)
+     b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, save_suffix,savedata=savedata)  ;, saveheader=convfac_header
       if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
   
     endif else print, "Directory "+s_OutputDir+" does not exist or is not writeable."+ ' CALIB Fluxconv not saved.'
@@ -304,15 +306,18 @@ unitslist = ['Counts', 'Counts/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A
    
 	*(dataset.currframe[0])=cubef3D
 	for i=0,n_elements(convfac)-1 do $
-		FXADDPAR, *(dataset.headersExt)[numfile], 'FSCALE'+strc(i), convfac[i]*(exposuretime) ;fscale to convert from counts to 'ph/s/nm/m^2'
-	FXADDPAR, *(dataset.headersExt)[numfile], 'CUNIT',  unitslist[unitschoice]  
+	backbone->set_keyword, 'FSCALE'+strc(i), convfac[i]*(exposuretime), "scale to convert from counts to 'ph/s/nm/m^2", ext_num=1
+	backbone->set_keyword, 'CUNIT',  unitslist[unitschoice] ,"Data units" ext_num=0
+		;FXADDPAR, *(dataset.headersExt)[numfile], 'FSCALE'+strc(i), convfac[i]*(exposuretime) ;fscale to convert from counts to 'ph/s/nm/m^2'
+	;FXADDPAR, *(dataset.headersExt)[numfile], 'CUNIT',  unitslist[unitschoice]  
 
 	suffix+='-phot'
 ;  sxaddhist, functionname+": applying photometric calib", *(dataset.headers[numfile])
 ;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-  fsxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": applying photometric calib"
-  fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": "+c_File
-
+;  fsxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": applying photometric calib"
+;  fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": "+c_File
+    backbone->set_keyword,'HISTORY',functionname+": applying photometric calib"
+    backbone->set_keyword,'HISTORY',functionname+": "+c_File
 @__end_primitive
 
 

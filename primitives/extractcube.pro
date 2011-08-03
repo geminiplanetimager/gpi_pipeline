@@ -50,9 +50,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
             
             
         ;define the common wavelength vector with te FILTER1 keyword:
-        if numext eq 0 then header=*(dataset.headers)[numfile] else header=*(dataset.headersPHU)[numfile]
-        filter = strcompress(sxpar( header ,'FILTER1', count=fcount),/REMOVE_ALL)
-        if fcount eq 0 then filter = strcompress(sxpar( header ,'FILTER'),/REMOVE_ALL)
+        ;if numext eq 0 then header=*(dataset.headers)[numfile] else header=*(dataset.headersPHU)[numfile]
+        filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
+        ;if fcount eq 0 then filter = strcompress(sxpar( header ,'FILTER'),/REMOVE_ALL)
                     ;error handle if FILTER1 keyword not found
                     if (filter eq '') then $
                     return, error('FAILURE ('+functionName+'): FILTER1 keyword not found.') 

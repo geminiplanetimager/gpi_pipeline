@@ -35,15 +35,15 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   @__start_primitive
 
   header=*(dataset.headers[numfile])
-  mode=backbone->get_keyword('PRISM', count=c)
+  mode=gpi_simplify_keyword_value(backbone->get_keyword('DISPERSR', count=c))
   ;if c eq 0 then mode=SXPAR( header, 'FILTER2', count=c)
 
   ; the return value will be the status flags OK/not_ok from
   ; whichever routine is actually executred...
   case strupcase(strc(mode)) of
-  'SPECTRO':		return, extractcube(dataset, modules, backbone)
-  'POLARIMETRY':	return, extractpol(dataset, modules, backbone)
-  'UNDISPERSED':	return, extractund(dataset, modules, backbone)
+  'PRISM':		return, extractcube(dataset, modules, backbone)
+  'WOLLASTON':	return, extractpol(dataset, modules, backbone)
+  'OPEN':	return, extractund(dataset, modules, backbone)
   else:
   endcase
 

@@ -40,6 +40,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 ;;TOCHECK: is datacube registered?
 
         ;get the common wavelength vector
+        filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
             ;error handle if extractcube not used before
             if ((size(cubef3D))[0] ne 3) || (strlen(filter) eq 0)  then $
             return, error('FAILURE ('+functionName+'): Datacube or filter not defined. Use extractcube module before.')        
@@ -53,7 +54,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 ;hdr= *(dataset.headers)[0]
 
-    if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
+   ; if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
 
 
 ;; set the photometric apertures and parameters
@@ -76,17 +77,18 @@ skyrad = [apr+2.,apr+6.]
 badpix = [-1.,1e6]
 
 ;;; handle the spot locations
- SPOTWAVE=sxpar( *(dataset.headers)[numfile], 'SPOTWAVE',  COUNT=cc4)
+SPOTWAVE=backbone->get_keyword('SPOTWAVE', count=cc4)
+  
+  
+ ;SPOTWAVE=sxpar( *(dataset.headers)[numfile], 'SPOTWAVE',  COUNT=cc4)
    if cc4 gt 0 then begin
-    ;check how many spots locations is in the header (2 or 4)
-    void=sxpar( *(dataset.headers)[numfile], 'SPOT4x',  COUNT=cs)
-    if cs eq 1 then spotloc=fltarr(1+4,2) else spotloc=fltarr(1+2,2) ;1+ due for PSF center 
-          spotloc[0,0]=sxpar( *(dataset.headers)[numfile],"PSFCENTX")
-          spotloc[0,1]=sxpar( *(dataset.headers)[numfile],"PSFCENTY")      
+   spotloc=fltarr(5,2) ;1+ due for PSF center 
+          spotloc[0,0]=backbone->get_keyword('PSFCENTX');sxpar( *(dataset.headers[numfile]),"PSFCENTX")
+          spotloc[0,1]=backbone->get_keyword('PSFCENTY');sxpar( *(dataset.headers[numfile]),"PSFCENTY")      
         for ii=1,(size(spotloc))[1]-1 do begin
-          spotloc[ii,0]=sxpar( *(dataset.headers)[numfile],"SPOT"+strc(ii)+'x')
-          spotloc[ii,1]=sxpar( *(dataset.headers)[numfile],"SPOT"+strc(ii)+'y')
-        endfor      
+          spotloc[ii,0]=backbone->get_keyword("SPOT"+strc(ii)+'x') ;sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'x')
+          spotloc[ii,1]=backbone->get_keyword("SPOT"+strc(ii)+'y') ;sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'y')
+        endfor  
    endif else begin
       SPOTWAVE=lambdamin
       print, 'NO SPOT LOCATIONS FOUND: assume PSF is centered'
@@ -199,17 +201,14 @@ suffix+='-fluxcal'
 
   ; Set keywords for outputting files into the Calibrations DB
   if tests ne 1 then begin
-    if numext eq 0 then begin
-      sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Grid ratio", "What kind of IFS file is this?"
-      sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-    endif else begin
-      sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Grid ratio", "What kind of IFS file is this?"
-      sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-    endelse
+
+  backbone->set_keyword, "FILETYPE", "Grid ratio", "What kind of IFS file is this?", ext_num=0
+  backbone->set_keyword,"ISCALIB", "YES", 'This is a reduced calibration file of some type.', ext_num=0
+    
 	thisModuleIndex = Backbone->GetCurrentModuleIndex()
     if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
 		  if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
-    	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, savedata=lambda_gridratio ,saveheader=*(dataset.headers[numfile]),display=display)
+    	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, savedata=lambda_gridratio ,display=display)
     	if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
     endif else begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $

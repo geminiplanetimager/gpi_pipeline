@@ -39,8 +39,10 @@ calfiletype = 'flat'
         return, error('FAILURE ('+functionName+'): Supplied flat field and data cube files do not have the same dimensions')
 
     ; update FITS header history
-    fxaddpar,*(dataset.headers[numfile]),'HISTORY',functionname+": dividing by flat"
-    fxaddpar,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
+    backbone->set_keyword, "HISTORY", functionname+": dividing by flat"
+    backbone->set_keyword, "HISTORY", functionname+": "+c_File
+;    fxaddpar,*(dataset.headers[numfile]),'HISTORY',functionname+": dividing by flat"
+;    fxaddpar,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
 
     ;not absolutely necessary but avoid divide by Nan or zero
     bordnan=where(~finite(specflat),cc)
