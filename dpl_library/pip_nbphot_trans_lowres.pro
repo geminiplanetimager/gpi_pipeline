@@ -116,15 +116,17 @@ end
 
 function PIP_nbphot_trans_lowres, hdr, lambda, atmostrans=atmostrans, filtertrans=filtertrans
 	;common DST_INPUT
+  common PIP
+  COMMON APP_CONSTANTS
+  
+  magni=double(backbone->get_keyword( 'HMAG'))
+   spect=strcompress(backbone->get_keyword( 'SPECTYPE'),/rem)
+   Dtel=double(backbone->get_keyword( 'TELDIAM'))
+   Obscentral=double(backbone->get_keyword( 'SECDIAM'))
+   exposuretime=double(backbone->get_keyword( 'ITIME')) 
+   ;BE SURE THAT EXPTIME IS IN SECONDS
+   filter=backbone->get_keyword( 'OBSMODE')
 
-	;if obj eq 0 then begin
-		magni=double(SXPAR( hdr, 'Hmag'))
-		spect=strcompress(SXPAR( hdr, 'SPECTYPE'),/rem)
-		print, 'star mag=',magni,' spectype=',spect
-		Dtel=double(SXPAR( hdr, 'TELDIAM'))
-		Obscentral=double(SXPAR( hdr, 'SECDIAM'))
-		exposuretime=double(SXPAR( hdr, 'EXPTIME'))
-		filter=SXPAR( hdr, 'FILTER')
 		nlambda=n_elements(lambda)
 	;endif
 	widthL=(lambda(1)-lambda(0))

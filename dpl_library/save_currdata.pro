@@ -85,6 +85,8 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
   FXADDPAR,  *(dataset.headersPHU[numfile]), "DATAFILE", file_basename(c_File1), "File name"
   FXADDPAR,  *(dataset.headersPHU[numfile]), "DATAPATH", file_dirname(c_File1), "Path of DRP input", before="END"
 	
+	if keyword_set(addexten_qa) || keyword_set(addexten_var) then FXADDPAR,  *(dataset.headersPHU[numfile]),'NEXTEND',1+keyword_set(addexten_var)+keyword_set(addexten_qa)
+	
 	;writefits, c_File1, float(*DataSet.Frames(i)), *DataSet.Headers[i]
 	;writefits, c_File1, float(*DataSet.IntFrames(i)), /APPEND
 	;writefits, c_File1, byte(*DataSet.IntAuxFrames(i)), /APPEND
@@ -129,7 +131,6 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
     	;endelse  
       	DataSet.OutputFilenames[i] = c_File1  
 	endelse
-
   if keyword_set(addexten_qa) then mwrfits, addexten_qa, c_File1
   if keyword_set(addexten_var) then mwrfits, addexten_var, c_File1
   
