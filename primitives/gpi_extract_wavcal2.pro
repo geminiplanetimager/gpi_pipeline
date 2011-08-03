@@ -48,35 +48,35 @@
 ;   2010-08-16 JM: added bad pixel map
 ;   2011-07-14 MP: Reworked FITS keyword handling to provide more informative
 ;         error messages in case of missing or invalid keywords.
+;   2011-08-02 MP: Updated for multi-extension FITS.
 ;-
 
 function gpi_extract_wavcal2,  DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
-   
    im=*(dataset.currframe[0]) 
-    if numext eq 0 then h= *(dataset.headers)[numfile] else h= *(dataset.headersPHU)[numfile]
+    ;if numext eq 0 then h= *(dataset.headers)[numfile] else h= *(dataset.headersPHU)[numfile]
   ; h=*(dataset.headers[numfile])
             ;error handle if image or header not well handled
-            if ((size(im))[0] eq 0) || (n_elements(h) eq 0)  then $
+            if ((size(im))[0] eq 0) then $
             return, error('FAILURE ('+functionName+'): Failed to load data.') 
    
   valid_header=1
   ; error handle missing FITS keywords
-  keywords_to_check = ['OBSTYPE', 'GCALLAMP', 'FILTER', 'INSTRUME']
+  keywords_to_check = ['OBSTYPE', 'GCALLAMP', 'FILTER1', 'INSTRUME']
 
   for i=0L,n_elements(keywords_to_check)-1 do begin
-      val=SXPAR( h, keywords_to_check[i],count=c)
+      val=backbone->get_keyword( keywords_to_check[i],count=c)
     if c eq 0 then begin
-      if keywords_to_check[i] eq 'FILTER' then begin
+      ;if keywords_to_check[i] eq 'FILTER' then begin
         ; for the case of FILTER, also fail back to try FILTER1
-        val=SXPAR( h, 'FILTER1',count=c)
-        if c eq 0 then valid_header=0
-      endif else begin
+        ;val=SXPAR( h, 'FILTER1',count=c)
+        ;if c eq 0 then valid_header=0
+      ;endif else begin
         err=error('FAILURE ('+functionName+'): FITS header keyword '+keywords_to_check[i]+" is missing!")
         valid_header=0
-      endelse
+      ;endelse
     endif
     if strlen(val) eq 0 then begin
       err=error('FAILURE ('+functionName+'): FITS header keyword '+keywords_to_check[i]+" is a null string, which is an invalid value!")
@@ -84,12 +84,13 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     endif
   endfor 
 
-    obstype=SXPAR( h, 'OBSTYPE',count=c1)
-    lamp=SXPAR( h, 'GCALLAMP',count=c2)
+    obstype=backbone->get_keyword( 'OBSTYPE',count=c1)
+    lamp=backbone->get_keyword( 'GCALLAMP',count=c2)
     c3=1&lampshut='ON';lampshut=SXPAR( h, 'GCALSHUT',count=c3) ;will be implemented if necessary
-    bandeobs=SXPAR( h, 'FILTER',count=c4)
-  if c4 eq 0 then bandeobs=SXPAR( h, 'FILTER1',count=c4)
-    instrum=SXPAR( h, 'INSTRUME',count=cinstru)
+    bandeobs=backbone->get_keyword( 'FILTER1',count=c4)
+	if strpos(bandeobs, '_') gt 0 then bandeobs = (strsplit(bandeobs,'_',/extract))[1] ; turn IFSFILT_H_G1213 into just H
+  ;if c4 eq 0 then bandeobs=SXPAR( h, 'FILTER1',count=c4)
+    instrum=backbone->get_keyword( 'INSTRUME',count=cinstru)
     
 ;             ;error handle if keywords are missing
 ;            if (c1 eq 0) || (c2 eq 0) || (c3 eq 0)|| (c4 eq 0) || $
@@ -130,11 +131,11 @@ hh=1. ;define sidelength (2hh+1 by 2hh+1 ) of box for centroid intensity detecti
 
 case strcompress(bandeobs,/REMOVE_ALL) of
   'Y':begin
-      if strmatch(lamp,'*Xenon*',/fold) then begin
+      if strmatch(lamp,'*Xe*',/fold) then begin
         if (cinstru eq 1) && strmatch(instrum,'*DST*') then  peakwavelen=[[1.084]] else $ ;peakwavelen=[[1.084],[1.17455]]-0.03 else $ ;
           peakwavelen=[[1.084],[1.17454]]
       endif
-      if strmatch(lamp,'*Argon*',/fold) then begin
+      if strmatch(lamp,'*Ar*',/fold) then begin
         if (cinstru eq 1) && strmatch(instrum,'*DST*') then peakwavelen=[[1.07],[1.14]] else $;peakwavelen=[[1.0676]] else $
           peakwavelen=[[1.0676],[1.1445]]
         endif
@@ -148,8 +149,8 @@ case strcompress(bandeobs,/REMOVE_ALL) of
         endelse
     end
   'J':begin
-      if strmatch(lamp,'*Xenon*',/fold) then peakwavelen=[[1.175],[1.263]] ;take into account secondary peak[[1.175],[1.263]]
-      if strmatch(lamp,'*Argon*',/fold) then peakwavelen=[[1.246],[1.296]]
+      if strmatch(lamp,'*Xe*',/fold) then peakwavelen=[[1.175],[1.263]] ;take into account secondary peak[[1.175],[1.263]]
+      if strmatch(lamp,'*Ar*',/fold) then peakwavelen=[[1.246],[1.296]]
       if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.15],[1.33]] ;[[1.12],[1.35]]
       if (cinstru eq 1) && strmatch(instrum,'*DST*') then begin
         specpixlength= 15. ;spec pix length for rough estimation of peak positions
@@ -160,23 +161,23 @@ case strcompress(bandeobs,/REMOVE_ALL) of
         endelse
     end
   'H':begin
-      if strmatch(lamp,'*Xenon*',/fold) then peakwavelen=[[1.542],[1.605],[1.6732],[1.733]]
-      if strmatch(lamp,'*Argon*',/fold) then peakwavelen=[[1.50506],[1.695],[1.79196]] ;[[1.695]] ;[[1.50506],[1.695],[1.79196]]
+      if strmatch(lamp,'*Xe*',/fold) then peakwavelen=[[1.542],[1.605],[1.6732],[1.733]]
+      if strmatch(lamp,'*Ar*',/fold) then peakwavelen=[[1.50506],[1.695],[1.79196]] ;[[1.695]] ;[[1.50506],[1.695],[1.79196]]
       if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.5],[1.8]]
       if strmatch(lamp,'*laser*',/fold) then peakwavelen=[[1.55]]
       specpixlength=20. ;17. ;spec pix length for rough estimation of peak positions
       bandwidth=0.3 ;bandwidth in microns
     end
   'K1':begin
-      if strmatch(lamp,'*Xenon*',/fold) then peakwavelen=[[2.02678],[2.14759]]
-      if strmatch(lamp,'*Argon*',/fold) then peakwavelen=[[1.997],[2.06],[2.099],[2.154]]
+      if strmatch(lamp,'*Xe*',/fold) then peakwavelen=[[2.02678],[2.14759]]
+      if strmatch(lamp,'*Ar*',/fold) then peakwavelen=[[1.997],[2.06],[2.099],[2.154]]
       if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.9],[2.19]]
       specpixlength=20. ;spec pix length for rough estimation of peak positions
       bandwidth=0.3 ;bandwidth in microns
     end
   'K2':begin
-      if strmatch(lamp,'*Xenon*',/fold) then peakwavelen=[[2.14759],[2.31996]]
-      if strmatch(lamp,'*Argon*',/fold) then peakwavelen=[[2.154],[2.2],[2.314],[2.397]]
+      if strmatch(lamp,'*Xe*',/fold) then peakwavelen=[[2.14759],[2.31996]]
+      if strmatch(lamp,'*Ar*',/fold) then peakwavelen=[[2.154],[2.2],[2.314],[2.397]]
       if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[2.13],[2.4]]
       specpixlength=20. ;spec pix length for rough estimation of peak positions
       bandwidth=0.27  ;bandwidth in microns
@@ -189,24 +190,24 @@ endcase
 
               case strcompress(bandeobs,/REMOVE_ALL) of
             'Y':begin
-                if strmatch(lamp,'*Xenon*',/fold) then relativethresh=0.35
-                if strmatch(lamp,'*Argon*',/fold) then relativethresh=0.5
+                if strmatch(lamp,'*Xe*',/fold) then relativethresh=0.35
+                if strmatch(lamp,'*Ar*',/fold) then relativethresh=0.5
               end
             'J':begin
-                if strmatch(lamp,'*Xenon*',/fold) then relativethresh=0.05
-                if strmatch(lamp,'*Argon*',/fold) then relativethresh=0.5
+                if strmatch(lamp,'*Xe*',/fold) then relativethresh=0.05
+                if strmatch(lamp,'*Ar*',/fold) then relativethresh=0.5
               end
             'H':begin
-                if strmatch(lamp,'*Xenon*',/fold) then relativethresh=0.2
-                if strmatch(lamp,'*Argon*',/fold) then relativethresh=0.5
+                if strmatch(lamp,'*Xe*',/fold) then relativethresh=0.2
+                if strmatch(lamp,'*Ar*',/fold) then relativethresh=0.5
               end
             'K1':begin
-                if strmatch(lamp,'*Xenon*',/fold) then relativethresh=0.2
-                if strmatch(lamp,'*Argon*',/fold) then relativethresh=0.5
+                if strmatch(lamp,'*Xe*',/fold) then relativethresh=0.2
+                if strmatch(lamp,'*Ar*',/fold) then relativethresh=0.5
               end
             'K2':begin
-                if strmatch(lamp,'*Xenon*',/fold) then relativethresh=0.2
-                if strmatch(lamp,'*Argon*',/fold) then relativethresh=0.43
+                if strmatch(lamp,'*Xe*',/fold) then relativethresh=0.2
+                if strmatch(lamp,'*Ar*',/fold) then relativethresh=0.43
               end
           endcase
           if   ~(strmatch(obstype,'*flat*',/fold)) then begin
@@ -236,7 +237,7 @@ endcase
            endif
            wavstr=''
            for st=0,n_elements(peakwavelen)-1 do wavstr+=strcompress(string(peakwavelen[st]),/rem)+'/'
-           sxaddpar, h, "TESTWAV", wavstr, 'wav of detected peaks'
+           backbone->set_keyword, "TESTWAV", wavstr, 'wav of detected peaks', ext_num=0
            ;stop
        
     endif
@@ -370,19 +371,24 @@ fname=strmid(filename,0,STRLEN(filename)-6)+suffix+'.fits'
 
 
 ;if (nlens mod 2) eq 1 then specpos=specpos[0:nlens-2,0:nlens-2,*]
-sxaddpar, h, "FILETYPE", "Wavelength Solution Cal File", /savecomment
-sxaddpar, h, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+backbone->set_keyword, "FILETYPE", "Wavelength Solution Cal File"
+backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
 
-sxaddhist, " ",/blank, h
-sxaddhist, " Wavelength solution File Format:",  h
-sxaddhist, " Dispersion for each spectrum is defined as ",h
-sxaddhist, " lambda=w3*(sqrt((x-x0)^2+(y-y0)^2))+lambda0",h
-sxaddhist, "    Slice 1:  x-positions (x0) of spectra (x:spectral direction) at [lambda0]",  h
-sxaddhist, "    Slice 2:  y-positions (y0) of spectra at [lambda0]",  h
-sxaddhist, "    Slice 3:  lambda0 [um]",  h
-sxaddhist, "    Slice 4:   w3 [um/pixel]",  h
-sxaddhist, "    Slice 5:   tilts of spectra [rad]",  h
-sxaddhist, " ",/blank, h
+;backbone->set_keyword, "NAXIS", 3;,/blank
+;backbone->set_keyword, "NAXIS3", 5;,/blank ;;for some reason this does not work??! error about NAXIS2 is missing which is false
+sxaddpar,*dataset.headersExt[numfile],'NAXIS',3
+sxaddpar,*dataset.headersExt[numfile],'NAXIS3',5,after='NAXIS2'
+
+backbone->set_keyword, "HISTORY", " ";,/blank
+backbone->set_keyword, "HISTORY", " Wavelength solution File Format:"
+backbone->set_keyword, "HISTORY", " Dispersion for each spectrum is defined as "
+backbone->set_keyword, "HISTORY", " lambda=w3*(sqrt((x-x0)^2+(y-y0)^2))+lambda0"
+backbone->set_keyword, "HISTORY", "    Slice 1:  x-positions (x0) of spectra (x:spectral direction) at [lambda0]"
+backbone->set_keyword, "HISTORY", "    Slice 2:  y-positions (y0) of spectra at [lambda0]"
+backbone->set_keyword, "HISTORY", "    Slice 3:  lambda0 [um]"
+backbone->set_keyword, "HISTORY", "    Slice 4:   w3 [um/pixel]"
+backbone->set_keyword, "HISTORY", "    Slice 5:   tilts of spectra [rad]"
+backbone->set_keyword, "HISTORY", " ";,/blank
 
 
 ;rotate (180deg) the wavcal to have quadrant "aligned" (modulo 26deg) with the image  
@@ -390,7 +396,7 @@ for qq=0,(size(specpos))[3]-1 do specpos[*,*,qq]=rotate(specpos[*,*,qq],2)
 
 *(dataset.currframe[0])=specpos
 ;*(dataset.headers[numfile])=h
-if numext eq 0 then *(dataset.headers)[numfile]=h else *(dataset.headersPHU)[numfile]=h
+;if numext eq 0 then *(dataset.headers)[numfile]=h else *(dataset.headersPHU)[numfile]=h
 
 ;if ( Modules[thisModuleIndex].Save eq 1 ) then begin
 ;       b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix,  savedata=specpos,saveheader=h)
@@ -405,7 +411,7 @@ writefits, strmid(output_filename, 0,strlen(output_filename)-5)+'testdis2'+'.fit
 
     if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
-      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display,savedata=specpos,saveheader=h,output_filename=output_filename)
+      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display,savedata=specpos,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile] ,output_filename=output_filename)
       if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
       if tag_exist( Modules[thisModuleIndex], "gpitvim_dispgrid") && ( fix(Modules[thisModuleIndex].gpitvim_dispgrid) ne 0 ) then $
            if strcmp(obstype,'flat',4,/fold) then im=im0

@@ -743,15 +743,15 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
 		;*(*self.data).HeadersExt[IndexFrame] = header
 		;fxaddpar,  *(*self.data).HeadersExt[IndexFrame],'HISTORY', 'Input image has no extensions, so primary header copied to 1st extension'
 		mkhdr,hdrext,*((*self.data).currframe)
-		sxaddpar,hdrext,"XTENSION","SCI","Image extension",before="SIMPLE"
-    sxaddpar,hdrext,"EXTNAME","SCI","Image extension",before="SIMPLE"
-    sxaddpar,hdrext,"EXTVER",1,"Number assigned to FITS extension",before="SIMPLE"
-    ;add blank wcs keyword in extension (mandatory for all gemini data)
-    wcskeytab=["CTYPE1","CD1_1","CD1_2","CD2_1","CD2_2","CDELT1","CDELT2",$
-      "CRPIX1","CRPIX2","CRVAL1","CRVAL2","CRVAL3","CTYPE1","CTYPE2"]
-    for iwcs=0,n_elements(wcskeytab)-1 do $
-    sxaddpar,hdrext,wcskeytab[iwcs],'','',before="END"
-    *(*self.data).HeadersExt[IndexFrame] = hdrext
+		sxaddpar,hdrext,"XTENSION","IMAGE","Image extension",before="SIMPLE"
+		sxaddpar,hdrext,"EXTNAME","SCI","Image extension contains science data",before="SIMPLE"
+		sxaddpar,hdrext,"EXTVER",1,"Number assigned to FITS extension",before="SIMPLE"
+		;add blank wcs keyword in extension (mandatory for all gemini data)
+		wcskeytab=["CTYPE1","CD1_1","CD1_2","CD2_1","CD2_2","CDELT1","CDELT2",$
+		  "CRPIX1","CRPIX2","CRVAL1","CRVAL2","CRVAL3","CTYPE1","CTYPE2"]
+		for iwcs=0,n_elements(wcskeytab)-1 do $
+		sxaddpar,hdrext,wcskeytab[iwcs],'','',before="END"
+		*(*self.data).HeadersExt[IndexFrame] = hdrext
     endif
     if (numext ge 1) then begin
 		; at least one extension is present:  Read the 1st extention image into
@@ -761,15 +761,28 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
 		pri_header = headfits(filename, exten=0)
 		*(*self.data).HeadersExt[IndexFrame] = ext_header
     endif        
-    
-        SXDELPAR, *(*self.data).HeadersPHU[IndexFrame], 'END'
-    *(*self.data).HeadersPHU[IndexFrame]=[pri_header,*(*self.data).HeadersPHU[IndexFrame], 'END            ']
-    
+
     if n_elements( *((*self.data).currframe) ) eq 1 then if *((*self.data).currframe) eq -1 then begin
         self->Log, "ERROR: Unable to read file "+filename, /GENERAL, /DRF
         self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
         return,NOT_OK 
     endif
+   
+    ;--- update the headers: append the DRF onto the actual FITS header
+    ;  At this point the *(*self.data).HeadersPHU[IndexFrame] variable contains
+    ;  ONLY the DRF appended in FITS header COMMENT form. 
+    ;  Append this onto the REAL fits header we just read in from disk.
+    ;
+	
+    SXDELPAR, *(*self.data).HeadersPHU[IndexFrame], '' ;remove blanks
+    SXDELPAR, *(*self.data).HeadersPHU[IndexFrame], 'END'
+    SXDELPAR, pri_header, 'END'
+    *(*self.data).HeadersPHU[IndexFrame]=[pri_header,*(*self.data).HeadersPHU[IndexFrame], 'END            ']
+    ; ***WARNING***   don't use SXADDPAR for 'END', it gets the syntax wrong
+    ; and breaks pyfits. i.e. do not try this following line. The above one
+    ; is required. 
+    ;SXADDPAR, *(*self.data).HeadersExt[IndexFrame], "END",''        
+    
     
     if (numext EQ 0) then begin
           fxaddpar, *(*self.data).HeadersPHU[IndexFrame], 'EXTEND', 'T', 'FITS file contains extensions' ; these are required in any FITS with extensions
@@ -794,12 +807,7 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
         sxdelpar, *(*self.data).HeadersPHU[IndexFrame], obsolete_keywords[i]
     	endfor 
    endif
-    ;--- update the headers: append the DRF onto the actual FITS header
-    ;  At this point the *(*self.data).HeadersPHU[IndexFrame] variable contains
-    ;  ONLY the DRF appended in FITS header COMMENT form. 
-    ;  Append this onto the REAL fits header we just read in from disk.
-    ;
-	;
+;
 	;
     ;if (numext GT 0) then begin
         ;header=[headPHU,header]
@@ -813,12 +821,12 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
       newval_disp=''
       if strmatch(val_disp, '*Spectr*') then newval_disp='DISP_PRISM_G6262' 
       if strmatch(val_disp, '*Pol*') then newval_disp='DISP_WOLLASTON_G6261'
-      if strlen(newval_disp) gt 0 then self->set_keyword, 'DISPERSR', newval_disp,  indexFrame=indexFrame,extnum=0
+      if strlen(newval_disp) gt 0 then self->set_keyword, 'DISPERSR', newval_disp,  indexFrame=indexFrame,ext_num=0
       ;;add POLARIZ & WPSTATE keywords
-      if strmatch(val_disp, '*Pol*') then self->set_keyword, 'POLARIZ', 'DEPLOYED',  indexFrame=indexFrame,extnum=0 $
-                                    else self->set_keyword, 'POLARIZ', 'EXTRACTED',  indexFrame=indexFrame,extnum=0 
-      if strmatch(val_disp, '*Pol*') then self->set_keyword, 'WPSTATE', 'IN',  indexFrame=indexFrame,extnum=0 $
-                                    else self->set_keyword, 'WPSTATE', 'OUT',  indexFrame=indexFrame,extnum=0       
+      if strmatch(val_disp, '*Pol*') then self->set_keyword, 'POLARIZ', 'DEPLOYED',  indexFrame=indexFrame,ext_num=0 $
+                                    else self->set_keyword, 'POLARIZ', 'EXTRACTED',  indexFrame=indexFrame,ext_num=0 
+      if strmatch(val_disp, '*Pol*') then self->set_keyword, 'WPSTATE', 'IN',  indexFrame=indexFrame,ext_num=0 $
+                                    else self->set_keyword, 'WPSTATE', 'OUT',  indexFrame=indexFrame,ext_num=0       
       ;;change FILTER1 value according to GPI new conventions
       val_old = self->get_keyword('FILTER1', count=count, indexFrame=indexFrame,/silent)
       newval=''
@@ -826,16 +834,16 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
       newtabfilt=['IFSFILT_Y_G1211','IFSFILT_J_G1212','IFSFILT_H_G1213','IFSFILT_K1_G1214','IFSFILT_K2_G1215']
       indc=where(strmatch(tabfiltold,strcompress(val_old,/rem)))
       if indc ge 0 then newval=(newtabfilt[indc])[0]
-      if strlen(newval) gt 0 then self->set_keyword, 'FILTER1', newval,  indexFrame=indexFrame,extnum=0
+      if strlen(newval) gt 0 then self->set_keyword, 'FILTER1', newval,  indexFrame=indexFrame,ext_num=0
       ;add OBSMODE keyword
-      if strlen(val_old) gt 0 then self->set_keyword, 'OBSMODE', val_old,  indexFrame=indexFrame,extnum=0
+      if strlen(val_old) gt 0 then self->set_keyword, 'OBSMODE', val_old,  indexFrame=indexFrame,ext_num=0
       ;add ABORTED keyword
-      self->set_keyword, 'ABORTED', 'F',  indexFrame=indexFrame,extnum=1
+      self->set_keyword, 'ABORTED', 'F',  indexFrame=indexFrame,ext_num=1
       ;change BUNIT value
-      self->set_keyword, 'BUNIT', 'Counts/seconds/coadd',  indexFrame=indexFrame,extnum=1
+      self->set_keyword, 'BUNIT', 'Counts/seconds/coadd',  indexFrame=indexFrame,ext_num=1
       sxdelpar, *(*self.data).HeadersPHU[IndexFrame], 'BUNIT'
       ;add DATASEC keyword
-      self->set_keyword, 'DATASEC', '[1:2048,1:2048]',  indexFrame=indexFrame,extnum=1
+      self->set_keyword, 'DATASEC', '[1:2048,1:2048]',  indexFrame=indexFrame,ext_num=1
       ;change ITIME,EXPTIME,ITIME0,TRUITIME: 
       ;BE EXTREMLY CAREFUL with change of units
       ;;old itime[millisec], old exptime[in sec]
@@ -845,50 +853,40 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
       sxdelpar, *(*self.data).HeadersPHU[IndexFrame], 'ITIME'
       sxdelpar, *(*self.data).HeadersPHU[IndexFrame], 'EXPTIME'
       sxdelpar, *(*self.data).HeadersPHU[IndexFrame], 'TRUITIME'
-      self->set_keyword, 'ITIME', val_old_exptime,  indexFrame=indexFrame,comment='Exposure integration time in seconds per coadd',extnum=1
-      self->set_keyword, 'ITIME0', long(1.e3*val_old_itime),  indexFrame=indexFrame,comment='Requested integration time in microseconds per coadd',extnum=1
+      self->set_keyword, 'ITIME', val_old_exptime,  indexFrame=indexFrame,comment='Exposure integration time in seconds per coadd',ext_num=1
+      self->set_keyword, 'ITIME0', long(1.e3*val_old_itime),  indexFrame=indexFrame,comment='Requested integration time in microseconds per coadd',ext_num=1
       ;;add UTSTART
       val_timeobs = self->get_keyword('TIME-OBS', count=count, indexFrame=indexFrame,/silent)
-      self->set_keyword, 'UTSTART', val_timeobs,  indexFrame=indexFrame,comment='UT at observation start',extnum=0
+      self->set_keyword, 'UTSTART', val_timeobs,  indexFrame=indexFrame,comment='UT at observation start',ext_num=0
       ;;change GCALLAMP values      
       val_lamp = self->get_keyword('GCALLAMP', count=count, indexFrame=indexFrame,/silent)
       newlamp=''
-      if strmatch(val_lamp,'*Xenon*') then newlamp='Xe'
-      if strmatch(val_lamp,'*Argon*') then newlamp='Ar'
-      if strlen(newlamp) gt 0 then self->set_keyword, 'GCALLAMP', newlamp,  indexFrame=indexFrame,extnum=0
+      if strmatch(val_lamp,'*Xenon*',/fold) then newlamp='Xe'
+      if strmatch(val_lamp,'*Argon*',/fold) then newlamp='Ar'
+      if strlen(newlamp) gt 0 then self->set_keyword, 'GCALLAMP', newlamp,  indexFrame=indexFrame,ext_num=0
       ;;change OBSTYPE ("wavecal" to "ARC" value)
       val_obs = self->get_keyword('OBSTYPE', count=count, indexFrame=indexFrame,/silent)
       newobs=''
-      if strmatch(val_obs,'*Wavecal*') then newobs='ARC'
-      if strlen(newlamp) gt 0 then self->set_keyword, 'OBSTYPE', newobs,  indexFrame=indexFrame,extnum=0
+      if strmatch(val_obs,'*Wavecal*',/fold) then newobs='ARC'
+      if strlen(newlamp) gt 0 then self->set_keyword, 'OBSTYPE', newobs,  indexFrame=indexFrame,ext_num=0
       ;add ASTROMTC keyword
       val_old = self->get_keyword('OBSCLASS', count=count, indexFrame=indexFrame,/silent)
-      if strmatch(val_old, '*AstromSTD*') then astromvalue='TRUE' else astromvalue='FALSE'
-      self->set_keyword, 'ASTROMTC', astromvalue, comment='Is it a Astrometric standard?', indexFrame=indexFrame,extnum=0
+      if strmatch(val_old, '*AstromSTD*',/fold) then astromvalue='TRUE' else astromvalue='FALSE'
+      self->set_keyword, 'ASTROMTC', astromvalue, comment='Is it an Astrometric standard?', indexFrame=indexFrame,ext_num=0
       
       ;;set the reserved OBSCLASS keyword
-       self->set_keyword, 'OBSCLASS', 'acq',  indexFrame=indexFrame,extnum=0
+       self->set_keyword, 'OBSCLASS', 'acq',  indexFrame=indexFrame,ext_num=0
        ;;add the INPORT keyword
        val_port = self->get_keyword('ISS_PORT', count=count, indexFrame=indexFrame,/silent)
        newport=0
       if strmatch(val_port,'*bottom*') then newport=1
       if strmatch(val_port,'*side*') then newport=2
-      if newport gt 0 then self->set_keyword, 'INPORT', newport,  indexFrame=indexFrame,extnum=0
+      if newport gt 0 then self->set_keyword, 'INPORT', newport,  indexFrame=indexFrame,ext_num=0
       sxdelpar, *(*self.data).HeadersPHU[IndexFrame], 'ISS_PORT'
     endif
     FXADDPAR, *(*self.data).HeadersPHU[IndexFrame], "DATAFILE", file_basename(filename), "File name", before="END"
     FXADDPAR, *(*self.data).HeadersPHU[IndexFrame], "DATAPATH", file_dirname(filename), "Original path of DRP input", before="END"
-
-   ; SXDELPAR, pri_header, 'END'
-   ; *(*self.data).HeadersPHU[IndexFrame]=[pri_header,*(*self.data).HeadersPHU[IndexFrame], 'END            ']
-        SXDELPAR, *(*self.data).HeadersPHU[IndexFrame], '' ;remove blanks
-        SXDELPAR, *(*self.data).HeadersPHU[IndexFrame], 'END'
-    *(*self.data).HeadersPHU[IndexFrame]=[*(*self.data).HeadersPHU[IndexFrame], 'END            ']
-    ; ***WARNING***   don't use SXADDPAR for 'END', it gets the syntax wrong
-    ; and breaks pyfits. i.e. do not try this following line. The above one
-    ; is required. 
-    ;SXADDPAR, *(*self.data).HeadersExt[IndexFrame], "END",''        
-    
+   
 
     ;---- is the frame from the entire detector or just a subarray?
 	;if numext eq 0 then datasec=SXPAR( header, 'DATASEC',count=cds) else instrum=SXPAR( headPHU, 'DATASEC',count=cds)

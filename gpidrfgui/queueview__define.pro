@@ -223,7 +223,7 @@ PRO queueview::refresh
 		; check for duplicates
 		wdup = where(curr_file_list eq curr_file_list[i], dupcount)
 		if dupcount gt 1 then begin
-			print, "Duplicate record found - deleting the extra one"
+			message,/info, "Duplicate record found - deleting the extra one"
 			curr_file_list[wdup[1:*]] = ''
 			(*self.currDRFSelec)[0,wdup[1:*]]  = ""
 		endif

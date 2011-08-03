@@ -28,7 +28,7 @@ function gpi_combine_wavcal_all,  DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 	nfiles=dataset.validframecount
-  if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
+  ;if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
 
 	if nfiles gt 1 then begin
 
@@ -39,8 +39,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	  
 	
 ;		header=*(dataset.headers)[numfile]
-		filter = strcompress(sxpar( hdr ,'FILTER', count=fcount),/REMOVE_ALL)
-		if fcount eq 0 then filter = strcompress(sxpar( hdr ,'FILTER1'),/REMOVE_ALL)
+		;filter = strcompress(sxpar( hdr ,'FILTER', count=fcount),/REMOVE_ALL)
+		;if fcount eq 0 then filter = strcompress(sxpar( hdr ,'FILTER1'),/REMOVE_ALL)
+		filter=strc(backbone->get_keyword('FILTER1'))
 		cwv=get_cwv(filter)
 		CommonWavVect=cwv.CommonWavVect
 		lambda=cwv.lambda
@@ -58,31 +59,35 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		*(dataset.currframe[0])=wavcalcomb
 
         basename=findcommonbasename(dataset.filenames[0:nfiles-1])
-        FXADDPAR, *(DataSet.Headers[numfile]), 'DATAFILE', basename+'.fits'
-        sxaddhist, functionname+": combined "+strc(nfiles)+" wavcal files:", *(dataset.headers[numfile])
+        ;FXADDPAR, *(DataSet.Headers[numfile]), 'DATAFILE', basename+'.fits'
+		backbone->set_keyword,'DATAFILE',basename+'.fits'
+		backbone->set_keyword,'HISTORY', functionname+": combined "+strc(nfiles)+" wavcal files:"
+        ;sxaddhist, functionname+": combined "+strc(nfiles)+" wavcal files:", *(dataset.headers[numfile])
         for i=0,nfiles-1 do $ 
-            sxaddhist, functionname+":    "+strmid(dataset.filenames[i], 0,strlen(dataset.filenames[i])-5)+suffix+'.fits   '+$
-                sxpar(*dataset.headers[i],'GCALLAMP'), *(dataset.headers[numfile])
+        	backbone->set_keyword,'HISTORY', functionname+":    "+strmid(dataset.filenames[i], 0,strlen(dataset.filenames[i])-5)+suffix+'.fits   '+ sxpar(*dataset.headers[i],'GCALLAMP')
 
         ;update with the most recent dateobs and timeobs
         dateobs3=dblarr(nfiles)
         for n=0,nfiles-1 do begin
-            dateobs2 =  strc(sxpar(*(DataSet.Headers[n]), "DATE-OBS"))+" "+strc(sxpar(*(DataSet.Headers[n]),"TIME-OBS"))
+            ;dateobs2 =  strc(sxpar(*(DataSet.Headers[n]), "DATE-OBS"))+" "+strc(sxpar(*(DataSet.Headers[n]),"TIME-OBS"))
+            dateobs2 =  strc(backbone->get_keyword("DATE-OBS"))+" "+strc(backbone->get_keyword("TIME-OBS"))
             dateobs3[n] = date_conv(dateobs2, "J")
         endfor
         recent=max(dateobs3,indrecent)
            ;;we add 1second to the last time-obs so the combinaison will the most recent
            dateobscomb=date_conv(dateobs3[indrecent]+1./24./60./60.,'F')
            datetimecomb=strsplit(dateobscomb,'T', /extract)
-           FXADDPAR, *(DataSet.Headers[numfile]), 'DATE-OBS', datetimecomb[0]
-           FXADDPAR, *(DataSet.Headers[numfile]), 'TIME-OBS', datetimecomb[1]
+           ;FXADDPAR, *(DataSet.Headers[numfile]), 'DATE-OBS', datetimecomb[0]
+           ;FXADDPAR, *(DataSet.Headers[numfile]), 'TIME-OBS', datetimecomb[1]
+		   backbone->set_keyword, 'DATE-OBS', datetimecomb[0]
+		   backbone->set_keyword, 'TIME-OBS', datetimecomb[1]
 
 		;suffix+='-comb'
 	endif else begin
-		sxaddhist, functionname+": Only one wavelength calibration supplied; nothing to combine!", hdr ;*(dataset.headers[numfile])
+		  backbone->set_keyword, 'HISTORY',  functionname+": Only one wavelength calibration supplied; nothing to combine!" ;*(dataset.headers[numfile])
 		  backbone->Log, "Only one wavelength calibration supplied; nothing to combine!"
 	endelse
-	     if numext eq 0 then *(dataset.headers)[numfile]=hdr else *(dataset.headersPHU)[numfile] =hdr
+	     ;if numext eq 0 then *(dataset.headers)[numfile]=hdr else *(dataset.headersPHU)[numfile] =hdr
 @__end_primitive
 
 end

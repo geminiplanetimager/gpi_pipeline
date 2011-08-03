@@ -89,7 +89,7 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	;writefits, c_File1, float(*DataSet.IntFrames(i)), /APPEND
 	;writefits, c_File1, byte(*DataSet.IntAuxFrames(i)), /APPEND
 	if ( keyword_set( savedata ) ) then begin 
-	  if ~( keyword_set( saveheader ) ) then saveheader = *(dataset.headers[numfile])
+	  if ~( keyword_set( saveheader ) ) then saveheader = *(dataset.headersExt[numfile])
 	  ;if numext eq 1 then 
 	  if ~( keyword_set( savePHU ) ) then savePHU = *(dataset.headersPHU[numfile])
 		;if numext eq 0 then begin
@@ -102,9 +102,9 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 		;fxaddpar, savePHU, 'EXTEND', 'T', 'FITS file contains extensions'
 		;fxaddpar, savePHU, 'NEXTEND', 1, 'FITS file contains extensions'
 		;writefits, c_File1, 0, savePHU ;*(dataset.headersPHU[numfile])
-		;writefits, c_File1, savedata, saveheader, /append
 		mwrfits, 0, c_File1, savePHU, /create
-		mwrfits, savedata, c_File1, saveheader
+		writefits, c_File1, savedata, saveheader, /append
+		;mwrfits, savedata, c_File1, saveheader
  
 		;endelse
 		curr_hdr = savePHU
