@@ -177,7 +177,7 @@ thisLetter = "155B
 greekLetter = '!9' + String(thisLetter) + '!X'
 print, greekLetter
 units=' W/m^2/'+greekLetter+'m'
-title=strcompress(SXPAR( hdrextr, 'SPECTYPE'),/rem)+' star, Exposure='+strcompress(string(sxpar(header,'EXPTIME')),/rem)+'s, '+Modules[thisModuleIndex].title
+title=strcompress(COMPSPEC,/rem)+' star, Exposure='+strcompress(truitime,/rem)+'s, '+Modules[thisModuleIndex].title
 
 basen=file_basename(res[0])
 basenwoext=strmid(basen,0,strlen(basen)-5)

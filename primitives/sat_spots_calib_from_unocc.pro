@@ -147,7 +147,7 @@ tests=0
               print, 'SPOT locations at ',SPOTWAVE,' microms are',spotloc[ii,*]
 ;;do the photometry of the spots
 intens_sat=fltarr((size(spotloc))[1]-1,CommonWavVect[2])
-sidelen=8
+sidelen=4;8
 for spot=1,(size(spotloc))[1]-1 do begin
   for i=0,CommonWavVect[2]-1 do begin
       ;;extrapolate sat -spot at a given wavelength
@@ -171,7 +171,7 @@ endfor
 ;;unocculted STAR location; ok if it is not perfectly centered (it uses a centroid algo to localize center)
 inputS=dblarr(CommonWavVect[2])
 ;star location
-sidelen=8;20
+sidelen=20;8;20
 getstarpos=centroid(subarr(cubcent2[*,*,0],sidelen,spotloc[0,*]))
 x=spotloc[0,0]-sidelen/2.+getstarpos[0] & y=spotloc[0,1]-sidelen/2.+getstarpos[1]
 for i=0,CommonWavVect[2]-1 do begin

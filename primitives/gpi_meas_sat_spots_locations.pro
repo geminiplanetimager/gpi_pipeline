@@ -99,8 +99,10 @@ endelse
 spotloc=fltarr(nbrspot,2)
 maxaper=fix(Modules[thisModuleIndex].maxaper)
 centroidaper=fix(Modules[thisModuleIndex].centroidaper)
-for ii=0,nbrspot-1 do spotloc[ii,*]=calc_centroid_spots( approx_loc[ii,0],approx_loc[ii,1],cubef3D[*,*,floor(CommonWavVect[2]/2)], maxaper, centroidaper)
 
+for ii=0,nbrspot-1 do spotloc[ii,*]=calc_centroid_spots( approx_loc[ii,0],approx_loc[ii,1],cubef3D[*,*,floor(CommonWavVect[2]/2)], maxaper, centroidaper)
+print, 'spot loc=',spotloc
+stop
 
 spotloc2=fltarr(nbrspot,2)
   ;;replace spots in the tab

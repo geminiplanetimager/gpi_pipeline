@@ -110,7 +110,7 @@ calfiletype='Gridratio'
     phpadu = 1.0                    ; don't convert counts to electrons
     radaper=(lambda[0])
     ;;apr is 2.*lambda/D (EE=94%)
-    apr = 2.5*(lambda[0]*1.e-6/7.7)*(180.*3600./!dpi)/0.014;[radaper];lambda[0]*[3.];lambda[0]*[5.];lambda[0]*[3.] 
+    apr = 2.55*(lambda[0]*1.e-6/7.7)*(180.*3600./!dpi)/0.014;[radaper];lambda[0]*[3.];lambda[0]*[5.];lambda[0]*[3.] 
     if (filter eq 'J')||(filter eq 'Y') then apr-=3.;1. 
     if (filter eq 'K1')||(filter eq 'K2') then apr-=6.  ;dark hole in these bands...
     ; Assume that all pixel values are good data
@@ -308,6 +308,8 @@ unitslist = ['Counts', 'Counts/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A
 	for i=0,n_elements(convfac)-1 do $
 	backbone->set_keyword, 'FSCALE'+strc(i), convfac[i]*(exposuretime), "scale to convert from counts to 'ph/s/nm/m^2", ext_num=1
 	backbone->set_keyword, 'CUNIT',  unitslist[unitschoice] ,"Data units", ext_num=0
+	;update raw IFS units:
+	backbone->set_keyword, 'BUNIT',  unitslist[unitschoice] ,"Data units", ext_num=0
 		;FXADDPAR, *(dataset.headersExt)[numfile], 'FSCALE'+strc(i), convfac[i]*(exposuretime) ;fscale to convert from counts to 'ph/s/nm/m^2'
 	;FXADDPAR, *(dataset.headersExt)[numfile], 'CUNIT',  unitslist[unitschoice]  
 
