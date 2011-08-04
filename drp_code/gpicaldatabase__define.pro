@@ -187,8 +187,11 @@ Function gpicaldatabase::add_new_cal, filename, header=header, nowrite=nowrite
 	endif
 
 	; If FITS header is not already supplied, read it from the disk file
-	if ~(keyword_set(header)) then header = headfits(filename)
-
+	if ~(keyword_set(header)) then begin
+	    fits_info,filename,N_ext=n_ext
+	    if n_ext eq 0 then  header = headfits(filename, /silent)
+	    if n_ext gt 0 then  header = [headfits(filename,exten=0, /silent),headfits(filename,exten=1, /silent)]
+  endif    
 	; 	if not a valid cal then return...
 	;message,/info, "No Validation done currently...."
 	if strupcase(strc(sxpar(header, "ISCALIB"))) ne "YES" then begin
@@ -207,8 +210,10 @@ Function gpicaldatabase::add_new_cal, filename, header=header, nowrite=nowrite
 	newcal.type = sxpar(header, "FILETYPE", count=count)
 	if count ne 1 then message,/info, "Missing keyword: FILETYPE"
 	newcal.filter = gpi_simplify_keyword_value(strc(sxpar(header, "FILTER1", count=count)))
-	if count ne 1 then message,/info, "Missing keyword: FILTER1"
-
+	if count ne 1 then begin 
+	  message,/info, "Missing keyword: FILTER1"
+    newcal.filter = gpi_simplify_keyword_value(strc(sxpar(header, "FILTER", count=count)))
+  endif
 	;newcal.prism= strc(sxpar(header, "PRISM", count=count))
 	;if count ne 1 then begin
 	;  message,/info, "Missing keyword: PRISM"
