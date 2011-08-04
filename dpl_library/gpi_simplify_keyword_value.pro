@@ -18,7 +18,7 @@
 FUNCTION gpi_simplify_keyword_value, value
 
   newvaltab=strsplit(value,'_',/EXTRACT,count=cc)
-  if cc gt 0 then value=newvaltab[1]
+  if cc gt 1 then value=newvaltab[1]
 
 	return, value
 
