@@ -82,8 +82,8 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 
 	if ( keyword_set( filenm ) ) then  c_File1=filenm
 	 ;update DATAFILE & DATAPATH keywords
-  FXADDPAR,  *(dataset.headersPHU[numfile]), "DATAFILE", file_basename(c_File1), "File name"
-  FXADDPAR,  *(dataset.headersPHU[numfile]), "DATAPATH", file_dirname(c_File1), "Path of DRP input", before="END"
+  ;FXADDPAR,  *(dataset.headersPHU[numfile]), "DATAFILE", file_basename(c_File1), "File name"
+  ;FXADDPAR,  *(dataset.headersPHU[numfile]), "DATAPATH", file_dirname(c_File1), "Path of DRP input", before="END"
 	
 	if keyword_set(addexten_qa) || keyword_set(addexten_var) then FXADDPAR,  *(dataset.headersPHU[numfile]),'NEXTEND',1+keyword_set(addexten_var)+keyword_set(addexten_qa)
 	
