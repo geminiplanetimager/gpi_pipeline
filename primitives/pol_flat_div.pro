@@ -30,7 +30,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 calfiletype='flat'
 @__start_primitive
 
-    polflat = readfits(c_File)
+    polflat = gpi_readfits(c_File)
 
     ; error check sizes of arrays, etc. 
     if not array_equal( (size(*(dataset.currframe[0])))[1:3], (size(polflat))[1:3]) then $

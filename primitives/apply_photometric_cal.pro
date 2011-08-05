@@ -236,12 +236,12 @@ print, 'convfac*exptime=',convfac*(exposuretime)
 ;;;save the conversion factor in DB for eventual use with extended object
   ;if numext eq 0 then $
   ;convfac_header=*(dataset.headers[numfile]) else $
-  convfac_header=*(dataset.headersPHU[numfile])
+  convfac_header=[*(dataset.headersPHU[numfile]),*(dataset.headersExt[numfile])]
   filetype='Fluxconv' 
-    backbone->set_keyword, "FILETYPE", filetype, "What kind of IFS file is this?", ext_num=0
-    backbone->set_keyword,"ISCALIB", "YES", 'This is a reduced calibration file of some type.', ext_num=0
-;   sxaddpar, convfac_header,  "FILETYPE", filetype, "What kind of IFS file is this?"
-;  sxaddpar, convfac_header,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+    ;backbone->set_keyword, "FILETYPE", filetype, "What kind of IFS file is this?", ext_num=0
+    ;backbone->set_keyword,"ISCALIB", "YES", 'This is a reduced calibration file of some type.', ext_num=0
+    sxaddpar, convfac_header,  "FILETYPE", filetype, "What kind of IFS file is this?"
+    sxaddpar, convfac_header,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
   save_suffix = strlowcase(strc(filetype)) ; or should the user specify this directly??
   ;filnm=sxpar(*(DataSet.HeadersPHU[numfile]),'DATAFILE')
   filnm=backbone->get_keyword( 'DATAFILE')
@@ -254,7 +254,7 @@ print, 'convfac*exptime=',convfac*(exposuretime)
     ;sxaddpar, saveheader, 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
     savedata=[[lambda],[convfac]]
   ;  writefits, c_File, savedata, convfac_header
-     b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, save_suffix,savedata=savedata)  ;, saveheader=convfac_header
+     b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, save_suffix,savedata=savedata, saveheader=convfac_header)  ;
       if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
   
     endif else print, "Directory "+s_OutputDir+" does not exist or is not writeable."+ ' CALIB Fluxconv not saved.'

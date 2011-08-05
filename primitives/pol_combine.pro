@@ -240,7 +240,7 @@ endif	else begin
   if numext gt 0 then hdr0=hdrext
 	sz = [0, sxpar(hdr0,'NAXIS1'), sxpar(hdr0,'NAXIS2'), sxpar(hdr0,'NAXIS3')]
 	if numext gt 0 then hdr0=hdr
-	exptime = sxpar(hdr0, "EXPTIME")
+	exptime = sxpar(hdr0, "ITIME")
 	polstack = fltarr(sz[1], sz[2], sz[3]*nfiles)
 
 
@@ -256,8 +256,14 @@ endif	else begin
 	stokes2 = stokes
 	wpangle = fltarr(nfiles)		; waveplate angles
 
-	port=strc(sxpar(hdr0,"ISS_PORT", count=pct))
+	portnum=strc(sxpar(hdr0,"INPORT", count=pct))
+
 	if pct eq 0 then port="side"
+	if pct eq 1 then begin
+	    if portnum eq 1 then port='bottom'
+      if (portnum ge 2) && (portnum le 5) then port='side'
+      if portnum eq 6 then port='perfect'
+  endif    
 		print, "using port = "+port
 		sxaddhist, functionname+": using instr pol for port ="+port, hdr
 	system_mueller = DST_instr_pol(/mueller, port=port)
@@ -461,24 +467,24 @@ endif	else begin
 	; store the outputs: this should be the ONLY valid file in the stack now, 
 	; and adjust the # of files!
 ;stop
-if numext eq 0 then begin
- *(dataset.headers[numfile])=hdrim 
- endif else begin
+;if numext eq 0 then begin
+; *(dataset.headers[numfile])=hdrim 
+; endif else begin
   *(dataset.headersPHU[numfile])=hdr
- *(dataset.headers[numfile])=hdrim
-endelse 
+ *(dataset.headersExt[numfile])=hdrim
+;endelse 
 
 	*(dataset.currframe)=Stokes
 	;*(dataset.headers[numfile]) = hdr
 	suffix = "-stokesdc"
 
-	filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
-slash=strpos(filnm,path_sep(),/reverse_search)
-if numext eq 0 then writefits,getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+'diff.fits',Stokes2,hdr
-if numext gt 0 then begin
-  writefits,getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+'diff.fits','',hdrim
-  writefits,getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+'diff.fits',Stokes2,hdrim, /append
-endif  
+;	filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
+;slash=strpos(filnm,path_sep(),/reverse_search)
+;if numext eq 0 then writefits,getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+'diff.fits',Stokes2,hdr
+;if numext gt 0 then begin
+;  writefits,getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+'diff.fits','',hdrim
+;  writefits,getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+'diff.fits',Stokes2,hdrim, /append
+;endif  
 
 	@__end_primitive
 ;;		thisModuleIndex = Backbone->GetCurrentModuleIndex()

@@ -41,8 +41,8 @@ calfiletype='spotloc'
 	backbone->set_keyword, "PSFCENTX", spotloc[0,0], "x-locations of PSF Center"
 	backbone->set_keyword, "PSFCENTY", spotloc[0,1], "y-locations of PSF Center"
 	for ii=1,(size(spotloc))[1]-1 do begin
-	  backbone->set_keyword, "SPOT"+strc(ii)+'x', spotloc[ii,0], "x-locations of spot #"+strc(ii)
-	  backbone->set_keyword, "SPOT"+strc(ii)+'y', spotloc[ii,1], "y-locations of spot #"+strc(ii)  
+	  backbone->set_keyword, "SPOT"+strc(ii)+'x', spotloc[ii,0], "x-locations of spot #"+strc(ii), ext_num=1
+	  backbone->set_keyword, "SPOT"+strc(ii)+'y', spotloc[ii,1], "y-locations of spot #"+strc(ii), ext_num=1
 	endfor
 
     backbone->set_keyword,'HISTORY',functionname+": Loaded satellite spot locations"

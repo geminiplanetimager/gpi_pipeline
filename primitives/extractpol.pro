@@ -60,16 +60,17 @@ calfiletype='polcal'
  	;endelse    
 
     ; Validate the input data
-    filt = strc(backbone->get_keyword( "FILTER"))
+    filt = gpi_simplify_keyword_value(strc(backbone->get_keyword( "FILTER1")))
     mode= strc(backbone->get_keyword( "DISPERSR", count=ct))
     ;if ct eq 0 then mode= strc(backbone->get_keyword( "DISPERSR", count=ct))
     ;if ct eq 0 then mode= strc(backbone->get_keyword( "FILTER2", count=ct))
     mode = strlowcase(mode)
-    if mode ne "polarimetry" then message, "That's not a polarimetry file!"
+    if ~strmatch(mode,"*wollaston*",/fold) then message, "That's not a polarimetry file!"
 
     ; read in polarization spot locations from the calibration file
-    polspot_coords = readfits(c_File, ext=1)
-    polspot_pixvals = readfits(c_File, ext=2)
+    fits_info, c_File,N_ext=n_ext
+    polspot_coords = readfits(c_File, ext=n_ext-1)
+    polspot_pixvals = readfits(c_File, ext=n_ext)
     
     sz = size(polspot_coords)
     nx = sz[1+2]
@@ -131,7 +132,7 @@ calfiletype='polcal'
 		; read in old-style incorrectly formatted as strings values.
 		if strc(ra) eq "" then ra=0.0 else $
 		ra = ten_string(backbone->get_keyword("RA"))*15 ; in deg
-		stop
+		;stop
 		dec = ten_string(backbone->get_keyword("dec")) ; in deg
 	endif else begin ; read in properly formatted ones, already in decimal degrees
 		ra = backbone->get_keyword("RA") 
