@@ -882,6 +882,7 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
        newport=0
       if strmatch(val_port,'*bottom*') then newport=1
       if strmatch(val_port,'*side*') then newport=2
+      if strmatch(val_port,'*perfect*') then newport=6
       if newport gt 0 then self->set_keyword, 'INPORT', newport,  indexFrame=indexFrame,ext_num=0
       sxdelpar, *(*self.data).HeadersPHU[IndexFrame], 'ISS_PORT'
     endif

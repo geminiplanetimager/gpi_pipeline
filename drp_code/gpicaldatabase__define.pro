@@ -188,7 +188,7 @@ Function gpicaldatabase::add_new_cal, filename, header=header, nowrite=nowrite
 
 	; If FITS header is not already supplied, read it from the disk file
 	if ~(keyword_set(header)) then begin
-	    fits_info,filename,N_ext=n_ext
+	    fits_info,filename,N_ext=n_ext,/silent
 	    if n_ext eq 0 then  header = headfits(filename, /silent)
 	    if n_ext gt 0 then  header = [headfits(filename,exten=0, /silent),headfits(filename,exten=1, /silent)]
   endif    
