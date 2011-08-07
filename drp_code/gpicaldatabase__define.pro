@@ -296,7 +296,6 @@ function gpicaldatabase::get_best_cal_from_header, type, header, _extra=_extra
    itime=sxpar(header, "ITIME0", count=ci)
    ;if ci eq 0 then itime=sxpar(header, "ITIME", count=ci)
    ;if ci eq 0 then itime=sxpar(header, "INTIME", count=ci)
-
 	return, self->get_best_cal( type, dateobs3, filt, prism, itime=itime, _extra=_extra)
 
 

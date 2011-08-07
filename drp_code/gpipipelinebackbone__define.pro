@@ -1443,7 +1443,7 @@ FUNCTION gpiPipelineBackbone::get_keyword, keyword, count=count, comment=comment
 
 	;if that failed, try the other header
 	if count eq 0 then begin
-		if ~(keyword_set(silent)) then message,/info,'Keyword not found in preferred header; trying the other HDU'
+		if ~(keyword_set(silent)) then message,/info,'Keyword'+keyword+' not found in preferred header; trying the other HDU'
 		if ext_num eq 0 then value= sxpar(  *(*self.data).headersExt[indexFrame], keyword, count=count, comment=comment)  $
 		else  				 value= sxpar(  *(*self.data).headersPHU[indexFrame], keyword, count=count, comment=comment)  
 	endif
