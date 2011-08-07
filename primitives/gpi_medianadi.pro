@@ -48,13 +48,13 @@ if numfile  eq ((dataset.validframecount)-1) then begin
     ;fname=file_break(fn,/NO_EXT)
     flist[ii]=dataset.outputFileNames[ii] ;Modules[0].OutputDir+path_sep()+fname+suffix+'.fits'
   endfor
-
+  fits_info, dataset.outputFileNames[0],n_ext=n_ext, /silent
   if dimcub[0] eq 2 then begin
         immed=dblarr(dimcub[1],dimcub[2]) 
             ;for il=0,CommonWavVect[2]-1 do begin
             ;fait la mediane de toutes les images
               ;immed[*,*,il]=gpi_medfits(flist,dimcub,dimcub,gz=gz,lam=il,/silent)
-              immed[*,*]=gpi_medfits(dataset.outputFileNames[0:(dataset.validframecount)-1],dimcub[1],dimcub[2],gz=gz,lam=-1,/silent)
+              immed[*,*]=gpi_medfits(dataset.outputFileNames[0:(dataset.validframecount)-1],dimcub[1],dimcub[2],gz=gz,lam=-1,/silent,exten=n_ext)
               
               ;update_progressbar2ADI,Modules,thisModuleIndex,CommonWavVect[2], il ,'working...' 
             ;endfor
@@ -63,16 +63,19 @@ endif else begin
             for il=0,dimcub[3]-1 do begin
             ;fait la mediane de toutes les images
               ;immed[*,*,il]=gpi_medfits(flist,dimcub,dimcub,gz=gz,lam=il,/silent)
-              immed[*,*,il]=gpi_medfits(dataset.outputFileNames[0:(dataset.validframecount)-1],dimcub[1],dimcub[2],gz=gz,lam=il,/silent)
+              immed[*,*,il]=gpi_medfits(dataset.outputFileNames[0:(dataset.validframecount)-1],dimcub[1],dimcub[2],gz=gz,lam=il,/silent,exten=n_ext)
               
               ;update_progressbar2ADI,Modules,thisModuleIndex,CommonWavVect[2], il ,'working...' 
             endfor
 endelse
   ;create header ;todo:change according with accumulate_images
-  header=headfits(dataset.outputFileNames[0])
-  for ii=0, ((dataset.validframecount)-1) do sxaddparlarge,header,'HISTORY','Med. combin. of '+dataset.outputFileNames[ii]
+  ;fits_info, dataset.outputFileNames[0], n_ext=n_ext
+  ;header=headfits(dataset.outputFileNames[0],/silent)
+  for ii=0, ((dataset.validframecount)-1) do $
+   backbone->set_keyword,'HISTORY','Med. combin. of '+dataset.outputFileNames[ii]
+  ;sxaddparlarge,header,'HISTORY','Med. combin. of '+dataset.outputFileNames[ii]
   
-   *(dataset.headers[numfile])=header
+   ;*(dataset.headers[numfile])=header
    ; put the datacube in the dataset.currframe output structure:
     *(dataset.currframe[0])=immed
 

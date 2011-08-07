@@ -38,15 +38,15 @@ if (size(inputobj))[0] eq 3 then spectchannels=float((size(inputobj))[3]) else s
 ;InputStokesband=reform(median(InputStokes[*,*,*,*],dimension=3))
 if (size(inputobj))[0] eq 3 then InputObj=reform(median(Inputobj[*,*,*],dimension=3))
 
-truitime=float(sxpar(header,'ITIME'))
+truitime=float(backbone->get_keyword('ITIME', count=ct))
 print, 'truitime=',truitime
-InputObj*=(1000./truitime) ;per second
+InputObj*=(1./truitime) ;per second
 InputObj*=(spectchannels/(1000.*0.3)) ;per nm (! H-band !)
 transmi=0.15 ;input cubes have been multiplied by the instru. transmission in the DST
 InputObj*=(1./transmi)
 ;get back to astrophys. flux
-   Dtel=double(SXPAR( header, 'TELDIAM'))
-   Obscentral=double(SXPAR( header, 'SECDIAM'))
+   Dtel=double(backbone->get_keyword('TELDIAM', count=ct))
+   Obscentral=double(backbone->get_keyword('SECDIAM', count=ct))
    SURFA=!PI*(Dtel^2.)/4.-!PI*((Obscentral)^2.)/4.
    InputObj*=(1./SURFA) ;per m^2
 
@@ -73,7 +73,7 @@ measObj=transpose(shift(subarr(measurement,277),1,-2))
 ;comparisons begin here: 
 ;calculate relative difference [%] between input and output Stokesn param.
 comparobj=100.*(measobj-Inputobj)/Inputobj 
-;stop
+
 ;if pairs eq 1 then comparStokes2=100.*(measStokes2-InputStokesband)/InputStokesband       
 ;linear polar
 ;linpoldst=sqrt(((InputStokesband[*,*,1])^2.+(InputStokesband[*,*,2])^2.)/InputStokesband[*,*,0])
@@ -104,8 +104,8 @@ histI=HISTOGRAM(comparobj[indsignal], min=xmin,max=xmax,nbins=bin,locations=loc)
 ;    histLin2=HISTOGRAM(comparLinearPol2, min=xmin,max=xmax,nbins=bin,locations=loc)   
 ;endif     
 ;prepare result filename and plots        
-h=*(dataset.headers[numfile]) 
-filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
+h=*(dataset.headersPHU[numfile]) 
+filnm=sxpar(*(DataSet.HeadersPHU[numfile]),'DATAFILE')
 slash=strpos(filnm,path_sep(),/reverse_search)
 filter = strcompress(sxpar( h ,'FILTER1', count=fcount),/REMOVE_ALL)
 if fcount eq 0 then filter = strcompress(sxpar( h ,'FILTER'),/REMOVE_ALL)

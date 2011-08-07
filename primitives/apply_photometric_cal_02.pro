@@ -44,9 +44,10 @@ calfiletype='Gridratio'
   	
 
     cubef3D=*(dataset.currframe[0])
-    if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
-    filter=strcompress(SXPAR( hdr, 'FILTER',count=cc), /rem)
-    if cc eq 0 then filter=SXPAR( hdr, 'FILTER1',cc)
+    ;if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
+    filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
+
+    ;if cc eq 0 then filter=SXPAR( hdr, 'FILTER1',cc)
         ;get the common wavelength vector
             ;error handle if extractcube not used before
             if ((size(cubef3D))[0] ne 3) || (strlen(filter) eq 0)  then $
@@ -58,28 +59,23 @@ calfiletype='Gridratio'
         lambdamax=CommonWavVect[1]
 
 
-     fits_info, c_File, /silent, N_ext=n_ext
-    if n_ext eq 0 then  $
-    pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headerphot, /SILENT)) else $
-      pmd_fluxcalFrame        = ptr_new(mrdfits(c_File, 1, Headerphot, /SILENT)) 
-    lambda_gridratio=*pmd_fluxcalFrame
-
+    lambda_gridratio = gpi_readfits(c_File,header=Headerphot)
   
 
 
 
 ;;extract photometry of SAT 
 ;;; handle the spot locations
- SPOTWAVE=sxpar( *(dataset.headers[numfile]), 'SPOTWAVE',  COUNT=cc4)
+ SPOTWAVE=backbone->get_keyword('SPOTWAVE',  COUNT=cc4)
    if cc4 gt 0 then begin
     ;check how many spots locations is in the header (2 or 4)
-    void=sxpar( *(dataset.headers[numfile]), 'SPOT4x',  COUNT=cs)
+    void=backbone->get_keyword('SPOT4x',  COUNT=cs);=sxpar( hdr, 'SPOT4x',  COUNT=cs)
     if cs eq 1 then spotloc=fltarr(1+4,2) else spotloc=fltarr(1+2,2) ;1+ due for PSF center 
-          spotloc[0,0]=sxpar( *(dataset.headers[numfile]),"PSFCENTX")
-          spotloc[0,1]=sxpar( *(dataset.headers[numfile]),"PSFCENTY")      
+          spotloc[0,0]=backbone->get_keyword("PSFCENTX")
+          spotloc[0,1]=backbone->get_keyword("PSFCENTY")      
         for ii=1,(size(spotloc))[1]-1 do begin
-          spotloc[ii,0]=sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'x')
-          spotloc[ii,1]=sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'y')
+          spotloc[ii,0]=backbone->get_keyword("SPOT"+strc(ii)+'x')
+          spotloc[ii,1]=backbone->get_keyword("SPOT"+strc(ii)+'y')
         endfor      
    endif else begin
       SPOTWAVE=lamdamin
@@ -167,20 +163,22 @@ lambdapsf=fltarr(nlambdapsf)
  for i=0,n_elements(lambdapsf)-1 do lambdapsf[i]=lambdamin+double(i)*(lambdamax-lambdamin)/nlambdapsf
 
 ;nbphot_juststar=pip_nbphot_trans(hdr,lambdapsf)
-nbphot_juststar=pip_nbphot_trans_lowres(hdr,lambda)
+;nbphot_juststar=pip_nbphot_trans_lowres(hdr,lambda)
+nbphot_juststar=pip_nbphot_trans_lowres([*(dataset.headersPHU)[numfile],*(dataset.headersExt)[numfile]],lambda)
 
-   magni=double(SXPAR( hdr, 'HMAG'))
-   spect=strcompress(SXPAR( hdr, 'SPECTYPE'),/rem)
-   Dtel=double(SXPAR( hdr, 'TELDIAM'))
-   Obscentral=double(SXPAR( hdr, 'SECDIAM'))
-   exposuretime=double(SXPAR( hdr, 'EXPTIME')) ;TODO use ITIME instead
+     magni=double(backbone->get_keyword( 'HMAG'))
+   spect=strcompress(backbone->get_keyword( 'SPECTYPE'),/rem)
+   Dtel=double(backbone->get_keyword( 'TELDIAM'))
+   Obscentral=double(backbone->get_keyword( 'SECDIAM'))
+   exposuretime=double(backbone->get_keyword( 'ITIME')) ;TODO use ITIME instead
+   
    ;BE SURE THAT EXPTIME IS IN SECONDS
-   filter=SXPAR( hdr, 'FILTER')
+   ;filter=SXPAR( hdr, 'FILTER')
    nlambda=n_elements(lambda)
    widthL=(lambdamax-lambdamin)
    SURFA=!PI*(Dtel^2.)/4.-!PI*((Obscentral)^2.)/4.
    gaindetector=1. ;1.1 ;from ph to count: IS IT IN THE KEYWORD LIST?
-   ifsunits=strcompress(SXPAR( hdr, 'IFSUNITS'),/rem)
+   ;ifsunits=strcompress(SXPAR( hdr, 'IFSUNITS'),/rem)
 
 ;; normalize by n_elements(lambdapsf) because widthL is the width of the entire band here
    nbphotnormtheo=nbphot_juststar*float(n_elements(lambdapsf))/(SURFA*widthL*1.e3*exposuretime) ;photons to [photons/s/nm/m^2]
@@ -211,7 +209,7 @@ nbphotnormtheosmoothed=nbphotnormtheo
 ;;prepare the satellite flux ratio using a linear fit to reduce noise in the measurement
 lambdagrid=lambda_gridratio[*,0]
 rawgridratio=lambda_gridratio[*,1]
-instrum=SXPAR( hdr, 'INSTRUME',count=cinstru)
+;instrum=SXPAR( hdr, 'INSTRUME',count=cinstru)
  ;if (cinstru eq 1) && strmatch(instrum,'*DST*') && strmatch(filter,'*K*') then gridratiocoeff=linfit(lambdagrid[15:n_elements(lambdagrid)-1],rawgridratio[15:n_elements(lambdagrid)-1]) else $
 ;gridratiocoeff=linfit(lambdagrid,rawgridratio)
 ;gridratio= gridratiocoeff[0]+gridratiocoeff[1]*lambdagrid[*]
@@ -275,21 +273,28 @@ unitslist = ['Counts', 'Counts/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A
    
 	*(dataset.currframe[0])=cubef3D
 for i=0,n_elements(convfac)-1 do $
-	FXADDPAR, *(dataset.headers)[numfile], 'FSCALE'+strc(i), convfac[i]*(exposuretime) ;fscale to convert from counts to 'ph/s/nm/m^2'
-	FXADDPAR, *(dataset.headers)[numfile], 'CUNIT',  unitslist[unitschoice]  
+  backbone->set_keyword, 'FSCALE'+strc(i), convfac[i]*(exposuretime), "scale to convert from counts to 'ph/s/nm/m^2", ext_num=1
+  backbone->set_keyword, 'CUNIT',  unitslist[unitschoice] ,"Data units", ext_num=0
+  ;update raw IFS units:
+  backbone->set_keyword, 'BUNIT',  unitslist[unitschoice] ,"Data units", ext_num=0
 
 	suffix+='-phot'
 ;  sxaddhist, functionname+": applying photometric calib", *(dataset.headers[numfile])
 ;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": applying photometric calib"
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
-
+     backbone->set_keyword,'HISTORY',functionname+": applying photometric calib"
+    backbone->set_keyword,'HISTORY',functionname+": "+c_File
+     hdr=[*(dataset.headersPHU[numfile]),*(dataset.headersExt[numfile])]
+ 
 if tag_exist( Modules[thisModuleIndex], "Save_flux_convertion") && ( Modules[thisModuleIndex].Save_flux_convertion eq 1 ) then begin
    ; Set keywords for outputting files into the Calibrations DB
-  sxaddpar, hdr, "FILETYPE", "Fluxconv", "What kind of IFS file is this?"
-  sxaddpar, hdr,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'  
+;  sxaddpar, hdr, "FILETYPE", "Fluxconv", "What kind of IFS file is this?"
+;  sxaddpar, hdr,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.' 
+     backbone->set_keyword, "FILETYPE", "Fluxconv", "What kind of IFS file is this?", ext_num=0
+    backbone->set_keyword,"ISCALIB", "YES", 'This is a reduced calibration file of some type.', ext_num=0
+   
   suffixconv='-fluxconv'
-      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffixconv,savedata=[[lambda],[convfac]],saveheader=hdr)
+
+      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffixconv,savedata=[[lambda],[convfac]])
       if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
 
 endif

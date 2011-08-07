@@ -35,13 +35,9 @@ nlens=(size(cubef3D))[1]
 xx=findgen(nlens)#replicate(1L,nlens)
 yy=replicate(1L,nlens)#findgen(nlens)
 
-  fits_info, c_File, /silent, N_ext=n_ext
-    if n_ext eq 0 then  $
-    pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headercal, /SILENT)) else $
-    else  pmd_fluxcalFrame        = ptr_new(mrdfits(c_File, 1, Headercal, /SILENT)) 
-
+  
   ;  pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headercal, /SILENT))
-    parms=*pmd_fluxcalFrame
+    parms= gpi_readfits(c_File, header=Headercal)
     
     parmsx=parms[0,*]
     parmsy=parms[1,*]

@@ -75,7 +75,7 @@ print, 'x-Pos of binary 2:',reform(gfit2[4,*])
 print, 'y-Pos of binary 2:',reform(gfit2[5,*])
 
 
-hdr= *(dataset.headers)[0]
+hdr= *(dataset.headersPHU)[0]
 name=(SXPAR( hdr, 'OBJECT'))
 dateobs=(SXPAR( hdr, 'DATE-OBS'))
 timeobs=(SXPAR( hdr, 'TIME-OBS'))
@@ -87,17 +87,17 @@ res=read6thorbitcat( name, dateobs, timeobs)
 rho=res.sep ;float(Modules[thisModuleIndex].rho) ;get current separation of the binaries
 pa=res.pa ;float(Modules[thisModuleIndex].pa) ;get current position angle of the binaries
 
-cdelt1=float(SXPAR( hdr, 'CDELT1'))
+cdelt1=float(SXPAR( *(dataset.headersExt)[0], 'CDELT1'))
 
 ;;calculate distance in pixels
 dist= cdelt1*3600.* sqrt( ((gfit1[4,*]-gfit2[4,*])^2.) + ((gfit1[5,*]-gfit2[5,*])^2.)  )
 angle_star_deg=(180./!dpi)*atan((gfit1[5,*]-gfit2[5,*])/(gfit1[4,*]-gfit2[4,*])) + 90.
 
-name=(SXPAR( hdr, 'OBJECT'))
+;name=(SXPAR( hdr, 'OBJECT'))
 print, 'dist between binaries [mas]=',1000.*dist
 print, ' angle x-axis [deg]', angle_star_deg
 
-filter=SXPAR( header, 'FILTER')
+filter= gpi_simplify_keyword_value(SXPAR( *(dataset.headersPHU)[0], 'FILTER1'))
         ;get the common wavelength vector
             ;error handle if extractcube not used before
          cwv=get_cwv(filter)

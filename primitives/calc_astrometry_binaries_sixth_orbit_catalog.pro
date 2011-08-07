@@ -17,7 +17,6 @@
 ; PIPELINE COMMENT: Calculate astrometry from unocculted binaries; Calculate Separation and PA at date DATEOBS using the sixth orbit catalog.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-astrom" Desc="Enter output suffix"
-; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.61
 ; PIPELINE TYPE: ALL-SPEC
 ; PIPELINE SEQUENCE: 
@@ -88,10 +87,11 @@ print, 'y-Pos of binary 2:',reform(gfit2[5,*])
 
 
 ;hdr= *(dataset.headers)[0]
-if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr=*(dataset.headersPHU)[numfile]
-name=(SXPAR( hdr, 'OBJECT'))
-dateobs=(SXPAR( hdr, 'DATE-OBS'))
-timeobs=(SXPAR( hdr, 'TIME-OBS'))
+;if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr=*(dataset.headersPHU)[numfile]
+
+name=backbone->get_keyword('OBJECT', count=ct)
+dateobs=backbone->get_keyword('DATE-OBS', count=ct)
+timeobs=backbone->get_keyword('TIME-OBS', count=ct)
 res=read6thorbitcat( name, dateobs, timeobs) 
 
 ; TODO error checking here, in case that object is
@@ -112,7 +112,7 @@ print, ' angle x-axis [deg]', mean(angle_xaxis_deg,/nan)
 
 xaxis_pa=pa-mean(angle_xaxis_deg,/nan)
 ;;calculate this angle for CRPA=0.
-   obsCRPA=float(SXPAR( hdr, 'CRPA'))
+   obsCRPA=float(backbone->get_keyword('CRPA', count=ct))
    xaxis_pa_at_zeroCRPA=xaxis_pa-obsCRPA
 
 Result=[pixelscale,xaxis_pa_at_zeroCRPA]
@@ -120,12 +120,15 @@ Result=[pixelscale,xaxis_pa_at_zeroCRPA]
 
 *(dataset.currframe[0])=Result
 
-sxaddpar, hdr, "FILETYPE", "Plate scale & orientation", /savecomment
-sxaddpar, hdr, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
 
- if numext eq 0 then $
-  *(dataset.headers[numfile])=hdr else $
-  *(dataset.headersPHU[numfile])=hdr
+backbone->set_keyword, "NAXIS", 1, ext_num=1
+backbone->set_keyword, "NAXIS1", 2, ext_num=1
+ sxdelpar,  *(DataSet.HeadersExt[numfile]), "NAXIS2"
+ sxdelpar,  *(DataSet.HeadersExt[numfile]), "NAXIS3"
+
+  backbone->set_keyword, "FILETYPE", "Plate scale & orientation", /savecomment
+  backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+
 
   if tag_exist( Modules[thisModuleIndex], "suffix") then suffix=Modules[thisModuleIndex].suffix
   @__end_primitive 

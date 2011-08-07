@@ -26,11 +26,10 @@ primitive_version= '$Id: testspecklesupr001.pro 11 2010-09-14 10:22:03 maire $' 
 @__start_primitive
 mydevice = !D.NAME
 
-COMPSPEC=sxpar(header,'COMPSPEC') 
-
+COMPSPEC=(backbone->get_keyword('COMPSPEC'))
 ;;get DST companion spectrum
 ;restore, 'E:\GPI\dst\'+strcompress(compspec,/rem)+'compspectrum.sav'
-filter=SXPAR( header, 'FILTER')
+filter=gpi_simplify_keyword_value(backbone->get_keyword('FILTER1'))
 case strcompress(filter,/REMOVE_ALL) of
   'Y':specresolution=35.
   'J':specresolution=37.
@@ -121,9 +120,9 @@ LowSpec = CONVOL( (reform(Spec2)), gaus , /EDGE_TRUNCATE )
   endfor
 
 ;;get info about simulated companions
-val=sxpar( *(dataset.headers[0]),"PAR_ANG",count=ck)
+val=sxpar( *(dataset.headersPHU[0]),"PAR_ANG",count=ck)
 if ck eq 1 then parangle=float(val)
-script=SXPAR( header, 'DSTSCRIP',count=cscr)
+script=SXPAR( *(dataset.headersPHU[0]), 'DSTSCRIP',count=cscr)
           nbcomp=0
           compangsep=fltarr(100) & compangrot=fltarr(100) & compmagh=fltarr(100)
 if cscr gt 0 then begin
@@ -143,16 +142,16 @@ system_file=getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()+script;'system_scr
           endfor
 endif
 ;;add main comp
-val=sxpar( *(dataset.headers[0]),"COMPSEP",count=ck)
+val=sxpar( *(dataset.headersPHU[0]),"COMPSEP",count=ck)
 if ck eq 1 then compangsep[nbcomp]=float(val)
-val=sxpar( *(dataset.headers[0]),"COMPROT",count=ck)
+val=sxpar( *(dataset.headersPHU[0]),"COMPROT",count=ck)
  if ck eq 1 then compangrot[nbcomp]=float(val)
- val=sxpar( *(dataset.headers[0]),"COMPMAG",count=ck)
+ val=sxpar( *(dataset.headersPHU[0]),"COMPMAG",count=ck)
  if ck eq 1 then compmagh[nbcomp]=float(val)
  nbcomp+=1
 ;;calculate locations of comp
-          psfcentx=sxpar( *(dataset.headers[0]),"PSFCENTX")
-          psfcenty=sxpar( *(dataset.headers[0]),"PSFCENTY") 
+          psfcentx=sxpar( *(dataset.headersExt[0]),"PSFCENTX")
+          psfcenty=sxpar( *(dataset.headersExt[0]),"PSFCENTY") 
           loc_comp=fltarr(nbcomp,2) 
           ;assume platescale=0.014"  
           platescale=0.0145
@@ -161,17 +160,17 @@ for ii=0,nbcomp-1 do begin
   loc_comp[ii,1]=psfcenty-(compangsep[ii]/platescale)*cos((!dpi/180.)*(compangrot[ii]-parangle))
   print, "companion"+strc(ii)+"   >> at x=",loc_comp[ii,0],'  y=',loc_comp[ii,1]
   
-         band=strcompress(sxpar( *(dataset.headers[0]), 'FILTER',  COUNT=cc),/rem)
-        if cc eq 1 then begin
+         band=filter;strcompress(sxpar( *(dataset.headers[0]), 'FILTER',  COUNT=cc),/rem)
+        ;if cc eq 1 then begin
           cwv=get_cwv(band)
           CommonWavVect=cwv.CommonWavVect
           lambda=cwv.lambda
           lambdamin=CommonWavVect[0]
           lambdamax=CommonWavVect[1]
           NLam=CommonWavVect[2]
-         endif else begin
-          print, "No filter keyword was found, band undetermined!"
-         endelse
+;         endif else begin
+;          print, "No filter keyword was found, band undetermined!"
+;         endelse
   
   ;;;;photometric measurement of the comp
     cubcent2=*(dataset.currframe[0])
@@ -215,8 +214,8 @@ ewav=lambda
 espe=phot_comp 
 
 
-truitime=float(sxpar(header,'TRUITIME'))
-starmag=double(SXPAR( header, 'Hmag'))
+truitime=float(sxpar(*(dataset.headersPHU[0]),'ITIME'))
+starmag=double(SXPAR( *(dataset.headersPHU[0]), 'Hmag'))
 ;;;PLOT RESULTS
 ;;prepare the plot
 maxvalue=max([(10.^(-(compmag-refmag)/2.5))*LowResolutionSpec,espe])
@@ -226,10 +225,10 @@ thisLetter = "155B
 greekLetter = '!9' + String(thisLetter) + '!X'
 print, greekLetter
 units=' W/m^2/'+greekLetter+'m'
-title=strcompress(SXPAR( header, 'SPECTYPE'),/rem)+' star, Exposure='+strcompress(string(sxpar(header,'EXPTIME')),/rem)+'s, '+Modules[thisModuleIndex].title
+title=strcompress(SXPAR( *(dataset.headersPHU[0]), 'SPECTYPE'),/rem)+' star, Exposure='+strcompress(string(sxpar(header,'EXPTIME')),/rem)+'s, '+Modules[thisModuleIndex].title
 if ii gt 0 then numcomp='comp'+strc(floor(ii)) else numcomp=''
 s_Ext='-comp_x'+strc(floor(x))+'_y'+strc(floor(y))+numcomp
-filnm=sxpar(*(DataSet.Headers[0]),'DATAFILE')
+filnm=sxpar(*(DataSet.HeadersPHU[0]),'DATAFILE')
 filnm=dataset.FileNames[numfile]
 if (size(suffix))[1] eq 0 then suffix=''
      slash=strpos(filnm,path_sep(),/reverse_search)
@@ -259,7 +258,7 @@ if (size(suffix))[1] eq 0 then suffix=''
     SET_PLOT, mydevice ;set_plot,'win'
     endif
  ;;;now, look at the SNR in the initial datacube
-  filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
+  filnm=sxpar(*(DataSet.HeadersPHU[numfile]),'DATAFILE')
   ;filnm+='I.fits' ;until DATAFILE problem of length in header is fixed
   ;slash=strpos(filnm,'phot',/reverse_search)
 ;       slash=strpos(filnm,path_sep(),/reverse_search)
@@ -267,7 +266,7 @@ if (size(suffix))[1] eq 0 then suffix=''
   slash=strpos(filnm0,'-phot')
   filnm2=strmid(filnm0, 0,slash+5)+'.fits'
   print, 'opening initial cube:', filnm2
-  im=readfits(Modules[thisModuleIndex].OutputDir+path_sep()+filnm2)
+  im=readfits(Modules[thisModuleIndex].OutputDir+path_sep()+filnm2,exten=1)
 ;      ;;do the photometry of the companion in the initial datacube
 ;          apr = (1./2.)*lambda[0]*float(radi)
 ;    skyrad = (1./2.)*lambda[0]*[float(radi),float(radi)+2.] 

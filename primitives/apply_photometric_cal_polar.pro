@@ -39,8 +39,8 @@ calfiletype='Gridratio'
   	cubef3D=*(dataset.currframe[0])
   	
     if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
-    filter=strcompress(SXPAR( hdr, 'FILTER',count=cc), /rem)
-    if cc eq 0 then filter=SXPAR( hdr, 'FILTER1',cc)
+   filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
+    ;if cc eq 0 then filter=SXPAR( hdr, 'FILTER1',cc)
         ;get the common wavelength vector
             ;error handle if extractcube not used before
             if ((size(cubef3D))[0] ne 3) || (strlen(filter) eq 0)  then $
@@ -51,12 +51,12 @@ calfiletype='Gridratio'
         lambdamin=CommonWavVect[0]
         lambdamax=CommonWavVect[1]
 
-
-      fits_info, c_File, /silent, N_ext=n_ext
-    if n_ext eq 0 then  $
-    pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headerphot, /SILENT)) else $
-    else  pmd_fluxcalFrame        = ptr_new(mrdfits(c_File, 1, Headerphot, /SILENT)) 
-    lambda_gridratio=*pmd_fluxcalFrame
+        lambda_gridratio=gpi_readfits(c_file)
+;      fits_info, c_File, /silent, N_ext=n_ext
+;    if n_ext eq 0 then  $
+;    pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headerphot, /SILENT)) else $
+;      pmd_fluxcalFrame        = ptr_new(mrdfits(c_File, 1, Headerphot, /SILENT)) 
+;    lambda_gridratio=*pmd_fluxcalFrame
 
 	;hdr= *(dataset.headers)[0]
 
@@ -64,16 +64,16 @@ calfiletype='Gridratio'
 
 ;;extract photometry of SAT 
 ;;; handle the spot locations
- SPOTWAVE=sxpar( *(dataset.headers[numfile]), 'SPOTWAVE',  COUNT=cc4)
+ SPOTWAVE=sxpar( *(dataset.headersExt[numfile]), 'SPOTWAVE',  COUNT=cc4)
    if cc4 gt 0 then begin
     ;check how many spots locations is in the header (2 or 4)
-    void=sxpar( *(dataset.headers[numfile]), 'SPOT4x',  COUNT=cs)
+    void=sxpar( *(dataset.headersExt[numfile]), 'SPOT4X',  COUNT=cs)
     if cs eq 1 then spotloc=fltarr(1+4,2) else spotloc=fltarr(1+2,2) ;1+ due for PSF center 
-          spotloc[0,0]=sxpar( *(dataset.headers[numfile]),"PSFCENTX")
-          spotloc[0,1]=sxpar( *(dataset.headers[numfile]),"PSFCENTY")      
+          spotloc[0,0]=sxpar( *(dataset.headersExt[numfile]),"PSFCENTX")
+          spotloc[0,1]=sxpar( *(dataset.headersExt[numfile]),"PSFCENTY")      
         for ii=1,(size(spotloc))[1]-1 do begin
-          spotloc[ii,0]=sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'x')
-          spotloc[ii,1]=sxpar( *(dataset.headers[numfile]),"SPOT"+strc(ii)+'y')
+          spotloc[ii,0]=sxpar( *(dataset.headersExt[numfile]),"SPOT"+strc(ii)+'x')
+          spotloc[ii,1]=sxpar( *(dataset.headersExt[numfile]),"SPOT"+strc(ii)+'y')
         endfor      
    endif else begin
       SPOTWAVE=lamdamin
@@ -108,6 +108,7 @@ calfiletype='Gridratio'
     badpix = [-1.,1e6];state.image_min-1, state.image_max+1
     
     fluxsatmedabsspot=dblarr((size(spotloc))[1]-1)
+    fluxsatmedabsspot2=dblarr((size(spotloc))[1]-1)
     cubcent2=cubef3D
     StokesI=cubcent2[*,*,0]
     sz=(size(cubcent2))[1]
@@ -132,6 +133,7 @@ calfiletype='Gridratio'
               distspot=distarr(sz,sz,x,y)
               radi=8.
               apert=where(distspot  le radi)
+              if n_elements(apert) eq 1 then stop
               if i eq 0 then pos1=apert else pos1= [pos1,apert]
             
               pos1=pos1[uniq(pos1,sort(pos1))]             
@@ -159,12 +161,14 @@ calfiletype='Gridratio'
       ;  skyrad[1]+=1.
       ; endwhile
       ; intens_sat[spot-1,*]=intens_sat2[0,*]
+
       fluxsatmedabsspot[spot-1]=photomsat
-      fluxsatmedabsspot[spot-1]=flux
+      fluxsatmedabsspot2[spot-1]=flux
     endfor
+    ;stop
      ;;keep only mean values over the 4 spots
     ;for i=0,CommonWavVect[2]-1 do 
-    fluxsatmedabs=median(fluxsatmedabsspot)
+    fluxsatmedabs=mean(fluxsatmedabsspot2)
 ;Todo?:Need to take in to account Enc.Energy in the aperture 
 
 ;stop
@@ -179,21 +183,21 @@ lambdapsf=fltarr(nlambdapsf)
  for i=0,n_elements(lambdapsf)-1 do lambdapsf[i]=lambdamin+double(i)*(lambdamax-lambdamin)/nlambdapsf
 
 ;nbphot_juststar=pip_nbphot_trans(hdr,lambdapsf)
-nbphot_juststar=pip_nbphot_trans_lowres(hdr,lambda)
+nbphot_juststar=pip_nbphot_trans_lowres([hdr,*(dataset.headersExt)[numfile]],lambda)
 ;stop
    magni=double(SXPAR( hdr, 'Hmag'))
    spect=strcompress(SXPAR( hdr, 'SPECTYPE'),/rem)
    Dtel=double(SXPAR( hdr, 'TELDIAM'))
    Obscentral=double(SXPAR( hdr, 'SECDIAM'))
-   exposuretime=double(SXPAR( hdr, 'EXPTIME')) ;TODO use ITIME instead
+   exposuretime=double(SXPAR( *(dataset.headersExt)[numfile], 'ITIME')) ;TODO use ITIME instead
  ;  stop
    ;BE SURE THAT EXPTIME IS IN SECONDS
-   filter=SXPAR( hdr, 'FILTER')
+   filter=SXPAR( hdr, 'FILTER1')
    nlambda=n_elements(lambda)
    widthL=(lambdamax-lambdamin)
    SURFA=!PI*(Dtel^2.)/4.-!PI*((Obscentral)^2.)/4.
    gaindetector=1. ;1.1 ;from ph to count: IS IT IN THE KEYWORD LIST?
-   ifsunits=strcompress(SXPAR( hdr, 'IFSUNITS'),/rem)
+   ifsunits=strcompress(SXPAR( hdr, 'BUNIT'),/rem)
 
 ;; normalize by commonwavvect[2] because widthL is the width of the entire band here
    nbphotnormtheo=total(nbphot_juststar)/(SURFA*widthL*1.e3*exposuretime) ;photons to [photons/s/nm/m^2]
@@ -280,14 +284,14 @@ unitslist = ['Counts', 'Counts/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A
    
 	*(dataset.currframe[0])=cubef3D
 for i=0,n_elements(convfac)-1 do $
-	FXADDPAR, *(dataset.headers)[numfile], 'FSCALE'+strc(i), convfac*(exposuretime) ;fscale to convert from counts to 'ph/s/nm/m^2'
-	FXADDPAR, *(dataset.headers)[numfile], 'CUNIT',  unitslist[unitschoice]  
+	FXADDPAR, *(dataset.headersExt)[numfile], 'FSCALE'+strc(i), convfac*(exposuretime) ;fscale to convert from counts to 'ph/s/nm/m^2'
+	FXADDPAR, *(dataset.headersExt)[numfile], 'CUNIT',  unitslist[unitschoice]  
 
 	suffix+='-phot'
 ;  sxaddhist, functionname+": applying photometric calib", *(dataset.headers[numfile])
 ;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": applying photometric calib"
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
+  sxaddparlarge,*(dataset.headersExt[numfile]),'HISTORY',functionname+": applying photometric calib"
+  sxaddparlarge,*(dataset.headersExt[numfile]),'HISTORY',functionname+": "+c_File
 
 @__end_primitive
 

@@ -311,7 +311,7 @@ mydevice = !D.NAME
 ;endif
 ;;;now calculate the rms noise near the first companion both in the datacube and ADI reduced output
  ;;;now, look at the SNR in the initial datacube
-  filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
+  filnm=sxpar(*(DataSet.HeadersPHU[numfile]),'DATAFILE')
   ;filnm+='I.fits' ;until DATAFILE problem of length in header is fixed
   ;slash=strpos(filnm,'phot',/reverse_search)
 ;       slash=strpos(filnm,path_sep(),/reverse_search)
@@ -319,7 +319,8 @@ mydevice = !D.NAME
    slash=strpos(filnm0,'-stokesdc')
   filnm2=strmid(filnm0, 0,slash)+'-podc.fits'
   print, 'opening initial cube:', filnm2
-  im=mrdfits(Modules[thisModuleIndex].OutputDir+path_sep()+filnm2,numext)
+  fits_info,Modules[thisModuleIndex].OutputDir+path_sep()+filnm2,n_ext=n_ext
+  im=mrdfits(Modules[thisModuleIndex].OutputDir+path_sep()+filnm2,n_ext)
 
   nbcomp=1
 dcomp=15

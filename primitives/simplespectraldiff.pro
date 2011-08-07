@@ -126,14 +126,14 @@ sssd=I1s-k*I2
 ;filenm=strmid(filename,0,strlen(filename)-5)+suffix+'-sssd'+'.fits.gz'
 ;writefits, filenm ,sssd,header,/compress
 thisModuleIndex = Backbone->GetCurrentModuleIndex()
-if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
+;if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
 
        ;change keywords related to the common wavelength vector:
-    sxdelpar, hdr, 'NAXIS3'
-    sxdelpar, hdr , 'CDELT3'
-    sxdelpar, hdr, 'CRPIX3'
-    sxdelpar, hdr, 'CRVAL3'
-    sxdelpar, hdr, 'CTYPE3'
+    sxdelpar, *(dataset.headersExt)[numfile], 'NAXIS3'
+    sxdelpar, *(dataset.headersExt)[numfile] , 'CDELT3'
+    sxdelpar, *(dataset.headersExt)[numfile], 'CRPIX3'
+    sxdelpar, *(dataset.headersExt)[numfile], 'CRVAL3'
+    sxdelpar, *(dataset.headersExt)[numfile], 'CTYPE3'
 
 suffix2=suffix+'-sssd'    
    if tag_exist( Modules[thisModuleIndex],"ReuseOutput")  then begin
@@ -146,11 +146,11 @@ suffix2=suffix+'-sssd'
     endif
     
     
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": Simple Spectral Diff. applied."
+  sxaddparlarge,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": Simple Spectral Diff. applied."
 
     
 
-*(dataset.headers)[numfile]=hdr
+;*(dataset.headers)[numfile]=hdr
     if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
       b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix2, savedata=sssd, display=display)

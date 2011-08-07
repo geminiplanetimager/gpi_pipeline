@@ -27,7 +27,7 @@ primitive_version= '$Id: testplatescale001.pro 11 2011-02-11 10:22:03 maire $' ;
 mydevice = !D.NAME
 
 
-hdr= *(dataset.headers)[0]
+hdr= *(dataset.headersPHU)[0]
 name=(SXPAR( hdr, 'OBJECT'))
 dateobs=(SXPAR( hdr, 'DATE-OBS'))
 timeobs=(SXPAR( hdr, 'TIME-OBS'))
@@ -52,7 +52,7 @@ pa=res.pa ;float(Modules[thisModuleIndex].pa) ;get current position angle of the
 ;   obsCRPA=float(SXPAR( hdr, 'CRPA'))
 ;   xaxis_pa_at_zeroCRPA=xaxis_pa-obsCRPA
 
-filter=SXPAR( header, 'FILTER')
+filter=gpi_simplify_keyword_value(SXPAR( *(dataset.headersPHU)[0], 'FILTER1'))
         ;get the common wavelength vector
             ;error handle if extractcube not used before
          cwv=get_cwv(filter)

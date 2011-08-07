@@ -56,9 +56,12 @@ if numfile  eq ((dataset.validframecount)-1) then begin
   paall=dblarr(dataset.validframecount)
   haall=dblarr(dataset.validframecount)
   for n=0,dataset.validframecount-1 do begin
-    header=*(dataset.headers[n])
-    paall[n]=double(SXPAR( header, 'PAR_ANG'))
-    haall[n]=double(SXPAR( header, 'HA'))
+    ;header=*(dataset.headers[n])
+    haall[n]=double(backbone->get_keyword('HA', indexFrame=n))
+    paall[n]=double(backbone->get_keyword('PAR_ANG', indexFrame=n ,count=ct))
+    lat = ten_string('-30 14 26.700') ; Gemini South
+    dec=double(backbone->get_keyword('DEC'))
+    if ct eq 0 then paall[n]=parangle(haall[n],dec,lat)
   endfor
   
  ; paall=paall[1:n_elements(paall)-1] ;remove the first unused element;
@@ -135,7 +138,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
       ;we want ADI for datacubes, i.e. several specral channels but also for 
       ;other type of data: collapsed datacubes, single spectral channel ADI, ADI after SDI,etc...
       ; so we have to verify the dimension of ADI inputs hereafter:
-      imtemp=accumulate_getimage( dataset, 0, header)
+      imtemp=accumulate_getimage( dataset, 0)
       szinput=size(imtemp)
       if (szinput[0] eq 2) then lambda=(lambdamax+lambdamax)/2.
   
@@ -188,13 +191,15 @@ if numfile  eq ((dataset.validframecount)-1) then begin
     dtpose=dblarr(nfiles)
     noise_im=dblarr(nrim,nfiles)
     for n=0,n_elements(listfilenames)-1 do begin
-      exptime=double(SXPAR( header, 'EXPTIME'))
-      coadds=double(SXPAR( header, 'COADDS'))
+      exptime=double(backbone->get_keyword('ITIME', indexFrame=n,/silent))
+      coadds=double(backbone->get_keyword('COADDS', indexFrame=n))
+      ;exptime=double(SXPAR( header, 'EXPTIME'))
+      ;coadds=double(SXPAR( header, 'COADDS'))
       fn=listfilenames(n)
       ;fn=Modules[0].OutputDir+path_sep()+strmid(fn,1+strpos(fn,path_sep(),/REVERSE_SEARCH ),STRPOS(fn,'.fits')-strpos(fn,path_sep(),/REVERSE_SEARCH )-1)+suffix+'.fits'
       ;im=readfits(fn,header,NSLICE=il,/silent)
-      if (size(lambda))[0] eq 0 then im=(accumulate_getimage( dataset, n, header)) $
-                                else im=(accumulate_getimage( dataset, n, header))[*,*,il]
+      if (size(lambda))[0] eq 0 then im=(accumulate_getimage( dataset, n)) $
+                                else im=(accumulate_getimage( dataset, n))[*,*,il]
       
       
       norma=0
@@ -215,35 +220,41 @@ if numfile  eq ((dataset.validframecount)-1) then begin
         noise_im[ir,n]=median(abs(im[ia]-median(im[ia])))/0.6745
     	endfor
 
-      dec[n]=double(sxpar(header,'dec'))*!dtor
+      dec[n]=double(backbone->get_keyword('DEC'))*!dtor
+      
       decdeg[n]=dec[n]*!radeg
       dtpose[n]=abs(rot_rate2(haall[n],decdeg[n],ten_string('-30 14 26.700')))*exptime*coadds*!radeg
     endfor
 
 	  ;CRPA	Current Cass Rotator Position Angle
     ;CRFOLLOW	Cass Rotator follow mode (yes/no)
-    cassrotonoff=SXPAR( header, 'CRFOLLOW')
-    ;to be checked 'on','off'..
-		if ~STRMATCH(cassrotonoff,'off') && ~STRMATCH(cassrotonoff,'0') && ~STRMATCH(cassrotonoff,'') then begin
+    
+    cassrotonoff=(backbone->get_keyword('CRFOLLOW')) ;SXPAR( header, 'CRFOLLOW')
+		if ~STRMATCH(cassrotonoff,'yes',/fold) && ~STRMATCH(cassrotonoff,'0') && ~STRMATCH(cassrotonoff,'') && ~STRMATCH(cassrotonoff,'') then begin
 
 			;get keyword parallax, etc..
 			;HA	Telescope hour angle
-			hourangle=SXPAR( header, 'HA')
-			decl=SXPAR( header, 'DEC')
-			GS=1
-			if GS then begin
-				OLo = '-70 44 12.096'
-				OLa = '-30 14 26.700'
-			endif else begin
-			;OLo = '-155 28 06.616'
-			;OLa = '19 49 25.7016'
-			endelse
+;			hourangle=double(backbone->get_keyword('HA', indexFrame=n)) ; SXPAR( header, 'HA')
+;			decl=double(backbone->get_keyword('DEC')) ;SXPAR( header, 'DEC')
+;			GS=1
+;			if GS then begin
+;				OLo = '-70 44 12.096'
+;				OLa = '-30 14 26.700'
+;			endif else begin
+;			;OLo = '-155 28 06.616'
+;			;OLa = '19 49 25.7016'
+;			endelse
 
-		  lat = ten_string(OLa)
+;		  lat = ten_string(OLa)
       ;ww=rot_rate2(hourangle,decl,lat)
 
-		  PA=double(SXPAR( header, 'PAR_ANG'))
-      if n eq 0 then painit=PA
+		    ;PA=double(SXPAR( header, 'PAR_ANG'))
+;		   PA=paall[n] ;double(backbone->get_keyword('PAR_ANG', count=ct))
+;       lat = ten_string('-30 14 26.700') ; Gemini South
+;       dec=double(backbone->get_keyword('DEC'))
+;       if ct eq 0 then PA=parangle(haall[n],dec,lat)
+    
+      ;if n eq 0 then painit=PA
       ;	ww=PA-painit
 		
       ;MAIN LOOP
@@ -412,7 +423,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
                 diff=annuli[isub,n]-ref
                 diff-=median(diff,/even)
             endelse
-            
+           ; stop
             ;save the difference on disk, append values of this annulus into the file of this image
             ;enregistre la difference sur disque, ajoute (append) les valeurs de cet
             ;anneau au fichier binaire de cette image
@@ -440,41 +451,49 @@ if numfile  eq ((dataset.validframecount)-1) then begin
       print,' reconstruction...'
       im=make_array(dimcub,dimcub,type=5,value=!values.f_nan)
       im[ind]=read_binary(tmpdir+prefix+nbr2txt(nlist[n],4)+'_tmp.dat',data_type=5)
+      
       ;delete temp. file ; efface le fichier temporaire
       file_delete,tmpdir+prefix+nbr2txt(nlist[n],4)+'_tmp.dat'
 
       if norma then begin
         ;++multiply by the noise radial profile ;multiplie par le profil radial de bruit
-        pr=readfits(tmpdir+'noise_'+nbr2txt(nlist[n],4)+'.fits.gz')
+        pr=readfits(tmpdir+'noise_'+nbr2txt(nlist[n],4)+'.fits', /silent)
         im*=pr
-        file_delete,tmpdir+'noise_'+nbr2txt(nlist[n],4)+'.fits.gz'
+        file_delete,tmpdir+'noise_'+nbr2txt(nlist[n],4)+'.fits'
       endif
 
       ;obtient le header
       fn=dataset.outputFileNames[n];listfilenames(n)
       ;fn=Modules[0].OutputDir+path_sep()+strmid(fn,1+strpos(fn,path_sep(),/REVERSE_SEARCH ),STRPOS(fn,'.fits')-strpos(fn,path_sep(),/REVERSE_SEARCH )-1)+suffix+'.fits'
-      h=headfits(fn)
+      fits_info,fn,N_ext=n_ext, /silent
+      h=headfits(fn,exten=n_ext, /silent)
+      hphu=headfits(fn,exten=0, /silent)
 
       ;rotation pour ramener sur la premiere image
       print,' rotation...'
       theta=paall[n]-paall[0]
       
       ;if n ne 0 then im=gpi_adi_rotat(im,theta,missing=!values.f_nan,hdr=h)
-            x0=float(SXPAR( *(dataset.headers[n]), 'PSFCENTX',count=ccx))
-            y0=float(SXPAR( *(dataset.headers[n]), 'PSFCENTY',count=ccy))
+            x0=double(backbone->get_keyword('PSFCENTX',count=ccx,/silent)) ;float(SXPAR( *(dataset.headers[n]), 'PSFCENTX',count=ccx))
+            y0=double(backbone->get_keyword('PSFCENTY',count=ccy,/silent)) ;float(SXPAR( *(dataset.headers[n]), 'PSFCENTY',count=ccy))
             if (ccx eq 0) || (ccy eq 0) || ~finite(x0) || ~finite(y0) then begin           
               if n ne 0 then im=gpi_adi_rotat(im,theta,missing=!values.f_nan,hdr=h) ;(do not rotate first image)
             endif else begin
               if n ne 0 then im=gpi_adi_rotat(im,theta,x0,y0,missing=!values.f_nan,hdr=h) ;(do not rotate first image)
             endelse  
-            ;h=hdr
+            *(dataset.headersExt[n])=h
       ;save the difference ;enregistre la difference
       suffix1=suffix+'-loci'+strcompress(string(il),/REMOVE_ALL)
       fname=tmpdir+prefix+nbr2txt(nlist[n],4)+suffix1+'.fits'
-      sxaddparlarge,*(dataset.headers[n]),'HISTORY',functionname+": LOCI done"
-      sxaddhist,'Une rotation de '+strc(theta,format='(f7.3)')+$
-      ' degres a ensuite ete appliquee.',h
-      writefits,fname,im,h,/compress
+      if il eq 0 then begin
+        sxaddparlarge,*(dataset.headersPHU[n]),'HISTORY',functionname+": LOCI done"
+        sxaddhist,'Une rotation de '+strc(theta,format='(f7.3)')+$
+        ' degres a ensuite ete appliquee.',h
+      endif
+          mwrfits, 0, fname, *DataSet.HeadersPHU[n], /create, /silent
+          hext=*DataSet.HeadersExt[n] & sxdelpar,hext,'NAXIS3'
+          mwrfits, im, fname, hext, /silent
+      ;writefits,fname,im,h,/compress
     endfor
 
     endif ;cass
@@ -484,12 +503,12 @@ if numfile  eq ((dataset.validframecount)-1) then begin
   imt=dblarr(dimcub,dimcub,n_elements(lambda))
   for n=0,nfiles-1 do begin
     for il=0,n_elements(lambda)-1 do begin
-      imt(*,*,il)=readfits(tmpdir+prefix+nbr2txt(nlist[n],4)+suffix+strcompress(string(il),/REMOVE_ALL)+'.fits.gz',/SILENT,header)
-      file_delete, tmpdir+prefix+nbr2txt(nlist[n],4)+suffix+strcompress(string(il),/REMOVE_ALL)+'.fits.gz'
+      imt[*,*,il]=readfits(tmpdir+prefix+nbr2txt(nlist[n],4)+suffix+strcompress(string(il),/REMOVE_ALL)+'.fits',/SILENT,exten=n_ext, header)
+      file_delete, tmpdir+prefix+nbr2txt(nlist[n],4)+suffix+strcompress(string(il),/REMOVE_ALL)+'.fits'
     endfor
       
       *(dataset.currframe[0])=imt
-      *(dataset.headers[n])=header
+    ;  *(dataset.headers[n])=header
 ;    if ( Modules[thisModuleIndex].Save eq 1 ) then begin
 ;        numfile=n
 ;       b_Stat = save_currdata ( DataSet,  $

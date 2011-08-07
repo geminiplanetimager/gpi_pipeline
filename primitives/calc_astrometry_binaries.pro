@@ -41,8 +41,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
    	thisModuleIndex = Backbone->GetCurrentModuleIndex()
 
   	cubef3D=*(dataset.currframe[0])
-    if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
-
+   
 	sz=size(cubef3D)
 	posmax1=intarr(2)
 	gfit1=dblarr(7,CommonWavVect[2])
@@ -96,7 +95,7 @@ pa=float(Modules[thisModuleIndex].pa) ;get current position angle of the binarie
 xaxis_pa=pa-mean(angle_xaxis_deg,/nan)
 ;;calculate this angle for CRPA=0.
 
-   obsCRPA=float(SXPAR( hdr, 'CRPA'))
+   obsCRPA=float(backbone->get_keyword('CRPA', count=ct))
    xaxis_pa_at_zeroCRPA=xaxis_pa-obsCRPA
 
 Result=[pixelscale,xaxis_pa_at_zeroCRPA]
@@ -105,12 +104,15 @@ Result=[pixelscale,xaxis_pa_at_zeroCRPA]
 
 *(dataset.currframe[0])=Result
 
-sxaddpar, hdr, "FILETYPE", "Plate scale & orientation", /savecomment
-sxaddpar, hdr, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+backbone->set_keyword, "NAXIS", 1, ext_num=1
+backbone->set_keyword, "NAXIS1", 2, ext_num=1
+ sxdelpar,  *(DataSet.HeadersExt[numfile]), "NAXIS2"
+ sxdelpar,  *(DataSet.HeadersExt[numfile]), "NAXIS3"
 
-  if numext eq 0 then $
-  *(dataset.headers[numfile])=hdr else $
-  *(dataset.headersPHU[numfile])=hdr
+  backbone->set_keyword, "FILETYPE", "Plate scale & orientation", /savecomment
+  backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+
+
 
 	if tag_exist( Modules[thisModuleIndex], "suffix") then suffix=Modules[thisModuleIndex].suffix
 	@__end_primitive 

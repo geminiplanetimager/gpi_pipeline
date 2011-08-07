@@ -120,6 +120,15 @@ I1s=fftscale(I1,double(L2m)/double(L1m),double(L2m)/double(L1m),1e-7)
 ;sssd=I2-k*I1s
 sssd=I1s-k*I2
 
+      ;change keywords related to the common wavelength vector:
+    sxdelpar, *(dataset.headersExt)[numfile], 'NAXIS3'
+    sxdelpar, *(dataset.headersExt)[numfile] , 'CDELT3'
+    sxdelpar, *(dataset.headersExt)[numfile], 'CRPIX3'
+    sxdelpar, *(dataset.headersExt)[numfile], 'CRVAL3'
+    sxdelpar, *(dataset.headersExt)[numfile], 'CTYPE3'
+
+sxaddparlarge,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": Simple Spectral Diff. applied."
+
 ;suffix=suffix+'-sssd'
 ;filenm=strmid(filename,0,strlen(filename)-5)+suffix+'-sssd'+'.fits.gz'
 ;writefits, filenm ,sssd,header,/compress

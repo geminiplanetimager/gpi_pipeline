@@ -38,7 +38,7 @@ calfiletype='Fluxconv'
 
 
   	cubef3D=*(dataset.currframe[0])
-  	
+  	filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
         ;get the common wavelength vector
             ;error handle if extractcube not used before
             if ((size(cubef3D))[0] ne 3) || (strlen(filter) eq 0)  then $
@@ -50,15 +50,16 @@ calfiletype='Fluxconv'
         lambdamax=CommonWavVect[1]
        
       
-    if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
-       exposuretime=double(SXPAR( hdr, 'EXPTIME')) ;TODO use ITIME instead
+    ;if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
+       exposuretime=double(backbone->get_keyword( 'ITIME'))
 
-      fits_info, c_File, /silent, N_ext=n_ext
-    if n_ext eq 0 then  $
-    pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headerphot, /SILENT)) else $
-      pmd_fluxcalFrame        = ptr_new(mrdfits(c_File, 1, Headerphot, /SILENT)) 
-    ;lambda_gridratio=*pmd_fluxcalFrame
-    lambda_convfac=*pmd_fluxcalFrame
+;      fits_info, c_File, /silent, N_ext=n_ext
+;    if n_ext eq 0 then  $
+;    pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headerphot, /SILENT)) else $
+;      pmd_fluxcalFrame        = ptr_new(mrdfits(c_File, 1, Headerphot, /SILENT)) 
+;    ;lambda_gridratio=*pmd_fluxcalFrame
+;    lambda_convfac=*pmd_fluxcalFrame
+    lambda_convfac = gpi_readfits(c_File,header=Headerphot)
     
     ;;to do: be sure same wavelengths are used and n_elements is ok
     lambdaconvfac=lambda_convfac[*,0]
@@ -121,15 +122,16 @@ unitslist = ['Counts', 'Counts/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A
    
 	*(dataset.currframe[0])=cubef3D
 for i=0,n_elements(convfac)-1 do $
-	FXADDPAR, *(dataset.headers)[numfile], 'FSCALE'+strc(i), convfac[i]*(exposuretime) ;fscale to convert from counts to 'ph/s/nm/m^2'
-	FXADDPAR, *(dataset.headers)[numfile], 'CUNIT',  unitslist[unitschoice]  
-
+  backbone->set_keyword, 'FSCALE'+strc(i), convfac[i]*(exposuretime), "scale to convert from counts to 'ph/s/nm/m^2", ext_num=1
+  backbone->set_keyword, 'CUNIT',  unitslist[unitschoice] ,"Data units", ext_num=0
+backbone->set_keyword, 'BUNIT',  unitslist[unitschoice] ,"Data units", ext_num=0
+  
 	suffix+='-phot'
 ;  sxaddhist, functionname+": applying photometric calib", *(dataset.headers[numfile])
 ;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": applying photometric calib"
-  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
 
+    backbone->set_keyword,'HISTORY',functionname+": applying photometric calib"
+    backbone->set_keyword,'HISTORY',functionname+": "+c_File
 
 
 @__end_primitive

@@ -35,7 +35,7 @@ res=file_search(compspecnamewoext+'*fits')
 ;extr=readfits(res[0],hdrextr)
 strl=strlen(res)
 minlen=min(strl,subs)
-distorted_cube=readfits(res[subs])
+distorted_cube=readfits(res[subs],exten=1)
 ;stop
         ;get the common wavelength vector
             ;error handle if extractcube not used before
@@ -48,7 +48,7 @@ distorted_cube=readfits(res[subs])
 undistorted_File = (Modules[thisModuleIndex].InFile)
   if strmatch(undistorted_File,'GPI_DRP_OUTPUT_DIR$*') then strreplace, undistorted_File, 'GPI_DRP_OUTPUT_DIR$', getenv('GPI_DRP_OUTPUT_DIR')
 
-undistorted_cube=readfits(undistorted_File)
+undistorted_cube=readfits(undistorted_File,exten=1)
 
 corrected_cube=*(dataset.currframe[0])
 

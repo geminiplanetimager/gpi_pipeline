@@ -44,10 +44,17 @@ if numfile  eq ((dataset.validframecount)-1) then begin
   
   ;;get PA angles of images for final ADI processing
   paall=dblarr(dataset.validframecount)
+  haall=dblarr(dataset.validframecount)
   for n=0,dataset.validframecount-1 do begin
-    if numext eq 0 then h= *(dataset.headers)[n] else h= *(dataset.headersPHU)[n]
+    ;if numext eq 0 then h= *(dataset.headers)[n] else h= *(dataset.headersPHU)[n]
     ;header=*(dataset.headers[n])
-    paall[n]=double(SXPAR( h, 'PAR_ANG'))
+    haall[n]=double(backbone->get_keyword('HA', indexFrame=n))
+    paall[n]=double(backbone->get_keyword('PAR_ANG', indexFrame=n ,count=ct))
+    lat = ten_string('-30 14 26.700') ; Gemini South
+    dec=double(backbone->get_keyword('DEC'))
+    if ct eq 0 then paall[n]=parangle(haall[n],dec,lat)
+    
+    ;paall[n]=double(SXPAR( h, 'PAR_ANG'))
   endfor
   
  ; dtmean=mean((abs(paall-shift(paall,-1)))[0:nfiles-2])*!dtor ;calculate the PA distance between acquisitions
@@ -84,7 +91,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
     ;  fn=Modules[0].OutputDir+path_sep()+strmid(fn,1+strpos(fn,path_sep(),/REVERSE_SEARCH ),STRPOS(fn,'.fits')-strpos(fn,path_sep(),/REVERSE_SEARCH )-1)+suffix+'.fits'
       fn=dataset.outputFileNames[n]
     ;  imt=readfits(fn,header,/silent)
-      imt=accumulate_getimage( dataset, n, header)
+      imt=accumulate_getimage( dataset, n)
         ;loop on wavelength
         for il=0, n_elements(lambda)-1 do begin
 ;        nfwhm=Modules[thisModuleIndex].nfwhm ;get the user-defined minimal distance for the subtraction
@@ -142,16 +149,17 @@ if numfile  eq ((dataset.validframecount)-1) then begin
 ;stop
           ;rotation to have same orientation than the first image
           theta=paall[n]-paall[0]
+          hdr=*(dataset.headersExt[n])
           if silent eq 0 then print,' Rotation of',theta,'[deg] in order to have same orientation than the first image...wavelength[um]=',lambda[il]
-            x0=float(SXPAR( *(dataset.headers[n]), 'PSFCENTX',count=ccx))
-            y0=float(SXPAR( *(dataset.headers[n]), 'PSFCENTY',count=ccy))
-            hdr=*(dataset.headers[n]) ;JM 2010-03-19
+            x0=float(SXPAR( *(dataset.headersExt[n]), 'PSFCENTX',count=ccx))
+            y0=float(SXPAR( *(dataset.headersExt[n]), 'PSFCENTY',count=ccy))
+            ;hdr=*(dataset.headers[n]) ;JM 2010-03-19
             if ((ccx eq 0) || (ccy eq 0) || ~finite(x0) || ~finite(y0))  then begin           
-              if n ne 0 then im1=gpi_adi_rotat(im1,theta,missing=!values.f_nan,hdr=*(dataset.headers[n])) ;(do not rotate first image)
+              if n ne 0 then im1=gpi_adi_rotat(im1,theta,missing=!values.f_nan,hdr=*(dataset.headersExt[n])) ;(do not rotate first image)
             endif else begin
-              if n ne 0 then im1=gpi_adi_rotat(im1,theta,x0,y0,missing=!values.f_nan,hdr=*(dataset.headers[n])) ;(do not rotate first image)
+              if n ne 0 then im1=gpi_adi_rotat(im1,theta,x0,y0,missing=!values.f_nan,hdr=*(dataset.headersExt[n])) ;(do not rotate first image)
             endelse  
-            *(dataset.headers[n])=hdr
+             *(dataset.headersExt[n])=hdr
           im[*,*,il]=im1
         endfor ;loop on lambda
 
@@ -160,16 +168,16 @@ if numfile  eq ((dataset.validframecount)-1) then begin
     
     ;subsuffix='-comb'  ;this the suffix that will be added to the name of the ADI residual  
 	  fname=strmid(fn,0,strpos(fn,suffix)-1)+suffix+subsuffix+'.fits'
-	  header=*(dataset.headers[n])
+	  ;header=*(dataset.headers[n])
     sxaddhist,'One rotation of '+string(theta,format='(f7.3)')+$
-      ' degrees has been applied.',header
+      ' degrees has been applied.',*(dataset.headersPHU[n])
       *(dataset.currframe[0])=im
-      *(dataset.headers[numfile])=header
+      ;*(dataset.headers[numfile])=header
       thisModuleIndex = Backbone->GetCurrentModuleIndex()
 ;stop
     if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
-      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix+subsuffix, display=display, saveheader=header, level2=n+1)
+      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix+subsuffix, display=display, level2=n+1)
       if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
     endif else begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
