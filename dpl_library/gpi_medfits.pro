@@ -42,7 +42,7 @@ nfiles=n_elements(fnames)
 if ~keyword_set(lam) then lam=0
 
 if dim1*dim2*nfiles gt 5.e7 then split=1 else split=0
-if keyword_set(exten_no) then split=0
+;if keyword_set(exten_no) then split=0
 
 ;get all slice in one cube ;On charge tout dans un seul cube
 if split eq 0 then begin
@@ -90,7 +90,7 @@ for n=0,nslice-1 do begin
     endif
 
     for i = 0,nfiles-1 do begin
-        fxread3d,fnames[i],data,hdr,-1,-1,debut,fin, nslice=lam
+        fxread3d,fnames[i],data,hdr,-1,-1,debut,fin, nslice=lam, exten=exten_no
         tmp[*,*,i] = data[*,*]
     endfor
 

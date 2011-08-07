@@ -21,9 +21,9 @@ if n_params() lt 3 then x0=dimx/2
 imt=rot(im,deg,1.0,x0,y0,missing=missing,cubic=-0.5,/pivot)
 
 ;update astrometry if defined
-if keyword_set(hdr) then begin
+if keyword_set(hdr) && (strcompress(strc(sxpar(hdr, 'CDELT1')),/rem) ne '')  then begin
     extast, hdr, astr
-	if n_elements(astr) gt 0 then begin
+	if (n_elements(astr) gt 0)  then begin
     crpix=astr.crpix
     cd=astr.cd
     theta=deg*!dpi/180.
@@ -37,6 +37,8 @@ if keyword_set(hdr) then begin
     astr.crpix=crpix
     astr.cd=cd
     ;put in header
+    print, 'Updating astrometry after ADI frame rotation.'
+    sxaddpar, hdr, 'HISTORY', 'Updating astrometry after ADI frame rotation.'
     putast,hdr,astr
     endif
 endif

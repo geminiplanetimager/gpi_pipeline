@@ -37,7 +37,8 @@ FUNCTION accumulate_getimage, dataset, index, hdr, hdrext=hdrext
 		  hdrext=hdr ; copy so hdrext is defined
 		endif else begin
 		  image = mrdfits( dataset.inputdir + path_sep() + *(dataset.filenames[index]), 1,hdrext,/silent)
-		  hdr =   headfits(dataset.inputdir + path_sep() + *(dataset.filenames[index]), exten=0) 
+		  hdr =   headfits(dataset.inputdir + path_sep() + *(dataset.filenames[index]), exten=0, /silent)
+		  hdrext = headfits(dataset.inputdir + path_sep() + *(dataset.filenames[index]), exten=1, /silent)
 		endelse
 		return, image
 	end
@@ -50,7 +51,8 @@ FUNCTION accumulate_getimage, dataset, index, hdr, hdrext=hdrext
 			hdrext=hdr ; copy so hdrext is defined
     	endif else begin
 			image = mrdfits( *(dataset.frames[index]), 1, hdrext,/silent)
-			hdr =   headfits(*(dataset.frames[index]), exten=0) 
+			hdr =   headfits(*(dataset.frames[index]), exten=0, /silent) 
+			hdrext =   headfits(*(dataset.frames[index]), exten=1, /silent) 
     	endelse  
 		  
 		return, image
