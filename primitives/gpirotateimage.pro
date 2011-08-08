@@ -31,7 +31,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     rot_dir=uint(Modules[thisModuleIndex].Direction)
     *(dataset.currframe[0]) = rotate(*(dataset.currframe[0]),rot_dir)
 
-    sxaddhist, functionname+": "+strc(rot_dir), *(dataset.headers[numfile])
+    sxaddhist, functionname+": "+strc(rot_dir), *(dataset.headersPHU[numfile])
   
 
     if tag_exist( Modules[thisModuleIndex], "Save") && tag_exist( Modules[thisModuleIndex], "suffix") then suffix+=Modules[thisModuleIndex].suffix

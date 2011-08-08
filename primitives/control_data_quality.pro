@@ -39,30 +39,36 @@ primitive_version= '$Id: control_data_quality.pro 96 2010-10-30 13:47:13Z maire 
 
     badquality=0
     drpmessage='ALERT '
-    if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr=*(dataset.headersPHU)[numfile]
+    
   	;hdr= *(dataset.headers)[0]
   	;;control GPI health
-  	health=strcompress(SXPAR( hdr, 'GPIHEALT',count=cc), /rem)
-  	if strmatch(health,'WARNING',/fold) || strmatch(health,'BAD',/fold) then begin
+  	health=strcompress(string(backbone->get_keyword('GPIHEALT',count=cc)), /rem)
+  	if strmatch(health,'WARNING',/fold) || strmatch(health,'BAD',/fold) || strmatch(health,'0',/fold) then begin
   	    badquality=1
   	    drpmessage+='GPI-health='+health
   	endif
   	;;RAWGEMQA keyword tested?
   	
   	;;control r0
-  	r0=strcompress(SXPAR( hdr, 'AVRGNOT',count=cc), /rem) ;r0 [m] at 500nm
-  	if cc eq 0 then r0=strcompress(SXPAR( hdr, 'R0_TOT',count=cc), /rem)
+  	r0=strcompress(backbone->get_keyword('AVRGNOT',count=cc), /rem) ;r0 [m] at 500nm
+  	if cc eq 0 then r0=strcompress(string(backbone->get_keyword('R0_TOT',count=cc)), /rem)
   	 if  (float(r0) lt criticalr0) then begin
   	    badquality=1
         drpmessage+=' r0[m]='+r0  	 
   	 endif
   	 
   	 ;;control rms error
-  	rmserr=strcompress(SXPAR( hdr, 'RMSERR',count=cc), /rem) 
-  	    if  (float(rmserr) gt criticalrmserr) then begin
-        badquality=1
-        drpmessage+=' rms waveront error [microms]='+rmserr     
-     endif
+  	rmserr=strcompress(backbone->get_keyword('RMSERR',count=cc), /rem) 
+  	  if cc eq 0 then begin
+  	      drpmessagerms='No RMSERR keyword found.'
+  	      print, 'BAD QUALITY DATA: '+drpmessagerms
+         backbone->Log, strjoin(drpmessagerms), /DRF, DEPTH = 1
+         backbone->Log, strjoin(drpmessagerms), /GENERAL, DEPTH = 1  	    
+  	  endif
+  	    if  (float(rmserr) gt criticalrmserr) && (cc eq 1) then begin
+          badquality=1
+          drpmessage+=' rms waveront error [microms]='+rmserr     
+        endif
 
 if badquality  then begin
   action=uint(Modules[thisModuleIndex].Action)
@@ -71,7 +77,8 @@ if badquality  then begin
         print, 'BAD QUALITY DATA: '+drpmessage
          backbone->Log, strjoin(drpmessage), /DRF, DEPTH = 1
          backbone->Log, strjoin(drpmessage), /GENERAL, DEPTH = 1
-       sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+"ALERT BAD QUALITY DATA"+drpmessage
+       ;sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+"ALERT BAD QUALITY DATA"+drpmessage
+       backbone->set_keyword, 'HISTORY', functionname+"ALERT BAD QUALITY DATA"+drpmessage
       end
     1: begin
       return, error('REDUCTION FAILED ('+strtrim(functionName)+'):'+drpmessage)

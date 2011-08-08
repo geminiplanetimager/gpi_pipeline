@@ -102,7 +102,7 @@ centroidaper=fix(Modules[thisModuleIndex].centroidaper)
 
 for ii=0,nbrspot-1 do spotloc[ii,*]=calc_centroid_spots( approx_loc[ii,0],approx_loc[ii,1],cubef3D[*,*,floor(CommonWavVect[2]/2)], maxaper, centroidaper)
 print, 'spot loc=',spotloc
-stop
+;stop
 
 spotloc2=fltarr(nbrspot,2)
   ;;replace spots in the tab
@@ -155,8 +155,11 @@ suffix+='-spotloc'
 
   ; Set keywords for outputting files into the Calibrations DB
  ; if numext eq 0 then begin
-  backbone->set_keyword, "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?", ext_num=0
-  backbone->set_keyword,"ISCALIB", "YES", 'This is a reduced calibration file of some type.', ext_num=0
+    hdrphu=*dataset.headersPHU[numfile]
+    hdrext=*dataset.headersExt[numfile]
+    sxaddpar, hdrphu, "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?"
+    sxaddpar, hdrphu,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'  
+
 ;    sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?"
 ;    sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
 ;  endif else begin
@@ -169,7 +172,7 @@ suffix+='-spotloc'
 
 if fix(Modules[thisModuleIndex].ReuseOutput) eq 0 then begin
    if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
-      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, savedata=[transpose(PSFcenter),spotloc2])
+      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, savedata=[transpose(PSFcenter),spotloc2],saveheader=hdrphu)
       if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
     endif 
 

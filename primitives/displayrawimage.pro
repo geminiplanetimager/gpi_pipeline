@@ -33,7 +33,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 ;;	
 ;;	   functionName = 'displayrawimage'
 ;;	
- det=*(dataset.frames[numfile])
+ ;det=*(dataset.frames[numfile])
  ;thisModuleIndex = drpModuleIndexFromCallSequence(Modules, functionName)
 ;;		thisModuleIndex = Backbone->GetCurrentModuleIndex()
  

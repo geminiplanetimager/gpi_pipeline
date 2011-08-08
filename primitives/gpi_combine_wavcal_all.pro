@@ -82,6 +82,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		   backbone->set_keyword, 'DATE-OBS', datetimecomb[0]
 		   backbone->set_keyword, 'TIME-OBS', datetimecomb[1]
 
+  backbone->set_keyword, "FILETYPE", "Wavelength Solution Cal File"
+  backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+  
 		;suffix+='-comb'
 	endif else begin
 		  backbone->set_keyword, 'HISTORY',  functionname+": Only one wavelength calibration supplied; nothing to combine!" ;*(dataset.headers[numfile])

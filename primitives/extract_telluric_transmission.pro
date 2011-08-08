@@ -211,13 +211,14 @@ if testtelluric eq 1 then test_telluric, lambda, sxpar(*(DataSet.HeadersPHU[numf
 
 if tag_exist( Modules[thisModuleIndex], "Save_telluric_transmission") && ( Modules[thisModuleIndex].Save_telluric_transmission eq 1 ) then begin
    ; Set keywords for outputting files into the Calibrations DB
-    backbone->set_keyword, "FILETYPE", "Telluric transmission", "What kind of IFS file is this?", ext_num=0
-    backbone->set_keyword,"ISCALIB", "YES", 'This is a reduced calibration file of some type.', ext_num=0
- 
-;  sxaddpar, hdr, "FILETYPE", "Telluric transmission", "What kind of IFS file is this?"
-;  sxaddpar, hdr,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'  
+    ;backbone->set_keyword, "FILETYPE", "Telluric transmission", "What kind of IFS file is this?", ext_num=0
+    ;backbone->set_keyword,"ISCALIB", "YES", 'This is a reduced calibration file of some type.', ext_num=0
+    hdrphu=*dataset.headersPHU[numfile]
+    hdrext=*dataset.headersExt[numfile]
+    sxaddpar, hdrphu, "FILETYPE", "Telluric transmission", "What kind of IFS file is this?"
+    sxaddpar, hdrphu,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'  
   suffixtelluric='-tellucal'
-      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffixtelluric,savedata=fluxsatmedabs,saveheader=hdr)
+      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffixtelluric,savedata=fluxsatmedabs,saveheader=hdrphu)
       if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
 
 endif

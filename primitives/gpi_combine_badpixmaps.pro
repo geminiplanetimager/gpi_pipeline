@@ -51,13 +51,9 @@ endelse
 suffix+='-comb'
 
   ; Set keywords for outputting files into the Calibrations DB
-  if numext eq 0 then begin
-    sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
-    sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-  endif else begin
     sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
     sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-  endelse
+
   
 
 ;TODO header update

@@ -289,12 +289,17 @@ if tag_exist( Modules[thisModuleIndex], "Save_flux_convertion") && ( Modules[thi
    ; Set keywords for outputting files into the Calibrations DB
 ;  sxaddpar, hdr, "FILETYPE", "Fluxconv", "What kind of IFS file is this?"
 ;  sxaddpar, hdr,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.' 
-     backbone->set_keyword, "FILETYPE", "Fluxconv", "What kind of IFS file is this?", ext_num=0
-    backbone->set_keyword,"ISCALIB", "YES", 'This is a reduced calibration file of some type.', ext_num=0
-   
+   ;  backbone->set_keyword, "FILETYPE", "Fluxconv", "What kind of IFS file is this?", ext_num=0
+   ; backbone->set_keyword,"ISCALIB", "YES", 'This is a reduced calibration file of some type.', ext_num=0
+    filetype='Fluxconv' 
+      hdrphu=*dataset.headersPHU[numfile]
+    hdrext=*dataset.headersExt[numfile]
+    sxaddpar, hdrphu, "FILETYPE", filetype, "What kind of IFS file is this?"
+    sxaddpar, hdrphu,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'  
+  
   suffixconv='-fluxconv'
 
-      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffixconv,savedata=[[lambda],[convfac]])
+      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffixconv,savedata=[[lambda],[convfac]],savephu=hdrphu)
       if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
 
 endif
