@@ -107,7 +107,7 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 		mwrfits, 0, c_File1, savePHU, /create
 		writefits, c_File1, savedata, saveheader, /append
 		;mwrfits, savedata, c_File1, saveheader
- 
+
 		;endelse
 		curr_hdr = savePHU
 		curr_ext_hdr = saveheader
@@ -150,10 +150,7 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 		endif else begin
 			message,/info, "*** ERROR: No Cal DB Object Loaded - cannot add file to DB ***"
 		endelse
-		sxdelpar,*DataSet.HeadersPHU[i], "ISCALIB"
-		sxdelpar,*DataSet.HeadersExt[i], "ISCALIB"
-		sxdelpar,*DataSet.HeadersPHU[i], "FILETYPE"
-    sxdelpar,*DataSet.HeadersExt[i], "FILETYPE"
+
 	endif
 
 	;--- Update progress bar
