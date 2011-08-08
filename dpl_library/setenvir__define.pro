@@ -113,17 +113,25 @@ case tag_names(ev, /structure_name) of
               end
               'Restore envir. var.':begin
                dir = DIALOG_PICKFILE(PATH=getenv('GPI_IFS_DIR'), Title='Choose environment_variables*.sav',/must_exist,FILTER = ['environment_variables*.sav'] )
-               
+
                if dir ne '' then begin
                  restore, dir
                  setenv,'GPI_IFS_DIR='+GID
+                 widget_control, self.GIDdir_id, set_value=GID
                  setenv,'GPI_PIPELINE_DIR='+GPD
+                 widget_control, self.GPDdir_id, set_value=GPD
                  setenv,'GPI_PIPELINE_LOG_DIR='+GPLD
+                 widget_control, self.GPLDdir_id, set_value=GPLD
                  setenv,'GPI_DRF_TEMPLATES_DIR='+GDTD
+                 widget_control, self.GDTDdir_id, set_value=GDTD
                  setenv,'GPI_QUEUE_DIR='+GQD
+                 widget_control, self.GQDdir_id, set_value=GQD
                  setenv,'GPI_CONFIG_FILE='+GCF
+                 widget_control, self.GCF_id, set_value=GCF
                  setenv,'GPI_RAW_DATA_DIR='+GRDD
+                 widget_control, self.GRDDdir_id, set_value=GRDD
                  setenv,'GPI_DRP_OUTPUT_DIR='+GDOD
+                 widget_control, self.GDODdir_id, set_value=GDOD
                endif
               end
               'Ok':begin
