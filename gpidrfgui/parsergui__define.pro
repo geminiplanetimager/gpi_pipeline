@@ -361,8 +361,11 @@ pro parsergui::addfile, filenames, mode=mode
             nonvaliddata=file[indnonvaliddata3]
             self->Log,'WARNING: non-valid data have been detected and removed:'+nonvaliddata
             indvaliddata=intersect(indnonvaliddata3,indgen(cindex),countvalid,/xor)
+             ;correct for a strange side effect with the intersect function above : test for instance: print, intersect([0],[0],ac,/xor)
+            if n_elements(indnonvaliddata3) eq cindex then countvalid = 0
             if countvalid eq 0 then file=''
             if countvalid gt 0 then file=file[indvaliddata]
+
                 cindex = countvalid
                 (*storage.splitptr).selindex = max([0,cindex-1])
                 (*storage.splitptr).findex = cindex
@@ -413,6 +416,7 @@ pro parsergui::addfile, filenames, mode=mode
             for i=0,cinv-1 do self->Log, "   file: "+file[indnonvaliddatakeyw[i]]
             nonvaliddata=file[indnonvaliddatakeyw]
             indvaliddata=intersect(indnonvaliddatakeyw,indgen(cindex),countvalid,/xor)
+            if n_elements(indnonvaliddatakeyw) eq cindex then countvalid = 0
             if countvalid eq 0 then file=''
             if countvalid gt 0 then begin
                 file=file[indvaliddata]
@@ -459,6 +463,16 @@ pro parsergui::addfile, filenames, mode=mode
 		    uniqprisms = uniqvals(finfo.prism)
             uniqprisms = ['SPECT', 'POLAR']
             uniqocculters = ['blank','fpm']
+            ;update for new keyword conventions:
+            tmpobsclass=finfo.obsclass
+            for itmp=0,n_elements(tmpobsclass)-1 do begin
+              if strmatch((finfo.obstype)[itmp],'*Object*',/fold) then (finfo[itmp].obsclass) = 'Science'
+              if strmatch((finfo.obstype)[itmp],'*Standard*',/fold) then begin
+                if strmatch((finfo.prism)[itmp],'*SPEC*',/fold) then (finfo[itmp].obsclass) = 'SPECSTD'
+                if strmatch((finfo.prism)[itmp],'*POL*',/fold) then (finfo[itmp].obsclass) = 'POLARSTD'
+              endif
+              if strmatch((finfo.astromtc)[itmp],'*TRUE*',/fold) then (finfo[itmp].obsclass) = 'Astromstd'
+            endfor
             uniqobsclass = uniqvals(finfo.obsclass, /sort)
             uniqitimes = uniqvals(finfo.itime, /sort)
             uniqobjects = uniqvals(finfo.object, /sort)
@@ -479,7 +493,7 @@ pro parsergui::addfile, filenames, mode=mode
                 uniqsortedobstype = uniqvals(strlowcase((finfo.obstype)[indffilter]))
 
                 ;add  wav solution if not present and if flat-field should be reduced as wav sol
-                void=where(strmatch(uniqsortedobstype,'wavecal*',/fold),cwv)
+                void=where(strmatch(uniqsortedobstype,'*arc*',/fold),cwv)
                 void=where(strmatch(uniqsortedobstype,'flat*',/fold),cflat)
                 if ( cwv eq 0) && (cflat eq 1) && (self.flatreduc eq 1) then begin
                     indfobstypeflat =  where(strmatch((finfo.obstype)[indffilter],'flat*',/fold)) 
@@ -491,7 +505,7 @@ pro parsergui::addfile, filenames, mode=mode
                 ;;here we have to sequence the drf queue: 
                 ;; assign to each obstype an order:
                 sequenceorder=intarr(nbobstype)
-                sortedsequencetab=['Dark', 'Wavecal', 'Flat','Object']
+                sortedsequencetab=['Dark', 'Arc', 'Flat','Object']
 
                 for fc=0,nbobstype-1 do begin
                    wm = where(strmatch(sortedsequencetab, uniqsortedobstype[fc]+'*',/fold),mct)
@@ -561,13 +575,13 @@ pro parsergui::addfile, filenames, mode=mode
                                             detectype=3
                                             detecseq=2                        
                                         end
-                                        'WAVECAL': begin 
+                                        'ARC': begin 
                                             if  current.prism eq 'POLAR' then begin 
                                                 detectype=4
                                                 detecseq=2  
                                             endif else begin                                                          
                                                 detectype=3
-                                                if current.filter eq 'Y' then  detecseq=9 else $
+                                                ;if current.filter eq 'Y' then  detecseq=9 else $
                                                 detecseq=3                  
                                             endelse                     
                                         end
