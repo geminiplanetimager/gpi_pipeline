@@ -111,7 +111,7 @@ PRO automaticproc2::checkevents
 ; that doesn't play well with a main() loop in the backbone code 
 ; that runs forever 
 
-res = widget_event(self.wtFITS,/nowait)
+if (xregistered ('automaticprocess')) then res = widget_event(self.wtFITS,/nowait)
 if xregistered ('drfgui')   then res = widget_event((self.parserobj).drfbase,/nowait, bad_id=badid)
 
 end
