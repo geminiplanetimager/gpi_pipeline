@@ -1759,7 +1759,7 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 	;file_bttn3=WIDGET_BUTTON(file_menu2, VALUE='Set default directories...', UVALUE='defaultdir') 
 	file_bttn3=WIDGET_BUTTON(file_menu2, VALUE='Rescan DRF Templates', UVALUE='rescan') 
 	;next line has been commented as this function is not perfectly free of bugs (when adding new modules, an error occurs)
-	file_bttn3=WIDGET_BUTTON(file_menu2, VALUE='Show/hide extra debugging/development modules', UVALUE='showhidden') 
+	;file_bttn3=WIDGET_BUTTON(file_menu2, VALUE='Show/hide extra debugging/development modules', UVALUE='showhidden') 
 	file_menu3 = WIDGET_BUTTON(bar, VALUE='Help', /MENU) 
 	file_bttn3=WIDGET_BUTTON(file_menu3, VALUE='About...', UVALUE='about') 
 

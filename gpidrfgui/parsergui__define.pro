@@ -1474,7 +1474,8 @@ function parsergui::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
                         ,/ALIGN_CENTER ,VALUE='Change...',uvalue='logpath') 
                         
     calibflattab=['Flat-field extraction','Flat-field & Wav. solution extraction']
-    self.calibflatid = WIDGET_DROPLIST( drfbaseidentseq, title='Reduction of flat-fields:  ', frame=0, Value=calibflattab, uvalue='flatreduction')
+    ;the following line commented as it will not be used (uncomment line in post_init if you absolutely want it)
+   ; self.calibflatid = WIDGET_DROPLIST( drfbaseidentseq, title='Reduction of flat-fields:  ', frame=0, Value=calibflattab, uvalue='flatreduction')
         ;one nice logo 
   button_image = READ_BMP(self.dirpro+path_sep()+'gpi.bmp', /RGB) 
   button_image = TRANSPOSE(button_image, [1,2,0]) 
@@ -1569,7 +1570,7 @@ end
 ;-----------------------
 pro parsergui::post_init, _extra=_extra
 
-	widget_control, self.calibflatid, set_droplist_select= 0;1 ;0
+	;widget_control, self.calibflatid, set_droplist_select= 0;1 ;0
 end
 
 ;-----------------------
@@ -1586,7 +1587,7 @@ PRO parsergui__define
               ;seqtab5:strarr(5),$    
               loadedinputdir:'',$
               calibflatid:0L,$
-              flatreduc:1,$
+              flatreduc:0,$
               direct_id:0L,$
               ;loadedfilenames:ptr_new(/ALLOCATE_HEAP), $
               ;loadedmodules:ptr_new(/ALLOCATE_HEAP), $

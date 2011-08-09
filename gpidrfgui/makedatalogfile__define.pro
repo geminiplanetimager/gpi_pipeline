@@ -80,7 +80,9 @@ case tag_names(ev, /structure_name) of
                   ; load all headers into an array
                   for i=0l,n_elements(filenames)-1 do begin
                     if ~(keyword_set(silent)) then print,filenames[i]
-                    h = headfits(filenames[i])
+                    ;SPEED UP: fits_info can be commented with IF n_ext as sson as we are sure that there are only MEF
+                    fits_info, filenames[i], n_ext=n_ext
+                    if n_ext eq 0 then h = headfits(filenames[i]) else h = [headfits(filenames[i], exten=0, /silent),headfits(filenames[i], exten=1, /silent)]
                     if self.gpiexclu eq 0 then hdrconcat,hdrs,h
                     if self.gpiexclu eq 1 then begin
                         if strmatch(sxpar(h, 'INSTRUME'), '*GPI*') then hdrconcat,hdrs,h
