@@ -30,9 +30,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
  
   thisModuleIndex = Backbone->GetCurrentModuleIndex()  
    if tag_exist( Modules[thisModuleIndex], "keyword1") && tag_exist( Modules[thisModuleIndex], "value1") then $
-   FXADDPAR, *(dataset.headers)[numfile], Modules[thisModuleIndex].keyword1, Modules[thisModuleIndex].value1
+   backbone->set_keyword, Modules[thisModuleIndex].keyword, Modules[thisModuleIndex].value1
+   ;FXADDPAR, *(dataset.headers)[numfile], Modules[thisModuleIndex].keyword1, Modules[thisModuleIndex].value1
      if tag_exist( Modules[thisModuleIndex], "keyword2") && tag_exist( Modules[thisModuleIndex], "value2") then $
-   FXADDPAR, *(dataset.headers)[numfile], Modules[thisModuleIndex].keyword2, Modules[thisModuleIndex].value2
+     backbone->set_keyword, Modules[thisModuleIndex].keyword, Modules[thisModuleIndex].value2
+   ;FXADDPAR, *(dataset.headers)[numfile], Modules[thisModuleIndex].keyword2, Modules[thisModuleIndex].value2
    
    
   thisModuleIndex = Backbone->GetCurrentModuleIndex()

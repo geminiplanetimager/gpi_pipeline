@@ -36,10 +36,10 @@ nbdev17=2.
 nbdev18=18.
 nbdevedge=[nbdev0,nbdev1,nbdev17,nbdev18]
   
-   if numext eq 0 then h= *(dataset.headers)[numfile] else h= *(dataset.headersPHU)[numfile]
+  ; if numext eq 0 then h= *(dataset.headers)[numfile] else h= *(dataset.headersPHU)[numfile]
 ;h=*(dataset.headers[numfile])
-filter=SXPAR( h, 'FILTER',count=c4)
-if c4 eq 0 then filter=SXPAR( h, 'FILTER1',count=c4)
+filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
+;if c4 eq 0 then filter=SXPAR( h, 'FILTER1',count=c4)
                     ;error handle if FILTER1 keyword not found
                     if (filter eq '') then $
                     return, error('FAILURE ('+functionName+'): FILTER1 keyword not found.') 

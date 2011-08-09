@@ -54,13 +54,13 @@ if chbp ne 0 then badpixmap[hotbadpixind]=1
 
   ; thisModuleIndex = Backbone->GetCurrentModuleIndex()
   if tag_exist( Modules[thisModuleIndex], "suffix") then suffix+=Modules[thisModuleIndex].suffix
- if numext eq 0 then begin
-    sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
-    sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-  endif else begin
+; if numext eq 0 then begin
+;    sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
+;    sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+;  endif else begin
     sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
     sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-  endelse
+;  endelse
   
 ;    if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
 ;      if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 

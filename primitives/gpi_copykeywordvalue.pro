@@ -50,8 +50,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
      keywordtarget=Modules[thisModuleIndex].(indkeytarget)
      
 
-if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
-valuesource=sxpar( hdr,keywordsource, count=cs)
+;if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
+valuesource=backbone->get_keyword(keywordsource, count=cs); sxpar( hdr,keywordsource, count=cs)
 
 ;;if necessary, change/format hereafter the value of the keywordsource:
  
@@ -65,20 +65,21 @@ valuesource=sxpar( hdr,keywordsource, count=cs)
 ;         valuesource='xenon on -2286'
 ;    endif
 
-  ;;these change to correct a badly calculated PA angle:
-  if i eq 0 then begin
-  valuesourceHA=double(sxpar( hdr,'HA', count=cs))
-  valuesource=gpiparangle(valuesourceHA,valuesource,ten_string('-30:14:26.7'))
-  print, 'new PA=',valuesource
-  endif
+;  ;;these change to correct a badly calculated PA angle:
+;  if i eq 0 then begin
+;  valuesourceHA=double(sxpar( hdr,'HA', count=cs))
+;  valuesource=gpiparangle(valuesourceHA,valuesource,ten_string('-30:14:26.7'))
+;  print, 'new PA=',valuesource
+;  endif
 
 ;;; end of the change
 if keywordtarget ne '' then $
-valuetarget=sxpar( hdr,keywordtarget, count=ct)
+valuetarget=backbone->get_keyword(keywordtarget, count=ct) ;sxpar( hdr,keywordtarget, count=ct)
 
         if (ct eq 0) || ((ct ne 0) && (overwrite eq 1)) then begin 
-
-           FXADDPAR, hdr, keywordtarget, valuesource
+            backbone->set_keyword,keywordtarget, valuesource
+            backbone->set_keyword,'HISTORY',functionname+":"+keywordtarget+" keyword value changed."
+           ;FXADDPAR, hdr, keywordtarget, valuesource
         endif
      
   endfor
@@ -99,6 +100,6 @@ valuetarget=sxpar( hdr,keywordtarget, count=ct)
 ;   return, ok
 ;writefits, fname, specpos,h
 
-       if numext eq 0 then *(dataset.headers)[numfile]=hdr else *(dataset.headersPHU)[numfile] =hdr
+      ; if numext eq 0 then *(dataset.headers)[numfile]=hdr else *(dataset.headersPHU)[numfile] =hdr
 @__end_primitive
 end

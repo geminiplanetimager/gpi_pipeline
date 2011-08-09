@@ -52,31 +52,33 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
      value=Modules[thisModuleIndex].(indval)
      
 
-    if numext eq 0 then begin
-      hdr= *(dataset.headers)[numfile] 
-    endif else begin
-      if exten eq 0 then hdr= *(dataset.headersPHU)[numfile]
-      if exten eq 1 then hdr= *(dataset.headers)[numfile]
-    endelse
-void=sxpar( hdr,keyword, count=cc)
+;    if numext eq 0 then begin
+;      hdr= *(dataset.headers)[numfile] 
+;    endif else begin
+;      if exten eq 0 then hdr= *(dataset.headersPHU)[numfile]
+;      if exten eq 1 then hdr= *(dataset.headers)[numfile]
+;    endelse
+void=backbone->get_keyword(keyword, count=cc) ;sxpar( hdr,keyword, count=cc)
      if ( cc ne 0)  then begin
         if overwrite eq 1. then begin 
            if tag_exist( Modules[thisModuleIndex], keyw) && tag_exist( Modules[thisModuleIndex], val) then $
-           FXADDPAR, hdr, keyword, value
+           backbone->set_keyword,keyword, value
+           ;FXADDPAR, hdr, keyword, value
         endif
      endif else begin
             if tag_exist( Modules[thisModuleIndex], keyw) && tag_exist( Modules[thisModuleIndex], val) then $
-           FXADDPAR, hdr, keyword, value
+            backbone->set_keyword,keyword, value
+           ;FXADDPAR, hdr, keyword, value
      endelse 
      
   endfor
   
-    if numext eq 0 then begin
-      *(dataset.headers)[numfile] =hdr
-    endif else begin
-      if exten eq 0 then *(dataset.headersPHU)[numfile]=hdr
-      if exten eq 1 then *(dataset.headers)[numfile]=hdr
-    endelse
+;    if numext eq 0 then begin
+;      *(dataset.headers)[numfile] =hdr
+;    endif else begin
+;      if exten eq 0 then *(dataset.headersPHU)[numfile]=hdr
+;      if exten eq 1 then *(dataset.headers)[numfile]=hdr
+;    endelse
     
     
     if tag_exist( Modules[thisModuleIndex], "suffix") then suffix=Modules[thisModuleIndex].suffix
