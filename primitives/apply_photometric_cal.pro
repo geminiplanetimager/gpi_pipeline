@@ -259,7 +259,7 @@ print, 'convfac*exptime=',convfac*(exposuretime)
     ;sxaddpar, saveheader, 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
     savedata=[[lambda],[convfac]]
   ;  writefits, c_File, savedata, convfac_header
-     b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, save_suffix,savedata=savedata, saveheader=hdrphu)  ;
+     b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, save_suffix,savedata=savedata, savephu=hdrphu)  ;
       if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
   
     endif else print, "Directory "+s_OutputDir+" does not exist or is not writeable."+ ' CALIB Fluxconv not saved.'

@@ -218,7 +218,7 @@ if tag_exist( Modules[thisModuleIndex], "Save_telluric_transmission") && ( Modul
     sxaddpar, hdrphu, "FILETYPE", "Telluric transmission", "What kind of IFS file is this?"
     sxaddpar, hdrphu,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'  
   suffixtelluric='-tellucal'
-      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffixtelluric,savedata=fluxsatmedabs,saveheader=hdrphu)
+      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffixtelluric,savedata=fluxsatmedabs,savephu=hdrphu)
       if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
 
 endif
