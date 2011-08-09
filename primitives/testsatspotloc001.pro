@@ -74,20 +74,20 @@ thisLetter = "155B
 greekLetter = '!9' + String(thisLetter) + '!X'
 thisModuleIndex = Backbone->GetCurrentModuleIndex()
 ;figtitle=(Modules[thisModuleIndex].title)
-openps,getenv('GPI_DRP_OUTPUT_DIR')+path_sep()+'test03_'+filter+'.ps', xsize=18, ysize=27 ;, ysize=10, xsize=15
+openps,getenv('GPI_DRP_OUTPUT_DIR')+path_sep()+'test03_'+filter+'.ps', xsize=14, ysize=27 ;, ysize=10, xsize=15
   !P.MULTI = [0, 3, 4, 0, 0] 
 for spot=1,4 do begin
   plot, lambda, deducedpos[*,0,spot],ytitle='X-Loc[mlens]', xtitle='Wavelength (' + greekLetter + 'm)',$
    xrange=[lambda[0],lambda[n_elements(lambda)-1]],linestyle=0, charsize=1.,yrange=[min(deducedpos[*,0,spot]),max(deducedpos[*,0,spot])],title='Spot #'+strc(spot)+' '+filter+'-band'
    oplot,lambda, centroidspotloc[*,0,spot],linestyle=1
-   legend,['Extrap. X-loc.','Centroids'],linestyle=[0,1]
+   legend,['Extrap. X-loc.','Centroids'],linestyle=[0,1], charsize=1.
    plot, lambda, deducedpos[*,1,spot],ytitle='Y-Loc[mlens]', xtitle='Wavelength (' + greekLetter + 'm)',$
    xrange=[lambda[0],lambda[n_elements(lambda)-1]],linestyle=0, charsize=1.,yrange=[min(deducedpos[*,1,spot]),max(deducedpos[*,1,spot])],title='Spot #'+strc(spot)+' '+filter+'-band'
    oplot,lambda, centroidspotloc[*,1,spot],linestyle=1
-   legend,['Extrap. Y-loc.','Centroids'],linestyle=[0,1]
+   legend,['Extrap. Y-loc.','Centroids'],linestyle=[0,1], charsize=1.
   plot, lambda, distance[*,spot],ytitle='Dist.centroid-extrap.[mlens]', xtitle='Wavelength (' + greekLetter + 'm)',$
    xrange=[lambda[0],lambda[n_elements(lambda)-1]],linestyle=0, charsize=1. ,yrange=[min(distance[*,spot]),max(distance[*,spot])],title='Spot #'+strc(spot)+' '+filter+'-band'
-  legend,['max. dist. [mlens]:'+strc(max(distance[*,spot]),format='(g5.2)')],linestyle=[0]
+  legend,['max. dist. [mlens]:'+strc(max(distance[*,spot]),format='(g5.2)')],linestyle=[0], charsize=1.
 endfor
 closeps
   SET_PLOT, mydevice ;set_plot,'win'
