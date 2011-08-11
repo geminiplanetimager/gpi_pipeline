@@ -86,6 +86,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
     obstype=backbone->get_keyword( 'OBSTYPE',count=c1)
     lamp=backbone->get_keyword( 'GCALLAMP',count=c2)
+	if c2 eq 0 then return, error("No GCALLAMP keyword was present, therefore cannot determine what spectrum would be appropriate.")
+
+
     c3=1&lampshut='ON';lampshut=SXPAR( h, 'GCALSHUT',count=c3) ;will be implemented if necessary
     bandeobs=backbone->get_keyword( 'FILTER1',count=c4)
 	if strpos(bandeobs, '_') gt 0 then bandeobs = (strsplit(bandeobs,'_',/extract))[1] ; turn IFSFILT_H_G1213 into just H

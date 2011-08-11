@@ -191,7 +191,7 @@ Function gpicaldatabase::add_new_cal, filename, header=header, nowrite=nowrite
 	    fits_info,filename,N_ext=n_ext,/silent
 	    if n_ext eq 0 then  header = headfits(filename, /silent)
 	    if n_ext gt 0 then  header = [headfits(filename,exten=0, /silent),headfits(filename,exten=1, /silent)]
-  endif    
+    endif    
 	; 	if not a valid cal then return...
 	;message,/info, "No Validation done currently...."
 	if strupcase(strc(sxpar(header, "ISCALIB"))) ne "YES" then begin
@@ -211,17 +211,17 @@ Function gpicaldatabase::add_new_cal, filename, header=header, nowrite=nowrite
 	if count ne 1 then message,/info, "Missing keyword: FILETYPE"
 	newcal.filter = gpi_simplify_keyword_value(strc(sxpar(header, "FILTER1", count=count)))
 	if count ne 1 then begin 
-	  message,/info, "Missing keyword: FILTER1"
-    newcal.filter = gpi_simplify_keyword_value(strc(sxpar(header, "FILTER", count=count)))
-  endif
+	    message,/info, "Missing keyword: FILTER1"
+        newcal.filter = gpi_simplify_keyword_value(strc(sxpar(header, "FILTER", count=count)))
+    endif
 	;newcal.prism= strc(sxpar(header, "PRISM", count=count))
 	;if count ne 1 then begin
 	;  message,/info, "Missing keyword: PRISM"
 	;  newcal.prism= strc(sxpar(header, "FILTER2", count=count2))
 	;  if count2 ne 1 then  begin
 	;  message,/info, "Missing keyword: FILTER2"
-	  newcal.prism= gpi_simplify_keyword_value(strc(sxpar(header, "DISPERSR", count=count3)))
-	   if count3 ne 1 then message,/info, "Missing keyword: DISPERSR"
+	newcal.prism= gpi_simplify_keyword_value(strc(sxpar(header, "DISPERSR", count=count3)))
+	if count3 ne 1 then message,/info, "Missing keyword: DISPERSR"
 	;  endif
 	;endif  
 	newcal.apodizer= strc(sxpar(header, "APODIZER", count=count))
@@ -232,8 +232,8 @@ Function gpicaldatabase::add_new_cal, filename, header=header, nowrite=nowrite
     ;  newcal.itime = (sxpar(header, "INTIME", count=count2))
     ;  if count2 ne 1 then  begin
     ;   message,/info, "Missing keyword: INTIME"
-       newcal.itime = (sxpar(header, "ITIME0", count=count3))
-       if count3 ne 1 then message,/info, "Missing keyword: ITIME0"
+    newcal.itime = (sxpar(header, "ITIME", count=count3))
+       if count3 ne 1 then message,/info, "Missing keyword: ITIME"
    ;   endif
    ; endif
 	newcal.lyot= strc(sxpar(header, "LYOTMASK", count=count))
@@ -293,7 +293,8 @@ function gpicaldatabase::get_best_cal_from_header, type, header, _extra=_extra
    prism=strcompress(gpi_simplify_keyword_value(sxpar( header, 'DISPERSR',  COUNT=cc4)),/rem)
    ;if cc4 eq 0 then prism=strcompress(sxpar( header, 'DISPERSR',  COUNT=cc4),/rem)
 
-   itime=sxpar(header, "ITIME0", count=ci)
+   itime=sxpar(header, "ITIME", count=ci)
+   if ci eq 0 then itime=sxpar(header, "TRUITIME", count=ci)
    ;if ci eq 0 then itime=sxpar(header, "ITIME", count=ci)
    ;if ci eq 0 then itime=sxpar(header, "INTIME", count=ci)
 	return, self->get_best_cal( type, dateobs3, filt, prism, itime=itime, _extra=_extra)
@@ -324,7 +325,7 @@ function gpicaldatabase::get_best_cal, type, date, filter, prism, itime=itime, $
 	; For dark images, the filter does not matter. I'm going to change this to
 	; just 'itime' unless someone has another opinion?
 
-	types_str =[['dark', 'Dark', 'itimeFilt'], $
+	types_str =[['dark', 'Dark', 'itime'], $
 			  	['wavecal', 'Wavelength Solution Cal File', 'FiltPrism'], $
 				['flat', 'Flat field', 'FiltPrism'], $
 				;['flat', 'Flat field', 'FiltPrism'], $

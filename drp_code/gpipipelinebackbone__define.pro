@@ -849,21 +849,28 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
       ;BE EXTREMLY CAREFUL with change of units
       ;;old itime[millisec], old exptime[in sec]
       ;; new itime [seconds per coadd],  new itime0[microsec per coadd]
-      val_old_itime = self->get_keyword('itime', count=count, indexFrame=indexFrame,/silent)
-      val_old_exptime = self->get_keyword('exptime', count=count, indexFrame=indexFrame,/silent)
+	  val_old_itime0 = self->get_keyword('ITIME0', count=count, indexFrame=indexFrame,/silent)
+	  if count eq 0 then begin
+    	val_old_itime = self->get_keyword('itime', count=count, indexFrame=indexFrame,/silent)
+		val_old_itime0 = 1e3*val_old_itime
+	  endif
+
+      val_old_itime = self->get_keyword('TRUITIME', count=count, indexFrame=indexFrame,/silent)
+	  if count eq 0 then val_old_itime = self->get_keyword('exptime', count=count, indexFrame=indexFrame,/silent)
       sxdelpar, *(*self.data).HeadersPHU[IndexFrame], 'ITIME'
       sxdelpar, *(*self.data).HeadersPHU[IndexFrame], 'EXPTIME'
       sxdelpar, *(*self.data).HeadersPHU[IndexFrame], 'TRUITIME'
-      self->set_keyword, 'ITIME', val_old_exptime,  indexFrame=indexFrame,comment='Exposure integration time in seconds per coadd',ext_num=1
-      self->set_keyword, 'ITIME0', long(1.e3*val_old_itime),  indexFrame=indexFrame,comment='Requested integration time in microseconds per coadd',ext_num=1
+      self->set_keyword, 'ITIME', float(val_old_itime),  'Exposure integration time in seconds per coadd', indexFrame=indexFrame,ext_num=1
+      self->set_keyword, 'ITIME0', long(val_old_itime0),  'Requested integration time in microsec per coadd',indexFrame=indexFrame,ext_num=1
       ;;add UTSTART
       val_timeobs = self->get_keyword('TIME-OBS', count=count, indexFrame=indexFrame,/silent)
-      self->set_keyword, 'UTSTART', val_timeobs,  indexFrame=indexFrame,comment='UT at observation start',ext_num=0
+      self->set_keyword, 'UTSTART', val_timeobs,  'UT at observation start', indexFrame=indexFrame,ext_num=0
       ;;change GCALLAMP values      
       val_lamp = self->get_keyword('GCALLAMP', count=count, indexFrame=indexFrame,/silent)
+      val_object = self->get_keyword('OBJECT', count=count, indexFrame=indexFrame,/silent) ; keyword used in UCLA tests
       newlamp=''
-      if strmatch(val_lamp,'*Xenon*',/fold) then newlamp='Xe'
-      if strmatch(val_lamp,'*Argon*',/fold) then newlamp='Ar'
+      if strmatch(val_lamp,'*Xenon*',/fold) or strmatch(val_object, '*Xenon*',/fold)then newlamp='Xe'
+      if strmatch(val_lamp,'*Argon*',/fold) or strmatch(val_object, '*Argon*',/fold)then newlamp='Ar'
       if strlen(newlamp) gt 0 then self->set_keyword, 'GCALLAMP', newlamp,  indexFrame=indexFrame,ext_num=0
       ;;change OBSTYPE ("wavecal" to "ARC" value)
       val_obs = self->get_keyword('OBSTYPE', count=count, indexFrame=indexFrame,/silent)
@@ -873,7 +880,7 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
       ;add ASTROMTC keyword
       val_old = self->get_keyword('OBSCLASS', count=count, indexFrame=indexFrame,/silent)
       if strmatch(val_old, '*AstromSTD*',/fold) then astromvalue='TRUE' else astromvalue='FALSE'
-      self->set_keyword, 'ASTROMTC', astromvalue, comment='Is it an Astrometric standard?', indexFrame=indexFrame,ext_num=0
+      self->set_keyword, 'ASTROMTC', astromvalue, 'Is this star an astrometric standard?', indexFrame=indexFrame,ext_num=0
       
       ;;set the reserved OBSCLASS keyword
        self->set_keyword, 'OBSCLASS', 'acq',  indexFrame=indexFrame,ext_num=0
@@ -1443,7 +1450,7 @@ FUNCTION gpiPipelineBackbone::get_keyword, keyword, count=count, comment=comment
 
 	;if that failed, try the other header
 	if count eq 0 then begin
-		if ~(keyword_set(silent)) then message,/info,'Keyword'+keyword+' not found in preferred header; trying the other HDU'
+		if ~(keyword_set(silent)) then message,/info,'Keyword '+keyword+' not found in preferred header; trying the other HDU'
 		if ext_num eq 0 then value= sxpar(  *(*self.data).headersExt[indexFrame], keyword, count=count, comment=comment)  $
 		else  				 value= sxpar(  *(*self.data).headersPHU[indexFrame], keyword, count=count, comment=comment)  
 	endif
