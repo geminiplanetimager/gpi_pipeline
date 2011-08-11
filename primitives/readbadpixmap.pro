@@ -33,7 +33,7 @@ calfiletype='badpix'
 @__start_primitive
 
     ;pmd_badpixmapFrame        = ptr_new(gpi_READFITS(c_File, Header, /SILENT))
-    badpixmap= gpi_READFITS(c_File, Header, /SILENT)
+    badpixmap= gpi_READFITS(c_File)
 
     backbone->set_keyword,'HISTORY',functionname+": Loaded bad pixel map"
     backbone->set_keyword,'HISTORY',functionname+": "+c_File
