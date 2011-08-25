@@ -431,17 +431,22 @@ pro parsergui::addfile, filenames, mode=mode
             typename='cal_spec_'         
             self.loadedDRF = self.tempdrfdir+'templates_drf_'+typename+strc(detecseq)+'.xml'
             self->loaddrf, /nodata, /silent
-            self->savedrf, nonvaliddata, prefix=self.nbdrfSelec+1
-            newdrf = ([self.drfpath+path_sep()+(*self.drf_summary).filename,(*self.drf_summary).name,(*self.template_types)[detectype-1] ,'','', '', '', '' ,'','']) 
+            self->savedrf, nonvaliddata, prefix=self.nbdrfSelec+1 
+            if widget_info(self.direct_id ,/button_set)  then chosenpath=self.queuepath else chosenpath=self.drfpath           
+            newdrf = ([chosenpath+path_sep()+(*self.drf_summary).filename,(*self.drf_summary).name,(*self.template_types)[detectype-1] ,'','', '', '', '' ,'','']) 
 
             if self.nbdrfSelec eq 0 then (*self.currDRFSelec)= newdrf else (*self.currDRFSelec)=([[(*self.currDRFSelec)],[newdrf]])
             self.nbdrfSelec+=1
             print, (*self.currDRFSelec)
+              widget_control, self.tableSelected, ysize=((size(*self.currDRFSelec))[2] > 20 )
+              widget_control, self.tableSelected, set_value=(*self.currDRFSelec)[0:9,*]
+              widget_control, self.tableSelected, background_color=rebin(*self.table_BACKground_colors,3,2*10,/sample)    
+            
             self->Log, "Those files will be ignored from further analysis until after the keywords are fixed. "
         endif
 
 
-        if n_elements(file) gt 0 then begin
+        if (n_elements(file) gt 0) && (strlen(file[0]) gt 0) then begin
 
             ; save starting date and time for use in DRF filenames
                 caldat,systime(/julian),month,day,year, hour,minute,second
@@ -1569,8 +1574,7 @@ end
 
 ;-----------------------
 pro parsergui::post_init, _extra=_extra
-
-	;widget_control, self.calibflatid, set_droplist_select= 0;1 ;0
+            	;widget_control, self.calibflatid, set_droplist_select= 0;1 ;0
 end
 
 ;-----------------------
