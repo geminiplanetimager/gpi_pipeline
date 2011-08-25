@@ -575,8 +575,13 @@ pro drfgui::queue, filename; , storage=storage
         newfilename = file_basename(filename)
     endelse
 
-    FILE_COPY, filename, self.queuepath+path_sep()+newfilename,/overwrite
-    self->log,'Queued '+newfilename
+    isalreadypresent=file_test(filename)
+    if isalreadypresent ne 1 then begin
+      FILE_COPY, filename, self.queuepath+path_sep()+newfilename,/overwrite
+      self->log,'Queued '+newfilename
+    endif else begin
+      self->log,'DRF already queued.'
+    endelse
 
 end
 
@@ -884,7 +889,7 @@ pro drfgui::event,ev
         ;name=fileselectm(group_leader=ev.top,path=defdir,/fullpath)
         if (file[n_elements(file)-1] eq '') then begin
             result=dialog_pickfile(path=defdir,/multiple,/must_exist,$
-                title='Select Raw Data File(s)', filter=['*.fits','*.fits.gz'])
+                title='Select Raw Data File(s)', filter=['*.fits','*.fits.gz'],get_path=getpath)
         endif else begin
             self->log,'Sorry, maximum number of files reached. You cannot add any additional files/directories.'
             result = ''
@@ -1525,11 +1530,15 @@ pro drfgui::loaddrf, filename, nodata=nodata, silent=silent, log=log
         self.inputdir=drf_contents.inputdir
          ;;get list of files in the drf
          if strcmp((drf_contents.fitsfilenames)[0],'') ne 1  then begin
-             (*storage.splitptr).filename = drf_contents.fitsfilenames
+             (*storage.splitptr).filename =  drf_contents.fitsfilenames
             (*storage.splitptr).printname = drf_contents.fitsfilenames
             (*storage.splitptr).findex = n_elements(where( strtrim(drf_contents.fitsfilenames,2) ne ''))
             widget_control,storage.fname,set_value=(*storage.splitptr).printname
         endif
+
+        for zz=0,n_elements((*storage.splitptr).filename)-1 do begin
+          if strcmp(((*storage.splitptr).filename)[zz],'') ne 1  then (*storage.splitptr).filename[zz]=self.inputdir+path_sep()+(*storage.splitptr).filename[zz]
+        endfor
 
 		;update title bar of window:
 	
