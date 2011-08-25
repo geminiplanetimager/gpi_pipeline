@@ -447,7 +447,7 @@ endif else if issetenvok eq -1 then return,0
 	self.cmd_queue_flags = ptr_new(shmvar('gpi_gui_queue_flags'+self.username))
 	shmmap, 'gpi_gui_queue'+self.username, template=bytarr(80,self.queuelen)
 	self.cmd_queue = ptr_new(shmvar('gpi_gui_queue'+self.username))
-	shmmap, 'gpi_gui_queue_args'+self.username, template=bytarr(512,self.queuelen)
+	shmmap, 'gpi_gui_queue_args'+self.username, template=bytarr(2048,self.queuelen) ;512->2048 for long arg (for instance gpitv, disp_grid...)
 	self.cmd_queue_args = ptr_new(shmvar('gpi_gui_queue_args'+self.username))
 
 	self->clear_queue

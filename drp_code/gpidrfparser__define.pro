@@ -533,7 +533,7 @@ PRO gpidrfparser::startelement, URI, Local, qName, AttNames, AttValues
 
 	;COMMON APP_CONSTANTS
 
-;stop
+
 	CASE strupcase(qName) OF
 		'DRF': BEGIN
 			; This FOR statement allows the attributes to be in any order in the XML file
