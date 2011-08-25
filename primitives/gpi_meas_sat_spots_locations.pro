@@ -168,7 +168,7 @@ suffix+='-spotloc'
 ;;    sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?"
 ;;    sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
 ;  endelse
-
+    sxdelpar,hdrext,"NAXIS3"
 
 if fix(Modules[thisModuleIndex].ReuseOutput) eq 0 then begin
    if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin

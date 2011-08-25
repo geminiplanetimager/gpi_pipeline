@@ -45,8 +45,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
     ; ====== Rotation =======
     ;d_PA = sxpar(hdr, "PA", pa_ct) ;PAR_ANG") ; in DEGREEs
-	d_PA = backbone->get_keyword('PA', pa_ct) ; in degrees
-	if PA_ct eq 0 then  d_PA = backbone->get_keyword('PAR_ANG', pa_ct) 
+	d_PA = backbone->get_keyword('PA', count=pa_ct) ; in degrees
+	if PA_ct eq 0 then  d_PA = backbone->get_keyword('PAR_ANG', count=pa_ct) 
     message,/info, "PA is "+strc(d_PA)
 
     ; we first pad into a 289x289 array. This is large enough to have the

@@ -43,9 +43,11 @@ badpixmap=bytarr(2048,2048)
  
 meandet = mean(det)
 
+negind = where(det le 0.,czbp)
 badpixind = where(det le (1.-nbdev)*meandet,cbp)
 hotbadpixind = where(det ge (1.+nbdev)*meandet,chbp)
 
+if czbp ne 0 then badpixmap[negind]=1
 if cbp ne 0 then badpixmap[badpixind]=1
 if chbp ne 0 then badpixmap[hotbadpixind]=1
 
