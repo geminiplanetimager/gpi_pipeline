@@ -1,3 +1,4 @@
+;;PHU/Ext location of keywords; Always use a tab delimiter when adding new lines
 #Keyword name	PHU/Extension#
 SIMPLE	Both
 BITPIX	Both
@@ -111,14 +112,10 @@ VPREMDRF	Extension
 VREFMAIN	Extension
 VRESET	Extension
 VRPSTYPE	Extension
-
-
 CWSTEMP	PHU
 DETTEMP	PHU
 DETHTEMP	PHU
 DEWPRES	PHU
-
-
 UTSTART	PHU
 DATE-OBS	PHU
 MJD-OBS	PHU
@@ -167,7 +164,7 @@ OBSERVER	PHU
 OBSID	PHU
 OBSTYPE	PHU
 PA	PHU
-PARALLAC	PHU
+PAR_ANG	PHU
 PARALLAX	PHU
 PMDEC	PHU
 PMRA	PHU
@@ -250,7 +247,14 @@ PSFCENTX	Extension
 PSFCENTY	Extension
 SPECCENX	Extension
 SPECCENY	Extension
-SPOT[1-4][x-y]	Extension
+SPOT1x	Extension
+SPOT1y	Extension
+SPOT2x	Extension
+SPOT2y	Extension
+SPOT3x	Extension
+SPOT3y	Extension
+SPOT4x	Extension
+SPOT4y	Extension
 SPOTWAVE	Extension
 WCSAXES	Extension
 DARKFILE	PHU
