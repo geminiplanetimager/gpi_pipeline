@@ -760,6 +760,17 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
 		;  (see below where we append the DRF onto the primary header)
         *((*self.data).currframe)        = (mrdfits(filename , 1, ext_Header, /SILENT))
 		pri_header = headfits(filename, exten=0)
+		
+		;Gemini requirement: test and add extname 'SCI' if not present
+    val_extname = sxpar(ext_header,"EXTNAME",count=cextname,/silent)
+    if cextname eq 0 then sxaddpar,ext_header,"EXTNAME","SCI","Image extension contains science data"
+    if (cextname eq 1) AND ~stregex(val_extname,'SCI',/bool) then begin
+        self->Log, "ERROR:  found"+val_extname+"in the first extension"+filename, /GENERAL, /DRF
+        self->Log, "ERROR:  first extension need SCI Extname"+filename, /GENERAL, /DRF
+        self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
+        return,NOT_OK 
+    endif
+  
 		*(*self.data).HeadersExt[IndexFrame] = ext_header
     endif        
 
