@@ -111,8 +111,11 @@ calfiletype='Gridratio'
     radaper=(lambda[0])
     ;;apr is 2.*lambda/D (EE=94%)
     apr = 2.55*(lambda[0]*1.e-6/7.7)*(180.*3600./!dpi)/0.014;[radaper];lambda[0]*[3.];lambda[0]*[5.];lambda[0]*[3.] 
-    if (filter eq 'J')||(filter eq 'Y') then apr-=3.;1. 
-    if (filter eq 'K1')||(filter eq 'K2') then apr-=6.  ;dark hole in these bands...
+    if (filter eq 'J') then apr-=3.;1. ;these values has been set empirically on photometric tests
+    if (filter eq 'Y') then apr-=3.1;1.
+    if (filter eq 'K1') then apr-=6.2;1.    
+    if (filter eq 'K2') then apr-=6.  ;dark hole in these bands...
+  
     ; Assume that all pixel values are good data
     badpix = [-1.,1e6];state.image_min-1, state.image_max+1
 ;stop
