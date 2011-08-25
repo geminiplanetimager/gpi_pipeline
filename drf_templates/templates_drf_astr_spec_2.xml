@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <DRF LogPath="E:\pipeline\log\" ReductionType="ASTR - SPEC" name='Calibrated Data-cube extraction'>
-<dataset InputDir="" Name="" OutputDir="E:\GPIdatabase\GPIreduced\">
+<dataset InputDir="" Name="" OutputDir="">
    <fits FileName="" />
 </dataset>
 <module name="Load bad pixel map" CalibrationFile="AUTOMATIC" />

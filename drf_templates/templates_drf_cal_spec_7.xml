@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <DRF LogPath="E:\pipeline\\log\" ReductionType="CAL - SPEC" name='Satellite Flux Ratios'>
-<dataset InputDir="" Name="" OutputDir="E:\GPIdatabase\GPIreduced\">
+<dataset InputDir="" Name="" OutputDir="">
    <fits FileName="" />
 </dataset>
 <module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="       0" suffix="" gpitv="" />

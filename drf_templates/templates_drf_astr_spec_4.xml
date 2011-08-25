@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <DRF LogPath="E:\pipeline\log\" ReductionType="ASTR - SPEC" name="Rotate and combine extended object">
-<dataset InputDir="" Name="" OutputDir="E:\GPIdatabase\">
+<dataset InputDir="" Name="" OutputDir="">
    <fits FileName="" />
 </dataset>
 <module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
