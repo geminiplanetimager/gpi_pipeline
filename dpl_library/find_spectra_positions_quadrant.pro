@@ -72,6 +72,12 @@ w=w0 & P=P0 ;initial guess
           ;if (idir eq -1)&& (j eq 116) then stop
           ;if (idir eq -1)&& (j eq 115) then print, 'j=115 w=',w,'  P=',P
                    ; if (nlens/2+i eq 135) && (nlens/2+j eq 238) then stop
+                   ;if (nlens/2-i eq 159) && (nlens/2-j eq 65) then stop
+;                   if (nlens/2-i eq 161) && (nlens/2-j eq 64) then stop
+;                   if (nlens/2-i eq 157) && (nlens/2-j eq 63) then stop
+                  ;if (nlens/2-i eq 147) && (nlens/2-j eq 180) then stop
+                  ;if (nlens/2-i eq 145) && (nlens/2-j eq 180) then stop
+                  ;if (nlens/2-i eq 132) && (nlens/2-j eq 190) then stop
           ;;calculate centroid to have more accurate position
             specpos[nlens/2+i,nlens/2+j,0:1]=localizepeak( im, cen1[0]+dx,cen1[1]+dy,wx,wy,hh,badpixmap=badpixmap)
 ;if keyword_set(tight) then begin

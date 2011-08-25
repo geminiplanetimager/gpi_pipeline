@@ -13,7 +13,7 @@ function ExtractSpectra2,  spect, lambda, lamb=lamb
 ;common DST_INPUT
 widthL=(lambda(1)-lambda(0))
 
-fileSpectra=getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()+'pickles'+path_sep()+'uk'+spect+'.dat'
+fileSpectra=getenv('GPI_PIPELINE_DIR')+path_sep()+'dst'+path_sep()+'pickles'+path_sep()+'uk'+spect+'.dat'
 Spectra = READ_ASCII(fileSpectra, DATA_START=10) ;[lambda(A) f(lambda)/f(0.5556um)]   lambda sampling: 5A
 
 Spectra.field1(1,*)=Spectra.field1(0,*)*Spectra.field1(1,*) ;flambda=�f
