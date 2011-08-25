@@ -26,6 +26,7 @@
 ; PIPELINE ARGUMENT: Name="centrYpos" Type="int" Range="[0,2048]" Default="1024" Desc="Initial approximate y-position [pixel] of central peak at 1.5microns"
 ; PIPELINE ARGUMENT: Name="w" Type="float" Range="[0.,10.]" Default="4.8" Desc="Spectral spacing perpendicular to the dispersion axis at the detcetor in pixel"
 ; PIPELINE ARGUMENT: Name="P" Type="float" Range="[-7.,7.]" Default="-1.8" Desc="Micro-pupil pattern"
+; PIPELINE ARGUMENT: Name="emissionlinesfile" Type="string"  Default="$GPI_PIPELINE_DIR\dpl_library\lampemissionlines.txt" Desc="File of emission lines."
 ; PIPELINE ARGUMENT: Name="wav_of_centrXYpos" Type="int" Range="[1,2]" Default="2" Desc="1 if centrX-Ypos is the smallest-wavelength peak of the band; 2 if centrX-Ypos refer to 1.5microns"
 ; PIPELINE ARGUMENT: Name="maxpos" Type="float" Range="[-7.,7.]" Default="2." Desc="Allowed maximum location fluctuation (in pixel) between adjacent mlens"
 ; PIPELINE ARGUMENT: Name="maxtilt" Type="float" Range="[-360.,360.]" Default="10." Desc="Allowed maximum tilt fluctuation (in degree) between adjacent mlens"
@@ -35,7 +36,7 @@
 ; PIPELINE ARGUMENT: Name="gpitvim_dispgrid" Type="int" Range="[0,500]" Default="15" Desc="1-500: choose gpitv session for displaying image output and wavcal grid overplotted, 0: no display "
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying wavcal file, 0: no display "
 ; PIPELINE ARGUMENT: Name="tests" Type="int" Range="[0,3]" Default="0" Desc="1 for extensive tests "
-; PIPELINE ARGUMENT: Name="testsDST" Type="int" Range="[0,3]" Default="0" Desc="1 for DRP/DST tests "
+; PIPELINE ARGUMENT: Name="testsDST" Type="int" Range="[0,3]" Default="0" Desc="1 for extensive tests "
 ; PIPELINE COMMENT: Derive wavelength calibration from an arc lamp or flat-field image.
 ; PIPELINE TYPE: CAL-SPEC
 ; PIPELINE SEQUENCE: 
@@ -85,10 +86,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   endfor 
 
     obstype=backbone->get_keyword( 'OBSTYPE',count=c1)
-    lamp=backbone->get_keyword( 'GCALLAMP',count=c2)
-	if c2 eq 0 then return, error("No GCALLAMP keyword was present, therefore cannot determine what spectrum would be appropriate.")
-
-
+       lamp=backbone->get_keyword( 'GCALLAMP',count=c2)
+  if c2 eq 0 then return, error("No GCALLAMP keyword was present, therefore cannot determine what spectrum would be appropriate.")
+    
+    ;lamp=backbone->get_keyword( 'OBJECT',count=c2);backbone->get_keyword( 'GCALLAMP',count=c2) ;
     c3=1&lampshut='ON';lampshut=SXPAR( h, 'GCALSHUT',count=c3) ;will be implemented if necessary
     bandeobs=backbone->get_keyword( 'FILTER1',count=c4)
 	if strpos(bandeobs, '_') gt 0 then bandeobs = (strsplit(bandeobs,'_',/extract))[1] ; turn IFSFILT_H_G1213 into just H
@@ -132,17 +133,40 @@ cen1=dblarr(2)	& cen1[0]=-1 & cen1[1]=-1
 wx=0 & wy=0 ;define sidelength (2wx+1 by 2wy+1 ) of box for maximum intensity detection
 hh=1. ;define sidelength (2hh+1 by 2hh+1 ) of box for centroid intensity detection
 
+;
+if (tag_exist( Modules[thisModuleIndex], "emissionlinesfile")) and file_test(gpi_expand_path(Modules[thisModuleIndex].emissionlinesfile),/read) then $
+emissionlinefile=  gpi_expand_path(Modules[thisModuleIndex].emissionlinesfile) else $
+emissionlinefile=  gpi_expand_path('$GPI_PIPELINE_DIR\dpl_library\lampemissionlines.txt')
+;res=read_ascii(emissionlinefile,data_start=2)
+nlines = FILE_LINES(emissionlinefile) 
+sarr = STRARR(nlines) 
+OPENR, unit, emissionlinefile,/GET_LUN 
+READF, unit, sarr 
+FREE_LUN, unit 
+sarr_nocomm=sarr[2:nlines-1]
+lamp2=lamp
+if strmatch(lamp,'*Xe*',/fold) then lamp2='Xe'
+if strmatch(lamp,'*Ar*',/fold) then lamp2='Ar'
+indemis=where(stregex(sarr_nocomm,bandeobs, /bool) and stregex(sarr_nocomm,lamp2, /bool), countval )
+if countval gt 0 then begin
+  split=strsplit(sarr_nocomm[indemis],count=csplit,/extract)
+  split2=split[2:csplit-1]
+  peakwavelen=float(split2)
+endif else begin
+  return, error('FAILURE ('+functionName+'): Failed to load emission lines.') 
+endelse
+
 case strcompress(bandeobs,/REMOVE_ALL) of
   'Y':begin
-      if strmatch(lamp,'*Xe*',/fold) then begin
-        if (cinstru eq 1) && strmatch(instrum,'*DST*') then  peakwavelen=[[1.084]] else $ ;peakwavelen=[[1.084],[1.17455]]-0.03 else $ ;
-          peakwavelen=[[1.084],[1.17454]]
-      endif
-      if strmatch(lamp,'*Ar*',/fold) then begin
-        if (cinstru eq 1) && strmatch(instrum,'*DST*') then peakwavelen=[[1.07],[1.14]] else $;peakwavelen=[[1.0676]] else $
-          peakwavelen=[[1.0676],[1.1445]]
-        endif
-      if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[0.95],[1.14]]
+;      if strmatch(lamp,'*Xe*',/fold) then begin
+;        if (cinstru eq 1) && strmatch(instrum,'*DST*') then  peakwavelen=[[1.084]] else $ ;peakwavelen=[[1.084],[1.17455]]-0.03 else $ ;
+;          peakwavelen=[[1.084],[1.17454]]
+;      endif
+;      if strmatch(lamp,'*Ar*',/fold) then begin
+;        if (cinstru eq 1) && strmatch(instrum,'*DST*') then peakwavelen=[[1.07],[1.14]] else $;peakwavelen=[[1.0676]] else $
+;          peakwavelen=[[1.0676],[1.1445]]
+;        endif
+;      if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[0.95],[1.14]]
        if (cinstru eq 1) && strmatch(instrum,'*DST*') then begin
             specpixlength=15. ;spec pix length for rough estimation of peak positions
             bandwidth=0.2  ;bandwidth in microns
@@ -152,8 +176,8 @@ case strcompress(bandeobs,/REMOVE_ALL) of
         endelse
     end
   'J':begin
-      if strmatch(lamp,'*Xe*',/fold) then peakwavelen=[[1.175],[1.263]] ;take into account secondary peak[[1.175],[1.263]]
-      if strmatch(lamp,'*Ar*',/fold) then peakwavelen=[[1.246],[1.296]]
+;      if strmatch(lamp,'*Xe*',/fold) then peakwavelen=[[1.175],[1.263]] ;take into account secondary peak[[1.175],[1.263]]
+;      if strmatch(lamp,'*Ar*',/fold) then peakwavelen=[[1.246],[1.296]]
       if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.15],[1.33]] ;[[1.12],[1.35]]
       if (cinstru eq 1) && strmatch(instrum,'*DST*') then begin
         specpixlength= 15. ;spec pix length for rough estimation of peak positions
@@ -164,23 +188,23 @@ case strcompress(bandeobs,/REMOVE_ALL) of
         endelse
     end
   'H':begin
-      if strmatch(lamp,'*Xe*',/fold) then peakwavelen=[[1.542],[1.605],[1.6732],[1.733]]
-      if strmatch(lamp,'*Ar*',/fold) then peakwavelen=[[1.50506],[1.695],[1.79196]] ;[[1.695]] ;[[1.50506],[1.695],[1.79196]]
+;      if strmatch(lamp,'*Xe*',/fold) then peakwavelen=[[1.542],[1.605],[1.6732],[1.733]]
+;      if strmatch(lamp,'*Ar*',/fold) then peakwavelen=[[1.50506],[1.695],[1.79196]] ;[[1.695]] ;[[1.50506],[1.695],[1.79196]]
       if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.5],[1.8]]
-      if strmatch(lamp,'*laser*',/fold) then peakwavelen=[[1.55]]
+;      if strmatch(lamp,'*laser*',/fold) then peakwavelen=[[1.55]]
       specpixlength=20. ;17. ;spec pix length for rough estimation of peak positions
       bandwidth=0.3 ;bandwidth in microns
     end
   'K1':begin
-      if strmatch(lamp,'*Xe*',/fold) then peakwavelen=[[2.02678],[2.14759]]
-      if strmatch(lamp,'*Ar*',/fold) then peakwavelen=[[1.997],[2.06],[2.099],[2.154]]
+;      if strmatch(lamp,'*Xe*',/fold) then peakwavelen=[[2.02678],[2.14759]]
+;      if strmatch(lamp,'*Ar*',/fold) then peakwavelen=[[1.997],[2.06],[2.099],[2.154]]
       if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.9],[2.19]]
       specpixlength=20. ;spec pix length for rough estimation of peak positions
       bandwidth=0.3 ;bandwidth in microns
     end
   'K2':begin
-      if strmatch(lamp,'*Xe*',/fold) then peakwavelen=[[2.14759],[2.31996]]
-      if strmatch(lamp,'*Ar*',/fold) then peakwavelen=[[2.154],[2.2],[2.314],[2.397]]
+;      if strmatch(lamp,'*Xe*',/fold) then peakwavelen=[[2.14759],[2.31996]]
+;      if strmatch(lamp,'*Ar*',/fold) then peakwavelen=[[2.154],[2.2],[2.314],[2.397]]
       if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[2.13],[2.4]]
       specpixlength=20. ;spec pix length for rough estimation of peak positions
       bandwidth=0.27  ;bandwidth in microns
@@ -189,8 +213,9 @@ endcase
     ;;2010-07-14 J.Maire: added for testing, 
     ;; use it only for wavelength solution testing based on DST sim
     ;;correct for finite DST spectral resolution !!
-    if (tag_exist( Modules[thisModuleIndex], "testsDST")) && ( fix(Modules[thisModuleIndex].testsDST) eq 1 ) then begin
-
+    
+   ; if (tag_exist( Modules[thisModuleIndex], "testsDST")) && ( fix(Modules[thisModuleIndex].testsDST) eq 1 ) then begin
+   if strmatch(instrum,'*DST*') && ~strmatch(bandeobs,'*Y*') then begin
               case strcompress(bandeobs,/REMOVE_ALL) of
             'Y':begin
                 if strmatch(lamp,'*Xe*',/fold) then relativethresh=0.35
@@ -334,6 +359,7 @@ if n_elements(peakwavelen) gt 1 then begin
   w3=fltarr(n_elements(apprXpos)-1)
 ;wx=0. & wy=1.
 wx=1. & wy=0. ;flat
+;wx=0. & wy=0. & hh=1. ;flat
 
 ;calculate now x-y locations of the other peaks and deduce linear dispersion coeffs and tilts
  for quadrant=1L,4 do find_spectra_dispersions_quadrant, quadrant,peakwavelen,apprXpos,apprYpos,nlens,w3,w3med,tilt,specpos,im,wx,wy,hh,szim,edge_x1,edge_x2,edge_y1,edge_y2, dispeak, dispeak2, tight_tilt
@@ -418,11 +444,12 @@ writefits, strmid(output_filename, 0,strlen(output_filename)-5)+'testdis2'+'.fit
       if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
       if tag_exist( Modules[thisModuleIndex], "gpitvim_dispgrid") && ( fix(Modules[thisModuleIndex].gpitvim_dispgrid) ne 0 ) then $
            if strcmp(obstype,'flat',4,/fold) then im=im0
-      backbone_comm->gpitv, double(im), session=fix(Modules[thisModuleIndex].gpitvim_dispgrid), header=h, dispwavcalgrid=output_filename, imname='Wavecal grid result from '+ Modules[thisModuleIndex].name
+          
+      backbone_comm->gpitv, double(im), session=fix(Modules[thisModuleIndex].gpitvim_dispgrid), header=*(dataset.headersPHU)[numfile], dispwavcalgrid=output_filename, imname='Wavecal grid for '+  *((dataset.frames)[numfile]);Modules[thisModuleIndex].name
            ;gpitvms, double(im), ses=fix(Modules[thisModuleIndex].gpitvim_dispgrid),head=h,opt='dispwavcalgrid='+output_filename
     endif else begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
-          backbone_comm->gpitv, double(*DataSet.currFrame), session=fix(Modules[thisModuleIndex].gpitv), header=h, imname='Pipeline result from '+ Modules[thisModuleIndex].name
+          backbone_comm->gpitv, double(*DataSet.currFrame), session=fix(Modules[thisModuleIndex].gpitv), header=*(dataset.headersPHU)[numfile], imname='Pipeline result from '+ Modules[thisModuleIndex].name
           ;gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=h
     endelse
 
