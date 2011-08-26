@@ -18,8 +18,8 @@ function about_message
               '  Kathleen Labrie, Jeff Chilcote, Quinn Konopacky ', $
               '', $
               'Acknowledgements:', $
-              '  Rene Doyon, Kathleen Labrie', $
-              '    which have helped improve GPI DRP', $
+              '  Rene Doyon, Kathleen Labrie and GPI team members', $
+              '    who have helped improve GPI DRP', $
               '  ', $
               ' ', $
               '', $
