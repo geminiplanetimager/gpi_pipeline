@@ -575,7 +575,8 @@ pro drfgui::queue, filename; , storage=storage
         newfilename = file_basename(filename)
     endelse
 
-    isalreadypresent=file_test(filename)
+
+    isalreadypresent=file_test(self.queuepath+path_sep()+newfilename)
     if isalreadypresent ne 1 then begin
       FILE_COPY, filename, self.queuepath+path_sep()+newfilename,/overwrite
       self->log,'Queued '+newfilename
@@ -1620,7 +1621,7 @@ pro drfgui::loaddrf, filename, nodata=nodata, silent=silent, log=log
                             message,"Check whether the parameter list in the DRF file '"+self.loadeddrf+"' has the correct parameters for that module! ",/info
                         endif
             argtab=((*self.ConfigDRS).argdefault)
-            argtab[(*self.indarg)[jj]]=((drf_contents.modules)[ii]).(indtag[0]) ;use parentheses as Facilities exist to process structures in a general way using tag numbers rather than tag names
+            if matchct gt 0 then argtab[(*self.indarg)[jj]]=((drf_contents.modules)[ii]).(indtag[0]) ;use parentheses as Facilities exist to process structures in a general way using tag numbers rather than tag names
             ((*self.ConfigDRS).argdefault)=argtab
         ;    (*self.currModSelecParamTab)[jj,1]=
         endfor
