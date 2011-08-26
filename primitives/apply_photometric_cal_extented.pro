@@ -130,8 +130,8 @@ backbone->set_keyword, 'BUNIT',  unitslist[unitschoice] ,"Data units", ext_num=0
 ;  sxaddhist, functionname+": applying photometric calib", *(dataset.headers[numfile])
 ;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
 
-    backbone->set_keyword,'HISTORY',functionname+": applying photometric calib"
-    backbone->set_keyword,'HISTORY',functionname+": "+c_File
+    backbone->set_keyword,'HISTORY',functionname+": applying photometric calib",ext_num=1
+    backbone->set_keyword,'HISTORY',functionname+": "+c_File,ext_num=1
 
 
 @__end_primitive

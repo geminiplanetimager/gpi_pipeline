@@ -36,7 +36,7 @@
 ; PIPELINE ARGUMENT: Name="gpitvim_dispgrid" Type="int" Range="[0,500]" Default="15" Desc="1-500: choose gpitv session for displaying image output and wavcal grid overplotted, 0: no display "
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying wavcal file, 0: no display "
 ; PIPELINE ARGUMENT: Name="tests" Type="int" Range="[0,3]" Default="0" Desc="1 for extensive tests "
-; PIPELINE ARGUMENT: Name="testsDST" Type="int" Range="[0,3]" Default="0" Desc="1 for extensive tests "
+; PIPELINE ARGUMENT: Name="testsDST" Type="int" Range="[0,3]" Default="0" Desc="1 for DST tests "
 ; PIPELINE COMMENT: Derive wavelength calibration from an arc lamp or flat-field image.
 ; PIPELINE TYPE: CAL-SPEC
 ; PIPELINE SEQUENCE: 
@@ -134,7 +134,7 @@ wx=0 & wy=0 ;define sidelength (2wx+1 by 2wy+1 ) of box for maximum intensity de
 hh=1. ;define sidelength (2hh+1 by 2hh+1 ) of box for centroid intensity detection
 
 ;
-if (tag_exist( Modules[thisModuleIndex], "emissionlinesfile")) and file_test(gpi_expand_path(Modules[thisModuleIndex].emissionlinesfile),/read) then $
+if (tag_exist( Modules[thisModuleIndex], "emissionlinesfile")) && file_test(gpi_expand_path(Modules[thisModuleIndex].emissionlinesfile),/read) then $
 emissionlinefile=  gpi_expand_path(Modules[thisModuleIndex].emissionlinesfile) else $
 emissionlinefile=  gpi_expand_path('$GPI_PIPELINE_DIR\dpl_library\lampemissionlines.txt')
 ;res=read_ascii(emissionlinefile,data_start=2)

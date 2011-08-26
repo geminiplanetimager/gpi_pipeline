@@ -101,7 +101,7 @@ calfiletype='plate'
     print, astr
     ;*(dataset.headersExt)[numfile]=header
         
-    backbone->set_keyword,'HISTORY',functionname+": updating world coordinates"
-    backbone->set_keyword,'HISTORY',functionname+": "+c_File
+    backbone->set_keyword,'HISTORY',functionname+": updating world coordinates",ext_num=1
+    backbone->set_keyword,'HISTORY',functionname+": "+c_File,ext_num=1
 @__end_primitive
 end

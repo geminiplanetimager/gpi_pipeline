@@ -43,8 +43,8 @@ calfiletype = 'dark'
 	;dark=readfits(c_File)
 	*(dataset.currframe[0]) -= dark
 
-  	backbone->set_keyword,'HISTORY',functionname+": dark subtracted using file="
-  	backbone->set_keyword,'HISTORY',functionname+": "+c_File
+  	backbone->set_keyword,'HISTORY',functionname+": dark subtracted using file=",ext_num=1
+  	backbone->set_keyword,'HISTORY',functionname+": "+c_File,ext_num=1
   
 	thisModuleIndex = Backbone->GetCurrentModuleIndex()
   	if tag_exist( Modules[thisModuleIndex], "Save") && tag_exist( Modules[thisModuleIndex], "suffix") then suffix+=Modules[thisModuleIndex].suffix

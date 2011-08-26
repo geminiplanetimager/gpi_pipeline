@@ -281,8 +281,8 @@ for i=0,n_elements(convfac)-1 do $
 	suffix+='-phot'
 ;  sxaddhist, functionname+": applying photometric calib", *(dataset.headers[numfile])
 ;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-     backbone->set_keyword,'HISTORY',functionname+": applying photometric calib"
-    backbone->set_keyword,'HISTORY',functionname+": "+c_File
+     backbone->set_keyword,'HISTORY',functionname+": applying photometric calib",ext_num=1
+    backbone->set_keyword,'HISTORY',functionname+": "+c_File,ext_num=1
      hdr=[*(dataset.headersPHU[numfile]),*(dataset.headersExt[numfile])]
  
 if tag_exist( Modules[thisModuleIndex], "Save_flux_convertion") && ( Modules[thisModuleIndex].Save_flux_convertion eq 1 ) then begin

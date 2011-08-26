@@ -326,8 +326,8 @@ unitslist = ['Counts', 'Counts/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A
 ;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
 ;  fsxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": applying photometric calib"
 ;  fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": "+c_File
-    backbone->set_keyword,'HISTORY',functionname+": applying photometric calib"
-    backbone->set_keyword,'HISTORY',functionname+": "+c_File
+    backbone->set_keyword,'HISTORY',functionname+": applying photometric calib",ext_num=1
+    backbone->set_keyword,'HISTORY',functionname+": "+c_File,ext_num=1
 @__end_primitive
 
 

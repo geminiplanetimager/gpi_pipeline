@@ -56,7 +56,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	; now combine them.
 	if nfiles gt 1 then begin
-		fxaddpar, *(dataset.headersPHU[numfile]), 'HISTORY', functionname+":   Combining n="+strc(nfiles)+' files using method='+method
+		;fxaddpar, *(dataset.headersPHU[numfile]), 'HISTORY', functionname+":   Combining n="+strc(nfiles)+' files using method='+method
+		backbone->set_keyword,'HISTORY', functionname+":   Combining n="+strc(nfiles)+' files using method='+method,ext_num=1
+		
 		backbone->Log, "	Combining n="+strc(nfiles)+' files using method='+method
 		case STRUPCASE(method) of
 		'MEDIAN': begin 
@@ -75,7 +77,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		endcase
 	endif else begin
 
-		fxaddpar, *(dataset.headersPHU[numfile]), 'HISTORY', functionname+":   Only 1 file supplied, so nothing to combine."
+		;fxaddpar, *(dataset.headersPHU[numfile]), 'HISTORY', functionname+":   Only 1 file supplied, so nothing to combine."
+		 backbone->set_keyword,'HISTORY', functionname+":   Only 1 file supplied, so nothing to combine.",ext_num=1
+		
 		message,/info, "Only one frame supplied - can't really combine it with anything..."
 
 		combined_im = imtab[*,*,0]

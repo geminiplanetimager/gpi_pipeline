@@ -40,7 +40,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   	sz = size(*(dataset.currframe))
   
 	if sz[0] eq 3 then begin
-		backbone->set_keyword, 'HISTORY', functionname+':   Collapsing datacube using method='+method;, *(dataset.headersPHU[numfile]) ;header ;*(dataset.headers[numfile])
+		backbone->set_keyword, 'HISTORY', functionname+':   Collapsing datacube using method='+method,ext_num=1;, *(dataset.headersPHU[numfile]) ;header ;*(dataset.headers[numfile])
 		backbone->Log, "	Combining datacube using method="+method
 		case STRUPCASE(method) of
 		'MEDIAN': begin  ;here the [* float(sz[3])] operation is for energy conservation in order to keep the same units.
