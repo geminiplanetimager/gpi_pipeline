@@ -763,8 +763,8 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
 		
 		;Gemini requirement: test and add extname 'SCI' if not present
     val_extname = sxpar(ext_header,"EXTNAME",count=cextname,/silent)
-    if cextname eq 0 then sxaddpar,ext_header,"EXTNAME","SCI","Image extension contains science data"
-    if (cextname eq 1) AND ~stregex(val_extname,'SCI',/bool) then begin
+    if (cextname eq 0) || (strlen(strcompress(val_extname,/rem)) eq 0) then sxaddpar,ext_header,"EXTNAME","SCI","Image extension contains science data"
+    if (cextname eq 1) AND ~(stregex(val_extname,'SCI',/bool)) AND ~(strlen(strcompress(val_extname,/rem)) eq 0) then begin
         self->Log, "ERROR:  found"+val_extname+"in the first extension"+filename, /GENERAL, /DRF
         self->Log, "ERROR:  first extension need SCI Extname"+filename, /GENERAL, /DRF
         self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
@@ -1519,11 +1519,15 @@ PRO gpiPipelineBackbone::set_keyword, keyword, value, comment, indexFrame=indexF
 		endif
 	endelse
 
-
-	if ext_num eq 0 then fxaddpar,  *(*self.data).headersPHU[indexFrame], keyword, value, comment $
-	else  				 fxaddpar,  *(*self.data).headersExt[indexFrame], keyword, value, comment 
-	
-
+  ; JM: I do not understand why but fxaddpar do not cut "long" value for "HISTORY" and "COMMENT" keywords
+  if ~strmatch(keyword,'*HISTORY*') then begin 
+	  if ext_num eq 0 then fxaddpar,  *(*self.data).headersPHU[indexFrame], keyword, value, comment $
+    else  				 fxaddpar,  *(*self.data).headersExt[indexFrame], keyword, value, comment 
+	endif else begin
+    if ext_num eq 0 then sxaddparlarge,  *(*self.data).headersPHU[indexFrame], keyword, value $
+    else           sxaddparlarge,  *(*self.data).headersExt[indexFrame], keyword, value 
+    
+  endelse
 
 end
 

@@ -15,6 +15,6 @@
 ;-
 
 function gpi_pipeline_version
-version = '0.70'
+version = '0.71'
 return, version
 end
