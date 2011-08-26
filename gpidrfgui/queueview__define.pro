@@ -118,7 +118,7 @@ PRO queueview::rescan, initialize=initialize
 		for i=0L,n_elements(files)-1 do begin
 			if ~file_test(files[i]) then continue ; watch out for the DRP moving things around..
 			self.Parser ->ParseFile, files[i],  self.ConfigParser, gui=self, /silent
-			
+
 			drf_summary = self.Parser->get_summary()
 			drf_contents = self.Parser->get_drf_contents()
 
@@ -246,6 +246,7 @@ PRO queueview::refresh
 		for i=0,nct-1 do begin
 			if ~file_test( disk_files[wnew[i]]) then continue ; in case it has changed...
 			self.Parser ->ParseFile, disk_files[wnew[i]],  self.ConfigParser, gui=self, /silent
+
 			drf_summary = self.Parser->get_summary()
 			drf_contents = self.Parser->get_drf_contents()
 
