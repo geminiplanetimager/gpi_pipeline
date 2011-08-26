@@ -3,8 +3,8 @@ function about_message
     ver=strc(gpi_pipeline_version())
     tmpstr=['GPI DRP Revision: '+ver+'  - GPI 3d Data-Reduction Package', $
               '', $
-              'Copyright _,_ by the University of Montreal ' + $
-               '(UdeM), Canada', $
+              ;'Copyright _,_ by the University of Montreal ' + $
+              ; '(UdeM), Canada', $
               '', $
               'Programming (report bugs to):', $
               '  Jerome Maire (UdeM, maire@astro.umontreal.ca)', $
@@ -15,7 +15,7 @@ function about_message
               '  Jerome Maire (UdeM)', $
               '', $
               'This software has been tested by:', $
-              '  Jeff Chilcote, Quinn Konopacky ', $
+              '  Kathleen Labrie, Jeff Chilcote, Quinn Konopacky ', $
               '', $
               'Acknowledgements:', $
               '  Rene Doyon, Kathleen Labrie', $
@@ -24,10 +24,10 @@ function about_message
               ' ', $
               '', $
               'The project web site is:', $
-              '  ', $
+              '  http://planetimager.org/', $
               '', $
-              'When using this code, please cite the following paper:', $
-              '  Maire J., Perrin M. D., et al SPIE 2010' + $
+              ;'When using this code, please cite the following paper:', $
+              ;'  Maire J., Perrin M. D., et al SPIE 2010' + $
               '', $
               '']
 

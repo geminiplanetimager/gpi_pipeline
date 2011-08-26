@@ -328,14 +328,14 @@ file_mkdir, compildir+'pipeline'+path_sep()+'log',$
             compildir+'pipeline'+path_sep()+'dpl_library',$
             compildir+'pipeline'+path_sep()+'dpl_library'+path_sep()+'filters'
 ;;copy DRF templates, etc...            
-file_copy, dircode+'drf_templates'+path_sep()+'*.xml', compildir+'pipeline'+path_sep()+'drf_templates'+path_sep()         
-file_copy, dircode+'dpl_library'+path_sep()+'*.xml', compildir+'pipeline'+path_sep()+'dpl_library'+path_sep()   
-file_copy, dircode+'dpl_library'+path_sep()+'*.txt', compildir+'pipeline'+path_sep()+'dpl_library'+path_sep()            
-file_copy, dircode+'dpl_library'+path_sep()+'*.dat', compildir+'pipeline'+path_sep()+'dpl_library'+path_sep()              
-file_copy, dircode+'dpl_library'+path_sep()+'filters'+path_sep()+'*.fits', compildir+'pipeline'+path_sep()+'dpl_library'+path_sep()+'filters'+path_sep()
-file_copy, dircode+'dst'+path_sep()+'*.dat', compildir+'pipeline'+path_sep()+'dst'+path_sep()+''  
-file_copy, dircode+'dst'+path_sep()+'pickles'+path_sep()+'*.*t', compildir+'pipeline'+path_sep()+'dst'+path_sep()+'pickles'+path_sep()
-file_copy, dircode+'gpi.bmp',compildir+'pipeline'+path_sep()
+file_copy, dircode+'drf_templates'+path_sep()+'*.xml', compildir+'pipeline'+path_sep()+'drf_templates'+path_sep(),/overwrite         
+file_copy, dircode+'dpl_library'+path_sep()+'*.xml', compildir+'pipeline'+path_sep()+'dpl_library'+path_sep(),/overwrite   
+file_copy, dircode+'dpl_library'+path_sep()+'*.txt', compildir+'pipeline'+path_sep()+'dpl_library'+path_sep(),/overwrite           
+file_copy, dircode+'dpl_library'+path_sep()+'*.dat', compildir+'pipeline'+path_sep()+'dpl_library'+path_sep(),/overwrite              
+file_copy, dircode+'dpl_library'+path_sep()+'filters'+path_sep()+'*.fits', compildir+'pipeline'+path_sep()+'dpl_library'+path_sep()+'filters'+path_sep(),/overwrite
+file_copy, dircode+'dst'+path_sep()+'*.dat', compildir+'pipeline'+path_sep()+'dst'+path_sep()+'',/overwrite
+file_copy, dircode+'dst'+path_sep()+'pickles'+path_sep()+'*.*t', compildir+'pipeline'+path_sep()+'dst'+path_sep()+'pickles'+path_sep(),/overwrite
+file_copy, dircode+'gpi.bmp',compildir+'pipeline'+path_sep(),/overwrite
 
 ;;remove non-necessary txt file
 Result = FILE_SEARCH(compildir+'pipeline'+path_sep()+'*script_source.txt') 
