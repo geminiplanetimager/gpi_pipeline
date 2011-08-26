@@ -173,6 +173,9 @@ PRO gpidrfparser::parsefile, FileName, Backbone=backbone, ConfigParser, gui_obj=
 		return
 	endif
 
+  ;initialize just in case there is no present before scanning
+  Self.DRFName=''
+
 	catch, parse_error
 	if parse_error eq 0 then Self -> IDLffXMLSAX::ParseFile, FileName
 
