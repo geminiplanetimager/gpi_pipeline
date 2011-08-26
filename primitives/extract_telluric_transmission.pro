@@ -200,7 +200,7 @@ fluxsatmedabs/=almostmax
 
 ;;this is a comparison of measured/synthetic telluric transmission for DRP tests:
 ;; comment it for real data, not needed...
-testtelluric=1
+testtelluric=0
 ;if testtelluric eq 1 then test_telluric, lambda, DataSet.OutputFilenames[numfile],fluxsatmedabs
 if testtelluric eq 1 then test_telluric, lambda, sxpar(*(DataSet.HeadersPHU[numfile]),'DATAFILE'),fluxsatmedabs
 

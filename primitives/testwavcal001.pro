@@ -10,7 +10,7 @@
 ;
 ; OUTPUTS:  
 ;
-; PIPELINE COMMENT: Test the algorithm of the wavelength solution measurement by comparing with DST-Zemax reference wavelength solution.
+; PIPELINE COMMENT: Test the algorithm of the wavelength solution measurement by comparing with DST-Zemax reference wavelength solution. DST package needed.
 ; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-ErrWavcal" Desc="Enter suffix of figures names"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying wavcal file, 0: no display "
 ; PIPELINE ORDER: 4.3
@@ -25,12 +25,14 @@ function testwavcal001, DataSet, Modules, Backbone
 primitive_version= '$Id: testwavcal001.pro 11 2010-08-09 10:22:03 maire $' ; get version from subversion to store in header history
 @__start_primitive
 
+ h=*(dataset.headersPHU[0])
+
 mydevice = !D.NAME
 ;;; First, if not already done, need to format the DST Zemax file as a DRP wavelength solution
   rep=getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()
   nlens=(size(*(dataset.currframe[0])))[1]
   wavcal1=*(dataset.currframe[0])
-  h=*(dataset.headersPHU[0])
+ 
   ;need to know which filter is used to get the right zemax file 
   bandeobs=gpi_simplify_keyword_value(SXPAR( h, 'FILTER1',count=c4))
   ;if c4 eq 0 then bandeobs=SXPAR( h, 'FILTER1',count=c4)  
