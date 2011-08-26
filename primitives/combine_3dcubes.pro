@@ -54,7 +54,8 @@ primitive_version= '$Id: combine_3dcubes.pro 278 2011-02-09 19:20:31Z maire $' ;
 
 	; now combine them.
 	if nfiles gt 1 then begin
-		fxaddpar, *(dataset.headersPHU[numfile]), 'HISTORY', functionname+":   Combining n="+strc(nfiles)+' files using method='+method
+		;fxaddpar, *(dataset.headersPHU[numfile]), 'HISTORY', functionname+":   Combining n="+strc(nfiles)+' files using method='+method
+		backbone->set_keyword,'HISTORY', functionname+":   Combining n="+strc(nfiles)+' files using method='+method,ext_num=1
 		backbone->Log, "	Combining n="+strc(nfiles)+' files using method='+method
 		case STRUPCASE(method) of
 		'MEDIAN': begin 

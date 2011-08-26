@@ -121,9 +121,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
         stop
     endif
-    backbone->set_keyword, 'HISTORY', "Rotated by "+sigfig(d_PA, 4)+" deg to have north up"
+    backbone->set_keyword, 'HISTORY', "Rotated by "+sigfig(d_PA, 4)+" deg to have north up",ext_num=1
     d_PA = 0.0
-    backbone->set_keyword, "PA", 0.0, 'Image is rotated to have north=up' ;/saveComment
+    backbone->set_keyword, "PA", 0.0, 'Image is rotated to have north=up';/saveComment
 
 
     ;atv, [[[cube]],[[cube_r]]],/bl

@@ -146,8 +146,8 @@ suffix2=suffix+'-sssd'
     endif
     
     
-  sxaddparlarge,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": Simple Spectral Diff. applied."
-
+ ; sxaddparlarge,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": Simple Spectral Diff. applied."
+backbone->set_keyword,'HISTORY', functionname+": Simple Spectral Diff. applied.",ext_num=1
     
 
 ;*(dataset.headers)[numfile]=hdr

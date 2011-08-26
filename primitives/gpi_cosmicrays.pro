@@ -31,7 +31,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	message,/info, "--- No actual cleaning code written yet.... ---"
 	*(dataset.currframe[0]) -= 0
 
-	backbone->set_keyword, 'HISTORY', functionname+": No Cosmic Ray Cleaning written yet..."
+	backbone->set_keyword, 'HISTORY', functionname+": No Cosmic Ray Cleaning written yet...",ext_num=1
 
   
 	suffix = "-crclean"	

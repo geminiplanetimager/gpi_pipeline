@@ -45,8 +45,8 @@ calfiletype='spotloc'
 	  backbone->set_keyword, "SPOT"+strc(ii)+'y', spotloc[ii,1], "y-locations of spot #"+strc(ii), ext_num=1
 	endfor
 
-    backbone->set_keyword,'HISTORY',functionname+": Loaded satellite spot locations"
-    backbone->set_keyword,'HISTORY',functionname+": "+c_File
+    backbone->set_keyword,'HISTORY',functionname+": Loaded satellite spot locations",ext_num=1
+    backbone->set_keyword,'HISTORY',functionname+": "+c_File,ext_num=1
   
 return, ok
 

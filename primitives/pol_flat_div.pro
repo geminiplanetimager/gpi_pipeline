@@ -37,8 +37,8 @@ calfiletype='flat'
         return, error('FAILURE ('+functionName+'): Supplied flat field and data cube files do not have the same dimensions')
 
     ; update FITS header history
-    fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": dividing by flat"
-    fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": "+c_File
+    fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": dividing by flat",ext_num=1
+    fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": "+c_File,ext_num=1
 
     *(dataset.currframe) /= polflat
 

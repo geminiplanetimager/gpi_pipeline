@@ -169,8 +169,11 @@ if numfile  eq ((dataset.validframecount)-1) then begin
     ;subsuffix='-comb'  ;this the suffix that will be added to the name of the ADI residual  
 	  fname=strmid(fn,0,strpos(fn,suffix)-1)+suffix+subsuffix+'.fits'
 	  ;header=*(dataset.headers[n])
-    sxaddhist,'One rotation of '+string(theta,format='(f7.3)')+$
-      ' degrees has been applied.',*(dataset.headersPHU[n])
+;    sxaddhist,'One rotation of '+string(theta,format='(f7.3)')+$
+;      ' degrees has been applied.',*(dataset.headersPHU[n])
+      backbone->set_keyword,'HISTORY', 'One rotation of '+string(theta,format='(f7.3)')+$
+      ' degrees has been applied.',ext_num=1,indexFrame=n
+      
       *(dataset.currframe[0])=im
       ;*(dataset.headers[numfile])=header
       thisModuleIndex = Backbone->GetCurrentModuleIndex()

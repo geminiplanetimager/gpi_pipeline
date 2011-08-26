@@ -84,8 +84,8 @@ calfiletype='polcal'
 
     ;sxaddhist, functionname+": Extracting polarized slices using ", hdr
     ;sxaddhist, functionname+": "+c_File, hdr
-    backbone->set_keyword, 'HISTORY',functionname+": Extracting polarized slices using "
-    backbone->set_keyword, 'HISTORY',functionname+": "+c_File
+    backbone->set_keyword, 'HISTORY',functionname+": Extracting polarized slices using ",ext_num=1
+    backbone->set_keyword, 'HISTORY',functionname+": "+c_File,ext_num=1
 
     if keyword_set(mask) then mask = input*0
 
@@ -145,11 +145,11 @@ calfiletype='polcal'
 	;endif else begin
 	    ;hdrim=hdrext
 	;endelse
-	backbone->set_keyword, 'COMMENT', "  For specification of Stokes WCS axis, see "
-	backbone->set_keyword, 'COMMENT', "  Greisen & Calabretta 2002 A&A 395, 1061, section 5.4"
+	backbone->set_keyword, 'COMMENT', "  For specification of Stokes WCS axis, see ",ext_num=1
+	backbone->set_keyword, 'COMMENT', "  Greisen & Calabretta 2002 A&A 395, 1061, section 5.4",ext_num=1
 
 
-    backbone->set_keyword, 'HISTORY', functionname+": Creating WCS header"
+    backbone->set_keyword, 'HISTORY', functionname+": Creating WCS header",ext_num=1
     sz = size(polcube)
     backbone->set_keyword, "NAXIS", sz[0], /saveComment
     backbone->set_keyword, "NAXIS1", sz[1], /saveComment, after='NAXIS'

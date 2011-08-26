@@ -198,12 +198,12 @@ primitive_version= '$Id: displayrawimage.pro 417 2011-07-14 14:13:04Z perrin $' 
 
  *(dataset.currframe[0]) = subtracted
   ;sxaddhist, "Subtracted 2D image background estimated from pixels between spectra", *(dataset.headersPHU[numfile])
-  backbone->set_keyword, "HISTORY", "Subtracted 2D image background estimated from pixels between spectra"
+  backbone->set_keyword, "HISTORY", "Subtracted 2D image background estimated from pixels between spectra",ext_num=1
   suffix='-bgsub2d'
 
   logstr = 'After background model sub, stddev of background pixels: '+strc(stddev(subtracted[where(~mask)]))
   ;sxaddhist, logstr, *(dataset.headersPHU[numfile])
-  backbone->set_keyword, "HISTORY", logstr
+  backbone->set_keyword, "HISTORY", logstr,ext_num=1
   backbone->Log, logstr
 
 

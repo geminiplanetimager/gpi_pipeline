@@ -78,7 +78,7 @@ if badquality  then begin
          backbone->Log, strjoin(drpmessage), /DRF, DEPTH = 1
          backbone->Log, strjoin(drpmessage), /GENERAL, DEPTH = 1
        ;sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+"ALERT BAD QUALITY DATA"+drpmessage
-       backbone->set_keyword, 'HISTORY', functionname+"ALERT BAD QUALITY DATA"+drpmessage
+       backbone->set_keyword, 'HISTORY', functionname+"ALERT BAD QUALITY DATA"+drpmessage,ext_num=1
       end
     1: begin
       return, error('REDUCTION FAILED ('+strtrim(functionName)+'):'+drpmessage)

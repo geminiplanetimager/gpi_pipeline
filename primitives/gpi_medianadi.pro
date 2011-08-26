@@ -72,7 +72,7 @@ endelse
   ;fits_info, dataset.outputFileNames[0], n_ext=n_ext
   ;header=headfits(dataset.outputFileNames[0],/silent)
   for ii=0, ((dataset.validframecount)-1) do $
-   backbone->set_keyword,'HISTORY','Med. combin. of '+dataset.outputFileNames[ii]
+   backbone->set_keyword,'HISTORY','Med. combin. of '+dataset.outputFileNames[ii],ext_num=1
   ;sxaddparlarge,header,'HISTORY','Med. combin. of '+dataset.outputFileNames[ii]
   
    ;*(dataset.headers[numfile])=header

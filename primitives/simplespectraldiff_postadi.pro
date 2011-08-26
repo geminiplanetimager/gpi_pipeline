@@ -127,8 +127,8 @@ sssd=I1s-k*I2
     sxdelpar, *(dataset.headersExt)[numfile], 'CRVAL3'
     sxdelpar, *(dataset.headersExt)[numfile], 'CTYPE3'
 
-sxaddparlarge,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": Simple Spectral Diff. applied."
-
+;sxaddparlarge,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": Simple Spectral Diff. applied."
+backbone->set_keyword,'HISTORY', functionname+": Simple Spectral Diff. applied.",ext_num=1
 ;suffix=suffix+'-sssd'
 ;filenm=strmid(filename,0,strlen(filename)-5)+suffix+'-sssd'+'.fits.gz'
 ;writefits, filenm ,sssd,header,/compress

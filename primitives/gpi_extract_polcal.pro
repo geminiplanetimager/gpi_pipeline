@@ -144,14 +144,14 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     backbone->set_keyword,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
     
     ;sxaddhist, " ",/blank
-	backbone->set_keyword, "HISTORY", "      "
-    backbone->set_keyword, "HISTORY", " Pol Calib File Format:"
-    backbone->set_keyword, "HISTORY", "    Axis 1:  pos_x, pos_y, rotangle, width_x, width_y"
-    backbone->set_keyword, "HISTORY", "       rotangle is in degrees, widths in pixels"
-    backbone->set_keyword, "HISTORY", "    Axis 2:  Lenslet X"
-    backbone->set_keyword, "HISTORY", "    Axis 3:  Lenslet Y"
-    backbone->set_keyword, "HISTORY", "    Axis 4:  Polarization ( -- or | ) "
-	backbone->set_keyword, "HISTORY", "      "
+	backbone->set_keyword, "HISTORY", "      ",ext_num=1
+    backbone->set_keyword, "HISTORY", " Pol Calib File Format:",ext_num=1
+    backbone->set_keyword, "HISTORY", "    Axis 1:  pos_x, pos_y, rotangle, width_x, width_y",ext_num=1
+    backbone->set_keyword, "HISTORY", "       rotangle is in degrees, widths in pixels",ext_num=1
+    backbone->set_keyword, "HISTORY", "    Axis 2:  Lenslet X",ext_num=1
+    backbone->set_keyword, "HISTORY", "    Axis 3:  Lenslet Y",ext_num=1
+    backbone->set_keyword, "HISTORY", "    Axis 4:  Polarization ( -- or | ) ",ext_num=1
+	backbone->set_keyword, "HISTORY", "      ",ext_num=1
     ;sxaddhist, " ",/blank, h
     
     

@@ -408,16 +408,16 @@ backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of 
 sxaddpar,*dataset.headersExt[numfile],'NAXIS',3
 sxaddpar,*dataset.headersExt[numfile],'NAXIS3',5,after='NAXIS2'
 
-backbone->set_keyword, "HISTORY", " ";,/blank
-backbone->set_keyword, "HISTORY", " Wavelength solution File Format:"
-backbone->set_keyword, "HISTORY", " Dispersion for each spectrum is defined as "
-backbone->set_keyword, "HISTORY", " lambda=w3*(sqrt((x-x0)^2+(y-y0)^2))+lambda0"
-backbone->set_keyword, "HISTORY", "    Slice 1:  x-positions (x0) of spectra (x:spectral direction) at [lambda0]"
-backbone->set_keyword, "HISTORY", "    Slice 2:  y-positions (y0) of spectra at [lambda0]"
-backbone->set_keyword, "HISTORY", "    Slice 3:  lambda0 [um]"
-backbone->set_keyword, "HISTORY", "    Slice 4:   w3 [um/pixel]"
-backbone->set_keyword, "HISTORY", "    Slice 5:   tilts of spectra [rad]"
-backbone->set_keyword, "HISTORY", " ";,/blank
+backbone->set_keyword, "HISTORY", " ",ext_num=1;,/blank
+backbone->set_keyword, "HISTORY", " Wavelength solution File Format:",ext_num=1
+backbone->set_keyword, "HISTORY", " Dispersion for each spectrum is defined as ",ext_num=1
+backbone->set_keyword, "HISTORY", " lambda=w3*(sqrt((x-x0)^2+(y-y0)^2))+lambda0",ext_num=1
+backbone->set_keyword, "HISTORY", "    Slice 1:  x-positions (x0) of spectra (x:spectral direction) at [lambda0]",ext_num=1
+backbone->set_keyword, "HISTORY", "    Slice 2:  y-positions (y0) of spectra at [lambda0]",ext_num=1
+backbone->set_keyword, "HISTORY", "    Slice 3:  lambda0 [um]",ext_num=1
+backbone->set_keyword, "HISTORY", "    Slice 4:   w3 [um/pixel]",ext_num=1
+backbone->set_keyword, "HISTORY", "    Slice 5:   tilts of spectra [rad]",ext_num=1
+backbone->set_keyword, "HISTORY", " ",ext_num=1;,/blank
 
 
 ;rotate (180deg) the wavcal to have quadrant "aligned" (modulo 26deg) with the image  

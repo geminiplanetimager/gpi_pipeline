@@ -61,10 +61,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         basename=findcommonbasename(dataset.filenames[0:nfiles-1])
         ;FXADDPAR, *(DataSet.Headers[numfile]), 'DATAFILE', basename+'.fits'
 		backbone->set_keyword,'DATAFILE',basename+'.fits'
-		backbone->set_keyword,'HISTORY', functionname+": combined "+strc(nfiles)+" wavcal files:"
+		backbone->set_keyword,'HISTORY', functionname+": combined "+strc(nfiles)+" wavcal files:",ext_num=1
         ;sxaddhist, functionname+": combined "+strc(nfiles)+" wavcal files:", *(dataset.headers[numfile])
         for i=0,nfiles-1 do $ 
-        	backbone->set_keyword,'HISTORY', functionname+":    "+strmid(dataset.filenames[i], 0,strlen(dataset.filenames[i])-5)+suffix+'.fits   '+ backbone->get_keyword("GCALLAMP");sxpar(*dataset.headers[i],'GCALLAMP')
+        	backbone->set_keyword,'HISTORY', functionname+":    "+strmid(dataset.filenames[i], 0,strlen(dataset.filenames[i])-5)+suffix+'.fits   '+ backbone->get_keyword("GCALLAMP"),ext_num=1;sxpar(*dataset.headers[i],'GCALLAMP')
 
         ;update with the most recent dateobs and timeobs
         dateobs3=dblarr(nfiles)
@@ -87,7 +87,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   
 		;suffix+='-comb'
 	endif else begin
-		  backbone->set_keyword, 'HISTORY',  functionname+": Only one wavelength calibration supplied; nothing to combine!" ;*(dataset.headers[numfile])
+		  backbone->set_keyword, 'HISTORY',  functionname+": Only one wavelength calibration supplied; nothing to combine!" ,ext_num=1;*(dataset.headers[numfile])
 		  backbone->Log, "Only one wavelength calibration supplied; nothing to combine!"
 	endelse
 	     ;if numext eq 0 then *(dataset.headers)[numfile]=hdr else *(dataset.headersPHU)[numfile] =hdr
