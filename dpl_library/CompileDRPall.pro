@@ -341,6 +341,6 @@ file_copy, dircode+'gpi.bmp',compildir+'pipeline'+path_sep(),/overwrite
 Result = FILE_SEARCH(compildir+'pipeline'+path_sep()+'*script_source.txt') 
 file_delete, Result
 
-   
+print, 'Compilation done.'   
 
 

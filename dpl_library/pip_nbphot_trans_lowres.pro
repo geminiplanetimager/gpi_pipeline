@@ -227,7 +227,7 @@ locg=intarr(2)
 	 nbtot_phot=(nbphot* GroundSpec);*  transmission_instrument
 ;stop
 
-  if 1 then begin
+  if 0 then begin
 
     window, 20
     plot, lamb[locg[0]:locg[1]], HiResGrndSpec[locg[0]:locg[1]]/max(HiResGrndSpec[locg[0]+10:locg[1]]), xtitle="Wavelength", ytitle="star spec (normalized)"

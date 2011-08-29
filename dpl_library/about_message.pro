@@ -19,7 +19,7 @@ function about_message
               '', $
               'Acknowledgements:', $
               '  Rene Doyon, Kathleen Labrie and GPI team members', $
-              '    who have helped improve GPI DRP', $
+              '    who have helped to improve the GPI DRP', $
               '  ', $
               ' ', $
               '', $
