@@ -137,6 +137,8 @@ hh=1. ;define sidelength (2hh+1 by 2hh+1 ) of box for centroid intensity detecti
 if (tag_exist( Modules[thisModuleIndex], "emissionlinesfile")) && file_test(gpi_expand_path(Modules[thisModuleIndex].emissionlinesfile),/read) then $
 emissionlinefile=  gpi_expand_path(Modules[thisModuleIndex].emissionlinesfile) else $
 emissionlinefile=  gpi_expand_path('$GPI_PIPELINE_DIR\dpl_library\lampemissionlines.txt')
+backbone->set_keyword, "HISTORY", "Lamp emission lines file used: "+emissionlinefile,ext_num=1
+
 ;res=read_ascii(emissionlinefile,data_start=2)
 nlines = FILE_LINES(emissionlinefile) 
 sarr = STRARR(nlines) 
