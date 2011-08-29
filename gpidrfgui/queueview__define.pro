@@ -201,7 +201,7 @@ PRO queueview::refresh
 
 	; For each file already in the list, update it
 	for i=0L,goodct-1 do begin
-		wm =  where(strmatch(disk_files, curr_file_list[i],/fold), mct)
+		wm =  where(strmatch(file_basename(disk_files), file_basename(curr_file_list[i]),/fold), mct) ;file_basename for Windows syst (strmatch bug)
 		if mct gt 0 then begin
 			; file is still on disk - OK, no change
 			displayed[wm] = 1
@@ -262,6 +262,7 @@ PRO queueview::refresh
 	ys=((size(*self.currDRFSelec))[2] > 20 )
 	widget_control, self.tableSelected, ysize=ys
     widget_control, self.tableSelected, set_value=(*self.currDRFSelec)[*,*]
+
     if highest_updated gt -1 then widget_control, self.tableSelected, set_table_view=[0, (highest_updated - (ys-1)) >0] 
 
 	self->colortable
