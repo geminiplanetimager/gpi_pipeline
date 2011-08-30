@@ -359,7 +359,7 @@ PRO gpidrsconfigParser::printinfo
 	COMMON PARAMS
 
 
-	drpIOLock
+	;drpIOLock
 	OPENW, unit, "temp.tmp", /get_lun
 	FOR j = 0, N_ELEMENTS(*Self.Modules)/3-1 DO BEGIN
 		if self.verbose then PRINTF, unit, (*Self.Modules)[0, j] , "  ", (*Self.Modules)[1, j], "  ", (*Self.Modules)[2,j]
@@ -371,7 +371,7 @@ PRO gpidrsconfigParser::printinfo
 	FLUSH, unit
 	CLOSE, unit
 	FREE_LUN, unit
-	drpIOUnlock
+	;drpIOUnlock
 
 
 END

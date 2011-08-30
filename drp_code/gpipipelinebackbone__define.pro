@@ -904,6 +904,9 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
       if newport gt 0 then self->set_keyword, 'INPORT', newport,  indexFrame=indexFrame,ext_num=0
       sxdelpar, *(*self.data).HeadersPHU[IndexFrame], 'ISS_PORT'
     endif
+    ;;check for previous and invalid multi-occurences DATAFILE keyword
+      filnm=fxpar(*(*self.data).HeadersPHU[IndexFrame],'DATAFILE',count=cdf)
+      if cdf gt 1 then  sxdelpar, *(*self.data).HeadersPHU[IndexFrame], "DATAFILE"
     FXADDPAR, *(*self.data).HeadersPHU[IndexFrame], "DATAFILE", file_basename(filename), "File name", before="END"
     FXADDPAR, *(*self.data).HeadersPHU[IndexFrame], "DATAPATH", file_dirname(filename), "Original path of DRP input", before="END"
    
@@ -1365,7 +1368,7 @@ PRO gpiPipelineBackbone::ErrorHandler, CurrentDRF, QueueDir
             !ERROR_STATE.SYS_MSG, /GENERAL, DEPTH = 1
         self->log, 'Reduction failed', /GENERAL
         IF N_PARAMS() EQ 2 THEN BEGIN
-            drpSetStatus, CurrentDRF, QueueDir, 'failed'
+            self->SetDRFStatus, CurrentDRF, QueueDir, 'failed'
             ; If we failed with outstanding data, then clean it up.
 			self->free_dataset_pointers
 ;            IF PTR_VALID(Self.Data) THEN BEGIN
