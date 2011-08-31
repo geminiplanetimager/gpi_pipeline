@@ -314,7 +314,7 @@ end
 ;     - load the DRF at that filename
 pro drfgui::change_current_template, typestring,seqnum, notemplate=notemplate
 
-    if self.selecseq eq seqnum then return ; do nothing for no change
+    ;if self.selecseq eq seqnum then return ; do nothing for no change
     self.selecseq=seqnum
     
     wm = where((*self.templates).type eq typestring, mct)
@@ -713,7 +713,11 @@ pro drfgui::event,ev
                widget_control,   self.descr,  set_value=comment
         ENDIF 
         IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_CONTEXT') THEN BEGIN  ;RIGHT CLICK
-			self->addmodule
+        ;check if addmodule method already exist
+;        help, self, /obj,output=meth
+;        if total(strmatch(meth[*], '*addmodule*',/fold)) eq 1 then $
+			self->addmodule 
+			;else self->log,'Define your reduction sequence first. '
      	ENDIF 
 
     end
@@ -1302,8 +1306,10 @@ PRO drfgui::addmodule
                 endif else begin
                     if insertorder eq 0 then (*self.currModSelec)=([[[(*self.curr_mod_avai)[indselected],'','',order,strc(indselected)]],[(*self.currModSelec)]])
                     if insertorder eq self.nbmoduleSelec then (*self.currModSelec)=([[(*self.currModSelec)],[[(*self.curr_mod_avai)[indselected],'','',order,strc(indselected)]]])
-                    if (insertorder ne 0) AND (insertorder ne self.nbmoduleSelec) then (*self.currModSelec)=([[(*self.currModSelec)[*,0:insertorder-1]],[[(*self.curr_mod_avai)[indselected],'','',order,strc(indselected)]],[(*self.currModSelec)[*,insertorder:self.nbmoduleSelec-1]]])
+                    if (insertorder ne 0) AND (insertorder ne self.nbmoduleSelec) AND ((self.nbmoduleSelec) le (size(*self.currModSelec))[2]) AND ((size(*self.currModSelec))[0] gt 1) then (*self.currModSelec)=([[(*self.currModSelec)[*,0:insertorder-1]],[[(*self.curr_mod_avai)[indselected],'','',order,strc(indselected)]],[(*self.currModSelec)[*,insertorder:self.nbmoduleSelec-1]]])
+                    ;print, (size(*self.currModSelec))
                 endelse
+
 				self->Log, "Inserted module '"+(*self.curr_mod_avai)[indselected]+"' into position "+strc(insertorder)
                 self.nbmoduleSelec+=1
                 (*self.order)=(*self.currModSelec)[3,*]
@@ -2046,7 +2052,7 @@ pro drfgui__define
               nbcurrmod: 0L,$
               typeid: 0L,$
               seqid: 0L,$
-              selecseq:0,$
+              selecseq:-1,$
 			  showhidden: 0, $
               table_background_colors: ptr_new(), $ ; ptr to RGB triplets for table cell colors
               nlines_modules: 0, $                    ; how many lines to display modules on screen? (used in resize)
