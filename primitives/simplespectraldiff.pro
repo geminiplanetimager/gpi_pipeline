@@ -63,6 +63,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 @__start_primitive
  
 cubefin=*(dataset.currframe[0])
+if (size(cubefin))[0] ne 3  then return, error('FAILURE ('+functionName+'): SSDI can only be done on 3D datacube.')
 ;thisModuleIndex = drpModuleIndexFromCallSequence(Modules, functionName)
 thisModuleIndex = Backbone->GetCurrentModuleIndex()
 L1min=Modules[thisModuleIndex].L1min
@@ -70,12 +71,39 @@ L1max=Modules[thisModuleIndex].L1max
 L2min=Modules[thisModuleIndex].L2min
 L2max=Modules[thisModuleIndex].L2max
 k=Modules[thisModuleIndex].k
+
+;check if outside spectral range
+filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
+case filter of 
+  'H': specrange=[1.5,1.8,1.55,1.57,1.60,1.65] ;[min wav of the band, max wav, 4 reasonable wav value for defining 2 spectral range]
+  'Y': specrange=[0.95, 1.15,1.04,1.08,1.10,1.13]
+  'Z': specrange=[0.95, 1.15,1.04,1.08,1.10,1.13]
+  'J': specrange=[1.15, 1.33,1.23,1.28,1.16,1.19]
+  'K1': specrange=[1.9, 2.19,2.08,2.11,1.95,1.97]
+  'K2': specrange=[2.13, 2.4,2.08,2.11,2.34,2.37]
+  else : return, error('FAILURE ('+functionName+'): Failed to filter range.')
+endcase
+if (L1min ge specrange[0]) && (L1min le specrange[1])  && $
+    (L1max ge specrange[0]) && (L1max le specrange[1])  && $
+    (L2min ge specrange[0]) && (L2min le specrange[1])  && $
+    (L2max ge specrange[0]) && (L2max le specrange[1])  then inside = 1 else inside = 0
+    ;if outside then set default values for spectral ranges:
+if inside eq 0 then begin
+  L1min=specrange[2]
+  L1max=specrange[3]
+  L2min=specrange[4]
+  L2max=specrange[5]
+
+endif    
+     
+
+ 
 if ~(keyword_set(k)) then k=1.
 print, 'k=',k
-;        cwv=get_cwv('H')
-;        CommonWavVect=cwv.CommonWavVect
-lambdamin=CommonWavVect(0)
-lambdamax=CommonWavVect(1)
+        cwv=get_cwv(filter)
+        CommonWavVect=cwv.CommonWavVect
+lambdamin=specrange[0]
+lambdamax=specrange[1]
 ;Common Wavelength Vector
 lambda=dblarr(CommonWavVect(2))
 for i=0,CommonWavVect(2)-1 do lambda(i)=lambdamin+double(i)*(lambdamax-lambdamin)/(CommonWavVect(2)-1)
@@ -127,13 +155,18 @@ sssd=I1s-k*I2
 ;writefits, filenm ,sssd,header,/compress
 thisModuleIndex = Backbone->GetCurrentModuleIndex()
 ;if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
-
+hdr=*(dataset.headersExt)[numfile]
        ;change keywords related to the common wavelength vector:
-    sxdelpar, *(dataset.headersExt)[numfile], 'NAXIS3'
-    sxdelpar, *(dataset.headersExt)[numfile] , 'CDELT3'
-    sxdelpar, *(dataset.headersExt)[numfile], 'CRPIX3'
-    sxdelpar, *(dataset.headersExt)[numfile], 'CRVAL3'
-    sxdelpar, *(dataset.headersExt)[numfile], 'CTYPE3'
+    sxdelpar, hdr, 'NAXIS3'
+    sxdelpar, hdr , 'CDELT3'
+    sxdelpar, hdr, 'CRPIX3'
+    sxdelpar, hdr, 'CRVAL3'
+    sxdelpar, hdr, 'CTYPE3'
+      sxaddparlarge, hdr, "HISTORY", functionName+": spectral ranges used [Angtrom]:"
+      sxaddparlarge, hdr, "HISTORY", functionName+": wav. range 1:"+strc(1.e4*L1min)
+      sxaddparlarge, hdr, "HISTORY", functionName+": wav. range 1:"+strc(1.e4*L1max)
+      sxaddparlarge, hdr, "HISTORY", functionName+": wav. range 2:"+strc(1.e4*L2min)
+      sxaddparlarge, hdr, "HISTORY", functionName+": wav. range 2:"+strc(1.e4*L2max)
 
 suffix2=suffix+'-sssd'    
    if tag_exist( Modules[thisModuleIndex],"ReuseOutput")  then begin
@@ -142,7 +175,7 @@ suffix2=suffix+'-sssd'
     Modules[thisModuleIndex].Save=1 ;will save output on disk, so outputfilenames changed
     sssd=0
     suffix+='-sssd' 
-    
+    *(dataset.headersExt)[numfile]=hdr
     endif
     
     
@@ -153,7 +186,7 @@ backbone->set_keyword,'HISTORY', functionname+": Simple Spectral Diff. applied."
 ;*(dataset.headers)[numfile]=hdr
     if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
-      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix2, savedata=sssd, display=display)
+      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix2, savedata=sssd, saveheader=hdr, display=display)
       if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
     endif else begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
