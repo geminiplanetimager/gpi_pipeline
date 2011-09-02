@@ -78,7 +78,7 @@ case filter of
   'Z': specrange=[0.95, 1.15,1.04,1.08,1.10,1.13]
   'J': specrange=[1.15, 1.33,1.23,1.28,1.16,1.19]
   'K1': specrange=[1.9, 2.19,2.08,2.11,1.95,1.97]
-  'K2': specrange=[2.13, 2.4,2.08,2.11,2.34,2.37]
+  'K2': specrange=[2.13, 2.4,2.13,2.16,2.34,2.37]
   else : return, error('FAILURE ('+functionName+'): Failed to filter range.')
 endcase
 if (L1min ge specrange[0]) && (L1min le specrange[1])  && $
