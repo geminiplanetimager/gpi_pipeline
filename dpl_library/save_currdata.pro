@@ -50,7 +50,9 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
     if keyword_set(level2) then i=level2-1 else i=numfile
 
 	;-- Generate output filename, starting from the input one.
-	filnm=fxpar(*(DataSet.HeadersPHU[i]),'DATAFILE')
+	filnm=fxpar(*(DataSet.HeadersPHU[i]),'DATAFILE',count=cdf)
+	
+
 	
 	s_OutputDir = gpi_expand_path(s_OutputDir) ; expand environment variables and ~s
 	; test output dir
@@ -72,7 +74,7 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 
 	if ( NOT bool_is_string(c_File) ) then $
 	   return, error('FAILURE ('+functionName+'): Output filename creation failed.')
-
+	   	
 	if ( strpos(c_File ,'.fits' ) ne -1 ) then $
 	   c_File1 = strmid(c_File,0,strlen(c_File)-5)+'.fits' $
 	else begin
