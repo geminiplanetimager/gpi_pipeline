@@ -37,8 +37,7 @@ calfiletype='plate'
 @__start_primitive
 
     
-	;fits_info, c_File, /silent, N_ext=n_ext
-	;if n_ext eq 0 then calib=readfits(c_File) else calib=mrdfits(c_File,1)
+
 	calib=gpi_readfits(c_file, header=cal_header)
   
 	pixelscale=calib[0]
