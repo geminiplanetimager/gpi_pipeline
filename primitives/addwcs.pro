@@ -43,9 +43,7 @@ calfiletype='plate'
 	pixelscale=calib[0]
 	xaxis_pa_at_zeroCRPA=calib[1]
 	
-	;if numext eq 0 then 
-	;header= *(dataset.headersExt)[numfile]
-	;else header=*(dataset.headersPHU)[numfile]
+
 	;;get current CRPA
 	;obsCRPA=float(SXPAR( header, 'CRPA'))
 	obsCRPA = backbone->get_keyword('CRPA')
