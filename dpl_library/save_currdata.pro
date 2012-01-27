@@ -83,58 +83,31 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	end
 
 	if ( keyword_set( filenm ) ) then  c_File1=filenm
-	 ;update DATAFILE & DATAPATH keywords
-  ;FXADDPAR,  *(dataset.headersPHU[numfile]), "DATAFILE", file_basename(c_File1), "File name"
-  ;FXADDPAR,  *(dataset.headersPHU[numfile]), "DATAPATH", file_dirname(c_File1), "Path of DRP input", before="END"
 	
 	if keyword_set(addexten_qa) || keyword_set(addexten_var) then FXADDPAR,  *(dataset.headersPHU[numfile]),'NEXTEND',1+keyword_set(addexten_var)+keyword_set(addexten_qa)
 	
-	;writefits, c_File1, float(*DataSet.Frames(i)), *DataSet.Headers[i]
-	;writefits, c_File1, float(*DataSet.IntFrames(i)), /APPEND
-	;writefits, c_File1, byte(*DataSet.IntAuxFrames(i)), /APPEND
-	if ( keyword_set( savedata ) ) then begin 
-	  if ~( keyword_set( saveheader ) ) then saveheader = *(dataset.headersExt[numfile])
-	  ;if numext eq 1 then 
-	  if ~( keyword_set( savePHU ) ) then savePHU = *(dataset.headersPHU[numfile])
-		;if numext eq 0 then begin
-		    ;fxaddpar, saveheader, 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
-		    ;fxaddpar, saveheader, 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
-				  ;writefits, c_File1, savedata, saveheader
-		;endif else begin
+	if ( keyword_set( savedata ) ) then begin  ; The callinf function has specified some special data to save, overwriting the currFrame data
+	  	if ~( keyword_set( saveheader ) ) then saveheader = *(dataset.headersExt[numfile])
+		if ~( keyword_set( savePHU ) ) then savePHU = *(dataset.headersPHU[numfile])
 		fxaddpar, savePHU, 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
 		fxaddpar, savePHU, 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
-		;fxaddpar, savePHU, 'EXTEND', 'T', 'FITS file contains extensions'
-		;fxaddpar, savePHU, 'NEXTEND', 1, 'FITS file contains extensions'
-		;writefits, c_File1, 0, savePHU ;*(dataset.headersPHU[numfile])
 		mwrfits, 0, c_File1, savePHU, /create
 		writefits, c_File1, savedata, saveheader, /append
-		;mwrfits, savedata, c_File1, saveheader
 
-		;endelse
 		curr_hdr = savePHU
 		curr_ext_hdr = saveheader
 	endif else begin
-	  ;if numext eq 0 then begin
-		  ;fxaddpar, *DataSet.Headers[i], 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
-		  ;fxaddpar, *DataSet.Headers[i], 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
-      ;writefits, c_File1, *DataSet.currFrame, *DataSet.Headers[i]
-          ;curr_hdr = *DataSet.Headers[i]
-    ;endif else begin  
       	fxaddpar, *DataSet.HeadersPHU[i], 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
       	fxaddpar, *DataSet.HeadersPHU[i], 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
-		;fxaddpar, *DataSet.HeadersPHU[i], 'EXTEND', 'T', 'FITS file contains extensions'
-		;fxaddpar, *DataSet.HeadersPHU[i], 'NEXTEND', 1, 'FITS file contains extensions'
 		mwrfits, 0, c_File1, *DataSet.HeadersPHU[i], /create
 		mwrfits, *DataSet.currFrame, c_File1, *DataSet.HeadersExt[i]
-     	;writefits, c_File1, 0, *DataSet.HeadersPHU[i]
-      	;writefits, c_File1, *DataSet.currFrame, *DataSet.HeadersExt[i], /append
       	curr_hdr = *DataSet.HeadersPHU[i]
       	curr_ext_hdr = *DataSet.HeadersExt[i]
-    	;endelse  
       	DataSet.OutputFilenames[i] = c_File1  
 	endelse
-  if keyword_set(addexten_qa) then mwrfits, addexten_qa, c_File1
-  if keyword_set(addexten_var) then mwrfits, addexten_var, c_File1
+
+	if keyword_set(addexten_qa) then mwrfits, addexten_qa, c_File1
+	if keyword_set(addexten_var) then mwrfits, addexten_var, c_File1
   
 	if keyword_set(debug) then print, "  Data output ===>>> "+c_File1
 	Backbone_comm->Log, "File output to: "+c_File1,/general,/DRF, depth=1
@@ -148,7 +121,7 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 		gpicaldb = Backbone_comm->Getgpicaldb()
 		if obj_valid(gpicaldb) then begin
 			message,/info, "Adding file to GPI Calibrations DB."
-			status = gpicaldb->Add_new_Cal( c_File1, header=[curr_hdr,curr_ext_hdr])
+			status = gpicaldb->Add_new_Cal( c_File1)
 		endif else begin
 			message,/info, "*** ERROR: No Cal DB Object Loaded - cannot add file to DB ***"
 		endelse

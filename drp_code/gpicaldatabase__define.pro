@@ -176,25 +176,32 @@ end
 
 ;----------
 ; add a new calibration file
-Function gpicaldatabase::add_new_cal, filename, header=header, nowrite=nowrite
+Function gpicaldatabase::add_new_cal, filename ;, header=header
+	; HISTORY:
+	; 2012-01-27: Updated for MEF files -MP
+	;
 	COMMON APP_CONSTANTS
 		
 
-	; read the FITS header
+	; Check the file exists
 	if ~file_test(filename) then begin
 		message,/info, "Supplied file name does not exist: "+filename
 		return, Not_OK
 	endif
 
-	; If FITS header is not already supplied, read it from the disk file
-	if ~(keyword_set(header)) then begin
-	    fits_info,filename,N_ext=n_ext,/silent
-	    if n_ext eq 0 then  header = headfits(filename, /silent)
-	    if n_ext gt 0 then  header = [headfits(filename,exten=0, /silent),headfits(filename,exten=1, /silent)]
-    endif    
+	; Read in the FITS header
+	fits_info,filename,N_ext=n_ext,/silent
+	if n_ext eq 0 then  begin
+		priheader = headfits(filename, /silent)
+		extheader = priheader
+	endif else begin
+		priheader = headfits(filename,exten=0, /silent)
+		extheader = headfits(filename,exten=1, /silent)
+	endelse
+
 	; 	if not a valid cal then return...
 	;message,/info, "No Validation done currently...."
-	if strupcase(strc(sxpar(header, "ISCALIB"))) ne "YES" then begin
+	if strupcase(strc(sxpar(priheader, "ISCALIB"))) ne "YES" then begin
 		self->Log, "File "+filename+" does not appear to be a valid GPI calibration file."
 		self->Log, "   Ignoring that file!"
 		return, 0
@@ -207,41 +214,31 @@ Function gpicaldatabase::add_new_cal, filename, header=header, nowrite=nowrite
 	newcal.path= file_dirname(filename)
 	newcal.filename = file_basename(filename)
 	; check what kind of cal it is
-	newcal.type = sxpar(header, "FILETYPE", count=count)
+	newcal.type = sxpar(priheader, "FILETYPE", count=count)
 	if count ne 1 then message,/info, "Missing keyword: FILETYPE"
-	newcal.filter = gpi_simplify_keyword_value(strc(sxpar(header, "FILTER1", count=count)))
+	newcal.filter = gpi_simplify_keyword_value(strc(sxpar(priheader, "FILTER1", count=count)))
 	if count ne 1 then begin 
 	    message,/info, "Missing keyword: FILTER1"
-        newcal.filter = gpi_simplify_keyword_value(strc(sxpar(header, "FILTER", count=count)))
+        newcal.filter = gpi_simplify_keyword_value(strc(sxpar(priheader, "FILTER", count=count)))
     endif
-	;newcal.prism= strc(sxpar(header, "PRISM", count=count))
-	;if count ne 1 then begin
-	;  message,/info, "Missing keyword: PRISM"
-	;  newcal.prism= strc(sxpar(header, "FILTER2", count=count2))
-	;  if count2 ne 1 then  begin
-	;  message,/info, "Missing keyword: FILTER2"
-	newcal.prism= gpi_simplify_keyword_value(strc(sxpar(header, "DISPERSR", count=count3)))
+
+	newcal.prism= gpi_simplify_keyword_value(strc(sxpar(priheader, "DISPERSR", count=count3)))
 	if count3 ne 1 then message,/info, "Missing keyword: DISPERSR"
-	;  endif
-	;endif  
-	newcal.apodizer= strc(sxpar(header, "APODIZER", count=count))
+
+	newcal.apodizer= strc(sxpar(priheader, "APODIZER", count=count))
 	if count ne 1 then message,/info, "Missing keyword: APODIZER"
-	;newcal.itime = (sxpar(header, "ITIME", count=count))
-	;if count ne 1 then begin
-	  ;message,/info, "Missing keyword: ITIME"
-    ;  newcal.itime = (sxpar(header, "INTIME", count=count2))
-    ;  if count2 ne 1 then  begin
-    ;   message,/info, "Missing keyword: INTIME"
-    newcal.itime = (sxpar(header, "ITIME", count=count3))
-       if count3 ne 1 then message,/info, "Missing keyword: ITIME"
-   ;   endif
-   ; endif
-	newcal.lyot= strc(sxpar(header, "LYOTMASK", count=count))
-	;if count ne 1 then message,/info, "Missing keyword: LYOT"  ; Missing in all DST files pre 2010-01-28!
+
+	newcal.itime = (sxpar(priheader, "ITIME", count=count3))
+    if count3 ne 1 then message,/info, "Missing keyword: ITIME"
+
+	newcal.lyot= strc(sxpar(priheader, "LYOTMASK", count=count))
+	if count ne 1 then message,/info, "Missing keyword: LYOT"  ; Missing in all DST files pre 2010-01-28!
 	
-	newcal.issport = strc(sxpar(header, "INPORT", count=count))
+	newcal.issport = strc(sxpar(priheader, "INPORT", count=count))
 	if count ne 1 then message,/info, "Missing keyword: INPORT"
-	dateobs =  strc(sxpar(header, "DATE-OBS"))+"T"+strc(sxpar(header,"TIME-OBS"))
+
+	; FIXME possibly modify this to use the MJD keywords? 
+	dateobs =  strc(sxpar(priheader, "DATE-OBS"))+"T"+strc(sxpar(priheader,"TIME-OBS"))
 	newcal.jd = string(date_conv(dateobs, "J"),f='(f15.5)')
 
 	
@@ -250,7 +247,7 @@ Function gpicaldatabase::add_new_cal, filename, header=header, nowrite=nowrite
 		self.data = ptr_new(newcal)
 		self->Log, "New entry added to cal DB for "+newcal.filename
 	endif else begin
-	
+		; test if this file already exists in the cal DB?	
 		wmatch = where( ((*self.data).path eq newcal.path ) and ((*self.data).filename eq newcal.filename), matchct)
 		if matchct gt 0 then begin ; Update existing entry
 			(*self.data)[wmatch] = newcal

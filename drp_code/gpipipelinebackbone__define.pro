@@ -1522,15 +1522,18 @@ PRO gpiPipelineBackbone::set_keyword, keyword, value, comment, indexFrame=indexF
 		endif
 	endelse
 
+
+	;if keyword_set(DEBUG) then 
+	message,/info, "Writing keyword "+keyword+" to extension "+strc(ext_num)
+
   ; JM: I do not understand why but fxaddpar do not cut "long" value for "HISTORY" and "COMMENT" keywords
-  if ~strmatch(keyword,'*HISTORY*') then begin 
-	  if ext_num eq 0 then fxaddpar,  *(*self.data).headersPHU[indexFrame], keyword, value, comment $
-    else  				 fxaddpar,  *(*self.data).headersExt[indexFrame], keyword, value, comment 
+  	if ~strmatch(keyword,'*HISTORY*') then begin 
+		if ext_num eq 0 then fxaddpar,  *(*self.data).headersPHU[indexFrame], keyword, value, comment $
+    	else  				 fxaddpar,  *(*self.data).headersExt[indexFrame], keyword, value, comment 
 	endif else begin
-    if ext_num eq 0 then sxaddparlarge,  *(*self.data).headersPHU[indexFrame], keyword, value $
-    else           sxaddparlarge,  *(*self.data).headersExt[indexFrame], keyword, value 
-    
-  endelse
+    	if ext_num eq 0 then sxaddparlarge,  *(*self.data).headersPHU[indexFrame], keyword, value $
+    	else           		 sxaddparlarge,  *(*self.data).headersExt[indexFrame], keyword, value 
+  	endelse
 
 end
 
