@@ -604,59 +604,7 @@ FUNCTION gpiPipelineBackbone::Reduce
 
         numfile=IndexFrame ; store the index in the common block
 
-;<<<<<<< .mine
-;=======
-;
-;        ;--- update the headers - append the DRF onto the actual FITS header
-;        ;  At this point the *(*self.data).HeadersExt[IndexFrame] variable contains
-;        ;  ONLY the DRF appended in FITS header COMMENT form. 
-;        ;  Append this onto the REAL fits header we just read in from disk.
-;        ;
-;        if (numext GT 0) then begin
-;           ; header=[headPHU,header]
-;            *(*self.data).HeadersPHU[IndexFrame]=[headPHU]
-;        endif
-;
-;        FXADDPAR, *(*self.data).HeadersExt[IndexFrame], "DATAFILE", file_basename(filename), "Original file name of DRP input", before="END"
-;        FXADDPAR, *(*self.data).HeadersExt[IndexFrame], "DATAPATH", file_dirname(filename), "Original path of DRP input", before="END"
-;
-;        SXDELPAR, header, 'END'
-;        *(*self.data).HeadersExt[IndexFrame]=[header,*(*self.data).HeadersExt[IndexFrame], 'END            ']
-;        ; ***WARNING***   don't use SXADDPAR for 'END', it gets the syntax wrong
-;        ; and breaks pyfits. i.e. do not try this following line. The above one
-;        ; is required. 
-;        
-;        ;SXADDPAR, *(*self.data).HeadersExt[IndexFrame], "END",''		; don't use SXADDPAR for 'END', it gets the syntax wrong and breaks pyfits.
-;        
-;        ;;is the frame from the entire detector or just just a section?
-;        ;if numext eq 0 then datasec=SXPAR( header, 'DATASEC',count=cds) else instrum=SXPAR( headPHU, 'DATASEC',count=cds)
-;        datasec=SXPAR(*(*self.data).HeadersExt[IndexFrame], 'DATASEC',count=cds)
-;        if cds eq 1 then begin
-;          ; DATASSEC format is "[DETSTRTX:DETENDX,DETSTRTY:DETENDY]" from gpiheaders_20110425.xls (S. Goodsell)
-;            DETSTRTX=strmid(datasec, 1, stregex(datasec,':')-1)
-;            DETENDX=strmid(datasec, stregex(datasec,':')+1, stregex(datasec,',')-stregex(datasec,':')-1)
-;            datasecy=strmid(datasec,stregex(datasec,','),strlen(datasec)-stregex(datasec,','))
-;            DETSTRTY=strmid(datasecy, 1, stregex(datasecy,':')-1)
-;            DETENDY=strmid(datasecy, stregex(datasecy,':')+1, stregex(datasecy,']')-stregex(datasecy,':')-1)
-;            ;;DRP will always consider [0:2047,0,2047] frames:
-;            if (DETSTRTX ne 0) || (DETENDX ne 2047) || (DETSTRTY ne 0) || (DETENDY ne 2047) then begin
-;              tmpframe=dblarr(2048,2048)
-;              tmpframe[DETSTRTX:DETENDX,DETSTRTY:DETENDY]=*((*self.data).currframe)
-;              *((*self.data).currframe)=tmpframe
-;            endif
-;        endif
-;		;---- Rotate the image, if necessary -------
-;            ;!!!!TEMPORARY will need modifs: use it for real ifs data, not DST!!!
-;                  if numext eq 0 then instrum=SXPAR( header, 'INSTRUME',count=c1) else instrum=SXPAR( headPHU, 'INSTRUME',count=c1)
-;                  if ~strmatch(instrum,'*DST*') && (  sxpar( *(*self.data).HeadersExt[IndexFrame], 'DRPVER' ) eq '' ) then begin
-;                  if self.verbose then self->Log, "Image detected as IFS raw file, assumed vertical spectrum orientation. Must be reoriented to horizontal spectrum direction."             
-;                    *((*self.data).currframe)=rotate(transpose(*((*self.data).currframe)),2)
-;                    message,/info, 'Image rotated to match DST convention!'
-;                  endif
-;                
-;>>>>>>> .r430
-;        suffix=''
-suffix=''
+		suffix=''
 
         ; Iterate over the modules in the 'Modules' array and run each.
         status = OK
@@ -816,16 +764,10 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
     			if count gt 0 then self->set_keyword, approved_keywords[i], val_obsolete, comment=comment, indexFrame=indexFrame
     			message,/info, 'Converted obsolete keyword '+obsolete_keywords[i]+' into '+approved_keywords[i]
     		endif
-        sxdelpar, *(*self.data).HeadersPHU[IndexFrame], obsolete_keywords[i]
+        	sxdelpar, *(*self.data).HeadersPHU[IndexFrame], obsolete_keywords[i]
     	endfor 
-   endif
-;
-	;
-    ;if (numext GT 0) then begin
-        ;header=[headPHU,header]
-        ;*(*self.data).HeadersPHU[IndexFrame]=[headPHU]
-    ;endif
-    if (numext EQ 0) then begin
+   	endif
+	if (numext EQ 0) then begin
       ;remove NAXIS1 & NAXIS2 in PHU
       sxdelpar, *(*self.data).HeadersPHU[IndexFrame], ['NAXIS1','NAXIS2']
       ;;change DISPERSR value according to GPI new conventions
@@ -932,12 +874,14 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
 
     ;---- Rotate the image, if necessary -------
     ;!!!!TEMPORARY will need modifs: use it for real ifs data, not DST!!!
-      instrum=SXPAR( *(*self.data).HeadersPHU[IndexFrame], 'INSTRUME',count=c1)
-	if ~strmatch(instrum,'*DST*') && (  sxpar( *(*self.data).HeadersPHU[IndexFrame], 'DRPVER' ) eq '' ) then begin
+    instrum=SXPAR( *(*self.data).HeadersPHU[IndexFrame], 'INSTRUME',count=c1)
+	; FIXME remove vertical transpose mode here
+	if (~strmatch(instrum,'*DST*') && (  sxpar( *(*self.data).HeadersPHU[IndexFrame], 'DRPVER' ) eq '' )) OR strlowcase(sxpar( *(*self.data).HeadersPHU[IndexFrame], 'DSORIENT')) eq 'vertical'  then begin
     	if self.verbose then self->Log, "Image detected as IFS raw file, assumed vertical spectrum orientation. Must be reoriented to horizontal spectrum direction."
         *((*self.data).currframe)=rotate(transpose(*((*self.data).currframe)),2)
 		fxaddpar, *(*self.data).HeadersPHU[IndexFrame],  'HISTORY', 'Raw image rotated by 90 degrees'
-    	message,/info, 'Image rotated to match DST convention!'
+		fxaddpar, *(*self.data).HeadersPHU[IndexFrame],  'DSORIENT', 'horizontal', 'Spectral dispersion is horizontal'
+    	message,/info, 'Image rotated to match old DST convention of horizontal dispersion!'
     endif
 
     return, OK
@@ -1469,6 +1413,9 @@ FUNCTION gpiPipelineBackbone::get_keyword, keyword, count=count, comment=comment
 		else  				 value= sxpar(  *(*self.data).headersPHU[indexFrame], keyword, count=count, comment=comment)  
 	endif
 	
+	; remove extra leading or trailing blanks (because the sxpar/sxaddpar
+	; produce these for short strings)
+	if size(value,/TNAME) eq 'STRING' then value = strtrim(value,2)
 	return, value
 	
 

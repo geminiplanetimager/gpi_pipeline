@@ -133,31 +133,44 @@ end
 ; Verify a keyword is present? 
 ; Given a list of filenames and keywords,
 ; Check that values are present for all of them.
+;
+;
+; Parameters:
+; 	file	input filename
+; 	cindex	?
+; 	keyw	List of keywords to test
+; 	requiredvalue	test this value FIXME make this a list or range?
+; 	storage	?
+; 	/needalertdialog 	flag to display dialog if keyword not found
+;
+;
 function drfgui::validkeyword, file, cindex, keyw, requiredvalue,storage,needalertdialog=needalertdialog
-      value=strarr(cindex)
-      matchedvalue=intarr(cindex)
-      ok=1
-	  for i=0, cindex-1 do begin
-	    ;fits_info, file[i],/silent, N_ext 
+    value=strarr(cindex)
+    matchedvalue=intarr(cindex)
+    ok=1
+	for i=0, cindex-1 do begin
+		;fits_info, file[i],/silent, N_ext 
 	    catch, Error_status
 	    if strmatch(!ERROR_STATE.MSG, '*Unit: 101*'+file[i]) then wait,1
+
 	    fits_info, file[i], n_ext=next, /silent
-      if next eq 0 then begin
-  		  head=headfits( file[i]) ;will scan PHU
-  		  value[i]=strcompress(sxpar( Head, keyw,  COUNT=cc),/rem)
-		  endif else begin
-		    head=headfits( file[i], exten=0) ;will scan PHU
-        value[i]=strcompress(sxpar( Head, keyw,  COUNT=cc),/rem)
-        if cc eq 0 then begin
-          headext=headfits( file[i], exten=1) ;will scan PHU
-          value[i]=strcompress(sxpar( Head, keyw,  COUNT=cc),/rem)
-        endif  
-		  endelse
-		  if cc eq 0 then begin
+      	if next eq 0 then begin
+  			head=headfits( file[i]) ;will scan PHU
+  		  	value[i]=strcompress(sxpar( Head, keyw,  COUNT=cc),/rem)
+		endif else begin
+		    head=headfits( file[i], exten=0) ;First try PHU
+        	value[i]=strcompress(sxpar( Head, keyw,  COUNT=cc),/rem)
+        	if cc eq 0 then begin
+        		headext=headfits( file[i], exten=1) ;else try extension header
+	        	value[i]=strcompress(sxpar( Headext, keyw,  COUNT=cc),/rem)
+    	    endif  
+		endelse
+
+		if cc eq 0 then begin
 			self->log,'Absent '+keyw+' keyword for data: '+file(i)
 			ok=0
-		  endif
-		  if cc eq 1 then begin
+		endif
+		if cc eq 1 then begin
 			matchedvalue=stregex(value[i],requiredvalue,/boolean,/fold_case)
 			if matchedvalue ne 1 then begin 
 			  self->log,'Invalid '+keyw+' keyword for data: '+file(i)
@@ -165,12 +178,10 @@ function drfgui::validkeyword, file, cindex, keyw, requiredvalue,storage,needale
 			  if keyword_set(needalertdialog) then void=dialog_message('Invalid '+keyw+' keyword for data: '+file(i)+' keyword found: '+value(i))
 			  ok=0
 			endif
-		  endif
+		endif
 		  ;if ok ne 1 then self->log, 'File '+file[i]+' is missing required '+keyw+' keyword!'
-	  endfor  
+	endfor  
  
-    ;if (ok eq 1) then self->log,'Validity of '+keyw+' keywords: VALID'
-	
       
   return, ok
 end
@@ -196,28 +207,33 @@ function drfgui::get_obs_keywords, filename
 ;	 endif else  keywprism='PRISM'  
 	
 	;
-	itime=  float(sxpar(head, 'ITIME',    count=ct7)) ;/ 1e3 ; convert ms to seconds (dst data)
+	;itime=  float(sxpar(head, 'ITIME',    count=ct7)) ;/ 1e3 ; convert ms to seconds (dst data)
 	;if ct7 eq 0 then itime=  float(sxpar(head, 'TRUITIME',    count=ct7))  ; in seconds already (real data)
 	;if ct7 eq 0 then itime=  float(sxpar(head, 'ITIME0',    count=ct7)) / 1e6 ; convert microsec to seconds. (real data, requested itime)
 	obsstruct = {gpi_obs, $
 				ASTROMTC: strc(sxpar(head, 'ASTROMTC', count=ct0)), $
-				OBSCLASS: strc(sxpar(head, 'OBSCLASS', count=ct0)), $
-				obstype:  strc(sxpar(head, 'OBSTYPE',  count=ct1)), $
-				OBSID:    strc(sxpar(head, 'OBSID',    count=ct2)), $
-				filter:   gpi_simplify_keyword_value(strc(sxpar(head, 'FILTER1',   count=ct3))), $
-				prism:    strc(sxpar(head, 'DISPERSR', count=ct4)), $
-				OCCULTER: strc(sxpar(head, 'OCCULTER', count=ct5)), $
-				LYOT:     strc(sxpar(head, 'LYOTMASK',     count=ct6)), $
-				ITIME:    itime, $
-				EXPTIME:    sxpar(head, 'ITIME0',    count=ct7b), $
-				OBJECT:   strc(sxpar(head, 'OBJECT',   count=ct8)), $
+				OBSCLASS: strc(sxpar(head, 'OBSCLASS', count=ct1)), $
+				obstype:  strc(sxpar(head, 'OBSTYPE',  count=ct2)), $
+				OBSID:    strc(sxpar(head, 'OBSID',    count=ct3)), $
+				filter:   gpi_simplify_keyword_value(strc(sxpar(head, 'FILTER1',   count=ct4))), $
+				prism:    strc(sxpar(head, 'DISPERSR', count=ct5)), $
+				OCCULTER: strc(sxpar(head, 'OCCULTER', count=ct6)), $
+				LYOT:     strc(sxpar(head, 'LYOTMASK',     count=ct7)), $
+				ITIME:    float(sxpar(head, 'ITIME',    count=ct8)), $
+				EXPTIME:    sxpar(head, 'ITIME0',    count=ct9), $
+				OBJECT:   strc(sxpar(head, 'OBJECT',   count=ct10)), $
 				valid: 0}
-	if ct0+ct1+ct2+ct3+ct4+ct5+ct6+ct7+ct8 lt 9 then self.missingkeyw=1 else obsstruct.valid=1
-	;give some info on missing keyw:
-	vec=[ct0,ct1,ct2,ct3,ct4,ct5,ct6,ct7,ct8]
-	keytab=['ASTROMTC','OBSCLASS','OBSTYPE','OBSID', 'FILTER1','DISPERSR','OCCULTER','LYOTMASK','ITIME0', 'OBJECT']
-	indzero=where(vec eq 0, cc)
-	if cc gt 0 then self->Log, 'Missing keyword(s):'+keytab[indzero]
+	vec=[ct0,ct1,ct2,ct3,ct4,ct5,ct6,ct7,ct8, ct9, ct10]
+	if total(vec) lt n_elements(vec) then begin
+		self.missingkeyw=1 
+		;give some info on missing keyw:
+		keytab=['ASTROMTC','OBSCLASS','OBSTYPE','OBSID', 'FILTER1','DISPERSR','OCCULTER','LYOTMASK','ITIME0', 'OBJECT']
+		indzero=where(vec eq 0, cc)
+		if cc gt 0 then self->Log, 'Missing keyword(s):'+keytab[indzero]
+	endif else begin
+		self.missingkeyw=0 ; added by Marshall for cleanup & consistency
+		obsstruct.valid=1
+	endelse
 
 
 

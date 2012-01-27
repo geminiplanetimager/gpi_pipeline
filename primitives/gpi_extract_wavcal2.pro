@@ -70,14 +70,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   for i=0L,n_elements(keywords_to_check)-1 do begin
       val=backbone->get_keyword( keywords_to_check[i],count=c)
     if c eq 0 then begin
-      ;if keywords_to_check[i] eq 'FILTER' then begin
-        ; for the case of FILTER, also fail back to try FILTER1
-        ;val=SXPAR( h, 'FILTER1',count=c)
-        ;if c eq 0 then valid_header=0
-      ;endif else begin
         err=error('FAILURE ('+functionName+'): FITS header keyword '+keywords_to_check[i]+" is missing!")
         valid_header=0
-      ;endelse
     endif
     if strlen(val) eq 0 then begin
       err=error('FAILURE ('+functionName+'): FITS header keyword '+keywords_to_check[i]+" is a null string, which is an invalid value!")
@@ -155,6 +149,7 @@ if countval gt 0 then begin
   split2=split[2:csplit-1]
   peakwavelen=float(split2)
 endif else begin
+  stop
   return, error('FAILURE ('+functionName+'): Failed to load emission lines.') 
 endelse
 

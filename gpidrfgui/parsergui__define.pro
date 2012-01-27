@@ -348,7 +348,7 @@ pro parsergui::addfile, filenames, mode=mode
         validinstrsub=bytarr(cindex)
 
         for ff=0, cindex-1 do begin
-            validtelescop[ff]=self->validkeyword( file[ff], 1,'TELESCOP','Gemini',storage)
+            validtelescop[ff]=self->validkeyword( file[ff], 1,'TELESCOP','Gemini*',storage) 
             validinstrum[ff]= self->validkeyword( file[ff], 1,'INSTRUME','GPI',storage)
             validinstrsub[ff]=self->validkeyword( file[ff], 1,'INSTRSUB','IFS',storage)            
         endfor  
