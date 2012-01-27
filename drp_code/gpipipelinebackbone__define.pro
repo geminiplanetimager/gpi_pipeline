@@ -33,20 +33,12 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session, ve
     COMMON APP_CONSTANTS, $
         LOG_GENERAL,  $       ; File unit number of the general log file
         LOG_DRF,      $       ; File unit number of the DRF log file
-        pipelineConfig, $
         CALL_STACK,    $        ; String to hold the call stack at run time
         OK, NOT_OK, ERR_UNKNOWN, GOTO_NEXT_FILE,        $        ; Indicates success
-        ;READDATA,    $            ; Read primary data mask for drpFITSToDataSet
-        ;READNOISE,    $          ; Read noise data mask for drpFITSToDataSet
-        ;READQUALITY,    $        ; Read quality data mask for drpFITSToDataSet
-        ;CumulativeMemoryUsedByFITSData,    $        ; Stores current allocation of <fits/> files memory
-        ;MaxMemorySizeOfFITSData,    $        ; Max allowed allocation of <fits/> files memory
-        ;READWHOLEFRAME,    $ ; Read primary data mask for drpFITSToDataSet
         backbone_comm, $                ; Object pointer for main backbone (for access in subroutines & modules) 
         loadedcalfiles, $        ; object holding loaded calibration files (as pointers)
         DEBUG                    ; is DEBUG mode enabled?
     
-
 
         DEBUG=1
 
@@ -57,16 +49,17 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session, ve
         NOT_OK = -1
         ERR_UNKNOWN = -3
         GOTO_NEXT_FILE = -2
+
+
         ; Eventually this will be a configuration structure.
         pipelineConfig = {$
-            ;default_log_dir : ".",         $LINUX sys    ; Default directory for output log files
-      default_log_dir : getenv("GPI_PIPELINE_LOG_DIR"),     $ ; Default directory for output log files
+      		default_log_dir : getenv("GPI_PIPELINE_LOG_DIR"),     $ ; Default directory for output log files
             continueAfterDRFParsing:0,        $    ; Should program actually run the pipeline or just parse?
             MaxFramesInDataSets: 64,        $    ; OSIRIS legacy code. Not totally sure what this is for.
-            MaxMemoryUsage: 0L                 $   ; this will eventually be used for array size limits on what
-                                                ; gets done in memory versus
-                                                ; swapped to disk.
+            MaxMemoryUsage: 0L,                 $   ; this will eventually be used for array size limits on what gets done in memory versus swapped to disk.
+			desired_dispersion: 'horizontal' $	; do we want horizontal or vertical spectra?
         }
+		self.pipelineconfig=ptr_new(pipelineConfig)
 
     if ~(keyword_set(config_file)) then config_file=GETENV('GPI_CONFIG_FILE') ;"DRSConfig.xml"
     self.verbose = keyword_set(verbose)
@@ -91,7 +84,7 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session, ve
     ;CATCH, Error       ; Catch errors before the pipeline
     IF Error EQ 0 THEN BEGIN
         ;        drpSetAppConstants        ; Set the application constants
-        Self->OpenLog, pipelineConfig.default_log_dir + path_sep() + self->generalLogName(), /GENERAL
+        Self->OpenLog, (*self.pipelineConfig).default_log_dir + path_sep() + self->generalLogName(), /GENERAL
         self->Log, 'Backbone Initialized', /GENERAL
 
         self->DefineStructs        ; Define the DRP structures
@@ -173,15 +166,6 @@ PRO gpiPipelineBackbone::Cleanup
     endif
 
 	self->free_dataset_pointers
-;    IF PTR_VALID(Self.Data) THEN $
-;        FOR i = 0, N_ELEMENTS(*Self.Data)-1 DO BEGIN
-;            PTR_FREE, (*Self.Data)[i].Frames[*]
-;            PTR_FREE, (*Self.Data)[i].Headers[*]
-;            PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
-;            PTR_FREE, (*Self.Data)[i].UncertFrames[*]
-;            PTR_FREE, (*Self.Data)[i].QualFrames[*]
-;        END
-;
     PTR_FREE, Self.Data
     PTR_FREE, Self.Modules
 
@@ -419,7 +403,7 @@ PRO gpiPipelineBackbone::Run, QueueDir
             if ~(keyword_set(debug)) then CATCH, parserError else parserError=0 ; only catch if DEBUG is not set.
             IF parserError EQ 0 THEN BEGIN
                 self.progressbar->set_action, "Parsing DRF"
-                PipelineConfig.continueAfterDRFParsing = 1    ; Assume it will be Ok to continue
+                (*self.PipelineConfig).continueAfterDRFParsing = 1    ; Assume it will be Ok to continue
                 Self.Parser -> ParseFile, CurrentDRF.name,  Self.ConfigParser, backbone=self
                 ; ParseFile updates the self.Data and self.modules structure
                 ; arrays in accordance with what is stated in the DRF
@@ -433,11 +417,11 @@ PRO gpiPipelineBackbone::Run, QueueDir
                 OBJ_DESTROY, Self.Parser
                 ; Recreate a parser object for the next DRF in the pipeline
                 Self.Parser = OBJ_NEW('gpiDRFParser', backbone=self)
-                PipelineConfig.continueAfterDRFParsing = 0
+                (*self.PipelineConfig).continueAfterDRFParsing = 0
                 CATCH, /CANCEL
             ENDELSE
 
-            IF PipelineConfig.continueAfterDRFParsing EQ 1 THEN BEGIN
+            IF (*self.PipelineConfig).continueAfterDRFParsing EQ 1 THEN BEGIN
 				if (*(self.data)).validframecount eq 0 then begin
 					self->Log, 'ERROR: That DRF was parsed OK, but no files could be loaded.'
 					result=NOT_OK
@@ -876,7 +860,8 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
     ;!!!!TEMPORARY will need modifs: use it for real ifs data, not DST!!!
     instrum=SXPAR( *(*self.data).HeadersPHU[IndexFrame], 'INSTRUME',count=c1)
 	; FIXME remove vertical transpose mode here
-	if (~strmatch(instrum,'*DST*') && (  sxpar( *(*self.data).HeadersPHU[IndexFrame], 'DRPVER' ) eq '' )) OR strlowcase(sxpar( *(*self.data).HeadersPHU[IndexFrame], 'DSORIENT')) eq 'vertical'  then begin
+	if (~strmatch(instrum,'*DST*') && (  sxpar( *(*self.data).HeadersPHU[IndexFrame], 'DRPVER' ) eq '' ))  $
+	  OR (strlowcase(sxpar( *(*self.data).HeadersPHU[IndexFrame], 'DSORIENT')) eq 'vertical' and (*self.pipelineconfig).desired_dispersion eq 'horizontal')  then begin
     	if self.verbose then self->Log, "Image detected as IFS raw file, assumed vertical spectrum orientation. Must be reoriented to horizontal spectrum direction."
         *((*self.data).currframe)=rotate(transpose(*((*self.data).currframe)),2)
 		fxaddpar, *(*self.data).HeadersPHU[IndexFrame],  'HISTORY', 'Raw image rotated by 90 degrees'
@@ -893,12 +878,10 @@ end
 ;
 ;    make sure the progress bar is (still) launched and valid.
 pro  gpiPipelineBackbone::SetupProgressBar
-  ;if (not(xregistered('procstatus', /noshow))) then create_progressbar2
   if not(xregistered('gpiprogressbar',/noshow)) then begin
         obj_destroy, self.progressbar
         self.progressbar = OBJ_NEW('gpiprogressbar')
         self.progressbar->set_GenLogF, self.generallogfilename
-
   endif else begin
 	  message,/info, ' progress bar window already initialized and running.'
   endelse
@@ -1147,16 +1130,6 @@ FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
 	status = call_function( Modules[ModNum].IDLCommand, *self.data, Modules, self ) 
 
     IF status EQ NOT_OK THEN BEGIN            ;  The module failed
-;        IF (STRCMP(!ERR_STRING, "Variable", 8, /FOLD_CASE) EQ 1) THEN BEGIN
-;           
-;            PRINT, "drpPipeline::RunModule: " + !ERROR_STATE.MSG
-;            PRINT, "drpPipeline::RunModule: " + !ERR_STRING
-;            PRINT, "drpPipeline::RunModule: " + CALL_STACK
-;            PRINT, "drpPipeline::RunModule: " + Modules[ModNum].CallSequence
-;            PRINT, "drpPipeline::RunModule: " + Modules[ModNum].Name
-;            
-;        ENDIF
-;        self->Log, 'ERROR: ' + !ERR_STRING, /GENERAL, /DRF
         self->Log, 'Module failed: ' + Modules[ModNum].Name, /GENERAL, /DRF
     ENDIF ELSE BEGIN                ;  The module succeeded
         self->Log, 'Module completed: ' + Modules[ModNum].Name,  /GENERAL, /DRF, DEPTH = 3
@@ -1177,8 +1150,8 @@ END
 FUNCTION gpiPipelineBackbone::GeneralLogName
     t = BIN_DATE()
     r = STRING(FORMAT='(%"%04d%02d%02d_%02d%02d")', t[0], t[1], t[2], t[3], t[4])
-      r = STRMID(r,2) + "_drp.log"
-      RETURN, r
+    r = STRMID(r,2) + "_drp.log"
+    RETURN, r
 end
 
 
@@ -1198,39 +1171,38 @@ PRO gpiPipelineBackbone::OpenLog, LogFile, GENERAL = LogGeneral, DRF = LogDRF
 
     COMMON APP_CONSTANTS
 
-  catch, error_status
+	catch, error_status
 
-  if error_status ne 0 then begin
-    print, "ERROR in OPENLOG: "
-    print, "could not open file "+LogFile
-  endif else begin
+	if error_status ne 0 then begin
+    	print, "ERROR in OPENLOG: "
+   		print, "could not open file "+LogFile
+  	endif else begin
+		IF KEYWORD_SET(LogGeneral) THEN BEGIN
+		  CLOSE, LOG_GENERAL
+		  FREE_LUN, LOG_GENERAL
+		  OPENW, LOG_GENERAL, LogFile, /GET_LUN
+		  PRINTF, LOG_GENERAL, 'Data Reduction Pipeline, version '+gpi_pipeline_version()
+		  PRINTF, LOG_GENERAL, 'Run On ' + SYSTIME(0)
+		  PRINTF, LOG_GENERAL, ''
+		  print, ""
+		  print, " Opened log file for writing: "+logFile
+		  print, ""
+		  if obj_valid(self.progressbar) then self.progressbar->set_GenLogF, logfile
+		  self.generallogfilename = logfile
+		ENDIF
 
-    IF KEYWORD_SET(LogGeneral) THEN BEGIN
-      CLOSE, LOG_GENERAL
-      FREE_LUN, LOG_GENERAL
-      OPENW, LOG_GENERAL, LogFile, /GET_LUN
-      PRINTF, LOG_GENERAL, 'Data Reduction Pipeline, version '+gpi_pipeline_version()
-      PRINTF, LOG_GENERAL, 'Run On ' + SYSTIME(0)
-      PRINTF, LOG_GENERAL, ''
-      print, ""
-      print, " Opened log file for writing: "+logFile
-      print, ""
-      if obj_valid(self.progressbar) then self.progressbar->set_GenLogF, logfile
-      self.generallogfilename = logfile
-    ENDIF
-
-    IF KEYWORD_SET(LogDRF) THEN BEGIN
-      CLOSE, LOG_DRF
-      FREE_LUN, LOG_DRF
-      OPENW, LOG_DRF, LogFile, /GET_LUN
-      PRINTF, LOG_DRF, 'Data Reduction Pipeline'
-      PRINTF, LOG_DRF, 'Run On ' + SYSTIME(0)
-      PRINTF, LOG_DRF, ''
-      PRINTF, LOG_GENERAL, 'DRF log opened on LUN = ' + STRING(LOG_DRF)
-      if obj_valid(self.progressbar) then self.progressbar->set_DRFLogF, logfile
-    ENDIF
-  endelse
-  catch,/cancel
+		IF KEYWORD_SET(LogDRF) THEN BEGIN
+		  CLOSE, LOG_DRF
+		  FREE_LUN, LOG_DRF
+		  OPENW, LOG_DRF, LogFile, /GET_LUN
+		  PRINTF, LOG_DRF, 'Data Reduction Pipeline'
+		  PRINTF, LOG_DRF, 'Run On ' + SYSTIME(0)
+		  PRINTF, LOG_DRF, ''
+		  PRINTF, LOG_GENERAL, 'DRF log opened on LUN = ' + STRING(LOG_DRF)
+		  if obj_valid(self.progressbar) then self.progressbar->set_DRFLogF, logfile
+		ENDIF
+  	endelse
+  	catch,/cancel
 
 
 END
@@ -1315,15 +1287,6 @@ PRO gpiPipelineBackbone::ErrorHandler, CurrentDRF, QueueDir
             self->SetDRFStatus, CurrentDRF, QueueDir, 'failed'
             ; If we failed with outstanding data, then clean it up.
 			self->free_dataset_pointers
-;            IF PTR_VALID(Self.Data) THEN BEGIN
-;                FOR i = N_ELEMENTS(*Self.Data)-1, 0, -1 DO BEGIN
-;                    PTR_FREE, (*Self.Data)[i].QualFrames[*]
-;                    PTR_FREE, (*Self.Data)[i].UncertFrames[*]
-;                    PTR_FREE, (*Self.Data)[i].Headers[*]
-;                    PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
-;                    PTR_FREE, (*Self.Data)[i].Frames[*]
-;                ENDFOR
-;            ENDIF
         ENDIF
     ENDIF ELSE BEGIN
     ; Will this cause a recursion error?
@@ -1349,6 +1312,8 @@ PRO gpiPipelineBackbone::load_keyword_table
 	readcol, keyword_config_file, keywords, extensions,  format='A,A',SKIPLINE=2,silent=1 ; tab separated
 	; TODO: error checking!
 	;JM: I removed the "delimiter=string(09b)," keyword in call to readcol (is it system dependent?)
+	; MP: that just specifies the delimiter to be a tab character (ASCII 09),
+	; and so it should work on any OS
 	self.keyword_info = ptr_new({keyword: strupcase(keywords), extension: strlowcase(extensions)} )
 
 end
@@ -1490,8 +1455,8 @@ end
 ;        accessor function 
 
 function gpiPipelineBackbone::getContinueAfterDRFParsing
-    COMMON APP_CONSTANTS
-    return, pipelineConfig.ContinueAfterDRFParsing
+    ;COMMON APP_CONSTANTS
+    return, (*self.pipelineConfig).ContinueAfterDRFParsing
 end
 ;
 ;-----------------------------------------------------------
@@ -1529,10 +1494,9 @@ end
 PRO gpiPipelineBackbone__define
 
     void = {gpiPipelineBackbone, $
+			pipelineconfig: ptr_new(), $
             Parser:OBJ_NEW(), $
             ConfigParser:OBJ_NEW(), $
-            ;DRFPipeline:OBJ_NEW(), $
-            ;ParmList:PTR_NEW(), $
             Data:PTR_NEW(), $
             Modules:PTR_NEW(), $
 			keyword_info: ptr_new(), $ ; info for auto-handling of MEF keywords

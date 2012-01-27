@@ -182,7 +182,7 @@ PRO gpidrfparser::parsefile, FileName, Backbone=backbone, ConfigParser, gui_obj=
 	; Now use the ConfigParser's translation table to look up the IDL commands.
 	; By default, assume the module names *are* the IDL commands
 	if parse_error or ~ptr_valid(self.modules) then begin
-		message,"Some sort of fatal error has occured while parsing the DRF "+filename,/info
+		message,"Some sort of fatal error has occured while parsing the DRF "+filename+":",/info
 		message,/info,!error_state.msg
 		status = -1
 		return
