@@ -2,10 +2,6 @@ Bugs and Issues in the Pipeline
 In no particular order. 
 -------------------------
 
-* On startup, pipeline should validate all the environment variables and that the directories actually exist. 
-
 
 * Output dir option in GPI Parser does not seem to do anything. (works if you set it in the DRF gui, but setting it in the Parser does nothing, because the DRFs were already created).
 
-
-* DST - need to improve locking. Each process should write data into its own array, then lock and then add them into the shared array at the end (perhaps do this after each row?). 
