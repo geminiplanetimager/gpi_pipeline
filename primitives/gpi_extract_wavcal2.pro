@@ -24,7 +24,7 @@
 ; PIPELINE ARGUMENT: Name="nlens" Type="int" Range="[0,400]" Default="281" Desc="side length of  the  lenslet array "
 ; PIPELINE ARGUMENT: Name="centrXpos" Type="int" Range="[0,2048]" Default="1024" Desc="Initial approximate x-position [pixel] of central peak at 1.5microns"
 ; PIPELINE ARGUMENT: Name="centrYpos" Type="int" Range="[0,2048]" Default="1024" Desc="Initial approximate y-position [pixel] of central peak at 1.5microns"
-; PIPELINE ARGUMENT: Name="w" Type="float" Range="[0.,10.]" Default="4.8" Desc="Spectral spacing perpendicular to the dispersion axis at the detcetor in pixel"
+; PIPELINE ARGUMENT: Name="w" Type="float" Range="[0.,10.]" Default="4.8" Desc="Spectral spacing perpendicular to the dispersion axis at the image center [pixel]"
 ; PIPELINE ARGUMENT: Name="P" Type="float" Range="[-7.,7.]" Default="-1.8" Desc="Micro-pupil pattern"
 ; PIPELINE ARGUMENT: Name="emissionlinesfile" Type="string"  Default="$GPI_PIPELINE_DIR\dpl_library\lampemissionlines.txt" Desc="File of emission lines."
 ; PIPELINE ARGUMENT: Name="wav_of_centrXYpos" Type="int" Range="[1,2]" Default="2" Desc="1 if centrX-Ypos is the smallest-wavelength peak of the band; 2 if centrX-Ypos refer to 1.5microns"
@@ -56,7 +56,10 @@ function gpi_extract_wavcal2,  DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
-   im=*(dataset.currframe[0]) 
+   im=*(dataset.currframe[0])
+   ;;'Image rotated to match old DST convention of horizontal dispersion!' 
+   ;; final wavelength solution at the end of this routine is derotated to match vertical dispersion
+   im=rotate(im,1)
     ;if numext eq 0 then h= *(dataset.headers)[numfile] else h= *(dataset.headersPHU)[numfile]
   ; h=*(dataset.headers[numfile])
             ;error handle if image or header not well handled
@@ -268,8 +271,11 @@ endcase
     endif
 
 ;;localize first peak ;; these coordinates depend strongly on data!!
-cenx=float(Modules[thisModuleIndex].centrXpos)
-ceny=float(Modules[thisModuleIndex].centrYpos)
+;cenx=float(Modules[thisModuleIndex].centrXpos)
+;ceny=float(Modules[thisModuleIndex].centrYpos)
+;;take into account the rotation we made on image: note that axes have been switched with regard to old definition
+cenx=float(Modules[thisModuleIndex].centrYpos)
+ceny=float(szim[1])-1.-float(Modules[thisModuleIndex].centrXpos)
 
 if fix(Modules[thisModuleIndex].wav_of_centrXYpos) eq 2. then begin
     ;;from cenx at 1.5microns, estimate x-location of first peak to detect
@@ -285,7 +291,7 @@ while (~finite(cen1[0])) || (~finite(cen1[1])) || $
 		(cen1[1] lt 0) || (cen1[1] gt (size(im))[1])  do begin
 	wx+=1 & wy+=1
 	cen1=localizepeak( im, cenx, ceny,wx,wy,hh)
-	print, 'peak detected at pos:',cen1
+	print, 'peak detected at pos:',cen1[1], float(szim[1])-1.-cen1[0]
 endwhile
 specpos[nlens/2,nlens/2,0:1]=cen1
 
@@ -417,8 +423,9 @@ backbone->set_keyword, "HISTORY", "    Slice 5:   tilts of spectra [rad]",ext_nu
 backbone->set_keyword, "HISTORY", " ",ext_num=1;,/blank
 
 
-;rotate (180deg) the wavcal to have quadrant "aligned" (modulo 26deg) with the image  
-for qq=0,(size(specpos))[3]-1 do specpos[*,*,qq]=rotate(specpos[*,*,qq],2)
+;rotate the wavcal to have vertical dispersion
+for qq=0,(size(specpos))[3]-1 do specpos[*,*,qq]=rotate(specpos[*,*,qq],3)
+specpos[*,*,0]=float(szim[1])-1.-specpos[*,*,0]
 
 *(dataset.currframe[0])=specpos
 ;*(dataset.headers[numfile])=h

@@ -54,12 +54,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         ;what is the pixel corresponding to lambda_min?
         xmini=(change_wavcal_lambdaref( wavcal, lambdamin))[*,*,0]
         xminifind=where(finite(xmini))
-        xmini[xminifind]=floor(xmini[xminifind])
+        xmini[xminifind]=ceil(xmini[xminifind])
         ;what is the pixel corresponding to lambda_max?
         xmaxi=(change_wavcal_lambdaref( wavcal, lambdamax))[*,*,0]
         ;length of spectrum in pix
         ;sdpx=ceil(xmaxi[nlens/2,nlens/2])-xmini[nlens/2,nlens/2]+1
-        sdpx=max(ceil(xmaxi-xmini))+1 ;JM change 2009/08 sdpx is bigger when spec are far from center
+        sdpx=max(ceil(-xmaxi+xmini))+1 ;JM change 2009/08 sdpx is bigger when spec are far from center
 
 
 ;; Now we must interpolate the extracted cube onto a regular wavelength grid
@@ -75,9 +75,10 @@ for xsi=0,nlens-1 do begin
 	
 	; what are the wavelengths for each of those pixels?
 	if finite(xmini[xsi,ysi]) then begin
-		  valx=double(xmini[xsi,ysi]+findgen(sdpx))
+		  valx=double(xmini[xsi,ysi]-findgen(sdpx))
        ; if (valx[sdpx-1] lt (dim)) then begin
-          lambint=wavcal[xsi,ysi,2]+wavcal[xsi,ysi,3]*(valx-wavcal[xsi,ysi,0])*(1./cos(wavcal[xsi,ysi,4]))
+      
+          lambint=wavcal[xsi,ysi,2]-wavcal[xsi,ysi,3]*(valx-wavcal[xsi,ysi,0])*(1./cos(wavcal[xsi,ysi,4]))
         	;for bandpass normalization
         	bandpassmoy=mean(lambint[1:(size(lambint))[1]-1]-lambint[0:(size(lambint))[1]-2],/DOUBLE)
         	bandpassmoy_interp=mean(lambda[1:(size(lambda))[1]-1]-lambda[0:(size(lambda))[1]-2],/DOUBLE)

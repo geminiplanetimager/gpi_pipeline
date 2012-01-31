@@ -67,12 +67,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     xmini=(change_wavcal_lambdaref( wavcal, lambdamin))[*,*,0]
     xminifind=where(finite(xmini), wct)
 	if wct eq 0 then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
-    xmini(xminifind)=floor(xmini(xminifind))
+    xmini(xminifind)=ceil(xmini(xminifind))
     ;what is the pixel corresponding to lambda_max?
     xmaxi=(change_wavcal_lambdaref( wavcal, lambdamax))[*,*,0]
     ;length of spectrum in pix
     ;sdpx=ceil(xmaxi(nlens/2,nlens/2))-xmini(nlens/2,nlens/2)+1
-    xdiff=xmaxi-xmini
+    xdiff=-xmaxi+xmini
     bordnan=where(~finite(xdiff),cc)
     if cc gt 0 then xdiff[bordnan]=0.
     sdpx=max(ceil(xdiff))+1 ;JM change 2009/08, from zemax sim, sdpx is greater when spec are far from center
@@ -85,10 +85,10 @@ for i=0,sdpx-1 do begin  ;through spaxels
 
 	cubef=dblarr(nlens,nlens) 
   ;get the locations on the image where intensities will be extracted:
-	x3=xmini+i
+	x3=xmini-i
   y3=wavcal[*,*,1]-(wavcal[*,*,0]-x3)*tan(tilt[*,*])	
   ;extract intensities on a 3x1 box:
-	cubef=det[x3,y3]+det[x3,y3+1]+det[x3,y3-1]
+	cubef=det[y3,x3]+det[y3+1,x3]+det[y3-1,x3]
 
   ;declare as Nan mlens not on the detector:
   bordx=where(~finite(x3),cc)
