@@ -20,6 +20,7 @@
 ; HISTORY:
 ;   2009-07-20 JM: created
 ;   2009-09-17 JM: added DRF parameters
+;   2012-01-31 Switched sxaddpar and sxaddhist to backbone->set_keyword Dmitry Savransky
 ;-
 function gpi_find_badpixels, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -123,20 +124,21 @@ print, 'nb bad-pixels detected =', total(double(badpixmap))
 
 ; FIXME: Update FITS header of the output file to specify that it's a bad pixel
 ; map. 
-  sxaddhist, functionname+"from " + dataset.outputFileNames[numfile], *(dataset.headers[numfile])
+  ;sxaddhist, functionname+"from " + dataset.outputFileNames[numfile], *(dataset.headers[numfile])
 
+backbone->set_keyword, "HISTORY", functionname+"from " + dataset.outputFileNames[numfile]
 *(dataset.currframe[0])=badpixmap
 
-
 	; Set keywords for outputting files into the Calibrations DB
-	 if numext eq 0 then begin
-    sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
-    sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-  endif else begin
-    sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
-    sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-  endelse
-
+;	 if numext eq 0 then begin
+;    sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
+;    sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+;  endif else begin
+;    sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
+;    sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+;  endelse
+    backbone->set_keyword, "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
+    backbone->set_keyword,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
 
 
 @__end_primitive

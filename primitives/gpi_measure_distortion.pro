@@ -20,6 +20,7 @@
 ;
 ; HISTORY:
 ; 	Originally by Jerome Maire 2009-12
+;       Switched sxaddpar to backbone->set_keyword 01.31.2012 Dmitry Savransky
 ;- 
 
 function gpi_measure_distortion, DataSet, Modules, Backbone
@@ -38,13 +39,15 @@ suffix+='-distor'
 
 
   ; Set keywords for outputting files into the Calibrations DB
- if numext eq 0 then begin
-    sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Distortion Measurement", "What kind of IFS file is this?"
-    sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-  endif else begin
-    sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Distortion Measurement", "What kind of IFS file is this?"
-    sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-  endelse
+;if numext eq 0 then begin
+;   sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Distortion Measurement", "What kind of IFS file is this?"
+;   sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+;endif else begin
+;   sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Distortion Measurement", "What kind of IFS file is this?"
+;   sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+;endelse
+backbone->set_keyword, "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
+backbone->set_keyword,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
 
 @__end_primitive
 

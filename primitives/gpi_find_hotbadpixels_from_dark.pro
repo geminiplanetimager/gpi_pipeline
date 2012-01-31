@@ -20,6 +20,7 @@
 ; HISTORY:
 ;   2009-07-20 JM: created
 ;   2009-09-17 JM: added DRF parameters
+;   2012-01-31 Switched sxaddpar to backbone->set_keyword Dmitry Savransky
 ;-
 function gpi_find_hotbadpixels_from_dark, DataSet, Modules, Backbone
 common PIP
@@ -64,9 +65,11 @@ suffix='-darkbadpix'
 ;    sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
 ;    sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
 ;  endif else begin
-    sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
-    sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
- ; endelse
+    ;sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
+    ;sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+  backbone->set_keyword, "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
+  backbone->set_keyword,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.' 
+; endelse
  
 ;    if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
 ;      if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 

@@ -21,6 +21,7 @@
 ;
 ; HISTORY:
 ; 	Originally by Jerome Maire 2009-12
+;       2012-01-31 Switched sxaddpar to backbone->set_keyword Dmitry Savransky
 ;- 
 
 function sat_spots_locations, DataSet, Modules, Backbone
@@ -96,13 +97,15 @@ endif
 suffix+='-spotloc'
 
   ; Set keywords for outputting files into the Calibrations DB
-     if numext eq 0 then begin
-      sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?"
-      sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-    endif else begin
-      sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?"
-      sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-    endelse
+;     if numext eq 0 then begin
+;      sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?"
+;      sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+;    endif else begin
+;      sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?"
+;      sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+;   endelse
+backbone->set_keyword, "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
+backbone->set_keyword,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
 
 ;TODO header update
 

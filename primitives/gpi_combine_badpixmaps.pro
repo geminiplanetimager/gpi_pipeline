@@ -20,6 +20,7 @@
 ; HISTORY:
 ;    Jerome Maire 2009-08-10
 ;   2009-09-17 JM: added DRF parameters
+;   2012-01-31 Switched sxaddpar to backbone->set_keyword Dmitry Savransky
 ;-
 
 
@@ -51,9 +52,10 @@ endelse
 suffix+='-comb'
 
   ; Set keywords for outputting files into the Calibrations DB
-    sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
-    sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-
+  ;  sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
+  ;  sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+backbone->set_keyword, "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
+backbone->set_keyword,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
   
 
 ;TODO header update
