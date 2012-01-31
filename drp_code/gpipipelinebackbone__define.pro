@@ -859,15 +859,15 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
     ;---- Rotate the image, if necessary -------
     ;!!!!TEMPORARY will need modifs: use it for real ifs data, not DST!!!
     instrum=SXPAR( *(*self.data).HeadersPHU[IndexFrame], 'INSTRUME',count=c1)
-	; FIXME remove vertical transpose mode here
-	if (~strmatch(instrum,'*DST*') && (  sxpar( *(*self.data).HeadersPHU[IndexFrame], 'DRPVER' ) eq '' ))  $
-	  OR (strlowcase(sxpar( *(*self.data).HeadersPHU[IndexFrame], 'DSORIENT')) eq 'vertical' and (*self.pipelineconfig).desired_dispersion eq 'horizontal')  then begin
-    	if self.verbose then self->Log, "Image detected as IFS raw file, assumed vertical spectrum orientation. Must be reoriented to horizontal spectrum direction."
-        *((*self.data).currframe)=rotate(transpose(*((*self.data).currframe)),2)
-		fxaddpar, *(*self.data).HeadersPHU[IndexFrame],  'HISTORY', 'Raw image rotated by 90 degrees'
-		fxaddpar, *(*self.data).HeadersPHU[IndexFrame],  'DSORIENT', 'horizontal', 'Spectral dispersion is horizontal'
-    	message,/info, 'Image rotated to match old DST convention of horizontal dispersion!'
-    endif
+;	; FIXME remove vertical transpose mode here
+;	if (~strmatch(instrum,'*DST*') && (  sxpar( *(*self.data).HeadersPHU[IndexFrame], 'DRPVER' ) eq '' ))  $
+;	  OR (strlowcase(sxpar( *(*self.data).HeadersPHU[IndexFrame], 'DSORIENT')) eq 'vertical' and (*self.pipelineconfig).desired_dispersion eq 'horizontal')  then begin
+;    	if self.verbose then self->Log, "Image detected as IFS raw file, assumed vertical spectrum orientation. Must be reoriented to horizontal spectrum direction."
+;        *((*self.data).currframe)=rotate(transpose(*((*self.data).currframe)),2)
+;		fxaddpar, *(*self.data).HeadersPHU[IndexFrame],  'HISTORY', 'Raw image rotated by 90 degrees'
+;		fxaddpar, *(*self.data).HeadersPHU[IndexFrame],  'DSORIENT', 'horizontal', 'Spectral dispersion is horizontal'
+;    	message,/info, 'Image rotated to match old DST convention of horizontal dispersion!'
+;    endif
 
     return, OK
 end
