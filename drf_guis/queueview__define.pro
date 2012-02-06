@@ -361,13 +361,13 @@ pro queueview::event,ev
     'cleardone': self->Rescan,/initialize
 	'DRFGUI': begin
 		if self.selection eq '' then return
-            gpidrfgui, drfname=self.selection, self.drfbase
+            gpidrfgui, drfname=self.selection, self.top_base
 	end
 
 
 	'Delete': begin
 		if self.selection eq '' then return
-		if confirm(group=self.drfbase,message=['Are you sure you want to delete the file ',self.selection+"?"], label0='Cancel',label1='Delete', title="Confirm Delete") then begin
+		if confirm(group=self.top_base,message=['Are you sure you want to delete the file ',self.selection+"?"], label0='Cancel',label1='Delete', title="Confirm Delete") then begin
 			file_delete, self.selection,/ALLOW_NONEXISTENT
 			self->refresh
 			self.selection=''
@@ -375,8 +375,8 @@ pro queueview::event,ev
 		endif
 	end
 	'DeleteAll': begin
-		if confirm(group=self.drfbase,message='Are you sure you want to delete ALL DRFs from the queue?', label0='Cancel',label1='Delete', title="Confirm Delete ALL DRFs") then begin
-		if confirm(group=self.drfbase,message='Really really sure you want to delete them all?', label0='Cancel',label1='Delete', title="Confirm Delete ALL DRFs") then begin
+		if confirm(group=self.top_base,message='Are you sure you want to delete ALL DRFs from the queue?', label0='Cancel',label1='Delete', title="Confirm Delete ALL DRFs") then begin
+		if confirm(group=self.top_base,message='Really really sure you want to delete them all?', label0='Cancel',label1='Delete', title="Confirm Delete ALL DRFs") then begin
 			files = file_search( self.queuepath+path_sep()+"*.xml", count=ct)
 			if ct gt 0 then file_delete, files, /ALLOW_NONEXISTENT
 			self->rescan,/init
@@ -453,17 +453,17 @@ function queueview::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
     CASE !VERSION.OS_FAMILY OF  
         ; **NOTE** Mac OS X reports an OS family of 'unix' not 'MacOS'
        'unix': begin 
-        self.drfbase=widget_base(title=title, $
+        self.top_base=widget_base(title=title, $
         /BASE_ALIGN_LEFT,/column, /tlb_size_events, /tlb_kill_request_events, resource_name='GPI_DRP')
          end
        'Windows'   :begin
-       self.drfbase=widget_base(title=title, $
+       self.top_base=widget_base(title=title, $
         /BASE_ALIGN_LEFT,/column, bitmap=self.dirpro+path_sep()+'gpi.bmp',/tlb_size_events, /tlb_kill_request_events)
          end
 
     ENDCASE
 
-    guibase=self.drfbase
+    guibase=self.top_base
 
     ;create file selector
     ;-----------------------------------------
@@ -490,17 +490,17 @@ function queueview::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
 
     ;;create execute and quit button
     ;-----------------------------------------
-    drfbaseexec=widget_base(guibase,/BASE_ALIGN_LEFT,/row)
-    button2b=widget_button(drfbaseexec,value="Rescan",uvalue="Rescan", /tracking_events)
-    button2b=widget_button(drfbaseexec,value="Clear Completed",uvalue="cleardone", /tracking_events)
-    button2b=widget_button(drfbaseexec,value="Re-queue selected",uvalue="requeue", /tracking_events)
-    button2b=widget_button(drfbaseexec,value="View/Edit in DRFGUI",uvalue="DRFGUI", /tracking_events)
-    button2b=widget_button(drfbaseexec,value="Delete selected",uvalue="Delete", /tracking_events)
-    button2b=widget_button(drfbaseexec,value="Delete All",uvalue="DeleteAll", /tracking_events)
+    top_baseexec=widget_base(guibase,/BASE_ALIGN_LEFT,/row)
+    button2b=widget_button(top_baseexec,value="Rescan",uvalue="Rescan", /tracking_events)
+    button2b=widget_button(top_baseexec,value="Clear Completed",uvalue="cleardone", /tracking_events)
+    button2b=widget_button(top_baseexec,value="Re-queue selected",uvalue="requeue", /tracking_events)
+    button2b=widget_button(top_baseexec,value="View/Edit in DRFGUI",uvalue="DRFGUI", /tracking_events)
+    button2b=widget_button(top_baseexec,value="Delete selected",uvalue="Delete", /tracking_events)
+    button2b=widget_button(top_baseexec,value="Delete All",uvalue="DeleteAll", /tracking_events)
 
 
-    space = widget_label(drfbaseexec,uvalue=" ",xsize=200,value='  ')
-    button3=widget_button(drfbaseexec,value="Close queueview",uvalue="QUIT", /tracking_events, resource_name='red_button');, $
+    space = widget_label(top_baseexec,uvalue=" ",xsize=200,value='  ')
+    button3=widget_button(top_baseexec,value="Close queueview",uvalue="QUIT", /tracking_events, resource_name='red_button');, $
     self.textinfoid=widget_label(guibase,uvalue="textinfo",xsize=800,value='  ')
     ;-----------------------------------------
 
@@ -512,9 +512,9 @@ end
 pro queueview::post_init, _extra=_extra
 
 	self->rescan;,/initialize
-    widget_control, self.drfbase, timer=1
+    widget_control, self.top_base, timer=1  ; Start off the timer events for updating at 1 Hz
 
-		geomb = widget_info(self.drfbase,/geom)
+		geomb = widget_info(self.top_base,/geom)
 		geomt = widget_info(self.tableselected,/geom)
 		geomlog = widget_info(self.widget_log,/geom) ; sets minimum width
 

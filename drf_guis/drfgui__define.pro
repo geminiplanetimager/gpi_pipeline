@@ -291,18 +291,36 @@ end
 
 ;-----------------------------------------
 function drfgui::get_input_dir
-    case getenv('GPI_RAW_DATA_DIR') of
-;            'GEM': $
-;                defdir = '/gpidata/rawfile/'+storage.group+path_sep()+storage.proj
-;            'HOME': $
-;                defdir = gpirootdir(storage.group,storage.proj)+'/gpidata/raw'
-    '': $
-        defdir = self.inputdir ;gpirootdir(storage.group,storage.proj)+'/gpidata/raw'
-    else: $
-            defdir = getenv('GPI_RAW_DATA_DIR') ;gpirootdir(storage.group,storage.proj)+'/gpidata/raw'
-    endcase
+	; Return the name of the directory we should look in for new files
+	; This is by default the current IFS raw data directory
+	;
+	; See also the last_used_input_dir variable, which we use to keep
+	; track of whether the user has manually selected another directory
+	;
+	; FIXME: last_used_input_dir is only in parsergui, should be merged into
+	; parser adn drfgui both for consistency
+	;
 
-    return, defdir
+	if gpi_get_setting('organize_raw_data_by_dates',/bool) then begin
+		inputdir = gpi_expand_path('$GPI_RAW_DATA_DIR') + path_sep() + gpi_datestr(/current)
+	
+		; if there isn't a directory for today's date, then just look in the
+		; data root by default
+		if not file_test(inputdir) then inputdir = gpi_expand_path('$GPI_RAW_DATA_DIR')
+
+		self->Log,"Looking for new data based on date in "+self.drfpath
+
+	endif else begin
+		case getenv('GPI_RAW_DATA_DIR') of
+		'': $
+			inputdir = self.inputdir ;gpirootdir(storage.group,storage.proj)+'/gpidata/raw'
+		else: $
+				inputdir = getenv('GPI_RAW_DATA_DIR') ;gpirootdir(storage.group,storage.proj)+'/gpidata/raw'
+		endcase
+		self->Log,"Looking for new data in "+self.drfpath
+	endelse 
+
+    return, inputdir
 
 end
 
@@ -597,7 +615,7 @@ end
 pro drfgui::queue, filename; , storage=storage
 
     if ~file_test(filename) then begin
-    	widget_control,self.drfbase,get_uvalue=storage  
+    	widget_control,self.top_base,get_uvalue=storage  
         message, /info, "File "+filename+" does not exist!"
       	self->log,"File "+filename+" does not exist!"
       	self->log,"Use Save DRF button"
@@ -1398,6 +1416,24 @@ end
 
 
 ;--------------------------------------
+function drfgui::check_output_path_exists, path
+	if file_test(path,/dir,/write) then begin
+		return, 1 
+	endif else  begin
+		res =  dialog_message('The requested output directory '+path+' does not exist. Should it be created now?', title="Nonexistent Output Directory", dialog_parent=self.top_base, /question) 
+		if res eq 'Yes' then begin
+			file_mkdir, path
+			return, 1
+		endif else return, 0
+
+	endelse
+	return, 0
+
+
+end
+
+
+;--------------------------------------
 ; Save a DRF to a file on disk.
 ;
 ; ARGUMENTS:
@@ -1449,7 +1485,16 @@ pro drfgui::savedrf, file, storage,template=template, nopickfile=nopickfile
 			return ; user cancelled the save as dialog, so don't save anything.
 		endif
         self.drfpath  = newdrfpath ; MDP change - update the default directory to now match whatever the user selected in the dialog box.
-    endif else newdrffilename = self.drffilename
+    endif else begin
+		newdrffilename = self.drffilename
+		self.drfpath = file_dirname(newdrffilename) ; update the default output directory to match whatever the user selected this time
+	endelse
+
+
+	valid = self->check_output_path_exists(self.drfpath)
+	if ~valid then return
+
+
     
     if (self.nbmoduleSelec ne '') && (newdrffilename ne '') then begin
           self.drffilename = file_basename(newdrffilename)
@@ -1547,7 +1592,7 @@ pro drfgui::loaddrf, filename, nodata=nodata, silent=silent, log=log
     self.loadedDRF = filename
 
 
-    widget_control,self.drfbase,get_uvalue=storage  
+    widget_control,self.top_base,get_uvalue=storage  
 
     
     ; now parse the requested DRF.
@@ -1587,7 +1632,7 @@ pro drfgui::loaddrf, filename, nodata=nodata, silent=silent, log=log
 	
 		title  = "GPI DRF-GUI"
 		if keyword_set(session) then title += " #"+strc(session)
-		widget_control, self.drfbase, tlb_set_title=title+": "+filename
+		widget_control, self.top_base, tlb_set_title=title+": "+filename
 
     endif
 
@@ -1702,7 +1747,7 @@ pro drfgui::cleanup
 	ptr_free, self.curr_mod_indsort, self.currModSelec, self.order, self.indarg
 	ptr_free, self.currModSelecParamTab, self.indmodtot2avail, self.templates, self.template_types, self.drf_summary
 
-if (xregistered ('drfgui') gt 0) then    widget_control,self.drfbase,/destroy
+if (xregistered ('drfgui') gt 0) then    widget_control,self.top_base,/destroy
 	
 	;heap_gc
 end
@@ -1726,13 +1771,22 @@ pro drfgui::init_data, _extra=_Extra
 
         ; if no configuration file, choose reasonable defaults.
         self.tempdrfdir = getenv('GPI_DRF_TEMPLATES_DIR')
-        self.inputcaldir = getenv('GPI_DRP_OUTPUT_DIR')
         self.outputdir = getenv('GPI_DRP_OUTPUT_DIR')
         self.logpath = getenv('GPI_PIPELINE_LOG_DIR')
         self.queuepath =getenv('GPI_QUEUE_DIR')
 
-        cd, current=current
-        self.drfpath = current
+		; are calibration files in the DRP output dir or a special calibrations dir?
+		if gpi_get_setting('use_calibrations_dir',/bool) then self.inputcaldir = gpi_get_setting('calibrations_dir',/expand_path) else self.inputcaldir = getenv('GPI_DRP_OUTPUT_DIR')
+
+		if gpi_get_setting('organize_DRFs_by_dates') then begin
+			self.drfpath = gpi_get_setting('DRF_root_dir',/expand_path) + path_sep() + gpi_datestr(/current)
+			self->Log,"Outputting DRFs based on date to "+self.drfpath
+		endif else begin
+
+			cd, current=current
+			self.drfpath = current
+			self->Log, "Outputting DRFs to current working directory: "+self.drfpath
+		endelse
 
         self->scan_templates
         self->update_available_modules, 'ASTR - SPEC', 1 ; needed before widget creation
@@ -1780,12 +1834,12 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 			 CASE !VERSION.OS_FAMILY OF  
 		; **NOTE** Mac OS X reports an OS family of 'unix' not 'MacOS'
 	   'unix': begin 
-		drfbase=widget_base(title=title, $
+		top_base=widget_base(title=title, $
 		group_leader=groupleader,/BASE_ALIGN_LEFT,/column, MBAR=bar,/tlb_size_events, /tlb_kill_request_events, resource_name='GPI_DRP_DRFGUI')
 		
 		 end
 	   'Windows'   :begin
-		drfbase=widget_base(title=title, $
+		top_base=widget_base(title=title, $
 		group_leader=groupleader,/BASE_ALIGN_LEFT,/column, MBAR=bar,bitmap=self.dirpro+path_sep()+'gpi.bmp',/tlb_size_events, /tlb_kill_request_events)
 		
 		 end
@@ -1797,7 +1851,7 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 	;xsize=1200,ysize=920,group_leader=groupleader,/BASE_ALIGN_LEFT,/column, MBAR=bar)
 	;xsize=1200<screensize[0],ysize=920<(screensize[1]-100),group_leader=groupleader,/BASE_ALIGN_LEFT,/column, MBAR=bar,bitmap=self.dirpro+path_sep()+'gpi.bmp',/tlb_size_events, /tlb_kill_request_events)
 		
-	self.drfbase=drfbase
+	self.top_base=top_base
 	;create Menu
 
 	file_menu = WIDGET_BUTTON(bar, VALUE='File', /MENU) 
@@ -1817,91 +1871,91 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 
 	;create message box
 	;-----------------------------------------
-	;info=widget_text(drfbase,/scroll, $
+	;info=widget_text(top_base,/scroll, $
 	;    xsize=58,ysize=5, /ALIGN_LEFT);xoffset=5,yoffset=5)
-	;OLD info=widget_text(drfbase,/scroll, xsize=58,ysize=nlines_status, /ALIGN_LEFT);xoffset=5,yoffset=5)
+	;OLD info=widget_text(top_base,/scroll, xsize=58,ysize=nlines_status, /ALIGN_LEFT);xoffset=5,yoffset=5)
 
 	;create file selector
 	;-----------------------------------------
-	drfbasefilebutt=widget_base(drfbase,/BASE_ALIGN_LEFT,/row, frame=DEBUG_SHOWFRAMES, /base_align_center)
-	label = widget_label(drfbasefilebutt, value="Input FITS Files:")
-	button=widget_button(drfbasefilebutt,value="Add File(s)",uvalue="ADDFILE", $
+	top_basefilebutt=widget_base(top_base,/BASE_ALIGN_LEFT,/row, frame=DEBUG_SHOWFRAMES, /base_align_center)
+	label = widget_label(top_basefilebutt, value="Input FITS Files:")
+	button=widget_button(top_basefilebutt,value="Add File(s)",uvalue="ADDFILE", $
 		xsize=90,ysize=30, /tracking_events);,xoffset=10,yoffset=115)
-	button=widget_button(drfbasefilebutt,value="Wildcard",uvalue="WILDCARD", $
+	button=widget_button(top_basefilebutt,value="Wildcard",uvalue="WILDCARD", $
 		xsize=90,ysize=30, /tracking_events);,xoffset=110,yoffset=115)
-	button=widget_button(drfbasefilebutt,value="Remove",uvalue="REMOVE", $
+	button=widget_button(top_basefilebutt,value="Remove",uvalue="REMOVE", $
 		xsize=90,ysize=30, /tracking_events);,xoffset=210,yoffset=115)
-	button=widget_button(drfbasefilebutt,value="Remove All",uvalue="REMOVEALL", $
+	button=widget_button(top_basefilebutt,value="Remove All",uvalue="REMOVEALL", $
 		xsize=90,ysize=30, /tracking_events);,xoffset=310,yoffset=115)
 
-	drfbasefilebutt2=drfbasefilebutt
+	top_basefilebutt2=top_basefilebutt
 	sorttab=['obs. date/time','OBSID','alphabetic filename','file creation date']
-	self.sortfileid = WIDGET_DROPLIST( drfbasefilebutt2, title='Sort data by:',  Value=sorttab,uvalue='sortmethod',resource_name='XmDroplistButton')
-	drfbrowse = widget_button(drfbasefilebutt2,  $
+	self.sortfileid = WIDGET_DROPLIST( top_basefilebutt2, title='Sort data by:',  Value=sorttab,uvalue='sortmethod',resource_name='XmDroplistButton')
+	drfbrowse = widget_button(top_basefilebutt2,  $
 							XOFFSET=174 ,SCR_XSIZE=80, ysize= 30 $; ,SCR_YSIZE=23  $
 							,/ALIGN_CENTER ,VALUE='Sort data',uvalue='sortdata')                          
 		
-	drfbaseident=widget_base(drfbase,/BASE_ALIGN_LEFT,/row, frame=DEBUG_SHOWFRAMES)
+	top_baseident=widget_base(top_base,/BASE_ALIGN_LEFT,/row, frame=DEBUG_SHOWFRAMES)
 	; file name list widget
-	fname=widget_list(drfbaseident,xsize=106,scr_xsize=580, ysize=nlines_fname,$
+	fname=widget_list(top_baseident,xsize=106,scr_xsize=580, ysize=nlines_fname,$
 			xoffset=10,yoffset=150,uvalue="FNAME", /TRACKING_EVENTS,resource_name='XmText')
 
 	; add 5 pixel space between the filename list and controls
-	drfbaseborder=widget_base(drfbaseident,xsize=5,units=0, frame=DEBUG_SHOWFRAMES)
+	top_baseborder=widget_base(top_baseident,xsize=5,units=0, frame=DEBUG_SHOWFRAMES)
 
 	; add the options controls
-	drfbaseidentseq=widget_base(drfbaseident,/BASE_ALIGN_LEFT,/column,  frame=DEBUG_SHOWFRAMES)
-	drfbaseborder=widget_base(drfbaseidentseq,ysize=1,units=0)          
-	drfbaseborder2=widget_base(drfbaseidentseq,/BASE_ALIGN_LEFT,/row)
-	drflabel=widget_label(drfbaseborder2,Value='Output Dir=         ')
-	self.outputdir_id = WIDGET_TEXT(drfbaseborder2, $
+	top_baseidentseq=widget_base(top_baseident,/BASE_ALIGN_LEFT,/column,  frame=DEBUG_SHOWFRAMES)
+	top_baseborder=widget_base(top_baseidentseq,ysize=1,units=0)          
+	top_baseborder2=widget_base(top_baseidentseq,/BASE_ALIGN_LEFT,/row)
+	drflabel=widget_label(top_baseborder2,Value='Output Dir=         ')
+	self.outputdir_id = WIDGET_TEXT(top_baseborder2, $
 				xsize=34,ysize=1,$
 				/editable,units=0,value=self.outputdir )    
 
-	drfbrowse = widget_button(drfbaseborder2,  $
+	drfbrowse = widget_button(top_baseborder2,  $
 						XOFFSET=174 ,SCR_XSIZE=75 ,SCR_YSIZE=23  $
 						,/ALIGN_CENTER ,VALUE='Change...',uvalue='outputdir')
-	drfbaseborder3=widget_base(drfbaseidentseq,/BASE_ALIGN_LEFT,/row)
-	drflabel=widget_label(drfbaseborder3,Value='Log Path=           ')
-	self.logpath_id = WIDGET_TEXT(drfbaseborder3, $
+	top_baseborder3=widget_base(top_baseidentseq,/BASE_ALIGN_LEFT,/row)
+	drflabel=widget_label(top_baseborder3,Value='Log Path=           ')
+	self.logpath_id = WIDGET_TEXT(top_baseborder3, $
 				xsize=34,ysize=1,$
 				/editable,units=0 ,value=self.logpath)
-	drfbrowse = widget_button(drfbaseborder3,  $
+	drfbrowse = widget_button(top_baseborder3,  $
 						XOFFSET=174 ,SCR_XSIZE=75 ,SCR_YSIZE=23  $
 						,/ALIGN_CENTER ,VALUE='Change...',uvalue='logpath') 
 						
-	 base_radio = Widget_Base(drfbaseidentseq, UNAME='WID_BASE_diskc', COLUMN=1 ,/NONEXCLUSIVE, frame=0)
+	 base_radio = Widget_Base(top_baseidentseq, UNAME='WID_BASE_diskc', COLUMN=1 ,/NONEXCLUSIVE, frame=0)
   self.relativepath_id = Widget_Button(base_radio, UNAME='RELATIVEPATH' ,/ALIGN_LEFT ,VALUE='Input/output/log directories written with relative environment variables',UVALUE='relativepath')
   widget_control, self.relativepath_id, /set_button
 						
-	drfbaseborder=widget_base(drfbaseidentseq,ysize=7,units=0)
-	drfbaseborder4=widget_base(drfbaseidentseq,/BASE_ALIGN_LEFT,/row) 
+	top_baseborder=widget_base(top_baseidentseq,ysize=7,units=0)
+	top_baseborder4=widget_base(top_baseidentseq,/BASE_ALIGN_LEFT,/row) 
 	self.calibfiletab=['data closest date/time','most-recent','manual']
-	self.calibfileid = WIDGET_DROPLIST( drfbaseborder4, title='Find Calib. file:  ', frame=0, Value=self.calibfiletab,uvalue='calibfield',resource_name='XmDroplistButton')
-	drfbrowse = widget_button(drfbaseborder4,  $
+	self.calibfileid = WIDGET_DROPLIST( top_baseborder4, title='Find Calib. file:  ', frame=0, Value=self.calibfiletab,uvalue='calibfield',resource_name='XmDroplistButton')
+	drfbrowse = widget_button(top_baseborder4,  $
 						XOFFSET=174 ,SCR_XSIZE=155 $;,SCR_YSIZE=23  $
 						,/ALIGN_CENTER ,VALUE='Resolve calib. filename',uvalue='resolvecalibfilename')                          
-	;drfbaseborder=widget_base(drfbaseidentseq,ysize=7,units=0) ; MDP removed - this is not used anywhere.
-	base_radio = Widget_Base(drfbaseidentseq, UNAME='WID_BASE_diskb', COLUMN=1 ,/NONEXCLUSIVE, frame=0)
+	;top_baseborder=widget_base(top_baseidentseq,ysize=7,units=0) ; MDP removed - this is not used anywhere.
+	base_radio = Widget_Base(top_baseidentseq, UNAME='WID_BASE_diskb', COLUMN=1 ,/NONEXCLUSIVE, frame=0)
 	self.resolvetypeseq_id = Widget_Button(base_radio, UNAME='RESOLVETYPESEQBUTTON' ,/ALIGN_LEFT ,VALUE='Resolve type/seq. when adding file(s)',UVALUE='autoresolvetypeseq')
 	;widget_control, self.resolvetypeseq_id, /set_button
 	;*self.template_types=['ASTR - SPEC','ASTR - POL','CAL - SPEC','CAL - POL'] ;, 'On-Line Reduction'
-	;drfbaseborderz=widget_base(drfbaseidentseq,/BASE_ALIGN_LEFT,/row)
-	self.typeid = WIDGET_DROPLIST( drfbaseidentseq, title='Reduction type:    ', frame=0, Value=*self.template_types,uvalue='typefield',resource_name='XmDroplistButton')
-	 self.seqid = WIDGET_DROPLIST( drfbaseidentseq, title='Reduction Sequence:', frame=0, Value=['Simple Data-cube extraction','Calibrated Data-cube extraction','Calibrated Data-cube extraction, ADI reduction'],uvalue='seqfield',resource_name='XmDroplistButton')
+	;top_baseborderz=widget_base(top_baseidentseq,/BASE_ALIGN_LEFT,/row)
+	self.typeid = WIDGET_DROPLIST( top_baseidentseq, title='Reduction type:    ', frame=0, Value=*self.template_types,uvalue='typefield',resource_name='XmDroplistButton')
+	 self.seqid = WIDGET_DROPLIST( top_baseidentseq, title='Reduction Sequence:', frame=0, Value=['Simple Data-cube extraction','Calibrated Data-cube extraction','Calibrated Data-cube extraction, ADI reduction'],uvalue='seqfield',resource_name='XmDroplistButton')
 
 	;one nice logo 
 	button_image = READ_BMP(self.dirpro+path_sep()+'gpi.bmp', /RGB) 
 	button_image = TRANSPOSE(button_image, [1,2,0]) 
-	button = WIDGET_BUTTON(drfbaseident, VALUE=button_image,  $
+	button = WIDGET_BUTTON(top_baseident, VALUE=button_image,  $
 			SCR_XSIZE=100 ,SCR_YSIZE=95, sensitive=1 $
 			 ,uvalue='about') 
 	 
 	 
 	;create merge selector
 	;-----------------------------------------
-	drfbasemodule=widget_base(drfbase,/BASE_ALIGN_LEFT,/row, frame=DEBUG_SHOWFRAMES)
-	drfbasemoduleavailable=widget_base(drfbasemodule,/BASE_ALIGN_LEFT,/column,  frame=DEBUG_SHOWFRAMES)
+	top_basemodule=widget_base(top_base,/BASE_ALIGN_LEFT,/row, frame=DEBUG_SHOWFRAMES)
+	top_basemoduleavailable=widget_base(top_basemodule,/BASE_ALIGN_LEFT,/column,  frame=DEBUG_SHOWFRAMES)
 	;data = ['Prim1', 'Prim2', 'Prim3', 'Prim4'] 
 	data=transpose(*self.curr_mod_avai)
 
@@ -1911,15 +1965,15 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 	self.table_BACKground_colors = ptr_new([[255,255,255],[240,240,255]])
 
  
-	self.tableAvailable = WIDGET_TABLE(drfbasemoduleavailable, VALUE=data,$;  $ ;/COLUMN_MAJOR, $ 
+	self.tableAvailable = WIDGET_TABLE(top_basemoduleavailable, VALUE=data,$;  $ ;/COLUMN_MAJOR, $ 
 			COLUMN_LABELS=['Available Modules'], /TRACKING_EVENTS,$
 			xsize=1,ysize=50,scr_xsize=400,$  ;JM: ToDo: ysize as a function of #mod avail.
 			/NO_ROW_HEADERS, /SCROLL,y_SCROLL_SIZE =self.nlines_modules,COLUMN_WIDTHS=380,frame=1,uvalue='moduavai',/ALL_EVENTS,/CONTEXT_EVENTS , $
 			background_color=rebin(*self.table_BACKground_colors,3,2,1)) ;/COLUMN_MAJOR,
 	
-	;drfbaseborder=widget_base(drfbasemoduleavailable,units=0,xsize=280,ysize=250,frame=1)
-		lab = widget_label(drfbasemoduleavailable, value="Module Description:")
-		self.descr = WIDGET_TEXT(drfbasemoduleavailable, $
+	;top_baseborder=widget_base(top_basemoduleavailable,units=0,xsize=280,ysize=250,frame=1)
+		lab = widget_label(top_basemoduleavailable, value="Module Description:")
+		self.descr = WIDGET_TEXT(top_basemoduleavailable, $
 			xsize=58,scr_xsize=400, ysize=3,/scroll, $; nlines_args,$
 			;xsize=34,ysize=nlines_args,$
 		   ; value='Module Description:                                 '+((*self.ConfigDRS).names)[(*self.indmodtot2avail)[0]],units=0 ,/wrap)
@@ -1928,19 +1982,19 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 
 	; Create the status log window 
 	; widget ID gets stored into 'storage'
-	lab = widget_label(drfbasemoduleavailable, value="History:")
-	info=widget_text(drfbasemoduleavailable,/scroll, xsize=58,scr_xsize=400,ysize=nlines_status, /ALIGN_LEFT, uval="text_status",/tracking_events);xoffset=5,yoffset=5)
+	lab = widget_label(top_basemoduleavailable, value="History:")
+	info=widget_text(top_basemoduleavailable,/scroll, xsize=58,scr_xsize=400,ysize=nlines_status, /ALIGN_LEFT, uval="text_status",/tracking_events);xoffset=5,yoffset=5)
 
 
-	drfbasemoduleselected=widget_base(drfbasemodule,/BASE_ALIGN_LEFT,/column)
-	lab = widget_label(drfbasemoduleselected, value="Define your DRF with available modules:")
-	self.tableSelected = WIDGET_TABLE(drfbasemoduleselected, $; VALUE=data, $ ;/COLUMN_MAJOR, $ 
+	top_basemoduleselected=widget_base(top_basemodule,/BASE_ALIGN_LEFT,/column)
+	lab = widget_label(top_basemoduleselected, value="Define your DRF with available modules:")
+	self.tableSelected = WIDGET_TABLE(top_basemoduleselected, $; VALUE=data, $ ;/COLUMN_MAJOR, $ 
 			COLUMN_LABELS=['Module Name','Find Calibration File','Resolved Filename'],/resizeable_columns, $
 			xsize=3,ysize=20,uvalue='tableselected',value=(*self.currModSelec), /TRACKING_EVENTS,$
 			/NO_ROW_HEADERS, /SCROLL,y_SCROLL_SIZE =self.nlines_modules,scr_xsize=800,COLUMN_WIDTHS=[240,140,420],frame=1,/ALL_EVENTS,/CONTEXT_EVENTS, $
 			background_color=rebin(*self.table_BACKground_colors,3,2*3,/sample)    ) ;,/COLUMN_MAJOR   
-	lab = widget_label(drfbasemoduleselected, value="Change values of parameters of the selected module [press Enter after each change. Validate new values with ENTER]:")             
-	self.tableArgs = WIDGET_TABLE(drfbasemoduleselected, $; VALUE=data, $ ;/COLUMN_MAJOR, $ 
+	lab = widget_label(top_basemoduleselected, value="Change values of parameters of the selected module [press Enter after each change. Validate new values with ENTER]:")             
+	self.tableArgs = WIDGET_TABLE(top_basemoduleselected, $; VALUE=data, $ ;/COLUMN_MAJOR, $ 
 			COLUMN_LABELS=['Argument', 'Value','Description'], /resizeable_columns, $
 			xsize=3,ysize=20, /TRACKING_EVENTS,$
 			/NO_ROW_HEADERS, /SCROLL,y_SCROLL_SIZE =nlines_args,scr_xsize=800,/COLUMN_MAJOR,COLUMN_WIDTHS=[180,180,440],frame=1,/EDITABLE,uvalue='tableargs' , $
@@ -1949,20 +2003,20 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 
 	;;create execute and quit button
 	;-----------------------------------------
-	drfbaseexec=widget_base(drfbase,/BASE_ALIGN_LEFT,/row)
-	button2=widget_button(drfbaseexec,value="Save DRF as...",uvalue="Create", /tracking_events)
-	button2b=widget_button(drfbaseexec,value="Drop last saved DRF in Queue",uvalue="Drop", /tracking_events)
-	;utton2c=widget_button(drfbaseexec,value="Save and drop DRF in Queue",uvalue="Save&Drop", /tracking_events)
-	spacer = widget_label(drfbaseexec, value=' ', xsize=250)
+	top_baseexec=widget_base(top_base,/BASE_ALIGN_LEFT,/row)
+	button2=widget_button(top_baseexec,value="Save DRF as...",uvalue="Create", /tracking_events)
+	button2b=widget_button(top_baseexec,value="Drop last saved DRF in Queue",uvalue="Drop", /tracking_events)
+	;utton2c=widget_button(top_baseexec,value="Save and drop DRF in Queue",uvalue="Save&Drop", /tracking_events)
+	spacer = widget_label(top_baseexec, value=' ', xsize=250)
 
-	button3=widget_button(drfbaseexec,value="Add module",uvalue="Add module", /tracking_events);, $
-	button3=widget_button(drfbaseexec,value="Move module up",uvalue="Move module up", /tracking_events);, $
-	button3=widget_button(drfbaseexec,value="Move module down",uvalue="Move module down", /tracking_events);, $
-	button3=widget_button(drfbaseexec,value="Remove module",uvalue="Remove module", /tracking_events);, $
-	spacer = widget_label(drfbaseexec, value=' ', xsize=50)
-	button3=widget_button(drfbaseexec,value="Close DRFGUI",uvalue="QUIT", /tracking_events, resource_name='red_button')
+	button3=widget_button(top_baseexec,value="Add module",uvalue="Add module", /tracking_events);, $
+	button3=widget_button(top_baseexec,value="Move module up",uvalue="Move module up", /tracking_events);, $
+	button3=widget_button(top_baseexec,value="Move module down",uvalue="Move module down", /tracking_events);, $
+	button3=widget_button(top_baseexec,value="Remove module",uvalue="Remove module", /tracking_events);, $
+	spacer = widget_label(top_baseexec, value=' ', xsize=50)
+	button3=widget_button(top_baseexec,value="Close DRFGUI",uvalue="QUIT", /tracking_events, resource_name='red_button')
 
-	self.textinfoid=widget_label(drfbase,uvalue="textinfo",xsize=900,ysize=20,value='  ')
+	self.textinfoid=widget_label(top_base,uvalue="textinfo",xsize=900,ysize=20,value='  ')
 	;filename array and index
 	;-----------------------------------------
 	maxfilen=550
@@ -1994,7 +2048,7 @@ function drfgui::init_widgets, _extra=_Extra, session=session
         group:group,proj:proj, $
         self: self}
 	self.widget_log = info
-    widget_control,drfbase,set_uvalue=storage,/no_copy
+    widget_control,top_base,set_uvalue=storage,/no_copy
     
     self->log, "This GUI helps you to create a customized DRF."
     self->log, "Add files to be processed and create a recipe"
@@ -2002,7 +2056,7 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 
     self->changetype, 0 ; set to ASTR-SPEC type by default.
 
-    return, drfbase
+    return, top_base
 
 end
 
@@ -2024,16 +2078,16 @@ function drfgui::init, groupleader, _extra=_extra ;,group,proj
 
 	self->init_data, _extra=_extra
 
-	drfbase = self->init_widgets(_extra=_Extra)
+	top_base = self->init_widgets(_extra=_Extra)
 
 	;show base widget
 	;-----------------------------------------
-	widget_control,drfbase,/realize
+	widget_control,top_base,/realize
 
 	;event loop
 	;-----------------------------------------
 
-	xmanager,'drfgui',drfbase,/no_block,group_leader=groupleader
+	xmanager,'drfgui',top_base,/no_block,group_leader=groupleader
 
 
 	self->post_init, _extra=_extra
@@ -2046,7 +2100,7 @@ end
 ;-----------------------
 pro drfgui__define
     struct = {drfgui,   $
-              drfbase:0L,$
+              top_base:0L,$
 			  session: 0L, $
               dirpro:strarr(1),$
               ;typetab:strarr(5),$

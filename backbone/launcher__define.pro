@@ -69,7 +69,7 @@ PRO launcher::event, ev
                         textinfo='Click to start the Data Simulation ' & textinfo2='Tool.'
                         end
                 'AutomaticProcGUI':begin
-                      textinfo='Click to start an automatic, simple ' & textinfo2='data processing at the telescope.'
+                      textinfo='Click to start simple automatic ' & textinfo2='reduction of incoming data files.'
                       end 
                 'makedatalogfile': begin
                       textinfo='Click to create a text logfile of' & textinfo2='FITS files in a chosen directory.' 
@@ -137,7 +137,7 @@ PRO launcher::event, ev
 			self->launch, 'dst', session=43
 		endelse
 	end
-    ;'AutomaticProcGUI':self->launch, 'automaticproc', session=44
+    'AutomaticProcGUI':self->launch, 'automaticproc2', session=44
     'makedatalogfile':self->launch, 'makedatalogfile', session=45
     'quit': begin
         conf = dialog_message("Are you sure you want to exit the GPI Data Reduction Pipeline?",/question,title="Confirm Close",/default_no,/center)
@@ -346,7 +346,7 @@ pro launcher::launch, objname, filename=filename, session=session, _extra=_extra
 	endif else begin
 		; need to create a new object
 
-		valid_cmds = ['gpitv', 'drfgui', 'parsergui', 'queueview', 'dst', 'automaticproc','makedatalogfile']
+		valid_cmds = ['gpitv', 'drfgui', 'parsergui', 'queueview', 'dst', 'automaticproc2','makedatalogfile']
 
 		if total(strmatch(valid_cmds, objname,/fold_case)) eq 0 then begin
 			message,/info, 'Invalid command name: '+objname
@@ -481,7 +481,7 @@ endif else if issetenvok eq -1 then return,0
         bclose = widget_button(frame,VALUE='DRF GUI',UVALUE='DRFGUI', resource_name='button', /tracking_events)
         bclose = widget_button(frame,VALUE='DRF QueueView',UVALUE='QueueView', resource_name='button', /tracking_events)
 		bclose = widget_button(frame,VALUE='GPItv',UVALUE='GPItv', resource_name='button', /tracking_events)
-		;bclose = widget_button(frame,VALUE='Automatic DPL GUI',UVALUE='AutomaticProcGUI', resource_name='button', /tracking_events)
+		bclose = widget_button(frame,VALUE='Auto-Reducer',UVALUE='AutomaticProcGUI', resource_name='button', /tracking_events)
         bclose = widget_button(frame,VALUE='Data log-file',UVALUE='makedatalogfile', resource_name='button', /tracking_events)
 		if self.enable_dst then bclose = widget_button(frame,VALUE='DST',UVALUE='dst', resource_name='button', /tracking_events)
 		tmp = widget_label(frame, value=' ')

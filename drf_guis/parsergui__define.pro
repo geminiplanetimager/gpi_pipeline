@@ -65,10 +65,11 @@ pro parsergui::startup
         self.drf_summary=       ptr_new(/ALLOCATE_HEAP)
         self.version=2.0
  
-        ;FindPro, 'make_drsconfigxml', dirlist=dirlist
-        dirlist=getenv('GPI_PIPELINE_DIR')+path_sep()+'dpl_library'+path_sep()
         if getenv('GPI_CONFIG_FILE') ne '' then self.config_file=getenv('GPI_CONFIG_FILE') $
-        else self.config_file=dirlist[0]+"drsconfig.xml"
+        else begin
+        	dirlist=getenv('GPI_PIPELINE_DIR')+path_sep()+'utils'+path_sep()
+			self.config_file=dirlist[0]+"drsconfig.xml"
+		endelse
         ConfigParser = OBJ_NEW('gpiDRSConfigParser')
   
         if file_test(self.config_file) then begin
@@ -90,8 +91,19 @@ pro parsergui::startup
         self.outputdir = getenv('GPI_DRP_OUTPUT_DIR')
         self.logpath = getenv('GPI_PIPELINE_LOG_DIR')
 
-		;due to directory Gemini writing permissions, write temporary DRF in the working directory
-		self.drfpath =getenv('GPI_IFS_DIR')
+		if gpi_get_setting('organize_DRFs_by_dates',/bool) then begin
+			self.drfpath = gpi_get_setting('DRF_root_dir',/expand_path) + path_sep() + gpi_datestr(/current)
+			self->Log,"Outputting DRFs based on date to "+self.drfpath
+		endif else begin
+			;due to directory Gemini writing permissions, write temporary DRF in the working directory
+			self.drfpath =getenv('GPI_IFS_DIR')
+
+			;cd, current=current
+			;self.drfpath = current
+			self->Log, "Outputting DRFs to working directory: "+self.drfpath
+		endelse
+
+
         self.queuepath =getenv('GPI_QUEUE_DIR')
 
 
@@ -256,7 +268,7 @@ end
 pro parsergui::addfile, filenames, mode=mode
     ; Add a new file to the Input FITS files list. 
 
-    widget_control,self.drfbase,get_uvalue=storage  
+    widget_control,self.top_base,get_uvalue=storage  
     index = (*storage.splitptr).selindex
     cindex = (*storage.splitptr).findex
     file = (*storage.splitptr).filename
@@ -656,7 +668,7 @@ pro parsergui::addfile, filenames, mode=mode
 end
 ;-----------------------------------------
 pro parsergui::cleanfilelist, fitsfiles=fitsfiles
-    widget_control,self.drfbase,get_uvalue=storage
+    widget_control,self.top_base,get_uvalue=storage
       if ~keyword_set(fitsfiles) then begin
           
             (*storage.splitptr).findex = 0
@@ -784,7 +796,7 @@ pro parsergui::event,ev
                 if indselected lt self.nbDRFSelec then self.selection =(*self.currDRFSelec)[0,indselected]
                 ;if indselected lt self.nbDRFSelec then begin 
                     ;print, "Starting DRFGUI with "+ (*self.currDRFSelec)[0,indselected]
-                    ;gpidrfgui, drfname=(*self.currDRFSelec)[0,indselected], self.drfbase
+                    ;gpidrfgui, drfname=(*self.currDRFSelec)[0,indselected], self.top_base
                 ;endif  
                      
             ENDIF 
@@ -807,7 +819,6 @@ pro parsergui::event,ev
     'ADDFILE' : begin
         ;-- Ask the user to select more input files:
 		if self.last_used_input_dir eq '' then self.last_used_input_dir = self->get_input_dir()
-        ;defdir = self->get_input_dir()
 
         result=dialog_pickfile(path=self.last_used_input_dir,/multiple,/must_exist,$
                 title='Select Raw Data File(s)', filter=['*.fits','*.fits.gz'])
@@ -1011,7 +1022,7 @@ pro parsergui::event,ev
         self.selection=(*self.currDRFSelec)[0,indselected]
 
 
-        if confirm(group=self.drfbase,message=['Are you sure you want to delete the file ',self.selection+"?"], label0='Cancel',label1='Delete', title="Confirm Delete") then begin
+        if confirm(group=self.top_base,message=['Are you sure you want to delete the file ',self.selection+"?"], label0='Cancel',label1='Delete', title="Confirm Delete") then begin
             self->Log, 'Deleted file '+self.selection
             file_delete, self.selection,/allow_nonexist
 
@@ -1041,7 +1052,7 @@ pro parsergui::event,ev
     end
     'DRFGUI': begin
         if self.selection eq '' then return
-            gpidrfgui, drfname=self.selection, self.drfbase
+            gpidrfgui, drfname=self.selection, self.top_base
     end
 
 
@@ -1094,10 +1105,7 @@ end
 ;
 ;   /template    save this as a template
 ;
-pro parsergui::savedrf, file, template=template, prefix=prefix, $
-    datetimestr=datetimestr
-
-
+pro parsergui::savedrf, file, template=template, prefix=prefix, datetimestr=datetimestr
 
     ; Determine input FITS files
     index = where(file ne '',count)
@@ -1143,10 +1151,10 @@ pro parsergui::savedrf, file, template=template, prefix=prefix, $
     ;newdrffilename = (*self.drf_summary).filename
     
     if (self.nbmoduleSelec ne '') && ( (*self.drf_summary).filename ne '') then begin
-          ;(*self.drf_summary).filename = file_basename(newdrffilename)
+        if widget_info(self.direct_id ,/button_set)  then chosenpath=self.queuepath else chosenpath=self.drfpath
 
-        ;self->Log,'Now writing DRF...';+ self.drfpath+path_sep()+(*self.drf_summary).filename
-          if widget_info(self.direct_id ,/button_set)  then chosenpath=self.queuepath else chosenpath=self.drfpath
+		if ~self->check_output_path_exists(chosenpath) then return
+
         message,/info, "Writing to "+chosenpath+path_sep()+(*self.drf_summary).filename 
         OpenW, lun, chosenpath+path_sep()+(*self.drf_summary).filename, /Get_Lun
         PrintF, lun, '<?xml version="1.0" encoding="UTF-8"?>' 
@@ -1158,8 +1166,7 @@ pro parsergui::savedrf, file, template=template, prefix=prefix, $
             PrintF, lun, '<DRF LogPath="'+self.logpath+'" ReductionType="'+(*self.template_types)[selectype] +'" Name="'+(*self.drf_summary).name+'" >'
         endelse
 
-         PrintF, lun, '<dataset InputDir="'+self.inputdir+'" Name="" OutputDir="'+self.outputdir+'">' 
-         ;PrintF, lun, '<dataset InputDir="'+''+'" Name="" OutputDir="'+self.outputdir+'">'
+        PrintF, lun, '<dataset InputDir="'+self.inputdir+'" Name="" OutputDir="'+self.outputdir+'">' 
      
         FOR j=0,N_Elements(file)-1 DO BEGIN
             tmp = strsplit(file[j],path_sep(),/extract)
@@ -1184,7 +1191,7 @@ pro parsergui::savedrf, file, template=template, prefix=prefix, $
         ENDFOR
         PrintF, lun, '</DRF>'
         Free_Lun, lun
-        self->Log,'Saved  '+(*self.drf_summary).filename
+        self->Log,'Saved  '+(*self.drf_summary).filename+ " in "+chosenpath
         
         ;display last paramtab
                     indselected=self.nbmoduleSelec-1
@@ -1209,7 +1216,7 @@ pro parsergui::loaddrf, filename, storage, nodata=nodata, silent=silent
     debug=0
 
 
-    widget_control,self.drfbase,get_uvalue=storage  
+    widget_control,self.top_base,get_uvalue=storage  
 
     
     ; now parse the requested DRF.
@@ -1381,19 +1388,19 @@ function parsergui::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
     CASE !VERSION.OS_FAMILY OF  
         ; **NOTE** Mac OS X reports an OS family of 'unix' not 'MacOS'
        'unix': begin 
-        self.drfbase=widget_base(title='GPI Parser: Create a Set of Data Reduction Files', $
+        self.top_base=widget_base(title='GPI Parser: Create a Set of Data Reduction Files', $
         /BASE_ALIGN_LEFT,/column, MBAR=bar,/tlb_size_events, /tlb_kill_request_events, resource_name='GPI_DRP_Parser' )
         
          end
        'Windows'   :begin
-       self.drfbase=widget_base(title='GPI Parser: Create a Set of Data Reduction Files', $
+       self.top_base=widget_base(title='GPI Parser: Create a Set of Data Reduction Files', $
         /BASE_ALIGN_LEFT,/column, MBAR=bar,bitmap=self.dirpro+path_sep()+'gpi.bmp',/tlb_size_events, /tlb_kill_request_events)
        
          end
 
     ENDCASE
 
-    parserbase=self.drfbase
+    parserbase=self.top_base
     ;create Menu
     file_menu = WIDGET_BUTTON(bar, VALUE='File', /MENU) 
     file_bttn2=WIDGET_BUTTON(file_menu, VALUE='Quit Parser', UVALUE='QUIT')
@@ -1408,63 +1415,63 @@ function parsergui::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
     ;create file selector
     ;-----------------------------------------
     DEBUG_SHOWFRAMES=0
-    drfbasefilebutt=widget_base(parserbase,/BASE_ALIGN_LEFT,/row, frame=DEBUG_SHOWFRAMES, /base_align_center)
-    label = widget_label(drfbasefilebutt, value="Input FITS Files:")
-    button=widget_button(drfbasefilebutt,value="Add File(s)",uvalue="ADDFILE", $
+    top_basefilebutt=widget_base(parserbase,/BASE_ALIGN_LEFT,/row, frame=DEBUG_SHOWFRAMES, /base_align_center)
+    label = widget_label(top_basefilebutt, value="Input FITS Files:")
+    button=widget_button(top_basefilebutt,value="Add File(s)",uvalue="ADDFILE", $
         xsize=90,ysize=30, /tracking_events);,xoffset=10,yoffset=115)
-    button=widget_button(drfbasefilebutt,value="Wildcard",uvalue="WILDCARD", $
+    button=widget_button(top_basefilebutt,value="Wildcard",uvalue="WILDCARD", $
         xsize=90,ysize=30, /tracking_events);,xoffset=110,yoffset=115)
-    button=widget_button(drfbasefilebutt,value="Remove",uvalue="REMOVE", $
+    button=widget_button(top_basefilebutt,value="Remove",uvalue="REMOVE", $
         xsize=90,ysize=30, /tracking_events);,xoffset=210,yoffset=115)
-    button=widget_button(drfbasefilebutt,value="Remove All",uvalue="REMOVEALL", $
+    button=widget_button(top_basefilebutt,value="Remove All",uvalue="REMOVEALL", $
         xsize=90,ysize=30, /tracking_events);,xoffset=310,yoffset=115)
-    ;drfbasefilebutt2=widget_base(drfbasefilebutt,/BASE_ALIGN_LEFT,/row,frame=DEBUG_SHOWFRAMES)
-    drfbasefilebutt2=drfbasefilebutt
+    ;top_basefilebutt2=widget_base(top_basefilebutt,/BASE_ALIGN_LEFT,/row,frame=DEBUG_SHOWFRAMES)
+    top_basefilebutt2=top_basefilebutt
     self.sorttab=['obs. date/time','alphabetic filename','file creation date']
-    self.sortfileid = WIDGET_DROPLIST( drfbasefilebutt2, title='Sort data by:',  Value=self.sorttab,uvalue='sortmethod')
-    drfbrowse = widget_button(drfbasefilebutt2,  $
+    self.sortfileid = WIDGET_DROPLIST( top_basefilebutt2, title='Sort data by:',  Value=self.sorttab,uvalue='sortmethod')
+    drfbrowse = widget_button(top_basefilebutt2,  $
                             XOFFSET=174 ,SCR_XSIZE=80, ysize= 30 $; ,SCR_YSIZE=23  $
                             ,/ALIGN_CENTER ,VALUE='Sort data',uvalue='sortdata')                          
         
-    drfbaseident=widget_base(parserbase,/BASE_ALIGN_LEFT,/row, frame=DEBUG_SHOWFRAMES)
+    top_baseident=widget_base(parserbase,/BASE_ALIGN_LEFT,/row, frame=DEBUG_SHOWFRAMES)
     ; file name list widget
-    fname=widget_list(drfbaseident,xsize=106,scr_xsize=580, ysize=nlines_fname,$
+    fname=widget_list(top_baseident,xsize=106,scr_xsize=580, ysize=nlines_fname,$
             xoffset=10,yoffset=150,uvalue="FNAME", /TRACKING_EVENTS,resource_name='XmText')
 
     ; add 5 pixel space between the filename list and controls
-    drfbaseborder=widget_base(drfbaseident,xsize=5,units=0, frame=DEBUG_SHOWFRAMES)
+    top_baseborder=widget_base(top_baseident,xsize=5,units=0, frame=DEBUG_SHOWFRAMES)
 
     ; add the options controls
-    drfbaseidentseq=widget_base(drfbaseident,/BASE_ALIGN_LEFT,/column,  frame=DEBUG_SHOWFRAMES)
-    drfbaseborder=widget_base(drfbaseidentseq,ysize=1,units=0)          
-    drfbaseborder2=widget_base(drfbaseidentseq,/BASE_ALIGN_LEFT,/row)
-    drflabel=widget_label(drfbaseborder2,Value='Output Dir=         ')
-    self.outputdir_id = WIDGET_TEXT(drfbaseborder2, $
+    top_baseidentseq=widget_base(top_baseident,/BASE_ALIGN_LEFT,/column,  frame=DEBUG_SHOWFRAMES)
+    top_baseborder=widget_base(top_baseidentseq,ysize=1,units=0)          
+    top_baseborder2=widget_base(top_baseidentseq,/BASE_ALIGN_LEFT,/row)
+    drflabel=widget_label(top_baseborder2,Value='Output Dir=         ')
+    self.outputdir_id = WIDGET_TEXT(top_baseborder2, $
                 xsize=34,ysize=1,$
                 /editable,units=0,value=self.outputdir )    
 
-    drfbrowse = widget_button(drfbaseborder2,  $
+    drfbrowse = widget_button(top_baseborder2,  $
                         XOFFSET=174 ,SCR_XSIZE=75 ,SCR_YSIZE=23  $
                         ,/ALIGN_CENTER ,VALUE='Change...',uvalue='outputdir')
-    drfbaseborder3=widget_base(drfbaseidentseq,/BASE_ALIGN_LEFT,/row)
-    drflabel=widget_label(drfbaseborder3,Value='Log Path=           ')
-    self.logpath_id = WIDGET_TEXT(drfbaseborder3, $
+    top_baseborder3=widget_base(top_baseidentseq,/BASE_ALIGN_LEFT,/row)
+    drflabel=widget_label(top_baseborder3,Value='Log Path=           ')
+    self.logpath_id = WIDGET_TEXT(top_baseborder3, $
                 xsize=34,ysize=1,$
                 /editable,units=0 ,value=self.logpath)
-    drfbrowse = widget_button(drfbaseborder3,  $
+    drfbrowse = widget_button(top_baseborder3,  $
                         XOFFSET=174 ,SCR_XSIZE=75 ,SCR_YSIZE=23  $
                         ,/ALIGN_CENTER ,VALUE='Change...',uvalue='logpath') 
                         
     calibflattab=['Flat-field extraction','Flat-field & Wav. solution extraction']
     ;the following line commented as it will not be used (uncomment line in post_init if you absolutely want it)
-   ; self.calibflatid = WIDGET_DROPLIST( drfbaseidentseq, title='Reduction of flat-fields:  ', frame=0, Value=calibflattab, uvalue='flatreduction')
+   ; self.calibflatid = WIDGET_DROPLIST( top_baseidentseq, title='Reduction of flat-fields:  ', frame=0, Value=calibflattab, uvalue='flatreduction')
         ;one nice logo 
   button_image = READ_BMP(self.dirpro+path_sep()+'gpi.bmp', /RGB) 
   button_image = TRANSPOSE(button_image, [1,2,0]) 
-  button = WIDGET_BUTTON(drfbaseident, VALUE=button_image,  $
+  button = WIDGET_BUTTON(top_baseident, VALUE=button_image,  $
       SCR_XSIZE=100 ,SCR_YSIZE=95, sensitive=1 $
        ,uvalue='about')                  
-    ;drfbaseborderz=widget_base(drfbaseidentseq,/BASE_ALIGN_LEFT,/row)
+    ;top_baseborderz=widget_base(top_baseidentseq,/BASE_ALIGN_LEFT,/row)
     
 
         ; what colors to use for cell backgrounds? Alternate rows between
@@ -1487,22 +1494,21 @@ function parsergui::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
 
     ;;create execute and quit button
     ;-----------------------------------------
-    drfbaseexec=widget_base(parserbase,/BASE_ALIGN_LEFT,/row)
-    button2b=widget_button(drfbaseexec,value="Drop all DRFs in Queue",uvalue="DropAll", /tracking_events)
-    button2b=widget_button(drfbaseexec,value="Drop selected DRF only",uvalue="DropOne", /tracking_events)
-     directbase = Widget_Base(drfbaseexec, UNAME='directbase' ,COLUMN=1 ,/NONEXCLUSIVE, frame=0)
+    top_baseexec=widget_base(parserbase,/BASE_ALIGN_LEFT,/row)
+    button2b=widget_button(top_baseexec,value="Drop all DRFs in Queue",uvalue="DropAll", /tracking_events)
+    button2b=widget_button(top_baseexec,value="Drop selected DRF only",uvalue="DropOne", /tracking_events)
+     directbase = Widget_Base(top_baseexec, UNAME='directbase' ,COLUMN=1 ,/NONEXCLUSIVE, frame=0)
      self.direct_id =    Widget_Button(directbase, UNAME='direct'  $
       ,/ALIGN_LEFT ,VALUE='Drop all DRFs in Queue by default',uvalue='direct' )
-	; MDP comment out the following line, because we DON'T want all to be
-	; dropped by default. 
-    ;widget_control,self.direct_id, /set_button   
+	
+	if gpi_get_setting('parsergui_auto_drop',/bool) then widget_control,self.direct_id, /set_button   
 
-    space = widget_label(drfbaseexec,uvalue=" ",xsize=100,value='  ')
-    button2b=widget_button(drfbaseexec,value="View/Edit in DRFGUI",uvalue="DRFGUI", /tracking_events)
-    button2b=widget_button(drfbaseexec,value="Delete selected DRF",uvalue="Delete", /tracking_events)
+    space = widget_label(top_baseexec,uvalue=" ",xsize=100,value='  ')
+    button2b=widget_button(top_baseexec,value="View/Edit in DRFGUI",uvalue="DRFGUI", /tracking_events)
+    button2b=widget_button(top_baseexec,value="Delete selected DRF",uvalue="Delete", /tracking_events)
 
-    space = widget_label(drfbaseexec,uvalue=" ",xsize=200,value='  ')
-    button3=widget_button(drfbaseexec,value="Close Parser GUI",uvalue="QUIT", /tracking_events, resource_name='red_button')
+    space = widget_label(top_baseexec,uvalue=" ",xsize=200,value='  ')
+    button3=widget_button(top_baseexec,value="Close Parser GUI",uvalue="QUIT", /tracking_events, resource_name='red_button')
 
     self.textinfoid=widget_label(parserbase,uvalue="textinfo",xsize=900,value='  ')
     ;-----------------------------------------
@@ -1537,14 +1543,14 @@ function parsergui::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
         self:self}
     widget_control,parserbase,set_uvalue=storage,/no_copy
 ;if (not(xregistered('parsergui', /noshow))) then begin
-;    widget_control,drfbase,/realize
+;    widget_control,top_base,/realize
 ;
     self->log, "This GUI helps you to parse a set of data."
     self->log, "Add files to be processed and control created DRFs."
 ;  ;event loop
 ;  ;-----------------------------------------
 ;
-;  xmanager,'drfgui',drfbase,/no_block,group_leader=groupleader
+;  xmanager,'drfgui',top_base,/no_block,group_leader=groupleader
 ;    
 ;endif
     return, parserbase
