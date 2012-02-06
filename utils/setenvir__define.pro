@@ -33,7 +33,7 @@ case tag_names(ev, /structure_name) of
                   'GPLD':textinfo='Directory where the DRP will place reduction log file.'  
                   'GDTD':textinfo='Directory of templates reduction sequences.'
                   'GQD':textinfo='Directory of DRF queue. The DRP will scan this directory'
-                  'GCF' :textinfo='Config file of data reduction sequences (DRSConfig.xml).' 
+                  'GCF' :textinfo='Config file of data reduction sequences (gpi_pipeline_primitives.xml).' 
                   'GRDD' :textinfo='Directory of raw data'
                   'GDOD':textinfo='Directory of DRP processed output data.'
                   'Save envir. var.':textinfo='Save these environment variables to an IDL .sav file for future use.'
@@ -81,7 +81,7 @@ case tag_names(ev, /structure_name) of
                  setenv,'GPI_QUEUE_DIR='+dir
               end
             'changeGCF':begin
-                 dir = DIALOG_PICKFILE(PATH=getenv('GPI_CONFIG_FILE'), Title='Choose drsconfig.xml',/must_exist,FILTER = ['drsconfig.xml'] )
+                 dir = DIALOG_PICKFILE(PATH=getenv('GPI_CONFIG_FILE'), Title='Choose gpi_pipeline_primitives.xml',/must_exist,FILTER = ['gpi_pipeline_primitives.xml'] )
                  if dir ne '' then widget_control, self.GCF_id, set_value=dir
                  setenv,'GPI_CONFIG_FILE='+dir
               end
@@ -196,7 +196,7 @@ cd, current=cur_rep
               if getenv('GPI_PIPELINE_LOG_DIR') eq '' then setenv,'GPI_PIPELINE_LOG_DIR='+reppipeline+path_sep()+'log'+path_sep()
               if getenv('GPI_DRF_TEMPLATES_DIR') eq '' then  setenv,'GPI_DRF_TEMPLATES_DIR='+reppipeline+path_sep()+'drf_templates'+path_sep()
               if getenv('GPI_QUEUE_DIR') eq '' then setenv,'GPI_QUEUE_DIR='+reppipeline+path_sep()+'drf_queue'+path_sep()
-              if getenv('GPI_CONFIG_FILE') eq '' then setenv,'GPI_CONFIG_FILE='+reppipeline+path_sep()+'dpl_library'+path_sep()+'drsconfig.xml'
+              if getenv('GPI_CONFIG_FILE') eq '' then setenv,'GPI_CONFIG_FILE='+reppipeline+path_sep()+'config'+path_sep()+'gpi_pipeline_primitives.xml'
           endif
        endif
        
