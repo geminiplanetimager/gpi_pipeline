@@ -1,0 +1,8 @@
+# Very simple pipeline configuration file for GPI IFS data pipeline
+# This file format is just
+# SETTING_NAME<tab>SETTING_VALUE
+# settings are case insensitive
+# values are all returned as strings
+
+strict_validation	1
+raw_data_by_dates	1

@@ -3,12 +3,14 @@
 # HISTORY:
 #       2010-01-25  Created. M. Perrin
 #       2010-02-01  Added IDL_DIR, enclosing quotes - M. Perrin
+#       2012-02-02  Split out the data from the software
 
 
 
-#----- Most users will only need to change this next line -----
+#----- Most users will only need to change these next lines? -----
 
-setenv GPI_IFS_DIR "~/GPI"	# base dir for all code
+setenv GPI_IFS_DIR "~/GPI"		# base dir for all code
+setenv GPI_DATA_ROOT "~/GPI/data"	# base dir for all data
 
 
 
@@ -16,15 +18,15 @@ setenv GPI_IFS_DIR "~/GPI"	# base dir for all code
 
 # where is the software?
 setenv GPI_PIPELINE_DIR "$GPI_IFS_DIR/pipeline/"	# pipeline software
-setenv GPI_PIPELINE_LOG_DIR "$GPI_IFS_DIR/logs/"		# default log dir
 setenv GPI_DRF_TEMPLATES_DIR "$GPI_PIPELINE_DIR/drf_templates/"	# template Data Reduction Files
-setenv GPI_QUEUE_DIR "$GPI_PIPELINE_DIR/queue/"		# DRF Queue directory
 setenv GPI_CONFIG_FILE "$GPI_PIPELINE_DIR/dpl_library/drsConfig.xml"
 
 # where is the data?
-setenv GPI_RAW_DATA_DIR "$GPI_IFS_DIR/data/raw/"
-setenv GPI_DRP_OUTPUT_DIR "$GPI_IFS_DIR/data/reduced/"
+setenv GPI_RAW_DATA_DIR "$GPI_DATA_ROOT/raw/"
+setenv GPI_DRP_OUTPUT_DIR "$GPI_DATA_ROOT/reduced/"
+setenv GPI_QUEUE_DIR "$GPI_DATA_ROOT/queue/"		# DRF Queue directory
+setenv GPI_PIPELINE_LOG_DIR "$GPI_DATA_ROOT/logs/"	# default log dir
 
-# make sure the startup scripts are in your $PATH
+#---------- make sure the startup scripts are in your $PATH   -----
 setenv PATH "${PATH}:${GPI_PIPELINE_DIR}scripts"
 setenv IDL_PATH "${IDL_PATH}:+${GPI_IFS_DIR}"

@@ -133,7 +133,7 @@ hh=1. ;define sidelength (2hh+1 by 2hh+1 ) of box for centroid intensity detecti
 ;
 if (tag_exist( Modules[thisModuleIndex], "emissionlinesfile")) && file_test(gpi_expand_path(Modules[thisModuleIndex].emissionlinesfile),/read) then $
 emissionlinefile=  gpi_expand_path(Modules[thisModuleIndex].emissionlinesfile) else $
-emissionlinefile=  gpi_expand_path('$GPI_PIPELINE_DIR\dpl_library\lampemissionlines.txt')
+    emissionlinefile=  gpi_expand_path('$GPI_PIPELINE_DIR'+path_sep()+'config'+path_sep()+'lampemissionlines.txt')
 backbone->set_keyword, "HISTORY", "Lamp emission lines file used: "+emissionlinefile,ext_num=1
 
 ;res=read_ascii(emissionlinefile,data_start=2)
@@ -270,12 +270,39 @@ endcase
        
     endif
 
-;;localize first peak ;; these coordinates depend strongly on data!!
-;cenx=float(Modules[thisModuleIndex].centrXpos)
-;ceny=float(Modules[thisModuleIndex].centrYpos)
-;;take into account the rotation we made on image: note that axes have been switched with regard to old definition
-cenx=float(Modules[thisModuleIndex].centrYpos)
-ceny=float(szim[1])-1.-float(Modules[thisModuleIndex].centrXpos)
+	;;---- localize first peak ;; these coordinates depend strongly on data!!
+	; The user may specify the starting coordinates directly in the DRF, or else
+	; this code will look up a default starting position from the
+	; wavcal_start_positions file. 
+	;
+	; Also, the starting position can be automatically modified based on
+	; wavelength (but it seems more reliable to hard code these in a lookup
+	; table?)
+	;
+
+
+	if float(Modules[thisModuleIndex].centrYpos) eq 0 or Modules[thisModuleIndex].centrXpos eq 0 then begin
+		readcol, gpi_expand_path('$GPI_PIPELINE_DIR'+path_sep()+'config'+path_sep()+'wavcal_start_positions.txt'), $
+			def_pos_band, def_pos_x, def_pos_y, def_type, def_orient, format='A,F,F,A,A'
+		; are we looking at data from real IFS or DST here?
+		dstver = backbone->get_keyword('DST_VER',count=dstct)
+		if dstct eq 0 then data_type='REAL' else data_type = 'DST'
+
+		wm = where(def_pos_band eq bandeobs and strlowcase(def_type) eq strlowcase(data_type) and strlowcase(def_orient) eq strlowcase(backbone->get_keyword('DSORIENT')), mct)
+		if mct eq 0 then begin
+			message,/info, 'Could not find default settings for starting position! Results undefined.'
+		endif else begin
+			if cenx eq 0 then cenx = float(def_pos_x[wm])
+			if ceny eq 0 then ceny = float(def_pos_y[wm])
+		endelse
+		message,/info, 'Loaded default starting position(s) from config table: '+printcoo(cenx, ceny)
+	endif else begin
+		;;take into account the rotation we made on image: note that axes have been switched with regard to old definition
+		cenx=float(Modules[thisModuleIndex].centrYpos)
+		ceny=float(szim[1])-1.-float(Modules[thisModuleIndex].centrXpos)
+	endelse
+
+
 
 if fix(Modules[thisModuleIndex].wav_of_centrXYpos) eq 2. then begin
     ;;from cenx at 1.5microns, estimate x-location of first peak to detect

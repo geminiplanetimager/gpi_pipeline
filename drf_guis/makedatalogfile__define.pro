@@ -91,7 +91,7 @@ case tag_names(ev, /structure_name) of
                   endfor 
                 
                   
-                  keys = ['INSTRUME','OBJECT', 'DISPERSR', 'FILTER', 'LYOTMASK', 'APODIZ', 'EXPTIME', 'TIME-OBS', 'FILETYPE']
+                  keys = ['INSTRUME','OBJECT', 'DISPERSR', 'FILTER', 'LYOTMASK', 'APODIZ', 'ITIME', 'TIME-OBS', 'FILETYPE']
                   formats=['A-20', 'A-20',  'A-8',     'A-4',    'A-5',      'A-8',    'F-8.2',   'A-12'    , 'A-20']
                 
                   nk = n_elements(keys)
@@ -99,7 +99,7 @@ case tag_names(ev, /structure_name) of
                   formatstr=""
                   headerstr = string("FILENAME", format="(A-"+strc(maxlen+3)+")")
                   for i=0,nk-1 do begin
-                    vals[i] = ptr_new(sxpararr(hdrs, keys[i]) )
+                    vals[i] = ptr_new(sxpararr(hdrs, keys[i],/silent) )
                     ; The following complicated code takes the above format string,
                     ; reformats it to print an string (type A) output no matter what the
                     ; format code above is, with one character narrower width of actual text

@@ -1,8 +1,14 @@
 ;+
 ; NAME: gpi_simplify_keyword_value
+;
+;	Extract the middle substring of a keyword separated by underscores. 
+;
 ;		some keywords have large string value, e.g. "IFSFILT_K2_G1215"
 ; this routine returns value between _*_ ,e.g. "K2" in the precedent example
-;  this routine do not modify keyword value 
+; This routine does not modify the keyword value in the header
+;
+; important note: This doesn't actually implement any sort of translation table,
+; it just grabs the middle substring between two _s. 
 ;
 ; INPUTS:
 ; 	keyword value

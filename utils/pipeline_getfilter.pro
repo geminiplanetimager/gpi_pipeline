@@ -1,7 +1,7 @@
 ;+
-; NAME:  dst_applyfilter
+; NAME:  pipeline_getfilter
 ;
-; 	Apply a filter transmission profile to a datacube.
+; 	Return a filter transmission profile. 
 ;
 ; INPUTS: 	
 ; 	Files from the detector_data subdirectory with the transmission curves
@@ -9,7 +9,10 @@
 ; OUTPUTS:
 ;
 ; HISTORY:
-; 	Began 2009-04-01 17:09:30 by Marshall Perrin 
+; 	Began 2009-04-01 17:09:30 by Marshall Perrin (as dst_applyfilter)
+; 	sometime??  split off into pipeline_getfilter
+; 	2012-01-30: Updated file paths, updated docs. -MP
+;
 ;-
 
 function pipeline_getfilter,   lambda, filter=filtername
@@ -17,8 +20,9 @@ function pipeline_getfilter,   lambda, filter=filtername
 	;common DST_input
 	if ~(keyword_set(filtername)) then filtername="H"
 
-	filter_file = '.'+path_sep()+'pipeline'+path_sep()+"dpl_library"+path_sep()+'filters'+path_sep()+"GPI-filter-"+strc(filtername)+".fits"
+	;filter_file = '.'+path_sep()+'pipeline'+path_sep()+"dpl_library"+path_sep()+'filters'+path_sep()+"GPI-filter-"+strc(filtername)+".fits"
 
+	gpi_expand_path('$GPI_PIPELINE_DIR')+path_sep()+"config"+path_sep()+'filters'+path_sep()+"GPI-filter-"+strc(filtername)+".fits"
 
 	if ~file_test(filter_file) then message, "Could not find filter file! error:"+filter_file
 	filtstruct = mrdfits(filter_file,1)

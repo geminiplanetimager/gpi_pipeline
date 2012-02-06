@@ -7,20 +7,20 @@
 ;
 ;
 ; INPUTS: 
-; 	quad:	which quadrant to consider [1,2,3,4]
-; 	wcst: spectral spacing perpendicular to the dispersion axis at the detector in pixel
-; 	Pcst: Micro-pupil pattern
-; 	nlens:	side length of lenslets matrix
+; 	quad:		which quadrant to consider [1,2,3,4]
+; 	wcst: 		spectral spacing perpendicular to the dispersion axis at the detector in pixel
+; 	Pcst: 		Micro-pupil pattern
+; 	nlens:		side length of lenslets matrix
 ; 	idx:		Array [nlens,nlens] in size, giving positions in lenslet units
-; 			relative to the center lenslet. "X" coord  
+; 				relative to the center lenslet. "X" coord  
 ; 	idy:		Array [nlens,nlens] in size, giving positions in lenslet units
-; 			relative to the center lenslet. "Y" coord
-; 	cen1:	2-element array giving [x,y] coordinates of centermost spot peak
-; 	wx,wy:	define side box length (=2*wx+1) for (first) max detection 
-;	  hh: define side box length (=2*hh+1) for (second more accurate) centroid detection
-;	  szim: size of im
-;	  specpos:	3D array to store the detected spot positions in. 
-;	  im:		The 2D detector image
+; 				relative to the center lenslet. "Y" coord
+; 	cen1:		2-element array giving [x,y] coordinates of centermost spot peak
+; 	wx,wy:		define side box length (=2*wx+1) for (first) max detection 
+;	hh: 		define side box length (=2*hh+1) for (second more accurate) centroid detection
+;	szim: 		size of im
+;	specpos:	3D array to store the detected spot positions in. 
+;	im:			The 2D detector image
 ;   edge_x1,x2,y1,y2: locations that define area to consider over im
 ;   tight_pos: allowed position fluctuations for adjacent mlens
 ;
@@ -34,7 +34,10 @@
 ;    2010-08-15: JM added bad pixel map
 ;-
 
-pro find_spectra_positions_quadrant, quad,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,specpos,im,tight_pos, badpixmap=badpixmap
+pro find_spectra_positions_quadrant, quad,wcst,Pcst,idx,jdy,cen1,wx,wy,hh,szim,specpos,im,tight_pos, badpixmap=badpixmap
+
+ 	szim=size(im)
+	nlens = (size(specpos))[1]
 
 ; How large an edge region to ignore around the outside of the image?
 edge_x1=4.
@@ -48,8 +51,8 @@ edge_y2=4.
 ; jlim1, jlim2, jdir :		the range and direction over which j iterates
 ; i :						index in the ? direction
 ; ilim1, ilim2, idir :		the range and direction over which i iterates
-; w
-; p
+; w							Spectral spacing perpendicular to the dispersion axis at the detector in pixels
+; p							Micro-pupil pattern ??
 ; wtab
 ; ptab
 ;

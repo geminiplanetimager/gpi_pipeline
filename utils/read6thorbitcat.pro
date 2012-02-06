@@ -10,6 +10,7 @@
 ;
 ;
 ;   Written by Jerome Maire 2010-01
+;   2012-01-30 MP: Paths updated.
 
 function checkconv, str
 
@@ -19,7 +20,7 @@ return,strout
 end
 
 
-
+;-------------------
 
 
 function read6thorbitcat, name, dateobs, timeobs 
@@ -29,7 +30,7 @@ if ~(keyword_set(name)) then begin
  	return,{sep:!values.f_nan,PA:!values.f_nan} 
 endif
 
-binarystarsfile=  gpi_expand_path('$GPI_PIPELINE_DIR\dpl_library\orb6orbits.txt')
+binarystarsfile=  gpi_expand_path('$GPI_PIPELINE_DIR'+path_sep()+'config'+path_sep()+'orb6orbits.txt')
 
 
 if ~file_test(binarystarsfile) then begin 

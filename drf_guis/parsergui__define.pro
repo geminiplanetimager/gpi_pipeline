@@ -207,7 +207,8 @@ pro defaultpath_event,ev
             widget_control, self.defqueuepath_id, set_value=self.queuepath
        end
        'SAVE'  : begin
-                    OpenW, lun, self.dirpro+'configdrfgui', /Get_Lun
+					configdir = file_dirname(gpi_expand_path('$GPI_CONFIG_FILE'))
+                    OpenW, lun, configdir+path_sep()+'drfgui_config.txt', /Get_Lun
                     PrintF, lun, 'INPUTCAL: ', self.inputcaldir
                     PrintF, lun, 'OUTPUT: ', self.outputdir
                     PrintF, lun, 'TEMPDRF: ', self.tempdrfdir
@@ -249,35 +250,6 @@ pro parsergui::changetype, selectype, storage,notemplate=notemplate
           endif
   
 end
-
-;-----------------------------------
-; This function appears to be called nowhere. - MP 2011-07-25
-; function parsergui::getkeywords, filename
-;     ; get the necessary header keywords for automatically creating DRFs
-; 
-;     head=headfits( filenames[i])
-; 
-;     results = {ifshdr, $
-;             filter: sxpar(head, 'FILTER', count=ct_filter), $
-;             obstype: sxpar(head, 'OBSTYPE', count=ct_obstype), $
-;             disp: sxpar(head, 'disp', count=ct_disp), $
-;             occult: sxpar(head, 'occult', count=ct_occult), $
-;             itime: sxpar(head, 'itime', count=ct_itime), $
-;             exptime: sxpar(head, 'exptime', count=ct_itime), $
-;             object: sxpar(head, 'object', count=ct_object) }
-;     stop
-; 
-;     any_invalid = ct_filter eq 0 or ct_obstype eq 0 or ct_disp eq 0 or ct_occult eq 0 or ct_itime eq 0 or ct_object eq 0
-; 
-;     if any_invalid then message, /info, "Header for "+filename+" is missing required keywords."
-; 
-;     return, results
-; 
-; 
-; 
-; end
-; 
-
 
 
 ;-----------------------------------------
@@ -413,6 +385,8 @@ pro parsergui::addfile, filenames, mode=mode
         indnonvaliddatakeyw=where(finfo.valid eq 0, cinv)
         if cinv gt 0 then begin
             self->Log, "Missing keywords detected for "+strc(cinv)+" files. Creating DRF to fix them"
+			print, "*** debug why missing keywords here ***"
+			stop
             for i=0,cinv-1 do self->Log, "   file: "+file[indnonvaliddatakeyw[i]]
             nonvaliddata=file[indnonvaliddatakeyw]
             indvaliddata=intersect(indnonvaliddatakeyw,indgen(cindex),countvalid,/xor)
@@ -446,15 +420,18 @@ pro parsergui::addfile, filenames, mode=mode
         endif
 
 
+		; Mark filter as irrelevant for Dark exposures
+		wdark = where(strlowcase(finfo.obstype) eq 'dark', dct)
+		if dct gt 0 then finfo[wdark].filter='-'
+
+
         if (n_elements(file) gt 0) && (strlen(file[0]) gt 0) then begin
 
             ; save starting date and time for use in DRF filenames
-                caldat,systime(/julian),month,day,year, hour,minute,second
-                 caldat,systime(/julian),month,day,year, hour,minute,second
-              datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
-              hourstr = string(hour,minute,format='(i2.2,i2.2)')  
-              datetimestr=datestr+'-'+hourstr
-
+            caldat,systime(/julian),month,day,year, hour,minute,second
+            datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
+            hourstr = string(hour,minute,format='(i2.2,i2.2)')  
+            datetimestr=datestr+'-'+hourstr
           
             current = {gpi_obs}
 
@@ -1497,7 +1474,7 @@ function parsergui::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
 
         xsize=10
         self.tableSelected = WIDGET_TABLE(parserbase, $; VALUE=data, $ ;/COLUMN_MAJOR, $ 
-                COLUMN_LABELS=['DRF Name','Recipe','Type','band','OBSTYPE','PRISM','OCCULTER','OBSCLASS','EXPTIME','OBJECT'],/resizeable_columns, $
+                COLUMN_LABELS=['DRF Name','Recipe','Type','FILTER','OBSTYPE','DISPERSR','OCCULTER','OBSCLASS','ITIME','OBJECT'],/resizeable_columns, $
                 xsize=xsize,ysize=20,uvalue='tableselec',value=(*self.currDRFSelec), /TRACKING_EVENTS,$
                 /NO_ROW_HEADERS, /SCROLL,y_SCROLL_SIZE =nlines_modules,scr_xsize=1150, COLUMN_WIDTHS=[340,200,100,70,70,70,70,70,70,70],frame=1,/ALL_EVENTS,/CONTEXT_EVENTS, $
                     background_color=rebin(*self.table_BACKground_colors,3,2*10,/sample)    ) ;,/COLUMN_MAJOR                
@@ -1516,7 +1493,10 @@ function parsergui::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
      directbase = Widget_Base(drfbaseexec, UNAME='directbase' ,COLUMN=1 ,/NONEXCLUSIVE, frame=0)
      self.direct_id =    Widget_Button(directbase, UNAME='direct'  $
       ,/ALIGN_LEFT ,VALUE='Drop all DRFs in Queue by default',uvalue='direct' )
-     widget_control,self.direct_id, /set_button   
+	; MDP comment out the following line, because we DON'T want all to be
+	; dropped by default. 
+    ;widget_control,self.direct_id, /set_button   
+
     space = widget_label(drfbaseexec,uvalue=" ",xsize=100,value='  ')
     button2b=widget_button(drfbaseexec,value="View/Edit in DRFGUI",uvalue="DRFGUI", /tracking_events)
     button2b=widget_button(drfbaseexec,value="Delete selected DRF",uvalue="Delete", /tracking_events)

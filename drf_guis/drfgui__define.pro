@@ -153,18 +153,21 @@ function drfgui::validkeyword, file, cindex, keyw, requiredvalue,storage,needale
 	    catch, Error_status
 	    if strmatch(!ERROR_STATE.MSG, '*Unit: 101*'+file[i]) then wait,1
 
-	    fits_info, file[i], n_ext=next, /silent
-      	if next eq 0 then begin
-  			head=headfits( file[i]) ;will scan PHU
-  		  	value[i]=strcompress(sxpar( Head, keyw,  COUNT=cc),/rem)
-		endif else begin
-		    head=headfits( file[i], exten=0) ;First try PHU
-        	value[i]=strcompress(sxpar( Head, keyw,  COUNT=cc),/rem)
-        	if cc eq 0 then begin
-        		headext=headfits( file[i], exten=1) ;else try extension header
-	        	value[i]=strcompress(sxpar( Headext, keyw,  COUNT=cc),/rem)
-    	    endif  
-		endelse
+		file_data = gpi_load_and_preprocess_fits_file(file[i],/nodata)
+		value[i] = gpi_get_keyword(*file_data.pri_header, *file_data.ext_header, keyw,count=cc)
+
+;	    fits_info, file[i], n_ext=next, /silent
+;      	if next eq 0 then begin
+;  			head=headfits( file[i]) ;will scan PHU
+;  		  	value[i]=strcompress(sxpar( Head, keyw,  COUNT=cc),/rem)
+;		endif else begin
+;		    head=headfits( file[i], exten=0) ;First try PHU
+;        	value[i]=strcompress(sxpar( Head, keyw,  COUNT=cc),/rem)
+;        	if cc eq 0 then begin
+;        		headext=headfits( file[i], exten=1) ;else try extension header
+;	        	value[i]=strcompress(sxpar( Headext, keyw,  COUNT=cc),/rem)
+;    	    endif  
+;		endelse
 
 		if cc eq 0 then begin
 			self->log,'Absent '+keyw+' keyword for data: '+file(i)
@@ -195,10 +198,15 @@ function drfgui::get_obs_keywords, filename
 		self->Log, "ERROR can't find file: "+filename
 		return, -1
 	endif
-	fits_info, filename, n_ext = next, /silent
-	if next eq 0 then $	
-    head=headfits( filename) else $
-    head = [headfits( filename, exten=0), headfits( filename, exten=1)]
+
+
+	fits_data = gpi_load_and_preprocess_fits_file(filename,/nodata)
+
+
+	;fits_info, filename, n_ext = next, /silent
+	;if next eq 0 then $	
+    ;head=headfits( filename) else $
+    ;head = [headfits( filename, exten=0), headfits( filename, exten=1)]
 	; FIXME check for invalid or missing keywords here!
 ;	pr=sxpar(head, 'DISPERSR', count=ct4)
 ;	if ct4 eq 0 then begin
@@ -210,6 +218,13 @@ function drfgui::get_obs_keywords, filename
 	;itime=  float(sxpar(head, 'ITIME',    count=ct7)) ;/ 1e3 ; convert ms to seconds (dst data)
 	;if ct7 eq 0 then itime=  float(sxpar(head, 'TRUITIME',    count=ct7))  ; in seconds already (real data)
 	;if ct7 eq 0 then itime=  float(sxpar(head, 'ITIME0',    count=ct7)) / 1e6 ; convert microsec to seconds. (real data, requested itime)
+
+
+	head = *fits_data.pri_header
+	ext_head = *fits_data.ext_header
+	ptr_free, fits_data.pri_header, fits_data.ext_header
+
+	; FIXME modify to use gpi_get_keyword? 
 	obsstruct = {gpi_obs, $
 				ASTROMTC: strc(sxpar(head, 'ASTROMTC', count=ct0)), $
 				OBSCLASS: strc(sxpar(head, 'OBSCLASS', count=ct1)), $
@@ -219,21 +234,25 @@ function drfgui::get_obs_keywords, filename
 				prism:    strc(sxpar(head, 'DISPERSR', count=ct5)), $
 				OCCULTER: strc(sxpar(head, 'OCCULTER', count=ct6)), $
 				LYOT:     strc(sxpar(head, 'LYOTMASK',     count=ct7)), $
-				ITIME:    float(sxpar(head, 'ITIME',    count=ct8)), $
-				EXPTIME:    sxpar(head, 'ITIME0',    count=ct9), $
+				ITIME:    float(sxpar(ext_head, 'ITIME',    count=ct8)), $
+				EXPTIME:    sxpar(ext_head, 'EXPTIME',    count=ct9), $
 				OBJECT:   strc(sxpar(head, 'OBJECT',   count=ct10)), $
 				valid: 0}
 	vec=[ct0,ct1,ct2,ct3,ct4,ct5,ct6,ct7,ct8, ct9, ct10]
 	if total(vec) lt n_elements(vec) then begin
 		self.missingkeyw=1 
 		;give some info on missing keyw:
-		keytab=['ASTROMTC','OBSCLASS','OBSTYPE','OBSID', 'FILTER1','DISPERSR','OCCULTER','LYOTMASK','ITIME0', 'OBJECT']
+		keytab=['ASTROMTC','OBSCLASS','OBSTYPE','OBSID', 'FILTER1','DISPERSR','OCCULTER','LYOTMASK','ITIME', 'ITIME0', 'OBJECT']
 		indzero=where(vec eq 0, cc)
-		if cc gt 0 then self->Log, 'Missing keyword(s):'+keytab[indzero]
+		print, "Invalid/missing keywords for file "+filename
+		if cc gt 0 then self->Log, 'Missing keyword(s): '+strjoin(keytab[indzero]," ")
+
+		stop
 	endif else begin
 		self.missingkeyw=0 ; added by Marshall for cleanup & consistency
 		obsstruct.valid=1
 	endelse
+
 
 
 
@@ -250,7 +269,7 @@ function drfgui::get_obs_keywords, filename
 	endif
 	if strmatcH(obsstruct.occulter, '*open*',/fold_case) or strmatcH(obsstruct.occulter, '*none*',/fold_case) then begin
 		update=1
-		obsstruct.occulter ='blank'
+		obsstruct.occulter ='Blank'
 	endif
 	if update then message,/info, 'Updating parsed FITS keywords for '+filename+' to match standard form expected for parser (does not change actual FITS file)'
 
@@ -290,6 +309,7 @@ end
 ;------------------------------------------------
 pro drfgui::log, logtext
 	addmsg, self.widget_log, logtext
+	print, "DRFGUI: "+logtext
 
 end
 
