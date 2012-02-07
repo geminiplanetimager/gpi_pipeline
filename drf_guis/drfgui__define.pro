@@ -285,6 +285,7 @@ end
 
 ;--------------------------------------------------------------------------------
 pro drfgui::extractparam, modnum 
+	; oh my god this code is incomprehensible now.
 
     *self.indarg=where(   ((*self.ConfigDRS).argmodnum) eq ([(*self.indmodtot2avail)[(*self.curr_mod_indsort)[modnum]]]+1)[0], carg)
 end
@@ -308,7 +309,7 @@ function drfgui::get_input_dir
 		; data root by default
 		if not file_test(inputdir) then inputdir = gpi_expand_path('$GPI_RAW_DATA_DIR')
 
-		self->Log,"Looking for new data based on date in "+self.drfpath
+		self->Log,"Looking for new data based on date in "+inputdir
 
 	endif else begin
 		case getenv('GPI_RAW_DATA_DIR') of
@@ -317,7 +318,7 @@ function drfgui::get_input_dir
 		else: $
 				inputdir = getenv('GPI_RAW_DATA_DIR') ;gpirootdir(storage.group,storage.proj)+'/gpidata/raw'
 		endcase
-		self->Log,"Looking for new data in "+self.drfpath
+		self->Log,"Looking for new data in "+inputdir
 	endelse 
 
     return, inputdir
@@ -327,7 +328,7 @@ end
 ;------------------------------------------------
 pro drfgui::log, logtext
 	addmsg, self.widget_log, logtext
-	print, "DRFGUI: "+logtext
+	print, "LOG: "+logtext
 
 end
 

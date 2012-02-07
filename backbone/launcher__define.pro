@@ -137,7 +137,7 @@ PRO launcher::event, ev
 			self->launch, 'dst', session=43
 		endelse
 	end
-    'AutomaticProcGUI':self->launch, 'automaticproc2', session=44
+    'AutomaticProcGUI':self->launch, 'automaticproc3', session=44
     'makedatalogfile':self->launch, 'makedatalogfile', session=45
     'quit': begin
         conf = dialog_message("Are you sure you want to exit the GPI Data Reduction Pipeline?",/question,title="Confirm Close",/default_no,/center)
@@ -346,7 +346,8 @@ pro launcher::launch, objname, filename=filename, session=session, _extra=_extra
 	endif else begin
 		; need to create a new object
 
-		valid_cmds = ['gpitv', 'drfgui', 'parsergui', 'queueview', 'dst', 'automaticproc2','makedatalogfile']
+		valid_cmds = ['gpitv', 'drfgui', 'parsergui', 'queueview', 'dst', 'automaticproc3','makedatalogfile']
+		provide_launcher_handle = [0,0,0,0,0,1,0]
 
 		if total(strmatch(valid_cmds, objname,/fold_case)) eq 0 then begin
 			message,/info, 'Invalid command name: '+objname
@@ -354,6 +355,9 @@ pro launcher::launch, objname, filename=filename, session=session, _extra=_extra
 		
 			if keyword_set(filename) then self.sessions[session] = obj_new(objname, filename, session=session, _extra=_extra) $
 									 else self.sessions[session] = obj_new(objname, session=session, _extra=_extra)
+			; some objects may want a handle to this launcher object to launch
+			; other things
+			if provide_launcher_handle[(where(objname eq valid_cmds))[0]] then  self.sessions[session]->set_launcher_handle, self
 ;					if strmatch('gpipipelinebackbone', objname,/fold_case) eq 1 then begin
 ;					    (self.sessions[session])->Run, GETENV('GPI_QUEUE_DIR')
 ;					endif				 

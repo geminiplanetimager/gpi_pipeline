@@ -28,7 +28,7 @@ pro automaticproc2::config_dialog, _extra=_Extra
 	self.parsemode=2
 	self.continue_scanning=1
 
-	base = widget_base(title = 'Parameters for automatic processing',/column)
+	base = widget_base(title = 'Configure automatic processing',/column)
 
 	void= widget_label(base,Value='This program will watch a given directory for new GPI IFS')
 	void= widget_label(base,Value='data files, and will automatically create DRFs to reduce them.') 
@@ -51,11 +51,11 @@ pro automaticproc2::config_dialog, _extra=_Extra
 		  ,/ALIGN_LEFT ,VALUE='Flush filenames when new filetype',uvalue='new' )
 	self.parseall_id =    Widget_Button(parsebase, UNAME='keep'  $
 		  ,/ALIGN_LEFT ,VALUE='Keep all files',uvalue='keep' ) 
-		   case self.parsemode of
+	case self.parsemode of
 			1:  widget_control, self.parseone_id, /set_button 
 			2:  widget_control, self.parsenew_id, /set_button  
 			3:  widget_control, self.parseall_id, /set_button  
-		   endcase              
+	endcase              
 
 	button3=widget_button(base,value="Start",uvalue="Start")
 	button3=widget_button(base,value="Cancel",uvalue="Cancel")
@@ -83,25 +83,24 @@ PRO AUTOMATICPROC2::config_dialog_event, event
    ; XMANAGER is set: 
    widget_control,event.id,get_uvalue=uval
    
-    if uval eq 'changedir' then begin
+   if uval eq 'changedir' then begin
 		dir = DIALOG_PICKFILE(PATH=self.dirinit, Title='Choose directory to scan...',/must_exist , /directory)
 		if dir ne '' then widget_control, self.scandir_id, set_value=dir
 		if dir ne '' then self.dirinit=dir
-    endif
+   endif
    
    if uval eq 'Start' then begin
 		self.continue_scanning  =1
-        self.alwaysexecute=widget_info(self.alwaysexecute_id,/button_set)
-          if widget_info(self.parseone_id,/button_set) then self.parsemode=1
-          if widget_info(self.parsenew_id,/button_set) then self.parsemode=2
-          if widget_info(self.parseall_id,/button_set) then self.parsemode=3
-          widget_control,event.top,/destroy
+		self.alwaysexecute=widget_info(self.alwaysexecute_id,/button_set)
+		if widget_info(self.parseone_id,/button_set) then self.parsemode=1
+		if widget_info(self.parsenew_id,/button_set) then self.parsemode=2
+		if widget_info(self.parseall_id,/button_set) then self.parsemode=3
+		widget_control,event.top,/destroy
    endif
 
 	if uval eq 'Cancel' then begin
 		self.continue_scanning  =0
 		widget_control,event.top,/destroy
-
 	endif
 	
 ;    if uval eq 'Quit'    then begin
@@ -118,94 +117,81 @@ END
 ;================================================================================
 ; Following this we have the code for the actual automatic handler
 
-pro automaticproc2::run
-	dir=self.dirinit
-	folder=dir
-    filetypes = '*.{fts,fits}'
-    string3 = folder + path_sep() + filetypes
-	oldlistfile =FILE_SEARCH(string3,/FOLD_CASE)
 
-	dateold=dblarr(n_elements(oldlistfile))
-	for j=0L,long(n_elements(oldlistfile)-1) do begin
-		Result = FILE_INFO(oldlistfile[j] )
+
+function automaticproc2::refresh_file_list, count=count, _extra=_extra
+	; Do the initial check of the files that are already in that directory. 
+	;
+	; Determine the files that are there already
+	; Display the list sorted by file access time
+	;
+	; KEYWORDS:
+	;    count	returns the # of files found
+
+    filetypes = '*.{fts,fits}'
+    searchpattern = self.dirinit + path_sep() + filetypes
+	current_files =FILE_SEARCH(searchpattern,/FOLD_CASE, count=count)
+	dateold=dblarr(n_elements(current_files))
+	for j=0L,long(n_elements(current_files)-1) do begin
+		Result = FILE_INFO(current_files[j] )
 		dateold[j]=Result.ctime
 	endfor
-	list3=oldlistfile[REVERSE(sort(dateold))]
+	list3=current_files[REVERSE(sort(dateold))]
 	widget_control, self.listfile_id, SET_VALUE= list3[0:(n_elements(list3)-1)<(self.maxnewfile-1)] ;display the list
 
 
-	while self.continue_scanning eq 1 do begin
-		chang=''
-		folder=dir
-		filetypes = '*.{fts,fits}'
-		string3 = folder + path_sep() + filetypes
-		fitsfileslist =FILE_SEARCH(string3,/FOLD_CASE)
-		widget_control,self.information_id,set_value='Scanning...'
-		datefile=dblarr(n_elements(fitsfileslist))
-		for j=0L,long(n_elements(datefile)-1) do begin
-			Result = FILE_INFO(fitsfileslist[j] )
-			datefile[j]=Result.ctime
-		endfor
-		list2=fitsfileslist[REVERSE(sort(datefile))]
-		
-		
-		;;compare old and new file list
-		if (max(datefile) gt max(dateold)) || (n_elements(datefile) gt n_elements(dateold)) then begin
-		  ;chang=1
-		  ;oldlistfile=list2
-		  lastdate= max(datefile,maxind)
-		  chang=fitsfileslist[maxind]
-		  dateold=datefile
-		endif
-		widget_control,self.information_id,set_value='IDLE'
-		if chang ne '' then begin
-			  widget_control, self.listfile_id, SET_VALUE= list2[0:(n_elements(list2)-1)<(self.maxnewfile-1)] ;display the list
-			  ;check if the file has been totally copied
-			  self.parserobj=gpiparsergui( chang,  mode=self.parsemode)
-		endif
-		;print, chang
-		for i=0,9 do begin
-			wait,0.1
-			self->checkEvents
-			if ~(self->checkQuit()) then begin
-				message,/info, "User pressed QUIT on the progress bar!"
-				break
-			endif
-		endfor    
-	endwhile
+	return, current_files
+
 end
 
-;;-------------------------------------------------
-;PRO automaticproc2::checkevents
-; this routine is used to MANUALLY process events
-; to avoid having to use the whole XMANAGER etc code,
-; that doesn't play well with a main() loop in the backbone code 
-; that runs forever 
+;--------------------------------------------------------------------------------
 
-; MP: this seems like a bad idea. Better to restructure the main() loop in the
-; backbone to also be an XMANAGER event loop perhaps, with a callback once per
-; second or something like that?  FIXME
 
-;if (xregistered ('automaticproc2')) then res = widget_event(self.top_base,/nowait)
-;if xregistered ('drfgui')   then res = widget_event((self.parserobj).drfbase,/nowait, bad_id=badid)
 
-;end
+pro automaticproc2::run
+	; This is what runs every 1 second to check the contents of that directory
 
-;;-------------------------------------------------
-function automaticproc2::checkquit
-; Check whether this routine should keep running or should quit now
-; RETURNS:
-; 	1 to continue running, 
-; 	0 to quit?
+
+	if ~ptr_valid( self.previous_file_list) then begin
+		self.previous_file_list = ptr_new(self->refresh_file_list(count=count) )
+		message,/info, 'Found '+strc(count) +" files on startup of automatic processing. Skipping those..."
+		return
+	endif
+
+	current_list = self->refresh_file_list()
+	
+
+	new_files = cmset_op( current_list, 'AND' ,/NOT2, *self.previous_file_list, count=count)
+
+	if count eq 0 then return  ; no new files found
+
+	message,/info, 'Found '+strc(count)+" new files to process!"
+	print, new_files
+
+
+	*self.previous_file_list = current_list ; update list for next invocation
 ;
-  return, self.continue_scanning
+;
+;
+;	;;compare old and new file list
+;	if (max(datefile) gt max(dateold)) || (n_elements(datefile) gt n_elements(dateold)) then begin
+;	  ;chang=1
+;	  ;oldlistfile=list2
+;	  lastdate= max(datefile,maxind)
+;	  chang=fitsfileslist[maxind]
+;	  dateold=datefile
+;	endif
+;	widget_control,self.information_id,set_value='IDLE'
+;	if chang ne '' then begin
+;		  widget_control, self.listfile_id, SET_VALUE= list2[0:(n_elements(list2)-1)<(self.maxnewfile-1)] ;display the list
+;		  ;check if the file has been totally copied
+;		  self.parserobj=gpiparsergui( chang,  mode=self.parsemode)
+;	endif
 end
-
-
 
 ;-------------------------------------------------------------------
 PRO automaticproc2_event, ev
-; simple wrapper to call object routine
+	; simple wrapper to call object routine
     widget_control,ev.top,get_uvalue=storage
    
     if size(storage,/tname) eq 'STRUCT' then storage.self->event, ev else storage->event, ev
@@ -213,7 +199,7 @@ end
 
 ;-------------------------------------------------------------------
 pro automaticproc2::event, ev
-; Event handler for automatic parser GUI
+	; Event handler for automatic parser GUI
 
 
 	widget_control,ev.id,get_uvalue=uval
@@ -269,13 +255,13 @@ pro automaticproc2::event, ev
 			  label0='Cancel',label1='Close', title='Confirm close') then begin
 					  self.continue_scanning=0
 					  ;wait, 1.5
-					  ;obj_destroy, self
+					  obj_destroy, self
 			endif           
 		endif
 	end 
 
 	'WIDGET_LIST':begin
-      if uval eq 'listdir' then begin
+      	if uval eq 'listdir' then begin
 			 ;remove double-clicked directory in list of directories checked
 			if  ev.clicks eq 2 then begin
 			  select=widget_INFO(self.listdir_id,/LIST_SELECT)
@@ -286,15 +272,22 @@ pro automaticproc2::event, ev
 		
 		endif
 		if uval eq 'newlist' then begin
-            if event.clicks eq 2 then begin
-              ind=widget_INFO(self.listfile_id,/LIST_SELECT)
+            if ev.clicks eq 2 then begin
+              	ind=widget_INFO(self.listfile_id,/LIST_SELECT)
             
-              print, self.newlist(ind)
-              CALL_PROCEDURE, self.commande,self.newlist(ind),mode=self.parsemode
+			  	if self.newlist[ind] ne '' then begin
+              		print, self.newlist[ind]
+	              	CALL_PROCEDURE, self.commande,self.newlist(ind),mode=self.parsemode
+				endif
             endif
 		endif
 	end
-  
+  	'WIDGET_KILL_REQUEST': begin ; kill request
+		if dialog_message('Are you sure you want to close AutoReducer?', title="Confirm close", dialog_parent=ev.top, /question) eq 'Yes' then $
+			obj_destroy, self
+		return
+	end
+	
     else:   
 endcase
 end
@@ -331,7 +324,7 @@ function automaticproc2::init_widgets, _extra=_Extra, session=session
 				   /tlb_size_events)
 
 
-	void = WIDGET_LABEL(self.top_base,Value='Scanned directory: '+self.dirinit, /align_left)
+	void = WIDGET_LABEL(self.top_base,Value='Directory being watched: '+self.dirinit, /align_left)
 	if self.alwaysexecute then void = WIDGET_LABEL(self.top_base,Value='Parser mode: Parse every new fits file.' , /align_left) else $
 	void = WIDGET_LABEL(self.top_base,Value='Parser mode: Do not parse new fits file.' , /align_left)
 	case self.parsemode of 
@@ -393,16 +386,12 @@ function automaticproc2::init, groupleader, _extra=_extra
 		XMANAGER, 'automaticproc2', fitsbase, /NO_BLOCK
 	endif
 
+	message,/info,'Starting watching directory '+self.dirinit
+	widget_control, self.top_base, timer=1  ; Start off the timer events for updating at 1 Hz
+	
 	RETURN, 1;filename
 
 END
-
-;---------------------------------------------------------------------
-pro queueview::post_init, _extra=_extra
-
-	widget_control, self.top_base, timer=1  ; Start off the timer events for updating at 1 Hz
-	
-end
 
 
 ;-----------------------
@@ -431,9 +420,9 @@ stateF={  automaticproc2, $
     listcontent:STRARR(10),$  ;list of directories chosen for fits detection
     maxnewfile:0L,$
     newlist:STRARR(300),$ ;list of new files (Pan RightDown)
-  ;  kill:0,$ ;flag to stop bridge detec loop when quitting with search 'on'
     isnewdirroot:0,$ ;flag for  root dir
-    button_id:0L,$
+    button_id:0L,$ 
+	previous_file_list: ptr_new(), $ ; List of files that have previously been encountered
     INHERITS parsergui} ;wid for detect-new-files button
 
 end

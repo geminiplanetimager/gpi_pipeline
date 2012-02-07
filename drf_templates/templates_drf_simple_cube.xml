@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- simplest possible DRF, just makes a simple data cube w/ no calibrations -->
+<DRF LogPath="$(GPI_PIPELINE_LOG_DIR)" ReductionType="ASTR - SPEC" name="Very Simple Datacube Extraction">
+<dataset InputDir="$(GPI_RAW_DATA_DIR)" Name="" OutputDir="$(GPI_DRP_OUTPUT_DIR)">
+   <fits FileName="" />
+</dataset>
+<module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
+<module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="0" suffix="-darksub" gpitv="0" />
+<module name="Assemble Spectral Datacube" Save="0" />
+<module name="Interpolate Wavelength Axis" Save="1" gpitv="32" suffix="-spdc" />
+</DRF>
