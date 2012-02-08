@@ -57,6 +57,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 @__start_primitive
 
    im=*(dataset.currframe[0])
+
    ;;'Image rotated to match old DST convention of horizontal dispersion!' 
    ;; final wavelength solution at the end of this routine is derotated to match vertical dispersion
    im=rotate(im,1)
@@ -298,8 +299,8 @@ endcase
 		message,/info, 'Loaded default starting position(s) from config table: '+printcoo(cenx, ceny)
 	endif else begin
 		;;take into account the rotation we made on image: note that axes have been switched with regard to old definition
-		cenx=float(Modules[thisModuleIndex].centrYpos)
-		ceny=float(szim[1])-1.-float(Modules[thisModuleIndex].centrXpos)
+		cenx=float(szim[1])-1.-float(Modules[thisModuleIndex].centrYpos)
+		ceny=float(Modules[thisModuleIndex].centrXpos)
 	endelse
 
 
@@ -318,7 +319,7 @@ while (~finite(cen1[0])) || (~finite(cen1[1])) || $
 		(cen1[1] lt 0) || (cen1[1] gt (size(im))[1])  do begin
 	wx+=1 & wy+=1
 	cen1=localizepeak( im, cenx, ceny,wx,wy,hh)
-	print, 'peak detected at pos:',cen1[1], float(szim[1])-1.-cen1[0]
+	print, 'peak detected at pos:', cen1[1],float(szim[1])-1.-cen1[0]
 endwhile
 specpos[nlens/2,nlens/2,0:1]=cen1
 
@@ -455,6 +456,9 @@ for qq=0,(size(specpos))[3]-1 do specpos[*,*,qq]=rotate(specpos[*,*,qq],3)
 specpos[*,*,0]=float(szim[1])-1.-specpos[*,*,0]
 
 *(dataset.currframe[0])=specpos
+
+;derotate image
+im=rotate(im,3)
 ;*(dataset.headers[numfile])=h
 ;if numext eq 0 then *(dataset.headers)[numfile]=h else *(dataset.headersPHU)[numfile]=h
 

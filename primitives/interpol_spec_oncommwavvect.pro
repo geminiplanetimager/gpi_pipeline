@@ -44,6 +44,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
             ;error handle if extractcube not used before
             if ((size(cubef3D))[0] ne 3) || (strlen(filter) eq 0)  then $
             return, error('FAILURE ('+functionName+'): Datacube or filter not defined. Use extractcube module before.')        
+
         cwv=get_cwv(filter)
         CommonWavVect=cwv.CommonWavVect
         lambda=cwv.lambda
@@ -59,7 +60,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         xmaxi=(change_wavcal_lambdaref( wavcal, lambdamax))[*,*,0]
         ;length of spectrum in pix
         ;sdpx=ceil(xmaxi[nlens/2,nlens/2])-xmini[nlens/2,nlens/2]+1
-        sdpx=max(ceil(-xmaxi+xmini))+1 ;JM change 2009/08 sdpx is bigger when spec are far from center
+        sdpx=max(ceil(abs(-xmaxi+xmini)))+1 ;JM change 2009/08 sdpx is bigger when spec are far from center
 
 
 ;; Now we must interpolate the extracted cube onto a regular wavelength grid
