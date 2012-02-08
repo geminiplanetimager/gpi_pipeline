@@ -131,8 +131,13 @@ end
 
 pro automaticproc3::reduce_one, filenames
 	; Reduce one single file at a time
+
+	if widget_info(self.b_spectral_id,/button_set) then templatename='templates_drf_simple_cube.xml'
+	if widget_info(self.b_undispersed_id,/button_set) then templatename='templates_drf_simple_undispersed.xml'
+	if widget_info(self.b_polarization_id,/button_set) then templatename='templates_drf_simple_polarization.xml'
+
 	
-	templatename=gpi_expand_path('$GPI_DRF_TEMPLATES_DIR')+path_sep()+'templates_drf_simple_cube.xml'
+	templatename=gpi_expand_path('$GPI_DRF_TEMPLATES_DIR')+path_sep()+templatename
 
 	drf = obj_new('DRF', templatename, parent=self)
 	drf->set_datafiles, filenames
@@ -176,9 +181,8 @@ pro automaticproc3::event, ev
                   'changedir':textinfo='Click to select a different directory to watch for new files.'
 				  'one': textinfo='Each new file will be reduced on its own right away.'
 				  'keep': textinfo='All new files will be reduced in a batch whenever you command.'
-                  'listdir':textinfo='Double-click on a repertory to remove it from the list.'  
                   'search':textinfo='Start the looping search of new FITS placed in the right-top panel directories. Restart the detection for changing search parameters.'
-                  'filelist':textinfo='List of detected most-recent Fits files in the repertories. '
+                  'filelist':textinfo='List of most recent detected FITS files in the watched directory. '
 				  'view_in_gpitv': textinfo='Automatically display new files in GPITV.'
                   'one':textinfo='Parse and process new file in a one-by-one mode.'
                   'new':textinfo='Change parser queue to process when new type detected.'
@@ -353,6 +357,20 @@ function automaticproc3::init, groupleader, _extra=_extra
 	        ,/ALIGN_LEFT ,VALUE='Run full parser',/tracking_events, sensitive=0)
 	widget_control, self.b_simple_id, /set_button 
 
+	base_dir = widget_base(self.top_base, /row)
+	void = WIDGET_LABEL(base_dir,Value='Assume disperser is:')
+	parsebase = Widget_Base(base_dir, UNAME='dispbase' ,ROW=1 ,/EXCLUSIVE, frame=0)
+	self.b_spectral_id =    Widget_Button(parsebase, UNAME='Spectral'  $
+	        ,/ALIGN_LEFT ,VALUE='Spectral',/tracking_events)
+	self.b_undispersed_id =    Widget_Button(parsebase, UNAME='Undispersed'  $
+	        ,/ALIGN_LEFT ,VALUE='Undispersed',/tracking_events, sensitive=1)
+	self.b_polarization_id =    Widget_Button(parsebase, UNAME='Polarization'  $
+	        ,/ALIGN_LEFT ,VALUE='Polarization',/tracking_events, sensitive=1)
+	
+	widget_control, self.b_undispersed_id, /set_button 
+
+
+
 	gpitvbase = Widget_Base(self.top_base, UNAME='alwaysexebase' ,COLUMN=1 ,/NONEXCLUSIVE, frame=0)
 	self.view_in_gpitv_id =    Widget_Button(gpitvbase, UNAME='view_in_gpitv'  $
 		  ,/ALIGN_LEFT ,VALUE='View new files in GPITV' )
@@ -416,6 +434,9 @@ stateF={  automaticproc3, $
     parseall_id :0L,$
 	b_simple_id :0L,$
 	b_full_id :0L,$
+	b_spectral_id :0L,$
+	b_undispersed_id :0L,$
+	b_polarization_id :0L,$
 	watchdir_id: 0L, $   ; widget ID for directory label display
 	start_id: 0L, $		; widget ID for start parsing button
 	view_in_gpitv_id: 0L, $

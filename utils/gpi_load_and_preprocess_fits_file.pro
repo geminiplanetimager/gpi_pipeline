@@ -38,7 +38,7 @@ end
 FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodata, silent=silent
 
 	if ~(keyword_set(orient)) then orient='vertical' ; desired spectral orientation is vertical
-	desired_orient=orient
+	desired_orient='vertical'
 
 	; This loads the files into the local variables:
 	;	currframe
@@ -335,18 +335,18 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 
 
     ;---- Rotate the image, if necessary -------
-    ;!!!!TEMPORARY will need modifs: use it for real ifs data, not DST!!!
-    instrum=SXPAR( pri_header, 'INSTRUME',count=c1)
-	; FIXME remove vertical transpose mode here
-	if ((~strmatch(instrum,'*DST*') && (  sxpar( pri_header, 'DRPVER' ) eq '' ))  $
-	  OR (strlowcase(sxpar( pri_header, 'DSORIENT')) eq 'vertical' and desired_orient eq 'horizontal')) $
-  	  and ~(keyword_set(NODATA)) then begin
-		if ~(keyword_set(silent)) then message,/info, "Image detected as IFS raw file, assumed vertical spectrum orientation. Must be reoriented to horizontal spectrum direction."
-        currframe=rotate(transpose(currframe),2)
-		fxaddpar, pri_header,  'HISTORY', 'Raw image rotated by 90 degrees'
-		fxaddpar, pri_header,  'DSORIENT', 'horizontal', 'Spectral dispersion is horizontal'
-    	if ~(keyword_set(silent)) then message,/info, 'Image rotated to match old DST convention of horizontal dispersion!'
-    endif
+	; Algorithm commented out by Marshall: *never* rotate real data now.
+	
+    ;instrum=SXPAR( pri_header, 'INSTRUME',count=c1)
+	;if ((~strmatch(instrum,'*DST*') && (   eq '' ))  $
+	;  OR (strlowcase(sxpar( pri_header, 'DSORIENT')) eq 'vertical' and desired_orient eq 'horizontal')) $
+  	;  and ~(keyword_set(NODATA)) then begin
+	;	if ~(keyword_set(silent)) then message,/info, "Image detected as IFS raw file, assumed vertical spectrum orientation. Must be reoriented to horizontal spectrum direction."
+    ;    currframe=rotate(transpose(currframe),2)
+	;	fxaddpar, pri_header,  'HISTORY', 'Raw image rotated by 90 degrees'
+	;	fxaddpar, pri_header,  'DSORIENT', 'horizontal', 'Spectral dispersion is horizontal'
+    ;	if ~(keyword_set(silent)) then message,/info, 'Image rotated to match old DST convention of horizontal dispersion!'
+    ;endif
 
 
 	if keyword_set(nodata) then return, { pri_header: ptr_new(pri_header), ext_header: ptr_new(ext_header)} else $

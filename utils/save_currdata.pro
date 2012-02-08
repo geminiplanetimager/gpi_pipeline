@@ -56,7 +56,15 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	
 	s_OutputDir = gpi_expand_path(s_OutputDir) ; expand environment variables and ~s
 	; test output dir
-	if ~file_test(s_OutputDir,/directory, /write) then return, error("FAILURE: Directory "+s_OutputDir+" does not exist or is not writeable.",/alert)
+	if ~file_test(s_OutputDir,/directory, /write) then begin
+		if gpi_get_setting('organize_reduced_data_by_dates') then begin
+			; check that at least the parent dir exists
+			if ~file_test(file_dirname(s_OutputDir),/directory, /write) then return, error("FAILURE: Directory "+s_OutputDir+" does not exist or is not writeable.",/alert) $
+			else file_mkdir, s_OutputDir
+		endif else begin
+			return, error("FAILURE: Directory "+s_OutputDir+" does not exist or is not writeable.",/alert)
+		endelse
+	endif
 
 	; If an extra path separator is present at the end, drop it:
 	slash=strpos(filnm,path_sep(),/reverse_search)

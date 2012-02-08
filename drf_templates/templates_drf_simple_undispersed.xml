@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- simplest possible DRF, just makes a simple data cube w/ no calibrations for Undispersed mode -->
+<DRF LogPath="$(GPI_PIPELINE_LOG_DIR)" ReductionType="ASTR - SPEC" name="Very Simple Datacube Extraction">
+<dataset InputDir="$(GPI_RAW_DATA_DIR)" Name="" OutputDir="$(GPI_DRP_OUTPUT_DIR)">
+   <fits FileName="" />
+</dataset>
+<module name="Assemble Undispersed Image" xshift='-2.363' yshift='-2.6134' Save="1" suffix='-extu' gpitv='5' />
+</DRF>
