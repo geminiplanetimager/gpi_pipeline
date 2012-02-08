@@ -79,7 +79,7 @@ xminifind=where(finite(xmini))
 ;what is the pixel corresponding to lambda_max?
 xmaxi=(change_wavcal_lambdaref( wavcal, lambdamax))[*,*,0]
 ;length of spectrum in pix
-sdpx=max(ceil(xmaxi-xmini))+2
+sdpx=max(ceil(abs(xmaxi-xmini)))+2
 ;print, 'spdx=',sdpx
 ; after the above, sdpx gives the length of the spectra in pixels.
 
