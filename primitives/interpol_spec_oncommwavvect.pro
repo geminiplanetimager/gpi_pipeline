@@ -30,44 +30,36 @@
 ;   2009-06-20 JM: adapted to wavcal
 ;   2009-09-17 JM: added DRF parameters
 ;   2010-03-15 JM: added error handling
+;   2012-02-09 DS: offloaded sdpx calculation
 ;- 
 
 function Interpol_Spec_OnCommWavVect, DataSet, Modules, Backbone
-primitive_version= '$Id$' ; get version from subversion to store in header history
-@__start_primitive
+  primitive_version= '$Id$' ; get version from subversion to store in header history
+  @__start_primitive
 
-   ;get the datacube from the dataset.currframe
-   cubef3D=*(dataset.currframe[0])
+  ;;get the datacube from the dataset.currframe
+  cubef3D=*(dataset.currframe[0])
         
-        ;get the common wavelength vector
-         filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
-            ;error handle if extractcube not used before
-            if ((size(cubef3D))[0] ne 3) || (strlen(filter) eq 0)  then $
-            return, error('FAILURE ('+functionName+'): Datacube or filter not defined. Use extractcube module before.')        
+  ;;get the common wavelength vector
+  filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
+  ;;error handle if extractcube not used before
+  if ((size(cubef3D))[0] ne 3) || (strlen(filter) eq 0)  then $
+     return, error('FAILURE ('+functionName+'): Datacube or filter not defined. Use extractcube module before.')        
+  
+  nlens=(size(wavcal))[1]
 
-        cwv=get_cwv(filter)
-        CommonWavVect=cwv.CommonWavVect
-        lambda=cwv.lambda
-        lambdamin=CommonWavVect[0]
-        lambdamax=CommonWavVect[1]
-        nlens=(size(wavcal))[1]
+  ;;get length of spectrum
+  sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect)
+  if (sdpx < 0) then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
 
-        ;what is the pixel corresponding to lambda_min?
-        xmini=(change_wavcal_lambdaref( wavcal, lambdamin))[*,*,0]
-        xminifind=where(finite(xmini))
-        xmini[xminifind]=ceil(xmini[xminifind])
-        ;what is the pixel corresponding to lambda_max?
-        xmaxi=(change_wavcal_lambdaref( wavcal, lambdamax))[*,*,0]
-        ;length of spectrum in pix
-        ;sdpx=ceil(xmaxi[nlens/2,nlens/2])-xmini[nlens/2,nlens/2]+1
-        sdpx=max(ceil(abs(-xmaxi+xmini)))+1 ;JM change 2009/08 sdpx is bigger when spec are far from center
+  cwv=get_cwv(filter)
+  lambda=cwv.lambda
 
-
-;; Now we must interpolate the extracted cube onto a regular wavelength grid
-;; common to all lenslets.
-Result=dblarr(nlens,nlens,CommonWavVect[2])+!VALUES.F_NAN
-for xsi=0,nlens-1 do begin
-  for ysi=0,nlens-1 do begin
+  ;; Now we must interpolate the extracted cube onto a regular wavelength grid
+  ;; common to all lenslets.
+  Result=dblarr(nlens,nlens,CommonWavVect[2])+!VALUES.F_NAN
+  for xsi=0,nlens-1 do begin
+     for ysi=0,nlens-1 do begin
 	;pixint=UNIQ(floor(zemdispX(xsi,ysi,*))) ; uniq X pixel values for this lenslet
 	;while (n_elements(pixint) lt sdpx) do pixint=[pixint, pixint(n_elements(pixint)-1)+1] ; add more pixels up to sdpx.
 	;while (n_elements(pixint) gt sdpx) do pixint= pixint[ 0:n_elements(pixint)-2 ] ; throw away elements if necessary
@@ -75,15 +67,15 @@ for xsi=0,nlens-1 do begin
 	
 	
 	; what are the wavelengths for each of those pixels?
-	if finite(xmini[xsi,ysi]) then begin
-		  valx=double(xmini[xsi,ysi]-findgen(sdpx))
+        if finite(xmini[xsi,ysi]) then begin
+           valx=double(xmini[xsi,ysi]-findgen(sdpx))
        ; if (valx[sdpx-1] lt (dim)) then begin
       
-          lambint=wavcal[xsi,ysi,2]-wavcal[xsi,ysi,3]*(valx-wavcal[xsi,ysi,0])*(1./cos(wavcal[xsi,ysi,4]))
-        	;for bandpass normalization
-        	bandpassmoy=mean(lambint[1:(size(lambint))[1]-1]-lambint[0:(size(lambint))[1]-2],/DOUBLE)
-        	bandpassmoy_interp=mean(lambda[1:(size(lambda))[1]-1]-lambda[0:(size(lambda))[1]-2],/DOUBLE)
-        	norma=bandpassmoy_interp/bandpassmoy
+           lambint=wavcal[xsi,ysi,2]-wavcal[xsi,ysi,3]*(valx-wavcal[xsi,ysi,0])*(1./cos(wavcal[xsi,ysi,4]))
+           ;;for bandpass normalization
+           bandpassmoy=mean(lambint[1:(size(lambint))[1]-1]-lambint[0:(size(lambint))[1]-2],/DOUBLE)
+           bandpassmoy_interp=mean(lambda[1:(size(lambda))[1]-1]-lambda[0:(size(lambda))[1]-2],/DOUBLE)
+           norma=bandpassmoy_interp/bandpassmoy
         	
 ;        	;;remove extraflux on the edge before interpo
 ;        	indedgemax=where(lambint GT lambda[n_elements(lambda)-1],cc )
@@ -92,25 +84,25 @@ for xsi=0,nlens-1 do begin
 ;          if cc gt 0 then cubef3D[xsi,ysi,indedgemin]=0.; cubef3D[xsi,ysi,indedgemin[n_elements(indedgemin)-1]+1]  ;0.
         	
         	; interpolate the cube onto a regular grid.
-        	Result[xsi,ysi,*] = norma*INTERPOL( cubef3D[xsi,ysi,*], lambint, lambda )
+           Result[xsi,ysi,*] = norma*INTERPOL( cubef3D[xsi,ysi,*], lambint, lambda )
   	 ;  endif
-  endif
+        endif
+     endfor
   endfor
-endfor
 
 
-;create keywords related to the common wavelength vector:
-backbone->set_keyword,'NAXIS',3, ext_num=1
-backbone->set_keyword,'NAXIS1',nlens, ext_num=1
-backbone->set_keyword,'NAXIS2',nlens, ext_num=1
-backbone->set_keyword,'NAXIS3',CommonWavVect[2], ext_num=1
-
-backbone->set_keyword,'CDELT3',(CommonWavVect[1]-CommonWavVect[0])/(CommonWavVect[2]),'wav. increment', ext_num=1
+  ;;create keywords related to the common wavelength vector:
+  backbone->set_keyword,'NAXIS',3, ext_num=1
+  backbone->set_keyword,'NAXIS1',nlens, ext_num=1
+  backbone->set_keyword,'NAXIS2',nlens, ext_num=1
+  backbone->set_keyword,'NAXIS3',CommonWavVect[2], ext_num=1
+  
+  backbone->set_keyword,'CDELT3',(CommonWavVect[1]-CommonWavVect[0])/(CommonWavVect[2]),'wav. increment', ext_num=1
 ; FIXME this CRPIX3 should probably be **1** in the FORTRAN index convention
-backbone->set_keyword,'CRPIX3',0.,'pixel coordinate of reference point', ext_num=1
-backbone->set_keyword,'CRVAL3',CommonWavVect[0]+(CommonWavVect[1]-CommonWavVect[0])/(2.*CommonWavVect[2]),'wav. at reference point', ext_num=1
-backbone->set_keyword,'CTYPE3','WAVE', ext_num=1
-backbone->set_keyword,'CUNIT3','microms', ext_num=1
+  backbone->set_keyword,'CRPIX3',0.,'pixel coordinate of reference point', ext_num=1
+  backbone->set_keyword,'CRVAL3',CommonWavVect[0]+(CommonWavVect[1]-CommonWavVect[0])/(2.*CommonWavVect[2]),'wav. at reference point', ext_num=1
+  backbone->set_keyword,'CTYPE3','WAVE', ext_num=1
+  backbone->set_keyword,'CUNIT3','microms', ext_num=1
 ;FXADDPAR, *(dataset.headers)[numfile], 'NAXIS',3, after='BITPIX'
 ;FXADDPAR, *(dataset.headers)[numfile], 'NAXIS1',nlens, after='NAXIS'
 ;FXADDPAR, *(dataset.headers)[numfile], 'NAXIS2',nlens, after='NAXIS1'
@@ -125,9 +117,9 @@ backbone->set_keyword,'CUNIT3','microms', ext_num=1
 ;FXADDPAR, *(dataset.headers)[numfile], 'CUNIT3','microms'
 
 ; put the datacube in the dataset.currframe output structure:
-*(dataset.currframe[0])=Result
+  *(dataset.currframe[0])=Result
 
-@__end_primitive
+  @__end_primitive
 ;;	
 ;;	;if asked, save the datacube and/or display it with GPItv:
 ;;		thisModuleIndex = Backbone->GetCurrentModuleIndex()
