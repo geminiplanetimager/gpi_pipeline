@@ -12,13 +12,14 @@ pro gpi_finddeviants, cubef3D_box,xsi,ysi,badpixmap,nbdev,xmini,OPERATEUR,ybp,nb
         if (cc ne 0) && (total(cubef3D_box[xsi,ysi,*]) ne 0.) then begin
 
               for i=0,n_elements(ind)-1 do begin
-                xbp=floor(xmini[xsi,ysi]+ind[i])
-                      if xbp ne 3 && xbp ne 2044 then begin 
+                xbp=floor(xmini[xsi,ysi]+ind[i]-1-specpixlength)
+                      ;if xbp ne 3 && xbp ne 2060 then begin 
+                      if xbp gt 3 && xbp lt 2044 then begin 
                        if (ind[i] eq 0) || (ind[i] eq 1) ||(ind[i] eq specpixlength-1) || $ ;cond for edge effect:
                        (( isedge*mean(cubef3D_box[xsi,ysi,ind[i]-4>0:ind[i]]) lt mean(cubef3D_box[xsi,ysi,ind[i]:ind[i]+4<specpixlength-1])) && $
                         ( mean(cubef3D_box[xsi,ysi,ind[i]-4>0:ind[i]]) gt isedge*mean(cubef3D_box[xsi,ysi,ind[i]:ind[i]+4<specpixlength-1]) )) then begin
               
-                                  badpixmap[xbp,ybp]=1 
+                                  badpixmap[ybp,xbp]=1 
 
 
                         endif
