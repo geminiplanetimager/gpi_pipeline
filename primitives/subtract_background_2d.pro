@@ -43,31 +43,31 @@
 ;   2011-07-30 MP: Updated for multi-extension FITS
 ;-
 function subtract_background_2d, DataSet, Modules, Backbone
-  primitive_version= '$Id: displayrawimage.pro 417 2011-07-14 14:13:04Z perrin $' ; get version from subversion to store in header history
-  @__start_primitive
-  
-  if tag_exist( Modules[thisModuleIndex], "method") then method=(Modules[thisModuleIndex].method) else method='threshhold'
-  if tag_exist( Modules[thisModuleIndex], "thresh") then thresh=float(Modules[thisModuleIndex].thresh) else thresh=2
-  if tag_exist( Modules[thisModuleIndex], "fwhm_x") then fwhm_x=float(Modules[thisModuleIndex].fwhm_x) else fwhm_x=1
-  if tag_exist( Modules[thisModuleIndex], "fwhm_y") then fwhm_y=float(Modules[thisModuleIndex].fwhm_y) else fwhm_y=7
-  if tag_exist( Modules[thisModuleIndex], "niter") then niter=fix(Modules[thisModuleIndex].niter) else niter=3
-  if tag_exist( Modules[thisModuleIndex], "before_and_after") then before_and_after=fix(Modules[thisModuleIndex].before_and_after) else before_and_after=0
-  mediansize = 7                ;max([fwhm_x, fwhm_y,5])
+primitive_version= '$Id: displayrawimage.pro 417 2012-02-09 14:13:04Z maire $' ; get version from subversion to store in header history
+@__start_primitive
 
-  ;;get the 2D detector image
-  image=*(dataset.currframe[0])
-  
-  backbone->Log, 'Generating model of 2D image background based on pixels in between spectra'
+ if tag_exist( Modules[thisModuleIndex], "method") then method=(Modules[thisModuleIndex].method) else method='threshhold'
+ if tag_exist( Modules[thisModuleIndex], "thresh") then thresh=float(Modules[thisModuleIndex].thresh) else thresh=2
+ if tag_exist( Modules[thisModuleIndex], "fwhm_x") then fwhm_x=float(Modules[thisModuleIndex].fwhm_x) else fwhm_x=1
+ if tag_exist( Modules[thisModuleIndex], "fwhm_y") then fwhm_y=float(Modules[thisModuleIndex].fwhm_y) else fwhm_y=7
+ if tag_exist( Modules[thisModuleIndex], "niter") then niter=fix(Modules[thisModuleIndex].niter) else niter=3
+ if tag_exist( Modules[thisModuleIndex], "before_and_after") then before_and_after=fix(Modules[thisModuleIndex].before_and_after) else before_and_after=0
+ mediansize = 7 ;max([fwhm_x, fwhm_y,5])
+
+ ;get the 2D detector image
+ image=*(dataset.currframe[0])
+
+ backbone->Log, 'Generating model of 2D image background based on pixels in between spectra'
 
  ; The first step is to figure out which pixels are from spectra (or pol spots)
  ; and which are not. Perhaps eventually this will be done from a lookup table
  ; or by invoking the wavelength solution, but for now we just do it using a 
  ; cut on the image pixels itself: values > thresh * median value are considered
  ; to be the spectra. 
-  sz = size(image)
-  mask = bytarr(sz[1],sz[2])
+ sz = size(image)
+ mask = bytarr(sz[1],sz[2])
 
-  if strlowcase(method) eq 'threshhold' then begin
+ if strlowcase(method) eq 'threshhold' then begin
 	 ; So: divide the image up into a number of chunks and apply the median threshhold
 	 ; separately to each chunk. This is done to accomodate any variations in
 	 ; average intensity across the FOV which would otherwise prevent a single
@@ -76,69 +76,72 @@ function subtract_background_2d, DataSet, Modules, Backbone
 
 	; was 4x4, let's try a finer local region because of variation in the background
 	; level. 
-     chunkx = 8
-     chunky = 8
-     for ix=0L,chunkx-1 do begin
-        for iy=0L,chunky-1 do begin
-           dx = sz[1]/chunkx
-           dy = sz[2]/chunky
-           image_part = image[ix*dx:(ix+1)*dx-1, iy*dy:(iy+1)*dy-1]
-           
-           med = median(image_part)
-           mask[ix*dx:(ix+1)*dx-1, iy*dy:(iy+1)*dy-1] = $
-              image[ix*dx:(ix+1)*dx-1, iy*dy:(iy+1)*dy-1] gt 2*med
-           
-        endfor 
-     endfor 
-     
-     
+	chunkx = 8
+	chunky = 8
+	for ix=0L,chunkx-1 do begin
+	for iy=0L,chunky-1 do begin
+		dx = sz[1]/chunkx
+		dy = sz[2]/chunky
+		image_part = image[ix*dx:(ix+1)*dx-1, iy*dy:(iy+1)*dy-1]
+
+		med = median(image_part)
+		mask[ix*dx:(ix+1)*dx-1, iy*dy:(iy+1)*dy-1] = $
+			image[ix*dx:(ix+1)*dx-1, iy*dy:(iy+1)*dy-1] gt 2*med
+
+	endfor 
+	endfor 
+
+	 
 	 ; now expand the mask by 1 pixel in all directions to grab things close to
 	 ; the edges of the spectra. 1 pixel was chosen based on visual examination of
 	 ; how well the final mask works, and is also plausible based on the existence
 	 ; of interpixel capacitance that affects adjacent pixels at a ~few percent
 	 ; level. 
 
-     kernel = [[0,1,0],[1,1,1],[0,1,0]] ; This appears to work pretty well based on visual examination of the masked region
-     mask = dilate(mask, kernel)
+		kernel = [[0,1,0],[1,1,1],[0,1,0]]  ; This appears to work pretty well based on visual examination of the masked region
+		mask = dilate(mask, kernel)
 
-     backbone->Log, "Identified "+strc(total(~mask))+" pixels for use as background pixels"
-  endif else begin              ;======= use calibration file to determine the regions to use. =====
-     stop
-     ;;mode=SXPAR( header, 'PRISM', count=c)
-     mode = backbone->get_keyword('DISPERSR', count=c)
-     case strupcase(strc(mode)) of
-        'SPECTRO':		begin
-           ;; load mask from spectral calib file
-           ;; The following code is lifted directly from extractcube.
-           stop
-           ;;get length of spectrum
-           sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect)
-           if (sdpx < 0) then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
-           for i=0,sdpx-1 do begin ;through spaxels
-              cubef=dblarr(nlens,nlens) 
-                                ;get the locations on the image where intensities will be extracted:
-              x3=xmini+i
-              y3=wavcal[*,*,1]-(wavcal[*,*,0]-x3)*tan(tilt[*,*])	
-                                ;extract intensities on a 3x1 box:
-                                ; instead of extracting pixels, mask out those pixels.
-              mask[x3,y3] = 1
-              mask[x3,y3+1] = 1
-              mask[x3,y3-1] = 1
-           endfor
-           stop
-        end
-        
-        'POLARIMETRY':	begin
-                                ; load mask from polarimetr cal file
-           stop
-           
-        end
-        
-        'UNDISPERSED':	return, error ('FAILURE ('+functionName+'): method=calfile not implemented for prism='+mode)
-        else: return, error ('FAILURE ('+functionName+'): method=calfile not implemented for prism='+mode)
-     endcase
-     
-  endelse
+		backbone->Log, "Identified "+strc(total(~mask))+" pixels for use as background pixels"
+	endif else begin ;======= use calibration file to determine the regions to use. =====
+		stop
+  		;mode=SXPAR( header, 'PRISM', count=c)
+		mode = backbone->get_keyword('DISPERSR', count=c)
+		case strupcase(strc(mode)) of
+	  	'SPECTRO':		begin
+			; load mask from spectral calib file
+			; The following code is lifted directly from extractcube.
+		  ;;get length of spectrum
+  sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect)
+  if (sdpx < 0) then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
+
+			tilt=wavcal[*,*,4]
+
+			for i=0,sdpx-1 do begin  ;through spaxels
+				cubef=dblarr(nlens,nlens) 
+				;get the locations on the image where intensities will be extracted:
+				x3=xmini-i
+				y3=wavcal[*,*,1]+(wavcal[*,*,0]-x3)*tan(tilt[*,*])	
+				;extract intensities on a 3x1 box:
+				; instead of extracting pixels, mask out those pixels.
+				mask[y3,x3] = 1
+				mask[y3+1,x3] = 1
+				mask[y3-1,x3] = 1
+			endfor
+			stop
+
+	  
+
+	  	end
+	  	'POLARIMETRY':	begin
+		; load mask from polarimetr cal file
+		stop
+
+	  	end
+	  	'UNDISPERSED':	return, error ('FAILURE ('+functionName+'): method=calfile not implemented for prism='+mode)
+	  	else: return, error ('FAILURE ('+functionName+'): method=calfile not implemented for prism='+mode)
+	  	endcase
+
+	endelse
 
  ; Now we want to fill in the regions that are masked out. Ideally we would do
  ; this with a convolution, but you can't meaningfully convolve an image full of

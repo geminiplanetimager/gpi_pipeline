@@ -25,6 +25,7 @@
 ;   2009-04-15 MDP: Documentation updated. 
 ;   2009-06-20 JM: adapted to wavcal input
 ;   2009-09-17 JM: added DRF parameters
+;   2012-02-01 JM: adapted to vertical dispersion
 ;   2012-02-09 DS: offloaded sdpx calculation
 ;+
 function extractcube, DataSet, Modules, Backbone
@@ -35,8 +36,6 @@ function extractcube, DataSet, Modules, Backbone
   ; getmyname, functionname
   @__start_primitive
 
-  ; save starting time
-  T = systime(1)
 
   ;get the 2D detector image
   det=*(dataset.currframe[0])
@@ -54,7 +53,7 @@ function extractcube, DataSet, Modules, Backbone
   ;error handle if FILTER1 keyword not found
   if (filter eq '') then $
      return, error('FAILURE ('+functionName+'): FILTER1 keyword not found.') 
-  
+
   ;get length of spectrum
   sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect)
   if (sdpx < 0) then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
@@ -87,17 +86,6 @@ function extractcube, DataSet, Modules, Backbone
   ; put the datacube in the dataset.currframe output structure:
   *(dataset.currframe[0])=cubef3D
 
-;save if asked and handle error if save function failed:
-;  thisModuleIndex = Backbone->GetCurrentModuleIndex()
-; if tag_exist( Modules[thisModuleIndex], "Save") && $
-; tag_exist( Modules[thisModuleIndex], "suffix") && $
-; (uint(Modules[thisModuleIndex].save) eq 1 ) then suffix=Modules[thisModuleIndex].suffix
-; 
-;
-;    if ( Modules[thisModuleIndex].Save eq 1 ) then begin
-;       b_Stat = save_currdata ( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=fix(Modules[thisModuleIndex].gpitv) )
-;       if ( b_Stat ne OK ) then  return, error('FAILURE ('+functionName+'): Failed to save dataset.')
-;    end
 
 @__end_primitive
 

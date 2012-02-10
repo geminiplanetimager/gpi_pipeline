@@ -25,92 +25,84 @@
 ; PIPELINE SEQUENCE: 21-
 ;
 ; HISTORY:
-;   2009-06-20: JM created
-;   2009-07-22: MDP added doc header keywords
-;   2012-02-09 DS: offloaded sdpx calculation
+; 	2009-06-20: JM created
+; 	2009-07-22: MDP added doc header keywords
 ;-
 
 function Remove_lamp_spectrum, DataSet, Modules, Backbone
-  primitive_version= '$Id$' ; get version from subversion to store in header history
-  @__start_primitive
+primitive_version= '$Id$' ; get version from subversion to store in header history
+@__start_primitive
 
-  cubef3D=*(dataset.currframe[0])
+	cubef3D=*(dataset.currframe[0])
 	;if Modules[thisModuleIndex].method eq 'blackbody' then $
 	;tempelamp=Modules[thisModuleIndex].tempelamp
 
-  nlens=(size(wavcal))[1]
-
+        nlens=(size(wavcal))[1]
   ;;get length of spectrum
   sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect)
   if (sdpx < 0) then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
-  
-  Result=dblarr(nlens,nlens,sdpx)+!VALUES.F_NAN
 
-  ;;for rescaling, keep median value of each spectrum
-  medianspectrum=median(cubef3D, dimension=3)
-  indNan=where(~FINITE(cubef3D[*,*,0]),cc)
-  if cc ne 0 then medianspectrum[indNan]=!VALUES.F_NAN
-  ;;calculate median of median values
-  medtot=median(medianspectrum)
 
-  message,/info, 'Extracting flat-field; Removing lamp spectrum...'
-  for xsi=0,nlens-1 do begin	
-     for ysi=0,nlens-1 do begin
-        if finite(xmini[xsi,ysi]) then begin
-           valx=xmini[xsi,ysi]+indgen(sdpx)
-           lambint=wavcal[xsi,ysi,2]+wavcal[xsi,ysi,3]*(valx-wavcal[xsi,ysi,0])*(1./cos(wavcal[xsi,ysi,4]))
-                                ;    if (xsi eq 140) && (ysi eq 140) then stop
-                                ;    Transmfiltnominal=pipeline_getfilter(lambint,filter=filter)
-                                ;    spectrum0=reform(cubef3D[xsi,ysi,*])
-                                ;    spectrum=spectrum0/Transmfiltnominal
-           spectrum=reform(cubef3D[xsi,ysi,*])
+Result=dblarr(nlens,nlens,sdpx)+!VALUES.F_NAN
+
+;for rescaling, keep median value of each spectrum
+medianspectrum=median(cubef3D, dimension=3)
+indNan=where(~FINITE(cubef3D[*,*,0]),cc)
+if cc ne 0 then medianspectrum[indNan]=!VALUES.F_NAN
+;calculate median of median values
+medtot=median(medianspectrum)
+
+message,/info, 'Extracting flat-field; Removing lamp spectrum...'
+for xsi=0,nlens-1 do begin	
+  	for ysi=0,nlens-1 do begin
+		if finite(xmini[xsi,ysi]) then begin
+			valx=xmini[xsi,ysi]+indgen(sdpx)
+      		lambint=wavcal[xsi,ysi,2]+wavcal[xsi,ysi,3]*(valx-wavcal[xsi,ysi,0])*(1./cos(wavcal[xsi,ysi,4]))
+			;    if (xsi eq 140) && (ysi eq 140) then stop
+			;    Transmfiltnominal=pipeline_getfilter(lambint,filter=filter)
+			;    spectrum0=reform(cubef3D[xsi,ysi,*])
+			;    spectrum=spectrum0/Transmfiltnominal
+    		spectrum=reform(cubef3D[xsi,ysi,*])
 		  ;if Modules[thisModuleIndex].method eq 'blackbody' then   lampspec=planck(10000*lambint,tempelamp)/median(planck(10000*lambint,tempelamp))
 		  ;linear fit:
 		  ;do not use pixels on the edges of spectrum, use central part
-           sz=n_elements(lambint)
-           offsetpix=floor(sz/4)-1
-           indforfit=offsetpix+indgen(sz-2*offsetpix)
-           meth=Modules[thisModuleIndex].method
-           case meth of 
-              'linfit':begin
-                 res=linfit(lambint[indforfit], (spectrum)[indforfit] )
-                 lampspec=res[0]+res[1]*lambint
-              end
-              'polyfit':begin
-                 res=POLY_FIT(lambint[indforfit], (spectrum)[indforfit], 2, MEASURE_ERRORS=measure_errors, SIGMA=sigma) 
-                 lampspec=res[0]+res[1]*lambint+res[2]*(lambint)^2.                
-              end
-              'blackbody':begin
-                 tempelampe = 1100
-                 lampspec=(planck(10000*lambint,tempelampe)/mean(planck(10000*lambint,tempelampe)))*mean((spectrum)[indforfit])
-              end
-              else:   lampspec=replicate(mean((spectrum)[indforfit]), n_elements(lambint))
-           endcase        
+		  	sz=n_elements(lambint)
+		  	offsetpix=floor(sz/4)-1
+		  	indforfit=offsetpix+indgen(sz-2*offsetpix)
+		  	meth=Modules[thisModuleIndex].method
+		  	case meth of 
+		  	  'linfit':begin
+		  	            res=linfit(lambint[indforfit], (spectrum)[indforfit] )
+                    lampspec=res[0]+res[1]*lambint
+		  	            end
+		  	  'polyfit':begin
+                    res=POLY_FIT(lambint[indforfit], (spectrum)[indforfit], 2, MEASURE_ERRORS=measure_errors, SIGMA=sigma) 
+                    lampspec=res[0]+res[1]*lambint+res[2]*(lambint)^2.                
+                    end
+          'blackbody':begin
+                    tempelampe = 1100
+                    lampspec=(planck(10000*lambint,tempelampe)/mean(planck(10000*lambint,tempelampe)))*mean((spectrum)[indforfit])
+                      end
+          else:   lampspec=replicate(mean((spectrum)[indforfit]), n_elements(lambint))
+         endcase        
 
-	   ;toDO:implement other methods
-	   ; remove the linear fit.
-           Result[xsi,ysi,*] = reform(( spectrum/lampspec) *medianspectrum[xsi,ysi] /medtot, 1,1,sz)
+
+		  
+	   		;toDO:implement other methods
+		  ; remove the linear fit.
+		  Result[xsi,ysi,*] = reform(( spectrum/lampspec) *medianspectrum[xsi,ysi] /medtot, 1,1,sz)
 		  ;Result[xsi,ysi,*] = reform(( spectrum0/lampspec) *medianspectrum[xsi,ysi] /medtot, 1,1,sz)
 		  ;if (xsi gt 140) && (ysi gt 140) then stop
-        endif
-     endfor
-  endfor
+    	endif
+	endfor
+endfor
 
-  *(dataset.currframe[0])=Result
+*(dataset.currframe[0])=Result
 
-  ;; Set keywords for outputting files into the Calibrations DB
-  backbone->set_keyword,  "FILETYPE", 'Flat field', "What kind of IFS file is this?"
-  backbone->set_keyword,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+; Set keywords for outputting files into the Calibrations DB
+	backbone->set_keyword,  "FILETYPE", 'Flat field', "What kind of IFS file is this?"
+	backbone->set_keyword,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
 
-;
-;if numext eq 0 then begin
-;  sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Flat Field", "What kind of IFS file is this?"
-;  sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-;endif else begin
-;  sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Flat Field", "What kind of IFS file is this?"
-;  sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-;endelse
-;
 ;suffix='flat'
 @__end_primitive
 
