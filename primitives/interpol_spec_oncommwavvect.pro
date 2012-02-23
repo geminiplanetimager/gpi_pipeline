@@ -17,6 +17,7 @@
 ; OUTPUTS:  datacube with slice at the same wavelength
 ;
 ; PIPELINE COMMENT: Interpolate spectral datacube onto regular wavelength sampling.
+; PIPELINE ARGUMENT: Name="Spectralchannels" Type="int" Range="[0,100]" Default="37" Desc="Choose how many spectral channels for output datacube"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-spdc" Desc="Enter output suffix"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
@@ -45,18 +46,22 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
             if ((size(cubef3D))[0] ne 3) || (strlen(filter) eq 0)  then $
             return, error('FAILURE ('+functionName+'): Datacube or filter not defined. Use extractcube module before.')        
 
-        cwv=get_cwv(filter)
+  ;;get length of spectrum
+  sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect)
+  if (sdpx < 0) then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
+
+        if (tag_exist( Modules[thisModuleIndex], "Spectralchannels")) then $
+        spectralchannels=( Modules[thisModuleIndex].Spectralchannels) else $
+        spectralchannels=-1
+
+        cwv=get_cwv(filter,spectralchannels=spectralchannels)
         CommonWavVect=cwv.CommonWavVect
         lambda=cwv.lambda
         lambdamin=CommonWavVect[0]
         lambdamax=CommonWavVect[1]
         nlens=(size(wavcal))[1]
   
-    ;;get length of spectrum
-  sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect)
-  if (sdpx < 0) then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
-
-
+  
 ;; Now we must interpolate the extracted cube onto a regular wavelength grid
 ;; common to all lenslets.
 Result=dblarr(nlens,nlens,CommonWavVect[2])+!VALUES.F_NAN
