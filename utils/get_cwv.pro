@@ -11,9 +11,10 @@
 ;
 ; HISTORY:
 ;   JM 2009-12
+;  JM 2012-02 number of spectral channel as keyword
 
 
-function get_cwv,filter
+function get_cwv,filter,spectralchannels=spectralchannels
 
         tabband=[['Z'],['Y'],['J'],['H'],['K'],['K1'],['K2']]
         parseband=WHERE(STRCMP( tabband, strcompress(filter,/rem), /FOLD_CASE) EQ 1)
@@ -27,6 +28,8 @@ function get_cwv,filter
             5:  CommonWavVect=[1.9, 2.19, 40]
             6: CommonWavVect=[2.13, 2.4, 40]
         endcase
+        
+        if keyword_set(spectralchannels) && (spectralchannels ne -1) then CommonWavVect[2]=spectralchannels
         lambda=dblarr(CommonWavVect[2])
         for i=0,CommonWavVect[2]-1 do lambda[i]=CommonWavVect[0]+(CommonWavVect[1]-CommonWavVect[0])/(2.*CommonWavVect[2])+double(i)*(CommonWavVect[1]-CommonWavVect[0])/(CommonWavVect[2])
         
