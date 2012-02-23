@@ -485,14 +485,15 @@ if numfile  eq ((dataset.validframecount)-1) then begin
       ;save the difference ;enregistre la difference
       suffix1=suffix+'-loci'+strcompress(string(il),/REMOVE_ALL)
       fname=tmpdir+prefix+nbr2txt(nlist[n],4)+suffix1+'.fits'
-      if il eq 0 then begin
+      ;if il eq 0 then begin
 ;        sxaddparlarge,*(dataset.headersPHU[n]),'HISTORY',functionname+": LOCI done"
 ;        sxaddhist,'Une rotation de '+strc(theta,format='(f7.3)')+$
 ;        ' degres a ensuite ete appliquee.',h
           backbone->set_keyword,'HISTORY',functionname+": LOCI done",ext_num=1,indexFrame=n
-          backbone->set_keyword,'HISTORY','Une rotation de '+strc(theta,format='(f7.3)')+$
-        ' degres a ensuite ete appliquee.',ext_num=1,indexFrame=n
-      endif
+          backbone->set_keyword,'HISTORY','ADI derotation '+strc(theta,format='(f7.3)')+$
+        ' degrees applied.',ext_num=1,indexFrame=n
+      ;endif
+
           mwrfits, 0, fname, *DataSet.HeadersPHU[n], /create, /silent
           hext=*DataSet.HeadersExt[n] & sxdelpar,hext,'NAXIS3'
           mwrfits, im, fname, hext, /silent
