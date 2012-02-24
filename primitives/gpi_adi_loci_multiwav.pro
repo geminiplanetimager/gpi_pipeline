@@ -492,6 +492,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
           backbone->set_keyword,'HISTORY',functionname+": LOCI done",ext_num=1,indexFrame=n
           backbone->set_keyword,'HISTORY','ADI derotation '+strc(theta,format='(f7.3)')+$
         ' degrees applied.',ext_num=1,indexFrame=n
+          backbone->set_keyword,'ADIROTAT',strc(theta,format='(f7.3)'),"Applied ADI FOV derotation [degrees]",ext_num=1,indexFrame=n
       ;endif
 
           mwrfits, 0, fname, *DataSet.HeadersPHU[n], /create, /silent

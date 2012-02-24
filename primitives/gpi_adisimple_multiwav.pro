@@ -191,6 +191,8 @@ if numfile  lt ((dataset.validframecount)-1) then return,0
 ;      ' degrees has been applied.',header
        backbone->set_keyword,'HISTORY','One rotation of '+string(theta,format='(f7.3)')+$
       ' degrees has been applied.',ext_num=1,indexFrame=n
+        backbone->set_keyword,'ADIROTAT',strc(theta,format='(f7.3)'),"Applied ADI FOV derotation [degrees]",ext_num=1,indexFrame=n
+      
       *(dataset.currframe[0])=im
      ; *(dataset.headers[n])=header
 
