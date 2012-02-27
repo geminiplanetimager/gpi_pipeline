@@ -82,7 +82,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
   listfilenames=strarr(nfiles)
   for i=0, nfiles-1 do listfilenames[i]=*((dataset.frames)[i])
   tmp=dataset.outputFileNames[0]
-  tmpdir=Modules[thisModuleIndex].OutputDir+path_sep()  ;strmid(tmp,0,strpos(tmp,path_sep(), /REVERSE_SEARCH)+1)
+  tmpdir=gpi_expand_path(Modules[thisModuleIndex].OutputDir+path_sep())  ;strmid(tmp,0,strpos(tmp,path_sep(), /REVERSE_SEARCH)+1)
 
   nlist=strarr(nfiles)
 
@@ -471,7 +471,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
 
       ;rotation pour ramener sur la premiere image
       print,' rotation...'
-      theta=paall[n]-paall[0]
+      theta=-(paall[n]-paall[0])
       
       ;if n ne 0 then im=gpi_adi_rotat(im,theta,missing=!values.f_nan,hdr=h)
             x0=double(backbone->get_keyword('PSFCENTX',count=ccx,/silent)) ;float(SXPAR( *(dataset.headers[n]), 'PSFCENTX',count=ccx))
@@ -490,9 +490,9 @@ if numfile  eq ((dataset.validframecount)-1) then begin
 ;        sxaddhist,'Une rotation de '+strc(theta,format='(f7.3)')+$
 ;        ' degres a ensuite ete appliquee.',h
           backbone->set_keyword,'HISTORY',functionname+": LOCI done",ext_num=1,indexFrame=n
-          backbone->set_keyword,'HISTORY','ADI derotation '+strc(theta,format='(f7.3)')+$
+          backbone->set_keyword,'HISTORY','ADI derotation '+strc(theta,format='(f7.2)')+$
         ' degrees applied.',ext_num=1,indexFrame=n
-          backbone->set_keyword,'ADIROTAT',strc(theta,format='(f7.3)'),"Applied ADI FOV derotation [degrees]",ext_num=1,indexFrame=n
+          backbone->set_keyword,'ADIROTAT',strc(theta,format='(f7.2)'),"Applied ADI FOV derotation [degrees]",ext_num=1,indexFrame=n
       ;endif
 
           mwrfits, 0, fname, *DataSet.HeadersPHU[n], /create, /silent

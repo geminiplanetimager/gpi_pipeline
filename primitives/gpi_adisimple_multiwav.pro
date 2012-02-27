@@ -167,7 +167,7 @@ if numfile  lt ((dataset.validframecount)-1) then return,0
 
           ;rotation to have same orientation than the first image
           if silent eq 0 then print,' Rotation to have same orientation than the first image...'
-          theta=paall[n]-paall[0]
+          theta=-(paall[n]-paall[0])
            x0=double(backbone->get_keyword('PSFCENTX',count=ccx,/silent)) ;float(SXPAR( *(dataset.headers[n]), 'PSFCENTX',count=ccx))
             y0=double(backbone->get_keyword('PSFCENTY',count=ccy,/silent)) ;float(SXPAR( *(dataset.headers[n]), 'PSFCENTY',count=ccy))
 

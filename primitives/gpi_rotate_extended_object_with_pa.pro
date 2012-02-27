@@ -148,7 +148,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
 ;          endfor ;loop annulus
 ;stop
           ;rotation to have same orientation than the first image
-          theta=paall[n]-paall[0]
+          theta=-(paall[n]-paall[0])
           hdr=*(dataset.headersExt[n])
           if silent eq 0 then print,' Rotation of',theta,'[deg] in order to have same orientation than the first image...wavelength[um]=',lambda[il]
             x0=float(SXPAR( *(dataset.headersExt[n]), 'PSFCENTX',count=ccx))
@@ -171,9 +171,10 @@ if numfile  eq ((dataset.validframecount)-1) then begin
 	  ;header=*(dataset.headers[n])
 ;    sxaddhist,'One rotation of '+string(theta,format='(f7.3)')+$
 ;      ' degrees has been applied.',*(dataset.headersPHU[n])
-      backbone->set_keyword,'HISTORY', 'One rotation of '+string(theta,format='(f7.3)')+$
+      backbone->set_keyword,'HISTORY', 'One rotation of '+string(theta,format='(f7.2)')+$
       ' degrees has been applied.',ext_num=1,indexFrame=n
-      
+       backbone->set_keyword,'ADIROTAT',strc(theta,format='(f7.2)'),"Applied ADI FOV derotation [degrees]",ext_num=1,indexFrame=n
+       
       *(dataset.currframe[0])=im
       ;*(dataset.headers[numfile])=header
       thisModuleIndex = Backbone->GetCurrentModuleIndex()
