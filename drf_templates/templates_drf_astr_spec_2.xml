@@ -8,7 +8,7 @@
 <module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
 <module name="Assemble Spectral Datacube" Save="       0" suffix="-rawspdc" gpitv="0" />
 <module name="Divide by Spectral Flat Field" CalibrationFile="AUTOMATIC" Save="       0" suffix="-rawspdc" gpitv="0" />
-<module name="Interpolate Wavelength Axis" Save="       1" suffix="-spdc" gpitv="2" />
+<module name="Interpolate Wavelength Axis" Spectralchannels="37"Save="       1" suffix="-spdc" gpitv="2" />
 <module name="Load Satellite Spot locations" CalibrationFile="AUTOMATIC" />
 <module name="Measure telluric transmission" method="1" Correct_datacube="1" Save_corrected_datacube="1" Save_telluric_transmission="1" suffix="-telcal" gpitv="2" />
 <module name="Calibrate Photometric Flux" FinalUnits="1" CalibrationFile="AUTOMATIC" Save="       1" gpitv="2" />
