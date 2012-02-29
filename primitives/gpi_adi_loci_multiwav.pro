@@ -19,7 +19,7 @@
 ;  <module name="gpi_adi_Loci_multiwav" nfwhm="1.5" Save="1" gpitv="1" />
 ;
 ; PIPELINE COMMENT: Implements the LOCI ADI algorithm (Lafreniere et al. 2007)
-; PIPELINE ARGUMENT: Name="nfwhm" Type="enum" Range="[0,1]" Default="1.5" Desc="number of FWHM to calculate the minimal distance for reference calculation"
+; PIPELINE ARGUMENT: Name="nfwhm" Type="float" Range="[0,20]" Default="1.5" Desc="number of FWHM to calculate the minimal distance for reference calculation"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-loci" Desc="Enter output suffix"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="10" Desc="1-500: choose gpitv session for displaying output, 0: no display "
@@ -149,7 +149,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
 
   for il=0, n_elements(lambda)-1 do begin
     print,'LOCI Wavelength '+strtrim(il+1,2)+'/'+strtrim(n_elements(lambda),2)
-    nfwhm=Modules[thisModuleIndex].nfwhm ;get the user-defined minimal distance for the subtraction
+    nfwhm=float(Modules[thisModuleIndex].nfwhm) ;get the user-defined minimal distance for the subtraction
     Dtel=7.77
     fwhm=0.98*(1.e-6*lambda(il)/Dtel)*(180.*3600./!dpi)/0.014
 

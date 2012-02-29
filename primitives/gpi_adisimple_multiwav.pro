@@ -15,7 +15,7 @@
 ;          save: save results (datacubes with reference subtracted and then rotated )
 ;          gpitv: display result in gpitv session # (gpitv="0" means no display)
 ; PIPELINE ARGUMENT: Name="numimmed" Type="int" Range="[1,100]" Default="3" Desc="number of images for the calculation of the PSF reference"
-; PIPELINE ARGUMENT: Name="nfwhm" Type="enum" Range="[0,1]" Default="1.5" Desc="number of FWHM to calculate the minimal distance for reference calculation"
+; PIPELINE ARGUMENT: Name="nfwhm" Type="float" Range="[0,20]" Default="1.5" Desc="number of FWHM to calculate the minimal distance for reference calculation"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-adim" Desc="Enter output suffix"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="10" Desc="1-500: choose gpitv session for displaying output, 0: no display "
@@ -110,7 +110,7 @@ if numfile  lt ((dataset.validframecount)-1) then return,0
       
         ;loop on wavelength
       for il=0, n_elements(lambda)-1 do begin
-        nfwhm=Modules[thisModuleIndex].nfwhm ;get the user-defined minimal distance for the subtraction
+        nfwhm=float(Modules[thisModuleIndex].nfwhm) ;get the user-defined minimal distance for the subtraction
         Dtel=double(backbone->get_keyword( 'TELDIAM'))
 		if dtel eq -1 then return, error('FAILURE ('+functionName+'): missing TELDIAM keyword')
 
