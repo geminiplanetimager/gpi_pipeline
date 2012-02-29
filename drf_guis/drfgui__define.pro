@@ -887,7 +887,9 @@ pro drfgui::event,ev
               ; argument expecting a FLOAT, because of course the set of
               ; integers is a subset of the set of floats. 
             if (strcmp(typeName,type,/fold))  $
-              or (strlowcase(type) eq 'float' and strlowcase(typename) eq 'int') then $
+              or (strlowcase(type) eq 'float' and strlowcase(typename) eq 'int')  $
+              or (strlowcase(type) eq 'enum' and strlowcase(typename) eq 'string')  $
+              then $
               typeflag=1 $
             else typeflag=0
 
@@ -898,6 +900,12 @@ pro drfgui::event,ev
               range=argtabrange[(*self.indarg)[selected_cell[1]]]
               ranges=strsplit(range,'[,]',/extract)
               if (float(ranges[0]) le float(selection_value[0])) && (float(ranges[0]) le float(selection_value[0])) then rangeflag=1 else rangeflag=0
+            endif
+             if (strcmp('enum',type,/fold) eq 1) && (strcmp('string',typeName,/fold) eq 1) && (type ne '') then begin
+              argtabrange=((*self.ConfigDRS).argrange)
+              range=argtabrange[(*self.indarg)[selected_cell[1]]]
+              ranges=strsplit(range,'[,]',/extract)
+              if strmatch(ranges[0],"*"+selection_value[0]+"*",/fold)  then rangeflag=1 else rangeflag=0
             endif
             if (typeflag eq 0) || (rangeflag eq 0) then begin
               err=''
