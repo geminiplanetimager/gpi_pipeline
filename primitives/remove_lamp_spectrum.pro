@@ -46,16 +46,20 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 ;; the median of all spectra is not affected by flux concentration due to smaller spectrum length
 ;; in the Fov
   for zz=0,(size(cubef3D))[3]-1 do cubef3D[*,*,zz]/=wavcal[*,*,3]
-
-
-
+;stop
+;;take into account filter transmission
+ cwv=get_cwv(filter)
+lambda=cwv.lambda
+filter_trans=pipeline_getfilter(lambda, filter=filter)
+;stop
+;for zz=0,(size(cubef3D))[3]-1 do cubef3D[*,*,zz]/=filter_trans[zz]
 
 meth=Modules[thisModuleIndex].method
 ;if meth ne "none" then begin
   Result=dblarr(nlens,nlens,sdpx)+!VALUES.F_NAN
   
   ;for rescaling, keep median value of each spectrum
-  medianspectrum=median(cubef3D, dimension=3)
+  medianspectrum=median(cubef3D[*,*,5:12], dimension=3)
   indNan=where(~FINITE(cubef3D[*,*,0]),cc)
   if cc ne 0 then medianspectrum[indNan]=!VALUES.F_NAN
   ;calculate median of median values
@@ -65,9 +69,9 @@ meth=Modules[thisModuleIndex].method
   for xsi=0,nlens-1 do begin	
     	for ysi=0,nlens-1 do begin
   		if finite(xmini[xsi,ysi]) then begin
-  			valx=xmini[xsi,ysi]+indgen(sdpx)
-        		lambint=wavcal[xsi,ysi,2]+wavcal[xsi,ysi,3]*(valx-wavcal[xsi,ysi,0])*(1./cos(wavcal[xsi,ysi,4]))
-  			;    if (xsi eq 140) && (ysi eq 140) then stop
+  			valx=double(xmini[xsi,ysi]-findgen(sdpx))
+        		lambint=wavcal[xsi,ysi,2]-wavcal[xsi,ysi,3]*(valx-wavcal[xsi,ysi,0])*(1./cos(wavcal[xsi,ysi,4]))
+  			    ;if (xsi eq 140) && (ysi eq 140) then stop
   			;    Transmfiltnominal=pipeline_getfilter(lambint,filter=filter)
   			;    spectrum0=reform(cubef3D[xsi,ysi,*])
   			;    spectrum=spectrum0/Transmfiltnominal
@@ -90,9 +94,10 @@ meth=Modules[thisModuleIndex].method
                       end
             'blackbody':begin
                       tempelampe = 1100
-                      lampspec=(planck(10000*lambint,tempelampe)/mean(planck(10000*lambint,tempelampe)))*mean((spectrum)[indforfit])
+                      lampspec=(planck(10000*lambint,tempelampe)/mean(planck(10000*lambint,tempelampe)))*medianspectrum[xsi,ysi] ;mean((spectrum)[indforfit])
                         end
-            else:   lampspec=replicate(median((spectrum)[indforfit]), n_elements(lambint))
+            ;else:   lampspec=replicate(median((spectrum)[indforfit]), n_elements(lambint))
+            else:   lampspec=replicate(medianspectrum[xsi,ysi], n_elements(lambint))
            endcase        
   
   
@@ -101,11 +106,12 @@ meth=Modules[thisModuleIndex].method
   		  ; remove the linear fit.
   		  Result[xsi,ysi,*] = reform(( spectrum/lampspec) *medianspectrum[xsi,ysi] /medtot, 1,1,sz)
   		  ;Result[xsi,ysi,*] = reform(( spectrum0/lampspec) *medianspectrum[xsi,ysi] /medtot, 1,1,sz)
-  		  ;if (xsi gt 140) && (ysi gt 140) then stop
+ ; 		  if (xsi gt 140) && (ysi gt 140) then stop
       	endif
   	endfor
   endfor
-  
+ ; for zz=0,(size(cubef3D))[3]-1 do Result[*,*,zz]*=filter_trans[zz]
+ ; stop
   *(dataset.currframe[0])=Result
 ;endif 
 ; Set keywords for outputting files into the Calibrations DB
