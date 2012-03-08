@@ -8,5 +8,5 @@
 <module name="Accumulate Images" Method="InMemory" />
 <module name="Combine 2D images" Method="MEDIAN" Save="0" suffix="median" gpitv="1" />
 <module name="Assemble Spectral Datacube" Save="0" />
-<module name="Remove Flat Lamp spectrum" Save="1" gpitv="2" method="blackbody" suffix="-specflat" />
+<module name="Remove Flat Lamp spectrum" Save="1" gpitv="2" method="none" suffix="-specflat" />
 </DRF>
