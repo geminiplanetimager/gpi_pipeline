@@ -33,6 +33,17 @@ function automaticproc3::refresh_file_list, count=count, init=init, _extra=_extr
     filetypes = '*.{fts,fits}'
     searchpattern = self.dirinit + path_sep() + filetypes
 	current_files =FILE_SEARCH(searchpattern,/FOLD_CASE, count=count)
+	
+	if count gt 0 and widget_info(self.ignore_raw_reads_id,/button_set) then begin
+		mask_real_files = ~strmatch(current_files, '*_[0-9][0-9][0-9].fits')
+		wreal = where(mask_real_files, count)
+		if count eq 0 then current_files='' else current_files = current_files[wreal]
+		
+		; FIXME more sophisticated rejection here?
+	endif
+
+
+
 	dateold=dblarr(n_elements(current_files))
 	for j=0L,long(n_elements(current_files)-1) do begin
 		Result = FILE_INFO(current_files[j] )
@@ -184,6 +195,7 @@ pro automaticproc3::event, ev
                   'search':textinfo='Start the looping search of new FITS placed in the right-top panel directories. Restart the detection for changing search parameters.'
                   'filelist':textinfo='List of most recent detected FITS files in the watched directory. '
 				  'view_in_gpitv': textinfo='Automatically display new files in GPITV.'
+				  'ignore_raw_reads': textinfo='Ignore the extra files for the CDS/UTR reads, if present.'
                   'one':textinfo='Parse and process new file in a one-by-one mode.'
                   'new':textinfo='Change parser queue to process when new type detected.'
                   'keep':textinfo='keep all detected files in parser queue.'
@@ -375,6 +387,10 @@ function automaticproc3::init, groupleader, _extra=_extra
 	self.view_in_gpitv_id =    Widget_Button(gpitvbase, UNAME='view_in_gpitv'  $
 		  ,/ALIGN_LEFT ,VALUE='View new files in GPITV' )
 	widget_control, self.view_in_gpitv_id, /set_button   
+	gpitvbase = Widget_Base(self.top_base, UNAME='alwaysexebase' ,COLUMN=1 ,/NONEXCLUSIVE, frame=0)
+	self.ignore_raw_reads_id =    Widget_Button(gpitvbase, UNAME='ignore_raw_reads'  $
+		  ,/ALIGN_LEFT ,VALUE='Ignore individual UTR/CDS readout files' )
+	widget_control, self.ignore_raw_reads_id, /set_button   
 	
 
 	void = WIDGET_LABEL(self.top_base,Value='Detected FITS files:')
@@ -440,6 +456,7 @@ stateF={  automaticproc3, $
 	watchdir_id: 0L, $   ; widget ID for directory label display
 	start_id: 0L, $		; widget ID for start parsing button
 	view_in_gpitv_id: 0L, $
+	ignore_raw_reads_id: 0L, $
     parsemode:0L,$
     information_id:0L,$
     maxnewfile:0L,$
