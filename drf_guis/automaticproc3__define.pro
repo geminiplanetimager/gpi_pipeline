@@ -202,6 +202,7 @@ pro automaticproc3::event, ev
                   'flush':textinfo='Delete all files in the parser queue.'
 				  'Start': textinfo='Press to start scanning that directory for new files'
 				  'Reprocess': textinfo='Select one or more existing files, then press this to re-reduce them.'
+				  'View_one': textinfo='Select one existing file, then press this to view in GPItv.'
                   "QUIT":textinfo='Click to close this window.'
               else:textinfo=' '
               endcase
@@ -262,6 +263,18 @@ pro automaticproc3::event, ev
 			endif
 	
 		endif
+		if uname eq 'View_one'    then begin
+			widget_control, self.listfile_id, get_uvalue=list_contents
+
+            ind=widget_INFO(self.listfile_id,/LIST_SELECT)
+            
+			if list_contents[ind[0]] ne '' then begin
+
+				self->Log,'User requested to view: '+strjoin(list_contents[ind[0]], ", ")
+				self.launcher_handle->launch, 'gpitv', filename=list_contents[ind[0]], session=45 ; arbitrary session number picked to be 1 more than this launcher
+			endif
+	
+		endif
 		
 
 	end 
@@ -302,6 +315,7 @@ PRO automaticproc3::cleanup
 	if (xregistered ('drfgui') gt 0) then    widget_control,(self.parserobj).drfbase,/destroy
 
 	self->parsergui::cleanup ; will destroy all widgets
+	;reprocess_id = WIDGET_BUTTON(buttonbar,Value='Reprocess Selection',Uname='Reprocess', /tracking_events)
 
 	heap_gc
 
@@ -339,7 +353,7 @@ function automaticproc3::init, groupleader, _extra=_extra
 
 	self.top_base = widget_base(title = 'GPI IFS Automatic Reducer', $
 				   /column,  $
-				   /tlb_size_events)
+				   /tlb_size_events,  /tlb_kill_request_events)
 
 
 	base_dir = widget_base(self.top_base, /row)
@@ -401,10 +415,13 @@ function automaticproc3::init, groupleader, _extra=_extra
 	lab = widget_label(self.top_base, value="History:")
 	self.widget_log=widget_text(self.top_base,/scroll, ysize=8, xsize=80, /ALIGN_LEFT, uname="text_status",/tracking_events)
 
-	self.start_id = WIDGET_BUTTON(self.top_base,Value='Start',Uname='Start', /tracking_events)
-	reprocess_id = WIDGET_BUTTON(self.top_base,Value='Reprocess Selection',Uname='Reprocess', /tracking_events)
+	buttonbar = widget_base(self.top_base, row=1)
 
-	button3=widget_button(self.top_base,value="Close Automatic Reducer",uname="QUIT", /tracking_events)
+	self.start_id = WIDGET_BUTTON(buttonbar,Value='Start',Uname='Start', /tracking_events)
+	reprocess_id = WIDGET_BUTTON(buttonbar,Value='View File',Uname='View_one', /tracking_events)
+	reprocess_id = WIDGET_BUTTON(buttonbar,Value='Reprocess Selection',Uname='Reprocess', /tracking_events)
+
+	button3=widget_button(buttonbar,value="Close",uname="QUIT", /tracking_events)
 
 	self.information_id=widget_label(self.top_base,uvalue="textinfo",xsize=450,value='                                                                                ')
 

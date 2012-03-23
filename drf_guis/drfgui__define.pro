@@ -153,7 +153,7 @@ function drfgui::validkeyword, file, cindex, keyw, requiredvalue,storage,needale
 	    catch, Error_status
 	    if strmatch(!ERROR_STATE.MSG, '*Unit: 101*'+file[i]) then wait,1
 
-		file_data = gpi_load_and_preprocess_fits_file(file[i],/nodata)
+		file_data = gpi_load_and_preprocess_fits_file(file[i],/nodata,/silent)
 		value[i] = gpi_get_keyword(*file_data.pri_header, *file_data.ext_header, keyw,count=cc)
 
 ;	    fits_info, file[i], n_ext=next, /silent
@@ -200,49 +200,29 @@ function drfgui::get_obs_keywords, filename
 	endif
 
 
-	fits_data = gpi_load_and_preprocess_fits_file(filename,/nodata)
-
-
-	;fits_info, filename, n_ext = next, /silent
-	;if next eq 0 then $	
-    ;head=headfits( filename) else $
-    ;head = [headfits( filename, exten=0), headfits( filename, exten=1)]
-	; FIXME check for invalid or missing keywords here!
-;	pr=sxpar(head, 'DISPERSR', count=ct4)
-;	if ct4 eq 0 then begin
-;	    pr=sxpar(head, 'DISPERSR', count=ct4b)
-;	    keywprism='DISPERSR'
-;	 endif else  keywprism='PRISM'  
-	
-	;
-	;itime=  float(sxpar(head, 'ITIME',    count=ct7)) ;/ 1e3 ; convert ms to seconds (dst data)
-	;if ct7 eq 0 then itime=  float(sxpar(head, 'TRUITIME',    count=ct7))  ; in seconds already (real data)
-	;if ct7 eq 0 then itime=  float(sxpar(head, 'ITIME0',    count=ct7)) / 1e6 ; convert microsec to seconds. (real data, requested itime)
-
-
+	; Load FITS file, preprocessing as needed for I&T lack of keywords
+	fits_data = gpi_load_and_preprocess_fits_file(filename,/nodata,/silent)
 	head = *fits_data.pri_header
 	ext_head = *fits_data.ext_header
 	ptr_free, fits_data.pri_header, fits_data.ext_header
 
-	; FIXME modify to use gpi_get_keyword? 
 	obsstruct = {gpi_obs, $
-				ASTROMTC: strc(sxpar(head, 'ASTROMTC', count=ct0)), $
-				OBSCLASS: strc(sxpar(head, 'OBSCLASS', count=ct1)), $
-				obstype:  strc(sxpar(head, 'OBSTYPE',  count=ct2)), $
-				OBSID:    strc(sxpar(head, 'OBSID',    count=ct3)), $
-				filter:   gpi_simplify_keyword_value(strc(sxpar(head, 'FILTER1',   count=ct4))), $
-				prism:    strc(sxpar(head, 'DISPERSR', count=ct5)), $
-				OCCULTER: strc(sxpar(head, 'OCCULTER', count=ct6)), $
-				LYOT:     strc(sxpar(head, 'LYOTMASK',     count=ct7)), $
-				ITIME:    float(sxpar(ext_head, 'ITIME',    count=ct8)), $
-				EXPTIME:    sxpar(ext_head, 'EXPTIME',    count=ct9), $
-				OBJECT:   strc(sxpar(head, 'OBJECT',   count=ct10)), $
+				ASTROMTC: strc(  gpi_get_keyword(head, ext_head,  'ASTROMTC', count=ct0)), $
+				OBSCLASS: strc(  gpi_get_keyword(head, ext_head,  'OBSCLASS', count=ct1)), $
+				obstype:  strc(  gpi_get_keyword(head, ext_head,  'OBSTYPE',  count=ct2)), $
+				OBSID:    strc(  gpi_get_keyword(head, ext_head,  'OBSID',    count=ct3)), $
+				filter:   strc(gpi_simplify_keyword_value(strc(   gpi_get_keyword(head, ext_head,  'IFSFILT',   count=ct4)))), $
+				dispersr:strc( gpi_simplify_keyword_value(gpi_get_keyword(head, ext_head,  'DISPERSR', count=ct5))), $
+				OCCULTER: strc(  gpi_get_keyword(head, ext_head,  'OCCULTER', count=ct6)), $
+				LYOTMASK: strc(  gpi_get_keyword(head, ext_head,  'LYOTMASK',     count=ct7)), $
+				ITIME:    float( gpi_get_keyword(head, ext_head,  'ITIME',    count=ct8)), $
+				OBJECT:   strc(  gpi_get_keyword(head, ext_head,  'OBJECT',   count=ct10)), $
 				valid: 0}
-	vec=[ct0,ct1,ct2,ct3,ct4,ct5,ct6,ct7,ct8, ct9, ct10]
+	vec=[ct0,ct1,ct2,ct3,ct4,ct5,ct6,ct7,ct8, ct10]
 	if total(vec) lt n_elements(vec) then begin
 		self.missingkeyw=1 
 		;give some info on missing keyw:
-		keytab=['ASTROMTC','OBSCLASS','OBSTYPE','OBSID', 'FILTER1','DISPERSR','OCCULTER','LYOTMASK','ITIME', 'ITIME0', 'OBJECT']
+		keytab=['ASTROMTC','OBSCLASS','OBSTYPE','OBSID', 'IFSFILT','DISPERSR','OCCULTER','LYOTMASK','ITIME', 'OBJECT']
 		indzero=where(vec eq 0, cc)
 		print, "Invalid/missing keywords for file "+filename
 		if cc gt 0 then self->Log, 'Missing keyword(s): '+strjoin(keytab[indzero]," ")
@@ -254,24 +234,24 @@ function drfgui::get_obs_keywords, filename
 	endelse
 
 
-
-
 	;------ Preprocess values to agree with (unclear) standard
+	; NO preprocessing here any more - should all happen in
+	; gpi_load_and_preprocess_fits_file - MP 2012-03-21
 
-	update=0
-	if strmatch(obsstruct.prism, '*prism*',/fold_case) or strmatch(obsstruct.prism, '*spec*',/fold_case) then begin
-		update=1
-		obsstruct.prism='SPECT'
-	endif
-	if strmatch(obsstruct.prism, '*woll*',/fold_case) or strmatch(obsstruct.prism, '*pol*',/fold_case)then begin
-		update=1
-		obsstruct.prism='POLAR'
-	endif
-	if strmatcH(obsstruct.occulter, '*open*',/fold_case) or strmatcH(obsstruct.occulter, '*none*',/fold_case) then begin
-		update=1
-		obsstruct.occulter ='Blank'
-	endif
-	if update then message,/info, 'Updating parsed FITS keywords for '+filename+' to match standard form expected for parser (does not change actual FITS file)'
+;	update=0
+;	if strmatch(obsstruct.dispersr, '*prism*',/fold_case) or strmatch(obsstruct.dispersr, '*spec*',/fold_case) then begin
+;		update=1
+;		obsstruct.dispersr='Spectral'
+;	endif
+;	if strmatch(obsstruct.dispersr, '*woll*',/fold_case) or strmatch(obsstruct.dispersr, '*pol*',/fold_case)then begin
+;		update=1
+;		obsstruct.dispersr='Wollaston'
+;	endif
+;	if strmatch(obsstruct.occulter, '*open*',/fold_case) or strmatcH(obsstruct.occulter, '*none*',/fold_case) then begin
+;		update=1
+;		obsstruct.occulter ='Blank'
+;	endif
+;	if update then message,/info, 'Updating parsed FITS keywords for '+filename+' to match standard form expected for parser (does not change actual FITS file)'
 
 
 	;------ end preprocessing
@@ -954,7 +934,6 @@ pro drfgui::event,ev
 
 		defdir = self->get_input_dir()
 
-        ;name=fileselectm(group_leader=ev.top,path=defdir,/fullpath)
         if (file[n_elements(file)-1] eq '') then begin
             result=dialog_pickfile(path=defdir,/multiple,/must_exist,$
                 title='Select Raw Data File(s)', filter=['*.fits','*.fits.gz'],get_path=getpath)
@@ -1000,15 +979,19 @@ pro drfgui::event,ev
             (*storage.splitptr).printname = pfile
             (*storage.splitptr).datefile = datefile 
 
-            ;;TEST DATA SANITY
-            ;;ARE THEY VALID  GEMINI-GPI-IFS DATA?
-            validtelescop=self->validkeyword( file, cindex,'TELESCOP','Gemini',storage)
-            validinstrum=self->validkeyword( file, cindex,'INSTRUME','GPI',storage)
-            validinstrsub=self->validkeyword( file, cindex,'INSTRSUB','IFS',storage)     
-            ;;DATA HEALTH
-            validhealth=self->validkeyword( file, cindex,'GPIHEALT','good',storage)
-            validstate=self->validkeyword( file, cindex,'GPISTATE','good',storage)
-            validrawgemqa=self->validkeyword( file, cindex,'RAWGEMQA','good',storage)
+
+			message,/info, 'Skipping validation for now - besides these vars were not used anywhere'
+			if 0 then begin
+				;;TEST DATA SANITY
+				;;ARE THEY VALID  GEMINI-GPI-IFS DATA?
+				validtelescop=self->validkeyword( file, cindex,'TELESCOP','Gemini',storage)
+				validinstrum=self->validkeyword( file, cindex,'INSTRUME','GPI',storage)
+				validinstrsub=self->validkeyword( file, cindex,'INSTRSUB','IFS',storage)     
+				;;DATA HEALTH
+				validhealth=self->validkeyword( file, cindex,'GPIHEALT','good',storage)
+				validstate=self->validkeyword( file, cindex,'GPISTATE','good',storage)
+				validrawgemqa=self->validkeyword( file, cindex,'RAWGEMQA','good',storage)
+			endif
 
 
             ;; RESOLVE FILTER
@@ -1026,7 +1009,8 @@ pro drfgui::event,ev
                       self.ftimeobs = JULDAY(date[1], date[2], date[0], timeobs[0], timeobs[1], timeobs[2]) 
             endif
             ;;RESOLVE MOD
-            self.prism=self->resolvekeyword( file, cindex,'PRISM')
+            self.dispersr=self->resolvekeyword( file, cindex,'PRISM') ; FIXME
+			stop
             ;;RESOLVE TYPE
             self.ftype=self->resolvekeyword( file, cindex,'OBSTYPE')
             ;;RESOLVE CLASS
@@ -1036,10 +1020,10 @@ pro drfgui::event,ev
             isresolvebuttonset=widget_info(self.resolvetypeseq_id,/button_set)
             if isresolvebuttonset then begin
                 detectype=0
-                if strmatch(self.prism,'pol*',/fold) && strmatch(self.ftype,'obj*',/fold) then detectype=2
-                if strmatch(self.prism,'pol*',/fold) && ~strmatch(self.ftype,'obj*',/fold) then detectype=4
-                if strmatch(self.prism,'spec*',/fold) && strmatch(self.ftype,'obj*',/fold) then detectype=1
-                if strmatch(self.prism,'spec*',/fold) && ~strmatch(self.ftype,'obj*',/fold) then detectype=3
+                if strmatch(self.dispersr,'pol*',/fold) && strmatch(self.ftype,'obj*',/fold) then detectype=2
+                if strmatch(self.dispersr,'pol*',/fold) && ~strmatch(self.ftype,'obj*',/fold) then detectype=4
+                if strmatch(self.dispersr,'spec*',/fold) && strmatch(self.ftype,'obj*',/fold) then detectype=1
+                if strmatch(self.dispersr,'spec*',/fold) && ~strmatch(self.ftype,'obj*',/fold) then detectype=3
                 detecseq=1
                 if strmatch(self.ftype,'flat*',/fold) then begin 
                     detecseq=1 & detectype=3 
@@ -2140,7 +2124,7 @@ pro drfgui__define
               tempdrfdir:'',$     
               filter:'',$ ;from data keywords
               ftimeobs:0.,$ ;from data keywords
-              prism:'',$ ;from data keywords
+              dispersr:'',$ ;from data keywords
               ftype:'',$ ;from data keywords
               fseq:'',$ ;from data keywords
               reductiontype:'',$

@@ -29,7 +29,8 @@ calfile = { $
 			apodizer: "", $
 			itime: 0.0, $
 			JD: 0.0d, $
-			issport: "", $
+			inport: "", $
+			readoutmode: "", $
 			other: "", $
 			valid: 1b}
 
@@ -47,15 +48,27 @@ end
 ;----------
 ; Initialization
 FUNCTION gpicaldatabase::init, directory=directory, dbfilename=dbfilename, backbone=backbone
+	; Open and scan the directory of calibration data
+	
 	if ~(keyword_set(dbfilename)) then dbfilename="GPI_Calibs_DB.fits"
-	if ~(keyword_set(directory)) then directory=getenv("GPI_DRP_OUTPUT_DIR")
+
+	; Determine where calibration files live
+	if ~(keyword_set(directory)) then begin
+		if gpi_get_setting('use_calibrations_dir',/bool) then $ 
+			directory = gpi_get_setting('calibrations_dir',/expand_path) $
+		else $
+			directory = getenv('GPI_DRP_OUTPUT_DIR')
+	endif
+	print, ""
+	print, "  Calibration Files Directory is "+directory
+	print, ""
 
 	self.caldir = directory
 	self.dbfilename = dbfilename
 	if arg_present(backbone) then self.backbone=backbone ; Main GPI pipeline code?
 
-	calfile = self.caldir+path_sep()+self.dbfilename
-	if ~file_test(calfile) then begin
+	caldbfile = self.caldir+path_sep()+self.dbfilename
+	if ~file_test(caldbfile) then begin
 		self->Log,"Nonexistent calibrations DB filename requested! "
 		self->Log,"no such file: "+self.caldir+path_sep()+self.dbfilename
 		self->Log,"Creating blank calibrations DB"
@@ -66,7 +79,7 @@ FUNCTION gpicaldatabase::init, directory=directory, dbfilename=dbfilename, backb
 		; TODO add file locking to prevent multiple copies from fighting over the
 		; DB?
 		
-		data = mrdfits(calfile,1)
+		data = mrdfits(caldbfile,1)
 		; TODO error checking that this is in fact a calib DB struct?
 		;
 		; FIXME MRDFITS does not remove trailing whitespace added to every field
@@ -93,6 +106,8 @@ end
 ; Scan through each file in the DB and make sure it
 ; exists (checks against user deleting a cal file after it was created)
 pro gpicaldatabase::verify
+	; Right now this just verifies the file still exists, without doing any
+	; actual checking against its contents. TBD?
 
 	if self.nfiles eq 0 then return
 	
@@ -143,10 +158,10 @@ PRO gpicaldatabase::write
 	mlen_p = max(strlen(d.path))+3
 	mlen_f = max(strlen(d.filename))+3
 
-	firstline = string("#PATH", "FILENAME", "TYPE", "DISPERSR", "FILT", "APODIZE", "LYOT", "PORT", "ITIME", "JD", "OTHER", $
-			format="(A-"+strc(mlen_p)+", A-"+strc(mlen_f)+", A-30,  A-10,     A-5     , A-8,         A-8,       A-6,     A-15,    A-15,   A-10)")
-	forprint2, textout=calfile_txt, d.path, d.filename,  d.type, d.prism, d.filter, d.apodizer, d.lyot, d.issport, d.itime,  d.jd, d.other, $
-			format="(A-"+strc(mlen_p)+", A-"+strc(mlen_f)+", A-30,  A-10,     A-5     , A-8,         A-8,       A-6,     D-15.5,  D-15.5, A-10)", /silent, $
+	firstline = string("#PATH", "FILENAME", "TYPE", "DISPERSR", "IFSFILT", "APODIZER", "LYOTMASK", "INPORT", "ITIME", "READMODE", "JD", "OTHER", $
+			format="(A-"+strc(mlen_p)+", A-"+strc(mlen_f)+", A-30,  A-10,     A-5     , A-8,         A-8,       A-6,     A-15,    A-15,   A-15,   A-10)")
+	forprint2, textout=calfile_txt, d.path, d.filename,  d.type, d.prism, d.filter, d.apodizer, d.lyot, d.inport, d.itime, d.readoutmode, d.jd, d.other, $
+			format="(A-"+strc(mlen_p)+", A-"+strc(mlen_f)+", A-30,  A-10,     A-5     , A-8,         A-8,       A-6,     D-15.5,  D-15.5, A-15, A-10)", /silent, $
 			comment=firstline
 	message,/info, " Writing to "+calfile_txt
 
@@ -156,6 +171,7 @@ end
 PRO gpicaldatabase::rescan ; an alias
 	self->rescan_directory 
 end
+
 ; Create a new calibrations DB by reading all files in a given directory
 PRO gpicaldatabase::rescan_directory
 	files = file_search(self.caldir+path_sep()+"*.fits")
@@ -191,16 +207,6 @@ Function gpicaldatabase::add_new_cal, filename ;, header=header
 
 	fits_data = gpi_load_and_preprocess_fits_file(filename)
 
-;	; Read in the FITS header
-;	fits_info,filename,N_ext=n_ext,/silent
-;	if n_ext eq 0 then  begin
-;		priheader = headfits(filename, /silent)
-;		extheader = priheader
-;	endif else begin
-;		priheader = headfits(filename,exten=0, /silent)
-;		extheader = headfits(filename,exten=1, /silent)
-;	endelse
-;
 	; 	if not a valid cal then return...
 	if strupcase(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header,"ISCALIB")) ne "YES" then begin
 		self->Log, "File "+filename+" does not appear to be a valid GPI calibration file."
@@ -211,40 +217,11 @@ Function gpicaldatabase::add_new_cal, filename ;, header=header
 	filename = strtrim(filename,2)
 
 	; Read in the relevant information from the header
-	newcal = self->new_calfile_struct()
-	newcal.path= file_dirname(filename)
-	newcal.filename = file_basename(filename)
-	; check what kind of cal it is
-	newcal.type = gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "FILETYPE", count=count)
-	if count ne 1 then message,/info, "Missing keyword: FILETYPE"
-	newcal.filter = gpi_simplify_keyword_value(strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "FILTER1", count=count)))
-	if count ne 1 then begin 
-	    message,/info, "Missing keyword: FILTER1"
-        newcal.filter = gpi_simplify_keyword_value(strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "FILTER", count=count)))
-    endif
-
-	newcal.prism= gpi_simplify_keyword_value(strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "DISPERSR", count=count3)))
-	if count3 ne 1 then message,/info, "Missing keyword: DISPERSR"
-
-	newcal.apodizer= strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "APODIZER", count=count))
-	if count ne 1 then message,/info, "Missing keyword: APODIZER"
-
-	newcal.itime = (gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "ITIME", count=count3))
-    if count3 ne 1 then message,/info, "Missing keyword: ITIME"
-
-	newcal.lyot= strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "LYOTMASK", count=count))
-	if count ne 1 then message,/info, "Missing keyword: LYOT"  ; Missing in all DST files pre 2010-01-28!
-	
-	newcal.issport = strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "INPORT", count=count))
-	if count ne 1 then message,/info, "Missing keyword: INPORT"
-
-	; FIXME possibly modify this to use the MJD keywords? 
-	dateobs =  strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "DATE-OBS"))+$
-		   "T"+strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header,"TIME-OBS"))
-	newcal.jd = string(date_conv(dateobs, "J"),f='(f15.5)')
-
+	;
+	newcal = self->cal_info_from_header(fits_data)
 	
 	; add info to archive
+	; 	overwrite if already present, otherwise add new
 	if self.nfiles eq 0 then begin
 		self.data = ptr_new(newcal)
 		self->Log, "New entry added to cal DB for "+newcal.filename
@@ -260,11 +237,10 @@ Function gpicaldatabase::add_new_cal, filename ;, header=header
 		endelse
 	endelse
 	self.nfiles += 1
-	; 	overwrite if already present, otherwise add new
 
 	self.modified=1
 
-
+	; force write right away
 	if keyword_set(self.modified) then begin
 		self->write
 		self.modified=0
@@ -274,29 +250,95 @@ Function gpicaldatabase::add_new_cal, filename ;, header=header
 
 end
 
+;--------
+; Parse out the relevant header information that is useful for matching a given
+; file to its calibration data. This gets a large set of keywords, since it has
+; to be the union of values that are relevant for all files. 
+function gpicaldatabase::cal_info_from_header, fits_data
+	; 	Note that the fits_data argument should be a structure as returned by
+	; 	gpi_load_and_preprocess etc.
+	;
+	;
+	; Read in the relevant information from the header
+	thisfile = self->new_calfile_struct()
+	;thisfile.path= file_dirname(filename)
+	;thisfile.filename = file_basename(filename)
+
+	; check what kind of file it is
+	thisfile.type = gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "FILETYPE", count=count)
+	; Don't print any alert for missing FILETYPE - this is not present in raw
+	; data
+	;if count ne 1 then message,/info, "Missing keyword: FILETYPE"
+
+	filtkeys =['IFSFILT','FILTER1','FILTER']
+	for i=0,n_elements(filtkeys)-1 do begin
+		thisfile.filter = gpi_simplify_keyword_value(strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, filtkeys[i], count=count)))
+		if count eq 1 then break
+	endfor
+	if count ne 1 then begin 
+	    message,/info, "Missing keyword: FILTER1"
+    endif
+
+	thisfile.prism= gpi_simplify_keyword_value(strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "DISPERSR", count=count3)))
+	if count3 ne 1 then message,/info, "Missing keyword: DISPERSR"
+
+	thisfile.apodizer= strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "APODIZER", count=count))
+	if count ne 1 then message,/info, "Missing keyword: APODIZER"
+
+	thisfile.itime = (gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "ITIME", count=count3))
+    if count3 ne 1 then message,/info, "Missing keyword: ITIME"
+
+	thisfile.lyot= strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "LYOTMASK", count=count))
+	if count ne 1 then message,/info, "Missing keyword: LYOTMASK"  ; Missing in all DST files pre 2010-01-28!
+	
+	thisfile.inport = strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "INPORT", count=count))
+	; no INPORT in I&T data yet. 
+	;if count ne 1 then message,/info, "Missing keyword: INPORT"
+
+	; this one's complicated enough to be a function. 
+	thisfile.readoutmode = self->get_readoutmode_as_string(fits_data)
+
+	; FIXME possibly modify this to use the MJD keywords? (once present from
+	; Gemini GDS)
+	; No - DATE-OBS and UTSTART are written by the IFS, thus are the original &
+	; most accurate time stamp
+	dateobs =  strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "DATE-OBS"))+$
+		   "T"+strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header,"UTSTART"))
+	thisfile.jd = string(date_conv(dateobs, "J"),f='(f15.5)')
+
+	return, thisfile
+end
+
+
+
 ;----------
 ; Find which calibration file in the DB best matches
 ; the need for a given routine
 ; 
 ; This routine extracts the relevant parameters from a supplied FITS header and
 ; tehen calls get_best_cal to do the actual matching.
-function gpicaldatabase::get_best_cal_from_header, type, header, _extra=_extra
+function gpicaldatabase::get_best_cal_from_header, type, priheader, extheader, _extra=_extra
+	; Parameters:
+	; 	type		what kind of a dark is requested? String name. 
+	; 	priheader, extheader	like the names imply
 
-
-   dateobs2 =  strc(sxpar(header, "DATE-OBS"))+" "+strc(sxpar(header,"TIME-OBS"))
-   dateobs3 = date_conv(dateobs2, "J")
-
-   filt=strcompress(gpi_simplify_keyword_value(sxpar( header, 'FILTER1',  COUNT=cc3)),/rem)
-  ; if cc3 eq 0 then filt=strcompress(sxpar( header, 'FILTER1',  COUNT=cc3),/rem)
-
-   prism=strcompress(gpi_simplify_keyword_value(sxpar( header, 'DISPERSR',  COUNT=cc4)),/rem)
-   ;if cc4 eq 0 then prism=strcompress(sxpar( header, 'DISPERSR',  COUNT=cc4),/rem)
-
-   itime=sxpar(header, "ITIME", count=ci)
-   if ci eq 0 then itime=sxpar(header, "TRUITIME", count=ci)
-   ;if ci eq 0 then itime=sxpar(header, "ITIME", count=ci)
-   ;if ci eq 0 then itime=sxpar(header, "INTIME", count=ci)
-	return, self->get_best_cal( type, dateobs3, filt, prism, itime=itime, _extra=_extra)
+	; Pack stuff into a fits_data like structure, then extract as a struct. 
+	; This is sort of a hack to retrofit the new API into the old one. 
+	
+	fits_data = {pri_header: priheader, ext_header: extheader}
+	
+;
+;   dateobs2 =  strc(sxpar(header, "DATE-OBS"))+" "+strc(sxpar(header,"TIME-OBS"))
+;   dateobs3 = date_conv(dateobs2, "J")
+;
+;   filt=strcompress(gpi_simplify_keyword_value(sxpar( header, 'IFSFILT',  COUNT=cc3)),/rem)
+;
+;   prism=strcompress(gpi_simplify_keyword_value(sxpar( header, 'DISPERSR',  COUNT=cc4)),/rem)
+;
+;   itime=sxpar(header, "ITIME", count=ci)
+;   if ci eq 0 then itime=sxpar(header, "TRUITIME", count=ci)
+	;return, self->get_best_cal( type, dateobs3, filt, prism, itime=itime, _extra=_extra)
+	return, self->get_best_cal( type, fits_data, _extra=_extra)
 
 
 end
@@ -304,13 +346,13 @@ end
 ;----------
 ; Find which calibration file in the DB best matches
 ; the need for a given routine
-function gpicaldatabase::get_best_cal, type, date, filter, prism, itime=itime, $
+function gpicaldatabase::get_best_cal, type, fits_data
+	;date, filter, prism, itime=itime, $
 	verbose=verbose
 
+
+
 	common APP_CONSTANTS
-	; Do we describe the required needs by giving keywords explicitly
-	; in the call, or just providing the FITS header and letting this
-	; routine pull out what it needs? 
 
 	if self.nfiles eq 0 then message, "ERROR: --NO CAL FILES IN DB--"
 
@@ -324,7 +366,7 @@ function gpicaldatabase::get_best_cal, type, date, filter, prism, itime=itime, $
 	; For dark images, the filter does not matter. I'm going to change this to
 	; just 'itime' unless someone has another opinion?
 
-	types_str =[['dark', 'Dark', 'itime'], $
+	types_str =[['dark', 'Dark', 'itimeReadmode'], $
 			  	['wavecal', 'Wavelength Solution Cal File', 'FiltPrism'], $
 				['flat', 'Flat field', 'FiltPrism'], $
 				;['flat', 'Flat field', 'FiltPrism'], $
@@ -389,6 +431,27 @@ function gpicaldatabase::get_best_cal, type, date, filter, prism, itime=itime, $
 		endif
 
 	end
+	'itimeReadmode': begin
+	    imatches= where( strmatch((*self.data).type, types[itype].description+"*",/fold) and $
+	   		(((*self.data).readoutmode) eq readoutmode ) and $
+	   		((*self.data).itime) eq itime,cc)
+		errdesc = 'with same ITIME'
+		; FIXME if no exact match found for itime, fall back to closest match
+		if cc eq 0 then begin
+			if obj_valid(self.backbone) then self.backbone->Log, "GPICALDB: No exact match found for ITIME, thus looking for closesd approximate mathc instead",/DRF,depth=2
+	    	imatches_typeonly= where( strmatch((*self.data).type, types[itype].description+"*",/fold))
+			deltatimes = (*self.data)[imatches_typeonly].itime - itime
+
+			mindelta = min( abs(deltatimes), wmin)
+			imatches= where( strmatch((*self.data).type, types[itype].description+"*",/fold) and $
+				            ((*self.data).itime) eq (*self.data)[wmin[0]].itime,cc)
+			if obj_valid(self.backbone) then self.backbone->Log, "GPICALDB: Found "+strc(cc)+" approx matches with ITIME="+strc((*self.data)[wmin[0]].itime)
+
+
+		endif
+
+	end
+	
 	 'itimeFilt': begin
       	imatches= where( strmatch((*self.data).type, types[itype].description+"*",/fold) and $
         (((*self.data).itime) eq itime) and $
@@ -437,6 +500,27 @@ function gpicaldatabase::get_best_cal, type, date, filter, prism, itime=itime, $
 
 
 end
+
+
+;----------
+
+function gpicaldatabase::get_readoutmode_as_string, fits_data
+
+	if gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, 'INSTRSUB') eq 'GPI IFS Pupil' then begin
+		readoutmode = "Pupil_Viewer:"
+	endif else begin
+
+		readoutmode = strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, 'SAMPMODE'))+"_"+ $
+	    	                 strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, 'READS'))+"_"+ $
+	        	             strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, 'DATASEC'))
+						 ; TODO verify the above is all we need to track on for
+						 ; good dark matching? Anything else we care about?
+	endelse
+
+	return, readoutmode
+
+end
+
 
 
 ;----------
