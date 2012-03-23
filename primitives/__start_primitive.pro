@@ -23,19 +23,16 @@
 
 ; record this primitive name AND its version in the header for traceability.
 	if ~(keyword_set(primitive_version)) then primitive_version="unknown"
-	;sxaddhist, "Running "+functionname+"; version "+primitive_version, *(dataset.headers[numfile])
-  ;sxaddparlarge,*(dataset.headersPHU[numfile]),'HISTORY', "Running "+functionname+"; version "+primitive_version
   backbone->set_keyword,'HISTORY', "Running "+functionname+"; version "+primitive_version ;,ext_num=1
+
+
 ; if appropriate, attempt to locate and verify a calibration file.
 	if keyword_set(calfiletype) then begin
 
 		c_File = (Modules[thisModuleIndex].CalibrationFile)
 
 		if strmatch(c_File, 'AUTOMATIC',/fold) then begin
-		  ;if numext eq 0 then $
-			;c_File = (Backbone_comm->Getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headersPHU)[numfile] ) $
-			;else 
-		    c_File = (Backbone_comm->Getgpicaldb())->get_best_cal_from_header( calfiletype, [*(dataset.headersPHU)[numfile],*(dataset.headersExt)[numfile]] ) 
+		    c_File = (Backbone_comm->Getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headersPHU)[numfile],*(dataset.headersExt)[numfile] ) 
 
 			if size(c_file,/tname) eq 'INT' then if c_file eq NOT_OK then begin
 				return, error('ERROR IN CALL ('+strtrim(functionName)+'): Calibration File could not be found in calibrations database.')
