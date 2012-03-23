@@ -47,7 +47,7 @@ if issetenvok eq 0 then begin
 endif else if issetenvok eq -1 then return
   if issetenvok eq -1 then return
   ; check for the presence of a valid config, and load default if not.
-  config_valid = keyword_set(getenv('GPI_QUEUE_DIR')) and  keyword_set(getenv('GPI_CONFIG_FILE'))
+  config_valid = keyword_set(getenv('GPI_DRP_QUEUE_DIR')) and  keyword_set(getenv('GPI_DRP_CONFIG_FILE'))
   if ~config_valid then BEGIN
     initgpi_default_paths,err=err
     if err eq 1 then RETURN
@@ -55,8 +55,8 @@ endif else if issetenvok eq -1 then return
 	
   ; note thet keywords set on the command line have top precedence, then
   ; environment variables, then default settings.
-  IF ~KEYWORD_SET(QUEUE_DIR) THEN Queue_Dir = GETENV('GPI_QUEUE_DIR')
-  IF ~KEYWORD_SET(CONFIG_FILE) THEN CONFIG_FILE= GETENV('GPI_CONFIG_FILE')
+  IF ~KEYWORD_SET(QUEUE_DIR) THEN Queue_Dir = GETENV('GPI_DRP_QUEUE_DIR')
+  IF ~KEYWORD_SET(CONFIG_FILE) THEN CONFIG_FILE= GETENV('GPI_DRP_CONFIG_FILE')
 
 
 

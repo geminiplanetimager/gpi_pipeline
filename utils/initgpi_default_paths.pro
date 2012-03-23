@@ -67,7 +67,7 @@ endcase
 
 
 
-initgpi_default_onepath, 'GPI_PIPELINE_DIR', GPI_PIPELINE_DIR, /directory
+initgpi_default_onepath, 'GPI_DRP_DIR', GPI_PIPELINE_DIR, /directory
 initgpi_default_onepath, 'GPI_RAW_DATA_DIR', GPI_RAW_DATA_DIR, /directory, /write
 initgpi_default_onepath, 'GPI_DRP_OUTPUT_DIR', GPI_DRP_OUTPUT_DIR, /directory, /write
 
@@ -78,10 +78,10 @@ GPI_CONFIG_FILE=	GPI_PIPELINE_DIR+path_sep()+'dpl_library'+path_sep()+'DRSConfig
 GPI_DRF_TEMPLATES_DIR=GPI_PIPELINE_DIR+path_sep()+'drf_templates'+path_sep()
 GPI_PIPELINE_LOG_DIR = GPI_PIPELINE_DIR+path_sep()+"log"+path_sep()
 
-initgpi_default_onepath, 'GPI_QUEUE_DIR', GPI_QUEUE_DIR, /directory, /write
-initgpi_default_onepath, 'GPI_DRF_TEMPLATES_DIR', GPI_DRF_TEMPLATES_DIR, /directory, /write
-initgpi_default_onepath, 'GPI_PIPELINE_LOG_DIR', GPI_PIPELINE_LOG_DIR, /directory, /write
-initgpi_default_onepath, 'GPI_CONFIG_FILE', GPI_CONFIG_FILE
+initgpi_default_onepath, 'GPI_DRP_QUEUE_DIR', GPI_QUEUE_DIR, /directory, /write
+initgpi_default_onepath, 'GPI_DRP_TEMPLATES_DIR', GPI_DRF_TEMPLATES_DIR, /directory, /write
+initgpi_default_onepath, 'GPI_DRP_LOG_DIR', GPI_PIPELINE_LOG_DIR, /directory, /write
+initgpi_default_onepath, 'GPI_DRP_CONFIG_FILE', GPI_CONFIG_FILE
 
 ;if file_test(GPI_QUEUE_DIR,/directory, /write) && $
 ;   file_test(GPI_CONFIG_FILE) && $

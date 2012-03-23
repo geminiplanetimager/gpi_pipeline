@@ -148,7 +148,7 @@ pro automaticproc3::reduce_one, filenames
 	if widget_info(self.b_polarization_id,/button_set) then templatename='templates_drf_simple_polarization.xml'
 
 	
-	templatename=gpi_expand_path('$GPI_DRF_TEMPLATES_DIR')+path_sep()+templatename
+	templatename=gpi_expand_path('$GPI_DRP_TEMPLATES_DIR')+path_sep()+templatename
 
 	drf = obj_new('DRF', templatename, parent=self)
 	drf->set_datafiles, filenames

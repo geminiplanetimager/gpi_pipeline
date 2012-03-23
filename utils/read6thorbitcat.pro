@@ -30,7 +30,7 @@ if ~(keyword_set(name)) then begin
  	return,{sep:!values.f_nan,PA:!values.f_nan} 
 endif
 
-binarystarsfile=  gpi_expand_path('$GPI_PIPELINE_DIR'+path_sep()+'config'+path_sep()+'orb6orbits.txt')
+binarystarsfile=  gpi_expand_path('$GPI_DRP_DIR'+path_sep()+'config'+path_sep()+'orb6orbits.txt')
 
 
 if ~file_test(binarystarsfile) then begin 

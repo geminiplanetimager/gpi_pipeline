@@ -284,7 +284,7 @@ function gpiprogressbar::init
 
 	;---- overall config 
 	w_config_base = widget_base(wChildBase,/column, frame=DEBUG_FRAMES, space=0)
-	lab         = widget_label(w_config_base, value="Queue Dir:     "+ getenv('GPI_QUEUE_DIR') ,  xsize=600,/align_left)
+	lab         = widget_label(w_config_base, value="Queue Dir:     "+ getenv('GPI_DRP_QUEUE_DIR') ,  xsize=600,/align_left)
 	id_calibdir = widget_label(w_config_base, value="Calib Dir:     --"  ,  xsize=600,/align_left)
 
 	wGenLogF = widget_label(w_config_base, value="Pipeline Logfile:      --" ,/align_left, xsize=600)

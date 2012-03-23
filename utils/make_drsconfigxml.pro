@@ -16,7 +16,7 @@ pro make_drsconfigxml
 ;Scan through the various IDL *.pro files looking for magic strings
 ;    which mark the description and argument strings to use in the GUI.
 
-directory=gpi_expand_path('$GPI_PIPELINE_DIR'+path_sep()+'primitives')
+directory=gpi_expand_path('$GPI_DRP_DIR'+path_sep()+'primitives')
 list = FILE_SEARCH(directory+path_sep()+'[A-Za-z]*.pro',count=cc) 
 if cc eq 0 then begin 
     print, "ERROR: No *.pro files were found in "+directory

@@ -9,10 +9,10 @@
 #echo $resol
 
 # start the GUIs:
-\xterm -bg \#000033 -fg \#CCCC00 -geometry 80x30+20+20  -sb +ls -T 'idl: GPI DRP GUIs' -e idl $GPI_PIPELINE_DIR/scripts/gpi-pipeline__launchguis.pro  &
+\xterm -bg \#000033 -fg \#CCCC00 -geometry 80x30+20+20  -sb +ls -T 'idl: GPI DRP GUIs' -e idl $GPI_DRP_DIR/scripts/gpi-pipeline__launchguis.pro  &
 
 # Start the pipeline:
-\xterm -bg \#000033 -fg \#FFFFAA -geometry 80x30+20+450 -sb +ls -T 'idl: GPI Pipeline' -e idl $GPI_PIPELINE_DIR/scripts/gpi-pipeline__launchdrp.pro   &
+\xterm -bg \#000033 -fg \#FFFFAA -geometry 80x30+20+450 -sb +ls -T 'idl: GPI Pipeline' -e idl $GPI_DRP_DIR/scripts/gpi-pipeline__launchdrp.pro   &
 
 
 

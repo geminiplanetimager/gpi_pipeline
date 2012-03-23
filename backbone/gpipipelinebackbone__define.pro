@@ -53,11 +53,11 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session, ve
 
         ; Eventually this will be a configuration structure.
         pipelineConfig = {$
-      		default_log_dir : getenv("GPI_PIPELINE_LOG_DIR"),     $ ; Default directory for output log files
+      		default_log_dir : getenv("GPI_DRP_LOG_DIR"),     $ ; Default directory for output log files
             continueAfterDRFParsing:0,        $    ; Should program actually run the pipeline or just parse?
             MaxFramesInDataSets: 64,        $    ; OSIRIS legacy code. Not totally sure what this is for.
             MaxMemoryUsage: 0L,                 $   ; this will eventually be used for array size limits on what gets done in memory versus swapped to disk.
-			desired_dispersion: 'horizontal' $	; do we want horizontal or vertical spectra?
+			desired_dispersion: 'vertical' $	; do we want horizontal or vertical spectra?
         }
 		self.pipelineconfig=ptr_new(pipelineConfig)
 

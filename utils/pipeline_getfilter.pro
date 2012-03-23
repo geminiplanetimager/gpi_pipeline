@@ -22,7 +22,7 @@ function pipeline_getfilter,   lambda, filter=filtername
 
 	;filter_file = '.'+path_sep()+'pipeline'+path_sep()+"dpl_library"+path_sep()+'filters'+path_sep()+"GPI-filter-"+strc(filtername)+".fits"
 
-	gpi_expand_path('$GPI_PIPELINE_DIR')+path_sep()+"config"+path_sep()+'filters'+path_sep()+"GPI-filter-"+strc(filtername)+".fits"
+	gpi_expand_path('$GPI_DRP_DIR')+path_sep()+"config"+path_sep()+'filters'+path_sep()+"GPI-filter-"+strc(filtername)+".fits"
 
 	if ~file_test(filter_file) then message, "Could not find filter file! error:"+filter_file
 	filtstruct = mrdfits(filter_file,1)

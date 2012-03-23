@@ -34,7 +34,7 @@ function gpi_get_setting, settingname, expand_path=expand_path, int=int, bool=bo
 	;readcol, pipeline_settings_file, format='A,A', DELIM = string(9b), comment='#', settingnames, values, count=count, /silent
 	readcol, pipeline_settings_file, format='A,A', comment='#', settingnames, values, count=count, /silent
 	if count eq 0 then begin
-		message,/info,'WARNING: Could not load the pipeline configuration file from '+file_dirname(GETENV('GPI_CONFIG_FILE')) + path_sep() + 'pipeline_config.txt'
+		message,/info,'WARNING: Could not load the pipeline configuration file from '+file_dirname(GETENV('GPI_DRP_CONFIG_DIR')) + path_sep() + 'pipeline_config.txt'
 		return, 'ERROR'
 	endif
 

@@ -26,7 +26,7 @@
 ; PIPELINE ARGUMENT: Name="centrYpos" Type="int" Range="[0,2048]" Default="1024" Desc="Initial approximate y-position [pixel] of central peak at 1.5microns"
 ; PIPELINE ARGUMENT: Name="w" Type="float" Range="[0.,10.]" Default="4.8" Desc="Spectral spacing perpendicular to the dispersion axis at the image center [pixel]"
 ; PIPELINE ARGUMENT: Name="P" Type="float" Range="[-7.,7.]" Default="-1.8" Desc="Micro-pupil pattern"
-; PIPELINE ARGUMENT: Name="emissionlinesfile" Type="string"  Default="$GPI_PIPELINE_DIR\dpl_library\lampemissionlines.txt" Desc="File of emission lines."
+; PIPELINE ARGUMENT: Name="emissionlinesfile" Type="string"  Default="$GPI_DRP_DIR\dpl_library\lampemissionlines.txt" Desc="File of emission lines."
 ; PIPELINE ARGUMENT: Name="wav_of_centrXYpos" Type="int" Range="[1,2]" Default="2" Desc="1 if centrX-Ypos is the smallest-wavelength peak of the band; 2 if centrX-Ypos refer to 1.5microns"
 ; PIPELINE ARGUMENT: Name="maxpos" Type="float" Range="[-7.,7.]" Default="2." Desc="Allowed maximum location fluctuation (in pixel) between adjacent mlens"
 ; PIPELINE ARGUMENT: Name="maxtilt" Type="float" Range="[-360.,360.]" Default="10." Desc="Allowed maximum tilt fluctuation (in degree) between adjacent mlens"
@@ -134,7 +134,7 @@ hh=1. ;define sidelength (2hh+1 by 2hh+1 ) of box for centroid intensity detecti
 ;
 if (tag_exist( Modules[thisModuleIndex], "emissionlinesfile")) && file_test(gpi_expand_path(Modules[thisModuleIndex].emissionlinesfile),/read) then $
 emissionlinefile=  gpi_expand_path(Modules[thisModuleIndex].emissionlinesfile) else $
-    emissionlinefile=  gpi_expand_path('$GPI_PIPELINE_DIR'+path_sep()+'config'+path_sep()+'lampemissionlines.txt')
+    emissionlinefile=  gpi_expand_path('$GPI_DRP_DIR'+path_sep()+'config'+path_sep()+'lampemissionlines.txt')
 backbone->set_keyword, "HISTORY", "Lamp emission lines file used: "+emissionlinefile,ext_num=1
 
 ;res=read_ascii(emissionlinefile,data_start=2)
@@ -283,7 +283,7 @@ endcase
 
 
 	if float(Modules[thisModuleIndex].centrYpos) eq 0 or Modules[thisModuleIndex].centrXpos eq 0 then begin
-		readcol, gpi_expand_path('$GPI_PIPELINE_DIR'+path_sep()+'config'+path_sep()+'wavcal_start_positions.txt'), $
+		readcol, gpi_expand_path('$GPI_DRP_DIR'+path_sep()+'config'+path_sep()+'wavcal_start_positions.txt'), $
 			def_pos_band, def_pos_x, def_pos_y, def_type, def_orient, format='A,F,F,A,A'
 		; are we looking at data from real IFS or DST here?
 		dstver = backbone->get_keyword('DST_VER',count=dstct)

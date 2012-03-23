@@ -6,7 +6,7 @@
 #
 # The input filename is assumed to be XXXXX.YYY.xml
 # The output filename is transformed to XXXXX.waiting.xml in the queue directory
-# That directory is set by the environment variable $GPI_QUEUE_DIR
+# That directory is set by the environment variable $GPI_DRP_QUEUE_DIR
 #
 # History:
 # 2009-06-01  Script written by M. Perrin
@@ -14,5 +14,5 @@
 
 NEWFN=`echo $1 | sed 's/\..*\.xml/.waiting.xml/'`
 
-cp $1 ${GPI_QUEUE_DIR}/${NEWFN}
+cp $1 ${GPI_DRP_QUEUE_DIR}/${NEWFN}
 echo "${NEWFN} dropped into queue"

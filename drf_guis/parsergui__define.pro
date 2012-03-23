@@ -64,7 +64,7 @@ pro parsergui::startup
  
         if getenv('GPI_CONFIG_FILE') ne '' then self.config_file=getenv('GPI_CONFIG_FILE') $
         else begin
-        	dirlist=getenv('GPI_PIPELINE_DIR')+path_sep()+'utils'+path_sep()
+        	dirlist=getenv('GPI_DRP_DIR')+path_sep()+'utils'+path_sep()
 			self.config_file=dirlist[0]+"drsconfig.xml"
 		endelse
         ConfigParser = OBJ_NEW('gpiDRSConfigParser')
@@ -74,13 +74,13 @@ pro parsergui::startup
             *self.ConfigDRS = ConfigParser->getidlfunc() 
         endif
 
-        if getenv('GPI_PIPELINE_LOG_DIR') eq '' then initgpi_default_paths
+        if getenv('GPI_DRP_LOG_DIR') eq '' then initgpi_default_paths
         ; if no configuration file, choose reasonable defaults.
         cd, current=current
-        self.tempdrfdir = getenv('GPI_DRF_TEMPLATES_DIR')
+        self.tempdrfdir = getenv('GPI_DRP_TEMPLATES_DIR')
         self.inputcaldir = getenv('GPI_DRP_OUTPUT_DIR')
         self.outputdir = getenv('GPI_DRP_OUTPUT_DIR')
-        self.logpath = getenv('GPI_PIPELINE_LOG_DIR')
+        self.logpath = getenv('GPI_DRP_LOG_DIR')
 
 		if gpi_get_setting('organize_DRFs_by_dates',/bool) then begin
 			self.drfpath = gpi_get_setting('DRF_root_dir',/expand_path) + path_sep() + gpi_datestr(/current)
@@ -91,7 +91,7 @@ pro parsergui::startup
 			self->Log, "Outputting DRFs to working directory: "+self.drfpath
 		endelse
 
-        self.queuepath =getenv('GPI_QUEUE_DIR')
+        self.queuepath =getenv('GPI_DRP_QUEUE_DIR')
 
 end
 

@@ -63,8 +63,8 @@ pro queueview::startup
         self.version=2.0
  
         ;FindPro, 'make_drsconfigxml', dirlist=dirlist,/noprint
-        dirlist=getenv('GPI_PIPELINE_DIR')+path_sep()+'dpl_library'+path_sep()
-        if getenv('GPI_CONFIG_FILE') ne '' then self.config_file=getenv('GPI_CONFIG_FILE') $
+        dirlist=getenv('GPI_DRP_DIR')+path_sep()+'dpl_library'+path_sep()
+        if getenv('GPI_DRP_CONFIG_FILE') ne '' then self.config_file=getenv('GPI_DRP_CONFIG_FILE') $
         else self.config_file=dirlist[0]+"DRSConfig.xml"
         self.ConfigParser = OBJ_NEW('gpiDRSConfigParser',/silent)
     	self.Parser = OBJ_NEW('gpiDRFParser')
@@ -74,15 +74,15 @@ pro queueview::startup
             *self.ConfigDRS = self.ConfigParser->getidlfunc() 
         endif
 
-        if getenv('GPI_PIPELINE_LOG_DIR') eq '' then initgpi_default_paths
+        if getenv('GPI_DRP_LOG_DIR') eq '' then initgpi_default_paths
         ; if no configuration file, choose reasonable defaults.
         cd, current=current
-        self.tempdrfdir = getenv('GPI_DRF_TEMPLATES_DIR')
+        self.tempdrfdir = getenv('GPI_DRP_TEMPLATES_DIR')
         self.inputcaldir = getenv('GPI_DRP_OUTPUT_DIR')
         self.outputdir = getenv('GPI_DRP_OUTPUT_DIR')
-        self.logpath = getenv('GPI_PIPELINE_LOG_DIR')
+        self.logpath = getenv('GPI_DRP_LOG_DIR')
         self.drfpath = current
-        self.queuepath =getenv('GPI_QUEUE_DIR')
+        self.queuepath =getenv('GPI_DRP_QUEUE_DIR')
 
 
 end

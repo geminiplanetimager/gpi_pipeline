@@ -238,7 +238,7 @@ function drf::tostring, absolutepaths=absolutepaths
 
 	if ~(keyword_set(absolutepaths ))then begin
 		;relative pathes with environment variables        
-	  	logdir=gpi_path_relative_to_vars(self.logdir) ;'GPI_PIPELINE_LOG_DIR'
+	  	logdir=gpi_path_relative_to_vars(self.logdir) ;'GPI_DRP_LOG_DIR'
 	  	inputdir=gpi_path_relative_to_vars(self.inputdir) ;'GPI_RAW_DATA_DIR'
 	  	outputdir=gpi_path_relative_to_vars(self.outputdir) ;'GPI_DRP_OUTPUT_DIR'
 	endif else begin

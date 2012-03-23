@@ -17,7 +17,7 @@
 
 FUNCTION gpi_path_relative_to_vars, path
 
-	vars = ['GPI_DRP_OUTPUT_DIR', 'GPI_RAW_DATA_DIR', 'GPI_DRF_TEMPLATES_DIR', 'GPI_PIPELINE_LOG_DIR', 'GPI_QUEUE_DIR', 'GPI_PIPELINE_DIR','GPI_IFS_DIR']
+	vars = ['GPI_DRP_OUTPUT_DIR', 'GPI_RAW_DATA_DIR', 'GPI_DRP_TEMPLATES_DIR', 'GPI_DRP_LOG_DIR', 'GPI_DRP_QUEUE_DIR', 'GPI_DRP_DIR','GPI_IFS_DIR']
 
 
 	full_path = gpi_expand_path(path)

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- simplest possible DRF, just makes a simple data cube w/ no calibrations for Undispersed mode -->
-<DRF LogPath="$(GPI_PIPELINE_LOG_DIR)" ReductionType="ASTR - SPEC" name="Very Simple Datacube Extraction">
+<DRF LogPath="$(GPI_DRP_LOG_DIR)" ReductionType="ASTR - SPEC" name="Very Simple Datacube Extraction">
 <dataset InputDir="$(GPI_RAW_DATA_DIR)" Name="" OutputDir="$(GPI_DRP_OUTPUT_DIR)">
    <fits FileName="" />
 </dataset>

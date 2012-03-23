@@ -464,7 +464,7 @@ endif else if issetenvok eq -1 then return,0
 		basecol_id=WIDGET_BASE(self.baseid ,/column)
 		baseid2=WIDGET_BASE(basecol_id,/row,/BASE_ALIGN_CENTER )
         ;FindPro, 'drfgui__define', dirlist=dirlist,/noprint
-        dirpro= getenv('GPI_PIPELINE_DIR');dirlist[0]
+        dirpro= getenv('GPI_DRP_DIR');dirlist[0]
 
     if file_test(dirpro+path_sep()+'gpi.bmp') then begin
   		button_image = READ_BMP(dirpro+path_sep()+'gpi.bmp', /RGB) 
