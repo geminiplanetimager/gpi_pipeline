@@ -23,17 +23,17 @@ setenv GPI_DATA_ROOT "~/GPI/data"	# base dir for all data
 #----- Most users will not need to change anything below here -----
 
 # where is the software?
-setenv GPI_PIPELINE_DIR "$GPI_IFS_DIR/pipeline"	# pipeline 
-setenv GPI_PIPELINE_LOG_DIR "$GPI_PIPELINE_DIR/log/"		# default log dir
-setenv GPI_CONFIG_FILE "$GPI_PIPELINE_DIR/dpl_library/drsconfig.xml"
-setenv GPI_CONFIG_FILE "$GPI_PIPELINE_DIR/dpl_library/drsConfig.xml"
+setenv GPI_DRP_DIR "$GPI_IFS_DIR/pipeline"	# pipeline 
+setenv GPI_DRP_LOG_DIR "$GPI_DRP_DIR/log/"		# default log dir
+setenv GPI_DRP_CONFIG_DIR "$GPI_DRP_DIR/dpl_library/drsconfig.xml"
+setenv GPI_DRP_CONFIG_DIR "$GPI_DRP_DIR/dpl_library/drsConfig.xml"
 
 # where is the data?
 setenv GPI_RAW_DATA_DIR "$GPI_DATA_ROOT/raw/"
 setenv GPI_DRP_OUTPUT_DIR "$GPI_DATA_ROOT/reduced/"
-setenv GPI_QUEUE_DIR "$GPI_DATA_ROOT/queue/"		# DRF Queue directory
-setenv GPI_PIPELINE_LOG_DIR "$GPI_DATA_ROOT/logs/"	# default log dir
+setenv GPI_DRP_QUEUE_DIR "$GPI_DATA_ROOT/queue/"		# DRF Queue directory
+setenv GPI_DRP_LOG_DIR "$GPI_DATA_ROOT/logs/"	# default log dir
 
 #---------- make sure the startup scripts are in your $PATH   -----
-setenv PATH "${PATH}:${GPI_PIPELINE_DIR}/scripts"
+setenv PATH "${PATH}:${GPI_DRP_DIR}/scripts"
 setenv IDL_PATH "${IDL_PATH}:+${GPI_IFS_DIR}"

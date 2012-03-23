@@ -3,7 +3,10 @@
 # Stand alone script to launch GPI DRP IDL program.
 #
 
-which xterm
+#which xterm
+# check screen resolution 
+#set resol  `xdpyinfo | grep dimensions | awk '{ print $2 }'`
+#echo $resol
 
 # start the GUIs:
 \xterm -bg \#000033 -fg \#CCCC00 -geometry 80x30+20+20  -sb +ls -T 'idl: GPI DRP GUIs' -e idl $GPI_PIPELINE_DIR/scripts/gpi-pipeline__launchguis.pro  &
