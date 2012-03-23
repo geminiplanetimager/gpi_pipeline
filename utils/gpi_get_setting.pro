@@ -27,7 +27,8 @@
 
 function gpi_get_setting, settingname, expand_path=expand_path, int=int, bool=bool
 
-	pipeline_settings_file = file_dirname(GETENV('GPI_CONFIG_FILE')) + path_sep() + 'pipeline_settings.txt'
+	;pipeline_settings_file = file_dirname(GETENV('GPI_DRP_CONFIG_FILE')) + path_sep() + 'pipeline_settings.txt'
+	pipeline_settings_file = GETENV('GPI_DRP_CONFIG_DIR') + path_sep() + 'pipeline_settings.txt'
 
 	; FIXME make this more robust to any whitespace as separator
 	;readcol, pipeline_settings_file, format='A,A', DELIM = string(9b), comment='#', settingnames, values, count=count, /silent
@@ -39,7 +40,10 @@ function gpi_get_setting, settingname, expand_path=expand_path, int=int, bool=bo
 
 	wm = where(strmatch(settingnames, settingname, /fold_case), ct)
 	if ct eq 0 then begin
+		message,/info,"-----------------------------------------"
 		message,/info, "ERROR: could not find a setting named "+settingname
+		message,/info, "Check your file : "+pipeline_settings_file
+		message,/info,"-----------------------------------------"
 		stop
 		return, 'ERROR'
 	endif

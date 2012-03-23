@@ -54,7 +54,7 @@ PRO gpi_set_keyword, keyword, value, pri_header, ext_header, comment=comment, ex
 
 
 	;if keyword_set(DEBUG) then 
-	message,/info, "Writing keyword "+keyword+" to extension "+strc(ext_num)+", value="+strc(value)
+	if ~(keyword_set(silent)) then message,/info, "Writing keyword "+keyword+" to extension "+strc(ext_num)+", value="+strc(value)
 
 	; JM: I do not understand why but fxaddpar do not cut "long" value for "HISTORY" and "COMMENT" keywords
   	if ~strmatch(keyword,'*HISTORY*') then begin 

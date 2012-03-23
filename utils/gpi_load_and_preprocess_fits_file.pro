@@ -30,7 +30,7 @@
 ; simple utility function for a common task
 pro gpi_set_keyword_if_missing, pri_header, ext_header, keyword, value, comment, _extra=_extra
 	val = gpi_get_keyword(pri_header, ext_header, keyword, count=count,/silent)
-	if count eq 0 then gpi_set_keyword, keyword, value, pri_header, ext_header, comment=comment, _extra=_extra
+	if count eq 0 then gpi_set_keyword, keyword, value, pri_header, ext_header, comment=comment, _extra=_extra,/silent
 end
 
 
@@ -47,17 +47,12 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 	; It then returns an anonymous struct containing pointers to those three
 	; items. 
 
-    ;COMMON APP_CONSTANTS
-    ;common PIP
 	NOT_OK =  -1
 
-    ;self.progressbar->set_action, "Reading FITS file "+filename
     if ~file_test(filename,/read) then begin
-        self->Log, "ERROR: Unable to read file "+filename, /GENERAL, /DRF
-        self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
+        message,/info, "ERROR: File does not exist: "+filename
         return,NOT_OK
     endif
-
 
 	; Read in the file, and check whether it is a single image or has
 	; extensions.
@@ -91,13 +86,9 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 	endif 
 		
     if n_elements( currframe ) eq 1 then if currframe eq -1 then begin
-        self->Log, "ERROR: Unable to read file "+filename, /GENERAL, /DRF
-        self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
+        message,/info, "ERROR: Unable to read file "+filename
         return,NOT_OK 
     endif
-
-	;orig_pri_header = pri_header
-	;orig_ext_header = ext_header
 
 
 	if ~(keyword_set(silent)) then message,/info, '** Updating header to match Gemini standard ** '
@@ -113,22 +104,6 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 		return,NOT_OK 
 	endif
   
-   
-;    ;--- update the headers: append the DRF onto the actual FITS header
-;    ;  At this point the *(*self.data).HeadersPHU[IndexFrame] variable contains
-;    ;  ONLY the DRF appended in FITS header COMMENT form. 
-;    ;  Append this onto the REAL fits header we just read in from disk.
-;    ;
-;	
-;    SXDELPAR, *(*self.data).HeadersPHU[IndexFrame], '' ;remove blanks
-;    SXDELPAR, *(*self.data).HeadersPHU[IndexFrame], 'END'
-;    SXDELPAR, pri_header, 'END'
-;    *(*self.data).HeadersPHU[IndexFrame]=[pri_header,*(*self.data).HeadersPHU[IndexFrame], 'END            ']
-;    ; ***WARNING***   don't use SXADDPAR for 'END', it gets the syntax wrong
-;    ; and breaks pyfits. i.e. do not try this following line. The above one
-;    ; is required. 
-;    ;SXADDPAR, *(*self.data).HeadersExt[IndexFrame], "END",''        
-    
 
 	;---- update the headers: FITS standard compliance
 	; Check and if necessary update required FITS keywords for extensions
@@ -145,9 +120,9 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 	;--- update the headers: fix obsolete keywords by changing them
 	;  to official standardized values. 
 	
-	obsolete_keywords = ['PRISM',   'FILTER3', 'FILTER2', 'FILTER4', 'FILTER', 'LYOT', 'GAIN']
-	approved_keywords = ['DISPERSR','DISPERSR', 'CALFILT', 'ADC',    'FILTER1' , 'LYOTMASK', 'SYSGAIN']
-	default_values = ['Spectral','Spectral','H','IN','H','CLASSIC','1.0']
+	obsolete_keywords = ['PRISM',   'FILTER3',  'FILTER4', 'FILTER', 'FILTER1', 'LYOT', 'GAIN']
+	approved_keywords = ['DISPERSR','DISPERSR',  'ADC',    'IFSFILT' ,'IFSFILT', 'LYOTMASK', 'SYSGAIN']
+	default_values = ['Spectral','Spectral','OUT','H','H', 'CLASSIC','1.0']
 
 	for i=0L, n_elements(approved_keywords)-1 do begin
 		val_approved = gpi_get_keyword(pri_header, ext_header, approved_keywords[i], count=count,/silent)
@@ -155,9 +130,12 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 			; in that case, see if we have an obsolete keyword and then try to
 			; use it.
 			val_obsolete = gpi_get_keyword(pri_header, ext_header, obsolete_keywords[i], count=count_obs, comment=comment,/silent)
-			if count_obs eq 0 then val_obsolete = default_values[i]
+			if count_obs eq 0 then begin
+				val_obsolete = default_values[i]
+				comment = 'KEYWORD WAS MISSING - Default value'
+			endif
 			;if count_obs gt 0 then begin 
-				gpi_set_keyword, approved_keywords[i], val_obsolete, pri_header, ext_header, comment=comment
+				gpi_set_keyword, approved_keywords[i], val_obsolete, pri_header, ext_header, comment=comment,/silent
 				if ~(keyword_set(silent)) then message,/info, 'Converted obsolete keyword '+obsolete_keywords[i]+' into '+approved_keywords[i]+" with value="+strc(val_obsolete)
 			;endif
 		endif
@@ -176,40 +154,47 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 
     ;;add POLARIZ & WPSTATE keywords, if they are missing
 	;val_polariz = gpi_get_keyword(pri_header, ext_header, 'POLARIZ', count=count)
-	default_polariz =   strmatch(val_disp, '*Pol*')  ? 'DEPLOYED' : 'EXTRACTED'
-	gpi_set_keyword_if_missing, pri_header, ext_header, 'POLARIZ', default_polariz 
+	;default_polariz =   strmatch(val_disp, '*Pol*')  ? 'DEPLOYED' : 'EXTRACTED'
+	;gpi_set_keyword_if_missing, pri_header, ext_header, 'POLARIZ', default_polariz 
 
-	
 	default_WPSTATE =   strmatch(val_disp, '*Pol*')  ? 'IN' : 'OUT'
-	gpi_set_keyword_if_missing, pri_header, ext_header, 'WPSTATE', default_WPSTATE 
+	gpi_set_keyword_if_missing, pri_header, ext_header, 'WPSTATE', default_WPSTATE, comment="KEYWORD WAS MISSING - Default value"
 
     ;;change FILTER1 value according to GPI new conventions
-    val_old = gpi_get_keyword(pri_header, ext_header, 'FILTER1', count=count,/silent)
+    val_old = gpi_get_keyword(pri_header, ext_header, 'IFSFILT', count=count,/silent)
     newval=''
     tabfiltold=['Y','J','H','K1','K2']
     newtabfilt=['IFSFILT_Y_G1211','IFSFILT_J_G1212','IFSFILT_H_G1213','IFSFILT_K1_G1214','IFSFILT_K2_G1215']
     indc=where(strmatch(tabfiltold,strcompress(val_old,/rem)))
     if indc ge 0 then newval=(newtabfilt[indc])[0]
-    if strlen(newval) gt 0 then gpi_set_keyword, 'FILTER1', newval, pri_header, ext_header, silent=silent
+    if strlen(newval) gt 0 then gpi_set_keyword, 'IFSFILT', newval, pri_header, ext_header, silent=silent
 
 
-	gpi_set_keyword_if_missing, pri_header, ext_header, 'TELESCOP', 'Gemini South', comment='Assuming this is GPI data?' 
-	gpi_set_keyword_if_missing, pri_header, ext_header, 'INSTRUME', 'GPI', comment='Assuming this is GPI data?' 
-	gpi_set_keyword_if_missing, pri_header, ext_header, 'INSTRSUB', 'GPI IFS', comment='Assuming this is GPI data?'
-	gpi_set_keyword_if_missing, pri_header, ext_header, 'OBSTYPE', 'Object', comment='Assuming this is object data?'
-	gpi_set_keyword_if_missing, pri_header, ext_header, 'OBSID', 'GS-1', comment='Obs ID unknown?'
-	gpi_set_keyword_if_missing, pri_header, ext_header, 'OCCULTER', 'FPM_BLANK_G6221', comment='Occulter unknown?'
-	gpi_set_keyword_if_missing, pri_header, ext_header, 'OBJECT', 'Unknown', comment='Object unknown?'
+	gpi_set_keyword_if_missing, pri_header, ext_header, 'TELESCOP', 'Gemini South', comment="KEYWORD WAS MISSING - Default value"
+	gpi_set_keyword_if_missing, pri_header, ext_header, 'INSTRUME', 'GPI', comment="KEYWORD WAS MISSING - Default value"
+
+
+	; Are we looking at pupil camera data or real IFS data? 
+	if sxpar(ext_header, 'NAXIS1') eq 320 and sxpar(ext_header, 'NAXIS2') eq 240 then instrsub = 'GPI IFS Pupil' else instrsub ='GPI IFS'
+	gpi_set_keyword_if_missing, pri_header, ext_header, 'INSTRSUB', instrsub, comment='KEYWORD WAS MISSING - Guessed value'
+
+
+	; Default OBSTYPE should be Dark if the blank is in
+	lyotmask = gpi_get_keyword(pri_header, ext_header, 'LYOTMASK', count=ct_lyot,/silent)
+	if strmatch(lyotmask, "blank",/fold_case) then default_obstype='Dark' else default_obstype='Unknown'
+	gpi_set_keyword_if_missing, pri_header, ext_header, 'OBSTYPE', default_obstype, comment='KEYWORD WAS MISSING - unknown'
+	gpi_set_keyword_if_missing, pri_header, ext_header, 'OBSID', 'GS-1', comment='KEYWORD WAS MISSING - unknown'
+	gpi_set_keyword_if_missing, pri_header, ext_header, 'OCCULTER', 'FPM_BLANK_G6221', comment='KEYWORD WAS MISSING - unknown'
+	gpi_set_keyword_if_missing, pri_header, ext_header, 'OBJECT', 'Unknown', comment='KEYWORD WAS MISSING - unknown'
 
 
     ;add OBSMODE keyword
-    ;if strlen(val_old) gt 0 then 
-	gpi_set_keyword_if_missing, pri_header, ext_header , 'OBSMODE', val_old
+	gpi_set_keyword_if_missing, pri_header, ext_header , 'OBSMODE', val_old, comment='KEYWORD WAS MISSING - unknown' ; set mode to base filter name
 	;add ABORTED keyword
-	gpi_set_keyword_if_missing, pri_header, ext_header, 'ABORTED', 'F' 
+	gpi_set_keyword_if_missing, pri_header, ext_header, 'ABORTED', 'F' , comment='KEYWORD WAS MISSING - unknown'
 
     ;change BUNIT value
-	gpi_set_keyword_if_missing, pri_header, ext_header, 'BUNIT', 'Counts/second/coadd' 
+	gpi_set_keyword_if_missing, pri_header, ext_header, 'BUNIT', 'Counts/second/coadd' , comment='KEYWORD WAS MISSING - unknown?'
 
     ;gpi_set_keyword, 'BUNIT', 'Counts/seconds/coadd',  indexFrame=indexFrame,ext_num=1, silent=silent
     ;sxdelpar, *(*self.data).HeadersPHU[IndexFrame], 'BUNIT'
@@ -219,12 +204,13 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 	; to be standards compliant, the ITIME *must* be in the extension header
 	val = sxpar( ext_header, 'ITIME', count=count_itime,/silent)
 	
-	if count_itime eq 0 then begin
+	; Update time keywords if needed - but NOT for pupil viewer images
+	if count_itime eq 0 and gpi_get_keyword(pri_header, ext_header, 'INSTRSUB') ne 'GPI IFS Pupil' then begin
 		if ~(keyword_set(silent)) then message,/info, 'Updating exposure time keywords.'
 		;change ITIME,EXPTIME,ITIME0,TRUITIME: 
 		;BE EXTREMLY CAREFUL with change of units
 		;;old itime[millisec], old exptime[in sec]
-		;; new itime [seconds per coadd],  new itime0[microsec per coadd]
+		;; new itime [seconds per coadd],  new itime0 [microsec per coadd]
 		
 
 		; find the old requested ITIME0, which should be in microsec.
@@ -252,7 +238,7 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 		sxdelpar, pri_header, 'TRUITIME'
 		gpi_set_keyword, 'ITIME', float(val_old_itime),  comment='Exposure integration time in seconds per coadd', pri_header, ext_header, silent=silent
 		gpi_set_keyword, 'ITIME0', long(val_old_itime0),  comment='Requested integration time in microsec per coadd', pri_header, ext_header, silent=silent
-		gpi_set_keyword, 'EXPTIME', float(val_old_itime),  comment='Exposure integration time in seconds per coadd', pri_header, ext_header, silent=silent
+		;gpi_set_keyword, 'EXPTIME', float(val_old_itime),  comment='Exposure integration time in seconds per coadd', pri_header, ext_header, silent=silent
 	endif
 
 	; sanity check the value for units (assumes no exposures will be taken over
@@ -286,10 +272,10 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
     ;add ASTROMTC keyword
     val_old = gpi_get_keyword(pri_header, ext_header, 'OBSCLASS', count=count,/silent)
     if strmatch(val_old, '*AstromSTD*',/fold) then astromvalue='T' else astromvalue='F'
-    gpi_set_keyword_if_missing, pri_header, ext_header, 'ASTROMTC', astromvalue, 'Is this star an astrometric standard?'
+    gpi_set_keyword_if_missing, pri_header, ext_header, 'ASTROMTC', astromvalue, comment='KEYWORD WAS MISSING - Guessed value' 
     
     ;;set the reserved OBSCLASS keyword
-    gpi_set_keyword_if_missing, pri_header, ext_header, 'OBSCLASS', 'acq'
+    gpi_set_keyword_if_missing, pri_header, ext_header, 'OBSCLASS', 'acq' , comment='KEYWORD WAS MISSING - Default value'
 
     ;;add the INPORT keyword
 	val_port = sxpar(pri_header, 'INPORT', count=count)
@@ -300,7 +286,7 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 		if strmatch(val_port,'*bottom*') then newport=1
 		if strmatch(val_port,'*side*') then newport=2
 		if strmatch(val_port,'*perfect*') then newport=6
-		if newport ne val_port then gpi_set_keyword, 'INPORT', newport, pri_header, ext_header, comment='Which ISS instrument port?', silent=silent
+		if newport ne val_port then gpi_set_keyword, 'INPORT', newport, pri_header, ext_header, comment='Which ISS instrument port?', /silent
 		sxdelpar, pri_header, 'ISS_PORT'
 	endif 
 
@@ -311,15 +297,13 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 
 	gpi_set_keyword_if_missing, pri_header, ext_header, "DATAFILE", file_basename(filename), "File name", before="END"
 	gpi_set_keyword_if_missing, pri_header, ext_header, "DATAPATH", file_dirname(filename), "Original path of DRP input", before="END"
-    ;FXADDPAR, pri_header, "DATAFILE", file_basename(filename), "File name", before="END"
-    ;FXADDPAR, pri_header, "DATAPATH", file_dirname(filename), "Original path of DRP input", before="END"
    
 
     ;---- is the frame from the entire detector or just a subarray?
 	;if numext eq 0 then datasec=SXPAR( header, 'DATASEC',count=cds) else instrum=SXPAR( headPHU, 'DATASEC',count=cds)
 	datasec=gpi_get_keyword(pri_header, ext_header, 'DATASEC',count=cds)
 	if cds eq 1 then begin
-	  ; DATASSEC format is "[DETSTRTX:DETENDX,DETSTRTY:DETENDY]" from gpiheaders_20110425.xls (S. Goodsell)
+	  ; DATASSEC format is "[DETSTRTX:DETENDX,DETSTRTY:DETENDY]"
 		DETSTRTX=fix(strmid(datasec, 1, stregex(datasec,':')-1))
 		DETENDX=fix(strmid(datasec, stregex(datasec,':')+1, stregex(datasec,',')-stregex(datasec,':')-1))
 		datasecy=strmid(datasec,stregex(datasec,','),strlen(datasec)-stregex(datasec,','))
@@ -332,21 +316,6 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 		  currframe=tmpframe
 		endif
 	endif else gpi_set_keyword_if_missing, pri_header, ext_header, 'DATASEC', '[1:2048,1:2048]'
-
-
-    ;---- Rotate the image, if necessary -------
-	; Algorithm commented out by Marshall: *never* rotate real data now.
-	
-    ;instrum=SXPAR( pri_header, 'INSTRUME',count=c1)
-	;if ((~strmatch(instrum,'*DST*') && (   eq '' ))  $
-	;  OR (strlowcase(sxpar( pri_header, 'DSORIENT')) eq 'vertical' and desired_orient eq 'horizontal')) $
-  	;  and ~(keyword_set(NODATA)) then begin
-	;	if ~(keyword_set(silent)) then message,/info, "Image detected as IFS raw file, assumed vertical spectrum orientation. Must be reoriented to horizontal spectrum direction."
-    ;    currframe=rotate(transpose(currframe),2)
-	;	fxaddpar, pri_header,  'HISTORY', 'Raw image rotated by 90 degrees'
-	;	fxaddpar, pri_header,  'DSORIENT', 'horizontal', 'Spectral dispersion is horizontal'
-    ;	if ~(keyword_set(silent)) then message,/info, 'Image rotated to match old DST convention of horizontal dispersion!'
-    ;endif
 
 
 	if keyword_set(nodata) then return, { pri_header: ptr_new(pri_header), ext_header: ptr_new(ext_header)} else $
