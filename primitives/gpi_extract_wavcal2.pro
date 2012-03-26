@@ -61,6 +61,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
    ;;'Image rotated to match old DST convention of horizontal dispersion!' 
    ;; final wavelength solution at the end of this routine is derotated to match vertical dispersion
    im=rotate(im,1)
+   ;;need to rotate the bad pixel map too
+   if (size(badpixmap))[0] gt 0 then badpixmaprot=rotate(badpixmap,1)
     ;if numext eq 0 then h= *(dataset.headers)[numfile] else h= *(dataset.headersPHU)[numfile]
   ; h=*(dataset.headers[numfile])
             ;error handle if image or header not well handled
@@ -89,7 +91,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     
     ;lamp=backbone->get_keyword( 'OBJECT',count=c2);backbone->get_keyword( 'GCALLAMP',count=c2) ;
     c3=1&lampshut='ON';lampshut=SXPAR( h, 'GCALSHUT',count=c3) ;will be implemented if necessary
-    bandeobs=backbone->get_keyword( 'FILTER1',count=c4)
+    bandeobs=backbone->get_keyword( 'IFSFILT',count=c4)
 	if strpos(bandeobs, '_') gt 0 then bandeobs = (strsplit(bandeobs,'_',/extract))[1] ; turn IFSFILT_H_G1213 into just H
   ;if c4 eq 0 then bandeobs=SXPAR( h, 'FILTER1',count=c4)
     instrum=backbone->get_keyword( 'INSTRUME',count=cinstru)
@@ -352,7 +354,7 @@ endif
 
 ;calculate now x-y locations of the first peak of all spectra (specpos[*,*,0] and specpos[*,*,1]): 
 ;for quadrant=1L,4 do find_spectra_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,specpos,im,edge_x1,edge_x2,edge_y1,edge_y2,tight_pos
-for quadrant=1L,4 do find_spectra_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,specpos,im,edge_x1,edge_x2,edge_y1,edge_y2,tight_pos,badpixmap=badpixmap
+for quadrant=1L,4 do find_spectra_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,specpos,im,edge_x1,edge_x2,edge_y1,edge_y2,tight_pos,badpixmap=badpixmaprot
 
 if strcmp(obstype,'flat',4,/fold) then specpos[*,*,0]-=0.5 ;take account of spatial shift in derivative
 

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DRF LogPath="" ReductionType="CAL - SPEC" name='Wavelength Solution for DST'>
+<dataset InputDir="" Name="" OutputDir="">
+   <fits FileName="" />
+</dataset>
+<module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="0" suffix="-darksub" gpitv="0" />
+<module name="Measure Wavelength Calibration" nlens="281" centrXpos="1023" centrYpos="1021" w="4.8" P="2." emissionlinesfile="$GPI_DRP_DIR\config\lampemissionlines.txt" wav_of_centrXYpos="2" maxpos="2." maxtilt="10." medfilter="1" Save="       1" suffix="-wavcal" gpitvim_dispgrid="10" gpitv="0" tests="0" testsDST="0" />
+<module name="Accumulate Images" Method="OnDisk" />
+<module name="Combine Wavelength Calibrations" Save="       1" suffix="-comb" gpitv="11" />
+</DRF>

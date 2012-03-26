@@ -45,7 +45,7 @@ szim=size(im)
 
 	     if keyword_set(badpixmap) then begin
           if total(badpixmap[ind1[0]-hh:ind1[0]+hh , ind1[1]-hh :ind1[1]+hh ]) eq 0. then begin
-          paramgauss1=centroid( im[ind1[0]-hh:ind1[0]+hh , ind1[1]-hh :ind1[1]+hh ])
+          paramgauss1=gpicentroid( im[ind1[0]-hh:ind1[0]+hh , ind1[1]-hh :ind1[1]+hh ])
 
           	;paramgauss1=centroid( im[ind1[0]-hh >0:ind1[0]+hh< (size(im))(1)-1 , ind1[1]-hh > 0:ind1[1]+hh < (size(im))(2)-1])
           		; centroid coord:
@@ -64,7 +64,7 @@ szim=size(im)
            endelse
  
         endif else begin
-          paramgauss1=centroid( im[ind1[0]-hh:ind1[0]+hh , ind1[1]-hh :ind1[1]+hh ])
+          paramgauss1=gpicentroid( im[ind1[0]-hh:ind1[0]+hh , ind1[1]-hh :ind1[1]+hh ])
            if (paramgauss1[0] ge 0) && (paramgauss1[0] le 2.*hh+1.) then $
             cen1[0]=double(ind1[0])-hh+paramgauss1[0]
             if (paramgauss1[1] ge 0) && (paramgauss1[1] le 2.*hh+1.) then $
