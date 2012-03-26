@@ -326,21 +326,24 @@ function gpicaldatabase::get_best_cal_from_header, type, priheader, extheader, _
 
 	; Pack stuff into a fits_data like structure, then extract as a struct. 
 	; This is sort of a hack to retrofit the new API into the old one. 
-	
-	fits_data = {pri_header: priheader, ext_header: extheader}
-	
+
+
+	;fits_data = {pri_header: priheader, ext_header: extheader}
+	;JM changes for pointers
+	 fits_data = {pri_header: ptr_new(priheader), ext_header: ptr_new(extheader)}
 ;
+;header=[priheader, extheader]
 ;   dateobs2 =  strc(sxpar(header, "DATE-OBS"))+" "+strc(sxpar(header,"TIME-OBS"))
 ;   dateobs3 = date_conv(dateobs2, "J")
-;
+;;
 ;   filt=strcompress(gpi_simplify_keyword_value(sxpar( header, 'IFSFILT',  COUNT=cc3)),/rem)
-;
+;;
 ;   prism=strcompress(gpi_simplify_keyword_value(sxpar( header, 'DISPERSR',  COUNT=cc4)),/rem)
-;
+;;
 ;   itime=sxpar(header, "ITIME", count=ci)
 ;   if ci eq 0 then itime=sxpar(header, "TRUITIME", count=ci)
-	;return, self->get_best_cal( type, dateobs3, filt, prism, itime=itime, _extra=_extra)
-	return, self->get_best_cal( type, fits_data, _extra=_extra)
+;	return, self->get_best_cal( type, fits_data, dateobs3, filt, prism, itime=itime, _extra=_extra)
+	return, self->get_best_cal( type, fits_data)
 
 
 end
@@ -348,8 +351,7 @@ end
 ;----------
 ; Find which calibration file in the DB best matches
 ; the need for a given routine
-function gpicaldatabase::get_best_cal, type, fits_data
-	;date, filter, prism, itime=itime, $
+function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, itime=itime, $
 	verbose=verbose
 
 
@@ -407,6 +409,12 @@ function gpicaldatabase::get_best_cal, type, fits_data
 		return, NOT_OK
 	endif 
 
+newfile = self->cal_info_from_header(fits_data)
+date=newfile.jd
+filter=newfile.filter
+prism=newfile.prism
+itime=newfile.itime
+readoutmode=self->get_readoutmode_as_string(fits_data)
 
 	case types[itype].match_on of 
 	'typeonly': begin
