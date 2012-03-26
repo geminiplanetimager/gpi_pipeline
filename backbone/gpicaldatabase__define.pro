@@ -88,7 +88,7 @@ FUNCTION gpicaldatabase::init, directory=directory, dbfilename=dbfilename, backb
 		for i=0,n_tags(data)-1 do if size(data.(i),/TNAME) eq "STRING" then data.(i) = strtrim(data.(i),2)
 		self.data = ptr_new(data,/no_copy)
 		self.nfiles = n_elements(*self.data)
-		self->Log, "Loaded Calibrations DB from "+calfile
+		self->Log, "Loaded Calibrations DB from "+caldbfile
 		self->Log, "  Found "+strc(self.nfiles)+ " entries"
 	
 
@@ -218,8 +218,10 @@ Function gpicaldatabase::add_new_cal, filename ;, header=header
 
 	; Read in the relevant information from the header
 	;
-	newcal = self->cal_info_from_header(fits_data)
 	
+	newcal = self->cal_info_from_header(fits_data)
+	 newcal.path= file_dirname(filename)
+  newcal.filename = file_basename(filename)
 	; add info to archive
 	; 	overwrite if already present, otherwise add new
 	if self.nfiles eq 0 then begin
