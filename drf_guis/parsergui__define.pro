@@ -62,7 +62,7 @@ pro parsergui::startup
         self.drf_summary=       ptr_new(/ALLOCATE_HEAP)
         self.version=2.0
  
-        if getenv('GPI_CONFIG_FILE') ne '' then self.config_file=getenv('GPI_CONFIG_FILE') $
+        if getenv('GPI_DRP_CONFIG_FILE') ne '' then self.config_file=getenv('GPI_DRP_CONFIG_FILE') $
         else begin
         	dirlist=getenv('GPI_DRP_DIR')+path_sep()+'utils'+path_sep()
 			self.config_file=dirlist[0]+"drsconfig.xml"
@@ -202,7 +202,7 @@ pro defaultpath_event,ev
             widget_control, self.defqueuepath_id, set_value=self.queuepath
        end
        'SAVE'  : begin
-					configdir = file_dirname(gpi_expand_path('$GPI_CONFIG_FILE'))
+					configdir = file_dirname(gpi_expand_path('$GPI_DRP_CONFIG_FILE'))
                     OpenW, lun, configdir+path_sep()+'drfgui_config.txt', /Get_Lun
                     PrintF, lun, 'INPUTCAL: ', self.inputcaldir
                     PrintF, lun, 'OUTPUT: ', self.outputdir

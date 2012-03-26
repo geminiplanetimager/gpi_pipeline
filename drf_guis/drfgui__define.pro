@@ -327,11 +327,11 @@ function drfgui::get_configParser
     if self.config_file eq '' then begin
         ;FindPro, 'make_drsconfigxml', dirlist=dirlist
         dirlist=getenv('GPI_DRP_DIR')+path_sep()+'dpl_library'+path_sep()
-        if getenv('GPI_CONFIG_FILE') ne '' then self.config_file=getenv('GPI_CONFIG_FILE') $
+        if getenv('GPI_DRP_CONFIG_FILE') ne '' then self.config_file=getenv('GPI_DRP_CONFIG_FILE') $
         else self.config_file=dirlist[0]+"DRSConfig.xml"
 
     endif
-    if ~file_test(self.config_file) then message, 'ERROR: Cannot find DRS Config File! Check $GPI_CONFIG_FILE environment variable'
+    if ~file_test(self.config_file) then message, 'ERROR: Cannot find DRS Config File! Check $GPI_DRP_CONFIG_FILE environment variable'
 
     ConfigParser = OBJ_NEW('gpiDRSConfigParser')
     ConfigParser -> ParseFile, self.config_file 

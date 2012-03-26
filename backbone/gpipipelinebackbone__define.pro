@@ -61,7 +61,7 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session, ve
         }
 		self.pipelineconfig=ptr_new(pipelineConfig)
 
-    if ~(keyword_set(config_file)) then config_file=GETENV('GPI_CONFIG_FILE') ;"DRSConfig.xml"
+    if ~(keyword_set(config_file)) then config_file=GETENV('GPI_DRP_CONFIG_FILE') ;"DRSConfig.xml"
     self.verbose = keyword_set(verbose)
     ver = gpi_pipeline_version()
 

@@ -17,7 +17,7 @@ PRO gpi_load_keyword_table
 	if ptr_valid(keyword_info) then ptr_free, keyword_info
 
 	; this file will be in the same directory as drsconfig.xml
-	mod_config_file=GETENV('GPI_DRP_CONFIG_DIR')
+	mod_config_file=GETENV('GPI_DRP_CONFIG_FILE')
 	keyword_config_file = file_dirname(mod_config_file) + path_sep() + 'keywordconfig.txt'
 	readcol, keyword_config_file, keywords, extensions,  format='A,A',SKIPLINE=2,silent=1 ; tab separated
 	; TODO: error checking!

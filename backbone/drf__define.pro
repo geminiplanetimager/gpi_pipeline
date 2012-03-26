@@ -297,9 +297,9 @@ function drf::get_configParser
 	;
 	; This function returns an object reference; be sure to destroy it when you're
 	; done
-	config_file=getenv('GPI_CONFIG_FILE') 
+	config_file=getenv('GPI_DRP_CONFIG_FILE') 
 
-    if ~file_test(config_file) then message, 'ERROR: Cannot find DRS Config File! Check $GPI_CONFIG_FILE environment variable'
+    if ~file_test(config_file) then message, 'ERROR: Cannot find DRS Config File! Check $GPI_DRP_CONFIG_FILE environment variable'
 
     ConfigParser = OBJ_NEW('gpiDRSConfigParser')
     ConfigParser -> ParseFile, config_file 

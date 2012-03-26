@@ -117,7 +117,7 @@ print, list
 .compile testspecklesupr001.pro
 .compile teststokesparam.pro
 .compile testwavcal001.pro
-directory=dircode+'dpl_library'
+directory=dircode+'config'
 list = FILE_SEARCH(directory+path_sep()+'[A-Za-z]*.pro',count=cc)
 print, list
 .compile about_message
@@ -325,14 +325,14 @@ file_mkdir, compildir+'pipeline'+path_sep()+'log',$
             compildir+'pipeline'+path_sep()+'drf_templates',$
             compildir+'pipeline'+path_sep()+'drf_queue',$
             compildir+'pipeline'+path_sep()+'log',$
-            compildir+'pipeline'+path_sep()+'dpl_library',$
-            compildir+'pipeline'+path_sep()+'dpl_library'+path_sep()+'filters'
+            compildir+'pipeline'+path_sep()+'config',$
+            compildir+'pipeline'+path_sep()+'config'+path_sep()+'filters'
 ;;copy DRF templates, etc...            
 file_copy, dircode+'drf_templates'+path_sep()+'*.xml', compildir+'pipeline'+path_sep()+'drf_templates'+path_sep(),/overwrite         
-file_copy, dircode+'dpl_library'+path_sep()+'*.xml', compildir+'pipeline'+path_sep()+'dpl_library'+path_sep(),/overwrite   
-file_copy, dircode+'dpl_library'+path_sep()+'*.txt', compildir+'pipeline'+path_sep()+'dpl_library'+path_sep(),/overwrite           
-file_copy, dircode+'dpl_library'+path_sep()+'*.dat', compildir+'pipeline'+path_sep()+'dpl_library'+path_sep(),/overwrite              
-file_copy, dircode+'dpl_library'+path_sep()+'filters'+path_sep()+'*.fits', compildir+'pipeline'+path_sep()+'dpl_library'+path_sep()+'filters'+path_sep(),/overwrite
+file_copy, dircode+'config'+path_sep()+'*.xml', compildir+'pipeline'+path_sep()+'config'+path_sep(),/overwrite   
+file_copy, dircode+'config'+path_sep()+'*.txt', compildir+'pipeline'+path_sep()+'config'+path_sep(),/overwrite           
+file_copy, dircode+'config'+path_sep()+'*.dat', compildir+'pipeline'+path_sep()+'config'+path_sep(),/overwrite              
+file_copy, dircode+'config'+path_sep()+'filters'+path_sep()+'*.fits', compildir+'pipeline'+path_sep()+'config'+path_sep()+'filters'+path_sep(),/overwrite
 file_copy, dircode+'dst'+path_sep()+'*.dat', compildir+'pipeline'+path_sep()+'dst'+path_sep()+'',/overwrite
 file_copy, dircode+'dst'+path_sep()+'pickles'+path_sep()+'*.*t', compildir+'pipeline'+path_sep()+'dst'+path_sep()+'pickles'+path_sep(),/overwrite
 file_copy, dircode+'gpi.bmp',compildir+'pipeline'+path_sep(),/overwrite

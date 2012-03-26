@@ -25,8 +25,8 @@ setenv GPI_DATA_ROOT "~/GPI/data"	# base dir for all data
 # where is the software?
 setenv GPI_DRP_DIR "$GPI_IFS_DIR/pipeline"	# pipeline 
 setenv GPI_DRP_LOG_DIR "$GPI_DRP_DIR/log/"		# default log dir
-setenv GPI_DRP_CONFIG_DIR "$GPI_DRP_DIR/dpl_library/drsconfig.xml"
-setenv GPI_DRP_CONFIG_DIR "$GPI_DRP_DIR/dpl_library/drsConfig.xml"
+setenv GPI_DRP_CONFIG_FILE "$GPI_DRP_DIR/config/gpi_pipeline_primitives.xml"
+setenv GPI_DRP_CONFIG_FILE "$GPI_DRP_DIR/config/gpi_pipeline_primitives.xml"
 
 # where is the data?
 setenv GPI_RAW_DATA_DIR "$GPI_DATA_ROOT/raw/"

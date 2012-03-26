@@ -8,7 +8,7 @@
 ;
 ; HISTORY:
 ;   Began 2009-09-14 : JMaire based on  make_DRSConfigXML.py
-;   2012-01-30 MP: Updated paths to write to $GPI_CONFIG_FILE
+;   2012-01-30 MP: Updated paths to write to $GPI_DRP_CONFIG_FILE
 
 
 pro make_drsconfigxml
@@ -78,7 +78,7 @@ endfor
 
 ;FindPro, 'make_drsconfigxml', dirlist=dirlist
 
-outputfile = gpi_expand_path('$GPI_CONFIG_FILE')
+outputfile = gpi_expand_path('$GPI_DRP_CONFIG_FILE')
 outputfile = repstr(outputfile, path_sep()+path_sep(), path_sep()) ; clean up erroneous duplicate path seps which openw will fail on
 ;generate DRSconfig
  print, "  ===>>> Saving confix XML to "+outputfile 

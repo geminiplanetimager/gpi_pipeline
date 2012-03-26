@@ -19,7 +19,7 @@ export GPI_DRP_DIR="$GPI_IFS_DIR/pipeline/"	# pipeline software
 export GPI_DRP_LOG_DIR="$GPI_IFS_DIR/logs/"		# default log dir
 export GPI_DRP_TEMPLATES_DIR="$GPI_DRP_DIR/drf_templates/"	# template Data Reduction Files
 export GPI_DRP_QUEUE_DIR="$GPI_DRP_DIR/queue/"		# DRF Queue directory
-export GPI_DRP_CONFIG_DIR="$GPI_DRP_DIR/dpl_library/drsConfig.xml"
+export GPI_DRP_CONFIG_FILE="$GPI_DRP_DIR/config/gpi_pipeline_primitives.xml"
 
 # where is the data?
 export GPI_RAW_DATA_DIR="$GPI_IFS_DIR/data/raw/"
