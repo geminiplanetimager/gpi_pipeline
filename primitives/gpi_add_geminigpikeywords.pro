@@ -19,7 +19,7 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE COMMENT: Add GPI and Gemini missing keywords. 
 ; PIPELINE ORDER: 1.16
-; PIPELINE TYPE: CAL-SPEC
+; PIPELINE TYPE: ALL
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:

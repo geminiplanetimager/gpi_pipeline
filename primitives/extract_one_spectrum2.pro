@@ -46,7 +46,8 @@ primitive_version= '$Id: extract_one_spectrum2.pro 96 2010-10-20 13:47:13Z maire
 
   	main_image_stack=*(dataset.currframe[0])
 
-        band=strcompress(sxpar( *(dataset.headers[numfile]), 'FILTER',  COUNT=cc),/rem)
+        ;band=strcompress(sxpar( *(dataset.headersext[numfile]), 'FILTER1',  COUNT=cc),/rem)
+        band=backbone->get_keyword( 'FILTER1',count=cc)
         if cc eq 1 then begin
           cwv=get_cwv(band)
           CommonWavVect=cwv.CommonWavVect
@@ -110,16 +111,16 @@ primitive_version= '$Id: extract_one_spectrum2.pro 96 2010-10-20 13:47:13Z maire
         else xlam=(indgen((size(main_image_stack))[3]))[indf]
 
       ps_figure = float(Modules[thisModuleIndex].ps_figure) 
-      calunits=sxpar( *(dataset.headers[numfile]), 'CUNIT',  COUNT=cc)
-      ifsunits=sxpar( *(dataset.headers[numfile]), 'IFSUNIT',  COUNT=ci)
+      calunits=sxpar( *(dataset.headersext[numfile]), 'CUNIT',  COUNT=cc)
+      ifsunits=sxpar( *(dataset.headersext[numfile]), 'IFSUNIT',  COUNT=ci)
       units='counts/s'
       if ci eq 1 then units=ifsunits 
       if cc eq 1 then units=calunits 
 
       s_Ext='-spectrum_x'+Modules[thisModuleIndex].xcenter+'_y'+Modules[thisModuleIndex].ycenter
-     filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
+     filnm=sxpar(*(DataSet.Headersphu[numfile]),'DATAFILE')
      slash=strpos(filnm,path_sep(),/reverse_search)
-     psFilename = Modules[thisModuleIndex].OutputDir+strmid(filnm, slash,strlen(filnm)-5-slash)+s_Ext+'.ps'
+     psFilename = gpi_expand_path(Modules[thisModuleIndex].OutputDir)+strmid(filnm, slash,strlen(filnm)-5-slash)+s_Ext+'.ps'
 print, 'ps filename:',psfilename
 ;;;;method#2 standard photometric measurement (DAOphot-like)
     cubcent2=main_image_stack
@@ -136,7 +137,7 @@ print, 'ps filename:',psfilename
     phot_comp=fltarr(CommonWavVect[2])+!VALUES.F_NAN 
     while (total(~finite(phot_comp)) ne 0) && (skyrad[1]-skyrad[0] lt 20.) do begin
       for i=0,CommonWavVect[2]-1 do begin
-            cent=centroid(cubcent2[x0-hh:x0+hh,y0-hh:y0+hh,i])
+            cent=gpicentroid(cubcent2[x0-hh:x0+hh,y0-hh:y0+hh,i])
             x=x0+cent[0]-hh
             y=y0+cent[1]-hh
           aper, cubcent2[*,*,i], [x], [y], flux, errap, sky, skyerr, phpadu, (lambda[i]/lambda[0])*apr, $
@@ -159,9 +160,13 @@ print, 'ps filename:',psfilename
 ;endif
 if currmeth eq '' then photcomp=phot_comp else photcomp=p1d
 ;;;;;estimate spectral resolution from H-band Argon lamp image 
-h=*(dataset.headers[0])
+h=*(dataset.headersext[0])
 obstype=SXPAR( h, 'OBSTYPE',count=c1)
+;what's happen with OBSTYPE? Ok let's force this for now..
+obstype="wavecal"
+
 lamp=SXPAR( h, 'GCALLAMP',count=c2)
+lamp=backbone->get_keyword( 'GCALLAMP',count=c1)
 calc_res=0
 ;;calculate spectral resolution onl in the following specific cases:
  if strmatch(obstype, '*wavecal*')   then begin
@@ -237,7 +242,7 @@ calc_res=0
     plotc, specresfov, 30, 900,900,'micro-lens','micro-lens','Spectral resolution',valmin=30,valmax=60
     endif
  endif
- 
+
  if strmatch(obstype, '*wavecal*') then begin
     if strmatch(lamp, '*Argon*') then lampe='Ar'
     if strmatch(lamp, '*Xenon*') then lampe='Xe'
@@ -276,7 +281,7 @@ if (ps_figure gt 0.)  then begin
 endif 
 suffix+='-spec'
 
-hdr=*(dataset.headers[numfile])
+hdr=*(dataset.headersext[numfile])
 
 
 
@@ -286,7 +291,7 @@ hdr=*(dataset.headers[numfile])
 		  wav_spec=[[lambda],[p1d],[phot_comp]] 
 		    sxaddpar, hdr, "SPECCENX", Modules[thisModuleIndex].xcenter, "x-locations in pixel on datacube where extraction has been made"
         sxaddpar, hdr, "SPECCENY", Modules[thisModuleIndex].ycenter, 'y-locations in pixel on datacube where extraction has been made'  
-    	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix ,savedata=wav_spec, saveheader=hdr,display=display)
+    	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix ,savedata=wav_spec, saveheader=hdr,savePHU=*(dataset.headersPHU[numfile]),display=display)
     	if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
     endif else begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
