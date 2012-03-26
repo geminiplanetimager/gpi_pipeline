@@ -1763,7 +1763,7 @@ pro drfgui::init_data, _extra=_Extra
 
 
         ; if no configuration file, choose reasonable defaults.
-        self.tempdrfdir = getenv('GPI_DRF_TEMPLATES_DIR')
+        self.tempdrfdir = getenv('GPI_DRP_TEMPLATES_DIR')
         self.outputdir = getenv('GPI_DRP_OUTPUT_DIR')
         self.logpath = getenv('GPI_PIPELINE_LOG_DIR')
         self.queuepath =getenv('GPI_QUEUE_DIR')

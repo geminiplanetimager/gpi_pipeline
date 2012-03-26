@@ -26,7 +26,7 @@
 ; PIPELINE ARGUMENT: Name="centrYpos" Type="int" Range="[0,2048]" Default="1024" Desc="Initial approximate y-position [pixel] of central peak at 1.5microns"
 ; PIPELINE ARGUMENT: Name="w" Type="float" Range="[0.,10.]" Default="4.8" Desc="Spectral spacing perpendicular to the dispersion axis at the image center [pixel]"
 ; PIPELINE ARGUMENT: Name="P" Type="float" Range="[-7.,7.]" Default="-1.8" Desc="Micro-pupil pattern"
-; PIPELINE ARGUMENT: Name="emissionlinesfile" Type="string"  Default="$GPI_DRP_DIR\dpl_library\lampemissionlines.txt" Desc="File of emission lines."
+; PIPELINE ARGUMENT: Name="emissionlinesfile" Type="string"  Default="$GPI_DRP_DIR\config\lampemissionlines.txt" Desc="File of emission lines."
 ; PIPELINE ARGUMENT: Name="wav_of_centrXYpos" Type="int" Range="[1,2]" Default="2" Desc="1 if centrX-Ypos is the smallest-wavelength peak of the band; 2 if centrX-Ypos refer to 1.5microns"
 ; PIPELINE ARGUMENT: Name="maxpos" Type="float" Range="[-7.,7.]" Default="2." Desc="Allowed maximum location fluctuation (in pixel) between adjacent mlens"
 ; PIPELINE ARGUMENT: Name="maxtilt" Type="float" Range="[-360.,360.]" Default="10." Desc="Allowed maximum tilt fluctuation (in degree) between adjacent mlens"
