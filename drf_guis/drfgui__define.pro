@@ -1010,7 +1010,7 @@ pro drfgui::event,ev
             endif
             ;;RESOLVE MOD
             self.dispersr=self->resolvekeyword( file, cindex,'PRISM') ; FIXME
-			stop
+
             ;;RESOLVE TYPE
             self.ftype=self->resolvekeyword( file, cindex,'OBSTYPE')
             ;;RESOLVE CLASS
