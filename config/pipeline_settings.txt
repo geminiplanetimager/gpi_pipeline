@@ -13,3 +13,4 @@ DRF_root_dir		/mnt/ifs/DRFs
 use_calibrations_dir	1
 calibrations_dir	/mnt/ifs/calibrations
 parsergui_auto_queue	1
+prevent_multiple_instances  0
