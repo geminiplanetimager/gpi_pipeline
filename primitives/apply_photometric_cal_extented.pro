@@ -38,7 +38,7 @@ calfiletype='Fluxconv'
 
 
   	cubef3D=*(dataset.currframe[0])
-  	filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
+  	filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
         ;get the common wavelength vector
             ;error handle if extractcube not used before
             if ((size(cubef3D))[0] ne 3) || (strlen(filter) eq 0)  then $

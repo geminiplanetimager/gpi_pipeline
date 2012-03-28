@@ -8,7 +8,7 @@
 ; INPUTS: 3D wavcal 
 ;
 ; OUTPUTS:
-; GEM/GPI KEYWORDS:FILTER,FILTER1
+; GEM/GPI KEYWORDS:FILTER,IFSFILT
 ; DRP KEYWORDS: DATAFILE, DATE-OBS,TIME-OBS
 ;
 ; PIPELINE COMMENT: Combine wavelength calibration from  flat and arc
@@ -40,7 +40,7 @@ if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headers
 	   
 		;header=*(dataset.headers)[numfile]
 		filter = strcompress(sxpar( hdr ,'FILTER', count=fcount),/REMOVE_ALL)
-		if fcount eq 0 then filter = strcompress(sxpar( hdr ,'FILTER1'),/REMOVE_ALL)
+		if fcount eq 0 then filter = strcompress(sxpar( hdr ,'IFSFILT'),/REMOVE_ALL)
 		cwv=get_cwv(filter)
 		CommonWavVect=cwv.CommonWavVect
 		lambda=cwv.lambda

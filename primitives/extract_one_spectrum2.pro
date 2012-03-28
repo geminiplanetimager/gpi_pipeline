@@ -46,8 +46,8 @@ primitive_version= '$Id: extract_one_spectrum2.pro 96 2010-10-20 13:47:13Z maire
 
   	main_image_stack=*(dataset.currframe[0])
 
-        ;band=strcompress(sxpar( *(dataset.headersext[numfile]), 'FILTER1',  COUNT=cc),/rem)
-        band=backbone->get_keyword( 'FILTER1',count=cc)
+        ;band=strcompress(sxpar( *(dataset.headersext[numfile]), 'IFSFILT',  COUNT=cc),/rem)
+        band=backbone->get_keyword( 'IFSFILT',count=cc)
         if cc eq 1 then begin
           cwv=get_cwv(band)
           CommonWavVect=cwv.CommonWavVect

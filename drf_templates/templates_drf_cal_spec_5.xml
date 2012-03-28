@@ -3,5 +3,5 @@
 <dataset InputDir="" Name="" OutputDir="">
    <fits FileName="" />
 </dataset>
-<module name="Add Gemini and GPI keywords." overwrite="1" keyword1="FILTER1" value1="H" keyword2="OBSTYPE" value2="Xenon" keyword3="PRISM" value3="Spectral" keyword4="PRISM" value4="Spectral" Save="       1" suffix="-keyw" gpitv="4" />
+<module name="Add Gemini and GPI keywords." overwrite="1" keyword1="IFSFILT" value1="H" keyword2="OBSTYPE" value2="Xenon" keyword3="PRISM" value3="Spectral" keyword4="PRISM" value4="Spectral" Save="       1" suffix="-keyw" gpitv="4" />
 </DRF>

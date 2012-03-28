@@ -58,7 +58,7 @@ if k ge (size(cubefin))[3] then return, error('FAILURE ('+functionName+'): Refer
 sz=(size(cubefin))
 
 
-filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
+filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
         cwv=get_cwv(filter)
         CommonWavVect=cwv.CommonWavVect
 ;Common Wavelength Vector

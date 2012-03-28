@@ -40,7 +40,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 ;;TOCHECK: is datacube registered?
 
         ;get the common wavelength vector
-        filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
+        filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
             ;error handle if extractcube not used before
             if ((size(cubef3D))[0] ne 3) || (strlen(filter) eq 0)  then $
             return, error('FAILURE ('+functionName+'): Datacube or filter not defined. Use extractcube module before.')        

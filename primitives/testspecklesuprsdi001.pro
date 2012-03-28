@@ -30,7 +30,7 @@ COMPSPEC=sxpar(*(dataset.headersPHU[0]),'COMPSPEC')
 
 ;;get DST companion spectrum
 ;restore, 'E:\GPI\dst\'+strcompress(compspec,/rem)+'compspectrum.sav'
-filter=gpi_simplify_keyword_value(SXPAR( *(dataset.headersPHU[0]), 'FILTER1'))
+filter=gpi_simplify_keyword_value(SXPAR( *(dataset.headersPHU[0]), 'IFSFILT'))
 case strcompress(filter,/REMOVE_ALL) of
   'Y':specresolution=35.
   'J':specresolution=37.

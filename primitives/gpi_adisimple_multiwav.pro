@@ -64,7 +64,7 @@ if numfile  lt ((dataset.validframecount)-1) then return,0
   dimcub=(size(*(dataset.currframe[0])))[1]  ;
   xc=dimcub/2 & yc=dimcub/2
   ;filter=SXPAR( header, 'FILTER')
-  filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
+  filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
   cwv=get_cwv(filter)
   CommonWavVect=cwv.CommonWavVect
   

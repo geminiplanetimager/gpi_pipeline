@@ -7,7 +7,7 @@
 ;
 ; INPUTS: 3D wavcal 
 ;
-; GEM/GPI KEYWORDS:DATE-OBS,FILTER,FILTER1,TIME-OBS
+; GEM/GPI KEYWORDS:DATE-OBS,FILTER,IFSFILT,TIME-OBS
 ; DRP KEYWORDS: DATAFILE
 ; OUTPUTS:
 
@@ -40,7 +40,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	
 ;		header=*(dataset.headers)[numfile]
 		;filter = strcompress(sxpar( hdr ,'FILTER', count=fcount),/REMOVE_ALL)
-		;if fcount eq 0 then filter = strcompress(sxpar( hdr ,'FILTER1'),/REMOVE_ALL)
+		;if fcount eq 0 then filter = strcompress(sxpar( hdr ,'IFSFILT'),/REMOVE_ALL)
 		filter=gpi_simplify_keyword_value(strc(backbone->get_keyword('IFSFILT')))
 		cwv=get_cwv(filter)
 		CommonWavVect=cwv.CommonWavVect

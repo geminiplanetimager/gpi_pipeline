@@ -28,8 +28,8 @@ mydevice = !D.NAME
 cubef3D=*(dataset.currframe[0])
 
    ; hdr= *(dataset.headers)[numfile]
-    filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
-   ; if cc eq 0 then filter=SXPAR( hdr, 'FILTER1',cc)
+    filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
+   ; if cc eq 0 then filter=SXPAR( hdr, 'IFSFILT',cc)
         ;get the common wavelength vector
             ;error handle if extractcube not used before
             if  (strlen(filter) eq 0)  then $

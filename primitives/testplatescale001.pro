@@ -52,7 +52,7 @@ pa=res.pa ;float(Modules[thisModuleIndex].pa) ;get current position angle of the
 ;   obsCRPA=float(SXPAR( hdr, 'CRPA'))
 ;   xaxis_pa_at_zeroCRPA=xaxis_pa-obsCRPA
 
-filter=gpi_simplify_keyword_value(SXPAR( *(dataset.headersPHU)[0], 'FILTER1'))
+filter=gpi_simplify_keyword_value(SXPAR( *(dataset.headersPHU)[0], 'IFSFILT'))
         ;get the common wavelength vector
             ;error handle if extractcube not used before
          cwv=get_cwv(filter)

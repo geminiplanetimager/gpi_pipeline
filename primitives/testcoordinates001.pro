@@ -97,7 +97,7 @@ angle_star_deg=(180./!dpi)*atan((gfit1[5,*]-gfit2[5,*])/(gfit1[4,*]-gfit2[4,*]))
 print, 'dist between binaries [mas]=',1000.*dist
 print, ' angle x-axis [deg]', angle_star_deg
 
-filter= gpi_simplify_keyword_value(SXPAR( *(dataset.headersPHU)[0], 'FILTER1'))
+filter= gpi_simplify_keyword_value(SXPAR( *(dataset.headersPHU)[0], 'IFSFILT'))
         ;get the common wavelength vector
             ;error handle if extractcube not used before
          cwv=get_cwv(filter)

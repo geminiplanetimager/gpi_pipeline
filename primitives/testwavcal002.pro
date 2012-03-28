@@ -34,8 +34,8 @@ mydevice = !D.NAME
   wavcal1=*(dataset.currframe[0])
  
   ;need to know which filter is used to get the right zemax file 
-  bandeobs=gpi_simplify_keyword_value(SXPAR( h, 'FILTER1',count=c4))
-  ;if c4 eq 0 then bandeobs=SXPAR( h, 'FILTER1',count=c4)  
+  bandeobs=gpi_simplify_keyword_value(SXPAR( h, 'IFSFILT',count=c4))
+  ;if c4 eq 0 then bandeobs=SXPAR( h, 'IFSFILT',count=c4)  
   case strcompress(bandeobs,/REMOVE_ALL) of
     'Y':zemwav=1.05
     'J':zemwav=1.25
@@ -45,7 +45,7 @@ mydevice = !D.NAME
     else:zemwav=1.65
   endcase  
    deb=5   
-  filter = gpi_simplify_keyword_value(strcompress(sxpar( h ,'FILTER1', count=fcount),/REMOVE_ALL))
+  filter = gpi_simplify_keyword_value(strcompress(sxpar( h ,'IFSFILT', count=fcount),/REMOVE_ALL))
   ;if fcount eq 0 then filter = strcompress(sxpar( header ,'FILTER'),/REMOVE_ALL)
   zemdisplamraw=readfits(rep+'zemdispLam'+filter+'.fits')
   void=min(abs(zemdisplamraw-zemwav),zemwavind)

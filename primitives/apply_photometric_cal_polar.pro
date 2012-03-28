@@ -39,8 +39,8 @@ calfiletype='Gridratio'
   	cubef3D=*(dataset.currframe[0])
   	
     if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
-   filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
-    ;if cc eq 0 then filter=SXPAR( hdr, 'FILTER1',cc)
+   filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
+    ;if cc eq 0 then filter=SXPAR( hdr, 'IFSFILT',cc)
         ;get the common wavelength vector
             ;error handle if extractcube not used before
             if ((size(cubef3D))[0] ne 3) || (strlen(filter) eq 0)  then $
@@ -192,7 +192,7 @@ nbphot_juststar=pip_nbphot_trans_lowres([hdr,*(dataset.headersExt)[numfile]],lam
    exposuretime=double(SXPAR( *(dataset.headersExt)[numfile], 'ITIME')) ;TODO use ITIME instead
  ;  stop
    ;BE SURE THAT EXPTIME IS IN SECONDS
-   filter=SXPAR( hdr, 'FILTER1')
+   filter=SXPAR( hdr, 'IFSFILT')
    nlambda=n_elements(lambda)
    widthL=(lambdamax-lambdamin)
    SURFA=!PI*(Dtel^2.)/4.-!PI*((Obscentral)^2.)/4.

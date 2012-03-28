@@ -15,7 +15,7 @@
 ; common needed:
 ;
 ; KEYWORDS:
-; GEM/GPI KEYWORDS:FILTER,FILTER1,GCALLAMP,GCALSHUT,OBSTYPE
+; GEM/GPI KEYWORDS:FILTER,IFSFILT,GCALLAMP,GCALSHUT,OBSTYPE
 ; DRP KEYWORDS: FILETYPE,HISTORY,ISCALIB
 ; OUTPUTS:
 ;
@@ -65,7 +65,7 @@ primitive_version= '$Id: gpi_extract_wavcal_locations.pro 11 2010-07-06 01:22:03
    if c2 eq 0 then return, error('FAILURE ('+functionName+'): FITS header is missing keyword GCALLAMP')
    c3=1&lampshut='ON';lampshut=SXPAR( h, 'GCALSHUT',count=c3) ;will be implemented if necessary
    bandeobs=SXPAR( h, 'FILTER',count=c4)
-   if c4 eq 0 then bandeobs=SXPAR( h, 'FILTER1',count=c4)
+   if c4 eq 0 then bandeobs=SXPAR( h, 'IFSFILT',count=c4)
    
              ;error handle if keywords are missing
             if (c1 eq 0) || (c2 eq 0) || (c3 eq 0)|| (c4 eq 0) || $

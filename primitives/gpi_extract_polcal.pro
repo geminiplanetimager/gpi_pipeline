@@ -16,7 +16,7 @@
 ; INPUTS: 2D image from flat field  in polarization mode
 ;
 ; KEYWORDS:
-; GEM/GPI KEYWORDS:DISPERSR,FILTER,FILTER1,FILTER2,OBSTYPE
+; GEM/GPI KEYWORDS:DISPERSR,FILTER,IFSFILT,FILTER2,OBSTYPE
 ; DRP KEYWORDS: FILETYPE,ISCALIB
 ; OUTPUTS:
 ;
@@ -47,11 +47,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     ;if numext eq 0 then h= *(dataset.headers)[numfile] else h= *(dataset.headersPHU)[numfile]
    ; h=header
     obstype=backbone->get_keyword('OBSTYPE')
-	bandeobs=gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
+	bandeobs=gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
 	mode=backbone->get_keyword('DISPERSR', count=ct)
     ;obstype=SXPAR( h, 'OBSTYPE')
     ;bandeobs=SXPAR( h, 'FILTER', count=ct)
-    ;if ct eq 0 then bandeobs= sxpar(h,'FILTER1')
+    ;if ct eq 0 then bandeobs= sxpar(h,'IFSFILT')
 
        ; TODO verify image is a POL mode FLAT FIELD. 
     ;mode = sxpar(h,'prism', count=ct)

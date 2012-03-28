@@ -45,7 +45,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
   	main_image_stack=*(dataset.currframe[0])
         ;if numext eq 0 then hdr=*(dataset.headers[numfile]) else hdr=*(dataset.headersPHU[numfile])
-        band = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=cc))
+        band = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=cc))
         ;band=strcompress(sxpar( hdr, 'FILTER',  COUNT=cc),/rem)
         if cc eq 1 then begin
           cwv=get_cwv(band)

@@ -99,7 +99,7 @@ endif
 h=*(dataset.headers[numfile]) 
 filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
 slash=strpos(filnm,path_sep(),/reverse_search)
-filter = strcompress(sxpar( h ,'FILTER1', count=fcount),/REMOVE_ALL)
+filter = strcompress(sxpar( h ,'IFSFILT', count=fcount),/REMOVE_ALL)
 if fcount eq 0 then filter = strcompress(sxpar( h ,'FILTER'),/REMOVE_ALL)
 suffixplot=(Modules[thisModuleIndex].suffix)
 legends=(Modules[thisModuleIndex].legendfig)

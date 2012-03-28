@@ -11,7 +11,7 @@
 ; KEYWORDS:
 ;	/Save	Set to 1 to save the output image to a disk file. 
 ;
-; GEM/GPI KEYWORDS:EXPTIME,FILTER,FILTER1,HMAG,IFSUNITS,SECDIAM,SPECTYPE,TELDIAM
+; GEM/GPI KEYWORDS:EXPTIME,FILTER,IFSFILT,HMAG,IFSUNITS,SECDIAM,SPECTYPE,TELDIAM
 ; DRP KEYWORDS: CUNIT,FILETYPE,FSCALE,HISTORY,ISCALIB,PSFCENTX,PSFCENTY,SPOT1x,SPOT1y,SPOT2x,SPOT2y,SPOT3x,SPOT3y,SPOT4x,SPOT4y,SPOTWAVE
 ;
 ; OUTPUTS:  
@@ -45,9 +45,9 @@ calfiletype='Gridratio'
 
     cubef3D=*(dataset.currframe[0])
     ;if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
-    filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
+    filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
 
-    ;if cc eq 0 then filter=SXPAR( hdr, 'FILTER1',cc)
+    ;if cc eq 0 then filter=SXPAR( hdr, 'IFSFILT',cc)
         ;get the common wavelength vector
             ;error handle if extractcube not used before
             if ((size(cubef3D))[0] ne 3) || (strlen(filter) eq 0)  then $

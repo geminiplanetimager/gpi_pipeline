@@ -278,7 +278,7 @@ function gpicaldatabase::cal_info_from_header, fits_data
 		if count eq 1 then break
 	endfor
 	if count ne 1 then begin 
-	    message,/info, "Missing keyword: FILTER1"
+	    message,/info, "Missing keyword: IFSFILT"
     endif
 
 	thisfile.prism= gpi_simplify_keyword_value(strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "DISPERSR", count=count3)))

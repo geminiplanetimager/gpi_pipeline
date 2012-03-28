@@ -8,7 +8,7 @@
 ;     introduced suffix '-rawspdc' (raw spectral data-cube)
 ;
 ; KEYWORDS: 
-; GEM/GPI KEYWORDS:FILTER1
+; GEM/GPI KEYWORDS:IFSFILT
 ; OUTPUTS:
 ;
 ; PIPELINE COMMENT: Extract a 3D datacube from a 2D image. Spatial integration (3 pixels) along the dispersion axis
@@ -47,12 +47,12 @@ function extractcube, DataSet, Modules, Backbone
   if (nlens eq 0) || (dim eq 0)  then $
      return, error('FAILURE ('+functionName+'): Failed to load data.') 
             
-  ;define the common wavelength vector with the FILTER1 keyword:
-  filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
+  ;define the common wavelength vector with the IFSFILT keyword:
+  filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
   
-  ;error handle if FILTER1 keyword not found
+  ;error handle if IFSFILT keyword not found
   if (filter eq '') then $
-     return, error('FAILURE ('+functionName+'): FILTER1 keyword not found.') 
+     return, error('FAILURE ('+functionName+'): IFSFILT keyword not found.') 
 
   ;get length of spectrum
   sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect)

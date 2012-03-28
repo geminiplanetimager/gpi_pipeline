@@ -10,7 +10,7 @@
 ;
 ;
 ; KEYWORDS:
-; GEM/GPI KEYWORDS:FILTER1
+; GEM/GPI KEYWORDS:IFSFILT
 ; OUTPUTS:
 ;
 ; PIPELINE COMMENT: Extract a 3D datacube from a 2D image taking account of the hot/cold pixel map (need to use also readbadpixmap with this primitive).
@@ -53,10 +53,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   nlens=(size(wavcal))[1]
   dim=(size(det))[1]
   ; if numext eq 0 then header=*(dataset.headers)[numfile] else header=*(dataset.headersPHU)[numfile]
-  filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
-  ;error handle if FILTER1 keyword not found
+  filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
+  ;error handle if IFSFILT keyword not found
   if (filter eq '') then $
-     return, error('FAILURE ('+functionName+'): FILTER1 keyword not found.') 
+     return, error('FAILURE ('+functionName+'): IFSFILT keyword not found.') 
 
   ;get length of spectrum
   sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect)

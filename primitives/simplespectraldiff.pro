@@ -73,7 +73,7 @@ L2max=Modules[thisModuleIndex].L2max
 k=Modules[thisModuleIndex].k
 
 ;check if outside spectral range
-filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
+filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
 case filter of 
   'H': specrange=[1.5,1.8,1.55,1.57,1.60,1.65] ;[min wav of the band, max wav, 4 reasonable wav value for defining 2 spectral range]
   'Y': specrange=[0.95, 1.15,1.04,1.08,1.10,1.13]

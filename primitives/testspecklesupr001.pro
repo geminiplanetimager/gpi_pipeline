@@ -29,7 +29,7 @@ mydevice = !D.NAME
 COMPSPEC=(backbone->get_keyword('COMPSPEC'))
 ;;get DST companion spectrum
 ;restore, 'E:\GPI\dst\'+strcompress(compspec,/rem)+'compspectrum.sav'
-filter=gpi_simplify_keyword_value(backbone->get_keyword('FILTER1'))
+filter=gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT'))
 case strcompress(filter,/REMOVE_ALL) of
   'Y':specresolution=35.
   'J':specresolution=37.

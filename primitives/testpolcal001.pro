@@ -35,8 +35,8 @@ nlens=(size(*(dataset.currframe[0])))[3]
   
    ;zemwav=float(Modules[thisModuleIndex].refwav)
    h=*(dataset.headersPHU[0])
-     bandeobs=gpi_simplify_keyword_value(SXPAR( h, 'FILTER1',count=c4))
-   if c4 eq 0 then bandeobs=SXPAR( h, 'FILTER1',count=c4)  
+     bandeobs=gpi_simplify_keyword_value(SXPAR( h, 'IFSFILT',count=c4))
+   if c4 eq 0 then bandeobs=SXPAR( h, 'IFSFILT',count=c4)  
 case strcompress(bandeobs,/REMOVE_ALL) of
   'Y':zemwav=1.05
   'J':zemwav=1.25
@@ -48,7 +48,7 @@ endcase
    
    
    
-          filter = gpi_simplify_keyword_value(strcompress(sxpar( h ,'FILTER1', count=fcount),/REMOVE_ALL))
+          filter = gpi_simplify_keyword_value(strcompress(sxpar( h ,'IFSFILT', count=fcount),/REMOVE_ALL))
        ; if fcount eq 0 then filter = strcompress(sxpar( header ,'FILTER'),/REMOVE_ALL)
    
      zemdisplamraw=readfits(rep+'zemdispLam'+filter+'.fits')

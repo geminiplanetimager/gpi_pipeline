@@ -15,7 +15,7 @@
 ; common needed:
 ;
 ; KEYWORDS:
-; GEM/GPI KEYWORDS:FILTER,FILTER1,GCALLAMP,GCALSHUT,OBSTYPE
+; GEM/GPI KEYWORDS:FILTER,IFSFILT,GCALLAMP,GCALSHUT,OBSTYPE
 ; DRP KEYWORDS: FILETYPE,HISTORY,ISCALIB
 ; OUTPUTS:
 ;
@@ -71,7 +71,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
    
   valid_header=1
   ; error handle missing FITS keywords
-  keywords_to_check = ['OBSTYPE', 'GCALLAMP', 'FILTER1', 'INSTRUME']
+  keywords_to_check = ['OBSTYPE', 'GCALLAMP', 'IFSFILT', 'INSTRUME']
 
   for i=0L,n_elements(keywords_to_check)-1 do begin
       val=backbone->get_keyword( keywords_to_check[i],count=c)
@@ -93,7 +93,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     c3=1&lampshut='ON';lampshut=SXPAR( h, 'GCALSHUT',count=c3) ;will be implemented if necessary
     bandeobs=backbone->get_keyword( 'IFSFILT',count=c4)
 	if strpos(bandeobs, '_') gt 0 then bandeobs = (strsplit(bandeobs,'_',/extract))[1] ; turn IFSFILT_H_G1213 into just H
-  ;if c4 eq 0 then bandeobs=SXPAR( h, 'FILTER1',count=c4)
+  ;if c4 eq 0 then bandeobs=SXPAR( h, 'IFSFILT',count=c4)
     instrum=backbone->get_keyword( 'INSTRUME',count=cinstru)
     
 ;             ;error handle if keywords are missing

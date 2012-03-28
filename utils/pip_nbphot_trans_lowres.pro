@@ -124,7 +124,7 @@ function PIP_nbphot_trans_lowres, hdr, lambda, atmostrans=atmostrans, filtertran
     Dtel=double(SXPAR( hdr, 'TELDIAM'))
     Obscentral=double(SXPAR( hdr, 'SECDIAM'))
     exposuretime=double(SXPAR( hdr, 'ITIME'))
-    filter=gpi_simplify_keyword_value(SXPAR( hdr, 'FILTER1'))
+    filter=gpi_simplify_keyword_value(SXPAR( hdr, 'IFSFILT'))
   
 
 

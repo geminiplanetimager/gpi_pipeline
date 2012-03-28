@@ -39,11 +39,11 @@ nbdevedge=[nbdev0,nbdev1,nbdev17,nbdev18]
   
   ; if numext eq 0 then h= *(dataset.headers)[numfile] else h= *(dataset.headersPHU)[numfile]
 ;h=*(dataset.headers[numfile])
-filter = gpi_simplify_keyword_value(backbone->get_keyword('FILTER1', count=ct))
-;if c4 eq 0 then filter=SXPAR( h, 'FILTER1',count=c4)
-                    ;error handle if FILTER1 keyword not found
+filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
+;if c4 eq 0 then filter=SXPAR( h, 'IFSFILT',count=c4)
+                    ;error handle if IFSFILT keyword not found
                     if (filter eq '') then $
-                    return, error('FAILURE ('+functionName+'): FILTER1 keyword not found.') 
+                    return, error('FAILURE ('+functionName+'): IFSFILT keyword not found.') 
         cwv=get_cwv(filter)
         CommonWavVect=cwv.CommonWavVect        
         lambdamin=CommonWavVect[0]

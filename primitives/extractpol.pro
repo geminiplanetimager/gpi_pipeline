@@ -61,7 +61,7 @@ calfiletype='polcal'
  	;endelse    
 
     ; Validate the input data
-    filt = gpi_simplify_keyword_value(strc(backbone->get_keyword( "FILTER1")))
+    filt = gpi_simplify_keyword_value(strc(backbone->get_keyword( "IFSFILT")))
     mode= strc(backbone->get_keyword( "DISPERSR", count=ct))
     ;if ct eq 0 then mode= strc(backbone->get_keyword( "DISPERSR", count=ct))
     ;if ct eq 0 then mode= strc(backbone->get_keyword( "FILTER2", count=ct))
