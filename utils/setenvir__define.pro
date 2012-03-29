@@ -31,9 +31,9 @@ case tag_names(ev, /structure_name) of
                   'GID':textinfo='Working directory.'
                   'GPD':textinfo='Directory of the Data Reduction Pipeline (DRP).'
                   'GPLD':textinfo='Directory where the DRP will place reduction log file.'  
-                  'GDTD':textinfo='Directory of templates reduction sequences.'
+                  'GDTD':textinfo='Directory of templates reduction sequences (usually in the DRP directory, \drf_templates)'
                   'GQD':textinfo='Directory of DRF queue. The DRP will scan this directory'
-                  'GCF' :textinfo='Config file of data reduction sequences (gpi_pipeline_primitives.xml).' 
+                  'GCF' :textinfo='Directory of user-config files (usually in the DRP directory, \config).' 
                   'GRDD' :textinfo='Directory of raw data'
                   'GDOD':textinfo='Directory of DRP processed output data.'
                   'Save envir. var.':textinfo='Save these environment variables to an IDL .sav file for future use.'
@@ -81,9 +81,9 @@ case tag_names(ev, /structure_name) of
                  setenv,'GPI_DRP_QUEUE_DIR='+dir
               end
             'changeGCF':begin
-                 dir = DIALOG_PICKFILE(PATH=getenv('GPI_DRP_CONFIG_FILE'), Title='Choose gpi_pipeline_primitives.xml',/must_exist,FILTER = ['gpi_pipeline_primitives.xml'] )
+                 dir = DIALOG_PICKFILE(PATH=getenv('GPI_DRP_CONFIG_DIR'), Title='Choose gpi_pipeline_primitives.xml',/must_exist, /directory) ;FILTER = ['gpi_pipeline_primitives.xml'] )
                  if dir ne '' then widget_control, self.GCF_id, set_value=dir
-                 setenv,'GPI_DRP_CONFIG_FILE='+dir
+                 setenv,'GPI_DRP_CONFIG_DIR='+dir
               end
             'changeGRDD':begin
                  dir = DIALOG_PICKFILE(PATH=getenv('GPI_RAW_DATA_DIR'), Title='Choose directory for GPI_RAW_DATA_DIR',/must_exist , /directory)
@@ -105,7 +105,7 @@ case tag_names(ev, /structure_name) of
                   GPLD= getenv('GPI_DRP_LOG_DIR')
                   GDTD=getenv('GPI_DRP_TEMPLATES_DIR')
                   GQD=getenv('GPI_DRP_QUEUE_DIR')
-                  GCF= getenv('GPI_DRP_CONFIG_FILE')
+                  GCF= getenv('GPI_DRP_CONFIG_DIR')
                   GRDD=getenv('GPI_RAW_DATA_DIR')
                   GDOD=getenv('GPI_DRP_OUTPUT_DIR')
                     ;select GPI_IFS_DIR directory for saving (need to be writable). PIPELINE_DIR could be non-writable
@@ -126,7 +126,7 @@ case tag_names(ev, /structure_name) of
                  widget_control, self.GDTDdir_id, set_value=GDTD
                  setenv,'GPI_DRP_QUEUE_DIR='+GQD
                  widget_control, self.GQDdir_id, set_value=GQD
-                 setenv,'GPI_DRP_CONFIG_FILE='+GCF
+                 setenv,'GPI_DRP_CONFIG_DIR='+GCF
                  widget_control, self.GCF_id, set_value=GCF
                  setenv,'GPI_RAW_DATA_DIR='+GRDD
                  widget_control, self.GRDDdir_id, set_value=GRDD
@@ -177,7 +177,7 @@ cd, current=cur_rep
                if getenv('GPI_DRP_LOG_DIR') eq '' then setenv,'GPI_DRP_LOG_DIR='+GPLD
                if getenv('GPI_DRP_TEMPLATES_DIR') eq '' then setenv,'GPI_DRP_TEMPLATES_DIR='+GDTD
                if getenv('GPI_DRP_QUEUE_DIR') eq '' then setenv,'GPI_DRP_QUEUE_DIR='+GQD
-               if getenv('GPI_DRP_CONFIG_FILE') eq '' then setenv,'GPI_DRP_CONFIG_FILE='+GCF
+               if getenv('GPI_DRP_CONFIG_DIR') eq '' then setenv,'GPI_DRP_CONFIG_DIR='+GCF
                if getenv('GPI_RAW_DATA_DIR') eq '' then setenv,'GPI_RAW_DATA_DIR='+GRDD
                if getenv('GPI_DRP_OUTPUT_DIR') eq '' then setenv,'GPI_DRP_OUTPUT_DIR='+GDOD 
                textinfo=cur_rep+path_sep()+'environment_variables.sav has been restored for non-existent variables.'
@@ -196,7 +196,7 @@ cd, current=cur_rep
               if getenv('GPI_DRP_LOG_DIR') eq '' then setenv,'GPI_DRP_LOG_DIR='+reppipeline+path_sep()+'log'+path_sep()
               if getenv('GPI_DRP_TEMPLATES_DIR') eq '' then  setenv,'GPI_DRP_TEMPLATES_DIR='+reppipeline+path_sep()+'drf_templates'+path_sep()
               if getenv('GPI_DRP_QUEUE_DIR') eq '' then setenv,'GPI_DRP_QUEUE_DIR='+reppipeline+path_sep()+'drf_queue'+path_sep()
-              if getenv('GPI_DRP_CONFIG_FILE') eq '' then setenv,'GPI_DRP_CONFIG_FILE='+reppipeline+path_sep()+'config'+path_sep()+'gpi_pipeline_primitives.xml'
+              if getenv('GPI_DRP_CONFIG_DIR') eq '' then setenv,'GPI_DRP_CONFIG_DIR='+reppipeline+path_sep()+'config'+path_sep();+'gpi_pipeline_primitives.xml'
           endif
        endif
        
@@ -247,10 +247,10 @@ button_id = WIDGET_BUTTON(base5,Value='Change dir...',Uvalue='changeGDTD',ysize=
 
 
 base7=widget_base(base, /row)
-if file_test(getenv('GPI_DRP_CONFIG_FILE'),/read) then val=getenv('GPI_DRP_CONFIG_FILE') else val=''
+if file_test(getenv('GPI_DRP_CONFIG_DIR'),/dir) then val=getenv('GPI_DRP_CONFIG_DIR') else val=''
 void= widget_label(base7,Value='Config file of reduction modules:',ysize=ys,XSIZE=xs0, /tracking_events,Uvalue='GCF')
-void= widget_label(base7,Value='GPI_DRP_CONFIG_FILE :',ysize=ys,XSIZE=xs, /tracking_events,Uvalue='GCF')
-self.GCF_id = WIDGET_TEXT(base7,Value=val,Uvalue='GPI_DRP_CONFIG_FILE',XSIZE=50)
+void= widget_label(base7,Value='GPI_DRP_CONFIG_DIR :',ysize=ys,XSIZE=xs, /tracking_events,Uvalue='GCF')
+self.GCF_id = WIDGET_TEXT(base7,Value=val,Uvalue='GPI_DRP_CONFIG_DIR',XSIZE=50)
 button_id = WIDGET_BUTTON(base7,Value='Change dir...',Uvalue='changeGCF',ysize=ys)
 
 

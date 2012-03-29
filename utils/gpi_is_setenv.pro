@@ -18,7 +18,7 @@ if keyword_set(first) then begin
 
 	vars_to_test = ['GPI_IFS_DIR','GPI_DRP_DIR', 'GPI_DRP_LOG_DIR', 'GPI_DRP_TEMPLATES_DIR', 'GPI_DRP_QUEUE_DIR', 'GPI_DRP_CONFIG_DIR', 'GPI_RAW_DATA_DIR', 'GPI_DRP_OUTPUT_DIR']
 	test_dir = [1,1,1,1,1,1,1,1]
-	test_writable = [1, 0, 1, 0, 1, 0,0,1]
+	test_writable = [1, 0, 1, 0, 1, 1,0,1]
 
 	all_ok = 1
 	for ii=0L,n_elements(vars_to_test)-1 do begin
@@ -34,7 +34,7 @@ endif else begin
 	; check all the supplied directories exist.
 
 	drpvartab = ['GPI_IFS_DIR','GPI_DRP_DIR', 'GPI_DRP_LOG_DIR', 'GPI_DRP_TEMPLATES_DIR', 'GPI_DRP_QUEUE_DIR', 'GPI_DRP_CONFIG_DIR', 'GPI_RAW_DATA_DIR', 'GPI_DRP_OUTPUT_DIR']
-	test_dir = [1,1,1,1,1,1,1,1]
+	test_dir = [1,1,1,1,1,0,1,1]
 ;	drpvartab=['GPI_IFS_DIR','GPI_PIPELINE_DIR','GPI_PIPELINE_LOG_DIR','GPI_DRF_TEMPLATES_DIR',$
 ;            'GPI_QUEUE_DIR','GPI_CONFIG_FILE','GPI_RAW_DATA_DIR','GPI_DRP_OUTPUT_DIR']
 	txtmes=''

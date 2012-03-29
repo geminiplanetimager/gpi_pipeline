@@ -78,10 +78,10 @@ endfor
 
 ;FindPro, 'make_drsconfigxml', dirlist=dirlist
 
-outputfile = gpi_expand_path('$GPI_DRP_CONFIG_FILE')
+outputfile = gpi_expand_path('$GPI_DRP_CONFIG_DIR')+path_sep()+'gpi_pipeline_primitives.xml'
 outputfile = repstr(outputfile, path_sep()+path_sep(), path_sep()) ; clean up erroneous duplicate path seps which openw will fail on
 ;generate DRSconfig
- print, "  ===>>> Saving confix XML to "+outputfile 
+ print, "  ===>>> Saving config XML to "+outputfile 
  OpenW, lun, outputfile, /Get_Lun
          PrintF, lun, '<Config DirName="placeholder" >'
          PrintF, lun, '<!-- GPI DRS Config File - for DRF GUI etc. ' 
