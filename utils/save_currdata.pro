@@ -52,7 +52,16 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	;-- Generate output filename, starting from the input one.
 	filnm=fxpar(*(DataSet.HeadersPHU[i]),'DATAFILE',count=cdf)
 	
-
+	;setup calib dir
+	is_calib_pri=0 & is_calib_ext=0
+  if keyword_set(savePHU) then is_calib_pri = strc(strupcase(fxpar(savePHU, "ISCALIB"))) eq 'YES' else $
+      is_calib_pri = strc(strupcase(fxpar(*(dataset.headersPHU[numfile]), "ISCALIB"))) eq 'YES'
+  if keyword_set(saveheader) then is_calib_ext = strc(strupcase(fxpar(saveheader, "ISCALIB"))) eq 'YES' else $
+      is_calib_ext = strc(strupcase(fxpar(*(dataset.headersExt[numfile]), "ISCALIB"))) eq 'YES' 
+  if is_calib_pri or is_calib_ext then begin
+      gpicaldb = Backbone_comm->Getgpicaldb()
+      s_OutputDir = gpicaldb->get_calibdir()
+  endif
 	
 	s_OutputDir = gpi_expand_path(s_OutputDir) ; expand environment variables and ~s
 	; test output dir
@@ -123,10 +132,10 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	;--- GPI Calibrations DB ----
 	; Is this a calibration file? 
 	;   (check both pri + ext headers just to be sure...)
-	is_calib_pri = strc(strupcase(fxpar(curr_hdr, "ISCALIB"))) eq 'YES'
-	is_calib_ext = strc(strupcase(fxpar(curr_hdr, "ISCALIB"))) eq 'YES'
+	;is_calib_pri = strc(strupcase(fxpar(curr_hdr, "ISCALIB"))) eq 'YES'
+	;is_calib_ext = strc(strupcase(fxpar(curr_hdr, "ISCALIB"))) eq 'YES'
 	if is_calib_pri or is_calib_ext then begin
-		gpicaldb = Backbone_comm->Getgpicaldb()
+		;gpicaldb = Backbone_comm->Getgpicaldb()
 		if obj_valid(gpicaldb) then begin
 			message,/info, "Adding file to GPI Calibrations DB."
 			status = gpicaldb->Add_new_Cal( c_File1)
