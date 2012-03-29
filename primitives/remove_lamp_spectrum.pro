@@ -50,7 +50,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 ;;take into account filter transmission
  cwv=get_cwv(filter)
 lambda=cwv.lambda
-filter_trans=pipeline_getfilter(lambda, filter=filter)
+;filter_trans=pipeline_getfilter(lambda, filter=filter)
 ;stop
 ;for zz=0,(size(cubef3D))[3]-1 do cubef3D[*,*,zz]/=filter_trans[zz]
 
