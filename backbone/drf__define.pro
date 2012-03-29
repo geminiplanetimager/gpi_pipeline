@@ -217,7 +217,7 @@ PRO drf::queue, filename=filename
 
 	outname = file_basename(filename)
 	outname = strepex(outname,"([^\.]+)\..+$", "&0.waiting.xml") ; replace file extension to .waiting.xml
-	queue_filename = gpi_expand_path("$GPI_QUEUE_DIR")+path_sep()+outname
+	queue_filename = gpi_expand_path("$GPI_DRP_QUEUE_DIR")+path_sep()+outname
 
 
 	prev_outputfile = self.last_saved_DRF ; save value before this gets overwritten in save
@@ -297,7 +297,11 @@ function drf::get_configParser
 	;
 	; This function returns an object reference; be sure to destroy it when you're
 	; done
+
+    ; old convention:
 	config_file=getenv('GPI_DRP_CONFIG_FILE') 
+    ; new convention
+    if ~file_test(config_file) then config_file = getenv('GPI_DRP_CONFIG_DIR')+path_sep()+"gpi_pipeline_primitives.xml"
 
     if ~file_test(config_file) then message, 'ERROR: Cannot find DRS Config File! Check $GPI_DRP_CONFIG_FILE environment variable'
 

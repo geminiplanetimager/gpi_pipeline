@@ -57,7 +57,7 @@ end
 
 
 ; Read the locations of the spots from the required files.
-config_dir = gpi_expand_path('$GPI_DRP_DIR')+path_sep()+'config'+path_sep()
+config_dir = gpi_expand_path('$GPI_DRP_CONFIG_DIR')+path_sep()
 xloc=readfits(config_dir+"xlocs.fits")
 yloc=readfits(config_dir+"ylocs.fits")
 
