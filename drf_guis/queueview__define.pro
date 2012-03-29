@@ -64,7 +64,7 @@ pro queueview::startup
  
         ;FindPro, 'make_drsconfigxml', dirlist=dirlist,/noprint
         dirlist=getenv('GPI_DRP_DIR')+path_sep()+'config'+path_sep()
-        if getenv('GPI_DRP_CONFIG_FILE') ne '' then self.config_file=getenv('GPI_DRP_CONFIG_FILE') $
+        if getenv('GPI_DRP_CONFIG_DIR') ne '' then self.config_file=getenv('GPI_DRP_CONFIG_DIR')+path_sep()+"gpi_pipeline_primitives.xml" $
         else self.config_file=dirlist[0]+"gpi_pipeline_primitives.xml"
         self.ConfigParser = OBJ_NEW('gpiDRSConfigParser',/silent)
     	self.Parser = OBJ_NEW('gpiDRFParser')
