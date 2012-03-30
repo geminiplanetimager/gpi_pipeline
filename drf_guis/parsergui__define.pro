@@ -62,7 +62,7 @@ pro parsergui::startup
         self.drf_summary=       ptr_new(/ALLOCATE_HEAP)
         self.version=2.0
  
-        if getenv('GPI_DRP_CONFIG_DIR') ne '' then self.config_file=getenv('GPI_DRP_CONFIG_DIR') $
+        if getenv('GPI_DRP_CONFIG_DIR') ne '' then self.config_file=getenv('GPI_DRP_CONFIG_DIR')+"gpi_pipeline_primitives.xml" $
         else begin
         	dirlist=getenv('GPI_DRP_DIR')+path_sep()+'utils'+path_sep()
 			self.config_file=dirlist[0]+"gpi_pipeline_primitives.xml"
