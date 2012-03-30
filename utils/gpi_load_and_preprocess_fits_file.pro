@@ -151,6 +151,7 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
     if strmatch(val_disp, '*Spectr*') then newval_disp='DISP_PRISM_G6262' 
     if strmatch(val_disp, '*Pol*') then newval_disp='DISP_WOLLASTON_G6261'
     if strmatch(val_disp, '*Und*') then newval_disp='DISP_OPEN_G6263'
+    if strmatch(val_disp, '0') then newval_disp='DISP_OPEN_G6263'
     ;if strlen(newval_disp) eq 0 then message, "Unknown/invalid value for DISPERSR keyword: "+strc(val_disp)
 	if newval_disp ne val_disp then gpi_set_keyword, 'DISPERSR', newval_disp,  pri_header, ext_header, silent=silent
 

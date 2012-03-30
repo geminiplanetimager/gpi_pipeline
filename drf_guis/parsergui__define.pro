@@ -549,9 +549,12 @@ pro parsergui::addfile, filenames, mode=mode
 										; otherwise, try to match it:
                                         file_filt_obst_disp_occ_obs_itime_object = file[indfobject]
                          
+
                                         ;identify which templates to use
                                         print,  current.obstype ; uniqsortedobstype[indsortseq[fc]]
                                         self->Log, "found sequence of type="+current.obstype+", prism="+current.dispersr+", filter="+current.filter
+
+										 tempate_drf_to_use = ''
                                         ;stop
                                          case strupcase(current.obstype) of
                                         'DARK':begin
@@ -587,10 +590,12 @@ pro parsergui::addfile, filenames, mode=mode
                                             endelse                             
                                         end
                                         'OBJECT': begin
-                                            if  current.dispersr eq 'POLAR' then begin 
+											case strupcase(current.dispersr) of 
+											'POLAR': begin 
                                                 detectype=2
                                                 detecseq=1  
-                                            endif else begin 
+                                            end 
+											'SPECTRAL': begin 
                                                 if  current.occulter eq 'blank'  then begin ;means no occulter
                                                     ;if binaries:
                                                     if strmatch(current.obsclass, 'AstromSTD',/fold) then begin
@@ -614,7 +619,12 @@ pro parsergui::addfile, filenames, mode=mode
                                                         detecseq=1 
                                                     endelse
                                                 endelse
-                                            endelse                       
+                                            end 
+											'OPEN': begin
+                                                detectype=6
+                                                detecseq=1  
+ 
+											end
                                         end     
                                         else: begin 
                                             ;if strmatch(uniqsortedobstype[fc], '*laser*') then begin
@@ -631,7 +641,7 @@ pro parsergui::addfile, filenames, mode=mode
                                         endcase
 
                                         if detectype eq -1 then continue
-                                        typetab=['astr_spec_','astr_pol_','cal_spec_','cal_pol_','online_']
+                                        typetab=['astr_spec_','astr_pol_','cal_spec_','cal_pol_','online_', 'undispersed_']
                                         typename=typetab[detectype-1]           
                                         drf_to_load = self.tempdrfdir+'templates_drf_'+typename+strc(detecseq)+'.xml'
                     if keyword_set(mode) && (mode eq 2) then if (total(strmatch(remcharf(file_filt_obst_disp_occ_obs_itime_object,path_sep()),remcharf(file[cindex-1]+'*',path_sep()))) eq 0) then continue
