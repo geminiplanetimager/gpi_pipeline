@@ -39,6 +39,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 
 	sz = size(im)
+
+    if sz[1] ne 2048 or sz[2] ne 2048 then begin
+        backbone->Log, "REFPIX: Image is not 2048x2048, don't know how to ref pixel subtract"
+        backbone->set_keyword, "HISTORY", "Image is not 2048x2048, don't know how to ref pixel subtract"
+        return, NOT_OK
+    endif
 	nreadout = 32
 
 	chanwidth = sz[1]/nreadout
@@ -48,6 +54,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	; TODO: are the last four rows the bottom or top? Check this...
 	; TODO: experiment with other approaches to subtraction; this is the 
 	;       standard recommended approach used at Teledyne, GSFC, etc. 
+	backbone->set_keyword, "HISTORY", " REFPIX-HORIZONTAL: subtracting ref pix means for each readout"
 	for ir=0L, nreadout-1 do begin
 		refregion = im[ir*chanwidth:((ir+1)*chanwidth-1) < (sz[1]-1), 0:4]
 		djs_iterstat, refregion, mean=refmean, sigma=refsig
@@ -60,6 +67,13 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	;TODO record the relevant numbers in the FITS headers!
 
+	backbone->set_keyword, "HISTORY", " REFPIX-VERTICAL: subtracting ref pix moving median for each row"
+
+    row_meds = median(median([im[0:3, *], im[2044:2047,*]], dim=1),3)
+
+    ref = rebin(transpose(row_meds), 2048,2048)
+
+    im -= ref
 
 
 	*(dataset.currframe[0]) = im
