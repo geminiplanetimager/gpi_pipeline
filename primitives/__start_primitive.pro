@@ -23,7 +23,7 @@
 
 ; record this primitive name AND its version in the header for traceability.
 	if ~(keyword_set(primitive_version)) then primitive_version="unknown"
-  backbone->set_keyword,'HISTORY', "Running "+functionname+"; version "+primitive_version ;,ext_num=1
+  backbone->set_keyword,'HISTORY', "Running "+functionname+"; version "+primitive_version, ext_num=0
 
 
 ; if appropriate, attempt to locate and verify a calibration file.

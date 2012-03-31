@@ -113,7 +113,7 @@ suffix2=suffix+'-specalign'
     
     
  ; sxaddparlarge,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": Simple Spectral Diff. applied."
-backbone->set_keyword,'HISTORY', functionname+": Speckle alignment applied.",ext_num=1
+backbone->set_keyword,'HISTORY', functionname+": Speckle alignment applied.",ext_num=0
     
 
 ;*(dataset.headers)[numfile]=hdr

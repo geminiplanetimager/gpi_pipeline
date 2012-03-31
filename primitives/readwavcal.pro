@@ -57,10 +57,8 @@ calfiletype = 'wavecal'
     ;update header:
 ;    sxaddhist, functionname+": get wav. calibration file", *(dataset.headers[numfile])
 ;    sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-backbone->set_keyword, "HISTORY", functionname+": get wav. calibration file",ext_num=1
-backbone->set_keyword, "HISTORY", functionname+": "+c_File,ext_num=1
-;  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": get wav. calibration file"
-;  sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+": "+c_File
+backbone->set_keyword, "HISTORY", functionname+": get wav. calibration file",ext_num=0
+backbone->set_keyword, "HISTORY", functionname+": "+c_File,ext_num=0
 
 
 @__end_primitive 

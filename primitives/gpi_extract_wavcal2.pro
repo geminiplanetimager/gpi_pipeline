@@ -137,7 +137,7 @@ hh=1. ;define sidelength (2hh+1 by 2hh+1 ) of box for centroid intensity detecti
 if (tag_exist( Modules[thisModuleIndex], "emissionlinesfile")) && file_test(gpi_expand_path(Modules[thisModuleIndex].emissionlinesfile),/read) then $
 emissionlinefile=  gpi_expand_path(Modules[thisModuleIndex].emissionlinesfile) else $
     emissionlinefile=  gpi_expand_path('$GPI_DRP_DIR'+path_sep()+'config'+path_sep()+'lampemissionlines.txt')
-backbone->set_keyword, "HISTORY", "Lamp emission lines file used: "+emissionlinefile,ext_num=1
+backbone->set_keyword, "HISTORY", "Lamp emission lines file used: "+emissionlinefile,ext_num=0
 
 ;res=read_ascii(emissionlinefile,data_start=2)
 nlines = FILE_LINES(emissionlinefile) 
@@ -441,16 +441,16 @@ backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of 
 sxaddpar,*dataset.headersExt[numfile],'NAXIS',3
 sxaddpar,*dataset.headersExt[numfile],'NAXIS3',5,after='NAXIS2'
 
-backbone->set_keyword, "HISTORY", " ",ext_num=1;,/blank
-backbone->set_keyword, "HISTORY", " Wavelength solution File Format:",ext_num=1
-backbone->set_keyword, "HISTORY", " Dispersion for each spectrum is defined as ",ext_num=1
-backbone->set_keyword, "HISTORY", " lambda=w3*(sqrt((x-x0)^2+(y-y0)^2))+lambda0",ext_num=1
-backbone->set_keyword, "HISTORY", "    Slice 1:  x-positions (x0) of spectra (x:spectral direction) at [lambda0]",ext_num=1
-backbone->set_keyword, "HISTORY", "    Slice 2:  y-positions (y0) of spectra at [lambda0]",ext_num=1
-backbone->set_keyword, "HISTORY", "    Slice 3:  lambda0 [um]",ext_num=1
-backbone->set_keyword, "HISTORY", "    Slice 4:   w3 [um/pixel]",ext_num=1
-backbone->set_keyword, "HISTORY", "    Slice 5:   tilts of spectra [rad]",ext_num=1
-backbone->set_keyword, "HISTORY", " ",ext_num=1;,/blank
+backbone->set_keyword, "HISTORY", " ",ext_num=0;,/blank
+backbone->set_keyword, "HISTORY", " Wavelength solution File Format:",ext_num=0
+backbone->set_keyword, "HISTORY", " Dispersion for each spectrum is defined as ",ext_num=0
+backbone->set_keyword, "HISTORY", " lambda=w3*(sqrt((x-x0)^2+(y-y0)^2))+lambda0",ext_num=0
+backbone->set_keyword, "HISTORY", "    Slice 1:  x-positions (x0) of spectra (x:spectral direction) at [lambda0]",ext_num=0
+backbone->set_keyword, "HISTORY", "    Slice 2:  y-positions (y0) of spectra at [lambda0]",ext_num=0
+backbone->set_keyword, "HISTORY", "    Slice 3:  lambda0 [um]",ext_num=0
+backbone->set_keyword, "HISTORY", "    Slice 4:   w3 [um/pixel]",ext_num=0
+backbone->set_keyword, "HISTORY", "    Slice 5:   tilts of spectra [rad]",ext_num=0
+backbone->set_keyword, "HISTORY", " ",ext_num=0;,/blank
 
 
 ;rotate the wavcal to have vertical dispersion

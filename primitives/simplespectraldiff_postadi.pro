@@ -162,7 +162,7 @@ hdr=*(dataset.headersExt)[numfile]
       sxaddparlarge, hdr, "HISTORY", functionName+": wav. range 2:"+strc(1.e4*L2max)
 
 ;sxaddparlarge,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": Simple Spectral Diff. applied."
-backbone->set_keyword,'HISTORY', functionname+": Simple Spectral Diff. applied.",ext_num=1
+backbone->set_keyword,'HISTORY', functionname+": Simple Spectral Diff. applied.",ext_num=0
 ;suffix=suffix+'-sssd'
 ;filenm=strmid(filename,0,strlen(filename)-5)+suffix+'-sssd'+'.fits.gz'
 ;writefits, filenm ,sssd,header,/compress

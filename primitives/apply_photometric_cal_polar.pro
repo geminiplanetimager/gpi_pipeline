@@ -290,8 +290,8 @@ for i=0,n_elements(convfac)-1 do $
 	suffix+='-phot'
 ;  sxaddhist, functionname+": applying photometric calib", *(dataset.headers[numfile])
 ;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-  sxaddparlarge,*(dataset.headersExt[numfile]),'HISTORY',functionname+": applying photometric calib"
-  sxaddparlarge,*(dataset.headersExt[numfile]),'HISTORY',functionname+": "+c_File
+  sxaddparlarge,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": applying photometric calib"
+  sxaddparlarge,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": "+c_File
 
 @__end_primitive
 

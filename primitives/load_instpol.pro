@@ -27,8 +27,8 @@ calfiletype='instpol'   ; set this to some non-null value e.g. 'dark' if you wan
 
 	loadedcalfiles->load, c_file, calfiletype
 
-    fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": Loaded Instrumental Polarization:",ext_num=1
-    fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": "+c_File,ext_num=1
+    backbone->set_keyword,'HISTORY',functionname+": Loaded Instrumental Polarization:",ext_num=0
+    backbone->set_keyword,'HISTORY',functionname+": "+c_File,ext_num=0
 
 @__end_primitive
 

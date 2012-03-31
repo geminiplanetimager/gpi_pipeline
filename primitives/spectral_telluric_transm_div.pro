@@ -44,8 +44,8 @@ calfiletype='telluric'
 ; TODO update FITS header history
 ;	sxaddhist, functionname+": dividing by telluric transmission", *(dataset.headers[numfile])
 ;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-  	backbone->set_keyword,'HISTORY',functionname+": dividing by telluric transmission",ext_num=1
-   	backbone->set_keyword,'HISTORY',functionname+": "+c_File,ext_num=1
+  	backbone->set_keyword,'HISTORY',functionname+": dividing by telluric transmission",ext_num=0
+   	backbone->set_keyword,'HISTORY',functionname+": "+c_File,ext_num=0
   	datacube=*(dataset.currframe[0])
   	sz=size(datacube)
   	if sz[3] ne n_elements(tellurictrans) then return, error("Error: Telluric transmission does not have same dimensions as datacube!")

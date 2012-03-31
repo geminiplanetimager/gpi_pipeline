@@ -78,7 +78,7 @@ valuetarget=backbone->get_keyword(keywordtarget, count=ct) ;sxpar( hdr,keywordta
 
         if (ct eq 0) || ((ct ne 0) && (overwrite eq 1)) then begin 
             backbone->set_keyword,keywordtarget, valuesource
-            backbone->set_keyword,'HISTORY',functionname+":"+keywordtarget+" keyword value changed.",ext_num=1
+            backbone->set_keyword,'HISTORY',functionname+":"+keywordtarget+" keyword value changed.",ext_num=0
            ;FXADDPAR, hdr, keywordtarget, valuesource
         endif
      
