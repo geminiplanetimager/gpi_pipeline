@@ -464,8 +464,6 @@ pro parsergui::addfile, filenames, mode=mode
             message,/info, "Now adding "+strc(n_elements(finfo))+" files. "
             message,/info, "Input files include data from these FILTERS: "+strjoin(uniqfilter, ", ")
             
-			
-
             ;for each filter category, categorize by obstype
             for ff=0,nbfilter-1 do begin
                 current.filter = uniqfilter[ff]
@@ -595,7 +593,7 @@ pro parsergui::addfile, filenames, mode=mode
                                                 detectype=2
                                                 detecseq=1  
                                             end 
-											'SPECTRAL': begin 
+											'PRISM': begin 
                                                 if  current.occulter eq 'blank'  then begin ;means no occulter
                                                     ;if binaries:
                                                     if strmatch(current.obsclass, 'AstromSTD',/fold) then begin
@@ -625,6 +623,7 @@ pro parsergui::addfile, filenames, mode=mode
                                                 detecseq=1  
  
 											end
+                                            endcase
                                         end     
                                         else: begin 
                                             ;if strmatch(uniqsortedobstype[fc], '*laser*') then begin

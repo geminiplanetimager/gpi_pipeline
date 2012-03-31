@@ -37,6 +37,7 @@
 ; HISTORY:
 ;   Originally by James Larkin as extu.pro
 ;   2012-02-07 Pipelinified by Marshall Perrin
+;   2012-03-30 Rotated by 90 deg to match spectral cube orientation. NaNs outside of FOV. - MP
 ;+
 function extractcube_undispersed, DataSet, Modules, Backbone
 
@@ -107,6 +108,11 @@ for i = 0, 249 do begin
 	end
 end
 
+
+; Rotate the data to match the orientation produced for spectral + pol mode
+; datasets
+
+outarr = rotate(outarr, 1)
 
 
 ; put the datacube in the dataset.currframe output structure:

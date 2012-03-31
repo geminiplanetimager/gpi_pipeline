@@ -184,7 +184,7 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 
 	; Default OBSTYPE should be Dark if the blank is in
 	lyotmask = gpi_get_keyword(pri_header, ext_header, 'LYOTMASK', count=ct_lyot,/silent)
-	if strmatch(lyotmask, "blank",/fold_case) then default_obstype='Dark' else default_obstype='Unknown'
+	if strmatch(lyotmask, "blank",/fold_case) then default_obstype='Dark' else default_obstype='Object'
 	gpi_set_keyword_if_missing, pri_header, ext_header, 'OBSTYPE', default_obstype, comment='KEYWORD WAS MISSING - unknown'
 	gpi_set_keyword_if_missing, pri_header, ext_header, 'OBSID', 'GS-1', comment='KEYWORD WAS MISSING - unknown'
 	gpi_set_keyword_if_missing, pri_header, ext_header, 'OCCULTER', 'FPM_BLANK_G6221', comment='KEYWORD WAS MISSING - unknown'

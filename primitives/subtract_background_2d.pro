@@ -103,21 +103,21 @@ primitive_version= '$Id: displayrawimage.pro 417 2012-02-09 14:13:04Z maire $' ;
 
 		backbone->Log, "Identified "+strc(total(~mask))+" pixels for use as background pixels"
 	endif else begin ;======= use calibration file to determine the regions to use. =====
-		stop
+		;stop
   		;mode=SXPAR( header, 'PRISM', count=c)
-		mode = backbone->get_keyword('DISPERSR', count=c)
+		mode = gpi_simplify_keyword_value(backbone->get_keyword('DISPERSR', count=c))
+		filter= gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=c))
 		case strupcase(strc(mode)) of
-	  	'SPECTRO':		begin
+	  	'PRISM':		begin
 			; load mask from spectral calib file
 			; The following code is lifted directly from extractcube.
 		  ;;get length of spectrum
-  sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect)
-  if (sdpx < 0) then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
+            sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect)
+            if (sdpx < 0) then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
 
 			tilt=wavcal[*,*,4]
 
 			for i=0,sdpx-1 do begin  ;through spaxels
-				cubef=dblarr(nlens,nlens) 
 				;get the locations on the image where intensities will be extracted:
 				x3=xmini-i
 				y3=wavcal[*,*,1]+(wavcal[*,*,0]-x3)*tan(tilt[*,*])	
@@ -127,17 +127,16 @@ primitive_version= '$Id: displayrawimage.pro 417 2012-02-09 14:13:04Z maire $' ;
 				mask[y3+1,x3] = 1
 				mask[y3-1,x3] = 1
 			endfor
-			stop
 
 	  
 
 	  	end
-	  	'POLARIMETRY':	begin
+	  	'WOLLASTON':	begin
 		; load mask from polarimetr cal file
 		stop
 
 	  	end
-	  	'UNDISPERSED':	return, error ('FAILURE ('+functionName+'): method=calfile not implemented for prism='+mode)
+	  	'OPEN':	return, error ('FAILURE ('+functionName+'): method=calfile not implemented for prism='+mode)
 	  	else: return, error ('FAILURE ('+functionName+'): method=calfile not implemented for prism='+mode)
 	  	endcase
 
@@ -149,12 +148,15 @@ primitive_version= '$Id: displayrawimage.pro 417 2012-02-09 14:13:04Z maire $' ;
  ; mediocre job at image fidelity) and then iteratively repeat convolution to
  ; get it to converge. 
  
+ backbone->Log, 'Masking out pixels and replacing with medians.'
  masked_im = image
  masked_im[where(mask)] = !values.f_nan
- 
+stop 
  iters = fltarr(sz[1],sz[2], niter)
  ; get rid of any remaining NaNs just to be sure:
- fixpix, median(masked_im, mediansize)  ,0,tmp,/nan
+ tmp0 = median(masked_im, mediansize) 
+ backbone->Log, 'Cleaning up remaining NANs.'
+ fixpix, tmp0  ,0,tmp,/nan
  iters[*,*,0] = temporary(tmp)
  for n=1,niter-1 do begin
 	 print, "Convolving, iteration "+strc(n)
