@@ -4,8 +4,9 @@
 <dataset InputDir="$(GPI_RAW_DATA_DIR)" Name="" OutputDir="$(GPI_DRP_OUTPUT_DIR)">
    <fits FileName="" />
 </dataset>
-<module name="Load Wavelength Calibration" CalibrationFile="/mnt/ifs/Calibrations/modified_H_wavcal_for_UCSC_test1027H-wavcal.fits" />
+<module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="0" suffix="-darksub" gpitv="0" />
+<module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
 <!-- <module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="0" suffix="-darksub" gpitv="0" /> -->
 <module name="Assemble Spectral Datacube" Save="0" />
-<module name="Interpolate Wavelength Axis" Spectralchannels="37" Save="1" gpitv="32" suffix="-spdc" />
+<module name="Interpolate Wavelength Axis" Spectralchannels="37" Save="1" gpitv="5" suffix="-spdc" />
 </DRF>

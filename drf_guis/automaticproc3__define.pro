@@ -128,7 +128,7 @@ pro automaticproc3::handle_new_files, new_filenames
 		for i=0L,n_elements(new_filenames)-1 do begin
 			if widget_info(self.view_in_gpitv_id,/button_set) then if obj_valid(self.launcher_handle) then $
 				self.launcher_handle->launch, 'gpitv', filename=new_filenames[i], session=45 ; arbitrary session number picked to be 1 more than this launcher
-			self->reduce_one, new_filenames[i]
+			self->reduce_one, new_filenames[i],/wait
 		endfor
 
 	endif else begin
@@ -140,12 +140,28 @@ end
 
 ;-------------------------------------------------------------------
 
-pro automaticproc3::reduce_one, filenames
+pro automaticproc3::reduce_one, filenames, wait=wait
 	; Reduce one single file at a time
 
-	if widget_info(self.b_spectral_id,/button_set) then templatename='templates_drf_simple_cube.xml'
-	if widget_info(self.b_undispersed_id,/button_set) then templatename='templates_drf_simple_undispersed.xml'
-	if widget_info(self.b_polarization_id,/button_set) then templatename='templates_drf_simple_polarization.xml'
+    if keyword_set(wait) then  begin
+        message,/info, "Waiting 5 vs to ensure FITS header gets updated first?"
+        wait, 5
+    endif
+
+    info = gpi_load_and_preprocess_fits_file(filenames[0]) ;, /nodata)
+    prism = gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'DISPERSR', count=dispct) )
+
+    if dispct eq 0 then begin
+        if widget_info(self.b_spectral_id,/button_set) then prism = 'PRISM'
+        if widget_info(self.b_undispersed_id,/button_set) then prism='WOLLASTON'
+        if widget_info(self.b_polarization_id,/button_set) then prism = 'OPEN'
+    endif
+
+    case prism of
+    'PRISM': templatename='templates_drf_simple_cube.xml'
+    'OPEN': templatename='templates_drf_simple_undispersed.xml'
+    'WOLLASTON':templatename='templates_drf_simple_polarization.xml'
+    endcase
 
 	
 	templatename=gpi_expand_path('$GPI_DRP_TEMPLATES_DIR')+path_sep()+templatename
@@ -384,7 +400,7 @@ function automaticproc3::init, groupleader, _extra=_extra
 	widget_control, self.b_simple_id, /set_button 
 
 	base_dir = widget_base(self.top_base, /row)
-	void = WIDGET_LABEL(base_dir,Value='Assume disperser is:')
+	void = WIDGET_LABEL(base_dir,Value='Default disperser if missing keyword:')
 	parsebase = Widget_Base(base_dir, UNAME='dispbase' ,ROW=1 ,/EXCLUSIVE, frame=0)
 	self.b_spectral_id =    Widget_Button(parsebase, UNAME='Spectral'  $
 	        ,/ALIGN_LEFT ,VALUE='Spectral',/tracking_events)

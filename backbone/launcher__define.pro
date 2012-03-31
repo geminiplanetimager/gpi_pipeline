@@ -460,7 +460,7 @@ endif else if issetenvok eq -1 then return,0
 
 
 		; create a GUI so we can generate Timer events
-		self.baseid = WIDGET_BASE(TITLE='GPI-DPL Launcher',/tlb_size_events,  /tlb_kill_request_events,/row, /base_align_center, xoffset=100, RESOURCE_NAME='GPI_DRP',MBAR=bar)
+		self.baseid = WIDGET_BASE(TITLE='GPI DRP Launcher',/tlb_size_events,  /tlb_kill_request_events,/row, /base_align_center, xoffset=100, RESOURCE_NAME='GPI_DRP',MBAR=bar)
 		basecol_id=WIDGET_BASE(self.baseid ,/column)
 		baseid2=WIDGET_BASE(basecol_id,/row,/BASE_ALIGN_CENTER )
         ;FindPro, 'drfgui__define', dirlist=dirlist,/noprint
