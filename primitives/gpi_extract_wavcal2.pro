@@ -312,7 +312,7 @@ if fix(Modules[thisModuleIndex].wav_of_centrXYpos) eq 2. then begin
     cenx+=(peakwavelen[0]-1.5)*(18./0.3)
     ;make a slight correction for far Y-band spectra:
     if (strcompress(bandeobs,/REMOVE_ALL) eq 'Y') && (cinstru eq 1) && strmatch(instrum,'*DST*') then cenx+=0. else $
-    if (strcompress(bandeobs,/REMOVE_ALL) eq 'Y') then cenx -=8.
+    if (strcompress(bandeobs,/REMOVE_ALL) eq 'Y') then cenx -=0. ; this is not used anymore
     print, 'estimate x-location of first peak at',peakwavelen[0], 'microns =',cenx
 endif
 
