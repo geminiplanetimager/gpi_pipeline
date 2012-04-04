@@ -47,7 +47,7 @@ primitive_version= '$Id: extract_one_spectrum2.pro 96 2010-10-20 13:47:13Z maire
   	main_image_stack=*(dataset.currframe[0])
 
         ;band=strcompress(sxpar( *(dataset.headersext[numfile]), 'IFSFILT',  COUNT=cc),/rem)
-        band=backbone->get_keyword( 'IFSFILT',count=cc)
+        band=gpi_simplify_keyword_value(backbone->get_keyword( 'IFSFILT',count=cc))
         if cc eq 1 then begin
           cwv=get_cwv(band)
           CommonWavVect=cwv.CommonWavVect
@@ -191,9 +191,9 @@ calc_res=0
             end
                          'Y':begin
                 if strmatch(lamp, '*Argon*') then begin
-                  lammin=1.05
-                  lammax=1.09
-                  refpic=1.07
+                  lammin=0.95
+                  lammax=0.98
+                  refpic=0.965
                   calc_res=1
                    nterm=3
                 endif
