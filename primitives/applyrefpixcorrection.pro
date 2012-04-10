@@ -20,6 +20,7 @@
 ; PIPELINE COMMENT: Subtract channel bias levels using H2RG reference pixels.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display " 
+; PIPELINE ARGUMENT: Name="before_and_after" Type="int" Range="[0,1]" Default="0" Desc="Show the before-and-after images for the user to see?"
 ; PIPELINE ORDER: 1.25
 ; PIPELINE TYPE: ALL
 ; PIPELINE SEQUENCE: 3-
@@ -34,9 +35,9 @@ function ApplyRefPixCorrection, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
-	im =  *(dataset.currframe[0])
-	;hdr=*(dataset.headers[numfile])
+ 	if tag_exist( Modules[thisModuleIndex], "before_and_after") then before_and_after=fix(Modules[thisModuleIndex].before_and_after) else before_and_after=0
 
+	im =  *(dataset.currframe[0])
 
 	sz = size(im)
 
@@ -73,10 +74,16 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
     ref = rebin(transpose(row_meds), 2048,2048)
 
-    im -= ref
+    imout = im - ref
 
 
-	*(dataset.currframe[0]) = im
+	;before_and_after=1
+	if keyword_set(before_and_after) then begin
+		atv, [[[*(dataset.currframe[0])]], [[im]],[[ref]],[[imout]]],/bl, names=['Input image','Ref Pixel Results', 'Subtracted']
+		stop
+	endif
+
+	*(dataset.currframe[0]) = imout
 	;*(dataset.headers[numfile]) = hdr
 
 suffix = 'refpixcorr'

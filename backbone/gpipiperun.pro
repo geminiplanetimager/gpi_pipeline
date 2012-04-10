@@ -6,7 +6,7 @@
 ;
 ; KEYWORDS:
 ; 	queue_dir=		Directory name to use for Queue. If not set, by default 
-; 					check for the environment variable "GPI_QUEUE_DIR".
+; 					check for the environment variable "GPI_DRP_QUEUE_DIR".
 ; 					If that's not found either, then fall back to a fixed
 ; 					hard-coded path.
 ;
@@ -96,9 +96,11 @@ endif else if issetenvok eq -1 then return
 
 	OBJ_DESTROY, x
 
-	sem_release, sem_name
-	sem_delete, sem_name
+	if gpi_get_setting('prevent_multiple_instances',/bool) then begin
+		sem_release, sem_name
+		sem_delete, sem_name
+	endif 
 
-	;if ~(keyword_set(noexit)) then exit
+	if ~(keyword_set(noexit)) then exit
 
 END

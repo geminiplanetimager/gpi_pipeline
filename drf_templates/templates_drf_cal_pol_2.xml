@@ -3,6 +3,7 @@
 <dataset InputDir="" Name="" OutputDir="">
    <fits FileName="" />
 </dataset>
+<module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
 <module name="Accumulate Images" Method="InMemory" />
 <module name="Combine 2D images" Method="Mean" suffix='mean' Save="0" gpitv="0" />
 <module name="Assemble Polarization Cube" CalibrationFile="AUTOMATIC" Rotate="0" Save="0" gpitv="2" />

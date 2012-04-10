@@ -358,9 +358,6 @@ pro launcher::launch, objname, filename=filename, session=session, _extra=_extra
 			; some objects may want a handle to this launcher object to launch
 			; other things
 			if provide_launcher_handle[(where(objname eq valid_cmds))[0]] then  self.sessions[session]->set_launcher_handle, self
-;					if strmatch('gpipipelinebackbone', objname,/fold_case) eq 1 then begin
-;					    (self.sessions[session])->Run, GETENV('GPI_QUEUE_DIR')
-;					endif				 
 		endelse
 	endelse
 

@@ -35,8 +35,6 @@ endif else begin
 
 	drpvartab = ['GPI_IFS_DIR','GPI_DRP_DIR', 'GPI_DRP_LOG_DIR', 'GPI_DRP_TEMPLATES_DIR', 'GPI_DRP_QUEUE_DIR', 'GPI_DRP_CONFIG_DIR', 'GPI_RAW_DATA_DIR', 'GPI_DRP_OUTPUT_DIR']
 	test_dir = [1,1,1,1,1,0,1,1]
-;	drpvartab=['GPI_IFS_DIR','GPI_PIPELINE_DIR','GPI_PIPELINE_LOG_DIR','GPI_DRF_TEMPLATES_DIR',$
-;            'GPI_QUEUE_DIR','GPI_CONFIG_FILE','GPI_RAW_DATA_DIR','GPI_DRP_OUTPUT_DIR']
 	txtmes=''
             
 	for ii=0, n_elements(drpvartab)-1 do begin

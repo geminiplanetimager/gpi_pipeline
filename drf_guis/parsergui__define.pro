@@ -198,7 +198,7 @@ pro defaultpath_event,ev
        end
         'queuepath':begin
             self.queuepath = (DIALOG_PICKFILE(TITLE='Select Queue Directory', /DIRECTORY,/MUST_EXIST)) + path_sep()
-            setenv, 'GPI_QUEUE_DIR='+ self.queuepath 
+            setenv, 'GPI_DRP_QUEUE_DIR='+ self.queuepath 
             widget_control, self.defqueuepath_id, set_value=self.queuepath
        end
        'SAVE'  : begin
@@ -450,7 +450,8 @@ pro parsergui::addfile, filenames, mode=mode
               if strmatch((finfo.obstype)[itmp],'*Object*',/fold) then (finfo[itmp].obsclass) = 'Science'
               if strmatch((finfo.obstype)[itmp],'*Standard*',/fold) then begin
                 if strmatch((finfo.dispersr)[itmp],'*SPEC*',/fold) then (finfo[itmp].obsclass) = 'SPECSTD'
-                if strmatch((finfo.dispersr)[itmp],'*POL*',/fold) then (finfo[itmp].obsclass) = 'POLARSTD'
+                if strmatch((finfo.dispersr)[itmp],'*POL*',/fold) or strmatch((finfo.dispersr)[itmp],'*WOLL*',/fold)  then $
+					(finfo[itmp].obsclass) = 'POLARSTD'
               endif
               if strmatch((finfo.astromtc)[itmp],'*TRUE*',/fold) then (finfo[itmp].obsclass) = 'Astromstd'
             endfor
@@ -560,7 +561,7 @@ pro parsergui::addfile, filenames, mode=mode
                                             detecseq=2                        
                                         end
                                         'ARC': begin 
-                                            if  current.dispersr eq 'POLAR' then begin 
+                                            if  current.dispersr eq 'WOLLASTON' then begin 
                                                 detectype=4
                                                 detecseq=2  
                                             endif else begin                                                          
@@ -570,7 +571,7 @@ pro parsergui::addfile, filenames, mode=mode
                                             endelse                     
                                         end
                                         'FLAT': begin
-                                            if  current.dispersr eq 'POLAR' then begin 
+                                            if  current.dispersr eq 'WOLLASTON' then begin 
                                                 ; handle polarization flats
                                                 ; differently: compute **both**
                                                 ; extraction files and flat
@@ -589,7 +590,7 @@ pro parsergui::addfile, filenames, mode=mode
                                         end
                                         'OBJECT': begin
 											case strupcase(current.dispersr) of 
-											'POLAR': begin 
+											'WOLLASTON': begin 
                                                 detectype=2
                                                 detecseq=1  
                                             end 

@@ -611,10 +611,11 @@ pro drfgui::queue, filename; , storage=storage
     endelse
 
 
-    isalreadypresent=file_test(self.queuepath+path_sep()+newfilename)
+	newfn = self.queuepath+path_sep()+newfilename
+    isalreadypresent=file_test(newfn)
     if isalreadypresent ne 1 then begin
-      FILE_COPY, filename, self.queuepath+path_sep()+newfilename,/overwrite
-      self->log,'Queued '+newfilename
+      FILE_COPY, filename, newfn,/overwrite
+      self->log,'Queued '+newfilename+" to "+newfn
     endif else begin
       self->log,'DRF already queued.'
     endelse
@@ -1759,18 +1760,21 @@ pro drfgui::init_data, _extra=_Extra
         self.version=2.0
 
     
-        if getenv('GPI_PIPELINE_LOG_DIR') eq '' then initgpi_default_paths
+        if getenv('GPI_DRP_LOG_DIR') eq '' then initgpi_default_paths
 
 
         ; if no configuration file, choose reasonable defaults.
         self.tempdrfdir = getenv('GPI_DRP_TEMPLATES_DIR')
         self.outputdir = getenv('GPI_DRP_OUTPUT_DIR')
-        self.logpath = getenv('GPI_PIPELINE_LOG_DIR')
-        self.queuepath =getenv('GPI_QUEUE_DIR')
+        self.logpath = getenv('GPI_DRP_LOG_DIR')
+        self.queuepath =getenv('GPI_DRP_QUEUE_DIR')
 
 		; are calibration files in the DRP output dir or a special calibrations dir?
-		if gpi_get_setting('use_calibrations_dir',/bool) then self.inputcaldir = gpi_get_setting('calibrations_dir',/expand_path) else self.inputcaldir = getenv('GPI_DRP_OUTPUT_DIR')
+		if gpi_get_setting('use_calibrations_dir',/bool) then $
+			self.inputcaldir = gpi_get_setting('calibrations_dir',/expand_path) $
+		else self.inputcaldir = getenv('GPI_DRP_OUTPUT_DIR')
 
+		; how do we organize DRFs? 
 		if gpi_get_setting('organize_DRFs_by_dates') then begin
 			self.drfpath = gpi_get_setting('DRF_root_dir',/expand_path) + path_sep() + gpi_datestr(/current)
 			self->Log,"Outputting DRFs based on date to "+self.drfpath
@@ -1787,8 +1791,7 @@ pro drfgui::init_data, _extra=_Extra
 
 
 
-        self.loadedDRF = 'none' ;self.tempdrfdir+'templates_drf_'+typename+'1.xml'
-        ;FindPro, 'drfgui__define', dirlist=dirlist,/noprint
+        self.loadedDRF = 'none' 
         self.dirpro=getenv('GPI_DRP_DIR')+path_sep();+'gpidrfgui'+path_sep();dirlist[0]
 
 

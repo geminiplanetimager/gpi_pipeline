@@ -25,6 +25,12 @@
 ;
 ; KEYWORDS:
 ; OUTPUTS:
+;	Output is returned in the following keyword arguments: 
+;	
+;	spotpos				Spot positions as coordinates of Gaussians
+;	spotpos_pixels		Spot positions, as pixel list
+;	spotpos_pixvals		Spot positions, as values (weights) for each pixel on
+;						the list
 ;
 ; HISTORY:
 ;    Jerome Maire 2008-10
@@ -38,9 +44,11 @@ function is_pixel_in_usable_region,px, py, szim
 ; region excluding the reference pixel rows)
 
 ; How many reference pixels to ignore around rows and columns?
-H2RG_REFPIX = 4
+	;H2RG_REFPIX = 4
 
-    	if (px ge H2RG_REFPIX) && (px lt szim[1]-H2RG_REFPIX) && (py ge H2RG_REFPIX) && (py lt szim[2]-H2RG_REFPIX) then return, 1 else return, 0
+    	;if (px ge H2RG_REFPIX) && (px lt szim[1]-H2RG_REFPIX) && (py ge H2RG_REFPIX) && (py lt szim[2]-H2RG_REFPIX) then return, 1 else return, 0
+    	;return ((px ge H2RG_REFPIX) && (px lt szim[1]-H2RG_REFPIX) && (py ge H2RG_REFPIX) && (py lt szim[2]-H2RG_REFPIX))
+    	return ((px ge 4) && (px lt 2044) && (py ge 4) && (py lt 2044))
 
 end
 
@@ -64,7 +72,7 @@ function localizepeak_mpfitpeak,  im, cenx, ceny,wx,wy, hh, pixels=pixels, pixva
 	; find the maximum location inside the specified box
 	; and get the corresponding coordinates in the full array
 	array=im[x1:x2,y1:y2]
-	  if keyword_set(badpixmap) && total(badpixmap[x1:x2 , y1:y2 ]) ne 0. then begin
+	if keyword_set(badpixmap) && total(badpixmap[x1:x2 , y1:y2 ]) ne 0. then begin
 	      weights=replicate(1.,x2-x1+1,y2-y1+1)
 	      indbp=where(badpixmap[x1:x2 , y1:y2 ] eq 1)
 	      array[indbp]=!values.f_nan
@@ -72,69 +80,72 @@ function localizepeak_mpfitpeak,  im, cenx, ceny,wx,wy, hh, pixels=pixels, pixva
 	      fixpix, array,0, outim, /nan, /silent
 	      array=outim
 	      endif
-	  endif 
-	  if total(finite(array)) gt n_elements(array)/2 then begin
-	yfit = mpfit2dpeak(double(array), A,x, y,/gaussian,/tilt) ; force to double to match what localizepeak does.
-			; mpfit2dpeak is slow here, but not terribly slow. And besides this
-			; could easily be parallelized...
-	a = double(a)
+	endif 
+	if total(finite(array)) gt n_elements(array)/2 then begin
+		yfit = mpfit2dpeak(float(array), A,x, y,/gaussian,/tilt) 
+		;stop
+			; MP edit - no reason to work in doubles here...
+			; force to double to match what localizepeak does.
+				; mpfit2dpeak is slow here, but not terribly slow. And besides this
+				; could easily be parallelized...
+		a = float(a)
 
-	; figure out the half-width at some chosen fraction of the maximum.
-	; e.g. set frac=0.5 to get the half-width at half max. 
-	frac = 0.02
-	hwxm_coeff = sqrt(2*alog(1./frac))
+		; figure out the half-width at some chosen fraction of the maximum.
+		; e.g. set frac=0.5 to get the half-width at half max. 
+		frac = 0.02
+		hwxm_coeff = sqrt(2*alog(1./frac))
 
-	if arg_present(pixels) then begin
-		; find pixels which are 
-		;   (a) more than 1e-3 times the peak pixel in that subregion, and
-		;   (b) in the core of the best-fit gaussian (>1e-3)
-		; This is a fairly arbitrary cut and can probably be improved!!
-		if keyword_set(badpixmap) && total(badpixmap[x1:x2 , y1:y2 ]) ne 0. then begin
-		indbp=where(badpixmap[x1:x2 , y1:y2 ] eq 1,cbp)
-		if cbp gt 0 then array[indbp]=!values.f_nan
+		if arg_present(pixels) then begin
+			; find pixels which are 
+			;   (a) more than 1e-3 times the peak pixel in that subregion, and
+			;   (b) in the core of the best-fit gaussian (>1e-3)
+			; This is a fairly arbitrary cut and can probably be improved!!
+			if keyword_set(badpixmap) && total(badpixmap[x1:x2 , y1:y2 ]) ne 0. then begin
+				indbp=where(badpixmap[x1:x2 , y1:y2 ] eq 1,cbp)
+				if cbp gt 0 then array[indbp]=!values.f_nan
+			endif
+			indices, array, xx, yy
+			u= mpfit2dpeak_u(xx,yy,a,/tilt)
+			cutoff = alog(1e-4)/(-0.5) ;alog(1e-3)/(-0.5)
+			ma = max(array,/nan)
+		;	wpeak = where( ((u lt cutoff) and (array gt 1e-3*ma)) or (array gt 0.2*ma) , wct)
+			;wpeak = where( ((u lt cutoff) and (array gt 1e-4*ma)) or (array gt 0.01*ma) , wct)
+			wpeak = where( (u lt cutoff) and (array gt 3e-4*ma)  , wct)
+			if wct eq 0 then begin
+				; if we have no good pixel fits, then make the X and Y widths of the
+				; gaussian at least 1 pixel
+				message, "Problem with lenslet pixel fit! Trying slightly wider fit...",/info
+				a2= a
+				a2[2:3] >=1
+				u2= mpfit2dpeak_u(xx,yy,a2)
+				wpeak = where( (u2 lt cutoff) and (array gt 1e-3*max(array)) , wct)
+				if wct eq 0 then message, "Unfixable problem with lenslet pixel fit!",/info
+		
+			endif
+			if wct ne 0 then begin
+				pixels = array_indices(array,wpeak)
+				pixels[0,*] += x1 ; make them relative to the overall array
+				pixels[1,*] += y1
+				pixvals = array[wpeak]
+			endif 
+		
+			npix = 45 ; enough to save for each lenslet?
+					  ; NOTE: this **MUST** match the nspot_pixels value in
+					  ; gpi_extract_polcal.pro
+
+			if (wct lt npix) && (wct ne 0) then begin
+				pixvals = [pixvals, replicate(!values.f_nan, npix-wct)]
+				pixels = [[pixels], [replicate(0, 2,npix-wct)]]
+			endif else if wct gt npix then begin
+				s = reverse(sort(pixvals))
+				s=s[0:npix-1]
+				pixvals=pixvals[s]
+				pixels =pixels[*,s]
+			endif
+			if (wct eq 0) then begin
+		  pixvals = [replicate(!values.f_nan, npix-wct)]
+		  pixels = [[replicate(0, 2,npix-wct)]]
 		endif
-		indices, array, xx, yy
-		u= mpfit2dpeak_u(xx,yy,a,/tilt)
-		cutoff = alog(1e-4)/(-0.5) ;alog(1e-3)/(-0.5)
-		ma = max(array,/nan)
-	;	wpeak = where( ((u lt cutoff) and (array gt 1e-3*ma)) or (array gt 0.2*ma) , wct)
-		wpeak = where( ((u lt cutoff) and (array gt 1e-4*ma)) or (array gt 0.01*ma) , wct)
-		if wct eq 0 then begin
-			; if we have no good pixel fits, then make the X and Y widths of the
-			; gaussian at least 1 pixel
-			message, "Problem with lenslet pixel fit! Trying slightly wider fit...",/info
-			a2= a
-			a2[2:3] >=1
-			u2= mpfit2dpeak_u(xx,yy,a2)
-			wpeak = where( (u2 lt cutoff) and (array gt 1e-3*max(array)) , wct)
-			if wct eq 0 then message, "Unfixable problem with lenslet pixel fit!",/info
-	
-		endif
-    if wct ne 0 then begin
-  		pixels = array_indices(array,wpeak)
-  		pixels[0,*] += x1 ; make them relative to the overall array
-  		pixels[1,*] += y1
-  		pixvals = array[wpeak]
-    endif 
-    
-		npix = 45 ; enough to save for each lenslet?
-				  ; NOTE: this **MUST** match the nspot_pixels value in
-				  ; gpi_extract_polcal.pro
-
-		if (wct lt npix) && (wct ne 0) then begin
-			pixvals = [pixvals, replicate(!values.f_nan, npix-wct)]
-			pixels = [[pixels], [replicate(0, 2,npix-wct)]]
-		endif else if wct gt npix then begin
-			s = reverse(sort(pixvals))
-			s=s[0:npix-1]
-			pixvals=pixvals[s]
-			pixels =pixels[*,s]
-		endif
-		if (wct eq 0) then begin
-      pixvals = [replicate(!values.f_nan, npix-wct)]
-      pixels = [[replicate(0, 2,npix-wct)]]
-    endif
-
 
 	endif
 
@@ -189,6 +200,7 @@ POL_DY = -7 ;good for USC test data
 
 print, "   *** fitting polarization spots in quadrant "+strc(quad)
 
+nlens=fix(nlens) ; make sure this is signed rather than unsigned, or the divisions below will be bogus:
 case quad of 
   1: begin 
       jlim1=0 & jlim2=nlens/2 & jdir=1 & ilim=nlens/2 & idir=1 
@@ -253,8 +265,8 @@ for i=0,ilim,idir do begin
 		spotpos_pixels[0,0,nlens/2+i,nlens/2+j,1] = pixels
 
 
-			counter++
-		 if keyword_set(debug_mpfit) then begin
+		counter++
+		if keyword_set(debug_mpfit) then begin
 					spotpos[0:1,nlens/2+i,nlens/2+j,0]=localizepeak( im, cen1[0]+dx,cen1[1]+dy,wx,wy,hh)
 					spotpos[0:1,nlens/2+i,nlens/2+j,1]=localizepeak( im, cen1[0]+dx+POL_DX,cen1[1]+dy+POL_DY,wx,wy,hh)
 					vals1 = localizepeak_mpfitpeak( im, cen1[0]+dx,cen1[1]+dy,mpfit_wx,mpfit_wx,0)

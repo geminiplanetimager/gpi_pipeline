@@ -219,28 +219,19 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 @__start_primitive
 	silent=1
 
-	;header=*(dataset.headers[numfile])
 
 	nfiles=dataset.validframecount
 
 	; Load the first file so we can figure out their size, etc. 
-	if numext eq 0 then begin 
-	  im0 = accumulate_getimage(dataset, 0, hdr0)
-	  hdr=hdr0
-endif	else begin
-	  im0 = accumulate_getimage(dataset, 0, hdr,hdrext=hdrext)
-	endelse
-	
+	im0 = accumulate_getimage(dataset, 0, hdr0,hdrext=hdrext)
 
 
 	; Load all files at once. 
 	M = fltarr(4, nfiles*2)			; this will be the measurement matrix of coefficients for the Stokes parameters.
 	Msumdiff = fltarr(4, nfiles*2)	; a similar measurement matrix, for the sum and single-difference images. 
 
-  if numext gt 0 then hdr0=hdrext
-	sz = [0, sxpar(hdr0,'NAXIS1'), sxpar(hdr0,'NAXIS2'), sxpar(hdr0,'NAXIS3')]
-	if numext gt 0 then hdr0=hdr
-	exptime = sxpar(hdr0, "ITIME")
+	sz = [0, sxpar(hdrext,'NAXIS1'), sxpar(hdrext,'NAXIS2'), sxpar(hdrext,'NAXIS3')]
+	exptime = gpi_get_keyword( hdr0, hdrext, 'ITIME') 
 	polstack = fltarr(sz[1], sz[2], sz[3]*nfiles)
 
 
@@ -254,6 +245,8 @@ endif	else begin
 	sumdiffstack = polstack			; a transformed version of polstack, holding the sum and single-difference images
 	stokes = fltarr(sz[1], sz[2], 4); the output Stokes cube!
 	stokes2 = stokes
+	stokes[*] = !values.f_nan
+	stokes2[*] = !values.f_nan
 	wpangle = fltarr(nfiles)		; waveplate angles
 
 	portnum=strc(sxpar(hdr0,"INPORT", count=pct))
@@ -265,7 +258,7 @@ endif	else begin
       if portnum eq 6 then port='perfect'
   endif    
 		print, "using port = "+port
-		sxaddhist, functionname+": using instr pol for port ="+port, hdr
+		sxaddhist, functionname+": using instr pol for port ="+port, hdr0
 	system_mueller = DST_instr_pol(/mueller, port=port)
 ;  	woll_mueller_vert = mueller_linpol_rot(0)
 ;	woll_mueller_horiz= mueller_linpol_rot(90)
@@ -273,17 +266,17 @@ endif	else begin
   woll_mueller_horiz= mueller_linpol_rot(0)
 
 	for i=0L,nfiles-1 do begin
-	if numext eq 0 then begin
-		polstack[0,0,i*2] = accumulate_getimage(dataset,i,hdr)
-	endif else begin
-	  polstack[0,0,i*2] = accumulate_getimage(dataset,i,hdr,hdrext=hdrext)
-	endelse	
-		wpangle[i] = sxpar(hdr, "WPANGLE")
-		parang = sxpar(hdr, "PAR_ANG") ; we want the original, not rotated or de-rotated
+	;if numext eq 0 then begin
+		;polstack[0,0,i*2] = accumulate_getimage(dataset,i,hdr)
+	;endif else begin
+	  polstack[0,0,i*2] = accumulate_getimage(dataset,i,hdr0,hdrext=hdrext)
+	;endelse	
+		wpangle[i] = sxpar(hdr0, "WPANGLE")
+		parang = sxpar(hdr0, "PAR_ANG") ; we want the original, not rotated or de-rotated
 										; since that's what set's how the
 										; polarizations relate to the sky
 		print, "   File "+strc(i)+ ": WP="+strc(wpangle[i]), "     PA="+strc(parang)
-		sxaddhist, functionname+":  File "+strc(i)+ ": WP="+strc(wpangle[i])+ "  PA="+strc(parang) , hdr
+		sxaddhist, functionname+":  File "+strc(i)+ ": WP="+strc(wpangle[i])+ "  PA="+strc(parang) , hdr0
 
 		wp_mueller = DST_waveplate(angle=wpangle[i], /mueller,/silent)
 		;skyrotation_mueller =  mueller_rotate(parang)
@@ -444,61 +437,33 @@ endif	else begin
 ;
 ;	stop
 ;
-  if numext eq 0 then begin
-      hdrim=hdr
-  endif else begin
-      hdrim=hdrext
-  endelse
-	sxaddhist, functionname+": Updating WCS header", hdrim
+	sxaddhist, functionname+": Updating WCS header", hdrext
 	; Assume all the rest of the WCS keywords are still OK...
     sz = size(Stokes)
-    sxaddpar, hdrim, "NAXIS", sz[0], /saveComment
-    sxaddpar, hdrim, "NAXIS1", sz[1], /saveComment
-    sxaddpar, hdrim, "NAXIS2", sz[2], /saveComment
-    sxaddpar, hdrim, "NAXIS3", sz[3], /saveComment
+    sxaddpar, hdrext, "NAXIS", sz[0], /saveComment
+    sxaddpar, hdrext, "NAXIS1", sz[1], /saveComment
+    sxaddpar, hdrext, "NAXIS2", sz[2], /saveComment
+    sxaddpar, hdrext, "NAXIS3", sz[3], /saveComment
 
-    sxaddpar, hdrim, "CTYPE3", "STOKES",  "Polarization"
-    sxaddpar, hdrim, "CUNIT3", "N/A",     "Polarizations"
-    sxaddpar, hdrim, "CRVAL3", 1, 		" Stokes axis:  I Q U V "
-    sxaddpar, hdrim, "CRPIX3", 0,         "Reference pixel location"
-    sxaddpar, hdrim, "CDELT3", 1, 		" Stokes axis:  I Q U V "
-    sxaddpar, hdrim, "PC3_3", 1, "Stokes axis is unrotated"
+    sxaddpar, hdrext, "CTYPE3", "STOKES",  "Polarization"
+    sxaddpar, hdrext, "CUNIT3", "N/A",     "Polarizations"
+    sxaddpar, hdrext, "CRVAL3", 1, 		" Stokes axis:  I Q U V "
+    sxaddpar, hdrext, "CRPIX3", 0,         "Reference pixel location"
+    sxaddpar, hdrext, "CDELT3", 1, 		" Stokes axis:  I Q U V "
+    sxaddpar, hdrext, "PC3_3", 1, "Stokes axis is unrotated"
 
 	; store the outputs: this should be the ONLY valid file in the stack now, 
 	; and adjust the # of files!
 ;stop
-;if numext eq 0 then begin
-; *(dataset.headers[numfile])=hdrim 
 ; endif else begin
-  *(dataset.headersPHU[numfile])=hdr
- *(dataset.headersExt[numfile])=hdrim
-;endelse 
+	*(dataset.headersPHU[numfile])=hdr
+	*(dataset.headersExt[numfile])=hdrext
 
 	*(dataset.currframe)=Stokes
 	;*(dataset.headers[numfile]) = hdr
 	suffix = "-stokesdc"
 
-;	filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
-;slash=strpos(filnm,path_sep(),/reverse_search)
-;if numext eq 0 then writefits,getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+'diff.fits',Stokes2,hdr
-;if numext gt 0 then begin
-;  writefits,getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+'diff.fits','',hdrim
-;  writefits,getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+'diff.fits',Stokes2,hdrim, /append
-;endif  
 
 	@__end_primitive
-;;		thisModuleIndex = Backbone->GetCurrentModuleIndex()
-;;	
-;;		; Options: save (and possibly display file), or display from memory, and/or pause IDL here
-;;	    if tag_exist( Modules[thisModuleIndex], "Save") then if ( Modules[thisModuleIndex].Save eq 1 ) then begin
-;;			if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
-;;	    	b_Stat = save_currdata ( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display)
-;;	    	if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
-;;		endif else if tag_exist( Modules[thisModuleIndex], "gpitv") then if keyword_set(Modules[thisModuleIndex].gpitv) then gpitv, stokes, header=hdr,/bl
-;;	   	if tag_exist( Modules[thisModuleIndex], "stopidl") then if keyword_set( Modules[thisModuleIndex].stopidl) then stop
-;;	 
-;;	
-;;	
-;;	return, ok
 end
 

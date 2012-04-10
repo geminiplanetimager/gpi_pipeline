@@ -139,8 +139,9 @@ FUNCTION drf::get_module_args, modnum, count=count
 	module_argument_values= strarr(n_elements(module_argument_names))
 
 	for i=0,count-1 do begin
+
 		tmp = tag_exist(drf_contents.modules[modnum], module_argument_names[i], index=j)
-		module_argument_values[i] = drf_contents.modules[modnum].(j)
+		if j gt 0 then module_argument_values[i] = drf_contents.modules[modnum].(j)
 		if module_argument_values[i] eq '' then module_argument_values[i] = module_argument_defaults[i]
 	endfor
 

@@ -5,7 +5,8 @@
    <fits FileName="" />
 </dataset>
 <module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="0" suffix="-darksub" gpitv="0" />
-<module name="Apply Reference Pixel Correction" Save="0" gpitv="0" />
+<!-- <module name="Apply Reference Pixel Correction" Save="0" gpitv="0" before_and_after='1' /> -->
+<module name="Simple Destripe (hard-coded for I and T)" Save="0" gpitv="0" before_and_after='1' /> 
 <module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
 <!-- <module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="0" suffix="-darksub" gpitv="0" /> -->
 <module name="Assemble Spectral Datacube" Save="0" />

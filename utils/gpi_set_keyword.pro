@@ -10,7 +10,7 @@
 ;-
 
 
-PRO gpi_set_keyword, keyword, value, pri_header, ext_header, comment=comment, ext_num=ext_num, _Extra=_extra, silent=silent
+PRO gpi_set_keyword, keyword, value, pri_header, ext_header, comment=comment, ext_num=ext_num, _Extra=_extra, silent=silent, verbose=verbose
 	; set a keyword in either the primary or extension header depending on what
 	; the keywords table says. 
 	;
@@ -22,6 +22,8 @@ PRO gpi_set_keyword, keyword, value, pri_header, ext_header, comment=comment, ex
 	;				really know what you're doing. Set ext_num=0 to write to the PHU or
 	;				ext_num=1 to write to the image extension.
 	;	silent		suppress printed output to the screen.
+	;	verbose		Opposite of silent.
+	;				Default is silent if neither are specified.
 	;
 	common GPI_KEYWORD_TABLE, keyword_info
 
@@ -29,6 +31,8 @@ PRO gpi_set_keyword, keyword, value, pri_header, ext_header, comment=comment, ex
 
 	if ~ptr_valid(keyword_info) then gpi_load_keyword_table
 
+	if n_elements(silent) eq 0 and ~(keyword_set(verbose)) then silent=1
+	if keyword_set(verbose) then silent=0
 
 	if ~(keyword_set(comment)) then comment='' 
 	wmatch = where( strmatch( (*keyword_info).keyword, keyword, /fold), matchct)

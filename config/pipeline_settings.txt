@@ -3,14 +3,16 @@
 # SETTING_NAME<tab>SETTING_VALUE
 # settings are case insensitive
 # values are all returned as strings
+#
+# See Google Doc on configuring the pipeline for description of options
 
 strict_validation	0
 organize_raw_data_by_dates	1
 organize_reduced_data_by_dates  1
 organize_DRFs_by_dates		1
-parsergui_auto_drop	0
+parsergui_auto_queue	1
 DRF_root_dir		/mnt/ifs/DRFs
 use_calibrations_dir	1
 calibrations_dir	 /mnt/ifs/calibrations
-parsergui_auto_queue	1
 prevent_multiple_instances  0
+ifs_lenslet_scale	0.014

@@ -39,7 +39,7 @@
 
 function gpi_extract_polcal,  DataSet, Modules, Backbone
 
-primitive_version= '$Id$' ; get version from subversion to store in header history
+primitive_version= '$Id: gpi_extract_polcal.pro 674 2012-03-31 17:54:07Z Dmitry $' ; get version from subversion to store in header history
 @__start_primitive
    
     im=*(dataset.currframe[0]) 
@@ -86,21 +86,21 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     ;     TBD later. See notes in extractpol.pro
     
     
-    nlens=uint(Modules[thisModuleIndex].nlens)
+    nlens=fix(Modules[thisModuleIndex].nlens)
     ; Create the SPOTPOS array, which stores the Gaussian-fit 
     ; spot locations. 
     ;
     ; NOTE: spotpos dimensions re-arranged relative to spectral version
     ; for better speed. And to add pol dimension of course.
-    spotpos=dblarr(5,nlens,nlens,2)+!VALUES.D_NAN
+    spotpos=fltarr(5,nlens,nlens,2)+!VALUES.D_NAN
     nspot_pixels=45
     ; Now create the PIXELS and PIXVALS arrays, which store the actual
     ; X,Y, and values for each pixel, that we can use for optimal extraction
     spotpos_pixels = intarr(2,nspot_pixels, nlens, nlens, 2)
-    spotpos_pixvals = dblarr(nspot_pixels, nlens, nlens, 2)+!values.f_nan
+    spotpos_pixvals = fltarr(nspot_pixels, nlens, nlens, 2)+!values.f_nan
     
     ;localize central peak around the center of the image
-    cen1=dblarr(2)    & cen1[0]=-1 & cen1[1]=-1
+    cen1=fltarr(2)    & cen1[0]=-1 & cen1[1]=-1
     wx=5 & wy=0
     hh=1.
     ;localize first peak ;; this coordiantes depends strongly on data!!
@@ -130,6 +130,31 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     wcst=float(Modules[thisModuleIndex].w) & Pcst=float(Modules[thisModuleIndex].P)
     ;wcst=4.8 & Pcst=-1.8
     
+
+	sz = size(spotpos) & shmmap, "GPIDRP_spotpos", sz[1],sz[2], sz[3], sz[4],/float & shared_spotpos = shmvar("GPIDRP_spotpos") & shared_spotpos[*]=spotpos
+	sz = size(spotpos_pixels) & shmmap, "GPIDRP_spotpos_pixels", sz[1],sz[2],sz[3], sz[4],sz[5],/int & shared_spotpos_pixels = shmvar("GPIDRP_spotpos_pixels") & shared_spotpos_pixels[*]=spotpos_pixels
+	sz = size(spotpos_pixvals) & shmmap, "GPIDRP_spotpos_pixvals", sz[1],sz[2], sz[3],sz[4],/float & shared_spotpos_pixvals = shmvar("GPIDRP_spotpos_pixvals") & shared_spotpos_pixvals[*]=spotpos_pixvals
+
+	nbparallel = 4
+		bridges = ptrarr(nbparallel)
+		for ipar=0L,nbparallel-1 do begin
+			; create new IDL session and initialize the necessary variables
+			; there.
+			bridges[ipar] = ptr_new(obj_new('IDL_IDLBridge'))
+			(*bridges[ipar])->Setvar,'quadrant', ipar+1
+	
+			(*bridges[ipar])->Setvar,'wcst', wcst
+			(*bridges[ipar])->Setvar,'pcst', pcst
+			(*bridges[ipar])->Setvar,'nlens', nlens
+			(*bridges[ipar])->Setvar,'idx', idx
+			(*bridges[ipar])->Setvar,'jdy', jdy
+			(*bridges[ipar])->Setvar,'cen1', cen1
+			(*bridges[ipar])->Setvar,'wx', wx
+			(*bridges[ipar])->Setvar,'wy', wy
+			(*bridges[ipar])->Setvar,'hh', hh
+			(*bridges[ipar])->Setvar,'szim', szim
+
+
     
     
     for quadrant=1L,4 do find_pol_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,spotpos,im, spotpos_pixels, spotpos_pixvals, display=display_flag, badpixmap=badpixmap
