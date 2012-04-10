@@ -456,7 +456,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	; and adjust the # of files!
 ;stop
 ; endif else begin
-	*(dataset.headersPHU[numfile])=hdr
+	*(dataset.headersPHU[numfile])=hdr0
 	*(dataset.headersExt[numfile])=hdrext
 
 	*(dataset.currframe)=Stokes
