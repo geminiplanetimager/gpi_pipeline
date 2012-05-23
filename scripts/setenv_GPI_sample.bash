@@ -9,23 +9,23 @@
 #----- Most users will only need to change this next line -----
 
 export GPI_IFS_DIR="~/GPI"		# base dir for all code
+export GPI_DATA_DIR="~/GPI/data"	# base dir for all data
 
+export GPI_DRP_CONFIG_DIR="~/GPI/my_config"  # where to store my own local config settings? 
 
 
 #----- Most users will not need to change anything below here -----
 
 # where is the software?
-export GPI_DRP_DIR="$GPI_IFS_DIR/pipeline/"	# pipeline software
-export GPI_DRP_LOG_DIR="$GPI_IFS_DIR/logs/"		# default log dir
-export GPI_DRP_TEMPLATES_DIR="$GPI_DRP_DIR/drf_templates/"	# template Data Reduction Files
-export GPI_DRP_QUEUE_DIR="$GPI_DRP_DIR/queue/"		# DRF Queue directory
-export GPI_DRP_CONFIG_FILE="$GPI_DRP_DIR/config/gpi_pipeline_primitives.xml"
+export GPI_DRP_DIR="$GPI_IFS_DIR/pipeline"	# pipeline code location
+export GPI_DRP_TEMPLATES_DIR="$GPI_IFS_DIR/drf_templates"	# pipeline DRF template location
 
 # where is the data?
-export GPI_RAW_DATA_DIR="$GPI_IFS_DIR/data/raw/"
-export GPI_DRP_OUTPUT_DIR="$GPI_IFS_DIR/data/reduced/"
+export GPI_RAW_DATA_DIR="$GPI_DATA_ROOT/Detector/"	# where is raw data?
+export GPI_DRP_OUTPUT_DIR="$GPI_DATA_ROOT/Reduced/"	# where should we put reduced data?
+export GPI_DRP_QUEUE_DIR="$GPI_DATA_ROOT/queue/"	# where is the DRP Queue directory?
+export GPI_DRP_LOG_DIR="$GPI_DATA_ROOT/logs/"	# default log dir
 
-# make sure the startup scripts are in your $PATH
+#---------- make sure the startup scripts are in your $PATH   -----
 export PATH="${PATH}:${GPI_DRP_DIR}/scripts"
 export IDL_PATH="${IDL_PATH}:+${GPI_IFS_DIR}"
-     

@@ -16,22 +16,22 @@
 #----- Most users will only need to change these next lines? -----
 
 setenv GPI_IFS_DIR "~/GPI"		# base dir for all code
-setenv GPI_DATA_ROOT "~/GPI/data"	# base dir for all data
+setenv GPI_DATA_DIR "~/GPI/data"	# base dir for all data
+
+setenv GPI_DRP_CONFIG_DIR "~/GPI/my_config"  # where to store my own local config settings? 
 
 
 
 #----- Most users will not need to change anything below here -----
 
 # where is the software?
-setenv GPI_DRP_DIR "$GPI_IFS_DIR/pipeline"	# pipeline 
-setenv GPI_DRP_LOG_DIR "$GPI_DRP_DIR/log/"		# default log dir
-setenv GPI_DRP_CONFIG_FILE "$GPI_DRP_DIR/config/gpi_pipeline_primitives.xml"
-setenv GPI_DRP_CONFIG_FILE "$GPI_DRP_DIR/config/gpi_pipeline_primitives.xml"
+setenv GPI_DRP_DIR "$GPI_IFS_DIR/pipeline"	# pipeline code location
+setenv GPI_DRP_TEMPLATES_DIR "$GPI_IFS_DIR/drf_templates"	# pipeline DRF template location
 
 # where is the data?
-setenv GPI_RAW_DATA_DIR "$GPI_DATA_ROOT/raw/"
-setenv GPI_DRP_OUTPUT_DIR "$GPI_DATA_ROOT/reduced/"
-setenv GPI_DRP_QUEUE_DIR "$GPI_DATA_ROOT/queue/"		# DRF Queue directory
+setenv GPI_RAW_DATA_DIR "$GPI_DATA_ROOT/Detector/"	# where is raw data?
+setenv GPI_DRP_OUTPUT_DIR "$GPI_DATA_ROOT/Reduced/"	# where should we put reduced data?
+setenv GPI_DRP_QUEUE_DIR "$GPI_DATA_ROOT/queue/"	# where is the DRP Queue directory?
 setenv GPI_DRP_LOG_DIR "$GPI_DATA_ROOT/logs/"	# default log dir
 
 #---------- make sure the startup scripts are in your $PATH   -----
