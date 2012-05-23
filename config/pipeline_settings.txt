@@ -4,15 +4,17 @@
 # settings are case insensitive
 # values are all returned as strings
 #
-# See Google Doc on configuring the pipeline for description of options
+# For a description of what each option means, 
+# See Google Doc on configuring the pipeline
+#     "GPI Data Pipeline Installation & Configuration Manual"
 
 strict_validation	0
 organize_raw_data_by_dates	1
 organize_reduced_data_by_dates  1
 organize_DRFs_by_dates		1
 parsergui_auto_queue	1
-DRF_root_dir		/mnt/ifs/DRFs
+DRF_root_dir		${GPI_DATA_DIR}/DRFs
 use_calibrations_dir	1
-calibrations_dir	 /mnt/ifs/calibrations
+calibrations_dir	${GPI_DATA_DIR}/calibrations
 prevent_multiple_instances  0
 ifs_lenslet_scale	0.014
