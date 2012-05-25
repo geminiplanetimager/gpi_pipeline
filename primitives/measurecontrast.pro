@@ -39,12 +39,12 @@
 function measurecontrast, DataSet, Modules, Backbone
 
 primitive_version= '$Id: measurecontrast.pro 674 2012-03-31 17:54:07Z Maire $' ; get version from subversion to store in header history
-;calfiletype = 'Gridratio'
+calfiletype = 'Gridratio'
 @__start_primitive
 
 
 
-gridfac = 8317.6;gpi_readfits(c_File) ;8317.6 
+gridfac = gpi_readfits(c_File) ;8317.6 
 
 contrcen_x=intarr(4)
 contrcen_y=intarr(4)
