@@ -139,25 +139,18 @@ endelse
 
   contr_yaxis_min=float(Modules[thisModuleIndex].contr_yaxis_min)
   contr_yaxis_max=float(Modules[thisModuleIndex].contr_yaxis_max)
-  ;stop
-  plotidl=1
-  if plotidl then begin
-  window, 20
-    statvsr,copsf,0.,pixscl=pixscl,/psig,nsig=3,yr=[contr_yaxis_min, contr_yaxis_max],$
-      xtitle='Angular separation [Arcsec]',ytitle='Contrast (3sigma limit)', cens=cens, asec=asec,isig=isig
 
-    ;self->tvcontr
-  endif
 
 lenstr=strlen((dataset.outputfilenames)[numfile])
 contr_outfile= strmid((dataset.outputfilenames)[numfile],0,lenstr-5)+"-contrast"
   plotps=1
   if (plotps) then begin
     mydevice = !D.NAME
+
     set_plot,"ps"
     openps,contr_outfile+".ps"
     statvsr,copsf,0.,pixscl=pixscl,/psig,nsig=3,yr=[contr_yaxis_min, contr_yaxis_max],$
-      xtitle='Angular separation [Arcsec]',ytitle='Contrast (3sigma limit)', cens=cens, asec=asec,isig=isig
+      xtitle='Angular separation [Arcsec]',ytitle='Contrast (3'+greek('sigma')+' limit)', cens=cens, asec=asec,isig=isig ;
      closeps
     SET_PLOT, mydevice
 
