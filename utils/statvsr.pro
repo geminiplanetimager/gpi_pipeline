@@ -123,12 +123,13 @@ endif
 
 if (keyword_set(psig)) then begin
     if (op eq 0) then begin
-        plot,asec,isig,/ylog,xlog=xlog,xrange=xrange,yrange=yrange,/xstyle,/ystyle,linestyle=linestyle[il],xtitle=xtitle,ytitle=ytitle,/nodata
+        plot,asec,isig,/ylog,xlog=xlog,xrange=xrange,yrange=yrange,xstyle=1,ystyle=8,linestyle=linestyle[il],xtitle=xtitle,ytitle=ytitle, XCHARSIZE = 1.3, YCHARSIZE = 1.3 ,/nodata
         op=1
     endif
+  
     oplot,asec,(isig)^(-1.),color=color[ic],linestyle=linestyle[il]
-    AXIS, YAXIS=1, YLOG=0, YRANGE = (-2.5*(!Y.CRANGE)), YSTYLE = 1, $  
-   YTITLE = 'Contrast (3-sigma limit) Magnitude diff.', XCHARSIZE = 0.7   
+    AXIS, XAXIS=1, YAXIS=1, YLOG=0, YRANGE = (2.5*(!Y.CRANGE)), XSTYLE = 1, YSTYLE = 1, $  
+   YTITLE = 'Contrast (3'+greek('sigma')+' limit) '+greek('Delta')+' Magnitude ', YCHARSIZE = 1.3  ; 
  
     ic=ic+1
 endif
