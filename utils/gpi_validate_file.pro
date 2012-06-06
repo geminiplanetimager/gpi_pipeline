@@ -25,12 +25,19 @@
 
 forward_function gpi_validate_file_one_keyword
 
-FUNCTION gpi_validate_file_one_keyword, file_data, keyword, requiredvalue, _extra=_extra
+FUNCTION gpi_validate_file_one_keyword, file_data, keyword, requiredvalue, verbose=verbose, _extra=_extra
 
 	val = gpi_get_keyword(*(file_data.pri_header), *(file_data.ext_header), keyword, count=ct)
-	if ct eq 0 then return, 0 else begin
+	if ct eq 0 then begin 
+        if keyword_set(verbose) then print, "No match for required keyword "+keyword
+        return, 0 
+        
+    endif else begin
 		matchedvalue=stregex(val, requiredvalue,/boolean,/fold_case)
-		if matchedvalue ne 1 then return, 0 
+		if matchedvalue ne 1 then begin
+            if keyword_set(verbose) then print, "No match for required keyword value "+requiredvalue+" for keyword "+keyword
+            return, 0 
+        endif
 	endelse
 	return, 1 ; valid
 
@@ -39,7 +46,7 @@ end
 
 
 ;-----------------------------------------------------
-FUNCTION gpi_validate_file, filename
+FUNCTION gpi_validate_file, filename,verbose=verbose
 	forward_function gpi_validate_file_one_keyword
 
 
@@ -49,15 +56,14 @@ FUNCTION gpi_validate_file, filename
 
 	file_data = gpi_load_and_preprocess_fits_file(filename,/nodata)
 
-	val1 = gpi_validate_file_one_keyword(file_data, 'TELESCOP','Gemini*',/test)
-	val2 = gpi_validate_file_one_keyword(file_data, 'INSTRUME','GPI')
-	val3 = gpi_validate_file_one_keyword(file_data, 'INSTRSUB','IFS')
+	val1 = gpi_validate_file_one_keyword(file_data, 'TELESCOP','Gemini*',/test, verbose=verbose)
+	val2 = gpi_validate_file_one_keyword(file_data, 'INSTRUME','GPI', verbose=verbose)
+	val3 = gpi_validate_file_one_keyword(file_data, 'INSTRSUB','IFS', verbose=verbose)
 	
 	if val1+val2+val3 eq 3 then valid=1 else valid=0
 
-
 	if valid eq 1 then return, 1 else begin
-		STRICT_VALIDATION= gpi_get_setting('strict_validation')
+		STRICT_VALIDATION= gpi_get_setting('strict_validation',/int)
 		if STRICT_VALIDATION then begin
 			print, "File "+filename+" is NOT a valid Gemini-GPI-IFS file!"
 			return, 0

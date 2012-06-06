@@ -53,10 +53,28 @@ primitive_version= '$Id: applyrefpixcorrection.pro 677 2012-03-31 20:47:13Z Dmit
 
 	mask = im
 	mask[*] = !values.f_nan
-	mask[0:300, 360:2047] = 1
-	mask[0:150, 250:359] = 1
-	mask[850:1050, 0:500] = 1
+    date = sxpar(*(dataset.headersPHU[0]), 'DATE-OBS', count=count)
+    if count eq 0 then begin
+        backbone->Log, "DESTRIPE: Could not find DATE-OBS in FITS header, unsure how to proceed."
+        return, NOT_OK
+    endif
 
+    month=fix(strmid(date,5,2))
+    if month le 4 then begin
+        ; April 2012 or before: Assume star is off center to the right
+        mask[0:300, 360:2047] = 1
+        mask[0:150, 250:359] = 1
+        mask[850:1050, 0:500] = 1
+        label='pre-remediation (April 2012 or before)'
+    endif else begin
+        ; May 2012 or later (post remediation): Assume star is more well centered
+
+        mask[0:200, 0:2047] = 1
+        mask[1847:2047, 0:2047] = 1
+        label='post-remediation (May 2012 or later)'
+    endelse
+
+    backbone->set_keyword, "HISTORY", "Subtracted ad hoc stripe background estimated from mask for "+label ,ext_num=0
 
     row_meds = median(im*mask, dim=1)
 
@@ -73,8 +91,7 @@ primitive_version= '$Id: applyrefpixcorrection.pro 677 2012-03-31 20:47:13Z Dmit
 	endif
 
 	*(dataset.currframe[0]) = imout
-	;*(dataset.headers[numfile]) = hdr
 
-suffix = 'refpixcorr'
+suffix = 'destripe'
 @__end_primitive
 end

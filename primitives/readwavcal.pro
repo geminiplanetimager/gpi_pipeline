@@ -59,7 +59,7 @@ calfiletype = 'wavecal'
 ;    sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
 backbone->set_keyword, "HISTORY", functionname+": get wav. calibration file",ext_num=0
 backbone->set_keyword, "HISTORY", functionname+": "+c_File,ext_num=0
-
+backbone->set_keyword, "DRPWVCLF", c_File, "DRP wavelength calibration file used.", ext_num=0
 
 @__end_primitive 
 

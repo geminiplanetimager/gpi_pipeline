@@ -105,7 +105,7 @@ SPOTWAVE=backbone->get_keyword('SPOTWAVE', count=cc4)
 ;              'K2':spotloc=[[1.,2.,3.,4.,5.],[10.,11.,12.,13.,14.]]
 ;            endcase
 ;              for ii=1,(size(spotloc))[1]-1 do $
-;              print, 'ASSUME SPOT locations at '+lambdamin+' microms are',spotloc[ii,*]
+;              print, 'ASSUME SPOT locations at '+lambdamin+' microns are',spotloc[ii,*]
 ;    endelse
 
 

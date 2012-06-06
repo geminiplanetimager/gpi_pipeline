@@ -33,7 +33,7 @@
 ; 				extension. This is different from previous versions of the DRP!
 ; 				Switched to mwrfits instead of writefits because it better
 ; 				handles the EXTENT/XTENSION keywords needed for multi-ext FITS.
-;
+;   2012-06-06 MP: Added fallback safety checks for DATAFILE= missing or NONE 
 ;-
 
 
@@ -51,7 +51,16 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 
 	;-- Generate output filename, starting from the input one.
 	filnm=fxpar(*(DataSet.HeadersPHU[i]),'DATAFILE',count=cdf)
-	
+    if cdf eq 0 then begin 
+        message,/info, 'No DATAFILE keyword supplied'
+        ; fallback to input filename
+        filnm = dataset.filenames[i]
+    endif else if (strc(filnm) eq 'NONE') or (strc(filnm) eq '')  then begin
+        ; for GDS produced output files that don't have valid DATAFILE keywds yet 
+        ; fall back on the input filename
+        filnm = dataset.filenames[i]
+    endif
+
 	;setup calib dir
 	is_calib_pri=0 & is_calib_ext=0
   if keyword_set(savePHU) then is_calib_pri = strc(strupcase(fxpar(savePHU, "ISCALIB"))) eq 'YES' else $
@@ -102,7 +111,7 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	if ( keyword_set( filenm ) ) then  c_File1=filenm
 	
 	if keyword_set(addexten_qa) || keyword_set(addexten_var) then FXADDPAR,  *(dataset.headersPHU[numfile]),'NEXTEND',1+keyword_set(addexten_var)+keyword_set(addexten_qa)
-	
+
 	if ( keyword_set( savedata ) ) then begin  ; The callinf function has specified some special data to save, overwriting the currFrame data
 	  	if ~( keyword_set( saveheader ) ) then saveheader = *(dataset.headersExt[numfile])
 		if ~( keyword_set( savePHU ) ) then savePHU = *(dataset.headersPHU[numfile])

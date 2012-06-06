@@ -109,7 +109,7 @@ backbone->set_keyword,'CDELT3',(CommonWavVect[1]-CommonWavVect[0])/(CommonWavVec
 backbone->set_keyword,'CRPIX3',0.,'pixel coordinate of reference point', ext_num=1
 backbone->set_keyword,'CRVAL3',CommonWavVect[0]+(CommonWavVect[1]-CommonWavVect[0])/(2.*CommonWavVect[2]),'wav. at reference point', ext_num=1
 backbone->set_keyword,'CTYPE3','WAVE', ext_num=1
-backbone->set_keyword,'CUNIT3','microms', ext_num=1
+backbone->set_keyword,'CUNIT3','microns', ext_num=1
 ;FXADDPAR, *(dataset.headers)[numfile], 'NAXIS',3, after='BITPIX'
 ;FXADDPAR, *(dataset.headers)[numfile], 'NAXIS1',nlens, after='NAXIS'
 ;FXADDPAR, *(dataset.headers)[numfile], 'NAXIS2',nlens, after='NAXIS1'
@@ -121,7 +121,7 @@ backbone->set_keyword,'CUNIT3','microms', ext_num=1
 ;FXADDPAR, *(dataset.headers)[numfile], 'CRPIX3', 0.,'pixel coordinate of reference point'
 ;FXADDPAR, *(dataset.headers)[numfile], 'CRVAL3', CommonWavVect[0]+(CommonWavVect[1]-CommonWavVect[0])/(2.*CommonWavVect[2]),'wav. at reference point'
 ;FXADDPAR, *(dataset.headers)[numfile], 'CTYPE3','WAVE'
-;FXADDPAR, *(dataset.headers)[numfile], 'CUNIT3','microms'
+;FXADDPAR, *(dataset.headers)[numfile], 'CUNIT3','microns'
 
 ; put the datacube in the dataset.currframe output structure:
 *(dataset.currframe[0])=Result

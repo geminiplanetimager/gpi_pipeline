@@ -17,8 +17,8 @@
 ;
 ; PIPELINE COMMENT: Control quality of data using keywords. Appropriate action for bad quality data is user-defined. 
 ; PIPELINE ARGUMENT: Name="Action" Type="int" Range="[0,10]" Default="1" Desc="0:Simple alert and continue reduction, 1:Reduction fails"
-; PIPELINE ARGUMENT: Name="r0" Type="float" Range="[0,2]" Default="0.08" Desc="critical r0 [m] at lambda=0.5microms"
-; PIPELINE ARGUMENT: Name="rmserr" Type="float" Range="[0,1000]" Default="10." Desc="Critical rms wavefront error in microms. "
+; PIPELINE ARGUMENT: Name="r0" Type="float" Range="[0,2]" Default="0.08" Desc="critical r0 [m] at lambda=0.5microns"
+; PIPELINE ARGUMENT: Name="rmserr" Type="float" Range="[0,1000]" Default="10." Desc="Critical rms wavefront error in microns. "
 ; PIPELINE ORDER: 1.5
 ; PIPELINE TYPE: ALL-SPEC
 ; PIPELINE SEQUENCE: 
@@ -67,7 +67,7 @@ primitive_version= '$Id: control_data_quality.pro 96 2010-10-30 13:47:13Z maire 
   	  endif
   	    if  (float(rmserr) gt criticalrmserr) && (cc eq 1) then begin
           badquality=1
-          drpmessage+=' rms waveront error [microms]='+rmserr     
+          drpmessage+=' rms waveront error [microns]='+rmserr     
         endif
 
 if badquality  then begin
