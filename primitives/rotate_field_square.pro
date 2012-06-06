@@ -42,6 +42,7 @@ primitive_version= '$Id: rotate_north_up.pro 674 2012-03-31 17:54:07Z Dmitry $' 
 
     ; ====== Rotation =======
 	rotangle_d = atan(1,2)*!radeg -2 ; FIXME I don't understand where the 2 degree offset comes from?? -MP
+	rotangle_d *= -1 ; HACK HACK FIXME
 
     padsize=281
     cube0 =cube

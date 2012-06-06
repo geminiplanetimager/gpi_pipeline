@@ -1202,8 +1202,18 @@ pro drfgui::event,ev
         (*storage.splitptr).datefile = datefile
         widget_control,storage.fname,set_value=pfile
     end
-    
-    'outputdir': begin
+     'outputdir': begin
+		widget_control, self.outputdir_id, get_value=tmp
+		if self->check_output_path_exists(tmp) then begin
+			self.outputdir = tmp
+			self->log,'Output Directory changed to:'+self.outputdir
+		endif else begin
+			; reset screen display to prior value
+			widget_control, self.outputdir_id, set_value=self.outputdir
+		endelse
+    end
+   
+    'outputdir_browse': begin
 		result = DIALOG_PICKFILE(TITLE='Select a OUTPUT Directory', /DIRECTORY,/MUST_EXIST)
 		if result ne '' then begin
 			self.outputdir = result
@@ -1812,7 +1822,8 @@ function drfgui::init_widgets, _extra=_Extra, session=session
     if screensize[1] lt 900 then begin
       nlines_status=5
       nlines_fname=12
-      self.nlines_modules=7
+	  if screensize[1] lt 800 then nlines_fname=8
+      self.nlines_modules=5
       nlines_args=6
     endif else begin
       nlines_status=5
@@ -1906,11 +1917,11 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 	drflabel=widget_label(top_baseborder2,Value='Output Dir=         ')
 	self.outputdir_id = WIDGET_TEXT(top_baseborder2, $
 				xsize=34,ysize=1,$
-				/editable,units=0,value=self.outputdir )    
+				/editable,units=0,value=self.outputdir, uvalue='outputdir' )    
 
 	drfbrowse = widget_button(top_baseborder2,  $
 						XOFFSET=174 ,SCR_XSIZE=75 ,SCR_YSIZE=23  $
-						,/ALIGN_CENTER ,VALUE='Change...',uvalue='outputdir')
+						,/ALIGN_CENTER ,VALUE='Change...',uvalue='outputdir_browse')
 	top_baseborder3=widget_base(top_baseidentseq,/BASE_ALIGN_LEFT,/row)
 	drflabel=widget_label(top_baseborder3,Value='Log Path=           ')
 	self.logpath_id = WIDGET_TEXT(top_baseborder3, $

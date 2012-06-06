@@ -1,6 +1,6 @@
 ;+
 ; NAME: gpi_extract_polcal
-; PIPELINE PRIMITIVE DESCRIPTION: Measure Polarization Spot Calibration
+; PIPELINE PRIMITIVE DESCRIPTION: Measure Polarization Spot Calibration (parallelized)
 ;
 ;    gpi_extract_polcal detects the positions of the polarized spots in a 2D
 ;    image based on flat field observations. 
