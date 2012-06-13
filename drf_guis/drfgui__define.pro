@@ -1834,24 +1834,24 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 
 	title  = "GPI DRF-GUI"
 	if keyword_set(session) then begin
-		self.session=session
-		title += " #"+strc(session)
-	endif
-	title += ': Create Data Reduction Files'
-			 CASE !VERSION.OS_FAMILY OF  
-		; **NOTE** Mac OS X reports an OS family of 'unix' not 'MacOS'
-	   'unix': begin 
-		top_base=widget_base(title=title, $
-		group_leader=groupleader,/BASE_ALIGN_LEFT,/column, MBAR=bar,/tlb_size_events, /tlb_kill_request_events, resource_name='GPI_DRP_DRFGUI')
-		
-		 end
-	   'Windows'   :begin
-		top_base=widget_base(title=title, $
-		group_leader=groupleader,/BASE_ALIGN_LEFT,/column, MBAR=bar,bitmap=self.dirpro+path_sep()+'gpi.bmp',/tlb_size_events, /tlb_kill_request_events)
-		
-		 end
-
-	ENDCASE
+           self.session=session
+           title += " #"+strc(session)
+        endif
+        curr_sc = get_screen_size()
+        title += ': Create Data Reduction Files'
+        CASE !VERSION.OS_FAMILY OF  
+           ;; **NOTE** Mac OS X reports an OS family of 'unix' not 'MacOS'
+           'unix': begin 
+              if curr_sc[0] > 1300 then $
+                 top_base=widget_base(title=title, group_leader=groupleader,/BASE_ALIGN_LEFT,/column, MBAR=bar,/tlb_size_events, /tlb_kill_request_events, resource_name='GPI_DRP_DRFGUI') $
+              else  top_base=widget_base(title=title, group_leader=groupleader,/BASE_ALIGN_LEFT,/column, MBAR=bar,/tlb_size_events, /tlb_kill_request_events, resource_name='GPI_DRP_DRFGUI',/scroll,x_scroll_size=curr_sc-100,y_scroll_size=cur_sc-100)
+           end
+           'Windows'   :begin
+              top_base=widget_base(title=title, $
+                                   group_leader=groupleader,/BASE_ALIGN_LEFT,/column, MBAR=bar,bitmap=self.dirpro+path_sep()+'gpi.bmp',/tlb_size_events, /tlb_kill_request_events)
+              
+           end
+        ENDCASE
    
 	; MDP change 2010-01-25: let the X and Y size be set by default, based on
 	; the nlines settings above
