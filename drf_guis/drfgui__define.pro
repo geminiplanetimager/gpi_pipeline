@@ -1844,7 +1844,7 @@ function drfgui::init_widgets, _extra=_Extra, session=session
            'unix': begin 
               if curr_sc[0] > 1300 then $
                  top_base=widget_base(title=title, group_leader=groupleader,/BASE_ALIGN_LEFT,/column, MBAR=bar,/tlb_size_events, /tlb_kill_request_events, resource_name='GPI_DRP_DRFGUI') $
-              else  top_base=widget_base(title=title, group_leader=groupleader,/BASE_ALIGN_LEFT,/column, MBAR=bar,/tlb_size_events, /tlb_kill_request_events, resource_name='GPI_DRP_DRFGUI',/scroll,x_scroll_size=curr_sc-100,y_scroll_size=cur_sc-100)
+              else top_base=widget_base(title=title, group_leader=groupleader,/BASE_ALIGN_LEFT,/column, MBAR=bar,/tlb_size_events, /tlb_kill_request_events, resource_name='GPI_DRP_DRFGUI',/scroll,x_scroll_size=curr_sc[0]-50,y_scroll_size=curr_sc[1]-100)
            end
            'Windows'   :begin
               top_base=widget_base(title=title, $
