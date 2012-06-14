@@ -155,4 +155,6 @@ legends=(Modules[thisModuleIndex].legendfig)
   
    SET_PLOT, mydevice; set_plot,'win'
 
+   @__end_primitive
+
  end

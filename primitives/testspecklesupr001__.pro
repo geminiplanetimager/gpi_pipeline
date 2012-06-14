@@ -21,7 +21,7 @@
 ;   Jerome Maire 2010-08-16
 ;- 
 
-function testspecklesupr001, DataSet, Modules, Backbone
+function testspecklesupr001__, DataSet, Modules, Backbone
 primitive_version= '$Id: testspecklesupr001.pro 11 2010-09-14 10:22:03 maire $' ; get version from subversion to store in header history
 @__start_primitive
 mydevice = !D.NAME

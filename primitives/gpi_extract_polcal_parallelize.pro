@@ -37,10 +37,10 @@
 ;   2009-09-17 JM: added DRF parameters
 ;-
 
-function gpi_extract_polcal,  DataSet, Modules, Backbone
+function gpi_extract_polcal_parallelize,  DataSet, Modules, Backbone
 
-primitive_version= '$Id: gpi_extract_polcal.pro 674 2012-03-31 17:54:07Z Dmitry $' ; get version from subversion to store in header history
-@__start_primitive
+	primitive_version= '$Id: gpi_extract_polcal.pro 674 2012-03-31 17:54:07Z Dmitry $' ; get version from subversion to store in header history
+	@__start_primitive
    
     im=*(dataset.currframe[0]) 
     
@@ -136,23 +136,24 @@ primitive_version= '$Id: gpi_extract_polcal.pro 674 2012-03-31 17:54:07Z Dmitry 
 	sz = size(spotpos_pixvals) & shmmap, "GPIDRP_spotpos_pixvals", sz[1],sz[2], sz[3],sz[4],/float & shared_spotpos_pixvals = shmvar("GPIDRP_spotpos_pixvals") & shared_spotpos_pixvals[*]=spotpos_pixvals
 
 	nbparallel = 4
-		bridges = ptrarr(nbparallel)
-		for ipar=0L,nbparallel-1 do begin
-			; create new IDL session and initialize the necessary variables
-			; there.
-			bridges[ipar] = ptr_new(obj_new('IDL_IDLBridge'))
-			(*bridges[ipar])->Setvar,'quadrant', ipar+1
-	
-			(*bridges[ipar])->Setvar,'wcst', wcst
-			(*bridges[ipar])->Setvar,'pcst', pcst
-			(*bridges[ipar])->Setvar,'nlens', nlens
-			(*bridges[ipar])->Setvar,'idx', idx
-			(*bridges[ipar])->Setvar,'jdy', jdy
-			(*bridges[ipar])->Setvar,'cen1', cen1
-			(*bridges[ipar])->Setvar,'wx', wx
-			(*bridges[ipar])->Setvar,'wy', wy
-			(*bridges[ipar])->Setvar,'hh', hh
-			(*bridges[ipar])->Setvar,'szim', szim
+	bridges = ptrarr(nbparallel)
+	for ipar=0L,nbparallel-1 do begin
+		; create new IDL session and initialize the necessary variables
+		; there.
+		bridges[ipar] = ptr_new(obj_new('IDL_IDLBridge'))
+		(*bridges[ipar])->Setvar,'quadrant', ipar+1
+
+		(*bridges[ipar])->Setvar,'wcst', wcst
+		(*bridges[ipar])->Setvar,'pcst', pcst
+		(*bridges[ipar])->Setvar,'nlens', nlens
+		(*bridges[ipar])->Setvar,'idx', idx
+		(*bridges[ipar])->Setvar,'jdy', jdy
+		(*bridges[ipar])->Setvar,'cen1', cen1
+		(*bridges[ipar])->Setvar,'wx', wx
+		(*bridges[ipar])->Setvar,'wy', wy
+		(*bridges[ipar])->Setvar,'hh', hh
+		(*bridges[ipar])->Setvar,'szim', szim
+	endfor
 
 
     
