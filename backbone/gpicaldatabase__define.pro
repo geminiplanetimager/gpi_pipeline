@@ -165,6 +165,8 @@ PRO gpicaldatabase::write
 			comment=firstline
 	message,/info, " Writing to "+calfile_txt
 
+	self.modified=0 ; Calibration database on disk now matches the one in memory
+
 end
 
 ;----------
@@ -181,8 +183,9 @@ PRO gpicaldatabase::rescan_directory
 	self.nfiles=0
 	for i=0L,nf-1 do begin
 		;self->Log, "Attempting to add file "+files[i]
-		status = self->add_new_cal( strtrim(files[i],2) )
+		status = self->add_new_cal( strtrim(files[i],2), /delaywrite)
 	endfor 
+	if self.modified then self->write ; save updated cal DB to disk.
   self->Log, "Database rescanning completed! "
   print, "Database rescanning completed! "
 
@@ -192,9 +195,10 @@ end
 
 ;----------
 ; add a new calibration file
-Function gpicaldatabase::add_new_cal, filename ;, header=header
+Function gpicaldatabase::add_new_cal, filename, delaywrite=delaywrite ;, header=header
 	; HISTORY:
 	; 2012-01-27: Updated for MEF files -MP
+	; 2012-06-12: Added /delaywrite for improved performance in rescan. -MP
 	;
 	COMMON APP_CONSTANTS
 		
@@ -220,8 +224,8 @@ Function gpicaldatabase::add_new_cal, filename ;, header=header
 	;
 	
 	newcal = self->cal_info_from_header(fits_data)
-	 newcal.path= file_dirname(filename)
-  newcal.filename = file_basename(filename)
+	newcal.path= file_dirname(filename)
+    newcal.filename = file_basename(filename)
 	; add info to archive
 	; 	overwrite if already present, otherwise add new
 	if self.nfiles eq 0 then begin
@@ -243,7 +247,7 @@ Function gpicaldatabase::add_new_cal, filename ;, header=header
 	self.modified=1
 
 	; force write right away
-	if keyword_set(self.modified) then begin
+	if keyword_set(self.modified) and not keyword_set(delaywrite) then begin
 		self->write
 		self.modified=0
 	endif

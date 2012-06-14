@@ -377,6 +377,7 @@ PRO gpiPipelineBackbone::Run, QueueDir
     print, "   Now polling for DRF files in "+queueDir
     print, "    "
     self.progressbar->log,"   Now polling and waiting for DRF files in "+queueDir
+    self->log,"   Now polling and waiting for DRF files in "+queueDir,/general
     WHILE DRPCONTINUE EQ 1 DO BEGIN
         if ~(keyword_set(DEBUG)) then CATCH, Error else ERROR=0    ; Catch errors inside the pipeline. In debug mode, just let the code crash and stop
           IF Error EQ 1 THEN BEGIN
@@ -390,8 +391,8 @@ PRO gpiPipelineBackbone::Run, QueueDir
         IF nfound gt 0 THEN BEGIN
             self.CurrentDRFname = CurrentDRF.name
             self->log, 'Found file: ' + CurrentDRF.Name, /GENERAL
-                    wait, 1.0   ; Wait 1 seconds to make sure file is fully written.
-                    self.progressbar->set_DRF, CurrentDRF
+            wait, 1.0   ; Wait 1 seconds to make sure file is fully written.
+            self.progressbar->set_DRF, CurrentDRF
             self->SetDRFStatus, CurrentDRF, 'working'
             ; Re-parse the configuration file, in case it has been changed.
             ;OPENR, lun, CONFIG_FILENAME_FILE, /GET_LUN
@@ -505,9 +506,14 @@ PRO gpiPipelineBackbone::Run, QueueDir
                     self.progressbar->flushqueue_end
                 endif    
                 if self.progressbar->rescandb() then begin
-                    self->rescan
+                    self->rescan_CalDB
                     self.progressbar->rescandb_end
                 endif    
+                if self.progressbar->rescanConfig() then begin
+                    self->rescan_Config
+                    self.progressbar->rescanconfig_end
+                endif    
+ 
             endif
         endfor
     ENDWHILE
@@ -531,8 +537,6 @@ FUNCTION gpiPipelineBackbone::Reduce
     PRINT, ''
 
     self->SetupProgressBar
-    ;if (not(xregistered('procstatus', /noshow))) then create_progressbar2
-    ;if (not(xregistered('procstatus', /noshow))) then stop
 
     ;#############################################################
     ; Iterate over the datasets in the 'Data' array and run the sequence of modules for each dataset.
@@ -1164,11 +1168,14 @@ END
 ; gpiPipelineBackbone::GeneralLogName
 ;
 ;    Create a log file name
+; HISTORY:
+;   2012-06-14: Converted log file to just use the date rather than 
 
 FUNCTION gpiPipelineBackbone::GeneralLogName
     t = BIN_DATE()
-    r = STRING(FORMAT='(%"%04d%02d%02d_%02d%02d")', t[0], t[1], t[2], t[3], t[4])
-    r = STRMID(r,2) + "_drp.log"
+    ;r = STRING(FORMAT='(%"%04d%02d%02d_%02d%02d")', t[0], t[1], t[2], t[3], t[4])
+    r = 'gpi_drp_'+strmid(STRING(FORMAT='(%"%04d%02d%02d")', t[0], t[1], t[2]),2)+".log"
+    ;r = STRMID(r,2) + "_gpi_drp.log"
     RETURN, r
 end
 
@@ -1198,9 +1205,11 @@ PRO gpiPipelineBackbone::OpenLog, LogFile, GENERAL = LogGeneral, DRF = LogDRF
 		IF KEYWORD_SET(LogGeneral) THEN BEGIN
 		  CLOSE, LOG_GENERAL
 		  FREE_LUN, LOG_GENERAL
-		  OPENW, LOG_GENERAL, LogFile, /GET_LUN
-		  PRINTF, LOG_GENERAL, 'Data Reduction Pipeline, version '+gpi_pipeline_version()
-		  PRINTF, LOG_GENERAL, 'Run On ' + SYSTIME(0)
+		  OPENW, LOG_GENERAL, LogFile, /GET_LUN,/APPEND
+		  PRINTF, LOG_GENERAL, '--------------------------------------------------------------'
+		  PRINTF, LOG_GENERAL, '   GPI Data Reduction Pipeline, version '+gpi_pipeline_version()
+		  PRINTF, LOG_GENERAL, '   Started On ' + SYSTIME(0)
+		  PRINTF, LOG_GENERAL, '   User: '+getenv('USER')+ "      host="+getenv('HOST')
 		  PRINTF, LOG_GENERAL, ''
 		  print, ""
 		  print, " Opened log file for writing: "+logFile
@@ -1213,10 +1222,11 @@ PRO gpiPipelineBackbone::OpenLog, LogFile, GENERAL = LogGeneral, DRF = LogDRF
 		  CLOSE, LOG_DRF
 		  FREE_LUN, LOG_DRF
 		  OPENW, LOG_DRF, LogFile, /GET_LUN
-		  PRINTF, LOG_DRF, 'Data Reduction Pipeline'
-		  PRINTF, LOG_DRF, 'Run On ' + SYSTIME(0)
+		  PRINTF, LOG_DRF, '   GPI Data Reduction Pipeline, version '+gpi_pipeline_version()
+		  PRINTF, LOG_DRF, '   Run On ' + SYSTIME(0)
+		  PRINTF, LOG_DRF, '   User: '+getenv('USER')+ "      host="+getenv('HOST')
 		  PRINTF, LOG_DRF, ''
-		  PRINTF, LOG_GENERAL, 'DRF log opened on LUN = ' + STRING(LOG_DRF)
+		  self->log,/general, 'New DRF log opened: '+logFile
 		  if obj_valid(self.progressbar) then self.progressbar->set_DRFLogF, logfile
 		ENDIF
   	endelse
@@ -1504,9 +1514,34 @@ end
 function gpiPipelineBackbone::getgpicaldb
     return, self.gpicaldb
 end
-pro gpiPipelineBackbone::rescan
+;-----------------------------------------------------------
+pro gpiPipelineBackbone::rescan_CalDB
+	self->Log, 'User requested rescan of calibrations database',/general
   self.GPICalDB->rescan_directory    
 end
+
+;-----------------------------------------------------------
+pro gpiPipelineBackbone::rescan_Config
+	self->Log, 'User requested rescan of data pipeline configuration files',/general
+	config_file=GETENV('GPI_DRP_CONFIG_DIR') +path_sep()+"gpi_pipeline_primitives.xml"
+    if file_test(config_file) then begin
+		if not lmgr(/runtime) then begin
+			self->Log,/general, "Rescanning for new primitives, and regenerating primitives config file."
+			make_drsconfigxml
+		endif
+		Self.ConfigParser -> ParseFile, config_file
+		self->Log, "Rescanned "+config_file
+		config = Self.ConfigParser->getidlfunc()
+		for i=0,n_elements(config.idlfuncs)-1 do begin
+			print, "Recompiling for "+config.names[i]
+			resolve_routine, config.idlfuncs[i], /is_func
+		endfor
+		self->Log, 'Refreshed all '+strc(n_elements(config.idlfuncs))+' available pipeline primitive procedures.'
+	endif
+
+  self.GPICalDB->rescan_directory    
+end
+;
 ;-----------------------------------------------------------
 ; gpiPipelineBackbone::getprogressbar
 ;        accessor function for progress bar object.

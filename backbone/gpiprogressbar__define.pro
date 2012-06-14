@@ -12,6 +12,7 @@
 ; HISTORY:
 ;          2009 created by Jerome Maire
 ; 	       2010-01-19 19:48:56 oriented object - Marshall Perrin 
+; 	       2012-06-14 Various display updates; added rescan config option. -MP
 ;-
 
 ; Function to check if user pressed the quit button?
@@ -20,8 +21,10 @@ function gpiprogressbar::checkquit
 	return, self.quit
 end
 pro gpiprogressbar::quit
-widget_control,self.base_wid,/destroy
+	widget_control,self.base_wid,/destroy
 end
+
+;--- Getter/setter functions for use by the main pipeline backbone:
 function gpiprogressbar::checkabort
 	return, self.abort
 end
@@ -31,13 +34,21 @@ end
 function gpiprogressbar::rescandb
    return, self.rescan
 end
+function gpiprogressbar::rescanconfig
+   return, self.rescanconfig
+end
 pro gpiprogressbar::flushqueue_end
    self.flushq=0
 end
 pro gpiprogressbar::rescandb_end
    self.rescan=0
 end
+pro gpiprogressbar::rescanconfig_end
+   self.rescanconfig=0
+end
 
+
+;---- Actual GUI display code:
 PRO gpiprogressbar::update
   	WIDGET_CONTROL, (*self.State).wDrawProgress, get_VALUE=drawbar
     wset, drawbar
@@ -74,10 +85,11 @@ end
 
 ;Actual event handling:
 pro gpiprogressbar::event,ev
-      widget_control, ev.id,GET_UVALUE=uval
-      if size(uval,/TYPE) eq 7 then begin
-      if uval eq 'rescanDB' then self.rescan =1
-      if uval eq 'changedir' then begin
+		widget_control, ev.id,GET_UVALUE=uval
+        if size(uval,/TYPE) eq 7 then begin
+        if uval eq 'rescanDB' then self.rescan =1
+        if uval eq 'rescanConfig' then self.rescanconfig =1
+        if uval eq 'changedir' then begin
           issetenvok=0
           if issetenvok eq 0 then begin
                   obj=obj_new('setenvir')
@@ -89,20 +101,25 @@ pro gpiprogressbar::event,ev
                   obj_destroy, obj
             endwhile
           endif 
-      endif
-      if uval eq 'flushqueue' then self.flushq =1
-         if uval eq 'quit' then begin
-			 conf = dialog_message("Are you sure you want to exit the GPI Data Reduction Pipeline?",/question,title="Confirm Close",/default_no,/center)
-			 if conf eq "Yes" then begin
+        endif
+		if uval eq 'flushqueue' then begin
+		 	conf = dialog_message("Are you sure you want to clear all DRFs currently in the queue? This will delete those files and cannot be undone.",/question,title="Confirm Clear Queue",/default_no,/center, dialog_parent=ev.top)
+		 	if conf eq "Yes" then begin
+				self.flushq =1
+			endif
+		endif
+	 	if uval eq 'quit' then begin
+		 	conf = dialog_message("Are you sure you want to exit the GPI Data Reduction Pipeline?",/question,title="Confirm Close",/default_no,/center, dialog_parent=ev.top)
+		 	if conf eq "Yes" then begin
 				 ;message,/info, 'Setting pipeline QUIT flag'
 				 self.quit =1 ;widget_control, ev.top,/DESTROY
 				 ; TODO actually close the entire GPI pipeline now...
 				 ;  Actually closing the pipeline requires the main loop to call
 				 ;  checkquit()
 			 endif
-             return
-         endif
-         if uval eq 'abort' then begin
+			 return
+		endif
+        if uval eq 'abort' then begin
 			 conf = dialog_message("Are you sure you want to abort the current DRF?",/question,title="Confirm abort",/default_no,/center)
 			 if conf eq "Yes" then begin
 				 ;message,/info, 'Setting pipeline QUIT flag'
@@ -245,7 +262,8 @@ pro gpiprogressbar::log, logstring
 end
 
 ;--------------------------------------------
-; Append or replace a log string to the DRF log.
+; Append or replace a log string to the log of processed DRFs:w
+; 
 pro gpiprogressbar::DRFlog, logstring, replace=replace
 
 	widget_control, (*self.state).wDRFLog, get_value=logval
@@ -316,12 +334,13 @@ function gpiprogressbar::init
 	lab = widget_label(w_log_base, value="Processed DRFs:")
 	wDRFLog = widget_text(w_log_base, ysize=5, xsize=100, /scroll,scr_xsize=595)
 
-  q=widget_button(wChildBase,VALUE='Rescan Calibration Database',UVALUE='rescanDB', resource_name='red_button')
-  q=widget_button(wChildBase,VALUE='Flush DRF queue',UVALUE='flushqueue', resource_name='red_button')
-	;---- quit button
-	q=widget_button(wChildBase,VALUE='Abort current DRF',UVALUE='abortDRF', resource_name='red_button')
-	q=widget_button(wChildBase,VALUE='Change default directories',UVALUE='changedir', resource_name='red_button')
-	q=widget_button(wChildBase,VALUE='Quit GPI DRP',UVALUE='quit', resource_name='red_button')
+	rowbase = widget_base(wChildBase, row=1)
+    q=widget_button(rowbase,VALUE='Rescan Calib. DB',UVALUE='rescanDB')
+    q=widget_button(rowbase,VALUE='Rescan DRP Config',UVALUE='rescanConfig')
+	q=widget_button(rowbase,VALUE='Change directories',UVALUE='changedir')
+	q=widget_button(rowbase,VALUE='Abort current DRF',UVALUE='abortDRF', resource_name='red_button')
+    q=widget_button(rowbase,VALUE='Clear DRF queue',UVALUE='flushqueue', resource_name='red_button')
+	q=widget_button(rowbase,VALUE='Quit GPI DRP',UVALUE='quit', resource_name='red_button')
 
 
     ; Set initial color table for draw widget.
@@ -377,8 +396,7 @@ st = {gpiprogressbar, $
 	abort: 0L, $
 	flushq:0L,$
 	rescan:0L,$
-	;eventlog: strarr(maxlog), $
-	;drflog: strarr(maxlog), $
+	rescanconfig:0L,$
 	maxlog: MAXLOG, $
 	base_wid: 0L $
 }

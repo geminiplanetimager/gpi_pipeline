@@ -307,17 +307,17 @@ function gpidrsconfigParser::getidlfunc
 ;  argrange = (*self.paras).range
 ;  argdefault = (*self.paras).default
 return, {  names : (*self.modules).name, $
-  idlfuncs : (*self.modules).idlfunc, $
-  comment : (*self.modules).comment, $
-  order : (*self.modules).order, $
+    idlfuncs : (*self.modules).idlfunc, $
+    comment : (*self.modules).comment, $
+    order : (*self.modules).order, $
     type : (*self.modules).type, $
-  sequence : (*self.modules).sequence, $
-  argmodnum : (*self.paras).modnum, $
-  argname : (*self.paras).name, $
-  argtype : (*self.paras).type, $
-  argrange : (*self.paras).range, $
-  argdesc : (*self.paras).desc, $
-  argdefault : (*self.paras).default} 
+    sequence : (*self.modules).sequence, $
+    argmodnum : (*self.paras).modnum, $
+    argname : (*self.paras).name, $
+    argtype : (*self.paras).type, $
+    argrange : (*self.paras).range, $
+    argdesc : (*self.paras).desc, $
+    argdefault : (*self.paras).default} 
 ;  FOR i = 0, N_ELEMENTS(*Backbone.Modules)-1 DO BEGIN
 ;    FOR j = 0, N_ELEMENTS(*Self.Modules)-1 DO BEGIN
 ;      IF ((*Self.Modules)[j].name EQ (*Backbone.Modules)[i].Name) THEN $
@@ -346,11 +346,7 @@ END
 ;	Inherited from parent class.  See documentation.
 ;-----------------------------------------------------------------------------------------------------
 PRO gpidrsconfigparser::getparameters, Backbone
-
-
 	Backbone.ParmList = Self.Parms
-
-
 END
 
 
