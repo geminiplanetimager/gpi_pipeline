@@ -265,6 +265,7 @@ pro automaticproc3::event, ev
 		endif
 		if uname eq 'Start'    then begin
 			message,/info,'Starting watching directory '+self.dirinit
+			self->Log, 'Starting watching directory '+self.dirinit
 			widget_control, self.top_base, timer=1  ; Start off the timer events for updating at 1 Hz
 		endif
 		if uname eq 'Reprocess'    then begin
@@ -328,9 +329,8 @@ PRO automaticproc3::cleanup
 
 	; Kill top-level base if it still exists
 	if (xregistered ('automaticproc3')) then widget_control, self.top_base, /destroy
-	if (xregistered ('drfgui') gt 0) then    widget_control,(self.parserobj).drfbase,/destroy
 
-	self->parsergui::cleanup ; will destroy all widgets
+	;self->parsergui::cleanup ; will destroy all widgets
 	;reprocess_id = WIDGET_BUTTON(buttonbar,Value='Reprocess Selection',Uname='Reprocess', /tracking_events)
 
 	heap_gc
@@ -369,6 +369,7 @@ function automaticproc3::init, groupleader, _extra=_extra
 
 	self.top_base = widget_base(title = 'GPI IFS Automatic Reducer', $
 				   /column,  $
+				   resource_name='GPI_DRP_AutoRed', $
 				   /tlb_size_events,  /tlb_kill_request_events)
 
 
@@ -413,11 +414,11 @@ function automaticproc3::init, groupleader, _extra=_extra
 
 
 
-	gpitvbase = Widget_Base(self.top_base, UNAME='alwaysexebase' ,COLUMN=1 ,/NONEXCLUSIVE, frame=0)
+	gpitvbase = Widget_Base(self.top_base, UNAME='alwaysexebase' ,ROW=1 ,/NONEXCLUSIVE, frame=0)
 	self.view_in_gpitv_id =    Widget_Button(gpitvbase, UNAME='view_in_gpitv'  $
 		  ,/ALIGN_LEFT ,VALUE='View new files in GPITV' )
 	widget_control, self.view_in_gpitv_id, /set_button   
-	gpitvbase = Widget_Base(self.top_base, UNAME='alwaysexebase' ,COLUMN=1 ,/NONEXCLUSIVE, frame=0)
+	;gpitvbase = Widget_Base(self.top_base, UNAME='alwaysexebase' ,COLUMN=1 ,/NONEXCLUSIVE, frame=0)
 	self.ignore_raw_reads_id =    Widget_Button(gpitvbase, UNAME='ignore_raw_reads'  $
 		  ,/ALIGN_LEFT ,VALUE='Ignore individual UTR/CDS readout files' )
 	widget_control, self.ignore_raw_reads_id, /set_button   
@@ -429,7 +430,7 @@ function automaticproc3::init, groupleader, _extra=_extra
 
 
 	lab = widget_label(self.top_base, value="History:")
-	self.widget_log=widget_text(self.top_base,/scroll, ysize=8, xsize=80, /ALIGN_LEFT, uname="text_status",/tracking_events)
+	self.widget_log=widget_text(self.top_base,/scroll, ysize=8, xsize=60, /ALIGN_LEFT, uname="text_status",/tracking_events)
 
 	buttonbar = widget_base(self.top_base, row=1)
 

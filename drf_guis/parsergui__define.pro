@@ -308,6 +308,8 @@ pro parsergui::addfile, filenames, mode=mode
 
     ;;TEST DATA SANITY
     ;;ARE THEY VALID  GEMINI & GPI & IFS DATA?
+	self.testdata = 1 
+	
     if self.testdata eq 0 then begin
 
         validtelescop=bytarr(cindex)
