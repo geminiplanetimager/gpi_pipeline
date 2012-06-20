@@ -19,6 +19,10 @@
 ;           purposes
 ;  /ignoreconflict	Don't stop running if another instance is already running.
 ;  					Use this option at your own risk....
+;  single=			Process one single DRF (provide the filename as argument)
+;  					and then exit the DRP. Useful primarily for testing.
+;  /nogui			Do not display the Pipeline Status Console GUI, just run the
+;  					backbone algorithms.
 ;
 ; EXAMPLE:
 ;  IDL> gpipiperun, /noexit,  /rescanDB, /noguidrf, /parsergui
@@ -31,7 +35,7 @@
 ;-
 PRO gpiPipeRun, QUEUE_DIR=queue_dir, config_file=config_file, noinit=noinit, $
 	noexit=noexit, rescanDB=rescanDB, flushqueue=flushqueue, verbose=verbose,$
-	ignoreconflict=ignoreconflict
+	ignoreconflict=ignoreconflict, single=single, nogui=nogui
 
 
 issetenvok=gpi_is_setenv(/first)
@@ -85,14 +89,20 @@ endif else if issetenvok eq -1 then return
 	endif
 
 
-	x = OBJ_NEW('gpiPipelineBackbone', config_file=config_file, verbose=verbose)
+	x = OBJ_NEW('gpiPipelineBackbone', config_file=config_file, verbose=verbose, nogui=nogui)
 	
 	if keyword_set(flushqueue) then x->flushqueue, queue_dir
 	if keyword_set(rescanDB) then x->rescan
 
 	
-	
-	x->Run, Queue_Dir
+	if keyword_set(single) then begin
+		; process one single DRF and then exit
+		status = x->run_one_drf(single)
+		x->Log, "Pipeline was invoked in single-DRF mode. Shutting down now. ",/general
+	endif else begin		
+		; watch the queue dir and process many DRFs
+		x->Run_queue, Queue_Dir
+	endelse
 
 	OBJ_DESTROY, x
 

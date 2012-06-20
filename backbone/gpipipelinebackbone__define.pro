@@ -28,7 +28,7 @@
 ;
 
 
-FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session, verbose=verbose
+FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session, verbose=verbose, nogui=nogui
     ; Application constants
     COMMON APP_CONSTANTS, $
         LOG_GENERAL,  $       ; File unit number of the general log file
@@ -40,26 +40,26 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session, ve
         DEBUG                    ; is DEBUG mode enabled?
     
 
-        DEBUG=1
+	DEBUG=1
 
-        LOG_GENERAL = 1       ; LUNs for logfiles
-        LOG_DRF = 2
-        CALL_STACK = ''
-        OK = 0
-        NOT_OK = -1
-        ERR_UNKNOWN = -3
-        GOTO_NEXT_FILE = -2
+	LOG_GENERAL = 1       ; LUNs for logfiles
+	LOG_DRF = 2
+	CALL_STACK = ''
+	OK = 0
+	NOT_OK = -1
+	ERR_UNKNOWN = -3
+	GOTO_NEXT_FILE = -2
 
 
-        ; Eventually this will be a configuration structure.
-        pipelineConfig = {$
-      		default_log_dir : getenv("GPI_DRP_LOG_DIR"),     $ ; Default directory for output log files
-            continueAfterDRFParsing:0,        $    ; Should program actually run the pipeline or just parse?
-            MaxFramesInDataSets: 64,        $    ; OSIRIS legacy code. Not totally sure what this is for.
-            MaxMemoryUsage: 0L,                 $   ; this will eventually be used for array size limits on what gets done in memory versus swapped to disk.
-			desired_dispersion: 'vertical' $	; do we want horizontal or vertical spectra?
-        }
-		self.pipelineconfig=ptr_new(pipelineConfig)
+	; Eventually this will be a configuration structure.
+	pipelineConfig = {$
+		default_log_dir : getenv("GPI_DRP_LOG_DIR"),     $ ; Default directory for output log files
+		continueAfterDRFParsing:0,        $    ; Should program actually run the pipeline or just parse?
+		MaxFramesInDataSets: 64,        $    ; OSIRIS legacy code. Not totally sure what this is for.
+		MaxMemoryUsage: 0L,                 $   ; this will eventually be used for array size limits on what gets done in memory versus swapped to disk.
+		desired_dispersion: 'vertical' $	; do we want horizontal or vertical spectra?
+	}
+	self.pipelineconfig=ptr_new(pipelineConfig)
 
 
     !quiet=0 ; always print out any output from "message" command, etc.
@@ -98,12 +98,15 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session, ve
         Self.ConfigParser = OBJ_NEW('gpiDRSConfigParser',/verbose)
         if file_test(config_file) then  Self.ConfigParser -> ParseFile, config_file
 
-        self->SetupProgressBar
-        self.progressbar->log,"* GPI DATA REDUCTION PIPELINE  *"
-        self.progressbar->log,"* VERSION "+ver+"  *"
         self.GPICalDB = obj_new('gpicaldatabase', backbone=self)
-    
-        self.progressbar->set_calibdir, self.GPICalDB->get_calibdir()
+
+		self.nogui=keyword_set(nogui)
+		if ~(keyword_set(nogui)) then begin
+			self->SetupStatusConsole
+			self.statuswindow->log,"* GPI DATA REDUCTION PIPELINE  *"
+			self.statuswindow->log,"* VERSION "+ver+"  *"
+			self.statuswindow->set_calibdir, self.GPICalDB->get_calibdir()
+		endif
     
         self.launcher = obj_new('launcher',/pipeline)
         
@@ -122,7 +125,6 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session, ve
         FREE_LUN, LOG_GENERAL
         CLOSE, LOG_DRF
         FREE_LUN, LOG_DRF
-           RETURN, -1
     ENDELSE
 
 
@@ -160,7 +162,7 @@ PRO gpiPipelineBackbone::Cleanup
 
     OBJ_DESTROY, Self.Parser
     OBJ_DESTROY, Self.ConfigParser
-    OBJ_DESTROY, Self.ProgressBar
+    OBJ_DESTROY, self.statuswindow
 
 
     if obj_valid(self.launcher) then begin
@@ -229,15 +231,11 @@ function gpiPipelineBackbone::GetNextDRF, queuedir, found=count
     queueDirName = QueueDir + '*.waiting.xml'
     FileNameArray = FILE_SEARCH(queueDirName, count=count)
     if count gt 0 then begin
-        self->Log, "Found "+strc(count)+" XML files to parse",/debug
+        self->Log, "Found "+strc(count)+" XML files in the queue",/debug
         queue = REPLICATE({structQueueEntry}, count)
         queue.name = filenamearray
         for i=0L, count-1 do begin
-            parts = stregex(filenamearray[i], "(.*)\.(.*)\.xml",/extrac,/sub)
-            ;parts = stregex(filenamearray, ".+"+path_sep()+"(.*)\.(.*)\.xml",/extrac,/sub) ;linux?
-            queue[i].index=parts[1]
-            queue[i].status=parts[2]
-            print, queue[i].index, queue[i].status, queue[i].name, format='(A40, A20, A80)'
+            queue[i] = self->DRF2struct(filenamearray[i])
         endfor
         ; sort here? This lets you set the order of multiple files if you drop
         ; them at once.
@@ -246,6 +244,22 @@ function gpiPipelineBackbone::GetNextDRF, queuedir, found=count
     endif
     return, ""
 
+end
+
+;-----------------------------------------------------------
+; gpiPipelineBackbone::DRF2struct
+;
+; 	return a DRF as a structure
+;
+function gpiPipelineBackbone::DRF2struct, filename
+    s = {structQueueEntry}
+    parts = stregex(file_basename(filename), "(.*)\.(.*)\.xml",/extrac,/sub)
+	;parts = stregex(filenamearray, ".+"+path_sep()+"(.*)\.(.*)\.xml",/extrac,/sub) ;linux?
+	s.name = filename
+	s.index=parts[1]
+	s.status=parts[2]
+	print, s.index, s.status, s.name, format='(A40, A20, A80)'
+	return,s
 end
 
 ;-----------------------------------------------------------
@@ -268,12 +282,14 @@ PRO gpiPipelineBackbone::SetDRFStatus, drfstruct, newstatus
     drfstruct.name = newfilename
 
 
-	; display status in the console window
-	self.progressbar->set_status, newstatus
-	; if this is a new file (newstatus is working) then append this to the DRF
-	; log in the progressbar
-	; otherwise just update the latest entry in the DRF log in progressbar 
-	self.progressbar->DRFlog, newfilename, replace=(newstatus ne "working")
+	if obj_valid(self.statuswindow) then begin
+		; display status in the console window
+		self.statuswindow->set_status, newstatus
+		; if this is a new file (newstatus is working) then append this to the DRF
+		; log in the progressbar
+		; otherwise just update the latest entry in the DRF log in progressbar 
+		self.statuswindow->DRFlog, newfilename, replace=(newstatus ne "working")
+	endif
 
 end
 
@@ -359,7 +375,7 @@ end
 
 
 ;-----------------------------------------------------------
-; gpiPipelineBackbone::Run
+; gpiPipelineBackbone::Run_queue
 ;
 ;    Loop forever checking for new files in the queue directory.
 ;    When one is found, 
@@ -368,7 +384,7 @@ end
 ;
 ;
 
-PRO gpiPipelineBackbone::Run, QueueDir
+PRO gpiPipelineBackbone::Run_queue, QueueDir
 
     COMMON APP_CONSTANTS
     ;  Poll the 'queue' directory continuously.  If a DRF is encountered, reduce it.
@@ -379,11 +395,12 @@ PRO gpiPipelineBackbone::Run, QueueDir
     print, "    "
     print, "   Now polling for DRF files in "+queueDir
     print, "    "
-    self.progressbar->log,"   Now polling and waiting for DRF files in "+queueDir
+    ;if obj_valid(self.statuswindow) then self.statuswindow->log,"   Now polling and waiting for DRF files in "+queueDir ; Redundant!
     self->log,"   Now polling and waiting for DRF files in "+queueDir,/general
     WHILE DRPCONTINUE EQ 1 DO BEGIN
+
         if ~(keyword_set(DEBUG)) then CATCH, Error else ERROR=0    ; Catch errors inside the pipeline. In debug mode, just let the code crash and stop
-          IF Error EQ 1 THEN BEGIN
+        IF Error EQ 1 THEN BEGIN
             PRINT, "Calling Self -> ErrorHandler..."
             Self -> ErrorHandler, CurrentDRF, QueueDir
             CLOSE, LOG_DRF
@@ -391,132 +408,38 @@ PRO gpiPipelineBackbone::Run, QueueDir
         ENDIF
 
         CurrentDRF = self->GetNextDRF(Queuedir, found=nfound)
-        IF nfound gt 0 THEN BEGIN
-            self.CurrentDRFname = CurrentDRF.name
-            self->log, 'Found file: ' + CurrentDRF.Name, /GENERAL
-            ;wait, 1.0   ; Wait 1 seconds to make sure file is fully written.
-            wait, 0.1  ; MDP mod 2012-06-07, decrease polling 10x per Dmitry request
-            self.progressbar->set_DRF, CurrentDRF
-            self->SetDRFStatus, CurrentDRF, 'working'
-            ; Re-parse the configuration file, in case it has been changed.
-            ;OPENR, lun, CONFIG_FILENAME_FILE, /GET_LUN
-            ;READF, lun, CONFIG_FILENAME
-            ;FREE_LUN, lun
-            ;Self.ConfigParser -> ParseFile, drpXlateFileName(CONFIG_FILENAME)
-            ;Self.ConfigParser -> getParameters, Self
-        
-            if ~(keyword_set(debug)) then CATCH, parserError else parserError=0 ; only catch if DEBUG is not set.
-            IF parserError EQ 0 THEN BEGIN
-                self.progressbar->set_action, "Parsing DRF"
-                (*self.PipelineConfig).continueAfterDRFParsing = 1    ; Assume it will be Ok to continue
-                Self.Parser -> ParseFile, CurrentDRF.name,  Self.ConfigParser, backbone=self
-                ; ParseFile updates the self.Data and self.modules structure
-                ; arrays in accordance with what is stated in the DRF
-                CATCH, /CANCEL
-            ENDIF ELSE BEGIN
-                ; Legacy OSIRIS code
-                self->Log, "ERROR in parsing the DRF "+currentDRF.name,/general
-                ; Call the local error handler
-                Self -> ErrorHandler, CurrentDRF, QueueDir
-                ; Destroy the current DRF parser and punt the DRF
-                OBJ_DESTROY, Self.Parser
-                ; Recreate a parser object for the next DRF in the pipeline
-                Self.Parser = OBJ_NEW('gpiDRFParser', backbone=self)
-                (*self.PipelineConfig).continueAfterDRFParsing = 0
-                CATCH, /CANCEL
-            ENDELSE
-
-            IF (*self.PipelineConfig).continueAfterDRFParsing EQ 1 THEN BEGIN
-				if (*(self.data)).validframecount eq 0 then begin
-					self->Log, 'ERROR: That DRF was parsed OK, but no files could be loaded.'
-					result=NOT_OK
-				endif else begin
-
-					Self -> OpenLog, CurrentDRF.Name + '.log', /DRF
-					if ~strmatch(self.reductiontype,'On-Line Reduction') then $
-						Result = Self->Reduce() else $
-						Result = Self->ReduceOnLine()
-				endelse
-
-				IF Result EQ OK THEN BEGIN
-					PRINT, "Success"
-					self->SetDRFStatus, CurrentDRF, 'done'
-							  self.progressbar->set_status, "Last DRF done OK! Watching for new DRFs but idle."
-							  self.progressbar->Set_action, '--'
-				ENDIF ELSE BEGIN
-					PRINT, "Failure"
-					self->SetDRFStatus, CurrentDRF, 'failed'
-					self.progressbar->set_status, "Last DRF **failed**!    Watching for new DRFs but idle."
-					self.progressbar->Set_action, '--'
-			 
-				ENDELSE
-                ; Free any remaining memory here
-           
-				self->free_dataset_pointers
-;                IF PTR_VALID(Self.Data) THEN BEGIN
-;                    FOR i = N_ELEMENTS(*Self.Data)-1, 0, -1 DO BEGIN
-;                        PTR_FREE, (*Self.Data)[i].UncertFrames[*]
-;                        PTR_FREE, (*Self.Data)[i].QualFrames[*]
-;                        PTR_FREE, (*Self.Data)[i].currFrame[*]
-;                        PTR_FREE, (*Self.Data)[i].HeadersExt[*]
-;                        PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
-;                        PTR_FREE, (*Self.Data)[i].Frames[*]
-;                    ENDFOR
-;                ENDIF ; PTR_VALID(Self.Data)
-
-
-                ; We are done with the DRF, so close its log file
-                CLOSE, LOG_DRF
-                FREE_LUN, LOG_DRF
-            ENDIF ELSE BEGIN  ; ENDIF continueAfterDRFParsing EQ 1
-              ; This code if continueAfterDRFParsing == 0
-              self->log, 'gpiPipelineBackbone::Run: Reduction failed due to parsing error in file ' + DRFFileName, /GENERAL
-              self->SetDRFStatus, CurrentDRF, 'failed'
-              ; If we failed with outstanding data, then clean it up.
-			  self->free_dataset_pointers
-;              IF PTR_VALID(Self.Data) THEN BEGIN
-;                FOR i = N_ELEMENTS(*Self.Data)-1, 0, -1 DO BEGIN
-;                  PTR_FREE, (*Self.Data)[i].QualFrames[*]
-;                  PTR_FREE, (*Self.Data)[i].UncertFrames[*]
-;                  PTR_FREE, (*Self.Data)[i].Headers[*]
-;                  PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
-;                  PTR_FREE, (*Self.Data)[i].Frames[*]
-;                ENDFOR
-;              ENDIF
-            ENDELSE
-        ENDIF
+        IF nfound gt 0 THEN result = self->run_one_drf(CurrentDRF)
 
         ;wait, 1 ; Only check for new files at most once per second
-        for iw = 0,9 do begin  
-            ; MDP mod 2012-06-07, decrease polling 10x per Dmitry request
-            wait, 0.01 ; Only check for new files at most once per second
+        for iw = 0,9 do begin
+            wait, 0.1 ; Only check for new files at most once per second
                 ; break the wait up into smaller parts to allow event loop
                 ; handling
 
-            if obj_valid(self.progressbar) then begin
-                self.progressbar->checkEvents
-                if self.progressbar->checkQuit() then begin
+            if obj_valid(self.statuswindow) then begin
+                self.statuswindow->checkEvents
+                if self.statuswindow->checkQuit() then begin
                     message,/info, "User pressed QUIT on the progress bar!"
                     self->Log, "User pressed QUIT on the progress bar.  Exiting DRP."
                     ;stop
-                    self.progressbar->Quit
+                    self.statuswindow->Quit
                      
                     obj_destroy,self
                     DRPCONTINUE=0
                     break
                     ;exit
                 endif
-                if self.progressbar->flushqueue() then begin
+                if self.statuswindow->flushqueue() then begin
                     self->flushqueue, queuedir
-                    self.progressbar->flushqueue_end
+                    self.statuswindow->flushqueue_end
                 endif    
-                if self.progressbar->rescandb() then begin
+                if self.statuswindow->rescandb() then begin
                     self->rescan_CalDB
-                    self.progressbar->rescandb_end
+                    self.statuswindow->rescandb_end
                 endif    
-                if self.progressbar->rescanConfig() then begin
+                if self.statuswindow->rescanConfig() then begin
                     self->rescan_Config
-                    self.progressbar->rescanconfig_end
+                    self.statuswindow->rescanconfig_end
                 endif    
  
             endif
@@ -524,6 +447,95 @@ PRO gpiPipelineBackbone::Run, QueueDir
     ENDWHILE
 
 END
+;-----------------------------------------------------------
+; gpiPipelineBackbone::Run_One_drf
+;
+; Handle a single DRF: 
+;   - mark its status
+;   - parse it
+;   - run the primitives (in ::reduce)
+;   - check the output
+;
+; Parameter:  drf_filename, string. Name of DRF file to parse. 
+
+function gpiPipelineBackbone::run_one_drf, CurrentDRF
+    COMMON APP_CONSTANTS
+
+	; if needed, convert from a filename string to an info structure
+	if size(/tname, CurrentDRF) ne 'STRUCT' then CurrentDRF = self->DRF2struct(CurrentDRF)
+
+	self->log, 'Reading file: ' + CurrentDRF.name, /GENERAL
+	if obj_valid(self.statuswindow) then self.statuswindow->set_DRF, CurrentDRF
+	self->SetDRFStatus, CurrentDRF, 'working'
+	wait, 0.1   ; Wait 0.1 seconds to make sure file is fully written.
+	; Re-parse the configuration file, in case it has been changed.
+	;OPENR, lun, CONFIG_FILENAME_FILE, /GET_LUN
+	;READF, lun, CONFIG_FILENAME
+	;FREE_LUN, lun
+	;Self.ConfigParser -> ParseFile, drpXlateFileName(CONFIG_FILENAME)
+	;Self.ConfigParser -> getParameters, Self
+
+	if ~(keyword_set(debug)) then CATCH, parserError else parserError=0 ; only catch if DEBUG is not set.
+	IF parserError EQ 0 THEN BEGIN
+		if obj_valid(self.statuswindow) then self.statuswindow->set_action, "Parsing DRF"
+		(*self.PipelineConfig).continueAfterDRFParsing = 1    ; Assume it will be Ok to continue
+		Self.Parser -> ParseFile, CurrentDRF.name,  Self.ConfigParser, backbone=self
+		; ParseFile updates the self.Data and self.modules structure
+		; arrays in accordance with what is stated in the DRF
+		CATCH, /CANCEL
+	ENDIF ELSE BEGIN
+		self->Log, "ERROR in parsing the DRF "+CurrentDRF.name,/general
+		; Call the local error handler
+		Self -> ErrorHandler, CurrentDRF, QueueDir
+		; Destroy the current DRF parser and punt the DRF
+		OBJ_DESTROY, Self.Parser
+		; Recreate a parser object for the next DRF in the pipeline
+		Self.Parser = OBJ_NEW('gpiDRFParser', backbone=self)
+		(*self.PipelineConfig).continueAfterDRFParsing = 0
+		CATCH, /CANCEL
+	ENDELSE
+
+	IF (*self.PipelineConfig).continueAfterDRFParsing EQ 1 THEN BEGIN
+		if (*(self.data)).validframecount eq 0 then begin
+			self->Log, 'ERROR: That DRF was parsed OK, but no files could be loaded.'
+			result=NOT_OK
+		endif else begin
+
+			Self -> OpenLog, CurrentDRF.Name + '.log', /DRF
+			if ~strmatch(self.reductiontype,'On-Line Reduction') then $
+				Result = Self->Reduce() else $
+				Result = Self->ReduceOnLine()
+		endelse
+
+		IF Result EQ OK THEN BEGIN
+			PRINT, "Success"
+			self->SetDRFStatus, CurrentDRF, 'done'
+			status_message = "Last DRF done OK! Watching for new DRFs but idle."
+		ENDIF ELSE BEGIN
+			PRINT, "Failure"
+			self->SetDRFStatus, CurrentDRF, 'failed'
+			status_message = "Last DRF **failed**!    Watching for new DRFs but idle."
+		ENDELSE
+		if obj_valid(self.statuswindow) then begin
+			  self.statuswindow->set_status, status_message
+			  self.statuswindow->Set_action, '--'
+		endif
+
+		; Free any remaining memory here
+		self->free_dataset_pointers
+
+		; We are done with the DRF, so close its log file
+		CLOSE, LOG_DRF
+		FREE_LUN, LOG_DRF
+	ENDIF ELSE BEGIN  ; ENDIF continueAfterDRFParsing EQ 1
+	  ; This code if continueAfterDRFParsing == 0
+	  self->log, 'gpiPipelineBackbone::Run: Reduction failed due to parsing error in file ' + DRFFileName, /GENERAL
+	  self->SetDRFStatus, CurrentDRF, 'failed'
+	  self->free_dataset_pointers 		 ; If we failed with outstanding data, then clean it up.
+	ENDELSE
+
+end
+
 ;-----------------------------------------------------------
 ; gpiPipelineBackbone::Reduce
 ;
@@ -541,7 +553,7 @@ FUNCTION gpiPipelineBackbone::Reduce
     PRINT, SYSTIME(/UTC)
     PRINT, ''
 
-    self->SetupProgressBar
+    if ~(keyword_set(self.nogui)) then self->SetupStatusConsole
 
     ;#############################################################
     ; Iterate over the datasets in the 'Data' array and run the sequence of modules for each dataset.
@@ -557,7 +569,7 @@ FUNCTION gpiPipelineBackbone::Reduce
     FOR IndexFrame = 0, (*self.Data).validframecount-1 DO BEGIN
         if debug ge 1 then print, "########### start of file "+strc(indexFrame+1)+" ################"
         self->Log, 'Reducing file: ' + (*self.Data).fileNames[IndexFrame], /GENERAL, /DRF, depth=2
-        self.progressbar->Set_FITS, (*self.Data).fileNames[IndexFrame], number=indexframe,nbtot=(*self.Data).validframecount
+        if obj_valid(self.statuswindow) then self.statuswindow->Set_FITS, (*self.Data).fileNames[IndexFrame], number=indexframe,nbtot=(*self.Data).validframecount
 
 
 
@@ -606,11 +618,11 @@ FUNCTION gpiPipelineBackbone::Reduce
             ; has failed (Result = 1).
             IF ((*self.Modules)[indexModules].Skip EQ 0) AND (status EQ OK) THEN BEGIN
                 ;Result = Self -> RunModule(Modules, indexModules, Data[IndexFrame], Backbone)
-                self.progressbar->Update, *self.Modules, indexModules, (*self.data).validframecount, IndexFrame,   ' Working...'
+                if obj_valid(self.statuswindow) then self.statuswindow->Update, *self.Modules, indexModules, (*self.data).validframecount, IndexFrame,   ' Working...'
                 status = Self -> RunModule(*self.Modules, indexModules)
 
             ENDIF
-            if self.progressbar->checkabort() then begin
+			if obj_valid(self.statuswindow) then if self.statuswindow->checkabort() then begin
                 self->Log, "User pressed ABORT button! Aborting DRF",/general, /drf
                 status = NOT_OK
                 break
@@ -628,7 +640,7 @@ FUNCTION gpiPipelineBackbone::Reduce
         if debug ge 1 then print, "########### end of file "+strc(indexframe+1)+" ################"
     ENDFOR
     if (*self.Data).validframecount eq 0 then begin    
-      self.progressbar->Update, *self.Modules,N_ELEMENTS(*self.Modules)-1, (*self.data).validframecount, 1,' No file processed.'
+      if obj_valid(self.statuswindow) then self.statuswindow->Update, *self.Modules,N_ELEMENTS(*self.Modules)-1, (*self.data).validframecount, 1,' No file processed.'
       self->log, 'No file processed. ' , /GENERAL,/DRF
       status=OK
     endif
@@ -638,8 +650,8 @@ FUNCTION gpiPipelineBackbone::Reduce
     PRINT, ''
     PRINT, SYSTIME(/UTC)
     PRINT, ''
-    if ((*self.data).validframecount gt 0) then $
-    self.progressbar->Update, *self.Modules,indexModules, (*self.data).validframecount, IndexFrame,' Done.'
+    if obj_valid(self.statuswindow) and ((*self.data).validframecount gt 0) then $
+	    self.statuswindow->Update, *self.Modules,indexModules, (*self.data).validframecount, IndexFrame,' Done.'
 
 
     RETURN, status
@@ -662,8 +674,7 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
     COMMON APP_CONSTANTS
     common PIP
 	filename= *((*self.Data).frames[IndexFrame])
-
-    self.progressbar->set_action, "Reading FITS file "+filename
+	if obj_valid(self.statuswindow) then self.statuswindow->set_action, "Reading FITS file "+filename
     if ~file_test(filename,/read) then begin
         self->Log, "ERROR: Unable to read file "+filename, /GENERAL, /DRF
         self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
@@ -901,14 +912,16 @@ end
 
 
 ;-----------------------------------------------------------
-;  gpiPipelineBackbone::SetupProgressBar
+;  gpiPipelineBackbone::SetupStatusConsole
 ;
-;    make sure the progress bar is (still) launched and valid.
-pro  gpiPipelineBackbone::SetupProgressBar
+;	Launch the Status Console / progress bar window. 
+;	Can call this multiple times, in which case it will
+;   make sure the progress bar is (still) launched and valid.
+pro  gpiPipelineBackbone::SetupStatusConsole
   if not(xregistered('gpiprogressbar',/noshow)) then begin
-        obj_destroy, self.progressbar
-        self.progressbar = OBJ_NEW('gpiprogressbar')
-        self.progressbar->set_GenLogF, self.generallogfilename
+        obj_destroy, self.statuswindow
+        self.statuswindow = OBJ_NEW('gpiprogressbar')
+        self.statuswindow->set_GenLogF, self.generallogfilename
   endif else begin
 	  message,/info, ' progress bar window already initialized and running.'
   endelse
@@ -1082,7 +1095,7 @@ end
 ;    PRINT, ''
 ;    PRINT, SYSTIME(/UTC)
 ;    PRINT, ''
-;    self.progressbar->Update,*self.Modules,indexModules, (*self.data).validframecount, IndexFrame,' Done'
+;    self.statuswindow->Update,*self.Modules,indexModules, (*self.data).validframecount, IndexFrame,' Done'
 ;  endwhile
 ;  RETURN, status
 ;
@@ -1142,8 +1155,8 @@ FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
     COMMON APP_CONSTANTS
     common PIP
 
-    if debug ge 2 then message,/info, " Now running module "+Modules[ModNum].Name+', '+ Modules[ModNum].IDLCommand
-    self->Log, "Running module "+string(Modules[ModNum].Name, format='(A30)')+" for frame "+strc(numfile), depth=2
+    if debug ge 2 then message,/info, " Now running primitive "+Modules[ModNum].Name+', '+ Modules[ModNum].IDLCommand
+    self->Log, "Running primitive "+string(Modules[ModNum].Name, format='(A30)')+" for frame "+strc(numfile), depth=2
     ; Execute the call sequence and pass the return value to DRP_EVALUATE
 
     ; Add the currently executing module number to the Backbone structure
@@ -1157,9 +1170,9 @@ FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
 	status = call_function( Modules[ModNum].IDLCommand, *self.data, Modules, self ) 
 
     IF status EQ NOT_OK THEN BEGIN            ;  The module failed
-        self->Log, 'Module failed: ' + Modules[ModNum].Name, /GENERAL, /DRF
+        self->Log, 'Primitive failed: ' + Modules[ModNum].Name, /GENERAL, /DRF
     ENDIF ELSE BEGIN                ;  The module succeeded
-        self->Log, 'Module completed: ' + Modules[ModNum].Name,  /GENERAL, /DRF, DEPTH = 3
+        self->Log, 'Primitive completed: ' + Modules[ModNum].Name,  /GENERAL, /DRF, DEPTH = 3
     ENDELSE
     self.CurrentlyExecutingModuleNumber = -1
 
@@ -1219,7 +1232,7 @@ PRO gpiPipelineBackbone::OpenLog, LogFile, GENERAL = LogGeneral, DRF = LogDRF
 		  print, ""
 		  print, " Opened log file for writing: "+logFile
 		  print, ""
-		  if obj_valid(self.progressbar) then self.progressbar->set_GenLogF, logfile
+		  if obj_valid(self.statuswindow) then self.statuswindow->set_GenLogF, logfile
 		  self.generallogfilename = logfile
 		ENDIF
 
@@ -1232,7 +1245,7 @@ PRO gpiPipelineBackbone::OpenLog, LogFile, GENERAL = LogGeneral, DRF = LogDRF
 		  PRINTF, LOG_DRF, '   User: '+getenv('USER')+ "      host="+getenv('HOST')
 		  PRINTF, LOG_DRF, ''
 		  self->log,/general, 'New DRF log opened: '+logFile
-		  if obj_valid(self.progressbar) then self.progressbar->set_DRFLogF, logfile
+		  if obj_valid(self.statuswindow) then self.statuswindow->set_DRFLogF, logfile
 		ENDIF
   	endelse
   	catch,/cancel
@@ -1280,7 +1293,7 @@ PRO gpiPipelineBackbone::Log, Text, GENERAL=LogGeneral, DRF=LogDRF, DEPTH = Text
     if ~(keyword_set(logGeneral)) and ~(keyword_set(logDRF)) then LUN=LOG_GENERAL ; default.
 
     ; for General log items, write to the DRP GUI
-    IF KEYWORD_SET(LogGeneral) and obj_valid(self.progressbar) then self.progressbar->Log, Time + ' ' + localText
+    IF KEYWORD_SET(LogGeneral) and obj_valid(self.statuswindow) then self.statuswindow->Log, Time + ' ' + localText
 
     ;PRINTF, LUN, Time + ' ' + Routine + localText    ; Log to General file
     catch, error_writing
@@ -1551,7 +1564,7 @@ end
 ; gpiPipelineBackbone::getprogressbar
 ;        accessor function for progress bar object.
 function gpiPipelineBackbone::getprogressbar
-    return, self.progressbar
+    return, self.statuswindow
 end
 
 ;-----------------------------------------------------------
@@ -1568,16 +1581,15 @@ PRO gpiPipelineBackbone__define
             ConfigParser:OBJ_NEW(), $
             Data:PTR_NEW(), $
             Modules:PTR_NEW(), $
-			;keyword_info: ptr_new(), $ ; info for auto-handling of MEF keywords
-            progressbar: obj_new(), $
+            statuswindow: obj_new(), $
             launcher: obj_new(), $
             gpicaldb: obj_new(), $
             ReductionType:'', $
-            CurrentDRFname: '', $
             CurrentlyExecutingModuleNumber:0, $
             TempFileNumber: 0, $ ; Used for passing multiple files to multiple gpitv sessions. See self->gpitv pro above
             generallogfilename: '', $
             verbose: 0, $
+            nogui: 0, $
             LogPath:''}
 
 END

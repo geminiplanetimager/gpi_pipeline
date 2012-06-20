@@ -155,7 +155,8 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	endif
 
 	;--- Update progress bar
-	(Backbone_comm->Getprogressbar() )->set_suffix, s_Ext
+	statuswindow = (Backbone_comm->Getprogressbar() )
+	if obj_valid(statuswindow) then statuswindow->set_suffix, s_Ext
 
   
 	if ( keyword_set( display ) ) && (display ne 0) then Backbone_comm->gpitv, c_File1, ses=display
