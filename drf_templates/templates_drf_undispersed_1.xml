@@ -5,5 +5,6 @@
    <fits FileName="" />
 </dataset>
 <module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="0" suffix="-darksub" gpitv="0" />
-<module name="Assemble Undispersed Image" xshift='-2.363' yshift='-2.6134' Save="1" suffix='-extu' gpitv='5' />
+<!-- offset for pre-remediation <module name="Assemble Undispersed Image" xshift='-2.363' yshift='-2.6134' Save="1" suffix='-extu' gpitv='5' />  -->
+<module name="Assemble Undispersed Image" xshift='-2.60' yshift='0.88' Save="1" suffix='-extu' gpitv='5' />
 </DRF>

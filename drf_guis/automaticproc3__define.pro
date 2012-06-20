@@ -144,14 +144,15 @@ pro automaticproc3::reduce_one, filenames, wait=wait
 	; Reduce one single file at a time
 
     if keyword_set(wait) then  begin
-        message,/info, "Waiting 5 vs to ensure FITS header gets updated first?"
-        wait, 5
+        message,/info, "Waiting 0.5 s to ensure FITS header gets updated first?"
+        wait, 0.5
     endif
 
     info = gpi_load_and_preprocess_fits_file(filenames[0]) ;, /nodata)
     prism = gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'DISPERSR', count=dispct) )
 
-    if dispct eq 0 then begin
+    if (dispct eq 0) or (strc(prism) eq '') then begin
+        message,/info, 'Missing or blank DISPERSR keyword!'
         if widget_info(self.b_spectral_id,/button_set) then prism = 'PRISM'
         if widget_info(self.b_undispersed_id,/button_set) then prism='WOLLASTON'
         if widget_info(self.b_polarization_id,/button_set) then prism = 'OPEN'
@@ -169,6 +170,7 @@ pro automaticproc3::reduce_one, filenames, wait=wait
 	drf = obj_new('DRF', templatename, parent=self)
 	drf->set_datafiles, filenames
 	drf->set_outputdir,/autodir
+
 
 	; generate a nice descriptive filename
 	first_file_basename = (strsplit(file_basename(filenames[0]),'.',/extract))[0]

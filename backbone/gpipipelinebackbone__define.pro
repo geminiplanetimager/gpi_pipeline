@@ -61,6 +61,9 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session, ve
         }
 		self.pipelineconfig=ptr_new(pipelineConfig)
 
+
+    !quiet=0 ; always print out any output from "message" command, etc.
+
     if ~(keyword_set(config_file)) then config_file=GETENV('GPI_DRP_CONFIG_DIR') +path_sep()+"gpi_pipeline_primitives.xml"
     self.verbose = keyword_set(verbose)
     ver = gpi_pipeline_version()
@@ -391,7 +394,8 @@ PRO gpiPipelineBackbone::Run, QueueDir
         IF nfound gt 0 THEN BEGIN
             self.CurrentDRFname = CurrentDRF.name
             self->log, 'Found file: ' + CurrentDRF.Name, /GENERAL
-            wait, 1.0   ; Wait 1 seconds to make sure file is fully written.
+            ;wait, 1.0   ; Wait 1 seconds to make sure file is fully written.
+            wait, 0.1  ; MDP mod 2012-06-07, decrease polling 10x per Dmitry request
             self.progressbar->set_DRF, CurrentDRF
             self->SetDRFStatus, CurrentDRF, 'working'
             ; Re-parse the configuration file, in case it has been changed.
@@ -483,8 +487,9 @@ PRO gpiPipelineBackbone::Run, QueueDir
         ENDIF
 
         ;wait, 1 ; Only check for new files at most once per second
-        for iw = 0,9 do begin
-            wait, 0.1 ; Only check for new files at most once per second
+        for iw = 0,9 do begin  
+            ; MDP mod 2012-06-07, decrease polling 10x per Dmitry request
+            wait, 0.01 ; Only check for new files at most once per second
                 ; break the wait up into smaller parts to allow event loop
                 ; handling
 
