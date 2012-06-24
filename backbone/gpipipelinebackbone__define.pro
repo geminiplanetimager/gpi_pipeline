@@ -1167,7 +1167,15 @@ FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
   ; debugging (and perhaps should just always be how it works now. -MDP)
 
     if self.verbose then  self->Log,"        idl command: "+Modules[ModNum].IDLCommand
-	status = call_function( Modules[ModNum].IDLCommand, *self.data, Modules, self ) 
+	catch, call_function_error
+	if call_function_error eq 0 then begin
+		status = call_function( Modules[ModNum].IDLCommand, *self.data, Modules, self ) 
+	endif else begin
+		self->Log, "  ERROR in calling primitive '"+Modules[ModNum].Name+"'. Check primitive name and arguments?",/general,/drf
+		self->Log,"        idl command attempted: "+Modules[ModNum].IDLCommand
+
+		status=NOT_OK
+	endelse
 
     IF status EQ NOT_OK THEN BEGIN            ;  The module failed
         self->Log, 'Primitive failed: ' + Modules[ModNum].Name, /GENERAL, /DRF
