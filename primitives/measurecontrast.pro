@@ -16,14 +16,15 @@
 ; PIPELINE COMMENT: Measure the contrast. 
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="gridratio" Default="GPI-gridratio.fits"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="contrcen_x0" Type="int" Range="[0,300]" Default="188" Desc="Sat 1 detec. window center x"
-; PIPELINE ARGUMENT: Name="contrcen_y0" Type="int" Range="[0,300]" Default="230" Desc="Sat 1 detec. window center y"
-; PIPELINE ARGUMENT: Name="contrcen_x1" Type="int" Range="[0,300]" Default="106" Desc="Sat 2 detec. window center x"
-; PIPELINE ARGUMENT: Name="contrcen_y1" Type="int" Range="[0,300]" Default="197" Desc="Sat 2 detec. window center y"
+; PIPELINE ARGUMENT: Name="contrsigma" Type="float" Range="[0.,20.]" Default="5." Desc="Contrast sigma limit"
+; PIPELINE ARGUMENT: Name="contrcen_x0" Type="int" Range="[0,300]" Default="168" Desc="Sat 1 detec. window center x"
+; PIPELINE ARGUMENT: Name="contrcen_y0" Type="int" Range="[0,300]" Default="192" Desc="Sat 1 detec. window center y"
+; PIPELINE ARGUMENT: Name="contrcen_x1" Type="int" Range="[0,300]" Default="90" Desc="Sat 2 detec. window center x"
+; PIPELINE ARGUMENT: Name="contrcen_y1" Type="int" Range="[0,300]" Default="160" Desc="Sat 2 detec. window center y"
 ; PIPELINE ARGUMENT: Name="contrcen_x2" Type="int" Range="[0,300]" Default="122" Desc="Sat 3 detec. window center x"
-; PIPELINE ARGUMENT: Name="contrcen_y2" Type="int" Range="[0,300]" Default="120" Desc="Sat 3 detec. window center y"
-; PIPELINE ARGUMENT: Name="contrcen_x3" Type="int" Range="[0,300]" Default="215" Desc="Sat 4 detec. window center x"
-; PIPELINE ARGUMENT: Name="contrcen_y3" Type="int" Range="[0,300]" Default="150" Desc="Sat 4 detec. window center y"
+; PIPELINE ARGUMENT: Name="contrcen_y2" Type="int" Range="[0,300]" Default="85" Desc="Sat 3 detec. window center y"
+; PIPELINE ARGUMENT: Name="contrcen_x3" Type="int" Range="[0,300]" Default="197" Desc="Sat 4 detec. window center x"
+; PIPELINE ARGUMENT: Name="contrcen_y3" Type="int" Range="[0,300]" Default="115" Desc="Sat 4 detec. window center y"
 ; PIPELINE ARGUMENT: Name="contrwinap" Type="int" Range="[0,300]" Default="20" Desc="Half-length of max box [pix]"
 ; PIPELINE ARGUMENT: Name="contrap" Type="int" Range="[0,300]" Default="3" Desc="Half length of Gauss. box"
 ; PIPELINE ARGUMENT: Name="contr_yaxis_min" Type="float" Range="[0.,1.]" Default="0.00000001" Desc="Y axis minimum"
@@ -60,6 +61,7 @@ contrcen_y[3]=uint(Modules[thisModuleIndex].contrcen_y3)
 contrwinap=uint(Modules[thisModuleIndex].contrwinap)
 contrap=uint(Modules[thisModuleIndex].contrap)
 
+contrsigma=uint(Modules[thisModuleIndex].contrsigma)
 
   sz=(size(*(dataset.currframe[0]) ))
   ; let's start with middle slice, should we do it for all wav? 
@@ -141,6 +143,13 @@ endelse
   contr_yaxis_max=float(Modules[thisModuleIndex].contr_yaxis_max)
 
 
+  ;;mask satellites
+  for isat=0,3 do begin
+      dis=distarr(dim,dim,cens[isat,0],cens[isat,1])
+      imask=where(dis lt 0.1/pixscl)
+      copsf[imask]=!values.f_nan
+  endfor
+  
 lenstr=strlen((dataset.outputfilenames)[numfile])
 contr_outfile= strmid((dataset.outputfilenames)[numfile],0,lenstr-5)+"-contrast"
   plotps=1
@@ -149,8 +158,8 @@ contr_outfile= strmid((dataset.outputfilenames)[numfile],0,lenstr-5)+"-contrast"
 
     set_plot,"ps"
     openps,contr_outfile+".ps"
-    statvsr,copsf,0.,pixscl=pixscl,/psig,nsig=3,yr=[contr_yaxis_min, contr_yaxis_max],$
-      xtitle='Angular separation [Arcsec]',ytitle='Contrast (3'+greek('sigma')+' limit)', cens=cens, asec=asec,isig=isig ;
+    statvsr,copsf,0.,pixscl=pixscl,/psig,nsig=contrsigma,yr=[contr_yaxis_min, contr_yaxis_max],$
+      xtitle='Angular separation [Arcsec]',ytitle='Contrast ('+strc(uint(contrsigma))+greek('sigma')+' limit)', cens=cens, asec=asec,isig=isig ;
      closeps
     SET_PLOT, mydevice
 
