@@ -149,13 +149,21 @@ pro automaticproc3::reduce_one, filenames, wait=wait
     endif
 
     info = gpi_load_and_preprocess_fits_file(filenames[0]) ;, /nodata)
-    prism = gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'DISPERSR', count=dispct) )
+    prism = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'DISPERSR', count=dispct) ))
 
     if (dispct eq 0) or (strc(prism) eq '') then begin
         message,/info, 'Missing or blank DISPERSR keyword!'
         if widget_info(self.b_spectral_id,/button_set) then prism = 'PRISM'
         if widget_info(self.b_undispersed_id,/button_set) then prism='WOLLASTON'
         if widget_info(self.b_polarization_id,/button_set) then prism = 'OPEN'
+    endif
+
+    if ((prism ne 'PRISM') and (prism ne 'WOLLASTON') and (prism ne 'OPEN')) then begin
+        message,/info, 'Unknown DISPERSR: '+prism+". Must be one of {PRISM, WOLLASTON, OPEN} or their Gemini-style equivalents."
+        if widget_info(self.b_spectral_id,/button_set) then prism = 'PRISM'
+        if widget_info(self.b_undispersed_id,/button_set) then prism='WOLLASTON'
+        if widget_info(self.b_polarization_id,/button_set) then prism = 'OPEN'
+        message,/info, 'Applying default setting instead: '+prism
     endif
 
     case prism of
