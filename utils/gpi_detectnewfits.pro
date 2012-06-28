@@ -1,4 +1,4 @@
-function gpidetectnewfits, dir, listfile,list_id,button_value
+function gpi_detectnewfits, dir, listfile,list_id,button_value
 
 chang=''
 

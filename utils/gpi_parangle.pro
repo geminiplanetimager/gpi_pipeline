@@ -1,4 +1,4 @@
-function gpiparangle, ha, dec, latitude, DEGREE=degree
+function gpi_parangle, ha, dec, latitude, DEGREE=degree
 
 ;D.L., March 12, 2009
 ;I modified it such that it always returns a continuous angle across HA=0.
