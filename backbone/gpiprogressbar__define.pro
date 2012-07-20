@@ -189,9 +189,9 @@ end
 pro gpiprogressbar::set_GenLogF, suffix
 	self->set, (*self.state).wGenLogF, 'Pipeline Logfile:      ', suffix
 end
-pro gpiprogressbar::set_DRFLogF, suffix
-	self->set, (*self.state).wDRFLogF,    'Latest DRF Logfile:    ', suffix
-end
+;pro gpiprogressbar::set_DRFLogF, suffix
+;	self->set, (*self.state).wDRFLogF,    'Latest DRF Logfile:    ', suffix
+;end
 pro gpiprogressbar::set_CalibDir, path
 	self->set, (*self.state).id_calibdir, 'Cal Files DB dir:      ',path
 end
@@ -306,7 +306,7 @@ function gpiprogressbar::init
 	id_calibdir = widget_label(w_config_base, value="Calib Dir:     --"  ,  xsize=600,/align_left)
 
 	wGenLogF = widget_label(w_config_base, value="Pipeline Logfile:      --" ,/align_left, xsize=600)
-	wDRFLogF = widget_label(w_config_base, value="Latest DRF Logfile:    --" , /align_left, xsize=600)
+	;wDRFLogF = widget_label(w_config_base, value="Latest DRF Logfile:    --" , /align_left, xsize=600)
 
 
 
@@ -361,7 +361,7 @@ function gpiprogressbar::init
 	State2 = {self:self, wChildBase:self.base_wid, wDrawProgress:wDrawProgress, $
 	    wDrawProgressf:wDrawProgressf,vProgress:0,vProgressf:0, xpos:0,xposf:0, $
 	    wLabelAction:wLabelAction, wLabelDRF:wLabelDRF, wLabelFITS:wLabelFITS,wLabel2:wLabel2,wLabel2suf:wLabel2suf,wLabelstatus:wLabelstatus, $
-		wEventLog: wEventLog, wDRFLog: wDRFLog, wGenLogF: wGenLogF, wDRFLogF: wDRFLogF, id_calibdir:id_calibdir, diff:diff, fits_count:0L, fits_current_index: 0L, quit: q}
+		wEventLog: wEventLog, wDRFLog: wDRFLog, wGenLogF: wGenLogF, id_calibdir:id_calibdir, diff:diff, fits_count:0L, fits_current_index: 0L, quit: q}
 	pState = PTR_NEW(State2)
 	WIDGET_CONTROL, self.base_wid, SET_UVALUE=pState
 	

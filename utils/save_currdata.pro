@@ -117,7 +117,7 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 		if ~( keyword_set( savePHU ) ) then savePHU = *(dataset.headersPHU[numfile])
 		fxaddpar, savePHU, 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
 		fxaddpar, savePHU, 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
-		mwrfits, 0, c_File1, savePHU, /create
+		mwrfits, 0, c_File1, savePHU, /create,/silent
 		writefits, c_File1, savedata, saveheader, /append
 
 		curr_hdr = savePHU
@@ -125,15 +125,15 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	endif else begin
       	fxaddpar, *DataSet.HeadersPHU[i], 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
       	fxaddpar, *DataSet.HeadersPHU[i], 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
-		mwrfits, 0, c_File1, *DataSet.HeadersPHU[i], /create
-		mwrfits, *DataSet.currFrame, c_File1, *DataSet.HeadersExt[i]
+		mwrfits, 0, c_File1, *DataSet.HeadersPHU[i], /create,/silent
+		mwrfits, *DataSet.currFrame, c_File1, *DataSet.HeadersExt[i],/silent
       	curr_hdr = *DataSet.HeadersPHU[i]
       	curr_ext_hdr = *DataSet.HeadersExt[i]
       	DataSet.OutputFilenames[i] = c_File1  
 	endelse
 
-	if keyword_set(addexten_qa) then mwrfits, addexten_qa, c_File1
-	if keyword_set(addexten_var) then mwrfits, addexten_var, c_File1
+	if keyword_set(addexten_qa) then mwrfits, addexten_qa, c_File1,/silent
+	if keyword_set(addexten_var) then mwrfits, addexten_var, c_File1,/silent
   
 	if keyword_set(debug) then print, "  Data output ===>>> "+c_File1
 	Backbone_comm->Log, "File output to: "+c_File1,/general,/DRF, depth=1

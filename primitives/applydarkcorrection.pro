@@ -29,6 +29,7 @@
 ;   2009-09-02 JM: hist added in header
 ;   2009-09-17 JM: added DRF parameters
 ;   2010-10-19 JM: split HISTORY keyword if necessary
+;   2012-07-20 MP: added DRPDARK keyword
 ;
 function ApplyDarkCorrection, DataSet, Modules, Backbone
 
@@ -41,10 +42,15 @@ calfiletype = 'dark'
 	dark = gpi_readfits(c_File)
   
 	;dark=readfits(c_File)
+    ;before = *(dataset.currframe[0])
 	*(dataset.currframe[0]) -= dark
+    ;after =*(dataset.currframe[0])
 
+    ;atv, [[[before]],[[dark]],[[after]]],/bl
+    ;stop
   	backbone->set_keyword,'HISTORY',functionname+": dark subtracted using file=",ext_num=0
   	backbone->set_keyword,'HISTORY',functionname+": "+c_File,ext_num=0
+  	backbone->set_keyword,'DRPDARK',c_File,ext_num=0
   
 	thisModuleIndex = Backbone->GetCurrentModuleIndex()
   	if tag_exist( Modules[thisModuleIndex], "Save") && tag_exist( Modules[thisModuleIndex], "suffix") then suffix+=Modules[thisModuleIndex].suffix

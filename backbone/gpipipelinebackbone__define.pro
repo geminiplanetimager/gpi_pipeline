@@ -87,8 +87,8 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session, ve
     ;CATCH, Error       ; Catch errors before the pipeline
     IF Error EQ 0 THEN BEGIN
         ;        drpSetAppConstants        ; Set the application constants
-        Self->OpenLog, (*self.pipelineConfig).default_log_dir + path_sep() + self->generalLogName(), /GENERAL
-        self->Log, 'Backbone Initialized', /GENERAL
+        Self->OpenLog;, (*self.pipelineConfig).default_log_dir + path_sep() + self->generalLogName(), /GENERAL
+        self->Log, 'Backbone Initialized'
 
         self->DefineStructs        ; Define the DRP structures
 
@@ -231,7 +231,7 @@ function gpiPipelineBackbone::GetNextDRF, queuedir, found=count
     queueDirName = QueueDir + '*.waiting.xml'
     FileNameArray = FILE_SEARCH(queueDirName, count=count)
     if count gt 0 then begin
-        self->Log, "Found "+strc(count)+" XML files in the queue",/debug
+        self->Log, "Found "+strc(count)+" XML files in the queue"
         queue = REPLICATE({structQueueEntry}, count)
         queue.name = filenamearray
         for i=0L, count-1 do begin
@@ -396,19 +396,22 @@ PRO gpiPipelineBackbone::Run_queue, QueueDir
     print, "   Now polling for DRF files in "+queueDir
     print, "    "
     ;if obj_valid(self.statuswindow) then self.statuswindow->log,"   Now polling and waiting for DRF files in "+queueDir ; Redundant!
-    self->log,"   Now polling and waiting for DRF files in "+queueDir,/general
+    self->log,"Now polling and waiting for DRF files in "+queueDir,/flush
     WHILE DRPCONTINUE EQ 1 DO BEGIN
 
         if ~(keyword_set(DEBUG)) then CATCH, Error else ERROR=0    ; Catch errors inside the pipeline. In debug mode, just let the code crash and stop
         IF Error EQ 1 THEN BEGIN
             PRINT, "Calling Self -> ErrorHandler..."
             Self -> ErrorHandler, CurrentDRF, QueueDir
-            CLOSE, LOG_DRF
-            FREE_LUN, LOG_DRF
+            ;CLOSE, LOG_DRF
+            ;FREE_LUN, LOG_DRF
         ENDIF
 
         CurrentDRF = self->GetNextDRF(Queuedir, found=nfound)
-        IF nfound gt 0 THEN result = self->run_one_drf(CurrentDRF)
+        IF nfound gt 0 THEN begin
+            self->checkLogDate
+            result = self->run_one_drf(CurrentDRF)
+        endif
 
         ;wait, 1 ; Only check for new files at most once per second
         for iw = 0,9 do begin
@@ -430,14 +433,17 @@ PRO gpiPipelineBackbone::Run_queue, QueueDir
                     ;exit
                 endif
                 if self.statuswindow->flushqueue() then begin
+		            self->log,/general, '**User request**:  flushing the queue.'
                     self->flushqueue, queuedir
                     self.statuswindow->flushqueue_end
                 endif    
                 if self.statuswindow->rescandb() then begin
+		            self->log,/general, '**User request**:  Rescan Calibrations DB.'
                     self->rescan_CalDB
                     self.statuswindow->rescandb_end
                 endif    
                 if self.statuswindow->rescanConfig() then begin
+		            self->log,/general, '**User request**:  Rescan GPI data pipeline configuration.'
                     self->rescan_Config
                     self.statuswindow->rescanconfig_end
                 endif    
@@ -467,7 +473,7 @@ function gpiPipelineBackbone::run_one_drf, CurrentDRF
 	self->log, 'Reading file: ' + CurrentDRF.name, /GENERAL
 	if obj_valid(self.statuswindow) then self.statuswindow->set_DRF, CurrentDRF
 	self->SetDRFStatus, CurrentDRF, 'working'
-	wait, 0.1   ; Wait 0.1 seconds to make sure file is fully written.
+;	wait, 0.1   ; Wait 0.1 seconds to make sure file is fully written.
 	; Re-parse the configuration file, in case it has been changed.
 	;OPENR, lun, CONFIG_FILENAME_FILE, /GET_LUN
 	;READF, lun, CONFIG_FILENAME
@@ -484,7 +490,7 @@ function gpiPipelineBackbone::run_one_drf, CurrentDRF
 		; arrays in accordance with what is stated in the DRF
 		CATCH, /CANCEL
 	ENDIF ELSE BEGIN
-		self->Log, "ERROR in parsing the DRF "+CurrentDRF.name,/general
+		self->Log, "ERROR in parsing the DRF "+CurrentDRF.name
 		; Call the local error handler
 		Self -> ErrorHandler, CurrentDRF, QueueDir
 		; Destroy the current DRF parser and punt the DRF
@@ -501,7 +507,7 @@ function gpiPipelineBackbone::run_one_drf, CurrentDRF
 			result=NOT_OK
 		endif else begin
 
-			Self -> OpenLog, CurrentDRF.Name + '.log', /DRF
+			;Self -> OpenLog, CurrentDRF.Name + '.log', /DRF
 			if ~strmatch(self.reductiontype,'On-Line Reduction') then $
 				Result = Self->Reduce() else $
 				Result = Self->ReduceOnLine()
@@ -510,10 +516,12 @@ function gpiPipelineBackbone::run_one_drf, CurrentDRF
 		IF Result EQ OK THEN BEGIN
 			PRINT, "Success"
 			self->SetDRFStatus, CurrentDRF, 'done'
+			self->Log, 'Done with '+CurrentDRF.name+" : Success"
 			status_message = "Last DRF done OK! Watching for new DRFs but idle."
 		ENDIF ELSE BEGIN
 			PRINT, "Failure"
 			self->SetDRFStatus, CurrentDRF, 'failed'
+			self->Log, 'ERROR with '+CurrentDRF.name+". Reduction failed."
 			status_message = "Last DRF **failed**!    Watching for new DRFs but idle."
 		ENDELSE
 		if obj_valid(self.statuswindow) then begin
@@ -529,7 +537,7 @@ function gpiPipelineBackbone::run_one_drf, CurrentDRF
 		FREE_LUN, LOG_DRF
 	ENDIF ELSE BEGIN  ; ENDIF continueAfterDRFParsing EQ 1
 	  ; This code if continueAfterDRFParsing == 0
-	  self->log, 'gpiPipelineBackbone::Run: Reduction failed due to parsing error in file ' + DRFFileName, /GENERAL
+	  self->log, 'Reduction failed due to parsing error in file ' + DRFFileName, /GENERAL
 	  self->SetDRFStatus, CurrentDRF, 'failed'
 	  self->free_dataset_pointers 		 ; If we failed with outstanding data, then clean it up.
 	ENDELSE
@@ -564,11 +572,11 @@ FUNCTION gpiPipelineBackbone::Reduce
     ; For GPI, we declare that there can only be one dataset in a DRF, which
     ; can in turn contain some number of data files, which get stored in the
     ; 'frame' arrays etc. 
-    self->Log, 'Reducing data set.', /GENERAL, /DRF, depth=1
+    self->Log, 'Reducing data set containing '+strc((*self.Data).validframecount)+" file(s).",  depth=1
 
     FOR IndexFrame = 0, (*self.Data).validframecount-1 DO BEGIN
         if debug ge 1 then print, "########### start of file "+strc(indexFrame+1)+" ################"
-        self->Log, 'Reducing file: ' + (*self.Data).fileNames[IndexFrame], /GENERAL, /DRF, depth=2
+        self->Log, 'Reducing file: ' + (*self.Data).fileNames[IndexFrame], /GENERAL, /DRF, depth=1
         if obj_valid(self.statuswindow) then self.statuswindow->Set_FITS, (*self.Data).fileNames[IndexFrame], number=indexframe,nbtot=(*self.Data).validframecount
 
 
@@ -633,7 +641,7 @@ FUNCTION gpiPipelineBackbone::Reduce
         if status eq GOTO_NEXT_FILE then self->Log, 'Continuing on to next file...',  /DRF,depth=2
         IF status EQ OK or status eq GOTO_NEXT_FILE THEN self->Log, 'Reduction successful: ' + filename, /GENERAL, /DRF, depth=2 $
         ELSE begin
-            self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
+            self->Log, 'Reduction failed: ' + filename, /flush
             break ; no sense continuing if one of the files has failed.
         endelse
 
@@ -644,11 +652,11 @@ FUNCTION gpiPipelineBackbone::Reduce
       self->log, 'No file processed. ' , /GENERAL,/DRF
       status=OK
     endif
-    if status eq OK then self->Log, "DRF Complete!",/general,/DRF
+    if status eq OK then self->Log, "DRF Complete!",/flush
 
     if debug ge 1 then print, "########### end of reduction for that DRF  ################"
     PRINT, ''
-    PRINT, SYSTIME(/UTC)
+    PRINT, CMSYSTIME(/ext)
     PRINT, ''
     if obj_valid(self.statuswindow) and ((*self.data).validframecount gt 0) then $
 	    self.statuswindow->Update, *self.Modules,indexModules, (*self.data).validframecount, IndexFrame,' Done.'
@@ -1156,7 +1164,7 @@ FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
     common PIP
 
     if debug ge 2 then message,/info, " Now running primitive "+Modules[ModNum].Name+', '+ Modules[ModNum].IDLCommand
-    self->Log, "Running primitive "+string(Modules[ModNum].Name, format='(A30)')+" for frame "+strc(numfile), depth=2
+    self->Log, "Running primitive "+string(Modules[ModNum].Name, format='(A30)')+"  for frame "+strc(numfile), depth=2
     ; Execute the call sequence and pass the return value to DRP_EVALUATE
 
     ; Add the currently executing module number to the Backbone structure
@@ -1178,9 +1186,9 @@ FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
 	endelse
 
     IF status EQ NOT_OK THEN BEGIN            ;  The module failed
-        self->Log, 'Primitive failed: ' + Modules[ModNum].Name, /GENERAL, /DRF
+        self->Log, 'Primitive failed: ' + Modules[ModNum].Name
     ENDIF ELSE BEGIN                ;  The module succeeded
-        self->Log, 'Primitive completed: ' + Modules[ModNum].Name,  /GENERAL, /DRF, DEPTH = 3
+        self->Log, 'Primitive completed: ' + Modules[ModNum].Name, DEPTH = 3
     ENDELSE
     self.CurrentlyExecutingModuleNumber = -1
 
@@ -1196,15 +1204,32 @@ END
 ;    Create a log file name
 ; HISTORY:
 ;   2012-06-14: Converted log file to just use the date rather than 
+;   2012-07-20: Obsolete, now merged into OpenLog. -MP
 
-FUNCTION gpiPipelineBackbone::GeneralLogName
-    t = BIN_DATE()
-    ;r = STRING(FORMAT='(%"%04d%02d%02d_%02d%02d")', t[0], t[1], t[2], t[3], t[4])
-    r = 'gpi_drp_'+strmid(STRING(FORMAT='(%"%04d%02d%02d")', t[0], t[1], t[2]),2)+".log"
-    ;r = STRMID(r,2) + "_gpi_drp.log"
-    RETURN, r
+;FUNCTION gpiPipelineBackbone::GeneralLogName
+;    r = 'gpi_drp_'+gpi_datestr()+".log"
+;    RETURN, r
+;end
+
+
+;
+;-----------------------------------------------------------
+; gpiPipelineBackbone::CheckLogDate
+;
+; Switch the log file to the next date if necessary
+
+pro gpiPipelineBackbone::CheckLogDate
+    COMMON APP_CONSTANTS
+    if self.log_date ne gpi_datestr(/current) then begin
+        newdate = gpi_datestr(/current)
+        self->log, "Date has changed to "+newdate+"; switching to next log file."
+        close, LOG_DRF
+        self->openLog
+        self->Log, "New date, hence new log file for already-running pipeline: "+newdate 
+    endif
+
+
 end
-
 
 ;-----------------------------------------------------------
 ; gpiPipelineBackbone::OpenLog
@@ -1218,10 +1243,13 @@ end
 ;
 
 
-PRO gpiPipelineBackbone::OpenLog, LogFile, GENERAL = LogGeneral, DRF = LogDRF
+PRO gpiPipelineBackbone::OpenLog ;, LogFile, GENERAL = LogGeneral, DRF = LogDRF
 
     COMMON APP_CONSTANTS
 
+    self.log_date = gpi_datestr(/current)
+    logfile = (*self.pipelineConfig).default_log_dir + path_sep() +'gpi_drp_'+self.log_date+".log"
+    loggeneral=1
 	catch, error_status
 
 	if error_status ne 0 then begin
@@ -1235,7 +1263,7 @@ PRO gpiPipelineBackbone::OpenLog, LogFile, GENERAL = LogGeneral, DRF = LogDRF
 		  PRINTF, LOG_GENERAL, '--------------------------------------------------------------'
 		  PRINTF, LOG_GENERAL, '   GPI Data Reduction Pipeline, version '+gpi_pipeline_version()
 		  PRINTF, LOG_GENERAL, '   Started On ' + SYSTIME(0)
-		  PRINTF, LOG_GENERAL, '   User: '+getenv('USER')+ "      host="+getenv('HOST')
+		  PRINTF, LOG_GENERAL, '   User: '+getenv('USER')+ "      Hostname: "+getenv('HOST')
 		  PRINTF, LOG_GENERAL, ''
 		  print, ""
 		  print, " Opened log file for writing: "+logFile
@@ -1244,17 +1272,17 @@ PRO gpiPipelineBackbone::OpenLog, LogFile, GENERAL = LogGeneral, DRF = LogDRF
 		  self.generallogfilename = logfile
 		ENDIF
 
-		IF KEYWORD_SET(LogDRF) THEN BEGIN
-		  CLOSE, LOG_DRF
-		  FREE_LUN, LOG_DRF
-		  OPENW, LOG_DRF, LogFile, /GET_LUN
-		  PRINTF, LOG_DRF, '   GPI Data Reduction Pipeline, version '+gpi_pipeline_version()
-		  PRINTF, LOG_DRF, '   Run On ' + SYSTIME(0)
-		  PRINTF, LOG_DRF, '   User: '+getenv('USER')+ "      host="+getenv('HOST')
-		  PRINTF, LOG_DRF, ''
-		  self->log,/general, 'New DRF log opened: '+logFile
-		  if obj_valid(self.statuswindow) then self.statuswindow->set_DRFLogF, logfile
-		ENDIF
+;		IF KEYWORD_SET(LogDRF) THEN BEGIN
+;		  CLOSE, LOG_DRF
+;		  FREE_LUN, LOG_DRF
+;		  OPENW, LOG_DRF, LogFile, /GET_LUN
+;		  PRINTF, LOG_DRF, '   GPI Data Reduction Pipeline, version '+gpi_pipeline_version()
+;		  PRINTF, LOG_DRF, '   Run On ' + SYSTIME(0)
+;		  PRINTF, LOG_DRF, '   User: '+getenv('USER')+ "      host="+getenv('HOST')
+;		  PRINTF, LOG_DRF, ''
+;		  self->log,/general, 'New DRF log opened: '+logFile, depth=1
+;		  if obj_valid(self.statuswindow) then self.statuswindow->set_DRFLogF, logfile
+;		ENDIF
   	endelse
   	catch,/cancel
 
@@ -1272,13 +1300,13 @@ END
 ;    Text        String to be logged
 ;
 ; KEYWORDS:
-;    GENERAL        If this keyword is set, an entry is made in the general log file
-;    DRF            If this keyword is set, and entry is made in the DRF log file
 ;    DEPTH        The level of indentation of the log entry.  The default is 0
+;    FLUSH        Force writing the log to disk (will happen periodically on its own, but we
+;                 can use this to force writes at the end of each DRF.
 ;    /DEBUG        flag for debug-mode log commands (which will be ignored unless
 ;                DEBUG is set in the application configuration)
 ;-----------------------------------------------------------------------------------------------------
-PRO gpiPipelineBackbone::Log, Text, GENERAL=LogGeneral, DRF=LogDRF, DEPTH = TextDepth, debug=debugflag
+PRO gpiPipelineBackbone::Log, Text, GENERAL=LogGeneral, DRF=LogDRF, DEPTH = TextDepth, flush=flush, debug=debugflag
 
 
     COMMON APP_CONSTANTS
@@ -1289,29 +1317,31 @@ PRO gpiPipelineBackbone::Log, Text, GENERAL=LogGeneral, DRF=LogDRF, DEPTH = Text
     if keyword_set(debugflag) then if DEBUG eq 0 then return
 
 
-    Time = STRMID(SYSTIME(), 11, 9)                ; Get time stamp
+    ;Time = STRMID(SYSTIME(), 11, 9)                ; Get time stamp
+    time = strmid(cmsystime(/ext),16,12)            ; now updated to have sub-second precision
+
 
     IF KEYWORD_SET(TextDepth) NE 1 THEN TextDepth = 0    ; Default indentation
     TDstring = strjoin(replicate(' ',textdepth*3+1))
     localText = TDString + Text                 ; Create indented log string
 
     ; Print it to the chosen file
-    IF KEYWORD_SET(LogGeneral) THEN LUN = LOG_GENERAL
-    IF KEYWORD_SET(LogDRF) THEN LUN = LOG_DRF
-    if ~(keyword_set(logGeneral)) and ~(keyword_set(logDRF)) then LUN=LOG_GENERAL ; default.
+    LUN = LOG_GENERAL
+
+    annotated_log = Time + ' ' + localText
 
     ; for General log items, write to the DRP GUI
-    IF KEYWORD_SET(LogGeneral) and obj_valid(self.statuswindow) then self.statuswindow->Log, Time + ' ' + localText
+    IF obj_valid(self.statuswindow) then self.statuswindow->Log, annotated_log
 
-    ;PRINTF, LUN, Time + ' ' + Routine + localText    ; Log to General file
     catch, error_writing
     if error_writing eq 0 then begin
-        PRINTF, LUN, Time + ' ' + localText    ; Log to General file
-        FLUSH, LUN
+        PRINTF, LUN, annotated_log
+        ;FLUSH, LUN
     endif
+    if keyword_set(flush) then flush,LUN
 
     ; Print it to the screen
-    print, Time + ' ' + localText
+    print, annotated_log
 
 END
 
@@ -1596,6 +1626,7 @@ PRO gpiPipelineBackbone__define
             CurrentlyExecutingModuleNumber:0, $
             TempFileNumber: 0, $ ; Used for passing multiple files to multiple gpitv sessions. See self->gpitv pro above
             generallogfilename: '', $
+            log_date: '',            $  ;date string of current log file
             verbose: 0, $
             nogui: 0, $
             LogPath:''}

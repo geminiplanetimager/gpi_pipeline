@@ -275,7 +275,7 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
     ;add ASTROMTC keyword
     val_old = gpi_get_keyword(pri_header, ext_header, 'OBSCLASS', count=count,/silent)
     if strmatch(val_old, '*AstromSTD*',/fold) then astromvalue='T' else astromvalue='F'
-    gpi_set_keyword_if_missing, pri_header, ext_header, 'ASTROMTC', astromvalue, comment='KEYWORD WAS MISSING - Guessed value' 
+    gpi_set_keyword_if_missing, pri_header, ext_header, 'ASTROMTC', astromvalue, comment='KEYWORD WAS MISSING - Guessed value' ,/silent
     
     ;;set the reserved OBSCLASS keyword
     gpi_set_keyword_if_missing, pri_header, ext_header, 'OBSCLASS', 'acq' , comment='KEYWORD WAS MISSING - Default value'

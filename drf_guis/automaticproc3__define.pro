@@ -115,7 +115,7 @@ end
 
 ;-------------------------------------------------------------------
 
-pro automaticproc3::handle_new_files, new_filenames, nowait=nowait
+pro automaticproc3::handle_new_files, new_filenames ;, nowait=nowait
 	; Handle one or more new files that were either
 	;   1) detected by the run loop, or
 	;   2) manually selected and commanded to be reprocessed by the user.
@@ -126,9 +126,15 @@ pro automaticproc3::handle_new_files, new_filenames, nowait=nowait
 	if self.parsemode eq 1 then begin
 		; process the file right away
 		for i=0L,n_elements(new_filenames)-1 do begin
+            finfo = file_info(new_filenames[i])
+            if (finfo.size ne 21000960) and (finfo.size ne 16790400) then begin
+                message,/info, "File size is not an expected value: "+strc(finfo.size)+" bytes. Waiting 0.5 s for file write to complete?"
+                wait, 0.5
+            endif
+
 			if widget_info(self.view_in_gpitv_id,/button_set) then if obj_valid(self.launcher_handle) then $
 				self.launcher_handle->launch, 'gpitv', filename=new_filenames[i], session=45 ; arbitrary session number picked to be 1 more than this launcher
-			self->reduce_one, new_filenames[i],wait=~(keyword_set(nowait))
+			self->reduce_one, new_filenames[i];,wait=~(keyword_set(nowait))
 		endfor
 
 	endif else begin
@@ -286,7 +292,7 @@ pro automaticproc3::event, ev
 			if list_contents[ind[0]] ne '' then begin
 
 				self->Log,'User requested reprocessing of: '+strjoin(list_contents[ind], ", ")
-				self->handle_new_files, list_contents[ind], /nowait
+				self->handle_new_files, list_contents[ind];, /nowait
 			endif
 	
 		endif

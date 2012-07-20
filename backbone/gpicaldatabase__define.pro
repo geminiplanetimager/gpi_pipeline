@@ -37,8 +37,8 @@ calfile = { $
 	return, calfile
 end
 
-pro gpicaldatabase::log, messagestr
-	if obj_valid(self.backbone) then self.backbone->Log, messagestr else message,/info, messagestr
+pro gpicaldatabase::log, messagestr, _extra=_Extra
+	if obj_valid(self.backbone) then self.backbone->Log, "GPICALDB: "+messagestr, _extra=_extra else message,/info, messagestr
 end
 
 FUNCTIOn gpicaldatabase::get_calibdir
@@ -88,8 +88,8 @@ FUNCTION gpicaldatabase::init, directory=directory, dbfilename=dbfilename, backb
 		for i=0,n_tags(data)-1 do if size(data.(i),/TNAME) eq "STRING" then data.(i) = strtrim(data.(i),2)
 		self.data = ptr_new(data,/no_copy)
 		self.nfiles = n_elements(*self.data)
-		self->Log, "Loaded Calibrations DB from "+caldbfile
-		self->Log, "  Found "+strc(self.nfiles)+ " entries"
+		self->Log, "Loaded Calibrations DB from "+caldbfile,depth=1
+		self->Log, "Found "+strc(self.nfiles)+ " entries", depth=1
 	
 
 
@@ -126,11 +126,11 @@ pro gpicaldatabase::verify
 	endfor 
 
 	if any_invalid then begin
-		self->Log, "There were one or more calibration files in the DB which could not be found"
-		self->Log, "Those files have been marked as invalid for now. But you should probably "
-		self->Log, "re-scan the database to re-create the index file!"
+		self->Log, "There were one or more calibration files in the DB which could not be found",depth=0
+		self->Log, "Those files have been marked as invalid for now. But you should probably ",depth=1
+		self->Log, "re-scan the database to re-create the index file!",depth=1
 	endif else begin
-		self->Log, "  All "+strc(n)+" files in Cal DB verified OK."
+		self->Log, "  All "+strc(n)+" files in Cal DB verified OK.",depth=1
 	endelse
 
 
@@ -271,7 +271,7 @@ function gpicaldatabase::cal_info_from_header, fits_data
 	;thisfile.filename = file_basename(filename)
 
 	; check what kind of file it is
-	thisfile.type = gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "FILETYPE", count=count)
+	thisfile.type = gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "FILETYPE", count=count,/silent)
 	; Don't print any alert for missing FILETYPE - this is not present in raw
 	; data
 	;if count ne 1 then message,/info, "Missing keyword: FILETYPE"
@@ -432,14 +432,14 @@ readoutmode=self->get_readoutmode_as_string(fits_data)
 		errdesc = 'with same ITIME'
 		; FIXME if no exact match found for itime, fall back to closest match
 		if cc eq 0 then begin
-			if obj_valid(self.backbone) then self.backbone->Log, "GPICALDB: No exact match found for ITIME, thus looking for closesd approximate mathc instead",/DRF,depth=2
+			self->Log, "No exact match found for ITIME, thus looking for closesd approximate mathc instead",depth=3
 	    	imatches_typeonly= where( strmatch((*self.data).type, types[itype].description+"*",/fold))
 			deltatimes = (*self.data)[imatches_typeonly].itime - itime
 
 			mindelta = min( abs(deltatimes), wmin)
 			imatches= where( strmatch((*self.data).type, types[itype].description+"*",/fold) and $
 				            ((*self.data).itime) eq (*self.data)[wmin[0]].itime,cc)
-			if obj_valid(self.backbone) then self.backbone->Log, "GPICALDB: Found "+strc(cc)+" approx matches with ITIME="+strc((*self.data)[wmin[0]].itime)
+			self->Log, "Found "+strc(cc)+" approx matches with ITIME="+strc((*self.data)[wmin[0]].itime)
 
 
 		endif
@@ -452,14 +452,14 @@ readoutmode=self->get_readoutmode_as_string(fits_data)
 		errdesc = 'with same ITIME'
 		; FIXME if no exact match found for itime, fall back to closest match
 		if cc eq 0 then begin
-			if obj_valid(self.backbone) then self.backbone->Log, "GPICALDB: No exact match found for ITIME, thus looking for closesd approximate mathc instead",/DRF,depth=2
+			self->Log, "No exact match found for ITIME, thus looking for closesd approximate mathc instead",depth=3
 	    	imatches_typeonly= where( strmatch((*self.data).type, types[itype].description+"*",/fold))
 			deltatimes = (*self.data)[imatches_typeonly].itime - itime
 
 			mindelta = min( abs(deltatimes), wmin)
 			imatches= where( strmatch((*self.data).type, types[itype].description+"*",/fold) and $
 				            ((*self.data).itime) eq (*self.data)[wmin[0]].itime,cc)
-			if obj_valid(self.backbone) then self.backbone->Log, "GPICALDB: Found "+strc(cc)+" approx matches with ITIME="+strc((*self.data)[wmin[0]].itime)
+            self->Log, " Found "+strc(cc)+" approx matches with ITIME="+strc((*self.data)[wmin[0]].itime)
 
 
 		endif
@@ -508,7 +508,7 @@ readoutmode=self->get_readoutmode_as_string(fits_data)
     bestcalib=((*self.data).PATH)[ibest]+path_sep()+((*self.data).FILENAME)[ibest]
 	if keyword_set(verbose) then message,/info, "Returning best calib= "+bestcalib
 
-	if obj_valid(self.backbone) then self.backbone->Log, "GPICALDB: Returning best cal file= "+bestcalib,/DRF,depth=2
+    self->Log, "Returning best cal file= "+bestcalib,depth=3
 	
 	return, bestcalib
 
