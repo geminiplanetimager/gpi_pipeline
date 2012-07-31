@@ -36,12 +36,12 @@
 ;
 ; HISTORY:
 ; 	2012-02 JM
+;       07.30.2012 - offladed backend to speckle_align - ds
 ;-
 
 Function  gpi_specklealignement, DataSet, Modules, Backbone
 common PIP
 COMMON APP_CONSTANTS
-
 
 primitive_version= '$Id: gpi_specklealignement.pro 525 2012-02-23 16:02:46Z maire $' ; get version from subversion to store in header history
   getmyname, functionname
@@ -55,79 +55,39 @@ thisModuleIndex = Backbone->GetCurrentModuleIndex()
 k=Modules[thisModuleIndex].k
 if k ge (size(cubefin))[3] then return, error('FAILURE ('+functionName+'): Reference slice does not exist. k must be smaller than number of spectral channels.')
 
-sz=(size(cubefin))
-
-
 filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
-        cwv=get_cwv(filter)
-        CommonWavVect=cwv.CommonWavVect
-;Common Wavelength Vector
-lambdamax=CommonWavVect[1]
-lambdamin=CommonWavVect[0]
-CommonWavVect[2]=(size(cubefin))[3]
-lambda=dblarr(CommonWavVect(2))
-for i=0,CommonWavVect(2)-1 do lambda(i)=lambdamin+double(i)*(lambdamax-lambdamin)/(CommonWavVect(2)-1)
-
-
-if sz[0] eq 3 then begin
-  Ima2=fltarr(sz[1]-(sz[1] mod 2),sz[2]-(sz[2] mod 2),sz[3])
-  L1=lambda[k]
-  for numL1=0,sz[3]-1 do begin
-    Ima0=(cubefin)[*,*,numL1] 
-    if (sz[1] mod 2) then begin
-      Imag=Ima0[0:sz[1]-2,0:sz[2]-2]
-    endif else begin
-      Imag=Ima0
-    endelse
-    if numL1 eq k then begin 
-      Ima2[*,*,k]=Imag[*,*]
-    endif else begin  
-      Imag(where(~FINITE(Imag)))=0.
-      L2m=(lambda)[numL1]
-      Ima2[*,*,numL1]=fftscale(Imag,double(L1)/double(L2m),double(L1)/double(L2m),1e-7)
-    endelse  
-  endfor
- 
- endif
+Ima2 = speckle_align(cubefin,refslice=k,band=filter)
  
 thisModuleIndex = Backbone->GetCurrentModuleIndex()
 ;if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
 hdr=*(dataset.headersExt)[numfile]
-       ;remove wcs keywords because astrometry will not be the same across the datacube:
+;;remove wcs keywords because astrometry will not be the same across the datacube:
 ;    sxdelpar, hdr , 'CDELT1'
 ;    sxdelpar, hdr, 'CRPIX1'
 ;    sxdelpar, hdr, 'CRVAL1'
 ;    sxdelpar, hdr , 'CDELT1'
 ;    sxdelpar, hdr, 'CTYPE1'
- 
 
 suffix2=suffix+'-specalign'    
-   if tag_exist( Modules[thisModuleIndex],"ReuseOutput")  then begin
-   ; put the datacube in the dataset.currframe output structure:
+if tag_exist( Modules[thisModuleIndex],"ReuseOutput")  then begin
+   ;; put the datacube in the dataset.currframe output structure:
    *(dataset.currframe[0])=Ima2
-    Modules[thisModuleIndex].Save=1 ;will save output on disk, so outputfilenames changed
-    sssd=0
-    suffix+='-specalign' 
-    *(dataset.headersExt)[numfile]=hdr
-    endif
-    
-    
- ; sxaddparlarge,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": Simple Spectral Diff. applied."
+   Modules[thisModuleIndex].Save=1 ;will save output on disk, so outputfilenames changed
+   sssd=0
+   suffix+='-specalign' 
+   *(dataset.headersExt)[numfile]=hdr
+endif
+
 backbone->set_keyword,'HISTORY', functionname+": Speckle alignment applied.",ext_num=0
     
-
-;*(dataset.headers)[numfile]=hdr
-    if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
-      if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
-      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix2, savedata=Ima2, saveheader=hdr, display=display)
-      if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
-    endif else begin
-      if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
-          ;gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv)
-          Backbone_comm->gpitv, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv)
-    endelse
-
- 
+if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
+   if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
+   b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix2, savedata=Ima2, saveheader=hdr, display=display)
+   if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
+endif else begin
+   if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
+      Backbone_comm->gpitv, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv)
+endelse
 
 return, ok
 end
