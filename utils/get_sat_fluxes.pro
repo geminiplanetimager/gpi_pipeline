@@ -1,4 +1,61 @@
-function get_sat_fluxes,im0,band=band,good=good,cens=cens,warns=warns
+function get_sat_fluxes,im0,band=band,good=good,cens=cens,warns=warns,$
+                        gaussfit=gaussfit,refinefits=refinefits
+;+
+; NAME:
+;       get_sat_fluxes
+; PURPOSE:
+;       Extract peak fluxes of satellite spots in a gpi image cube
+;
+; EXPLANATION:
+;       Identifies the locations of the satellite flux in all image
+;       slices (where they can be found) and extracts either the raw
+;       or fit maximum flux
+;
+; Calling SEQUENCE:
+;       res = get_sat_fluxes(im0,[band=band,good=good,cens=cens,warns=warns,/gaussfit,/refinefits])
+;
+; INPUT/OUTPUT:
+;       im0 - 3D image (must be consistent with a cube produced by the
+;             gpi pipeline)
+;       band - Band of the cube (some identifiable version of the band
+;              name.  Defaults to 'H')
+;       /gaussfit - Rather than extracting the raw pixel maximum,
+;                   return the maximum of a 2D gaussian fit to the
+;                   satellite spot pixels
+;       /refinefits - Rerun find_sat_spots on the locations found by
+;                     extrapolating by wavelength
+;      
+;       res - 4xl array of satellite spot max fluxes (where l is the
+;             number of slices in im0)
+;
+; OPTIONAL OUTPUT:
+;       good - Indices of the slices where sat spots could be found
+;       cens - 2x4xl array of sat spot center pixel locations
+;       warns - Array of warning flags.  0 = no warning, 1 = fluxes
+;               vary by more than 25%, -1 = sat spots could not be
+;               found
+;
+; EXAMPLE:
+;
+;
+; DEPENDENCIES:
+;	find_sat_spots.pro
+;
+; NOTES: 
+;      curvefit (called by gauss2dfit) is finicky. you will get tons
+;      of convergence errors and bad fit messages.  However, the code
+;      will attempt to compensate you, and, if failing, will replace
+;      bad values with the pixel max.
+;
+;      Refining the center locations typically moves them by less than
+;      0.1 pixels in each dimension.  This has no effect at all on the
+;      satellite spot values when using the pixel maximum, and a very
+;      small effect when using the gaussian fit.
+;             
+; REVISION HISTORY
+;       Written  08/02/2012. Based partially on code by Perrin and
+;                            Marie - savransky1@llnl.gov 
+;-
 
 ;;clean up image
 im = im0
@@ -23,6 +80,10 @@ c0 = mean(cens0,dim=2) # (fltarr(4)+1.)
 cens0p = cv_coord(from_rect=cens0 - c0,/to_polar)
 for j=1,sz[2]-1 do cens[*,*,j] = cv_coord(from_polar=[cens0p[0,*],cens0p[1,*]/scl[j]],/to_rect) + c0
 
+;;refine, if asked
+if keyword_set(refinefits) then $
+   for j=1,sz[2]-1 do cens[*,*,j] = find_sat_spots(im[*,*,j],lambda = lambda[j],locs=cens[*,*,j])
+
 ;;get rid of slices where satellites can't be found
 bad = where(cens ne cens)
 if bad[0] ne -1 then begin
@@ -32,15 +93,32 @@ endif else bad = []
 good = findgen(sz[2])
 good[bad] = -1
 good = good[where(good ne -1)]
-cens = cens[*,*,good]
-sz[2] = n_elements(good)
 
 ;;get satellite fluxes
 ic_psfs = fltarr(4,sz[2])
 warns = fltarr(sz[2])
-for j=0,sz[2]-1 do begin 
-   for i=0,3 do ic_psfs[i,j]=total(subarr(im[*,*,j],7,cens[*,i,j],/zeroout)) 
-   if total(abs((ic_psfs[*,j] - mean(ic_psfs[*,j]))/mean(ic_psfs[*,j])) gt 0.25) ne 0 then warns[j] = 1 
+warns[bad] = -1
+for j=0,n_elements(good)-1 do begin 
+   for i=0,3 do begin
+      subimage = subarr(im[*,*,good[j]],7,cens[*,i,good[j]],/zeroout)
+      if keyword_set(gaussfit) then begin
+         paramgauss = [median(subimage), max(subimage), 3, 3, 3.5, 3.5, 0]
+         yfit = gauss2dfit(subimage, paramgauss, /tilt)
+         if total(abs(yfit - mean(yfit))) lt 1e-10 or paramgauss[1] lt 0 then begin
+            print, 'Bad fit detected, trying again.'
+            ;;retry with larger area
+            subimage = subarr(im[*,*,good[j]],9,cens[*,i,good[j]],/zeroout)
+            paramgauss = [median(subimage), max(subimage), 3, 3, 4.5, 4.5, 0]
+            yfit = gauss2dfit(subimage, paramgauss, /tilt)
+            if total(abs(yfit - mean(yfit))) lt 1e-10 or paramgauss[1] lt 0 then begin 
+               print,'Fitting failed.  Using maximum.'
+               ic_psfs[i,good[j]]=max(subimage)
+            endif else ic_psfs[i,good[j]] = total(paramgauss[0:1])
+         endif else ic_psfs[i,good[j]] = total(paramgauss[0:1])
+      endif else ic_psfs[i,good[j]]=max(subimage)
+   endfor
+   if total(abs((ic_psfs[*,good[j]] - mean(ic_psfs[*,good[j]]))/mean(ic_psfs[*,good[j]])) gt 0.25) ne 0 then $
+      warns[good[j]] = 1 
 endfor 
 
 return, ic_psfs

@@ -1,47 +1,96 @@
-function find_sat_spots,s0,lambda=lambda
+function find_sat_spots,s0,lambda=lambda,leg=leg,locs=locs
+;+
+; NAME:
+;       find_sat_spots
+; PURPOSE:
+;       Find satellite spots in GPI images
+;
+; EXPLANATION:
+;       Performs a fourier coregistration with a pure gaussian, and
+;       then looks for four locations equidistant from each other in
+;       the image (distance given by optional keyword leg).  Then
+;       refines the locations by performing 2d gaussian fits.
+;
+; Calling SEQUENCE:
+;       res = find_sat_spots(s0,[lambda=lambda,leg=leg,locs=locs])
+;
+; INPUT/OUTPUT:
+;       s0 - 2D image (must be consistent with one slice of the cubes
+;            produced by the gpi pipeline)
+;       lambda - Wavelength of slice (in microns)
+;       leg - distance between sat spots (overrides lambda)
+;       locs - Initial sat locations to refine.  If set,
+;              coregistration step is skipped.
+;      
+;       res - 2x4 array of satellite spot pixel locations
+;
+; OPTIONAL OUTPUT:
+;       None
+;
+; EXAMPLE:
+;
+;
+; DEPENDENCIES:
+;	fourier_coreg.pro
+;
+; NOTES: 
+;      
+;             
+; REVISION HISTORY
+;       Written  08/02/2012. Based partially on code by Perrin and
+;                            Marie - savransky1@llnl.gov 
+;-
 
 sz = size(s0,/dim)
-if not keyword_set(lambda) then leg = 80d else leg = 80d * lambda/1.5121622
+if keyword_set(lambda) then leg = 80d * lambda/1.5121622 ;;1st slice of H band has a leg of 80 pixels
+if n_elements(leg) ne 1 then leg = 80d
 
 winap = 20
-refpix = 11
-generate_grids, fx, fy, refpix, /whole
-fr = sqrt(fx^2 + fy^2)
-ref = exp(-0.5*fr^2)
 
-fourier_coreg,ref,s0,out
+if not keyword_set(locs) then begin
+   refpix = 11
+   generate_grids, fx, fy, refpix, /whole
+   fr = sqrt(fx^2 + fy^2)
+   ref = exp(-0.5*fr^2)
 
-msk = make_annulus(winap)
-locs = []
-dists = []
-cal_spots = []
-val = max(out,ind)
+   fourier_coreg,ref,s0,out
 
-counter = 0
-while counter lt 100 do begin
-   inds = array_indices(out,ind) 
-   if n_elements(locs) ne 0 then dists = [dists,sqrt(total((locs - (inds # (fltarr(n_elements(locs)/2.)+1.)))^2.,1))] 
-   locs = [[locs],[inds]] 
-   if n_elements(dists) gt 1 then begin 
-      tmp = where(dists gt leg - 2d and dists lt leg + 2d) 
-      if tmp[0] ne -1 then begin 
-         cal_spots = lonarr(n_elements(tmp)*2)
-         for j=0,n_elements(tmp)-1 do cal_spots[j*2:(j+1)*2-1] = listind2comb(tmp[j]) 
-         cal_spots = cal_spots[UNIQ(cal_spots, SORT(cal_spots))] 
-         if n_elements(cal_spots) eq 4 then break 
+   msk = make_annulus(winap)
+   locs = []
+   dists = []
+   cal_spots = []
+   val = max(out,ind)
+
+   counter = 0
+   while counter lt 100 do begin
+      inds = array_indices(out,ind) 
+      if n_elements(locs) ne 0 then dists = [dists,sqrt(total((locs - (inds # (fltarr(n_elements(locs)/2.)+1.)))^2.,1))] 
+      locs = [[locs],[inds]] 
+      if n_elements(dists) gt 1 then begin 
+         tmp = where(dists gt leg - 2d and dists lt leg + 2d) 
+         if tmp[0] ne -1 then begin 
+            cal_spots = lonarr(n_elements(tmp)*2)
+            for j=0,n_elements(tmp)-1 do cal_spots[j*2:(j+1)*2-1] = listind2comb(tmp[j]) 
+            cal_spots = cal_spots[UNIQ(cal_spots, SORT(cal_spots))] 
+            if n_elements(cal_spots) eq 4 then break 
+         endif 
       endif 
-   endif 
-   out[msk[*,0]+inds[0],msk[*,1]+inds[1]] = min(out)  
-   val = max(out,ind)  
-   counter += 1
-endwhile
+      out[msk[*,0]+inds[0],msk[*,1]+inds[1]] = min(out)  
+      val = max(out,ind)  
+      counter += 1
+   endwhile
+   if counter eq 100 then begin
+      message,'Could not locate satellites.',/continue
+      return, -1
+   endif
+   locs = locs[*,cal_spots]
+endif else begin
+   if n_elements(locs) ne 8 || total(size(locs,/dim) - [2,4]) ne 0 then begin
+      message,/continue,'locs input must be 2x4 array'
+      return,-1
+   endif
+endelse
 
-if counter eq 100 then begin
-   message,'Could not locate satellites.',/continue
-   return, -1
-endif
-
-locs = locs[*,cal_spots]
 ap = winap
 x1 = 0 > locs[0,*] - ap < sz[0] - 1
 x2 = 5 > locs[0,*] + ap < sz[0] - 2

@@ -1,16 +1,43 @@
-im1 = readfits('~/Documents/IFSNoiseTest/S20120726S0166-spdc.fits',/ext)  ;;17 dB
-im_psfs1 = get_sat_fluxes(im1,band='H',good=good1,cens=cens1,warns=warns1)
+rootdir = '~/Documents/ifs/Reduced/'
+im1 = readfits(rootdir+'120726/S20120726S0166-spdc.fits',/ext)  ;;17 dB
+st = systime(1) & sats1 = get_sat_fluxes(im1,band='H',good=good1,cens=cens1,warns=warns1) & print,systime(1) - st
+st = systime(1) & sats2 = get_sat_fluxes(im1,band='H',good=good2,cens=cens2,warns=warns2,/refinefits) & print,systime(1) - st
 
-im2 = readfits('~/Documents/IFSNoiseTest/S20120726S0016-spdc.fits',/ext)  ;;16 dB
+st = systime(1) & sats3 = get_sat_fluxes(im1,band='H',good=good3,cens=cens3,warns=warns3,/gaussfit) & print,systime(1) - st
+st = systime(1) & sats4 = get_sat_fluxes(im1,band='H',good=good4,cens=cens4,warns=warns4,/gaussfit,/refinefits) & print,systime(1) - st
+
+im2 = readfits(rootdir+'120726/S20120726S0016-spdc.fits',/ext)  ;;16 dB
 im_psfs2 = get_sat_fluxes(im2,band='H',good=good2,cens=cens2,warns=warns2)
 
 cwv = get_cwv('H')
 lambda = cwv.lambda
 
-window,1,xsize=800,ysize=600
-cols = [fsc_color('red'),fsc_color('blue'),fsc_color('green'),fsc_color('navy')]
-plot,/nodata,[1.5,1.8],[min([im_psfs1,im_psfs2]),max([im_psfs1,im_psfs2])],Background=cgcolor('white'), Color=cgcolor('black')
-for j=0,3 do begin oplot,lambda,im_psfs1[j,*],psym=1,color=cols[j] & oplot,lambda,im_psfs2[j,*],psym=2,color=cols[j] & endfor
+plot_sat_vals,lambda,sats1
+
+fnames = file_search(rootdir+'120720','*.fits')
+sats = fltarr(4,37,n_elements(fnames))
+for j=0,n_elements(fnames)-1 do begin &$
+   im = readfits(fnames[j],/ext) &$
+   sats[*,*,j] = get_sat_fluxes(im,band='H') &$
+endfor
+
+plot_sat_vals,lambda,sats
+write_png,'~/Downloads/sat_vals_300s.png',tvread()
+
+imdat = '120726'
+imstart = 122
+imcounter = 0
+sats2 = fltarr(4,37,10)
+for j = 0,9 do begin &$
+   fname = rootdir+imdat+'/S20'+imdat+'S'+string(imstart+imcounter,format='(I04)')+'-spdc.fits' &$
+   print,fname &$
+   im = readfits(fname,/ext) &$
+   sats2[*,*,j] = get_sat_fluxes(im,band='H') &$
+   imcounter += 1 &$
+endfor
+
+plot_sat_vals,lambda,sats2
+write_png,'~/Downloads/sat_vals_15s_spher.png',tvread()
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
