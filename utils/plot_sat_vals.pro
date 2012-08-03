@@ -12,6 +12,6 @@ greekLetter = '!4' + String(thisLetter) + '!X'
 plot,/nodata,[min(lambda),max(lambda)],[min(sats),max(sats)],$
      charsize=1.5, Background=cgcolor('white'), Color=cgcolor('black'),$
      xtitle='Wavelength (' + greekLetter + 'm)',ytitle='Maximum Satellite Flux'
-for k=0,numim-1 do for j=0,3 do oplot,lambda,sats[j,*,k],psym=(k+1) mod 7,color=cols[j]
+for k=0,numim-1 do for j=0,3 do oplot,lambda,sats[j,*,k],psym=(k mod 6)+1,color=cols[j]
 
 end

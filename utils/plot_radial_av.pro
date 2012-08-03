@@ -39,6 +39,30 @@ endfor
 plot_sat_vals,lambda,sats2
 write_png,'~/Downloads/sat_vals_15s_spher.png',tvread()
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+rootdir = '~/Documents/ifs/Reduced/'
+im1 = readfits(rootdir+'120726/S20120726S0166-spdc.fits',/ext)  ;;17 dB
+sats1 = get_sat_fluxes(im1,band='H',good=good1,cens=cens1,warns=warns1)
+radial_profile,im1[*,*,0],cens1[*,*,0],imed=imed1,isig=isig1,imn=imn1,asec=asec1
+
+im2 = readfits(rootdir+'120726/S20120726S0161-spdc.fits',/ext)  ;;16 dB
+sats2 = get_sat_fluxes(im2,band='H',good=good2,cens=cens2,warns=warns2)
+radial_profile,im2[*,*,0],cens2[*,*,0],imed=imed2,isig=isig2,imn=imn2,asec=asec2
+
+im3 = readfits(rootdir+'120720/S20120720S0130-spdc.fits',/ext)  ;;16 dB
+sats3 = get_sat_fluxes(im3,band='H',good=good3,cens=cens3,warns=warns3)
+radial_profile,im3[*,*,0],cens3[*,*,0],imed=imed3,isig=isig3,imn=imn3,asec=asec3
+
+
+window,1,xsize=800,ysize=600,retain=2 
+plot,/nodata,[min(asec1),max(asec1)],[min([imed1,imed1,imed3]),max([imed1,imed2,imed3])],$
+     charsize=1.5, Background=cgcolor('white'), Color=cgcolor('black'),$
+     xtitle='Angular separation [Arcsec]',ytitle='Average Flux'
+oplot,asec1,imed1,color=fsc_color('red')
+oplot,asec2,imed2,color=fsc_color('blue')
+oplot,asec3,imed3,color=fsc_color('green')
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 copsf = im0
@@ -52,8 +76,8 @@ for j=0,sz[2]-1 do ic_psfi[j] *= mean(ic_psfs[*,j])
 pixscl = gpi_get_setting('ifs_lenslet_scale')
 immask = 1.-mkpupil(sz[0],0.12/pixscl)
 im = avgaper(immask,1.)
-tmp = where(abs(im-1) gt 1e-13, ct)
-if ct ne 0 then im[tmp] = 0
+;tmp = where(abs(im-1) gt 1e-13, ct)
+;if ct ne 0 then im[tmp] = 0
 
 ;;mask satellites
 for k = 0,sz[2]-1 do begin &$
