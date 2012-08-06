@@ -44,7 +44,6 @@ function gpi_get_setting, settingname, expand_path=expand_path, int=int, bool=bo
 		message,/info, "ERROR: could not find a setting named "+settingname
 		message,/info, "Check your file : "+pipeline_settings_file
 		message,/info,"-----------------------------------------"
-		stop
 		return, 'ERROR'
 	endif
 
