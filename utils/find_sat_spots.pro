@@ -58,16 +58,19 @@ if not keyword_set(locs) then begin
    fourier_coreg,ref,s0,out
 
    msk = make_annulus(winap)
-   locs = !null
-   dists = !null
-   cal_spots = !null
+   ;locs = !null;;
+   ;dists = !null
+   ;cal_spots = !null
    val = max(out,ind)
 
    counter = 0
    while counter lt 100 do begin
       inds = array_indices(out,ind) 
-      if n_elements(locs) ne 0 then dists = [dists,sqrt(total((locs - (inds # (fltarr(n_elements(locs)/2.)+1.)))^2.,1))] 
-      locs = [[locs],[inds]] 
+      if n_elements(locs) ne 0 then begin
+		  if n_elements(dists) gt 0 then dists = [dists,sqrt(total((locs - (inds # (fltarr(n_elements(locs)/2.)+1.)))^2.,1))] else $
+		  dists = [sqrt(total((locs - (inds # (fltarr(n_elements(locs)/2.)+1.)))^2.,1))] 
+	  endif
+	  if keyword_set(locs) then locs = [[locs],[inds]]  else locs = [inds]
       if n_elements(dists) gt 1 then begin 
          tmp = where(dists gt leg - 2d and dists lt leg + 2d) 
          if tmp[0] ne -1 then begin 

@@ -86,7 +86,8 @@ scl = lambda[indx]/lambda
 ;;convert cens0 to polar coords, scale and revert to cartesians
 cens = dblarr(2,4,sz[2])
 cens[*,*,indx] = cens0
-c0 = mean(cens0,dim=2) # (fltarr(4)+1.)
+c0 = (total(cens0,2)/4) # (fltarr(4)+1.)
+;c0 = mean(cens0,dim=2) # (fltarr(4)+1.)
 cens0p = cv_coord(from_rect=cens0 - c0,/to_polar)
 for j=0,sz[2]-1 do if j ne indx then $
    cens[*,*,j] = cv_coord(from_polar=[cens0p[0,*],cens0p[1,*]/scl[j]],/to_rect) + c0
@@ -97,19 +98,19 @@ if keyword_set(refinefits) then $
       cens[*,*,j] = find_sat_spots(im[*,*,j],lambda = lambda[j],locs=cens[*,*,j])
 
 ;;get rid of slices where satellites can't be found
-bad = where(cens ne cens)
+bad = where(cens ne cens, badct)
 if bad[0] ne -1 then begin
    bad = (array_indices(cens,bad))[2,*]
    bad = bad[uniq(bad,sort(bad))]
-endif else bad = !null
+endif ;else bad = !null
 good = findgen(sz[2])
-good[bad] = -1
+if badct gt 0 then good[bad] = -1
 good = good[where(good ne -1)]
 
 ;;get satellite fluxes
 ic_psfs = fltarr(4,sz[2])
 warns = fltarr(sz[2])
-warns[bad] = -1
+if badct gt 0 then warns[bad] = -1
 for j=0,n_elements(good)-1 do begin 
    for i=0,3 do begin
       subimage = subarr(im[*,*,good[j]],gaussap,cens[*,i,good[j]],/zeroout)
