@@ -67,10 +67,10 @@ if not keyword_set(locs) then begin
    while counter lt 100 do begin
       inds = array_indices(out,ind) 
       if n_elements(locs) ne 0 then begin
-		  if n_elements(dists) gt 0 then dists = [dists,sqrt(total((locs - (inds # (fltarr(n_elements(locs)/2.)+1.)))^2.,1))] else $
-		  dists = [sqrt(total((locs - (inds # (fltarr(n_elements(locs)/2.)+1.)))^2.,1))] 
-	  endif
-	  if keyword_set(locs) then locs = [[locs],[inds]]  else locs = [inds]
+         tmp = sqrt(total((locs - (inds # (fltarr(n_elements(locs)/2.)+1.)))^2.,1))
+         if n_elements(dists) gt 0 then dists = [dists,tmp] else dists = [tmp] 
+      endif
+      if keyword_set(locs) then locs = [[locs],[inds]]  else locs = [inds]
       if n_elements(dists) gt 1 then begin 
          tmp = where(dists gt leg - 2d and dists lt leg + 2d) 
          if tmp[0] ne -1 then begin 
