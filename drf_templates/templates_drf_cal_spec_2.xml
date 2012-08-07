@@ -5,5 +5,5 @@
 </dataset>
 <module name="Simple Destripe (hard-coded for I and T)" Save="0" gpitv="0" before_and_after='1' /> 
 <module name="Accumulate Images" Method="InMemory" />
-<module name="Combine 2D dark images" Method="Mean" Save="1" suffix="-dark" gpitv="1" />
+<module name="Combine 2D dark images" Method="Median" Save="1" suffix="-dark" gpitv="1" />
 </DRF>

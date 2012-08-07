@@ -75,6 +75,7 @@ sz = size(im,/dim)
 ;;grab first slice and find spots
 s0 = im[*,*,indx]
 cens0 = find_sat_spots(s0,winap=winap,locs=locs)
+if n_elements(cens0) eq 1 then return, -1
 
 ;;wavelength information
 if not keyword_set(band) then band = 'H'
