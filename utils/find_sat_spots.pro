@@ -1,4 +1,5 @@
-function find_sat_spots,s0,lambda=lambda,leg=leg,locs=locs
+function find_sat_spots,s0,lambda=lambda,leg=leg,locs=locs,$
+                        winap = winap
 ;+
 ; NAME:
 ;       find_sat_spots
@@ -21,6 +22,7 @@ function find_sat_spots,s0,lambda=lambda,leg=leg,locs=locs
 ;       leg - distance between sat spots (overrides lambda)
 ;       locs - Initial sat locations to refine.  If set,
 ;              coregistration step is skipped.
+;       winap - Size of aperture to use (pixels) defaults to 20
 ;      
 ;       res - 2x4 array of satellite spot pixel locations
 ;
@@ -45,7 +47,7 @@ sz = size(s0,/dim)
 if keyword_set(lambda) then leg = 80d * lambda/1.5121622 ;;1st slice of H band has a leg of 80 pixels
 if n_elements(leg) ne 1 then leg = 80d
 
-winap = 20
+if not keyword_set(winap) then winap = 20
 
 if not keyword_set(locs) then begin
    refpix = 11
@@ -56,9 +58,9 @@ if not keyword_set(locs) then begin
    fourier_coreg,ref,s0,out
 
    msk = make_annulus(winap)
-   locs = []
-   dists = []
-   cal_spots = []
+   locs = !null
+   dists = !null
+   cal_spots = !null
    val = max(out,ind)
 
    counter = 0
@@ -91,11 +93,10 @@ endif else begin
    endif
 endelse
 
-ap = winap
-x1 = 0 > locs[0,*] - ap < sz[0] - 1
-x2 = 5 > locs[0,*] + ap < sz[0] - 2
-y1 = 0 > locs[1,*] - ap < sz[1] - 1
-y2 = 5 > locs[1,*] + ap < sz[1] - 2
+x1 = 0 > locs[0,*] - winap < sz[0] - 1
+x2 = 5 > locs[0,*] + winap < sz[0] - 2
+y1 = 0 > locs[1,*] - winap < sz[1] - 1
+y2 = 5 > locs[1,*] + winap < sz[1] - 2
 
 hh = 5.
 cens = dblarr(2,4)

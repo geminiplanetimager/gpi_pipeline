@@ -68,5 +68,5 @@ oplot,asec3,imed3,color=fsc_color('green')
 
 im2 = readfits(rootdir+'120726/S20120726S0161-spdc.fits',/ext)  ;;16 dB
 sats2 = get_sat_fluxes(im2,band='H',good=good2,cens=cens2,warns=warns2)
-radial_profile,im2[*,*,0],cens2[*,*,0],imed=imed2,isig=isig2,imn=imn2,asec=asec2
-radial_profile,im2[*,*,0],cens2[*,*,0],imed=imed2b,isig=isig2b,imn=imn2b,asec=asec2b
+radial_profile,im2[*,*,0],cens2[*,*,0],imed=imed2,isig=isig2,imn=imn2,asec=asec2,rsum=0
+radial_profile,im2[*,*,0],cens2[*,*,0],imed=imed2b,isig=isig2b,imn=imn2b,asec=asec2b,/dointerp

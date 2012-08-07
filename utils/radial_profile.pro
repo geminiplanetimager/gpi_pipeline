@@ -20,8 +20,8 @@ pro radial_profile,im0,cens,lambda=lambda,rmax=rmax,rsum=rsum,$  ;;inputs
   if ~strcmp(memsrot,'ERROR',/fold_case) then memsrot = double(memsrot)*!dpi/180d else $
      memsrot = 1d*!dpi/180d
 
-  if not keyword_set(rmax) then rmax = ceil(pix_to_ripple)
-  if not keyword_set(rsum) then rsum = 1
+  if n_elements(rmax) eq 0 then rmax = ceil(pix_to_ripple)
+  if n_elements(rsum) eq 0 then rsum = 0.
 
   ;;mask satellites and center
   bsz = ceil(scl/pixscl*2d)
@@ -78,18 +78,24 @@ pro radial_profile,im0,cens,lambda=lambda,rmax=rmax,rsum=rsum,$  ;;inputs
      sind = sort(rall) & rall = rall[sind] & ind = ind[sind]
      
      ;;define interpolating mask & calculate intensities at each pixel
-     ic0 = myaper(im,cent[0],cent[1],rsum,mask,imask)
-     if (rsum eq 0.) then begin mask = 1. & imask = 0 & endif
-     imask = imask - median(imask)
+     if (rsum eq 0.) then begin 
+        mask = 1. 
+        imask = 0L
+     endif else begin
+        ic0 = myaper(im,cent[0],cent[1],rsum,mask,imask)
+        imask = imask - median(imask)
+     endelse
      iall = dblarr(npts) + !values.d_nan
      if keyword_set(doouter) then iall2 = dblarr(npts) + !values.d_nan
-     for n=0l,npts-1 do begin 
-        tmp = mask*im_dh[imask+ind[n]] 
-        if n_elements(where(tmp ne tmp)) lt n_elements(mask) then iall[n] = total(tmp,/nan)
-        if keyword_set(doouter) then begin
-           tmp = mask*im_o[imask+ind[n]] 
-           if n_elements(where(tmp ne tmp)) lt n_elements(mask) then iall2[n] = total(tmp,/nan)  
-        endif 
+     for n=0l,npts-1 do begin
+        tmp = mask*im_dh[imask+ind[n]]
+        tmp2 = where(tmp ne tmp,ct)
+        if ct lt n_elements(mask) then iall[n] = total(tmp,/nan)
+        if keyword_set(doouter) then begin 
+           tmp = mask*im_o[imask+ind[n]]
+           tmp2 = where(tmp ne tmp,ct)
+           if ct lt n_elements(mask) then iall2[n] = total(tmp,/nan) 
+        endif
      endfor
      rrall = round(rall)
   endelse
@@ -120,6 +126,12 @@ pro radial_profile,im0,cens,lambda=lambda,rmax=rmax,rsum=rsum,$  ;;inputs
         if arg_present(isig) then isig[j,1] = robust_sigma(vals)
      endif
   endfor
+
+;;cleanup sigma if needed
+if arg_present(isig) then begin
+   weird = where(isig eq -1d,ct)
+   if ct gt 0 then isig[weird] = !values.d_nan
+endif
 
 end
 
