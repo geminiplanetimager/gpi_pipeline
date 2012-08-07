@@ -40,7 +40,7 @@ function find_sat_spots,s0,lambda=lambda,leg=leg,locs=locs,$
 ;             
 ; REVISION HISTORY
 ;       Written  08/02/2012. Based partially on code by Perrin and
-;                            Marie - savransky1@llnl.gov 
+;                            Maire - savransky1@llnl.gov 
 ;-
 
 sz = size(s0,/dim)

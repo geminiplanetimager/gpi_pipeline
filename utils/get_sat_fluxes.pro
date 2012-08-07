@@ -60,7 +60,7 @@ function get_sat_fluxes,im0,band=band,good=good,cens=cens,warns=warns,$
 ;             
 ; REVISION HISTORY
 ;       Written  08/02/2012. Based partially on code by Perrin and
-;                            Marie - savransky1@llnl.gov 
+;                            Maire - savransky1@llnl.gov 
 ;-
 
 if not keyword_set(gaussap) then gaussap = 7.

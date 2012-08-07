@@ -1,6 +1,50 @@
 pro radial_profile,im0,cens,lambda=lambda,rmax=rmax,rsum=rsum,$  ;;inputs
                    dointerp=dointerp,doouter=doouter,$           ;;options
                    imed=imed,isig=isig,imn=imn,asec=asec         ;;outputs
+;+
+; NAME:
+;       radial_profile
+; PURPOSE:
+;       generate radialy averaged values for GPI image cube slices
+;
+; EXPLANATION:
+;       Masks the core & all satellite spots and calculates the mean,
+;       median, and/or standard deviation in radial slices of 1 pixel width.
+;
+; Calling SEQUENCE:
+;       radial_profile,im0,cens,[lambda=lambda,rmax=rmax,rsum=rsum,/dointerp,/doouter,isig=isig,asec=asec]
+;
+; INPUT/OUTPUT:
+;       im0 - 2D image (must be consistent with a cube slice produced by the
+;             gpi pipeline)
+;       cens - 2 x 4 element array of pixel locations of satellite spots
+;       rmax - Maximum pixel radius to consider (defaults to 1.4 as ~
+;              100 pix)
+;       rsum - summing mask for interpolations (defaults to zero)
+;       /dointerp - Use cubic interpolation (overrides rsum)
+;       /doouter - Calculate curve for region outside of the dark hole
+;      
+; OPTIONAL OUTPUT:
+;       imed - array of median values
+;       imn - array of mean values
+;       isig - array of 1 sigma values
+;
+; EXAMPLE:
+;
+;
+; DEPENDENCIES:
+;
+;
+; NOTES: 
+;      Images must be pre-scaled for proper contrast calculation.
+;      If /doouter is set, any returned arrays will be 2D with a
+;      second dimension of 2 elements - the values inside and outside
+;                                       the dark hole respectively.
+;             
+; REVISION HISTORY
+;       Written  08/07/2012. Based partially on code by Perrin and
+;                            Maire - savransky1@llnl.gov 
+;-
 
   ;;defaults, sizes and scalings
   if not keyword_set(lambda) then lambda = 1.5121622d
@@ -20,7 +64,7 @@ pro radial_profile,im0,cens,lambda=lambda,rmax=rmax,rsum=rsum,$  ;;inputs
   if ~strcmp(memsrot,'ERROR',/fold_case) then memsrot = double(memsrot)*!dpi/180d else $
      memsrot = 1d*!dpi/180d
 
-  if n_elements(rmax) eq 0 then rmax = ceil(pix_to_ripple)
+  if n_elements(rmax) eq 0 then rmax = ceil(1.4/pixscl)
   if n_elements(rsum) eq 0 then rsum = 0.
 
   ;;mask satellites and center
@@ -52,6 +96,18 @@ pro radial_profile,im0,cens,lambda=lambda,rmax=rmax,rsum=rsum,$  ;;inputs
   if keyword_set(doouter) then begin
      dh_out = dh_msk
      dh_out[where(dh_out eq 0)] = !values.d_nan
+
+     ;;have to mask the outer satellites as well
+     c0 = cent # (fltarr(4)+1.)
+     censp = cv_coord(from_rect=cens - c0,/to_polar)
+     cens2 = cv_coord(from_polar=[censp[0,*],2*censp[1,*]],/to_rect) + c0
+     bad = where(cens2 lt 0 or cens2 gt sz[0]-1,ct)
+     if ct gt 0 then begin 
+        bad = array_indices(cens2,bad)
+        cens2[*,bad[1,*]] = !values.d_nan
+     endif
+     for j=0,3 do if finite(cens2[0,j]) then dh_out[round(cens2[0,j]+tmp[*,0]),round(cens2[1,j]+tmp[*,1])] = !values.d_nan
+
      im_o = im*dh_out
   endif
 
@@ -111,19 +167,21 @@ pro radial_profile,im0,cens,lambda=lambda,rmax=rmax,rsum=rsum,$  ;;inputs
         if (ct eq 0)  then continue
         vals = iall[i]
      endelse
-     if (where(vals eq vals))[0] eq -1 then continue
-     
-     if arg_present(imed) then imed[j,0] = median(vals)
-     if arg_present(imn) then imn[j,0] = mean(vals,/nan)
-     if arg_present(isig) then isig[j,0] = robust_sigma(vals)
+     if (where(vals eq vals))[0] ne -1 then begin
+        if arg_present(imed) then imed[j,0] = median(vals)
+        if arg_present(imn) then imn[j,0] = mean(vals,/nan)
+        if arg_present(isig) then isig[j,0] = robust_sigma(vals)
+     endif
 
      if keyword_set(doouter) then begin
         if keyword_set(dointerp) then $
-           vals = median(interpolate(im_o,x,y,cubic=-0.5)) $
+           vals = interpolate(im_o,x,y,cubic=-0.5) $
         else vals = iall2[i]
-        if arg_present(imed) then imed[j,1] = median(vals)
-        if arg_present(imn) then imn[j,1] = mean(vals,/nan)
-        if arg_present(isig) then isig[j,1] = robust_sigma(vals)
+        if (where(vals eq vals))[0] ne -1 then begin
+           if arg_present(imed) then imed[j,1] = median(vals)
+           if arg_present(imn) then imn[j,1] = mean(vals,/nan)
+           if arg_present(isig) then isig[j,1] = robust_sigma(vals)
+        endif
      endif
   endfor
 
