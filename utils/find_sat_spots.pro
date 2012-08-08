@@ -44,7 +44,7 @@ function find_sat_spots,s0,lambda=lambda,leg=leg,locs=locs,$
 ;-
 
 sz = size(s0,/dim)
-if keyword_set(lambda) then leg = 80d * lambda/1.5121622 ;;1st slice of H band has a leg of 80 pixels
+if keyword_set(lambda) then leg = 80d * lambda/1.5040541d ;;1st slice of H band has a leg of 80 pixels
 if n_elements(leg) ne 1 then leg = 80d
 
 if not keyword_set(winap) then winap = 20

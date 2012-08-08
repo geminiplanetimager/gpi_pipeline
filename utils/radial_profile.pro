@@ -47,17 +47,18 @@ pro radial_profile,im0,cens,lambda=lambda,rmax=rmax,rsum=rsum,$  ;;inputs
 ;-
 
   ;;defaults, sizes and scalings
-  if not keyword_set(lambda) then lambda = 1.5121622d
+  lambda0 = 1.5040541d
+  if not keyword_set(lambda) then lambda = lambda0
   sz = size(im0,/dim)
   cent = [mean(cens[0,*]),mean(cens[1,*])]
-  scl = 0.12d*lambda/1.5121622d
+  scl = 0.12d*lambda/lambda0
 
   pixscl = gpi_get_setting('ifs_lenslet_scale')
   if ~strcmp(pixscl,'ERROR',/fold_case) then pixscl = double(pixscl) else $
      pixscl = 0.014d
 
   pix_to_ripple = gpi_get_setting('pix_to_ripple')
-  if ~strcmp(pix_to_ripple,'ERROR',/fold_case) then pix_to_ripple = double(pix_to_ripple) else $
+  if ~strcmp(pix_to_ripple,'ERROR',/fold_case) then pix_to_ripple = double(pix_to_ripple)*lambda/lambda0 else $
        pix_to_ripple = 44d*lambda*1d-6/8d * 180d/!dpi*3600d/pixscl
 
   memsrot = gpi_get_setting('mems_rotation')
