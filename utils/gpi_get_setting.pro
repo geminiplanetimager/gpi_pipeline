@@ -92,7 +92,10 @@ function gpi_get_setting, settingname, expand_path=expand_path, integer=int, boo
 
 	;----- check against local settings
 
-	wm = where(strmatch(usersettings.parameters, settingname, /fold_case), ct)
+    if size(usersettings,/TNAME) eq 'STRUCT' then begin
+        wm = where(strmatch(usersettings.parameters, settingname, /fold_case), ct)
+    endif else ct=0
+
 	if ct gt 0 then begin
 		result = usersettings.values[wm[0]]
 	endif else begin 
@@ -115,6 +118,10 @@ function gpi_get_setting, settingname, expand_path=expand_path, integer=int, boo
 		endelse
 	endelse
 
+
+    ; special case: for bool type answers, 0 or 1, cast to integer type automatically.
+    ; This is needed because the string '0' is TRUE while the number 0 is FALSE. Lame.
+    if ~(keyword_set(int)) and ~(keyword_set(bool)) and ((result eq '1') or (result eq '0')) then bool = 1
 
 	;---- optional postprocessing
 	if keyword_set(expand_path) then result = gpi_expand_path(result)

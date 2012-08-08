@@ -154,7 +154,7 @@ function drf::check_output_path_exists, path
 	if file_test(path,/dir,/write) then begin
 		return, 1 
 	endif else  begin
-		if gpi_get_setting('prompt_user_for_outputdir_creation') then res =  dialog_message('The requested output directory '+path+' does not exist. Should it be created now?', title="Nonexistent Output Directory", /question) else res='Yes'
+		if gpi_get_setting('prompt_user_for_outputdir_creation',/bool) then res =  dialog_message('The requested output directory '+path+' does not exist. Should it be created now?', title="Nonexistent Output Directory", /question) else res='Yes'
 		if res eq 'Yes' then begin
 			file_mkdir, path
 			return, 1
@@ -181,7 +181,7 @@ pro drf::savedrf, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silen
 
 	if keyword_set(autodir) then begin 
 		if gpi_get_setting('organize_DRFs_by_dates',/bool) then begin
-			outputdir = gpi_get_directory('DRF_root_DIR')+path_sep()+self->get_datestr()
+			outputdir = gpi_get_directory('GPI_DRF_OUTPUT_DIR')+path_sep()+self->get_datestr()
 		endif else begin
 			; if the organize by dates is turned off, then 
 			; FIXME should this output to the current directory, or what
