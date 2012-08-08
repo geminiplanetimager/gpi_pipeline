@@ -20,3 +20,6 @@ mems_rotation   0.017453293
 prompt_user_for_questionable_data	1
 prompt_user_for_outputdir_creation	0
 max_files_per_drf	200
+# lenslet scale based on measurement by James Larkin:
+ifs_lenslet_scale       0.01409		
+
