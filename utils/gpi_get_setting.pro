@@ -25,6 +25,8 @@
 ;
 ; 	/rescal			Reload the input files from disk instead of using cached
 ; 					values
+; 	default=		Value to return, for the case when no information is
+; 					available in the configuration files.
 ; OUTPUTS:
 ;	returns the text value stored in that file
 ;
@@ -44,7 +46,7 @@
 
 
 
-function gpi_get_setting, settingname, expand_path=expand_path, integer=int, bool=bool, rescan=rescan,silent=silent
+function gpi_get_setting, settingname, expand_path=expand_path, integer=int, bool=bool, rescan=rescan,silent=silent, default=default
 
 	common GPI_SETTINGS, globalsettings, usersettings
 
@@ -53,7 +55,7 @@ function gpi_get_setting, settingname, expand_path=expand_path, integer=int, boo
 		delvarx, usersettings
 	endif
 
-	user_settings_file = gpi_expand_path("~")+path_sep()+".gpi_drp_config"
+	user_settings_file = gpi_expand_path("~")+path_sep()+".gpi_pipeline_settings"
 	global_settings_file = gpi_get_directory("GPI_DRP_CONFIG_DIR")+path_sep()+"pipeline_settings.txt"
 
 	;-------- First, load the user settings, if present
@@ -78,6 +80,7 @@ function gpi_get_setting, settingname, expand_path=expand_path, integer=int, boo
 	;-------- load global settings
 	if n_elements(globalsettings) eq 0 then begin
 		if ~(keyword_set(silent)) then message,/info,"Reading in global settings file: "+global_settings_file
+		if ~file_test(global_settings_file) then message,"Global Pipeline Settings File does not exist! Check your pipeline config: "+global_settings_file
 		; FIXME make this more robust to any whitespace as separator
 		readcol, global_settings_file, format='A,A', comment='#', globalsetting_names, values, count=count, /silent
 		if count eq 0 then begin
@@ -105,14 +108,22 @@ function gpi_get_setting, settingname, expand_path=expand_path, integer=int, boo
 
 		wm = where(strmatch(globalsettings.parameters, settingname, /fold_case), ct)
 		if ct eq 0 then begin
-			if ~(keyword_set(silent)) then begin
-				message,/info,"-----------------------------------------"
-				message,/info, "ERROR: could not find a setting named "+settingname
-				message,/info, "Check your user configuration file : "+user_settings_file
-				message,/info, " and global configuration file :     "+global_settings_file
-				message,/info,"-----------------------------------------"
-			endif
-			return, 'ERROR'
+			; no match found!
+			if n_elements(default) gt 0 then begin
+				; If we have a default, use that
+				if ~(keyword_set(silent)) then message,/info,'No setting found for '+settingname+"; using default value="+strtrim(default,2)
+				return, default
+			endif else begin
+				; Otherwise alert the user we have no good setting
+				if ~(keyword_set(silent)) then begin
+					message,/info,"-----------------------------------------"
+					message,/info, "ERROR: could not find a setting named "+settingname
+					message,/info, "Check your user configuration file : "+user_settings_file
+					message,/info, " and global configuration file :     "+global_settings_file
+					message,/info,"-----------------------------------------"
+				endif
+				return, 'ERROR'
+			endelse
 		endif else begin
 			result = globalsettings.values[wm[0]]
 		endelse
