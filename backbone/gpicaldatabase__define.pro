@@ -54,10 +54,7 @@ FUNCTION gpicaldatabase::init, directory=directory, dbfilename=dbfilename, backb
 
 	; Determine where calibration files live
 	if ~(keyword_set(directory)) then begin
-		if gpi_get_setting('use_calibrations_dir',/bool) then $ 
-			directory = gpi_get_setting('calibrations_dir',/expand_path) $
-		else $
-			directory = getenv('GPI_DRP_OUTPUT_DIR')
+		directory = gpi_get_directory('calibrations_DIR') 
 	endif
 	print, ""
 	print, "  Calibration Files Directory is "+directory

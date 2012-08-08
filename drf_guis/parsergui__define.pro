@@ -50,23 +50,12 @@
 
 pro parsergui::startup
 
-        self.ConfigDRS=         ptr_new(/ALLOCATE_HEAP)
-        self.curr_mod_avai=     ptr_new(/ALLOCATE_HEAP)         ; list of available module names (strings) in current mode
-        self.curr_mod_indsort=  ptr_new(/ALLOCATE_HEAP)
-        self.currModSelec=      ptr_new(/ALLOCATE_HEAP)
+		self->init_data ; inherited from DRFGUI class
+
         self.currDRFSelec=      ptr_new(/ALLOCATE_HEAP)
-        self.order=             ptr_new(/ALLOCATE_HEAP)
-        self.indarg=            ptr_new(/ALLOCATE_HEAP)                ; ???
-        self.currModSelecParamTab=  ptr_new(/ALLOCATE_HEAP)
-        self.indmodtot2avail=   ptr_new(/ALLOCATE_HEAP)
         self.drf_summary=       ptr_new(/ALLOCATE_HEAP)
-        self.version=2.0
- 
-        if getenv('GPI_DRP_CONFIG_DIR') ne '' then self.config_file=getenv('GPI_DRP_CONFIG_DIR')+"gpi_pipeline_primitives.xml" $
-        else begin
-        	dirlist=getenv('GPI_DRP_DIR')+path_sep()+'utils'+path_sep()
-			self.config_file=dirlist[0]+"gpi_pipeline_primitives.xml"
-		endelse
+
+		self.config_file=gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+"gpi_pipeline_primitives.xml" 
         ConfigParser = OBJ_NEW('gpiDRSConfigParser')
   
         if file_test(self.config_file) then begin
@@ -74,24 +63,9 @@ pro parsergui::startup
             *self.ConfigDRS = ConfigParser->getidlfunc() 
         endif
 
-        if getenv('GPI_DRP_LOG_DIR') eq '' then initgpi_default_paths
+        ;if getenv('GPI_DRP_LOG_DIR') eq '' then initgpi_default_paths
         ; if no configuration file, choose reasonable defaults.
-        cd, current=current
-        self.tempdrfdir = getenv('GPI_DRP_TEMPLATES_DIR')
-        self.inputcaldir = getenv('GPI_DRP_OUTPUT_DIR')
-        self.outputdir = getenv('GPI_DRP_OUTPUT_DIR')
-        self.logpath = getenv('GPI_DRP_LOG_DIR')
-
-		if gpi_get_setting('organize_DRFs_by_dates',/bool) then begin
-			self.drfpath = gpi_get_setting('DRF_root_dir',/expand_path) + path_sep() + gpi_datestr(/current)
-			self->Log,"Outputting DRFs based on date to "+self.drfpath
-		endif else begin
-			;due to directory Gemini writing permissions, write temporary DRF in the working directory
-			self.drfpath =getenv('GPI_IFS_DIR')
-			self->Log, "Outputting DRFs to working directory: "+self.drfpath
-		endelse
-
-        self.queuepath =getenv('GPI_DRP_QUEUE_DIR')
+        ;cd, current=current
 
 end
 
@@ -188,18 +162,18 @@ pro defaultpath_event,ev
             self.tempdrfdir = (DIALOG_PICKFILE(TITLE='Select TEMPLATES DRF Directory', /DIRECTORY,/MUST_EXIST)) + path_sep()
             widget_control, self.deftempdrfdir_id, set_value=self.tempdrfdir
        end
-        'deflogpath':begin 
-            self.logpath = (DIALOG_PICKFILE(TITLE='Select a LOG path Directory', /DIRECTORY,/MUST_EXIST)) + path_sep()
-            widget_control, self.deflogpath_id, set_value=self.logpath
+        'deflogdir':begin 
+            self.logdir = (DIALOG_PICKFILE(TITLE='Select a LOG path Directory', /DIRECTORY,/MUST_EXIST)) + path_sep()
+            widget_control, self.deflogdir_id, set_value=self.logdir
        end
         'drfpath':begin
             self.drfpath = (DIALOG_PICKFILE(TITLE='Select dir where to save drf', /DIRECTORY,/MUST_EXIST)) + path_sep()
             widget_control, self.defdrfpath_id, set_value=self.drfpath
        end
-        'queuepath':begin
-            self.queuepath = (DIALOG_PICKFILE(TITLE='Select Queue Directory', /DIRECTORY,/MUST_EXIST)) + path_sep()
-            setenv, 'GPI_DRP_QUEUE_DIR='+ self.queuepath 
-            widget_control, self.defqueuepath_id, set_value=self.queuepath
+        'queuedir':begin
+            self.queuedir = (DIALOG_PICKFILE(TITLE='Select Queue Directory', /DIRECTORY,/MUST_EXIST)) + path_sep()
+            setenv, 'GPI_DRP_QUEUE_DIR='+ self.queuedir 
+            widget_control, self.defqueuedir_id, set_value=self.queuedir
        end
        'SAVE'  : begin
 					configdir = gpi_expand_path('$GPI_DRP_CONFIG_DIR')
@@ -207,9 +181,9 @@ pro defaultpath_event,ev
                     PrintF, lun, 'INPUTCAL: ', self.inputcaldir
                     PrintF, lun, 'OUTPUT: ', self.outputdir
                     PrintF, lun, 'TEMPDRF: ', self.tempdrfdir
-                    PrintF, lun, 'LOG: ', self.logpath
+                    PrintF, lun, 'LOG: ', self.logdir
                     PrintF, lun, 'DRF: ', self.drfpath
-                    PrintF, lun, 'QUEUE: ', self.queuepath
+                    PrintF, lun, 'QUEUE: ', self.queuedir
                     Free_Lun, lun
            end
     end
@@ -405,7 +379,7 @@ pro parsergui::addfile, filenames, mode=mode
 ;            self.loadedDRF = self.tempdrfdir+'templates_drf_'+typename+strc(detecseq)+'.xml'
 ;            self->loaddrf, /nodata, /silent
 ;            self->savedrf, nonvaliddata, prefix=self.nbdrfSelec+1 
-;            if widget_info(self.direct_id ,/button_set)  then chosenpath=self.queuepath else chosenpath=self.drfpath           
+;            if widget_info(self.direct_id ,/button_set)  then chosenpath=self.queuedir else chosenpath=self.drfpath           
 ;            newdrf = ([chosenpath+path_sep()+(*self.drf_summary).filename,(*self.drf_summary).name,(*self.template_types)[detectype-1] ,'','', '', '', '' ,'','']) 
 ;
 ;            if self.nbdrfSelec eq 0 then (*self.currDRFSelec)= newdrf else (*self.currDRFSelec)=([[(*self.currDRFSelec)],[newdrf]])
@@ -706,7 +680,7 @@ pro parsergui::create_drf_from_template, templatename, fitsfiles, current, datet
     self->savedrf, fitsfiles, prefix=self.nbdrfSelec+1, datetimestr=datetimestr
 
 
-    if widget_info(self.direct_id ,/button_set)  then chosenpath=self.queuepath else chosenpath=self.drfpath
+    if widget_info(self.direct_id ,/button_set)  then chosenpath=self.queuedir else chosenpath=self.drfpath
     new_drf_properties = [chosenpath+path_sep()+(*self.drf_summary).filename, (*self.drf_summary).name,   (*self.drf_summary).type, $
         current.filter, current.obstype, current.dispersr, current.occulter, current.obsclass, string(current.itime,format='(F7.1)'), current.object] 
 
@@ -1007,12 +981,12 @@ pro parsergui::event,ev
             self->log,'Output Directory changed to:'+self.outputdir
         endif
     end
-    'logpath': begin
+    'logdir': begin
         result= DIALOG_PICKFILE(TITLE='Select a LOG Path', /DIRECTORY,/MUST_EXIST)
         if result ne '' then begin
-            self.logpath =result
-            widget_control, self.logpath_id, set_value=self.logpath
-            self->log,'Log path changed to: '+self.logpath
+            self.logdir =result
+            widget_control, self.logdir_id, set_value=self.logdir
+            self->log,'Log path changed to: '+self.logdir
         endif
     end
     'Delete': begin
@@ -1057,7 +1031,7 @@ pro parsergui::event,ev
 
 
     'DropAll'  : begin
-                self->Log, "Adding all DRFs to queue in "+self.queuepath
+                self->Log, "Adding all DRFs to queue in "+self.queuedir
                 for ii=0,self.nbdrfSelec-1 do begin
                     if (*self.currDRFSelec)[0,ii] ne '' then begin
                           self->queue, (*self.currDRFSelec)[0,ii]
@@ -1079,7 +1053,7 @@ pro parsergui::event,ev
             label0='Cancel',label1='Close', title='Confirm close') then obj_destroy, self
     end
     'direct':begin
-        if widget_info(self.direct_id ,/button_set)  then chosenpath=self.queuepath else chosenpath=self.drfpath
+        if widget_info(self.direct_id ,/button_set)  then chosenpath=self.queuedir else chosenpath=self.drfpath
         self->Log,'All DRFs will be created in '+chosenpath
     end
       'about': begin
@@ -1151,7 +1125,7 @@ pro parsergui::savedrf, file, template=template, prefix=prefix, datetimestr=date
     ;newdrffilename = (*self.drf_summary).filename
     
     if (self.nbmoduleSelec ne '') && ( (*self.drf_summary).filename ne '') then begin
-        if widget_info(self.direct_id ,/button_set)  then chosenpath=self.queuepath else chosenpath=self.drfpath
+        if widget_info(self.direct_id ,/button_set)  then chosenpath=self.queuedir else chosenpath=self.drfpath
 
 		if ~self->check_output_path_exists(chosenpath) then return
 
@@ -1161,9 +1135,9 @@ pro parsergui::savedrf, file, template=template, prefix=prefix, datetimestr=date
      
            
         if selectype eq 4 then begin
-            PrintF, lun, '<DRF LogPath="'+self.logpath+'" ReductionType="OnLine">'
+            PrintF, lun, '<DRF logdir="'+self.logdir+'" ReductionType="OnLine">'
         endif else begin
-            PrintF, lun, '<DRF LogPath="'+self.logpath+'" ReductionType="'+(*self.template_types)[selectype] +'" Name="'+(*self.drf_summary).name+'" >'
+            PrintF, lun, '<DRF logdir="'+self.logdir+'" ReductionType="'+(*self.template_types)[selectype] +'" Name="'+(*self.drf_summary).name+'" >'
         endelse
 
         PrintF, lun, '<dataset InputDir="'+self.inputdir+'" Name="" OutputDir="'+self.outputdir+'">' 
@@ -1455,12 +1429,12 @@ function parsergui::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
                         ,/ALIGN_CENTER ,VALUE='Change...',uvalue='outputdir')
     top_baseborder3=widget_base(top_baseidentseq,/BASE_ALIGN_LEFT,/row)
     drflabel=widget_label(top_baseborder3,Value='Log Path=           ')
-    self.logpath_id = WIDGET_TEXT(top_baseborder3, $
+    self.logdir_id = WIDGET_TEXT(top_baseborder3, $
                 xsize=34,ysize=1,$
-                /editable,units=0 ,value=self.logpath)
+                /editable,units=0 ,value=self.logdir)
     drfbrowse = widget_button(top_baseborder3,  $
                         XOFFSET=174 ,SCR_XSIZE=75 ,SCR_YSIZE=23  $
-                        ,/ALIGN_CENTER ,VALUE='Change...',uvalue='logpath') 
+                        ,/ALIGN_CENTER ,VALUE='Change...',uvalue='logdir') 
                         
     calibflattab=['Flat-field extraction','Flat-field & Wav. solution extraction']
     ;the following line commented as it will not be used (uncomment line in post_init if you absolutely want it)

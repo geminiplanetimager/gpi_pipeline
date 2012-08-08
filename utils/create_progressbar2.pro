@@ -106,7 +106,7 @@ pro create_progressbar2
 
 	;---- overall config 
 	w_config_base = widget_base(wChildBase,/column, frame=DEBUG_FRAMES)
-	lab = widget_label(w_config_base, value="Queue Dir:     "+ getenv('GPI_DRP_QUEUE_DIR') )
+	lab = widget_label(w_config_base, value="Queue Dir:     "+ gpi_get_directory('GPI_DRP_QUEUE_DIR') )
 
 
 

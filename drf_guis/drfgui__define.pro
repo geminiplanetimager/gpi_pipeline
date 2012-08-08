@@ -283,21 +283,18 @@ function drfgui::get_input_dir
 	;
 
 	if gpi_get_setting('organize_raw_data_by_dates',/bool) then begin
-		inputdir = gpi_expand_path('$GPI_RAW_DATA_DIR') + path_sep() + gpi_datestr(/current)
+		; Input data organized by dates
+		inputdir = gpi_get_directory('RAW_DATA') + path_sep() + gpi_datestr(/current)
 	
 		; if there isn't a directory for today's date, then just look in the
 		; data root by default
-		if not file_test(inputdir) then inputdir = gpi_expand_path('$GPI_RAW_DATA_DIR')
+		if not file_test(inputdir) then inputdir = gpi_get_directory('RAW_DATA')
 
 		self->Log,"Looking for new data based on date in "+inputdir
 
 	endif else begin
-		case getenv('GPI_RAW_DATA_DIR') of
-		'': $
-			inputdir = self.inputdir ;gpirootdir(storage.group,storage.proj)+'/gpidata/raw'
-		else: $
-				inputdir = getenv('GPI_RAW_DATA_DIR') ;gpirootdir(storage.group,storage.proj)+'/gpidata/raw'
-		endcase
+		; input data in one huge directory
+		inputdir = gpi_get_directory('GPI_RAW_DATA_DIR') 
 		self->Log,"Looking for new data in "+inputdir
 	endelse 
 
@@ -325,13 +322,10 @@ end
 function drfgui::get_configParser
 
     if self.config_file eq '' then begin
-        ;FindPro, 'make_drsconfigxml', dirlist=dirlist
-        dirlist=getenv('GPI_DRP_DIR')+path_sep()+'dpl_library'+path_sep()
-        if getenv('GPI_DRP_CONFIG_DIR') ne '' then self.config_file=getenv('GPI_DRP_CONFIG_DIR')+path_sep()+"gpi_pipeline_primitives.xml" $
-        else self.config_file=dirlist[0]+"gpi_pipeline_primitives.xml"
-
+        ;FindPro, 'make_drsconfigxml', dirlist=:dirlist
+		self.config_file=gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+"gpi_pipeline_primitives.xml" 
     endif
-    if ~file_test(self.config_file) then message, 'ERROR: Cannot find DRS Config File! Check $GPI_DRP_CONFIG_DIR environment variable'
+    if ~file_test(self.config_file) then message, 'ERROR: Cannot find DRS Config File! Check for '+self.config_file+" and check pipeline configuration."
 
     ConfigParser = OBJ_NEW('gpiDRSConfigParser')
     ConfigParser -> ParseFile, self.config_file 
@@ -611,7 +605,7 @@ pro drfgui::queue, filename; , storage=storage
     endelse
 
 
-	newfn = self.queuepath+path_sep()+newfilename
+	newfn = self.queuedir+path_sep()+newfilename
     isalreadypresent=file_test(newfn)
     if isalreadypresent ne 1 then begin
       FILE_COPY, filename, newfn,/overwrite
@@ -1221,12 +1215,12 @@ pro drfgui::event,ev
 			self->log,'Output Directory changed to:'+self.outputdir
 		endif
     end
-    'logpath': begin
+    'logdir': begin
 		result= DIALOG_PICKFILE(TITLE='Select a LOG Path', /DIRECTORY,/MUST_EXIST)
 		if result ne '' then begin
-			self.logpath =result
-			widget_control, self.logpath_id, set_value=self.logpath
-			self->log,'Log path changed to: '+self.logpath
+			self.logdir =result
+			widget_control, self.logdir_id, set_value=self.logdir
+			self->log,'Log path changed to: '+self.logdir
 		endif
     end
     'Create'    : begin
@@ -1271,7 +1265,7 @@ pro drfgui::event,ev
         if newDRF ne '' then begin
             self->loaddrf, newDRF
             self->log,'Output Directory :'+self.outputdir
-            self->log,'Log path : '+self.logpath
+            self->log,'Log path : '+self.logdir
             self->log,'DRF:'+self.loadedDRF+' has been succesfully loaded.'
         endif
     end
@@ -1513,19 +1507,19 @@ pro drfgui::savedrf, file, storage,template=template, nopickfile=nopickfile
         ;relative pathes with environment variables        
             isrelativebuttonset=widget_info(self.relativepath_id,/button_set)
             if isrelativebuttonset then begin
-              logpathtmp=gpi_path_relative_to_vars(self.logpath) ;'GPI_PIPELINE_LOG_DIR'
-              inputdirtmp=gpi_path_relative_to_vars(self.inputdir) ;'GPI_RAW_DATA_DIR'
-              outputdirtmp=gpi_path_relative_to_vars(self.outputdir) ;'GPI_DRP_OUTPUT_DIR'
+              logdirtmp=gpi_path_relative_to_vars(self.logdir) 
+              inputdirtmp=gpi_path_relative_to_vars(self.inputdir) 
+              outputdirtmp=gpi_path_relative_to_vars(self.outputdir) 
             endif else begin
-              logpathtmp=gpi_expand_path(self.logpath)
+              logdirtmp=gpi_expand_path(self.logdir)
               inputdirtmp=gpi_expand_path(self.inputdir)
               outputdirtmp=gpi_expand_path(self.outputdir)
             endelse  
            
         if selectype eq 4 then begin
-            PrintF, lun, '<DRF LogPath="'+logpathtmp+'" ReductionType="OnLine">'
+            PrintF, lun, '<DRF logdir="'+logdirtmp+'" ReductionType="OnLine">'
         endif else begin
-            PrintF, lun, '<DRF LogPath="'+logpathtmp+'" ReductionType="'+(*self.template_types)[selectype] +'">'
+            PrintF, lun, '<DRF logdir="'+logdirtmp+'" ReductionType="'+(*self.template_types)[selectype] +'">'
         endelse
 
          PrintF, lun, '<dataset InputDir="'+inputdirtmp+'" Name="" OutputDir="'+outputdirtmp+'">' 
@@ -1733,13 +1727,13 @@ pro drfgui::loaddrf, filename, nodata=nodata, silent=silent, log=log
     widget_control,   self.tableSelected,   set_value=(*self.currModSelec)[0:2,*], SET_TABLE_SELECT =[-1,self.nbmoduleSelec-1,-1,self.nbmoduleSelec-1]
     widget_control,   self.tableSelected,   SET_TABLE_VIEW=[0,0]
     widget_control,   self.outputdir_id, set_value=self.outputdir
-    widget_control,   self.logpath_id,   set_value=self.logpath
+    widget_control,   self.logdir_id,   set_value=self.logdir
 
     obj_destroy, ConfigParser
     obj_destroy, Parser
 	if keyword_set(log) then begin
             self->log,'Output Directory :'+self.outputdir
-            self->log,'Log path : '+self.logpath
+            self->log,'Log path : '+self.logdir
             self->log,'DRF:'+self.loadedDRF+' has been succesfully loaded.'
 	endif
 
@@ -1771,28 +1765,23 @@ pro drfgui::init_data, _extra=_Extra
         self.version=2.0
 
     
-        if getenv('GPI_DRP_LOG_DIR') eq '' then initgpi_default_paths
+        ;if getenv('GPI_DRP_LOG_DIR') eq '' then initgpi_default_paths
 
 
         ; if no configuration file, choose reasonable defaults.
-        self.tempdrfdir = getenv('GPI_DRP_TEMPLATES_DIR')
-        self.outputdir = getenv('GPI_DRP_OUTPUT_DIR')
-        self.logpath = getenv('GPI_DRP_LOG_DIR')
-        self.queuepath =getenv('GPI_DRP_QUEUE_DIR')
+        self.tempdrfdir = 	gpi_get_directory('GPI_DRP_TEMPLATES_DIR')
+        self.outputdir = 	gpi_get_directory('GPI_DRP_OUTPUT_DIR')
+        self.logdir = 		gpi_get_directory('GPI_DRP_LOG_DIR')
+        self.queuedir =	gpi_get_directory('GPI_DRP_QUEUE_DIR')
+		self.inputcaldir =	gpi_get_directory('calibrations_dir')
 
-		; are calibration files in the DRP output dir or a special calibrations dir?
-		if gpi_get_setting('use_calibrations_dir',/bool) then $
-			self.inputcaldir = gpi_get_setting('calibrations_dir',/expand_path) $
-		else self.inputcaldir = getenv('GPI_DRP_OUTPUT_DIR')
-
+        self.dirpro = 		gpi_get_directory('GPI_DRP_DIR') ;+path_sep();+'gpidrfgui'+path_sep();dirlist[0]
 		; how do we organize DRFs? 
 		if gpi_get_setting('organize_DRFs_by_dates') then begin
-			self.drfpath = gpi_get_setting('DRF_root_dir',/expand_path) + path_sep() + gpi_datestr(/current)
+			self.drfpath = gpi_get_directory('DRF_OUTPUT_DIR') + path_sep() + gpi_datestr(/current)
 			self->Log,"Outputting DRFs based on date to "+self.drfpath
 		endif else begin
-
-			cd, current=current
-			self.drfpath = current
+			self.drfpath = gpi_get_directory('DRF_OUTPUT_DIR') 
 			self->Log, "Outputting DRFs to current working directory: "+self.drfpath
 		endelse
 
@@ -1803,7 +1792,6 @@ pro drfgui::init_data, _extra=_Extra
 
 
         self.loadedDRF = 'none' 
-        self.dirpro=getenv('GPI_DRP_DIR')+path_sep();+'gpidrfgui'+path_sep();dirlist[0]
 
 
 
@@ -1928,12 +1916,12 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 						,/ALIGN_CENTER ,VALUE='Change...',uvalue='outputdir_browse')
 	top_baseborder3=widget_base(top_baseidentseq,/BASE_ALIGN_LEFT,/row)
 	drflabel=widget_label(top_baseborder3,Value='Log Path=           ')
-	self.logpath_id = WIDGET_TEXT(top_baseborder3, $
+	self.logdir_id = WIDGET_TEXT(top_baseborder3, $
 				xsize=34,ysize=1,$
-				/editable,units=0 ,value=self.logpath)
+				/editable,units=0 ,value=self.logdir)
 	drfbrowse = widget_button(top_baseborder3,  $
 						XOFFSET=174 ,SCR_XSIZE=75 ,SCR_YSIZE=23  $
-						,/ALIGN_CENTER ,VALUE='Change...',uvalue='logpath') 
+						,/ALIGN_CENTER ,VALUE='Change...',uvalue='logdir') 
 						
 	 base_radio = Widget_Base(top_baseidentseq, UNAME='WID_BASE_diskc', COLUMN=1 ,/NONEXCLUSIVE, frame=0)
   self.relativepath_id = Widget_Button(base_radio, UNAME='RELATIVEPATH' ,/ALIGN_LEFT ,VALUE='Input/output/log directories written with relative environment variables',UVALUE='relativepath')
@@ -2116,13 +2104,13 @@ pro drfgui__define
               dirpro:strarr(1),$
               ;typetab:strarr(5),$
               defoutputdir_id:0L,$
-              deflogpath_id:0L,$
+              deflogdir_id:0L,$
               defdrfpath_id:0L,$
-              defqueuepath_id:0L,$ 
+              defqueuedir_id:0L,$ 
 			  widget_log: 0L, $
               drfpath :'',$ 
               drffilename :'',$  
-              queuepath :'',$  
+              queuedir :'',$  
               sortfileid :0L,$  
               sorttab:strarr(3),$       
               inputdir:'',$
@@ -2131,8 +2119,8 @@ pro drfgui__define
               definputcaldir_id:0L,$
               inputcaldir:'',$
               outputdir_id:0L,$
-              logpath:'',$
-              logpath_id:0L,$
+              logdir:'',$
+              logdir_id:0L,$
               calibfileid:0L,$
               calibfiletab:strarr(3), $
               resolvetypeseq_id:0L,$

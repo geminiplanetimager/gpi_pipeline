@@ -12,13 +12,10 @@ strict_validation	0
 organize_raw_data_by_dates	1
 organize_reduced_data_by_dates  1
 organize_DRFs_by_dates		1
-parsergui_auto_queue	1
-DRF_root_dir		${GPI_DATA_DIR}/DRFs
-use_calibrations_dir	1
-calibrations_dir	${GPI_DATA_DIR}/calibrations
+parsergui_auto_queue	0
 prevent_multiple_instances  0
 ifs_lenslet_scale	0.014
 pix_to_ripple   122.53444
 mems_rotation   0.017453293
 prompt_user_for_questionable_data	1
-prompt_user_for_datedir_creation	0
+prompt_user_for_outputdir_creation	0

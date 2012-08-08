@@ -75,7 +75,7 @@ function gpi_get_setting, settingname, expand_path=expand_path, int=int, bool=bo
 	endif
 	;-------- load global settings
 	if n_elements(globalsettings) eq 0 then begin
-		global_settings_file = gpi_expand_path("$GPI_DRP_DIR")+path_sep()+"config"+path_sep()+"pipeline_settings.txt"
+		global_settings_file = gpi_get_directory("GPI_CONFIG_DIR")+path_sep()+"pipeline_settings.txt"
 		if ~(keyword_set(silent)) then message,/info,"Reading in global settings file: "+global_settings_file
 		; FIXME make this more robust to any whitespace as separator
 		readcol, global_settings_file, format='A,A', comment='#', globalsetting_names, values, count=count, /silent

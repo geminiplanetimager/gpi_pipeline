@@ -29,7 +29,7 @@ function drp_Atmos_Trans, Lamb, airmass=airmass, hdr=hdr
 ;widthL=(lambda(1)-lambda(0))
 
 
-fileTransAtmos=getenv('GPI_DRP_DIR')+path_sep()+'dst'+path_sep()+'trans_16_15.dat' ;1.6mm Water vapour column, lambda[um] sampling 5A
+fileTransAtmos=gpi_get_directory('GPI_DST_DIR')+path_sep()+'trans_16_15.dat' ;1.6mm Water vapour column, lambda[um] sampling 5A
 ref_airmass = 1.5
 
 ;if arg_present(hdr) then sxaddhist, " Atm trans file="+'trans_16_15.dat' , hdr

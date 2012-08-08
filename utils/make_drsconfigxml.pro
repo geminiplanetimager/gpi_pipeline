@@ -16,7 +16,7 @@ pro make_drsconfigxml
 ;Scan through the various IDL *.pro files looking for magic strings
 ;    which mark the description and argument strings to use in the GUI.
 
-directory=gpi_expand_path('$GPI_DRP_DIR'+path_sep()+'primitives')
+directory=gpi_get_directory('GPI_DRP_DIR'+path_sep()+'primitives')
 list = FILE_SEARCH(directory+path_sep()+'[A-Za-z]*.pro',count=cc) 
 if cc eq 0 then begin 
     print, "ERROR: No *.pro files were found in "+directory
@@ -76,9 +76,8 @@ primitivespro[i]=FILE_BASENAME(list[i], '.pro')
     Free_Lun, Unit
 endfor
 
-;FindPro, 'make_drsconfigxml', dirlist=dirlist
 
-outputfile = gpi_expand_path('$GPI_DRP_CONFIG_DIR')+path_sep()+'gpi_pipeline_primitives.xml'
+outputfile = gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'gpi_pipeline_primitives.xml'
 outputfile = repstr(outputfile, path_sep()+path_sep(), path_sep()) ; clean up erroneous duplicate path seps which openw will fail on
 ;generate DRSconfig
  print, "  ===>>> Saving config XML to "+outputfile 

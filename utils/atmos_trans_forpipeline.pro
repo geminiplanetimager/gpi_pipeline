@@ -29,7 +29,7 @@ common PIP
 ;widthL=(lambda(1)-lambda(0))
 mydevice = !D.NAME
 
-fileTransAtmos=getenv('GPI_DRP_DIR')+path_sep()+'config'+path_sep()+'trans_16_15.dat' ;1.6mm Water vapour column, lambda[um] sampling 5A
+fileTransAtmos=gpi_get_directory('GPI_DRP_DIR')+path_sep()+'trans_16_15.dat' ;1.6mm Water vapour column, lambda[um] sampling 5A
 ref_airmass = 1.5
 
 if arg_present(hdr) then sxaddhist, " Atm trans file="+'trans_16_15.dat' , hdr

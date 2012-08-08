@@ -1,6 +1,7 @@
 function decrease_spec_res, lambda, nphot,spotloc
 common PIP
-repDST=getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()
+;repDST=getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()
+repDST=gpi_get_directory('DST')
 psfmlens = readfits(repDST+'ifu_microlens_psf'+strcompress(filter,/rem)+'.fits')
 szpsf=size(psfmlens) & dimpsf=szpsf[1]
 

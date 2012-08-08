@@ -76,9 +76,9 @@ pro drf::set_outputdir, dir=dir, autodir=autodir
 	if keyword_set(autodir) then begin
 		; figure out the output directory?
 		if gpi_get_setting('organize_reduced_data_by_dates',/bool) then begin
-			outputdir = gpi_expand_path('$GPI_DRP_OUTPUT_DIR')+path_sep()+self->get_datestr()
+			outputdir = gpi_get_directory('GPI_DRP_OUTPUT_DIR')+path_sep()+self->get_datestr()
 		endif else begin
-			outputdir = gpi_expand_path('$GPI_DRP_OUTPUT_DIR')
+			outputdir = gpi_get_directory('GPI_DRP_OUTPUT_DIR')
 		endelse
 	endif
 
@@ -181,11 +181,11 @@ pro drf::savedrf, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silen
 
 	if keyword_set(autodir) then begin 
 		if gpi_get_setting('organize_DRFs_by_dates',/bool) then begin
-			outputdir = gpi_get_setting('DRF_root_dir',/expand_path)+path_sep()+self->get_datestr()
+			outputdir = gpi_get_directory('DRF_root_DIR')+path_sep()+self->get_datestr()
 		endif else begin
 			; if the organize by dates is turned off, then 
 			; FIXME should this output to the current directory, or what
-			outputdir = gpi_expand_path('$GPI_DRP_OUTPUT_DIR')
+			outputdir = gpi_get_directory('GPI_DRP_OUTPUT_DIR')
 		endelse
 		outputfile=outputdir +path_sep()+file_basename(outputfile)
 	end
@@ -218,7 +218,7 @@ PRO drf::queue, filename=filename
 
 	outname = file_basename(filename)
 	outname = strepex(outname,"([^\.]+)\..+$", "&0.waiting.xml") ; replace file extension to .waiting.xml
-	queue_filename = gpi_expand_path("$GPI_DRP_QUEUE_DIR")+path_sep()+outname
+	queue_filename = gpi_get_directory("GPI_DRP_QUEUE_DIR")+path_sep()+outname
 
 
 	prev_outputfile = self.last_saved_DRF ; save value before this gets overwritten in save
@@ -239,9 +239,9 @@ function drf::tostring, absolutepaths=absolutepaths
 
 	if ~(keyword_set(absolutepaths ))then begin
 		;relative pathes with environment variables        
-	  	logdir=gpi_path_relative_to_vars(self.logdir) ;'GPI_DRP_LOG_DIR'
-	  	inputdir=gpi_path_relative_to_vars(self.inputdir) ;'GPI_RAW_DATA_DIR'
-	  	outputdir=gpi_path_relative_to_vars(self.outputdir) ;'GPI_DRP_OUTPUT_DIR'
+	  	logdir=gpi_path_relative_to_vars(self.logdir) 
+	  	inputdir=gpi_path_relative_to_vars(self.inputdir) 
+	  	outputdir=gpi_path_relative_to_vars(self.outputdir) 
 	endif else begin
 	  	logdir=gpi_expand_path(self.logdir)
 	  	inputdir=gpi_expand_path(self.inputdir)
@@ -302,9 +302,9 @@ function drf::get_configParser
     ; old convention:
 	config_file=getenv('GPI_DRP_CONFIG_FILE') 
     ; new convention
-    if ~file_test(config_file) then config_file = getenv('GPI_DRP_CONFIG_DIR')+path_sep()+"gpi_pipeline_primitives.xml"
+    if ~file_test(config_file) then config_file = gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+"gpi_pipeline_primitives.xml"
 
-    if ~file_test(config_file) then message, 'ERROR: Cannot find DRS Config File! Check $GPI_DRP_CONFIG_FILE environment variable'
+    if ~file_test(config_file) then message, 'ERROR: Cannot find DRS Config File! It ought to be at '+config_file+" but is not."
 
     ConfigParser = OBJ_NEW('gpiDRSConfigParser')
     ConfigParser -> ParseFile, config_file 

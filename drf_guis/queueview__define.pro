@@ -62,10 +62,7 @@ pro queueview::startup
         self.drf_summary=       ptr_new(/ALLOCATE_HEAP)
         self.version=2.0
  
-        ;FindPro, 'make_drsconfigxml', dirlist=dirlist,/noprint
-        dirlist=getenv('GPI_DRP_DIR')+path_sep()+'config'+path_sep()
-        if getenv('GPI_DRP_CONFIG_DIR') ne '' then self.config_file=getenv('GPI_DRP_CONFIG_DIR')+path_sep()+"gpi_pipeline_primitives.xml" $
-        else self.config_file=dirlist[0]+"gpi_pipeline_primitives.xml"
+		self.config_file=gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+"gpi_pipeline_primitives.xml" 
         self.ConfigParser = OBJ_NEW('gpiDRSConfigParser',/silent)
     	self.Parser = OBJ_NEW('gpiDRFParser')
 
@@ -77,12 +74,12 @@ pro queueview::startup
         if getenv('GPI_DRP_LOG_DIR') eq '' then initgpi_default_paths
         ; if no configuration file, choose reasonable defaults.
         cd, current=current
-        self.tempdrfdir = getenv('GPI_DRP_TEMPLATES_DIR')
-        self.inputcaldir = getenv('GPI_DRP_OUTPUT_DIR')
-        self.outputdir = getenv('GPI_DRP_OUTPUT_DIR')
-        self.logpath = getenv('GPI_DRP_LOG_DIR')
         self.drfpath = current
-        self.queuepath =getenv('GPI_DRP_QUEUE_DIR')
+        self.tempdrfdir = 	gpi_get_directory('GPI_DRP_TEMPLATES_DIR')
+        self.inputcaldir = 	gpi_get_directory('GPI_DRP_OUTPUT_DIR')
+        self.outputdir = 	gpi_get_directory('GPI_DRP_OUTPUT_DIR')
+        self.logdir = 		gpi_get_directory('GPI_DRP_LOG_DIR')
+        self.queuedir = 	gpi_get_directory('GPI_DRP_QUEUE_DIR')
 
 
 end
@@ -98,7 +95,7 @@ PRO queueview::rescan, initialize=initialize
 	self.nbdrfSelec=0
 	(*self.currDRFSelec) = ''
 
-	files  = file_search(self.queuepath+path_sep()+"*xml")
+	files  = file_search(self.queuedir+path_sep()+"*xml")
 	if (keyword_set(initialize)) then begin
 		self->Log, "Scanning all waiting/working DRFs in queue"
 		wongoing = where(strmatch(files,"*.waiting.xml",/fold) or strmatch(files,"*.working.xml",/fold), gct)
@@ -188,7 +185,7 @@ PRO queueview::refresh
 	curr_file_list = (*self.currDRFSelec)[0,*]
 
 	wgood = where(curr_file_list ne '', goodct)
-	disk_files  = file_search(self.queuepath+path_sep()+"*xml", count=ct)
+	disk_files  = file_search(self.queuedir+path_sep()+"*xml", count=ct)
 	
 	if ct eq 0 then begin
 		self->clearall
@@ -377,7 +374,7 @@ pro queueview::event,ev
 	'DeleteAll': begin
 		if confirm(group=self.top_base,message='Are you sure you want to delete ALL DRFs from the queue?', label0='Cancel',label1='Delete', title="Confirm Delete ALL DRFs") then begin
 		if confirm(group=self.top_base,message='Really really sure you want to delete them all?', label0='Cancel',label1='Delete', title="Confirm Delete ALL DRFs") then begin
-			files = file_search( self.queuepath+path_sep()+"*.xml", count=ct)
+			files = file_search( self.queuedir+path_sep()+"*.xml", count=ct)
 			if ct gt 0 then file_delete, files, /ALLOW_NONEXISTENT
 			self->rescan,/init
 			self.selection=''
@@ -449,7 +446,7 @@ function queueview::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
     endif else begin
       nlines_modules=20
     endelse
-	title="GPI QUEUE Viewer: "+self.queuepath
+	title="GPI QUEUE Viewer: "+self.queuedir
     CASE !VERSION.OS_FAMILY OF  
         ; **NOTE** Mac OS X reports an OS family of 'unix' not 'MacOS'
        'unix': begin 
