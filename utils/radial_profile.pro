@@ -106,8 +106,8 @@ pro radial_profile,im0,cens,lambda=lambda,rmax=rmax,rsum=rsum,$  ;;inputs
         bad = array_indices(cens2,bad)
         cens2[*,bad[1,*]] = !values.d_nan
      endif
-     for j=0,3 do if finite(cens2[0,j]) then dh_out[round(cens2[0,j]+tmp[*,0]),round(cens2[1,j]+tmp[*,1])] = !values.d_nan
-
+     for j=0,3 do if finite(cens2[0,j]) then $
+        dh_out[round(cens2[0,j]+tmp[*,0]),round(cens2[1,j]+tmp[*,1])] = !values.d_nan
      im_o = im*dh_out
   endif
 
