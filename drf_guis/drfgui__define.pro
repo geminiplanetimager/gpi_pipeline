@@ -1424,7 +1424,8 @@ function drfgui::check_output_path_exists, path
 	if file_test(path,/dir,/write) then begin
 		return, 1 
 	endif else  begin
-		res =  dialog_message('The requested output directory '+path+' does not exist. Should it be created now?', title="Nonexistent Output Directory", dialog_parent=self.top_base, /question) 
+
+		if gpi_get_setting('prompt_user_for_outputdir_creation') then res =  dialog_message('The requested output directory '+path+' does not exist. Should it be created now?', title="Nonexistent Output Directory", dialog_parent=self.top_base, /question) else res='Yes'
 		if res eq 'Yes' then begin
 			file_mkdir, path
 			return, 1

@@ -149,7 +149,7 @@
 ;       Version 11.1,  W. Landsamn   November 2007
 ;               Allow for possibility number of bytes requires 64 bit integer
 ;
-;    2009-06-22: JM : support 3D datacube, add keyword NSLICE, remove Y_STEP
+;GPI    2009-06-22: JM : support 3D datacube, add keyword NSLICE, remove Y_STEP
 ;-
 ;
 	ON_ERROR, 2

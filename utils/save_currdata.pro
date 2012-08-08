@@ -34,6 +34,7 @@
 ; 				Switched to mwrfits instead of writefits because it better
 ; 				handles the EXTENT/XTENSION keywords needed for multi-ext FITS.
 ;   2012-06-06 MP: Added fallback safety checks for DATAFILE= missing or NONE 
+;   2012-08-07 MP: Added explicit casts to float data type for output files.
 ;-
 
 
@@ -46,10 +47,10 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	getmyname, functionname
 	version = gpi_pipeline_version()
 
-    ;for i=0, nFrames-1 do begin
     if keyword_set(level2) then i=level2-1 else i=numfile
 
 	;-- Generate output filename, starting from the input one.
+	;   Also determine output directory
 	filnm=fxpar(*(DataSet.HeadersPHU[i]),'DATAFILE',count=cdf)
     if cdf eq 0 then begin 
         message,/info, 'No DATAFILE keyword supplied'
@@ -61,16 +62,17 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
         filnm = dataset.filenames[i]
     endif
 
-	;setup calib dir
+	;Check both primary and extension headers for an ISCALIB keyword. If set to 'YES', then output should go to the calibrations file directory.
 	is_calib_pri=0 & is_calib_ext=0
-  if keyword_set(savePHU) then is_calib_pri = strc(strupcase(fxpar(savePHU, "ISCALIB"))) eq 'YES' else $
+    if keyword_set(savePHU) then is_calib_pri = strc(strupcase(fxpar(savePHU, "ISCALIB"))) eq 'YES' else $
       is_calib_pri = strc(strupcase(fxpar(*(dataset.headersPHU[numfile]), "ISCALIB"))) eq 'YES'
-  if keyword_set(saveheader) then is_calib_ext = strc(strupcase(fxpar(saveheader, "ISCALIB"))) eq 'YES' else $
+    if keyword_set(saveheader) then is_calib_ext = strc(strupcase(fxpar(saveheader, "ISCALIB"))) eq 'YES' else $
       is_calib_ext = strc(strupcase(fxpar(*(dataset.headersExt[numfile]), "ISCALIB"))) eq 'YES' 
-  if is_calib_pri or is_calib_ext then begin
+
+    if is_calib_pri or is_calib_ext then begin
       gpicaldb = Backbone_comm->Getgpicaldb()
       s_OutputDir = gpicaldb->get_calibdir()
-  endif
+    endif
 	
 	s_OutputDir = gpi_expand_path(s_OutputDir) ; expand environment variables and ~s
 	; test output dir
@@ -110,15 +112,18 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 
 	if ( keyword_set( filenm ) ) then  c_File1=filenm
 	
-	if keyword_set(addexten_qa) || keyword_set(addexten_var) then FXADDPAR,  *(dataset.headersPHU[numfile]),'NEXTEND',1+keyword_set(addexten_var)+keyword_set(addexten_qa)
+	;if keyword_set(addexten_qa) || keyword_set(addexten_var) then 
+	FXADDPAR,  *(dataset.headersPHU[numfile]),'NEXTEND',1+keyword_set(addexten_var)+keyword_set(addexten_qa)
 
-	if ( keyword_set( savedata ) ) then begin  ; The callinf function has specified some special data to save, overwriting the currFrame data
+
+	;--- write out either some user-supplied data (if explicitly provided), or the current data frame
+	if ( keyword_set( savedata ) ) then begin  ; The calling function has specified some special data to save, in place of the currFrame data
 	  	if ~( keyword_set( saveheader ) ) then saveheader = *(dataset.headersExt[numfile])
 		if ~( keyword_set( savePHU ) ) then savePHU = *(dataset.headersPHU[numfile])
 		fxaddpar, savePHU, 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
 		fxaddpar, savePHU, 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
 		mwrfits, 0, c_File1, savePHU, /create,/silent
-		writefits, c_File1, savedata, saveheader, /append
+		writefits, c_File1, float(savedata), saveheader, /append
 
 		curr_hdr = savePHU
 		curr_ext_hdr = saveheader
@@ -126,25 +131,22 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
       	fxaddpar, *DataSet.HeadersPHU[i], 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
       	fxaddpar, *DataSet.HeadersPHU[i], 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
 		mwrfits, 0, c_File1, *DataSet.HeadersPHU[i], /create,/silent
-		mwrfits, *DataSet.currFrame, c_File1, *DataSet.HeadersExt[i],/silent
+		mwrfits, float(*DataSet.currFrame), c_File1, *DataSet.HeadersExt[i],/silent
       	curr_hdr = *DataSet.HeadersPHU[i]
       	curr_ext_hdr = *DataSet.HeadersExt[i]
       	DataSet.OutputFilenames[i] = c_File1  
 	endelse
 
-	if keyword_set(addexten_qa) then mwrfits, addexten_qa, c_File1,/silent
-	if keyword_set(addexten_var) then mwrfits, addexten_var, c_File1,/silent
+	if keyword_set(addexten_qa) then mwrfits, byte(addexten_qa), c_File1,/silent
+	if keyword_set(addexten_var) then mwrfits, float(addexten_var), c_File1,/silent
   
 	if keyword_set(debug) then print, "  Data output ===>>> "+c_File1
 	Backbone_comm->Log, "File output to: "+c_File1,/general,/DRF, depth=1
 
-	;--- GPI Calibrations DB ----
+	;--- If a calibrations file, update the GPI Calibrations DB index ----
 	; Is this a calibration file? 
 	;   (check both pri + ext headers just to be sure...)
-	;is_calib_pri = strc(strupcase(fxpar(curr_hdr, "ISCALIB"))) eq 'YES'
-	;is_calib_ext = strc(strupcase(fxpar(curr_hdr, "ISCALIB"))) eq 'YES'
 	if is_calib_pri or is_calib_ext then begin
-		;gpicaldb = Backbone_comm->Getgpicaldb()
 		if obj_valid(gpicaldb) then begin
 			message,/info, "Adding file to GPI Calibrations DB."
 			status = gpicaldb->Add_new_Cal( c_File1)
@@ -157,10 +159,9 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	;--- Update progress bar
 	statuswindow = (Backbone_comm->Getprogressbar() )
 	if obj_valid(statuswindow) then statuswindow->set_suffix, s_Ext
-
   
+	;--- Display image, if requested
 	if ( keyword_set( display ) ) && (display ne 0) then Backbone_comm->gpitv, c_File1, ses=display
-
 
     return, OK
 

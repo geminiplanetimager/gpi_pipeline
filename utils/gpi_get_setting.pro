@@ -44,7 +44,7 @@
 
 
 
-function gpi_get_setting, settingname, expand_path=expand_path, int=int, bool=bool, rescan=rescan
+function gpi_get_setting, settingname, expand_path=expand_path, int=int, bool=bool, rescan=rescan,silent=silent
 
 	common GPI_SETTINGS, globalsettings, usersettings
 
@@ -56,7 +56,7 @@ function gpi_get_setting, settingname, expand_path=expand_path, int=int, bool=bo
 	;-------- First, load the user settings, if present
 	user_settings_file = gpi_expand_path("~")+path_sep()+".gpi_drp_config"
 	if n_elements(usersettings) eq 0  and file_test(user_settings_file) then begin
-		message,/info,"Reading in user settings file: "+user_settings_file
+		if ~(keyword_set(silent)) then message,/info,"Reading in user settings file: "+user_settings_file
 		; FIXME make this more robust to any whitespace as separator
 		catch, read_error
 		if read_error eq 0 then begin
@@ -76,11 +76,11 @@ function gpi_get_setting, settingname, expand_path=expand_path, int=int, bool=bo
 	;-------- load global settings
 	if n_elements(globalsettings) eq 0 then begin
 		global_settings_file = gpi_expand_path("$GPI_DRP_DIR")+path_sep()+"config"+path_sep()+"pipeline_settings.txt"
-		message,/info,"Reading in global settings file: "+global_settings_file
+		if ~(keyword_set(silent)) then message,/info,"Reading in global settings file: "+global_settings_file
 		; FIXME make this more robust to any whitespace as separator
 		readcol, global_settings_file, format='A,A', comment='#', globalsetting_names, values, count=count, /silent
 		if count eq 0 then begin
-			message,/info,'WARNING: Could not load the pipeline configuration file from '+(GETENV('GPI_DRP_CONFIG_DIR')) + path_sep() + 'pipeline_config.txt'
+			if ~(keyword_set(silent)) then message,/info,'WARNING: Could not load the pipeline configuration file from '+global_settings_file
 			return, 'ERROR'
 		endif
 		globalsettings = {parameters:globalsetting_names, values: values}
@@ -101,10 +101,12 @@ function gpi_get_setting, settingname, expand_path=expand_path, int=int, bool=bo
 
 		wm = where(strmatch(globalsettings.parameters, settingname, /fold_case), ct)
 		if ct eq 0 then begin
-			message,/info,"-----------------------------------------"
-			message,/info, "ERROR: could not find a setting named "+settingname
-			message,/info, "Check your configuration file : "+user_settings_file
-			message,/info,"-----------------------------------------"
+			if ~(keyword_set(silent)) then begin
+				message,/info,"-----------------------------------------"
+				message,/info, "ERROR: could not find a setting named "+settingname
+				message,/info, "Check your configuration file : "+user_settings_file
+				message,/info,"-----------------------------------------"
+			endif
 			return, 'ERROR'
 		endif else begin
 			result = globalsettings.values[wm[0]]
