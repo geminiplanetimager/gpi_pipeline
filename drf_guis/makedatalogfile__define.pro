@@ -136,60 +136,60 @@ end
 
 ;----------------------------------------------
 function makedatalogfile::init_widgets, _extra=_Extra
-self.base_id  = widget_base(title = 'Make Data Log File', $
+	self.base_id  = widget_base(title = 'Make Data Log File', $
                    /row,  $
                    ;app_mbar = top_menu, $
                    ;uvalue = 'GPItv_base', $
                    /tlb_size_events)
 
-but = WIDGET_BASE( self.base_id,/COLUMN)
-text=WIDGET_label(but, value='This widget will create a data log file (gpi_log.txt).')
-;;directory to scan
-scanbase = Widget_Base(but, UNAME='specbase' ,row=1 , frame=0)
-button_id = WIDGET_label(scanbase,Value='Choose directory to scan:',XSIZE=200,frame=0)
-self.dirinit=getenv('GPI_RAW_DATA_DIR')
-self.scan_id = WIDGET_TEXT(scanbase,Value=self.dirinit,Uvalue='scandir',XSIZE=50)
-button_id = WIDGET_BUTTON(scanbase,Value='Change...',Uvalue='changedir')
-;;directory for output
-outbase = Widget_Base(but, UNAME='outbase' ,row=1 , frame=0)
-button_id = WIDGET_label(outbase,Value='Where to put the logfile:',frame=0,XSIZE=200)
-self.out_id = WIDGET_TEXT(outbase,Value=self.dirinit,Uvalue='outdir',XSIZE=50)
-button_id = WIDGET_BUTTON(outbase,Value='Change...',Uvalue='changeoutdir')
-;;Wildcard file specification to include:
-specbase = Widget_Base(but, UNAME='specbase' ,row=1 , frame=0)
-button_id = WIDGET_label(specbase,Value='Wildcard file specification to include:',frame=0,XSIZE=250)
-self.spec_id = WIDGET_TEXT(specbase,Value=self.filespec, /editable,Uvalue='filespec',XSIZE=20)
-;;Exclude non-GPI data:
-gpiexclusivebase = Widget_Base(but, UNAME='exclubase' ,COLUMN=1 ,/NONEXCLUSIVE, frame=0)
-self.gpiexclusive_id =    Widget_Button(gpiexclusivebase, UNAME='gpiexclusive'  $
-      ,/ALIGN_LEFT ,VALUE='Exclude non-GPI data',uvalue='gpiexclusive' )
-      widget_control, self.gpiexclusive_id, /set_button 
-      self.gpiexclu=1
-;;scan
-button_id = WIDGET_BUTTON(but,Value='Scan',Uvalue='scan')
-button_id = WIDGET_BUTTON(but,Value='Quit',Uvalue='quit')
+	but = WIDGET_BASE( self.base_id,/COLUMN)
+	text=WIDGET_label(but, value='This widget will create a data log file (gpi_log.txt).')
+	;;directory to scan
+	scanbase = Widget_Base(but, UNAME='specbase' ,row=1 , frame=0)
+	button_id = WIDGET_label(scanbase,Value='Choose directory to scan:',XSIZE=200,frame=0)
+	self.dirinit=gpi_get_directory('GPI_RAW_DATA_DIR')
+	self.scan_id = WIDGET_TEXT(scanbase,Value=self.dirinit,Uvalue='scandir',XSIZE=50)
+	button_id = WIDGET_BUTTON(scanbase,Value='Change...',Uvalue='changedir')
+	;;directory for output
+	outbase = Widget_Base(but, UNAME='outbase' ,row=1 , frame=0)
+	button_id = WIDGET_label(outbase,Value='Where to put the logfile:',frame=0,XSIZE=200)
+	self.out_id = WIDGET_TEXT(outbase,Value=self.dirinit,Uvalue='outdir',XSIZE=50)
+	button_id = WIDGET_BUTTON(outbase,Value='Change...',Uvalue='changeoutdir')
+	;;Wildcard file specification to include:
+	specbase = Widget_Base(but, UNAME='specbase' ,row=1 , frame=0)
+	button_id = WIDGET_label(specbase,Value='Wildcard file specification to include:',frame=0,XSIZE=250)
+	self.spec_id = WIDGET_TEXT(specbase,Value=self.filespec, /editable,Uvalue='filespec',XSIZE=20)
+	;;Exclude non-GPI data:
+	gpiexclusivebase = Widget_Base(but, UNAME='exclubase' ,COLUMN=1 ,/NONEXCLUSIVE, frame=0)
+	self.gpiexclusive_id =    Widget_Button(gpiexclusivebase, UNAME='gpiexclusive'  $
+		  ,/ALIGN_LEFT ,VALUE='Exclude non-GPI data',uvalue='gpiexclusive' )
+		  widget_control, self.gpiexclusive_id, /set_button 
+		  self.gpiexclu=1
+	;;scan
+	button_id = WIDGET_BUTTON(but,Value='Scan',Uvalue='scan')
+	button_id = WIDGET_BUTTON(but,Value='Quit',Uvalue='quit')
 
 
-   group=''
-    proj=''
-    storage={$;info:info,fname:fname,$
-    ;    rb:rb,$
-       ; splitptr:splitptr,$
-        group:group,proj:proj, $
-        self: self}
-  ;self.widget_log = info
-    widget_control,self.base_id  ,set_uvalue=storage,/no_copy
- 
- return, self.base_id 
+	   group=''
+		proj=''
+		storage={$;info:info,fname:fname,$
+		;    rb:rb,$
+		   ; splitptr:splitptr,$
+			group:group,proj:proj, $
+			self: self}
+	  ;self.widget_log = info
+		widget_control,self.base_id  ,set_uvalue=storage,/no_copy
+	 
+	 return, self.base_id 
 end
 
 ;--------------------------------------------------
 pro makedatalogfile::init_data, _extra=_Extra
-;cd, current=dirini
-;self.dirinit=dirini
-self.scandir=getenv('GPI_RAW_DATA_DIR')
-self.outdir=getenv('GPI_RAW_DATA_DIR')
-self.filespec='*.{fts,fits}*'
+	;cd, current=dirini
+	;self.dirinit=dirini
+	self.scandir=gpi_get_directory('GPI_RAW_DATA_DIR')
+	self.outdir=gpi_get_directory('GPI_RAW_DATA_DIR')
+	self.filespec='*.{fts,fits}*'
 
 end
 ;-------------------------------------------------

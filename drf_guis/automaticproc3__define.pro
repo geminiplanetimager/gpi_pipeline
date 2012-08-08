@@ -179,7 +179,7 @@ pro automaticproc3::reduce_one, filenames, wait=wait
     endcase
 
 	
-	templatename=gpi_expand_path('$GPI_DRP_TEMPLATES_DIR')+path_sep()+templatename
+	templatename=gpi_get_directory('GPI_DRP_TEMPLATES_DIR')+path_sep()+templatename
 
 	drf = obj_new('DRF', templatename, parent=self)
 	drf->set_datafiles, filenames

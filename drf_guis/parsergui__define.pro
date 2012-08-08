@@ -63,10 +63,6 @@ pro parsergui::startup
             *self.ConfigDRS = ConfigParser->getidlfunc() 
         endif
 
-        ;if getenv('GPI_DRP_LOG_DIR') eq '' then initgpi_default_paths
-        ; if no configuration file, choose reasonable defaults.
-        ;cd, current=current
-
 end
 
 ;--------------------------------------------------------------------------------
@@ -133,61 +129,6 @@ pro parsergui::extractparam, modnum
     *self.indarg=where(   ((*self.ConfigDRS).argmodnum) eq ([(*self.indmodtot2avail)[(*self.curr_mod_indsort)[modnum]]]+1)[0], carg)
 end
 
-;--------------------------------------------------------------------------------
-pro defaultpath_event,ev
-
-    ;get type of event
-    ;-----------------------------------------
-    widget_control,ev.id,get_uvalue=uval
-
-    ;get storage
-    ;-----------------------------------------
-    widget_control,ev.top,get_uvalue=storage
-
-    ;routine for event
-    ;-----------------------------------------
-    case uval of 
-       'definputcaldir':begin
-               ; TODO - fix all other directory selection commands to be like this:
-            newdir = (DIALOG_PICKFILE(TITLE='Select CALIBRATION input Directory', /DIRECTORY,/MUST_EXIST)) 
-            if newdir eq '' then return ; user cancelled, so change nothing.
-            self.inputcaldir = newdir +  path_sep()
-            widget_control, self.definputcaldir_id, set_value=self.inputcaldir
-       end
-        'defoutputdir':begin
-            self.outputdir = (DIALOG_PICKFILE(TITLE='Select an OUTPUT Directory', /DIRECTORY,/MUST_EXIST)) + path_sep()
-            widget_control, self.defoutputdir_id, set_value=self.outputdir
-       end
-       'deftempdrfdir':begin   
-            self.tempdrfdir = (DIALOG_PICKFILE(TITLE='Select TEMPLATES DRF Directory', /DIRECTORY,/MUST_EXIST)) + path_sep()
-            widget_control, self.deftempdrfdir_id, set_value=self.tempdrfdir
-       end
-        'deflogdir':begin 
-            self.logdir = (DIALOG_PICKFILE(TITLE='Select a LOG path Directory', /DIRECTORY,/MUST_EXIST)) + path_sep()
-            widget_control, self.deflogdir_id, set_value=self.logdir
-       end
-        'drfpath':begin
-            self.drfpath = (DIALOG_PICKFILE(TITLE='Select dir where to save drf', /DIRECTORY,/MUST_EXIST)) + path_sep()
-            widget_control, self.defdrfpath_id, set_value=self.drfpath
-       end
-        'queuedir':begin
-            self.queuedir = (DIALOG_PICKFILE(TITLE='Select Queue Directory', /DIRECTORY,/MUST_EXIST)) + path_sep()
-            setenv, 'GPI_DRP_QUEUE_DIR='+ self.queuedir 
-            widget_control, self.defqueuedir_id, set_value=self.queuedir
-       end
-       'SAVE'  : begin
-					configdir = gpi_expand_path('$GPI_DRP_CONFIG_DIR')
-                    OpenW, lun, configdir+path_sep()+'drfgui_config.txt', /Get_Lun
-                    PrintF, lun, 'INPUTCAL: ', self.inputcaldir
-                    PrintF, lun, 'OUTPUT: ', self.outputdir
-                    PrintF, lun, 'TEMPDRF: ', self.tempdrfdir
-                    PrintF, lun, 'LOG: ', self.logdir
-                    PrintF, lun, 'DRF: ', self.drfpath
-                    PrintF, lun, 'QUEUE: ', self.queuedir
-                    Free_Lun, lun
-           end
-    end
-end   
    
 ;event handler
 ;-----------------------------------------
@@ -214,7 +155,7 @@ pro parsergui::changetype, selectype, storage,notemplate=notemplate
 		4:typename='online_'
 	endcase
 	if ~keyword_set(notemplate) then begin
-		self.loadedDRF = self.tempdrfdir+'templates_drf_'+typename+'1.xml'
+		self.loadedDRF = self.tempdrfdir+path_sep()+'templates_drf_'+typename+'1.xml'
 		;self->loaddrf, /nodata
 	endif
   
@@ -283,7 +224,7 @@ pro parsergui::addfile, filenames, mode=mode
     ;;TEST DATA SANITY
     ;;ARE THEY VALID  GEMINI & GPI & IFS DATA?
 	
-    if gpi_get_setting('strict_validation',/int)  then begin
+    if gpi_get_setting('strict_validation',/bool)  then begin
 
         validtelescop=bytarr(cindex)
         validinstrum=bytarr(cindex)
@@ -320,9 +261,12 @@ pro parsergui::addfile, filenames, mode=mode
             endif
       
     endif else begin ;if data are test data don't remove them but inform a bit
-        validtelescop=self->validkeyword( file, cindex,'TELESCOP','Gemini',storage)
-        validinstrum =self->validkeyword( file, cindex,'INSTRUME','GPI',storage)
-        validinstrsub=self->validkeyword( file, cindex,'INSTRSUB','IFS',storage)
+        for ff=0, cindex-1 do begin
+			message,/info, 'Checking for valid headers: '+file[ff]
+			validtelescop=self->validkeyword( file[ff], 1,'TELESCOP','Gemini',storage)
+			validinstrum =self->validkeyword( file[ff], 1,'INSTRUME','GPI',storage)
+			validinstrsub=self->validkeyword( file[ff], 1,'INSTRSUB','IFS',storage)
+		endfor
     endelse
     (*self.currModSelec)=strarr(5)
     (*self.currDRFSelec)=strarr(10)
@@ -618,7 +562,7 @@ pro parsergui::addfile, filenames, mode=mode
                                         if detectype eq -1 then continue
                                         typetab=['astr_spec_','astr_pol_','cal_spec_','cal_pol_','online_', 'undispersed_']
                                         typename=typetab[detectype-1]           
-                                        drf_to_load = self.tempdrfdir+'templates_drf_'+typename+strc(detecseq)+'.xml'
+                                        drf_to_load = self.tempdrfdir+path_sep()+'templates_drf_'+typename+strc(detecseq)+'.xml'
                     if keyword_set(mode) && (mode eq 2) then if (total(strmatch(remcharf(file_filt_obst_disp_occ_obs_itime_object,path_sep()),remcharf(file[cindex-1]+'*',path_sep()))) eq 0) then continue
                                         self->create_drf_from_template, drf_to_load, file_filt_obst_disp_occ_obs_itime_object, current, datetimestr=datetimestr, mode=mode
 

@@ -29,7 +29,6 @@ primitive_version= '$Id: testextendedobjectflux.pro 11 2010-11-25 10:22:03 maire
 mydevice = !D.NAME
 ;retrieve DST input parameters:
 InputObjFilename= Modules[thisModuleIndex].ComparisonFile
- ;if needed, replace GPI_REDUCED_DATA_DIR in filename
       ;if strmatch(InputObjFilename,'GPI_DST$*') then strreplace, InputObjFilename, 'GPI_DST$', getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()+'testdata'+path_sep()
 
 InputObj=readfits(InputObjFilename)
@@ -112,7 +111,7 @@ if fcount eq 0 then filter = strcompress(sxpar( h ,'FILTER'),/REMOVE_ALL)
 suffixplot=(Modules[thisModuleIndex].suffix)
 legends=(Modules[thisModuleIndex].legendfig)
 
-    fnameps=getenv('GPI_REDUCED_DATA_DIR')+'test13_'+strmid(filnm,slash+1,STRLEN(filnm)-5-slash)+suffixplot+filter        
+    fnameps=gpi_get_directory('GPI_REDUCED_DATA_DIR')+path_sep()+'test13_'+strmid(filnm,slash+1,STRLEN(filnm)-5-slash)+suffixplot+filter        
   openps,fnameps+'.ps', xsize=17, ysize=27
   xr=xmax
       !P.MULTI = [0, 2, 3, 0, 0] 

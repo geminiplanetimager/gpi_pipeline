@@ -174,10 +174,10 @@ endcase
               end
           endcase
         if   ~(strmatch(obstype,'*flat*',/fold)) then begin
-          DST_CODE_DIR= gpi_get_directory('GPI_DST_DIR')
-          readcol, DST_CODE_DIR+path_sep()+strmid(lamp,0,2)+'ArcLampG.txt', wavelen, strength
+          DSTdir= gpi_get_directory('GPI_DST_DIR')
+          readcol, DSTdir+path_sep()+strmid(lamp,0,2)+'ArcLampG.txt', wavelen, strength
           wavelen=1.e-4*wavelen
-          lambdadst=readfits(DST_CODE_DIR+path_sep()+'zemdispLam'+strcompress(bandeobs, /rem)+'.fits')
+          lambdadst=readfits(DSTdir+path_sep()+'zemdispLam'+strcompress(bandeobs, /rem)+'.fits')
           spect = fltarr(n_elements(lambdadst))
         
           wg = where(wavelen gt min(lambdadst) and wavelen lt max(lambdadst), gct)

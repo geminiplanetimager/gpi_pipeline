@@ -83,10 +83,10 @@ plotc, w3, 4, tx,ty,'micro-lens','micro-lens','w [detector pixel]'
 ;;plotc, reform(wavcal[*,*,3]), 9, tx,ty,'micro-lens','micro-lens','coeef wavcal'
 
 
-DST_CODE_DIR= gpi_get_directory('GPI_DST_DIR')
-lamzem=readfits(DST_CODE_DIR+path_sep()+'zemdispLam'+band+'.fits')
+DSTdir= gpi_get_directory('GPI_DST_DIR')
+lamzem=readfits(DSTdir+path_sep()+'zemdispLam'+band+'.fits')
 
-zem=readfits(DST_CODE_DIR+path_sep()+'zemdisp_pol'+band+'.fits')
+zem=readfits(DSTdir+path_sep()+'zemdisp_pol'+band+'.fits')
 zemX=zem[*,*,*,0]+1024.
 zemY=zem[*,*,*,1]+1024.
 

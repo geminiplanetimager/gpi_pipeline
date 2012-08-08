@@ -145,16 +145,29 @@ end
 ;
 ;
 function drfgui::validkeyword, file, cindex, keyw, requiredvalue,storage,needalertdialog=needalertdialog
+    common GPI_DRP_VALIDKEYWORD, last_filename, last_pri_header, last_ext_header
+
+	if ~(keyword_set(last_filename)) then last_filename=""
     value=strarr(cindex)
     matchedvalue=intarr(cindex)
     ok=1
 	for i=0, cindex-1 do begin
 		;fits_info, file[i],/silent, N_ext 
-	    catch, Error_status
+	    ;catch, Error_status
 	    if strmatch(!ERROR_STATE.MSG, '*Unit: 101*'+file[i]) then wait,1
 
-		file_data = gpi_load_and_preprocess_fits_file(file[i],/nodata,/silent)
-		value[i] = gpi_get_keyword(*file_data.pri_header, *file_data.ext_header, keyw,count=cc)
+		if file[i] eq last_filename then begin
+			print, "Revalidating same file. Using last file read header"
+			pri_header = last_pri_header
+			ext_header = last_ext_header
+		endif else begin
+			print, "Reading from disk: "+file[i]
+			file_data = gpi_load_and_preprocess_fits_file(file[i],/nodata,/silent)
+			pri_header = *file_data.pri_header
+			ext_header = *file_data.ext_header
+		endelse
+
+		value[i] = gpi_get_keyword(pri_header, ext_header, keyw,count=cc)
 
 ;	    fits_info, file[i], n_ext=next, /silent
 ;      	if next eq 0 then begin
@@ -171,6 +184,7 @@ function drfgui::validkeyword, file, cindex, keyw, requiredvalue,storage,needale
 
 		if cc eq 0 then begin
 			self->log,'Absent '+keyw+' keyword for data: '+file(i)
+			stop
 			ok=0
 		endif
 		if cc eq 1 then begin
@@ -182,6 +196,11 @@ function drfgui::validkeyword, file, cindex, keyw, requiredvalue,storage,needale
 			  ok=0
 			endif
 		endif
+
+		last_filename = file[i]	
+		last_pri_header = temporary(pri_header)
+		last_ext_header = temporary(ext_header)
+
 		  ;if ok ne 1 then self->log, 'File '+file[i]+' is missing required '+keyw+' keyword!'
 	endfor  
  
@@ -1419,7 +1438,7 @@ function drfgui::check_output_path_exists, path
 		return, 1 
 	endif else  begin
 
-		if gpi_get_setting('prompt_user_for_outputdir_creation') then res =  dialog_message('The requested output directory '+path+' does not exist. Should it be created now?', title="Nonexistent Output Directory", dialog_parent=self.top_base, /question) else res='Yes'
+		if gpi_get_setting('prompt_user_for_outputdir_creation',/bool) then res =  dialog_message('The requested output directory '+path+' does not exist. Should it be created now?', title="Nonexistent Output Directory", dialog_parent=self.top_base, /question) else res='Yes'
 		if res eq 'Yes' then begin
 			file_mkdir, path
 			return, 1
@@ -1777,7 +1796,7 @@ pro drfgui::init_data, _extra=_Extra
 
         self.dirpro = 		gpi_get_directory('GPI_DRP_DIR') ;+path_sep();+'gpidrfgui'+path_sep();dirlist[0]
 		; how do we organize DRFs? 
-		if gpi_get_setting('organize_DRFs_by_dates') then begin
+		if gpi_get_setting('organize_DRFs_by_dates',/bool) then begin
 			self.drfpath = gpi_get_directory('DRF_OUTPUT_DIR') + path_sep() + gpi_datestr(/current)
 			self->Log,"Outputting DRFs based on date to "+self.drfpath
 		endif else begin

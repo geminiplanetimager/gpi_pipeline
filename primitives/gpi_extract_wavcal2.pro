@@ -136,7 +136,7 @@ hh=1. ;define sidelength (2hh+1 by 2hh+1 ) of box for centroid intensity detecti
 ;
 if (tag_exist( Modules[thisModuleIndex], "emissionlinesfile")) && file_test(gpi_expand_path(Modules[thisModuleIndex].emissionlinesfile),/read) then $
 emissionlinefile=  gpi_expand_path(Modules[thisModuleIndex].emissionlinesfile) else $
-    emissionlinefile=  gpi_expand_path('$GPI_DRP_DIR'+path_sep()+'config'+path_sep()+'lampemissionlines.txt')
+    emissionlinefile=  gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'lampemissionlines.txt')
 backbone->set_keyword, "HISTORY", "Lamp emission lines file used: "+emissionlinefile,ext_num=0
 
 ;res=read_ascii(emissionlinefile,data_start=2)
@@ -242,12 +242,12 @@ endcase
               end
           endcase
           if   ~(strmatch(obstype,'*flat*',/fold)) then begin
-          DST_CODE_DIR= gpi_get_directory('GPI_DST_DIR')
+          DSTdir= gpi_get_directory('GPI_DST_DIR')
 
-          readcol, DST_CODE_DIR+path_sep()+strmid(lamp,0,2)+'ArcLampG.txt', wavelen, strength
+          readcol, DSTdir+path_sep()+strmid(lamp,0,2)+'ArcLampG.txt', wavelen, strength
           wavelen=1.e-4*wavelen
           ;if (strcompress(bandeobs,/REMOVE_ALL) eq 'Y') && strmatch(lamp,'*Xenon*',/fold) then wavelen-=0.03
-          lambdadst=readfits(DST_CODE_DIR+path_sep()+'zemdispLam'+strcompress(bandeobs, /rem)+'.fits')
+          lambdadst=readfits(DSTdir+path_sep()+'zemdispLam'+strcompress(bandeobs, /rem)+'.fits')
           spect = fltarr(n_elements(lambdadst))
       
           wg = where(wavelen gt min(lambdadst) and wavelen lt max(lambdadst), gct)
@@ -285,7 +285,7 @@ endcase
 
 
 	if float(Modules[thisModuleIndex].centrYpos) eq 0 or Modules[thisModuleIndex].centrXpos eq 0 then begin
-		readcol, gpi_expand_path('$GPI_DRP_DIR'+path_sep()+'config'+path_sep()+'wavcal_start_positions.txt'), $
+		readcol, gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'wavcal_start_positions.txt', $
 			def_pos_band, def_pos_x, def_pos_y, def_type, def_orient, format='A,F,F,A,A'
 		; are we looking at data from real IFS or DST here?
 		dstver = backbone->get_keyword('DST_VER',count=dstct)

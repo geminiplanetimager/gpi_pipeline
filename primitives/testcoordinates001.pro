@@ -110,7 +110,7 @@ thisLetter = "155B
 greekLetter = '!9' + String(thisLetter) + '!X'
 thisModuleIndex = Backbone->GetCurrentModuleIndex()
 ;figtitle=(Modules[thisModuleIndex].title)
-openps,getenv('GPI_REDUCED_DATA_DIR')+path_sep()+'test08.ps', xsize=18, ysize=27 ;, ysize=10, xsize=15
+openps,gpi_get_directory('GPI_REDUCED_DATA_DIR')+path_sep()+'test08.ps', xsize=18, ysize=27 ;, ysize=10, xsize=15
   !P.MULTI = [0, 1, 2, 0, 0] 
   plot, lambda, 1000.*dist,ytitle='measured separation [mas]', xtitle='Wavelength (' + greekLetter + 'm)',$
    xrange=[lambda[0],lambda[n_elements(lambda)-1]],linestyle=0, psym=1,charsize=1.,yrange=1000.*[min(dist)-15.,max(dist)+15.];,title=''

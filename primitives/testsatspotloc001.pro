@@ -74,7 +74,7 @@ thisLetter = "155B
 greekLetter = '!9' + String(thisLetter) + '!X'
 thisModuleIndex = Backbone->GetCurrentModuleIndex()
 ;figtitle=(Modules[thisModuleIndex].title)
-openps,getenv('GPI_REDUCED_DATA_DIR')+path_sep()+'test03_'+filter+'.ps', xsize=14, ysize=27 ;, ysize=10, xsize=15
+openps,gpI_get_directorY('GPI_REDUCED_DATA_DIR')+path_sep()+'test03_'+filter+'.ps', xsize=14, ysize=27 ;, ysize=10, xsize=15
   !P.MULTI = [0, 3, 4, 0, 0] 
 for spot=1,4 do begin
   plot, lambda, deducedpos[*,0,spot],ytitle='X-Loc[mlens]', xtitle='Wavelength (' + greekLetter + 'm)',$
