@@ -28,11 +28,10 @@
 ;
 
 
-FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session, verbose=verbose, nogui=nogui
+FUNCTION gpipipelinebackbone::Init,  session=session, verbose=verbose, nogui=nogui
     ; Application constants
     COMMON APP_CONSTANTS, $
         LOG_GENERAL,  $       ; File unit number of the general log file
-        LOG_DRF,      $       ; File unit number of the DRF log file
         CALL_STACK,    $        ; String to hold the call stack at run time
         OK, NOT_OK, ERR_UNKNOWN, GOTO_NEXT_FILE,        $        ; Indicates success
         backbone_comm, $                ; Object pointer for main backbone (for access in subroutines & modules) 
@@ -43,7 +42,6 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session, ve
 	DEBUG=1
 
 	LOG_GENERAL = 1       ; LUNs for logfiles
-	LOG_DRF = 2
 	CALL_STACK = ''
 	OK = 0
 	NOT_OK = -1
@@ -53,18 +51,18 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session, ve
 
 	; Eventually this will be a configuration structure.
 	pipelineConfig = {$
-		default_log_dir : getenv("GPI_DRP_LOG_DIR"),     $ ; Default directory for output log files
-		continueAfterDRFParsing:0,        $    ; Should program actually run the pipeline or just parse?
-		MaxFramesInDataSets: 64,        $    ; OSIRIS legacy code. Not totally sure what this is for.
-		MaxMemoryUsage: 0L,                 $   ; this will eventually be used for array size limits on what gets done in memory versus swapped to disk.
-		desired_dispersion: 'vertical' $	; do we want horizontal or vertical spectra?
+		logdir : gpi_get_directory("GPI_DRP_LOG_DIR"),     $ ; directory for output log files
+		continueAfterDRFParsing:0,        $    				; Should program actually run the pipeline or just parse?
+		MaxFramesInDataSets: gpi_get_setting('max_files_per_drf'),        $    				; Max # of files in one dataset in a DRF
+		MaxMemoryUsage: 0L,                 $   			; this will eventually be used for array size limits on what gets done in memory versus swapped to disk.
+		desired_dispersion: 'vertical' $					; do we want horizontal or vertical spectra?
 	}
 	self.pipelineconfig=ptr_new(pipelineConfig)
 
 
     !quiet=0 ; always print out any output from "message" command, etc.
 
-    if ~(keyword_set(config_file)) then config_file=GETENV('GPI_DRP_CONFIG_DIR') +path_sep()+"gpi_pipeline_primitives.xml"
+	config_file=gpi_get_directory('GPI_DRP_CONFIG_DIR') +path_sep()+"gpi_pipeline_primitives.xml"
     self.verbose = keyword_set(verbose)
     ver = gpi_pipeline_version()
 
@@ -87,7 +85,7 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session, ve
     ;CATCH, Error       ; Catch errors before the pipeline
     IF Error EQ 0 THEN BEGIN
         ;        drpSetAppConstants        ; Set the application constants
-        Self->OpenLog;, (*self.pipelineConfig).default_log_dir + path_sep() + self->generalLogName(), /GENERAL
+        Self->OpenLog;, (*self.pipelineConfig).logdir + path_sep() + self->generalLogName(), /GENERAL
         self->Log, 'Backbone Initialized'
 
         self->DefineStructs        ; Define the DRP structures
@@ -123,8 +121,6 @@ FUNCTION gpipipelinebackbone::Init, config_file=config_file, session=session, ve
         Self -> ErrorHandler
         CLOSE, LOG_GENERAL
         FREE_LUN, LOG_GENERAL
-        CLOSE, LOG_DRF
-        FREE_LUN, LOG_DRF
     ENDELSE
 
 
@@ -403,8 +399,6 @@ PRO gpiPipelineBackbone::Run_queue, QueueDir
         IF Error EQ 1 THEN BEGIN
             PRINT, "Calling Self -> ErrorHandler..."
             Self -> ErrorHandler, CurrentDRF, QueueDir
-            ;CLOSE, LOG_DRF
-            ;FREE_LUN, LOG_DRF
         ENDIF
 
         CurrentDRF = self->GetNextDRF(Queuedir, found=nfound)
@@ -533,8 +527,6 @@ function gpiPipelineBackbone::run_one_drf, CurrentDRF
 		self->free_dataset_pointers
 
 		; We are done with the DRF, so close its log file
-		CLOSE, LOG_DRF
-		FREE_LUN, LOG_DRF
 	ENDIF ELSE BEGIN  ; ENDIF continueAfterDRFParsing EQ 1
 	  ; This code if continueAfterDRFParsing == 0
 	  self->log, 'Reduction failed due to parsing error in file ' + DRFFileName, /GENERAL
@@ -938,223 +930,6 @@ end
 
 
 ;-----------------------------------------------------------
-; gpiPipelineBackbone::ReduceOnLine
-;
-; Run the specified commands in sequence to reduce the data online. 
-;     This is for the realtime reduction.
-;
-;
-;
-;FUNCTION gpiPipelineBackbone::ReduceOnLine
-;
-;  COMMON APP_CONSTANTS
-;  common PIP, lambda0, filename,wavcal,tilt, badpixmap, filter, dim, CommonWavVect, gpidisplay, meddec,suffix, header, heade,oBridge,listfilenames, numfile, painit,dir_sc, Dtel
-;
-;  PRINT, ''
-;  PRINT, SYSTIME(/UTC)
-;  PRINT, ''
-;
-;  self->SetupProgressBar
-;  ;#############################################################
-;  ;loop for detection of  new data then apply modules
-;  temploop=1 ; TODO:implement a little GUI for stopping this loop and change OnLine parameters
-;  while temploop eq 1 do begin  
-;    ;nn=0
-;    ;for i=0,ii-1 do begin ;find nb files to consider in order
-;    ;  folder=stateF.listcontent(i)  ;to create the fitsfileslist array
-;    ;  filetypes = '*.{fts,fits}'
-;    ;    string3 = folder + filetypes
-;    ;    fitsfiles =FILE_SEARCH(string3,/FOLD_CASE)
-;    ;    nn=nn+(n_elements(fitsfiles))
-;    ;endfor
-;    ;fitsfileslist =STRARR(nn)
-;
-;    ;n=0 ;list of files in fitsfileslist
-;    ;for i=0,ii-1 do begin
-;    folder=(*self.data).inputdir ;stateF.listcontent(i)
-;    filetypes = '*.{fts,fits}'
-;    fitsfiles =FILE_SEARCH(folder + path_sep() + filetypes,/FOLD_CASE)
-;    ;    fitsfileslist(n:n+n_elements(fitsfiles)-1) =fitsfiles
-;    n= n_elements(fitsfiles)
-;    ;endfor
-;
-;    ; retrieve creation date
-;    date=dblarr(n_elements(fitsfiles))
-;    for j=0,n_elements(date)-1 do begin
-;        Result = FILE_INFO(fitsfiles[j] )
-;        date(j)=Result.ctime
-;    endfor
-;    ;sort files with creation date
-;    list2=fitsfiles(REVERSE(sort(date)))
-;    list3=list2(0:n_elements(list2)-1)
-;    ;widget_control, stateF.listfile_id, SET_VALUE= list3 ;display the list
-;    ;stop
-;    ;stateF.newlist=list3
-;    ;;loop for detection of new files
-;    ;  oBridge = OBJ_NEW('IDL_IDLBridge');, CALLBACK='callback_searchnewfits')
-;    ;  oBridge->SetVar,"chang",0
-;    ;  oBridge->SetVar,"dir",folder;stateF.listcontent(0:ii-1)
-;    ;  oBridge->SetVar,"listfile",list3
-;    ;  oBridge->SetVar,"list_id",0;stateF.listfile_id
-;    ;  ;widget_control,stateF.button_id,GET_VALUE=val
-;    ; ; widget_control,stateF.button_id,GET_VALUE=val
-;    ;  oBridge->SetVar,"button_value",'void'
-;    ;
-;    ;comm2="chang=detectnewfits(dir,listfile,list_id,button_value)"
-;    ;oBridge->Execute, comm2, /NOWAIT
-;
-;    chang=''
-;    while chang eq '' do begin
-;      chang=gpidetectnewfits(folder,list3,0,'void')
-;      wait,1
-;    endwhile
-; 
-;    (*self.Data).validframecount=1
-;    (*self.Data).fileNames[0]=chang
-;    *((*self.Data).frames[0])=chang
-;    ;;;;;;;;;;;;;;;;;;;;;
-;    self->Log, 'Reducing data set.', /GENERAL, /DRF, depth=1
-;    FOR IndexFrame = 0, (*self.Data).validframecount-1 DO BEGIN
-;        if debug ge 1 then print, "########### start of file "+strc(indexFrame+1)+" ################"
-;        self->Log, 'Reducing file: ' + (*self.Data).fileNames[IndexFrame], /GENERAL, /DRF, depth=1
-;
-;        ;(*self.data).currframe        = ptr_new(READFITS(*((*self.data).frames[IndexFrame]), Header, /SILENT))
-;        filename= *((*self.Data).frames[IndexFrame])
-;        ;inputname = (*self.Data).inputdir+path_sep()+(*self.Data).fileNames[IndexFrame]
-;        ;print, (*self.Data).inputdir+path_sep()+filename
-;         ;(*self.data).currframe        = ptr_new(READFITS((*self.Data).inputdir+path_sep()+filename , Header, /SILENT))
-;         (*self.data).currframe        = ptr_new(READFITS(filename , Header, /SILENT))
-;        if n_elements( *((*self.data).currframe) ) eq 1 then if *((*self.data).currframe) eq -1 then begin
-;              self->Log, "ERROR: Unable to read file "+filename, /GENERAL, /DRF
-;              self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
-;              continue
-;        endif
-;
-;        ; NOTE: there are two redundant ways to get the current filename in the code right now:
-;        ;print, *((*self.data).frames[IndexFrame])
-;        ;print,  (*self.Data).inputdir+path_sep()+(*self.Data).fileNames[IndexFrame]
-;
-;        numfile=IndexFrame ; store the index in the common block
-;
-;
-;        ; update the headers - 
-;        ;  At this point the *(*self.data).HeadersExt[IndexFrame] variable contains
-;        ;  ONLY the DRF appended in FITS header COMMENT form. 
-;        ;  Append this onto the REAL fits header we just read in from disk.
-;        ;
-;        SXADDPAR, *(*self.data).HeadersExt[IndexFrame], "DATAFILE", filename
-;        SXDELPAR, header, 'END'
-;        *(*self.data).HeadersExt[IndexFrame]=[header,*(*self.data).HeadersExt[IndexFrame]]
-;        SXADDPAR, *(*self.data).HeadersExt[IndexFrame], "END",''
-;        suffix=''
-;
-;        ; FIXME this ought to be read in from a configuration file somewhere,
-;        ; not be hard-coded here in the software. 
-;        filter = strcompress(sxpar( header ,'FILTER1', count=fcount),/REMOVE_ALL)
-;        if fcount eq 0 then filter = strcompress(sxpar( header ,'FILTER'),/REMOVE_ALL)
-;
-;        tabband=[['Z'],['Y'],['J'],['H'],['K'],['K1'],['K2']]
-;        parseband=WHERE(STRCMP( tabband, filter, /FOLD_CASE) EQ 1)
-;        case parseband of
-;            -1: CommonWavVect=-1
-;            0:  CommonWavVect=[0.95, 1.14, 37]
-;            1:  CommonWavVect=[0.95, 1.14, 37]
-;            2:  CommonWavVect=[1.12, 1.35, 37]
-;            3: CommonWavVect=[1.5, 1.8, 37]
-;            4:  ;CommonWavVect=[1.5, 1.8, 37]
-;            5:  CommonWavVect=[1.9, 2.19, 40]
-;            6: CommonWavVect=[2.13, 2.4, 40]
-;        endcase
-;        ;;detect type
-;        ;type = strcompress(sxpar( header ,'FILTER2', count=fcount),/REMOVE_ALL)
-;        ; if fcount eq 0 then type = strcompress(sxpar( header ,'DISPERSR'),/REMOVE_ALL)
-;        ;case type of
-;        ;            'Spectro': begin
-;        ;                   FindPro, 'gpidrfgui', dirlist=dirlist
-;                      
-;        caldat,systime(/julian),month,day,year, hour,minute,second
-;        datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
-;        hourstr = string(hour,minute,second,format='(i2.2,i2.2,i2.2)')  
-;        drffilename=datestr+'_'+hourstr+'_drf.waiting.xml'
-;        FILE_COPY, getenv('GPI_DRF_TEMPLATES_DIR')+'template_drf_online_1.xml', (*self.data).queuedir+path_sep()+drffilename
-;                        
-;        ;                      end
-;        ;        endcase
-;        ; Iterate over the modules in the 'Modules' array and run each.
-;        status = OK
-;        FOR indexModules = 0, N_ELEMENTS(*self.Modules)-1 DO BEGIN
-;            ; Continue if the current module's skip field equals 0 and no previous module
-;            ; has failed (Result = 1).
-;            IF ((*self.Modules)[indexModules].Skip EQ 0) AND (status EQ OK) THEN BEGIN
-;                ;Result = Self -> RunModule(Modules, indexModules, Data[IndexFrame], Backbone)
-;                status = Self -> RunModule(*self.Modules, indexModules)
-;            ENDIF
-;        ENDFOR
-;
-;        ; Log the result.
-;    if status eq GOTO_NEXT_FILE then self->Log, 'Continuing on to next file...', /GENERAL, /DRF, depth=2
-;        IF status EQ OK or status eq GOTO_NEXT_FILE THEN self->Log, 'Reduction successful: ' + filename, /GENERAL, /DRF $
-;        ELSE self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
-;
-;    if debug ge 1 then print, "########### end of file "+strc(indexframe+1)+" ################"
-;    ENDFOR
-;
-;    if debug ge 1 then print, "########### end of reduction for that DRF  ################"
-;    PRINT, ''
-;    PRINT, SYSTIME(/UTC)
-;    PRINT, ''
-;    self.statuswindow->Update,*self.Modules,indexModules, (*self.data).validframecount, IndexFrame,' Done'
-;  endwhile
-;  RETURN, status
-;
-;END
-;
-;;-----------------------------------------------------------
-;; gpiPipelineBackbone::RunModule
-;;
-;
-;FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
-;
-;    COMMON APP_CONSTANTS
-;    common PIP
-;
-;    if debug ge 2 then message,/info, " Now running module "+Modules[ModNum].Name+', '+ Modules[ModNum].IDLCommand
-;    self->Log, "Running module "+string(Modules[ModNum].Name, format='(A30)')+" for frame "+strc(numfile), depth=2
-;    ; Execute the call sequence and pass the return value to DRP_EVALUATE
-;
-;      ; Add the currently executing module number to the Backbone structure
-;    self.CurrentlyExecutingModuleNumber = ModNum
-;
-;    ; if we use call_function to run the module, then the IDL code will STOP at the location
-;    ; of any error, instead of returning here... This is way better for
-;    ; debugging (and perhaps should just always be how it works now. -MDP)
-;    status = call_function( Modules[ModNum].IDLCommand, *self.data, Modules, self )
-;
-;
-;    IF status EQ NOT_OK THEN BEGIN            ;  The module failed
-;        IF (STRCMP(!ERR_STRING, "Variable", 8, /FOLD_CASE) EQ 1) THEN BEGIN
-;            drpIOLock
-;            PRINT, "drpPipeline::RunModule: " + !ERROR_STATE.MSG
-;            PRINT, "drpPipeline::RunModule: " + !ERR_STRING
-;            PRINT, "drpPipeline::RunModule: " + CALL_STACK
-;            PRINT, "drpPipeline::RunModule: " + Modules[ModNum].CallSequence
-;            PRINT, "drpPipeline::RunModule: " + Modules[ModNum].Name
-;            drpIOUnlock
-;        ENDIF
-;        self->Log, 'ERROR: ' + !ERR_STRING, /GENERAL, /DRF
-;        self->Log, 'Module failed: ' + Modules[ModNum].Name, /GENERAL, /DRF
-;    ENDIF ELSE BEGIN                ;  The module succeeded
-;        self->Log, 'Module completed: ' + Modules[ModNum].Name,  /GENERAL, /DRF, DEPTH = 3
-;    ENDELSE
-;    self.CurrentlyExecutingModuleNumber = -1
-;
-;    RETURN, status
-;
-;END
-;
-
-
-;-----------------------------------------------------------
 ; gpiPipelineBackbone::RunModule
 ;
 
@@ -1223,7 +998,6 @@ pro gpiPipelineBackbone::CheckLogDate
     if self.log_date ne gpi_datestr(/current) then begin
         newdate = gpi_datestr(/current)
         self->log, "Date has changed to "+newdate+"; switching to next log file."
-        close, LOG_DRF
         self->openLog
         self->Log, "New date, hence new log file for already-running pipeline: "+newdate 
     endif
@@ -1248,7 +1022,7 @@ PRO gpiPipelineBackbone::OpenLog ;, LogFile, GENERAL = LogGeneral, DRF = LogDRF
     COMMON APP_CONSTANTS
 
     self.log_date = gpi_datestr(/current)
-    logfile = (*self.pipelineConfig).default_log_dir + path_sep() +'gpi_drp_'+self.log_date+".log"
+    logfile = (*self.pipelineConfig).logdir + path_sep() +'gpi_drp_'+self.log_date+".log"
     loggeneral=1
 	catch, error_status
 
@@ -1272,17 +1046,7 @@ PRO gpiPipelineBackbone::OpenLog ;, LogFile, GENERAL = LogGeneral, DRF = LogDRF
 		  self.generallogfilename = logfile
 		ENDIF
 
-;		IF KEYWORD_SET(LogDRF) THEN BEGIN
-;		  CLOSE, LOG_DRF
-;		  FREE_LUN, LOG_DRF
-;		  OPENW, LOG_DRF, LogFile, /GET_LUN
-;		  PRINTF, LOG_DRF, '   GPI Data Reduction Pipeline, version '+gpi_pipeline_version()
-;		  PRINTF, LOG_DRF, '   Run On ' + SYSTIME(0)
-;		  PRINTF, LOG_DRF, '   User: '+getenv('USER')+ "      host="+getenv('HOST')
-;		  PRINTF, LOG_DRF, ''
-;		  self->log,/general, 'New DRF log opened: '+logFile, depth=1
-;		  if obj_valid(self.statuswindow) then self.statuswindow->set_DRFLogF, logfile
-;		ENDIF
+
   	endelse
   	catch,/cancel
 
@@ -1579,7 +1343,7 @@ end
 ;-----------------------------------------------------------
 pro gpiPipelineBackbone::rescan_Config
 	self->Log, 'User requested rescan of data pipeline configuration files',/general
-	config_file=GETENV('GPI_DRP_CONFIG_DIR') +path_sep()+"gpi_pipeline_primitives.xml"
+	config_file=gpi_get_directory('GPI_DRP_CONFIG_DIR') +path_sep()+"gpi_pipeline_primitives.xml"
     if file_test(config_file) then begin
 		if not lmgr(/runtime) then begin
 			self->Log,/general, "Rescanning for new primitives, and regenerating primitives config file."

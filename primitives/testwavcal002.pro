@@ -162,7 +162,7 @@ filter="H"
   FXADDPAR, hdr, 'FILEINIT', 'zemdispX'+filter+'.fits', 'Zemax file used' 
   FXADDPAR, hdr, 'FILEDATE', '2009-06-10', 'last modif of the Zemax file';;
   
-;  writefits,getenv('GPI_DRP_OUTPUT_DIR')+'zemax-'+filter+'-281-01-wavcal.fits',zemwavcal,hdr
+;  writefits,getenv('GPI_REDUCED_DATA_DIR')+'zemax-'+filter+'-281-01-wavcal.fits',zemwavcal,hdr
 endif else begin
   zemwavcal=readfits(Modules[thisModuleIndex].CalibrationFile)
 endelse
@@ -201,9 +201,9 @@ h=*(dataset.headersPHU[numfile])
 testwav=SXPAR( h, 'TESTWAV',count=c1)
 if c1 ne 0 then testchr='nbpk'+strc(n_elements(strsplit(testwav,'/'))) else testchr=''
 suffixplot=(Modules[thisModuleIndex].suffix)
-;    fnameps=getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffixplot+filter+testchr+strc(zemwav)        
+;    fnameps=getenv('GPI_REDUCED_DATA_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffixplot+filter+testchr+strc(zemwav)        
 ;  openps,fnameps+'dst.ps', xsize=17, ysize=27
-  fnameps=getenv('GPI_DRP_OUTPUT_DIR')+'test01_'+filter+suffixplot        
+  fnameps=getenv('GPI_REDUCED_DATA_DIR')+'test01_'+filter+suffixplot        
   openps,fnameps+'.ps', xsize=17, ysize=27
   !P.MULTI = [0, 1, 5, 0, 0] 
   ;this following plot is the histogram of localization difference at a specific wavelength

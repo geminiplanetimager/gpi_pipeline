@@ -242,7 +242,7 @@ endcase
               end
           endcase
           if   ~(strmatch(obstype,'*flat*',/fold)) then begin
-          DST_CODE_DIR= getenv('GPI_IFS_DIR')+path_sep()+'dst';getenv()
+          DST_CODE_DIR= gpi_get_directory('GPI_DST_DIR')
 
           readcol, DST_CODE_DIR+path_sep()+strmid(lamp,0,2)+'ArcLampG.txt', wavelen, strength
           wavelen=1.e-4*wavelen

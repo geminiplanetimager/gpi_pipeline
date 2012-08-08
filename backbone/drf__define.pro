@@ -76,9 +76,9 @@ pro drf::set_outputdir, dir=dir, autodir=autodir
 	if keyword_set(autodir) then begin
 		; figure out the output directory?
 		if gpi_get_setting('organize_reduced_data_by_dates',/bool) then begin
-			outputdir = gpi_get_directory('GPI_DRP_OUTPUT_DIR')+path_sep()+self->get_datestr()
+			outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')+path_sep()+self->get_datestr()
 		endif else begin
-			outputdir = gpi_get_directory('GPI_DRP_OUTPUT_DIR')
+			outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')
 		endelse
 	endif
 
@@ -185,7 +185,7 @@ pro drf::savedrf, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silen
 		endif else begin
 			; if the organize by dates is turned off, then 
 			; FIXME should this output to the current directory, or what
-			outputdir = gpi_get_directory('GPI_DRP_OUTPUT_DIR')
+			outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')
 		endelse
 		outputfile=outputdir +path_sep()+file_basename(outputfile)
 	end

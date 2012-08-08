@@ -62,7 +62,7 @@ pairs=0
 if pairs eq 1 then begin
 filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
 slash=strpos(filnm,path_sep(),/reverse_search)
-meas=readfits(getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+'diff.fits')
+meas=readfits(getenv('GPI_REDUCED_DATA_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+'diff.fits')
 measStokes2=rotate(shift(subarr(meas,277),1,-2,0),1)
 endif
 ;comparisons begin here: 
@@ -104,7 +104,7 @@ if fcount eq 0 then filter = strcompress(sxpar( h ,'FILTER'),/REMOVE_ALL)
 suffixplot=(Modules[thisModuleIndex].suffix)
 legends=(Modules[thisModuleIndex].legendfig)
 
-    fnameps=getenv('GPI_DRP_OUTPUT_DIR')+'test6_'+strmid(filnm,slash+1,STRLEN(filnm)-5-slash)+suffixplot+filter        
+    fnameps=getenv('GPI_REDUCED_DATA_DIR')+'test6_'+strmid(filnm,slash+1,STRLEN(filnm)-5-slash)+suffixplot+filter        
   openps,fnameps+'.ps', xsize=17, ysize=27
   xr=xmax
       !P.MULTI = [0, 2, 3, 0, 0] 
@@ -135,7 +135,7 @@ legends=(Modules[thisModuleIndex].legendfig)
  ;void=where(finite(histcum),cfx)
  histcum2=(100./max(histcum))*histcum
   ; stop
-  openps,getenv('GPI_DRP_OUTPUT_DIR')+'test6.ps', xsize=17, ysize=27
+  openps,getenv('GPI_REDUCED_DATA_DIR')+'test6.ps', xsize=17, ysize=27
   xr=xmax
       !P.MULTI = [0, 1, 2, 0, 0] 
       PLOT, loc,histLin, $ 

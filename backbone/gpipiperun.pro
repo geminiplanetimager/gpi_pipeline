@@ -5,10 +5,6 @@
 ; 	NONE
 ;
 ; KEYWORDS:
-; 	queue_dir=		Directory name to use for Queue. If not set, by default 
-; 					check for the environment variable "GPI_DRP_QUEUE_DIR".
-; 					If that's not found either, then fall back to a fixed
-; 					hard-coded path.
 ;
 ;  /noexit			Don't exit IDL after the pipeline is closed
 ;  /rescanDB   Create a new calibrations DB by reading all files in a given directory
@@ -32,8 +28,10 @@
 ;   2009-09-15 gui for drf added - JM 
 ;   2010-05-13	Removed GUI automatic startup - you can now do this via
 ;   			the launcher.  - MDP
+;   2012-08-07 Removed ability to set nonstandard queue or config paths here -
+;   			this is an unnecessary complication. -MDP
 ;-
-PRO gpiPipeRun, QUEUE_DIR=queue_dir, config_file=config_file, noinit=noinit, $
+PRO gpiPipeRun, noinit=noinit, $
 	noexit=noexit, rescanDB=rescanDB, flushqueue=flushqueue, verbose=verbose,$
 	ignoreconflict=ignoreconflict, single=single, nogui=nogui
 
@@ -50,18 +48,8 @@ if issetenvok eq 0 then begin
   endwhile
 endif else if issetenvok eq -1 then return
   if issetenvok eq -1 then return
-  ; check for the presence of a valid config, and load default if not.
-  config_valid = keyword_set(getenv('GPI_DRP_QUEUE_DIR')) and  keyword_set(getenv('GPI_DRP_CONFIG_DIR'))
-  if ~config_valid then BEGIN
-    initgpi_default_paths,err=err
-    if err eq 1 then RETURN
-  ENDIF
-	
-  ; note thet keywords set on the command line have top precedence, then
-  ; environment variables, then default settings.
-  IF ~KEYWORD_SET(QUEUE_DIR) THEN Queue_Dir = GETENV('GPI_DRP_QUEUE_DIR')
-  IF ~KEYWORD_SET(CONFIG_FILE) THEN CONFIG_FILE= GETENV('GPI_DRP_CONFIG_DIR')+path_sep()+"gpi_pipeline_primitives.xml"
 
+  Queue_Dir = gpi_get_directory('GPI_DRP_QUEUE_DIR')
 
 
   if gpi_get_setting('prevent_multiple_instances',/bool) then begin
@@ -89,22 +77,22 @@ endif else if issetenvok eq -1 then return
 	endif
 
 
-	x = OBJ_NEW('gpiPipelineBackbone', config_file=config_file, verbose=verbose, nogui=nogui)
+	backbone = OBJ_NEW('gpiPipelineBackbone', verbose=verbose, nogui=nogui)
 	
-	if keyword_set(flushqueue) then x->flushqueue, queue_dir
-	if keyword_set(rescanDB) then x->rescan
+	if keyword_set(flushqueue) then backbone->flushqueue, queue_dir
+	if keyword_set(rescanDB) then backbone->rescan
 
 	
 	if keyword_set(single) then begin
 		; process one single DRF and then exit
-		status = x->run_one_drf(single)
-		x->Log, "Pipeline was invoked in single-DRF mode. Shutting down now. ",/general
+		status = backbone->run_one_drf(single)
+		backbone->Log, "Pipeline was invoked in single-DRF mode. Shutting down now. ",/general
 	endif else begin		
 		; watch the queue dir and process many DRFs
-		x->Run_queue, Queue_Dir
+		backbone->Run_queue, Queue_Dir
 	endelse
 
-	OBJ_DESTROY, x
+	OBJ_DESTROY, backbone
 
 	if gpi_get_setting('prevent_multiple_instances',/bool) then begin
 		sem_release, sem_name

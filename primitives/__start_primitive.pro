@@ -43,9 +43,8 @@
 				fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+":   "+c_File 
 			endelse
 		endif
+		c_File = gpi_expand_path(c_File)  
 
-    ;if needed, replace GPI_DRP_OUTPUT_DIR in filename
-      if strmatch(c_File,'GPI_DRP_OUTPUT_DIR$*') then strreplace, c_File, 'GPI_DRP_OUTPUT_DIR$', getenv('GPI_DRP_OUTPUT_DIR')
 
 		; in either case, does the requested file actually exist?
 		if ( NOT file_test ( c_File ) ) then $

@@ -3,6 +3,8 @@
 ;  2010-07-07 Created J. Maire
 ;  2011-07-29 MP: Validation of directory write permissions fixed up a bit. 
 ;  2012-01-26 MP: Modified to use for loops. 
+;  2012-08-07 MP: Partial cleanup and simplification. Removed GPI_IFS_DIR as
+;  					redundant. GPI_DRP_OUTPUT_DIR -> GPI_REDUCED_DATA_DIR
 ;
 ;  FIXME: should try to clean up / reorganize this code? 
 
@@ -16,15 +18,16 @@ if keyword_set(first) then begin
 	   return,-1
 	endif
 
-	vars_to_test = ['GPI_IFS_DIR','GPI_DRP_DIR', 'GPI_DRP_LOG_DIR', 'GPI_DRP_TEMPLATES_DIR', 'GPI_DRP_QUEUE_DIR', 'GPI_DRP_CONFIG_DIR', 'GPI_RAW_DATA_DIR', 'GPI_DRP_OUTPUT_DIR']
-	test_dir = [1,1,1,1,1,1,1,1]
-	test_writable = [1, 0, 1, 0, 1, 1,0,1]
+	vars_to_test = ['GPI_DRP_DIR', 'GPI_DRP_LOG_DIR', 'GPI_DRP_TEMPLATES_DIR', 'GPI_DRP_QUEUE_DIR', 'GPI_DRP_CONFIG_DIR', 'GPI_RAW_DATA_DIR', 'GPI_REDUCED_DATA_DIR']
+	test_dir = [1,1,1,1,1,1,1]
+	test_writable = [ 0, 1, 0, 1, 1,0,1]
 
 	all_ok = 1
 	for ii=0L,n_elements(vars_to_test)-1 do begin
 		res = file_test( getenv( vars_to_test[ii]), dir=test_dir[ii], write=test_writable[ii])
-		if not res then message,/info,'ERROR: Environment variable '+vars_to_test[ii]+' is not well defined.'
-		all_ok = all_ok*res
+		res2 = file_test( gpi_get_directory( vars_to_test[ii]), dir=test_dir[ii], write=test_writable[ii])
+		if not (res or res2) then message,/info,'ERROR: Environment variable '+vars_to_test[ii]+' is not well defined.'
+		all_ok = all_ok*(res or res2)
 	endfor 
 	return, all_ok
 
@@ -33,16 +36,14 @@ if keyword_set(first) then begin
 endif else begin  
 	; check all the supplied directories exist.
 
-	drpvartab = ['GPI_IFS_DIR','GPI_DRP_DIR', 'GPI_DRP_LOG_DIR', 'GPI_DRP_TEMPLATES_DIR', 'GPI_DRP_QUEUE_DIR', 'GPI_DRP_CONFIG_DIR', 'GPI_RAW_DATA_DIR', 'GPI_DRP_OUTPUT_DIR']
-	test_dir = [1,1,1,1,1,0,1,1]
+	drpvartab = ['GPI_DRP_DIR', 'GPI_DRP_LOG_DIR', 'GPI_DRP_TEMPLATES_DIR', 'GPI_DRP_QUEUE_DIR', 'GPI_DRP_CONFIG_DIR', 'GPI_RAW_DATA_DIR', 'GPI_REDUCED_DATA_DIR']
+	test_dir = [1,1,1,1,0,1,1]
 	txtmes=''
             
 	for ii=0, n_elements(drpvartab)-1 do begin
-		if strmatch(drpvartab[ii],'*DIR') then begin
-		  if ~file_test(getenv(drpvartab[ii]),/dir) then txtmes+= ' '+drpvartab[ii]
-		endif else begin
-		  if ~file_test(getenv(drpvartab[ii])) then txtmes+= ' '+drpvartab[ii]
-		endelse
+		test1 = file_test(getenv(drpvartab[ii]),dir=strmatch(drpvartab[ii],'*DIR'))
+		test2 = file_test(gpi_get_directory(drpvartab[ii]),dir=strmatch(drpvartab[ii],'*DIR'))
+		if ~(test1 or test2) then txtmes+= ' '+drpvartab[ii]
 	endfor   
 
     if txtmes ne '' then begin 
@@ -51,8 +52,8 @@ endif else begin
     endif 
 	
 	; check that a subset of them are writeable.
-	drpvartabwritable=['GPI_IFS_DIR','GPI_DRP_LOG_DIR',$
-			'GPI_DRP_QUEUE_DIR','GPI_DRP_OUTPUT_DIR']
+	drpvartabwritable=['GPI_DRP_LOG_DIR',$
+			'GPI_DRP_QUEUE_DIR','GPI_REDUCED_DATA_DIR']
 
 	txtmeswritable=''
 	for ii=0, n_elements(drpvartabwritable)-1 do begin

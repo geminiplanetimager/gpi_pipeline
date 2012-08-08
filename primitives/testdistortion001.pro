@@ -46,7 +46,7 @@ distorted_cube=readfits(res[subs],exten=1)
         lambdamax=CommonWavVect[1]
 
 undistorted_File = (Modules[thisModuleIndex].InFile)
-  if strmatch(undistorted_File,'GPI_DRP_OUTPUT_DIR$*') then strreplace, undistorted_File, 'GPI_DRP_OUTPUT_DIR$', getenv('GPI_DRP_OUTPUT_DIR')
+  if strmatch(undistorted_File,'GPI_REDUCED_DATA_DIR$*') then strreplace, undistorted_File, 'GPI_REDUCED_DATA_DIR$', getenv('GPI_REDUCED_DATA_DIR')
 
 undistorted_cube=readfits(undistorted_File,exten=1)
 
@@ -110,7 +110,7 @@ thisLetter = "155B
 greekLetter = '!9' + String(thisLetter) + '!X'
 basen=file_basename(compspecnamewoext)
 method=(Modules[thisModuleIndex].title)
-openps,getenv('GPI_DRP_OUTPUT_DIR')+'test9_distor.ps', xsize=15, ysize=25 ;, ysize=10, xsize=15
+openps,getenv('GPI_REDUCED_DATA_DIR')+'test9_distor.ps', xsize=15, ysize=25 ;, ysize=10, xsize=15
   !P.MULTI = [0, 1, 3, 0, 0] 
 ;units=TeXtoIDL(" W/m^{2}/\mum")
 ;deltaH=TeXtoIDL(" \Delta H=")

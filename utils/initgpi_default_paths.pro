@@ -53,14 +53,14 @@ CASE !VERSION.OS_FAMILY OF
 	'Windows': begin
 		GPI_DRP_DIR='E:\testsvn3\pipeline' 
 		GPI_RAW_DATA_DIR='E:\GPIdatabase\Gemini\'
-		GPI_DRP_OUTPUT_DIR='E:\GPIdatabase\GPIreduced\'
+		GPI_REDUCED_DATA_DIR='E:\GPIdatabase\GPIreduced\'
 	end
 	'unix': begin
 		default_GPI_IFS_DIR = expand_path('~/GPI/')
 		initgpi_default_onepath, 'GPI_IFS_DIR', default_GPI_IFS_DIR, /directory
 		GPI_DRP_DIR=gpi_expand_path("$GPI_IFS_DIR/pipeline/")
 		GPI_RAW_DATA_DIR=gpi_expand_path("$GPI_IFS_DIR/data/raw/")
-		GPI_DRP_OUTPUT_DIR=gpi_expand_path("$GPI_IFS_DIR/data/reduced/")
+		GPI_REDUCED_DATA_DIR=gpi_expand_path("$GPI_IFS_DIR/data/reduced/")
 	end
 endcase
 
@@ -69,7 +69,7 @@ endcase
 
 initgpi_default_onepath, 'GPI_DRP_DIR', GPI_DRP_DIR, /directory
 initgpi_default_onepath, 'GPI_RAW_DATA_DIR', GPI_RAW_DATA_DIR, /directory, /write
-initgpi_default_onepath, 'GPI_DRP_OUTPUT_DIR', GPI_DRP_OUTPUT_DIR, /directory, /write
+initgpi_default_onepath, 'GPI_REDUCED_DATA_DIR', GPI_REDUCED_DATA_DIR, /directory, /write
 
 
 
@@ -88,7 +88,7 @@ initgpi_default_onepath, 'GPI_DRP_CONFIG_DIR', GPI_DRP_CONFIG_FILE, /directory, 
 ;   file_test(GPI_DRF_TEMPLATES_DIR, /directory, /write) && $
 ;   file_test(GPI_RAW_DATA_DIR, /directory, /write) && $
 ;   file_test(GPI_DRP_DIR,/directory, /write) && $
-;   file_test(GPI_DRP_OUTPUT_DIR,/directory, /write)  then begin
+;   file_test(GPI_REDUCED_DATA_DIR,/directory, /write)  then begin
 ;      setenv,'GPI_QUEUE_DIR='+GPI_QUEUE_DIR
 ;      setenv,'GPI_CONFIG_FILE='+GPI_CONFIG_FILE
 ;      setenv,'GPI_DRF_TEMPLATES_DIR='+GPI_DRF_TEMPLATES_DIR
@@ -96,7 +96,7 @@ initgpi_default_onepath, 'GPI_DRP_CONFIG_DIR', GPI_DRP_CONFIG_FILE, /directory, 
 ;      setenv,'GPI_DRP_DIR='+GPI_DRP_DIR
 ;      setenv,'GPI_DRP_LOG_DIR='+GPI_DRP_LOG_DIR
 ;      setenv,'GPI_DRP_DRF_DIR='+GPI_DRP_LOG_DIR
-;      setenv,'GPI_DRP_OUTPUT_DIR='+GPI_DRP_OUTPUT_DIR
+;      setenv,'GPI_REDUCED_DATA_DIR='+GPI_REDUCED_DATA_DIR
 ;endif else begin
 ;	FindPro, 'initgpi_default_paths', dirlist=dirlist
 ;	print, 'ERROR when initializing the pipeline: '

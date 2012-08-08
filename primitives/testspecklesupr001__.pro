@@ -57,7 +57,7 @@ nlam=(lambdamax-lambdamin)/dlam
 lambdalow= lambdamin+(lambdamax-lambdamin)*(findgen(floor(nlam))/floor(nlam))+0.5*(lambdamax-lambdamin)/floor(nlam)
 print, 'delta_lambda [um]=', dlam, 'spectral resolution=',specresolution,'#canauxspectraux=',nlam,'vect lam=',lambdalow
 
-repDST=getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()
+repDST=gpi_get_directory('DST')+path_sep()
 case strcompress(compspec,/rem) of
 'L1': begin
 fileSpectra=repDST+'compspec'+path_sep()+'L1_2MASS0345+25.txt'

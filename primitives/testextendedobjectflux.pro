@@ -29,8 +29,8 @@ primitive_version= '$Id: testextendedobjectflux.pro 11 2010-11-25 10:22:03 maire
 mydevice = !D.NAME
 ;retrieve DST input parameters:
 InputObjFilename= Modules[thisModuleIndex].ComparisonFile
- ;if needed, replace GPI_DRP_OUTPUT_DIR in filename
-      if strmatch(InputObjFilename,'GPI_DST$*') then strreplace, InputObjFilename, 'GPI_DST$', getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()+'testdata'+path_sep()
+ ;if needed, replace GPI_REDUCED_DATA_DIR in filename
+      ;if strmatch(InputObjFilename,'GPI_DST$*') then strreplace, InputObjFilename, 'GPI_DST$', getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()+'testdata'+path_sep()
 
 InputObj=readfits(InputObjFilename)
 ;stop
@@ -67,7 +67,7 @@ measObj=transpose(shift(subarr(measurement,277),1,-2))
 ;if pairs eq 1 then begin
 ;filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
 ;slash=strpos(filnm,path_sep(),/reverse_search)
-;meas=readfits(getenv('GPI_DRP_OUTPUT_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+'diff.fits')
+;meas=readfits(getenv('GPI_REDUCED_DATA_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+'diff.fits')
 ;measStokes2=rotate(shift(subarr(meas,277),1,-2,0),1)
 ;endif
 ;comparisons begin here: 
@@ -112,7 +112,7 @@ if fcount eq 0 then filter = strcompress(sxpar( h ,'FILTER'),/REMOVE_ALL)
 suffixplot=(Modules[thisModuleIndex].suffix)
 legends=(Modules[thisModuleIndex].legendfig)
 
-    fnameps=getenv('GPI_DRP_OUTPUT_DIR')+'test13_'+strmid(filnm,slash+1,STRLEN(filnm)-5-slash)+suffixplot+filter        
+    fnameps=getenv('GPI_REDUCED_DATA_DIR')+'test13_'+strmid(filnm,slash+1,STRLEN(filnm)-5-slash)+suffixplot+filter        
   openps,fnameps+'.ps', xsize=17, ysize=27
   xr=xmax
       !P.MULTI = [0, 2, 3, 0, 0] 

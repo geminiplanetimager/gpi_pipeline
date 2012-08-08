@@ -20,6 +20,6 @@ setenv, 'GPI_DRP_CONFIG_FILE='+getenv('GPI_DRP_DIR')+path_sep()+'config'+path_se
 
 ; where is the data?
 setenv, 'GPI_RAW_DATA_DIR='+getenv('GPI_IFS_DIR')+path_sep()+'data'+path_sep()+'raw'+path_sep()
-setenv, 'GPI_DRP_OUTPUT_DIR='+getenv('GPI_IFS_DIR')+path_sep()+'data'+path_sep()+'reduced'+path_sep()
+setenv, 'GPI_REDUCED_DATA_DIR='+getenv('GPI_IFS_DIR')+path_sep()+'data'+path_sep()+'reduced'+path_sep()
 
 end

@@ -3,13 +3,14 @@
 # Stand alone script to launch GPI DRP IDL program.
 #
 
-#which xterm
-# check screen resolution 
-#set resol  `xdpyinfo | grep dimensions | awk '{ print $2 }'`
-#echo $resol
 
 # start the GUIs:
-\xterm -bg \#000033 -fg \#CCCC00 -geometry 80x30+20+20  -sb +ls -T 'idl: GPI DRP GUIs' -e idl $GPI_DRP_DIR/scripts/gpi-pipeline__launchguis.pro  &
+\xterm -bg \#000033 -fg \#CCCC00 -geometry 80x30+20+20  -sb +ls -T 'idl: GPI DRP GUIs' -e idl -e "\!quiet=0 & launch_drp,/guis ,/exit"   &
 
 # Start the pipeline:
-\xterm -bg \#000033 -fg \#FFFFAA -geometry 80x30+20+450 -sb +ls -T 'idl: GPI Pipeline' -e idl $GPI_DRP_DIR/scripts/gpi-pipeline__launchdrp.pro   &
+\xterm -bg \#000033 -fg \#FFFFAA -geometry 80x30+20+450 -sb +ls -T 'idl: GPI Pipeline' -e idl -e  "\!quiet=0 & gpipiperun "  &
+
+
+# old versions of this code:
+#;\xterm -bg \#000033 -fg \#CCCC00 -geometry 80x30+20+20  -sb +ls -T 'idl: GPI DRP GUIs' -e idl $GPI_DRP_DIR/scripts/gpi-pipeline__launchguis.pro  &
+#\xterm -bg \#000033 -fg \#FFFFAA -geometry 80x30+20+450 -sb +ls -T 'idl: GPI Pipeline' -e idl $GPI_DRP_DIR/scripts/gpi-pipeline__launchdrp.pro   &

@@ -684,11 +684,9 @@ end
 ;-----------------------------------------------------------------------------------------------------
 PRO gpidrfparser::newdataset, AttNames, AttValues
 
-	;COMMON APP_CONSTANTS
-    ;MAXFRAMESINDATASETS =150;pipelineConfig.MAXFRAMESINDATASETS
 	DataSet = {structDataSet}			; Create a new structDataSet variable
 
-	MAXFRAMESINDATASETS = n_elements(DataSet.Frames)
+	MAXFRAMESINDATASETS = gpi_get_setting('max_files_per_drf')
 	DataSet.Frames = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
 	DataSet.HeadersPHU = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
 	DataSet.HeadersExt = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)

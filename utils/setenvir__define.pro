@@ -91,13 +91,13 @@ case tag_names(ev, /structure_name) of
                  setenv,'GPI_RAW_DATA_DIR='+dir
               end
             'changeGDOD':begin
-                 dir = DIALOG_PICKFILE(PATH=getenv('GPI_DRP_OUTPUT_DIR'), Title='Choose directory for GPI_DRP_OUTPUT_DIR',/must_exist , /directory)
+                 dir = DIALOG_PICKFILE(PATH=getenv('GPI_REDUCED_DATA_DIR'), Title='Choose directory for GPI_REDUCED_DATA_DIR',/must_exist , /directory)
                  if ~(file_test(dir,/dir,/write)) then begin
                   widget_control,self.information_id,set_value='Repertory inexistent or without writing permission.'
                   dir=''
                  endif 
                  if dir ne '' then widget_control, self.GDODdir_id, set_value=dir
-                 setenv,'GPI_DRP_OUTPUT_DIR='+dir
+                 setenv,'GPI_REDUCED_DATA_DIR='+dir
               end
               'Save envir. var.':begin
                   GID=getenv('GPI_IFS_DIR')
@@ -107,7 +107,7 @@ case tag_names(ev, /structure_name) of
                   GQD=getenv('GPI_DRP_QUEUE_DIR')
                   GCF= getenv('GPI_DRP_CONFIG_DIR')
                   GRDD=getenv('GPI_RAW_DATA_DIR')
-                  GDOD=getenv('GPI_DRP_OUTPUT_DIR')
+                  GDOD=getenv('GPI_REDUCED_DATA_DIR')
                     ;select GPI_IFS_DIR directory for saving (need to be writable). PIPELINE_DIR could be non-writable
                     save, GID,GPD,GPLD,GDTD,GQD,GCF,GRDD,GDOD,FILENAME = getenv('GPI_IFS_DIR')+path_sep()+'environment_variables.sav'
               end
@@ -130,7 +130,7 @@ case tag_names(ev, /structure_name) of
                  widget_control, self.GCF_id, set_value=GCF
                  setenv,'GPI_RAW_DATA_DIR='+GRDD
                  widget_control, self.GRDDdir_id, set_value=GRDD
-                 setenv,'GPI_DRP_OUTPUT_DIR='+GDOD
+                 setenv,'GPI_REDUCED_DATA_DIR='+GDOD
                  widget_control, self.GDODdir_id, set_value=GDOD
                endif
               end
@@ -153,10 +153,14 @@ case tag_names(ev, /structure_name) of
 
 
 end
+;--------------------------
 function setenvir::act
   return, self.quit
 end
+;--------------------------
 function setenvir::init
+
+stop
 self.base = widget_base(title='Environment variables', /column)
 base=self.base
 void = widget_label(base, value='Please verify or define environment variables hereafter.')
@@ -179,7 +183,7 @@ cd, current=cur_rep
                if getenv('GPI_DRP_QUEUE_DIR') eq '' then setenv,'GPI_DRP_QUEUE_DIR='+GQD
                if getenv('GPI_DRP_CONFIG_DIR') eq '' then setenv,'GPI_DRP_CONFIG_DIR='+GCF
                if getenv('GPI_RAW_DATA_DIR') eq '' then setenv,'GPI_RAW_DATA_DIR='+GRDD
-               if getenv('GPI_DRP_OUTPUT_DIR') eq '' then setenv,'GPI_DRP_OUTPUT_DIR='+GDOD 
+               if getenv('GPI_REDUCED_DATA_DIR') eq '' then setenv,'GPI_REDUCED_DATA_DIR='+GDOD 
                textinfo=cur_rep+path_sep()+'environment_variables.sav has been restored for non-existent variables.'
  endif else begin
        textinfo= 'No file environment_variables.sav found in '+ cur_rep
@@ -229,10 +233,10 @@ button_id = WIDGET_BUTTON(base6,Value='Change dir...',Uvalue='changeGQD',ysize=y
 
 
 base9=widget_base(base, /row)
-if (file_test(getenv('GPI_DRP_OUTPUT_DIR'),/dir,/write)) then val=getenv('GPI_DRP_OUTPUT_DIR') else val=''
+if (file_test(getenv('GPI_REDUCED_DATA_DIR'),/dir,/write)) then val=getenv('GPI_REDUCED_DATA_DIR') else val=''
 void= widget_label(base9,Value='Reduced data dir.:',ysize=ys,XSIZE=xs0, /tracking_events,Uvalue='GDOD')
-void= widget_label(base9,Value='GPI_DRP_OUTPUT_DIR :',ysize=ys,XSIZE=xs, /tracking_events,Uvalue='GDOD')
-self.GDODdir_id = WIDGET_TEXT(base9,Value=val,Uvalue='GPI_DRP_OUTPUT_DIR',XSIZE=50)
+void= widget_label(base9,Value='GPI_REDUCED_DATA_DIR :',ysize=ys,XSIZE=xs, /tracking_events,Uvalue='GDOD')
+self.GDODdir_id = WIDGET_TEXT(base9,Value=val,Uvalue='GPI_REDUCED_DATA_DIR',XSIZE=50)
 button_id = WIDGET_BUTTON(base9,Value='Change dir...',Uvalue='changeGDOD',ysize=ys)
 
 void = widget_label(base, value='')

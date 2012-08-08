@@ -1770,7 +1770,7 @@ pro drfgui::init_data, _extra=_Extra
 
         ; if no configuration file, choose reasonable defaults.
         self.tempdrfdir = 	gpi_get_directory('GPI_DRP_TEMPLATES_DIR')
-        self.outputdir = 	gpi_get_directory('GPI_DRP_OUTPUT_DIR')
+        self.outputdir = 	gpi_get_directory('GPI_REDUCED_DATA_DIR')
         self.logdir = 		gpi_get_directory('GPI_DRP_LOG_DIR')
         self.queuedir =	gpi_get_directory('GPI_DRP_QUEUE_DIR')
 		self.inputcaldir =	gpi_get_directory('calibrations_dir')

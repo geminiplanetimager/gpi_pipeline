@@ -11,7 +11,7 @@ mydevice = !D.NAME
 thisLetter = "155B
 greekLetter = '!9' + String(thisLetter) + '!X'
 
-openps,gpi_get_directory('GPI_DRP_OUTPUT_DIR')+path_sep()+datanamewoext+'telluric.ps', xsize=17, ysize=27 ;, ysize=10, xsize=15
+openps,gpi_get_directory('GPI_REDUCED_DATA_DIR')+path_sep()+datanamewoext+'telluric.ps', xsize=17, ysize=27 ;, ysize=10, xsize=15
   !P.MULTI = [0, 1, 3, 0, 0] 
 plot,lambda,fluxsatmedabs,ytitle='Telluric transmission', xtitle='Wavelength (' + greekLetter + 'm)',$
  xrange=[lambda[0],lambda[n_elements(lambda)-1]], charsize=1.5 

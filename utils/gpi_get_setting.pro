@@ -44,7 +44,7 @@
 
 
 
-function gpi_get_setting, settingname, expand_path=expand_path, int=int, bool=bool, rescan=rescan,silent=silent
+function gpi_get_setting, settingname, expand_path=expand_path, integer=int, bool=bool, rescan=rescan,silent=silent
 
 	common GPI_SETTINGS, globalsettings, usersettings
 
@@ -53,8 +53,10 @@ function gpi_get_setting, settingname, expand_path=expand_path, int=int, bool=bo
 		delvarx, usersettings
 	endif
 
-	;-------- First, load the user settings, if present
 	user_settings_file = gpi_expand_path("~")+path_sep()+".gpi_drp_config"
+	global_settings_file = gpi_get_directory("GPI_DRP_CONFIG_DIR")+path_sep()+"pipeline_settings.txt"
+
+	;-------- First, load the user settings, if present
 	if n_elements(usersettings) eq 0  and file_test(user_settings_file) then begin
 		if ~(keyword_set(silent)) then message,/info,"Reading in user settings file: "+user_settings_file
 		; FIXME make this more robust to any whitespace as separator
@@ -75,7 +77,6 @@ function gpi_get_setting, settingname, expand_path=expand_path, int=int, bool=bo
 	endif
 	;-------- load global settings
 	if n_elements(globalsettings) eq 0 then begin
-		global_settings_file = gpi_get_directory("GPI_CONFIG_DIR")+path_sep()+"pipeline_settings.txt"
 		if ~(keyword_set(silent)) then message,/info,"Reading in global settings file: "+global_settings_file
 		; FIXME make this more robust to any whitespace as separator
 		readcol, global_settings_file, format='A,A', comment='#', globalsetting_names, values, count=count, /silent
@@ -104,7 +105,8 @@ function gpi_get_setting, settingname, expand_path=expand_path, int=int, bool=bo
 			if ~(keyword_set(silent)) then begin
 				message,/info,"-----------------------------------------"
 				message,/info, "ERROR: could not find a setting named "+settingname
-				message,/info, "Check your configuration file : "+user_settings_file
+				message,/info, "Check your user configuration file : "+user_settings_file
+				message,/info, " and global configuration file :     "+global_settings_file
 				message,/info,"-----------------------------------------"
 			endif
 			return, 'ERROR'

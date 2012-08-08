@@ -60,7 +60,7 @@ nlam=(lambdamax-lambdamin)/dlam
 lambdalow= lambdamin+(lambdamax-lambdamin)*(findgen(floor(nlam))/floor(nlam))+0.5*(lambdamax-lambdamin)/floor(nlam)
 print, 'delta_lambda [um]=', dlam, 'spectral resolution=',specresolution,'#canauxspectraux=',nlam,'vect lam=',lambdalow
 
-repDST=getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()
+repDST=gpi_get_directory('GPI_DST_DIR')
 case strcompress(compspec,/rem) of
 'L1': begin
 fileSpectra=repDST+'compspec'+path_sep()+'L1_2MASS0345+25.txt'
@@ -168,7 +168,7 @@ title=strcompress(SXPAR( hdrextr, 'SPECTYPE'),/rem)+' star, Exposure='+strcompre
 
 basen=file_basename(res[0])
 basenwoext=strmid(basen,0,strlen(basen)-5)
-openps,getenv('GPI_DRP_OUTPUT_DIR')+path_sep()+'fig'+path_sep()+basenwoext+'.ps', xsize=17, ysize=27 ;, ysize=10, xsize=15
+openps,getenv('GPI_REDUCED_DATA_DIR')+path_sep()+'fig'+path_sep()+basenwoext+'.ps', xsize=17, ysize=27 ;, ysize=10, xsize=15
   !P.MULTI = [0, 1, 3, 0, 0] 
 units=TeXtoIDL(" W/m^{2}/\mum")
 deltaH=TeXtoIDL(" \Delta H=")

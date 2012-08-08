@@ -26,7 +26,7 @@ primitive_version= '$Id: testpolcal001.pro 11 2010-10-28 10:22:03 maire $' ; get
 @__start_primitive
 mydevice = !D.NAME
 ;;; First, if not already done, need to format the DST Zemax file as a DRP wavelength solution
-rep=getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()
+rep=gpi_get_directory('DST')+path_sep()
 
 ;filter='H'
 ;nlens=281
@@ -185,7 +185,7 @@ h=*(dataset.headersPHU[numfile])
 testwav=SXPAR( h, 'TESTWAV',count=c1)
 if c1 ne 0 then testchr='nbpk'+strc(n_elements(strsplit(testwav,'/'))) else testchr=''
 suffixplot=(Modules[thisModuleIndex].suffix)
-    fnameps=getenv('GPI_DRP_OUTPUT_DIR')+'test2_'+strmid(filnm,slash+1,STRLEN(filnm)-5-slash)+suffixplot+filter+testchr+strc(zemwav)        
+    fnameps=getenv('GPI_REDUCED_DATA_DIR')+'test2_'+strmid(filnm,slash+1,STRLEN(filnm)-5-slash)+suffixplot+filter+testchr+strc(zemwav)        
   openps,fnameps+'dst.ps', xsize=17, ysize=27
   !P.MULTI = [0, 1, 2, 0, 0] 
   PLOT, loc,hist1x, $ 

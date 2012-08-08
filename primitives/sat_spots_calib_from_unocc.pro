@@ -222,7 +222,7 @@ if tests eq 1 then begin
     greekLetter = '!9' + String(thisLetter) + '!X'
     thisModuleIndex = Backbone->GetCurrentModuleIndex()
     ;figtitle=(Modules[thisModuleIndex].title)
-    openps,getenv('GPI_DRP_OUTPUT_DIR')+path_sep()+'test04.ps', xsize=15, ysize=15 ;, ysize=10, xsize=15
+    openps,getenv('GPI_REDUCED_DATA_DIR')+path_sep()+'test04.ps', xsize=15, ysize=15 ;, ysize=10, xsize=15
       ;!P.MULTI = [0, 1, 2, 0, 0] 
 ;      plot, lambda, gridratio,ytitle='Grid ratio', xtitle='Wavelength (' + greekLetter + 'm)',$
 ;       xrange=[lambda[0],lambda[n_elements(lambda)-1]],linestyle=0, psym=1,charsize=1.,yrange=[0.8e4,1.2e4];,title=''

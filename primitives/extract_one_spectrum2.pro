@@ -246,7 +246,7 @@ calc_res=0
  if strmatch(obstype, '*wavecal*') then begin
     if strmatch(lamp, '*Argon*') then lampe='Ar'
     if strmatch(lamp, '*Xenon*') then lampe='Xe'
-        readcol, getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()+lampe+'ArcLampG.txt', wavelen, strength
+        readcol, getenv('GPI_DST_DIR')+path_sep()+lampe+'ArcLampG.txt', wavelen, strength
       wavelen=1.e-4*wavelen
         spect = fltarr(n_elements(xlam))      
         wg = where(wavelen gt min(xlam) and wavelen lt max(xlam), gct)      
