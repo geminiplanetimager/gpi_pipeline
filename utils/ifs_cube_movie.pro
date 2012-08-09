@@ -141,7 +141,7 @@ for j=0,sz[2]-1 do begin
    ;;write wavelength, if necessary
    if n_elements(lambdas) ne 0 then begin
       erase
-      xyouts,0,0,strtrim(lambdas[j],2)+' '+mu,charsize=1.5
+      xyouts,0,0,strtrim(sigfig(lambdas[j],4),2)+' '+mu,charsize=1.5
       snapshot = tvrd()
       inds = where(snapshot ne 0)
       fim[inds] = snapshot[inds]
