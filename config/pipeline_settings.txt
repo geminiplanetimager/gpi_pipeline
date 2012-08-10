@@ -14,7 +14,7 @@ organize_reduced_data_by_dates  1
 organize_DRFs_by_dates		1
 parsergui_auto_queue	0
 prevent_multiple_instances  0
-ifs_lenslet_scale	0.014
+#ifs_lenslet_scale	0.014
 pix_to_ripple   122.53444
 mems_rotation   0.017453293
 prompt_user_for_questionable_data	1
@@ -22,4 +22,4 @@ prompt_user_for_outputdir_creation	0
 max_files_per_drf	200
 # lenslet scale based on measurement by James Larkin:
 ifs_lenslet_scale       0.01409		
-
+gpitv_default_scale     log
