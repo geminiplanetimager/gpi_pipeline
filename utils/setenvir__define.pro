@@ -160,7 +160,6 @@ end
 ;--------------------------
 function setenvir::init
 
-stop
 self.base = widget_base(title='Environment variables', /column)
 base=self.base
 void = widget_label(base, value='Please verify or define environment variables hereafter.')

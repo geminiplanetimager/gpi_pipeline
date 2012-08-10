@@ -4,69 +4,49 @@
 ;  2011-07-29 MP: Validation of directory write permissions fixed up a bit. 
 ;  2012-01-26 MP: Modified to use for loops. 
 ;  2012-08-07 MP: Partial cleanup and simplification. Removed GPI_IFS_DIR as
-;  					redundant. GPI_DRP_OUTPUT_DIR -> GPI_REDUCED_DATA_DIR
+;  					redundant. GPI_DRP_OUTPUT_DIR
+;  					-> GPI_REDUCED_DATA_DIR
+;  2012-08-10 DS: Changed dirs marked as optional in setup doc to
+;                 actually be optional
 ;
 ;  FIXME: should try to clean up / reorganize this code? 
 
 function gpi_is_setenv, first=first
-
-
-if keyword_set(first) then begin 
-	runfromvm = LMGR(/VM)
-	if (runfromvm eq 0) && (float(!version.release) lt 6.3) then begin
-	   void=dialog_message('The DRP can not run with IDL version below v6.3. Please use IDL v6.3 or higher, or run DRP from executables.')
-	   return,-1
-	endif
-
-	vars_to_test = ['GPI_DRP_DIR', 'GPI_DRP_LOG_DIR', 'GPI_DRP_TEMPLATES_DIR', 'GPI_DRP_QUEUE_DIR', 'GPI_DRP_CONFIG_DIR', 'GPI_RAW_DATA_DIR', 'GPI_REDUCED_DATA_DIR']
-	test_dir = [1,1,1,1,1,1,1]
-	test_writable = [ 0, 1, 0, 1, 1,0,1]
-
-	all_ok = 1
-	for ii=0L,n_elements(vars_to_test)-1 do begin
-		res = file_test( getenv( vars_to_test[ii]), dir=test_dir[ii], write=test_writable[ii])
-		res2 = file_test( gpi_get_directory( vars_to_test[ii]), dir=test_dir[ii], write=test_writable[ii])
-		if not (res or res2) then message,/info,'ERROR: Environment variable '+vars_to_test[ii]+' is not well defined.'
-		all_ok = all_ok*(res or res2)
-	endfor 
-	return, all_ok
-
-
   
-endif else begin  
-	; check all the supplied directories exist.
+  ;;these are the things we care about
+  ;;name=name, writeable=0|1, isidr=0|1, me=0|1 (must exist)
+  env =       {name:'GPI_DRP_QUEUE_DIR',     writeable:1, isidr:1, me:1}
+  env = [env, {name:'GPI_RAW_DATA_DIR',      writeable:0, isidr:1, me:1}]
+  env = [env, {name:'GPI_REDUCED_DATA_DIR',  writeable:1, isidr:1, me:1}]
+  env = [env, {name:'GPI_DRP_DIR',           writeable:0, isidr:1, me:0}]
+  env = [env, {name:'GPI_DRP_CONFIG_DIR',    writeable:0, isidr:1, me:0}]
+  env = [env, {name:'GPI_DRP_TEMPLATES_DIR', writeable:0, isidr:1, me:0}]
+  env = [env, {name:'GPI_CALIBRATIONS_DIR',  writeable:1, isidr:1, me:0}]
+  env = [env, {name:'GPI_DRP_LOG_DIR',       writeable:1, isidr:1, me:0}]
 
-	drpvartab = ['GPI_DRP_DIR', 'GPI_DRP_LOG_DIR', 'GPI_DRP_TEMPLATES_DIR', 'GPI_DRP_QUEUE_DIR', 'GPI_DRP_CONFIG_DIR', 'GPI_RAW_DATA_DIR', 'GPI_REDUCED_DATA_DIR']
-	test_dir = [1,1,1,1,0,1,1]
-	txtmes=''
-            
-	for ii=0, n_elements(drpvartab)-1 do begin
-		test1 = file_test(getenv(drpvartab[ii]),dir=strmatch(drpvartab[ii],'*DIR'))
-		test2 = file_test(gpi_get_directory(drpvartab[ii]),dir=strmatch(drpvartab[ii],'*DIR'))
-		if ~(test1 or test2) then txtmes+= ' '+drpvartab[ii]
-	endfor   
+  ;;if this is a first incarnation, check for proper idl version and
+  ;;try to fill in as many missing env vars with defaults
+  if keyword_set(first) then begin 
+     runfromvm = LMGR(/VM)
+     if (runfromvm eq 0) && (float(!version.release) lt 6.3) then begin
+        void = dialog_message('The DRP can not run with IDL version below v6.3.'+$
+                              'Please use IDL v6.3 or higher, or run DRP from executables.')
+        return,-1
+     endif
+  endif
 
-    if txtmes ne '' then begin 
-        if ~keyword_set(first) then void=dialog_message(txtmes+' does not exist. Please select existent directory.')
-        return,0
-    endif 
-	
-	; check that a subset of them are writeable.
-	drpvartabwritable=['GPI_DRP_LOG_DIR',$
-			'GPI_DRP_QUEUE_DIR','GPI_REDUCED_DATA_DIR']
+  if (!D.NAME eq 'WIN') then newline = string([13B, 10B]) else newline = string(10B)
+  retval = 1
+  for j = 0,n_elements(env)-1 do begin
+     ;;gpi_get_directory always looks for env vars first and takes
+     ;;care of default values, so we rely on it completely
+     dir = gpi_get_directory(env[j].name,method=method)
+     res = file_test(dir, dir = env[j].isidr, write = env[j].writeable )
+     if not res then begin
+        retval = 0
+        message,env[j].name+' value of '+newline+dir+newline+' derived from a(n) '+method+' is not valid.',/info
+     endif
+  endfor
 
-	txtmeswritable=''
-	for ii=0, n_elements(drpvartabwritable)-1 do begin
-		if ~file_test(getenv(drpvartabwritable[ii]),/dir,/write) then txtmeswritable+= ' '+drpvartabwritable[ii]
-	endfor   
-	if txtmeswritable ne '' then begin 
-		if ~keyword_set(first) then void=dialog_message('The path in '+txtmeswritable+'  is NOT WRITABLE. Please select a writable directory.')
-		return,0
-	endif  else begin
-	
-	
-		return,1
-	endelse    
-
-endelse  
+  return, retval
 end   

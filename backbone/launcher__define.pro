@@ -391,7 +391,6 @@ end
 ;------------------
 FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, clear_shm=clear_shm, _extra=_extra
 
- 
 ; Ensure environment variables are set properly & to valid values. If not, ask the user to fix them.
 issetenvok=gpi_is_setenv(/first)
 if issetenvok eq 0 then begin
@@ -404,7 +403,7 @@ if issetenvok eq 0 then begin
         obj_destroy, obj
   endwhile
 endif else if issetenvok eq -1 then return,0
-  if issetenvok eq -1 then return,0
+if issetenvok eq -1 then return,0
   
 	self.max_sess = n_elements(self.sessions)
 	self.queuelen=10
