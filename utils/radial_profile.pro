@@ -51,7 +51,7 @@ pro radial_profile,im0,cens,lambda=lambda,rmax=rmax,rsum=rsum,$  ;;inputs
   if not keyword_set(lambda) then lambda = lambda0
   sz = size(im0,/dim)
   cent = [mean(cens[0,*]),mean(cens[1,*])]
-  scl = 0.12d*lambda/lambda0
+  scl = 0.12d;;*lambda/lambda0 ;temporary hack to work with gpitv
 
   pixscl = gpi_get_setting('ifs_lenslet_scale')
   if ~strcmp(pixscl,'ERROR',/fold_case) then pixscl = double(pixscl) else $
