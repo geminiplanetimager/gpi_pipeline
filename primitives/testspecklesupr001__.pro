@@ -132,7 +132,7 @@ script=SXPAR( header, 'DSTSCRIP',count=cscr)
           nbcomp=0
           compangsep=fltarr(100) & compangrot=fltarr(100) & compmagh=fltarr(100)
 if cscr gt 0 then begin
-system_file=getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()+script;'system_script3.idl'
+system_file=gpi_get_directory('GPI_DST_DIR')+path_sep()+script;'system_script3.idl'
   if ~file_test(system_file) then message, "That file "+system_file+" does not exist!"
           tfile = rd_tfile(system_file)
           message,/info, "now reading script file "+system_file

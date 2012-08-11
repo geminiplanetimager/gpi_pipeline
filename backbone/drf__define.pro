@@ -293,16 +293,13 @@ end
 
 ;--------------------------------------------------------------------------------
 function drf::get_configParser
-	; Parse the DRS Config XML file 
+	; Parse the Primitive Config XML file 
 	; and update my knowledge of available modules
 	;
 	; This function returns an object reference; be sure to destroy it when you're
 	; done
 
-    ; old convention:
-	config_file=getenv('GPI_DRP_CONFIG_FILE') 
-    ; new convention
-    if ~file_test(config_file) then config_file = gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+"gpi_pipeline_primitives.xml"
+	config_file = gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+"gpi_pipeline_primitives.xml"
 
     if ~file_test(config_file) then message, 'ERROR: Cannot find DRS Config File! It ought to be at '+config_file+" but is not."
 
@@ -317,27 +314,55 @@ end
 
 
 ;--------------------------------------------------------------------------------
-function drf::init, filename, parent_object=parent_object
+function drf::init, filename, parent_object=parent_object,silent=silent,quick=quick
+	;
+	; INPUTS:
+	; 	filename	name of DRF XML file to read in and create an object from.
+	;
+	; KEYWORDS:
+	; 	parent_object=	object handle to some parent, used for logging if
+	; 					provided. Optional.
+	; 	/silent			don't print text to screen while working.
+	;
+	; 	/quick			By default, when you parse a DRF it also parses the
+	; 					pipeline primitives config XML file, so it can convert
+	; 					descriptive string routine names into IDL function names. 
+	; 					If you're not actually the pipeline, you probably don't
+	; 					care about this, and it's faster to not do the
+	; 					conversion.
+	;
+	; 					FIXME: this could almost certainly be programmed more
+	; 					elegantly; This is already a workaround for legacy
+	; 					OSIRIS code that is clunkier than I would like. 
+	;
+	; 					Unless you are the GPI pipeline itself, you can
+	; 					probably get away with using /quick. Maybe it should be
+	; 					the default?   -MP 2012-08-09
 
+	if obj_valid(parent_object) then self.where_to_log = parent_object
 
 	if ~(keyword_set(filename)) then invalid=1
 	if ~file_test(filename) then invalid=1
 	
 	if keyword_set(invalid) then begin
-		self->Log,'You need to create a DRF object with a file path pointing to a valid DRF on disk.'
+		self->Log,'You tried to create a DRF object with a file path pointing to an invalid/nonexistent file on disk.'
+		self->Log,'  requested filename was: '+filename
 		return, 0
 	endif
 
 	self.loadedDRF=filename
 
     ; now parse the requested DRF.
-    ; First re-parse the config file (so we know about all the available modules
-    ; and their arguments)
-    ConfigParser = self->get_configParser()
-    self.parsed_drf= OBJ_NEW('gpiDRFParser')
+	if ~(keyword_set(quick)) then begin
+		; First re-parse the config file (so we know about all the available modules
+		; and their arguments)
+		ConfigParser = self->get_configParser()
+	endif 
 
     ; then parse the DRF and get its contents
+    self.parsed_drf= OBJ_NEW('gpiDRFParser')
     self.parsed_drf->ParseFile, self.loadedDRF,  ConfigParser, gui=self, silent=silent
+
     drf_summary = self.parsed_drf->get_summary()
     drf_contents = self.parsed_drf->get_drf_contents()
     drf_module_names = drf_contents.modules.name
@@ -345,9 +370,14 @@ function drf::init, filename, parent_object=parent_object
 	self.reductiontype = drf_contents.reductiontype
 	self.inputdir = drf_contents.inputdir
 	self.name = drf_summary.name
-	if obj_valid(parent_object) then self.where_to_log = parent_object
 
 	return, 1
+end
+
+;--------------------------------------------------------------------------------
+function drf::get_summary
+    drf_contents = self.parsed_drf->get_drf_contents()
+	return, {filename: self.loadedDRF, type: self.ReductionType, name: self.name, nsteps: n_elements(drf_contents.modules)}
 end
 
 ;--------------------------------------------------------------------------------

@@ -41,8 +41,11 @@ primitive_version= '$Id: rotate_north_up.pro 674 2012-03-31 17:54:07Z Dmitry $' 
 	if method ne 'CUBIC' and method ne 'FFT' then return, error("Invalid rotation method: "+method)
 
     ; ====== Rotation =======
-	rotangle_d = atan(1,2)*!radeg -2 ; FIXME I don't understand where the 2 degree offset comes from?? -MP
-	rotangle_d *= -1 ; HACK HACK FIXME
+	; FIXME I don't understand where the 2 degree offset comes from?? -MP
+	rotangle_d = gpi_get_setting('ifs_lenslet_rotation', default=atan(1,2)*!radeg -2)
+	; and we need to flip the sign here since we want to rotate back in the
+	; opposite direction
+	rotangle_d *= -1
 
     padsize=281
     cube0 =cube

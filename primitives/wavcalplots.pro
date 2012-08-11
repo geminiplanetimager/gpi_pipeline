@@ -84,9 +84,11 @@ plotc, theta, 8, tx,ty,'micro-lens','micro-lens','distance between spectra [dete
 plotc, reform(wavcal[*,*,3]), 9, tx,ty,'micro-lens','micro-lens','coeef wavcal'
 endif
 
-lamzem=readfits(getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()+'zemdispLam'+band+'.fits')
-zemY=readfits(getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()+'zemdispX'+band+'.fits')+1024.
-zemX=readfits(getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()+'zemdispY'+band+'.fits')+1024.
+rep=gpi_get_directory('GPI_DST_DIR')+path_sep()
+
+lamzem=readfits(rep+'zemdispLam'+band+'.fits')
+zemY=readfits(rep+'zemdispX'+band+'.fits')+1024.
+zemX=readfits(rep+'zemdispY'+band+'.fits')+1024.
 ;shiftx=5 ;not needed
 ;shifty=-5  
 ;zemX0=zemX[*,*,0] ;zem locations at lambda_min ;shift(zemX[*,*,0], shiftx,shifty)

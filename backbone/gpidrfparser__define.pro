@@ -155,6 +155,23 @@ end
 ;------------------------------------------------------------
 
 PRO gpidrfparser::parsefile, FileName, Backbone=backbone, ConfigParser, gui_obj=gui_obj, silent=silent, status=status
+	; This is the main routine that actually parses a given file. 
+	;
+	; Depending on how it's called, it can either just read some info from the
+	; XML, or it can load a whole bunch of data into memory...
+	;
+	; INPUTS:
+	;   Filename	String naming the XML file to parse
+	;   ConFigParser	A DRSConfigParser object, for translating method names
+	;   				into IDL function calls.  Optional. That translation
+	;   				will not take place if this is not provided.
+	;
+	; KEYWORDS:
+	; 	backbone=	object handle to pipeline backbone, used for logging if
+	; 				provided.
+	;  
+	; HISTORY:
+	;    2012-08-09 MP: updated to make configparser optional.
 
 	status = -1
 	self.silent  = keyword_set(silent)
@@ -173,8 +190,8 @@ PRO gpidrfparser::parsefile, FileName, Backbone=backbone, ConfigParser, gui_obj=
 		return
 	endif
 
-  ;initialize just in case there is no present before scanning
-  Self.DRFName=''
+    ;initialize just in case there is no present before scanning
+    Self.DRFName=''
 
 	catch, parse_error
 	if parse_error eq 0 then Self -> IDLffXMLSAX::ParseFile, FileName
@@ -191,71 +208,36 @@ PRO gpidrfparser::parsefile, FileName, Backbone=backbone, ConfigParser, gui_obj=
 
 	(*self.modules).idlcommand=(*self.modules).name
 	; but for each module, check to see if there's a match in the lookup table
-	for i=0L,n_elements(*self.modules)-1 do begin
-		cmd = ConfigParser->GetIDLCommand((*self.modules)[i].Name, matched=matched)
-		if matched eq 0 then begin
-			message,/info, "No match found for "+(*self.modules)[i].Name+"; using that as the IDL command directly."
-			cmd = (*self.modules)[i].Name 
-		endif
-		(*self.modules)[i].IDLCommand = cmd
+	if keyword_set(configparser) then begin
+		for i=0L,n_elements(*self.modules)-1 do begin
+			cmd = ConfigParser->GetIDLCommand((*self.modules)[i].Name, matched=matched)
+			if matched eq 0 then begin
+				message,/info, "No match found for "+(*self.modules)[i].Name+"; using that as the IDL command directly."
+				cmd = (*self.modules)[i].Name 
+			endif
+			(*self.modules)[i].IDLCommand = cmd
 
-	endfor 
+		endfor 
+	endif
 
 	status = 1 ; completed OK!
 	; If we are running in one of the GUI modes, hand the data back to the GUI.
 	;if obj_valid(gui_obj) then $
 	;gui_obj->set_from_parsed_DRF, (*self.data).filenames, (*self.modules), (*self.data).inputdir, (self.reductiontype)
 
-  IF self->do_continueAfterDRFParsing()  EQ 1 THEN BEGIN
-  	; pass the updates back up to the backbone
-    Backbone.LogPath = Self.LogPath
-    Backbone.ReductionType = Self.ReductionType
-    Backbone.Data = Self.Data
-    Backbone.Modules = Self.Modules
-;    IF PTR_VALID(Self.UpdateLists) THEN BEGIN
-;      FOR i = 0, N_ELEMENTS(*Self.UpdateLists)-1 DO BEGIN
-;        PTR_FREE, (*Self.UpdateLists)[i].parameters
-;      ENDFOR
-;    ENDIF
-;    PTR_FREE, Self.UpdateLists
-;
-
+    IF self->do_continueAfterDRFParsing()  EQ 1 THEN BEGIN
+		; pass the updates back up to the backbone
+		Backbone.LogPath = Self.LogPath
+		Backbone.ReductionType = Self.ReductionType
+		Backbone.Data = Self.Data
+		Backbone.Modules = Self.Modules
   ENDIF 
-  ; MDP change: don't delete things here! This lets us
-  ; still access these *after* the parsing is done. 
-  ; Used in DRFGUI etc.
-  ;
-  ; The cleanup will happen in Cleanup when the object is 
-  ; destroyed, anyway. 
-  ;
-;  ELSE BEGIN  ; Cleanup everything and return from parsing.
-;    IF PTR_VALID(Self.UpdateLists) THEN BEGIN
-;      FOR i = 0, N_ELEMENTS(*Self.UpdateLists)-1 DO BEGIN
-;        PTR_FREE, (*Self.UpdateLists)[i].parameters
-;      ENDFOR
-;    ENDIF
-;
-;    IF PTR_VALID(Self.Data) THEN BEGIN
-;      FOR i = N_ELEMENTS(*Self.Data)-1, 0, -1 DO BEGIN
-;        PTR_FREE, (*Self.Data)[i].QualFrames[*]
-;        PTR_FREE, (*Self.Data)[i].UncertFrames[*]
-;        PTR_FREE, (*Self.Data)[i].Headers[*]
-;        PTR_FREE, (*Self.Data)[i].Frames[*]
-;      ENDFOR
-;    ENDIF
-;
-;    PTR_FREE, Self.UpdateLists
-;    PTR_FREE, Self.Modules
-;    PTR_FREE, Self.Data
-;  ENDELSE
-;
 END
 
 ;------------------------------------------------------------
 ; return a brief summary of the DRF element in a given file. 
 ; This is used by the Template scanning functions in DRFGUI.
 function gpidrfparser::get_summary
-
 
 	return, {filename: self.most_recent_filename, type: self.ReductionType, name: self.DRFname}
 
@@ -266,8 +248,6 @@ end
 ;
 
 PRO gpidrfparser::error, SystemID, LineNumber, ColumnNumber, Message
-  ;COMMON APP_CONSTANTS
-
   ; Any error parsing the input file is too much error for you.
 
   ; Log the error info
@@ -277,7 +257,6 @@ PRO gpidrfparser::error, SystemID, LineNumber, ColumnNumber, Message
   self->Log, 'ColumnNumber: ' + STRTRIM(STRING(ColumnNumber),2), /GENERAL, DEPTH=2
   self->Log, '     Message: ' + Message, /GENERAL, DEPTH=2
 
-	;pipelineConfig.continueAfterDRFParsing = 0
 END
 
 ;------------------------------------------------------------
@@ -286,7 +265,6 @@ END
 
 
 PRO gpidrfparser::fatalerror, SystemID, LineNumber, ColumnNumber, Message
-  ;COMMON APP_CONSTANTS
 
   ; Any fatal error parsing the input file is certainly too much error for you.
 
@@ -686,7 +664,7 @@ PRO gpidrfparser::newdataset, AttNames, AttValues
 
 	DataSet = {structDataSet}			; Create a new structDataSet variable
 
-	MAXFRAMESINDATASETS = gpi_get_setting('max_files_per_drf')
+	MAXFRAMESINDATASETS = gpi_get_setting('max_files_per_drf', default=200)
 	DataSet.Frames = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
 	DataSet.HeadersPHU = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
 	DataSet.HeadersExt = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)

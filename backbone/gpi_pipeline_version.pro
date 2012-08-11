@@ -14,10 +14,12 @@
 ;	2012-02-01:		verion 0.8
 ;					Improved MEF file support, Gemini style keywords, major code
 ;					reorganization and cleanup. - MP
+;	2012-08-08		The large number of improvements in the last few months
+;					clearly justify a bump to at least 0.8.1...
 ;
 ;-
 
 function gpi_pipeline_version
-version = '0.8'
+version = '0.8.1'
 return, version
 end

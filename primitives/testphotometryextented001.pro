@@ -168,7 +168,7 @@ title=strcompress(SXPAR( hdrextr, 'SPECTYPE'),/rem)+' star, Exposure='+strcompre
 
 basen=file_basename(res[0])
 basenwoext=strmid(basen,0,strlen(basen)-5)
-openps,getenv('GPI_REDUCED_DATA_DIR')+path_sep()+'fig'+path_sep()+basenwoext+'.ps', xsize=17, ysize=27 ;, ysize=10, xsize=15
+openps,gpi_get_directory('GPI_REDUCED_DATA_DIR')+path_sep()+'fig'+path_sep()+basenwoext+'.ps', xsize=17, ysize=27 ;, ysize=10, xsize=15
   !P.MULTI = [0, 1, 3, 0, 0] 
 units=TeXtoIDL(" W/m^{2}/\mum")
 deltaH=TeXtoIDL(" \Delta H=")

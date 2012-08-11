@@ -53,7 +53,7 @@ FUNCTION gpipipelinebackbone::Init,  session=session, verbose=verbose, nogui=nog
 	pipelineConfig = {$
 		logdir : gpi_get_directory("GPI_DRP_LOG_DIR"),     $ ; directory for output log files
 		continueAfterDRFParsing:0,        $    				; Should program actually run the pipeline or just parse?
-		MaxFramesInDataSets: gpi_get_setting('max_files_per_drf'),        $    				; Max # of files in one dataset in a DRF
+		MaxFramesInDataSets: gpi_get_setting('max_files_per_drf', default=200),        $    				; Max # of files in one dataset in a DRF
 		MaxMemoryUsage: 0L,                 $   			; this will eventually be used for array size limits on what gets done in memory versus swapped to disk.
 		desired_dispersion: 'vertical' $					; do we want horizontal or vertical spectra?
 	}
@@ -1343,23 +1343,31 @@ end
 ;-----------------------------------------------------------
 pro gpiPipelineBackbone::rescan_Config
 	self->Log, 'User requested rescan of data pipeline configuration files',/general
-	config_file=gpi_get_directory('GPI_DRP_CONFIG_DIR') +path_sep()+"gpi_pipeline_primitives.xml"
-    if file_test(config_file) then begin
-		if not lmgr(/runtime) then begin
-			self->Log,/general, "Rescanning for new primitives, and regenerating primitives config file."
-			make_drsconfigxml
-		endif
-		Self.ConfigParser -> ParseFile, config_file
-		self->Log, "Rescanned "+config_file
-		config = Self.ConfigParser->getidlfunc()
-		for i=0,n_elements(config.idlfuncs)-1 do begin
-			print, "Recompiling for "+config.names[i]
-			resolve_routine, config.idlfuncs[i], /is_func
-		endfor
-		self->Log, 'Refreshed all '+strc(n_elements(config.idlfuncs))+' available pipeline primitive procedures.'
-	endif
 
-  self.GPICalDB->rescan_directory    
+	; rescan config files
+	dummy = gpi_get_setting('max_files_per_drf',/rescan) ; can get any arbitrary setting here, just need to force the rescan
+
+	config_file=gpi_get_directory('GPI_DRP_CONFIG_DIR') +path_sep()+"gpi_pipeline_primitives.xml"
+	; regenerate primitives config file (if in real IDL, not runtime version)
+	; This will pick up any new routines that have been added to the pipeline.
+	; (Can't do this in runtime version since there's no way to compile new
+	; routines if added)
+	if not lmgr(/runtime) then begin
+		self->Log,/general, "Rescanning for new primitives, and regenerating primitives config file."
+		make_drsconfigxml
+	endif
+	; rescan primitives configuration file
+	Self.ConfigParser -> ParseFile, config_file
+	self->Log, "Rescanned "+config_file
+	config = Self.ConfigParser->getidlfunc()
+	for i=0,n_elements(config.idlfuncs)-1 do begin
+		print, "Recompiling for "+config.names[i]
+		resolve_routine, config.idlfuncs[i], /is_func
+	endfor
+	self->Log, 'Refreshed all '+strc(n_elements(config.idlfuncs))+' available pipeline primitive procedures.'
+
+	; rescan calibrations DB
+  	self.GPICalDB->rescan_directory    
 end
 ;
 ;-----------------------------------------------------------

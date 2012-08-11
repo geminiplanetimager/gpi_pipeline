@@ -29,7 +29,6 @@ primitive_version= '$Id: testextendedobjectflux.pro 11 2010-11-25 10:22:03 maire
 mydevice = !D.NAME
 ;retrieve DST input parameters:
 InputObjFilename= Modules[thisModuleIndex].ComparisonFile
-      ;if strmatch(InputObjFilename,'GPI_DST$*') then strreplace, InputObjFilename, 'GPI_DST$', getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()+'testdata'+path_sep()
 
 InputObj=readfits(InputObjFilename)
 ;stop
@@ -60,15 +59,6 @@ if (size(measurement))[0] eq 3 then measurement=reform(median(measurement[*,*,*]
 
 measObj=transpose(shift(subarr(measurement,277),1,-2))
 
-;stop
-;  one acting on the pairs of sums and difference images. 
-;pairs=0
-;if pairs eq 1 then begin
-;filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
-;slash=strpos(filnm,path_sep(),/reverse_search)
-;meas=readfits(getenv('GPI_REDUCED_DATA_DIR')+strmid(filnm,slash,STRLEN(filnm)-5-slash)+suffix+'diff.fits')
-;measStokes2=rotate(shift(subarr(meas,277),1,-2,0),1)
-;endif
 ;comparisons begin here: 
 ;calculate relative difference [%] between input and output Stokesn param.
 comparobj=100.*(measobj-Inputobj)/Inputobj 

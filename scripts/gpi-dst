@@ -3,6 +3,6 @@
 # Stand alone script to launch GPI DRP IDL program.
 #
 
-cd "${GPI_IFS_DIR}/dst/"
+#cd "${GPI_IFS_DIR}/dst/"
 idl -e dst
 

@@ -29,7 +29,7 @@ primitive_version= '$Id: testwavcal001.pro 11 2010-08-09 10:22:03 maire $' ; get
 
 mydevice = !D.NAME
 ;;; First, if not already done, need to format the DST Zemax file as a DRP wavelength solution
-  rep=getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()
+  rep=gpi_get_directory('GPI_DST_DIR')+path_sep()
   nlens=(size(*(dataset.currframe[0])))[1]
   wavcal1=*(dataset.currframe[0])
  

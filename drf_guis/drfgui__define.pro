@@ -506,13 +506,13 @@ PRO  drfgui::Scan_Templates
     templates = replicate(tmp, n_elements(template_file_list))
 
     ConfigParser = self->get_configParser()
-    Parser = OBJ_NEW('gpiDRFParser')
+    DRFParser = OBJ_NEW('gpiDRFParser')
     for i=0,n_elements(template_file_list)-1 do begin
         message,/info, 'scanning '+template_file_list[i]
-        Parser ->ParseFile, template_file_list[i],  ConfigParser,/silent
+        DRFParser ->ParseFile, template_file_list[i],  ConfigParser,/silent
         templates[i] = Parser->get_summary()
     endfor
-    obj_destroy, Parser
+    obj_destroy, DRFParser
     obj_destroy, configParser
 
     types = uniqvals(templates.type)

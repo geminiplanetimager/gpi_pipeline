@@ -478,15 +478,18 @@ pro parsergui::addfile, filenames, mode=mode
                                         'DARK':begin
                                             detectype=3
                                             detecseq=2                        
+											templatename='Dark'
                                         end
                                         'ARC': begin 
                                             if  current.dispersr eq 'WOLLASTON' then begin 
                                                 detectype=4
                                                 detecseq=2  
+												templatename='Create Polarized Flat-field'
                                             endif else begin                                                          
                                                 detectype=3
                                                 ;if current.filter eq 'Y' then  detecseq=9 else $
                                                 detecseq=3                  
+												templatename='Wavelength Solution'
                                             endelse                     
                                         end
                                         'FLAT': begin
@@ -497,7 +500,9 @@ pro parsergui::addfile, filenames, mode=mode
                                                 ; fields from these data, in two
                                                 ; passes
                                                 self->create_drf_from_template, self.tempdrfdir+path_sep()+"templates_drf_cal_pol_1.xml", file_filt_obst_disp_occ_obs_itime_object, current, datetimestr=datetimestr
+												templatename='Calibrate Polarization Spots Locations'
                                                 self->create_drf_from_template, self.tempdrfdir+path_sep()+"templates_drf_cal_pol_2.xml", file_filt_obst_disp_occ_obs_itime_object, current, datetimestr=datetimestr, mode=mode
+												templatename='Create Polarized Flat-field'
                                                 ;continue        aaargh can't continue inside a case. stupid IDL
                                                 detectype = -1
                                                 ;detectype=4
@@ -505,6 +510,7 @@ pro parsergui::addfile, filenames, mode=mode
                                             endif else begin              
                                                 detectype=3
                                                 detecseq=1   
+												templatename='Flat-field Extraction'
                                             endelse                             
                                         end
                                         'OBJECT': begin
@@ -512,6 +518,7 @@ pro parsergui::addfile, filenames, mode=mode
 											'WOLLASTON': begin 
                                                 detectype=2
                                                 detecseq=1  
+												templatename='Basic Polarization Sequence'
                                             end 
 											'PRISM': begin 
                                                 if  current.occulter eq 'blank'  then begin ;means no occulter
@@ -519,29 +526,34 @@ pro parsergui::addfile, filenames, mode=mode
                                                     if strmatch(current.obsclass, 'AstromSTD',/fold) then begin
                                                        detectype=3
                                                        detecseq=8  
+													   templatename="Lenslet scale and orientation"
                                                     endif
                                                     if strmatch(current.obsclass, 'Science',/fold) then begin
                                                        detectype=1
                                                        detecseq=4  
+													   templatename="Rotate and combine extended object"
                                                     endif
                                                     if ~strmatch(current.obsclass, 'AstromSTD',/fold) && ~strmatch(current.obsclass, 'Science',/fold) then begin
                                                        detectype=3
                                                        detecseq=7  
+													   templatename='Satellite Flux Ratios'
                                                     endif
                                                 endif else begin 
                                                     if n_elements(file_filt_obst_disp_occ_obs_itime_object) GE 5 then begin
                                                         detectype=1
                                                         detecseq=3 
+														templatename='Calibrated Data-cube extraction, ADI reduction'
                                                     endif else begin
                                                         detectype=1
                                                         detecseq=1 
+														templatename="Simple Datacube Extraction"
                                                     endelse
                                                 endelse
                                             end 
 											'OPEN': begin
                                                 detectype=6
                                                 detecseq=1  
- 
+ 												templatename="Simple Undispersed Image Extraction"
 											end
                                             endcase
                                         end     
@@ -550,11 +562,13 @@ pro parsergui::addfile, filenames, mode=mode
                                             if strmatch(uniqsortedobstype[indsortseq[fc]], '*laser*') then begin
                                                                     detectype=1
                                                                     detecseq=1 
+																	templatename=
                                             endif else begin
                                                self->Log, "Not sure what to do about obstype '"+uniqsortedobstype[indsortseq[fc]]+"'. Going to try the 'Fix Keywords' recipe but that's just a guess."
                                               ;add missing keywords
                                               detectype=3
                                               detecseq=5
+											  templatename=
                                             endelse
                                         end
                                         endcase
@@ -563,7 +577,7 @@ pro parsergui::addfile, filenames, mode=mode
                                         typetab=['astr_spec_','astr_pol_','cal_spec_','cal_pol_','online_', 'undispersed_']
                                         typename=typetab[detectype-1]           
                                         drf_to_load = self.tempdrfdir+path_sep()+'templates_drf_'+typename+strc(detecseq)+'.xml'
-                    if keyword_set(mode) && (mode eq 2) then if (total(strmatch(remcharf(file_filt_obst_disp_occ_obs_itime_object,path_sep()),remcharf(file[cindex-1]+'*',path_sep()))) eq 0) then continue
+                    					if keyword_set(mode) && (mode eq 2) then if (total(strmatch(remcharf(file_filt_obst_disp_occ_obs_itime_object,path_sep()),remcharf(file[cindex-1]+'*',path_sep()))) eq 0) then continue
                                         self->create_drf_from_template, drf_to_load, file_filt_obst_disp_occ_obs_itime_object, current, datetimestr=datetimestr, mode=mode
 
                                     endfor ;loop on object
