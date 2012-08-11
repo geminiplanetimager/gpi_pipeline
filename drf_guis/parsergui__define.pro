@@ -562,13 +562,13 @@ pro parsergui::addfile, filenames, mode=mode
                                             if strmatch(uniqsortedobstype[indsortseq[fc]], '*laser*') then begin
                                                                     detectype=1
                                                                     detecseq=1 
-																	templatename=
+																	templatename="Simple Datacube Extraction"
                                             endif else begin
                                                self->Log, "Not sure what to do about obstype '"+uniqsortedobstype[indsortseq[fc]]+"'. Going to try the 'Fix Keywords' recipe but that's just a guess."
                                               ;add missing keywords
                                               detectype=3
                                               detecseq=5
-											  templatename=
+											  templatename='Add set of missing keywords'
                                             endelse
                                         end
                                         endcase
