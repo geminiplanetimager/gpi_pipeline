@@ -137,7 +137,7 @@ function gpi_get_setting, settingname, expand_path=expand_path, integer=int, boo
 	;---- optional postprocessing
 	if keyword_set(expand_path) then result = gpi_expand_path(result)
 	if keyword_set(int) then result=fix(result)
-	if keyword_set(bool) then result=byte(result)
+	if keyword_set(bool) then result=byte(fix(result))
 
 	return, result
 	
