@@ -1,5 +1,5 @@
 pro radial_profile,im0,cens,lambda=lambda,rmax=rmax,rsum=rsum,$  ;;inputs
-                   dointerp=dointerp,doouter=doouter,$           ;;options
+                   dointerp=dointerp,doouter=doouter,iwa=iwa,$   ;;options
                    imed=imed,isig=isig,imn=imn,asec=asec         ;;outputs
 ;+
 ; NAME:
@@ -23,6 +23,7 @@ pro radial_profile,im0,cens,lambda=lambda,rmax=rmax,rsum=rsum,$  ;;inputs
 ;       rsum - summing mask for interpolations (defaults to zero)
 ;       /dointerp - Use cubic interpolation (overrides rsum)
 ;       /doouter - Calculate curve for region outside of the dark hole
+;       iwa - Inner working angle in l/D (defaults to 2.8)
 ;      
 ; OPTIONAL OUTPUT:
 ;       imed - array of median values
@@ -51,7 +52,8 @@ pro radial_profile,im0,cens,lambda=lambda,rmax=rmax,rsum=rsum,$  ;;inputs
   if not keyword_set(lambda) then lambda = lambda0
   sz = size(im0,/dim)
   cent = [mean(cens[0,*]),mean(cens[1,*])]
-  scl = 0.12d;;*lambda/lambda0 ;temporary hack to work with gpitv
+  if not keyword_set(iwa) then iwa = 2.8    ;lambda/D
+  iwa = iwa*lambda*1d-6/8d*180d/!dpi*3600d ;convert to arcsec
 
   pixscl = gpi_get_setting('ifs_lenslet_scale')
   if ~strcmp(pixscl,'ERROR',/fold_case) then pixscl = double(pixscl) else $
@@ -69,7 +71,7 @@ pro radial_profile,im0,cens,lambda=lambda,rmax=rmax,rsum=rsum,$  ;;inputs
   if n_elements(rsum) eq 0 then rsum = 0.
 
   ;;mask satellites and center
-  bsz = ceil(scl/pixscl*2d)
+  bsz = ceil(iwa/pixscl)*2d
   if ~(bsz mod 2.) then bsz += 1d ;;want odd number of pixels to match centers well
   tmp = make_annulus(bsz)
   coresatmask = fltarr(sz[0],sz[1])+1d
@@ -113,7 +115,8 @@ pro radial_profile,im0,cens,lambda=lambda,rmax=rmax,rsum=rsum,$  ;;inputs
   endif
 
   ;;figure out which pixels we'll be considering
-  rs = dindgen(rmax - (bsz+1) + 1) + bsz + 1
+  tmp = ceil(iwa/pixscl)
+  rs = dindgen(rmax - (tmp+1) + 1) + tmp + 1
 
   ;;calculate radial mean, median & sigma, as requested
   if arg_present(imed) then if keyword_set(doouter) then imed = dblarr(n_elements(rs),2) + !values.d_nan $
