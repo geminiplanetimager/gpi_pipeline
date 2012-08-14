@@ -72,17 +72,17 @@ badind = where(~FINITE(im),cc)
 if cc ne 0 then im[badind] = 0
 sz = size(im,/dim)
 
-;;grab first slice and find spots
-s0 = im[*,*,indx]
-cens0 = find_sat_spots(s0,winap=winap,locs=locs)
-badcens = where(~finite(cens0),ct)
-if n_elements(cens0) eq 1 || ct ne 0 then return, -1
-
 ;;wavelength information
 if not keyword_set(band) then band = 'H'
 cwv = get_cwv(band,spectralchannels=sz[2])
 lambda = cwv.lambda
 scl = lambda[indx]/lambda
+
+;;grab first slice and find spots
+s0 = im[*,*,indx]
+cens0 = find_sat_spots(s0,lambda=lambda[indx], winap=winap,locs=locs)
+badcens = where(~finite(cens0),ct)
+if n_elements(cens0) eq 1 || ct ne 0 then return, -1
 
 ;;convert cens0 to polar coords, scale and revert to cartesians
 cens = dblarr(2,4,sz[2])
