@@ -48,8 +48,8 @@ export GPI_DRP_TEMPLATES_DIR="$GPI_DRP_DIR/drf_templates"	# pipeline DRF templat
 #           and the IDL code is in your $IDL_PATH
 #export PATH="${PATH}:/path/to/your/idl_code/gpi/pipeline/scripts"
 export IDL_PATH="${IDL_PATH}:+/path/to/your/idl_code/gpi/"
-export GPI_DRP_CALIBRATIONS_DIR="$GPI_REDUCDED_DATA_DIR/calibrations/"	# pipeline calibration location
-export GPI_DRP_LOG_DIR="$GPI_REDUCDED_DATA_DIR/logs/"	                # default log dir
+export GPI_DRP_CALIBRATIONS_DIR="$GPI_REDUCED_DATA_DIR/calibrations/"	# pipeline calibration location
+export GPI_DRP_LOG_DIR="$GPI_REDUCED_DATA_DIR/logs/"	                # default log dir
 
 #---- DST install only (optional) -----
 #export GPI_DST_DIR="$GPI_CODE_ROOT/dst/"	 
