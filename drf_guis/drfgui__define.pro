@@ -510,7 +510,7 @@ PRO  drfgui::Scan_Templates
     for i=0,n_elements(template_file_list)-1 do begin
         message,/info, 'scanning '+template_file_list[i]
         DRFParser ->ParseFile, template_file_list[i],  ConfigParser,/silent
-        templates[i] = Parser->get_summary()
+        templates[i] = DRFParser->get_summary()
     endfor
     obj_destroy, DRFParser
     obj_destroy, configParser
