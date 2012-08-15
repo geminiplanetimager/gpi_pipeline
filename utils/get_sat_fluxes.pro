@@ -112,24 +112,50 @@ good = good[where(good ne -1)]
 ic_psfs = fltarr(4,sz[2])
 warns = fltarr(sz[2])
 if badct gt 0 then warns[bad] = -1
+
+;;get the grids for the subap
+generate_grids, fx, fy, gaussap, /whole
+fr2 = fx^2 + fy^2
 for j=0,n_elements(good)-1 do begin 
    for i=0,3 do begin
-      subimage = subarr(im[*,*,good[j]],gaussap,cens[*,i,good[j]],/zeroout)
+
+      ;;subimage = subarr(im[*,*,good[j]],gaussap,cens[*,i,good[j]],/zeroout)
       if keyword_set(gaussfit) then begin
-         paramgauss = [median(subimage), max(subimage), 3, 3, gaussap/2., gaussap/2., 0]
-         yfit = gauss2dfit(subimage, paramgauss, /tilt)
-         if total(abs(yfit - mean(yfit))) lt 1e-10 or paramgauss[1] lt 0 then begin
-            print, 'Bad fit detected, trying again.'
-            ;;retry with larger area
-            subimage = subarr(im[*,*,good[j]],gaussap+2,cens[*,i,good[j]],/zeroout)
-            paramgauss = [median(subimage), max(subimage), 3, 3, gaussap/2.+1., gaussap/2.+1., 0]
-            yfit = gauss2dfit(subimage, paramgauss, /tilt)
-            if total(abs(yfit - mean(yfit))) lt 1e-10 or paramgauss[1] lt 0 then begin 
-               print,'Fitting failed.  Using maximum.'
-               ic_psfs[i,good[j]]=max(subimage)
-            endif else ic_psfs[i,good[j]] = total(paramgauss[0:1])
-         endif else ic_psfs[i,good[j]] = total(paramgauss[0:1])
-      endif else ic_psfs[i,good[j]]=max(subimage)
+         ;;   c0 = gaussap/2d - (round(cens[*,i,good[j]])-cens[*,i,good[j]])
+         ;;   paramgauss = [median(subimage), max(subimage) - median(subimage), 3, 3, c0, 0]
+         ;;   ;;paramgauss = [median(subimage), max(subimage), 3, 3, gaussap/2., gaussap/2., 0]
+         ;;   yfit = gauss2dfit(subimage, paramgauss, /tilt)
+         ;;   if total(abs(yfit - mean(yfit))) lt 1e-10 or paramgauss[1] lt 0 then begin
+         ;;      print, 'Bad fit detected, trying again.'
+         ;;      ;;retry with larger area
+         ;;      subimage = subarr(im[*,*,good[j]],gaussap+2,cens[*,i,good[j]],/zeroout)
+         ;;      paramgauss = [median(subimage), max(subimage), 3, 3, gaussap/2.+1., gaussap/2.+1., 0]
+         ;;      yfit = gauss2dfit(subimage, paramgauss, /tilt)
+         ;;      if total(abs(yfit - mean(yfit))) lt 1e-10 or paramgauss[1] lt 0 then begin 
+         ;;         print,'Fitting failed.  Using maximum.'
+         ;;         ic_psfs[i,good[j]]=max(subimage)
+         ;;      endif else ic_psfs[i,good[j]] = total(paramgauss[0:1])
+         ;;   endif else ic_psfs[i,good[j]] = total(paramgauss[0:1])
+
+         ;;grab the subaperture and get the radial profile
+         subim = interpolate(im[*,*,good[j]],fx+cens[0,i,good[j]],fy+cens[1,i,good[j]],cubic=-0.5)
+         rs = dindgen((gaussap-1d)/2d)+1
+         nth = max(rs)*2*!dpi
+         th = dindgen(nth)/nth*2d*!dpi 
+         mns = dblarr(n_elements(rs))
+         for k = 0,n_elements(rs)-1 do begin
+            x = rs[k]*cos(th)+gaussap/2. 
+            y = rs[k]*sin(th)+gaussap/2. 
+            mns[k] = mean(interpolate(subim,x,y,cubic=-0.5)) 
+         endfor
+         
+         ;; find FWHM & sigma and define gaussian mask
+         fwhm = 2d*interpol(rs,mns,max(subim)/2d)
+         sig = fwhm/2d/sqrt(2d*alog(2d))
+         gmsk = exp(-fr2/sig^2d/2d)
+
+         ic_psfs[i,good[j]] = total(subim*gmsk)/total(gmsk*gmsk)   
+      endif else ic_psfs[i,good[j]]=max(subarr(im[*,*,good[j]],gaussap,cens[*,i,good[j]],/zeroout))
    endfor
    if total(abs((ic_psfs[*,good[j]] - mean(ic_psfs[*,good[j]]))/mean(ic_psfs[*,good[j]])) gt 0.25) ne 0 then $
       warns[good[j]] = 1 
