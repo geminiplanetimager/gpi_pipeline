@@ -950,7 +950,11 @@ FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
   ; debugging (and perhaps should just always be how it works now. -MDP)
 
     if self.verbose then  self->Log,"        idl command: "+Modules[ModNum].IDLCommand
-	catch, call_function_error
+    if gpi_get_setting('enable_primitive_debug',default=0) then begin
+        call_function_error=0 ; don't use catch when debugging, stop on errors
+    endif else begin
+    	catch, call_function_error
+    endelse
 	if call_function_error eq 0 then begin
 		status = call_function( Modules[ModNum].IDLCommand, *self.data, Modules, self ) 
 	endif else begin

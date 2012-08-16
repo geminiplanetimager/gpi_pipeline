@@ -37,8 +37,8 @@ erase, color=ncolors-1
 barposition=[52,32,62,292]/320.0
 imagePosition = [92,64,284,256]/320.0
 colorbar=Replicate(1B,20)# BIndGen(256)
-tvimage, BytScl(colorbar, Top=ncolors-2), Position=barPosition
-TVImage, BytScl(image, Top=ncolors-2,min=valmin,max=valmax ), Position=imagePosition
+cgimage, BytScl(colorbar, Top=ncolors-2), Position=barPosition
+cgImage, BytScl(image, Top=ncolors-2,min=valmin,max=valmax ), Position=imagePosition
 tvlct,255,255,255, ncolors-1
 ;plot, [0, !D.Table_Size], YRange=[0,!D.Table_Size], $
 ;      /NoData, Color=0, Position=barPosition, Xticks=1, $

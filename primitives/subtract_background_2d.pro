@@ -184,7 +184,7 @@ stop
 	erase
 	mx=1100
 	my=1300
-	tvimage, bytscl( [image[mx:my,mx:my], masked_im[mx:my,mx:my], iters[mx:my,mx:my, niter-1], subtracted[mx:my,mx:my]],0,150),/keep
+	cgimage, bytscl( [image[mx:my,mx:my], masked_im[mx:my,mx:my], iters[mx:my,mx:my, niter-1], subtracted[mx:my,mx:my]],0,150),/keep
 	xyouts, 0.05, 0.95, 'Input (subregion)'
 	xyouts, 0.3, 0.95, 'Masked'
 	xyouts, 0.6, 0.95, 'Model'
