@@ -424,7 +424,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 ;	plot, polstack[x,y,*],/yno
 ;
 ;	soln = M ## reform(stokes[x,y,*])
-;	oplot, soln, color=fsc_color('red')
+;	oplot, soln, color=cgcolor('red')
 ;
 ;
 ;	; check the whole cube

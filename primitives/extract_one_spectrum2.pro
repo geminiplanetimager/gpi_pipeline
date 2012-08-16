@@ -266,7 +266,7 @@ if (ps_figure gt 0.)  then begin
     openps, psFilename
     plot, xlam,photcomp, xtitle='Wavelength (um)', ytitle='Intensity',psym=-1, yrange=[0,1.3*max(photcomp)]
     if strmatch(obstype, '*wavecal*') then $
-    for i=0L,gct-1 do  plots, wavelen[wg[[i,i]]], max(photcomp)*[0, strength[wg[i]]], color=fsc_color('blue'), /clip
+    for i=0L,gct-1 do  plots, wavelen[wg[[i,i]]], max(photcomp)*[0, strength[wg[i]]], color=cgcolor('blue'), /clip
     xyouts,xlam[3], 1.2*max(photcomp), 'Median spectrum of '+strc((size(inda))[2])+' spectra centered on mlens ['+strc(x0,format='(I3)')+','+strc(y0,format='(I3)')+']'
      if n_elements(specres) gt 0 then xyouts,xlam[3], 1.1*max(photcomp), 'Spectral Resolution='+strc(specres, format='(g5.3)') 
 ;  endif else begin

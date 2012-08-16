@@ -75,7 +75,7 @@ endif else begin
 	
 ;		window, 0
 ;		plot, atmos_wavelen, atmos_trans_, xrange = lamb[[0,n_elements(lamb-1) ]], xtitle="Wavelength", ytitle="Atmospheric transmission"
-;		oplot, lamb, output_trans, psym=10,color=fsc_color('red')
+;		oplot, lamb, output_trans, psym=10,color=cgcolor('red')
 
 ;	stop
 

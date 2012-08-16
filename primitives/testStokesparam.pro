@@ -116,7 +116,7 @@ legends=(Modules[thisModuleIndex].legendfig)
               xyouts,-18.,max(histI)/2.,'Stokes I'  
              if pairs eq 1 then oPLOT, loc,histI2,psym=1
 ;              plot, [0], position=[0.25,0.9,0.35,0.95],ystyle=1,xtickname=REPLICATE(' ', 6),ytickname=REPLICATE(' ', 6),xtitle='measured';,/noerase
-;              tvimage,   measStokes[*,*,0], /overplot ;InputStokesband
+;              cgimage,   measStokes[*,*,0], /overplot ;InputStokesband
       PLOT,loc,histQ,yrange=[0,max(histQ)] , xrange=[-xr,xr], XTITLE = 'Relative difference [%]', YTITLE = 'Number of lenslet of That Value'
               xyouts,-18.,max(histQ)/2.,'Stokes Q'  
               if pairs eq 1 then oPLOT, loc,histQ2,psym=1

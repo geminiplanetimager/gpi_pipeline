@@ -199,7 +199,7 @@ print, list
 .compile fftrot.pro 
 .compile file_break.pro
 .compile fixpix
-.compile fsc_color.pro 
+.compile cgcolor.pro 
 .compile get_cind.pro
 .compile getfratio.pro 
 .compile getmyname.pro

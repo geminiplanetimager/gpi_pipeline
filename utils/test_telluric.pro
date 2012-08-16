@@ -16,7 +16,7 @@ openps,gpi_get_directory('GPI_REDUCED_DATA_DIR')+path_sep()+datanamewoext+'tellu
 plot,lambda,fluxsatmedabs,ytitle='Telluric transmission', xtitle='Wavelength (' + greekLetter + 'm)',$
  xrange=[lambda[0],lambda[n_elements(lambda)-1]], charsize=1.5 
 oplot, lambda, dsttrans, psym=1
-oplot, atmos_wavelen,atmos_trans_,color=fsc_color('red')
+oplot, atmos_wavelen,atmos_trans_,color=cgcolor('red')
 legend,['measured trans.','input DST trans.'],psym=[-0,1],/bottom
 
 plot,lambda,fluxsatmedabs-dsttrans,ytitle='Difference of Telluric trans. (meas.-theo)', xtitle='Wavelength (' + greekLetter + 'm)',$

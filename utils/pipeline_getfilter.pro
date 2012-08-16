@@ -53,7 +53,7 @@ function pipeline_getfilter,   lambda, filter=filtername
 	window,22
 		plot, filtstruct.wavelength, filtstruct.transmission, $
 			xtitle="Wavelength [micron]", ytitle="Transmission fraction", title="Filter Transmission for "+filtername
-		oplot,  lambda, net_transmission, color=fsc_color('red'), psym=10
+		oplot,  lambda, net_transmission, color=cgcolor('red'), psym=10
 	endif
 
 

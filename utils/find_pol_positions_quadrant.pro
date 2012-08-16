@@ -164,9 +164,9 @@ function localizepeak_mpfitpeak,  im, cenx, ceny,wx,wy, hh, pixels=pixels, pixva
 		loadct,0,/silent
 		!p.multi=[0,3,1]
 		imdisp, array,/axis, xr=xr,yr=yr, title="Original subarray"
-		tvellipse, vals[3], vals[4], vals[0], vals[1], -vals[2], color=fsc_color('red'),/major,/data
+		tvellipse, vals[3], vals[4], vals[0], vals[1], -vals[2], color=cgcolor('red'),/major,/data
 		imdisp, yfit,/axis, xr=xr,yr=yr, title="Gaussian fit"
-		tvellipse, vals[3], vals[4], vals[0], vals[1], -vals[2], color=fsc_color('red'),/major,/data
+		tvellipse, vals[3], vals[4], vals[0], vals[1], -vals[2], color=cgcolor('red'),/major,/data
 		mask=array*0
 		mask[wpeak]=1
 		imdisp, mask,/axis, xr=xr,yr=yr, title="Pixel mask"

@@ -1,7 +1,7 @@
 pro plot_sat_vals,lambda,sats,w=w
 
 if (size(sats))[0] eq 2 then numim = 1 else numim = (size(sats,/dim))[2]
-cols = [cgcolor('red'),cgcolor('blue'),cgcolor('dark green'),fsc_color('navy')]
+cols = [cgcolor('red'),cgcolor('blue'),cgcolor('dark green'),cgcolor('navy')]
 
 if not(keyword_set(w)) then w = 23
 window,w,xsize=800,ysize=600,retain=2 

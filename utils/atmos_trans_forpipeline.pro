@@ -75,10 +75,10 @@ if ~keyword_set(wind) then wind=0
 	if 1 then begin
 	  window, wind
 		plot, atmos_wavelen, atmos_trans_, xrange = lamb[[0,n_elements(lamb-1) ]], xtitle="Wavelength", ytitle="Atmospheric transmission"
-		oplot, lamb, output_trans, psym=10,color=fsc_color('red')
+		oplot, lamb, output_trans, psym=10,color=cgcolor('red')
 		openps,'Telluric_transmission'+filter+'.ps',xsize=18,ysize=13,yoffset=10
     plot, atmos_wavelen, atmos_trans_, xrange = lamb[[0,n_elements(lamb-1) ]], xtitle="Wavelength", ytitle="Atmospheric transmission"
-    oplot, lamb, output_trans, psym=10,color=fsc_color('red')
+    oplot, lamb, output_trans, psym=10,color=cgcolor('red')
 		closeps
 		SET_PLOT, mydevice ;set_plot,'win'
 	endif

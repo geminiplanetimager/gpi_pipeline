@@ -231,7 +231,7 @@ locg=intarr(2)
 
     window, 20
     plot, lamb[locg[0]:locg[1]], HiResGrndSpec[locg[0]:locg[1]]/max(HiResGrndSpec[locg[0]+10:locg[1]]), xtitle="Wavelength", ytitle="star spec (normalized)"
-    oplot, lambda, nbtot_phot/max(nbtot_phot), psym=10,color=fsc_color('red')
+    oplot, lambda, nbtot_phot/max(nbtot_phot), psym=10,color=cgcolor('red')
   endif
 	return, nbtot_phot
 end
