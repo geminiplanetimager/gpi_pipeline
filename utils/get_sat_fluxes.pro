@@ -61,6 +61,7 @@ function get_sat_fluxes,im0,band=band,good=good,cens=cens,warns=warns,$
 ; REVISION HISTORY
 ;       Written  08/02/2012. Based partially on code by Perrin and
 ;                            Maire - savransky1@llnl.gov 
+;       08.17.2012 Updated to match new find_sat_spots syntax - ds
 ;-
 
 if not keyword_set(gaussap) then gaussap = 7.
@@ -80,7 +81,7 @@ scl = lambda[indx]/lambda
 
 ;;grab first slice and find spots
 s0 = im[*,*,indx]
-cens0 = find_sat_spots(s0,lambda=lambda[indx], winap=winap,locs=locs)
+cens0 = find_sat_spots(s0, winap=winap,locs=locs)
 badcens = where(~finite(cens0),ct)
 if n_elements(cens0) eq 1 || ct ne 0 then return, -1
 
@@ -96,7 +97,7 @@ for j=0,sz[2]-1 do if j ne indx then $
 ;;refine, if asked
 if keyword_set(refinefits) then $
    for j=0,sz[2]-1 do if j ne indx then $
-      cens[*,*,j] = find_sat_spots(im[*,*,j],lambda = lambda[j],locs=cens[*,*,j])
+      cens[*,*,j] = find_sat_spots(im[*,*,j],locs=cens[*,*,j])
 
 ;;get rid of slices where satellites can't be found
 bad = where(cens ne cens, badct)
