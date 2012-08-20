@@ -64,7 +64,7 @@ if not keyword_set(locs0) then begin
    ;;initialize loop & go   
    val = max(out,ind)
    counter = 0
-   maxcounter = 250
+   maxcounter = 50
    while counter lt maxcounter do begin  
       ;;update locations
       inds = array_indices(out,ind)  
