@@ -1,6 +1,6 @@
 pro radial_profile,im0,cens,lambda=lambda,rmax=rmax,rsum=rsum,$  ;;inputs
-                   dointerp=dointerp,doouter=doouter,iwa=iwa,$   ;;options
-                   imed=imed,isig=isig,imn=imn,asec=asec         ;;outputs
+                   dointerp=dointerp,doouter=doouter,iwa=iwa,noblockcenter=noblockcenter,$   ;;options
+                   imed=imed,isig=isig,imn=imn,asec=asec,im_dh=im_dh,im_o=im_o         ;;outputs
 ;+
 ; NAME:
 ;       radial_profile
@@ -52,7 +52,7 @@ pro radial_profile,im0,cens,lambda=lambda,rmax=rmax,rsum=rsum,$  ;;inputs
   if not keyword_set(lambda) then lambda = lambda0
   sz = size(im0,/dim)
   cent = [mean(cens[0,*]),mean(cens[1,*])]
-  if not keyword_set(iwa) then iwa = 2.8    ;lambda/D
+  if n_elements(iwa) eq 0 then iwa = 2.8    ;lambda/D
   iwa = iwa*lambda*1d-6/8d*180d/!dpi*3600d ;convert to arcsec
 
   pixscl = gpi_get_setting('ifs_lenslet_scale')
@@ -71,11 +71,11 @@ pro radial_profile,im0,cens,lambda=lambda,rmax=rmax,rsum=rsum,$  ;;inputs
   if n_elements(rsum) eq 0 then rsum = 0.
 
   ;;mask satellites and center
+  coresatmask = fltarr(sz[0],sz[1])+1d
   bsz = ceil(iwa/pixscl)*2d
   if ~(bsz mod 2.) then bsz += 1d ;;want odd number of pixels to match centers well
   tmp = make_annulus(bsz)
-  coresatmask = fltarr(sz[0],sz[1])+1d
-  coresatmask[round(cent[0]+tmp[*,0]),round(cent[1]+tmp[*,1])] = !values.d_nan
+  if not keyword_set(noblockcenter) then coresatmask[round(cent[0]+tmp[*,0]),round(cent[1]+tmp[*,1])] = !values.d_nan
   for j=0,3 do coresatmask[round(cens[0,j]+tmp[*,0]),round(cens[1,j]+tmp[*,1])] = !values.d_nan
   im = im0*coresatmask
 
@@ -115,7 +115,7 @@ pro radial_profile,im0,cens,lambda=lambda,rmax=rmax,rsum=rsum,$  ;;inputs
   endif
 
   ;;figure out which pixels we'll be considering
-  tmp = ceil(iwa/pixscl)
+  if not keyword_set(noblockcenter) then tmp = ceil(iwa/pixscl) else tmp = 0
   rs = dindgen(rmax - (tmp+1) + 1) + tmp + 1
 
   ;;calculate radial mean, median & sigma, as requested

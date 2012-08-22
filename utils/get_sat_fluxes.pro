@@ -1,5 +1,5 @@
 function get_sat_fluxes,im0,band=band,good=good,cens=cens,warns=warns,$
-                        gaussfit=gaussfit,refinefits=refinefits,$
+                        gaussfit=gaussfit,refinefits=refinefits,totflux=totflux,$
                         winap=winap,gaussap=gaussap,locs=locs,indx=indx
 ;+
 ; NAME:
@@ -119,8 +119,6 @@ generate_grids, fx, fy, gaussap, /whole
 fr2 = fx^2 + fy^2
 for j=0,n_elements(good)-1 do begin 
    for i=0,3 do begin
-
-      ;;subimage = subarr(im[*,*,good[j]],gaussap,cens[*,i,good[j]],/zeroout)
       if keyword_set(gaussfit) then begin
          ;;   c0 = gaussap/2d - (round(cens[*,i,good[j]])-cens[*,i,good[j]])
          ;;   paramgauss = [median(subimage), max(subimage) - median(subimage), 3, 3, c0, 0]
@@ -156,7 +154,12 @@ for j=0,n_elements(good)-1 do begin
          gmsk = exp(-fr2/sig^2d/2d)
 
          ic_psfs[i,good[j]] = total(subim*gmsk)/total(gmsk*gmsk)   
-      endif else ic_psfs[i,good[j]]=max(subarr(im[*,*,good[j]],gaussap,cens[*,i,good[j]],/zeroout))
+      endif else begin
+         subimage = subarr(im[*,*,good[j]],gaussap,cens[*,i,good[j]],/zeroout)
+         if keyword_set(totflux) then $
+            ic_psfs[i,good[j]] = total(subimage,/nan) else $
+            ic_psfs[i,good[j]] = max(subimage,/nan)
+      endelse
    endfor
    if total(abs((ic_psfs[*,good[j]] - mean(ic_psfs[*,good[j]]))/mean(ic_psfs[*,good[j]])) gt 0.25) ne 0 then $
       warns[good[j]] = 1 
