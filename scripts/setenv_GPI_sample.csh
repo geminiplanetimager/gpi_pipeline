@@ -21,44 +21,36 @@
 # Source this file from your .cshrc or .tcshrc (or profile)
 
 
-#----- Where are your data files stored, and where is the pipeline queue? -----
-
 #----- Required paths (editing required) --------------------
-#GPI_DATA_ROOT is a helper path only.  If desired you can set 
-#all paths independently.  
-#NOTE: If you are pulling all data from the vospace, do NOT 
-#put your queue and Reduced directories on the same path as 
-#the raw data.  Make these local.
-setenv GPI_DATA_ROOT "~/GPI/data/"           	        # base dir for all data
+# GPI_DATA_ROOT is a helper path only.  If desired you can set 
+# all paths independently.  
+#  NOTE: If you are pulling all data from the vospace, do NOT 
+#  put your queue and Reduced directories on vospace.
+#  Make these local.
+setenv GPI_DATA_ROOT "/path/to/your/GPI/data/"           	        # base dir for all data
 setenv GPI_DRP_QUEUE_DIR "${GPI_DATA_ROOT}/queue/"      # where is the DRP Queue directory?
 setenv GPI_RAW_DATA_DIR "${GPI_DATA_ROOT}/Detector/"    # where is raw data?
 setenv GPI_REDUCED_DATA_DIR "${GPI_DATA_ROOT}/Reduced/" # where should we put reduced data?
 
-#setenv GPI_RAW_DATA_DIR "/path/to/your/raw_data/"		# where is raw data?
-#setenv GPI_REDUCED_DATA_DIR "/path/to/your/reduced_data/"	# where should we put reduced data?
-#setenv GPI_DRP_QUEUE_DIR "/path/to/your/pipeline/queue"		# where is the DRP Queue directory?
+# The following must be defined as an environment variable to enable the 
+# gpi-pipeline startup script. Otherwise it is optional.
+setenv GPI_DRP_DIR "/path/to/your/GPI/code/pipeline"
 
-#---- Optional paths (no editing genererally needed) -------
+#---- Optional paths (not genererally needed) -------
 # these variables are optional - you may omit them if your 
 # drp setup is standard
-#GPI_CODE_ROOT is a helper path only.  If desired you can set 
-#all paths independently.  
-#setenv GPI_CODE_ROOT "~/GPI/"                               # location of all GPI code (pipeline, gpitv, etc.)
-#setenv GPI_DRP_DIR "${GPI_CODE_ROOT}/pipeline/"	            # pipeline code location
 #setenv GPI_DRP_CONFIG_DIR "${GPI_DRP_DIR}/config/"          # default config settings 
 #setenv GPI_DRP_TEMPLATES_DIR "${GPI_DRP_DIR}/drf_templates"	# pipeline DRF template location
 
 #setenv GPI_DRP_CALIBRATIONS_DIR "${GPI_REDUCED_DATA_DIR}/calibrations/"	# pipeline calibration location
 #setenv GPI_DRP_LOG_DIR "${GPI_REDUCED_DATA_DIR}/logs/"	                    # default log dir
 
+#---- DST install only (optional) -----
+#setenv GPI_DST_DIR "${GPI_CODE_ROOT}/dst/"	 
+
 #---------- make sure the startup scripts are in your $PATH   -----a
 #           and the IDL code is in your $IDL_PATH
-setenv PATH "${PATH}:/path/to/your/idl_code/gpi/pipeline/scripts"
-setenv IDL_PATH "${IDL_PATH}:+/path/to/your/idl_code/gpi/"
-#---- DST install only (optional) -----
-setenv GPI_DST_DIR "${GPI_CODE_ROOT}/dst/"	 
+setenv PATH "${PATH}:/path/to/your/GPI/code/pipeline/scripts"
+setenv IDL_PATH "${IDL_PATH}:+/path/to/your/GPI/code/"
 
 
-#--- Update paths -------------------------
-setenv PATH "${PATH}:${GPI_DRP_DIR}/scripts"
-setenv IDL_PATH "${IDL_PATH}:+${GPI_CODE_ROOT}"
