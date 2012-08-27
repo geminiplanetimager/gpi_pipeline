@@ -40,6 +40,9 @@ function find_sat_spots,s0,leg=leg,locs=locs0, winap = winap
 ;                            Maire - savransky1@llnl.gov 
 ;       08.14.12 - Rewrite to automatically find the 'leg' distance.
 ;                  lambda/leg inputs no longer needed.
+;       08.27.12 - Upgrade to auto-find algorithm that significantly
+;                  speeds up processing in the case where sat spots
+;                  are dim compared to other point in the image.
 ;-
 
 ;;get dimensions and set defaults
@@ -57,46 +60,60 @@ if not keyword_set(locs0) then begin
    ;;fourier coregister with gaussian to smooth image
    fourier_coreg,s0,ref,out,/wind
 
-   ;;define mask and 4C2 comb set
+   ;;define mask 3C2 and 4C2 comb sets
    msk = make_annulus(winap)
-   combs0 = nchoosek(lindgen(4),2)
-
+   combs4 = nchoosek(lindgen(4),2)
+   combs3 = nchoosek(lindgen(3),2)
+  
    ;;initialize loop & go   
    val = max(out,ind)
    counter = 0
    maxcounter = 50
-   while counter lt maxcounter do begin  
-      ;;update locations
-      inds = array_indices(out,ind)  
-      if n_elements(locs) ne 0 then locs = [[locs],[inds]] else locs = [inds]  
-      
-      ;;we only get started once we have 4 locations
-      if n_elements(locs)/2. ge 4 then begin  
-         ;;only need to check the combinations of the previous locations
-         ;;with the newest one. So, we generate all of the combinations of
-         ;;the existing locations in groups of 3, and append the last index
-         combs = nchoosek(lindgen(n_elements(locs)/2-1),3)  
-         combs = [[combs],[lonarr(n_elements(combs)/3)+n_elements(locs)/2-1]]  
+   while counter lt maxcounter do begin
+      ;;grab newest spot candidate and add to list of locations
+      inds = array_indices(out,ind)
+      if n_elements(locs) ne 0 then locs = [[locs],[inds]] else locs = [inds]
+
+      ;;once you have four locations and some 3-spot candidates can
+      ;;start to evaluate possible sets.
+      if (n_elements(locs)/2. ge 4) && (n_elements(tricombs) gt 1) then begin
+         ;;only need to check the combinations of the previous good locations
+         combs = [[tricombs],[lonarr(n_elements(tricombs)/3)+n_elements(locs)/2-1]]
          ;;now scan the combinations.
-         for j=0,n_elements(combs)/4 - 1 do begin  
-            dists = sqrt(total(((locs[*,combs[j,*]])[*,combs0[*,0]] - (locs[*,combs[j,*]])[*,combs0[*,1]])^2d,1))  
-            dists = dists[sort(dists)]  
-            d1 = max(abs(dists[0:2]-dists[1:3]))  
-            d2 = abs(dists[4] - dists[5])  
+         for j=0,n_elements(combs)/4 - 1 do begin
+            dists = sqrt(total(((locs[*,combs[j,*]])[*,combs4[*,0]] - (locs[*,combs[j,*]])[*,combs4[*,1]])^2d,1))
+            dists = dists[sort(dists)]
+            d1 = max(abs(dists[0:2]-dists[1:3]))
+            d2 = abs(dists[4] - dists[5])
             ;;we're looking for 4 equal distances, and 2 equal distances sqrt(2) larger
-            if (d1 le 2d) && (d2 le 2d) && (abs(mean(dists[4:5])/mean(dists[0:3]) - sqrt(2d)) lt 1e-4) then begin  
-               finallocs = locs[*,combs[j,*]]  
-               counter = maxcounter  
-               break  
-            endif   
-         endfor  
-      endif     
-      
+            if (d1 le 2d) && (d2 le 2d) && (abs(mean(dists[4:5])/mean(dists[0:3]) - sqrt(2d)) lt 1e-4) then begin
+               finallocs = locs[*,combs[j,*]]
+               counter = maxcounter
+               break
+            endif 
+         endfor
+      endif   
+
+      ;;as soon as you have 3 spots, start the list of good candidates 
+      if n_elements(locs)/2. ge 3 then begin
+         combs = nchoosek(lindgen(n_elements(locs)/2-1),2)
+         combs = [[combs],[lonarr(n_elements(combs)/2)+n_elements(locs)/2-1]]
+         for j=0,n_elements(combs)/3 - 1 do begin
+            dists = sqrt(total(((locs[*,combs[j,*]])[*,combs3[*,0]] - (locs[*,combs[j,*]])[*,combs3[*,1]])^2d,1))
+            dists = dists[sort(dists)]
+            ;;in this case,we're looking for 2 equal distances, and 1 distance sqrt(2) larger
+            ;;we'll be more forgiving here as we have fewer points to average
+            if (abs(dists[1]-dists[0]) le 2d) && (abs(dists[2]/mean(dists[0:1]) - sqrt(2d)) lt 5e-2) then $
+               if n_elements(tricombs) eq 0 then tricombs = combs[j,*] else tricombs = [tricombs, combs[j,*]] 
+         endfor
+      endif
+
       ;;set up next iteration
-      out[msk[*,0]+inds[0],msk[*,1]+inds[1]] = min(out)     
-      val = max(out,ind)     
-      counter += 1   
+      out[msk[*,0]+inds[0],msk[*,1]+inds[1]] = min(out)   
+      val = max(out,ind)   
+      counter += 1 
    endwhile
+
    if n_elements(finallocs) eq 0 then begin
       message,'Could not locate satellites.',/continue
       return, -1
