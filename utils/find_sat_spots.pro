@@ -42,7 +42,7 @@ function find_sat_spots,s0,leg=leg,locs=locs0, winap = winap
 ;                  lambda/leg inputs no longer needed.
 ;       08.27.12 - Upgrade to auto-find algorithm that significantly
 ;                  speeds up processing in the case where sat spots
-;                  are dim compared to other point in the image.
+;                  are dim compared to other pixels - ds
 ;-
 
 ;;get dimensions and set defaults
