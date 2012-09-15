@@ -14,9 +14,10 @@
 ; DRP KEYWORDS: PSFCENTX,PSFCENTY,SPOT[1-4][x-y],SPOTWAVE
 ; OUTPUTS:  
 ;
-; PIPELINE COMMENT: Load sat spot locations from calibration file 
+; PIPELINE COMMENT: Load satellite spot locations from calibration file 
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="spotloc" Default="GPI-spotloc.fits" Desc="Filename of spot locations calibration file to be read"
 ; PIPELINE ORDER: 2.45
+; PIPELINE NEWTYPE: SpectralScience
 ; PIPELINE TYPE: ALL-SPEC
 ; PIPELINE SEQUENCE: 
 ;

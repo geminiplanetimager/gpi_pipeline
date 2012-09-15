@@ -29,6 +29,7 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1"
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[0,1]" Default="1"
 ; PIPELINE COMMENT: Derive polarization calibration files from a flat field image.
+; PIPELINE NEWTYPE: Calibration
 ; PIPELINE TYPE: CALIBRATION/POL
 ; PIPELINE SEQUENCE: 1-
 ;

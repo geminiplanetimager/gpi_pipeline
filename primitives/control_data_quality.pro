@@ -21,6 +21,7 @@
 ; PIPELINE ARGUMENT: Name="rmserr" Type="float" Range="[0,1000]" Default="10." Desc="Critical rms wavefront error in microns. "
 ; PIPELINE ORDER: 1.5
 ; PIPELINE TYPE: ALL-SPEC
+; PIPELINE NEWTYPE: ALL
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:

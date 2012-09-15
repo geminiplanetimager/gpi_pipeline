@@ -28,8 +28,6 @@
 ;
 
 ;-----------------------------------------------------------------------------------------------------
-;------------------------------------------------------------
-;
 ;
 FUNCTION gpidrfparser::init, backbone=backbone, no_log = no_log
   retval = Self->IDLffXMLSAX::Init()
@@ -80,14 +78,6 @@ END
 ;-----------------------------------------------------------------------------------------------------
 PRO gpiDRFParser::drpFITSToDataSet, DataSet, ValidFrameCount, FileName
 
-;COMMON APP_CONSTANTS
-	; FIXME - need to put these back into the backbone obj while avoiding common
-	; blocks!
-
-    ;IF ValidFrameCount EQ 0 THEN BEGIN ; Reset current running total on first file of a DRF
-        ;CumulativeMemoryUsedByFITSData = 0L
-    ;ENDIF
-    ;MemoryBeforeReadingFITSFile = MEMORY(/CURRENT) ; Memory before reading all or part of file
     *DataSet.Frames[ValidFrameCount] = DataSet.InputDir + path_sep() + FileName
     if ~(keyword_set(self.silent)) then PRINT, FORMAT='(".",$)'
 
@@ -112,39 +102,34 @@ end
 
 ;------------------------------------------------------------
 ;
-function gpidrfparser::get_drf_contents
+function gpidrfparser::get_contents
 	if not ptr_valid(self.data) or not ptr_valid(self.modules) then begin
 		message, "No valid DRF loaded!",/info
 		return, {fitsfilenames: [''], modules: [''], inputdir: '', reductiontype: ''}
 	endif
 
-	return, {fitsfilenames: (*self.data).filenames, modules: (*self.modules), inputdir: (*self.data).inputdir, reductiontype: (self.reductiontype)}
+
+	if (*self.data).validframecount gt 0 then begin
+		fitsfilenames = (*self.data).filenames[0:(*self.data).validframecount-1]
+	endif else begin
+		fitsfilenames = [''] ; FIXME should be null array in IDL >=8
+	endelse
+
+	return, {fitsfilenames: fitsfilenames, inputdir: (*self.data).inputdir, outputdir: (*self.data).outputdir, modules: (*self.modules) }
 end
 ;
 ;------------------------------------------------------------
 PRO gpidrfparser::free_dataset_pointers
-	; This Cleanup supposes that there may be more than one dataset in a DRF
-	; though we do not currently create DRFs in this manner.
-	IF PTR_VALID(Self.UpdateLists) THEN BEGIN
-		FOR i = 0, N_ELEMENTS(*Self.UpdateLists)-1 DO BEGIN
-			PTR_FREE, (*Self.UpdateLists)[i].parameters
-		ENDFOR
-	ENDIF
 
-
-
-	; Free any data sets which are currently read into memory
+	; Free any data which are currently read into memory
 	IF PTR_VALID(Self.Data) THEN BEGIN
-		FOR i = N_ELEMENTS(*Self.Data)-1, 0, -1 DO BEGIN
-			PTR_FREE, (*Self.Data)[i].QualFrames[*]
-			PTR_FREE, (*Self.Data)[i].UncertFrames[*]
-			PTR_FREE, (*Self.Data)[i].HeadersExt[*]
-			PTR_FREE, (*Self.Data)[i].HeadersPHU[*]
-			PTR_FREE, (*Self.Data)[i].Frames[*]
-			PTR_FREE, (*Self.Data)[i].CurrFrame
-		ENDFOR
+			PTR_FREE, (*Self.Data).QualFrames[*]
+			PTR_FREE, (*Self.Data).UncertFrames[*]
+			PTR_FREE, (*Self.Data).HeadersExt[*]
+			PTR_FREE, (*Self.Data).HeadersPHU[*]
+			PTR_FREE, (*Self.Data).Frames[*]
+			PTR_FREE, (*Self.Data).CurrFrame
 	ENDIF
-	PTR_FREE, Self.UpdateLists
 	PTR_FREE, Self.Modules
 	PTR_FREE, Self.Data
 
@@ -225,183 +210,15 @@ PRO gpidrfparser::parsefile, FileName, Backbone=backbone, ConfigParser, gui_obj=
 	;if obj_valid(gui_obj) then $
 	;gui_obj->set_from_parsed_DRF, (*self.data).filenames, (*self.modules), (*self.data).inputdir, (self.reductiontype)
 
-    IF self->do_continueAfterDRFParsing()  EQ 1 THEN BEGIN
-		; pass the updates back up to the backbone
-		Backbone.LogPath = Self.LogPath
-		Backbone.ReductionType = Self.ReductionType
-		Backbone.Data = Self.Data
-		Backbone.Modules = Self.Modules
-  ENDIF 
 END
 
 ;------------------------------------------------------------
-; return a brief summary of the DRF element in a given file. 
-; This is used by the Template scanning functions in DRFGUI.
-function gpidrfparser::get_summary
 
-	return, {filename: self.most_recent_filename, type: self.ReductionType, name: self.DRFname}
-
-end
-
-;------------------------------------------------------------
-;
-;
-
-PRO gpidrfparser::error, SystemID, LineNumber, ColumnNumber, Message
-  ; Any error parsing the input file is too much error for you.
-
-  ; Log the error info
-  self->Log, 'DRP parsing non-fatal error', /GENERAL, DEPTH=1
-  self->Log, '    Filename: ' + SystemID, /GENERAL, DEPTH=2
-  self->Log, '  LineNumber: ' + STRTRIM(STRING(LineNumber),2), /GENERAL, DEPTH=2
-  self->Log, 'ColumnNumber: ' + STRTRIM(STRING(ColumnNumber),2), /GENERAL, DEPTH=2
-  self->Log, '     Message: ' + Message, /GENERAL, DEPTH=2
-
-END
-
-;------------------------------------------------------------
-;
-;
+pro gpidrfparser::load_data_to_pipeline
+	; Load all available data into the pipeline backbone for
+	; actual reduction
 
 
-PRO gpidrfparser::fatalerror, SystemID, LineNumber, ColumnNumber, Message
-
-  ; Any fatal error parsing the input file is certainly too much error for you.
-
-  ; Log the error info
-  self->Log, 'DRP parsing fatal error', /GENERAL, DEPTH=1
-  self->Log, '    Filename: ' + SystemID, /GENERAL, DEPTH=2
-  self->Log, '  LineNumber: ' + STRTRIM(STRING(LineNumber),2), /GENERAL, DEPTH=2
-  self->Log, 'ColumnNumber: ' + STRTRIM(STRING(ColumnNumber),2), /GENERAL, DEPTH=2
-  self->Log, '     Message: ' + Message, /GENERAL, DEPTH=2
-
-  self->free_dataset_pointers
-END
-
-
-;-----------------------------------------------------------------------------------------------------
-; Procedure StartDocument
-;
-; DESCRIPTION:
-; 	This procedure is inherited from the IDLffxMLSAX parent class.  StartDocument is
-;	called automatically when the parser begins parsing an XML document.
-;
-; ARGUMENTS:
-;	None.
-;
-; KEYWORDS:
-;	None.
-;-----------------------------------------------------------------------------------------------------
-PRO gpidrfparser::startdocument
-	;COMMON APP_CONSTANTS
-
-	Self.Data = PTR_NEW(/ALLOCATE_HEAP)
-	Self.Modules = PTR_NEW(/ALLOCATE_HEAP)
-	Self.UpdateLists = PTR_NEW(/ALLOCATE_HEAP)
-
-	; ----------------- TO DO: Validate the document ----------------------------
-	self->Log, 'DRF file is currently unvalidated and is assumed to be valid', /GENERAL, DEPTH=1
-
-END
-
-;-----------------------------------------------------------------------------------------------------
-; Procedure EndDocument
-;
-; DESCRIPTION:
-; 	This procedure is inherited from the IDLffxMLSAX parent class.  EndDocument is
-;	called automatically when the parser finishes parsing an XML document.  We use
-;	this routine to update any selected frame headers from the UpdateLists, if any
-;	exist.  NOTE: There is a DataSetNumber parameter that is required in an UpdateList
-;	but in general, for data management reasons, DRFs do not have multiple datasets.
-;
-; ARGUMENTS:
-;	None.
-;
-; KEYWORDS:
-;	None.
-;-----------------------------------------------------------------------------------------------------
-PRO gpidrfparser::enddocument
-
-
-	; Correct reference for the array of pointers to Headers is (*(Self.Data)[i]).Headers where
-	; i is the index of the DataSet in the (possible) list of datasets, e.g.,
-	;HELP, (*(Self.Data)[0]).Headers, /FULL
-	; Correct reference for a single Header is *(*(Self.Data)[n]).Headers[i] which dereferences
-	; pointer i (which may be 0 to (MAXFRAMESINDATASETS-1)) in the Nth array of Header pointers, e.g.,
-	;PRINT, *(*(Self.Data)[0]).Headers[1]
-
-	;FOR i = 0, DataSet.ValidFrameCount-1 DO BEGIN
-	;	PRINT, (*(*Self.Data)[0]).Headers[i]
-	;ENDFOR
-
-	; Correct reference for DataSet attribute is (*Self.Data)[i].<attribute>, e.g.,
-	;PRINT, "(*Self.Data)[0].ValidFrameCount = ", (*Self.Data)[0].ValidFrameCount
-
-	nUpdateLists = N_ELEMENTS(*Self.UpdateLists)
-
-	; For every defined UpdateList, fix the Header arrays indicated by the datasetNumber and
-	; headerNumber parameters.  An attribute value of -1 indicates that all available arrays
-	; either datasets and/or headers are to be updated.
-	FOR indexUpdateLists = 0, nUpdateLists-1 DO BEGIN
-		; Get attributes for the current UpdateList
-		datasetNumber = (*Self.UpdateLists)[indexUpdateLists].datasetNumber
-		headerNumber = (*Self.UpdateLists)[indexUpdateLists].headerNumber
-		; Derive start and stop dataset numbers from the attributes
-		IF datasetNumber LT 0 THEN BEGIN	; Actually, should be -1
-			; Do all datasets
-			startDataset = 0
-			stopDataset = N_ELEMENTS(*Self.Data) - 1
-		ENDIF ELSE BEGIN
-			startDataset = datasetNumber
-			stopDataset = datasetNumber
-		ENDELSE
-		FOR indexDataSet = startDataset, stopDataset DO BEGIN	; For all datasets
-			; Derive start and stop header numbers from the attributes
-			IF headerNumber LT 0 THEN BEGIN		; Actually, should be -1
-				; Do all headers
-				startHeader = 0
-				stopHeader = (*Self.Data)[indexDataSet].ValidFrameCount - 1
-			ENDIF ELSE BEGIN
-				startHeader = headerNumber
-				stopHeader = headerNumber
-			ENDELSE
-			FOR indexHeader = startHeader, stopHeader DO BEGIN	; For all headers
-				;PRINT, "DataSet Number ", indexDataSet
-				;PRINT, "Header  Number ", indexHeader
-				; Correct reference for UpdateList attribute is (*Self.UpdateLists)[i].<attribute>, e.g.,
-				;PRINT, (*Self.UpdateLists)[i].datasetNumber
-				;PRINT, (*Self.UpdateLists)[i].headerNumber
-				; Correct reference for an UpdateList parameter array is *(*Self.UpdateLists)[i].parameters, e.g.,
-				;IF N_ELEMENTS(*(*Self.UpdateLists)[indexUpdateLists].parameters) GT 0 THEN BEGIN
-				;	PRINT, *(*Self.UpdateLists)[indexUpdateLists].parameters
-				;ENDIF
-				; All parameters must be of correct type for call to program unit sxaddpar
-				; Valid types are integer, float, double and string.  If type is string and
-				; the value is 'T' or 'F' (upper or lower case) then the value is stored as
-				; a logical.
-				IF N_ELEMENTS(*(*Self.UpdateLists)[indexUpdateLists].parameters) GT 0 THEN BEGIN
-          maxIndex = (SIZE(*(*Self.UpdateLists)[indexUpdateLists].parameters, /N_ELEMENTS)/4)-1
-					FOR indexParameter = 0, maxIndex DO BEGIN	; For all parameters
-						;PRINT, "indexParameter = ", indexParameter
-						name    = (*(*Self.UpdateLists)[indexUpdateLists].parameters)[0, indexParameter]
-						value   = (*(*Self.UpdateLists)[indexUpdateLists].parameters)[1, indexParameter]
-						comment = (*(*Self.UpdateLists)[indexUpdateLists].parameters)[2, indexParameter]
-						vtype   = (*(*Self.UpdateLists)[indexUpdateLists].parameters)[3, indexParameter]
-						;PRINT, name + " " + value + " " + comment + " " + vtype
-						; Set the value type correctly with a cast
-						CASE vtype OF
-							'integer':	value = FIX(value)
-							'float':	value = FLOAT(value)
-							'double':	value = DOUBLE(value)
-							ELSE:
-						ENDCASE
-						;HELP, *(*Self.Data)[indexDataSet].Headers[indexHeader]
-						SXADDPAR, *(*Self.Data)[indexDataSet].HeadersPHU[indexHeader], name, value, comment, BEFORE='COMMENT'
-					ENDFOR
-				ENDIF
-			ENDFOR
-		ENDFOR
-	ENDFOR
 
   ; Now place a copy of the current DRF into each available header
   ; First, get the file name of the file we are parsing
@@ -450,45 +267,144 @@ PRO gpidrfparser::enddocument
   endif
 
 
-  ; Get the number of datasets to do
-	startDataset = 0
-	stopDataset = N_ELEMENTS(*Self.Data) - 1
-  ; Get the number of headers to do
-	FOR indexDataSet = startDataset, stopDataset DO BEGIN	; For all datasets
     ; Get the number of headers to do
-    startHeader = 0
-    stopHeader = (*Self.Data)[indexDataSet].ValidFrameCount - 1
-    FOR indexHeader = startHeader, stopHeader DO BEGIN	; For all headers
-      SXADDPAR, *(*Self.Data)[indexDataSet].HeadersPHU[indexHeader], 'COMMENT', '////////////////////////////////////////////////////////////////////////'
+    stopHeader = (*Self.Data).ValidFrameCount - 1
+    FOR indexHeader = 0, stopHeader DO BEGIN	; For all headers
+      SXADDPAR, *(*Self.Data).HeadersPHU[indexHeader], 'COMMENT', '////////////////////////////////////////////////////////////////////////'
       ; Save the file name as one or more comments
       ; Figure out how many 68 character strings there are in the file name string
       clen = STRLEN(myOwnFileName)
       n = (clen/68) + 1
       FOR j=0, n-1 DO BEGIN
         newsubstring = STRMID(myOwnFileName, j*68, 68)
-        SXADDPAR, *(*Self.Data)[indexDataSet].HeadersPHU[indexHeader], 'COMMENT', 'DRFN' + newsubstring
+        SXADDPAR, *(*Self.Data).HeadersPHU[indexHeader], 'COMMENT', 'DRFN' + newsubstring
       ENDFOR
       FOR i=0, N_ELEMENTS(fileAsStringArray)-1 DO BEGIN
         IF STRLEN(fileAsStringArray[i]) LT 68 THEN BEGIN
-          SXADDPAR, *(*Self.Data)[indexDataSet].HeadersPHU[indexHeader], 'COMMENT', 'DRF ' + fileAsStringArray[i]
+          SXADDPAR, *(*Self.Data).HeadersPHU[indexHeader], 'COMMENT', 'DRF ' + fileAsStringArray[i]
         ENDIF ELSE BEGIN
           ; Figure out how many 68 character strings there are in the current string
           clen = STRLEN(fileAsStringArray[i])
           n = (clen/68) + 1
           FOR j=0, n-1 DO BEGIN
             newsubstring = STRMID(fileAsStringArray[i], j*68, 68)
-            SXADDPAR, *(*Self.Data)[indexDataSet].HeadersPHU[indexHeader], 'COMMENT', 'DRFC' + newsubstring
+            SXADDPAR, *(*Self.Data).HeadersPHU[indexHeader], 'COMMENT', 'DRFC' + newsubstring
           ENDFOR
         ENDELSE
       ENDFOR
 
 	  if obj_valid(self.backbone) then if keyword_set(var_record) then begin	; record environment variables into header
-		  for j=0L,n_elements(var_record)-1 do SXADDPAR,  *(*Self.Data)[indexDataSet].HeadersPHU[indexHeader], 'COMMENT', 'DRFV'+ var_record[j]
+		  for j=0L,n_elements(var_record)-1 do SXADDPAR,  *(*Self.Data).HeadersPHU[indexHeader], 'COMMENT', 'DRFV'+ var_record[j]
 	  endif
 
-      SXADDPAR, *(*Self.Data)[indexDataSet].HeadersPHU[indexHeader], 'COMMENT', '\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\'
+      SXADDPAR, *(*Self.Data).HeadersPHU[indexHeader], 'COMMENT', '\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\'
     ENDFOR
-  ENDFOR
+
+
+
+	IF self->do_continueAfterDRFParsing()  EQ 1 THEN BEGIN
+		; pass the updates back up to the backbone
+		Backbone.ReductionType = Self.ReductionType
+		Backbone.Data = Self.Data
+		Backbone.Modules = Self.Modules
+	ENDIF 
+
+
+end
+
+
+;------------------------------------------------------------
+; return a brief summary of the DRF element in a given file. 
+; This is used by the Template scanning functions in DRFGUI.
+function gpidrfparser::get_summary
+	return, {filename: self.most_recent_filename,  $
+	reductiontype: self.ReductionType, $
+	name: self.DRFname, $
+	nsteps: n_elements(*self.modules) , $
+	nfiles: (*self.data).validframecount }
+end
+
+
+;==================================================================================================
+;   Actual low level XML parsing related code below here. 
+;
+;------------------------------------------------------------
+;
+;
+
+PRO gpidrfparser::error, SystemID, LineNumber, ColumnNumber, Message
+  ; Any error parsing the input file is too much error for you.
+
+  ; Log the error info
+  self->Log, 'Recipe parsing non-fatal error',  DEPTH=1
+  self->Log, '    Filename: ' + SystemID, DEPTH=2
+  self->Log, '  LineNumber: ' + STRTRIM(STRING(LineNumber),2), DEPTH=2
+  self->Log, 'ColumnNumber: ' + STRTRIM(STRING(ColumnNumber),2), DEPTH=2
+  self->Log, '     Message: ' + Message, DEPTH=2
+
+END
+
+;------------------------------------------------------------
+;
+;
+
+
+PRO gpidrfparser::fatalerror, SystemID, LineNumber, ColumnNumber, Message
+
+  ; Any fatal error parsing the input file is certainly too much error for you.
+
+  ; Log the error info
+  self->Log, 'Recipe parsing fatal error', DEPTH=1
+  self->Log, '    Filename: ' + SystemID, DEPTH=2
+  self->Log, '  LineNumber: ' + STRTRIM(STRING(LineNumber),2), DEPTH=2
+  self->Log, 'ColumnNumber: ' + STRTRIM(STRING(ColumnNumber),2), DEPTH=2
+  self->Log, '     Message: ' + Message, DEPTH=2
+
+  self->free_dataset_pointers
+END
+
+
+;-----------------------------------------------------------------------------------------------------
+; Procedure StartDocument
+;
+; DESCRIPTION:
+; 	This procedure is inherited from the IDLffxMLSAX parent class.  StartDocument is
+;	called automatically when the parser begins parsing an XML document.
+;
+; ARGUMENTS:
+;	None.
+;
+; KEYWORDS:
+;	None.
+;-----------------------------------------------------------------------------------------------------
+PRO gpidrfparser::startdocument
+	;COMMON APP_CONSTANTS
+
+	Self.Data = PTR_NEW(/ALLOCATE_HEAP)
+	Self.Modules = PTR_NEW(/ALLOCATE_HEAP)
+
+	; ----------------- TO DO: Validate the document ----------------------------
+	self->Log, 'Starting to parse recipe file', DEPTH=1
+	self->Log, 'Recipe file is currently unvalidated and is assumed to be valid', DEPTH=1
+
+END
+
+;-----------------------------------------------------------------------------------------------------
+; Procedure EndDocument
+;
+; DESCRIPTION:
+; 	This procedure is inherited from the IDLffxMLSAX parent class.  EndDocument is
+;	called automatically when the parser finishes parsing an XML document.  
+;
+;
+; ARGUMENTS:
+;	None.
+;
+; KEYWORDS:
+;	None.
+;-----------------------------------------------------------------------------------------------------
+PRO gpidrfparser::enddocument
+
 
 
 END
@@ -512,34 +428,50 @@ END
 ;-----------------------------------------------------------------------------------------------------
 PRO gpidrfparser::startelement, URI, Local, qName, AttNames, AttValues
 
-	;COMMON APP_CONSTANTS
-
-
 	CASE strupcase(qName) OF
 		'DRF': BEGIN
 			; This FOR statement allows the attributes to be in any order in the XML file
 			FOR i = 0, N_ELEMENTS(AttNames) - 1 DO BEGIN	; Place attribute values in the
 				CASE strupcase(AttNames[i]) OF			; variable fields.
-					'LOGPATH':	        Self.LogPath = AttValues[i]
-					'REDUCTIONTYPE':   	Self.ReductionType = AttValues[i]
-					'MODULENAMEFORMAT': Self.DRFFormat= AttValues[i]
+					'REDUCTIONTYPE':   begin
+						if strmatch('-', AttValues[i]) then begin
+							; need to convert old style type names to new ones...
+							if strmatch('CAL', strupcase(AttValues[i])) then begin
+								AttValues[i] = 'Calibrations'
+							endif else begin
+								if strmatch('ASTR', strupcase(AttValues[i])) then AttValues[i] = 'SpectralScience'
+								if strmatch('POL', strupcase(AttValues[i])) then AttValues[i] = 'PolarimetricScience'
+							endelse
+
+						endif
+
+						Self.ReductionType = AttValues[i]
+					end
 					'NAME':			    Self.DRFName = AttValues[i]
 					ELSE:
 				ENDCASE
 			END
 		END
+		'RECIPE': BEGIN  ;;--- clone of DRF option for Gemini preferred naming convention ---
+			; This FOR statement allows the attributes to be in any order in the XML file
+			FOR i = 0, N_ELEMENTS(AttNames) - 1 DO BEGIN	; Place attribute values in the
+				CASE strupcase(AttNames[i]) OF			; variable fields.
+					'REDUCTIONTYPE':   	Self.ReductionType = AttValues[i]
+					'NAME':			    Self.DRFName = AttValues[i]
+					ELSE:
+				ENDCASE
+			END
+		END
+
 		'DATASET': Self -> NewDataSet, AttNames, AttValues	; Add a new data set
 		'FITS':	BEGIN
-			N = N_ELEMENTS(*Self.Data) - 1
+			;N = N_ELEMENTS(*Self.Data) - 1
 			DataFileName = ''
      		; FileControl = READWHOLEFRAME
 			FOR i = 0, N_ELEMENTS(AttNames) - 1 DO BEGIN	; Place attribute values in the
 				CASE strupcase(AttNames[i]) OF			; variable fields.
 					'FILENAME':	   DataFileName = AttValues[i]
-					; FileControl is an OSIRIS pipeline option for only reading in a specific one
-					; of the multiple FITS extensions. Probably do not use for GPI
-					'FILECONTROL': FileControl = FIX(AttValues[i])  ; Overwrite the default if alternative is provided
-					ELSE: self->Log, 'Error in gpiDRFParser::StartElement - Illegal/Unnecessary attribute ' + AttNames[i], /GENERAL, Depth=1
+					ELSE: self->Log, 'Error in gpiDRFParser::StartElement - Illegal/Unnecessary attribute ' + AttNames[i], Depth=1
 				ENDCASE
 			END
 			IF DataFileName NE '' THEN BEGIN
@@ -556,98 +488,98 @@ PRO gpidrfparser::startelement, URI, Local, qName, AttNames, AttValues
 					; FIXME check the file exists and is a valid GPI fits file 
 
 					if not file_test(full_input_filename,/read) then begin
-						  self->Log, 'ERROR: The file "'+ full_input_filename+'" does not appear to exist on disk. Skipping this file and trying to continue anyway...', /GENERAL, DEPTH=2
+						  self->Log, 'ERROR: The file "'+ full_input_filename+'" does not appear to exist on disk. Skipping this file and trying to continue anyway...', DEPTH=2
 					endif else begin
 
-					valid = gpi_validate_file(full_input_filename)
+					;valid = gpi_validate_file(full_input_filename)
 
 	        	    ;fits_info, full_input_filename, n_ext = numext, /silent
 	            	;validtelescop=self->validkeyword( full_input_filename, 1,'TELESCOP','Gemini')
 		            ;validinstrum= self->validkeyword( full_input_filename, 1,'INSTRUME','GPI')
 		            ;validinstrsub=self->validkeyword( full_input_filename, 1,'INSTRSUB','IFS') 
 		            ;if (validtelescop* validinstrum*validinstrsub eq 1) then begin   
-					if valid then begin
-		              (*Self.Data)[N].Filenames[(*Self.Data)[N].ValidFrameCount] = DataFileName
-		              (*Self.Data)[N].ValidFrameCount = (*Self.Data)[N].ValidFrameCount + 1
-		              self->Log, DataFileName +' is a valid GEMINI-GPI-IFS image.', /GENERAL, DEPTH=2
-		            endif else begin
-		              self->Log, 'ERROR:'+ DataFileName +' is NOT a GEMINI-GPI-IFS image. File ignored!', /GENERAL, DEPTH=2
-		            endelse
+					;if valid then begin
+		              (*Self.Data).Filenames[(*Self.Data).ValidFrameCount] = DataFileName
+		              (*Self.Data).ValidFrameCount = (*Self.Data).ValidFrameCount + 1
+		              ;self->Log, DataFileName +' is a valid GEMINI-GPI-IFS image.', DEPTH=2
+		            ;endif else begin
+		              ;self->Log, 'ERROR:'+ DataFileName +' is NOT a GEMINI-GPI-IFS image. File ignored!', DEPTH=2
+		            ;endelse
 		          endelse
     				 
 				ENDIF
 			ENDIF ELSE BEGIN
-				self->Log, 'ERROR: <fits/> element is incomplete, Probably no filename', /GENERAL, DEPTH=2
+				self->Log, 'ERROR: <fits/> element is incomplete, Probably no filename', DEPTH=2
 				;stop
    			    ;pipelineconfig.continueAfterDRFParsing = 0
 			ENDELSE
 		END
 		'MODULE': Self -> NewModule, AttNames, AttValues	; Add a new module
-		'UPDATE': BEGIN
-			Self -> NewUpdateList, AttNames, AttValues	; Start a new update list
-		END
-		'UPDATEPARAMETER':  BEGIN
-			Self -> AddUpdateParameter, AttNames, AttValues	; Add parms to latest list
-		END
+		'PRIMITIVE': Self -> NewModule, AttNames, AttValues	; Add a new primitive (copy for Gemini preferred naming convention)
+
+		; Remove these weird old OSIRIS options which are never used with GPI:
+		; -MP
+		;'UPDATE': Self -> NewUpdateList, AttNames, AttValues	; Start a new update list
+		;'UPDATEPARAMETER':  Self -> AddUpdateParameter, AttNames, AttValues	; Add parms to latest list
 	ENDCASE
 
 
 END
 
-FUNCTION gpidrfparser::datasetnameisunique, Name
-  if N_ELEMENTS(*Self.Data) EQ 0 THEN RETURN, 1
-	FOR i = 0, N_ELEMENTS(*Self.Data)-1 DO BEGIN
-    IF Name EQ (*Self.Data)[i].Name THEN RETURN, 0  ; We found a duplicate
-  ENDFOR
-  RETURN, 1
-END
+;FUNCTION gpidrfparser::datasetnameisunique, Name
+;  if N_ELEMENTS(*Self.Data) EQ 0 THEN RETURN, 1
+;	FOR i = 0, N_ELEMENTS(*Self.Data)-1 DO BEGIN
+;    IF Name EQ (*Self.Data)[i].Name THEN RETURN, 0  ; We found a duplicate
+;  ENDFOR
+;  RETURN, 1
+;END
 
-;-----------------------------------------
-; Verify a keyword is present? 
-; Given a list of filenames and keywords,
-; Check that values are present for all of them.
-function gpidrfparser::validkeyword, file, cindex, keyw, requiredvalue,needalertdialog=needalertdialog
-    value=strarr(cindex)
-    matchedvalue=intarr(cindex)
-    ok=1
-	for i=0, cindex-1 do begin
-		;fits_info, file[i],/silent, N_ext 
-	    catch, Error_status
-	    if strmatch(!ERROR_STATE.MSG, '*Unit: 101*'+file[i]) then wait,1
-
-	    fits_info, file[i], n_ext=next, /silent
-      	if next eq 0 then begin
-  			head=headfits( file[i]) ;will scan PHU
-  		  	value[i]=strcompress(sxpar( Head, keyw,  COUNT=cc),/rem)
-		endif else begin
-		    head=headfits( file[i], exten=0) ;First try PHU
-        	value[i]=strcompress(sxpar( Head, keyw,  COUNT=cc),/rem)
-        	if cc eq 0 then begin
-        		headext=headfits( file[i], exten=1) ;else try extension header
-	        	value[i]=strcompress(sxpar( Headext, keyw,  COUNT=cc),/rem)
-    	    endif  
-		endelse
-
-		if cc eq 0 then begin
-			self->log,'Absent '+keyw+' keyword for data: '+file(i)
-			ok=0
-		endif
-		if cc eq 1 then begin
-			matchedvalue=stregex(value[i],requiredvalue,/boolean,/fold_case)
-			if matchedvalue ne 1 then begin 
-			  self->log,'Invalid '+keyw+' keyword for data: '+file(i)
-			  self->log,keyw+' keyword found: '+value(i)
-			  if keyword_set(needalertdialog) then void=dialog_message('Invalid '+keyw+' keyword for data: '+file(i)+' keyword found: '+value(i))
-			  ok=0
-			endif
-		endif
-		  ;if ok ne 1 then self->log, 'File '+file[i]+' is missing required '+keyw+' keyword!'
-	endfor  
- 
-      
-  return, ok
-end
-
+;;-----------------------------------------
+;; Verify a keyword is present? 
+;; Given a list of filenames and keywords,
+;; Check that values are present for all of them.
+;function gpidrfparser::validkeyword, file, cindex, keyw, requiredvalue,needalertdialog=needalertdialog
+;    value=strarr(cindex)
+;    matchedvalue=intarr(cindex)
+;    ok=1
+;	for i=0, cindex-1 do begin
+;		;fits_info, file[i],/silent, N_ext 
+;	    catch, Error_status
+;	    if strmatch(!ERROR_STATE.MSG, '*Unit: 101*'+file[i]) then wait,1
+;
+;	    fits_info, file[i], n_ext=next, /silent
+;      	if next eq 0 then begin
+;  			head=headfits( file[i]) ;will scan PHU
+;  		  	value[i]=strcompress(sxpar( Head, keyw,  COUNT=cc),/rem)
+;		endif else begin
+;		    head=headfits( file[i], exten=0) ;First try PHU
+;        	value[i]=strcompress(sxpar( Head, keyw,  COUNT=cc),/rem)
+;        	if cc eq 0 then begin
+;        		headext=headfits( file[i], exten=1) ;else try extension header
+;	        	value[i]=strcompress(sxpar( Headext, keyw,  COUNT=cc),/rem)
+;    	    endif  
+;		endelse
+;
+;		if cc eq 0 then begin
+;			self->log,'Absent '+keyw+' keyword for data: '+file(i)
+;			ok=0
+;		endif
+;		if cc eq 1 then begin
+;			matchedvalue=stregex(value[i],requiredvalue,/boolean,/fold_case)
+;			if matchedvalue ne 1 then begin 
+;			  self->log,'Invalid '+keyw+' keyword for data: '+file(i)
+;			  self->log,keyw+' keyword found: '+value(i)
+;			  if keyword_set(needalertdialog) then void=dialog_message('Invalid '+keyw+' keyword for data: '+file(i)+' keyword found: '+value(i))
+;			  ok=0
+;			endif
+;		endif
+;		  ;if ok ne 1 then self->log, 'File '+file[i]+' is missing required '+keyw+' keyword!'
+;	endfor  
+; 
+;      
+;  return, ok
+;end
+;
 ;-----------------------------------------------------------------------------------------------------
 ; Procedure NewDataSet
 ;
@@ -678,15 +610,15 @@ PRO gpidrfparser::newdataset, AttNames, AttValues
 		            DataSet.InputDir = getenv(AttValues[i]) else $
 		            DataSet.InputDir = AttValues[i]		            
 		            end
-		'Name': BEGIN
-			IF Self -> DataSetNameIsUnique(AttValues[i]) THEN BEGIN
-			  DataSet.Name = AttValues[i]
-			ENDIF ELSE BEGIN
-				self->Log, 'DataSet Name ' + AttValues[i] + ' attribute is duplicated.', /GENERAL, DEPTH=2
-				self->Log, 'DRF will be aborted', /GENERAL, DEPTH = 2
-				continueAfterDRFParsing = 0
-			ENDELSE
-	    END
+;		'Name': BEGIN
+;			IF Self -> DataSetNameIsUnique(AttValues[i]) THEN BEGIN
+;			  DataSet.Name = AttValues[i]
+;			ENDIF ELSE BEGIN
+;				self->Log, 'DataSet Name ' + AttValues[i] + ' attribute is duplicated.', DEPTH=2
+;				self->Log, 'DRF will be aborted', DEPTH = 2
+;				continueAfterDRFParsing = 0
+;			ENDELSE
+;	    END
 		'OutputDir':	begin
                 if strlen(getenv(AttValues[i])) ne 0 then $
                 DataSet.OutputDir = getenv(AttValues[i]) else $
@@ -724,9 +656,6 @@ END
 ;-----------------------------------------------------------------------------------------------------
 PRO gpidrfparser::newmodule, AttNames, AttValues
 
-	;COMMON APP_CONSTANTS
-
-
 	Module = {structModule}				; Create structModule variable
 
     module.outputdir=(*self.data)[0].outputdir
@@ -747,8 +676,6 @@ PRO gpidrfparser::newmodule, AttNames, AttValues
 	ELSE *Self.Modules = struct_merge(*Self.Modules, Module)
 
     if ~(keyword_set(self.silent)) then 	print,module.name
-
-
 
 END
 
@@ -782,48 +709,29 @@ end
 
 
 
-;-----------------------------------------------------------------------------------------------------
-; Procedure getParameters
+;;-----------------------------------------------------------------------------------------------------
+;; Procedure getParameters
+;;
+;; DESCRIPTION:
+;; 	This procedure receives a reference to a backbone object
+;;	and transfers the configuration parameter information to
+;;	the backbone ParmList.
+;;
+;; ARGUMENTS:
+;;	Backbone	The backbone object to be updated
+;;
+;; KEYWORDS:
+;;	Inherited from parent class.  See documentation.
+;;-----------------------------------------------------------------------------------------------------
+;PRO gpidrfparser::getparameters, Backbone
 ;
-; DESCRIPTION:
-; 	This procedure receives a reference to a backbone object
-;	and transfers the configuration parameter information to
-;	the backbone ParmList.
 ;
-; ARGUMENTS:
-;	Backbone	The backbone object to be updated
+;	Backbone.ParmList = Self.Parms
 ;
-; KEYWORDS:
-;	Inherited from parent class.  See documentation.
-;-----------------------------------------------------------------------------------------------------
-PRO gpidrfparser::getparameters, Backbone
+;
+;END
+;
 
-
-	Backbone.ParmList = Self.Parms
-
-
-END
-
-
-PRO gpidrfparser::printinfo
-
-
-;	drpIOLock
-	OPENW, unit, "temp.tmp", /get_lun
-	FOR j = 0, N_ELEMENTS(*Self.Modules)/3-1 DO BEGIN
-		PRINTF, unit, (*Self.Modules)[0, j] , "  ", (*Self.Modules)[1, j], "  ", (*Self.Modules)[2,j]
-	ENDFOR
-
-	FOR j = 0, 31 DO BEGIN
-		PRINTF, unit, PARAMETERS[j, 0] , "  ", PARAMETERS[j, 1]
-	ENDFOR
-	FLUSH, unit
-	CLOSE, unit
-	FREE_LUN, unit
-;	drpIOUnlock
-
-
-END
 
 
 
@@ -844,16 +752,14 @@ END
 PRO gpidrfparser__define
 
 	void = {gpiDRFParser, INHERITS IDLffXMLSAX, $
-			LogPath:'', $
 			ReductionType:'', $  ; CAL, ASTR, SPECTRAL, POL, etc
-			DRFFormat:'', $  ; can be null for basic format or string "Long Description" for long format
 			DRFName: '', $   ; a descriptive name for the DRF. Used by Template DRFs.
 			most_recent_filename: '', $ ; remember this for get_summary
 			no_log: 0, $     ; flag for not logging actions if ran in some other mode
 			silent: 0, $	 ; suppress printed output?
 			Data:PTR_NEW(), $
 			Modules:PTR_NEW(), $
-			UpdateLists:PTR_NEW(), $
+			;UpdateLists:PTR_NEW(), $
 			backbone: obj_new() }
 
 END

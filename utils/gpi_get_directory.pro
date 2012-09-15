@@ -78,10 +78,11 @@ function gpi_get_directory, dirname,expand_path=expand_path,method=method
         dirlist = dirlist[0]                           ; scalarize
         result = file_dirname(dirlist)                 ; parent directory will be pipeline root.
      end
-     'GPI_DRP_TEMPLATES_DIR': 	result = gpi_get_directory("GPI_DRP_DIR")+path_sep()+"drf_templates"
+     'GPI_DRP_TEMPLATES_DIR': 	result = gpi_get_directory("GPI_DRP_DIR")+path_sep()+"recipe_templates"
      'GPI_DRP_CONFIG_DIR': 	result = gpi_get_directory("GPI_DRP_DIR")+path_sep()+"config"
      'GPI_DRP_LOG_DIR': 	result = gpi_get_directory("GPI_REDUCED_DATA_DIR")+path_sep()+"logs"
-     'GPI_DRF_OUTPUT_DIR': 	result = gpi_get_directory("GPI_REDUCED_DATA_DIR")+path_sep()+"drfs"
+     'GPI_RECIPE_OUTPUT_DIR': 	result = gpi_get_directory("GPI_REDUCED_DATA_DIR")+path_sep()+"drfs"
+     'GPI_DRF_OUTPUT_DIR': 	result = gpi_get_directory("GPI_RECIPE_OUTPUT_DIR") ; back compatible alias
      'GPI_CALIBRATIONS_DIR': 	result = gpi_get_directory("GPI_REDUCED_DATA_DIR")+path_sep()+"calibrations"
      'GPI_DST_DIR': begin
         findpro, 'dst', dir=dir,/noprint

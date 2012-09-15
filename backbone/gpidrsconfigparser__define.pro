@@ -32,8 +32,8 @@ end
 PRO gpidrsconfigparser::cleanup
 
 	PTR_FREE, Self.Modules
-	PTR_FREE, Self.Paras
-	PTR_FREE, Self.Parms
+	PTR_FREE, Self.Arguments
+	;PTR_FREE, Self.Parms
 
 END
 
@@ -52,15 +52,15 @@ END
 ;-----------------------------------------------------------------------------------------------------
 PRO gpidrsconfigparser::startdocument
 
-	IF PTR_VALID(Self.Parms) THEN BEGIN
-		if self.verbose then PRINT, "Freeing parameter data..."
-		PTR_FREE, Self.Parms
-		PTR_FREE, Self.Paras
+	IF PTR_VALID(Self.Modules) or ptr_valid(self.arguments) THEN BEGIN
+		if self.verbose then PRINT, "Freeing primitive config data..."
+		;PTR_FREE, Self.Parms
+		PTR_FREE, Self.Arguments
 		PTR_FREE, Self.Modules
 	ENDIF
 	Self.Modules = PTR_NEW(/ALLOCATE_HEAP)
-	Self.Parms = PTR_NEW(/ALLOCATE_HEAP)
-	Self.Paras = PTR_NEW(/ALLOCATE_HEAP)
+	;Self.Parms = PTR_NEW(/ALLOCATE_HEAP)
+	Self.Arguments = PTR_NEW(/ALLOCATE_HEAP)
 
 	; ----------------------- TO DO: Validate the file -------------------
 
@@ -94,8 +94,8 @@ PRO gpidrsconfigparser::StartElement, URI, Local, qName, AttNames, AttValues
 
 	COMMON PARAMS, PARAMETERS
 
-	CASE qName OF
-		'Config': BEGIN
+	CASE strupcase(qName) OF
+		'CONFIG': BEGIN
 ;				MYPARAMETERS = [[AttNames], [AttValues]]
 ;				PARAMETERS = MYPARAMETERS
 ;				PARMTRANS = TRANSPOSE(PARAMETERS)
@@ -104,15 +104,20 @@ PRO gpidrsconfigparser::StartElement, URI, Local, qName, AttNames, AttValues
 ;				StructString = StructString + "'" + PARMTRANS[0, i-1] + "', '" + PARMTRANS[1, i-1] + "'"
 				;StructString = StructString + ')'
 				;retval = EXECUTE(StructString) ;commented by JM: need to avoid EXECUTE function for compilation!
-				*Self.Parms = CALL_FUNCTION('CREATE_STRUCT',AttNames,AttValues)
-				if n_elements(AttNames) gt 1 then stop
+				;*Self.Parms = CALL_FUNCTION('CREATE_STRUCT',AttNames,AttValues)
+				;if n_elements(AttNames) gt 1 then stop
 			END
-		'ARP_SPEC': Self.PipelineLabel = 'ARP_SPEC'
-		'Module': begin
+		;'ARP_SPEC': Self.PipelineLabel = 'ARP_SPEC'
+		'MODULE': begin
 		    Self -> NewModule, AttNames, AttValues
 		    Self.modulenum+=1
 		    end
-		'Argument': Self -> NewArgument, AttNames, AttValues
+		'PRIMITIVE': begin
+		    Self -> NewModule, AttNames, AttValues
+		    Self.modulenum+=1
+		    end
+	
+		'ARGUMENT': Self -> NewArgument, AttNames, AttValues
 		ELSE:
 	ENDCASE
 
@@ -140,32 +145,21 @@ moduleName ='' & moduleFunctio='' & moduleComment='' & moduleOrder='' & moduleTy
 	FOR i = 0, N_ELEMENTS(AttNames) - 1 DO BEGIN	; Place attribute values into
 	
 		CASE AttNames[i] OF			                    ; variable fields.
-			'Name': BEGIN
-          moduleName = AttValues[i]
-        END
-			'IDLFunc': BEGIN
-          moduleFunction = AttValues[i]
-        END
-        'Comment': BEGIN
-          moduleComment = AttValues[i]
-        END
-         'Order': BEGIN
-          moduleOrder = AttValues[i]
-        END
-         'Type': BEGIN
-          moduleType = AttValues[i]
-        END
-          'Sequence': BEGIN
-          moduleSequence = AttValues[i]
-        END
-      ELSE:
+			'Name': moduleName = AttValues[i]
+			'IDLFunc': moduleFunction = AttValues[i]
+        	'Comment': moduleComment = AttValues[i]
+         	'Order': moduleOrder = AttValues[i]
+         	'ReductionType': moduleType = AttValues[i]
+         	'Type': moduleType = AttValues[i]
+			'Sequence': moduleSequence = AttValues[i]
+      	ELSE:
 		ENDCASE
 	END
 
-	if self.verbose then print, "FOUND MODULE: ", modulefunction, modulename
+	if self.verbose then print, "FOUND PRIMITIVE: ", modulefunction, modulename
 
 	IF N_ELEMENTS(*Self.Modules) EQ 0 THEN $
-		*Self.Modules = {name: moduleName, idlfunc: moduleFunction, comment: modulecomment, order: moduleorder, type: moduletype, sequence: modulesequence} $
+		*Self.Modules = {name: moduleName, idlfunc: moduleFunction, comment: modulecomment, order: moduleorder, reductiontype: moduletype, sequence: modulesequence} $
 	ELSE *Self.Modules = [*Self.Modules, {name: moduleName, idlfunc: moduleFunction, comment: modulecomment, order: moduleorder, type: moduletype, sequence: modulesequence}]
 		;*Self.Modules = [moduleName, moduleFunction, Self.PipelineLabel] $
 	;ELSE *Self.Modules = [[*Self.Modules], [moduleName, moduleFunction, Self.PipelineLabel]]
@@ -181,29 +175,19 @@ PRO gpidrsconfigparser::NewArgument, AttNames, AttValues
   FOR i = 0, N_ELEMENTS(AttNames) - 1 DO BEGIN  ; Place attribute values into
 
     CASE AttNames[i] OF                         ; variable fields.
-      'Name': BEGIN
-          argName = AttValues[i]
-        END
-      'Type': BEGIN
-          argtype = AttValues[i]
-        END
-      'Range': BEGIN
-          argrange = AttValues[i]
-        END
-      'Default': BEGIN
-          argdefault = AttValues[i]
-        END
-       'Desc': BEGIN
-          argdesc = AttValues[i]
-        END
+    	'Name': argName = AttValues[i]
+      	'Type': argtype = AttValues[i]
+      	'Range': argrange = AttValues[i]
+      	'Default': argdefault = AttValues[i]
+       	'Desc': argdesc = AttValues[i]
       ELSE:
     ENDCASE
   END
 
 
-  IF N_ELEMENTS(*Self.Paras) EQ 0 THEN $
-    *Self.Paras = {modnum: self.modulenum, name: argName, type: argtype, range: argrange, default: argdefault, desc: argdesc} $
-  ELSE   *Self.Paras = [*Self.Paras, {modnum: self.modulenum, name: argName, type: argtype, range: argrange, default: argdefault, desc: argdesc}]
+  IF N_ELEMENTS(*Self.Arguments) EQ 0 THEN $
+    *Self.Arguments = {modnum: self.modulenum, name: argName, type: argtype, range: argrange, default: argdefault, desc: argdesc} $
+  ELSE   *Self.Arguments = [*Self.Arguments, {modnum: self.modulenum, name: argName, type: argtype, range: argrange, default: argdefault, desc: argdesc}]
     ;*Self.Modules = [moduleName, moduleFunction, Self.PipelineLabel] $
   ;ELSE *Self.Modules = [[*Self.Modules], [moduleName, moduleFunction, Self.PipelineLabel]]
 
@@ -300,35 +284,19 @@ END
 function gpidrsconfigParser::getidlfunc
 
 
-;  names = (*self.modules).name
-;  idlfuncs = (*self.modules).idlfunc
-;  argname = (*self.paras).name
-;  argtype = (*self.paras).argtype
-;  argrange = (*self.paras).range
-;  argdefault = (*self.paras).default
 return, {  names : (*self.modules).name, $
     idlfuncs : (*self.modules).idlfunc, $
     comment : (*self.modules).comment, $
     order : (*self.modules).order, $
-    type : (*self.modules).type, $
+    reductiontype : (*self.modules).reductiontype, $
     sequence : (*self.modules).sequence, $
-    argmodnum : (*self.paras).modnum, $
-    argname : (*self.paras).name, $
-    argtype : (*self.paras).type, $
-    argrange : (*self.paras).range, $
-    argdesc : (*self.paras).desc, $
-    argdefault : (*self.paras).default} 
-;  FOR i = 0, N_ELEMENTS(*Backbone.Modules)-1 DO BEGIN
-;    FOR j = 0, N_ELEMENTS(*Self.Modules)-1 DO BEGIN
-;      IF ((*Self.Modules)[j].name EQ (*Backbone.Modules)[i].Name) THEN $
-;        (*Backbone.Modules)[i].CallSequence = (*Self.Modules)[j].idlfunc
-;    ENDFOR
-;    If (*Backbone.Modules)[i].CallSequence EQ '' THEN $
-;      MESSAGE, 'No IDL function is specified in the ' + $
-;      'configuration file for module: ' + (*Backbone.Modules)[i].Name
-;  ENDFOR
+    argmodnum : (*self.Arguments).modnum, $
+    argname : (*self.Arguments).name, $
+    argtype : (*self.Arguments).type, $
+    argrange : (*self.Arguments).range, $
+    argdesc : (*self.Arguments).desc, $
+    argdefault : (*self.Arguments).default} 
 
-;return,names
 END
 
 ;-----------------------------------------------------------------------------------------------------
@@ -345,32 +313,32 @@ END
 ; KEYWORDS:
 ;	Inherited from parent class.  See documentation.
 ;-----------------------------------------------------------------------------------------------------
-PRO gpidrsconfigparser::getparameters, Backbone
-	Backbone.ParmList = Self.Parms
-END
-
-
-PRO gpidrsconfigParser::printinfo
-
-	COMMON PARAMS
-
-
-	;drpIOLock
-	OPENW, unit, "temp.tmp", /get_lun
-	FOR j = 0, N_ELEMENTS(*Self.Modules)/3-1 DO BEGIN
-		if self.verbose then PRINTF, unit, (*Self.Modules)[0, j] , "  ", (*Self.Modules)[1, j], "  ", (*Self.Modules)[2,j]
-	ENDFOR
-
-	FOR j = 0, 31 DO BEGIN
-		PRINTF, unit, PARAMETERS[j, 0] , "  ", PARAMETERS[j, 1]
-	ENDFOR
-	FLUSH, unit
-	CLOSE, unit
-	FREE_LUN, unit
-	;drpIOUnlock
-
-
-END
+;PRO gpidrsconfigparser::getparameters, Backbone
+	;Backbone.ParmList = Self.Parms
+;END
+;
+;
+;PRO gpidrsconfigParser::printinfo
+;
+;	COMMON PARAMS
+;
+;
+;	;drpIOLock
+;	OPENW, unit, "temp.tmp", /get_lun
+;	FOR j = 0, N_ELEMENTS(*Self.Modules)/3-1 DO BEGIN
+;		if self.verbose then PRINTF, unit, (*Self.Modules)[0, j] , "  ", (*Self.Modules)[1, j], "  ", (*Self.Modules)[2,j]
+;	ENDFOR
+;
+;	FOR j = 0, 31 DO BEGIN
+;		PRINTF, unit, PARAMETERS[j, 0] , "  ", PARAMETERS[j, 1]
+;	ENDFOR
+;	FLUSH, unit
+;	CLOSE, unit
+;	FREE_LUN, unit
+;	;drpIOUnlock
+;
+;
+;END
 
 
 ;-----------------------------------------------------------------------------------------------------
@@ -384,8 +352,8 @@ END
 PRO gpidrsconfigParser__define
 
 	void = {gpidrsconfigparser, INHERITS IDLffXMLSAX, $
-			Parms:PTR_NEW(), $
-			Paras:PTR_NEW(), $
+			;Parms:PTR_NEW(), $
+			Arguments:PTR_NEW(), $
 			modulenum:0, $
 			verbose: 0, $  ; should we print out stuff as we go?  (set in init)
 			valid_config_read: 0, $

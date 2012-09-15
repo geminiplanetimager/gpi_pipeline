@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<DRF LogPath="E:\pipeline\log\" ReductionType="On-Line Reduction" name="Polarization Quicklook">
-<dataset InputDir="E:\GPIdatabase\science" Name="" OutputDir="E:\GPIdatabase\">
-   <fits FileName="" />
+<DRF ReductionType="PolarimetricScience" name="Polarization Quicklook">
+<dataset InputDir="E:\GPIdatabase\science" OutputDir="E:\GPIdatabase\">
+   <fits filename=""/>
 </dataset>
 <module name="Assemble Polarization Cube" CalibrationFile="AUTOMATIC" Save="0" Rotate="0" gpitv="2"/>
 <module name="Combine Polarization Sequence" Save="1" gpitv="3" />

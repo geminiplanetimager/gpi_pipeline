@@ -18,10 +18,10 @@
 ; PIPELINE ARGUMENT: Name="rho" Type="float" Range="[0.,4.]" Default="1." Desc="Separation [arcsec] at date DATEOBS of observation of the binaries"
 ; PIPELINE ARGUMENT: Name="pa" Type="float" Range="[0.,360.]" Default="4.8" Desc="Position angle [degree] at date DATEOBS of observation of the binaries"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-astrom" Desc="Enter output suffix"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.6
 ; PIPELINE TYPE: ALL-SPEC
+; PIPELINE NEWTYPE: Calibration
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:
@@ -34,6 +34,7 @@ COMMON APP_CONSTANTS
 
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
+suffix='astrom' ; output suffix
 	;getmyname, functionName
 	  @__start_primitive
 

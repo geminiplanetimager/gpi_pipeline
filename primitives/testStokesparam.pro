@@ -17,6 +17,7 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying wavcal file, 0: no display "
 ; PIPELINE ORDER: 4.3
 ; PIPELINE TYPE: ALL-POL 
+; PIPELINE NEWTYPE: Testing
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:
@@ -29,7 +30,7 @@ primitive_version= '$Id: testStokesparam.pro 11 2010-11-08 10:22:03 maire $' ; g
 mydevice = !D.NAME
 ;retrieve DST input parameters:
 InputStokesFilename= Modules[thisModuleIndex].ComparisonFile
-  if strmatch(InputStokesFilename,'GPI_DST$*') then strreplace, InputStokesFilename, 'GPI_DST$', getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()+'testdata'+path_sep()
+InputStokesFilename= gpi_expand_path(InputStokesFilename)
 
 InputStokes=readfits(InputStokesFilename)
 

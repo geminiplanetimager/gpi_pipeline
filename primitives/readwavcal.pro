@@ -16,6 +16,7 @@
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="wavcal" Default="GPI-wavcal.fits" Desc="Filename of the desired wavelength calibration file to be read"
 ; PIPELINE ORDER: 0.01
 ; PIPELINE TYPE: ALL-SPEC
+; PIPELINE NEWTYPE: SpectralScience,Calibration
 ;
 ; HISTORY:
 ; 	Originally by Jerome Maire 2008-07

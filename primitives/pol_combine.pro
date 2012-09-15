@@ -22,6 +22,7 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="10" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.4
 ; PIPELINE TYPE: ASTR/POL
+; PIPELINE NEWTYPE: PolarimetricScience,Calibration
 ; PIPELINE SEQUENCE: 11-
 ;
 ;

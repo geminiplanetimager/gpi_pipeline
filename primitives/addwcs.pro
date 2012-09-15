@@ -18,10 +18,10 @@
 ; PIPELINE COMMENT: Add wcs info, assuming target star is precisely centered.
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="astrom" Default="GPI-astrom.fits"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-wcs" Desc="Enter output suffix"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.9
 ; PIPELINE TYPE: ALL
+; PIPELINE NEWTYPE: ALL
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:
@@ -33,8 +33,9 @@
 function addwcs, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 calfiletype='plate'
-
+suffix='-wcs'	; output suffix
 @__start_primitive
+
 
     
 

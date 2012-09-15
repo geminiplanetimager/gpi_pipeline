@@ -21,10 +21,10 @@
 ; PIPELINE COMMENT: Implements the LOCI ADI algorithm (Lafreniere et al. 2007)
 ; PIPELINE ARGUMENT: Name="nfwhm" Type="float" Range="[0,20]" Default="1.5" Desc="number of FWHM to calculate the minimal distance for reference calculation"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-loci" Desc="Enter output suffix"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="10" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.11
 ; PIPELINE TYPE: ASTR/SPEC
+; PIPELINE NEWTYPE: SpectralScience
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:

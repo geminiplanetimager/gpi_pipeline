@@ -16,6 +16,7 @@
 ; PIPELINE ARGUMENT: Name="title" Type="string" Default="" Desc="Enter figure title"
 ; PIPELINE ORDER: 2.52
 ; PIPELINE TYPE: ALL-SPEC 
+; PIPELINE NEWTYPE: Testing
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:
@@ -47,6 +48,7 @@ distorted_cube=readfits(res[subs],exten=1)
 
 undistorted_File = (Modules[thisModuleIndex].InFile)
   ;if strmatch(undistorted_File,'GPI_REDUCED_DATA_DIR$*') then strreplace, undistorted_File, 'GPI_REDUCED_DATA_DIR$', getenv('GPI_REDUCED_DATA_DIR')
+undistorted_File = gpi_expand_path(undistorted_File)
 
 undistorted_cube=readfits(undistorted_File,exten=1)
 

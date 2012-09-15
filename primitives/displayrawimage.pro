@@ -14,6 +14,7 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="1" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE COMMENT: Display, with GPItv, raw data to be processed  
 ; PIPELINE ORDER: 1.1 
+; PIPELINE NEWTYPE: ALL, HIDDEN
 ; PIPELINE TYPE: ALL HIDDEN
 ;
 ;

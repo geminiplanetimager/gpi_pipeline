@@ -206,7 +206,7 @@ Function gpicaldatabase::add_new_cal, filename, delaywrite=delaywrite ;, header=
 		return, Not_OK
 	endif
 
-	fits_data = gpi_load_and_preprocess_fits_file(filename)
+	fits_data = gpi_load_fits(filename,/nodata) ; only read in headers, not data.
 
 	; 	if not a valid cal then return...
 	if strupcase(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header,"ISCALIB")) ne "YES" then begin
@@ -259,13 +259,11 @@ end
 ; to be the union of values that are relevant for all files. 
 function gpicaldatabase::cal_info_from_header, fits_data
 	; 	Note that the fits_data argument should be a structure as returned by
-	; 	gpi_load_and_preprocess etc.
+	; 	gpi_load_fits.
 	;
 	;
 	; Read in the relevant information from the header
 	thisfile = self->new_calfile_struct()
-	;thisfile.path= file_dirname(filename)
-	;thisfile.filename = file_basename(filename)
 
 	; check what kind of file it is
 	thisfile.type = gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "FILETYPE", count=count,/silent)

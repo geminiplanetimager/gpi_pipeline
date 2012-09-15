@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<DRF LogPath="" ReductionType="CAL - SPEC" name="Lenslet scale and orientation">
-<dataset InputDir="" Name="" OutputDir="">
-   <fits FileName="" />
+<DRF ReductionType="Calibration" name="Lenslet scale and orientation">
+<dataset InputDir="" OutputDir="">
+   <fits filename=""/>
 </dataset>
 <module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="       0" suffix="" gpitv="" />
 <module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />

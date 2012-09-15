@@ -16,10 +16,10 @@
 ; PIPELINE COMMENT: Combine 3D data cubes via mean or median. 
 ; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="MEAN|MEDIAN|MEANCLIP|MINIMUM"  Default="MEDIAN" Desc="How to combine images: median, mean, or mean with outlier rejection?"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name='suffix' Type='string' Default='median' Desc="choose the suffix"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.5
 ; PIPELINE TYPE: ALL
+; PIPELINE NEWTYPE: ALL
 ; PIPELINE SEQUENCE: 22- 
 
 ; HISTORY:
@@ -34,7 +34,6 @@ function combine_3dcubes, DataSet, Modules, Backbone
 primitive_version= '$Id: combine_3dcubes.pro 278 2011-02-09 19:20:31Z maire $' ; get version from subversion to store in header history
 @__start_primitive
 
-	if tag_exist( Modules[thisModuleIndex], "suffix") then suffix=Modules[thisModuleIndex].suffix else suffix='median'
 	if tag_exist( Modules[thisModuleIndex], "method") then method=Modules[thisModuleIndex].method else method='median'
 
 	nfiles=dataset.validframecount
@@ -75,6 +74,7 @@ primitive_version= '$Id: combine_3dcubes.pro 278 2011-02-09 19:20:31Z maire $' ;
 			return, NOT_OK
 		endelse
 		endcase
+		suffix = strlowcase(method)
 	endif else begin
 		fxaddpar, *(dataset.headersPHU[numfile]), 'HISTORY', functionname+":   Only 1 file supplied, so nothing to combine."
 		message,/info, "Only one frame supplied - can't really combine it with anything..."
@@ -84,7 +84,6 @@ primitive_version= '$Id: combine_3dcubes.pro 278 2011-02-09 19:20:31Z maire $' ;
 
 
 	 ;pos=strpos(filename,'-',/REVERSE_SEARCH)
-	; writefits,strmid(filename,0,pos+1)+suffix+'.fits',im,h
 
 	; store the output into the backbone datastruct
 	*(dataset.currframe)=combined_im

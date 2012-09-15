@@ -30,6 +30,7 @@
 ; PIPELINE ARGUMENT: Name="ReuseOutput" Type="int" Range="[0,1]" Default="0" Desc="1: keep output for following primitives, 0: don't keep"
 ; PIPELINE ORDER: 2.44
 ; PIPELINE TYPE: ALL-SPEC
+; PIPELINE NEWTYPE: Calibration,SpectralScience
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:

@@ -44,7 +44,7 @@ writefits, newcalfile, caldata, ext_header,/append
 
 
 ; Perform the transposition on the science data before display?
-scidata_info = gpi_load_and_preprocess_fits_file(datafile)
+scidata_info = gpi_load_fits(datafile)
 
 
 

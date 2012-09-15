@@ -14,6 +14,7 @@
 ; PIPELINE ARGUMENT: Name="Method" Type="string" Range="OnDisk|InMemory" Default="OnDisk" Desc="OnDisk|InMemory"
 ; PIPELINE ORDER: 4.0
 ; PIPELINE TYPE: ALL
+; PIPELINE NEWTYPE: ALL
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:

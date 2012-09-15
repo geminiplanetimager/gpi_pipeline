@@ -3,12 +3,24 @@
 ;
 ;	GPI FITS file loading code
 ;
-;	This is identical to gpi_load_and_preprocess in terms of its output format,
-;	but does not preprocess the data in any way. 
+;	This loads a Gemini MEF-format FITS file with GPI data into memory,
+;	returning it as a structure containing the data and headers. 
+;
+;   Optionally, for older/non-standards-compliant FITS files, this can 
+;   "preprocess" the FITS headers to standardize & update them to the current
+;   format. This is done by handing off execution to
+;   gpi_load_and_preprocess_fits_file instead. Whether or not this happens is
+;   controlled by the pipeline setting variable 'preprocess_fits_files'.
+;
+;
+; TODO: Update to load DQ and ERR extensions if present?
 ;
 ; INPUTS:
 ; KEYWORDS:
-; 	/nodata		Don't return (or update) the data, just give the headers
+; 	/nodata		Don't return (or update) the data, just give the headers.
+;				This is of course faster, for cases where you just need the
+;				headers.
+; 	/silent		Don't display any text on screen while working.
 ; OUTPUTS:
 ;
 ; HISTORY:
@@ -17,9 +29,13 @@
 ;--------------------------------------------------------------------------------
 
 
-FUNCTION gpi_load_fits, filename, nodata=nodata, silent=silent
+FUNCTION gpi_load_fits, filename, nodata=nodata, silent=silent, _extra=_extra
 
 
+
+	if gpi_get_setting('preprocess_fits_files',/bool,default=0,/silent) then begin
+		return, gpi_load_and_preprocess_fits_file( filename, nodata=nodata, silent=silent, _extra=_extra)
+	endif
 
 	; This loads the files into the local variables:
 	;	currframe
@@ -42,7 +58,13 @@ FUNCTION gpi_load_fits, filename, nodata=nodata, silent=silent
 		; No extension present: Read primary image into the data array
 		;  and copy the only header into both the primary and extension headers
 		;  (see below where we append the DRF onto the primary header)
-		currframe = (READFITS(filename , Header, /SILENT))
+		;
+		if keyword_set(nodata) then begin
+			header = headfits(filename,/silent)
+		endif else begin
+			currframe = (READFITS(filename , Header, /SILENT))
+		endelse
+
 		pri_header=header
 		;*(*self.data).HeadersExt[IndexFrame] = header
 		;fxaddpar,  *(*self.data).HeadersExt[IndexFrame],'HISTORY', 'Input image has no extensions, so primary header copied to 1st extension'
@@ -62,8 +84,15 @@ FUNCTION gpi_load_fits, filename, nodata=nodata, silent=silent
 		; at least one extension is present:  Read the 1st extention image into
 		; the data array, and read in the primary and extension headers. 
 		;  (see below where we append the DRF onto the primary header)
-        currframe        = (mrdfits(filename , 1, ext_Header, /SILENT))
-		pri_header = headfits(filename, exten=0)
+		if keyword_set(nodata) then begin
+			pri_header = headfits(filename, exten=0, /silent)
+			ext_header = headfits(filename, exten=1, /silent)
+		endif else begin
+			currframe        = (mrdfits(filename , 1, ext_Header, /SILENT))
+			pri_header = headfits(filename, exten=0, /silent)
+		endelse
+
+
 	endif 
 		
     if n_elements( currframe ) eq 1 then if currframe eq -1 then begin

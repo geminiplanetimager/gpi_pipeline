@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- simplest possible DRF, just makes a simple data cube w/ no calibrations -->
-<DRF LogPath="$(GPI_DRP_LOG_DIR)" ReductionType="ASTR - SPEC" name="Very Simple Datacube Extraction">
-<dataset InputDir="$(GPI_RAW_DATA_DIR)" Name="" OutputDir="$(GPI_DRP_OUTPUT_DIR)">
-   <fits FileName="" />
+<DRF ReductionType="SpectralScience" name="Quicklook Automatic Datacube Extraction">
+<dataset InputDir="$(GPI_RAW_DATA_DIR)" OutputDir="$(GPI_DRP_OUTPUT_DIR)">
+   <fits filename=""/>
 </dataset>
 <module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="0" suffix="-darksub" gpitv="0" />
 <!-- <module name="Apply Reference Pixel Correction" Save="0" gpitv="0" before_and_after='1' /> -->

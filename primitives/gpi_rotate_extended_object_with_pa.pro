@@ -13,11 +13,11 @@
 ;  INPUTS:
 
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-rot" Desc="Enter output suffix"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="10" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE COMMENT: Rotate extended object using parallactic angle for spectroscopic obs.
 ; PIPELINE ORDER: 4.1
 ; PIPELINE TYPE: ASTR/SPEC
+; PIPELINE NEWTYPE: SpectralScience
 ; PIPELINE SEQUENCE: 02-03-
 ; EXAMPLE: 
 ;  <module name="Rotate extended object" suffix="-rot" Save="1" gpitv="1" />
@@ -33,6 +33,7 @@ COMMON APP_CONSTANTS
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
    getmyname, functionName
+   subsuffix='-rot'
    @__start_primitive
 
 ;;if all images have been processed into datacubes then start ADI processing...
@@ -88,7 +89,6 @@ if numfile  eq ((dataset.validframecount)-1) then begin
       ;;get the filenames of sc. data
     ;  fn=*((dataset.frames)[n])
       ;;get the datacube filename
-    ;  fn=Modules[0].OutputDir+path_sep()+strmid(fn,1+strpos(fn,path_sep(),/REVERSE_SEARCH ),STRPOS(fn,'.fits')-strpos(fn,path_sep(),/REVERSE_SEARCH )-1)+suffix+'.fits'
       fn=dataset.outputFileNames[n]
     ;  imt=readfits(fn,header,/silent)
       imt=accumulate_getimage( dataset, n)
@@ -164,7 +164,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
         endfor ;loop on lambda
 
     ;save the difference
-      if tag_exist( Modules[thisModuleIndex], "suffix") then subsuffix=Modules[thisModuleIndex].suffix
+	  subsuffix=suffix
     
     ;subsuffix='-comb'  ;this the suffix that will be added to the name of the ADI residual  
 	  fname=strmid(fn,0,strpos(fn,suffix)-1)+suffix+subsuffix+'.fits'

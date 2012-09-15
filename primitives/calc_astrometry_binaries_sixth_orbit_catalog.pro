@@ -16,9 +16,9 @@
 ;
 ; PIPELINE COMMENT: Calculate astrometry from unocculted binaries; Calculate Separation and PA at date DATEOBS using the sixth orbit catalog.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-astrom" Desc="Enter output suffix"
 ; PIPELINE ORDER: 2.61
 ; PIPELINE TYPE: ALL-SPEC
+; PIPELINE NEWTYPE: Calibration
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:
@@ -31,6 +31,7 @@ COMMON APP_CONSTANTS
 
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
+suffix='astrom' ; output suffix
 	;getmyname, functionName
 	  @__start_primitive
 

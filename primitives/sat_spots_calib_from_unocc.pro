@@ -17,6 +17,7 @@
 ; PIPELINE ARGUMENT: Name="tests" Type="int" Range="[0,1]" Default="0" Desc="1 only for DRP tests "
 ; PIPELINE ORDER: 2.515
 ; PIPELINE TYPE: ALL-SPEC
+; PIPELINE NEWTYPE: Calibration
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:

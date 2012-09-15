@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<DRF LogPath="E:\pipeline\log\" ReductionType="ASTR - SPEC" name="Simple Datacube Extraction">
-<dataset InputDir="" Name="" OutputDir="">
-   <fits FileName="" />
+<DRF ReductionType="SpectralScience" name="Simple Datacube Extraction">
+<dataset InputDir="" OutputDir="">
+   <fits filename=""/>
 </dataset>
 <module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
 <module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="0" suffix="-darksub" gpitv="0" />

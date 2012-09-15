@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<DRF LogPath="E:\pipeline\log\" ReductionType="CAL - SPEC" name='Dark'>
-<dataset InputDir="" Name="" OutputDir="">
-   <fits FileName="" />
+<DRF ReductionType="Calibration" name='Dark'>
+<dataset InputDir="" OutputDir="">
+   <fits filename=""/>
 </dataset>
 <module name="Simple Destripe (hard-coded for I and T)" Save="0" gpitv="0" before_and_after='1' /> 
 <module name="Accumulate Images" Method="InMemory" />

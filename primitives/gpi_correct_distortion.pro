@@ -17,6 +17,7 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="10" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.44
 ; PIPELINE TYPE: ALL-SPEC
+; PIPELINE NEWTYPE: SpectralScience,PolarimetricScience
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:
@@ -29,11 +30,11 @@ primitive_version= '$Id: gpi_correct_distortion.pro 78 2011-01-06 18:58:45Z mair
 calfiletype='distor' 
 @__start_primitive
 
-  cubef3D=*(dataset.currframe[0])
+	cubef3D=*(dataset.currframe[0])
 
-nlens=(size(cubef3D))[1]
-xx=findgen(nlens)#replicate(1L,nlens)
-yy=replicate(1L,nlens)#findgen(nlens)
+	nlens=(size(cubef3D))[1]
+	xx=findgen(nlens)#replicate(1L,nlens)
+	yy=replicate(1L,nlens)#findgen(nlens)
 
   
   ;  pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headercal, /SILENT))
@@ -42,12 +43,12 @@ yy=replicate(1L,nlens)#findgen(nlens)
     parmsx=parms[0,*]
     parmsy=parms[1,*]
     
-;distormodely=rotate(transpose(mydistor4(XX,YY,parmsx)),2)
-;distormodelx=rotate(transpose(mydistor4(XX,YY,parmsy)),2)
-distormodelx=mydistor4(XX,YY,parmsx)
-distormodely=mydistor4(XX,YY,parmsy)
-cubef3D2=cubef3D
-cubef3D3=cubef3D
+	;distormodely=rotate(transpose(mydistor4(XX,YY,parmsx)),2)
+	;distormodelx=rotate(transpose(mydistor4(XX,YY,parmsy)),2)
+	distormodelx=mydistor4(XX,YY,parmsx)
+	distormodely=mydistor4(XX,YY,parmsy)
+	cubef3D2=cubef3D
+	cubef3D3=cubef3D
 
 
 cubef3D_corrected=cubef3D

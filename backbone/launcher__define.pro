@@ -56,14 +56,14 @@ PRO launcher::event, ev
                 'GPItv':    begin
                        textinfo='Start one or several GPItv ' & textinfo2='viewers.'
                        end
-                'DRFGUI':     begin
-                     textinfo='Click to create your own DRF and ' & textinfo2='recipes.'
+                'RecipeEditor':     begin
+                     textinfo='Click to create and edit recipes.'
                      end
                 'ParserGUI':   begin   
-                    textinfo='Click to launch the GPI parser ' & textinfo2='GUI.'
+                    textinfo='Launch the GPI Data Parser GUI' & textinfo2='to auto generate recipes.'
                     end
                 'QueueView':    begin
-                      textinfo='Click to start the DRF queue ' & textinfo2='viewer.'
+                      textinfo='Click to start the recipe Queue ' & textinfo2='Viewer.'
                       end
                 'dst':         begin
                         textinfo='Click to start the Data Simulation ' & textinfo2='Tool.'
@@ -127,7 +127,7 @@ PRO launcher::event, ev
               ret=dialog_message(tmpstr,/information,/center,dialog_parent=ev.top)
           end
 	'GPItv': self->launch, 'gpitv'
-	'DRFGUI': self->launch, 'drfgui', session=40
+	'RecipeEditor': self->launch, 'drfgui', session=40
 	'ParserGUI': self->launch, 'parsergui', session=41
 	'QueueView': self->launch, 'queueview', session=42
     'dst': begin
@@ -477,9 +477,9 @@ if issetenvok eq -1 then return,0
         file_bttn2=WIDGET_BUTTON(menu, VALUE='Setup environ. var.', UVALUE='Setup')
         menu2 = WIDGET_BUTTON(bar, VALUE='About',/MENU) 
         file_bttn2=WIDGET_BUTTON(menu2, VALUE='About', UVALUE='About')
-        bclose = widget_button(frame,VALUE='Parser GUI',UVALUE='ParserGUI', resource_name='button', /tracking_events)
-        bclose = widget_button(frame,VALUE='DRF GUI',UVALUE='DRFGUI', resource_name='button', /tracking_events)
-        bclose = widget_button(frame,VALUE='DRF QueueView',UVALUE='QueueView', resource_name='button', /tracking_events)
+        bclose = widget_button(frame,VALUE='Data Parser',UVALUE='ParserGUI', resource_name='button', /tracking_events)
+        bclose = widget_button(frame,VALUE='Recipe Editor',UVALUE='RecipeEditor', resource_name='button', /tracking_events)
+        bclose = widget_button(frame,VALUE='Queue Viewer',UVALUE='QueueView', resource_name='button', /tracking_events)
 		bclose = widget_button(frame,VALUE='GPItv',UVALUE='GPItv', resource_name='button', /tracking_events)
 		bclose = widget_button(frame,VALUE='Auto-Reducer',UVALUE='AutomaticProcGUI', resource_name='button', /tracking_events)
         bclose = widget_button(frame,VALUE='Data log-file',UVALUE='makedatalogfile', resource_name='button', /tracking_events)

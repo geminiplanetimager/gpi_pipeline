@@ -52,8 +52,8 @@ FUNCTION gpipipelinebackbone::Init,  session=session, verbose=verbose, nogui=nog
 	; Eventually this will be a configuration structure.
 	pipelineConfig = {$
 		logdir : gpi_get_directory("GPI_DRP_LOG_DIR"),     $ ; directory for output log files
-		continueAfterDRFParsing:0,        $    				; Should program actually run the pipeline or just parse?
-		MaxFramesInDataSets: gpi_get_setting('max_files_per_drf', default=200),        $    				; Max # of files in one dataset in a DRF
+		continueAfterRecipeXMLParsing:0,        $    				; Should program actually run the pipeline or just parse?
+		MaxFramesInDataSets: gpi_get_setting('max_files_per_drf', default=200),        $    				; Max # of files in one dataset in a Recipe XML file
 		MaxMemoryUsage: 0L,                 $   			; this will eventually be used for array size limits on what gets done in memory versus swapped to disk.
 		desired_dispersion: 'vertical' $					; do we want horizontal or vertical spectra?
 	}
@@ -84,8 +84,7 @@ FUNCTION gpipipelinebackbone::Init,  session=session, verbose=verbose, nogui=nog
     error=0
     ;CATCH, Error       ; Catch errors before the pipeline
     IF Error EQ 0 THEN BEGIN
-        ;        drpSetAppConstants        ; Set the application constants
-        Self->OpenLog;, (*self.pipelineConfig).logdir + path_sep() + self->generalLogName(), /GENERAL
+        Self->OpenLog
         self->Log, 'Backbone Initialized'
 
         self->DefineStructs        ; Define the DRP structures
@@ -142,6 +141,7 @@ pro gpiPipelineBackbone::free_dataset_pointers
             PTR_FREE, (*Self.Data)[i].UncertFrames[*]
             PTR_FREE, (*Self.Data)[i].QualFrames[*]
         END
+	heap_gc ; for good measure
 end
 
 
@@ -217,12 +217,12 @@ END
 
  
 ;-----------------------------------------------------------
-; gpiPipelineBackbone::GetNextDRF
+; gpiPipelineBackbone::GetNextRecipe
 ;	Looks in the queue dir for any *.waiting.xml files.
 ;	If one or more are found, return the first one alphabetically
 ;	If none are found, return ""
 ;
-function gpiPipelineBackbone::GetNextDRF, queuedir, found=count
+function gpiPipelineBackbone::GetNextRecipe, queuedir, found=count
 
     queueDirName = QueueDir + '*.waiting.xml'
     FileNameArray = FILE_SEARCH(queueDirName, count=count)
@@ -231,7 +231,7 @@ function gpiPipelineBackbone::GetNextDRF, queuedir, found=count
         queue = REPLICATE({structQueueEntry}, count)
         queue.name = filenamearray
         for i=0L, count-1 do begin
-            queue[i] = self->DRF2struct(filenamearray[i])
+            queue[i] = self->Recipe2Struct(filenamearray[i])
         endfor
         ; sort here? This lets you set the order of multiple files if you drop
         ; them at once.
@@ -243,11 +243,12 @@ function gpiPipelineBackbone::GetNextDRF, queuedir, found=count
 end
 
 ;-----------------------------------------------------------
-; gpiPipelineBackbone::DRF2struct
+; gpiPipelineBackbone::Recipe2Struct
 ;
-; 	return a DRF as a structure
+; 	given a recipe filename, return a structQueueEntry
+; 	for that recipe
 ;
-function gpiPipelineBackbone::DRF2struct, filename
+function gpiPipelineBackbone::Recipe2Struct, filename
     s = {structQueueEntry}
     parts = stregex(file_basename(filename), "(.*)\.(.*)\.xml",/extrac,/sub)
 	;parts = stregex(filenamearray, ".+"+path_sep()+"(.*)\.(.*)\.xml",/extrac,/sub) ;linux?
@@ -259,14 +260,12 @@ function gpiPipelineBackbone::DRF2struct, filename
 end
 
 ;-----------------------------------------------------------
-; gpiPipelineBackbone::SetDRFStatus
+; gpiPipelineBackbone::SetRecipeQueueStatus
 ;
 ;    Update the status of a given file
 ;    by renaming the DRF xml file appropriately
 ;
-
-
-PRO gpiPipelineBackbone::SetDRFStatus, drfstruct, newstatus
+PRO gpiPipelineBackbone::SetRecipeQueueStatus, drfstruct, newstatus
 
     oldfilename = drfstruct.name
     filebase = stregex(oldfilename, "(.+)\."+drfstruct.status+".xml",/extract,/subexpr)
@@ -292,8 +291,8 @@ end
 ;-----------------------------------------------------------
 ; gpiPipelineBackbone::Flush_Queue
 ;
-; Delete any DRFs present in the queue directory (dangerous, mostly for
-; debugging use!)
+; Clear all queue contents, and delete any recipe files present in the queue directory 
+; (dangerous, mostly for debugging use!)
 
 PRO gpiPipelineBackbone::flushqueue, QueueDir
 
@@ -301,13 +300,13 @@ PRO gpiPipelineBackbone::flushqueue, QueueDir
     COMMON APP_CONSTANTS
     if strmid(queuedir, strlen(queuedir)-1,1) ne path_sep() then queuedir+=path_sep() ; append slash if needed
 
-	message,/info, 'Clearing all DRFs from the queue'
+	message,/info, 'Clearing all Recipes from the Queue - this cannot be undone!'
 	
-    CurrentDRF = self->GetNextDRF(Queuedir, found=nfound)
+    CurrentRecipe = self->GetNextRecipe(Queuedir, found=nfound)
 	while (nfound ge 1) do begin
-		print, "DELETING "+CurrentDRF.name
-		file_Delete, CurrentDRF.name
-    	CurrentDRF = self->GetNextDRF(Queuedir, found=nfound)
+		print, "DELETING "+CurrentRecipe.name
+		file_Delete, CurrentRecipe.name
+    	CurrentRecipe = self->GetNextRecipe(Queuedir, found=nfound)
 	endwhile
 
 
@@ -376,7 +375,7 @@ end
 ;    Loop forever checking for new files in the queue directory.
 ;    When one is found, 
 ;        - parse it
-;        - call DRFpipeline->Reduce
+;        - reduce it
 ;
 ;
 
@@ -388,30 +387,42 @@ PRO gpiPipelineBackbone::Run_queue, QueueDir
 
     if strmid(queuedir, strlen(queuedir)-1,1) ne path_sep() then queuedir+=path_sep() ; append slash if needed
 
-    print, "    "
-    print, "   Now polling for DRF files in "+queueDir
-    print, "    "
     ;if obj_valid(self.statuswindow) then self.statuswindow->log,"   Now polling and waiting for DRF files in "+queueDir ; Redundant!
-    self->log,"Now polling and waiting for DRF files in "+queueDir,/flush
+    self->log,"Now polling and waiting for Recipe files in "+queueDir,/flush
+
+	; Figure out how fast to poll, with different cadences for GUI and disk access
+	drp_disk_poll_freq = gpi_get_setting('drp_queue_poll_freq', /silent,default=1) ; poll for new files frequency in Hz
+	drp_gui_poll_freq = gpi_get_setting('drp_gui_poll_freq', /silent,default=10) ; GUI events check frequency in Hz for status window
+
+	disk_poll_wait_time = 1./drp_disk_poll_freq
+	gui_wait_time = 1./drp_gui_poll_freq
+	disk_to_gui_ratio =  fix(disk_poll_wait_time/gui_wait_time) > 1 ; check for disk actions at some multiple of the GUI check time step
+
+    print, "    "
+    print, "   Now polling for Recipe files in "+queueDir+" at "+strc(drp_disk_poll_freq) +" Hz"
+    print, "    "
+	
+
     WHILE DRPCONTINUE EQ 1 DO BEGIN
 
         if ~(keyword_set(DEBUG)) then CATCH, Error else ERROR=0    ; Catch errors inside the pipeline. In debug mode, just let the code crash and stop
         IF Error EQ 1 THEN BEGIN
             PRINT, "Calling Self -> ErrorHandler..."
-            Self -> ErrorHandler, CurrentDRF, QueueDir
+            Self -> ErrorHandler, CurrentRecipe, QueueDir
         ENDIF
 
-        CurrentDRF = self->GetNextDRF(Queuedir, found=nfound)
+        CurrentRecipe = self->GetNextRecipe(Queuedir, found=nfound)
         IF nfound gt 0 THEN begin
             self->checkLogDate
-            result = self->run_one_drf(CurrentDRF)
+            result = self->Run_One_Recipe(CurrentRecipe)
         endif
 
         ;wait, 1 ; Only check for new files at most once per second
-        for iw = 0,9 do begin
-            wait, 0.1 ; Only check for new files at most once per second
-                ; break the wait up into smaller parts to allow event loop
-                ; handling
+        for iw = 0,disk_to_gui_ratio-1 do begin
+			; break the wait up into smaller parts to allow event loop
+			; handling
+
+            wait, gui_wait_time
 
             if obj_valid(self.statuswindow) then begin
                 self.statuswindow->checkEvents
@@ -427,17 +438,17 @@ PRO gpiPipelineBackbone::Run_queue, QueueDir
                     ;exit
                 endif
                 if self.statuswindow->flushqueue() then begin
-		            self->log,/general, '**User request**:  flushing the queue.'
+		            self->log, '**User request**:  flushing the queue.'
                     self->flushqueue, queuedir
                     self.statuswindow->flushqueue_end
                 endif    
                 if self.statuswindow->rescandb() then begin
-		            self->log,/general, '**User request**:  Rescan Calibrations DB.'
+		            self->log, '**User request**:  Rescan Calibrations DB.'
                     self->rescan_CalDB
                     self.statuswindow->rescandb_end
                 endif    
                 if self.statuswindow->rescanConfig() then begin
-		            self->log,/general, '**User request**:  Rescan GPI data pipeline configuration.'
+		            self->log, '**User request**:  Rescan GPI data pipeline configuration.'
                     self->rescan_Config
                     self.statuswindow->rescanconfig_end
                 endif    
@@ -448,7 +459,7 @@ PRO gpiPipelineBackbone::Run_queue, QueueDir
 
 END
 ;-----------------------------------------------------------
-; gpiPipelineBackbone::Run_One_drf
+; gpiPipelineBackbone::Run_One_Recipe
 ;
 ; Handle a single DRF: 
 ;   - mark its status
@@ -458,15 +469,15 @@ END
 ;
 ; Parameter:  drf_filename, string. Name of DRF file to parse. 
 
-function gpiPipelineBackbone::run_one_drf, CurrentDRF
+function gpiPipelineBackbone::Run_One_Recipe, CurrentRecipe
     COMMON APP_CONSTANTS
 
 	; if needed, convert from a filename string to an info structure
-	if size(/tname, CurrentDRF) ne 'STRUCT' then CurrentDRF = self->DRF2struct(CurrentDRF)
+	if size(/tname, CurrentRecipe) ne 'STRUCT' then CurrentRecipe = self->Recipe2Struct(CurrentRecipe)
 
-	self->log, 'Reading file: ' + CurrentDRF.name, /GENERAL
-	if obj_valid(self.statuswindow) then self.statuswindow->set_DRF, CurrentDRF
-	self->SetDRFStatus, CurrentDRF, 'working'
+	self->log, 'Reading file: ' + CurrentRecipe.name
+	if obj_valid(self.statuswindow) then self.statuswindow->set_DRF, CurrentRecipe
+	self->SetRecipeQueueStatus, CurrentRecipe, 'working'
 ;	wait, 0.1   ; Wait 0.1 seconds to make sure file is fully written.
 	; Re-parse the configuration file, in case it has been changed.
 	;OPENR, lun, CONFIG_FILENAME_FILE, /GET_LUN
@@ -477,31 +488,31 @@ function gpiPipelineBackbone::run_one_drf, CurrentDRF
 
 	if ~(keyword_set(debug)) then CATCH, parserError else parserError=0 ; only catch if DEBUG is not set.
 	IF parserError EQ 0 THEN BEGIN
-		if obj_valid(self.statuswindow) then self.statuswindow->set_action, "Parsing DRF"
-		(*self.PipelineConfig).continueAfterDRFParsing = 1    ; Assume it will be Ok to continue
-		Self.Parser -> ParseFile, CurrentDRF.name,  Self.ConfigParser, backbone=self
+		if obj_valid(self.statuswindow) then self.statuswindow->set_action, "Parsing Recipe"
+		(*self.PipelineConfig).continueAfterRecipeXMLParsing = 1    ; Assume it will be Ok to continue
+		Self.Parser -> ParseFile, CurrentRecipe.name,  Self.ConfigParser, backbone=self
 		; ParseFile updates the self.Data and self.modules structure
-		; arrays in accordance with what is stated in the DRF
+		; arrays in accordance with what is stated in the recipe
 		CATCH, /CANCEL
 	ENDIF ELSE BEGIN
-		self->Log, "ERROR in parsing the DRF "+CurrentDRF.name
+		self->Log, "ERROR in parsing the Recipe file "+CurrentRecipe.name
 		; Call the local error handler
-		Self -> ErrorHandler, CurrentDRF, QueueDir
-		; Destroy the current DRF parser and punt the DRF
+		Self -> ErrorHandler, CurrentRecipe, QueueDir
+		; Destroy the current Recipe parser and punt the DRF
 		OBJ_DESTROY, Self.Parser
 		; Recreate a parser object for the next DRF in the pipeline
 		Self.Parser = OBJ_NEW('gpiDRFParser', backbone=self)
-		(*self.PipelineConfig).continueAfterDRFParsing = 0
+		(*self.PipelineConfig).continueAfterRecipeXMLParsing = 0
 		CATCH, /CANCEL
 	ENDELSE
 
-	IF (*self.PipelineConfig).continueAfterDRFParsing EQ 1 THEN BEGIN
+	IF (*self.PipelineConfig).continueAfterRecipeXMLParsing EQ 1 THEN BEGIN
 		if (*(self.data)).validframecount eq 0 then begin
-			self->Log, 'ERROR: That DRF was parsed OK, but no files could be loaded.'
+			self->Log, 'ERROR: That Recipe was parsed OK, but no data files could be loaded.'
 			result=NOT_OK
 		endif else begin
 
-			;Self -> OpenLog, CurrentDRF.Name + '.log', /DRF
+			;Self -> OpenLog, CurrentRecipe.Name + '.log', /DRF
 			if ~strmatch(self.reductiontype,'On-Line Reduction') then $
 				Result = Self->Reduce() else $
 				Result = Self->ReduceOnLine()
@@ -509,14 +520,14 @@ function gpiPipelineBackbone::run_one_drf, CurrentDRF
 
 		IF Result EQ OK THEN BEGIN
 			PRINT, "Success"
-			self->SetDRFStatus, CurrentDRF, 'done'
-			self->Log, 'Done with '+CurrentDRF.name+" : Success"
-			status_message = "Last DRF done OK! Watching for new DRFs but idle."
+			self->SetRecipeQueueStatus, CurrentRecipe, 'done'
+			self->Log, 'Done with '+CurrentRecipe.name+" : Success"
+			status_message = "Last recipe done OK! Watching for new recipes but idle."
 		ENDIF ELSE BEGIN
 			PRINT, "Failure"
-			self->SetDRFStatus, CurrentDRF, 'failed'
-			self->Log, 'ERROR with '+CurrentDRF.name+". Reduction failed."
-			status_message = "Last DRF **failed**!    Watching for new DRFs but idle."
+			self->SetRecipeQueueStatus, CurrentRecipe, 'failed'
+			self->Log, 'ERROR with '+CurrentRecipe.name+". Reduction failed."
+			status_message = "Last Recipe **Failed**!    Watching for new recipes but idle."
 		ENDELSE
 		if obj_valid(self.statuswindow) then begin
 			  self.statuswindow->set_status, status_message
@@ -526,11 +537,10 @@ function gpiPipelineBackbone::run_one_drf, CurrentDRF
 		; Free any remaining memory here
 		self->free_dataset_pointers
 
-		; We are done with the DRF, so close its log file
-	ENDIF ELSE BEGIN  ; ENDIF continueAfterDRFParsing EQ 1
-	  ; This code if continueAfterDRFParsing == 0
-	  self->log, 'Reduction failed due to parsing error in file ' + DRFFileName, /GENERAL
-	  self->SetDRFStatus, CurrentDRF, 'failed'
+	ENDIF ELSE BEGIN  
+	  ; This code if continueAfterRecipeXMLParsing == 0
+	  self->log, 'Reduction failed due to parsing error in file ' + DRFFileName
+	  self->SetRecipeQueueStatus, CurrentRecipe, 'failed'
 	  self->free_dataset_pointers 		 ; If we failed with outstanding data, then clean it up.
 	ENDELSE
 
@@ -568,50 +578,23 @@ FUNCTION gpiPipelineBackbone::Reduce
 
     FOR IndexFrame = 0, (*self.Data).validframecount-1 DO BEGIN
         if debug ge 1 then print, "########### start of file "+strc(indexFrame+1)+" ################"
-        self->Log, 'Reducing file: ' + (*self.Data).fileNames[IndexFrame], /GENERAL, /DRF, depth=1
+        self->Log, 'Reducing file: ' + (*self.Data).fileNames[IndexFrame], depth=1
         if obj_valid(self.statuswindow) then self.statuswindow->Set_FITS, (*self.Data).fileNames[IndexFrame], number=indexframe,nbtot=(*self.Data).validframecount
 
 
 
-        load_status = self->load_and_preprocess_FITS_file(indexFrame)
+        ;--- Read in the file 
+        load_status = self->load_FITS_file(indexFrame)
         if load_status eq NOT_OK then begin
-            self->Log, "ERROR: Unable to load file "+strc(indexFrame),/GENERAL,/DRF
+            self->Log, "ERROR: Unable to load file "+strc(indexFrame)
             return, NOT_OK
         endif
-        ;--- Read in the file 
-        ;filename= *((*self.Data).frames[IndexFrame])
-
-        ;fits_info, filename, n_ext = numext, /silent
-        ;numext=0 ;just for polcaltest!!!
-;        if ~ptr_valid((*self.data).currframe) then begin
-;            if (numext EQ 0) then (*self.data).currframe        = ptr_new(READFITS(filename , Header, /SILENT))
-;            if (numext ge 1) then begin
-;                (*self.data).currframe        = ptr_new(mrdfits(filename , 1, Header, /SILENT))
-;                headPHU = headfits(filename, exten=0)            
-;            endif
-;        endif else begin
-;            if (numext EQ 0) then *((*self.data).currframe)        = (READFITS(filename , Header, /SILENT))
-;            if (numext ge 1) then begin
-;                *((*self.data).currframe)        = (mrdfits(filename , 1, Header, /SILENT))
-;                headPHU = headfits(filename, exten=0)            
-;            endif        
-;        endelse    
-;
-;        if n_elements( *((*self.data).currframe) ) eq 1 then if *((*self.data).currframe) eq -1 then begin
-;            self->Log, "ERROR: Unable to read file "+filename, /GENERAL, /DRF
-;            self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
-;            return,NOT_OK 
-;        endif
-;
-        ; NOTE: there are two redundant ways to get the current filename in the code right now:
-        ;print, *((*self.data).frames[IndexFrame])
-        ;print,  (*self.Data).inputdir+path_sep()+(*self.Data).fileNames[IndexFrame]
 
         numfile=IndexFrame ; store the index in the common block
 
 		suffix=''
 
-        ; Iterate over the modules in the 'Modules' array and run each.
+        ;-- Iterate over the modules in the 'Modules' array and run each.
         status = OK
         FOR indexModules = 0, N_ELEMENTS(*self.Modules)-1 DO BEGIN
             ; Continue if the current module's skip field equals 0 and no previous module
@@ -623,15 +606,15 @@ FUNCTION gpiPipelineBackbone::Reduce
 
             ENDIF
 			if obj_valid(self.statuswindow) then if self.statuswindow->checkabort() then begin
-                self->Log, "User pressed ABORT button! Aborting DRF",/general, /drf
+                self->Log, "User pressed ABORT button! Aborting Recipe"
                 status = NOT_OK
                 break
             endif
         ENDFOR
 
-        ; Log the result.
+        ;-- Log the result.
         if status eq GOTO_NEXT_FILE then self->Log, 'Continuing on to next file...',  /DRF,depth=2
-        IF status EQ OK or status eq GOTO_NEXT_FILE THEN self->Log, 'Reduction successful: ' + filename, /GENERAL, /DRF, depth=2 $
+        IF status EQ OK or status eq GOTO_NEXT_FILE THEN self->Log, 'Reduction successful: ' + filename, depth=2 $
         ELSE begin
             self->Log, 'Reduction failed: ' + filename, /flush
             break ; no sense continuing if one of the files has failed.
@@ -641,12 +624,12 @@ FUNCTION gpiPipelineBackbone::Reduce
     ENDFOR
     if (*self.Data).validframecount eq 0 then begin    
       if obj_valid(self.statuswindow) then self.statuswindow->Update, *self.Modules,N_ELEMENTS(*self.Modules)-1, (*self.data).validframecount, 1,' No file processed.'
-      self->log, 'No file processed. ' , /GENERAL,/DRF
+      self->log, 'No file processed. ' 
       status=OK
     endif
-    if status eq OK then self->Log, "DRF Complete!",/flush
+    if status eq OK then self->Log, "Recipe Complete!",/flush
 
-    if debug ge 1 then print, "########### end of reduction for that DRF  ################"
+    if debug ge 1 then print, "########### end of reduction for that recipe ################"
     PRINT, ''
     PRINT, CMSYSTIME(/ext)
     PRINT, ''
@@ -658,13 +641,16 @@ FUNCTION gpiPipelineBackbone::Reduce
 
 END
 ;-----------------------------------------------------------
-; gpiPipelineBackbone::Load_and_preprocess_FITS_file
+; gpiPipelineBackbone::Load_FITS_file
 ;
-;     This routine loads an input file from disk, and optionally performs
+;     This routine loads an input file from disk.
+;
+;     It optionally performs
 ;     one or more transformations on it (such as updating FITS keywords or
-;     rotating the image)
+;     rotating the image) This code now offloaded to
+;     gpi_load_and_preprocess_fits_file
 ;
-;     This preprocessing is needed because of variations in the GPI
+;     This preprocessing can be needed because of variations in the GPI
 ;     data format as the instrument and pipeline are developing. This
 ;     routine provides a convenient place to perform whatever actions
 ;     are needed to read disparate input files into a common format in memory.
@@ -676,79 +662,28 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
 	filename= *((*self.Data).frames[IndexFrame])
 	if obj_valid(self.statuswindow) then self.statuswindow->set_action, "Reading FITS file "+filename
     if ~file_test(filename,/read) then begin
-        self->Log, "ERROR: Unable to read file "+filename, /GENERAL, /DRF
-        self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
+        self->Log, "ERROR: Unable to read file "+filename
+        self->Log, 'Reduction failed: ' + filename
         return,NOT_OK
     endif
 
 
 	; Do all the actual work now in a separate function: 
-	file_data = gpi_load_and_preprocess_fits_file(filename)
+	file_data = gpi_load_fits(filename)
 
-	;	The image is already a pointer, so we can just copy that over. 
+	;	The image is already a pointer, so we can just copy over the pointer. 
 	(*self.data).currframe = file_data.image
 
 	; likewise copy over the extension header
-	*(*self.data).HeadersExt[IndexFrame] = *file_data.ext_header
+	(*self.data).HeadersExt[IndexFrame] = file_data.ext_header
 
 	; we deal with the primary header in a special way below, so just save it
 	; here. 
 	pri_header = *file_data.pri_header
 
-    ;if ~ptr_valid((*self.data).currframe) then (*self.data).currframe = ptr_new(/allocate_heap)
+	ptr_free, file_data.pri_header ; avoid memory leaks!
+	; Don't free the image pointer or ext_header here since that will lose it from the (*self.data).currframe
 
-	ptr_free, file_data.ext_header, file_data.pri_header ; avoid memory leaks!
-	; Don't free the image pointer here since that will lose it from the (*self.data).currframe
-;
-;	; Read in the file, and check whether it is a single image or has
-;	; extensions.
-;    fits_info, filename, n_ext = numext, /silent
-;    if (numext EQ 0) then begin
-;		; No extension present: Read primary image into the data array
-;		;  and copy the only header into both the primary and extension headers
-;		;  (see below where we append the DRF onto the primary header)
-;		*((*self.data).currframe)        = (READFITS(filename , Header, /SILENT))
-;		pri_header=header
-;		;*(*self.data).HeadersExt[IndexFrame] = header
-;		;fxaddpar,  *(*self.data).HeadersExt[IndexFrame],'HISTORY', 'Input image has no extensions, so primary header copied to 1st extension'
-;		mkhdr,hdrext,*((*self.data).currframe)
-;		sxaddpar,hdrext,"XTENSION","IMAGE","Image extension",before="SIMPLE"
-;		sxaddpar,hdrext,"EXTNAME","SCI","Image extension contains science data";,before="SIMPLE"
-;		sxaddpar,hdrext,"EXTVER",1,"Number assigned to FITS extension";,before="SIMPLE"
-;		sxdelpar, hdrext, "SIMPLE"
-;		;add blank wcs keyword in extension (mandatory for all gemini data)
-;		wcskeytab=["CTYPE1","CD1_1","CD1_2","CD2_1","CD2_2","CDELT1","CDELT2",$
-;		  "CRPIX1","CRPIX2","CRVAL1","CRVAL2","CRVAL3","CTYPE1","CTYPE2"]
-;		for iwcs=0,n_elements(wcskeytab)-1 do $
-;		sxaddpar,hdrext,wcskeytab[iwcs],'','',before="END"
-;		*(*self.data).HeadersExt[IndexFrame] = hdrext
-;    endif
-;    if (numext ge 1) then begin
-;		; at least one extension is present:  Read the 1st extention image into
-;		; the data array, and read in the primary and extension headers. 
-;		;  (see below where we append the DRF onto the primary header)
-;        *((*self.data).currframe)        = (mrdfits(filename , 1, ext_Header, /SILENT))
-;		pri_header = headfits(filename, exten=0)
-;		
-;		;Gemini requirement: test and add extname 'SCI' if not present
-;		val_extname = sxpar(ext_header,"EXTNAME",count=cextname,/silent)
-;		if (cextname eq 0) || (strlen(strcompress(val_extname,/rem)) eq 0) then sxaddpar,ext_header,"EXTNAME","SCI","Image extension contains science data"
-;		if (cextname eq 1) AND ~(stregex(val_extname,'SCI',/bool)) AND ~(strlen(strcompress(val_extname,/rem)) eq 0) then begin
-;        self->Log, "ERROR:  found"+val_extname+"in the first extension"+filename, /GENERAL, /DRF
-;        self->Log, "ERROR:  first extension need SCI Extname"+filename, /GENERAL, /DRF
-;        self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
-;        return,NOT_OK 
-;    endif
-;  
-;		*(*self.data).HeadersExt[IndexFrame] = ext_header
-;    endif        
-;
-;    if n_elements( *((*self.data).currframe) ) eq 1 then if *((*self.data).currframe) eq -1 then begin
-;        self->Log, "ERROR: Unable to read file "+filename, /GENERAL, /DRF
-;        self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
-;        return,NOT_OK 
-;    endif
-;   
     ;--- update the headers: append the DRF onto the actual FITS header
     ;  At this point the *(*self.data).HeadersPHU[IndexFrame] variable contains
     ;  ONLY the DRF appended in FITS header COMMENT form. 
@@ -765,148 +700,6 @@ FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
     ; is required. 
     ;SXADDPAR, *(*self.data).HeadersExt[IndexFrame], "END",''        
     
-;    
-;    if (numext EQ 0) then begin
-;          fxaddpar, *(*self.data).HeadersPHU[IndexFrame], 'EXTEND', 'T', 'FITS file contains extensions' ; these are required in any FITS with extensions
-;          fxaddpar, *(*self.data).HeadersPHU[IndexFrame], 'NEXTEND', 1, 'FITS file contains extensions'  ; so make sure they are present.
-;      
-;    
-;    	;--- update the headers: fix obsolete keywords by changing them
-;    	;  to official standardized values. 
-;    	
-;    	obsolete_keywords = ['PRISM',   'FILTER3', 'FILTER2', 'FILTER4', 'FILTER', 'LYOT', 'GAIN']
-;    	approved_keywords = ['DISPERSR','DISPERSR', 'CALFILT', 'ADC',    'FILTER1' , 'LYOTMASK', 'SYSGAIN']
-;    
-;    	for i=0L, n_elements(approved_keywords)-1 do begin
-;    		val_approved = self->get_keyword(approved_keywords[i], count=count, indexFrame=indexFrame,/silent)
-;    		if count eq 0 then begin ; only try to update if we are missing the approved keyword.
-;    			; in that case, see if we have an obsolete keyword and then try to
-;    			; use it.
-;    			val_obsolete = self->get_keyword(obsolete_keywords[i], count=count, comment=comment, indexFrame=indexFrame,/silent)
-;    			if count gt 0 then self->set_keyword, approved_keywords[i], val_obsolete, comment=comment, indexFrame=indexFrame
-;    			message,/info, 'Converted obsolete keyword '+obsolete_keywords[i]+' into '+approved_keywords[i]+" with value="+strc(val_obsolete)
-;    		endif
-;        	sxdelpar, *(*self.data).HeadersPHU[IndexFrame], obsolete_keywords[i]
-;    	endfor 
-;   	endif
-;	if (numext EQ 0) then begin
-;      ;remove NAXIS1 & NAXIS2 in PHU
-;      sxdelpar, *(*self.data).HeadersPHU[IndexFrame], ['NAXIS1','NAXIS2']
-;      ;;change DISPERSR value according to GPI new conventions
-;      val_disp = self->get_keyword('DISPERSR', count=count, indexFrame=indexFrame,/silent)
-;      newval_disp=''
-;      if strmatch(val_disp, '*Spectr*') then newval_disp='DISP_PRISM_G6262' 
-;      if strmatch(val_disp, '*Pol*') then newval_disp='DISP_WOLLASTON_G6261'
-;      if strlen(newval_disp) gt 0 then self->set_keyword, 'DISPERSR', newval_disp,  indexFrame=indexFrame,ext_num=0
-;      ;;add POLARIZ & WPSTATE keywords
-;      if strmatch(val_disp, '*Pol*') then self->set_keyword, 'POLARIZ', 'DEPLOYED',  indexFrame=indexFrame,ext_num=0 $
-;                                    else self->set_keyword, 'POLARIZ', 'EXTRACTED',  indexFrame=indexFrame,ext_num=0 
-;      if strmatch(val_disp, '*Pol*') then self->set_keyword, 'WPSTATE', 'IN',  indexFrame=indexFrame,ext_num=0 $
-;                                    else self->set_keyword, 'WPSTATE', 'OUT',  indexFrame=indexFrame,ext_num=0       
-;      ;;change FILTER1 value according to GPI new conventions
-;      val_old = self->get_keyword('FILTER1', count=count, indexFrame=indexFrame,/silent)
-;      newval=''
-;      tabfiltold=['Y','J','H','K1','K2']
-;      newtabfilt=['IFSFILT_Y_G1211','IFSFILT_J_G1212','IFSFILT_H_G1213','IFSFILT_K1_G1214','IFSFILT_K2_G1215']
-;      indc=where(strmatch(tabfiltold,strcompress(val_old,/rem)))
-;      if indc ge 0 then newval=(newtabfilt[indc])[0]
-;      if strlen(newval) gt 0 then self->set_keyword, 'FILTER1', newval,  indexFrame=indexFrame,ext_num=0
-;      ;add OBSMODE keyword
-;      if strlen(val_old) gt 0 then self->set_keyword, 'OBSMODE', val_old,  indexFrame=indexFrame,ext_num=0
-;      ;add ABORTED keyword
-;      self->set_keyword, 'ABORTED', 'F',  indexFrame=indexFrame,ext_num=1
-;      ;change BUNIT value
-;      self->set_keyword, 'BUNIT', 'Counts/seconds/coadd',  indexFrame=indexFrame,ext_num=1
-;      sxdelpar, *(*self.data).HeadersPHU[IndexFrame], 'BUNIT'
-;      ;add DATASEC keyword
-;      self->set_keyword, 'DATASEC', '[1:2048,1:2048]',  indexFrame=indexFrame,ext_num=1
-;      ;change ITIME,EXPTIME,ITIME0,TRUITIME: 
-;      ;BE EXTREMLY CAREFUL with change of units
-;      ;;old itime[millisec], old exptime[in sec]
-;      ;; new itime [seconds per coadd],  new itime0[microsec per coadd]
-;	  val_old_itime0 = self->get_keyword('ITIME0', count=count, indexFrame=indexFrame,/silent)
-;	  if count eq 0 then begin
-;    	val_old_itime = self->get_keyword('itime', count=count, indexFrame=indexFrame,/silent)
-;		val_old_itime0 = 1e3*val_old_itime
-;	  endif
-;
-;      val_old_itime = self->get_keyword('TRUITIME', count=count, indexFrame=indexFrame,/silent)
-;	  if count eq 0 then val_old_itime = self->get_keyword('exptime', count=count, indexFrame=indexFrame,/silent)
-;      sxdelpar, *(*self.data).HeadersPHU[IndexFrame], 'ITIME'
-;      sxdelpar, *(*self.data).HeadersPHU[IndexFrame], 'EXPTIME'
-;      sxdelpar, *(*self.data).HeadersPHU[IndexFrame], 'TRUITIME'
-;      self->set_keyword, 'ITIME', float(val_old_itime),  'Exposure integration time in seconds per coadd', indexFrame=indexFrame,ext_num=1
-;      self->set_keyword, 'ITIME0', long(val_old_itime0),  'Requested integration time in microsec per coadd',indexFrame=indexFrame,ext_num=1
-;      ;;add UTSTART
-;      val_timeobs = self->get_keyword('TIME-OBS', count=count, indexFrame=indexFrame,/silent)
-;      self->set_keyword, 'UTSTART', val_timeobs,  'UT at observation start', indexFrame=indexFrame,ext_num=0
-;      ;;change GCALLAMP values      
-;      val_lamp = self->get_keyword('GCALLAMP', count=count, indexFrame=indexFrame,/silent)
-;      val_object = self->get_keyword('OBJECT', count=count, indexFrame=indexFrame,/silent) ; keyword used in UCLA tests
-;      newlamp=''
-;      if strmatch(val_lamp,'*Xenon*',/fold) or strmatch(val_object, '*Xenon*',/fold)then newlamp='Xe'
-;      if strmatch(val_lamp,'*Argon*',/fold) or strmatch(val_object, '*Argon*',/fold)then newlamp='Ar'
-;      if strlen(newlamp) gt 0 then self->set_keyword, 'GCALLAMP', newlamp,  indexFrame=indexFrame,ext_num=0
-;      ;;change OBSTYPE ("wavecal" to "ARC" value)
-;      val_obs = self->get_keyword('OBSTYPE', count=count, indexFrame=indexFrame,/silent)
-;      newobs=''
-;      if strmatch(val_obs,'*Wavecal*',/fold) then newobs='ARC'
-;      if strlen(newlamp) gt 0 then self->set_keyword, 'OBSTYPE', newobs,  indexFrame=indexFrame,ext_num=0
-;      ;add ASTROMTC keyword
-;      val_old = self->get_keyword('OBSCLASS', count=count, indexFrame=indexFrame,/silent)
-;      if strmatch(val_old, '*AstromSTD*',/fold) then astromvalue='TRUE' else astromvalue='FALSE'
-;      self->set_keyword, 'ASTROMTC', astromvalue, 'Is this star an astrometric standard?', indexFrame=indexFrame,ext_num=0
-;      
-;      ;;set the reserved OBSCLASS keyword
-;       self->set_keyword, 'OBSCLASS', 'acq',  indexFrame=indexFrame,ext_num=0
-;       ;;add the INPORT keyword
-;       val_port = self->get_keyword('ISS_PORT', count=count, indexFrame=indexFrame,/silent)
-;       newport=0
-;      if strmatch(val_port,'*bottom*') then newport=1
-;      if strmatch(val_port,'*side*') then newport=2
-;      if strmatch(val_port,'*perfect*') then newport=6
-;      if newport gt 0 then self->set_keyword, 'INPORT', newport,  indexFrame=indexFrame,ext_num=0
-;      sxdelpar, *(*self.data).HeadersPHU[IndexFrame], 'ISS_PORT'
-;    endif
-;    ;;check for previous and invalid multi-occurences DATAFILE keyword
-;      filnm=fxpar(*(*self.data).HeadersPHU[IndexFrame],'DATAFILE',count=cdf)
-;      if cdf gt 1 then  sxdelpar, *(*self.data).HeadersPHU[IndexFrame], "DATAFILE"
-;    FXADDPAR, *(*self.data).HeadersPHU[IndexFrame], "DATAFILE", file_basename(filename), "File name", before="END"
-;    FXADDPAR, *(*self.data).HeadersPHU[IndexFrame], "DATAPATH", file_dirname(filename), "Original path of DRP input", before="END"
-;   
-;
-;    ;---- is the frame from the entire detector or just a subarray?
-;	;if numext eq 0 then datasec=SXPAR( header, 'DATASEC',count=cds) else instrum=SXPAR( headPHU, 'DATASEC',count=cds)
-;	datasec=SXPAR(*(*self.data).HeadersExt[IndexFrame], 'DATASEC',count=cds)
-;	if cds eq 1 then begin
-;	  ; DATASSEC format is "[DETSTRTX:DETENDX,DETSTRTY:DETENDY]" from gpiheaders_20110425.xls (S. Goodsell)
-;		DETSTRTX=fix(strmid(datasec, 1, stregex(datasec,':')-1))
-;		DETENDX=fix(strmid(datasec, stregex(datasec,':')+1, stregex(datasec,',')-stregex(datasec,':')-1))
-;		datasecy=strmid(datasec,stregex(datasec,','),strlen(datasec)-stregex(datasec,','))
-;		DETSTRTY=fix(strmid(datasecy, 1, stregex(datasecy,':')-1))
-;		DETENDY=fix(strmid(datasecy, stregex(datasecy,':')+1, stregex(datasecy,']')-stregex(datasecy,':')-1))
-;		;;DRP will always consider [1:2048,1,2048] frames:
-;		if (DETSTRTX ne 1) || (DETENDX ne 2048) || (DETSTRTY ne 1) || (DETENDY ne 2048) then begin
-;		  tmpframe=dblarr(2048,2048)
-;		  tmpframe[(DETSTRTX-1):(DETENDX-1),(DETSTRTY-1):(DETENDY-1)]=*((*self.data).currframe)
-;		  *((*self.data).currframe)=tmpframe
-;		endif
-;	endif
-;
-;
-;    ;---- Rotate the image, if necessary -------
-;    ;!!!!TEMPORARY will need modifs: use it for real ifs data, not DST!!!
-;    instrum=SXPAR( *(*self.data).HeadersPHU[IndexFrame], 'INSTRUME',count=c1)
-;	; FIXME remove vertical transpose mode here
-;	if (~strmatch(instrum,'*DST*') && (  sxpar( *(*self.data).HeadersPHU[IndexFrame], 'DRPVER' ) eq '' ))  $
-;	  OR (strlowcase(sxpar( *(*self.data).HeadersPHU[IndexFrame], 'DSORIENT')) eq 'vertical' and (*self.pipelineconfig).desired_dispersion eq 'horizontal')  then begin
-;    	if self.verbose then self->Log, "Image detected as IFS raw file, assumed vertical spectrum orientation. Must be reoriented to horizontal spectrum direction."
-;        *((*self.data).currframe)=rotate(transpose(*((*self.data).currframe)),2)
-;		fxaddpar, *(*self.data).HeadersPHU[IndexFrame],  'HISTORY', 'Raw image rotated by 90 degrees'
-;		fxaddpar, *(*self.data).HeadersPHU[IndexFrame],  'DSORIENT', 'horizontal', 'Spectral dispersion is horizontal'
-;    	message,/info, 'Image rotated to match old DST convention of horizontal dispersion!'
-;    endif
-;
     return, OK
 end
 
@@ -958,7 +751,7 @@ FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
 	if call_function_error eq 0 then begin
 		status = call_function( Modules[ModNum].IDLCommand, *self.data, Modules, self ) 
 	endif else begin
-		self->Log, "  ERROR in calling primitive '"+Modules[ModNum].Name+"'. Check primitive name and arguments?",/general,/drf
+		self->Log, "  ERROR in calling primitive '"+Modules[ModNum].Name+"'. Check primitive name and arguments?"
 		self->Log,"        idl command attempted: "+Modules[ModNum].IDLCommand
 
 		status=NOT_OK
@@ -976,19 +769,6 @@ FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
 END
 
 
-
-;-----------------------------------------------------------
-; gpiPipelineBackbone::GeneralLogName
-;
-;    Create a log file name
-; HISTORY:
-;   2012-06-14: Converted log file to just use the date rather than 
-;   2012-07-20: Obsolete, now merged into OpenLog. -MP
-
-;FUNCTION gpiPipelineBackbone::GeneralLogName
-;    r = 'gpi_drp_'+gpi_datestr()+".log"
-;    RETURN, r
-;end
 
 
 ;
@@ -1014,27 +794,18 @@ end
 ;
 ;    Create a log file
 ;
-;    OSIRIS legacy code: not sure what the point of 2 different log files is
-;         Aha: The general log file is for the overall pipeline invocation, and
-;         then a separate individual file is created for each specific DRF sent
-;         through the pipeline.
-;
-
-
-PRO gpiPipelineBackbone::OpenLog ;, LogFile, GENERAL = LogGeneral, DRF = LogDRF
+PRO gpiPipelineBackbone::OpenLog 
 
     COMMON APP_CONSTANTS
 
     self.log_date = gpi_datestr(/current)
     logfile = (*self.pipelineConfig).logdir + path_sep() +'gpi_drp_'+self.log_date+".log"
-    loggeneral=1
 	catch, error_status
 
 	if error_status ne 0 then begin
     	print, "ERROR in OPENLOG: "
    		print, "could not open file "+LogFile
   	endif else begin
-		IF KEYWORD_SET(LogGeneral) THEN BEGIN
 		  CLOSE, LOG_GENERAL
 		  FREE_LUN, LOG_GENERAL
 		  OPENW, LOG_GENERAL, LogFile, /GET_LUN,/APPEND
@@ -1048,8 +819,6 @@ PRO gpiPipelineBackbone::OpenLog ;, LogFile, GENERAL = LogGeneral, DRF = LogDRF
 		  print, ""
 		  if obj_valid(self.statuswindow) then self.statuswindow->set_GenLogF, logfile
 		  self.generallogfilename = logfile
-		ENDIF
-
 
   	endelse
   	catch,/cancel
@@ -1074,7 +843,7 @@ END
 ;    /DEBUG        flag for debug-mode log commands (which will be ignored unless
 ;                DEBUG is set in the application configuration)
 ;-----------------------------------------------------------------------------------------------------
-PRO gpiPipelineBackbone::Log, Text, GENERAL=LogGeneral, DRF=LogDRF, DEPTH = TextDepth, flush=flush, debug=debugflag
+PRO gpiPipelineBackbone::Log, Text, DEPTH = TextDepth, flush=flush, debug=debugflag
 
 
     COMMON APP_CONSTANTS
@@ -1124,7 +893,7 @@ END
 
 
 
-PRO gpiPipelineBackbone::ErrorHandler, CurrentDRF, QueueDir
+PRO gpiPipelineBackbone::ErrorHandler, CurrentRecipe, QueueDir
 
     COMMON APP_CONSTANTS
 
@@ -1133,10 +902,10 @@ PRO gpiPipelineBackbone::ErrorHandler, CurrentDRF, QueueDir
 
     IF Error EQ 0 THEN BEGIN
         self->log, 'ERROR: ' + !ERROR_STATE.MSG + '    ' + $
-            !ERROR_STATE.SYS_MSG, /GENERAL, DEPTH = 1
-        self->log, 'Reduction failed', /GENERAL
+            !ERROR_STATE.SYS_MSG, DEPTH = 1
+        self->log, 'Reduction failed'
         IF N_PARAMS() EQ 2 THEN BEGIN
-            self->SetDRFStatus, CurrentDRF, QueueDir, 'failed'
+            self->SetRecipeQueueStatus, CurrentRecipe, QueueDir, 'failed'
             ; If we failed with outstanding data, then clean it up.
 			self->free_dataset_pointers
         ENDIF
@@ -1147,30 +916,9 @@ PRO gpiPipelineBackbone::ErrorHandler, CurrentDRF, QueueDir
 
     CATCH, /CANCEL
 END
-;-----------------------------------------------------------
-; Functions for dealing with FITS header keywords
-;
-;	The goal here is that pipeline primitives should not have to care
-;	whether a given keyword is in the primary HDU or an extension HDU;
-;	these functions take care of that appropriately. 
-
-;PRO gpiPipelineBackbone::load_keyword_table
-;
-;	if ptr_valid(self.keyword_info) then ptr_free, self.keyword_info
-;
-;	; this file will be in the same directory as drsconfig.xml
-;	mod_config_file=GETENV('GPI_CONFIG_FILE')
-;	keyword_config_file = file_dirname(mod_config_file) + path_sep() + 'keywordconfig.txt'
-;	readcol, keyword_config_file, keywords, extensions,  format='A,A',SKIPLINE=2,silent=1 ; tab separated
-;	; TODO: error checking!
-;	;JM: I removed the "delimiter=string(09b)," keyword in call to readcol (is it system dependent?)
-;	; MP: that just specifies the delimiter to be a tab character (ASCII 09),
-;	; and so it should work on any OS
-;	self.keyword_info = ptr_new({keyword: strupcase(keywords), extension: strlowcase(extensions)} )
-;
-;end
 
 
+;--------------------------------------------------------------------------------
 FUNCTION gpiPipelineBackbone::get_keyword, keyword, count=count, comment=comment, indexFrame=indexFrame, ext_num=ext_num, silent=silent
 	; get a keyword, either from primary or extension HDU
 	;	
@@ -1190,63 +938,15 @@ FUNCTION gpiPipelineBackbone::get_keyword, keyword, count=count, comment=comment
 		; indexframe=0. 
 
 
-
 	return, gpi_get_keyword( *(*self.data).headersPHU[indexFrame], *(*self.data).headersEXT[indexFrame], $
 		keyword,count=count, comment=comment, ext_num=ext_num, silent=silent )
-
-;
-;	if ~ptr_valid(self.keyword_info) then self->load_keyword_table
-;
-;
-;	; which header to try first?
-;	if n_elements(ext_num) eq 0 then begin 
-;		; we should use the config file to determine where the keyword goes. 
-;		wmatch = where( strmatch( (*self.keyword_info).keyword, keyword, /fold), matchct)
-;		if matchct gt 0 then begin
-;			; if we have a match try that extension
-;			ext_num = ( (*self.keyword_info).extension[wmatch[0]] eq 'extension' ) ? 1 : 0  ; try Pri if either PHU or Both
-;		endif else begin
-;			; if we have no match, then try PHU first and if that fails try the
-;			; extension
-;			if ~(keyword_set(silent)) then message,/info, 'Keyword '+keyword+' not found in keywords config file; trying Primary header...'
-;			ext_num=0
-;			;value = sxpar(  *(*self.data).headersPHU[indexFrame], keyword, count=count) 
-;			;if count eq 0 then value =  sxpar(  *(*self.data).headersExt[indexFrame], keyword, count=count, comment=comment)
-;			;return, value
-;		endelse
-;	endif else begin
-;		; the user has explicitly told us where to get it - check that the value
-;		; supplied makes sense.
-;		if ext_num gt 1 or ext_num lt 0 then begin
-;			if ~(keyword_set(silent)) then message,/info, 'Invalid extension number - can only be 0 or 1. Checking for keyword in primary header.'
-;			ext_num=0
-;		endif
-;	endelse
-;
-;
-;
-;	; try the preferred header
-;	if ext_num eq 0 then value= sxpar(  *(*self.data).headersPHU[indexFrame], keyword, count=count, comment=comment)  $
-;	else  				 value= sxpar(  *(*self.data).headersExt[indexFrame], keyword, count=count, comment=comment)  
-;
-;	;if that failed, try the other header
-;	if count eq 0 then begin
-;		if ~(keyword_set(silent)) then message,/info,'Keyword '+keyword+' not found in preferred header; trying the other HDU'
-;		if ext_num eq 0 then value= sxpar(  *(*self.data).headersExt[indexFrame], keyword, count=count, comment=comment)  $
-;		else  				 value= sxpar(  *(*self.data).headersPHU[indexFrame], keyword, count=count, comment=comment)  
-;	endif
-;	
-;	; remove extra leading or trailing blanks (because the sxpar/sxaddpar
-;	; produce these for short strings)
-;	if size(value,/TNAME) eq 'STRING' then value = strtrim(value,2)
-;	return, value
-;	
 
 
 
 end
 
 
+;--------------------------------------------------------------------------------
 
 PRO gpiPipelineBackbone::set_keyword, keyword, value, comment, indexFrame=indexFrame, ext_num=ext_num, _Extra=_extra, silent=silent
 	; set a keyword in either the primary or extension header depending on what
@@ -1268,57 +968,13 @@ PRO gpiPipelineBackbone::set_keyword, keyword, value, comment, indexFrame=indexF
 	gpi_set_keyword, keyword, value, *(*self.data).headersPHU[indexFrame], *(*self.data).headersEXT[indexFrame], $
 		comment=comment, ext_num=ext_num, _Extra=_extra, silent=silent
 	
-;
-;	if ~ptr_valid(self.keyword_info) then self->load_keyword_table
-;		; don't use if keyword_set in the above line - will fail for the case of
-;		; indexframe=0. 
-;
-;
-;
-;	if ~(keyword_set(comment)) then comment='' 
-;	wmatch = where( strmatch( (*self.keyword_info).keyword, keyword, /fold), matchct)
-;
-;
-;	if n_elements(ext_num) eq 0 then begin 
-;		; we should use the config file to determine where the keyword goes. 
-;		if matchct gt 0 then begin
-;			; if we have a match write to that extension
-;			ext_num = ( (*self.keyword_info).extension[wmatch[0]] eq 'extension' ) ? 1 : 0  ; try Pri if either PHU or Both
-;		endif else begin
-;			if ~(keyword_set(silent)) then message,/info, 'Keyword '+keyword+' not found in keywords config file; writing to Primary header...'
-;			ext_num = 0
-;		endelse
-;	endif else begin
-;		; the user has explicitly told us where to put it - check that the value
-;		; supplied makes sense.
-;		if ext_num gt 1 or ext_num lt 0 then begin
-;			if ~(keyword_set(silent)) then message,/info, 'Invalid extension number - can only be 0 or 1. Writing keyword to primary header.'
-;			ext_num=0
-;		endif
-;	endelse
-;
-;
-;	;if keyword_set(DEBUG) then 
-;	message,/info, "Writing keyword "+keyword+" to extension "+strc(ext_num)
-;
-;  ; JM: I do not understand why but fxaddpar do not cut "long" value for "HISTORY" and "COMMENT" keywords
-;  	if ~strmatch(keyword,'*HISTORY*') then begin 
-;		if ext_num eq 0 then fxaddpar,  *(*self.data).headersPHU[indexFrame], keyword, value, comment $
-;    	else  				 fxaddpar,  *(*self.data).headersExt[indexFrame], keyword, value, comment 
-;	endif else begin
-;    	if ext_num eq 0 then sxaddparlarge,  *(*self.data).headersPHU[indexFrame], keyword, value $
-;    	else           		 sxaddparlarge,  *(*self.data).headersExt[indexFrame], keyword, value 
-;  	endelse
-
 end
 
 
 ;-----------------------------------------------------------
 ; gpiPipelineBackbone::getContinueAfterDRFParsing
 ;        accessor function 
-
 function gpiPipelineBackbone::getContinueAfterDRFParsing
-    ;COMMON APP_CONSTANTS
     return, (*self.pipelineConfig).ContinueAfterDRFParsing
 end
 ;
@@ -1340,13 +996,13 @@ function gpiPipelineBackbone::getgpicaldb
 end
 ;-----------------------------------------------------------
 pro gpiPipelineBackbone::rescan_CalDB
-	self->Log, 'User requested rescan of calibrations database',/general
+	self->Log, 'User requested rescan of calibrations database'
   self.GPICalDB->rescan_directory    
 end
 
 ;-----------------------------------------------------------
 pro gpiPipelineBackbone::rescan_Config
-	self->Log, 'User requested rescan of data pipeline configuration files',/general
+	self->Log, 'User requested rescan of data pipeline configuration files'
 
 	; rescan config files
 	dummy = gpi_get_setting('max_files_per_drf',/rescan) ; can get any arbitrary setting here, just need to force the rescan
@@ -1357,8 +1013,8 @@ pro gpiPipelineBackbone::rescan_Config
 	; (Can't do this in runtime version since there's no way to compile new
 	; routines if added)
 	if not lmgr(/runtime) then begin
-		self->Log,/general, "Rescanning for new primitives, and regenerating primitives config file."
-		make_drsconfigxml
+		self->log, "Rescanning for new primitives, and regenerating primitives config file."
+		make_primitives_config 
 	endif
 	; rescan primitives configuration file
 	Self.ConfigParser -> ParseFile, config_file
@@ -1366,12 +1022,18 @@ pro gpiPipelineBackbone::rescan_Config
 	config = Self.ConfigParser->getidlfunc()
 	for i=0,n_elements(config.idlfuncs)-1 do begin
 		print, "Recompiling for "+config.names[i]
-		resolve_routine, config.idlfuncs[i], /is_func
+		catch, compile_error
+		if compile_error eq 0 then begin
+			resolve_routine, config.idlfuncs[i], /is_func 
+		endif else begin
+			self->Log, "Compilation error encountered for "+config.names[i]+" in file "+config.idlfuncs[i]
+		endelse
 	endfor
 	self->Log, 'Refreshed all '+strc(n_elements(config.idlfuncs))+' available pipeline primitive procedures.'
 
 	; rescan calibrations DB
-  	self.GPICalDB->rescan_directory    
+  	;self.GPICalDB->rescan_directory    
+	; No, don't do this here, there's a separate button to invoke that task.
 end
 ;
 ;-----------------------------------------------------------

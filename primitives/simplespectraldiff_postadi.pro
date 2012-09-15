@@ -42,6 +42,7 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="5" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.3
 ; PIPELINE TYPE: ASTR/SPEC HIDDEN
+; PIPELINE NEWTYPE: SpectralScience
 ; PIPELINE SEQUENCE: 2-3-
 ;
 ;

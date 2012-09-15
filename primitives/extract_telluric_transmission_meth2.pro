@@ -24,6 +24,7 @@
 ; PIPELINE ARGUMENT: Name="Yspot2" Type="int" Range="[0,2048]" Default="159" Desc="Initial approximate y-position [pixel] of sat. spot 2"
 ; PIPELINE ORDER: 2.52
 ; PIPELINE TYPE: ALL-SPEC HIDDEN
+; PIPELINE NEWTYPE: SpectralScience
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:

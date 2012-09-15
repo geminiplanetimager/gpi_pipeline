@@ -32,6 +32,7 @@
 ; PIPELINE ARGUMENT: Name="ic_psfs" Type="float" Range="[0.,1.e5]" Default="0." Desc="Max intensity of spots (0 if need to be calculated)"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.7
+; PIPELINE NEWTYPE: SpectralScience,PolarimetricScience
 ; PIPELINE TYPE: ALL
 ;
 ; HISTORY:

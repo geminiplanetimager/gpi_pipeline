@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<DRF LogPath="E:\pipeline\log\" ReductionType="CAL - POL" name='Create Polarized Flat-field'>
-<dataset InputDir="" Name="" OutputDir="">
-   <fits FileName="" />
+<DRF ReductionType="Calibration" name='Create Polarized Flat-field'>
+<dataset InputDir="" OutputDir="">
+   <fits filename=""/>
 </dataset>
 <module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
 <module name="Accumulate Images" Method="InMemory" />

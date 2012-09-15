@@ -21,6 +21,7 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display " 
 ; PIPELINE ARGUMENT: Name="before_and_after" Type="int" Range="[0,1]" Default="0" Desc="Show the before-and-after images for the user to see?"
 ; PIPELINE ORDER: 1.25
+; PIPELINE NEWTYPE: ALL
 ; PIPELINE TYPE: ALL
 ; PIPELINE SEQUENCE: 3-
 ;

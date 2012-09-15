@@ -37,6 +37,7 @@
 ; PIPELINE ARGUMENT: Name="tests" Type="int" Range="[0,3]" Default="0" Desc="1 for extensive tests "
 ; PIPELINE COMMENT: Derive wavelength calibration from an arc lamp or flat-field image.
 ; PIPELINE TYPE: CAL-SPEC
+; PIPELINE NEWTYPE: Calibration
 ; PIPELINE SEQUENCE: 
 ; HISTORY:      
 ; 	 Jerome Maire 2008-10

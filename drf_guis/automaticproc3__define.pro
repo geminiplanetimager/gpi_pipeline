@@ -154,7 +154,7 @@ pro automaticproc3::reduce_one, filenames, wait=wait
         wait, 0.5
     endif
 
-    info = gpi_load_and_preprocess_fits_file(filenames[0]) ;, /nodata)
+    info = gpi_load_fits(filenames[0], /nodata)
     prism = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'DISPERSR', count=dispct) ))
 
     if (dispct eq 0) or (strc(prism) eq '') then begin
@@ -173,15 +173,15 @@ pro automaticproc3::reduce_one, filenames, wait=wait
     endif
 
     case prism of
-    'PRISM': templatename='templates_drf_simple_cube.xml'
-    'OPEN': templatename='templates_drf_simple_undispersed.xml'
-    'WOLLASTON':templatename='templates_drf_simple_polarization.xml'
+    'PRISM': templatename='Quicklook Automatic Datacube Extraction'
+    'WOLLASTON': templatename='Quicklook Automatic Polarization Extraction'
+    'OPEN':templatename='Quicklook Automatic Undispersed Extraction'
     endcase
 
 	
-	templatename=gpi_get_directory('GPI_DRP_TEMPLATES_DIR')+path_sep()+templatename
+	templatefile= self->lookup_template_filename(templatename) ; gpi_get_directory('GPI_DRP_TEMPLATES_DIR')+path_sep()+templatename
 
-	drf = obj_new('DRF', templatename, parent=self)
+	drf = obj_new('DRF', templatefile, parent=self)
 	drf->set_datafiles, filenames
 	drf->set_outputdir,/autodir
 

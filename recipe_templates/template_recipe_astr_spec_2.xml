@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<DRF LogPath="E:\pipeline\log\" ReductionType="ASTR - SPEC" name='Calibrated Data-cube extraction'>
-<dataset InputDir="" Name="" OutputDir="">
-   <fits FileName="" />
+<DRF ReductionType="SpectralScience" name='Calibrated Data-cube extraction'>
+<dataset InputDir="" OutputDir="">
+   <fits filename=""/>
 </dataset>
 <module name="Load bad pixel map" CalibrationFile="AUTOMATIC" />
 <module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="       0" suffix="" gpitv="" />

@@ -39,6 +39,7 @@
 ; PIPELINE ARGUMENT: Name="testsDST" Type="int" Range="[0,3]" Default="0" Desc="1 for DST tests "
 ; PIPELINE COMMENT: Derive wavelength calibration from an arc lamp or flat-field image.
 ; PIPELINE TYPE: CAL-SPEC
+; PIPELINE NEWTYPE: Calibration
 ; PIPELINE SEQUENCE: 
 ; HISTORY:      
 ; 	 Jerome Maire 2008-10
@@ -136,7 +137,7 @@ hh=1. ;define sidelength (2hh+1 by 2hh+1 ) of box for centroid intensity detecti
 ;
 if (tag_exist( Modules[thisModuleIndex], "emissionlinesfile")) && file_test(gpi_expand_path(Modules[thisModuleIndex].emissionlinesfile),/read) then $
 emissionlinefile=  gpi_expand_path(Modules[thisModuleIndex].emissionlinesfile) else $
-    emissionlinefile=  gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'lampemissionlines.txt')
+    emissionlinefile=  gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'lampemissionlines.txt'
 backbone->set_keyword, "HISTORY", "Lamp emission lines file used: "+emissionlinefile,ext_num=0
 
 ;res=read_ascii(emissionlinefile,data_start=2)

@@ -1,94 +1,34 @@
 ;-----------------------------------------
 ; queueview__define.pro 
 ;
-; PARSER: select files to process and create a list of DRFs to be executed by the pipeline.
-;
-;
-;
-; author : 2010-02 J.Maire created
-
-
-
-
-;;--------------------------------------------------------------------------------
-; NOTES
-;   This is a rather complicated program, with lots of overlapping data
-;   structures. Be careful and read closely when editing!
-;
-;   Module arguments are stored in the ConfigDRS structure in memory. 
-;   Right now this gets overwritten frequently (whenever you change a template),
-;   which is annoying, and should probably be fixed.
-;
-;
-;   MORE NOTES TO BE ADDED LATER!
-;
-;
-;    self.configDRS            a parsed DRSConfig.xml file, produced by
-;                            the ConfigParser. This contains knowledge of
-;                            all the modules and their arguments, stored as
-;                            a bunch of flat lists. It's not a particularly
-;                            elegant data structure, but it's too late to change
-;                            now!  Much of the complexity with indices is a
-;                            result of indexing into this in various ways.
-;
-;    self.nbModuleSelec        number of modules in current DRF list
-;    self.currModSelec        list of modules in current DRF list
-;    self.order                list of PIPELINE ORDER values for those modules
-;
-;    self.curr_mod_indsort    indices into curr_mod_avai in alphabetical order?
-;                            in other words, matching the displayed order in the
-;                            Avail Table
-;
-;    self.indmodtot2avail    indices for
-;
+; A recipe queue viewer for gpi
 ;
 ;
 ;--------------------------------------------------------------------------------
-;
+
+
 ;--------------------------------------------------------------------------------
+pro queueview::scan_one_file, filename
+	if ~file_test(filename) then return ; watch out for the DRP moving things around..
+	drf = obj_new('drf',filename,/quick)
 
+	drf_summary = drf->get_summary()
 
-pro queueview::startup
+	new_drf_properties = [filename, drf_summary.name, drf_summary.reductiontype, strc( drf_summary.nfiles) ] ;fix( total(drf_contents.fitsfilenames ne '') )) ]
+	if self.nbdrfSelec eq 0 then (*self.currDRFSelec)= new_drf_properties else $
+		(*self.currDRFSelec)=[[(*self.currDRFSelec)],[new_drf_properties]]
+	self.nbdrfSelec+=1
 
-        self.ConfigDRS=         ptr_new(/ALLOCATE_HEAP)
-        self.curr_mod_avai=     ptr_new(/ALLOCATE_HEAP)         ; list of available module names (strings) in current mode
-        self.curr_mod_indsort=  ptr_new(/ALLOCATE_HEAP)
-        self.currModSelec=      ptr_new(/ALLOCATE_HEAP)
-        self.currDRFSelec=      ptr_new(/ALLOCATE_HEAP)
-        self.order=             ptr_new(/ALLOCATE_HEAP)
-        self.indarg=            ptr_new(/ALLOCATE_HEAP)                ; ???
-        self.currModSelecParamTab=  ptr_new(/ALLOCATE_HEAP)
-        self.indmodtot2avail=   ptr_new(/ALLOCATE_HEAP)
-        self.drf_summary=       ptr_new(/ALLOCATE_HEAP)
-        self.version=2.0
- 
-		self.config_file=gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+"gpi_pipeline_primitives.xml" 
-        self.ConfigParser = OBJ_NEW('gpiDRSConfigParser',/silent)
-    	self.Parser = OBJ_NEW('gpiDRFParser')
-
-        if file_test(self.config_file) then begin
-            self.ConfigParser -> ParseFile, self.config_file ;drpXlateFileName(CONFIG_FILENAME)
-            *self.ConfigDRS = self.ConfigParser->getidlfunc() 
-        endif
-
-        if getenv('GPI_DRP_LOG_DIR') eq '' then initgpi_default_paths
-        ; if no configuration file, choose reasonable defaults.
-        cd, current=current
-        self.drfpath = current
-        self.tempdrfdir = 	gpi_get_directory('GPI_DRP_TEMPLATES_DIR')
-        self.inputcaldir = 	gpi_get_directory('GPI_CALIBRATIONS_DIR')
-        self.outputdir = 	gpi_get_directory('GPI_REDUCED_DATA_DIR')
-        self.logdir = 		gpi_get_directory('GPI_DRP_LOG_DIR')
-        self.queuedir = 	gpi_get_directory('GPI_DRP_QUEUE_DIR')
-
+	obj_destroy,drf 
 
 end
 
+
 ;--------------------------------------------------------------------------------
-
-
-
-;-----------------------------------------
+;  rescan : 
+;
+;  Rescan the queue directory from scratch, discarding any prior knowledge of
+;  its contents. 
 
 PRO queueview::rescan, initialize=initialize
 
@@ -108,24 +48,10 @@ PRO queueview::rescan, initialize=initialize
 		self->clearall
 	endif else begin
 
-
 		files = files[sort(files)]
 
-
 		for i=0L,n_elements(files)-1 do begin
-			if ~file_test(files[i]) then continue ; watch out for the DRP moving things around..
-			self.Parser ->ParseFile, files[i],  self.ConfigParser, gui=self, /silent
-
-			drf_summary = self.Parser->get_summary()
-			drf_contents = self.Parser->get_drf_contents()
-
-			new_drf_properties = [files[i], drf_summary.name, drf_summary.type, strc(fix( total(drf_contents.fitsfilenames ne '') )) ]
-
-			if self.nbdrfSelec eq 0 then (*self.currDRFSelec)= new_drf_properties else $
-				(*self.currDRFSelec)=[[(*self.currDRFSelec)],[new_drf_properties]]
-			self.nbdrfSelec+=1
-
-
+			self->scan_one_file, files[i]
 		endfor 
 
 		void=where(files ne '',cnz)
@@ -241,17 +167,7 @@ PRO queueview::refresh
 	wnew = where(displayed eq 0 and (strmatch(disk_files, "*.waiting.xml") or strmatch(disk_files, "*.working.xml")), nct)
 	if nct gt 0 then begin
 		for i=0,nct-1 do begin
-			if ~file_test( disk_files[wnew[i]]) then continue ; in case it has changed...
-			self.Parser ->ParseFile, disk_files[wnew[i]],  self.ConfigParser, gui=self, /silent
-
-			drf_summary = self.Parser->get_summary()
-			drf_contents = self.Parser->get_drf_contents()
-
-			new_drf_properties = [disk_files[wnew[i]], drf_summary.name, drf_summary.type, strc(fix( total(drf_contents.fitsfilenames ne '') )) ]
-
-			if self.nbdrfSelec eq 0 then (*self.currDRFSelec)= new_drf_properties else $
-				(*self.currDRFSelec)=[[(*self.currDRFSelec)],[new_drf_properties]]
-			self.nbdrfSelec+=1
+			self->scan_one_file, disk_files[wnew[i]]
 			highest_updated = self.nbdrfSelec
 		endfor
 	endif
@@ -422,19 +338,26 @@ end
 pro queueview::cleanup
 
 	ptr_free, self.currDRFselec
-	obj_destroy, self.parser
-	obj_destroy, self.configparser
-
+	ptr_free, self.table_background_colors
 	
-	self->drfgui::cleanup ; will destroy all widgets
+	self->gpi_gui_base::cleanup ; will destroy all widgets
 end
 
+;------------------------------------------------
+pro queueview::init_data, _extra=_Extra
+	self->gpi_gui_base::init_data, _extra=_extra
+
+	self.name= 'GPI Queue Viewer'
+	self.xname='queueview'
+	self.currDRFSelec= ptr_new([''])
+
+end
 
 
 ;------------------------------------------------
 function queueview::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drfname,  ;,groupleader,group,proj
 
-    self->startup
+    ;self->startup
 
     ;create base widget. 
     ;   Resize to be large on desktop monitors, or shrink to fit on laptops.
@@ -446,7 +369,7 @@ function queueview::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
     endif else begin
       nlines_modules=20
     endelse
-	title="GPI QUEUE Viewer: "+self.queuedir
+	title=self.name+": "+self.queuedir
     CASE !VERSION.OS_FAMILY OF  
         ; **NOTE** Mac OS X reports an OS family of 'unix' not 'MacOS'
        'unix': begin 
@@ -506,14 +429,16 @@ function queueview::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
     return, guibase
 end
 
+;------------------------------------------------------------------
+
 pro queueview::post_init, _extra=_extra
 
 	self->rescan;,/initialize
     widget_control, self.top_base, timer=1  ; Start off the timer events for updating at 1 Hz
 
-		geomb = widget_info(self.top_base,/geom)
-		geomt = widget_info(self.tableselected,/geom)
-		geomlog = widget_info(self.widget_log,/geom) ; sets minimum width
+	geomb = widget_info(self.top_base,/geom)
+	geomt = widget_info(self.tableselected,/geom)
+	geomlog = widget_info(self.widget_log,/geom) ; sets minimum width
 
 
 	widget_control, self.tableSelected, set_table_select=[-1,-1,-1,-1]
@@ -533,10 +458,14 @@ PRO queueview__define
               nbdrfSelec:0,$
 			  selection: '', $
 			  geom_controls: [0,0], $ ; for use in resize events
-			  configparser: obj_new(), $
-			  parser: obj_new(), $
-              currDRFSelec: ptr_new(), $
-           INHERITS drfgui}
+			  ; from drfgui:
+              table_background_colors: ptr_new(), $ ; ptr to RGB triplets for table cell colors
+              tableSelected: 0L,$
+              textinfoid: 0L,$
+			  ;configparser: obj_new(), $
+			  ;parser: obj_new(), $
+              currDRFSelec: ptr_new() , $
+           INHERITS gpi_gui_base}
 
 
 end

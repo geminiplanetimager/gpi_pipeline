@@ -17,6 +17,7 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.5
 ; PIPELINE TYPE: ALL/SPEC
+; PIPELINE NEWTYPE: SpectralScience,Calibration
 ; PIPELINE SEQUENCE: 3-
 ;
 ; HISTORY:

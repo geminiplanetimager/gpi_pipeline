@@ -15,6 +15,7 @@
 ; PIPELINE ARGUMENT: Name="combmethod" Type="string" Range="OR|AND" Default="OR" Desc="Combination of badpix maps: OR|AND"
 ; PIPELINE COMMENT: This routine is used to do an AND or OR combination of badpix maps (badpix=1, elsewhere=0) extracted from several bands.
 ; PIPELINE TYPE: CAL-SPEC
+; PIPELINE NEWTYPE: Calibration
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:

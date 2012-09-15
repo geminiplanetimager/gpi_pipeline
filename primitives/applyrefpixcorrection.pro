@@ -24,6 +24,7 @@
 ; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="SIMPLE|INTERPOLATED"  Default="INTERPOLATED" Desc="Algorithm for reference pixel subtraction."
 ; PIPELINE ORDER: 1.25
 ; PIPELINE TYPE: ALL
+; PIPELINE NEWTYPE: ALL
 ; PIPELINE SEQUENCE: 3-
 ;
 ; HISTORY:
@@ -62,7 +63,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	if tag_exist( Modules[thisModuleIndex],'method') then method=strupcase(Modules[thisModuleIndex].method) else method='SIMPLE'
 
 
-	case method of:
+	case method of
 	'SIMPLE': begin
 		backbone->set_keyword, "HISTORY", " REFPIX-HORIZONTAL: subtracting ref pix means for each readout"
 		backbone->set_keyword, "DRPHREF", "Simple", 'Horizontal reference pixel subtraction method'

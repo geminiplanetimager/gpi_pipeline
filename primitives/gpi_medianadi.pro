@@ -16,6 +16,7 @@
 ; PIPELINE COMMENT: Median all residual ADI (or LOCI) data-cubes.
 ; PIPELINE ORDER: 4.5
 ; PIPELINE TYPE: ASTR/SPEC
+; PIPELINE NEWTYPE: SpectralScience
 ; PIPELINE SEQUENCE: 02-03-
 ;
 ; EXAMPLE: 

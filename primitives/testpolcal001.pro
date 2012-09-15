@@ -15,6 +15,7 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying wavcal file, 0: no display "
 ; PIPELINE ORDER: 4.3
 ; PIPELINE TYPE: ALL-POL 
+; PIPELINE NEWTYPE: Testing
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:

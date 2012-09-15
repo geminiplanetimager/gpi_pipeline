@@ -15,6 +15,7 @@
 ; PIPELINE ARGUMENT: Name="title" Type="string" Default="" Desc="Enter figure title"
 ; PIPELINE ORDER: 2.52
 ; PIPELINE TYPE: ALL-SPEC 
+; PIPELINE NEWTYPE: Testing
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:

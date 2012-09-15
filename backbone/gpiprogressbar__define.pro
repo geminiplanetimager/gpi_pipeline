@@ -103,7 +103,7 @@ pro gpiprogressbar::event,ev
           endif 
         endif
 		if uval eq 'flushqueue' then begin
-		 	conf = dialog_message("Are you sure you want to clear all DRFs currently in the queue? This will delete those files and cannot be undone.",/question,title="Confirm Clear Queue",/default_no,/center, dialog_parent=ev.top)
+		 	conf = dialog_message("Are you sure you want to clear all recipes currently in the queue? This will delete those files and cannot be undone.",/question,title="Confirm Clear Queue",/default_no,/center, dialog_parent=ev.top)
 		 	if conf eq "Yes" then begin
 				self.flushq =1
 			endif
@@ -120,7 +120,7 @@ pro gpiprogressbar::event,ev
 			 return
 		endif
         if uval eq 'abort' then begin
-			 conf = dialog_message("Are you sure you want to abort the current DRF?",/question,title="Confirm abort",/default_no,/center)
+			 conf = dialog_message("Are you sure you want to abort the current recipe?",/question,title="Confirm abort",/default_no,/center)
 			 if conf eq "Yes" then begin
 				 ;message,/info, 'Setting pipeline QUIT flag'
 				 self.abort =1 ;widget_control, ev.top,/DESTROY
@@ -143,7 +143,7 @@ pro gpiprogressbar::event,ev
 			 diff = (*uval).diff
             ;WIDGET_CONTROL, (*uval).quit,      SCR_XSIZE = (ev.x > diff[0] )
             widget_control, (*uval).wEventLog,  SCR_XSIZE = (ev.x - diff[0] )>diff[2], SCR_YSIZE=(ev.Y-diff[1])/2
-            widget_control, (*uval).wDRFLog,    SCR_XSIZE = (ev.x - diff[0] )>diff[2], SCR_YSIZE=(ev.Y-diff[1])/2
+            widget_control, (*uval).wRecipeLog,    SCR_XSIZE = (ev.x - diff[0] )>diff[2], SCR_YSIZE=(ev.Y-diff[1])/2
          endif
       endelse
 end 
@@ -162,8 +162,8 @@ pro gpiprogressbar::set_DRF, DRF
 	
 	if size(DRF,/TNAME) eq "STRUCT" then begin
 		; we were passed a STRUCTQUEUEENTRY probably.
-		self->set, (*self.state).wLabelDRF,  '  Latest DRF:          ', DRF.name
-	endif else self->set, (*self.state).wLabelDRF,  '  Latest DRF:          ', DRF
+		self->set, (*self.state).wLabelRecipeFile,  '  Latest recipe:         ', DRF.name
+	endif else self->set, (*self.state).wLabelRecipeFile,  '  Latest recipe:       ', DRF
 
 	; reset the self.abort flag (in case it was set for the previous DRF) 
 	; - we've started a new DRF so might want to abort again?
@@ -190,7 +190,7 @@ pro gpiprogressbar::set_GenLogF, suffix
 	self->set, (*self.state).wGenLogF, 'Pipeline Logfile:      ', suffix
 end
 ;pro gpiprogressbar::set_DRFLogF, suffix
-;	self->set, (*self.state).wDRFLogF,    'Latest DRF Logfile:    ', suffix
+;	self->set, (*self.state).wRecipeLogF,    'Latest DRF Logfile:    ', suffix
 ;end
 pro gpiprogressbar::set_CalibDir, path
 	self->set, (*self.state).id_calibdir, 'Cal Files DB dir:      ',path
@@ -203,7 +203,7 @@ pro gpiprogressbar::set_percent, percent_total, percent_currfile
 	; Set the status bar percentages. 
 	;
 	; ARGUMENTS:
-	;   percent_total		estimated overall completion % for current DRF.  0-100
+	;   percent_total		estimated overall completion % for current recipe.  0-100
 	;   percent_currfile	estimated overall completion % for current file. 0-100
 	;
 	;
@@ -262,11 +262,11 @@ pro gpiprogressbar::log, logstring
 end
 
 ;--------------------------------------------
-; Append or replace a log string to the log of processed DRFs:w
+; Append or replace a log string to the log of processed recipes
 ; 
 pro gpiprogressbar::DRFlog, logstring, replace=replace
 
-	widget_control, (*self.state).wDRFLog, get_value=logval
+	widget_control, (*self.state).wRecipeLog, get_value=logval
 	
 	if keyword_set(replace) then begin
 		newlog = logval
@@ -276,8 +276,8 @@ pro gpiprogressbar::DRFlog, logstring, replace=replace
 		if n_elements(newlog) eq self.MAXLOG then newlog = newlog[100:*] ; drop stuff off the top in chunks of 100...
 	endelse
 
-	widget_control, (*self.state).wDRFLog, set_value=newlog
-	widget_control, (*self.state).wDRFLog, set_text_top_line = ((n_elements(newlog)-5)>0)
+	widget_control, (*self.state).wRecipeLog, set_value=newlog
+	widget_control, (*self.state).wRecipeLog, set_text_top_line = ((n_elements(newlog)-5)>0)
 
 end
 
@@ -306,7 +306,6 @@ function gpiprogressbar::init
 	id_calibdir = widget_label(w_config_base, value="Calib Dir:     --"  ,  xsize=600,/align_left)
 
 	wGenLogF = widget_label(w_config_base, value="Pipeline Logfile:      --" ,/align_left, xsize=600)
-	;wDRFLogF = widget_label(w_config_base, value="Latest DRF Logfile:    --" , /align_left, xsize=600)
 
 
 
@@ -314,16 +313,16 @@ function gpiprogressbar::init
 	;---- current status
 	w_status_base =  widget_base(wChildBase,/column, frame=DEBUG_FRAMES)
 	wLabelAction = WIDGET_LABEL(w_status_base, VALUE="" ,  UVALUE='LABEL',/DYNAMIC_RESIZE,/ALIGN_LEFT)
-	wLabelDRF = WIDGET_LABEL(w_status_base, VALUE='  ',  UVALUE='LABEL',/DYNAMIC_RESIZE,/ALIGN_LEFT)
+	wLabelRecipeFile = WIDGET_LABEL(w_status_base, VALUE='  ',  UVALUE='LABEL',/DYNAMIC_RESIZE,/ALIGN_LEFT)
 	wLabelFITS = WIDGET_LABEL(w_status_base, VALUE='  Lastest Input FITS:  --',  UVALUE='LABEL',/DYNAMIC_RESIZE,/ALIGN_LEFT)
 	wLabel2 = WIDGET_LABEL(w_status_base, VALUE='  Action:', UVALUE='LABELP',XSIZE=600,/ALIGN_LEFT)
 	wLabel2suf = WIDGET_LABEL(w_status_base, VALUE='  Saved (suffix):',  UVALUE='LABELPsuf',XSIZE=600,/ALIGN_LEFT)
 
 	; status for ENTIRE DRF
-	wLabelstatus = WIDGET_LABEL(w_status_base, VALUE=' DRF Completion Status:',  UVALUE='LABEL3',/DYNAMIC_RESIZE)
+	wLabelstatus = WIDGET_LABEL(w_status_base, VALUE=' Current Recipe Completion Status:',  UVALUE='LABEL3',/DYNAMIC_RESIZE)
 	wDrawProgress = WIDGET_DRAW(w_status_base, xsize=600, ysize=20, uvalue="PROGRESS")
 	; status for CURRENT FILE
-	wLabel4 = WIDGET_LABEL(w_status_base, VALUE=' Current File Completion Status:',  UVALUE='LABEL4')
+	wLabel4 = WIDGET_LABEL(w_status_base, VALUE=' Current FITS File Completion Status:',  UVALUE='LABEL4')
 	wDrawProgressf = WIDGET_DRAW(w_status_base, xsize=600, ysize=20, uvalue="PROGRESSF")
 
 	;---- current status
@@ -331,15 +330,15 @@ function gpiprogressbar::init
 	lab = widget_label(w_log_base, value="Pipeline Log Messages:")
 	wEventLog = widget_text(w_log_base, ysize=5, xsize=100, /scroll,scr_xsize=595)
 	; history of DRFs
-	lab = widget_label(w_log_base, value="Processed DRFs:")
-	wDRFLog = widget_text(w_log_base, ysize=5, xsize=100, /scroll,scr_xsize=595)
+	lab = widget_label(w_log_base, value="Processed Recipes:")
+	wRecipeLog = widget_text(w_log_base, ysize=5, xsize=100, /scroll,scr_xsize=595)
 
 	rowbase = widget_base(wChildBase, row=1)
     q=widget_button(rowbase,VALUE='Rescan Calib. DB',UVALUE='rescanDB')
     q=widget_button(rowbase,VALUE='Rescan DRP Config',UVALUE='rescanConfig')
 	q=widget_button(rowbase,VALUE='Change directories',UVALUE='changedir')
-	q=widget_button(rowbase,VALUE='Abort current DRF',UVALUE='abortDRF', resource_name='red_button')
-    q=widget_button(rowbase,VALUE='Clear DRF queue',UVALUE='flushqueue', resource_name='red_button')
+	q=widget_button(rowbase,VALUE='Abort current Recipe',UVALUE='abortDRF', resource_name='red_button')
+    q=widget_button(rowbase,VALUE='Clear recipe Queue',UVALUE='flushqueue', resource_name='red_button')
 	q=widget_button(rowbase,VALUE='Quit GPI DRP',UVALUE='quit', resource_name='red_button')
 
 
@@ -352,7 +351,7 @@ function gpiprogressbar::init
 	; code for resizeable log text widget
 	geom_b = widget_info(wChildBase, /GEOM)
 	geom_t = widget_info(wEventLog, /GEOM)
-	geom_t2 = widget_info(wDRFLog, /GEOM)
+	geom_t2 = widget_info(wRecipeLog, /GEOM)
 	geom_q = widget_info(q, /GEOM)
 	; [padding in x, padding in y, minimum X size]
 	diff = [geom_b.SCR_XSIZE-geom_t.SCR_XSIZE, geom_b.SCR_YSIZE-geom_t.SCR_YSIZE-geom_t2.SCR_YSIZE, geom_t.SCR_XSIZE]
@@ -360,8 +359,8 @@ function gpiprogressbar::init
 
 	State2 = {self:self, wChildBase:self.base_wid, wDrawProgress:wDrawProgress, $
 	    wDrawProgressf:wDrawProgressf,vProgress:0,vProgressf:0, xpos:0,xposf:0, $
-	    wLabelAction:wLabelAction, wLabelDRF:wLabelDRF, wLabelFITS:wLabelFITS,wLabel2:wLabel2,wLabel2suf:wLabel2suf,wLabelstatus:wLabelstatus, $
-		wEventLog: wEventLog, wDRFLog: wDRFLog, wGenLogF: wGenLogF, id_calibdir:id_calibdir, diff:diff, fits_count:0L, fits_current_index: 0L, quit: q}
+	    wLabelAction:wLabelAction, wLabelRecipeFile:wLabelRecipeFile, wLabelFITS:wLabelFITS,wLabel2:wLabel2,wLabel2suf:wLabel2suf,wLabelstatus:wLabelstatus, $
+		wEventLog: wEventLog, wRecipeLog: wRecipeLog, wGenLogF: wGenLogF, id_calibdir:id_calibdir, diff:diff, fits_count:0L, fits_current_index: 0L, quit: q}
 	pState = PTR_NEW(State2)
 	WIDGET_CONTROL, self.base_wid, SET_UVALUE=pState
 	
@@ -374,7 +373,7 @@ function gpiprogressbar::init
 	print, "GPI progress bar init ok"
 
 
-	self->Set_status, 'watching for DRFs but idle'
+	self->Set_status, 'watching for recipes but idle'
 	self->Set_percent,0.1,0.1
 	self->Set_DRF, '--'
 	self->Set_FITS, '--'

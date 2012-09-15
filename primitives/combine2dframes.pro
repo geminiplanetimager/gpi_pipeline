@@ -16,10 +16,10 @@
 ; PIPELINE COMMENT: Combine 2D images such as darks into a master file via mean or median. 
 ; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="MEAN|MEDIAN|MEANCLIP"  Default="MEDIAN" Desc="How to combine images: median, mean, or mean with outlier rejection?"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name='suffix' Type='string' Default='median' Desc="choose the suffix"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 1.41
 ; PIPELINE TYPE: ALL
+; PIPELINE NEWTYPE: ALL
 ; PIPELINE SEQUENCE: 22-
 
 ; HISTORY:
@@ -35,7 +35,6 @@ function combine2Dframes, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
-	if tag_exist( Modules[thisModuleIndex], "suffix") then suffix=Modules[thisModuleIndex].suffix else suffix='median'
 	if tag_exist( Modules[thisModuleIndex], "method") then method=Modules[thisModuleIndex].method else method='median'
 	;header=*(dataset.headers[numfile])
 
@@ -75,6 +74,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 			return, NOT_OK
 		endelse
 		endcase
+		suffix = strlowcase(method)
 	endif else begin
 
 		;fxaddpar, *(dataset.headersPHU[numfile]), 'HISTORY', functionname+":   Only 1 file supplied, so nothing to combine."

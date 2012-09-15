@@ -1,8 +1,9 @@
 ;+
-; NAME: rotate_north_up
+; NAME: rotate_field_square
 ; PIPELINE PRIMITIVE DESCRIPTION: Rotate Field of View Square
 ;
-;    Rotate so that North is Up.
+;    Rotate so that the GPI IFS field of view is roughly square with the pixel
+;    coordinate axes.
 ;
 ;
 ; INPUTS: detector image
@@ -21,6 +22,7 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 3.9
 ; PIPELINE TYPE: ASTR/POL
+; PIPELINE NEWTYPE: SpectralScience,PolarimetricScience
 ; PIPELINE SEQUENCE: 11-
 ;
 ; HISTORY:

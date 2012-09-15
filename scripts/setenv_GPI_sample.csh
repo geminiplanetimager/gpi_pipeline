@@ -32,13 +32,11 @@ setenv GPI_DRP_QUEUE_DIR "${GPI_DATA_ROOT}/queue/"      # where is the DRP Queue
 setenv GPI_RAW_DATA_DIR "${GPI_DATA_ROOT}/Detector/"    # where is raw data?
 setenv GPI_REDUCED_DATA_DIR "${GPI_DATA_ROOT}/Reduced/" # where should we put reduced data?
 
-# The following must be defined as an environment variable to enable the 
-# gpi-pipeline startup script. Otherwise it is optional.
-setenv GPI_DRP_DIR "/path/to/your/GPI/code/pipeline"
 
 #---- Optional paths (not genererally needed) -------
 # these variables are optional - you may omit them if your 
 # drp setup is standard
+#setenv GPI_DRP_DIR "/path/to/your/GPI/code/pipeline"
 #setenv GPI_DRP_CONFIG_DIR "${GPI_DRP_DIR}/config/"          # default config settings 
 #setenv GPI_DRP_TEMPLATES_DIR "${GPI_DRP_DIR}/drf_templates"	# pipeline DRF template location
 

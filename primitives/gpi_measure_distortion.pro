@@ -16,6 +16,7 @@
 ; PIPELINE ARGUMENT: Name="spotsnbr" Type="int" Range="[1,4]" Default="4" Desc="How many spots in a slice of the datacube? "
 ; PIPELINE ORDER: 2.44
 ; PIPELINE TYPE: ALL-SPEC
+; PIPELINE NEWTYPE: Calibration
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:

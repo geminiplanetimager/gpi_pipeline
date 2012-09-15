@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<DRF LogPath="E:\pipeline\log\" ReductionType="On-Line Reduction" name="Quicklook Datacube">
-<dataset InputDir="E:\GPIdatabase\science" Name="" OutputDir="E:\GPIdatabase\">
-</dataset>
-<module name="Load Wavelength Calibration" CalibrationFile="GPI-wavcal.fits" />
-<module name="Assemble Spectral Datacube" Save="0" />
-<module name="Interpolate Wavelength Axis" Save="0" gpitv="2" suffix="-spdc" />
-</DRF>

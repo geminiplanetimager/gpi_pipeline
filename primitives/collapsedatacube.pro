@@ -16,10 +16,10 @@
 ; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="MEDIAN|TOTAL"  Default="TOTAL" Desc="How to collapse datacube: total or median (with flux conservation)"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="ReuseOutput" Type="int" Range="[0,1]" Default="1" Desc="1: keep output for following primitives, 0: don't keep"
-; PIPELINE ARGUMENT: Name='suffix' Type='string' Default='-coll' Desc="choose the suffix"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.6
 ; PIPELINE TYPE: ALL-SPEC
+; PIPELINE NEWTYPE: ALL
 ; PIPELINE SEQUENCE: 
 
 ; HISTORY:
@@ -45,9 +45,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		case STRUPCASE(method) of
 		'MEDIAN': begin  ;here the [* float(sz[3])] operation is for energy conservation in order to keep the same units.
 			collapsed_im=(median(*(dataset.currframe),DIMENSION=3)) * float(sz[3]) 
+			suffix='-median'
 		end
 		'TOTAL': begin
 			collapsed_im=total(*(dataset.currframe),3,/NAN)
+			suffix='-total'
 		end
 		else: begin
 			message,"Invalid combination method '"+method+"' in call to Collapse datacube."

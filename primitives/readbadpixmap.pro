@@ -16,6 +16,7 @@
 ; PIPELINE ARGUMENT: Name="CalibrationFile" type="badpix" default="GPI-badpix.fits" Desc="Filename of the desired wavelength calibration file to be read"
 ; PIPELINE ORDER: 0.02
 ; PIPELINE TYPE: ALL
+; PIPELINE NEWTYPE: ALL
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:

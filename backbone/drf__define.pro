@@ -1,11 +1,14 @@
 ;+
 ; NAME:  DRF
 ;
-;	An object-oriented interface to GPI data reduction files.
+;	An object-oriented interface to GPI data reduction files / "Recipes".
 ;
 ;	No GUI here, this is just an access wrapper. 
+;
 ;	Much of this code was originally in ParserGUI or DRFGUI, but I 
 ;	ripped it out for more flexibility.
+;
+;	This is now the preferred implementation for manipulating recipe files.
 ;
 ; INPUTS:
 ; KEYWORDS:
@@ -97,15 +100,15 @@ end
 
 
 ;--------------------------------------------------------------------------------
-pro drf::set_logdir
-	self.logdir = dir
-end
-;-------------
-
-FUNCTION drf::get_logdir
-	return, self.logdir
-end
-
+;pro drf::set_logdir
+;	self.logdir = dir
+;end
+;;-------------
+;
+;FUNCTION drf::get_logdir
+;	return, self.logdir
+;end
+;
 ;--------------------------------------------------------------------------------
 pro drf::set_module_args, modnum, arginfo
 	stop
@@ -122,7 +125,7 @@ FUNCTION drf::get_module_args, modnum, count=count
 	; RETURNS
 	; 	module argument info, as a structure
 	;
-    drf_contents = self.parsed_drf->get_drf_contents()
+    drf_contents = self->get_contents()
 
 	; look up from the DRS config file what the allowed arguments of this module
 	; are
@@ -167,8 +170,14 @@ end
 
 
 ;--------------------------------------------------------------------------------
-
+; back compatibility hook for old method name: 
 pro drf::savedrf, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silent=silent
+	self->save, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silent=silent
+end
+
+;--------------------------------------------------------------------------------
+
+pro drf::save, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silent=silent
 	; write out to disk!
 	;
 	; KEYWORDS:
@@ -204,7 +213,7 @@ pro drf::savedrf, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silen
 	PrintF, lun, self->tostring(absolutepaths=absolutepaths)
 	Free_Lun, lun
 	;self->log,'Saved  '+outputfile
-	self.last_saved_DRF=outputfile
+	self.last_saved_filename=outputfile
 
 end
 
@@ -212,7 +221,7 @@ end
 PRO drf::queue, filename=filename
 	; save a DRF into the queue
 
-	if ~(keyword_set(filename)) then filename=self.last_saved_DRF
+	if ~(keyword_set(filename)) then filename=self.last_saved_filename
 
 	if ~(keyword_set(filename)) then message,"Need to specify a filename to queue it!"
 
@@ -221,11 +230,11 @@ PRO drf::queue, filename=filename
 	queue_filename = gpi_get_directory("GPI_DRP_QUEUE_DIR")+path_sep()+outname
 
 
-	prev_outputfile = self.last_saved_DRF ; save value before this gets overwritten in save
+	prev_outputfile = self.last_saved_filename ; save value before this gets overwritten in save
 
 	self->saveDRF, queue_filename,/silent
 
-	self.last_saved_DRF= prev_outputfile ; restore previous value
+	self.last_saved_filename= prev_outputfile ; restore previous value
 
 	self->Log, "    Queued "+file_basename(queue_filename)
 
@@ -239,16 +248,16 @@ function drf::tostring, absolutepaths=absolutepaths
 
 	if ~(keyword_set(absolutepaths ))then begin
 		;relative pathes with environment variables        
-	  	logdir=gpi_path_relative_to_vars(self.logdir) 
-	  	inputdir=gpi_path_relative_to_vars(self.inputdir) 
-	  	outputdir=gpi_path_relative_to_vars(self.outputdir) 
+	  	;logdir=gpi_shorten_path(self.logdir) 
+	  	inputdir=gpi_shorten_path(self.inputdir) 
+	  	outputdir=gpi_shorten_path(self.outputdir) 
 	endif else begin
-	  	logdir=gpi_expand_path(self.logdir)
+	  	;logdir=gpi_expand_path(self.logdir)
 	  	inputdir=gpi_expand_path(self.inputdir)
 	  	outputdir=gpi_expand_path(self.outputdir)
 	endelse  
 
-	if logdir eq '' then logdir = outputdir ; if log dir is not explicitly set, write log to output directory
+	;if logdir eq '' then logdir = outputdir ; if log dir is not explicitly set, write log to output directory
 
  
 	if (!D.NAME eq 'WIN') then newline = string([13B, 10B]) else newline = string(10B)
@@ -257,17 +266,17 @@ function drf::tostring, absolutepaths=absolutepaths
         
 	outputstring +='<?xml version="1.0" encoding="UTF-8"?>'+newline 
     
-	outputstring +='<DRF logpath="'+logdir+'" ReductionType="'+self.reductiontype+'">'+newline
+	outputstring +='<DRF Name="'+self.name+'" ReductionType="'+self.reductiontype+'">'+newline
 
-	outputstring +='<dataset InputDir="'+inputdir+'" Name="'+self.name+'" OutputDir="'+outputdir+'">'+newline 
+	outputstring +='<dataset InputDir="'+inputdir+'" OutputDir="'+outputdir+'">'+newline 
  
 	if ptr_valid(self.filenames) then $
 	FOR j=0,N_Elements(*self.filenames)-1 DO BEGIN
-		outputstring +='   <fits FileName="' + file_basename(*self.filenames[j]) + '" />'+newline
+		outputstring +='   <fits FileName="' + file_basename( (*self.filenames)[j]) + '" />'+newline
 	ENDFOR
 	outputstring +='</dataset>'+newline
 
-    drf_contents = self.parsed_drf->get_drf_contents()
+    drf_contents = self->get_contents()
     drf_module_names = drf_contents.modules.name
 
 
@@ -346,11 +355,12 @@ function drf::init, filename, parent_object=parent_object,silent=silent,quick=qu
 	
 	if keyword_set(invalid) then begin
 		self->Log,'You tried to create a DRF object with a file path pointing to an invalid/nonexistent file on disk.'
+	
 		self->Log,'  requested filename was: '+filename
 		return, 0
 	endif
 
-	self.loadedDRF=filename
+	self.loaded_filename=filename
 
     ; now parse the requested DRF.
 	if ~(keyword_set(quick)) then begin
@@ -361,24 +371,31 @@ function drf::init, filename, parent_object=parent_object,silent=silent,quick=qu
 
     ; then parse the DRF and get its contents
     self.parsed_drf= OBJ_NEW('gpiDRFParser')
-    self.parsed_drf->ParseFile, self.loadedDRF,  ConfigParser, gui=self, silent=silent
+    self.parsed_drf->ParseFile, self.loaded_filename,  ConfigParser, gui=self, silent=silent
 
-    drf_summary = self.parsed_drf->get_summary()
-    drf_contents = self.parsed_drf->get_drf_contents()
-    drf_module_names = drf_contents.modules.name
+    drf_summary = self->get_summary()
+    drf_contents = self->get_contents()
+    ;drf_module_names = drf_contents.modules.name
 
-	self.reductiontype = drf_contents.reductiontype
 	self.inputdir = drf_contents.inputdir
 	self.name = drf_summary.name
+	self.reductiontype = drf_summary.reductiontype
 
 	return, 1
 end
 
 ;--------------------------------------------------------------------------------
 function drf::get_summary
-    drf_contents = self.parsed_drf->get_drf_contents()
-	return, {filename: self.loadedDRF, type: self.ReductionType, name: self.name, nsteps: n_elements(drf_contents.modules)}
+	summary = self.parsed_drf->get_summary()
+	if ptr_valid(self.filenames) then summary.nfiles = n_elements(*self.filenames) else summary.nfiles=0
+	return, summary
 end
+;--------------------------------------------------------------------------------
+
+function drf::get_contents
+	return, self.parsed_drf->get_contents()
+end
+
 
 ;--------------------------------------------------------------------------------
 pro drf::cleanup
@@ -396,13 +413,12 @@ end
 PRO drf__define
 
 	state = {drf, $
-		loadedDRF: '',$		; name of input file loaded from disk
-		last_saved_DRF: '', $	; last saved filename
+		loaded_filename: '',$		; name of input file loaded from disk
+		last_saved_filename: '', $	; last saved filename
 		name: '', $			; descriptive string name
 		reductiontype: '',$	; what type of reduction?
 		parsed_drf: obj_new(), $	;gpiDRFParser object for the XML file itself
 		where_to_log: obj_new(),$		;; optional target object for log messages
-		logdir: '', $
 		inputdir: '', $
 		outputdir: '', $
 		filenames: ptr_new(), $

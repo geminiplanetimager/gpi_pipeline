@@ -17,6 +17,7 @@
 ; PIPELINE COMMENT: Copy keyword values to other keywords. 
 ; PIPELINE ORDER: 1.15
 ; PIPELINE TYPE: ALL HIDDEN
+; PIPELINE NEWTYPE: Testing
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:

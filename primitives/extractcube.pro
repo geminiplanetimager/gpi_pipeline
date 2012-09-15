@@ -13,10 +13,10 @@
 ;
 ; PIPELINE COMMENT: Extract a 3D datacube from a 2D image. Spatial integration (3 pixels) along the dispersion axis
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-rawspdc" Desc="Enter output suffix"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.0
 ; PIPELINE TYPE: ALL-SPEC
+; PIPELINE NEWTYPE: SpectralScience, Calibration
 ;
 ; HISTORY:
 ; 	Originally by Jerome Maire 2007-11
@@ -82,7 +82,7 @@ function extractcube, DataSet, Modules, Backbone
      cubef3D[*,*,i]=cubef
   endfor
 
-  suffix='-spdc'
+  suffix='-rawspdc'
   ; put the datacube in the dataset.currframe output structure:
   *(dataset.currframe[0])=cubef3D
 

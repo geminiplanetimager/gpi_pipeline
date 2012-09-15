@@ -17,11 +17,11 @@
 ; PIPELINE ARGUMENT: Name="numimmed" Type="int" Range="[1,100]" Default="3" Desc="number of images for the calculation of the PSF reference"
 ; PIPELINE ARGUMENT: Name="nfwhm" Type="float" Range="[0,20]" Default="1.5" Desc="number of FWHM to calculate the minimal distance for reference calculation"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-adim" Desc="Enter output suffix"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="10" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE COMMENT: Implements the basic ADI algorithm described by Marois et al. (2006).
 ; PIPELINE ORDER: 4.1
 ; PIPELINE TYPE: ASTR/SPEC
+; PIPELINE NEWTYPE: SpectralScience
 ; PIPELINE SEQUENCE: 02-03-
 ; EXAMPLE: 
 ;  <module name="gpi_ADIsimple_multiwav" numimmed="3" nfwhm="1.5" Save="1" gpitv="1" />
@@ -182,9 +182,8 @@ if numfile  lt ((dataset.validframecount)-1) then return,0
         endfor ;loop on lambda
 
     ;save the difference
-      if tag_exist( Modules[thisModuleIndex], "suffix") then subsuffix=Modules[thisModuleIndex].suffix
     
-    ;subsuffix='-adim'  ;this the suffix that will be added to the name of the ADI residual  
+    subsuffix='-adim'  ;this the suffix that will be added to the name of the ADI residual  
 	  fname=strmid(fn,0,strpos(fn,suffix)-1)+suffix+subsuffix+'.fits'
 	  ;header=*(dataset.headers[n])
 ;      sxaddhist,'One rotation of '+string(theta,format='(f7.3)')+$

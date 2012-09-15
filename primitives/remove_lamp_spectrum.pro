@@ -18,10 +18,10 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ARGUMENT: Name="method" Type="string" Range="polyfit|linfit|blackbody|none" Default="blackbody" Desc="Method to use for removing lamp spectrum"
-; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-specflat" Desc="Enter output suffix"
 
 ; PIPELINE ORDER: 2.25
 ; PIPELINE TYPE: CAL-SPEC
+; PIPELINE NEWTYPE: Calibration
 ; PIPELINE SEQUENCE: 21-
 ;
 ; HISTORY:
@@ -32,6 +32,7 @@
 function Remove_lamp_spectrum, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
+	suffix='specflat'
 
 	cubef3D=*(dataset.currframe[0])
 	;if Modules[thisModuleIndex].method eq 'blackbody' then $

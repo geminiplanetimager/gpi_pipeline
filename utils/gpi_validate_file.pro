@@ -54,7 +54,7 @@ FUNCTION gpi_validate_file, filename,verbose=verbose
 
 	if not file_test(filename) then return, 0
 
-	file_data = gpi_load_and_preprocess_fits_file(filename,/nodata)
+	file_data = gpi_load_fits(filename,/nodata)
 
 	val1 = gpi_validate_file_one_keyword(file_data, 'TELESCOP','Gemini*',/test, verbose=verbose)
 	val2 = gpi_validate_file_one_keyword(file_data, 'INSTRUME','GPI', verbose=verbose)

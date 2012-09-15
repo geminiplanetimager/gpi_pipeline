@@ -1,20 +1,26 @@
 ;+
 ; NAME:  gpi_load_and_preprocess_fits_file
 ;
-;	GPI FITS header modification code from the backbone, split out to a separate
-;	file to allow calling of this same code from the DRF GUI and other parsing
-;	code.
-;
 ;
 ;	This loads an arbitrary GPI file from any point in time during I&T, and 
-;	performs the necessary header munging to turn it into a
+;	performs the necessary header manipulations to turn it into a
 ;	Gemini-GPI-standard-compliant file, with 2 headers. 
+;
+;   This preprocessing can be needed because of variations in the GPI
+;   data format as the instrument and pipeline are developing. This
+;   routine provides a convenient place to perform whatever actions
+;   are needed to read disparate input files into a common format in memory.
+;
 ;
 ;	Note that this does **Not** modify the FITS file on disk, it just
 ;	modifies the header in memory.
 ;
+;
 ;	It should eventually be unnecessary to ever use this routine, once
 ;	we have data with good FITS headers. 
+;
+;	NOTE: Don't call this directly. Call gpi_load_fits instead, and it will
+;	preprocess if that is enabled in the config files.
 ;
 ; INPUTS:
 ; KEYWORDS:
@@ -22,7 +28,10 @@
 ; OUTPUTS:
 ;
 ; HISTORY:
-;	Began 012-01-30 19:15:23 by Marshall Perrin 
+;	Began 2012-01-30 19:15:23 by Marshall Perrin 
+;	2012-08-22 MP: gpi_load_fits now calls this if preprocess_fits is set in the
+;					config. Essentially all code should now call gpi_load_fits
+;					instead of calling this directly.
 ;-
 ;--------------------------------------------------------------------------------
 
@@ -63,7 +72,12 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 		; No extension present: Read primary image into the data array
 		;  and copy the only header into both the primary and extension headers
 		;  (see below where we append the DRF onto the primary header)
-		currframe = (READFITS(filename , Header, /SILENT))
+		if keyword_set(nodata) then begin
+			header = headfits(filename,/silent)
+		endif else begin
+			currframe = (READFITS(filename , Header, /SILENT))
+		endelse
+
 		pri_header=header
 		;*(*self.data).HeadersExt[IndexFrame] = header
 		;fxaddpar,  *(*self.data).HeadersExt[IndexFrame],'HISTORY', 'Input image has no extensions, so primary header copied to 1st extension'
@@ -83,8 +97,14 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 		; at least one extension is present:  Read the 1st extention image into
 		; the data array, and read in the primary and extension headers. 
 		;  (see below where we append the DRF onto the primary header)
-        currframe        = (mrdfits(filename , 1, ext_Header, /SILENT))
-		pri_header = headfits(filename, exten=0)
+		if keyword_set(nodata) then begin
+			pri_header = headfits(filename, exten=0, /silent)
+			ext_header = headfits(filename, exten=1, /silent)
+		endif else begin
+			currframe        = (mrdfits(filename , 1, ext_Header, /SILENT))
+			pri_header = headfits(filename, exten=0, /silent)
+		endelse
+
 	endif 
 		
     if n_elements( currframe ) eq 1 then if currframe eq -1 then begin
@@ -190,6 +210,9 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 	gpi_set_keyword_if_missing, pri_header, ext_header, 'OCCULTER', 'FPM_BLANK_G6221', comment='KEYWORD WAS MISSING - unknown'
 	gpi_set_keyword_if_missing, pri_header, ext_header, 'OBJECT', 'Unknown', comment='KEYWORD WAS MISSING - unknown'
 
+	;if OBSTYPE is blank, it ought to be SCIENCE instead
+	obstypeval =gpi_get_keyword(pri_header, ext_header, 'OBSTYPE')
+	if strc(obstypeval)  eq '' then gpi_set_keyword, 'OBSTYPE', 'OBJECT',pri_header, ext_header, comment='KEYWORD WAS BLANK - setting to default'
 
     ;add OBSMODE keyword
 	gpi_set_keyword_if_missing, pri_header, ext_header , 'OBSMODE', val_old, comment='KEYWORD WAS MISSING - unknown' ; set mode to base filter name
