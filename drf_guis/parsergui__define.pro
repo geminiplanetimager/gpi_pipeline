@@ -472,7 +472,8 @@ pro parsergui::addfile, filenames, mode=mode
 
 
                                                 ;continue        aaargh can't continue inside a case. stupid IDL
-                                                detectype = -1
+                                                ;detectype = -1
+                                                continue_after_case=1
                                                 ;detectype=4
                                                 ;detecseq=1  
                                             endif else begin              
@@ -541,7 +542,7 @@ pro parsergui::addfile, filenames, mode=mode
                                         end
                                         endcase
 
-                                        if detectype eq -1 then continue
+                                        if keyword_set(continue_after_case) then continue
 
 										; Now create the actual DRF based on a
 										; template:
@@ -614,6 +615,7 @@ end
 ;
 ;   Given a template descriptive name, return the filename that matches.
 function parsergui::lookup_template_filename, requestedname
+    if not ptr_valid(self.templates) then self->scan_templates
 
 	wm = where(  strmatch( (*self.templates).name, requestedname,/fold_case), ct)
 

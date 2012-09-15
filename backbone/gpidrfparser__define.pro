@@ -94,8 +94,8 @@ END
 ;------------------------------------------------------------
 ; A simple helper/accessor routine for the two different modes this object can run
 ; in.
-function gpidrfparser::do_continueAfterDRFParsing
-	if obj_valid(self.backbone) then return, self.backbone->getContinueAfterDRFParsing() $
+function gpidrfparser::do_continueAfterRecipeXMLParsing
+	if obj_valid(self.backbone) then return, self.backbone->getContinueAfterRecipeXMLParsing() $
 	else return, 0
 
 end
@@ -214,15 +214,19 @@ END
 
 ;------------------------------------------------------------
 
-pro gpidrfparser::load_data_to_pipeline
+pro gpidrfparser::load_data_to_pipeline, backbone=backbone
 	; Load all available data into the pipeline backbone for
 	; actual reduction
+    ; 
+    ; This is called by the backbone after a file has been
+    ; successfully parsed.
 
 
 
   ; Now place a copy of the current DRF into each available header
   ; First, get the file name of the file we are parsing
-  Self -> IDLffXMLSAX::GetProperty, FILENAME=myOwnFileName
+  ;Self -> IDLffXMLSAX::GetProperty, FILENAME=myOwnFileName
+  myOwnFileName = self.most_recent_filename
 
   ; Open the DRF file and read it into a string array
   fileAsStringArray = ['']
@@ -302,7 +306,7 @@ pro gpidrfparser::load_data_to_pipeline
 
 
 
-	IF self->do_continueAfterDRFParsing()  EQ 1 THEN BEGIN
+	IF self->do_continueAfterRecipeXMLParsing()  EQ 1 THEN BEGIN
 		; pass the updates back up to the backbone
 		Backbone.ReductionType = Self.ReductionType
 		Backbone.Data = Self.Data
@@ -484,7 +488,7 @@ PRO gpidrfparser::startelement, URI, Local, qName, AttNames, AttValues
 				endif
 
 
-				IF (self->do_continueAfterDRFParsing() EQ 1) or ~obj_valid(self.backbone)  THEN BEGIN
+				IF (self->do_continueAfterRecipeXMLParsing() EQ 1) or ~obj_valid(self.backbone)  THEN BEGIN
 					; FIXME check the file exists and is a valid GPI fits file 
 
 					if not file_test(full_input_filename,/read) then begin
@@ -616,7 +620,7 @@ PRO gpidrfparser::newdataset, AttNames, AttValues
 ;			ENDIF ELSE BEGIN
 ;				self->Log, 'DataSet Name ' + AttValues[i] + ' attribute is duplicated.', DEPTH=2
 ;				self->Log, 'DRF will be aborted', DEPTH = 2
-;				continueAfterDRFParsing = 0
+;				continueAfterRecipeXMLParsing = 0
 ;			ENDELSE
 ;	    END
 		'OutputDir':	begin

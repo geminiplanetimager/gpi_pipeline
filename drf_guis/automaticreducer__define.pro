@@ -1,5 +1,5 @@
 ;---------------------------------------------------------------------
-;automaticproc3__define.PRO
+;automaticreducer__define.PRO
 ;
 ;	Automatic detection and parsing of GPI files. 
 ;
@@ -20,7 +20,7 @@
 
 
 
-function automaticproc3::refresh_file_list, count=count, init=init, _extra=_extra
+function automaticreducer::refresh_file_list, count=count, init=init, _extra=_extra
 	; Do the initial check of the files that are already in that directory. 
 	;
 	; Determine the files that are there already
@@ -88,7 +88,7 @@ end
 
 
 
-pro automaticproc3::run
+pro automaticreducer::run
 	; This is what runs every 1 second to check the contents of that directory
 
 	if ~ptr_valid( self.previous_file_list) then begin
@@ -115,7 +115,7 @@ end
 
 ;-------------------------------------------------------------------
 
-pro automaticproc3::handle_new_files, new_filenames ;, nowait=nowait
+pro automaticreducer::handle_new_files, new_filenames ;, nowait=nowait
 	; Handle one or more new files that were either
 	;   1) detected by the run loop, or
 	;   2) manually selected and commanded to be reprocessed by the user.
@@ -146,7 +146,7 @@ end
 
 ;-------------------------------------------------------------------
 
-pro automaticproc3::reduce_one, filenames, wait=wait
+pro automaticreducer::reduce_one, filenames, wait=wait
 	; Reduce one single file at a time
 
     if keyword_set(wait) then  begin
@@ -198,7 +198,7 @@ end
 
 
 ;-------------------------------------------------------------------
-PRO automaticproc3_event, ev
+PRO automaticreducer_event, ev
 	; simple wrapper to call object routine
     widget_control,ev.top,get_uvalue=storage
    
@@ -206,7 +206,7 @@ PRO automaticproc3_event, ev
 end
 
 ;-------------------------------------------------------------------
-pro automaticproc3::event, ev
+pro automaticreducer::event, ev
 	; Event handler for automatic parser GUI
 
 
@@ -336,7 +336,7 @@ endcase
 end
 
 ;--------------------------------------
-PRO automaticproc3::cleanup
+PRO automaticreducer::cleanup
 	; kill the window and clear variables to conserve
 	; memory when quitting.  The windowid parameter is used when
 	; GPItv_shutdown is called automatically by the xmanager, if FITSGET is
@@ -344,7 +344,7 @@ PRO automaticproc3::cleanup
 
 
 	; Kill top-level base if it still exists
-	if (xregistered ('automaticproc3')) then widget_control, self.top_base, /destroy
+	if (xregistered ('automaticreducer')) then widget_control, self.top_base, /destroy
 
 	;self->parsergui::cleanup ; will destroy all widgets
 	;reprocess_id = WIDGET_BUTTON(buttonbar,Value='Reprocess Selection',Uname='Reprocess', /tracking_events)
@@ -357,7 +357,7 @@ end
 
 
 ;-------------------------------------------------
-function automaticproc3::init, groupleader, _extra=_extra
+function automaticreducer::init, groupleader, _extra=_extra
 	; Initialization code for automatic processing GUI
 
 	; Check validity of GPI environment
@@ -465,9 +465,9 @@ function automaticproc3::init, groupleader, _extra=_extra
 
 	; Realize the widgets and run XMANAGER to manage them.
 	; Register the widget with xmanager if it's not already registered
-	if (not(xregistered('automaticproc3', /noshow))) then begin
+	if (not(xregistered('automaticreducer', /noshow))) then begin
 		WIDGET_CONTROL, self.top_base, /REALIZE
-		XMANAGER, 'automaticproc3', self.top_base, /NO_BLOCK
+		XMANAGER, 'automaticreducer', self.top_base, /NO_BLOCK
 	endif
 
 	
@@ -475,17 +475,17 @@ function automaticproc3::init, groupleader, _extra=_extra
 
 END
 ;-----------------------
-pro automaticproc3::set_launcher_handle, launcher
+pro automaticreducer::set_launcher_handle, launcher
 	self.launcher_handle = launcher
 end
 
 
 ;-----------------------
-pro automaticproc3__define
+pro automaticreducer__define
 
 
 
-stateF={  automaticproc3, $
+stateF={  automaticreducer, $
     dirinit:'',$ ;initial root  directory for the tree
     commande:'',$   ;command to execute when fits file double clicked
     scandir_id:0L,$ 

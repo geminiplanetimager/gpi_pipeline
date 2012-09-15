@@ -490,7 +490,10 @@ function gpiPipelineBackbone::Run_One_Recipe, CurrentRecipe
 	IF parserError EQ 0 THEN BEGIN
 		if obj_valid(self.statuswindow) then self.statuswindow->set_action, "Parsing Recipe"
 		(*self.PipelineConfig).continueAfterRecipeXMLParsing = 1    ; Assume it will be Ok to continue
-		Self.Parser -> ParseFile, CurrentRecipe.name,  Self.ConfigParser, backbone=self
+		Self.Parser -> ParseFile, CurrentRecipe.name,  Self.ConfigParser, backbone=self, status=status
+        self.Parser -> load_data_to_pipeline, backbone=self
+
+        if status ne 1 then message,/info, "Error in parsing recipe file: "+currentrecipe.name
 		; ParseFile updates the self.Data and self.modules structure
 		; arrays in accordance with what is stated in the recipe
 		CATCH, /CANCEL
@@ -656,7 +659,7 @@ END
 ;     are needed to read disparate input files into a common format in memory.
 ;        -MP
 
-FUNCTION gpiPipelineBackbone::load_and_preprocess_FITS_file, indexFrame
+FUNCTION gpiPipelineBackbone::load_FITS_file, indexFrame
     COMMON APP_CONSTANTS
     common PIP
 	filename= *((*self.Data).frames[IndexFrame])
@@ -711,9 +714,9 @@ end
 ;	Can call this multiple times, in which case it will
 ;   make sure the progress bar is (still) launched and valid.
 pro  gpiPipelineBackbone::SetupStatusConsole
-  if not(xregistered('gpiprogressbar',/noshow)) then begin
+  if not(xregistered('gpistatusconsole',/noshow)) then begin
         obj_destroy, self.statuswindow
-        self.statuswindow = OBJ_NEW('gpiprogressbar')
+        self.statuswindow = OBJ_NEW('gpistatusconsole')
         self.statuswindow->set_GenLogF, self.generallogfilename
   endif else begin
 	  message,/info, ' progress bar window already initialized and running.'
@@ -740,7 +743,10 @@ FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
 
   ; if we use call_function to run the module, then the IDL code will STOP at the location
   ; of any error, instead of returning here... This is way better for
-  ; debugging (and perhaps should just always be how it works now. -MDP)
+  ; debugging. On the other hand, for production use, we want to use exec, since that
+  ; gracefully handles any failures without stopping overall pipeline execution.
+
+  ; Users can switch between these two modes using the 'enable_primitive_debug' pipeline configuration setting
 
     if self.verbose then  self->Log,"        idl command: "+Modules[ModNum].IDLCommand
     if gpi_get_setting('enable_primitive_debug',default=0) then begin
@@ -972,11 +978,12 @@ end
 
 
 ;-----------------------------------------------------------
-; gpiPipelineBackbone::getContinueAfterDRFParsing
+; gpiPipelineBackbone::getContinueAfterRecipeXMLParsing
 ;        accessor function 
-function gpiPipelineBackbone::getContinueAfterDRFParsing
-    return, (*self.pipelineConfig).ContinueAfterDRFParsing
+function gpiPipelineBackbone::getContinueAfterRecipeXMLParsing
+    return, (*self.pipelineConfig).ContinueAfterRecipeXMLParsing
 end
+
 ;
 ;-----------------------------------------------------------
 ; gpiPipelineBackbone::getCurrentModuleIndex

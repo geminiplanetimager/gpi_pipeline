@@ -1,5 +1,5 @@
 ;+
-; NAME: GPIProgressBar
+; NAME: gpistatusconsole
 ;
 ; 	An object-oriented upgrade for the GPI pipeline
 ;
@@ -16,40 +16,40 @@
 ;-
 
 ; Function to check if user pressed the quit button?
-function gpiprogressbar::checkquit
+function gpistatusconsole::checkquit
  
 	return, self.quit
 end
-pro gpiprogressbar::quit
+pro gpistatusconsole::quit
 	widget_control,self.base_wid,/destroy
 end
 
 ;--- Getter/setter functions for use by the main pipeline backbone:
-function gpiprogressbar::checkabort
+function gpistatusconsole::checkabort
 	return, self.abort
 end
-function gpiprogressbar::flushqueue
+function gpistatusconsole::flushqueue
    return, self.flushq
 end
-function gpiprogressbar::rescandb
+function gpistatusconsole::rescandb
    return, self.rescan
 end
-function gpiprogressbar::rescanconfig
+function gpistatusconsole::rescanconfig
    return, self.rescanconfig
 end
-pro gpiprogressbar::flushqueue_end
+pro gpistatusconsole::flushqueue_end
    self.flushq=0
 end
-pro gpiprogressbar::rescandb_end
+pro gpistatusconsole::rescandb_end
    self.rescan=0
 end
-pro gpiprogressbar::rescanconfig_end
+pro gpistatusconsole::rescanconfig_end
    self.rescanconfig=0
 end
 
 
 ;---- Actual GUI display code:
-PRO gpiprogressbar::update
+PRO gpistatusconsole::update
   	WIDGET_CONTROL, (*self.State).wDrawProgress, get_VALUE=drawbar
     wset, drawbar
 
@@ -64,7 +64,7 @@ PRO gpiprogressbar::update
 
 end
 
-PRO gpiprogressbar::checkevents
+PRO gpistatusconsole::checkevents
 ; this routine is used to MANUALLY process events
 ; to avoid having to use the whole XMANAGER etc code,
 ; that doesn't play well with a main() loop in the backbone code 
@@ -77,14 +77,14 @@ end
 
 
 ; Event handling dispatch wrapper:
-PRO gpiprogressbar_event,ev
+PRO gpistatusconsole_event,ev
   widget_control, ev.top, get_uvalue=wids
   if obj_valid( (*wids).self) then (*wids).self->Event,ev else print, "err?"
 
 end
 
 ;Actual event handling:
-pro gpiprogressbar::event,ev
+pro gpistatusconsole::event,ev
 		widget_control, ev.id,GET_UVALUE=uval
         if size(uval,/TYPE) eq 7 then begin
         if uval eq 'rescanDB' then self.rescan =1
@@ -151,14 +151,14 @@ end
 
 
 ;--------------------------------------------
-pro gpiprogressbar::set, wid, header, action
+pro gpistatusconsole::set, wid, header, action
 	; generic helper routine.
 	widget_control, wid, set_value = header+string(action)
 end
-pro gpiprogressbar::set_status, action
+pro gpistatusconsole::set_status, action
 	self->set, (*self.state).wLabelAction, 'Status:  ', action
 end
-pro gpiprogressbar::set_DRF, DRF
+pro gpistatusconsole::set_DRF, DRF
 	
 	if size(DRF,/TNAME) eq "STRUCT" then begin
 		; we were passed a STRUCTQUEUEENTRY probably.
@@ -170,7 +170,7 @@ pro gpiprogressbar::set_DRF, DRF
 	self.abort=0
 
 end
-pro gpiprogressbar::set_FITS, FITS, number=number, nbtot=nbtot
+pro gpistatusconsole::set_FITS, FITS, number=number, nbtot=nbtot
 	; save these for use elsewhere?
 	if keyword_set(number) then (*self.state).fits_current_index=number
 	if keyword_set(nbtot) then  (*self.state).fits_count=nbtot
@@ -178,28 +178,28 @@ pro gpiprogressbar::set_FITS, FITS, number=number, nbtot=nbtot
 	if keyword_set(number) and keyword_set(nbtot) then  extra=strc(number+1)+"/"+strc(nbtot)+", " else extra=""
 	self->set, (*self.state).wLabelFITS, '  Latest Input FITS:   ', extra+FITS
 end
-pro gpiprogressbar::set_action, suffix
+pro gpistatusconsole::set_action, suffix
 	self->set, (*self.state).wLabel2,    '  Current action:      ', suffix
 end
 
-pro gpiprogressbar::set_suffix, suffix
+pro gpistatusconsole::set_suffix, suffix
 	self->set, (*self.state).wLabel2Suf, '  Latest saved suffix: ', suffix
 end
 
-pro gpiprogressbar::set_GenLogF, suffix
+pro gpistatusconsole::set_GenLogF, suffix
 	self->set, (*self.state).wGenLogF, 'Pipeline Logfile:      ', suffix
 end
-;pro gpiprogressbar::set_DRFLogF, suffix
+;pro gpistatusconsole::set_DRFLogF, suffix
 ;	self->set, (*self.state).wRecipeLogF,    'Latest DRF Logfile:    ', suffix
 ;end
-pro gpiprogressbar::set_CalibDir, path
+pro gpistatusconsole::set_CalibDir, path
 	self->set, (*self.state).id_calibdir, 'Cal Files DB dir:      ',path
 end
 
 
 ;---------------------------
 
-pro gpiprogressbar::set_percent, percent_total, percent_currfile
+pro gpistatusconsole::set_percent, percent_total, percent_currfile
 	; Set the status bar percentages. 
 	;
 	; ARGUMENTS:
@@ -234,7 +234,7 @@ pro gpiprogressbar::set_percent, percent_total, percent_currfile
 end
 
 ;---------------------------
-pro gpiprogressbar::update, Modules,indexModules, nbtotfile, filenum, status, adi=adi
+pro gpistatusconsole::update, Modules,indexModules, nbtotfile, filenum, status, adi=adi
 
 	; drop-in replacement for update_progressbar module
 	self->set_percent, 100.*double(filenum)/double(nbtotfile), 100.*double(indexModules)/double(N_ELEMENTS(Modules)-1)	
@@ -249,7 +249,7 @@ end
 ;
 ;--------------------------------------------
 ; Append a log string to the event log.
-pro gpiprogressbar::log, logstring
+pro gpistatusconsole::log, logstring
 
 	widget_control, (*self.state).wEventLog, get_value=logval
 	
@@ -264,7 +264,7 @@ end
 ;--------------------------------------------
 ; Append or replace a log string to the log of processed recipes
 ; 
-pro gpiprogressbar::DRFlog, logstring, replace=replace
+pro gpistatusconsole::DRFlog, logstring, replace=replace
 
 	widget_control, (*self.state).wRecipeLog, get_value=logval
 	
@@ -284,7 +284,7 @@ end
 
 ;--------------------------------------------
 
-function gpiprogressbar::init
+function gpistatusconsole::init
 
     ; Create a common block to hold the widget ID, wChildBase. This
     ; is used to cleanup if processing is completed, the user aborts
@@ -296,7 +296,7 @@ function gpiprogressbar::init
 	self.maxlog=1000
 
     ; Make simple widget interface.
-	wChildBase = WIDGET_BASE(TITLE='GPI Data Pipeline Status Console', /COLUMN, XOFFSET=680 , /TLB_SIZE_EVENTS, /tlb_kill_request_events , resource_name='GPI_DRP')
+	wChildBase = WIDGET_BASE(TITLE='GPI DRP Status Console', /COLUMN, XOFFSET=680 , /TLB_SIZE_EVENTS, /tlb_kill_request_events , resource_name='GPI_DRP')
 	self.base_wid = wChildbase
 	wChildBase = WIDGET_BASE(self.base_wid, /COLUMN, resource_name='Status')
 
@@ -364,8 +364,8 @@ function gpiprogressbar::init
 	pState = PTR_NEW(State2)
 	WIDGET_CONTROL, self.base_wid, SET_UVALUE=pState
 	
-    if (not(xregistered('gpiprogressbar', /noshow))) then begin
-        xmanager, 'gpiprogressbar', self.base_wid,/NO_BLOCK
+    if (not(xregistered('gpistatusconsole', /noshow))) then begin
+        xmanager, 'gpistatusconsole', self.base_wid,/NO_BLOCK
     endif
 
 
@@ -385,11 +385,11 @@ function gpiprogressbar::init
 end
 
 
-pro gpiprogressbar__define
+pro gpistatusconsole__define
 
 MAXLOG = 1000
 
-st = {gpiprogressbar, $
+st = {gpistatusconsole, $
 	state: ptr_new(),$
 	quit: 0L, $
 	abort: 0L, $

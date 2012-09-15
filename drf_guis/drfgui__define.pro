@@ -491,6 +491,7 @@ PRO  drfgui::Scan_Templates
 
     ptr_free, self.templates
 
+    if self.templatedir eq '' then self.templatedir = 	gpi_get_directory('GPI_DRP_TEMPLATES_DIR')
 
     message,/info, "Scanning for templates in "+self.templatedir
     template_file_list = file_search(self.templatedir + path_sep() + "*.xml")

@@ -141,7 +141,7 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	if keyword_set(addexten_var) then mwrfits, float(addexten_var), c_File1,/silent
   
 	if keyword_set(debug) then print, "  Data output ===>>> "+c_File1
-	Backbone_comm->Log, "File output to: "+c_File1,/general,/DRF, depth=1
+	Backbone_comm->Log, "File output to: "+c_File1, depth=1
 
 	;--- If a calibrations file, update the GPI Calibrations DB index ----
 	; Is this a calibration file? 

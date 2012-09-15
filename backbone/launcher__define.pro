@@ -137,7 +137,7 @@ PRO launcher::event, ev
 			self->launch, 'dst', session=43
 		endelse
 	end
-    'AutomaticProcGUI':self->launch, 'automaticproc3', session=44
+    'AutomaticProcGUI':self->launch, 'automaticreducer', session=44
     'makedatalogfile':self->launch, 'makedatalogfile', session=45
     'quit': begin
         conf = dialog_message("Are you sure you want to exit the GPI Data Reduction Pipeline?",/question,title="Confirm Close",/default_no,/center)
@@ -346,7 +346,7 @@ pro launcher::launch, objname, filename=filename, session=session, _extra=_extra
 	endif else begin
 		; need to create a new object
 
-		valid_cmds = ['gpitv', 'drfgui', 'parsergui', 'queueview', 'dst', 'automaticproc3','makedatalogfile']
+		valid_cmds = ['gpitv', 'drfgui', 'parsergui', 'queueview', 'dst', 'automaticreducer','makedatalogfile']
 		provide_launcher_handle = [0,0,0,0,0,1,0]
 
 		if total(strmatch(valid_cmds, objname,/fold_case)) eq 0 then begin
