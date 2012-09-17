@@ -14,7 +14,7 @@
 ; OUTPUTS:  
 ;
 ; PIPELINE COMMENT: Calculate locations of sat.spots in datacubes 
-; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
+; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="spotsnbr" Type="int" Range="[1,4]" Default="4" Desc="How many spots in a slice of the datacube? "
 ; PIPELINE ARGUMENT: Name="maxaper" Type="int" Range="[1,4]" Default="2" Desc="Half-side length of the window for maximum detection. "
 ; PIPELINE ARGUMENT: Name="centroidaper" Type="int" Range="[1,4]" Default="2" Desc="Half-side length of the window for centroid calculation. "
