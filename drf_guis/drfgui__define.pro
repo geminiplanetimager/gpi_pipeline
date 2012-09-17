@@ -772,8 +772,8 @@ pro drfgui::event,ev
         ;check if addmodule method already exist
 ;        help, self, /obj,output=meth
 ;        if total(strmatch(meth[*], '*addmodule*',/fold)) eq 1 then $
-			self->addmodule 
-			;else self->log,'Define your reduction sequence first. '
+           self->AddPrimitive
+                                ;else self->log,'Define your reduction sequence first. '
      	ENDIF 
 
     end
@@ -1402,9 +1402,15 @@ PRO drfgui::addPrimitive
 	if self.nbmoduleSelec eq 0 then begin
 		  (*self.currModSelec)=([(*self.curr_mod_avai)[indselected],'','',order,strc(indselected)])  
 	endif else begin
-		if insertorder eq 0 then (*self.currModSelec)=([[[(*self.curr_mod_avai)[indselected],'','',order,strc(indselected)]],[(*self.currModSelec)]])
-		if insertorder eq self.nbmoduleSelec then (*self.currModSelec)=([[(*self.currModSelec)],[[(*self.curr_mod_avai)[indselected],'','',order,strc(indselected)]]])
-		if (insertorder ne 0) AND (insertorder ne self.nbmoduleSelec) AND ((self.nbmoduleSelec) le (size(*self.currModSelec))[2]) AND ((size(*self.currModSelec))[0] gt 1) then (*self.currModSelec)=([[(*self.currModSelec)[*,0:insertorder-1]],[[(*self.curr_mod_avai)[indselected],'','',order,strc(indselected)]],[(*self.currModSelec)[*,insertorder:self.nbmoduleSelec-1]]])
+           case insertorder of
+              0:  (*self.currModSelec)=([[[(*self.curr_mod_avai)[indselected],'','',order,strc(indselected)]],[(*self.currModSelec)]])
+              self.nbmoduleSelec: (*self.currModSelec)=([[(*self.currModSelec)],[[(*self.curr_mod_avai)[indselected],'','',order,strc(indselected)]]])
+              else: begin
+                 if  ((self.nbmoduleSelec) le (size(*self.currModSelec))[2]) AND ((size(*self.currModSelec))[0] gt 1) then $
+                    (*self.currModSelec)=([[(*self.currModSelec)[*,0:insertorder-1]],[[(*self.curr_mod_avai)[indselected],'','',order,strc(indselected)]],[(*self.currModSelec)[*,insertorder:self.nbmoduleSelec-1]]])
+              end
+           endcase
+ 
 		;print, (size(*self.currModSelec))
 	endelse
 
