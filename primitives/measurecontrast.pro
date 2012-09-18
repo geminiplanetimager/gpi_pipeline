@@ -14,7 +14,7 @@
 ; 
 ;
 ; PIPELINE COMMENT: Measure the contrast. 
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="gridratio" Default="GPI-gridratio.fits"
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type="gridratio" Default="AUTOMATIC"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="contrsigma" Type="float" Range="[0.,20.]" Default="5." Desc="Contrast sigma limit"
 ; PIPELINE ARGUMENT: Name="contrcen_x0" Type="int" Range="[0,300]" Default="168" Desc="Sat 1 detec. window center x"

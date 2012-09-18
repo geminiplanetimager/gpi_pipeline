@@ -21,7 +21,7 @@
 ; PIPELINE ARGUMENT: Name="gauss_window" Type="int" Range="[1,50]" Default="7" Desc="Radius of aperture used for extracting peak fluxes."
 ; PIPELINE ARGUMENT: Name="gauss_fit" Type="int" Range="[0,1]" Default="1" Desc="0:Extract maximum pixel value for peak flux; 1: Fit Gaussian to find peak flux."
 ; PIPELINE ARGUMENT: Name="loc_input" Type="int" Range="[0,2]" Default="0" Desc="0: Find spots automatically; 1: Use calibration file; 2:Use values below as initial satellite spot location"
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="spotloc" Default="GPI-spotloc.fits" Desc="Filename of spot locations calibration file to be read for first location guess. Will override following user guess."
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type="spotloc" Default="AUTOMATIC" Desc="Filename of spot locations calibration file to be read for first location guess. Will override following user guess."
 ; PIPELINE ARGUMENT: Name="x1" Type="int" Range="[0,300]" Default="0" Desc="approximate x-location of first spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
 ; PIPELINE ARGUMENT: Name="y1" Type="int" Range="[0,300]" Default="0" Desc="approximate y-location of first spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
 ; PIPELINE ARGUMENT: Name="x2" Type="int" Range="[0,300]" Default="0" Desc="approximate x-location of first spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"

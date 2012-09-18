@@ -16,7 +16,7 @@
 ; DRP KEYWORDS: CDELT1,CDELT2,CRPIX1,CRPIX2,CRVAL1,CRVAL2,CTYPE1,CTYPE2,HISTORY,PC1_1,PC2_2,PSFCENTX,PSFCENTY
 ;
 ; PIPELINE COMMENT: Add wcs info, assuming target star is precisely centered.
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="astrom" Default="GPI-astrom.fits"
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type="astrom" Default="AUTOMATIC"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.9

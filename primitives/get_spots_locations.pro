@@ -15,7 +15,7 @@
 ; OUTPUTS:  
 ;
 ; PIPELINE COMMENT: Load satellite spot locations from calibration file 
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="spotloc" Default="GPI-spotloc.fits" Desc="Filename of spot locations calibration file to be read"
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type="spotloc" Default="AUTOMATIC" Desc="Filename of spot locations calibration file to be read"
 ; PIPELINE ORDER: 2.45
 ; PIPELINE NEWTYPE: SpectralScience
 ; PIPELINE TYPE: ALL-SPEC
