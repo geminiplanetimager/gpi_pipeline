@@ -13,21 +13,20 @@
 ;
 ; OUTPUTS:  
 ;
-; PIPELINE COMMENT: Calculate locations of sat.spots in datacubes 
+; PIPELINE COMMENT: Calculate locations of satellite spots in datacubes 
+; PIPELINE ARGUMENT: Name="refine_fits" Type="int" Range="[0,1]" Default="1" Desc="0: Use wavelength scaling only; 1: Fit each slice"
+; PIPELINE ARGUMENT: Name="reference_index" Type="int" Range="[0,50]" Default="0" Desc="Index of slice to use for initial satellite detection."
+; PIPELINE ARGUMENT: Name="search_window" Type="int" Range="[1,50]" Default="20" Desc="Radius of aperture used for locating satellite spots."
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="spotsnbr" Type="int" Range="[1,4]" Default="4" Desc="How many spots in a slice of the datacube? "
-; PIPELINE ARGUMENT: Name="maxaper" Type="int" Range="[1,4]" Default="2" Desc="Half-side length of the window for maximum detection. "
-; PIPELINE ARGUMENT: Name="centroidaper" Type="int" Range="[1,4]" Default="2" Desc="Half-side length of the window for centroid calculation. "
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="spotloc" Default="AUTOMATIC" Desc="Filename of spot locations calibration file to be read for first location guess. Will override following user guess."
+; PIPELINE ARGUMENT: Name="loc_input" Type="int" Range="[0,2]" Default="0" Desc="0: Find spots automatically; 1: Use values below as initial satellite spot location"
 ; PIPELINE ARGUMENT: Name="x1" Type="int" Range="[0,300]" Default="0" Desc="approximate x-location of first spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
 ; PIPELINE ARGUMENT: Name="y1" Type="int" Range="[0,300]" Default="0" Desc="approximate y-location of first spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
-; PIPELINE ARGUMENT: Name="x2" Type="int" Range="[0,300]" Default="0" Desc="approximate x-location of first spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
-; PIPELINE ARGUMENT: Name="y2" Type="int" Range="[0,300]" Default="0" Desc="approximate y-location of first spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
-; PIPELINE ARGUMENT: Name="x3" Type="int" Range="[0,300]" Default="0" Desc="approximate x-location of first spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
-; PIPELINE ARGUMENT: Name="y3" Type="int" Range="[0,300]" Default="0" Desc="approximate y-location of first spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
-; PIPELINE ARGUMENT: Name="x4" Type="int" Range="[0,300]" Default="0" Desc="approximate x-location of first spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
-; PIPELINE ARGUMENT: Name="y4" Type="int" Range="[0,300]" Default="0" Desc="approximate y-location of first spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
-; PIPELINE ARGUMENT: Name="ReuseOutput" Type="int" Range="[0,1]" Default="0" Desc="1: keep output for following primitives, 0: don't keep"
+; PIPELINE ARGUMENT: Name="x2" Type="int" Range="[0,300]" Default="0" Desc="approximate x-location of second spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
+; PIPELINE ARGUMENT: Name="y2" Type="int" Range="[0,300]" Default="0" Desc="approximate y-location of second spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
+; PIPELINE ARGUMENT: Name="x3" Type="int" Range="[0,300]" Default="0" Desc="approximate x-location of third spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
+; PIPELINE ARGUMENT: Name="y3" Type="int" Range="[0,300]" Default="0" Desc="approximate y-location of third spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
+; PIPELINE ARGUMENT: Name="x4" Type="int" Range="[0,300]" Default="0" Desc="approximate x-location of fourth spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
+; PIPELINE ARGUMENT: Name="y4" Type="int" Range="[0,300]" Default="0" Desc="approximate y-location of fourth spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
 ; PIPELINE ORDER: 2.44
 ; PIPELINE TYPE: ALL-SPEC
 ; PIPELINE NEWTYPE: Calibration,SpectralScience
@@ -35,153 +34,69 @@
 ;
 ; HISTORY:
 ; 	Originally by Jerome Maire 2009-12
+;       09-18-2012 Offloaded functionality to common backend - ds
 ;- 
 
 function gpi_meas_sat_spots_locations, DataSet, Modules, Backbone
 primitive_version= '$Id: gpi_meas_sat_spots_locations.pro 78 2010-09-03 18:58:45Z maire $' ; get version from subversion to store in header history
-
-;;calefiletype will not be defined if CalibrationFile='', so the user-param x1,y1,x2,... will be considered 
-thisModuleIndex = Backbone->GetCurrentModuleIndex()
-if (Modules[thisModuleIndex].CalibrationFile) ne '' then calfiletype='spotloc'
 @__start_primitive
 
-  cubef3D=*(dataset.currframe[0])
+cube = *(dataset.currframe[0])
+band = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
+;;wavelength info
+cwv = get_cwv(band,spectralchannels=(size(cube,/dim))[2])  
 
-        ;get the common wavelength vector
-         filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
-            ;error handle if extractcube not used before
-            if ((size(cubef3D))[0] ne 3) || (strlen(filter) eq 0)  then $
-            return, error('FAILURE ('+functionName+'): Datacube or filter not defined. Use extractcube module before.')        
-        cwv=get_cwv(filter)
-        CommonWavVect=cwv.CommonWavVect
-        lambda=cwv.lambda
-        lambdamin=CommonWavVect[0]
-        lambdamax=CommonWavVect[1]
-       
-       
-;       filnm=sxpar(*(DataSet.Headers[numfile]),'DATAFILE')
-;       slash=strpos(filnm,path_sep(),/reverse_search)
-;       c_File = strmid(filnm, slash,strlen(filnm)-5-slash)+'.fits'
-;       print, 'Click Ok in the dialog box that appears.'
-;       print, 'Use GPItv to locate sat.spots. Select the ''SAT SPOT LOCALIZE'' mouse mode, then click on the spots.'
-;       print, 'Look at the widget if spots have been well localized.'
-;       print, 'Save our result using the widget and close GPItv after selection.'
-;        void=dialog_message(/INF,'Use GPItv to locate sat.spots. Select the ''SAT SPOT LOCALIZE'' mouse mode, then click on the spots. Close GPItv after selection.')
-;        spotcalibfile=Modules[thisModuleIndex].OutputDir+path_sep()+'spotloc'+filter+'.fits'
-        ;gpitve, cubef3D[*,*,floor(CommonWavVect[2]/2)], nbrsatspot=fix(Modules[thisModuleIndex].spotsnbr), satspotcalibfile=spotcalibfile & gpitv_activate
-        ;Backbone_comm->gpitv, cubef3D[*,*,floor(CommonWavVect[2]/2)], nbrsatspot=fix(Modules[thisModuleIndex].spotsnbr), satspotcalibfile=spotcalibfile, ses=20
-        
-;;re-order sat locations (opposite,..)
-nbrspot=fix(Modules[thisModuleIndex].spotsnbr)
+;;error handle if extractcube not used before
+if ((size(cube))[0] ne 3) || (strlen(band) eq 0)  then $
+   return, error('FAILURE ('+functionName+'): Datacube or filter not defined. Use extractcube module before this one.')   
 
-approx_loc=fltarr(nbrspot,2)
-;; get an approximate location of the spot
-if (Modules[thisModuleIndex].CalibrationFile) ne '' then begin
-spotloc=readfits(spotcalibfile)
-  approx_loc[0,0]=spotloc[1,0]
-  approx_loc[0,1]=spotloc[1,1]
-  approx_loc[1,0]=spotloc[2,0]
-  approx_loc[1,1]=spotloc[2,1]
-  approx_loc[2,0]=spotloc[3,0]
-  approx_loc[2,1]=spotloc[3,1]
-  approx_loc[3,0]=spotloc[4,0]
-  approx_loc[3,1]=spotloc[4,1]
-endif else begin
-  approx_loc[0,0]=fix(Modules[thisModuleIndex].x1)
-  approx_loc[0,1]=fix(Modules[thisModuleIndex].y1)
-  approx_loc[1,0]=fix(Modules[thisModuleIndex].x2)
-  approx_loc[1,1]=fix(Modules[thisModuleIndex].y2)
-  approx_loc[2,0]=fix(Modules[thisModuleIndex].x3)
-  approx_loc[2,1]=fix(Modules[thisModuleIndex].y3)
-  approx_loc[3,0]=fix(Modules[thisModuleIndex].x4)
-  approx_loc[3,1]=fix(Modules[thisModuleIndex].y4)
-endelse
-
-spotloc=fltarr(nbrspot,2)
-maxaper=fix(Modules[thisModuleIndex].maxaper)
-centroidaper=fix(Modules[thisModuleIndex].centroidaper)
-
-for ii=0,nbrspot-1 do spotloc[ii,*]=calc_centroid_spots( approx_loc[ii,0],approx_loc[ii,1],cubef3D[*,*,floor(CommonWavVect[2]/2)], maxaper, centroidaper)
-print, 'spot loc=',spotloc
-;stop
-
-spotloc2=fltarr(nbrspot,2)
-  ;;replace spots in the tab
-if nbrspot eq 2 then begin
-    spotloc2=spotloc[sort(spotloc[*,1]),*]    
+;;get user inputs
+refinefits = fix(Modules[thisModuleIndex].refine_fits)
+indx = fix(Modules[thisModuleIndex].reference_index)
+winap = fix(Modules[thisModuleIndex].search_window)
+loc_input = fix(Modules[thisModuleIndex].loc_input)
+if loc_input eq 1 then begin 
+   approx_loc=fltarr(4,2)
+   approx_loc[0,0]=fix(Modules[thisModuleIndex].x1)
+   approx_loc[0,1]=fix(Modules[thisModuleIndex].y1)
+   approx_loc[1,0]=fix(Modules[thisModuleIndex].x2)
+   approx_loc[1,1]=fix(Modules[thisModuleIndex].y2)
+   approx_loc[2,0]=fix(Modules[thisModuleIndex].x3)
+   approx_loc[2,1]=fix(Modules[thisModuleIndex].y3)
+   approx_loc[3,0]=fix(Modules[thisModuleIndex].x4)
+   approx_loc[3,1]=fix(Modules[thisModuleIndex].y4)
+   approx_locs = transpose(approx_loc)
 endif
-if nbrspot eq 4 then begin
-    void=sort(spotloc[*,1])
-    spotloc2[0,*]=  spotloc[ void[0],*] 
-    spotloc2[1,*]=  spotloc[ void[3],*] 
-    spotloc2[2,*]=  spotloc[ void[1],*]
-    spotloc2[3,*]=  spotloc[ void[2],*]
-endif
-print, 'lambda ref=',lambda[floor(CommonWavVect[2]/2)]
-print, 'spotloc2=',spotloc2
 
-;; calculate center of the PSF
-if nbrspot eq 2 then begin
-    PSFcenter=[0.5*(spotloc2[0,0]+spotloc2[1,0]), 0.5*(spotloc2[0,1]+spotloc2[1,1]) ] 
-    print, 'PSF center=',PSFcenter    
-endif
-if nbrspot eq 4 then begin
-    PSFcenter1=[0.5*(spotloc2[0,0]+spotloc2[1,0]), 0.5*(spotloc2[0,1]+spotloc2[1,1]) ] 
-    print, 'PSF center 1=',PSFcenter1
-    PSFcenter2=[0.5*(spotloc2[2,0]+spotloc2[3,0]), 0.5*(spotloc2[2,1]+spotloc2[3,1]) ]
-    print, 'PSF center 2=',PSFcenter2
-    PSFcenter=[0.5*(PSFcenter1[0]+PSFcenter2[0]), 0.5*(PSFcenter1[1]+PSFcenter2[1]) ]
-    print, 'mean PSF center=',PSFcenter  
-endif
-;;extrapolate sat -spot at a given wavelength
-;slic=10
-;  pos2=calc_satloc(spotloc2[0,0],spotloc2[0,1],PSFcenter,lambda[floor(CommonWavVect[2]/2)],lambda[floor(CommonWavVect[2]/2)+slic])
-;print, lambda[floor(CommonWavVect[2]/2)],spotloc2[0,0],spotloc2[0,1]
-;print, lambda[floor(CommonWavVect[2]/2)+slic],pos2[0],pos2[1]
+;;find sat spots
+cens = find_sat_spots_all(cube,band=band,indx=indx,good=good,$
+                          refinefits=refinefits,winap=winap,locs=approx_loc)
+if n_elements(cens) eq 1 then return, error ('FAILURE ('+functionName+'): Could not find satellite spots.')
+good = long(good)
 
-  ;if numext eq 0 then h= *(dataset.headers)[numfile] else h= *(dataset.headersPHU)[numfile]
-backbone->set_keyword,"SPOTWAVE", lambda[floor(CommonWavVect[2]/2)], "Wavelength of ref for SPOT locations", ext_num=1
+;;write spot results to header
+backbone->set_keyword,"SPOTWAVE", cwv.lambda[indx], "Wavelength of ref for SPOT locations", ext_num=1
+PSFcenter = mean(cens[*,*,indx],dim=2)
 backbone->set_keyword,"PSFCENTX", PSFcenter[0], 'X-Locations of PSF center', ext_num=1
 backbone->set_keyword,"PSFCENTY", PSFcenter[1], 'Y-Locations of PSF center', ext_num=1
-;   sxaddpar, *(dataset.headers[numfile]), "SPOTWAVE", lambda[floor(CommonWavVect[2]/2)], "Wavelength of ref for SPOT locations"
-;   sxaddpar, *(dataset.headers[numfile]), "PSFCENTX", PSFcenter[0], 'X-Locations of PSF center'
-;   sxaddpar, *(dataset.headers[numfile]), "PSFCENTY", PSFcenter[1], 'Y-Locations of PSF center'
-for ii=1,nbrspot do begin
-backbone->set_keyword,"SPOT"+strc(ii)+'x', spotloc[ii-1,0], 'X-Locations of spot #'+strc(ii), ext_num=1
-backbone->set_keyword, "SPOT"+strc(ii)+'y', spotloc[ii-1,1], 'Y-Locations of spot #'+strc(ii), ext_num=1
-; sxaddpar, *(dataset.headers[numfile]), "SPOT"+strc(ii)+'x', spotloc[ii-1,0], 'X-Locations of spot #'+strc(ii)
-; sxaddpar, *(dataset.headers[numfile]), "SPOT"+strc(ii)+'y', spotloc[ii-1,1], 'Y-Locations of spot #'+strc(ii)
+for s=0,n_elements(good) - 1 do begin
+   for j = 0,3 do begin
+      backbone->set_keyword,'SATS'+strtrim(good[s],2)+'_'+strtrim(j,2),$
+                            string(strtrim(cens[*,j,good[s]],2),format='(F7.3," ",F7.3)'),$
+                            'Location of sat. spot '+strtrim(j,2)+' of slice '+strtrim(good[s],2),$
+                            ext_num=1
+   endfor
 endfor
-suffix+='-spotloc'
+;;convert good elements to HEX
+goodcode = ulon64arr((size(cube,/dim))[2])
+goodcode[good] = 1
+;print,string(goodcode,format='('+strtrim(n_elements(goodcode),2)+'(I1))')
+gooddec = ulong64(0)
+for j=n_elements(goodcode)-1,0,-1 do gooddec += goodcode[j]*ulong64(2)^ulong64(n_elements(goodcode)-j-1)
+goodhex = strtrim(string(gooddec,format='((Z))'),2)
+backbone->set_keyword,'SATSMASK',goodhex,'HEX->binary mask for slices with found sats',ext_num=1
 
-  ; Set keywords for outputting files into the Calibrations DB
- ; if numext eq 0 then begin
-    hdrphu=*dataset.headersPHU[numfile]
-    hdrext=*dataset.headersExt[numfile]
-    sxaddpar, hdrphu, "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?"
-    sxaddpar, hdrphu,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'  
+suffix='-satspots'
 
-;    sxaddpar, *(dataset.headers[numfile]), "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?"
-;    sxaddpar, *(dataset.headers[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-;  endif else begin
-;  backbone->set_keyword, "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?", ext_num=0
-;  backbone->set_keyword,"ISCALIB", "YES", 'This is a reduced calibration file of some type.', ext_num=0
-;;    sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Spot Location Measurement", "What kind of IFS file is this?"
-;;    sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-;  endelse
-    sxdelpar,hdrext,"NAXIS3"
-
-if fix(Modules[thisModuleIndex].ReuseOutput) eq 0 then begin
-   if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
-      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, savedata=[transpose(PSFcenter),spotloc2],savephu=hdrphu,saveheader=hdrext)
-      if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
-    endif 
-
-  return, ok
-endif else begin
-  *(dataset.currframe[0])=[transpose(PSFcenter),spotloc2]
-  @__end_primitive
-endelse
-
-
+@__end_primitive
 end

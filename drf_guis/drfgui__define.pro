@@ -694,7 +694,7 @@ pro drfgui::event,ev
               'REMOVEALL': textinfo='Click to remove all files from the input list'
               'Remove primitive': textinfo='Remove the selected module from the execution list'
               'Add primitive': textinfo='Add the selected module from "Available Primitives" into the execution list'
-              "Create": textinfo='Save Recipe to a filename of your choosing'
+              "Save Recipe as...": textinfo='Save Recipe to a filename of your choosing'
               "Drop": textinfo="Queue & execute the last saved Recipe"
               'Save&Drop': textinfo="Save the file, then queue it"
               'QUIT': textinfo="Close and exit this program"
@@ -2079,7 +2079,7 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 	;;create execute and quit button
 	;-----------------------------------------
 	top_baseexec=widget_base(top_base,/BASE_ALIGN_LEFT,/row, frame=DEBUG_SHOWFRAMES)
-	button2=widget_button(top_baseexec,value="Save Recipe as...",uvalue="Create", /tracking_events)
+	button2=widget_button(top_baseexec,value="Save Recipe as...",uvalue="Save Recipe as...", /tracking_events)
 	button2b=widget_button(top_baseexec,value="Queue last saved Recipe",uvalue="Queue", /tracking_events)
 	;utton2c=widget_button(top_baseexec,value="Save and drop DRF in Queue",uvalue="Save&Drop", /tracking_events)
 	spacer = widget_label(top_baseexec, value=' ', xsize=250)

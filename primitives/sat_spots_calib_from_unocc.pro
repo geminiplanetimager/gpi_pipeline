@@ -1,6 +1,6 @@
 ;+
 ; NAME: sat_spots_calib_from_unocc
-; PIPELINE PRIMITIVE DESCRIPTION: Measure satellite spot flux ratios
+; PIPELINE PRIMITIVE DESCRIPTION: Measure satellite spot flux ratios from unocculted image
 ;
 ;
 ; INPUTS: data-cube

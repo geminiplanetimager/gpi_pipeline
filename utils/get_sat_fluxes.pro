@@ -1,6 +1,7 @@
 function get_sat_fluxes,im0,band=band,good=good,cens=cens,warns=warns,$
                         gaussfit=gaussfit,refinefits=refinefits,totflux=totflux,$
-                        winap=winap,gaussap=gaussap,locs=locs,indx=indx
+                        winap=winap,gaussap=gaussap,locs=locs,indx=indx,$
+                        usecens=usecens
 ;+
 ; NAME:
 ;       get_sat_fluxes
@@ -27,9 +28,12 @@ function get_sat_fluxes,im0,band=band,good=good,cens=cens,warns=warns,$
 ;                     extrapolating by wavelength
 ;       winap - Window size for finding sat spots (defaults to 20)
 ;       gaussap - half length of gaussian box (defaults to 7)
-;       locs - If set, use these postions for the satellite spots,
-;              rather than trying to auto-find.
-;       indx - Index of slice to start with (defaults to zero)
+;       locs - If set, use these postions for the initial guess at the
+;              satellite spots, rather than trying to auto-find.
+;       indx - Index of reference slice (defaults to zero)
+;       /usecens - If set, use the values passed in cens for the
+;                  satspot locations.  good must also be passed
+;                  in. Skips finding sat spots alltogether.
 ;      
 ;       res - 4xl array of satellite spot max fluxes (where l is the
 ;             number of slices in im0)
@@ -45,7 +49,7 @@ function get_sat_fluxes,im0,band=band,good=good,cens=cens,warns=warns,$
 ;
 ;
 ; DEPENDENCIES:
-;	find_sat_spots.pro
+;	find_sat_spots_all.pro
 ;
 ; NOTES: 
 ;      curvefit (called by gauss2dfit) is finicky. you will get tons
@@ -62,52 +66,32 @@ function get_sat_fluxes,im0,band=band,good=good,cens=cens,warns=warns,$
 ;       Written  08/02/2012. Based partially on code by Perrin and
 ;                            Maire - savransky1@llnl.gov 
 ;       08.17.2012 Updated to match new find_sat_spots syntax - ds
+;       09.18.2012 Offloaded sat spot finding to find_sat_spots_all
+;       and added option to bypass this altogether - ds
 ;-
 
 if not keyword_set(gaussap) then gaussap = 7.
-if n_elements(indx) eq 0 then indx = 0
 
-;;clean up image
-im = im0
-badind = where(~FINITE(im),cc)
-if cc ne 0 then im[badind] = 0
-sz = size(im,/dim)
+;;check input
+sz = size(im0,/dim)
+if n_elements(sz) ne 3 then begin
+   message,'Input must be 3D cube.',/continue
+   return,-1
+endif
 
-;;wavelength information
-if not keyword_set(band) then band = 'H'
-cwv = get_cwv(band,spectralchannels=sz[2])
-lambda = cwv.lambda
-scl = lambda[indx]/lambda
+;;get sat spot locations
+if keyword_set(usecens) then begin
+   if (n_elements(cens) ne 8L*sz[2]) || (n_elements(good) lt 1) then begin
+      message,'If /usecens is set, you must provide properly sized cens and good array.'
+      return, -1
+   endif
+endif else cens = find_sat_spots_all(im0,band=band,good=good,warns=warns,$
+                                     refinefits=refinefits,winap=winap,locs=locs,indx=indx)
 
-;;grab first slice and find spots
-s0 = im[*,*,indx]
-cens0 = find_sat_spots(s0, winap=winap,locs=locs)
-badcens = where(~finite(cens0),ct)
-if n_elements(cens0) eq 1 || ct ne 0 then return, -1
-
-;;convert cens0 to polar coords, scale and revert to cartesians
-cens = dblarr(2,4,sz[2])
-cens[*,*,indx] = cens0
-c0 = (total(cens0,2)/4) # (fltarr(4)+1.)
-;c0 = mean(cens0,dim=2) # (fltarr(4)+1.)
-cens0p = cv_coord(from_rect=cens0 - c0,/to_polar)
-for j=0,sz[2]-1 do if j ne indx then $
-   cens[*,*,j] = cv_coord(from_polar=[cens0p[0,*],cens0p[1,*]/scl[j]],/to_rect) + c0
-
-;;refine, if asked
-if keyword_set(refinefits) then $
-   for j=0,sz[2]-1 do if j ne indx then $
-      cens[*,*,j] = find_sat_spots(im[*,*,j],locs=cens[*,*,j])
-
-;;get rid of slices where satellites can't be found
-bad = where(cens ne cens, badct)
-if bad[0] ne -1 then begin
-   bad = (array_indices(cens,bad))[2,*]
-   bad = bad[uniq(bad,sort(bad))]
-endif ;else bad = !null
-good = findgen(sz[2])
-if badct gt 0 then good[bad] = -1
-good = good[where(good ne -1)]
+;;figure out the good from the bad
+goodarr = lonarr(sz[2])
+goodarr[good] = 1
+bad = where(goodarr ne 1,badct)
 
 ;;get satellite fluxes
 ic_psfs = fltarr(4,sz[2])
@@ -120,6 +104,7 @@ fr2 = fx^2 + fy^2
 for j=0,n_elements(good)-1 do begin 
    for i=0,3 do begin
       if keyword_set(gaussfit) then begin
+         ;;   subimage = subarr(im0[*,*,good[j]],gaussap,cens[*,i,good[j]],/zeroout)
          ;;   c0 = gaussap/2d - (round(cens[*,i,good[j]])-cens[*,i,good[j]])
          ;;   paramgauss = [median(subimage), max(subimage) - median(subimage), 3, 3, c0, 0]
          ;;   ;;paramgauss = [median(subimage), max(subimage), 3, 3, gaussap/2., gaussap/2., 0]
@@ -137,7 +122,7 @@ for j=0,n_elements(good)-1 do begin
          ;;   endif else ic_psfs[i,good[j]] = total(paramgauss[0:1])
 
          ;;grab the subaperture and get the radial profile
-         subim = interpolate(im[*,*,good[j]],fx+cens[0,i,good[j]],fy+cens[1,i,good[j]],cubic=-0.5)
+         subim = interpolate(im0[*,*,good[j]],fx+cens[0,i,good[j]],fy+cens[1,i,good[j]],cubic=-0.5)
          rs = dindgen((gaussap-1d)/2d)+1
          nth = max(rs)*2*!dpi
          th = dindgen(nth)/nth*2d*!dpi 
@@ -155,7 +140,7 @@ for j=0,n_elements(good)-1 do begin
 
          ic_psfs[i,good[j]] = total(subim*gmsk)/total(gmsk*gmsk)   
       endif else begin
-         subimage = subarr(im[*,*,good[j]],gaussap,cens[*,i,good[j]],/zeroout)
+         subimage = subarr(im0[*,*,good[j]],gaussap,cens[*,i,good[j]],/zeroout)
          if keyword_set(totflux) then $
             ic_psfs[i,good[j]] = total(subimage,/nan) else $
             ic_psfs[i,good[j]] = max(subimage,/nan)
