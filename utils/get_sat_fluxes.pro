@@ -85,8 +85,7 @@ if keyword_set(usecens) then begin
       message,'If /usecens is set, you must provide properly sized cens and good array.'
       return, -1
    endif
-endif else cens = find_sat_spots_all(im0,band=band,good=good,warns=warns,$
-                                     refinefits=refinefits,winap=winap,locs=locs,indx=indx)
+endif else cens = find_sat_spots_all(im0,band=band,good=good,refinefits=refinefits,winap=winap,locs=locs,indx=indx)
 
 ;;figure out the good from the bad
 goodarr = lonarr(sz[2])
