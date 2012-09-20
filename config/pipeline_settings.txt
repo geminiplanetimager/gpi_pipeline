@@ -15,6 +15,7 @@ organize_DRFs_by_dates		1
 parsergui_auto_queue	0
 prevent_multiple_instances  0
 #ifs_lenslet_scale	0.014
+gridfac         0.00010
 pix_to_ripple   122.53444
 mems_rotation   0.017453293
 prompt_user_for_questionable_data	1

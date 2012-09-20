@@ -43,11 +43,7 @@ if ct eq 0 then $
    return, error('FAILURE ('+functionName+'): SATSMASK undefined.  Use "Measure satellite spot locations" before this one.')
 
 ;;convert mask to binary
-dec = ulong64(0)
-reads,tmp,dec,format='(Z)'
-goodbin = string(dec,format='(B+'+strtrim((size(cube,/dim))[2],2)+'.'+strtrim((size(cube,/dim))[2],2)+')')
-goodcode = ulonarr((size(cube,/dim))[2])
-for j=0,n_elements(goodcode)-1 do goodcode[j] = long(strmid(goodbin,j,1))
+goodcode = hex2bin(tmp,(size(cube,/dim))[2])
 good = long(where(goodcode eq 1))
 cens = fltarr(2,4,(size(cube,/dim))[2])
 for s=0,n_elements(good) - 1 do begin
@@ -78,6 +74,16 @@ for s=0,n_elements(good) - 1 do begin
                             ext_num=1
    endfor
 endfor
+
+;;convert warnings to hex elements to HEX
+bad = where(warns eq -1,ct)
+if ct gt 0 then warns[bad] = 0
+warncode = ulong64(warns)
+;print,string(warncode,format='('+strtrim(n_elements(warncode),2)+'(I1))')
+warndec = ulong64(0)
+for j=n_elements(warncode)-1,0,-1 do warndec += warncode[j]*ulong64(2)^ulong64(n_elements(warncode)-j-1)
+warnhex = strtrim(string(warndec,format='((Z))'),2)
+backbone->set_keyword,'SATSWARN',warnhex,'HEX->binary mask for slices with varying sat fluxes.',ext_num=1
 
 suffix='-satsfluxes'
 

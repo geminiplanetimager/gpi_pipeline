@@ -6,31 +6,26 @@
 ; INPUTS: 
 ;
 ; KEYWORDS:
-; 	CalibrationFile=	Name of grid ratio file.
+; 	
 ;
 ; OUTPUTS: 
-; 	Same datacube, plot of contrast curve
+; 	Contrast datacube, plot of contrast curve
 ;
 ; 
 ;
 ; PIPELINE COMMENT: Measure the contrast. 
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="gridratio" Default="AUTOMATIC"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
+; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="0" Desc="Window number to display in.  -1 for no display."
+; PIPELINE ARGUMENT: Name="SaveProfile" Type="string" Default="" Desc="Save radial profile to filename (blank for no save)"
 ; PIPELINE ARGUMENT: Name="contrsigma" Type="float" Range="[0.,20.]" Default="5." Desc="Contrast sigma limit"
-; PIPELINE ARGUMENT: Name="contrcen_x0" Type="int" Range="[0,300]" Default="168" Desc="Sat 1 detec. window center x"
-; PIPELINE ARGUMENT: Name="contrcen_y0" Type="int" Range="[0,300]" Default="192" Desc="Sat 1 detec. window center y"
-; PIPELINE ARGUMENT: Name="contrcen_x1" Type="int" Range="[0,300]" Default="90" Desc="Sat 2 detec. window center x"
-; PIPELINE ARGUMENT: Name="contrcen_y1" Type="int" Range="[0,300]" Default="160" Desc="Sat 2 detec. window center y"
-; PIPELINE ARGUMENT: Name="contrcen_x2" Type="int" Range="[0,300]" Default="122" Desc="Sat 3 detec. window center x"
-; PIPELINE ARGUMENT: Name="contrcen_y2" Type="int" Range="[0,300]" Default="85" Desc="Sat 3 detec. window center y"
-; PIPELINE ARGUMENT: Name="contrcen_x3" Type="int" Range="[0,300]" Default="197" Desc="Sat 4 detec. window center x"
-; PIPELINE ARGUMENT: Name="contrcen_y3" Type="int" Range="[0,300]" Default="115" Desc="Sat 4 detec. window center y"
-; PIPELINE ARGUMENT: Name="contrwinap" Type="int" Range="[0,300]" Default="20" Desc="Half-length of max box [pix]"
-; PIPELINE ARGUMENT: Name="contrap" Type="int" Range="[0,300]" Default="3" Desc="Half length of Gauss. box"
+; PIPELINE ARGUMENT: Name="slice" Type="int" Range="[-1,50]" Default="0" Desc="Slice to plot. -1 for all"
+; PIPELINE ARGUMENT: Name="DarkHoleOnly" Type="int" Range="[0,1]" Default="1" Desc="0: Plot profile in dark hole only; 1: Plot outer profile as well."
+; PIPELINE ARGUMENT: Name="contr_yunit" Type="int" Range="[0,2]" Default="0" Desc="0: Standard deviation; 1: Median; 2: Mean."
+; PIPELINE ARGUMENT: Name="contr_xunit" Type="int" Range="[0,1]" Default="0" Desc="0: Arcsec; 1: lambda/D."
+; PIPELINE ARGUMENT: Name="yscale" Type="int" Range="[0,1]" Default="0" Desc="0: Auto y axis scaling; 1: Manual scaling."
+; PIPELINE ARGUMENT: Name="contr_yaxis_type" Type="int" Range="[0,1]" Default="1" Desc="0: Linear; 1: Log"
 ; PIPELINE ARGUMENT: Name="contr_yaxis_min" Type="float" Range="[0.,1.]" Default="0.00000001" Desc="Y axis minimum"
 ; PIPELINE ARGUMENT: Name="contr_yaxis_max" Type="float" Range="[0.,1.]" Default="1." Desc="Y axis maximum"
-; PIPELINE ARGUMENT: Name="ic_psfs" Type="float" Range="[0.,1.e5]" Default="0." Desc="Max intensity of spots (0 if need to be calculated)"
-; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.7
 ; PIPELINE NEWTYPE: SpectralScience,PolarimetricScience
 ; PIPELINE TYPE: ALL
@@ -41,137 +36,161 @@
 function measurecontrast, DataSet, Modules, Backbone
 
 primitive_version= '$Id: measurecontrast.pro 674 2012-03-31 17:54:07Z Maire $' ; get version from subversion to store in header history
-calfiletype = 'Gridratio'
 @__start_primitive
 
+cube = *(dataset.currframe[0])
+band = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
+;;error handle if extractcube not used before
+if ((size(cube))[0] ne 3) || (strlen(band) eq 0)  then $
+   return, error('FAILURE ('+functionName+'): Datacube or filter not defined. Use "Assemble Datacube" before this one.')   
+cwv = get_cwv(band,spectralchannels=(size(cube,/dim))[2])
+cwv = cwv.lambda
 
+;;error handle if sat spots haven't been found
+tmp = backbone->get_keyword("SATSMASK", ext_num=1, count=ct)
+if ct eq 0 then $
+   return, error('FAILURE ('+functionName+'): SATSMASK undefined.  Use "Measure satellite spot locations" before this one.')
 
-gridfac = gpi_readfits(c_File) ;8317.6 
+;;grab satspots 
+goodcode = hex2bin(tmp,(size(cube,/dim))[2])
+good = long(where(goodcode eq 1))
+cens = fltarr(2,4,(size(cube,/dim))[2])
+for s=0,n_elements(good) - 1 do begin 
+   for j = 0,3 do begin 
+      tmp = fltarr(2) + !values.f_nan 
+      reads,backbone->get_keyword('SATS'+strtrim(long(good[s]),2)+'_'+strtrim(j,2),ext_num=1),tmp,format='(F7," ",F7)' 
+      cens[*,j,good[s]] = tmp 
+   endfor 
+endfor
 
-contrcen_x=intarr(4)
-contrcen_y=intarr(4)
-contrcen_x[0]=uint(Modules[thisModuleIndex].contrcen_x0)
-contrcen_y[0]=uint(Modules[thisModuleIndex].contrcen_y0)
-contrcen_x[1]=uint(Modules[thisModuleIndex].contrcen_x1)
-contrcen_y[1]=uint(Modules[thisModuleIndex].contrcen_y1)
-contrcen_x[2]=uint(Modules[thisModuleIndex].contrcen_x2)
-contrcen_y[2]=uint(Modules[thisModuleIndex].contrcen_y2)
-contrcen_x[3]=uint(Modules[thisModuleIndex].contrcen_x3)
-contrcen_y[3]=uint(Modules[thisModuleIndex].contrcen_y3)
-  
-contrwinap=uint(Modules[thisModuleIndex].contrwinap)
-contrap=uint(Modules[thisModuleIndex].contrap)
+;;error handle if sat spots haven't been found
+tmp = backbone->get_keyword("SATSWARN", ext_num=1, count=ct)
+if ct eq 0 then $
+   return, error('FAILURE ('+functionName+'): SATSWARN undefined.  Use "Measure satellite spot fluxes" before this one.')
 
-contrsigma=uint(Modules[thisModuleIndex].contrsigma)
+;;grab sat fluxes
+warns = hex2bin(tmp,(size(cube,/dim))[2])
+satflux = fltarr(4,(size(cube,/dim))[2])
+for s=0,n_elements(good) - 1 do begin
+   for j = 0,3 do begin 
+      satflux[j,good[s]] = backbone->get_keyword('SATF'+strtrim(long(good[s]),2)+'_'+strtrim(j,2),ext_num=1) 
+   endfor 
+endfor
 
-  sz=(size(*(dataset.currframe[0]) ))
-  ; let's start with middle slice, should we do it for all wav? 
-  if sz[0] eq 3 then Cubefini= (*(dataset.currframe[0]) )[*,*,sz[3]/2]
-  if sz[0] eq 2 then Cubefini= (*(dataset.currframe[0]) )
-  badind=where(~FINITE( Cubefini),cc)
-  if cc ne 0 then Cubefini(badind )=0 ;TODO:median value
+;;get grid fac
+gridfac = gpi_get_setting('gridfac')
+if ~strcmp(gridfac,'ERROR',/fold_case) then gridfac = double(gridfac) else $
+   gridfac = 1d-4
 
-if float(Modules[thisModuleIndex].ic_psfs) eq 0. then begin
-    cens = fltarr(4,2)
-    ic_psfs = fltarr(4)
-    for i=0,3 do begin
-        ;define first sat. box
-        x1=0> (contrcen_x[i]-contrwinap) <((size(Cubefini))(1)-1)
-        x2=5> (contrcen_x[i]+contrwinap) <((size(Cubefini))(1)-1)
-        y1=0> (contrcen_y[i]-contrwinap) <((size(Cubefini))(2)-1)
-        y2=5> (contrcen_y[i]+contrwinap) <((size(Cubefini))(2)-1)
+;;get user inputs
+contrsigma = fix(Modules[thisModuleIndex].contrsigma)
+display = fix(Modules[thisModuleIndex].Display)
+slice = fix(Modules[thisModuleIndex].slice)
+doouter = 1 - fix(Modules[thisModuleIndex].DarkHoleOnly)
+wind = fix(Modules[thisModuleIndex].Display)
+radialsave = fix(Modules[thisModuleIndex].SaveProfile)
+contr_yunit = fix(Modules[thisModuleIndex].contr_yunit)
+contr_xunit = fix(Modules[thisModuleIndex].contr_xunit)
+contr_yaxis_type = fix(Modules[thisModuleIndex].contr_yaxis_type)
+contr_yaxis_min=float(Modules[thisModuleIndex].contr_yaxis_min)
+contr_yaxis_max=float(Modules[thisModuleIndex].contr_yaxis_max)
+yscale = fix(Modules[thisModuleIndex].yscale)
 
+;;we're going to do the copsf for all the slices
+copsf = cube
+for j = 0, (size(cube,/dim))[2]-1 do begin
+   tmp = where(good eq j,ct)
+   if ct eq 1 then copsf[*,*,j] = copsf[*,*,j]/((1./gridfac)*mean(satflux[*,j])) else $
+      copsf[*,*,j] = !values.f_nan
+endfor
 
-        hh=5. ; box for fit
+;;set proper scale unit
+if contr_yunit eq 0 then sclunit = contrsigma else sclunit = 1d
 
-        array=Cubefini[x1:x2,y1:y2]
-        max1=max(array,location)
-        ind1 = ARRAY_INDICES(array, location)
-        ind1(0)=hh> (ind1(0)+x1) < ((size(cubefini))[1]-hh-1)
-        ind1(1)=hh> (ind1(1)+y1) < ((size(cubefini))[2]-hh-1)
+if (wind ne -1) || (radialsave ne '') then begin
+   ;;determine which we are plotting
+   if slice eq -1 then inds = good else begin
+      inds = slice
+      tmp = where(good eq slice,ct)
+      if ct eq 0 then $
+         return, error('FAILURE ('+functionName+'): SATSPOTS not found for requested slice.')
+   endelse
 
-        delvarx, paramgauss
-        yfit = GAUSS2DFIT(Cubefini[ind1[0]-hh:ind1[0]+hh,ind1[1]-hh:ind1[1]+hh], paramgauss)
+   xrange = [1e12,-1e12]
+   yrange = [1e12,-1e12]
 
-    cen1=double(ind1)
-      ; cent coord in initial image coord
-      cens[i,0]=double(ind1(0))-hh+paramgauss(4)
-      cens[i,1]=double(ind1(1))-hh+paramgauss(5)
+   for j = 0, n_elements(inds)-1 do begin
+      ;; get the radial profile desired
+      case contr_yunit of
+         0: radial_profile,copsf[*,*,inds[j]],cens[*,*,inds[j]],$
+                           lambda=cwv[inds[j]],asec=asec,isig=outval,$
+                           /dointerp,doouter = doouter
+         1: radial_profile,copsf[*,*,inds[j]],cens[*,*,inds[j]],$
+                           lambda=cwv[inds[j]],asec=asec,imed=outval,$
+                           /dointerp,doouter = doouter
+         2: radial_profile,copsf[*,*,inds[j]],(*self.satspots.cens)[*,*,inds[j]],$
+                           lambda=cwv[inds[j]],asec=asec,imn=outval,$
+                           /dointerp,doouter = doouter
+      endcase
+      contrprof = ptrarr(n_elements(inds),/alloc)
+      asecs = ptrarr(n_elements(inds),/alloc)
+      outval *= sclunit
+      *contrprof[j] = outval
+      if contr_xunit eq 1 then $
+         asec *= 1d/3600d*!dpi/180d*7.7701d/(cwv[inds[j]]*1d-6)
+      *asecs[j] = asec
 
-    if (~finite(cens[i,0])) || (~finite(cens[i,1])) || $
-            (cens[i,0] lt 0) || (cens[i,0] gt (size(cubefini))(1)) || $
-            (cens[i,1] lt 0) || (cens[i,1] gt (size(cubefini))(1)) then begin
-       print, 'Warnings: **** Satellite PSF '+strc(i+1)+' not well detected ****'
-      ; self->tvcontr, /nosat
-       ;return,ok
-      endif
-     tmp_string = $
-      string(cens[i,0], cens[i,1], $
-         format = '("Sat'+strc(i+1)+' position:  x=",g14.7,"  y=",g14.7)' )
-     ; widget_control,(*self.state).satpos_ids[i],set_value=tmp_string
+      xrange[0] = xrange[0] < min(asec)
+      xrange[1] = xrange[1] > max(asec)
+      yrange[0] = yrange[0] < min(outval)
+      yrange[1] = yrange[1] > max(outval)
+   endfor
 
-      ic_psfs[i]=max(subarr(Cubefini,contrap,cens[i,*],/zeroout))
+   ;;plot
+   if wind ne -1 then begin
+      if yscale eq 1 then yrange = [contr_yaxis_min, contr_yaxis_max]
+      ytitle = 'Contrast '
+      case contr_yunit of
+         0: ytitle +=  '['+strc(uint(contrsigma))+' sigma limit]'
+         1: ytitle += '[Median]'
+         2: ytitle += '[Mean]'
+      endcase
+      xtitle =  'Angular separation '
+      if contr_xunit eq 0 then xtitle += '[Arcsec]' else $
+         xtitle += '['+'!4' + string("153B) + '!X/D]' ;;"just here to keep emacs from flipping out
 
-    endfor
+      if slice ne -1 then color = cgcolor('red') else begin
+         color = round(findgen((size(cube,/dim))[2])/$
+                       ((size(cube,/dim))[2]-1)*100.+100.)
+      endelse
 
-    ;--- check for warnings
-    contrcens = cens
-    warn = 0
-    for i=0,3 do if (abs(ic_psfs[i]-mean(ic_psfs)))/mean(ic_psfs) gt 0.25 then warn=1
+      window,wind,xsize=800,ysize=600,retain=2
+      plot,[0],[0],ylog=contr_yaxis_type,xrange=xrange,yrange=yrange,/xstyle,/ystyle,$
+        xtitle=xtitle,ytitle=ytitle,/nodata, charsize=1.2
+      
+      for j = 0, n_elements(inds)-1 do begin
+         oplot,*asecs[j],(*contrprof[j])[*,0],color=color[j],linestyle=0
+         if doouter then oplot,*asecs[j],(*contrprof[j])[*,1], color=color[j],linestyle=2
+      endfor
+   endif
 
-    if warn then begin
-      print, 'Warnings: *** Possible Sat. Misdetection: Fluxes vary >25%***'
-     ; self->tvcontr
-      return,ok
-  endif else begin
-      ; widget_control,(*self.state).contrwarning_id,set_value='Warnings: none'
-  endelse
-endif else begin
-  ic_psfs=float(Modules[thisModuleIndex].ic_psfs)
-endelse
-    ;--- now compute the profile
-    print, "Max intensity of spots (use this value for contrast curve on speckle-suppressed image):", mean(ic_psfs)
-  ic_psfi=gridfac*mean(ic_psfs) ;[[ic_psfi1],[ic_psfi2]])
-  dim=sz[1]
-  ;mask psf center
-  immask=1.-mkpupil(dim,0.028/0.014)
-  im=avgaper(immask,1.)
+   ;;save radial contrast as fits
+   if radialsave ne '' then begin
+      out = dblarr(n_elements(*asecs[inds[0]]), n_elements(inds)+1)+!values.d_nan
+      out[*,0] = *asecs[inds[0]]
+      for j=0,n_elements(inds)-1 do $
+         out[where((*asecs[inds[0]]) eq (*asecs[inds[j]])[0]):-1,j+1] = $
+         (*contrprof[inds[j]])[*,0]
+     
 
-  copsf=Cubefini/ic_psfi/im
-  pixscl=0.0145
+     mkhdr,hdr,out
+     sxaddpar,hdr,'SLICES',slices,'Cube slices used.'
+     sxaddpar,hdr,'YUNITS',(['Std Dev','Median','Mean'])[contr_yunit],'Contrast units'
 
-  contr_yaxis_min=float(Modules[thisModuleIndex].contr_yaxis_min)
-  contr_yaxis_max=float(Modules[thisModuleIndex].contr_yaxis_max)
-
-
-  ;;mask satellites
-  for isat=0,3 do begin
-      dis=distarr(dim,dim,cens[isat,0],cens[isat,1])
-      imask=where(dis lt 0.1/pixscl)
-      copsf[imask]=!values.f_nan
-  endfor
-  
-lenstr=strlen((dataset.outputfilenames)[numfile])
-contr_outfile= strmid((dataset.outputfilenames)[numfile],0,lenstr-5)+"-contrast"
-  plotps=1
-  if (plotps) then begin
-    mydevice = !D.NAME
-
-    set_plot,"ps"
-    openps,contr_outfile+".ps"
-    statvsr,copsf,0.,pixscl=pixscl,/psig,nsig=contrsigma,yr=[contr_yaxis_min, contr_yaxis_max],$
-      xtitle='Angular separation [Arcsec]',ytitle='Contrast ('+strc(uint(contrsigma))+greek('sigma')+' limit)', cens=cens, asec=asec,isig=isig ;
-     closeps
-    SET_PLOT, mydevice
-
-  endif
-
-
-
-  if uint(Modules[thisModuleIndex].Save) then begin
-      SAVE, FILENAME = contr_outfile+".sav", asec,isig
-  endif
-
+     writefits,radialsave,out,hdr
+  endif 
+   
+endif
 
 @__end_primitive 
 
