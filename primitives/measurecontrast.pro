@@ -118,6 +118,8 @@ if (wind ne -1) || (radialsave ne '') then begin
 
    xrange = [1e12,-1e12]
    yrange = [1e12,-1e12]
+   contrprof = ptrarr(n_elements(inds),/alloc)
+   asecs = ptrarr(n_elements(inds),/alloc)
 
    for j = 0, n_elements(inds)-1 do begin
       ;; get the radial profile desired
@@ -132,18 +134,16 @@ if (wind ne -1) || (radialsave ne '') then begin
                            lambda=cwv[inds[j]],asec=asec,imn=outval,$
                            /dointerp,doouter = doouter
       endcase
-      contrprof = ptrarr(n_elements(inds),/alloc)
-      asecs = ptrarr(n_elements(inds),/alloc)
       outval *= sclunit
       *contrprof[j] = outval
       if contr_xunit eq 1 then $
          asec *= 1d/3600d*!dpi/180d*7.7701d/(cwv[inds[j]]*1d-6)
       *asecs[j] = asec
 
-      xrange[0] = xrange[0] < min(asec)
-      xrange[1] = xrange[1] > max(asec)
-      yrange[0] = yrange[0] < min(outval)
-      yrange[1] = yrange[1] > max(outval)
+      xrange[0] = xrange[0] < min(asec,/nan)
+      xrange[1] = xrange[1] > max(asec,/nan)
+      yrange[0] = yrange[0] < min(outval,/nan)
+      yrange[1] = yrange[1] > max(outval,/nan)
    endfor
 
    ;;plot
