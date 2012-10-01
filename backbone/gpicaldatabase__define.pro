@@ -38,11 +38,15 @@ calfile = { $
 end
 
 pro gpicaldatabase::log, messagestr, _extra=_Extra
-	if obj_valid(self.backbone) then self.backbone->Log, "GPICALDB: "+messagestr, _extra=_extra else message,/info, messagestr
+     if obj_valid(self.backbone) then self.backbone->Log, "GPICALDB: "+messagestr, _extra=_extra else message,/info, messagestr
 end
 
 FUNCTIOn gpicaldatabase::get_calibdir
 	return, self.caldir
+end
+
+function gpicaldatabase::get_data
+     return, self.data
 end
 
 ;----------
