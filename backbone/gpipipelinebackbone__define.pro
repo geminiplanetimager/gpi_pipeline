@@ -754,6 +754,7 @@ FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
     endif else begin
     	catch, call_function_error
     endelse
+
 	if call_function_error eq 0 then begin
 		status = call_function( Modules[ModNum].IDLCommand, *self.data, Modules, self ) 
 	endif else begin
