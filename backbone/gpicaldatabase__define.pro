@@ -534,7 +534,50 @@ function gpicaldatabase::get_readoutmode_as_string, fits_data
 
 end
 
+;----------
 
+pro gpicaldatabase::get_readoutmode_from_string, readoutmode, samplingMode=samplingMode,$
+                  numReads=numReads,numGroups=numGroups,startX=startX, startY=startY, endX=endX, endY=endY
+
+regex = '([[:digit:]])_([[:digit:]]+)_\[([[:digit:]]+):([[:digit:]]+),([[:digit:]]+):([[:digit:]]+)\]'
+res = stregex(readoutmode,regex,/subexpr,/extract)
+
+samplingMode = long(res[1,*])
+totReads = float(res[2,*])
+startX = float(res[3,*]) - 1.
+endX = float(res[4,*]) - 1.
+startY = float(res[5,*]) - 1.
+endY = float(res[6,*]) - 1.
+
+nchan = fltarr(n_elements(readoutmode)) + 32.
+inds = where((startX ne 1) or (endX ne 2048) or (startY ne 1) or (endY ne 2048),cc)
+if cc gt 0 then nchan[inds] = 1.
+
+tframe = ((endX-startX+1)/nchan+7)*(endY-startY+2)*10e-6
+
+;;determine different modes (assume single unless proven otherwise)
+cdss = where((samplingMode eq 2) or (samplingMode eq 3),ccds)
+utrs = where(samplingMode eq 4,cutr)
+
+;;numGroups is 2 for CDS & MCDS, 1 for single and variable for UTR (4)
+numGroups = fltarr(n_elements(readoutmode)) + 1.
+
+;;numReads - for single, this is 1, for CDS & MCDS it's half the total
+;;           number of reads, for UTR its the total number of reads/numGroups
+numReads = totReads
+
+if ccds gt 0 then begin
+    numGroups[ccds] = 2.
+    numReads[ccds] /= 2.
+endif
+
+;;for now, assume 1 read for UTR
+if cutr gt 0 then begin
+    numGroups[utrs] = numReads[utrs]
+    numReads[utrs] = 1
+endif
+
+end
 
 ;----------
 PRO gpicaldatabase__define
