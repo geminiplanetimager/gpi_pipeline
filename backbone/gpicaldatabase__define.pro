@@ -137,10 +137,6 @@ pro gpicaldatabase::verify
 
 end
 
-
-
-
-
 ;----------
 ; write out update calibration DB
 PRO gpicaldatabase::write
@@ -282,16 +278,16 @@ function gpicaldatabase::cal_info_from_header, fits_data
 	endfor
 	if count ne 1 then begin 
 	    message,/info, "Missing keyword: IFSFILT"
-    endif
+        endif
 
 	thisfile.prism= gpi_simplify_keyword_value(strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "DISPERSR", count=count3)))
-	if count3 ne 1 then message,/info, "Missing keyword: DISPERSR"
+        if count3 ne 1 then message,/info, "Missing keyword: DISPERSR"
 
 	thisfile.apodizer= strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "APODIZER", count=count))
 	if count ne 1 then message,/info, "Missing keyword: APODIZER"
 
 	thisfile.itime = (gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "ITIME", count=count3))
-    if count3 ne 1 then message,/info, "Missing keyword: ITIME"
+        if count3 ne 1 then message,/info, "Missing keyword: ITIME"
 
 	thisfile.lyot= strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "LYOTMASK", count=count))
 	if count ne 1 then message,/info, "Missing keyword: LYOTMASK"  ; Missing in all DST files pre 2010-01-28!
@@ -412,12 +408,12 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 		return, NOT_OK
 	endif 
 
-newfile = self->cal_info_from_header(fits_data)
-date=newfile.jd
-filter=newfile.filter
-prism=newfile.prism
-itime=newfile.itime
-readoutmode=self->get_readoutmode_as_string(fits_data)
+        newfile = self->cal_info_from_header(fits_data)
+        date=newfile.jd
+        filter=newfile.filter
+        prism=newfile.prism
+        itime=newfile.itime
+        readoutmode=newfile.readoutmode ;self->get_readoutmode_as_string(fits_data)
 
 	case types[itype].match_on of 
 	'typeonly': begin
@@ -518,20 +514,22 @@ end
 ;----------
 
 function gpicaldatabase::get_readoutmode_as_string, fits_data
+     if gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, 'INSTRSUB') eq 'GPI IFS Pupil' then begin
+         readoutmode = "Pupil_Viewer:"
+     endif else begin
+         samplingMode = strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, 'SAMPMODE', count=count))
+         if count ne 1 then begin message,/info, "Missing keyword: SAMPMODE" & samplingMode = '0' & endif
+         totReads = strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, 'READS', count=count))
+         if count ne 1 then begin message,/info, "Missing keyword: READS" & totreads = '0' & endif
+         numGroups = strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, 'NGROUP', count=count))
+         if count ne 1 then begin message,/info, "Missing keyword: NGROUP" & numGroups = '0' & endif
+         datasec = strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, 'DATASEC', count=count))
+         if count ne 1 then begin message,/info, "Missing keyword: DATASEC" & datasec = '[0:0,0:0]' & endif
 
-	if gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, 'INSTRSUB') eq 'GPI IFS Pupil' then begin
-		readoutmode = "Pupil_Viewer:"
-	endif else begin
-
-		readoutmode = strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, 'SAMPMODE'))+"_"+ $
-	    	                 strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, 'READS'))+"_"+ $
-	        	             strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, 'DATASEC'))
-						 ; TODO verify the above is all we need to track on for
-						 ; good dark matching? Anything else we care about?
-	endelse
-
-	return, readoutmode
-
+         readoutmode = samplingMode+"_"+totReads+"_"+numGroups+"_"+datasec
+     endelse
+     
+     return, readoutmode
 end
 
 ;----------
@@ -539,18 +537,19 @@ end
 pro gpicaldatabase::get_readoutmode_from_string, readoutmode, samplingMode=samplingMode,$
                   numReads=numReads,numGroups=numGroups,startX=startX, startY=startY, endX=endX, endY=endY
 
-regex = '([[:digit:]])_([[:digit:]]+)_\[([[:digit:]]+):([[:digit:]]+),([[:digit:]]+):([[:digit:]]+)\]'
+regex = '([[:digit:]])_([[:digit:]]+)_([[:digit:]])_\[([[:digit:]]+):([[:digit:]]+),([[:digit:]]+):([[:digit:]]+)\]'
 res = stregex(readoutmode,regex,/subexpr,/extract)
 
 samplingMode = long(res[1,*])
 totReads = float(res[2,*])
-startX = float(res[3,*]) - 1.
-endX = float(res[4,*]) - 1.
-startY = float(res[5,*]) - 1.
-endY = float(res[6,*]) - 1.
+numGroups = float(res[3,*])
+startX = float(res[4,*]) - 1.
+endX = float(res[5,*]) - 1.
+startY = float(res[6,*]) - 1.
+endY = float(res[7,*]) - 1.
 
 nchan = fltarr(n_elements(readoutmode)) + 32.
-inds = where((startX ne 1) or (endX ne 2048) or (startY ne 1) or (endY ne 2048),cc)
+inds = where((startX ne 0) or (endX ne 2047) or (startY ne 0) or (endY ne 2047),cc)
 if cc gt 0 then nchan[inds] = 1.
 
 tframe = ((endX-startX+1)/nchan+7)*(endY-startY+2)*10e-6
@@ -559,23 +558,11 @@ tframe = ((endX-startX+1)/nchan+7)*(endY-startY+2)*10e-6
 cdss = where((samplingMode eq 2) or (samplingMode eq 3),ccds)
 utrs = where(samplingMode eq 4,cutr)
 
-;;numGroups is 2 for CDS & MCDS, 1 for single and variable for UTR (4)
-numGroups = fltarr(n_elements(readoutmode)) + 1.
-
 ;;numReads - for single, this is 1, for CDS & MCDS it's half the total
 ;;           number of reads, for UTR its the total number of reads/numGroups
 numReads = totReads
-
-if ccds gt 0 then begin
-    numGroups[ccds] = 2.
-    numReads[ccds] /= 2.
-endif
-
-;;for now, assume 1 read for UTR
-if cutr gt 0 then begin
-    numGroups[utrs] = numReads[utrs]
-    numReads[utrs] = 1
-endif
+if ccds gt 0 then numReads[cdss] /= 2.
+if cutr gt 0 then numReads[utrs] = numReads[utrs]/numGroups[utrs]
 
 end
 
