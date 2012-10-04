@@ -1,6 +1,6 @@
 pro ifs_cube_movie,fname,imdat=imdat,imnum=imnum,outname=outname,table=table,strtch=strtch,$
-                   fps=fps,tottime=tottime,mpeg=mpeg,nolog=nolog,r=r,g=g,b=b,prescaled=prescaled,$
-                   lambdas=lambdas
+                   fps=fps,tottime=tottime,mpeg=mpeg,png=png,nolog=nolog,r=r,g=g,b=b,prescaled=prescaled,$
+                   lambdas=lambdas,deg=deg,sym=sym
 ;+
 ; NAME:
 ;       ifs_cube_movie
@@ -25,6 +25,7 @@ pro ifs_cube_movie,fname,imdat=imdat,imnum=imnum,outname=outname,table=table,str
 ;             to look a bit choppy).
 ;       tottime - Total movie time in seconds.  Overrides fps setting.
 ;       /mpeg - make mpeg; defaults to animated gif
+;       /png - output pngs of frames; defaults to animated gif
 ;       /nolog - linear stretch (defaults to log stretch)
 ;       r,g,b - Custom color tables (overrides table and strtch).
 ;       /nolog - Use linear stretch (defaults to log)
@@ -46,7 +47,13 @@ pro ifs_cube_movie,fname,imdat=imdat,imnum=imnum,outname=outname,table=table,str
 ; REVISION HISTORY
 ;       Written 06/28/2012. savransky1@llnl.gov
 ;       08.09.12 Partial rewrite to integrate with gpitv - ds
+;       09.28.12 Added png option - ds
 ;-
+
+if keyword_set(mpeg) && keyword_set(png) then begin
+   message,'You can only select one of /mpeg or /png.',/continue
+   return
+endif
 
 ;;assemble input &output filenames and check for existence
 if keyword_set(imdat) and keyword_set(imnum) then $
@@ -67,12 +74,17 @@ endelse
 
 ;;assemble output name if needed
 if not keyword_set(outname) then begin
-    if size(fname,/type) eq 7 then $
+   if size(fname,/type) eq 7 then $
       outname = strmid(fname,strpos(fname,'/',/reverse_search)+1,$
                        strpos(fname,'.fits')-strpos(fname,'/',/reverse_search)-1)+'-movie' $
-    else outname = 'ifs_cube_movie' 
-    if keyword_set(mpeg) then outname += '.mpg' else outname += '.gif'
-endif
+   else outname = 'ifs_cube_movie' 
+   if keyword_set(mpeg) then outname += '.mpg' else if ~keyword_set(png) then outname += '.gif'
+endif else begin
+   if keyword_set(png) then begin
+      pos = strpos(outname,'.png')
+      if pos ne -1 then outname = strmid(outname,pos)
+   endif
+endelse
 
 ;;set frame rates and colors
 if not keyword_set(fps) then fps = 5
@@ -104,11 +116,14 @@ endif
 
 ;;set up zbuffer for wavelength text
 if n_elements(lambdas) ne 0 then begin
+   print,'okay'
    origDevice = !D.Name
    set_plot, 'Z', /COPY
    device,set_resolution=[xs,ys]
    erase
    mu = '!4' + string("154B) + '!Xm'  ;;" this is only here to stop emacs from freaking out
+   if keyword_set(deg) then mu = cgsymbol('deg')
+   if n_elements(sym) ne 0 then mu = sym
 endif
 
 ;;set up mpeg if necessary
@@ -128,6 +143,7 @@ endif else begin
 endelse
 
 framecounter = 0
+if keyword_set(png) then ndig = +strtrim(floor(alog10(sz[2])+1 > 1),2)
 for j=0,sz[2]-1 do begin
    ;;rebin the image
    fim = rebin(im[*,*,j],xs,ys)
@@ -149,10 +165,17 @@ for j=0,sz[2]-1 do begin
 
    ;;write the frame
    if not keyword_set(mpeg) then begin
-      if j ne sz[2]-1 then $
-         write_gif,outname,fim,r,g,b,delay_time=fps/30.*100.,/multiple,repeat_count=0 $
-      else $
-         write_gif,outname,fim,r,g,b,delay_time=fps/30.*100.,/multiple,repeat_count=0,/close       
+      if keyword_set(png) then begin
+         ;;generate individual pngs of each frame
+         write_png,outname+string(framecounter,format='(I'+ndig+'.'+ndig+')')+'.png',fim,r,g,b
+         framecounter += 1
+      endif else begin
+         ;;generate animated gif
+         if j ne sz[2]-1 then $
+            write_gif,outname,fim,r,g,b,delay_time=fps/30.*100.,/multiple,repeat_count=0 $
+         else $
+            write_gif,outname,fim,r,g,b,delay_time=fps/30.*100.,/multiple,repeat_count=0,/close       
+      endelse
    endif else begin
       image24[0,*,*] = r(fim)
       image24[1,*,*] = g(fim)
