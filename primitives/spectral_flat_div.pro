@@ -26,6 +26,7 @@
 ;   2009-10-09 JM added gpitv display
 ;   2010-10-19 JM: split HISTORY keyword if necessary
 ;   2011-07 JM: added check for NAN & zero
+;   2012-10-11 MP: Added min/max wavelength checks
 ;-
 
 function spectral_flat_div, DataSet, Modules, Backbone
@@ -35,9 +36,21 @@ calfiletype = 'flat'
   
     specflat = gpi_readfits(c_File)
 
-    ; error check sizes of arrays, etc. 
+    ; error check sizes of arrays, wavelengths are consistent, etc. 
     if not array_equal( (size(*(dataset.currframe[0])))[1:3], (size(specflat))[1:3]) then $
         return, error('FAILURE ('+functionName+'): Supplied flat field and data cube files do not have the same dimensions')
+
+	minwavelength = backbone->get_keyword('DRP_WMIN', count=mincount)
+	maxwavelength = backbone->get_keyword('DRP_WMAX', count=maxcount)
+	if mincount gt 0 and maxcount gt 0 then begin
+		cwv = get_cwv(filter)
+		lstep = cwv.lambda[1] - cwv.lambda[0]
+		if ((abs(min(cwv) - minwavelength) gt 0.05*lstep ) or $ 
+		    (abs(max(cwv) - maxwavelength) gt 0.05*lstep )) then $
+        	return, error('FAILURE ('+functionName+'): Supplied flat field and data cube files do not have the same min/max wavelength settings')
+	endif
+
+
 
     ; update FITS header history
     backbone->set_keyword, "HISTORY", functionname+": dividing by flat",ext_num=0

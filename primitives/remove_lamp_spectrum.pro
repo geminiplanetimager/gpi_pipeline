@@ -7,9 +7,6 @@
 ; INPUTS: data-cube
 ;
 ;
-; KEYWORDS:
-;	/Save	set to 1 to save the output image to a disk file. 
-;
 ; GEM/GPI KEYWORDS:
 ; DRP KEYWORDS: FILETYPE, ISCALIB
 ; OUTPUTS:  datacube with slice at the same wavelength
@@ -25,8 +22,9 @@
 ; PIPELINE SEQUENCE: 21-
 ;
 ; HISTORY:
-; 	2009-06-20: JM created
-; 	2009-07-22: MDP added doc header keywords
+; 	2009-06-20 JM: created
+; 	2009-07-22 MP: added doc header keywords
+; 	2012-10-11 MP: added min/max wavelength checks
 ;-
 
 function Remove_lamp_spectrum, DataSet, Modules, Backbone
@@ -116,6 +114,8 @@ meth=Modules[thisModuleIndex].method
   *(dataset.currframe[0])=Result
 ;endif 
 ; Set keywords for outputting files into the Calibrations DB
+    backbone->set_keyword,  "DRP_WMIN", min(cwv.lambda), 'Wavelength Min for this extracted flat field data', ext_num=0
+    backbone->set_keyword,  "DRP_WMAX", max(cwv.lambda), 'Wavelength Max for this extracted flat field data', ext_num=0
 	backbone->set_keyword,  "FILETYPE", 'Flat field', "What kind of IFS file is this?"
 	backbone->set_keyword,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
 
