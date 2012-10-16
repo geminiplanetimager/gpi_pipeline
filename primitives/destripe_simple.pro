@@ -5,6 +5,11 @@
 ;
 ; 	Correct for fluctuations in the bias/dark level using 
 ; 	area far from where the PSF is right now. 
+; 	This is hard-coded for UCSC I&T of GPI, with specific choices
+; 	as to what regions of the detector are far from the PSF in the occulted 
+; 	case.
+;
+; 	Won't work well on flats or other such data. 
 ;
 ;
 ; INPUTS: 
@@ -16,7 +21,7 @@
 ;
 ; ALGORITHM TODO: Deal with uncertainty and pixel mask frames too.
 ;
-; PIPELINE COMMENT: Subtract channel bias levels using H2RG reference pixels.
+; PIPELINE COMMENT: Subtract readout pickup noise using areas far from the PSF core
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display " 
 ; PIPELINE ARGUMENT: Name="before_and_after" Type="int" Range="[0,1]" Default="0" Desc="Show the before-and-after images for the user to see?"

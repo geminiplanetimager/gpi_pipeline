@@ -5,6 +5,15 @@
 ;
 ; 	Correct for fluctuations in the bias/dark level using the rows of 
 ; 	reference pixels in the H2RG detectors. 
+;   Algorithm choices include: 
+;    1) simple_channels		in this case, just use the median of each
+;    					    vertical channel to remove offsets between 
+;    					    the channels
+;    2) simple_horizontal	take the median of the 8 ref pix for each row,
+;    						and subtract that from each row. 
+;    3) interpolating		in this case, use James Larkin's interpolation
+;    						algorithm to remove linear variation with time 
+;    						in the horizontal direction
 ;
 ; 	See discussion in section 3.1 of Rauscher et al. 2008 Prof SPIE 7021 p 63.
 ;
@@ -21,7 +30,7 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display " 
 ; PIPELINE ARGUMENT: Name="before_and_after" Type="int" Range="[0,1]" Default="0" Desc="Show the before-and-after images for the user to see?"
-; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="SIMPLE|INTERPOLATED"  Default="INTERPOLATED" Desc="Algorithm for reference pixel subtraction."
+; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="SIMPLE_CHANNELS|INTERPOLATED"  Default="INTERPOLATED" Desc="Algorithm for reference pixel subtraction."
 ; PIPELINE ORDER: 1.25
 ; PIPELINE TYPE: ALL
 ; PIPELINE NEWTYPE: ALL
@@ -33,6 +42,7 @@
 ; 				    Some code lifted from OSIRIS subtradark_000.pro
 ;   2009-09-17 JM: added DRF parameters
 ;   2012-07-27 MP: Added Method parameter, James Larkin's improved algorithm
+;   2012-10-14 MP: debugging and code cleanup.
 ;
 function ApplyRefPixCorrection, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -44,27 +54,32 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	sz = size(im)
 
+
     if sz[1] ne 2048 or sz[2] ne 2048 then begin
         backbone->Log, "REFPIX: Image is not 2048x2048, don't know how to ref pixel subtract"
         backbone->set_keyword, "HISTORY", "Image is not 2048x2048, don't know how to ref pixel subtract"
         return, NOT_OK
     endif
+
 	nreadout = 32
-
 	chanwidth = sz[1]/nreadout
-	means = fltarr(nreadout)
-
-	; For each channel, subtract the mean of the last four reference rows. 
-	; TODO: are the last four rows the bottom or top? Check this...
-	; TODO: experiment with other approaches to subtraction; this is the 
-	;       standard recommended approach used at Teledyne, GSFC, etc. 
 
 
-	if tag_exist( Modules[thisModuleIndex],'method') then method=strupcase(Modules[thisModuleIndex].method) else method='SIMPLE'
+	if tag_exist( Modules[thisModuleIndex],'method') then method=strupcase(Modules[thisModuleIndex].method) else method='SIMPLE_CHANNELS'
 
 
 	case method of
-	'SIMPLE': begin
+	'SIMPLE_CHANNELS': begin
+		; A very simple approach: 
+		; For each channel, subtract the outlier-rejected mean of the last four reference rows. 
+		;
+		; TODO: experiment with other approaches to subtraction; this is the 
+		;       standard recommended approach supposedly used at Teledyne 
+		;
+		; TODO: are the last four rows the bottom or top? Check this...
+		means = fltarr(nreadout)
+
+
 		backbone->set_keyword, "HISTORY", " REFPIX-HORIZONTAL: subtracting ref pix means for each readout"
 		backbone->set_keyword, "DRPHREF", "Simple", 'Horizontal reference pixel subtraction method'
 		for ir=0L, nreadout-1 do begin
@@ -77,21 +92,35 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 			backbone->set_keyword, "HISTORY", " REFPIX:  readout "+strc(ir)+" has mean="+strc(refmean),ext_num=0
 		endfor 
 	end
+	'SIMPLE_HORIZONTAL': begin
+		; a simple subtraction of horizontal reference pixels
+		backbone->set_keyword, "HISTORY", " REFPIX-HORIZONTAL: subtracting ref pixels from row medians"
+		backbone->set_keyword, "DRPHREF", "Simple", 'Horizontal reference pixel subtraction method'
+		href=fltarr(8,2048)	; For each row, the median horizontal reference
+		mref=fltarr(2048)
+
+		; Determine the median of the horizontal ref pixels for each row
+		href[0:3,*]=im[0:3,*]
+		href[4:7,*]=im[2044:2047,*]
+		mref[*]=median(href,dimension=1)
+
+		model = rebin(transpose(mref),2048,2048)
+		im -= model
+		
+	end
 	'INTERPOLATED': begin
 		; James Larkin's improved algorithm here, lifted from his fix_row.pro
 		; routine
 		backbone->set_keyword, "HISTORY", " REFPIX-HORIZONTAL: subtracting ref pixels interpolated via Larkin's algorithm"
-		backbone->set_keyword, "DRPHREF", "Simple", 'Horizontal reference pixel subtraction method'
+		backbone->set_keyword, "DRPHREF", "Larkin interpolation", 'Horizontal reference pixel subtraction method'
 		
 		;--------------------------------------------------------------	
-		; Fix_row is designed to use the horizontal reference pixels in a
+		; This code is designed to use the horizontal reference pixels in a
 		; Hawaii-2RG infrared detector to remove some horizontal striping.
 		; At each pixel in the array, the routine interpolates between the
 		; reference pixels before and after to the location of the pixel
 		; to try and improve on temperoral fluctuations in the bias voltages.
 		; The only parameter is the 2048x2048 pixel array itself.
-		; The current version of the array does no error checking on the
-		; array for size of format.
 		;
 		; Written by James Larkin, July 5, 2012
 		;--------------------------------------------------------------	
@@ -111,7 +140,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		dref[0:2046]=mref[1:2047]-mref[0:2046]
 
 		; Calculate linear trends across the 64 pixels of an output between 
-		; hrefs (note there are 12 extra pixels so divide by 76)
+		; hrefs (note there are 12 extra pixels in the clocking pattern so divide by 76)
 		ramp=findgen(64)/76.0
 		for k=0,2046 do begin
 			href_lin[*,k]=mref[k]+ramp*dref[k]
@@ -149,7 +178,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	;before_and_after=1
 	if keyword_set(before_and_after) then begin
-		atv, [[[*(dataset.currframe[0])]], [[im]],[[ref]],[[imout]]],/bl, names=['Input image','Ref Pixel Results', 'Subtracted']
+		atv, [[[*(dataset.currframe[0])]], [[im]],[[ref]],[[imout]]],/bl, names=['Input image','Ref Pixel Results', 'Subtracted', 'output']
 		stop
 	endif
 
