@@ -27,9 +27,10 @@
 ; PIPELINE SEQUENCE: 3-
 ;
 ; HISTORY:
+;   2012-10-16 Patrick: fixed syntax error (function name)
 ;   2012-10-13 MP: Started
 ;-
-function destripe_simple, DataSet, Modules, Backbone
+function destripe_for_darks, DataSet, Modules, Backbone
 primitive_version= '$Id: applyrefpixcorrection.pro 677 2012-03-31 20:47:13Z Dmitry $' ; get version from subversion to store in header history
 @__start_primitive
 
@@ -48,7 +49,7 @@ primitive_version= '$Id: applyrefpixcorrection.pro 677 2012-03-31 20:47:13Z Dmit
 	; Chop the image into the 32 readout channels. 
 	; Flip every other channel to account for the readout direction
 	; alternating for the H2RG
-	parts = transpose(reform(im0, 64,32, 2048),[0,2,1])
+	parts = transpose(reform(im, 64,32, 2048),[0,2,1])
  	for i=0,15 do parts[*,*,2*i+1] = reverse(parts[*,*,2*i+1]) 
 
 	; Generate a median image from all 32 readout channels
