@@ -39,7 +39,7 @@ primitive_version= '$Id: combine_3dcubes.pro 278 2011-02-09 19:20:31Z maire $' ;
 	nfiles=dataset.validframecount
 
 	; Load the first file so we can figure out their size, etc. 
-	im0 = accumulate_getimage(dataset, 0, hdr0, hdrext0)
+        im0 = accumulate_getimage(dataset, 0, hdr0, hdrext=hdrext0)
 	;imtab=dblarr(naxis(0),naxis(1),numfile)
 	sz = [0, sxpar(hdrext0,'NAXIS1'), sxpar(hdrext0,'NAXIS2'), sxpar(hdrext0,'NAXIS3')]
 	; create an array of the same type as the input file:
