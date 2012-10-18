@@ -27,18 +27,13 @@
 ; HISTORY:
 ; 	
 ;   JM 2010-03 : created module.
+;   2012-10-17 MP: Removed deprecated suffix= keyword
 ;- 
 
 function wavcalplots, DataSet, Modules, Backbone
-common PIP
-COMMON APP_CONSTANTS
-
 primitive_version= '$Id: wavcalplots.pro 96 2010-10-20 13:47:13Z maire $' ; get version from subversion to store in header history
-	;getmyname, functionname
-	  @__start_primitive
+@__start_primitive
 
-   	; save starting time
-   	T = systime(1)
 
   	wavcal=*(dataset.currframe[0])
 
@@ -151,11 +146,6 @@ hdr=*(dataset.headers[numfile])
 
 
 
-	thisModuleIndex = Backbone->GetCurrentModuleIndex()
-  
-
- 
-;drpPushCallStack, functionName
 
 return, ok
 

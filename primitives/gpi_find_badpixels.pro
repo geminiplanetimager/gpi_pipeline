@@ -11,7 +11,6 @@
 ;
 ; PIPELINE COMMENT: Find Hot/cold pixels using flat-field images. find deviation which is nbdev times greater or lower than the estimated value of the pixel as if it was not hot/cold.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-badpix" Desc="Enter output suffix"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 1.3
 ; PIPELINE TYPE: CAL-SPEC
@@ -113,14 +112,11 @@ print, 'nb bad-pixels detected =', total(double(badpixmap))
 
 
 
-  if tag_exist( Modules[thisModuleIndex], "suffix") then suffix=Modules[thisModuleIndex].suffix else suffix='baxpix'
+	suffix='baxpix'
 
-; FIXME: Update FITS header of the output file to specify that it's a bad pixel
-; map. 
-  ;sxaddhist, functionname+"from " + dataset.outputFileNames[numfile], *(dataset.headers[numfile])
 
-backbone->set_keyword, "HISTORY", functionname+"from " + dataset.outputFileNames[numfile]
-*(dataset.currframe[0])=badpixmap
+	backbone->set_keyword, "HISTORY", functionname+"from " + dataset.outputFileNames[numfile]
+	*(dataset.currframe[0])=badpixmap
 
 	; Set keywords for outputting files into the Calibrations DB
 ;	 if numext eq 0 then begin

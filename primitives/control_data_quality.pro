@@ -63,8 +63,7 @@ primitive_version= '$Id: control_data_quality.pro 96 2010-10-30 13:47:13Z maire 
   	  if cc eq 0 then begin
   	      drpmessagerms='No RMSERR keyword found.'
   	      print, 'BAD QUALITY DATA: '+drpmessagerms
-         backbone->Log, strjoin(drpmessagerms), /DRF, DEPTH = 1
-         backbone->Log, strjoin(drpmessagerms), /GENERAL, DEPTH = 1  	    
+         backbone->Log, strjoin(drpmessagerms),  DEPTH = 1
   	  endif
   	    if  (float(rmserr) gt criticalrmserr) && (cc eq 1) then begin
           badquality=1
@@ -76,8 +75,7 @@ if badquality  then begin
   case action of
     0:begin
         print, 'BAD QUALITY DATA: '+drpmessage
-         backbone->Log, strjoin(drpmessage), /DRF, DEPTH = 1
-         backbone->Log, strjoin(drpmessage), /GENERAL, DEPTH = 1
+         backbone->Log, strjoin(drpmessage),  DEPTH = 1
        ;sxaddparlarge,*(dataset.headers[numfile]),'HISTORY',functionname+"ALERT BAD QUALITY DATA"+drpmessage
        backbone->set_keyword, 'HISTORY', functionname+"ALERT BAD QUALITY DATA"+drpmessage,ext_num=0
       end

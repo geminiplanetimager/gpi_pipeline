@@ -13,7 +13,6 @@
 
 ; PIPELINE COMMENT: Performs simple median combination of wavelength calibrations from flat and/or arc lamps
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-comb" Desc="Enter output suffix"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.2
 ; PIPELINE TYPE: CAL-SPEC
@@ -23,13 +22,13 @@
 ; HISTORY:
 ;    Jerome Maire 2009-08-10
 ;   2009-09-17 JM: added DRF parameters
+;   2012-10-17 MP: Removed deprecated suffix= keyword
 ;-
 
 function gpi_combine_wavcal_all,  DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 	nfiles=dataset.validframecount
-  ;if numext eq 0 then hdr= *(dataset.headers)[numfile] else hdr= *(dataset.headersPHU)[numfile]
 
 	if nfiles gt 1 then begin
 
@@ -39,15 +38,14 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		wavcalcomb=dblarr(sz[1],sz[2],sz[3])
 	  
 	
-;		header=*(dataset.headers)[numfile]
-		;filter = strcompress(sxpar( hdr ,'FILTER', count=fcount),/REMOVE_ALL)
-		;if fcount eq 0 then filter = strcompress(sxpar( hdr ,'IFSFILT'),/REMOVE_ALL)
 		filter=gpi_simplify_keyword_value(strc(backbone->get_keyword('IFSFILT')))
 		cwv=get_cwv(filter)
 		CommonWavVect=cwv.CommonWavVect
 		lambda=cwv.lambda
 	   
 		lambdamin=commonwavvect[0]
+		; MP note: The algorithm here seems inefficient - you end up reading in
+		; the individual wavelength solutions many times in succession? 
 		for wv=0,sz[3]-1 do begin
 			wavcaltab=dblarr(sz[1],sz[2],nfiles)
 			for n=0,nfiles-1 do begin
@@ -60,38 +58,34 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		*(dataset.currframe[0])=wavcalcomb
 
         basename=findcommonbasename(dataset.filenames[0:nfiles-1])
-        ;FXADDPAR, *(DataSet.Headers[numfile]), 'DATAFILE', basename+'.fits'
 		backbone->set_keyword,'DATAFILE',basename+'.fits'
 		backbone->set_keyword,'HISTORY', functionname+": combined "+strc(nfiles)+" wavcal files:",ext_num=0
-        ;sxaddhist, functionname+": combined "+strc(nfiles)+" wavcal files:", *(dataset.headers[numfile])
         for i=0,nfiles-1 do $ 
-        	backbone->set_keyword,'HISTORY', functionname+":    "+strmid(dataset.filenames[i], 0,strlen(dataset.filenames[i])-5)+suffix+'.fits   '+ backbone->get_keyword("GCALLAMP"),ext_num=0;sxpar(*dataset.headers[i],'GCALLAMP')
+        	backbone->set_keyword,'HISTORY', functionname+":    "+dataset.filenames[i]+'   '+ backbone->get_keyword("GCALLAMP"),ext_num=0
 
         ;update with the most recent dateobs and timeobs
         dateobs3=dblarr(nfiles)
         for n=0,nfiles-1 do begin
-            ;dateobs2 =  strc(sxpar(*(DataSet.Headers[n]), "DATE-OBS"))+" "+strc(sxpar(*(DataSet.Headers[n]),"TIME-OBS"))
             dateobs2 =  strc(backbone->get_keyword("DATE-OBS"))+" "+strc(backbone->get_keyword("TIME-OBS"))
             dateobs3[n] = date_conv(dateobs2, "J")
         endfor
         recent=max(dateobs3,indrecent)
-           ;;we add 1second to the last time-obs so the combinaison will the most recent
-           dateobscomb=date_conv(dateobs3[indrecent]+1./24./60./60.,'F')
-           datetimecomb=strsplit(dateobscomb,'T', /extract)
-           ;FXADDPAR, *(DataSet.Headers[numfile]), 'DATE-OBS', datetimecomb[0]
-           ;FXADDPAR, *(DataSet.Headers[numfile]), 'TIME-OBS', datetimecomb[1]
-		   backbone->set_keyword, 'DATE-OBS', datetimecomb[0]
-		   backbone->set_keyword, 'TIME-OBS', datetimecomb[1]
+	    ;;we add 1second to the last time-obs so the combination will the most recent
+		; MP - this is not a good algorithm. 
+	    dateobscomb=date_conv(dateobs3[indrecent]+1./24./60./60.,'F')
+	    datetimecomb=strsplit(dateobscomb,'T', /extract)
 
-  backbone->set_keyword, "FILETYPE", "Wavelength Solution Cal File"
-  backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+	    backbone->set_keyword, 'DATE-OBS', datetimecomb[0]
+	    backbone->set_keyword, 'TIME-OBS', datetimecomb[1]
+
+	    backbone->set_keyword, "FILETYPE", "Wavelength Solution Cal File"
+		backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
   
-		;suffix+='-comb'
 	endif else begin
 		  backbone->set_keyword, 'HISTORY',  functionname+": Only one wavelength calibration supplied; nothing to combine!" ,ext_num=0;*(dataset.headers[numfile])
 		  backbone->Log, "Only one wavelength calibration supplied; nothing to combine!"
 	endelse
-	     ;if numext eq 0 then *(dataset.headers)[numfile]=hdr else *(dataset.headersPHU)[numfile] =hdr
+
 @__end_primitive
 
 end

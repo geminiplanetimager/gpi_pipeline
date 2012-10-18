@@ -29,6 +29,7 @@
 ;   				accumulator.
 ;   2010-01-25 MDP: Added support for multiple methods, MEAN method.
 ;   2011-07-30 MP: Updated for multi-extension FITS
+;   2012-10-10 MP: Minor code cleanup
 ;-
 function combine_3dcubes, DataSet, Modules, Backbone
 primitive_version= '$Id: combine_3dcubes.pro 278 2011-02-09 19:20:31Z maire $' ; get version from subversion to store in header history
@@ -39,8 +40,8 @@ primitive_version= '$Id: combine_3dcubes.pro 278 2011-02-09 19:20:31Z maire $' ;
 	nfiles=dataset.validframecount
 
 	; Load the first file so we can figure out their size, etc. 
-        im0 = accumulate_getimage(dataset, 0, hdr0, hdrext=hdrext0)
-	;imtab=dblarr(naxis(0),naxis(1),numfile)
+    im0 = accumulate_getimage(dataset, 0, hdr0, hdrext=hdrext0)
+
 	sz = [0, sxpar(hdrext0,'NAXIS1'), sxpar(hdrext0,'NAXIS2'), sxpar(hdrext0,'NAXIS3')]
 	; create an array of the same type as the input file:
 	imtab = make_array(sz[1], sz[2], sz[3], nfiles, type=size(im0,/type))
@@ -50,12 +51,12 @@ primitive_version= '$Id: combine_3dcubes.pro 278 2011-02-09 19:20:31Z maire $' ;
 	; read in all the images at once
 	for i=0,nfiles-1 do imtab[*,*,*,i] =  accumulate_getimage(dataset,i,hdr)
 
-
 	; now combine them.
 	if nfiles gt 1 then begin
-		;fxaddpar, *(dataset.headersPHU[numfile]), 'HISTORY', functionname+":   Combining n="+strc(nfiles)+' files using method='+method
-		backbone->set_keyword,'HISTORY', functionname+":   Combining n="+strc(nfiles)+' files using method='+method,ext_num=0
+		backbone->set_keyword, 'HISTORY', functionname+":   Combining n="+strc(nfiles)+' files using method='+method,ext_num=0
+		
 		backbone->Log, "	Combining n="+strc(nfiles)+' files using method='+method
+		backbone->set_keyword, 'DRPNFILE', nfiles, "# of files combined to produce this output file"
 		case STRUPCASE(method) of
 		'MEDIAN': begin 
 			combined_im=median(imtab,/DOUBLE,DIMENSION=4) 
@@ -64,7 +65,7 @@ primitive_version= '$Id: combine_3dcubes.pro 278 2011-02-09 19:20:31Z maire $' ;
 			combined_im=total(imtab,/DOUBLE,4) /((size(imtab))[4])
 		end
 		'MEANCLIP': begin
-			message, 'Method MEANCLIP not implemented yet - bug Marshall to program it!'
+			message, 'Method MEANCLIP not implemented yet - bug someone to program it!'
 		end
 		'MINIMUM': begin
 			combined_im=min(imtab,DIMENSION=4) 
@@ -76,19 +77,17 @@ primitive_version= '$Id: combine_3dcubes.pro 278 2011-02-09 19:20:31Z maire $' ;
 		endcase
 		suffix = strlowcase(method)
 	endif else begin
-		fxaddpar, *(dataset.headersPHU[numfile]), 'HISTORY', functionname+":   Only 1 file supplied, so nothing to combine."
+
+		 backbone->set_keyword,'HISTORY', functionname+":   Only 1 file supplied, so nothing to combine.",ext_num=0
 		message,/info, "Only one frame supplied - can't really combine it with anything..."
 
 		combined_im = imtab[*,*,0]
 	endelse
 
 
-	 ;pos=strpos(filename,'-',/REVERSE_SEARCH)
 
 	; store the output into the backbone datastruct
 	*(dataset.currframe)=combined_im
-	;*(dataset.headers[numfile]) = hdr0 ; NO!! DO NOT JUST REPLACE THIS HEADER - that screws up the 'DATAFILE' keyword used in
-										; save_currdata for the filename.
 	dataset.validframecount=1
 
 @__end_primitive

@@ -47,7 +47,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     
 		*(dataset.frames[numfile]) = *dataset.currframe
 
-		backbone->Log, "	Accumulated file "+strc(numfile)+" in memory.",/DRF
+		backbone->Log, "	Accumulated file "+strc(numfile)+" in memory."
 
 	end
 	'OnDisk': begin
@@ -62,7 +62,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 		*(dataset.frames[numfile]) = dataset.outputFileNames[numfile]	
 
-		backbone->Log, "Saved file "+strc(numfile)+" to disk.",/DRF
+		backbone->Log, "Saved file "+strc(numfile)+" to disk."
 	end
 	endcase
 

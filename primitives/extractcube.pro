@@ -29,13 +29,8 @@
 ;   2012-02-09 DS: offloaded sdpx calculation
 ;+
 function extractcube, DataSet, Modules, Backbone
-  common PIP
-  COMMON APP_CONSTANTS
-  primitive_version= '$Id$' ; get version from subversion to store in header history
-
-  ; getmyname, functionname
-  @__start_primitive
-
+primitive_version= '$Id$' ; get version from subversion to store in header history
+@__start_primitive
 
   ;get the 2D detector image
   det=*(dataset.currframe[0])
@@ -45,7 +40,7 @@ function extractcube, DataSet, Modules, Backbone
 
   ;error handle if readwavcal or not used before
   if (nlens eq 0) || (dim eq 0)  then $
-     return, error('FAILURE ('+functionName+'): Failed to load data.') 
+     return, error('FAILURE ('+functionName+'): Failed to load wavelength calibration data prior to calling this primitive.') 
             
   ;define the common wavelength vector with the IFSFILT keyword:
   filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))

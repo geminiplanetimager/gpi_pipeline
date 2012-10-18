@@ -29,6 +29,7 @@
 ;   				accumulator.
 ;   2010-01-25 MDP: Added support for multiple methods, MEAN method.
 ;   2011-07-30 MP: Updated for multi-extension FITS
+;   2012-10-10 MP: Minor code cleanup
 ;
 ;-
 function combine2Dframes, DataSet, Modules, Backbone
@@ -36,14 +37,13 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 @__start_primitive
 
 	if tag_exist( Modules[thisModuleIndex], "method") then method=Modules[thisModuleIndex].method else method='median'
-	;header=*(dataset.headers[numfile])
 
 	nfiles=dataset.validframecount
 
 	; Load the first file so we can figure out their size, etc. 
+
 	im0 = accumulate_getimage(dataset, 0, hdr,hdrext=hdrext)
-	;imtab=dblarr(naxis(0),naxis(1),numfile)
-	 ;if numext eq 0 then hdr0= hdr else hdr0= hdrext
+
 	sz = [0, backbone->get_keyword('NAXIS1'), backbone->get_keyword('NAXIS2')]
 	; create an array of the same type as the input file:
 	imtab = make_array(sz[1], sz[2], nfiles, type=size(im0,/type))
@@ -55,10 +55,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	; now combine them.
 	if nfiles gt 1 then begin
-		;fxaddpar, *(dataset.headersPHU[numfile]), 'HISTORY', functionname+":   Combining n="+strc(nfiles)+' files using method='+method
-		backbone->set_keyword,'HISTORY', functionname+":   Combining n="+strc(nfiles)+' files using method='+method,ext_num=0
+		backbone->set_keyword, 'HISTORY', functionname+":   Combining n="+strc(nfiles)+' files using method='+method,ext_num=0
 		
 		backbone->Log, "	Combining n="+strc(nfiles)+' files using method='+method
+		backbone->set_keyword, 'DRPNFILE', nfiles, "# of files combined to produce this output file"
 		case STRUPCASE(method) of
 		'MEDIAN': begin 
 			combined_im=median(imtab,/DOUBLE,DIMENSION=3) 
@@ -67,7 +67,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 			combined_im=total(imtab,/DOUBLE,3) /((size(imtab))[3])
 		end
 		'MEANCLIP': begin
-			message, 'Method MEANCLIP not implemented yet - bug Marshall to program it!'
+			message, 'Method MEANCLIP not implemented yet - bug someone to program it!'
 		end
 		else: begin
 			message,"Invalid combination method '"+method+"' in call to Combine 2D Frames."
@@ -77,23 +77,16 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		suffix = strlowcase(method)
 	endif else begin
 
-		;fxaddpar, *(dataset.headersPHU[numfile]), 'HISTORY', functionname+":   Only 1 file supplied, so nothing to combine."
 		 backbone->set_keyword,'HISTORY', functionname+":   Only 1 file supplied, so nothing to combine.",ext_num=0
-		
 		message,/info, "Only one frame supplied - can't really combine it with anything..."
 
 		combined_im = imtab[*,*,0]
 	endelse
 
 
-	 ;TODO header update
-	 pos=strpos(filename,'-',/REVERSE_SEARCH)
-	; writefits,strmid(filename,0,pos+1)+suffix+'.fits',im,h
 
 	; store the output into the backbone datastruct
 	*(dataset.currframe)=combined_im
-	;*(dataset.headers[numfile]) = hdr0 ; NO!! DO NOT JUST REPLACE THIS HEADER - that screws up the 'DATAFILE' keyword used in
-										; save_currdata for the filename.
 	dataset.validframecount=1
 
 @__end_primitive

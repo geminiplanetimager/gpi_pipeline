@@ -47,15 +47,22 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	sz = [0, backbone->get_keyword('NAXIS1',ext_num=1), backbone->get_keyword('NAXIS2',ext_num=1)]
 	imtab = dblarr(sz[1], sz[2], nfiles)
 
+	itimes = fltarr(nfiles)
 
 	; read in all the images at once
-	for i=0,nfiles-1 do imtab[*,*,i] =  accumulate_getimage(dataset,i,hdr)
+	for i=0,nfiles-1 do begin
+		imtab[*,*,i] =  accumulate_getimage(dataset,i,hdr, hdrext=hdrext)
+		itimes[i] = sxpar(hdrext, 'ITIME')
+	endfor
+
+	; verify all input files have the same exp time
+	
 
 	; now combine them.
 	if nfiles gt 1 then begin
 		backbone->set_keyword, 'HISTORY', functionname+":   Combining n="+strc(nfiles)+' files using method='+method,ext_num=0
-		;sxaddhist, functionname+":   Combining n="+strc(nfiles)+' files using method='+method, *(dataset.headers[numfile])
 		backbone->Log, "	Combining n="+strc(nfiles)+' files using method='+method
+		backbone->set_keyword, 'DRPNFILE', nfiles, "# of files combined to produce this output file"
 		case STRUPCASE(method) of
 		'MEDIAN': begin 
 			combined_im=median(imtab,/DOUBLE,DIMENSION=3) 
@@ -64,33 +71,29 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 			combined_im=total(imtab,/DOUBLE,3) /((size(imtab))[3])
 		end
 		'MEANCLIP': begin
-			message, 'Method MEANCLIP not implemented yet - bug Marshall to program it!'
+			message, 'Method MEANCLIP not implemented yet - bug someone to program it!'
 		end
 		else: begin
-			message,"Invalid combination method '"+method+"' in call to Combine 2D Frames."
+			message,"Invalid combination method '"+method+"' in call to Combine 2D Dark Frames."
 			return, NOT_OK
 		endelse
 		endcase
 	endif else begin
 
 		backbone->set_keyword, 'HISTORY', functionname+":   Only 1 file supplied, so nothing to combine.",ext_num=0
-		;sxaddhist, functionname+":   Only 1 file supplied, so nothing to combine.", *(dataset.headers[numfile])
 		message,/info, "Only one frame supplied - can't really combine it with anything..."
 
 		combined_im = imtab[*,*,0]
 	endelse
 
 
-	 ;TODO header update
-	 pos=strpos(filename,'-',/REVERSE_SEARCH)
 
 	; store the output into the backbone datastruct
 	*(dataset.currframe)=combined_im
-	;*(dataset.headers[numfile]) = hdr0 ; NO!! DO NOT JUST REPLACE THIS HEADER - that screws up the 'DATAFILE' keyword used in
-										; save_currdata for the filename.
 	dataset.validframecount=1
   	backbone->set_keyword, "FILETYPE", "Dark File", /savecomment
   	backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+	suffix = '-dark'
 
 @__end_primitive
 end

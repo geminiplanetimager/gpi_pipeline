@@ -13,7 +13,6 @@
 ; PIPELINE COMMENT: Divides a spectral data-cube by a flat field data-cube.
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="specflat" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-rawspdc" Desc="Enter output suffix"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.2
 ; PIPELINE TYPE: ALL/SPEC
@@ -27,6 +26,7 @@
 ;   2010-10-19 JM: split HISTORY keyword if necessary
 ;   2011-07 JM: added check for NAN & zero
 ;   2012-10-11 MP: Added min/max wavelength checks
+;   2012-10-17 MP: Removed deprecated suffix= keyword
 ;-
 
 function spectral_flat_div, DataSet, Modules, Backbone
@@ -55,6 +55,7 @@ calfiletype = 'flat'
     ; update FITS header history
     backbone->set_keyword, "HISTORY", functionname+": dividing by flat",ext_num=0
     backbone->set_keyword, "HISTORY", functionname+": "+c_File,ext_num=0
+    backbone->set_keyword, "DRPFLAT", c_File,ext_num=0
 
     ;not absolutely necessary but avoid divide by Nan or zero
     bordnan=where(~finite(specflat),cc)

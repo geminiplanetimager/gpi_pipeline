@@ -22,7 +22,6 @@
 ; PIPELINE ARGUMENT: Name="method" Type="string"  Default="total" Range="[median|mean|total]"  Desc="method of photometry extraction:median,mean,total"
 ; PIPELINE ARGUMENT: Name="ps_figure" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose # of saved fig suffix name, 0: no ps figure "
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output (fits) on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-spec" Desc="Enter output suffix (fits)"
 ; PIPELINE ORDER: 2.51
 ; PIPELINE TYPE: ALL-SPEC
 ; PIPELINE NEWTYPE: SpectralScience
@@ -31,6 +30,8 @@
 ; HISTORY:
 ; 	
 ;   JM 2010-03 : created module.
+;   2012-10-17 MP: Removed deprecated suffix keyword. FIXME this needs major
+;   cleanup!
 ;- 
 
 function extract_one_spectrum, DataSet, Modules, Backbone
@@ -38,11 +39,8 @@ common PIP
 COMMON APP_CONSTANTS
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
-	;getmyname, functionname
 	  @__start_primitive
     mydevice = !D.NAME
-   	; save starting time
-   	T = systime(1)
 
   	main_image_stack=*(dataset.currframe[0])
         ;if numext eq 0 then hdr=*(dataset.headers[numfile]) else hdr=*(dataset.headersPHU[numfile])
@@ -173,7 +171,6 @@ if (ps_figure gt 0)  then begin
 endif 
 suffix+='-spec'
 
-;hdr=*(dataset.headers[numfile])
 
 	thisModuleIndex = Backbone->GetCurrentModuleIndex()
     if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
