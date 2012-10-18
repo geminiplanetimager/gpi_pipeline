@@ -154,6 +154,8 @@ end
 ;
 ;--------------------------------------
 function drf::check_output_path_exists, path
+	if strc(path) eq "" then return, 0 ; blank paths are invalid
+
 	if file_test(path,/dir,/write) then begin
 		return, 1 
 	endif else  begin

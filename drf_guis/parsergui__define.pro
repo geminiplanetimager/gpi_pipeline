@@ -279,10 +279,11 @@ pro parsergui::addfile, filenames, mode=mode
     (*self.currDRFSelec)=strarr(10)
 
 
-	if self.debug then message,/info, 'Now analyzing data based on keywords'
     widget_control,storage.fname,set_value=pfile ; update displayed filename information - temporary, just show filename
 
     if cindex gt 0 then begin ;assure that data are selected
+		self->Log,'Now reading in keywords for all files...'
+
 
         self.nbdrfSelec=0
         ;; RESOLVE FILTER(S) AND OBSTYPE(S)
@@ -301,6 +302,8 @@ pro parsergui::addfile, filenames, mode=mode
         endfor
         widget_control,storage.fname,set_value=pfile ; update displayed filename information - filenames plus parsed keywords
 
+
+		self->Log,'Now analyzing data based on keywords...'
 
         (*storage.splitptr).printfname=pfile
 
@@ -322,6 +325,7 @@ pro parsergui::addfile, filenames, mode=mode
             uniqfilter  = uniqvals(finfo.filter, /sort)
             ;uniqfilter = ['H', 'Y', 'J', "K1", "K2"] ; H first since it's primary science wvl?
             uniqobstype = uniqvals(strlowcase(finfo.obstype), /sort)
+
                 ; TODO - sort right order for obstype 
            ; uniqobstype = uniqvals(finfo.obstype, /sort)
 
@@ -620,10 +624,10 @@ function parsergui::lookup_template_filename, requestedname
 	wm = where(  strmatch( (*self.templates).name, requestedname,/fold_case), ct)
 
 	if ct eq 0 then begin
-        ret=dialog_message("ERROR: Could not find any matching template file for name='"+requestedname+"'. Cannot load template.",/error,/center,dialog_parent=ev.top)
+        ret=dialog_message("ERROR: Could not find any matching template file for name='"+requestedname+"'. Cannot load template.",/error,/center,dialog_parent=self.top_base)
 		return, ""
 	endif else if ct gt 1 then begin
-        ret=dialog_message("WARNING: Found multiple matching template files for name='"+requestedname+"'. Going to load the first one, from file="+((*self.templates)[wm[0]]).filename,/information,/center,dialog_parent=ev.top)
+        ret=dialog_message("WARNING: Found multiple matching template files for name='"+requestedname+"'. Going to load the first one, from file="+((*self.templates)[wm[0]]).filename,/information,/center,dialog_parent=self.top_base)
 	endif
 	wm = wm[0]
 

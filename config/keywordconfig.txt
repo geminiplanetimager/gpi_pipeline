@@ -86,6 +86,8 @@ DSUB	Extension
 DTGAINDB	Extension
 DTGAINNM	Extension
 GROUPS	Extension
+NGROUP	Extension
+NGROUPS	Extension
 GROUPS0	Extension
 HRPSTYPE	Extension
 HXRGCFG1	Extension

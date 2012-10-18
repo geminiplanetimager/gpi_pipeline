@@ -89,28 +89,28 @@ pro gpistatusconsole::event,ev
         if size(uval,/TYPE) eq 7 then begin
         if uval eq 'rescanDB' then self.rescan =1
         if uval eq 'rescanConfig' then self.rescanconfig =1
-        if uval eq 'changedir' then begin
-          issetenvok=0
-          if issetenvok eq 0 then begin
-                  obj=obj_new('setenvir')
-                  if obj.quit eq 1 then issetenvok=-1
-                  obj_destroy, obj
-            while (issetenvok ne -1) && (gpi_is_setenv() eq 0)  do begin
-                  obj=obj_new('setenvir')
-                  if obj.quit eq 1 then issetenvok=-1
-                  obj_destroy, obj
-            endwhile
-          endif 
-        endif
+;        if uval eq 'changedir' then begin
+;          issetenvok=0
+;          if issetenvok eq 0 then begin
+;                  obj=obj_new('setenvir')
+;                  if obj.quit eq 1 then issetenvok=-1
+;                  obj_destroy, obj
+;            while (issetenvok ne -1) && (gpi_is_setenv() eq 0)  do begin
+;                  obj=obj_new('setenvir')
+;                  if obj.quit eq 1 then issetenvok=-1
+;                  obj_destroy, obj
+;            endwhile
+;          endif 
+;        endif
 		if uval eq 'flushqueue' then begin
-		 	conf = dialog_message("Are you sure you want to clear all recipes currently in the queue? This will delete those files and cannot be undone.",/question,title="Confirm Clear Queue",/default_no,/center, dialog_parent=ev.top)
+		 	conf = dialog_message("Are you sure you want to clear all recipes currently in the queue? This will delete those files and cannot be undone.",/question,title="Confirm Clear Queue",/default_no,/center, dialog_parent=ev.top, group=ev.top)
 		 	if conf eq "Yes" then begin
 				self.flushq =1
 			endif
 		endif
 	 	if uval eq 'quit' then begin
-		 	conf = dialog_message("Are you sure you want to exit the GPI Data Reduction Pipeline?",/question,title="Confirm Close",/default_no,/center, dialog_parent=ev.top)
-		 	if conf eq "Yes" then begin
+		 	if confirm(message="Are you sure you want to exit the GPI Data Reduction Pipeline?",$
+                label0='Cancel',label1='Exit', group=ev.top, title='Confirm Exit') then begin
 				 ;message,/info, 'Setting pipeline QUIT flag'
 				 self.quit =1 ;widget_control, ev.top,/DESTROY
 				 ; TODO actually close the entire GPI pipeline now...
@@ -336,7 +336,7 @@ function gpistatusconsole::init
 	rowbase = widget_base(wChildBase, row=1)
     q=widget_button(rowbase,VALUE='Rescan Calib. DB',UVALUE='rescanDB')
     q=widget_button(rowbase,VALUE='Rescan DRP Config',UVALUE='rescanConfig')
-	q=widget_button(rowbase,VALUE='Change directories',UVALUE='changedir')
+	;q=widget_button(rowbase,VALUE='Change directories',UVALUE='changedir')
 	q=widget_button(rowbase,VALUE='Abort current Recipe',UVALUE='abortDRF', resource_name='red_button')
     q=widget_button(rowbase,VALUE='Clear recipe Queue',UVALUE='flushqueue', resource_name='red_button')
 	q=widget_button(rowbase,VALUE='Quit GPI DRP',UVALUE='quit', resource_name='red_button')

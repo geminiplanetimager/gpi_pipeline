@@ -362,9 +362,7 @@ PRO gpiPipelineBackbone::gpitv, filename_or_data, session=session, header=header
             self.launcher->queue, 'gpitv', filename=filename_or_data, session=session, _extra=_extra
         endelse
 
-    endif else begin
-        gpitvms, filename_or_data, ses=session, _extra=_extra
-    endelse
+    endif 
 
 end
 
@@ -616,7 +614,7 @@ FUNCTION gpiPipelineBackbone::Reduce
         ENDFOR
 
         ;-- Log the result.
-        if status eq GOTO_NEXT_FILE then self->Log, 'Continuing on to next file...',  /DRF,depth=2
+        if status eq GOTO_NEXT_FILE then self->Log, 'Continuing on to next file...', depth=2
         IF status EQ OK or status eq GOTO_NEXT_FILE THEN self->Log, 'Reduction successful: ' + filename, depth=2 $
         ELSE begin
             self->Log, 'Reduction failed: ' + filename, /flush
@@ -727,6 +725,8 @@ end
 
 ;-----------------------------------------------------------
 ; gpiPipelineBackbone::RunModule
+;
+;   Run one single module / primitive for the current dataset. 
 ;
 
 FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
@@ -1012,6 +1012,14 @@ end
 pro gpiPipelineBackbone::rescan_Config
 	self->Log, 'User requested rescan of data pipeline configuration files'
 
+
+	; rescan stuff on the other side of the link, too
+	; Do this first so they proceed in parallel.
+    if obj_valid(self.launcher) then self.launcher->queue, 'recompile'
+
+
+
+
 	; rescan config files
 	dummy = gpi_get_setting('max_files_per_drf',/rescan) ; can get any arbitrary setting here, just need to force the rescan
 
@@ -1023,6 +1031,7 @@ pro gpiPipelineBackbone::rescan_Config
 	if not lmgr(/runtime) then begin
 		self->log, "Rescanning for new primitives, and regenerating primitives config file."
 		make_primitives_config 
+		self->log, "Generated new primitives config file OK."
 	endif
 	; rescan primitives configuration file
 	Self.ConfigParser -> ParseFile, config_file
@@ -1038,6 +1047,7 @@ pro gpiPipelineBackbone::rescan_Config
 		endelse
 	endfor
 	self->Log, 'Refreshed all '+strc(n_elements(config.idlfuncs))+' available pipeline primitive procedures.'
+
 
 	; rescan calibrations DB
   	;self.GPICalDB->rescan_directory    

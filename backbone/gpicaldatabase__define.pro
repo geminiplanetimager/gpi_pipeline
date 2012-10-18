@@ -197,8 +197,10 @@ Function gpicaldatabase::add_new_cal, filename, delaywrite=delaywrite ;, header=
 	; 2012-01-27: Updated for MEF files -MP
 	; 2012-06-12: Added /delaywrite for improved performance in rescan. -MP
 	;
-	COMMON APP_CONSTANTS
+	;COMMON APP_CONSTANTS
 		
+	OK = 0
+	NOT_OK = -1
 
 	; Check the file exists
 	if ~file_test(filename) then begin
@@ -355,7 +357,9 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 
 
 
-	common APP_CONSTANTS
+	;common APP_CONSTANTS
+	OK = 0
+	NOT_OK=-1
 
 	if self.nfiles eq 0 then message, "ERROR: --NO CAL FILES IN DB--"
 

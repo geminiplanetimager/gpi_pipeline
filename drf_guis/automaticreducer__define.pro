@@ -360,21 +360,6 @@ end
 function automaticreducer::init, groupleader, _extra=_extra
 	; Initialization code for automatic processing GUI
 
-	; Check validity of GPI environment
-	issetenvok=gpi_is_setenv(/first)
-	if issetenvok eq 0 then begin
-			obj=obj_new('setenvir')
-			if obj.quit eq 1 then issetenvok=-1
-			obj_destroy, obj
-		  while (issetenvok ne -1) && (gpi_is_setenv() eq 0)  do begin
-				obj=obj_new('setenvir')
-				if obj.quit eq 1 then issetenvok=-1
-				obj_destroy, obj
-		  endwhile
-	endif
-	if issetenvok eq -1 then return,0
-
-
 	self.dirinit=self->get_input_dir()
 	self.maxnewfile=60
 	self.alwaysexecute=1

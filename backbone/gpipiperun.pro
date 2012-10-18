@@ -35,19 +35,30 @@ PRO gpiPipeRun, noinit=noinit, $
 	noexit=noexit, rescanDB=rescanDB, flushqueue=flushqueue, verbose=verbose,$
 	ignoreconflict=ignoreconflict, single=single, nogui=nogui
 
+;
+;issetenvok=gpi_is_setenv(/first)
+;if issetenvok eq 0 then begin
+;        obj=obj_new('setenvir')
+;        if obj->act() eq 1 then issetenvok=-1
+;        obj_destroy, obj
+;  while (issetenvok ne -1) && (gpi_is_setenv() eq 0)  do begin
+;        obj=obj_new('setenvir')
+;        if obj->act() eq 1 then issetenvok=-1
+;        obj_destroy, obj
+;  endwhile
+;endif else if issetenvok eq -1 then return
+;  if issetenvok eq -1 then return
+;
 
-issetenvok=gpi_is_setenv(/first)
-if issetenvok eq 0 then begin
-        obj=obj_new('setenvir')
-        if obj->act() eq 1 then issetenvok=-1
+  paths_ok = gpi_validate_paths()
+  if ~ paths_ok then begin
+	  obj = obj_new('gpi_showpaths') ; will pause here until dialog closed...
         obj_destroy, obj
-  while (issetenvok ne -1) && (gpi_is_setenv() eq 0)  do begin
-        obj=obj_new('setenvir')
-        if obj->act() eq 1 then issetenvok=-1
-        obj_destroy, obj
-  endwhile
-endif else if issetenvok eq -1 then return
-  if issetenvok eq -1 then return
+		return
+
+  endif
+
+
 
   Queue_Dir = gpi_get_directory('GPI_DRP_QUEUE_DIR')
 

@@ -1,7 +1,0 @@
-Bugs and Issues in the Pipeline
-In no particular order. 
--------------------------
-
-
-* Output dir option in GPI Parser does not seem to do anything. (works if you set it in the DRF gui, but setting it in the Parser does nothing, because the DRFs were already created).
-

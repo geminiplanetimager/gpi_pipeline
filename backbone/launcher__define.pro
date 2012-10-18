@@ -119,7 +119,7 @@ PRO launcher::event, ev
 ;                oBridge->Execute, comm, /NOWAIT
 ;            end
   'Setup':begin
-              objenv=obj_new('setenvir')
+              objenv=obj_new('gpi_showpaths')
               obj_destroy, objenv
           end
   'About':begin
@@ -326,6 +326,15 @@ pro launcher::launch, objname, filename=filename, session=session, _extra=_extra
 
 	if objname eq 'quit'  then obj_destroy, self
 
+
+	if objname eq 'recompile' then begin
+		self->recompile
+		return
+	endif
+
+
+	
+
 	if ~obj_valid(self) then return ; avoid weird error case ??
 	if n_elements(session) eq 0 then begin
 		valid = obj_valid(self.sessions)
@@ -365,6 +374,31 @@ end
 
 
 ;------------------
+; Recompile all relevant routines. Triggered when the user selects 'Rescan DRP
+; Config' in the DRP Status Console. 
+PRO launcher::recompile
+
+	idlfuncs = ['drfgui__define', 'parsergui__define', 'gpitv__define', 'queueview__define', 'automaticreducer__define']
+	names = ['Recipe Editor', 'Data Parser', 'GPItv', 'Queue Viewer', 'Automatic Reducer']
+
+
+	for i=0,n_elements(idlfuncs)-1 do begin
+		print, "Recompiling for "+names[i]
+		catch, compile_error
+		if compile_error eq 0 then begin
+			resolve_routine, idlfuncs[i], /compile_full
+		endif else begin
+			message,/info, "Compilation error encountered for "+names[i]+" in file "+idlfuncs[i]
+		endelse
+		catch,/cancel
+	endfor
+	message,/info, 'Refreshed all '+strc(n_elements(idlfuncs))+' program elements.'
+
+
+end
+
+
+;------------------
 PRO launcher::cleanup
 	if self.baseid ne 0 then widget_control, self.baseid,/destroy
 
@@ -392,18 +426,24 @@ end
 FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, clear_shm=clear_shm, _extra=_extra
 
 ; Ensure environment variables are set properly & to valid values. If not, ask the user to fix them.
-issetenvok=gpi_is_setenv(/first)
-if issetenvok eq 0 then begin
-        obj=obj_new('setenvir')
-        if obj.quit eq 1 then issetenvok=-1
-        obj_destroy, obj
-  while (issetenvok ne -1) && (gpi_is_setenv() eq 0)  do begin
-        obj=obj_new('setenvir')
-        if obj.quit eq 1 then issetenvok=-1
-        obj_destroy, obj
-  endwhile
-endif else if issetenvok eq -1 then return,0
-if issetenvok eq -1 then return,0
+issetenvok=gpi_validate_paths(/first)
+if not issetenvok then begin
+	obj=obj_new('gpi_showpaths')
+	obj_destroy, obj
+	return, 0
+endif
+
+;if issetenvok eq 0 then begin
+;        obj=obj_new('setenvir')
+;        if obj.quit eq 1 then issetenvok=-1
+;        obj_destroy, obj
+;  while (issetenvok ne -1) && (gpi_is_setenv() eq 0)  do begin
+;        obj=obj_new('setenvir')
+;        if obj.quit eq 1 then issetenvok=-1
+;        obj_destroy, obj
+;  endwhile
+;endif else if issetenvok eq -1 then return,0
+;if issetenvok eq -1 then return,0
   
 	self.max_sess = n_elements(self.sessions)
 	self.queuelen=10
