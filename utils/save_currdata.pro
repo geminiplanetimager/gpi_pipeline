@@ -9,8 +9,6 @@
 ;          s_Ext       : output filename extension (suffix)
 ;          /DEBUG      : initializes debugging mode
 ;
-;          filenm=		 Filename for writing (to override default file name)
-;
 ;          SaveData=     Save this data INSTEAD of the current DataSet pointer
 ;          SaveHeader=	 Extension Header for writing along with the SaveData data.
 ;          SavePHU=		 Primary header for writing along with the SaveData data.
@@ -35,11 +33,12 @@
 ; 				handles the EXTENT/XTENSION keywords needed for multi-ext FITS.
 ;   2012-06-06 MP: Added fallback safety checks for DATAFILE= missing or NONE 
 ;   2012-08-07 MP: Added explicit casts to float data type for output files.
+;   2012-10-10 MP: Code cleanup. Removed filenm keyword, not used anywhere. 
 ;-
 
 
-function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=savedata, saveheader=saveheader, savePHU=savePHU, filenm=filenm, $
-		output_filename=c_File1, level2=level2, addexten_var=addexten_var, addexten_qa=addexten_qa
+function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=savedata, saveheader=saveheader, savePHU=savePHU,  $
+		output_filename=c_File, level2=level2, addexten_var=addexten_var, addexten_qa=addexten_qa
 
     COMMON APP_CONSTANTS
     COMMON PIP
@@ -47,22 +46,21 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	getmyname, functionname
 	version = gpi_pipeline_version()
 
-    if keyword_set(level2) then i=level2-1 else i=numfile
+    if keyword_set(level2) then i=level2-1 else i=numfile ;; WTF??
 
 	;-- Generate output filename, starting from the input one.
 	;   Also determine output directory
-	filnm=fxpar(*(DataSet.HeadersPHU[i]),'DATAFILE',count=cdf)
-    if cdf eq 0 then begin 
-        message,/info, 'No DATAFILE keyword supplied'
+	filenm=fxpar(*(DataSet.HeadersPHU[i]),'DATAFILE',count=cdf)
+    if (cdf eq 0) or (strc(filenm) eq 'NONE') or (strc(filenm) eq '')  then begin 
+		; if DATAFILE keyword not present or not valid, then 
         ; fallback to input filename
-        filnm = dataset.filenames[i]
-    endif else if (strc(filnm) eq 'NONE') or (strc(filnm) eq '')  then begin
-        ; for GDS produced output files that don't have valid DATAFILE keywds yet 
-        ; fall back on the input filename
-        filnm = dataset.filenames[i]
+        filenm = dataset.filenames[i]
     endif
 
 	;Check both primary and extension headers for an ISCALIB keyword. If set to 'YES', then output should go to the calibrations file directory.
+	; we have to do this check of both extensions manually here instead of using
+	; gpi_get_keyword because of the case where the calling routine has passed
+	; in its own headers to be written out instead of the ones in the backbone
 	is_calib_pri=0 & is_calib_ext=0
     if keyword_set(savePHU) then is_calib_pri = strc(strupcase(fxpar(savePHU, "ISCALIB"))) eq 'YES' else $
       is_calib_pri = strc(strupcase(fxpar(*(dataset.headersPHU[numfile]), "ISCALIB"))) eq 'YES'
@@ -72,49 +70,65 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
     if is_calib_pri or is_calib_ext then begin
       gpicaldb = Backbone_comm->Getgpicaldb()
       s_OutputDir = gpicaldb->get_calibdir()
+	  message,/info, ' Output file is calibration data; therefore writing to calibration dir.'
     endif
+
+
 	
-	s_OutputDir = gpi_expand_path(s_OutputDir) ; expand environment variables and ~s
-	; test output dir
+	; Verify output dir is valid
+	s_OutputDir = gpi_expand_path(s_OutputDir) 
+	if strc(s_OutputDir) eq "" then begin
+		return, error('FAILURE: supplied output directory is a blank string.')
+	endif
+
 	if ~file_test(s_OutputDir,/directory, /write) then begin
-		if gpi_get_setting('organize_reduced_data_by_dates') then begin
-			; check that at least the parent dir exists
-			if ~file_test(file_dirname(s_OutputDir),/directory, /write) then return, error("FAILURE: Directory "+s_OutputDir+" does not exist or is not writeable.",/alert) $
-			else file_mkdir, s_OutputDir
-		endif else begin
+
+		if gpi_get_setting('prompt_user_for_outputdir_creation',/bool, default=1) then $
+            res =  dialog_message('The requested output directory '+s_OutputDir+' does not exist. Should it be created now?', $
+            title="Nonexistent Output Directory", /question) else res='Yes'
+
+        if res eq 'Yes' then begin
+            file_mkdir, s_OutputDir
+        endif else begin
 			return, error("FAILURE: Directory "+s_OutputDir+" does not exist or is not writeable.",/alert)
 		endelse
 	endif
 
-	; If an extra path separator is present at the end, drop it:
-	slash=strpos(filnm,path_sep(),/reverse_search)
-	if slash ge 0 then begin
-		c_File = s_OutputDir+strmid(filnm, slash,strlen(filnm)-5-slash)+s_Ext+'.fits'
-	endif else begin
-		dot = strpos(filnm,".",/reverse_search)
-		c_file = s_OutputDir + path_sep() + strmid(filnm, 0, dot) + s_Ext+'.fits'
-	endelse
+	; ensure we have a directory separator, if it's not there already
+	if strmid(s_OutputDir, strlen(s_OutputDir)-1,1) ne path_sep() then s_OutputDir+= path_sep()
 
-    caldat,systime(/julian),month,day,year, hour,minute,second
-    datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
-    hourstr = string(hour,minute,second,format='(i2.2,i2.2,i2.2)')  
+
+	; If an extra path separator is present at the end, drop it:
+	;slash=strpos(filnm,path_sep(),/reverse_search)
+	;if slash ge 0 then begin
+		;c_File = s_OutputDir+strmid(filnm, slash,strlen(filnm)-5-slash)+s_Ext+'.fits'
+	;endif else begin
+		;dot = strpos(filnm,".",/reverse_search)
+		;c_file = s_OutputDir + path_sep() + strmid(filnm, 0, dot) + s_Ext+'.fits'
+	;endelse
+
+
+	; Generate output filename
+	; remove extension if need be
+	base_filename = file_basename(filenm)
+	extloc = strpos(base_filename,'.', /reverse_search)
+
+	; suffix must be separated by a dash
+	if strmid(s_Ext,0,1) ne '-' then s_Ext = '-'+s_Ext
+
+	c_File = s_OutputDir + strmid(filenm,0,extloc)+ s_Ext+'.fits'
 
 
 	if ( NOT bool_is_string(c_File) ) then $
 	   return, error('FAILURE ('+functionName+'): Output filename creation failed.')
-	   	
-	if ( strpos(c_File ,'.fits' ) ne -1 ) then $
-	   c_File1 = strmid(c_File,0,strlen(c_File)-5)+'.fits' $
-	else begin
-	   warning, 'WARNING('+functionName+'): Filename is not fits compatible. Adding .fits.'
-	   c_File1 = c_File+'_'+strg(i)+'.fits'
-	end
 
-	if ( keyword_set( filenm ) ) then  c_File1=filenm
-	
-	;if keyword_set(addexten_qa) || keyword_set(addexten_var) then 
+
 	FXADDPAR,  *(dataset.headersPHU[numfile]),'NEXTEND',1+keyword_set(addexten_var)+keyword_set(addexten_qa)
 
+
+    caldat,systime(/julian),month,day,year, hour,minute,second
+    datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
+    hourstr = string(hour,minute,second,format='(i2.2,i2.2,i2.2)')  
 
 	;--- write out either some user-supplied data (if explicitly provided), or the current data frame
 	if ( keyword_set( savedata ) ) then begin  ; The calling function has specified some special data to save, in place of the currFrame data
@@ -122,26 +136,26 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 		if ~( keyword_set( savePHU ) ) then savePHU = *(dataset.headersPHU[numfile])
 		fxaddpar, savePHU, 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
 		fxaddpar, savePHU, 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
-		mwrfits, 0, c_File1, savePHU, /create,/silent
-		writefits, c_File1, float(savedata), saveheader, /append
+		mwrfits, 0, c_File, savePHU, /create,/silent
+		writefits, c_File, float(savedata), saveheader, /append
 
 		curr_hdr = savePHU
 		curr_ext_hdr = saveheader
 	endif else begin
       	fxaddpar, *DataSet.HeadersPHU[i], 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
       	fxaddpar, *DataSet.HeadersPHU[i], 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
-		mwrfits, 0, c_File1, *DataSet.HeadersPHU[i], /create,/silent
-		mwrfits, float(*DataSet.currFrame), c_File1, *DataSet.HeadersExt[i],/silent
+		mwrfits, 0, c_File, *DataSet.HeadersPHU[i], /create,/silent
+		mwrfits, float(*DataSet.currFrame), c_File, *DataSet.HeadersExt[i],/silent
       	curr_hdr = *DataSet.HeadersPHU[i]
       	curr_ext_hdr = *DataSet.HeadersExt[i]
-      	DataSet.OutputFilenames[i] = c_File1  
+      	DataSet.OutputFilenames[i] = c_File  
 	endelse
 
-	if keyword_set(addexten_qa) then mwrfits, byte(addexten_qa), c_File1,/silent
-	if keyword_set(addexten_var) then mwrfits, float(addexten_var), c_File1,/silent
+	if keyword_set(addexten_qa) then mwrfits, byte(addexten_qa), c_File,/silent
+	if keyword_set(addexten_var) then mwrfits, float(addexten_var), c_File,/silent
   
-	if keyword_set(debug) then print, "  Data output ===>>> "+c_File1
-	Backbone_comm->Log, "File output to: "+c_File1, depth=1
+	if keyword_set(debug) then print, "  Data output ===>>> "+c_File
+	Backbone_comm->Log, "File output to: "+c_File, depth=1
 
 	;--- If a calibrations file, update the GPI Calibrations DB index ----
 	; Is this a calibration file? 
@@ -149,7 +163,7 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	if is_calib_pri or is_calib_ext then begin
 		if obj_valid(gpicaldb) then begin
 			message,/info, "Adding file to GPI Calibrations DB."
-			status = gpicaldb->Add_new_Cal( c_File1)
+			status = gpicaldb->Add_new_Cal( c_File)
 		endif else begin
 			message,/info, "*** ERROR: No Cal DB Object Loaded - cannot add file to DB ***"
 		endelse
@@ -161,7 +175,7 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	if obj_valid(statuswindow) then statuswindow->set_suffix, s_Ext
   
 	;--- Display image, if requested
-	if ( keyword_set( display ) ) && (display ne 0) then Backbone_comm->gpitv, c_File1, ses=display
+	if ( keyword_set( display ) ) && (display ne 0) then Backbone_comm->gpitv, c_File, ses=display
 
     return, OK
 

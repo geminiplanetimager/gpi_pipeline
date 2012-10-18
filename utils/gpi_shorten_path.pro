@@ -36,7 +36,7 @@ FUNCTION gpi_shorten_path, path
 		mypath = full_path
 		;print, "         |", full_path, "|    |", varpath, "|    ",  strmatch(full_path, "*"+varpath+"*")
 		;print, "     "+varpath
-		if strmatch(mypath, "*"+varpath+"*") gt 0 then strreplace, mypath, varpath, '$('+vars[i]+')'
+		if strmatch(mypath, "*"+varpath+"*") gt 0 then strreplace, mypath, varpath, '${'+vars[i]+'}'
 
 		if strlen(mypath)  lt strlen(shortest_path) then shortest_path = mypath
 		;print, "    ",  i, "    ",  vars[i], "    ",  varpath, "    ",  full_path

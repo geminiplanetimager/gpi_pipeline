@@ -120,9 +120,9 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 	val_extname = sxpar(ext_header,"EXTNAME",count=cextname,/silent)
 	if (cextname eq 0) || (strlen(strcompress(val_extname,/rem)) eq 0) then sxaddpar,ext_header,"EXTNAME","SCI","Image extension contains science data"
 	if (cextname eq 1) AND ~(stregex(val_extname,'SCI',/bool)) AND ~(strlen(strcompress(val_extname,/rem)) eq 0) then begin
-		self->Log, "ERROR:  found"+val_extname+"in the first extension"+filename, /GENERAL, /DRF
-		self->Log, "ERROR:  first extension need SCI Extname"+filename, /GENERAL, /DRF
-		self->Log, 'Reduction failed: ' + filename, /GENERAL, /DRF
+		self->Log, "ERROR:  found"+val_extname+"in the first extension"+filename
+		self->Log, "ERROR:  first extension need SCI Extname"+filename
+		self->Log, 'Reduction failed: ' + filename
 		return,NOT_OK 
 	endif
   
@@ -171,7 +171,13 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
     if strmatch(val_disp, '*Spectr*') then newval_disp='DISP_PRISM_G6262' 
     if strmatch(val_disp, '*Pol*') then newval_disp='DISP_WOLLASTON_G6261'
     if strmatch(val_disp, '*Und*') then newval_disp='DISP_OPEN_G6263'
-    if strmatch(val_disp, '0') then newval_disp='DISP_OPEN_G6263'
+    if strmatch(strc(val_disp), '0') then newval_disp='DISP_OPEN_G6263'
+    if strmatch(strc(val_disp), '1') then newval_disp='DISP_WOLLASTON_G6261'
+    if strmatch(strc(val_disp), '2') then newval_disp='DISP_PRISM_G6262' 
+    if strmatch(strc(val_disp), '3') then newval_disp='DISP_OPEN_G6263'
+
+
+
     ;if strlen(newval_disp) eq 0 then message, "Unknown/invalid value for DISPERSR keyword: "+strc(val_disp)
 	if newval_disp ne val_disp then gpi_set_keyword, 'DISPERSR', newval_disp,  pri_header, ext_header, silent=silent
 
@@ -204,15 +210,15 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 
 	; Default OBSTYPE should be Dark if the blank is in
 	lyotmask = gpi_get_keyword(pri_header, ext_header, 'LYOTMASK', count=ct_lyot,/silent)
-	if strmatch(lyotmask, "blank",/fold_case) then default_obstype='Dark' else default_obstype='Object'
+	if strmatch(lyotmask, "*blank*",/fold_case) then default_obstype='DARK' else default_obstype='OBJECT'
 	gpi_set_keyword_if_missing, pri_header, ext_header, 'OBSTYPE', default_obstype, comment='KEYWORD WAS MISSING - unknown'
 	gpi_set_keyword_if_missing, pri_header, ext_header, 'OBSID', 'GS-1', comment='KEYWORD WAS MISSING - unknown'
 	gpi_set_keyword_if_missing, pri_header, ext_header, 'OCCULTER', 'FPM_BLANK_G6221', comment='KEYWORD WAS MISSING - unknown'
 	gpi_set_keyword_if_missing, pri_header, ext_header, 'OBJECT', 'Unknown', comment='KEYWORD WAS MISSING - unknown'
 
-	;if OBSTYPE is blank, it ought to be SCIENCE instead
+	;if OBSTYPE is blank, it ought to be SCIENCE instead (unless the blank is in, in which case we just set the default to dark) 
 	obstypeval =gpi_get_keyword(pri_header, ext_header, 'OBSTYPE')
-	if strc(obstypeval)  eq '' then gpi_set_keyword, 'OBSTYPE', 'OBJECT',pri_header, ext_header, comment='KEYWORD WAS BLANK - setting to default'
+	if strc(obstypeval)  eq '' then gpi_set_keyword, 'OBSTYPE', default_obstype, pri_header, ext_header, comment='KEYWORD WAS BLANK - setting to default'
 
     ;add OBSMODE keyword
 	gpi_set_keyword_if_missing, pri_header, ext_header , 'OBSMODE', val_old, comment='KEYWORD WAS MISSING - unknown' ; set mode to base filter name

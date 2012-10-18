@@ -24,6 +24,7 @@
 ; HISTORY:
 ; 	Began 2012-07-19 00:28:24 by Marshall Perrin 
 ; 	2012-08-07 MP: Significant debugging. All seems to work OK now.
+; 	2012-10-02 MP: GPI_RECIPE_OUTPUT_DIR default path changes to 'recipes' not 'drfs'
 ;-
 
 
@@ -70,7 +71,7 @@ function gpi_get_directory, dirname,expand_path=expand_path,method=method
   ;; Third precedence: Default paths. 
   ;; Yes, this will typically recursively call this routine, but for a
   ;; different variable name.
-  user_settings_file = gpi_expand_path("~")+path_sep()+".gpi_drp_config"
+  user_settings_file = gpi_expand_path("~")+path_sep()+".gpi_drp_config"  ; This variable appears to be used nowhere? Delete it?
   case strupcase(varname) of
      'GPI_DRP_DIR': begin
         ;; find where this current file is
@@ -79,10 +80,10 @@ function gpi_get_directory, dirname,expand_path=expand_path,method=method
         result = file_dirname(dirlist)                 ; parent directory will be pipeline root.
      end
      'GPI_DRP_TEMPLATES_DIR': 	result = gpi_get_directory("GPI_DRP_DIR")+path_sep()+"recipe_templates"
-     'GPI_DRP_CONFIG_DIR': 	result = gpi_get_directory("GPI_DRP_DIR")+path_sep()+"config"
-     'GPI_DRP_LOG_DIR': 	result = gpi_get_directory("GPI_REDUCED_DATA_DIR")+path_sep()+"logs"
-     'GPI_RECIPE_OUTPUT_DIR': 	result = gpi_get_directory("GPI_REDUCED_DATA_DIR")+path_sep()+"drfs"
-     'GPI_DRF_OUTPUT_DIR': 	result = gpi_get_directory("GPI_RECIPE_OUTPUT_DIR") ; back compatible alias
+     'GPI_DRP_CONFIG_DIR':		result = gpi_get_directory("GPI_DRP_DIR")+path_sep()+"config"
+     'GPI_DRP_LOG_DIR':			result = gpi_get_directory("GPI_REDUCED_DATA_DIR")+path_sep()+"logs"
+     'GPI_RECIPE_OUTPUT_DIR': 	result = gpi_get_directory("GPI_REDUCED_DATA_DIR")+path_sep()+"recipes"
+     'GPI_DRF_OUTPUT_DIR':		result = gpi_get_directory("GPI_RECIPE_OUTPUT_DIR") ; back compatible alias
      'GPI_CALIBRATIONS_DIR': 	result = gpi_get_directory("GPI_REDUCED_DATA_DIR")+path_sep()+"calibrations"
      'GPI_DST_DIR': begin
         findpro, 'dst', dir=dir,/noprint
