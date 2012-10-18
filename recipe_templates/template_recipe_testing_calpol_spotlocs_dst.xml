@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<DRF ReductionType="Calibration" name='Calibrate Polarization Spots Locations for DST images'>
+<DRF ReductionType="Testing" name='Calibrate Polarization Spots Locations for DST images'>
 <dataset InputDir="" OutputDir="">
    <fits filename=""/>
 </dataset>
