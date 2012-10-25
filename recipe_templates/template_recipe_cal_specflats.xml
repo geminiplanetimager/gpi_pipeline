@@ -3,6 +3,7 @@
 <dataset InputDir="" OutputDir="">
    <fits filename=""/>
 </dataset>
+<module name="Apply Reference Pixel Correction" before_and_after="0" Method="INTERPOLATED" Save="0" gpitv="0" />
 <module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
 <module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="0" suffix="-darksub" gpitv="0" />
 <module name="Accumulate Images" Method="InMemory" />
