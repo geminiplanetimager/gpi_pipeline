@@ -691,7 +691,7 @@ pro parsergui::create_recipe_from_template, templatename, fitsfiles, current, da
 	outputfilename = chosenpath + path_sep() + outputfilename
 	message,/info, 'Outputting file to :' + outputfilename
 
-	drf->save, outputfilename
+	drf->savedrf, outputfilename
 
     ;self->savedrf, fitsfiles, prefix=self.nbdrfSelec+1, datetimestr=datetimestr
 
