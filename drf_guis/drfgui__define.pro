@@ -697,7 +697,7 @@ pro drfgui::event,ev
               "Save Recipe as...": textinfo='Save Recipe to a filename of your choosing'
               "Drop": textinfo="Queue & execute the last saved Recipe"
               'Save&Drop': textinfo="Save the file, then queue it"
-              'QUIT': textinfo="Close and exit this program"
+              'Quit Recipe Editor': textinfo="Close and exit this program"
               "Move primitive up": textinfo='Move the currently-selected module one position earlier in the execution list'
               "Move primitive down": textinfo='Move the currently-selected module one position later in the execution list'
               else:
@@ -2092,7 +2092,7 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 	button3=widget_button(wid_bar_primitive_buttons,value="Move primitive down",uvalue="Move primitive down", /tracking_events);, $
 	button3=widget_button(wid_bar_primitive_buttons,value="Remove primitive",uvalue="Remove primitive", /tracking_events);, $
 	spacer = widget_label(top_baseexec, value=' ', xsize=50)
-	button3=widget_button(top_baseexec,value="Close Recipe Editor",uvalue="QUIT", /tracking_events, resource_name='red_button')
+	button3=widget_button(top_baseexec,value="Close Recipe Editor",uvalue="Quit Recipe Editor", /tracking_events, resource_name='red_button')
 
 	self.textinfoid=widget_label(top_base,uvalue="textinfo",xsize=900,ysize=20,value='  ')
 	;filename array and index
