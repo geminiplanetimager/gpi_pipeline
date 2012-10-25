@@ -103,7 +103,7 @@ pro gpistatusconsole::event,ev
 ;          endif 
 ;        endif
 		if uval eq 'flushqueue' then begin
-		 	conf = dialog_message("Are you sure you want to clear all recipes currently in the queue? This will delete those files and cannot be undone.",/question,title="Confirm Clear Queue",/default_no,/center, dialog_parent=ev.top, group=ev.top)
+		 	conf = dialog_message("Are you sure you want to clear all recipes currently in the queue? This will delete those files and cannot be undone.",/question,title="Confirm Clear Queue",/default_no,/center, dialog_parent=ev.top)
 		 	if conf eq "Yes" then begin
 				self.flushq =1
 			endif
