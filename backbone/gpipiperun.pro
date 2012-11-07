@@ -96,7 +96,7 @@ PRO gpiPipeRun, noinit=noinit, $
 	
 	if keyword_set(single) then begin
 		; process one single DRF and then exit
-		status = backbone->run_one_drf(single)
+		status = backbone->run_one_recipe(single)
 		backbone->Log, "Pipeline was invoked in single-DRF mode. Shutting down now. ",/general
 	endif else begin		
 		; watch the queue dir and process many DRFs
