@@ -2,9 +2,9 @@
 #Keyword name	PHU/Extension#
 SIMPLE	Both
 BITPIX	Both
-NAXIS	Both
-NAXIS1	Both
-NAXIS2	Both
+NAXIS	Extension
+NAXIS1	Extension
+NAXIS2	Extension
 NAXIS3	Extension
 HISTORY	Both
 CTYPE1	Extension
@@ -241,6 +241,10 @@ STREHL	PHU
 PipelineVER	PHU
 FILETYPE	PHU
 FSCALE[i]	Extension
+FSCALE0	    Extension
+FSCALE1	    Extension
+FSCALE2	    Extension
+FSCALE3 	Extension
 ISCALIB	Both
 PC1_1	Extension
 PC1_2	Extension
