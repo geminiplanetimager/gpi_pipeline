@@ -126,18 +126,18 @@ for j=0,n_elements(good)-1 do begin
          nth = max(rs)*2*!dpi
          th = dindgen(nth)/nth*2d*!dpi 
          mns = dblarr(n_elements(rs))
-         for k = 0,n_elements(rs)-1 do begin
-            x = rs[k]*cos(th)+gaussap/2. 
-            y = rs[k]*sin(th)+gaussap/2. 
-            mns[k] = mean(interpolate(subim,x,y,cubic=-0.5)) 
+         for k = 0,n_elements(rs)-1 do begin &$
+            x = rs[k]*cos(th)+gaussap/2.  &$
+            y = rs[k]*sin(th)+gaussap/2.  &$
+            mns[k] = mean(interpolate(subim,x,y,cubic=-0.5),/nan)  &$
          endfor
          
          ;; find FWHM & sigma and define gaussian mask
-         fwhm = 2d*interpol(rs,mns,max(subim)/2d)
+         fwhm = 2d*interpol(rs,mns,max(subim,/nan)/2d)
          sig = fwhm/2d/sqrt(2d*alog(2d))
          gmsk = exp(-fr2/sig^2d/2d)
 
-         ic_psfs[i,good[j]] = total(subim*gmsk)/total(gmsk*gmsk)   
+         ic_psfs[i,good[j]] = total(subim*gmsk,/nan)/total(gmsk*gmsk)   
       endif else begin
          subimage = subarr(im0[*,*,good[j]],gaussap,cens[*,i,good[j]],/zeroout)
          if keyword_set(totflux) then $
