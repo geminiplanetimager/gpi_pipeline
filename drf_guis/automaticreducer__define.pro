@@ -154,29 +154,36 @@ pro automaticreducer::reduce_one, filenames, wait=wait
         wait, 0.5
     endif
 
-    info = gpi_load_fits(filenames[0], /nodata)
-    prism = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'DISPERSR', count=dispct) ))
+	if self.user_template eq '' then begin
+		; Determine default template based on file type
 
-    if (dispct eq 0) or (strc(prism) eq '') then begin
-        message,/info, 'Missing or blank DISPERSR keyword!'
-        if widget_info(self.b_spectral_id,/button_set) then prism = 'PRISM'
-        if widget_info(self.b_undispersed_id,/button_set) then prism='WOLLASTON'
-        if widget_info(self.b_polarization_id,/button_set) then prism = 'OPEN'
-    endif
+		info = gpi_load_fits(filenames[0], /nodata)
+		prism = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'DISPERSR', count=dispct) ))
 
-    if ((prism ne 'PRISM') and (prism ne 'WOLLASTON') and (prism ne 'OPEN')) then begin
-        message,/info, 'Unknown DISPERSR: '+prism+". Must be one of {PRISM, WOLLASTON, OPEN} or their Gemini-style equivalents."
-        if widget_info(self.b_spectral_id,/button_set) then prism = 'PRISM'
-        if widget_info(self.b_undispersed_id,/button_set) then prism='WOLLASTON'
-        if widget_info(self.b_polarization_id,/button_set) then prism = 'OPEN'
-        message,/info, 'Applying default setting instead: '+prism
-    endif
+		if (dispct eq 0) or (strc(prism) eq '') then begin
+			message,/info, 'Missing or blank DISPERSR keyword!'
+			if widget_info(self.b_spectral_id,/button_set) then prism = 'PRISM'
+			if widget_info(self.b_undispersed_id,/button_set) then prism='WOLLASTON'
+			if widget_info(self.b_polarization_id,/button_set) then prism = 'OPEN'
+		endif
 
-    case prism of
-    'PRISM': templatename='Quicklook Automatic Datacube Extraction'
-    'WOLLASTON': templatename='Quicklook Automatic Polarization Extraction'
-    'OPEN':templatename='Quicklook Automatic Undispersed Extraction'
-    endcase
+		if ((prism ne 'PRISM') and (prism ne 'WOLLASTON') and (prism ne 'OPEN')) then begin
+			message,/info, 'Unknown DISPERSR: '+prism+". Must be one of {PRISM, WOLLASTON, OPEN} or their Gemini-style equivalents."
+			if widget_info(self.b_spectral_id,/button_set) then prism = 'PRISM'
+			if widget_info(self.b_undispersed_id,/button_set) then prism='WOLLASTON'
+			if widget_info(self.b_polarization_id,/button_set) then prism = 'OPEN'
+			message,/info, 'Applying default setting instead: '+prism
+		endif
+
+		case prism of
+		'PRISM': templatename='Quicklook Automatic Datacube Extraction'
+		'WOLLASTON': templatename='Quicklook Automatic Polarization Extraction'
+		'OPEN':templatename='Quicklook Automatic Undispersed Extraction'
+		endcase
+	endif else begin
+		templatename = self.user_template
+	endelse
+		
 
 	
 	templatefile= self->lookup_template_filename(templatename) ; gpi_get_directory('GPI_DRP_TEMPLATES_DIR')+path_sep()+templatename
@@ -308,6 +315,16 @@ pro automaticreducer::event, ev
 			endif
 	
 		endif
+		if uname eq 'default_recipe'    then begin
+			widget_control, self.seqid, sensitive=0
+			self.user_template = ''
+		endif
+		if uname eq 'select_recipe'    then begin
+			widget_control, self.seqid, sensitive=1
+        	ind=widget_info(self.seqid,/DROPLIST_SELECT)
+			self.user_template=((*self.templates).name)[ind]
+	
+		endif
 		
 
 	end 
@@ -330,8 +347,18 @@ pro automaticreducer::event, ev
 			obj_destroy, self
 		return
 	end
+  	'WIDGET_DROPLIST': begin 
+		if uname eq 'select_template' then begin
+			print, self.templates[ind]
+        	ind=widget_info(self.seqid,/DROPLIST_SELECT)
+			self.user_template=self.templates[ind]
+		endif
+
+	end
 	
-    else:   
+    else:   begin
+		print, "No handler defined for event of type "+tag_names(ev, /structure_name)+" in automaticreducer"
+	endelse
 endcase
 end
 
@@ -391,19 +418,26 @@ function automaticreducer::init, groupleader, _extra=_extra
 		  ,/ALIGN_LEFT ,VALUE='When user requests', /tracking_events ,sensitive=0) 
 	widget_control, self.parseone_id, /set_button 
 
+	self->scan_templates
+
 
 	base_dir = widget_base(self.top_base, /row)
-	void = WIDGET_LABEL(base_dir,Value='What kind of reduction:')
+	void = WIDGET_LABEL(base_dir,Value='What kind of Recipe:')
 	parsebase = Widget_Base(base_dir, UNAME='kindbase' ,ROW=1 ,/EXCLUSIVE, frame=0)
-	self.b_simple_id =    Widget_Button(parsebase, UNAME='simple'  $
-	        ,/ALIGN_LEFT ,VALUE='Simple datacube extraction',/tracking_events)
-	self.b_full_id =    Widget_Button(parsebase, UNAME='full'  $
-	        ,/ALIGN_LEFT ,VALUE='Run full parser',/tracking_events, sensitive=0)
+	self.b_simple_id =    Widget_Button(parsebase, UNAME='default_recipe'  $
+	        ,/ALIGN_LEFT ,VALUE='Default automatic recipes',/tracking_events)
+	self.b_full_id =    Widget_Button(parsebase, UNAME='select_recipe'  $
+	        ,/ALIGN_LEFT ,VALUE='Specific recipe',/tracking_events, sensitive=1)
 	widget_control, self.b_simple_id, /set_button 
 
 	base_dir = widget_base(self.top_base, /row)
+	self.seqid = WIDGET_DROPLIST(base_dir , title='Select template:', frame=0, Value=(*self.templates).name, $
+		uvalue='select_template',resource_name='XmDroplistButton', sensitive=0)
+
+
+	base_dir = widget_base(self.top_base, /row)
 	void = WIDGET_LABEL(base_dir,Value='Default disperser if missing keyword:')
-	parsebase = Widget_Base(base_dir, UNAME='dispbase' ,ROW=1 ,/EXCLUSIVE, frame=0)
+	parsebase = Widget_Base(base_dir, ROW=1 ,/EXCLUSIVE, frame=0)
 	self.b_spectral_id =    Widget_Button(parsebase, UNAME='Spectral'  $
 	        ,/ALIGN_LEFT ,VALUE='Spectral',/tracking_events)
 	self.b_undispersed_id =    Widget_Button(parsebase, UNAME='Undispersed'  $
@@ -472,7 +506,7 @@ pro automaticreducer__define
 
 stateF={  automaticreducer, $
     dirinit:'',$ ;initial root  directory for the tree
-    commande:'',$   ;command to execute when fits file double clicked
+    user_template:'',$   ;command to execute when fits file double clicked
     scandir_id:0L,$ 
     continue_scanning:0, $
     parserobj:obj_new(),$
