@@ -445,7 +445,9 @@ pro drfgui::update_available_primitives, requested_type, seqval, all=all
 
 
 
-    (*self.currModSelec)=strarr(5)
+                                ;(*self.currModSelec)=strarr(5) ;;this
+                                ;makes no sense - commented out to fix
+                                ;                 bug #191.
 end    
 
 ;--------------------------------------------------------------------------------
