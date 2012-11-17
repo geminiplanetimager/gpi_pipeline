@@ -1,20 +1,16 @@
 ;+
-; NAME: combinedarkframes
-; PIPELINE PRIMITIVE DESCRIPTION: Combine 2D dark images
+; NAME: gpi_find_hotpixels_from_darks
+; PIPELINE PRIMITIVE DESCRIPTION: Find Hot Pixels from a set of Darks
 ;
-;  TODO: more advanced combination methods. Mean, sigclip, etc.
+; This is a variant of combinedarkframes that instead writes out a
+; mask showing where the various hot pixels are. 
 ;
-; INPUTS: 
-; common needed:
 ;
 ; KEYWORDS:
-;
-; GEM/GPI KEYWORDS:
-; DRP KEYWORDS:  FILETYPE, ISCALIB,NAXIS1,NAXIS2
+; DRP KEYWORDS: FILETYPE,ISCALIB
 ; OUTPUTS:
 ;
-; PIPELINE COMMENT: Combine 2D dark images into a master file via mean or median. 
-; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="MEAN|MEDIAN|MEANCLIP"  Default="MEDIAN" Desc="How to combine images: median, mean, or mean with outlier rejection?[MEAN|MEDIAN]"
+; PIPELINE COMMENT: Find hot pixels from a stack of dark images (best with deep integration darks)
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.01
@@ -22,23 +18,33 @@
 ; PIPELINE NEWTYPE: Calibration
 ; PIPELINE SEQUENCE: 22-
 
+;
 ; HISTORY:
-; 	 Jerome Maire 2008-10
+;   2009-07-20 JM: created
 ;   2009-09-17 JM: added DRF parameters
-;   2009-10-22 MDP: Created from mediancombine_darks, converted to use
-;   				accumulator.
-;   2010-01-25 MDP: Added support for multiple methods, MEAN method.
-;   2010-03-08 JM: ISCALIB flag for Calib DB
-;   2011-07-30 MP: Updated for multi-extension FITS
+;   2012-01-31 Switched sxaddpar to backbone->set_keyword Dmitry Savransky
+;   2012-11-15 MP: Algorithm entirely replaced with one based on combinedarkframes.
 ;-
-function combinedarkframes, DataSet, Modules, Backbone
+function gpi_find_hotpixels_from_darks, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
-	suffix='dark-comb'
+functionname='hotpixels_from_dark' ; brevity is the soul of wit...
 
-	if tag_exist( Modules[thisModuleIndex], "method") then method=Modules[thisModuleIndex].method else method='median'
+	method='median'
 
 	nfiles=dataset.validframecount
+
+    if nfiles lt 3 then return, error('FAILURE ('+functionName+'): Too few files supplied. Must have >=3 files but only got '+strc(nfiles))
+
+    ;****************************
+    ;*
+    ;* The following is mostly an exact copy of combinedarkframes
+    ;* until the very end, at which point we write out the mask of
+    ;* hot pixels instead of the actual dark frame.
+    ;*
+    ;****************************
+
+
 
 	; Load the first file so we can figure out their size, etc. 
 
@@ -57,6 +63,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	; verify all input files have the same exp time
 	
+
+
 
 	; now combine them.
 	if nfiles gt 1 then begin
@@ -107,7 +115,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
     stddev2 = stddev(imtab,/nan) ; this std dev should be less biased
     rdnoise=stddev2
-    backbone->Log, 'Estimated read noise='+strc(rdnoise)+'cts  from stddev across '+strc(nfiles)+' darks.'
+    backbone->Log, 'Estimated read noise='+sigfig(rdnoise,4)+'cts  from stddev across '+strc(nfiles)+' darks.', depth=3
 	backbone->set_keyword, 'HISTORY', functionname+":   Estimating read noise comparing all files: ",ext_num=0
 	backbone->set_keyword, 'HISTORY', functionname+":      rdnoise = stddev(dark_i-combined_dark) = "+sigfig(rdnoise,4),ext_num=0
 	backbone->set_keyword, 'EST_RDNS', rdnoise, 'Estimated read noise from stddev across '+strc(nfiles)+' darks [counts]' ,ext_num=0
@@ -144,6 +152,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	backbone->set_keyword, 'HISTORY', functionname+":   "+strc(hotct2)+" such pixels are present & >5 sigma * rdnoise" ,ext_num=0
     backbone->set_keyword, 'ESTNHTPX', hotct2, "Estimated number of 'hot' pixels, >1 e-/sec "
 
+	backbone->Log, "Hot pixels (>1 e-/sec) would have >"+sigfig(hotcutoff,5)+" counts", depth=3
+	backbone->Log, "   "+strc(hotct2)+" such pixels are present & >5 sigma * rdnoise", depth=3
+
 
 ;    wgood = where(abs(combined_center-med_combined) lt nsig*rdnoise, comp=wbad)
     ; For the purposes of this calculation, let's be conservative:
@@ -162,16 +173,24 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     backbone->set_keyword, 'EST_DKRT', meandark/itime, "Estimated mean count rate for good pixels [counts/sec]"
 
 
-    ;stop
-
+    ;****************************
+    ;*
+    ;* Here is where something different from
+    ;* combinedarkframes happens:
+    ;*
+    ;****************************
+    maskhotpix =  (combined_im gt hotcutoff) and (combined_im gt (med_combined+nsig*rdnoise))
+    nhotpix = total(maskhotpix)
+    backbone->set_keyword, 'DRPNHTPX', hotct2, "Number of 'hot' pixels, >1 e-/sec and >5sig*rdnoise "
     
 
 	;----- store the output into the backbone datastruct
-	*(dataset.currframe)=combined_im
-	dataset.validframecount=1
-  	backbone->set_keyword, "FILETYPE", "Dark File", /savecomment
-  	backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
-	suffix = '-dark'
+	*(dataset.currframe)=maskhotpix
+    suffix='-hotpix'
+
+    backbone->set_keyword, "FILETYPE", "Hot Pixel Map", "What kind of IFS file is this?"
+    backbone->set_keyword,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.' 
 
 @__end_primitive
 end
+

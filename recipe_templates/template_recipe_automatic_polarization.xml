@@ -4,6 +4,6 @@
 <dataset InputDir="$(GPI_RAW_DATA_DIR)" OutputDir="$(GPI_DRP_OUTPUT_DIR)">
    <fits filename=""/>
 </dataset>
-<module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="0" suffix="-darksub" gpitv="0" />
-<module name="Assemble Undispersed Image" xshift='-2.363' yshift='-2.6134' Save="1" suffix='-extu' gpitv='5' />
+<module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="0"  gpitv="0" />
+<module name="Assemble Undispersed Image" xshift='-2.363' yshift='-2.6134' Save="1" gpitv='5' />
 </DRF>

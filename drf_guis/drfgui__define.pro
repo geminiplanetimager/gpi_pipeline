@@ -1688,7 +1688,7 @@ pro drfgui::loaddrf, filename, nodata=nodata, silent=silent, log=log
 
 		;update title bar of window:
 	
-		title  = "GPI Recipe Editor"
+		title  = "Recipe Editor"
 		if keyword_set(session) then title += " #"+strc(session)
 		widget_control, self.top_base, tlb_set_title=title+": "+filename
 

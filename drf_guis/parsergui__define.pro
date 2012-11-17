@@ -1370,7 +1370,7 @@ function parsergui::init_widgets,  _extra=_Extra  ;drfname=drfname,  ;,grouplead
        end
 
     ENDCASE
-    self.top_base=widget_base(title='GPI Data Parser: Create a Set of Data Reduction Recipes', /BASE_ALIGN_LEFT,/column, MBAR=bar,/tlb_size_events, /tlb_kill_request_events, resource_name=resource_name, bitmap=bitmap )
+    self.top_base=widget_base(title='Data Parser: Create a Set of GPI Data Reduction Recipes', /BASE_ALIGN_LEFT,/column, MBAR=bar,/tlb_size_events, /tlb_kill_request_events, resource_name=resource_name, bitmap=bitmap )
 
     parserbase=self.top_base
     ;create Menu

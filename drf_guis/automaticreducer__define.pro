@@ -126,6 +126,10 @@ pro automaticreducer::handle_new_files, new_filenames ;, nowait=nowait
 	if self.parsemode eq 1 then begin
 		; process the file right away
 		for i=0L,n_elements(new_filenames)-1 do begin
+            if strc(new_filenames[i]) eq  '' then begin
+                message,/info, ' Received an empty string as a filename; ignoring it.'
+                continue
+            endif
             finfo = file_info(new_filenames[i])
             if (finfo.size ne 21000960) and (finfo.size ne 16790400) then begin
                 message,/info, "File size is not an expected value: "+strc(finfo.size)+" bytes. Waiting 0.5 s for file write to complete?"
@@ -148,6 +152,11 @@ end
 
 pro automaticreducer::reduce_one, filenames, wait=wait
 	; Reduce one single file at a time
+
+    if strc(filenames[0]) eq '' then begin
+        message,/info, ' Received an empty string as a filename; ignoring it.'
+        return
+    endif
 
     if keyword_set(wait) then  begin
         message,/info, "Waiting 0.5 s to ensure FITS header gets updated first?"
