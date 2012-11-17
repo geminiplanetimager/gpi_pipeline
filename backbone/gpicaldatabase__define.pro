@@ -15,6 +15,8 @@
 ;
 ; HISTORY:
 ; 	Began 2010-01-26 17:11:04 by Marshall Perrin 
+; 	... many updated not recorded here ...
+; 	2012-10-10 MP: Added restriction based on IFS cooldown start/stop dates
 ;-
 
 function gpicaldatabase::new_calfile_struct
@@ -68,6 +70,8 @@ FUNCTION gpicaldatabase::init, directory=directory, dbfilename=dbfilename, backb
 	self.dbfilename = dbfilename
 	if arg_present(backbone) then self.backbone=backbone ; Main GPI pipeline code?
 
+
+	;--- Read in calibrations database
 	caldbfile = self.caldir+path_sep()+self.dbfilename
 	if ~file_test(caldbfile) then begin
 		self->Log,"Nonexistent calibrations DB filename requested! "
@@ -98,6 +102,22 @@ FUNCTION gpicaldatabase::init, directory=directory, dbfilename=dbfilename, backb
 
 
 	endelse 
+
+	;--- read in list of cooldown dates for the IFS
+	;    This is used to restrict which sets of calibration files are
+	;    worth looking at when matching. 
+	readcol, gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'ifs_cooldown_history.txt', year, month, date, count=count
+	if count gt 0 then begin
+		jds = dblarr(n_elements(year))
+		for i=0,n_elements(year)-1 do jds[i] = julday(month[i], date[i], year[i]) 
+		self.ifs_cooldown_jds = ptr_new(jds)
+	endif else begin
+		self.ifs_cooldown_jds = ptr_new([1])
+	endelse
+
+
+
+
 
 	return, 1
 
@@ -301,13 +321,13 @@ function gpicaldatabase::cal_info_from_header, fits_data
 	; this one's complicated enough to be a function. 
 	thisfile.readoutmode = self->get_readoutmode_as_string(fits_data)
 
-	; FIXME possibly modify this to use the MJD keywords? (once present from
+	; possibly modify this to use the MJD keywords? (once present from
 	; Gemini GDS)
 	; No - DATE-OBS and UTSTART are written by the IFS, thus are the original &
 	; most accurate time stamp
 	dateobs =  strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "DATE-OBS"))+$
 		   "T"+strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header,"UTSTART"))
-	thisfile.jd = string(date_conv(dateobs, "J"),f='(f15.5)')
+	thisfile.jd = date_conv(dateobs, "J")
 
 	return, thisfile
 end
@@ -325,25 +345,8 @@ function gpicaldatabase::get_best_cal_from_header, type, priheader, extheader, _
 	; 	type		what kind of a dark is requested? String name. 
 	; 	priheader, extheader	like the names imply
 
-	; Pack stuff into a fits_data like structure, then extract as a struct. 
-	; This is sort of a hack to retrofit the new API into the old one. 
 
-
-	;fits_data = {pri_header: priheader, ext_header: extheader}
-	;JM changes for pointers
-	 fits_data = {pri_header: ptr_new(priheader), ext_header: ptr_new(extheader)}
-;
-;header=[priheader, extheader]
-;   dateobs2 =  strc(sxpar(header, "DATE-OBS"))+" "+strc(sxpar(header,"TIME-OBS"))
-;   dateobs3 = date_conv(dateobs2, "J")
-;;
-;   filt=strcompress(gpi_simplify_keyword_value(sxpar( header, 'IFSFILT',  COUNT=cc3)),/rem)
-;;
-;   prism=strcompress(gpi_simplify_keyword_value(sxpar( header, 'DISPERSR',  COUNT=cc4)),/rem)
-;;
-;   itime=sxpar(header, "ITIME", count=ci)
-;   if ci eq 0 then itime=sxpar(header, "TRUITIME", count=ci)
-;	return, self->get_best_cal( type, fits_data, dateobs3, filt, prism, itime=itime, _extra=_extra)
+	fits_data = {pri_header: ptr_new(priheader), ext_header: ptr_new(extheader)}
 	return, self->get_best_cal( type, fits_data)
 
 
@@ -363,7 +366,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 
 	if self.nfiles eq 0 then message, "ERROR: --NO CAL FILES IN DB--"
 
-		
+	;---- Organize a catalog of different types of calibration files ----	
 	; Build a structure defining all the potential calibrator types, specifying
 	;  a) a name (short and used in code)
 	;  b) a long description for human consumption (and which is used in the Cals DB
@@ -408,57 +411,99 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 
 	wm= where(strmatch((*self.data).type, types[itype].description+"*",/fold),cc)
 	if cc eq 0 then begin
-		message, "ERROR: --NO FILES FOR "+types[itype].description+" IN DB--",/info
+		self->Log, "CALIBS DB ERROR: --NO FILES FOR "+types[itype].description+" IN DB--",depth=1
 		return, NOT_OK
 	endif 
 
-        newfile = self->cal_info_from_header(fits_data)
-        date=newfile.jd
-        filter=newfile.filter
-        prism=newfile.prism
-        itime=newfile.itime
-        readoutmode=newfile.readoutmode ;self->get_readoutmode_as_string(fits_data)
+
+	;---- Get the info from the current file we're going to be matching on
+	newfile = self->cal_info_from_header(fits_data)
+	date=newfile.jd
+	filter=newfile.filter
+	prism=newfile.prism
+	itime=newfile.itime
+	readoutmode=newfile.readoutmode ;self->get_readoutmode_as_string(fits_data)
+
+	;---- optional: restrict based on dates of IFS cooldown runs (so 
+	if gpi_get_setting('caldb_restricts_by_cooldown', /bool, default=1,/silent) then begin
+		calfiles_table = (*self.data)
+		
+		; find the JD range corresponding to the IFS cooldown run for that data
+		wstart = where(*self.ifs_cooldown_jds lt newfile.jd, countstart)
+		if countstart gt 0 then cooldown_start = max( (*self.ifs_cooldown_jds)[wstart]) else cooldown_start=1
+		wstop= where(*self.ifs_cooldown_jds gt newfile.jd, countstop)
+		if countstop gt 0 then cooldown_stop = min( (calfiles_table.JD)[wstop]) else cooldown_stop=1e7
+
+		startday_str = strmid(date_conv(cooldown_start,'FITS'), 0, 10)
+		stopday_str = strmid(date_conv(cooldown_stop,'FITS'), 0, 10)
+		if cooldown_stop eq 1e7 then stopday_str = "present"
+
+		wCorrectCooldown = where((calfiles_table.JD ge cooldown_start) and (calfiles_table.JD le cooldown_stop), correctcount)
+		if correctcount eq 0 then begin
+			self->Log, "CALIBS DB ERROR: --NO FILES AVAILABLE IN DB for IFS cooldown between "+startday_str+" to "+stopday_str+" --",depth=1
+			return, NOT_OK
+		endif 
+
+		; restrict based on that range
+		calfiles_table = (*self.data)[wCorrectCooldown]
+
+		wm= where(strmatch(calfiles_table.type, types[itype].description+"*",/fold),cc)
+		if cc eq 0 then begin
+			self->Log, "CALIBS DB ERROR: --NO FILES FOR "+types[itype].description+" IN DB for the IFS cooldown between "+startday_str+" to "+stopday_str+"--",depth=1
+			return, NOT_OK
+		endif 
+
+
+
+	endif else begin
+		; Use all calibration files.
+		calfiles_table = (*self.data)
+
+
+	endelse
+
+
 
 	case types[itype].match_on of 
 	'typeonly': begin
-		 imatches= where( strmatch((*self.data).type, types[itype].description+"*",/fold), cc)
+		 imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold), cc)
 		 errdesc = 'of the correct type'
 	end
 
 	'itime': begin
-	    imatches= where( strmatch((*self.data).type, types[itype].description+"*",/fold) and $
-	   		((*self.data).itime) eq itime,cc)
+	    imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
+	   		(calfiles_table.itime) eq itime,cc)
 		errdesc = 'with same ITIME'
 		; FIXME if no exact match found for itime, fall back to closest match
 		if cc eq 0 then begin
 			self->Log, "No exact match found for ITIME, thus looking for closesd approximate mathc instead",depth=3
-	    	imatches_typeonly= where( strmatch((*self.data).type, types[itype].description+"*",/fold))
-			deltatimes = (*self.data)[imatches_typeonly].itime - itime
+	    	imatches_typeonly= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold))
+			deltatimes = calfiles_table[imatches_typeonly].itime - itime
 
 			mindelta = min( abs(deltatimes), wmin)
-			imatches= where( strmatch((*self.data).type, types[itype].description+"*",/fold) and $
-				            ((*self.data).itime) eq (*self.data)[wmin[0]].itime,cc)
-			self->Log, "Found "+strc(cc)+" approx matches with ITIME="+strc((*self.data)[wmin[0]].itime)
+			imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
+				            (calfiles_table.itime) eq calfiles_table[wmin[0]].itime,cc)
+			self->Log, "Found "+strc(cc)+" approx matches with ITIME="+strc(calfiles_table[wmin[0]].itime)
 
 
 		endif
 
 	end
 	'itimeReadmode': begin
-	    imatches= where( strmatch((*self.data).type, types[itype].description+"*",/fold) and $
-	   		(((*self.data).readoutmode) eq readoutmode ) and $
-	   		((*self.data).itime) eq itime,cc)
+	    imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
+	   		((calfiles_table.readoutmode) eq readoutmode ) and $
+	   		(calfiles_table.itime) eq itime,cc)
 		errdesc = 'with same ITIME'
 		; FIXME if no exact match found for itime, fall back to closest match
 		if cc eq 0 then begin
 			self->Log, "No exact match found for ITIME, thus looking for closesd approximate mathc instead",depth=3
-	    	imatches_typeonly= where( strmatch((*self.data).type, types[itype].description+"*",/fold))
-			deltatimes = (*self.data)[imatches_typeonly].itime - itime
+	    	imatches_typeonly= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold))
+			deltatimes = calfiles_table[imatches_typeonly].itime - itime
 
 			mindelta = min( abs(deltatimes), wmin)
-			imatches= where( strmatch((*self.data).type, types[itype].description+"*",/fold) and $
-				            ((*self.data).itime) eq (*self.data)[wmin[0]].itime,cc)
-            self->Log, " Found "+strc(cc)+" approx matches with ITIME="+strc((*self.data)[wmin[0]].itime)
+			imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
+				            (calfiles_table.itime) eq calfiles_table[wmin[0]].itime,cc)
+            self->Log, " Found "+strc(cc)+" approx matches with ITIME="+strc(calfiles_table[wmin[0]].itime)
 
 
 		endif
@@ -466,20 +511,20 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	end
 	
 	 'itimeFilt': begin
-      	imatches= where( strmatch((*self.data).type, types[itype].description+"*",/fold) and $
-        (((*self.data).itime) eq itime) and $
-        (((*self.data).filter) eq filter) ,cc) 
+      	imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
+        ((calfiles_table.itime) eq itime) and $
+        ((calfiles_table.filter) eq filter) ,cc) 
     	errdesc = 'with same ITIME and FILTER'
   	end
 	'FiltPrism': begin
-		 imatches= where( strmatch((*self.data).type, types[itype].description+"*",/fold) and $
-	   		(((*self.data).filter) eq filter ) and $
-	   		(((*self.data).prism) eq prism) ,cc)
+		 imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
+	   		((calfiles_table.filter) eq filter ) and $
+	   		((calfiles_table.prism) eq prism) ,cc)
 		 errdesc = 'with same DISPERSR and FILTER'
 	end
 	'FiltOnly': begin
-     	imatches= where( strmatch((*self.data).type, types[itype].description+"*",/fold) and $
-        (((*self.data).filter) eq filter )  ,cc)
+     	imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
+        ((calfiles_table.filter) eq filter )  ,cc)
      	errdesc = 'with same FILTER'
   	end
 	endcase
@@ -492,11 +537,11 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	if keyword_set(verbose) then message,/info, "Found "+strc(cc)+" possible cal files; selecting best based on closest date."
 
 
-	timediff=min(abs( ((*self.data).JD)[imatches] - date ),minind)
+	timediff=min(abs( (calfiles_table.JD)[imatches] - date ),minind)
 	if keyword_set(verbose) then message,/info, "Closest date offset is "+strc(timediff)
 	;combinaison of wav.cal. has same timediff than the most recent wav.cal of the combinaison
 	;so, keep only the combinaison (TO DO: use keyword DATAFILE instead of suffix filename?)
-	ibests=where(abs( ((*self.data).JD)[imatches] - date ) eq timediff,cc)
+	ibests=where(abs( (calfiles_table.JD)[imatches] - date ) eq timediff,cc)
 
 	if cc gt 1 then begin
   		ibest = imatches[minind]
@@ -504,7 +549,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	  	ibest = imatches[minind]
 	endelse
 	
-    bestcalib=((*self.data).PATH)[ibest]+path_sep()+((*self.data).FILENAME)[ibest]
+    bestcalib=(calfiles_table.PATH)[ibest]+path_sep()+(calfiles_table.FILENAME)[ibest]
 	if keyword_set(verbose) then message,/info, "Returning best calib= "+bestcalib
 
     self->Log, "Returning best cal file= "+bestcalib,depth=3
@@ -541,46 +586,44 @@ end
 pro gpicaldatabase::get_readoutmode_from_string, readoutmode, samplingMode=samplingMode,$
                   numReads=numReads,numGroups=numGroups,startX=startX, startY=startY, endX=endX, endY=endY
 
-regex = '([[:digit:]])_([[:digit:]]+)_([[:digit:]])_\[([[:digit:]]+):([[:digit:]]+),([[:digit:]]+):([[:digit:]]+)\]'
-res = stregex(readoutmode,regex,/subexpr,/extract)
+	regex = '([[:digit:]])_([[:digit:]]+)_([[:digit:]])_\[([[:digit:]]+):([[:digit:]]+),([[:digit:]]+):([[:digit:]]+)\]'
+	res = stregex(readoutmode,regex,/subexpr,/extract)
 
-samplingMode = long(res[1,*])
-totReads = float(res[2,*])
-numGroups = float(res[3,*])
-startX = float(res[4,*]) - 1.
-endX = float(res[5,*]) - 1.
-startY = float(res[6,*]) - 1.
-endY = float(res[7,*]) - 1.
+	samplingMode = long(res[1,*])
+	totReads = float(res[2,*])
+	numGroups = float(res[3,*])
+	startX = float(res[4,*]) - 1.
+	endX = float(res[5,*]) - 1.
+	startY = float(res[6,*]) - 1.
+	endY = float(res[7,*]) - 1.
 
-nchan = fltarr(n_elements(readoutmode)) + 32.
-inds = where((startX ne 0) or (endX ne 2047) or (startY ne 0) or (endY ne 2047),cc)
-if cc gt 0 then nchan[inds] = 1.
+	nchan = fltarr(n_elements(readoutmode)) + 32.
+	inds = where((startX ne 0) or (endX ne 2047) or (startY ne 0) or (endY ne 2047),cc)
+	if cc gt 0 then nchan[inds] = 1.
 
-tframe = ((endX-startX+1)/nchan+7)*(endY-startY+2)*10e-6
+	tframe = ((endX-startX+1)/nchan+7)*(endY-startY+2)*10e-6
 
-;;determine different modes (assume single unless proven otherwise)
-cdss = where((samplingMode eq 2) or (samplingMode eq 3),ccds)
-utrs = where(samplingMode eq 4,cutr)
+	;;determine different modes (assume single unless proven otherwise)
+	cdss = where((samplingMode eq 2) or (samplingMode eq 3),ccds)
+	utrs = where(samplingMode eq 4,cutr)
 
-;;numReads - for single, this is 1, for CDS & MCDS it's half the total
-;;           number of reads, for UTR its the total number of reads/numGroups
-numReads = totReads
-if ccds gt 0 then numReads[cdss] /= 2.
-if cutr gt 0 then numReads[utrs] = numReads[utrs]/numGroups[utrs]
+	;;numReads - for single, this is 1, for CDS & MCDS it's half the total
+	;;           number of reads, for UTR its the total number of reads/numGroups
+	numReads = totReads
+	if ccds gt 0 then numReads[cdss] /= 2.
+	if cutr gt 0 then numReads[utrs] = numReads[utrs]/numGroups[utrs]
 
 end
 
 ;----------
 PRO gpicaldatabase__define
 
-;calfile = self->new_calfile_struct() ; define this too...
-
-; overall structure
 void = {gpicaldatabase, $
 		backbone: obj_new(), $
 		caldir: "", $
 		dbfilename: "",$
 		data: ptr_new(), $
+		ifs_cooldown_jds: ptr_new(), $
 		nfiles: 0, $
 		modified: 0 $
 	}
