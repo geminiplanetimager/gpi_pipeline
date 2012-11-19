@@ -2,35 +2,40 @@
 ; NAME: subtract_background_2d
 ; PIPELINE PRIMITIVE DESCRIPTION: Subtract background from 2D raw image
 ;
-;   Subtract the (possibly fluctuating) background from a 2D raw IFS
-;   image, by using the regions in between the spectra. 
+; Subtract the detector readout noise (striping) from the background
+; of a 2d raw IFS image by masking spectra and using the remaining
+; regions to obtain a sampling of the striping. The masking can be performed by using the wavelength
+; calibration to mask the spectra (recommended) or by thresholding
+; (not recommended).
+
+; WARNING: This destriping algorithm will not work correctly on flat fields or any image
+; where there is very large amounts of signal covering the entire
+; field.
 ;
-;   **currently a developmental/testing routine**
-;
-;   TODO: This algorithm would be more robust if it made use of existing
-;   wavelength solution information for masking out which pixels to use,
-;   probably. Actually this should be an option the user can select: use
-;   the image pixels or use a wavelength solution. Using the image pixels
-;   themselves is necessary for the case where you are trying to *create* 
-;   a wavelength solution, then once you have that you should probably use it
-;   instead. 
-;
-;   The problem with just using the image pixels is that it depends on the
-;   relative brightness of the background noise vs. the spectra, so it can fail
-;   if the SNR in the spectra is low or the background noise is especially high.
+
 ;
 ; KEYWORDS:
+;       method= "[threshhold|calfile]" which masking method to adopt
+;       abort_fraction = [0-1.0] - Necessary fraction of pixels in mask to continue - set at 0.9 to ensure quicklook tool is robust
+;       fraction = 0.7 float indicating the fractional amount of
+;                      pixels to mask per row
+;       high_limit= [0-Inf]  pixel value where exceeding values have
+;                            a larger mask applied. Only used in
+;                            calfile mode
+;       save_stripes=[0,1]   saves the determined striping frame to
+;                            disk (-stripes.fits)
+;       save = [0,1]    saves corrected image to disk (-bgsub.fits)
 ; 	gpitv=		session number for the GPITV window to display in.
 ; 				set to '0' for no display, or >=1 for a display.
 ;
 ; OUTPUTS:
 ;
-; PIPELINE ARGUMENT: Name="method" Type="string" Range="[threshhold|calfile]" Default="threshhold" Desc='Find background based on image value threshhold cut, or calibration file spectra/spot locations?'
-; PIPELINE ARGUMENT: Name="thresh" Type="float" Range="[0,5]" Default="2" Desc="What multiple of the image median should be used as the threshhold for selecting spectra? Suggested values 2 for spectral mode, 4 for polarimetry"
-; PIPELINE ARGUMENT: Name="fwhm_x" Type="float" Range="[0,10]" Default="1" Desc="FWHM of the Gaussian for smoothing the background, in the X direction"
-; PIPELINE ARGUMENT: Name="fwhm_y" Type="float" Range="[0,10]" Default="7" Desc="FWHM of the Gaussian for smoothing the background, in the Y direction.  Suggested value 7 for spectra, 15 for polarimetry modes"
-; PIPELINE ARGUMENT: Name="niter" Type="int" Range="[0,10]" Default="3" Desc="How many times to iterate the convolution fill towards convergence?"
-; PIPELINE ARGUMENT: Name="before_and_after" Type="int" Range="[0,1]" Default="0" Desc="Show the before-and-after images for the user to see?"
+; PIPELINE ARGUMENT: Name="method" Type="string" Range="[threshhold|calfile]" Default="calfile" Desc='Find background based on image value threshhold cut, or calibration file spectra/spot locations?'
+; PIPELINE ARGUMENT: Name="abort_fraction" Type="float" Range="[0.0,1.0]" Default="0.9" Desc="Necessary fraction of pixels in mask to continue - set at 0.9 to ensure quicklook tool is robust"
+; PIPELINE ARGUMENT: Name="fraction" Type="float" Range="[0.0,1.0]" Default="0.7" Desc="What fraction of the total pixels in a row should be masked"
+; PIPELINE ARGUMENT: Name="high_limit" Type="float" Range="[0,Inf]" Default="1" Desc="Pixel value where exceeding values are assigned a larger mask"
+; PIPELINE ARGUMENT: Name="Save_stripes" Type="int" Range="[0,1]" Default="0" Desc="Save the striping noise image subtracted from frame?"
+; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: Save output to disk, 0: Don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="1" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ;
 ; PIPELINE COMMENT:  Subtract 2D background based on the regions in between the spectra
@@ -47,13 +52,31 @@ function subtract_background_2d, DataSet, Modules, Backbone
 primitive_version= '$Id: displayrawimage.pro 417 2012-02-09 14:13:04Z maire $' ; get version from subversion to store in header history
 @__start_primitive
 
- if tag_exist( Modules[thisModuleIndex], "method") then method=(Modules[thisModuleIndex].method) else method='threshhold'
- if tag_exist( Modules[thisModuleIndex], "thresh") then thresh=float(Modules[thisModuleIndex].thresh) else thresh=2
- if tag_exist( Modules[thisModuleIndex], "fwhm_x") then fwhm_x=float(Modules[thisModuleIndex].fwhm_x) else fwhm_x=1
- if tag_exist( Modules[thisModuleIndex], "fwhm_y") then fwhm_y=float(Modules[thisModuleIndex].fwhm_y) else fwhm_y=7
- if tag_exist( Modules[thisModuleIndex], "niter") then niter=fix(Modules[thisModuleIndex].niter) else niter=3
- if tag_exist( Modules[thisModuleIndex], "before_and_after") then before_and_after=fix(Modules[thisModuleIndex].before_and_after) else before_and_after=0
- mediansize = 7 ;max([fwhm_x, fwhm_y,5])
+; check to see if the frame is a flat or ARC
+
+if strcompress(backbone->get_keyword('OBSTYPE'),/remove_all) eq 'FLAT' or $
+   strcompress(backbone->get_keyword('OBSTYPE'),/remove_all) eq 'ARC' then begin
+   logstr = 'This is a flat or arc observation - no destriping will be performed!'
+   backbone->set_keyword, "HISTORY", logstr,ext_num=0
+   message,/info, "This is a flat or arc observation - no destriping will be performed!"
+   return, ok
+endif
+
+
+ncoadds=float(backbone->get_keyword('coadds'))
+if ncoadds[0] eq 0 then begin
+   logstr = 'No Coadd keyword found in header, assuming 1 coadd!'
+   backbone->set_keyword, "HISTORY", logstr,ext_num=0
+   message,/info, "No Coadd keyword found in header, assuming 1 coadd!"
+   ncoadds=1
+end
+
+ if tag_exist( Modules[thisModuleIndex], "method") then method=(Modules[thisModuleIndex].method) else method=''
+  if tag_exist( Modules[thisModuleIndex], "abort_fraction") then abort_fraction=float(Modules[thisModuleIndex].abort_fraction) else abort_fraction=0.9
+ if tag_exist( Modules[thisModuleIndex], "fraction") then fraction=float(Modules[thisModuleIndex].fraction) else fraction=0.7
+ if tag_exist( Modules[thisModuleIndex], "high_limit") then high_limit=float(Modules[thisModuleIndex].high_limit) else high_limit=1000*ncoadds
+ if tag_exist( Modules[thisModuleIndex], "Save") then save=float(Modules[thisModuleIndex].Save) else Save=0
+ if tag_exist( Modules[thisModuleIndex], "Save_stripes") then save_stripes=float(Modules[thisModuleIndex].Save_stripes) else Save_stripes=0 
 
  ;get the 2D detector image
  image=*(dataset.currframe[0])
@@ -64,147 +87,218 @@ primitive_version= '$Id: displayrawimage.pro 417 2012-02-09 14:13:04Z maire $' ;
  ; and which are not. Perhaps eventually this will be done from a lookup table
  ; or by invoking the wavelength solution, but for now we just do it using a 
  ; cut on the image pixels itself: values > thresh * median value are considered
- ; to be the spectra. 
- sz = size(image)
+ ; to be the spectra
+ sz=size(image) 
+
+    if sz[1] ne 2048 or sz[2] ne 2048 then begin
+        backbone->Log, "REFPIX: Image is not 2048x2048, don't know how to destripe"
+        return, NOT_OK
+     endif
+
  mask = bytarr(sz[1],sz[2])
 
+; load in bad pixel map if it exists
+if keyword_set(badpixmap) then mask[where(badpixmap eq 1)]=1
+
  if strlowcase(method) eq 'threshhold' then begin
-	 ; So: divide the image up into a number of chunks and apply the median threshhold
-	 ; separately to each chunk. This is done to accomodate any variations in
-	 ; average intensity across the FOV which would otherwise prevent a single
-	 ; median value for being appropriate for the whole image. 
 
-
-	; was 4x4, let's try a finer local region because of variation in the background
-	; level. 
-	chunkx = 8
-	chunky = 8
-	for ix=0L,chunkx-1 do begin
-	for iy=0L,chunky-1 do begin
-		dx = sz[1]/chunkx
-		dy = sz[2]/chunky
-		image_part = image[ix*dx:(ix+1)*dx-1, iy*dy:(iy+1)*dy-1]
-
-		med = median(image_part)
-		mask[ix*dx:(ix+1)*dx-1, iy*dy:(iy+1)*dy-1] = $
-			image[ix*dx:(ix+1)*dx-1, iy*dy:(iy+1)*dy-1] gt 2*med
-
-	endfor 
-	endfor 
-
-	 
+        for r=0L,sz[2]-1 do begin ; loop over rows
+              row=image[*,r] - min(image[*,r]) +1 ; MAKES EVERYTHING POSITIVE
+              med = median(row)
+              ; want to mask X percent of the pixels
+              frac=fraction
+              dz=0.01
+              ; determine pixels to mask (this is embarassingly dirty)
+              sorted_ind=reverse(sort(row)) ; high to low
+              for i=0, floor((sz[2]-1)*frac)-1 do mask[sorted_ind[i],r]=1
+           endfor 
+        
 	 ; now expand the mask by 1 pixel in all directions to grab things close to
 	 ; the edges of the spectra. 1 pixel was chosen based on visual examination of
 	 ; how well the final mask works, and is also plausible based on the existence
 	 ; of interpixel capacitance that affects adjacent pixels at a ~few percent
 	 ; level. 
 
-		kernel = [[0,1,0],[1,1,1],[0,1,0]]  ; This appears to work pretty well based on visual examination of the masked region
-		mask = dilate(mask, kernel)
+		;kernel = [[0,1,0],[1,1,1],[0,1,0]]  ; This appears to work pretty well based on visual examination of the masked region
+		;mask = dilate(mask, kernel)
 
 		backbone->Log, "Identified "+strc(total(~mask))+" pixels for use as background pixels"
+
 	endif else begin ;======= use calibration file to determine the regions to use. =====
-		;stop
+	
+	;stop
   		;mode=SXPAR( header, 'PRISM', count=c)
 		mode = gpi_simplify_keyword_value(backbone->get_keyword('DISPERSR', count=c))
 		filter= gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=c))
 		case strupcase(strc(mode)) of
 	  	'PRISM':		begin
 			; load mask from spectral calib file
+
 			; The following code is lifted directly from extractcube.
 		  ;;get length of spectrum
+
             sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect)
             if (sdpx < 0) then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
 
 			tilt=wavcal[*,*,4]
-
+                        if ~keyword_set(high_limit) then high_limit=3000
+                        ; must also mask edges where no wavcal is present
+                                mask[0:8,*]=1
+                                mask[2040:2047,*]=1
+                                mask[*,0:10]=1
+                                mask[*,2028:2047]=1
 			for i=0,sdpx-1 do begin  ;through spaxels
 				;get the locations on the image where intensities will be extracted:
 				x3=xmini-i
 				y3=wavcal[*,*,1]+(wavcal[*,*,0]-x3)*tan(tilt[*,*])	
 				;extract intensities on a 3x1 box:
 				; instead of extracting pixels, mask out those pixels.
+                                dy=1
 				mask[y3,x3] = 1
-				mask[y3+1,x3] = 1
-				mask[y3-1,x3] = 1
-			endfor
+                                mask[y3+dy,x3] = 1
+				mask[y3-dy,x3] = 1
 
-	  
+                                high_ind=where(image[y3,x3] gt high_limit $
+                                               and finite(image[x3,y3] eq 1),complement=low_ind)
+                                ; mask a 5x1 box for pixels passing
+                                ; the high limit
+                                dy=2
+                                if high_ind[0] ne -1 then begin
+                                   mask[y3[high_ind]+dy,x3[high_ind]] = 1
+                                   mask[y3[high_ind]-dy,x3[high_ind]] = 1
+                                endif
+                                ; limit where cross-talk dominates
+                                ; entire spectrum.
+                                very_high_ind=where(image[y3,x3] gt 4000*ncoadds $
+                                               and finite(image[x3,y3] eq 1))
+                                ; mask a 7x1 box for pixels passing
+                                ; the high limit
+                                dy=3
+                                if very_high_ind[0] ne -1 then begin
+                                   mask[y3[very_high_ind]+dy,x3[very_high_ind]] = 1
+                                   mask[y3[very_high_ind]-dy,x3[very_high_ind]] = 1
+                                endif
+                             endfor
 
 	  	end
 	  	'WOLLASTON':	begin
+                    message,/info, "NO DESTRIPING PERFORMED, not implemented for the Wollaston mode"
+                    return,ok
 		; load mask from polarimetr cal file
-		stop
-
+		
 	  	end
-	  	'OPEN':	return, error ('FAILURE ('+functionName+'): method=calfile not implemented for prism='+mode)
-	  	else: return, error ('FAILURE ('+functionName+'): method=calfile not implemented for prism='+mode)
+	  	'OPEN':	begin
+                   message,/info, "NO DESTRIPING PERFORMED, not implemented for Undispersed mode"
+                   return,ok
+                   ;return, error ('FAILURE ('+functionName+'): method=calfile not implemented for prism='+mode)
+                   ;else: return, error ('FAILURE ('+functionName+'): method=calfile not implemented for prism='+mode)
+                end
 	  	endcase
 
 	endelse
 
- ; Now we want to fill in the regions that are masked out. Ideally we would do
- ; this with a convolution, but you can't meaningfully convolve an image full of
- ; NaNs. So let's fill them in with a median first (gets rid of NaNs but does a
- ; mediocre job at image fidelity) and then iteratively repeat convolution to
- ; get it to converge. 
- 
- backbone->Log, 'Masking out pixels and replacing with medians.'
- masked_im = image
- masked_im[where(mask)] = !values.f_nan
-stop 
- iters = fltarr(sz[1],sz[2], niter)
- ; get rid of any remaining NaNs just to be sure:
- tmp0 = median(masked_im, mediansize) 
- backbone->Log, 'Cleaning up remaining NANs.'
- fixpix, tmp0  ,0,tmp,/nan
- iters[*,*,0] = temporary(tmp)
- for n=1,niter-1 do begin
-	 print, "Convolving, iteration "+strc(n)
- 	iters[where(~ mask) + n_elements(image)*(n-1)] = image[where(~ mask)]
- 	iters[*,*,n] = filter_image(iters[*,*,n-1], fwhm=[fwhm_x,fwhm_y],/all)
- 	;(iters[*,*,n])[where(not mask)]= image[where(not mask)]
+	; Chop the image into the 32 readout channels. 
+	; Flip every other channel to account for the readout direction
+	; alternating for the H2RG
+    im=image
+    im[where(mask eq 1)]=!values.f_nan
+    
+	parts = transpose(reform(im, 64,32, 2048),[0,2,1])
+ 	for i=0,15 do parts[*,*,2*i+1] = reverse(parts[*,*,2*i+1]) 
+
+	; Generate a median image from all 32 readout channels
+ 	medpart0 = median(parts,dim=3)
+
+                                ; Any pixel which is 3-sigma
+                                ; discrepant should probably have been
+                                ; masked out
+        medsig=stddev(medpart0,/nan)
+        medmed = median(medpart0)
+        discrepant = where(abs(im-medmed) gt (3*medsig))
+
+        ; apply this as a cutoff and then regenerate the parts array
+        im[discrepant] = !values.f_nan
+	parts = transpose(reform(im, 64,32, 2048),[0,2,1])
+ 	for i=0,15 do parts[*,*,2*i+1] = reverse(parts[*,*,2*i+1]) 
+
+        ; do a controlled median - flags as NaN when less than 3 pixels are used.
+        medpart=fltarr(64,2048)
+        for c=0, 63 do begin
+           for l=0, 2047 do begin
+              ind=where(finite(parts[c,l,*]) eq 1)
+              if N_ELEMENTS(ind) le 3 then parts[c,l,*]=!values.f_nan
+              medpart[c,l]=median(parts[c,l,*],/even)  
+           endfor
+        endfor
+
+; determine if medpart is usable - this is just to make sure that if a
+;                                  flat is put through the pipeline
+;                                  and it does not have the proper
+;                                  keywords then it will not crash the
+;                                  script but rather exit nicely
+
+        if total(finite(medpart))/(2048.0*64) le abort_fraction then begin
+           backbone->set_keyword, "HISTORY", "NOT Destriped, too many pixels above the abort_fraction in Subtract_background_2d"
+           logstr = 'NOT Destriped, too many pixels '+strcompress(string(total(finite(medpart))/(2048.0*64)),/remove_all)+' above the abort_fraction '+strcompress(string(abort_fraction),/remove_all)+' in Subtract_background_2d'
+           backbone->set_keyword, "HISTORY", logstr,ext_num=0
+           message,/info, 'NOT Destriped, too many pixels '+strcompress(string(total(finite(medpart))/(2048.0*64)),/remove_all)+' above the abort_fraction '+strcompress(string(abort_fraction),/remove_all)+' in Subtract_background_2d'
+           return, ok
+        endif
 
 
- 
- endfor
+        ; interpolate pixels having NaN to be the median of the row
+        ; this could be improved to fit a line!
+        nans=where(finite(medpart) eq 0)
+        if nans[0] ne -1 then begin          
+           for i=0, 2048-1 do begin
+              ind=where(finite(medpart[*,i]) eq 0)
+              if ind[0] eq -1 then continue   
+              medpart[ind,i]=median(medpart[*,i])
+           endfor 
+        endif        
+                
+	; Generate a model stripe image from that median, replicated for 
+	; each of the 32 channels with appropriate flipping
+        model = rebin(medpart, 64,2048,32)
+        for i=0,15 do model[*,*,2*i+1] = reverse(model[*,*,2*i+1]) 
+        stripes = reform(transpose(model, [0,2,1]), 2048, 2048)	
+
+; replace NaN's by zeros - these are the lines that were masked out
+; this should be made more robust! 
+        nan_ind=where(finite(stripes) eq 0)
+        if nan_ind[0] ne -1 then stripes[nan_ind]=0
+
+        imout = image - stripes
+
+; input safety to make sure no NaN's are in the image
+        nan_check=where(finite(imout) eq 0)
+        
+        if nan_check[0] ne -1 then begin
+           backbone->set_keyword, "HISTORY", "NOT Destriped, failed in Subtract_background_2d - NaN found in mask"
+           logstr = 'Destripe failed in Subtract_background_2d - NaN found in output image - so no destripe performed'
+           backbone->set_keyword, "HISTORY", logstr,ext_num=0
+           message,/info, 'Destripe failed in Subtract_background_2d - NaN found in mask - so no destripe performed'
+           imout=image
+        endif
 
 
- subtracted = image-iters[*,*,niter-1]
- 
+	backbone->set_keyword, "HISTORY", "Destriped, using a spectral masking + channel median"
+	backbone->set_keyword, "HISTORY", "This does not work on flat fields!"
 
- ; show comparison in ATV? 
- if keyword_set(before_and_after) then begin
-	atv, [[[image]],[[subtracted]],[[masked_im]], [[iters[*,*,niter-1]]]],/bl, $
-		names = ['Input image','Post Subtraction', 'Masked to background pixels only', 'Background Model'], /linear,min=0,max=150
- endif 
+        *(dataset.currframe[0]) = imout
+        sxaddhist, "Subtracted 2D image background estimated from spectral masking + channel median", *(dataset.headersPHU[numfile])
+        backbone->set_keyword, "HISTORY", "Subtracted 2D image background estimated from pixels between spectra",ext_num=0
+        suffix='-bgsub2d'
 
- ; show comparison in window?
- if keyword_set(before_and_after) then begin
-	window,0,xsize=1200,ysize=400
-	erase
-	mx=1100
-	my=1300
-	cgimage, bytscl( [image[mx:my,mx:my], masked_im[mx:my,mx:my], iters[mx:my,mx:my, niter-1], subtracted[mx:my,mx:my]],0,150),/keep
-	xyouts, 0.05, 0.95, 'Input (subregion)'
-	xyouts, 0.3, 0.95, 'Masked'
-	xyouts, 0.6, 0.95, 'Model'
-	xyouts, 0.8, 0.95, 'Subtracted'
- endif
-
-
- *(dataset.currframe[0]) = subtracted
-  ;sxaddhist, "Subtracted 2D image background estimated from pixels between spectra", *(dataset.headersPHU[numfile])
-  backbone->set_keyword, "HISTORY", "Subtracted 2D image background estimated from pixels between spectra",ext_num=0
-  suffix='-bgsub2d'
-
-  logstr = 'After background model sub, stddev of background pixels: '+strc(stddev(subtracted[where(~mask)]))
-  ;sxaddhist, logstr, *(dataset.headersPHU[numfile])
-  backbone->set_keyword, "HISTORY", logstr,ext_num=0
-  backbone->Log, logstr
-
-
-
+        if tag_exist( Modules[thisModuleIndex], "Save Stripes") && ( Modules[thisModuleIndex].Save_stripes eq 1 ) then b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, '-stripes', display=display,savedata=stripes,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile])
+        
+        logstr = 'Robust sigma of unmasked pixels before destriping: '+strc(robust_sigma(image[where(~mask)]))
+        backbone->set_keyword, "HISTORY", logstr,ext_num=0
+        message,/info,'Robust sigma of unmasked pixels before destriping: '+strc(robust_sigma(image[where(~mask)]))
+        logstr = 'Robust sigma of unmasked pixels after destriping: '+strc(robust_sigma(imout[where(~mask)]))
+                                ;sxaddhist, logstr, *(dataset.headersPHU[numfile])
+        backbone->set_keyword, "HISTORY", logstr,ext_num=0
+        backbone->Log, logstr
 
 @__end_primitive
 end
