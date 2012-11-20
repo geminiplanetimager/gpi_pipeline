@@ -11,7 +11,7 @@
 ; HISTORY:
 ; 	 Jerome Maire 2008-10
 ;   JM 2010-08-16 : added badpixel map 
-function localizepeak, im, cenx, ceny,wx,wy, hh, badpixmap=badpixmap
+function localizepeak_bp, im, cenx, ceny,wx,wy, hh, badpixmap=badpixmap
 
 
 szim=size(im)

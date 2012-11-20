@@ -27,13 +27,13 @@ for i=0,ii-1 do begin
 endfor
 
 ; retrieve creation date
-	date=dblarr(n_elements(fitsfileslist))
-    for j=0,n_elements(date)-1 do begin
+	datet=dblarr(n_elements(fitsfileslist))
+    for j=0,n_elements(datet)-1 do begin
     Result = FILE_INFO(fitsfileslist[j] )
-    date(j)=Result.ctime
+    datet(j)=Result.ctime
     endfor
 ;sort files with creation date
-    list2=fitsfileslist(REVERSE(sort(date)))
+    list2=fitsfileslist(REVERSE(sort(datet)))
     list3=list2(0:n_elements(list2)-1)
 
 ;; old file list
@@ -44,10 +44,10 @@ dateold=dblarr(n_elements(listfile))
     endfor
 
 ;;compare old and new file list
-if (max(date) gt max(dateold)) || (n_elements(date) gt n_elements(dateold)) then begin
+if (max(datet) gt max(dateold)) || (n_elements(datet) gt n_elements(dateold)) then begin
 	;chang=1
 	listfile=list3
-	lastdate= max(date,maxind)
+	lastdate= max(datet,maxind)
 	chang=fitsfileslist[maxind]
 endif
 wait,1

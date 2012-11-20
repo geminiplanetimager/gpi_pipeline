@@ -56,6 +56,7 @@ function gpi_get_setting, settingname, expand_path=expand_path, integer=int, boo
 	endif
 
 	user_settings_file = gpi_expand_path("~")+path_sep()+".gpi_pipeline_settings"
+	if strmatch(!VERSION.OS_FAMILY , 'Windows',/fold) then  user_settings_file = gpi_get_directory("GPI_DRP_CONFIG_DIR")+path_sep()+"gpi_pipeline_settings.txt"
 	global_settings_file = gpi_get_directory("GPI_DRP_CONFIG_DIR")+path_sep()+"pipeline_settings.txt"
 
 	;-------- First, load the user settings, if present

@@ -30,7 +30,7 @@ if ~(keyword_set(name)) then begin
  	return,{sep:!values.f_nan,PA:!values.f_nan} 
 endif
 
-binarystarsfile=  gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'orb6orbits.txt')
+binarystarsfile=  gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+('orb6orbits.txt')
 
 
 if ~file_test(binarystarsfile) then begin 
