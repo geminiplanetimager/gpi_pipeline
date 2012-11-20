@@ -9,7 +9,7 @@ pro gpi_compiler, compildir, drpdirectory=drpdirectory, gpitvdir=gpitvdir
 
   if N_params() EQ 0 then begin ;Prompt for directory of produced executables?
   compildir = ' ' 
-        read,'Enter name of procedure you want a copy of: ',compildir    
+        read,'Enter name of the directory where to create executables: ',compildir    
   
   endif
 if keyword_set(drpdirectory) then directory=drpdirectory else $
