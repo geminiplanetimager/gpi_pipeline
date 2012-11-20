@@ -75,9 +75,16 @@ function gpi_get_directory, dirname,expand_path=expand_path,method=method
   case strupcase(varname) of
      'GPI_DRP_DIR': begin
         ;; find where this current file is
-        FindPro, 'gpi_get_directory', dirlist=dirlist, /noprint
-        dirlist = dirlist[0]                           ; scalarize
-        result = file_dirname(dirlist)                 ; parent directory will be pipeline root.
+        mode = LMGR(/vm)
+        if mode eq 0 then begin 
+          FindPro, 'gpi_get_directory', dirlist=dirlist, /noprint
+          dirlist = dirlist[0]                           ; scalarize
+          result = file_dirname(dirlist)                 ; parent directory will be pipeline root.
+        endif else begin
+           cd, curr=curr
+          result = curr                   
+        endelse  
+        
      end
      'GPI_DRP_TEMPLATES_DIR': 	result = gpi_get_directory("GPI_DRP_DIR")+path_sep()+"recipe_templates"
      'GPI_DRP_CONFIG_DIR':		result = gpi_get_directory("GPI_DRP_DIR")+path_sep()+"config"
