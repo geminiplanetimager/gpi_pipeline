@@ -347,7 +347,7 @@ function gpicaldatabase::get_best_cal_from_header, type, priheader, extheader, _
 
 
 	fits_data = {pri_header: ptr_new(priheader), ext_header: ptr_new(extheader)}
-	return, self->get_best_cal( type, fits_data)
+	return, self->get_best_cal( type, fits_data, _extra=_extra)
 
 
 end
@@ -356,7 +356,13 @@ end
 ; Find which calibration file in the DB best matches
 ; the need for a given routine
 function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, itime=itime, $
-	verbose=verbose
+	verbose=verbose, ignore_cooldown_cycles=ignore_cooldown_cycles
+	; 
+	; Keywords
+	; verbose : print more display
+	; ignore_cooldown_cycles : by default, will restrict based on IFS thermal
+	; 							history. This lets you optionally disable that
+	; 							check from the calling primitive.
 
 
 
@@ -376,11 +382,15 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	; For dark images, the filter does not matter. I'm going to change this to
 	; just 'itime' unless someone has another opinion?
 
+	; FIXME perhaps this should be a configuration file instead?
 	types_str =[['dark', 'Dark', 'itimeReadmode'], $
 			  	['wavecal', 'Wavelength Solution Cal File', 'FiltPrism'], $
 				['flat', 'Flat field', 'FiltPrism'], $
 				;['flat', 'Flat field', 'FiltPrism'], $
 				['badpix', 'Bad Pixel Map', 'typeonly'], $
+				['hotbadpix', 'Hot Pixel Map', 'typeonly'], $
+				['coldbadpix', 'Cold Bad Pixel Map', 'typeonly'], $
+				['nonlinearbadpix', 'Nonlinear Bad Pixel Map', 'typeonly'], $
 				['plate', 'Plate scale & orientation', 'typeonly'], $
 				['spotloc', 'Spot Location Measurement', 'FiltOnly'], $
 				['Gridratio', 'Grid Ratio', 'FiltOnly'], $
@@ -389,11 +399,9 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 				['polcal', 'Polarimetry Spots Cal File', 'FiltPrism'], $
 				['instpol', 'Instrumental Polarization', 'FiltPrism'], $
 				['distor', 'Distortion Measurement', 'typeonly'], $
-				['', '', 'FiltPrism'], $
-				['', '', ''], $
 				['', '', '']]
 	; reformat the above into a struct array.
-	aa = {type_struct, name: 'dark', description:'Dark', match_on:"itimeFilt"}
+	aa = {type_struct, name: 'dark', description:'Dark', match_on:"itimeReadmode"}
 	types = replicate(aa, (size(types_str))[2])
 	types.name=reform(types_str[0,*])
 	types.description=reform(types_str[1,*])
@@ -407,7 +415,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 		return, NOT_OK
 	end
 
-	if keyword_set(verbose) then message,/info, "Finding Calibration File for "+ types[itype].description +" using selection on "+types[itype].match_on
+	if keyword_set(verbose) then self->Log, "Finding Calibration File for "+ types[itype].description +" using selection on "+types[itype].match_on
 
 	wm= where(strmatch((*self.data).type, types[itype].description+"*",/fold),cc)
 	if cc eq 0 then begin
@@ -425,20 +433,25 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	readoutmode=newfile.readoutmode ;self->get_readoutmode_as_string(fits_data)
 
 	;---- optional: restrict based on dates of IFS cooldown runs (so 
-	if gpi_get_setting('caldb_restricts_by_cooldown', /bool, default=1,/silent) then begin
+	if (gpi_get_setting('caldb_restricts_by_cooldown', /bool, default=1,/silent) $
+	    and not keyword_set(ignore_cooldown_cycles)) then begin
 		calfiles_table = (*self.data)
 		
 		; find the JD range corresponding to the IFS cooldown run for that data
 		wstart = where(*self.ifs_cooldown_jds lt newfile.jd, countstart)
+		wstop  = where(*self.ifs_cooldown_jds gt newfile.jd, countstop)
+
 		if countstart gt 0 then cooldown_start = max( (*self.ifs_cooldown_jds)[wstart]) else cooldown_start=1
-		wstop= where(*self.ifs_cooldown_jds gt newfile.jd, countstop)
-		if countstop gt 0 then cooldown_stop = min( (calfiles_table.JD)[wstop]) else cooldown_stop=1e7
+		if countstop gt 0  then cooldown_stop  = min( (*self.ifs_cooldown_jds)[wstop]) else cooldown_stop=1e7
+
+		if keyword_set(verbose) then self->Log, "Restricting to files between JD="+strc(cooldown_start)+" to "+strc(cooldown_stop)
 
 		startday_str = strmid(date_conv(cooldown_start,'FITS'), 0, 10)
 		stopday_str = strmid(date_conv(cooldown_stop,'FITS'), 0, 10)
 		if cooldown_stop eq 1e7 then stopday_str = "present"
 
 		wCorrectCooldown = where((calfiles_table.JD ge cooldown_start) and (calfiles_table.JD le cooldown_stop), correctcount)
+		if keyword_set(verbose) then self->Log, "  Found "+strc(correctcount)+" files total in that date range."
 		if correctcount eq 0 then begin
 			self->Log, "CALIBS DB ERROR: --NO FILES AVAILABLE IN DB for IFS cooldown between "+startday_str+" to "+stopday_str+" --",depth=1
 			return, NOT_OK
@@ -454,12 +467,9 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 		endif 
 
 
-
 	endif else begin
-		; Use all calibration files.
+		; Use all calibration files, no restriction by IFS cooldown.
 		calfiles_table = (*self.data)
-
-
 	endelse
 
 
@@ -474,48 +484,50 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	    imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
 	   		(calfiles_table.itime) eq itime,cc)
 		errdesc = 'with same ITIME'
-		; FIXME if no exact match found for itime, fall back to closest match
-		if cc eq 0 then begin
-			self->Log, "No exact match found for ITIME, thus looking for closesd approximate mathc instead",depth=3
-	    	imatches_typeonly= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold))
-			deltatimes = calfiles_table[imatches_typeonly].itime - itime
 
-			mindelta = min( abs(deltatimes), wmin)
-			imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
-				            (calfiles_table.itime) eq calfiles_table[wmin[0]].itime,cc)
-			self->Log, "Found "+strc(cc)+" approx matches with ITIME="+strc(calfiles_table[wmin[0]].itime)
-
-
-		endif
+		; NOTE: we are no longer going to hand back approximate matches, since
+		; that would involve rescaling in darks that we do not do. Instead, you
+		; must always have the appropriate ITIME darks. 
+		;		; FIXME if no exact match found for itime, fall back to closest match
+		;		if cc eq 0 then begin
+		;			self->Log, "No exact match found for ITIME, thus looking for closesd approximate mathc instead",depth=3
+		;	    	imatches_typeonly= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold))
+		;			deltatimes = calfiles_table[imatches_typeonly].itime - itime
+		;
+		;			mindelta = min( abs(deltatimes), wmin)
+		;			imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
+		;				            (calfiles_table.itime) eq calfiles_table[wmin[0]].itime,cc)
+		;			self->Log, "Found "+strc(cc)+" approx matches with ITIME="+strc(calfiles_table[wmin[0]].itime)
+		;
+		;
+		;		endif
 
 	end
 	'itimeReadmode': begin
 	    imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
 	   		((calfiles_table.readoutmode) eq readoutmode ) and $
 	   		(calfiles_table.itime) eq itime,cc)
-		errdesc = 'with same ITIME'
-		; FIXME if no exact match found for itime, fall back to closest match
-		if cc eq 0 then begin
-			self->Log, "No exact match found for ITIME, thus looking for closesd approximate mathc instead",depth=3
-	    	imatches_typeonly= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold))
-			deltatimes = calfiles_table[imatches_typeonly].itime - itime
-
-			mindelta = min( abs(deltatimes), wmin)
-			imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
-				            (calfiles_table.itime) eq calfiles_table[wmin[0]].itime,cc)
-            self->Log, " Found "+strc(cc)+" approx matches with ITIME="+strc(calfiles_table[wmin[0]].itime)
-
-
-		endif
-
-	end
+		errdesc = 'with same ITIME and Detector Readout Mode'
+		; NOTE: we are no longer going to hand back approximate matches, since
+		; that would involve rescaling in darks that we do not do. Instead, you
+		; must always have the appropriate ITIME darks. 
+		;
 	
-	 'itimeFilt': begin
-      	imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
-        ((calfiles_table.itime) eq itime) and $
-        ((calfiles_table.filter) eq filter) ,cc) 
-    	errdesc = 'with same ITIME and FILTER'
-  	end
+		; FIXME if no exact match found for itime, fall back to closest match
+		;		if cc eq 0 then begin
+		;			self->Log, "No exact match found for ITIME, thus looking for closesd approximate match instead",depth=3
+		;	    	imatches_typeonly= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold))
+		;			deltatimes = calfiles_table[imatches_typeonly].itime - itime
+		;
+		;			mindelta = min( abs(deltatimes), wmin)
+		;			imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
+		;				            (calfiles_table.itime) eq calfiles_table[wmin[0]].itime,cc)
+		;            self->Log, " Found "+strc(cc)+" approx matches with ITIME="+strc(calfiles_table[wmin[0]].itime)
+		;
+		;
+		;		endif
+		;
+	end
 	'FiltPrism': begin
 		 imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
 	   		((calfiles_table.filter) eq filter ) and $
@@ -528,29 +540,60 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
      	errdesc = 'with same FILTER'
   	end
 	endcase
+
     
 	if cc eq 0 then begin
 		message, "ERROR: --No matching cal files "+errdesc+" as requested in DB--",/info
 		void=error('ERROR: --No matching cal files '+errdesc+' as requested in DB--')
 		return, NOT_OK
 	endif
-	if keyword_set(verbose) then message,/info, "Found "+strc(cc)+" possible cal files; selecting best based on closest date."
+	if keyword_set(verbose) then self->Log, "Found "+strc(cc)+" possible cal files for "+type+"; selecting best based on closest date."
 
-
+	; Find the single closest in time calibration file.
 	timediff=min(abs( (calfiles_table.JD)[imatches] - date ),minind)
-	if keyword_set(verbose) then message,/info, "Closest date offset is "+strc(timediff)
-	;combinaison of wav.cal. has same timediff than the most recent wav.cal of the combinaison
-	;so, keep only the combinaison (TO DO: use keyword DATAFILE instead of suffix filename?)
-	ibests=where(abs( (calfiles_table.JD)[imatches] - date ) eq timediff,cc)
+	if keyword_set(verbose) then self->Log, "Closest date offset is "+strc(timediff)
 
-	if cc gt 1 then begin
+
+	; If you have multiple calibration files of the same
+	; type within +-12 hrs of one another, use the one with the maximum
+	; integration time. The logic here is that combined data products used as calibration
+	; files will have higher exp time than their individual components. 
+	
+	within1day = where(abs( (calfiles_table.JD)[imatches] - ((calfiles_table.JD)[imatches])[minind] ) le 0.5, datecount)
+	
+
+	if datecount eq 1 then begin
+		; only one plausible calibration file within 1 day. Just use that file.
   		ibest = imatches[minind]
+		if keyword_set(verbose) then self->Log, ' There is only 1 possible cal file on that date. Selecting it.'
   	endif else begin
-	  	ibest = imatches[minind]
+		; multiple plausible files found within 1 day. Use the highest exposure
+		; time. If there are several with identical exposure time, use the 
+		; closest in time.
+		;
+		if keyword_set(verbose) then self->Log, ' There are '+strc(datecount)+' possible cal files at that date +- 12 hrs.'
+		itimes =  ((calfiles_table[imatches])[within1day]).itime
+		maxitime = max(itimes, maxitimeind)
+		wmaxitime = where(itimes eq maxitime, maxct)
+		if maxct eq 1 then begin ; use the highest exposure time
+			ibest = (imatches[within1day])[maxitimeind]
+			if keyword_set(verbose) then self->Log, ' Selected the file with the greatest total integration time. '
+		endif else begin
+			; If there are several with identical exposure time, use the
+			; very closest in time.
+
+			imaxitime = (imatches[within1day])[wmaxitime]
+			maxitime_jds = (calfiles_table.JD)[imaxitime]
+			closest_at_maxitime = min( maxitime_jds - date, iclosest)
+			ibest = imaxitime[iclosest]
+			if keyword_set(verbose) then self->Log, ' Found '+strc(maxct)+' files with same max itime. Chose closest in time. '
+			
+		endelse
+
 	endelse
+
 	
     bestcalib=(calfiles_table.PATH)[ibest]+path_sep()+(calfiles_table.FILENAME)[ibest]
-	if keyword_set(verbose) then message,/info, "Returning best calib= "+bestcalib
 
     self->Log, "Returning best cal file= "+bestcalib,depth=3
 	
