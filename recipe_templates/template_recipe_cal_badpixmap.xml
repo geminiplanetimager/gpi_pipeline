@@ -5,6 +5,6 @@
 </dataset>
 <module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
 <module name="Find Bad pixels from flats" Save="1" gpitv="2" suffix='-bp' />
-<module name="Accumulate Images" Method="OnDisk" />
+<module name="Accumulate Images" Method="InMemory" />
 <module name="Combine bad pixel maps" Save="1" gpitv="2" combmethod="OR" />
 </DRF>
