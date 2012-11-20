@@ -13,7 +13,7 @@
 ; OUTPUTS: none
 ;
 ; PIPELINE COMMENT: Reads a bad-pixel map file from disk. 
-; PIPELINE ARGUMENT: Name="CalibrationFile" type="badpix" default="GPI-badpix.fits" Desc="Filename of the desired wavelength calibration file to be read"
+; PIPELINE ARGUMENT: Name="CalibrationFile" type="badpix" default="AUTOMATIC" Desc="Filename of the desired bad pixel file to be read"
 ; PIPELINE ORDER: 0.02
 ; PIPELINE TYPE: ALL
 ; PIPELINE NEWTYPE: ALL
@@ -33,11 +33,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 calfiletype='badpix'
 @__start_primitive
 
-    ;pmd_badpixmapFrame        = ptr_new(gpi_READFITS(c_File, Header, /SILENT))
+	if ~file_test( c_File) then return, error("Bad pixel file does not exist!")
     badpixmap= gpi_READFITS(c_File)
 
     backbone->set_keyword,'HISTORY',functionname+": Loaded bad pixel map",ext_num=0
     backbone->set_keyword,'HISTORY',functionname+": "+c_File,ext_num=0
+    backbone->set_keyword,'DRPBADPX',c_File,ext_num=0
 
 
 return, ok

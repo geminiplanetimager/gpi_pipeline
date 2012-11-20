@@ -1,8 +1,8 @@
 ;+
 ; NAME: gpi_combine_badpixmaps
-; PIPELINE PRIMITIVE DESCRIPTION: Combine bad pixel maps
+; PIPELINE PRIMITIVE DESCRIPTION: Generate Combined Bad Pixel Map
 ;
-; This routine is used to do an "AND" combination of badpix maps extracted from several bands.
+; This routine is used to come
 ;
 ; INPUTS: bad pixel maps 
 ; GEM/GPI KEYWORDS:
@@ -12,9 +12,7 @@
 ; PIPELINE ORDER: 4.02
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
-; PIPELINE ARGUMENT: Name="combmethod" Type="string" Range="OR|AND" Default="OR" Desc="Combination of badpix maps: OR|AND"
-; PIPELINE COMMENT: This routine is used to do an AND or OR combination of badpix maps (badpix=1, elsewhere=0) extracted from several bands.
-; PIPELINE TYPE: CAL-SPEC
+; PIPELINE COMMENT: This routine combines various sub-types of bad pixel mask (hot, cold,  anomalous nonlinear pixels) to generate a master bad pixel list.
 ; PIPELINE NEWTYPE: Calibration
 ; PIPELINE SEQUENCE: 
 ;
@@ -22,57 +20,76 @@
 ;    Jerome Maire 2009-08-10
 ;   2009-09-17 JM: added DRF parameters
 ;   2012-01-31 Switched sxaddpar to backbone->set_keyword Dmitry Savransky
+;   2012-11-19 MP: Complete algorithm overhaul.
 ;-
 
 
 function gpi_combine_badpixmaps,  DataSet, Modules, Backbone
-common PIP
-COMMON APP_CONSTANTS
-
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
-   ;getmyname, functionName
+	nfiles=dataset.validframecount
+
+	sz=[2,2048,2048]
    
- ; thisModuleIndex = Backbone->GetCurrentModuleIndex()
-  nfiles=dataset.validframecount
+	; There are three different kinds of bad pixels that we are currently
+	; tracking:
+	;   1. Hot bad pixels (identified from darks, in which they have too high counts)
+	;   2. Cold bad pixels (identified from flats, in which they have too low counts)
+	; 	3. "anomalous" nonlinear pixels (identified from UTR flat sequences saving every frame,
+	;		in which these pixels do not show any linear portion of their slope at all)
+
+	bptypes = ['hotbadpix','coldbadpix','nonlinearbadpix']
+	types = ['hot pixels', 'cold pixels', 'pixels with no linear behavior']
+	ignore_cooldowns = [0,1,1]
+	bpmasks = fltarr(sz[1],sz[2], n_elements(bptypes))
+
+	for i=0L,n_elements(bptypes)-1 do begin
+
+		c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( bptypes[i],$ 
+				*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile],$
+				ignore_cooldown_cycles = ignore_cooldowns[i], /verbose) 
+		if size(c_file,/tname) eq 'int' then if c_file eq not_ok then begin
+			return, error('ERROR ('+strtrim(functionname)+'): bad pix mask of type '+bptypes[i]+' could not be found in calibrations database.')
+		endif else begin
+			fxaddpar,*(dataset.headersphu[numfile]),'history',functionname+": resolved calibration file of type '"+bptypes[i]+"'."
+			fxaddpar,*(dataset.headersphu[numfile]),'history',functionname+":   "+c_file 
+		endelse
+		c_file = gpi_expand_path(c_file)  
+		if ( not file_test ( c_file ) ) then $
+		   return, error ('ERROR ('+strtrim(functionname)+'): calibration file  ' + $
+						  strtrim(string(c_file),2) + ' not found.' )
+
+		data = gpi_load_fits(c_File)
+		if n_elements(*data.image) ne 2048l*2048 then begin
+		   return, error ('ERROR ('+strtrim(functionname)+'): calibration file  ' + $
+						  strtrim(string(c_file),2) + ' does not have the correct size or dimensions.' )
+
+		endif
+		bpmasks[*,*,i] = *data.image
+
+		backbone->Log, "From file "+c_file+", have "+strc(fix(total(*data.image)))+" "+types[i]
+		backbone->set_keyword, 'HISTORY', functionname+":   Mask has "+strc(total(*data.image))+" "+types[i],ext_num=0
+
+	endfor 
 
 
-   sz=size(*(dataset.currframe[0]))
-   
-   badpixcomb=bytarr(sz[1],sz[2])
+	badpixcomb = total(bpmasks,3) gt 0
+	totbadpix = fix(total(badpixcomb))
 
-if tag_exist( Modules[thisModuleIndex], "combmethod")&& ( Modules[thisModuleIndex].combmethod eq 'OR' ) then begin
-   for n=0,nfiles-1 do badpixcomb= logical_or(badpixcomb,  accumulate_getimage( dataset, n))
-endif else begin
-   for n=0,nfiles-1 do badpixcomb= logical_and(badpixcomb,  accumulate_getimage( dataset, n))
-endelse
-;TO DO: put method in Log, 
-*(dataset.currframe[0])=badpixcomb
+	*(dataset.currframe[0])=byte(badpixcomb)
 
-  thisModuleIndex = Backbone->GetCurrentModuleIndex()
-suffix+='-comb'
+  	thisModuleIndex = Backbone->GetCurrentModuleIndex()
+	suffix = '-badpix'
 
-  ; Set keywords for outputting files into the Calibrations DB
-  ;  sxaddpar, *(dataset.headersPHU[numfile]), "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
-  ;  sxaddpar, *(dataset.headersPHU[numfile]),  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
-backbone->set_keyword, "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
-backbone->set_keyword,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+
+	backbone->set_keyword, 'HISTORY', functionname+": Result has "+strc(totbadpix)+" total bad pixels",ext_num=0
+	backbone->Log, "Combined bad pixel map has "+strc(totbadpix)+" total bad pixels"
+
+	backbone->set_keyword, "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
+	backbone->set_keyword,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
+	backbone->set_keyword,  "DRPNBAD", totbadpix, 'This is a reduced calibration file of some type.'
   
 
-;TODO header update
-;  thisModuleIndex = Backbone->GetCurrentModuleIndex()
-;    if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
-;      if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
-;      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display)
-;      if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
-;    endif else begin
-;      if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
-;          ;gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=*(dataset.headers)[numfile]
-;          Backbone_comm->gpitv, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv)
-;    endelse
-;
-;
-;   return, ok
 @__end_primitive
 
 end
