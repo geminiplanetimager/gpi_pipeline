@@ -29,30 +29,28 @@
 ; if appropriate, attempt to locate and verify a calibration file.
 	if keyword_set(calfiletype) then begin
 
-		c_File = (Modules[thisModuleIndex].CalibrationFile)
+		c_file = (modules[thismoduleindex].calibrationfile)
 
-		if strmatch(c_File, 'AUTOMATIC',/fold) then begin
-		    c_File = (Backbone_comm->Getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headersPHU)[numfile],*(dataset.headersExt)[numfile] ) 
+		if strmatch(c_file, 'automatic',/fold) then begin
+		    c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headersphu)[numfile],*(dataset.headersext)[numfile] ) 
 
-			if size(c_file,/tname) eq 'INT' then if c_file eq NOT_OK then begin
-				return, error('ERROR IN CALL ('+strtrim(functionName)+'): Calibration File could not be found in calibrations database.')
+			if size(c_file,/tname) eq 'int' then if c_file eq not_ok then begin
+				if ~(keyword_set(no_error_on_missing_calfile)) then $
+				return, error('error in call ('+strtrim(functionname)+'): calibration file could not be found in calibrations database.')
 			endif else begin
-;				sxaddhist, functionname+": Automatically resolved calibration file of type '"+calfiletype+"'.", *(dataset.headers[numfile])
-;				sxaddhist, functionname+":   "+c_File , *(dataset.headers[numfile])
-				fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": Automatically resolved calibration file of type '"+calfiletype+"'."
-				fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+":   "+c_File 
+				fxaddpar,*(dataset.headersphu[numfile]),'history',functionname+": automatically resolved calibration file of type '"+calfiletype+"'."
+				fxaddpar,*(dataset.headersphu[numfile]),'history',functionname+":   "+c_file 
 			endelse
 		endif
-		c_File = gpi_expand_path(c_File)  
+		c_file = gpi_expand_path(c_file)  
 
 
 		; in either case, does the requested file actually exist?
-		if ( NOT file_test ( c_File ) ) then $
-		   return, error ('ERROR IN CALL ('+strtrim(functionName)+'): Calibration File  ' + $
-						  strtrim(string(c_File),2) + ' not found.' )
+		if ( not file_test ( c_file ) ) then $
+			if ~(keyword_set(no_error_on_missing_calfile)) then $
+		   return, error ('error in call ('+strtrim(functionname)+'): calibration file  ' + $
+						  strtrim(string(c_file),2) + ' not found.' )
 
-		; FIXME add some lines here to log the calibration filename to the
-		; header automatically
 	endif
 
 

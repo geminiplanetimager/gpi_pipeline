@@ -38,7 +38,7 @@
 ;- 
 
 function gpi_meas_sat_spots_locations, DataSet, Modules, Backbone
-primitive_version= '$Id: gpi_meas_sat_spots_locations.pro 78 2010-09-03 18:58:45Z maire $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 cube = *(dataset.currframe[0])

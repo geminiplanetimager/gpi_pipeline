@@ -25,7 +25,7 @@
 ;- 
 
 function gpi_correct_distortion, DataSet, Modules, Backbone
-primitive_version= '$Id: gpi_correct_distortion.pro 78 2011-01-06 18:58:45Z maire $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 
 calfiletype='distor' 
 @__start_primitive

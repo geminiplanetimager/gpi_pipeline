@@ -48,7 +48,7 @@
 ;-
 
 function gpi_extract_wavcal_locations,  DataSet, Modules, Backbone
-primitive_version= '$Id: gpi_extract_wavcal_locations.pro 11 2010-07-06 01:22:03Z maire $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
    

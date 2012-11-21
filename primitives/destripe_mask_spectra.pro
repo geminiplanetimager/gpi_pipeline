@@ -28,7 +28,7 @@
 ;   2012-10-11 MP: Created, based on extractcube
 ;+
 function destripe_mask_spectra, DataSet, Modules, Backbone
-primitive_version= '$Id: extractcube.pro 929 2012-09-15 05:57:55Z mperrin $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 

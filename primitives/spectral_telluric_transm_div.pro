@@ -13,7 +13,6 @@
 ; PIPELINE COMMENT: Divides a spectral data-cube by a flat field data-cube.
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="-tellucal" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-telcal" Desc="Enter output suffix"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.5
 ; PIPELINE TYPE: ALL/SPEC
@@ -26,55 +25,36 @@
 ;   2009-10-09 JM added gpitv display
 ;   2010-10-19 JM: split HISTORY keyword if necessary
 ;   2011-08-01 MP: Update for multi-extension FITS files
+;   2012-10-10 MP: Minor code cleanup; remove deprecated suffix= parameter
 ;-
 
 function spectral_telluric_transm_div, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 calfiletype='telluric'
-
 @__start_primitive
 
 	
 	if ~file_test( c_File) then return, error("Telluric transmission file does not exist!")
   
-  ;if numext eq 0 then $
-	tellurictrans = gpi_readfits( c_File) ;else $
-	;tellurictrans = mrdfits( c_File,1)
+	tellurictrans = gpi_readfits( c_File) 
 
-; TODO error check sizes of arrays, etc. 
-; TODO update FITS header history
-;	sxaddhist, functionname+": dividing by telluric transmission", *(dataset.headers[numfile])
-;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-  	backbone->set_keyword,'HISTORY',functionname+": dividing by telluric transmission",ext_num=0
-   	backbone->set_keyword,'HISTORY',functionname+": "+c_File,ext_num=0
-  	datacube=*(dataset.currframe[0])
-  	sz=size(datacube)
+  	;datacube=*(dataset.currframe[0])
+
+  	sz=size(  *dataset.currframe)
   	if sz[3] ne n_elements(tellurictrans) then return, error("Error: Telluric transmission does not have same dimensions as datacube!")
+
+   	backbone->set_keyword,'HISTORY',functionname+": dividing by telluric transmission",ext_num=0
+   	backbone->set_keyword,'HISTORY',functionname+": "+c_File,ext_num=0
+ 
+	; TODO vectorize!  Which way is faster?
+;	for ii=0,sz[1]-1 do begin
+;	  for jj=0,sz[2]-1 do begin
+;       datacube[ii,jj,*]/= tellurictrans
+;      endfor
+;    endfor
+	for i=0,sz[3]-1 do (*dataset.currframe)[*,*,i] /= tellurictrans[i]
   
-	; TODO vectorize!
-	for ii=0,sz[1]-1 do begin
-	  for jj=0,sz[2]-1 do begin
-       datacube[ii,jj,*]/= tellurictrans
-      endfor
-    endfor
-  
-    *(dataset.currframe[0])=datacube
+    ;*(dataset.currframe)=datacube
 
 @__end_primitive 
-;;
-;;    thisModuleIndex = Backbone->GetCurrentModuleIndex()
-;;    if tag_exist( Modules[thisModuleIndex], "Save") && tag_exist( Modules[thisModuleIndex], "suffix") then suffix+=Modules[thisModuleIndex].suffix
-;;  
-;;    if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
-;;      if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
-;;      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display)
-;;      if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
-;;    endif else begin
-;;      if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
-;;          gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=*(dataset.headers)[numfile]
-;;    endelse
-;;
-;;return, ok
-;;
-;;
 end

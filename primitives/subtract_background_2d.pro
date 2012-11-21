@@ -49,7 +49,7 @@
 ;   2011-07-30 MP: Updated for multi-extension FITS
 ;-
 function subtract_background_2d, DataSet, Modules, Backbone
-primitive_version= '$Id: displayrawimage.pro 417 2012-02-09 14:13:04Z maire $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 ; check to see if the frame is a flat or ARC

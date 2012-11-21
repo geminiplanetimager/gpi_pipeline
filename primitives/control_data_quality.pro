@@ -31,7 +31,7 @@
 
 function control_data_quality, DataSet, Modules, Backbone
 
-primitive_version= '$Id: control_data_quality.pro 96 2010-10-30 13:47:13Z maire $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
  
 @__start_primitive
 

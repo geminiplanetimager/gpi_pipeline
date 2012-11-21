@@ -7,8 +7,10 @@
 ;	redundant way to specify that. 
 ;
 ;	Note that this uses whatever the currently defined suffix is, though you can
-;	also override that here. 
+;	also override that here.  This is the one and only routine that should be
+;	used to override a suffix. 
 ;
+;  TODO: change output filename too, optionally? 
 ;
 ; INPUTS: data-cube
 ;

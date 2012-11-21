@@ -27,7 +27,7 @@
 ;-
 
 function gpi_combine_wavcal_locations_all,  DataSet, Modules, Backbone
-primitive_version= '$Id: gpi_combine_wavcal_locations_all.pro 11 2010-07-14 01:22:03Z maire $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
     nfiles=dataset.validframecount
 

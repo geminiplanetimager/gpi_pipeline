@@ -35,7 +35,7 @@
 ;
 function measurecontrast, DataSet, Modules, Backbone
 
-primitive_version= '$Id: measurecontrast.pro 674 2012-03-31 17:54:07Z Maire $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 cube = *(dataset.currframe[0])

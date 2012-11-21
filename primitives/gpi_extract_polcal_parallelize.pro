@@ -40,7 +40,7 @@
 
 function gpi_extract_polcal_parallelize,  DataSet, Modules, Backbone
 
-	primitive_version= '$Id: gpi_extract_polcal.pro 674 2012-03-31 17:54:07Z Dmitry $' ; get version from subversion to store in header history
+	primitive_version= '$Id$' ; get version from subversion to store in header history
 	@__start_primitive
    
     im=*(dataset.currframe[0]) 

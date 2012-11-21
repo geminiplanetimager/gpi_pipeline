@@ -16,6 +16,8 @@
 ;-
 
 	save_suffix=suffix
+	; prepend dash if needed
+	if strmid(save_suffix,0,1) ne '-' then save_suffix = '-'+save_suffix
 	
 	if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
 		; if we're saving the file, then we can invoke GPITV using that filename

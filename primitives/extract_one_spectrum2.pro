@@ -38,7 +38,7 @@ function extract_one_spectrum2, DataSet, Modules, Backbone
 common PIP
 COMMON APP_CONSTANTS
 
-primitive_version= '$Id: extract_one_spectrum2.pro 96 2010-10-20 13:47:13Z maire $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 	;getmyname, functionname
 	  @__start_primitive
 

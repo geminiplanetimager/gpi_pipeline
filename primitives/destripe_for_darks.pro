@@ -31,7 +31,7 @@
 ;   2012-10-13 MP: Started
 ;-
 function destripe_for_darks, DataSet, Modules, Backbone
-primitive_version= '$Id: applyrefpixcorrection.pro 677 2012-03-31 20:47:13Z Dmitry $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
  	if tag_exist( Modules[thisModuleIndex], "before_and_after") then before_and_after=fix(Modules[thisModuleIndex].before_and_after) else before_and_after=0
@@ -39,7 +39,6 @@ primitive_version= '$Id: applyrefpixcorrection.pro 677 2012-03-31 20:47:13Z Dmit
 	im =  *(dataset.currframe[0])
 
 	sz = size(im)
-
     if sz[1] ne 2048 or sz[2] ne 2048 then begin
         backbone->Log, "REFPIX: Image is not 2048x2048, don't know how to destripe"
         return, NOT_OK

@@ -32,7 +32,7 @@
 ;   2012-10-10 MP: Minor code cleanup
 ;-
 function combine_3dcubes, DataSet, Modules, Backbone
-primitive_version= '$Id: combine_3dcubes.pro 278 2011-02-09 19:20:31Z maire $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 	if tag_exist( Modules[thisModuleIndex], "method") then method=Modules[thisModuleIndex].method else method='median'

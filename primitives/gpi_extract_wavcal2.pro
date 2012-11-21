@@ -32,7 +32,6 @@
 ; PIPELINE ARGUMENT: Name="maxtilt" Type="float" Range="[-360.,360.]" Default="10." Desc="Allowed maximum tilt fluctuation (in degree) between adjacent mlens"
 ; PIPELINE ARGUMENT: Name="medfilter" Type="int" Range="[0,1]" Default="1" Desc="1: Median filtering of dispersion coeff and tilts with a (5x5) median filtering"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-wavcal" Desc="Enter output suffix"
 ; PIPELINE ARGUMENT: Name="gpitvim_dispgrid" Type="int" Range="[0,500]" Default="15" Desc="1-500: choose gpitv session for displaying image output and wavcal grid overplotted, 0: no display "
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying wavcal file, 0: no display "
 ; PIPELINE ARGUMENT: Name="tests" Type="int" Range="[0,3]" Default="0" Desc="1 for extensive tests "
@@ -428,8 +427,7 @@ endif
     specpos[*,*,1]=specpostemp
   endif
 
-;suffix=strcompress(bandeobs,/REMOVE_ALL)+'-wavcal'
-if tag_exist( Modules[thisModuleIndex], "suffix") then suffix=strcompress(bandeobs,/REMOVE_ALL)+Modules[thisModuleIndex].suffix
+  suffix = '-wavecal'
 fname=strmid(filename,0,STRLEN(filename)-6)+suffix+'.fits'
 
 

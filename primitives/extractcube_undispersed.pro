@@ -42,7 +42,7 @@
 ;+
 function extractcube_undispersed, DataSet, Modules, Backbone
 
-primitive_version= '$Id: extractcube.pro 560 2012-01-31 22:10:03Z maire $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
   @__start_primitive
 
     ;get the 2D detector image

@@ -32,7 +32,7 @@
 
 function apply_photometric_cal_polar, DataSet, Modules, Backbone
 
-primitive_version= '$Id: apply_photometric_cal_polar.pro 96 2010-11-19 13:47:13Z maire $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 calfiletype='Gridratio' 
 @__start_primitive
 

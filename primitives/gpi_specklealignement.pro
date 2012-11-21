@@ -44,7 +44,7 @@ Function  gpi_specklealignement, DataSet, Modules, Backbone
 common PIP
 COMMON APP_CONSTANTS
 
-primitive_version= '$Id: gpi_specklealignement.pro 525 2012-02-23 16:02:46Z maire $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
   getmyname, functionname
 @__start_primitive
  

@@ -37,7 +37,7 @@
 ;   2009-09-17 JM: added DRF parameters
 ;
 function destripe_simple, DataSet, Modules, Backbone
-primitive_version= '$Id: applyrefpixcorrection.pro 677 2012-03-31 20:47:13Z Dmitry $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
  	if tag_exist( Modules[thisModuleIndex], "before_and_after") then before_and_after=fix(Modules[thisModuleIndex].before_and_after) else before_and_after=0

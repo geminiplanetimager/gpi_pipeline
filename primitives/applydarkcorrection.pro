@@ -3,6 +3,11 @@
 ; NAME: ApplyDarkCorrection
 ; PIPELINE PRIMITIVE DESCRIPTION: Subtract Dark/Sky Background
 ;
+;    Look up from the calibration database what the best dark file of
+;    the correct time is, and subtract it. 
+;
+;    If no dark file of the correct time is found, then don't do any
+;    subtraction at all, just return the input data. 
 ;
 ; INPUTS: 
 ;
@@ -35,26 +40,22 @@ function ApplyDarkCorrection, DataSet, Modules, Backbone
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
 calfiletype = 'dark'
+no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there is no cal file found.
 @__start_primitive
 
-  ;fits_info, c_File, /silent, N_ext=n_ext
-  ;if n_ext eq 0 then dark=readfits(c_File) else dark=mrdfits(c_File,1)
-	dark = gpi_readfits(c_File)
-  
-	;dark=readfits(c_File)
-    ;before = *(dataset.currframe[0])
-	*(dataset.currframe[0]) -= dark
-    ;after =*(dataset.currframe[0])
 
-    ;atv, [[[before]],[[dark]],[[after]]],/bl
-    ;stop
-  	backbone->set_keyword,'HISTORY',functionname+": dark subtracted using file=",ext_num=0
-  	backbone->set_keyword,'HISTORY',functionname+": "+c_File,ext_num=0
-  	backbone->set_keyword,'DRPDARK',c_File,ext_num=0
-  
-	thisModuleIndex = Backbone->GetCurrentModuleIndex()
-  	if tag_exist( Modules[thisModuleIndex], "Save") && tag_exist( Modules[thisModuleIndex], "suffix") then suffix+=Modules[thisModuleIndex].suffix
-  
+	if file_test(c_File) then begin
+		dark = gpi_readfits(c_File)
+	  
+		*(dataset.currframe[0]) -= dark
+		backbone->set_keyword,'HISTORY',functionname+": dark subtracted using file=",ext_num=0
+		backbone->set_keyword,'HISTORY',functionname+": "+c_File,ext_num=0
+		backbone->set_keyword,'DRPDARK',c_File,ext_num=0
+	endif else begin
+		backbone->Log, "***WARNING***: No dark file of appropriate time found. Therefore not subtracting any dark."
+		backbone->set_keyword,'HISTORY',functionname+ "  ***WARNING***: No dark file of appropriate time found. Therefore not subtracting any dark."
+	endelse
+	  
 
   	suffix = 'darksub'
 @__end_primitive 
