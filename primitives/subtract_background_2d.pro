@@ -62,19 +62,10 @@ if strcompress(backbone->get_keyword('OBSTYPE'),/remove_all) eq 'FLAT' or $
    return, ok
 endif
 
-
-ncoadds=float(backbone->get_keyword('coadds'))
-if ncoadds[0] eq 0 then begin
-   logstr = 'No Coadd keyword found in header, assuming 1 coadd!'
-   backbone->set_keyword, "HISTORY", logstr,ext_num=0
-   message,/info, "No Coadd keyword found in header, assuming 1 coadd!"
-   ncoadds=1
-end
-
  if tag_exist( Modules[thisModuleIndex], "method") then method=(Modules[thisModuleIndex].method) else method=''
   if tag_exist( Modules[thisModuleIndex], "abort_fraction") then abort_fraction=float(Modules[thisModuleIndex].abort_fraction) else abort_fraction=0.9
  if tag_exist( Modules[thisModuleIndex], "fraction") then fraction=float(Modules[thisModuleIndex].fraction) else fraction=0.7
- if tag_exist( Modules[thisModuleIndex], "high_limit") then high_limit=float(Modules[thisModuleIndex].high_limit) else high_limit=1000*ncoadds
+ if tag_exist( Modules[thisModuleIndex], "high_limit") then high_limit=float(Modules[thisModuleIndex].high_limit) else high_limit=1000
  if tag_exist( Modules[thisModuleIndex], "Save") then save=float(Modules[thisModuleIndex].Save) else Save=0
  if tag_exist( Modules[thisModuleIndex], "Save_stripes") then save_stripes=float(Modules[thisModuleIndex].Save_stripes) else Save_stripes=0 
 
@@ -169,7 +160,7 @@ if keyword_set(badpixmap) then mask[where(badpixmap eq 1)]=1
                                 endif
                                 ; limit where cross-talk dominates
                                 ; entire spectrum.
-                                very_high_ind=where(image[y3,x3] gt 4000*ncoadds $
+                                very_high_ind=where(image[y3,x3] gt 4000 $
                                                and finite(image[x3,y3] eq 1))
                                 ; mask a 7x1 box for pixels passing
                                 ; the high limit
