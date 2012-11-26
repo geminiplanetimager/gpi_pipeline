@@ -1270,13 +1270,8 @@ pro drfgui::event,ev
     end
     'Save&Queue'  : begin
         file = (*storage.splitptr).filename
-        void = where(file ne '',count)
-        if count ne 0 then begin
-            self->savedrf,file,storage,/nopickfile
-            self->queue, self.drfpath+self.drffilename
-        endif else begin
-            self->log,'Fits list empty'
-        endelse
+        self->savedrf, file,storage,/nopickfile
+        self->queue, self.drfpath+path_sep()+self.drffilename
     end
     'Open Recipe discarding data...':begin
         newDRF =  DIALOG_PICKFILE(TITLE='Select a Recipe File', filter='*.xml',/MUST_EXIST,path=self.drfpath)
@@ -2085,7 +2080,7 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 	top_baseexec=widget_base(top_base,/BASE_ALIGN_LEFT,/row, frame=DEBUG_SHOWFRAMES)
 	button2=widget_button(top_baseexec,value="Save Recipe as...",uvalue="Save Recipe as...", /tracking_events)
 	button2b=widget_button(top_baseexec,value="Queue last saved Recipe",uvalue="Queue", /tracking_events)
-	;utton2c=widget_button(top_baseexec,value="Save and drop DRF in Queue",uvalue="Save&Drop", /tracking_events)
+	button2c=widget_button(top_baseexec,value="Save Recipe and Drop in Queue",uvalue="Save&Queue", /tracking_events)
 	spacer = widget_label(top_baseexec, value=' ', xsize=250)
 
 	wid_bar_primitive_buttons = widget_base(top_baseexec,row=1, frame=DEBUG_SHOWFRAMES)
