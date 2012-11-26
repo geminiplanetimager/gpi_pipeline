@@ -17,6 +17,7 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="0" Desc="Window number to display in.  -1 for no display."
 ; PIPELINE ARGUMENT: Name="SaveProfile" Type="string" Default="" Desc="Save radial profile to filename (blank for no save)"
+; PIPELINE ARGUMENT: Name="SavePNG" Type="string" Default="" Desc="Save plot to filename as PNG(blank for no save)"
 ; PIPELINE ARGUMENT: Name="contrsigma" Type="float" Range="[0.,20.]" Default="5." Desc="Contrast sigma limit"
 ; PIPELINE ARGUMENT: Name="slice" Type="int" Range="[-1,50]" Default="0" Desc="Slice to plot. -1 for all"
 ; PIPELINE ARGUMENT: Name="DarkHoleOnly" Type="int" Range="[0,1]" Default="1" Desc="0: Plot profile in dark hole only; 1: Plot outer profile as well."
@@ -83,12 +84,13 @@ if ~strcmp(gridfac,'ERROR',/fold_case) then gridfac = double(gridfac) else $
    gridfac = 1d-4
 
 ;;get user inputs
-contrsigma = fix(Modules[thisModuleIndex].contrsigma)
+contrsigma = float(Modules[thisModuleIndex].contrsigma)
 display = fix(Modules[thisModuleIndex].Display)
 slice = fix(Modules[thisModuleIndex].slice)
 doouter = 1 - fix(Modules[thisModuleIndex].DarkHoleOnly)
 wind = fix(Modules[thisModuleIndex].Display)
-radialsave = fix(Modules[thisModuleIndex].SaveProfile)
+radialsave = Modules[thisModuleIndex].SaveProfile
+pngsave = Modules[thisModuleIndex].SavePNG
 contr_yunit = fix(Modules[thisModuleIndex].contr_yunit)
 contr_xunit = fix(Modules[thisModuleIndex].contr_xunit)
 contr_yaxis_type = fix(Modules[thisModuleIndex].contr_yaxis_type)
@@ -107,7 +109,7 @@ endfor
 ;;set proper scale unit
 if contr_yunit eq 0 then sclunit = contrsigma else sclunit = 1d
 
-if (wind ne -1) || (radialsave ne '') then begin
+if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
    ;;determine which we are plotting
    if slice eq -1 then inds = good else begin
       inds = slice
@@ -147,7 +149,7 @@ if (wind ne -1) || (radialsave ne '') then begin
    endfor
 
    ;;plot
-   if wind ne -1 then begin
+   if (wind ne -1) || (pngsave ne '') then begin
       if yscale eq 1 then yrange = [contr_yaxis_min, contr_yaxis_max]
       ytitle = 'Contrast '
       case contr_yunit of
@@ -164,14 +166,29 @@ if (wind ne -1) || (radialsave ne '') then begin
                        ((size(cube,/dim))[2]-1)*100.+100.)
       endelse
 
-      window,wind,xsize=800,ysize=600,retain=2
+      if wind ne -1 then window,wind,xsize=800,ysize=600,retain=2 else begin
+         odevice = !D.NAME
+         set_plot,'Z',/copy
+         device,set_resolution=[800,600],z_buffer = 0
+         erase
+      endelse
       plot,[0],[0],ylog=contr_yaxis_type,xrange=xrange,yrange=yrange,/xstyle,/ystyle,$
-        xtitle=xtitle,ytitle=ytitle,/nodata, charsize=1.2
+        xtitle=xtitle,ytitle=ytitle,/nodata, charsize=1.2,background=cgcolor('white'),color = cgcolor('black')
       
       for j = 0, n_elements(inds)-1 do begin
          oplot,*asecs[j],(*contrprof[j])[*,0],color=color[j],linestyle=0
          if doouter then oplot,*asecs[j],(*contrprof[j])[*,1], color=color[j],linestyle=2
       endfor
+      
+      if pngsave ne '' then begin
+         if wind eq -1 then begin
+            snapshot = tvrd()
+            tvlct,r,g,b,/get
+            write_png,pngsave,snapshot,r,g,b
+            device,z_buffer = 1
+            set_plot,odevice
+         endif else write_png,pngsave,tvrd(true=1)
+      endif
    endif
 
    ;;save radial contrast as fits
