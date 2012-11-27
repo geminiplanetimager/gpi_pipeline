@@ -300,17 +300,17 @@ endif
       @__end_primitive
     endif else begin  
         hdr=*(dataset.headersExt)[numfile]
-        sxaddparlarge, hdr, 'NAXIS',3
-        sxaddparlarge, hdr, 'NAXIS1',nlens
-        sxaddparlarge, hdr, 'NAXIS2',nlens
-        sxaddparlarge, hdr, 'NAXIS3',nlam
+        sxaddpar, hdr, 'NAXIS',3
+        sxaddpar, hdr, 'NAXIS1',nlens
+        sxaddpar, hdr, 'NAXIS2',nlens
+        sxaddpar, hdr, 'NAXIS3',uint(nlam),after="NAXIS2"
         
-        sxaddparlarge, hdr, 'CDELT3',(lambda2[1]-lambda2[0])
-        sxaddparlarge, hdr, 'CRPIX3',0.
-        sxaddparlarge, hdr, 'CRVAL3',lambda2[0]
-        sxaddparlarge, hdr, 'CTYPE3','WAVE'
-        sxaddparlarge, hdr, 'CUNIT3','microms'
-        sxaddparlarge, hdr, 'HISTORY', functionname+": Inversion datacube extraction applied."
+        sxaddpar, hdr, 'CDELT3',(lambda2[1]-lambda2[0])
+        sxaddpar, hdr, 'CRPIX3',0.
+        sxaddpar, hdr, 'CRVAL3',lambda2[0]
+        sxaddpar, hdr, 'CTYPE3','WAVE'
+        sxaddpar, hdr, 'CUNIT3','microms'
+        sxaddpar, hdr, 'HISTORY', functionname+": Inversion datacube extraction applied."
    
             if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
               if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
