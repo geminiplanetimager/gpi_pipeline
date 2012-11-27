@@ -394,6 +394,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 				['plate', 'Plate scale & orientation', 'typeonly'], $
 				['spotloc', 'Spot Location Measurement', 'FiltOnly'], $
 				['Gridratio', 'Grid Ratio', 'FiltOnly'], $
+				['mlenspsf', 'mlens psf', 'FiltPrism'], $
 				['Fluxconv', 'Fluxconv', 'FiltPrism'], $
 				['telluric', 'Telluric Transmission', 'FiltPrism'], $
 				['polcal', 'Polarimetry Spots Cal File', 'FiltPrism'], $
