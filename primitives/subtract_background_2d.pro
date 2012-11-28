@@ -32,6 +32,7 @@
 ;
 ; PIPELINE ARGUMENT: Name="method" Type="string" Range="[threshhold|calfile]" Default="calfile" Desc='Find background based on image value threshhold cut, or calibration file spectra/spot locations?'
 ; PIPELINE ARGUMENT: Name="abort_fraction" Type="float" Range="[0.0,1.0]" Default="0.9" Desc="Necessary fraction of pixels in mask to continue - set at 0.9 to ensure quicklook tool is robust"
+; PIPELINE ARGUMENT: Name="chan_offset_correction" Type="int" Range="[0,1]" Default="0" Desc="Tries to correct for channel bias offsets - useful when no dark is available"
 ; PIPELINE ARGUMENT: Name="fraction" Type="float" Range="[0.0,1.0]" Default="0.7" Desc="What fraction of the total pixels in a row should be masked"
 ; PIPELINE ARGUMENT: Name="high_limit" Type="float" Range="[0,Inf]" Default="1" Desc="Pixel value where exceeding values are assigned a larger mask"
 ; PIPELINE ARGUMENT: Name="Save_stripes" Type="int" Range="[0,1]" Default="0" Desc="Save the striping noise image subtracted from frame?"
@@ -64,6 +65,7 @@ endif
 
  if tag_exist( Modules[thisModuleIndex], "method") then method=(Modules[thisModuleIndex].method) else method=''
   if tag_exist( Modules[thisModuleIndex], "abort_fraction") then abort_fraction=float(Modules[thisModuleIndex].abort_fraction) else abort_fraction=0.9
+  if tag_exist( Modules[thisModuleIndex], "Chan_offset_correction") then chan_offset_correction=float(Modules[thisModuleIndex].chan_offset_correction) else chan_offset_correction=0.9
  if tag_exist( Modules[thisModuleIndex], "fraction") then fraction=float(Modules[thisModuleIndex].fraction) else fraction=0.7
  if tag_exist( Modules[thisModuleIndex], "high_limit") then high_limit=float(Modules[thisModuleIndex].high_limit) else high_limit=1000
  if tag_exist( Modules[thisModuleIndex], "Save") then save=float(Modules[thisModuleIndex].Save) else Save=0
@@ -200,7 +202,7 @@ if keyword_set(badpixmap) then mask[where(badpixmap eq 1)]=1
 	; Generate a median image from all 32 readout channels
  	medpart0 = median(parts,dim=3)
 
-; TAKE OUT THE BIG VARIATIONS AND THEN CLIP
+; remove broad variations prior to clipping
         sm_medpart1d=smooth(median(medpart0,dim=1),20,/edge,/nan)
         broad_variations=sm_medpart1d##(fltarr(64)+1)
 ; create a full image 
@@ -261,12 +263,31 @@ if keyword_set(badpixmap) then mask[where(badpixmap eq 1)]=1
         for i=0,15 do model[*,*,2*i+1] = reverse(model[*,*,2*i+1]) 
         stripes = reform(transpose(model, [0,2,1]), 2048, 2048)	
 
-; replace NaN's by zeros - these are the lines that were masked out
-; this should be made more robust! 
-        nan_ind=where(finite(stripes) eq 0)
-        if nan_ind[0] ne -1 then stripes[nan_ind]=0
+; replace NaN's by smoothed values - these are the lines that were masked out
 
-        imout = image - stripes
+; the values that are masked out at the top and bottom - set to zero
+        stripes[*,0:10]=0
+        stripes[*,2028:2047]=0
+
+; now other values that have nans
+        nan_ind=where(finite(stripes) eq 0)
+        if nan_ind[0] ne -1 then begin
+           sm_im=smooth(stripes,5,/nan)
+           stripes[nan_ind]=sm_im[nan_ind]
+        endif
+       
+; derive median channel offsets
+;stripes0=stripes ; for testing
+        if keyword_set(chan_offset_correction) then begin
+           ;ch_off=fltarr(2048,2048)
+           for c=0, 31 do begin
+              ;ch_off[c*64:((c+1)*64)-1,*]=(median(im[c*64:((c+1)*64)-1,*]))
+              stripes[c*64:((c+1)*64)-1,*]*=(median(im[c*64:((c+1)*64)-1,*]) $
+                                             /median(stripes[c*64:((c+1)*64)-1,*]))
+           endfor
+        endif
+
+ imout = image - stripes
 
 ; input safety to make sure no NaN's are in the image
         nan_check=where(finite(imout) eq 0)
