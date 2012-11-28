@@ -200,12 +200,19 @@ if keyword_set(badpixmap) then mask[where(badpixmap eq 1)]=1
 	; Generate a median image from all 32 readout channels
  	medpart0 = median(parts,dim=3)
 
-                                ; Any pixel which is 3-sigma
+; TAKE OUT THE BIG VARIATIONS AND THEN CLIP
+        sm_medpart1d=smooth(median(medpart0,dim=1),20,/edge,/nan)
+        broad_variations=sm_medpart1d##(fltarr(64)+1)
+; create a full image 
+        full_broad_variations = sm_medpart1d##(fltarr(2048)+1)
+        
+                                       ; Any pixel which is 3-sigma
                                 ; discrepant should probably have been
                                 ; masked out
-        medsig=stddev(medpart0,/nan)
-        medmed = median(medpart0)
-        discrepant = where(abs(im-medmed) gt (3*medsig))
+        medsig=stddev(medpart0-broad_variations,/nan)
+        medmed = median(medpart0-broad_variations)
+        
+        discrepant = where(abs(im-full_broad_variations-medmed) gt (5*medsig))
 
         ; apply this as a cutoff and then regenerate the parts array
         im[discrepant] = !values.f_nan
@@ -247,7 +254,7 @@ if keyword_set(badpixmap) then mask[where(badpixmap eq 1)]=1
               medpart[ind,i]=median(medpart[*,i])
            endfor 
         endif        
-                
+              
 	; Generate a model stripe image from that median, replicated for 
 	; each of the 32 channels with appropriate flipping
         model = rebin(medpart, 64,2048,32)
@@ -281,7 +288,7 @@ if keyword_set(badpixmap) then mask[where(badpixmap eq 1)]=1
         backbone->set_keyword, "HISTORY", "Subtracted 2D image background estimated from pixels between spectra",ext_num=0
         suffix='-bgsub2d'
 
-        if tag_exist( Modules[thisModuleIndex], "Save Stripes") && ( Modules[thisModuleIndex].Save_stripes eq 1 ) then b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, '-stripes', display=display,savedata=stripes,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile])
+        if tag_exist( Modules[thisModuleIndex], "Save_Stripes") && ( Modules[thisModuleIndex].Save_stripes eq 1 ) then b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, '-stripes', display=display,savedata=stripes,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile])
         
         logstr = 'Robust sigma of unmasked pixels before destriping: '+strc(robust_sigma(image[where(~mask)]))
         backbone->set_keyword, "HISTORY", logstr,ext_num=0
