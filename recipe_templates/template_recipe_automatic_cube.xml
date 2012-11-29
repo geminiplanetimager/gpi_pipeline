@@ -8,7 +8,7 @@
 <module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
 <module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
 
-<module name="Subtract background from 2D raw image" method="calfile" abort_fraction="0.9" fraction="0.7" high_limit="1000" Save_stripes="0" Save="0" gpitv="1" />
+<module name="Subtract background from 2D raw image" method="calfile" abort_fraction="0.9" fraction="0.7" high_limit="1000" chan_offset_correction="0" Save_stripes="0" Save="0" gpitv="1" />
 
 <module name="Assemble Spectral Datacube" Save="0" />
 <module name="Interpolate Wavelength Axis" Spectralchannels="37" Save="1" gpitv="5" />
