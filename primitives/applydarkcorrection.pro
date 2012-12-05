@@ -44,7 +44,7 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 @__start_primitive
 
 
-	if file_test(c_File) then begin
+	if file_test(string(c_File)) then begin
 		dark = gpi_readfits(c_File)
 	  
 		*(dataset.currframe[0]) -= dark

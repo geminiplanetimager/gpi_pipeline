@@ -46,7 +46,7 @@
 
 
 		; in either case, does the requested file actually exist?
-		if ( not file_test ( c_file ) ) then $
+		if ( not file_test ( string(c_file) ) ) then $
 			if ~(keyword_set(no_error_on_missing_calfile)) then $
 		   return, error ('error in call ('+strtrim(functionname)+'): calibration file  ' + $
 						  strtrim(string(c_file),2) + ' not found.' )
