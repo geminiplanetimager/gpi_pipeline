@@ -300,23 +300,36 @@ pro automaticreducer::event, ev
 			self->Log, 'Starting watching directory '+self.dirinit
 			widget_control, self.top_base, timer=1  ; Start off the timer events for updating at 1 Hz
 		endif
-		if uname eq 'Reprocess'    then begin
-			widget_control, self.listfile_id, get_uvalue=list_contents
-
-            ind=widget_INFO(self.listfile_id,/LIST_SELECT)
-            
-			if list_contents[ind[0]] ne '' then begin
-
-				self->Log,'User requested reprocessing of: '+strjoin(list_contents[ind], ", ")
-				self->handle_new_files, list_contents[ind];, /nowait
-			endif
+                if uname eq 'Reprocess'    then begin
+                   widget_control, self.listfile_id, get_uvalue=list_contents
+                   ind=widget_INFO(self.listfile_id,/LIST_SELECT)
+                   
+                   if ind[0] eq -1 then begin
+                                ;error handling to prevent crash if someone selects 'reprocess
+;selection' prior to pressing start.
+                      message,/info, 'No files to reprocess. Press Start to load files in the directory being watched.'
+                      ind=0
+                   endif
+                   
+                   if list_contents[ind[0]] ne '' then begin
+                      
+                      self->Log,'User requested reprocessing of: '+strjoin(list_contents[ind], ", ")
+                      self->handle_new_files, list_contents[ind] ;, /nowait
+                   endif
 	
 		endif
 		if uname eq 'View_one'    then begin
 			widget_control, self.listfile_id, get_uvalue=list_contents
 
-            ind=widget_INFO(self.listfile_id,/LIST_SELECT)
+                        ind=widget_INFO(self.listfile_id,/LIST_SELECT)
             
+                           if ind[0] eq -1 then begin
+                                ;error handling to prevent
+                                ;crash if someone selects 'View File' prior to pressing start.
+                              message,/info, 'No file selected. Press Start to load files in the directory being watched.'
+                              ind=0
+                           endif
+
 			if list_contents[ind[0]] ne '' then begin
 
 				self->Log,'User requested to view: '+strjoin(list_contents[ind[0]], ", ")
