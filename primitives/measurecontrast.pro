@@ -79,9 +79,9 @@ for s=0,n_elements(good) - 1 do begin
 endfor
 
 ;;get grid fac
-gridfac = gpi_get_setting('gridfac')
-if ~strcmp(gridfac,'ERROR',/fold_case) then gridfac = double(gridfac) else $
-   gridfac = 1d-4
+apodizer = backbone->get_keyword('APODIZER', count=ct)
+gridfac = gpi_get_gridfac(apodizer)
+if ~finite(gridfac) then return, error('FAILURE ('+functionName+'): Could not match apodizer.')
 
 ;;get user inputs
 contrsigma = float(Modules[thisModuleIndex].contrsigma)
