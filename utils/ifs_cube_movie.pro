@@ -56,8 +56,11 @@ if keyword_set(mpeg) && keyword_set(png) then begin
 endif
 
 ;;assemble input &output filenames and check for existence
+rdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')
+if strmatch(rdir,'Not*') then return
 if keyword_set(imdat) and keyword_set(imnum) then $
-  fname = '/mnt/ifs/Reduced/'+imdat+'/S20'+imdat+'S'+string(imnum,format='(I04)')+'-spdc.fits'
+   fname = gpi_expand_path(rdir+imdat+'/S20'+imdat+'S'+string(imnum,format='(I04)')+'-spdc.fits')
+
 if n_elements(fname) eq 0 then begin 
     message,'No filename specified or cube given.',/continue 
     return 

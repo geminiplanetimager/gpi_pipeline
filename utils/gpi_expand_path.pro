@@ -61,8 +61,8 @@ endif
 ; is it ok for Mac? -JM
 ; Yes, macs are unix for these purposes. -MP
 case !version.os_family of
-'unix': inputpath = strepex(inputpath,'\\','/',/all)
-'Windows': inputpath = strepex(inputpath,'/','\\',/all)
+   'unix': inputpath = strepex(inputpath,'\\','/',/all)
+   'Windows': inputpath = strepex(inputpath,'/','\\',/all)
 endcase
 
 ; clean up any double delimiters
