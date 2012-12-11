@@ -9,6 +9,9 @@
 ;	drpParser inherits the IDL IDLffXMLSAX class, a general XML parser.  IDLffXMLSAX is
 ;	an event driven parser, using callback functions to handle XML elements on the fly.
 ;
+;	Note: Due to how IDLffXMLSAX parser works, this is sort of user-unfriendly.
+;	See drf__define for a wrapper that hides this complexity mostly and gives
+;	a more convenient high level interface.
 ;
 ;
 ; NOTES BY MDP:
@@ -16,12 +19,14 @@
 ;   header. This happens in gpidrfparser::enddocument
 ;
 ;
-;   This parser may be invoked in one of **TWO WAYS**:
+;   This parser may be invoked in one of **THREE WAYS**:
 ;      (a) inside the Pipeline itself, in which case it both
 ;         - logs actions to the pipeline log, and 
 ;         - sticks various items into the pipeline's memory as it works; or
 ;      (b) in one of the DRF or Parser GUIs, in which case it parses things but
 ;         doesn't actually do anything else other than hand back the results.
+;      (c) hidden inside an invokation of the 'drf' object class, which is
+;          generally more user-friendly than working with this directly.
 ;
 ;   If the object is created with a backbone= argument that is a GPI Pipeline
 ;   Backbone, then it will run in Method (a), otherwise it runs in Method (b) 
@@ -204,6 +209,24 @@ PRO gpidrfparser::parsefile, FileName, Backbone=backbone, ConfigParser, gui_obj=
 
 		endfor 
 	endif
+
+
+	; Validate presence of output directory:
+	; if *any* of the available primitives have a 'save' option set to 1, then
+	; the output directory must not be blank.
+	if strc(self.outputdir) eq '' then begin
+		for i=0L,n_elements(*self.modules)-1 do begin
+			if tag_exist( (*self.modules)[i], 'SAVE') then begin
+				if (*self.modules)[i].Save eq 1 then begin
+					message,/info, 'Error: Output directory is blank, but saving a files is requested in step '+strc(i+1)+". Don't know where to write it, therefore failing this DRF. Please set OutputDir."
+					status=-1
+					return
+				endif
+			endif
+		endfor
+	endif
+
+
 
 	status = 1 ; completed OK!
 	; If we are running in one of the GUI modes, hand the data back to the GUI.

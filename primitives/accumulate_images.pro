@@ -2,7 +2,7 @@
 ; NAME: accumulate_images
 ; PIPELINE PRIMITIVE DESCRIPTION: Accumulate Images
 ;
-;	Stores images for the combination routine
+;	Stores images for later combination.
 ;
 ; INPUTS: data-cube
 ; common needed:
@@ -10,8 +10,8 @@
 ; KEYWORDS:
 ; OUTPUTS:
 ;
-; PIPELINE COMMENT: Stores images for the combination routine
-; PIPELINE ARGUMENT: Name="Method" Type="string" Range="OnDisk|InMemory" Default="OnDisk" Desc="OnDisk|InMemory"
+; PIPELINE COMMENT: Stores images for combination by a subsequent primitive. Can buffer on disk for datasets too large to hold just in RAM.
+; PIPELINE ARGUMENT: Name="Method" Type="string" Range="OnDisk|InMemory" Default="InMemory" Desc="OnDisk|InMemory"
 ; PIPELINE ORDER: 4.0
 ; PIPELINE TYPE: ALL
 ; PIPELINE NEWTYPE: ALL

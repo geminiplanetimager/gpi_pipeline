@@ -145,13 +145,21 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     ;
     ; The rotation matrix here is used to convert from IMAGE coords to SKY
     ; coords. Hence the sense of the rotation is opposite the PA.
-    pixelscale = 0.014
+    pixelscale = gpi_get_setting('ifs_lenslet_scale')
+
     ; rotation matrix.
     ;
     ; TODO: figure out whether the image is SKY RIGHT or SKY LEFT
     ;  i.e. where's east??
     pc = [[cos(-d_PA*!dtor), -sin(-d_PA*!dtor)], $
           [sin(-d_PA*!dtor), cos(-d_PA*!dtor)]]
+	  
+	; 2012-12-09 MP update: Gemini standards require us to write CDi_j instead
+	; of the older PCi_j and CDELTi keywords. 
+	; See Griesen et al. 2002 section 2.1.2 for a detailed discussion of the relation between these. 
+	; Briefly, the CD matrix is the PC matrix plus the scaling factor formerly
+	; known as CDELT.
+	cdmatrix = pc * pixelscale / 3600
 
     ra = backbone->get_keyword("RA") 
     dec = backbone->get_keyword("dec") 
@@ -178,14 +186,15 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     backbone->set_keyword, "CRPIX1", xcen+1,         "Reference pixel location"
     backbone->set_keyword, "CRPIX2", ycen+1,         "Reference pixel location"
 ;    backbone->set_keyword, "CRPIX3", 0,         "Reference pixel location"
-    backbone->set_keyword, "CDELT1", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
-    backbone->set_keyword, "CDELT2", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
+    ;backbone->set_keyword, "CDELT1", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
+    ;backbone->set_keyword, "CDELT2", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
 ;    backbone->set_keyword, "CDELT3", 1, "Stokes axis: image 0 is Y parallel, 1 is X parallel"
 
-    backbone->set_keyword, "PC1_1", pc[0,0], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
-    backbone->set_keyword, "PC1_2", pc[0,1], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
-    backbone->set_keyword, "PC2_1", pc[1,0], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
-    backbone->set_keyword, "PC2_2", pc[1,1], "RA, Dec axes rotated by "+sigfig(d_pa*!radeg,4)+" degr."
+
+    backbone->set_keyword, "CD1_1", pc[0,0], "partial of first axis coordinate w.r.t. x"
+    backbone->set_keyword, "CD1_2", pc[0,1], "partial of first axis coordinate w.r.t. y"
+    backbone->set_keyword, "CD2_1", pc[1,0], "partial of second axis coordinate w.r.t. x"
+    backbone->set_keyword, "CD2_2", pc[1,1], "partial of second axis coordinate w.r.t. y"
 ;    sxaddpar, hdr, "PC3_3", 1, "Stokes axis is unrotated"
     ; TODO WCS paper III suggests adding MJD-AVG to specify midpoint of
     ; observations for conversions to barycentric.

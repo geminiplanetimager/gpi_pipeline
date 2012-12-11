@@ -32,6 +32,8 @@
 ;	2012-08-22 MP: gpi_load_fits now calls this if preprocess_fits is set in the
 ;					config. Essentially all code should now call gpi_load_fits
 ;					instead of calling this directly.
+;	2012-12-08 MP: Added support for reading in DQ and Uncert extensions, if
+;					present
 ;-
 ;--------------------------------------------------------------------------------
 
@@ -348,10 +350,26 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 		  currframe=tmpframe
 		endif
 	endif else gpi_set_keyword_if_missing, pri_header, ext_header, 'DATASEC', '[1:2048,1:2048]'
+	
+	; If user just wants the headers, then we're done and can return that here:
+	if keyword_set(nodata) then return, { pri_header: ptr_new(pri_header,/no_copy), ext_header: ptr_new(ext_header,/no_copy)} 
+	
+	; Save headers and image as a structure:
+    mydata = {image: ptr_new(currframe,/no_copy), pri_header: ptr_new(pri_header,/no_copy), ext_header: ptr_new(ext_header,/no_copy)}
+
+	; Now, check for the presence of additional extensions
+	for iext=2,numext do begin
+		ext2data  = (mrdfits(filename , iext, ext2_Header, /SILENT))
+		extname = strc(sxpar(ext2_Header, 'EXTNAME'))
+		mydata = create_struct(mydata, extname, ptr_new(ext2data,/no_copy))
+	endfor
+	
 
 
-	if keyword_set(nodata) then return, { pri_header: ptr_new(pri_header), ext_header: ptr_new(ext_header)} else $
-    return, {image: ptr_new(currframe), pri_header: ptr_new(pri_header), ext_header: ptr_new(ext_header)}
+	return, mydata
+
+	;if keyword_set(nodata) then return, { pri_header: ptr_new(pri_header), ext_header: ptr_new(ext_header)} else $
+    ;return, {image: ptr_new(currframe), pri_header: ptr_new(pri_header), ext_header: ptr_new(ext_header)}
 end
 
 

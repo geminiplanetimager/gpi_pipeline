@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<DRF ReductionType="Calibration">
+<DRF ReductionType="Calibration" name='Combine Bad Pixel Masks'>
 <dataset InputDir="${GPI_CALIBRATIONS_DIR}" OutputDir="${GPI_REDUCED_DATA_DIR}">
    <fits FileName="" />
 </dataset>

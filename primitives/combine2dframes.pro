@@ -48,10 +48,18 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	; create an array of the same type as the input file:
 	imtab = make_array(sz[1], sz[2], nfiles, type=size(im0,/type))
 
-
+	bunit0 = backbone->get_keyword('BUNIT')
+	itime0 = backbone->get_keyword('ITIME')
 
 	; read in all the images at once
-	for i=0,nfiles-1 do imtab[*,*,i] =  accumulate_getimage(dataset,i,hdr,hdrext=hdrext)
+	for i=0,nfiles-1 do begin
+		imtab[*,*,i] =  accumulate_getimage(dataset,i,hdr,hdrext=hdrext)
+		; let's make sure the images are dimensionally consistent to combine.
+		; (Note, integration times must be equal since we expect the BUNIT =
+		; "ADU per coadd" for GPI 2D data...)
+		if sxpar(hdr, 'BUNIT') ne bunit0 then return, error('Image '+strc(i+1)+' has different units (BUNIT keyword) than first image in sequence. Cannot combine!')
+		if sxpar(hdrext, 'ITIME') ne itime0 then return, error('Image '+strc(i+1)+' has different integration time (ITIME keyword) than first image in sequence. Cannot combine!')
+	endfor
 
 	; now combine them.
 	if nfiles gt 1 then begin

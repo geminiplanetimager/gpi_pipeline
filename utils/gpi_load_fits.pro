@@ -4,7 +4,7 @@
 ;	GPI FITS file loading code
 ;
 ;	This loads a Gemini MEF-format FITS file with GPI data into memory,
-;	returning it as a structure containing the data and headers. 
+;	returning it as a structure containing pointers to the data and headers. 
 ;
 ;   Optionally, for older/non-standards-compliant FITS files, this can 
 ;   "preprocess" the FITS headers to standardize & update them to the current
@@ -12,8 +12,6 @@
 ;   gpi_load_and_preprocess_fits_file instead. Whether or not this happens is
 ;   controlled by the pipeline setting variable 'preprocess_fits_files'.
 ;
-;
-; TODO: Update to load DQ and ERR extensions if present?
 ;
 ; INPUTS:
 ; KEYWORDS:
@@ -24,7 +22,10 @@
 ; OUTPUTS:
 ;
 ; HISTORY:
-;	Began 012-01-30 19:15:23 by Marshall Perrin 
+;	Began 2012-01-30 19:15:23 by Marshall Perrin 
+;	2012-12-08 MP: Added support for reading in DQ and Uncert extensions, if
+;					present
+;
 ;-
 ;--------------------------------------------------------------------------------
 
@@ -79,8 +80,8 @@ FUNCTION gpi_load_fits, filename, nodata=nodata, silent=silent, _extra=_extra
 		for iwcs=0,n_elements(wcskeytab)-1 do $
 		sxaddpar,ext_header,wcskeytab[iwcs],'','',before="END"
 		;*(*self.data).HeadersExt[IndexFrame] = ext_header
-    endif
-    if (numext ge 1) then begin
+
+    endif else if (numext ge 1) then begin
 		; at least one extension is present:  Read the 1st extention image into
 		; the data array, and read in the primary and extension headers. 
 		;  (see below where we append the DRF onto the primary header)
@@ -100,8 +101,22 @@ FUNCTION gpi_load_fits, filename, nodata=nodata, silent=silent, _extra=_extra
         return,NOT_OK 
     endif
 
-	if keyword_set(nodata) then return, { pri_header: ptr_new(pri_header), ext_header: ptr_new(ext_header)} else $
-    return, {image: ptr_new(currframe), pri_header: ptr_new(pri_header), ext_header: ptr_new(ext_header)}
+	; If user just wants the headers, then we're done and can return that here:
+	if keyword_set(nodata) then return, { pri_header: ptr_new(pri_header,/no_copy), ext_header: ptr_new(ext_header,/no_copy)} 
+	
+	; Save headers and image as a structure:
+    mydata = {image: ptr_new(currframe,/no_copy), pri_header: ptr_new(pri_header,/no_copy), ext_header: ptr_new(ext_header,/no_copy)}
+
+	; Now, check for the presence of additional extensions
+	for iext=2,numext do begin
+		ext2data  = (mrdfits(filename , iext, ext2_Header, /SILENT))
+		extname = strc(sxpar(ext2_Header, 'EXTNAME'))
+		mydata = create_struct(mydata, extname, ptr_new(ext2data,/no_copy))
+	endfor
+	
+
+
+	return, mydata
 end
 
 

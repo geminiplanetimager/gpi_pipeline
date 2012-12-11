@@ -149,7 +149,7 @@ framecounter = 0
 if keyword_set(png) then ndig = +strtrim(floor(alog10(sz[2])+1 > 1),2)
 for j=0,sz[2]-1 do begin
    ;;rebin the image
-   fim = rebin(im[*,*,j],xs,ys)
+   fim = rebin(im[*,*,j],xs,ys,/sample)
    
    ;;scale as necessary
    if not keyword_set(prescaled) then begin
