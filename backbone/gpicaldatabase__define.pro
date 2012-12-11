@@ -595,7 +595,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 
 	
     bestcalib=(calfiles_table.PATH)[ibest]+path_sep()+(calfiles_table.FILENAME)[ibest]
-
+	print, bestcalib
     self->Log, "Returning best cal file= "+bestcalib,depth=3
 	
 	return, bestcalib

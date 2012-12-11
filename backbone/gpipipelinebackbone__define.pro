@@ -675,6 +675,11 @@ FUNCTION gpiPipelineBackbone::load_FITS_file, indexFrame
 	;	The image is already a pointer, so we can just copy over the pointer. 
 	(*self.data).currframe = file_data.image
 
+	ptr_free, (*self.data).currDQ, (*self.data).currUncert
+
+	if tag_exist(file_data, 'DQ') then (*self.data).currDQ = file_data.DQ
+	if tag_exist(file_data, 'UNCERT') then *(*self.data).currUncert = file_data.UNCERT
+
 	; likewise copy over the extension header
 	(*self.data).HeadersExt[IndexFrame] = file_data.ext_header
 

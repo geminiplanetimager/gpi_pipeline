@@ -31,6 +31,10 @@
 
 		c_file = (modules[thismoduleindex].calibrationfile)
 
+		if strc(c_File) eq "" then begin
+		   return, error ('error in call ('+strtrim(functionname)+'): Recipe file specified a blank calibration file name.')
+		endif
+
 		if strmatch(c_file, 'automatic',/fold) then begin
 		    c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headersphu)[numfile],*(dataset.headersext)[numfile] ) 
 
@@ -46,10 +50,12 @@
 
 
 		; in either case, does the requested file actually exist?
-		if ( not file_test ( string(c_file) ) ) then $
-			if ~(keyword_set(no_error_on_missing_calfile)) then $
-		   return, error ('error in call ('+strtrim(functionname)+'): calibration file  ' + $
-						  strtrim(string(c_file),2) + ' not found.' )
+		if ( not file_test ( string(c_file) ) ) then begin
+			if ~(keyword_set(no_error_on_missing_calfile)) then begin
+			   return, error ('error in call ('+strtrim(functionname)+'): calibration file  ' + $
+					  strtrim(string(c_file),2) + ' not found.' )
+			endif
+		endif
 
 	endif
 
