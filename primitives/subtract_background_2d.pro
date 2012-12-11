@@ -48,6 +48,8 @@
 ; HISTORY:
 ; 	Originally by Marshall Perrin, 2011-07-15
 ;   2011-07-30 MP: Updated for multi-extension FITS
+;   2012-09 to 2012-12: Algorithm improvements & debugging by Patrick
+;   2012-12-03 MP: Minor fix for IDL8 compatibility: Change /edge to /edge_truncate
 ;-
 function subtract_background_2d, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -64,8 +66,8 @@ if strcompress(backbone->get_keyword('OBSTYPE'),/remove_all) eq 'FLAT' or $
 endif
 
  if tag_exist( Modules[thisModuleIndex], "method") then method=(Modules[thisModuleIndex].method) else method=''
-  if tag_exist( Modules[thisModuleIndex], "abort_fraction") then abort_fraction=float(Modules[thisModuleIndex].abort_fraction) else abort_fraction=0.9
-  if tag_exist( Modules[thisModuleIndex], "Chan_offset_correction") then chan_offset_correction=float(Modules[thisModuleIndex].chan_offset_correction) else chan_offset_correction=0.9
+ if tag_exist( Modules[thisModuleIndex], "abort_fraction") then abort_fraction=float(Modules[thisModuleIndex].abort_fraction) else abort_fraction=0.9
+ if tag_exist( Modules[thisModuleIndex], "Chan_offset_correction") then chan_offset_correction=float(Modules[thisModuleIndex].chan_offset_correction) else chan_offset_correction=0.9
  if tag_exist( Modules[thisModuleIndex], "fraction") then fraction=float(Modules[thisModuleIndex].fraction) else fraction=0.7
  if tag_exist( Modules[thisModuleIndex], "high_limit") then high_limit=float(Modules[thisModuleIndex].high_limit) else high_limit=1000
  if tag_exist( Modules[thisModuleIndex], "Save") then save=float(Modules[thisModuleIndex].Save) else Save=0
@@ -203,7 +205,7 @@ if keyword_set(badpixmap) then mask[where(badpixmap eq 1)]=1
  	medpart0 = median(parts,dim=3)
 
 ; remove broad variations prior to clipping
-        sm_medpart1d=smooth(median(medpart0,dim=1),20,/edge,/nan)
+        sm_medpart1d=smooth(median(medpart0,dim=1),20,/edge_truncate,/nan)
         broad_variations=sm_medpart1d##(fltarr(64)+1)
 ; create a full image 
         full_broad_variations = sm_medpart1d##(fltarr(2048)+1)
