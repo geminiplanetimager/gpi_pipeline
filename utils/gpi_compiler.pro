@@ -7,7 +7,6 @@
 ;;   making public releases of the pipeline.
 ;;
 ;; Execute gpi_compiler command directly within the IDL command line. 
-;; Set the gpitvdir keyword to compile also GPITV.
 ;; Set execoutputdir to define where the executables will be produced.
 ;;
 ;; HISTORY:
@@ -16,7 +15,9 @@
 ;;				  recompilation after error handling; print informative
 ;;				  messages to the user. Mac OS output is 64-bit. 
 ;;				  Output directory now has pipeline version number in it.
-pro gpi_compiler, compildir, drpdirectory=drpdirectory, gpitv=gpitv, gpitvdir=gpitvdir
+;; 2012-12-10 MP: Also, always compile gpitv. Look up gpitv path automatically,
+;;				  too.
+pro gpi_compiler, compildir, drpdirectory=drpdirectory, gpitvdir=gpitvdir
 
 	if N_params() EQ 0 then begin ;Prompt for directory of produced executables?
   		compildir = ' ' 
@@ -34,8 +35,13 @@ pro gpi_compiler, compildir, drpdirectory=drpdirectory, gpitv=gpitv, gpitvdir=gp
 		print, "Found routines for GPI DRP"
 	endelse
 
-	if keyword_set(gpitv) then begin
-		if ~keyword_set(gpitvdir) then message,'You need to define the gpitvdir keyword'
+
+
+	;if keyword_set(gpitv) then begin
+		if ~keyword_set(gpitvdir) then begin
+			which, gpitv__define, output=gpitvpath,/quiet
+			gpitvdir = file_dirname(gpitvpath)
+		endif
 		gpitvroutine=FILE_SEARCH(gpitvdir,'[A-Za-z]*.pro',count=cg) 
 		if (cg eq 0) then begin
 			print,"You need to properly define the DRP directory (and GPItv dir). Use the drpdirectory and gpitvdir keywords or set the GPI_DRP_DIR environment variable. "
@@ -44,10 +50,10 @@ pro gpi_compiler, compildir, drpdirectory=drpdirectory, gpitv=gpitv, gpitvdir=gp
 			print, "Found routines for gpitv"
 			totlist = [list, gpitvroutine]
 		endelse
-	endif else begin
-		print," *****  GPITV will NOT be compiled."
-		totlist=list
-	endelse
+	;endif else begin
+		;print," *****  GPITV will NOT be compiled."
+		;totlist=list
+	;endelse
 
 
 	print, totlist
