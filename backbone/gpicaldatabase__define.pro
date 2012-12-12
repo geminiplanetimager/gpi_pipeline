@@ -385,7 +385,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	; FIXME perhaps this should be a configuration file instead?
 	types_str =[['dark', 'Dark', 'itimeReadmode'], $
 			  	['wavecal', 'Wavelength Solution Cal File', 'FiltPrism'], $
-				['flat', 'Flat field', 'FiltPrism'], $
+				['flat', 'Flat Field', 'FiltPrism'], $
 				;['flat', 'Flat field', 'FiltPrism'], $
 				['badpix', 'Bad Pixel Map', 'typeonly'], $
 				['hotbadpix', 'Hot Pixel Map', 'typeonly'], $
@@ -410,7 +410,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 
 
 
-	itype = where(types.name eq type, matchct)
+	itype = where(strmatch(types.name, type,/fold_case), matchct)
 	if matchct ne 1 then begin
 		message, "Unknown or invalid type of calibration file requested: '"+type+"'.",/info
 		return, NOT_OK
