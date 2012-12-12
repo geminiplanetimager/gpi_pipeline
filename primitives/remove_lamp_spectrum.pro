@@ -108,7 +108,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
     backbone->set_keyword,  "DRP_WMIN", min(cwv.lambda), 'Wavelength Min for this extracted flat field data', ext_num=0
     backbone->set_keyword,  "DRP_WMAX", max(cwv.lambda), 'Wavelength Max for this extracted flat field data', ext_num=0
-	backbone->set_keyword,  "FILETYPE", 'Flat field', "What kind of IFS file is this?"
+	backbone->set_keyword,  "FILETYPE", 'Flat Field', "What kind of IFS file is this?"
 	backbone->set_keyword,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
 
 
