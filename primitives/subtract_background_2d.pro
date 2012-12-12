@@ -2,6 +2,8 @@
 ; NAME: subtract_background_2d
 ; PIPELINE PRIMITIVE DESCRIPTION: Subtract background from 2D raw image
 ;
+; This program has been moved over to destripe_science_image.pro
+; This file remains purely for archiving reasons and is now obsolete
 ; Subtract the detector readout noise (striping) from the background
 ; of a 2d raw IFS image by masking spectra and using the remaining
 ; regions to obtain a sampling of the striping. The masking can be performed by using the wavelength
@@ -41,7 +43,7 @@
 ;
 ; PIPELINE COMMENT:  Subtract 2D background based on the regions in between the spectra
 ; PIPELINE ORDER: 1.12 
-; PIPELINE TYPE: ALL HIDDEN
+; PIPELINE TYPE: Testing
 ; PIPELINE NEWTYPE: SpectralScience,Calibration
 ;
 ;
@@ -50,6 +52,7 @@
 ;   2011-07-30 MP: Updated for multi-extension FITS
 ;   2012-09 to 2012-12: Algorithm improvements & debugging by Patrick
 ;   2012-12-03 MP: Minor fix for IDL8 compatibility: Change /edge to /edge_truncate
+;   2012-12-12 PI: Moved to destripe_science_image. this file is now obsolete.
 ;-
 function subtract_background_2d, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
