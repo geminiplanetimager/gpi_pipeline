@@ -218,7 +218,8 @@ PRO gpidrfparser::parsefile, FileName, Backbone=backbone, ConfigParser, gui_obj=
 		for i=0L,n_elements(*self.modules)-1 do begin
 			if tag_exist( (*self.modules)[i], 'SAVE') then begin
 				if (*self.modules)[i].Save eq 1 then begin
-					message,/info, 'Error: Output directory is blank, but saving a files is requested in step '+strc(i+1)+". Don't know where to write it, therefore failing this DRF. Please set OutputDir."
+					backbone->Log, 'Invalid Recipe Error: Output directory is blank, but saving a file is requested in step '+strc(i+1)+". "
+					backbone->Log, " Since it's not clear where to write it, cannot proceed, therefore failing this recipe. Please set OutputDir."
 					status=-1
 					return
 				endif

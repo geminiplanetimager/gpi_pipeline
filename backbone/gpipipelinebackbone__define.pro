@@ -406,7 +406,7 @@ PRO gpiPipelineBackbone::Run_queue, QueueDir
         if ~(keyword_set(DEBUG)) then CATCH, Error else ERROR=0    ; Catch errors inside the pipeline. In debug mode, just let the code crash and stop
         IF Error EQ 1 THEN BEGIN
             PRINT, "Calling Self -> ErrorHandler..."
-            Self -> ErrorHandler, CurrentRecipe, QueueDir
+            Self -> ErrorHandler, CurrentRecipe
         ENDIF
 
         CurrentRecipe = self->GetNextRecipe(Queuedir, found=nfound)
@@ -489,23 +489,32 @@ function gpiPipelineBackbone::Run_One_Recipe, CurrentRecipe
 		if obj_valid(self.statuswindow) then self.statuswindow->set_action, "Parsing Recipe"
 		(*self.PipelineConfig).continueAfterRecipeXMLParsing = 1    ; Assume it will be Ok to continue
 		Self.Parser -> ParseFile, CurrentRecipe.name,  Self.ConfigParser, backbone=self, status=status
-        self.Parser -> load_data_to_pipeline, backbone=self
+		if status eq 1 then begin
+	        self.Parser -> load_data_to_pipeline, backbone=self
+			; this updates the self.Data and self.modules structure
+			; arrays in accordance with what is stated in the recipe
+		endif
 
-        if status ne 1 then message,/info, "Error in parsing recipe file: "+currentrecipe.name
-		; ParseFile updates the self.Data and self.modules structure
-		; arrays in accordance with what is stated in the recipe
+        if status ne 1 then begin
+			; technically it parsed, in the sense of reading the XML, but
+			; there was something bogus about the file, like nonexistent data
+			; So throw an error even though it's syntactically valid.
+			parsererror =1
+			!error_state.msg = 'Invalid recipe file'
+		endif
 		CATCH, /CANCEL
-	ENDIF ELSE BEGIN
+	ENDIF 
+	if parserError NE 0 then  BEGIN
 		self->Log, "ERROR in parsing the Recipe file "+CurrentRecipe.name
 		; Call the local error handler
-		Self -> ErrorHandler, CurrentRecipe, QueueDir
+		Self -> ErrorHandler, CurrentRecipe
 		; Destroy the current Recipe parser and punt the DRF
 		OBJ_DESTROY, Self.Parser
 		; Recreate a parser object for the next DRF in the pipeline
 		Self.Parser = OBJ_NEW('gpiDRFParser', backbone=self)
 		(*self.PipelineConfig).continueAfterRecipeXMLParsing = 0
-		CATCH, /CANCEL
-	ENDELSE
+		PRINT, "Failure"
+	ENDIF
 
 	IF (*self.PipelineConfig).continueAfterRecipeXMLParsing EQ 1 THEN BEGIN
 		if (*(self.data)).validframecount eq 0 then begin
@@ -540,7 +549,7 @@ function gpiPipelineBackbone::Run_One_Recipe, CurrentRecipe
 
 	ENDIF ELSE BEGIN  
 	  ; This code if continueAfterRecipeXMLParsing == 0
-	  self->log, 'Reduction failed due to parsing error in file ' + DRFFileName
+	  self->log, 'Reduction failed due to parsing error in file ' + CurrentRecipe.name
 	  self->SetRecipeQueueStatus, CurrentRecipe, 'failed'
 	  self->free_dataset_pointers 		 ; If we failed with outstanding data, then clean it up.
 	ENDELSE
@@ -905,7 +914,7 @@ END
 
 
 
-PRO gpiPipelineBackbone::ErrorHandler, CurrentRecipe, QueueDir
+PRO gpiPipelineBackbone::ErrorHandler, CurrentRecipe
 
     COMMON APP_CONSTANTS
 
@@ -915,12 +924,22 @@ PRO gpiPipelineBackbone::ErrorHandler, CurrentRecipe, QueueDir
     IF Error EQ 0 THEN BEGIN
         self->log, 'ERROR: ' + !ERROR_STATE.MSG + '    ' + $
             !ERROR_STATE.SYS_MSG, DEPTH = 1
-        self->log, 'Reduction failed'
-        IF N_PARAMS() EQ 2 THEN BEGIN
-            self->SetRecipeQueueStatus, CurrentRecipe, QueueDir, 'failed'
-            ; If we failed with outstanding data, then clean it up.
-			self->free_dataset_pointers
-        ENDIF
+		if keyword_set(current_recipe) then begin
+			self->log, 'Reduction failed for recipe '+CurrentRecipe.name
+			IF N_PARAMS() EQ 2 THEN BEGIN
+				self->SetRecipeQueueStatus, CurrentRecipe, 'failed'
+				; If we failed with outstanding data, then clean it up.
+				self->free_dataset_pointers
+			ENDIF
+		endif
+
+		status_message = "Last Recipe **Failed**!    Watching for new recipes but idle."
+		if obj_valid(self.statuswindow) then begin
+			  self.statuswindow->set_status, status_message
+			  self.statuswindow->Set_action, '--'
+		endif
+
+
     ENDIF ELSE BEGIN
     ; Will this cause a recursion error?
         MESSAGE, 'ERROR in gpiPipelineBackbone::ErrorHandler - ' + STRTRIM(STRING(!ERR),2) + ': ' + !ERR_STRING, /INFO
