@@ -2,9 +2,9 @@
 ; NAME: combine_3dcubes
 ; PIPELINE PRIMITIVE DESCRIPTION: Combine 3D cubes
 ;
-;  TODO: more advanced combination methods. Mean, sigclip, etc.
+;  TODO: more advanced combination methods. Mean,  etc.
 ;
-; INPUTS: 2D image from narrow band arclamp
+; INPUTS: 3d datacubes
 ; common needed:
 ;
 ; KEYWORDS:
@@ -15,6 +15,7 @@
 ;
 ; PIPELINE COMMENT: Combine 3D data cubes via mean or median. 
 ; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="MEAN|MEDIAN|MEANCLIP|MINIMUM"  Default="MEDIAN" Desc="How to combine images: median, mean, or mean with outlier rejection?"
+; PIPELINE ARGUMENT: Name="sig_clip" Type="int" Range="0,10" Default="3" Desc="Clipping value to be used with MEANCLIP in sigma (stddev)"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.5
@@ -36,7 +37,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 @__start_primitive
 
 	if tag_exist( Modules[thisModuleIndex], "method") then method=Modules[thisModuleIndex].method else method='median'
-
+        if tag_exist( Modules[thisModuleIndex], "sig_clip") then sig_clip=Modules[thisModuleIndex].sig_clip else sig_clip=3.0
+        
 	nfiles=dataset.validframecount
 
 	; Load the first file so we can figure out their size, etc. 
@@ -65,7 +67,25 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 			combined_im=total(imtab,/DOUBLE,4) /((size(imtab))[4])
 		end
 		'MEANCLIP': begin
-			message, 'Method MEANCLIP not implemented yet - bug someone to program it!'
+                                ; this is rather dirty but functional
+                    ; first calculate median
+                   combined_im=median(imtab,/DOUBLE,DIMENSION=4)
+                                ;calculate robust_sigma
+                   stddev_arr=dblarr(sz[1],sz[2],sz[3])
+                   im_mean=dblarr(sz[1],sz[2],sz[3])
+                   for i=0, sz[1]-1 do begin
+                      for j=0, sz[2]-1 do begin
+                         for k=0, sz[3]-2 do begin
+                            ind=where(finite(imtab[i,j,k,*]) eq 1)
+                            if N_ELEMENTS(ind) gt 3 then stddev_arr[i,j,k]=robust_sigma(imtab[i,j,k,*]) else continue
+                            ind2=where(abs(imtab[i,j,k,*]-combined_im[i,j,k]) le sig_clip*stddev_arr[i,j,k])
+                            if ind2[0] ne -1 then im_mean[i,j,k]=mean(imtab[i,j,k,ind2])
+                         endfor
+                           endfor
+                   endfor
+                   im_mean[where(im_mean eq 0)]=!values.f_nan
+                   combined_im=im_mean
+                           
 		end
 		'MINIMUM': begin
 			combined_im=min(imtab,DIMENSION=4) 
