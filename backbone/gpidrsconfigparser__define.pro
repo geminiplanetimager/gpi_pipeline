@@ -225,11 +225,12 @@ function gpidrsconfigparser::getidlcommand, description, matched=count
 	endif
 
 	; now do the comparison
-	wm = where( strmatch((*self.modules).name, description), count)
+	wm = where( strmatch((*self.modules).name, description,/fold_case), count)
 	if count eq 0 then begin
-		if arg_present(count) then return, "" else $
-		MESSAGE, 'No IDL function is specified in the ' + $
-			'configuration file for module: ' + description
+		if arg_present(count) then return, "" else begin
+		MESSAGE, 'No IDL function is specified in the ' + 'configuration file for module: ' + description
+		stop
+		endelse
 	endif else return, (*self.modules)[wm[0]].idlfunc
 end 
 

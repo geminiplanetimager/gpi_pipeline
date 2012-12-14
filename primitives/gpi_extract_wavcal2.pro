@@ -10,6 +10,22 @@
 ;	Next, starting with a initial value of w & P, find the nearest peak (with an increment on the microlens coordinates)
 ;	when nearest peak has been detected, it reevaluates w & P and so forth..
 ;
+; *********************************************************************************
+; *
+; *  IMPORTANT WARNING for future software maintainers:
+; *     The complicated algorithms implemented here were originally developed
+; *     assuming the dispersion direction in GPI would be horizontal. Given data
+; *     orientation conventions later adopted, it became vertical. Rather than
+; *     rewriting all of the following and swapping all the indices around, 
+; *     the images are just *transposed* as the first step of this process, and
+; *     then the original horizontal algorithm applied. This leads to various
+; *     complexities about index transformations. Be wary when editing the
+; *     code here and keep that in mind....
+; *
+; *
+; *********************************************************************************
+;  
+;
 ;
 ; INPUTS: 2D image from narrow band arclamp
 ; common needed:
@@ -26,7 +42,7 @@
 ; PIPELINE ARGUMENT: Name="centrYpos" Type="int" Range="[0,2048]" Default="1024" Desc="Initial approximate y-position [pixel] of central peak at 1.5microns"
 ; PIPELINE ARGUMENT: Name="w" Type="float" Range="[0.,10.]" Default="4.8" Desc="Spectral spacing perpendicular to the dispersion axis at the image center [pixel]"
 ; PIPELINE ARGUMENT: Name="P" Type="float" Range="[-7.,7.]" Default="-1.8" Desc="Micro-pupil pattern"
-; PIPELINE ARGUMENT: Name="emissionlinesfile" Type="string"  Default="$GPI_DRP_DIR\config\lampemissionlines.txt" Desc="File of emission lines."
+; PIPELINE ARGUMENT: Name="emissionlinesfile" Type="string"  Default="AUTOMATIC" Desc="File of emission lines."
 ; PIPELINE ARGUMENT: Name="wav_of_centrXYpos" Type="int" Range="[1,2]" Default="2" Desc="1 if centrX-Ypos is the smallest-wavelength peak of the band; 2 if centrX-Ypos refer to 1.5microns"
 ; PIPELINE ARGUMENT: Name="maxpos" Type="float" Range="[-7.,7.]" Default="2." Desc="Allowed maximum location fluctuation (in pixel) between adjacent mlens"
 ; PIPELINE ARGUMENT: Name="maxtilt" Type="float" Range="[-360.,360.]" Default="10." Desc="Allowed maximum tilt fluctuation (in degree) between adjacent mlens"
@@ -50,176 +66,141 @@
 ;   2011-07-14 MP: Reworked FITS keyword handling to provide more informative
 ;         error messages in case of missing or invalid keywords.
 ;   2011-08-02 MP: Updated for multi-extension FITS.
+;   2012-12-13 MP: Bad pixel map now taken from DQ extension if present.
+;				   Print more informative logging messages for the user
+;				   Various bits of code cleanup.
 ;-
 
 function gpi_extract_wavcal2,  DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
-   im=*(dataset.currframe[0])
+    im=*dataset.currframe
+ 
+    ;;'Image rotated to match old DST convention of horizontal dispersion!' 
+    ;; final wavelength solution at the end of this routine is derotated to match vertical dispersion
+    im=rotate(im,1)
+    ;;need to rotate the bad pixel map too
 
-   ;;'Image rotated to match old DST convention of horizontal dispersion!' 
-   ;; final wavelength solution at the end of this routine is derotated to match vertical dispersion
-   im=rotate(im,1)
-   ;;need to rotate the bad pixel map too
-   if (size(badpixmap))[0] gt 0 then badpixmaprot=rotate(badpixmap,1)
-    ;if numext eq 0 then h= *(dataset.headers)[numfile] else h= *(dataset.headersPHU)[numfile]
-  ; h=*(dataset.headers[numfile])
-            ;error handle if image or header not well handled
-            if ((size(im))[0] eq 0) then $
-            return, error('FAILURE ('+functionName+'): Failed to load data.') 
+    if ptr_valid( dataset.currDQ) then begin
+		badpixmaprot=rotate( *dataset.currDQ,1)
+	endif
    
-  valid_header=1
-  ; error handle missing FITS keywords
-  keywords_to_check = ['OBSTYPE', 'GCALLAMP', 'IFSFILT', 'INSTRUME']
+    valid_header=1
+    ; error handle missing FITS keywords
+    keywords_to_check = ['OBSTYPE', 'GCALLAMP', 'IFSFILT', 'INSTRUME']
 
-  for i=0L,n_elements(keywords_to_check)-1 do begin
+    for i=0L,n_elements(keywords_to_check)-1 do begin
       val=backbone->get_keyword( keywords_to_check[i],count=c)
-    if c eq 0 then begin
-        err=error('FAILURE ('+functionName+'): FITS header keyword '+keywords_to_check[i]+" is missing!")
-        valid_header=0
-    endif
-    if strlen(val) eq 0 then begin
-      err=error('FAILURE ('+functionName+'): FITS header keyword '+keywords_to_check[i]+" is a null string, which is an invalid value!")
-      valid_header=0
-    endif
-  endfor 
+      if c eq 0 then return, error('FAILURE ('+functionName+'): FITS header keyword '+keywords_to_check[i]+" is missing!")
+      if strlen(val) eq 0 then return, error('FAILURE ('+functionName+'): FITS header keyword '+keywords_to_check[i]+" is a null string, which is an invalid value!")
+    endfor 
 
     obstype=backbone->get_keyword( 'OBSTYPE',count=c1)
-       lamp=backbone->get_keyword( 'GCALLAMP',count=c2)
-  if c2 eq 0 then return, error("No GCALLAMP keyword was present, therefore cannot determine what spectrum would be appropriate.")
+    lamp   =backbone->get_keyword( 'GCALLAMP',count=c2)
+    if c2 eq 0 then return, error("No GCALLAMP keyword was present, therefore cannot determine what spectrum would be appropriate.")
     
-    ;lamp=backbone->get_keyword( 'OBJECT',count=c2);backbone->get_keyword( 'GCALLAMP',count=c2) ;
     c3=1&lampshut='ON';lampshut=SXPAR( h, 'GCALSHUT',count=c3) ;will be implemented if necessary
-    bandeobs=backbone->get_keyword( 'IFSFILT',count=c4)
-	if strpos(bandeobs, '_') gt 0 then bandeobs = (strsplit(bandeobs,'_',/extract))[1] ; turn IFSFILT_H_G1213 into just H
-  ;if c4 eq 0 then bandeobs=SXPAR( h, 'IFSFILT',count=c4)
+
+    bandeobs=backbone->get_keyword( 'IFSFILT',count=c4,/simplify)
     instrum=backbone->get_keyword( 'INSTRUME',count=cinstru)
     
-;             ;error handle if keywords are missing
-;            if (c1 eq 0) || (c2 eq 0) || (c3 eq 0)|| (c4 eq 0) || $
-;            (strlen(obstype) eq 0) || (strlen(lamp) eq 0) || (strlen(lampshut) eq 0)|| (strlen(bandeobs) eq 0) then $
-;            return, error('FAILURE ('+functionName+'): At least, one of the following keywords is missing: OBSTYPE,GCALLAMP,GCALSHUT,FILTER.') 
-;   
-;             ;error handle if obstype is not 'wavecal' or 'flat' 
-;            if (~strmatch(obstype,'*wavecal*',/fold_case)) && (~strmatch(obstype,'*flat*',/fold_case))  then $
-;            return, error('FAILURE ('+functionName+'): this data are not wavecal or flat image.') 
 
-            ;to do : do something if gcalshut=off
-
-   if strmatch(obstype,'*flat*',/fold) then begin
-        im0=im
-        im = (SHIFT_DIFF(im, DIRECTION=3)>0.) ;works with spatial derivative of the image (this direction works for lambda_min edge)
- ;stop
- ;       im = (SHIFT_DIFF(im>(2.*stddev(im0>0.)), DIRECTION=3)>0.) ;works with spatial derivative of the image (this direction works for lambda_min edge)
-   endif     
+    if strmatch(obstype,'*flat*',/fold) then begin
+         im0=im
+         im = (SHIFT_DIFF(im, DIRECTION=3)>0.) ;works with spatial derivative of the image (this direction works for lambda_min edge)
+    endif     
    
-	;if (size(im))[0] eq 0 then im=readfits(filename,h)
 	szim=size(im)
 
-;;create the cube which will contain in the slice 
-;;0:x-positions (x0) of spectra (spectral direction) at a given lambda [lambda0] (can be lambda_min)
-;;1:y-positions (y0) of spectra at a given lambda
-;; The relation of dispersion for each spectrum is defined as lambda=w3*(sqrt((x-x0)^2+(y-y0)^2))+lambda0
-;;2: lambda0
-;;3: w3 (median value given by the n peaks of each spectrum, n>1)
-;;4: tilts of spectra (median value given by the n peaks, n>1)
-;nlens will be the spatial sidelength of the wavecal in pixels (usually =281 for DST images)
-nlens=uint(Modules[thisModuleIndex].nlens)
-specpos=dblarr(nlens,nlens,5)+!VALUES.F_NAN  ;specpos will handle the wavecal in this routine!
+	;;create the cube which will contain in the slice 
+	; 0:x-positions (x0) of spectra (spectral direction) at a given lambda [lambda0] (can be lambda_min)
+	; 1:y-positions (y0) of spectra at a given lambda
+	;  The relation of dispersion for each spectrum is defined as lambda=w3*(sqrt((x-x0)^2+(y-y0)^2))+lambda0
+	; 2: lambda0
+	; 3: w3 (median value given by the n peaks of each spectrum, n>1)
+	; 4: tilts of spectra (median value given by the n peaks, n>1)
+	; nlens will be the spatial side length of the wavecal in pixels (usually =281 for DST images)
+	nlens=uint(Modules[thisModuleIndex].nlens)
+	specpos=dblarr(nlens,nlens,5)+!VALUES.F_NAN  ;specpos will handle the wavecal in this routine!
 
-;localize central peak around the center of the image
-cen1=dblarr(2)	& cen1[0]=-1 & cen1[1]=-1
-wx=0 & wy=0 ;define sidelength (2wx+1 by 2wy+1 ) of box for maximum intensity detection
-hh=1. ;define sidelength (2hh+1 by 2hh+1 ) of box for centroid intensity detection
+	;localize central peak around the center of the image
+	cen1=dblarr(2)	& cen1[0]=-1 & cen1[1]=-1
+	wx=0 & wy=0 ;define sidelength (2wx+1 by 2wy+1 ) of box for maximum intensity detection
+	hh=1. ;define sidelength (2hh+1 by 2hh+1 ) of box for centroid intensity detection
 
-;
-if (tag_exist( Modules[thisModuleIndex], "emissionlinesfile")) && file_test(gpi_expand_path(Modules[thisModuleIndex].emissionlinesfile),/read) then $
-emissionlinefile=  gpi_expand_path(Modules[thisModuleIndex].emissionlinesfile) else $
-    emissionlinefile=  gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'lampemissionlines.txt'
-backbone->set_keyword, "HISTORY", "Lamp emission lines file used: "+emissionlinefile,ext_num=0
 
-;res=read_ascii(emissionlinefile,data_start=2)
-nlines = FILE_LINES(emissionlinefile) 
-sarr = STRARR(nlines) 
-OPENR, unit, emissionlinefile,/GET_LUN 
-READF, unit, sarr 
-FREE_LUN, unit 
-sarr_nocomm=sarr[2:nlines-1]
-lamp2=lamp
-if strmatch(lamp,'*Xe*',/fold) then lamp2='Xe'
-if strmatch(lamp,'*Ar*',/fold) then lamp2='Ar'
-indemis=where(stregex(sarr_nocomm,bandeobs, /bool) and stregex(sarr_nocomm,lamp2, /bool), countval )
-if countval gt 0 then begin
-  split=strsplit(sarr_nocomm[indemis],count=csplit,/extract)
-  split2=split[2:csplit-1]
-  peakwavelen=float(split2)
-endif else begin
-  stop
-  return, error('FAILURE ('+functionName+'): Failed to load emission lines.') 
-endelse
+	; Read in the file of emission line wavelengths to use in calibration
+	if (tag_exist( Modules[thisModuleIndex], "emissionlinesfile")) && file_test(gpi_expand_path(Modules[thisModuleIndex].emissionlinesfile),/read) then $
+		emissionlinefile=  gpi_expand_path(Modules[thisModuleIndex].emissionlinesfile) else $
+		emissionlinefile=  gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'lampemissionlines.txt'
+	backbone->set_keyword, "HISTORY", "Lamp emission lines file used: "+emissionlinefile,ext_num=0
+
+	nlines = FILE_LINES(emissionlinefile) 
+	sarr = STRARR(nlines) 
+	OPENR, unit, emissionlinefile,/GET_LUN 
+	READF, unit, sarr 
+	FREE_LUN, unit 
+	sarr_nocomm=sarr[2:nlines-1]
+	lamp2=lamp
+	if strmatch(lamp,'*Xe*',/fold) then lamp2='Xe'
+	if strmatch(lamp,'*Ar*',/fold) then lamp2='Ar'
+	indemis=where(stregex(sarr_nocomm,bandeobs, /bool) and stregex(sarr_nocomm,lamp2, /bool), countval )
+	if countval gt 0 then begin
+	  split=strsplit(sarr_nocomm[indemis],count=csplit,/extract)
+	  split2=split[2:csplit-1]
+	  peakwavelen=float(split2)
+	endif else begin
+	  stop
+	  return, error('FAILURE ('+functionName+'): Failed to load emission lines.') 
+	endelse
 
 case strcompress(bandeobs,/REMOVE_ALL) of
-  'Y':begin
-;      if strmatch(lamp,'*Xe*',/fold) then begin
-;        if (cinstru eq 1) && strmatch(instrum,'*DST*') then  peakwavelen=[[1.084]] else $ ;peakwavelen=[[1.084],[1.17455]]-0.03 else $ ;
-;          peakwavelen=[[1.084],[1.17454]]
-;      endif
-;      if strmatch(lamp,'*Ar*',/fold) then begin
-;        if (cinstru eq 1) && strmatch(instrum,'*DST*') then peakwavelen=[[1.07],[1.14]] else $;peakwavelen=[[1.0676]] else $
-;          peakwavelen=[[1.0676],[1.1445]]
-;        endif
-;      if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[0.95],[1.14]]
-       if (cinstru eq 1) && strmatch(instrum,'*DST*') then begin
+	'Y':begin
+		if (cinstru eq 1) && strmatch(instrum,'*DST*') then begin
             specpixlength=15. ;spec pix length for rough estimation of peak positions
             bandwidth=0.2  ;bandwidth in microns
         endif else begin
-          specpixlength=17. ;spec pix length for rough estimation of peak positions
-          bandwidth=0.2;0.18; 0.23  ;bandwidth in microns
+			specpixlength=17. ;spec pix length for rough estimation of peak positions
+			bandwidth=0.2;0.18; 0.23  ;bandwidth in microns
         endelse
     end
-  'J':begin
-;      if strmatch(lamp,'*Xe*',/fold) then peakwavelen=[[1.175],[1.263]] ;take into account secondary peak[[1.175],[1.263]]
-;      if strmatch(lamp,'*Ar*',/fold) then peakwavelen=[[1.246],[1.296]]
-      if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.15],[1.33]] ;[[1.12],[1.35]]
-      if (cinstru eq 1) && strmatch(instrum,'*DST*') then begin
-        specpixlength= 15. ;spec pix length for rough estimation of peak positions
-        bandwidth=0.18; 0.23  ;bandwidth in microns
+	'J':begin
+		if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.15],[1.33]] ;[[1.12],[1.35]]
+		if (cinstru eq 1) && strmatch(instrum,'*DST*') then begin
+			specpixlength= 15. ;spec pix length for rough estimation of peak positions
+			bandwidth=0.18; 0.23  ;bandwidth in microns
         endif else begin
-        specpixlength=17. ;spec pix length for rough estimation of peak positions
-        bandwidth=0.23;0.18; 0.23  ;bandwidth in microns
+			specpixlength=17. ;spec pix length for rough estimation of peak positions
+			bandwidth=0.23;0.18; 0.23  ;bandwidth in microns
         endelse
     end
-  'H':begin
-;      if strmatch(lamp,'*Xe*',/fold) then peakwavelen=[[1.542],[1.605],[1.6732],[1.733]]
-;      if strmatch(lamp,'*Ar*',/fold) then peakwavelen=[[1.50506],[1.695],[1.79196]] ;[[1.695]] ;[[1.50506],[1.695],[1.79196]]
+	'H':begin
       if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.5],[1.8]]
-;      if strmatch(lamp,'*laser*',/fold) then peakwavelen=[[1.55]]
-      specpixlength=20. ;17. ;spec pix length for rough estimation of peak positions
-      bandwidth=0.3 ;bandwidth in microns
+		specpixlength=20. ;17. ;spec pix length for rough estimation of peak positions
+		bandwidth=0.3 ;bandwidth in microns
     end
-  'K1':begin
-;      if strmatch(lamp,'*Xe*',/fold) then peakwavelen=[[2.02678],[2.14759]]
-;      if strmatch(lamp,'*Ar*',/fold) then peakwavelen=[[1.997],[2.06],[2.099],[2.154]]
-      if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.9],[2.19]]
-      specpixlength=20. ;spec pix length for rough estimation of peak positions
-      bandwidth=0.3 ;bandwidth in microns
+	'K1':begin
+		if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.9],[2.19]]
+		specpixlength=20. ;spec pix length for rough estimation of peak positions
+		bandwidth=0.3 ;bandwidth in microns
     end
   'K2':begin
-;      if strmatch(lamp,'*Xe*',/fold) then peakwavelen=[[2.14759],[2.31996]]
-;      if strmatch(lamp,'*Ar*',/fold) then peakwavelen=[[2.154],[2.2],[2.314],[2.397]]
-      if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[2.13],[2.4]]
-      specpixlength=20. ;spec pix length for rough estimation of peak positions
-      bandwidth=0.27  ;bandwidth in microns
+        if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[2.13],[2.4]]
+        specpixlength=20. ;spec pix length for rough estimation of peak positions
+        bandwidth=0.27  ;bandwidth in microns
     end
 endcase
-    ;;2010-07-14 J.Maire: added for testing, 
+
+
+    ;;2010-07-14 J.Maire: The following added for testing, 
     ;; use it only for wavelength solution testing based on DST sim
     ;;correct for finite DST spectral resolution !!
     
    ; if (tag_exist( Modules[thisModuleIndex], "testsDST")) && ( fix(Modules[thisModuleIndex].testsDST) eq 1 ) then begin
    if strmatch(instrum,'*DST*') && ~strmatch(bandeobs,'*Y*') then begin
-              case strcompress(bandeobs,/REMOVE_ALL) of
+		backbone->Log, "Detected DST data - running additional code to correct for finite DST spectral resolution "
+		case strcompress(bandeobs,/REMOVE_ALL) of
             'Y':begin
                 if strmatch(lamp,'*Xe*',/fold) then relativethresh=0.35
                 if strmatch(lamp,'*Ar*',/fold) then relativethresh=0.5
@@ -285,6 +266,7 @@ endcase
 
 
 	if float(Modules[thisModuleIndex].centrYpos) eq 0 or Modules[thisModuleIndex].centrXpos eq 0 then begin
+		backbone->Log, "Starting position given as (X,Y) = (0,0). Therefore loading position from wavcal_start_positions.txt"
 		readcol, gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'wavcal_start_positions.txt', $
 			def_pos_band, def_pos_x, def_pos_y, def_type, def_orient, format='A,F,F,A,A'
 		; are we looking at data from real IFS or DST here?
@@ -293,35 +275,43 @@ endcase
 
 		wm = where(def_pos_band eq bandeobs and strlowcase(def_type) eq strlowcase(data_type) and strlowcase(def_orient) eq strlowcase(backbone->get_keyword('DSORIENT')), mct)
 		if mct eq 0 then begin
-			message,/info, 'Could not find default settings for starting position! Results undefined.'
+			backbone->Log, 'Could not find default settings for starting position! Results undefined.'
 		endif else begin
 			if cenx eq 0 then cenx = float(def_pos_x[wm])
 			if ceny eq 0 then ceny = float(def_pos_y[wm])
 		endelse
-		message,/info, 'Loaded default starting position(s) from config table: '+printcoo(cenx, ceny)
+		backbone->Log, 'Loaded default starting position(s) from config table: '+printcoo(cenx, ceny)
 	endif else begin
 		;;take into account the rotation we made on image: note that axes have been switched with regard to old definition
 		cenx=float(szim[1])-1.-float(Modules[thisModuleIndex].centrYpos)
 		ceny=float(Modules[thisModuleIndex].centrXpos)
+		backbone->Log, "Starting position given as (X,Y) = ("+strc(Modules[thisModuleIndex].centrXpos)+", "+strc(Modules[thisModuleIndex].centrYpos)+") in the recipe file"
 	endelse
 
 
 
-if fix(Modules[thisModuleIndex].wav_of_centrXYpos) eq 2. then begin
-    ;;from cenx at 1.5microns, estimate x-location of first peak to detect
-    cenx+=(peakwavelen[0]-1.5)*(18./0.3)
-    ;make a slight correction for far Y-band spectra:
-    if (strcompress(bandeobs,/REMOVE_ALL) eq 'Y') && (cinstru eq 1) && strmatch(instrum,'*DST*') then cenx+=0. else $
-    if (strcompress(bandeobs,/REMOVE_ALL) eq 'Y') then cenx -=0. ; this is not used anymore
-    print, 'estimate x-location of first peak at',peakwavelen[0], 'microns =',cenx
-endif
+	if fix(Modules[thisModuleIndex].wav_of_centrXYpos) eq 2. then begin
+		backbone->Log, "Extrapolating from starting position (implictly at 1.5 microns) to current line wavelengths"
+		;;from cenx at 1.5microns, estimate x-location of first peak to detect
+		cenx+=(peakwavelen[0]-1.5)*(18./0.3)
+
+		;make a slight correction for far Y-band spectra:
+		;if (strcompress(bandeobs,/REMOVE_ALL) eq 'Y') && (cinstru eq 1) && strmatch(instrum,'*DST*') then cenx+=0. else $
+		;if (strcompress(bandeobs,/REMOVE_ALL) eq 'Y') then cenx -=0. ; this is not used anymore
+
+		; compute location in original image coordinates for display:
+		display_ceny = float(szim[1])-1. - cenx
+		display_cenx = ceny
+		backbone->Log, 'Estimated Y-location of first peak at '+sigfig(peakwavelen[0],5)+ ' microns = '+strc(display_ceny)+ " pix"
+		backbone->Log, '         (X-location is unchanged, at '+strc(display_cenx)+ " pix"
+	endif
 
 while (~finite(cen1[0])) || (~finite(cen1[1])) || $
 		(cen1[0] lt 0) || (cen1[0] gt (size(im))[1]) || $
 		(cen1[1] lt 0) || (cen1[1] gt (size(im))[1])  do begin
 	wx+=1 & wy+=1
 	cen1=localizepeak( im, cenx, ceny,wx,wy,hh)
-	print, 'peak detected at pos:', cen1[1],float(szim[1])-1.-cen1[0]
+	backbone->Log, 'Peak detected at pos: ('+strc( cen1[1])+", "+strc(float(szim[1])-1.-cen1[0])+")"
 endwhile
 specpos[nlens/2,nlens/2,0:1]=cen1
 
@@ -347,11 +337,12 @@ if strmatch(obstype,'*flat*',/fold) then begin
   wx=1. & wy=0.
 endif
 
- tight_pos=float(Modules[thisModuleIndex].maxpos)  
- tight_tilt=float(Modules[thisModuleIndex].maxtilt)  
+tight_pos=float(Modules[thisModuleIndex].maxpos)  
+tight_tilt=float(Modules[thisModuleIndex].maxtilt)  
 
 
 
+backbone->Log, 'Now measuring positions of all lenslets...'
 ;calculate now x-y locations of the first peak of all spectra (specpos[*,*,0] and specpos[*,*,1]): 
 ;for quadrant=1L,4 do find_spectra_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,specpos,im,edge_x1,edge_x2,edge_y1,edge_y2,tight_pos
 for quadrant=1L,4 do find_spectra_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,specpos,im,edge_x1,edge_x2,edge_y1,edge_y2,tight_pos,badpixmap=badpixmaprot
@@ -364,10 +355,11 @@ if strcmp(obstype,'flat',4,/fold) then specpos[*,*,0]-=0.5 ;take account of spat
 ;;;;;;;;;;;;;;;;;;;;;;;;
 
   if (tag_exist( Modules[thisModuleIndex], "tests")) && ( Modules[thisModuleIndex].tests eq 1 ) then begin
-    dispeak=dblarr(nlens,nlens,2*n_elements(peakwavelen))+!VALUES.F_NAN 
-    dispeak[*,*,0]=specpos[*,*,0]
-    dispeak[*,*,1]=specpos[*,*,1]
-    dispeak2=dblarr(nlens,nlens,n_elements(peakwavelen))+!VALUES.F_NAN
+	  backbone->Log, 'User requested running additional tests. Now doing so...'
+      dispeak=dblarr(nlens,nlens,2*n_elements(peakwavelen))+!VALUES.F_NAN 
+      dispeak[*,*,0]=specpos[*,*,0]
+      dispeak[*,*,1]=specpos[*,*,1]
+      dispeak2=dblarr(nlens,nlens,n_elements(peakwavelen))+!VALUES.F_NAN
       for xi=0,nlens-1 do begin
         for yi=0,nlens-1 do begin
             ;dispeak2[xi,yi,0]=splinefwhm(im[dispeak[xi,yi,0]-2:dispeak[xi,yi,0]+2,dispeak[xi,yi,1]-2:dispeak[xi,yi,1]+2])
@@ -375,35 +367,37 @@ if strcmp(obstype,'flat',4,/fold) then specpos[*,*,0]-=0.5 ;take account of spat
             dispeak2[xi,yi,0]=gaussfwhm(im[dispeak[xi,yi,0]-5:dispeak[xi,yi,0]+5,dispeak[xi,yi,1]-5:dispeak[xi,yi,1]+5])
         endfor
       endfor
-   endif else begin 
-    dispeak=0
+  endif else begin 
+	dispeak=0
   endelse
 
 ;if strmatch(obstype,'*flat*',/fold) then im = (SHIFT_DIFF(im0, DIRECTION=4)>0.) ;works with spatial derivative of the image (lambda_max edge)
 if strmatch(obstype,'*flat*',/fold) then im = (SHIFT_DIFF(im0>(2.*stddev(im0>0.)), DIRECTION=4)>0.) ;works with spatial derivative of the image (lambda_max edge)
 
-   specpos[*,*,2]=peakwavelen[0]
+specpos[*,*,2]=peakwavelen[0]
 if n_elements(peakwavelen) gt 1 then begin
-  apprXpos=(peakwavelen-peakwavelen[0])*specpixlength/bandwidth ;  *nbpix for the band / bandwidth
-  apprYpos=fltarr(n_elements(apprXpos))
-  tilt=fltarr(nlens,nlens,n_elements(apprXpos)-1)+!VALUES.F_NAN
+	backbone->Log, 'Now calculating dispersions of all lenslets...'
+	apprXpos=(peakwavelen-peakwavelen[0])*specpixlength/bandwidth ;  *nbpix for the band / bandwidth
+	apprYpos=fltarr(n_elements(apprXpos))
+	tilt=fltarr(nlens,nlens,n_elements(apprXpos)-1)+!VALUES.F_NAN
 
-  w3med=fltarr(nlens,nlens)
-  w3=fltarr(n_elements(apprXpos)-1)
-;wx=0. & wy=1.
-wx=1. & wy=0. ;flat
-;wx=0. & wy=0. & hh=1. ;flat
+	w3med=fltarr(nlens,nlens)
+	w3=fltarr(n_elements(apprXpos)-1)
+	;wx=0. & wy=1.
+	wx=1. & wy=0. ;flat
+	;wx=0. & wy=0. & hh=1. ;flat
 
-;calculate now x-y locations of the other peaks and deduce linear dispersion coeffs and tilts
- for quadrant=1L,4 do find_spectra_dispersions_quadrant, quadrant,peakwavelen,apprXpos,apprYpos,nlens,w3,w3med,tilt,specpos,im,wx,wy,hh,szim,edge_x1,edge_x2,edge_y1,edge_y2, dispeak, dispeak2, tight_tilt
- 
- 
+	;calculate now x-y locations of the other peaks and deduce linear dispersion coeffs and tilts
+	for quadrant=1L,4 do find_spectra_dispersions_quadrant, quadrant,peakwavelen,apprXpos,apprYpos,nlens,w3,w3med,tilt,specpos,im,wx,wy,hh,szim,edge_x1,edge_x2,edge_y1,edge_y2, dispeak, dispeak2, tight_tilt
+
+
 endif ; verif si n_elements(peakwavelen) gt 1
 
 ; median filtering for bad detection on the edge where part of spectrum are absent...
   thisModuleIndex = Backbone->GetCurrentModuleIndex()
  
 if tag_exist( Modules[thisModuleIndex], "medfilter") then if ( fix(Modules[thisModuleIndex].medfilter) eq 1 ) then begin
+  backbone->Log, ' Median filtering dispersion and tilt coefficients by 5 pixels.'
   ;do the median filter for dispersion coeff:
   specpostemp=median(specpos[*,*,3],5)
   indNan=where(~finite(specpos[*,*,3]),cnan)
@@ -417,18 +411,19 @@ if tag_exist( Modules[thisModuleIndex], "medfilter") then if ( fix(Modules[thisM
 endif
 
 ;;quick sanity Nan on edge 
-  indNan=where(~finite(specpos[*,*,0]),cnan)
-  if cnan ne 0 then begin
+indNan=where(~finite(specpos[*,*,0]),cnan)
+if cnan ne 0 then begin
     specpostemp=specpos[*,*,0]
     specpostemp[indNan]=!VALUES.F_NAN
     specpos[*,*,0]=specpostemp
     specpostemp=specpos[*,*,1]
     specpostemp[indNan]=!VALUES.F_NAN
     specpos[*,*,1]=specpostemp
-  endif
+endif
 
-  suffix = '-wavecal'
-fname=strmid(filename,0,STRLEN(filename)-6)+suffix+'.fits'
+suffix = '-wavecal'
+;fname=strmid(filename,0,STRLEN(filename)-6)+suffix+'.fits'
+;fname = file_basename(filename,remove_suffix)='.fits')+"-"+bandeobs+"-"+suffix+'.fits'
 
 
 ;if (nlens mod 2) eq 1 then specpos=specpos[0:nlens-2,0:nlens-2,*]
@@ -476,12 +471,12 @@ writefits, strmid(output_filename, 0,strlen(output_filename)-5)+'testdis2'+'.fit
 
     if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
-      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display,savedata=specpos,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile] ,output_filename=output_filename)
+      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, bandeobs+"-"+suffix, display=display,savedata=specpos,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile] ,output_filename=output_filename)
       if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
       if tag_exist( Modules[thisModuleIndex], "gpitvim_dispgrid") && ( fix(Modules[thisModuleIndex].gpitvim_dispgrid) ne 0 ) then $
            if strcmp(obstype,'flat',4,/fold) then im=im0
           
-      backbone_comm->gpitv, double(im), session=fix(Modules[thisModuleIndex].gpitvim_dispgrid), header=*(dataset.headersPHU)[numfile], dispwavcalgrid=output_filename, imname='Wavecal grid for '+  *((dataset.frames)[numfile]);Modules[thisModuleIndex].name
+      backbone_comm->gpitv, double(im), session=fix(Modules[thisModuleIndex].gpitvim_dispgrid), header=*(dataset.headersPHU)[numfile], dispwavcalgrid=output_filename, imname='Wavecal grid for '+  dataset.filenames[numfile]  ;Modules[thisModuleIndex].name
            ;gpitvms, double(im), ses=fix(Modules[thisModuleIndex].gpitvim_dispgrid),head=h,opt='dispwavcalgrid='+output_filename
     endif else begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $

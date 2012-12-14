@@ -400,6 +400,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 				['polcal', 'Polarimetry Spots Cal File', 'FiltPrism'], $
 				['instpol', 'Instrumental Polarization', 'FiltPrism'], $
 				['distor', 'Distortion Measurement', 'typeonly'], $
+				['background', 'Thermal/Sky Background', 'FiltPrism'], $
 				['', '', '']]
 	; reformat the above into a struct array.
 	aa = {type_struct, name: 'dark', description:'Dark', match_on:"itimeReadmode"}

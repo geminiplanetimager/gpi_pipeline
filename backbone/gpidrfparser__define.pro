@@ -214,7 +214,7 @@ PRO gpidrfparser::parsefile, FileName, Backbone=backbone, ConfigParser, gui_obj=
 	; Validate presence of output directory:
 	; if *any* of the available primitives have a 'save' option set to 1, then
 	; the output directory must not be blank.
-	if strc(self.outputdir) eq '' then begin
+	if strc( (*self.data).outputdir) eq '' then begin
 		for i=0L,n_elements(*self.modules)-1 do begin
 			if tag_exist( (*self.modules)[i], 'SAVE') then begin
 				if (*self.modules)[i].Save eq 1 then begin

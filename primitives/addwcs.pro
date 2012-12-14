@@ -33,7 +33,6 @@
 function addwcs, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 calfiletype='plate'
-suffix='-wcs'	; output suffix
 @__start_primitive
 
 
@@ -94,6 +93,7 @@ suffix='-wcs'	; output suffix
 	cd[0,0]*=-1. ;;;hmmm, need to be verified!
 	astr.cd=cd
 
+	suffix='-addwcs'	; output suffix
 	;put in header
 	putast,*(dataset.headersExt)[numfile],astr
   	;  endif

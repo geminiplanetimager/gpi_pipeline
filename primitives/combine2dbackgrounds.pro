@@ -1,20 +1,17 @@
 ;+
-; NAME: combine2Dframes
-; PIPELINE PRIMITIVE DESCRIPTION: Combine 2D images
+; NAME: combine2Dbackgrounds
+; PIPELINE PRIMITIVE DESCRIPTION: Combine 2D images and save as Thermal/Sky Background 
 ;
-;  TODO: more advanced combination methods. Mean, sigclip, etc.
+;	Generate a 2D background image for use in removing e.g. thermal emission
+;	from lamp images
 ;
-; INPUTS: 2D image from narrow band arclamp
-; common needed:
+; INPUTS: 2D image taken with lamps off. 
 ;
 ; KEYWORDS:
 ; OUTPUTS:
 ;
-; GEM/GPI KEYWORDS:
-; DRP KEYWORDS: NAXIS1,NAXIS2
-;
-; PIPELINE COMMENT: Combine 2D images such as darks into a master file via mean or median. 
-; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="MEAN|MEDIAN|MEANCLIP"  Default="MEDIAN" Desc="How to combine images: median, mean, or mean with outlier rejection?"
+; PIPELINE COMMENT: Combine 2D images with measurement of thermal or sky background
+; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="MEAN|MEDIAN"  Default="MEDIAN" Desc="How to combine images: median, mean, or mean with outlier rejection?"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 1.41
@@ -23,16 +20,10 @@
 ; PIPELINE SEQUENCE: 22-
 
 ; HISTORY:
-; 	 Jerome Maire 2008-10
-;   2009-09-17 JM: added DRF parameters
-;   2009-10-22 MDP: Created from mediancombine_darks, converted to use
-;   				accumulator.
-;   2010-01-25 MDP: Added support for multiple methods, MEAN method.
-;   2011-07-30 MP: Updated for multi-extension FITS
-;   2012-10-10 MP: Minor code cleanup
+;   2012-12-13 MP: Forked from combine2dframes
 ;
 ;-
-function combine2Dframes, DataSet, Modules, Backbone
+function combine2Dbackgrounds, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
@@ -41,11 +32,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	nfiles=dataset.validframecount
 
 	; Load the first file so we can figure out their size, etc. 
-
 	im0 = accumulate_getimage(dataset, 0, hdr,hdrext=hdrext)
 
 	sz = [0, backbone->get_keyword('NAXIS1'), backbone->get_keyword('NAXIS2')]
-	; create an array of the same type as the input file:
 	imtab = make_array(sz[1], sz[2], nfiles, type=size(im0,/type))
 
 	bunit0 = backbone->get_keyword('BUNIT')
@@ -61,6 +50,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		if sxpar(hdrext, 'ITIME') ne itime0 then return, error('Image '+strc(i+1)+' has different integration time (ITIME keyword) than first image in sequence. Cannot combine!')
 	endfor
 
+
 	; now combine them.
 	if nfiles gt 1 then begin
 		backbone->set_keyword, 'HISTORY', functionname+":   Combining n="+strc(nfiles)+' files using method='+method,ext_num=0
@@ -75,11 +65,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 			combined_im=total(imtab,/DOUBLE,3) /((size(imtab))[3])
 		end
 		'MEANCLIP': begin
-			message, 'Method MEANCLIP not implemented yet - bug someone to program it!'
+			return, error('Method MEANCLIP not implemented yet - bug someone to program it!')
 		end
 		else: begin
-			message,"Invalid combination method '"+method+"' in call to Combine 2D Frames."
-			return, NOT_OK
+			return, error("Invalid combination method '"+method+"' in call to Combine 2D Thermal Backgrounds.")
 		endelse
 		endcase
 		suffix = strlowcase(method)
@@ -92,10 +81,21 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	endelse
 
 
+	; Normalize output to units of counts/second
+	if bunit0 ne 'ADU per coadd' then return, error('Images do not have the expected units of ADU/coadd. Cannot determine how to normalize properly...')
+	combined_im = combined_im / itime0
+	backbone->set_keyword,'BUNIT', 'ADU/s', 'Physical units of the array values is ADU per second'
+	backbone->set_keyword,'HISTORY', functionname+":   Normalized by ITIME to get units of ADU/s.",ext_num=0
+
 
 	; store the output into the backbone datastruct
+	backbone->set_keyword, "FILETYPE", "Thermal/Sky Background", /savecomment
+  	backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+	suffix = '-bkgnd'
+
 	*(dataset.currframe)=combined_im
 	dataset.validframecount=1
+
 
 @__end_primitive
 end

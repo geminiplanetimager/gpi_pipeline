@@ -1,7 +1,7 @@
 
 ;+
 ; NAME: ApplyDarkCorrection
-; PIPELINE PRIMITIVE DESCRIPTION: Subtract Dark/Sky Background
+; PIPELINE PRIMITIVE DESCRIPTION: Subtract Dark Background
 ;
 ;    Look up from the calibration database what the best dark file of
 ;    the correct time is, and subtract it. 
@@ -35,6 +35,7 @@
 ;   2009-09-17 JM: added DRF parameters
 ;   2010-10-19 JM: split HISTORY keyword if necessary
 ;   2012-07-20 MP: added DRPDARK keyword
+;   2012-12-13 MP: Remove "Sky" from primitve discription since it's inaccurate
 ;
 function ApplyDarkCorrection, DataSet, Modules, Backbone
 

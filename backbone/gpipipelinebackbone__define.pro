@@ -931,7 +931,7 @@ END
 
 
 ;--------------------------------------------------------------------------------
-FUNCTION gpiPipelineBackbone::get_keyword, keyword, count=count, comment=comment, indexFrame=indexFrame, ext_num=ext_num, silent=silent
+FUNCTION gpiPipelineBackbone::get_keyword, keyword, count=count, comment=comment, indexFrame=indexFrame, ext_num=ext_num, silent=silent, simplify=simplify
 	; get a keyword, either from primary or extension HDU
 	;	
 	; KEYWORDS:
@@ -943,6 +943,9 @@ FUNCTION gpiPipelineBackbone::get_keyword, keyword, count=count, comment=comment
 	;				ext_num=1 to read from the image extension.
 	;	silent		suppress printed output to the screen.
 	;
+	;	simplify	Remove "Gemini-ish" cruft around the keyword values: e.g.
+	;				turn IFSFILT_K2_G1215 into just K2.
+	;
 
 	common PIP
 	if n_elements(indexFrame) eq 0 then indexFrame=numfile ; use value from common block if not explicitly provided.
@@ -950,9 +953,10 @@ FUNCTION gpiPipelineBackbone::get_keyword, keyword, count=count, comment=comment
 		; indexframe=0. 
 
 
-	return, gpi_get_keyword( *(*self.data).headersPHU[indexFrame], *(*self.data).headersEXT[indexFrame], $
+	val = gpi_get_keyword( *(*self.data).headersPHU[indexFrame], *(*self.data).headersEXT[indexFrame], $
 		keyword,count=count, comment=comment, ext_num=ext_num, silent=silent )
-
+	if keyword_set(simplify) then val = gpi_simplify_keyword_value(val)
+	return, val
 
 
 end

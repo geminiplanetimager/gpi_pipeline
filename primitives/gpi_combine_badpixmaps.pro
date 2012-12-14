@@ -88,6 +88,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	backbone->set_keyword, "FILETYPE", "Bad Pixel Map", "What kind of IFS file is this?"
 	backbone->set_keyword,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
 	backbone->set_keyword,  "DRPNBAD", totbadpix, 'This is a reduced calibration file of some type.'
+	backbone->set_keyword,  "DRPNFILE", n_elements(bptypes), '# of input files combined to produce this file'
   
 
 @__end_primitive
