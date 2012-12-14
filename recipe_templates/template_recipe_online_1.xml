@@ -4,5 +4,5 @@
 </dataset>
 <module name="Load Wavelength Calibration" CalibrationFile="GPI-wavcal.fits" />
 <module name="Assemble Spectral Datacube" Save="0" />
-<module name="Interpolate Wavelength Axis" Save="0" gpitv="2" suffix="-spdc" Spectralchannels="37" />
+<module name="Interpolate Wavelength Axis" Save="0" gpitv="2" Spectralchannels="37" />
 </DRF>

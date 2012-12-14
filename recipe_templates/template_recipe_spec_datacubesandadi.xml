@@ -3,13 +3,13 @@
 <dataset InputDir="" OutputDir="">
    <fits filename=""/>
 </dataset>
-<module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="       0" suffix="" gpitv="" />
+<module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="       0" gpitv="" />
 <module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
-<module name="Assemble Spectral Datacube" Save="       0" suffix="" gpitv="" />
-<module name="Divide by Spectral Flat Field" CalibrationFile="AUTOMATIC" Save="0" suffix="-rawspdc" gpitv="0" />
-<module name="Interpolate Wavelength Axis" Spectralchannels="37" Save="       1" suffix="-spdc" gpitv="2" />
+<module name="Assemble Spectral Datacube" Save="       0"  gpitv="" />
+<module name="Divide by Spectral Flat Field" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
+<module name="Interpolate Wavelength Axis" Spectralchannels="37" Save="       1" gpitv="2" />
 <module name="Accumulate Images" Method="OnDisk" />
-<module name="Basic ADI" numimmed="3" nfwhm="1.5" Save="       1" suffix="-adi" gpitv="10" />
+<module name="Basic ADI" numimmed="3" nfwhm="1.5" Save="       1" gpitv="10" />
 <module name="Median ADI data-cubes" Save="       1" gpitv="10" />
 <module name="Simple SSDI" L1Min="1.55" L1Max="1.57" L2Min="1.60" L2Max="1.65" k="1.0" Save="       1" gpitv="5" ReuseOutput="1"/>
 </DRF>

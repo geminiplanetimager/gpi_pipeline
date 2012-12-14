@@ -4,12 +4,12 @@
        <fits FileName="" />
    </dataset>
    <module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
-   <module name="Subtract Dark/Sky Background" CalibrationFile="AUTOMATIC" Save="       0" suffix="-darksub" gpitv="0" />
-   <module name="Assemble Spectral Datacube" Save="       0" suffix="" gpitv="" />
-   <module name="Interpolate Wavelength Axis" Spectralchannels="37" Save="       0" suffix="-spdc" gpitv="32" />
+   <module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="       0" gpitv="0" />
+   <module name="Assemble Spectral Datacube" Save="       0" gpitv="" />
+   <module name="Interpolate Wavelength Axis" Spectralchannels="37" Save="       0" gpitv="32" />
    <module name="Accumulate Images" Method="OnDisk" />
-   <module name="Rotate extended object" Save="1" suffix="-rot" gpitv="10" />
+   <module name="Rotate extended object" Save="1"  gpitv="10" />
    <module name="Median ADI data-cubes" Save="1" gpitv="10" />
-   <module name="Collapse datacube" Method="TOTAL" Save="0" suffix="-coll" gpitv="2" ReuseOutput="1" />
+   <module name="Collapse datacube" Method="TOTAL" Save="0"  gpitv="2" ReuseOutput="1" />
 </DRF>
 
