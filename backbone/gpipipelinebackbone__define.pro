@@ -116,6 +116,16 @@ FUNCTION gpipipelinebackbone::Init,  session=session, verbose=verbose, nogui=nog
 
         loadedcalfiles = obj_new('gpiloadedcalfiles') ; in common block for access inside the primitives
 
+
+		if gpi_get_setting('force_rescan_config_on_startup',default=0) then begin
+            self->rescan_Config
+		endif
+		if gpi_get_setting('force_rescan_caldb_on_startup',default=0) then begin
+            self->rescan_directory
+		endif
+
+
+
     ENDIF ELSE BEGIN
         Self -> ErrorHandler
         CLOSE, LOG_GENERAL
