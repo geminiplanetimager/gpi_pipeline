@@ -85,7 +85,6 @@ if ~finite(gridfac) then return, error('FAILURE ('+functionName+'): Could not ma
 
 ;;get user inputs
 contrsigma = float(Modules[thisModuleIndex].contrsigma)
-display = fix(Modules[thisModuleIndex].Display)
 slice = fix(Modules[thisModuleIndex].slice)
 doouter = 1 - fix(Modules[thisModuleIndex].DarkHoleOnly)
 wind = fix(Modules[thisModuleIndex].Display)

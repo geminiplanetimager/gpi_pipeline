@@ -23,7 +23,7 @@
 ; HISTORY:
 ; 	written 12/11/2012 - ds
 ;
-function measurecontrast, DataSet, Modules, Backbone
+function gpi_meas_satspot_dev, DataSet, Modules, Backbone
 
 primitive_version= '$Id: gpi_meas_satspot_dev.pro 1060 2012-12-10 23:39:47Z Dmitry $' ; get version from subversion to store in header history
 @__start_primitive
@@ -56,18 +56,18 @@ endfor
 ;;compute distancesbetween spots
 dists = sqrt(total((cens[*,[0,0,0,1,1,2],*] - cens[*,[1,2,3,2,3,3],*])^2d,1))
 legs = fltarr((size(cube,/dim))[2])
-for j=0,n_elements(leg) - 1 do $
+for j=0,n_elements(legs) - 1 do $
    legs[j] = mean((dists[sort(dists[*,j]),j])[0:3])
 
 ;;least squares fit to leg
-A = [[fltarr(n_elements(leg),1)+1],[lambda]]
+A = [[fltarr(n_elements(legs),1)+1],[lambda]]
 bm = (invert(transpose(A) # A) # transpose(A)) # legs
 legsfit = bm[0]+bm[1]*lambda
 tmp = round(n_elements(legs)/2.)
 legsscaled = legs[tmp]*lambda/lambda[tmp]
 
 ;;get user inputs
-display = fix(Modules[thisModuleIndex].Display)
+wind = fix(Modules[thisModuleIndex].Display)
 datasave = Modules[thisModuleIndex].SaveData
 pngsave = Modules[thisModuleIndex].SavePNG
 
@@ -81,7 +81,7 @@ if (wind ne -1) || (pngsave ne '') then begin
       erase
    endelse
    mu = '!4' + string("154B) + '!Xm'  ;;" this is only here to stop emacs from freaking out
-   plot,/nodata,[min(lambda),max(lambda)],[min([legs,legs2]),max([legs,legs2])],$
+   plot,/nodata,[min(lambda),max(lambda)],[min([legs,legsfit,legsscaled]),max([legs,legsfit,legsscaled])],$
         charsize=1.5, Background=cgcolor('white'), Color=cgcolor('black'),$
         xtitle='Wavelength ('+mu+')',ytitle='Sat. Spot Distance From Center (pix)',/ystyle
    oplot,lambda,legs,color=cgcolor('red'),psym=2
