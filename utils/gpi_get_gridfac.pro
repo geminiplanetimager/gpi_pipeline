@@ -45,6 +45,7 @@ if cc ne 1 then begin
    return,!values.f_nan
 endif
 
-return,values[res]
+;;expecting a scalar back
+return,(values[res])[0]
 
 end
