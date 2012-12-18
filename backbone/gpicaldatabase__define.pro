@@ -34,7 +34,7 @@ calfile = { $
 			inport: "", $
 			readoutmode: "", $
 			other: "", $
-			drp_version: "", $
+			drpversion: "", $
 			nfiles: 0, $
 			valid: 1b}
 
@@ -331,7 +331,7 @@ function gpicaldatabase::cal_info_from_header, fits_data
 		   "T"+strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header,"UTSTART"))
 	thisfile.jd = date_conv(dateobs, "J")
 
-	thisfile.drp_version = strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "DRPVER", count=count))
+	thisfile.drpversion = strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "DRPVER", count=count))
 	thisfile.nfiles = strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "DRPNFILE", count=count))
 
 	return, thisfile
