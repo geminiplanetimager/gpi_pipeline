@@ -522,7 +522,7 @@ endif
         bclose = widget_button(frame,VALUE='Queue Viewer',UVALUE='QueueView', resource_name='button', /tracking_events)
 		bclose = widget_button(frame,VALUE='GPItv',UVALUE='GPItv', resource_name='button', /tracking_events)
 		bclose = widget_button(frame,VALUE='Auto-Reducer',UVALUE='AutomaticProcGUI', resource_name='button', /tracking_events)
-        bclose = widget_button(frame,VALUE='Data log-file',UVALUE='makedatalogfile', resource_name='button', /tracking_events)
+        ;bclose = widget_button(frame,VALUE='Data log-file',UVALUE='makedatalogfile', resource_name='button', /tracking_events)
 		if self.enable_dst then bclose = widget_button(frame,VALUE='DST',UVALUE='dst', resource_name='button', /tracking_events)
 		tmp = widget_label(frame, value=' ')
 		bclose = widget_button(frame,VALUE='Quit ',UVALUE='quit', resource_name='red_button',/tracking_events)

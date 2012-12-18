@@ -516,7 +516,9 @@ PRO gpidrfparser::startelement, URI, Local, qName, AttNames, AttValues
 					; FIXME check the file exists and is a valid GPI fits file 
 
 					if not file_test(full_input_filename,/read) then begin
-						  self->Log, 'ERROR: The file "'+ full_input_filename+'" does not appear to exist on disk. Skipping this file and trying to continue anyway...', DEPTH=2
+						  self->Log, 'ERROR: The file "'+ full_input_filename+'" does not appear to exist on disk.  Cannot load requested data.'
+						  self->StopParsing
+						  ;Skipping this file and trying to continue anyway...', DEPTH=2;;
 					endif else begin
 
 					;valid = gpi_validate_file(full_input_filename)
