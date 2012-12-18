@@ -37,6 +37,8 @@
 
 FUNCTION gpi_expand_path, inputpath, vars_expanded=vars_expanded, recursion=recursion
 
+compile_opt defint32, strictarr, logical_predicate
+
 if N_elements(inputpath) EQ 0 then return,''
 if size(inputpath,/TNAME) ne 'STRING' then return,inputpath
 
@@ -49,11 +51,8 @@ if res ge 0 then begin
 	;print, varname, length, res
 	first_char = strmid(varname,0,1)
 	if first_char eq '(' or first_char eq '{' then varname=strmid(varname,1,length-3)
-	;print, varname, length
 	if ~(keyword_set(vars_expanded)) or ~(keyword_set(recursion)) then vars_expanded = [varname] else vars_expanded =[vars_expanded,varname]
-	;print, varname, "|", getenv(varname)
 	expanded = strmid(inputpath,0,res)+ gpi_get_directory(varname)+ strmid(inputpath,res+length)
-	;print, expanded
 	return, gpi_expand_path(expanded, vars_expanded=vars_expanded,/recursion) ; Recursion!
 endif
 

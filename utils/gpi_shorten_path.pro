@@ -22,6 +22,7 @@
 
 
 FUNCTION gpi_shorten_path, path
+	compile_opt defint32, strictarr, logical_predicate
 
 	vars = [ 'GPI_DRP_TEMPLATES_DIR','GPI_REDUCED_DATA_DIR', 'GPI_RAW_DATA_DIR',  'GPI_DRP_LOG_DIR', 'GPI_DRP_QUEUE_DIR','GPI_CALIBRATIONS_DIR', 'GPI_DRP_DIR']
 

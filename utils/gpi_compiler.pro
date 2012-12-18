@@ -19,6 +19,8 @@
 ;;				  too.
 pro gpi_compiler, compildir, drpdirectory=drpdirectory, gpitvdir=gpitvdir
 
+	compile_opt defint32, strictarr, logical_predicate
+
 	if N_params() EQ 0 then begin ;Prompt for directory of produced executables?
   		compildir = ' ' 
         read,'Enter name of the directory where to create executables: ',compildir    

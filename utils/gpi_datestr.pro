@@ -18,6 +18,7 @@
 
 
 FUNCTION gpi_datestr, jd=jd, current=current
+	compile_opt defint32, strictarr, logical_predicate
 
 	if ~(keyword_set(jd)) and ~(keyword_set(current)) then begin
 		message,/info, 'called without specifying either JD or CURRENT; guessing you want the current date? '

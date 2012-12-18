@@ -23,6 +23,8 @@
 ; 			 spread in redundant copies around various .pro files)
 ;-
 
+compile_opt defint32, strictarr, logical_predicate
+
 forward_function gpi_validate_file_one_keyword
 
 FUNCTION gpi_validate_file_one_keyword, file_data, keyword, requiredvalue, verbose=verbose, _extra=_extra

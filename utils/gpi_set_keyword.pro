@@ -25,6 +25,8 @@ PRO gpi_set_keyword, keyword, value, pri_header, ext_header, comment=comment, ex
 	;	verbose		Opposite of silent.
 	;				Default is silent if neither are specified.
 	;
+	compile_opt defint32, strictarr, logical_predicate
+
 	common GPI_KEYWORD_TABLE, keyword_info
 
 	if ~(keyword_set(pri_header)) or ~(keyword_set(ext_header)) then message,"Invalid function call - missing pri_header andor ext_header arguments!"

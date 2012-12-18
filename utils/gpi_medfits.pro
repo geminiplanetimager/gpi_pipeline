@@ -19,6 +19,8 @@
 
 function gpi_medfits,fnames,dim1,dim2,rns=rns,nlist=nlist,dir=dir,gz=gz,$
                  exten_no=exten_no,silent=silent,nzero=nzero,hdr=h,even=even,lam=lam
+compile_opt defint32, strictarr, logical_predicate
+
 
 ;Calcule et retourne l'image mediane de plusieurs fichiers fits.
 ;

@@ -1,8 +1,14 @@
 ;+
-; NAME:  
+; NAME:  gpi_get_keyword
 ;
-; INPUTS:
+; get a keyword, either from primary or extension HDU
+;	
 ; KEYWORDS:
+;	ext_num		This allows you to override the keyword config file if you
+;				really know what you're doing. Set ext_num=0 to read from the PHU or
+;				ext_num=1 to read from the image extension.
+;	silent		suppress printed output to the screen.
+;
 ; OUTPUTS:
 ;
 ; HISTORY:
@@ -10,15 +16,9 @@
 ;-
 
 FUNCTION gpi_get_keyword, pri_header, ext_header, keyword, count=count, comment=comment, ext_num=ext_num, silent=silent
-	; get a keyword, either from primary or extension HDU
-	;	
-	; KEYWORDS:
-	;	ext_num		This allows you to override the keyword config file if you
-	;				really know what you're doing. Set ext_num=0 to read from the PHU or
-	;				ext_num=1 to read from the image extension.
-	;	silent		suppress printed output to the screen.
-	;
-	
+	compile_opt defint32, strictarr, logical_predicate
+
+
 	common GPI_KEYWORD_TABLE, keyword_info
 
 	if ~ptr_valid(keyword_info) then gpi_load_keyword_table

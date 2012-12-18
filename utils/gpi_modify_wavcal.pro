@@ -14,6 +14,8 @@
 
 PRO  gpi_modify_wavcal, calfile, datafile, deltax=deltax, deltay=deltay, deltalambda=deltalambda, deltatilt=deltatilt
 
+	compile_opt defint32, strictarr, logical_predicate
+
 
 newcalfile = repstr(calfile,'.fits', '_mod.fits')
 

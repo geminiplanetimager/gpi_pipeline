@@ -70,6 +70,8 @@ function get_sat_fluxes,im0,band=band,good=good,cens=cens,warns=warns,$
 ;       and added option to bypass this altogether - ds
 ;-
 
+compile_opt defint32, strictarr, logical_predicate
+
 if not keyword_set(gaussap) then gaussap = 7.
 
 ;;check input

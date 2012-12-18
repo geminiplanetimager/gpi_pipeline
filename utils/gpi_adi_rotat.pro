@@ -13,6 +13,7 @@
 ;   JM: adapted for GPI-pip
 function gpi_adi_rotat,im,deg,x0,y0,hdr=hdr,missing=missing
 
+compile_opt defint32, strictarr, logical_predicate
 
 sz=size(im) & dimx=sz[1] & dimy=sz[2]
 if n_params() lt 4 then y0=dimy/2

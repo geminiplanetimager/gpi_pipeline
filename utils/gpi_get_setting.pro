@@ -23,10 +23,11 @@
 ; 	/int			Cast result to integer before returning
 ; 	/bool			Cast result to boolean (byte) before returning
 ;
-; 	/rescal			Reload the input files from disk instead of using cached
+; 	/rescan			Reload the input files from disk instead of using cached
 ; 					values
 ; 	default=		Value to return, for the case when no information is
 ; 					available in the configuration files.
+;	/silent			Don't print any warning messages if setting not found.
 ; OUTPUTS:
 ;	returns the text value stored in that file
 ;
@@ -47,6 +48,7 @@
 
 
 function gpi_get_setting, settingname, expand_path=expand_path, integer=int, bool=bool, rescan=rescan,silent=silent, default=default
+	compile_opt defint32, strictarr, logical_predicate
 
 	common GPI_SETTINGS, globalsettings, usersettings
 

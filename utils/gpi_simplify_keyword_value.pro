@@ -22,6 +22,7 @@
 
 
 FUNCTION gpi_simplify_keyword_value, value
+  compile_opt defint32, strictarr, logical_predicate
 
   newvaltab=strsplit(value,'_',/EXTRACT,count=cc)
   if cc gt 1 then value=newvaltab[1]

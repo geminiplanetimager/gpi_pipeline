@@ -29,6 +29,8 @@
 
 
 function gpi_get_directory, dirname,expand_path=expand_path,method=method
+  compile_opt defint32, strictarr, logical_predicate
+
 
   if dirname eq "" then begin
      if ~(keyword_set( dirname)) then dirname='.' 

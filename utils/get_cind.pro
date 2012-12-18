@@ -1,5 +1,6 @@
 function get_cind,dimx,dimy,r
 
+compile_opt defint32, strictarr, logical_predicate
 ;pour obtenir les indices d'un cercle centre sur le centre
 ;de l'image
 ;r=rayon

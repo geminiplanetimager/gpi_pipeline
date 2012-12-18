@@ -18,7 +18,8 @@
 
 FUNCTION gpi_readfits, filename, header=header
 
-  fits_info, filename, n_ext = numexten, /silent
+	compile_opt defint32, strictarr, logical_predicate
+	fits_info, filename, n_ext = numexten, /silent
 
 	return, mrdfits(filename, numexten gt 0, header,/silent)
 

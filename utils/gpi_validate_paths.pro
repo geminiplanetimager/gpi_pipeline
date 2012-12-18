@@ -27,7 +27,8 @@
 ;  FIXME: should try to clean up / reorganize this code? 
 
 function gpi_validate_paths, first=first, get_path_info=get_path_info
-  
+  compile_opt defint32, strictarr, logical_predicate
+
   ;;these are the things we care about
   env =       {name:'GPI_DRP_QUEUE_DIR',     writeable:1, isdir:1, description:"Recipe Queue directory"}
   env = [env, {name:'GPI_RAW_DATA_DIR',      writeable:0, isdir:1, description:"Directory for raw data input"}]
@@ -59,14 +60,14 @@ function gpi_validate_paths, first=first, get_path_info=get_path_info
      ;;care of default values, so we rely on it completely
      dir = gpi_get_directory(env[j].name,method=method)
      res = file_test(dir, dir = env[j].isdir)
-     if not res then begin
+     if res eq 0 then begin
         retval = 0
         message,env[j].name+' value of '+newline+dir+newline+' derived from a(n) '+method+' is not valid: directory does not exist',/info
      endif
 
 	 if env[j].writeable then begin
 	     res = file_test(dir, dir = env[j].isdir, write=1)
-		 if not res then begin
+		 if res eq 0 then begin
 			retval = 0
 			message,env[j].name+' value of '+newline+dir+newline+' derived from a(n) '+method+' is not valid: directory must be writeable, but is not.',/info
 		endif

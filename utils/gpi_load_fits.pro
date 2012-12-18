@@ -32,6 +32,7 @@
 
 FUNCTION gpi_load_fits, filename, nodata=nodata, silent=silent, _extra=_extra
 
+	compile_opt defint32, strictarr, logical_predicate
 
 
 	if gpi_get_setting('preprocess_fits_files',/bool,default=0,/silent) then begin

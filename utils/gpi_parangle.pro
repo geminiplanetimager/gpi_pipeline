@@ -93,6 +93,8 @@ function gpi_parangle, ha, dec, latitude, DEGREE=degree
 ;	Written by Tim Robishaw, Berkeley  08 May 2006
 ;-
 
+compile_opt defint32, strictarr, logical_predicate
+
 if (N_params() lt 3) then begin
    message,'Syntax - Result = parangle(ha, dec, latitude [, /DEGREE])',/INFO
    return, 0

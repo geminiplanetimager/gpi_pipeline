@@ -16,6 +16,8 @@ function get_cwv,filter,spectralchannels=spectralchannels
 ;  2012.11.15 JM - change lambda min/max according to 50% filter transmission
 ;-
 
+  compile_opt defint32, strictarr, logical_predicate
+
   tabband=[['Z'],['Y'],['J'],['H'],['K'],['K1'],['K2']]
   parseband=WHERE(STRCMP( tabband, strcompress(filter,/rem), /FOLD_CASE) EQ 1)
   case parseband of

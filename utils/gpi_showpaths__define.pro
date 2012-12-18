@@ -10,17 +10,19 @@
 
 
 PRO gpi_showpaths_event, ev
+	compile_opt defint32, strictarr, logical_predicate
     widget_control,ev.top,get_uvalue=storage
     if size(storage,/tname) eq 'STRUCT' then storage.self->event, ev else storage->event, ev
 end
 
 ;-------------------------------------------------------------------
 pro gpi_showpaths::event, ev
+  compile_opt defint32, strictarr, logical_predicate
 
-widget_control,ev.id,get_uvalue=uval
-if ~(keyword_set(uval)) then uval = '  '
-case tag_names(ev, /structure_name) of
- ; Mouse-over help text display:
+  widget_control,ev.id,get_uvalue=uval
+  if ~(keyword_set(uval)) then uval = '  '
+  case tag_names(ev, /structure_name) of
+  ; Mouse-over help text display:
       'WIDGET_TRACKING': begin 
         if (ev.ENTER EQ 1) then begin 
               case uval of              
@@ -63,58 +65,61 @@ case tag_names(ev, /structure_name) of
 end
 ;--------------------------
 function gpi_showpaths::act
+  compile_opt defint32, strictarr, logical_predicate
   return, self.quit
 end
 ;--------------------------
 function gpi_showpaths::init
-
-self.base = widget_base(title='Directory Paths for GPI Data Pipeline', /column)
-base=self.base
-void = widget_label(base, value='The following directories appear to be configured properly:')
-base_valid = widget_base(base, /column)
-invalid_label = widget_label(base, value='The following directories are NOT configured properly:')
-base_invalid = widget_base(base, /column)
+	compile_opt defint32, strictarr, logical_predicate
 
 
-
-path_info = gpi_validate_paths(/get_path_info)
-
-npaths = n_elements(path_info)
-
-all_valid = 1
-
-for i=0L,npaths-1 do begin
-	dirname = path_info[i].name
-    dirpath = gpi_get_directory(path_info[i].name,method=method)
-    exists = file_test(dirpath, dir = path_info[i].isdir)
-    writeable = file_test(dirpath, dir = path_info[i].isdir, write=1)
-	valid = (exists and (writeable or (path_info[i].writeable eq 0))) ; a directory is valid if it exists, and is writeable if it's supposed to be.
-
-	if valid then mybase = base_valid else mybase = base_invalid
-	rowbase = widget_base(mybase, /row)
-
-	void= widget_label(rowbase,Value=path_info[i].description,XSIZE=210, /tracking_events, /align_left)
-	void= widget_label(rowbase,Value=path_info[i].name,XSIZE=150, /tracking_events, /align_left)
-	void= widget_label(rowbase,Value="from " +method,XSIZE=160, /tracking_events, /align_left)
-
-	text_id = WIDGET_TEXT(rowbase,Value=dirpath, XSIZE=50)
+	self.base = widget_base(title='Directory Paths for GPI Data Pipeline', /column)
+	base=self.base
+	void = widget_label(base, value='The following directories appear to be configured properly:')
+	base_valid = widget_base(base, /column)
+	invalid_label = widget_label(base, value='The following directories are NOT configured properly:')
+	base_invalid = widget_base(base, /column)
 
 
-	if valid then begin
-		void= widget_label(rowbase,Value=" -ok- ")
-	endif else begin
-		all_valid = 0
-		if not exists then begin
-			void= widget_label(rowbase,Value=" Path does not exist ")
 
+	path_info = gpi_validate_paths(/get_path_info)
+
+	npaths = n_elements(path_info)
+
+	all_valid = 1
+
+	for i=0L,npaths-1 do begin
+		dirname = path_info[i].name
+		dirpath = gpi_get_directory(path_info[i].name,method=method)
+		exists = file_test(dirpath, dir = path_info[i].isdir)
+		writeable = file_test(dirpath, dir = path_info[i].isdir, write=1)
+		valid = (exists and (writeable or (path_info[i].writeable eq 0))) ; a directory is valid if it exists, and is writeable if it's supposed to be.
+
+		if valid then mybase = base_valid else mybase = base_invalid
+		rowbase = widget_base(mybase, /row)
+
+		void= widget_label(rowbase,Value=path_info[i].description,XSIZE=210, /tracking_events, /align_left)
+		void= widget_label(rowbase,Value=path_info[i].name,XSIZE=150, /tracking_events, /align_left)
+		void= widget_label(rowbase,Value="from " +method,XSIZE=160, /tracking_events, /align_left)
+
+		text_id = WIDGET_TEXT(rowbase,Value=dirpath, XSIZE=50)
+
+
+		if valid then begin
+			void= widget_label(rowbase,Value=" -ok- ")
 		endif else begin
-			void= widget_label(rowbase,Value=" Path must be writeable, but is not.")
-		endelse 
+			all_valid = 0
+			if not exists then begin
+				void= widget_label(rowbase,Value=" Path does not exist ")
 
-	endelse
+			endif else begin
+				void= widget_label(rowbase,Value=" Path must be writeable, but is not.")
+			endelse 
+
+		endelse
 
 
-endfor 
+	endfor 
 
 
 	if all_valid then widget_control, invalid_label, set_value ='All paths are configured validly. Nice job!' $ 
@@ -133,7 +138,7 @@ endfor
     widget_control,base,set_uvalue=storage,/no_copy
 
 
-xmanager,'gpi_showpaths',base
+	xmanager,'gpi_showpaths',base
 
   return, 1
 end

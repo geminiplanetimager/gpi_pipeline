@@ -12,6 +12,8 @@
 ;--------------------------------------------------------------------------------
 ; Read in GPI keywords table for which keyword is in which extension
 PRO gpi_load_keyword_table
+	compile_opt defint32, strictarr, logical_predicate
+
 	common GPI_KEYWORD_TABLE, keyword_info
 
 	if ptr_valid(keyword_info) then ptr_free, keyword_info

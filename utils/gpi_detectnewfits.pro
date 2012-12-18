@@ -1,5 +1,6 @@
 function gpi_detectnewfits, dir, listfile,list_id,button_value
 
+compile_opt defint32, strictarr, logical_predicate
 chang=''
 
 if where(strcmp(button_value,'Search most-recent fits files')) eq -1 then begin
@@ -22,7 +23,7 @@ for i=0,ii-1 do begin
 	filetypes = '*.{fts,fits}'
     string3 = folder + path_sep() + filetypes
     fitsfiles =FILE_SEARCH(string3,/FOLD_CASE)
-    fitsfileslist(n:n+n_elements(fitsfiles)-1) =fitsfiles
+    fitsfileslist[n:n+n_elements(fitsfiles)-1] =fitsfiles
     n=n+ n_elements(fitsfiles)
 endfor
 
@@ -30,17 +31,17 @@ endfor
 	datet=dblarr(n_elements(fitsfileslist))
     for j=0,n_elements(datet)-1 do begin
     Result = FILE_INFO(fitsfileslist[j] )
-    datet(j)=Result.ctime
+    datet[j]=Result.ctime
     endfor
 ;sort files with creation date
     list2=fitsfileslist(REVERSE(sort(datet)))
-    list3=list2(0:n_elements(list2)-1)
+    list3=list2[0:n_elements(list2)-1]
 
 ;; old file list
 dateold=dblarr(n_elements(listfile))
     for j=0,n_elements(listfile)-1 do begin
     Result = FILE_INFO(fitsfileslist(j) )
-    dateold(j)=Result.ctime
+    dateold[j]=Result.ctime
     endfor
 
 ;;compare old and new file list

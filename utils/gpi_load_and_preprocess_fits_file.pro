@@ -49,6 +49,7 @@ end
 FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodata, silent=silent, $
 	filter=defaultfilter, apodizer=defaultapodizer, occulter=defaultocculter
 
+	compile_opt defint32, strictarr, logical_predicate
 
 	if ~(keyword_set(orient)) then orient='vertical' ; desired spectral orientation is vertical
 	desired_orient='vertical'

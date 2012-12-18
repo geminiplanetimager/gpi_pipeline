@@ -1,4 +1,6 @@
 pro gpi_finddeviants, cubef3D_box,xsi,ysi,badpixmap,nbdev,xmini,OPERATEUR,ybp,nbdev0,nbdev1,nbdev17,nbdev18,isedge,specpixlength
+	compile_opt defint32, strictarr, logical_predicate
+
 
 
  
