@@ -121,7 +121,7 @@ FUNCTION gpipipelinebackbone::Init,  session=session, verbose=verbose, nogui=nog
             self->rescan_Config
 		endif
 		if gpi_get_setting('force_rescan_caldb_on_startup',default=0) then begin
-            self->rescan_directory
+                   self.GPICalDB->rescan_directory 
 		endif
 
 
