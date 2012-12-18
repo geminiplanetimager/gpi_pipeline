@@ -31,7 +31,7 @@ function gpi_get_gridfac,apodizer
 ;       Written 12/10/2012. ds
 ;-
 
-fname = gpi_get_setting('apodizer_spec',default=gpi_get_directory('GPI_DRP_CONFIG_DIR')+'apodizer_spec.txt',/silent)
+fname = gpi_expand_path(gpi_get_setting('apodizer_spec',default=gpi_get_directory('GPI_DRP_CONFIG_DIR')+'/apodizer_spec.txt',/silent))
 if ~file_test(fname) then begin
    message,'Could not find apodizer spec file.',/continue
    return,!values.f_nan
