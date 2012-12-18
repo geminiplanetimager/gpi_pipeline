@@ -5,6 +5,6 @@
    <fits filename=""/>
 </dataset>
 <module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0"  gpitv="0" />
-<!-- <module name="Interpolate bad pixels in 2D frame" method="vertical"  Save="0" gpitv="0" CalibrationFile="AUTOMATIC" />  -->
+<module name="Interpolate bad pixels in 2D frame" method="vertical"  Save="0" gpitv="0" CalibrationFile="AUTOMATIC" /> 
 <module name="Assemble Polarization Cube" CalibrationFile="AUTOMATIC" Rotate="0" Save="0" gpitv="2" />
 </DRF>
