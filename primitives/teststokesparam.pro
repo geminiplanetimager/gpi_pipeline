@@ -22,11 +22,10 @@
 ;
 ; HISTORY:
 ;   Jerome Maire 2010-11-08
-; Patrick Ingraham 2012-12-19 Just changed the file name to remove the capital letter in Stokes
 ;- 
 
 function teststokesparam, DataSet, Modules, Backbone
-primitive_version= '$Id$' ; get version from subversion to store in header history
+primitive_version= '$Id: testStokesparam.pro 11 2010-11-08 10:22:03 maire $' ; get version from subversion to store in header history
 @__start_primitive
 mydevice = !D.NAME
 ;retrieve DST input parameters:
