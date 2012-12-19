@@ -50,10 +50,10 @@ function drf::get_datestr
 	; return the datedir formatted string corresponding to the
 	; first data file in this DRF
 	; This is used for the DRF output path if organize by dates is set
-	if ptr_valid(self.filenames) and file_test(*self.filenames[0]) then begin
+	if ptr_valid(self.filenames) and file_test((*self.filenames)[0]) then begin
 		; determine the output dir based on the date associated with the first
 		; FITS header
-		head = headfits(*self.filenames[0])
+		head = headfits((*self.filenames)[0])
 		dateobs = sxpar(head,'DATE-OBS', count=count)
 		if count gt 0 then begin
 			parts = strsplit(dateobs,'-',/extract)
@@ -115,7 +115,7 @@ pro drf::set_module_args, modnum, arginfo
 end
 ;-------------
 
-FUNCTION drf::get_module_args, modnum, count=count
+FUNCTION drf::get_module_args, modnum, count=count,verbose=verbose
 	; Return the module arguments for a given module
 	;
 	; PARAMETERS:
@@ -126,8 +126,6 @@ FUNCTION drf::get_module_args, modnum, count=count
 	; 	module argument info, as a structure
 	;
     
-	verbose=1
-	
 	drf_contents = self->get_contents()
 
 	; look up from the DRS config file what the allowed arguments of this module
@@ -135,15 +133,15 @@ FUNCTION drf::get_module_args, modnum, count=count
 	module_number = where((*self.ConfigDRS).names eq (drf_contents.modules.name)[modnum]) ; index of the module *in the config file!*
 	module_argument_indices = where(   ((*self.ConfigDRS).argmodnum) eq module_number[0]+1, count)
 
-		if verbose then print,  (drf_contents.modules.name)[modnum]
+		if keyword_set(verbose) then print,  (drf_contents.modules.name)[modnum]
 
 	if count eq 0 then return, ''
 	
 	module_argument_names=((*self.ConfigDRS).argname)[module_argument_indices]
 	module_argument_defaults=((*self.ConfigDRS).argdefault)[module_argument_indices]
 
-		if verbose then print,  "ARGS: ", module_argument_names
-		if verbose then print,  "DEFS: ", module_argument_defaults
+		if keyword_set(verbose) then print,  "ARGS: ", module_argument_names
+		if keyword_set(verbose) then print,  "DEFS: ", module_argument_defaults
 
 
 	; look in the contents of the DRF for what they are
@@ -215,7 +213,7 @@ pro drf::save, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silent=s
 		self->Log, "Could not write to nonexistent directory: "+file_dirname(outputfile)
 		return
 	endif
-	if ~(keyword_set(silent)) then self->log,'Writing DRF to '+outputfile
+	if ~(keyword_set(silent)) then self->log,'Writing DRF to '+gpi_shorten_path(outputfile)
 
 	OpenW, lun, outputfile, /Get_Lun
 

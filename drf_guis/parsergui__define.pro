@@ -63,6 +63,7 @@ pro parsergui::init_data, _extra=_extra
 	if self.debug then message,/info, 'Parser init data'
 	self->drfgui::init_data ; inherited from DRFGUI class
 
+	self.outputdir= "AUTOMATIC" ; implies to use $GPI_REDUCED_DATA_DIR or a subdirectory depending on value of gpi_get_setting('organize_reduced_data_by_dates',/bool)
 	self.currDRFSelec=      ptr_new(/ALLOCATE_HEAP)
 	self.drf_summary=       ptr_new(/ALLOCATE_HEAP)
 
@@ -680,6 +681,12 @@ pro parsergui::create_recipe_from_template, templatename, fitsfiles, current, da
 	; set the data files in that recipe to the requested ones
 	drf->set_datafiles, fitsfiles 
 
+	if self.outputdir eq 'AUTOMATIC' then begin
+		drf->set_outputdir, /autodir
+	endif else begin
+		drf->set_outputdir, self.outputdir
+	endelse
+
     drf_summary = drf->get_summary()
 
 	; Generate output file name
@@ -692,8 +699,6 @@ pro parsergui::create_recipe_from_template, templatename, fitsfiles, current, da
 	message,/info, 'Outputting file to :' + outputfilename
 
 	drf->savedrf, outputfilename
-
-    ;self->savedrf, fitsfiles, prefix=self.nbdrfSelec+1, datetimestr=datetimestr
 
 
 
@@ -975,13 +980,26 @@ pro parsergui::event,ev
         (*storage.splitptr).datefile = datefile
         widget_control,storage.fname,set_value=pfile
     end
+
+	'outputdir': begin
+		widget_control, self.outputdir_id, get_value=result
+		self.outputdir = result
+		self->log,'Output Directory changed to: '+self.outputdir
+		if result eq 'AUTOMATIC' then begin
+			self->Log, '   Actual output directory will be determined automatically based on data'
+		endif else begin
+			if ~file_test(result,/dir) then self->Log, "Please note that that output directory does not exist."
+			if ~file_test(result,/write) then self->Log, "Please note that that output directory is not writeable."
+		endelse
+
+	end
     
-    'outputdir': begin
+    'outputdir_browse': begin
         result = DIALOG_PICKFILE(TITLE='Select a OUTPUT Directory', /DIRECTORY,/MUST_EXIST)
         if result ne '' then begin
             self.outputdir = result
             widget_control, self.outputdir_id, set_value=self.outputdir
-            self->log,'Output Directory changed to:'+self.outputdir
+            self->log,'Output Directory changed to: '+self.outputdir
         endif
     end
     'logdir': begin
@@ -1414,11 +1432,11 @@ function parsergui::init_widgets,  _extra=_Extra  ;drfname=drfname,  ;,grouplead
     drflabel=widget_label(top_baseborder2,Value='Output Dir=         ')
     self.outputdir_id = WIDGET_TEXT(top_baseborder2, $
                 xsize=34,ysize=1,$
-                /editable,units=0,value=self.outputdir )    
+                /editable,units=0,value=self.outputdir,uvalue='outputdir'  )    
 
     drfbrowse = widget_button(top_baseborder2,  $
                         XOFFSET=174 ,SCR_XSIZE=75 ,SCR_YSIZE=23  $
-                        ,/ALIGN_CENTER ,VALUE='Change...',uvalue='outputdir')
+                        ,/ALIGN_CENTER ,VALUE='Change...',uvalue='outputdir_browse')
 ;    top_baseborder3=widget_base(top_baseidentseq,/BASE_ALIGN_LEFT,/row)
 ;    drflabel=widget_label(top_baseborder3,Value='Log Path=           ')
 ;    self.logdir_id = WIDGET_TEXT(top_baseborder3, $

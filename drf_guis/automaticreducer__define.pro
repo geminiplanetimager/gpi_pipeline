@@ -131,7 +131,7 @@ pro automaticreducer::handle_new_files, new_filenames ;, nowait=nowait
                 continue
             endif
             finfo = file_info(new_filenames[i])
-            if (finfo.size ne 21000960) and (finfo.size ne 16790400) then begin
+            if (finfo.size ne 20998080) and (finfo.size ne 21000960) and (finfo.size ne 16790400) then begin
                 message,/info, "File size is not an expected value: "+strc(finfo.size)+" bytes. Waiting 0.5 s for file write to complete?"
                 wait, 0.5
             endif
@@ -186,7 +186,7 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 
 		case prism of
 		'PRISM': templatename='Quicklook Automatic Datacube Extraction'
-		'WOLLASTON': templatename='Quicklook Automatic Polarization Extraction'
+		'WOLLASTON': templatename='Quicklook Automatic Polarimetry Extraction'
 		'OPEN':templatename='Quicklook Automatic Undispersed Extraction'
 		endcase
 	endif else begin
@@ -195,9 +195,11 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 		
 
 	
+	self->Log, "Using template: "+templatename
 	templatefile= self->lookup_template_filename(templatename) ; gpi_get_directory('GPI_DRP_TEMPLATES_DIR')+path_sep()+templatename
+	if templatefile eq '' then return ; couldn't find requested template therefore do nothing.
 
-	drf = obj_new('DRF', templatefile, parent=self)
+	drf = obj_new('DRF', templatefile, parent=self,/silent)
 	drf->set_datafiles, filenames
 	drf->set_outputdir,/autodir
 
