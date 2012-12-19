@@ -13,7 +13,8 @@
 ;-
 
 pro structModule__define
-    ; Module (Primitive)
+	compile_opt defint32, strictarr, logical_predicate
+
     void = {structModule, $
             Name:'', $
             IDLCommand:'', $

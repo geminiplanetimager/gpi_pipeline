@@ -125,26 +125,34 @@ FUNCTION drf::get_module_args, modnum, count=count
 	; RETURNS
 	; 	module argument info, as a structure
 	;
-    drf_contents = self->get_contents()
+    
+	verbose=1
+	
+	drf_contents = self->get_contents()
 
 	; look up from the DRS config file what the allowed arguments of this module
 	; are
 	module_number = where((*self.ConfigDRS).names eq (drf_contents.modules.name)[modnum]) ; index of the module *in the config file!*
 	module_argument_indices = where(   ((*self.ConfigDRS).argmodnum) eq module_number[0]+1, count)
 
+		if verbose then print,  (drf_contents.modules.name)[modnum]
+
 	if count eq 0 then return, ''
 	
 	module_argument_names=((*self.ConfigDRS).argname)[module_argument_indices]
 	module_argument_defaults=((*self.ConfigDRS).argdefault)[module_argument_indices]
 
-	
+		if verbose then print,  "ARGS: ", module_argument_names
+		if verbose then print,  "DEFS: ", module_argument_defaults
+
+
 	; look in the contents of the DRF for what they are
 	module_argument_values= strarr(n_elements(module_argument_names))
 
 	for i=0,count-1 do begin
 
-		tmp = tag_exist(drf_contents.modules[modnum], module_argument_names[i], index=j)
-		if j gt 0 then module_argument_values[i] = drf_contents.modules[modnum].(j)
+		exists = tag_exist(drf_contents.modules[modnum], module_argument_names[i], index=j)
+		if exists eq 1 then module_argument_values[i] = drf_contents.modules[modnum].(j)
 		if module_argument_values[i] eq '' then module_argument_values[i] = module_argument_defaults[i]
 	endfor
 

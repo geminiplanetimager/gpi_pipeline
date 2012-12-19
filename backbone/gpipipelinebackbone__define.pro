@@ -117,10 +117,10 @@ FUNCTION gpipipelinebackbone::Init,  session=session, verbose=verbose, nogui=nog
         loadedcalfiles = obj_new('gpiloadedcalfiles') ; in common block for access inside the primitives
 
 
-		if gpi_get_setting('force_rescan_config_on_startup',default=0) then begin
+		if gpi_get_setting('force_rescan_config_on_startup',default=0,/silent) then begin
             self->rescan_Config
 		endif
-		if gpi_get_setting('force_rescan_caldb_on_startup',default=0) then begin
+		if gpi_get_setting('force_rescan_caldb_on_startup',default=0,/silent) then begin
                    ;self->rescan_directory 
                    self->rescan_CalDB
 		endif
@@ -487,36 +487,34 @@ function gpiPipelineBackbone::Run_One_Recipe, CurrentRecipe
 	self->log, 'Reading file: ' + CurrentRecipe.name
 	if obj_valid(self.statuswindow) then self.statuswindow->set_DRF, CurrentRecipe
 	self->SetRecipeQueueStatus, CurrentRecipe, 'working'
-;	wait, 0.1   ; Wait 0.1 seconds to make sure file is fully written.
-	; Re-parse the configuration file, in case it has been changed.
-	;OPENR, lun, CONFIG_FILENAME_FILE, /GET_LUN
-	;READF, lun, CONFIG_FILENAME
-	;FREE_LUN, lun
-	;Self.ConfigParser -> ParseFile, drpXlateFileName(CONFIG_FILENAME)
-	;Self.ConfigParser -> getParameters, Self
+	wait, 0.05   ; Wait 0.05 seconds to make sure file rename is fully completed.
 
 	if ~(keyword_set(debug)) then CATCH, parserError else parserError=0 ; only catch if DEBUG is not set.
+	message,/reset_error_state ; clear any prior errors before parsing
 	IF parserError EQ 0 THEN BEGIN
 		if obj_valid(self.statuswindow) then self.statuswindow->set_action, "Parsing Recipe"
 		(*self.PipelineConfig).continueAfterRecipeXMLParsing = 1    ; Assume it will be Ok to continue
 		Self.Parser -> ParseFile, CurrentRecipe.name,  Self.ConfigParser, backbone=self, status=status
-		if status eq 1 then begin
-	        self.Parser -> load_data_to_pipeline, backbone=self
-			; this updates the self.Data and self.modules structure
-			; arrays in accordance with what is stated in the recipe
-		endif
-
-        if status ne 1 then begin
+        if status ne OK then begin
 			; technically it parsed, in the sense of reading the XML, but
 			; there was something bogus about the file, like nonexistent data
 			; So throw an error even though it's syntactically valid.
 			parsererror =1
-			!error_state.msg = 'Invalid recipe file'
-		endif
+			!error_state.msg =  "ERROR in parsing the Recipe file "+CurrentRecipe.name
+		endif else begin
+	        self.Parser -> load_data_to_pipeline, backbone=self, status=status
+			; this updates the self.Data and self.modules structure
+			; arrays in accordance with what is stated in the recipe
+
+			if status ne OK then begin
+				parsererror =1
+				!error_state.msg =  "ERROR in loading data files specified in recipe "+CurrentRecipe.name
+			endif
+		endelse
+
 		CATCH, /CANCEL
 	ENDIF 
 	if parserError NE 0 then  BEGIN
-		self->Log, "ERROR in parsing the Recipe file "+CurrentRecipe.name
 		; Call the local error handler
 		Self -> ErrorHandler, CurrentRecipe
 		; Destroy the current Recipe parser and punt the DRF
@@ -532,8 +530,6 @@ function gpiPipelineBackbone::Run_One_Recipe, CurrentRecipe
 			self->Log, 'ERROR: That Recipe was parsed OK, but no data files could be loaded.'
 			result=NOT_OK
 		endif else begin
-
-			;Self -> OpenLog, CurrentRecipe.Name + '.log', /DRF
 			if ~strmatch(self.reductiontype,'On-Line Reduction') then $
 				Result = Self->Reduce() else $
 				Result = Self->ReduceOnLine()
@@ -542,12 +538,12 @@ function gpiPipelineBackbone::Run_One_Recipe, CurrentRecipe
 		IF Result EQ OK THEN BEGIN
 			PRINT, "Success"
 			self->SetRecipeQueueStatus, CurrentRecipe, 'done'
-			self->Log, 'Done with '+CurrentRecipe.name+" : Success"
+			self->Log, 'Done with '+CurrentRecipe.name+" : Success",/flush
 			status_message = "Last recipe done OK! Watching for new recipes but idle."
 		ENDIF ELSE BEGIN
 			PRINT, "Failure"
 			self->SetRecipeQueueStatus, CurrentRecipe, 'failed'
-			self->Log, 'ERROR with '+CurrentRecipe.name+". Reduction failed."
+			self->Log, 'ERROR with '+CurrentRecipe.name+". Reduction failed.",/flush
 			status_message = "Last Recipe **Failed**!    Watching for new recipes but idle."
 		ENDELSE
 		if obj_valid(self.statuswindow) then begin
@@ -560,7 +556,7 @@ function gpiPipelineBackbone::Run_One_Recipe, CurrentRecipe
 
 	ENDIF ELSE BEGIN  
 	  ; This code if continueAfterRecipeXMLParsing == 0
-	  self->log, 'Reduction failed due to parsing error in file ' + CurrentRecipe.name
+	  self->log, 'Reduction failed due to parsing error in file ' + CurrentRecipe.name,/flush
 	  self->SetRecipeQueueStatus, CurrentRecipe, 'failed'
 	  self->free_dataset_pointers 		 ; If we failed with outstanding data, then clean it up.
 	ENDELSE

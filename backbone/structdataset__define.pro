@@ -32,6 +32,8 @@
 
 
 pro structDataset__define
+	compile_opt defint32, strictarr, logical_predicate
+
     ; Dataset structure containing the specified input files
     ;   both filenames and data.
 	MAXFRAMESINDATASETS = gpi_get_setting('max_files_per_recipe',/integer, default=200)

@@ -127,7 +127,7 @@ end
 PRO gpidrfparser::free_dataset_pointers
 
 	; Free any data which are currently read into memory
-	IF PTR_VALID(Self.Data) THEN BEGIN
+	IF PTR_VALID(Self.Data) THEN if keyword_set(*self.data) then BEGIN
 			PTR_FREE, (*Self.Data).QualFrames[*]
 			PTR_FREE, (*Self.Data).UncertFrames[*]
 			PTR_FREE, (*Self.Data).HeadersExt[*]
@@ -144,7 +144,7 @@ end
 
 ;------------------------------------------------------------
 
-PRO gpidrfparser::parsefile, FileName, Backbone=backbone, ConfigParser, gui_obj=gui_obj, silent=silent, status=status
+PRO gpidrfparser::parsefile, FileName, ConfigParser, Backbone=backbone, gui_obj=gui_obj, silent=silent, status=status
 	; This is the main routine that actually parses a given file. 
 	;
 	; Depending on how it's called, it can either just read some info from the
@@ -163,7 +163,10 @@ PRO gpidrfparser::parsefile, FileName, Backbone=backbone, ConfigParser, gui_obj=
 	; HISTORY:
 	;    2012-08-09 MP: updated to make configparser optional.
 
-	status = -1
+	OK = 0
+	NOT_OK = -1
+
+	status = NOT_OK
 	self.silent  = keyword_set(silent)
 	if ~self.silent then print, "Parsing: "+filename 
 	; Free any previous structDataSet, structModule and structUpdateLists data
@@ -174,9 +177,8 @@ PRO gpidrfparser::parsefile, FileName, Backbone=backbone, ConfigParser, gui_obj=
 
 	; update my own modules and data lists. 
 	if ~file_test(filename) then begin
-		message,/info, 'WARNING: The file '+filename+" no longer exists! Cannot parse it."
-		message,/info, "WARNING: Any attempt to access the parsed results will have undefined behavior."
-		status = -1
+		backbone->Log, 'WARNING: The file '+filename+" no longer exists! Cannot parse it.", depth=1
+		status = NOT_OK
 		return
 	endif
 
@@ -188,10 +190,13 @@ PRO gpidrfparser::parsefile, FileName, Backbone=backbone, ConfigParser, gui_obj=
 
 	; Now use the ConfigParser's translation table to look up the IDL commands.
 	; By default, assume the module names *are* the IDL commands
-	if parse_error[0] eq 0 or ~ptr_valid(self.modules) then begin
-		message,"Some sort of fatal error has occured while parsing the DRF "+filename+":",/info
-		message,/info,!error_state.msg
-		status = -1
+	if parse_error ne 0 or ~ptr_valid(self.modules) then begin
+		backbone->Log,"Some sort of fatal error has occured while parsing the DRF "+filename+".",depth=1
+		; IDLffXMLSAX doesn't set !error_state.msg, so the following line was
+		; printing totally unrelated error messages from earlier in the IDL
+		; session. - MP
+		;backbone->Log,!error_state.msg, depth=1
+		status = NOT_OK
 		return
 
 	endif
@@ -202,7 +207,8 @@ PRO gpidrfparser::parsefile, FileName, Backbone=backbone, ConfigParser, gui_obj=
 		for i=0L,n_elements(*self.modules)-1 do begin
 			cmd = ConfigParser->GetIDLCommand((*self.modules)[i].Name, matched=matched)
 			if matched eq 0 then begin
-				message,/info, "No match found for "+(*self.modules)[i].Name+"; using that as the IDL command directly."
+				backbone->Log, "No match found for "+(*self.modules)[i].Name, depth=1
+				backbone->Log, "Going to try using that as the IDL command directly, but this will likely not work:", depth=1
 				cmd = (*self.modules)[i].Name 
 			endif
 			(*self.modules)[i].IDLCommand = cmd
@@ -218,9 +224,9 @@ PRO gpidrfparser::parsefile, FileName, Backbone=backbone, ConfigParser, gui_obj=
 		for i=0L,n_elements(*self.modules)-1 do begin
 			if tag_exist( (*self.modules)[i], 'SAVE') then begin
 				if (*self.modules)[i].Save eq 1 then begin
-					backbone->Log, 'Invalid Recipe Error: Output directory is blank, but saving a file is requested in step '+strc(i+1)+". "
-					backbone->Log, " Since it's not clear where to write it, cannot proceed, therefore failing this recipe. Please set OutputDir."
-					status=-1
+					backbone->Log, 'Invalid Recipe Error: Output directory is blank, but saving a file is requested in step '+strc(i+1)+". ", depth=1
+					backbone->Log, " Since it's not clear where to write it, cannot proceed, therefore failing this recipe. Please set OutputDir.", depth=1
+					status=NOT_OK
 					return
 				endif
 			endif
@@ -229,23 +235,23 @@ PRO gpidrfparser::parsefile, FileName, Backbone=backbone, ConfigParser, gui_obj=
 
 
 
-	status = 1 ; completed OK!
-	; If we are running in one of the GUI modes, hand the data back to the GUI.
-	;if obj_valid(gui_obj) then $
-	;gui_obj->set_from_parsed_DRF, (*self.data).filenames, (*self.modules), (*self.data).inputdir, (self.reductiontype)
+	status = OK ; completed OK!
 
 END
 
 ;------------------------------------------------------------
 
-pro gpidrfparser::load_data_to_pipeline, backbone=backbone
+pro gpidrfparser::load_data_to_pipeline, backbone=backbone, status=status
 	; Load all available data into the pipeline backbone for
 	; actual reduction
     ; 
     ; This is called by the backbone after a file has been
     ; successfully parsed.
 
+	OK = 0
+	NOT_OK = -1
 
+	status=NOT_OK 
 
   ; Now place a copy of the current DRF into each available header
   ; First, get the file name of the file we are parsing
@@ -337,6 +343,7 @@ pro gpidrfparser::load_data_to_pipeline, backbone=backbone
 		Backbone.Modules = Self.Modules
 	ENDIF 
 
+	status=OK 
 
 end
 
@@ -516,7 +523,8 @@ PRO gpidrfparser::startelement, URI, Local, qName, AttNames, AttValues
 					; FIXME check the file exists and is a valid GPI fits file 
 
 					if not file_test(full_input_filename,/read) then begin
-						  self->Log, 'ERROR: The file "'+ full_input_filename+'" does not appear to exist on disk.  Cannot load requested data.'
+						  self->Log, 'ERROR: The file "'+ full_input_filename+'" does not exist on disk or is unreadable.  Cannot load requested data.'
+							!error_state.msg =  "File "+ full_input_filename+" does not exist or is unreadable."
 						  self->StopParsing
 						  ;Skipping this file and trying to continue anyway...', DEPTH=2;;
 					endif else begin

@@ -331,8 +331,8 @@ function gpicaldatabase::cal_info_from_header, fits_data
 		   "T"+strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header,"UTSTART"))
 	thisfile.jd = date_conv(dateobs, "J")
 
-	thisfile.drpversion = strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "DRPVER", count=count))
-	thisfile.nfiles = strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "DRPNFILE", count=count))
+	thisfile.drpversion = strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "DRPVER", /silent))
+	thisfile.nfiles = strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "DRPNFILE", /silent))
 
 	return, thisfile
 end

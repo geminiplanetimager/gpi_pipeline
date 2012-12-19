@@ -17,7 +17,6 @@
 
 ; Function to check if user pressed the quit button?
 function gpistatusconsole::checkquit
- 
 	return, self.quit
 end
 pro gpistatusconsole::quit
