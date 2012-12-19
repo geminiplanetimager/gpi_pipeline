@@ -1,5 +1,13 @@
 ;+
-; NAME:  
+; NAME:  launch_drpo
+;
+; 	*********************************************************************
+; 	*																	*
+; 	*		Deprecated - please uses gpi_launch_guis instead			*
+; 	*																	*
+; 	*																	*
+; 	*********************************************************************
+;
 ;
 ; INPUTS:
 ; KEYWORDS:
@@ -10,5 +18,5 @@
 ;-
 
 PRO launch_drp, _extra=_extra
-	o = obj_new('launcher', _extra=_extra)
+	gpi_launch_guis, _extra=_extra
 end

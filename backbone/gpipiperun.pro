@@ -1,6 +1,16 @@
 ;+
 ; NAME: gpiPipeRun
 ;
+; 	Start up GPI pipeline
+;
+;
+; 	*********************************************************************
+; 	*																	*
+; 	*		Deprecated - please uses gpi_launch_pipeline instead		*
+; 	*																	*
+; 	*																	*
+; 	*********************************************************************
+;
 ; INPUTS:
 ; 	NONE
 ;
@@ -31,85 +41,8 @@
 ;   2012-08-07 Removed ability to set nonstandard queue or config paths here -
 ;   			this is an unnecessary complication. -MDP
 ;-
-PRO gpiPipeRun, noinit=noinit, $
-	noexit=noexit, rescanDB=rescanDB, flushqueue=flushqueue, verbose=verbose,$
-	ignoreconflict=ignoreconflict, single=single, nogui=nogui
+PRO gpiPipeRun, _extra=_extra
 
-;
-;issetenvok=gpi_is_setenv(/first)
-;if issetenvok eq 0 then begin
-;        obj=obj_new('setenvir')
-;        if obj->act() eq 1 then issetenvok=-1
-;        obj_destroy, obj
-;  while (issetenvok ne -1) && (gpi_is_setenv() eq 0)  do begin
-;        obj=obj_new('setenvir')
-;        if obj->act() eq 1 then issetenvok=-1
-;        obj_destroy, obj
-;  endwhile
-;endif else if issetenvok eq -1 then return
-;  if issetenvok eq -1 then return
-;
-
-  paths_ok = gpi_validate_paths()
-  if ~ paths_ok then begin
-	  obj = obj_new('gpi_showpaths') ; will pause here until dialog closed...
-        obj_destroy, obj
-		return
-
-  endif
-
-
-
-  Queue_Dir = gpi_get_directory('GPI_DRP_QUEUE_DIR')
-
-
-  if gpi_get_setting('prevent_multiple_instances',/bool) then begin
-	  ; Use a semaphore lock to prevent multiple instances of the pipeline
-	  ; from running at once. 
-	  ;
-	  ; FIXME - does not work properly, need to be debugged
-	  sem_name = idl_validname(queue_dir,/convert_all)
-	  sem = sem_create(sem_name)
-
-		message,/info, "Trying to lock semaphore "+sem_name
-		status = sem_lock(sem_name)
-	  
-		if (status eq 0) then begin
-		  message,/info, "Semaphore lock failed!"
-		  if ~keyword_set(ignoreconflict) then begin
-			res = dialog_message(/cancel,["Another instance of the GPI Data Pipeline appears to already be running looking at","the queue directory "+queue_dir+". You probably should not run ","two copies of the pipeline at once, as this has not been tested to work. Continue anyway?"], $
-				title="WARNING: Pipeline already running!")
-			if res eq 'Cancel' then begin
-				message,/info, "Pipeline invocation cancelled by user due to duplicate session warning."
-				return
-			endif
-		  endif
-		endif
-	endif
-
-
-	backbone = OBJ_NEW('gpiPipelineBackbone', verbose=verbose, nogui=nogui)
-	
-	if keyword_set(flushqueue) then backbone->flushqueue, queue_dir
-	if keyword_set(rescanDB) then backbone->rescan
-
-	
-	if keyword_set(single) then begin
-		; process one single DRF and then exit
-		status = backbone->run_one_recipe(single)
-		backbone->Log, "Pipeline was invoked in single-DRF mode. Shutting down now. ",/general
-	endif else begin		
-		; watch the queue dir and process many DRFs
-		backbone->Run_queue, Queue_Dir
-	endelse
-
-	OBJ_DESTROY, backbone
-
-	if gpi_get_setting('prevent_multiple_instances',/bool) then begin
-		sem_release, sem_name
-		sem_delete, sem_name
-	endif 
-
-	if ~(keyword_set(noexit)) then exit
+	gpi_launch_pipeline, _extra=_extra
 
 END

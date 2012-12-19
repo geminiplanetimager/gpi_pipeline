@@ -10,4 +10,4 @@
 ;       2010-9-14 Removed obsolete /nodrfgui keyword in gpipiperun call (M. Fitzgerald)
 ;-
 !quiet=0
-gpipiperun
+gpi_launch_pipeline
