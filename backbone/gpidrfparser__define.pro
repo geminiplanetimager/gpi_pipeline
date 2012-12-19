@@ -157,8 +157,6 @@ PRO gpidrfparser::parsefile, FileName, ConfigParser, Backbone=backbone, gui_obj=
 	;   				will not take place if this is not provided.
 	;
 	; KEYWORDS:
-	; 	backbone=	object handle to pipeline backbone, used for logging if
-	; 				provided.
 	;  
 	; HISTORY:
 	;    2012-08-09 MP: updated to make configparser optional.
@@ -177,7 +175,7 @@ PRO gpidrfparser::parsefile, FileName, ConfigParser, Backbone=backbone, gui_obj=
 
 	; update my own modules and data lists. 
 	if ~file_test(filename) then begin
-		backbone->Log, 'WARNING: The file '+filename+" no longer exists! Cannot parse it.", depth=1
+		self->Log, 'WARNING: The file '+filename+" no longer exists! Cannot parse it.", depth=1
 		status = NOT_OK
 		return
 	endif
@@ -191,7 +189,7 @@ PRO gpidrfparser::parsefile, FileName, ConfigParser, Backbone=backbone, gui_obj=
 	; Now use the ConfigParser's translation table to look up the IDL commands.
 	; By default, assume the module names *are* the IDL commands
 	if parse_error ne 0 or ~ptr_valid(self.modules) then begin
-		backbone->Log,"Some sort of fatal error has occured while parsing the DRF "+filename+".",depth=1
+		self->Log,"Some sort of fatal error has occured while parsing the DRF "+filename+".",depth=1
 		; IDLffXMLSAX doesn't set !error_state.msg, so the following line was
 		; printing totally unrelated error messages from earlier in the IDL
 		; session. - MP
@@ -207,8 +205,8 @@ PRO gpidrfparser::parsefile, FileName, ConfigParser, Backbone=backbone, gui_obj=
 		for i=0L,n_elements(*self.modules)-1 do begin
 			cmd = ConfigParser->GetIDLCommand((*self.modules)[i].Name, matched=matched)
 			if matched eq 0 then begin
-				backbone->Log, "No match found for "+(*self.modules)[i].Name, depth=1
-				backbone->Log, "Going to try using that as the IDL command directly, but this will likely not work:", depth=1
+				self->Log, "No match found for "+(*self.modules)[i].Name, depth=1
+				self->Log, "Going to try using that as the IDL command directly, but this will likely not work:", depth=1
 				cmd = (*self.modules)[i].Name 
 			endif
 			(*self.modules)[i].IDLCommand = cmd
@@ -224,8 +222,8 @@ PRO gpidrfparser::parsefile, FileName, ConfigParser, Backbone=backbone, gui_obj=
 		for i=0L,n_elements(*self.modules)-1 do begin
 			if tag_exist( (*self.modules)[i], 'SAVE') then begin
 				if (*self.modules)[i].Save eq 1 then begin
-					backbone->Log, 'Invalid Recipe Error: Output directory is blank, but saving a file is requested in step '+strc(i+1)+". ", depth=1
-					backbone->Log, " Since it's not clear where to write it, cannot proceed, therefore failing this recipe. Please set OutputDir.", depth=1
+					self->Log, 'Invalid Recipe Error: Output directory is blank, but saving a file is requested in step '+strc(i+1)+". ", depth=1
+					self->Log, " Since it's not clear where to write it, cannot proceed, therefore failing this recipe. Please set OutputDir.", depth=1
 					status=NOT_OK
 					return
 				endif
@@ -738,8 +736,8 @@ pro gpidrfparser::log, text, _extra=_extra
 	if obj_valid(self.backbone) then begin
 		self.backbone->log, text, _extra=_extra
 	endif else begin
-		message,"Log facility not available!",/info
-		message, "Can't log: "+text
+		message,"Log facility not available! Can't log: ",/info
+		message, text,/info
 	endelse
 
 end
