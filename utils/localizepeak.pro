@@ -11,7 +11,8 @@
 ; HISTORY:
 ; 	 Jerome Maire 2008-10
 ;   JM 2010-08-16 : added badpixel map 
-function localizepeak, im, cenx, ceny,wx,wy, hh, badpixmap=badpixmap
+;   JM 2012-12-20 added more methods for centroid meas.
+function localizepeak, im, cenx, ceny,wx,wy, hh, badpixmap=badpixmap, meth=meth
 
 
 szim=size(im)
@@ -70,8 +71,26 @@ szim=size(im)
             if (paramgauss1[1] ge 0) && (paramgauss1[1] le 2.*hh+1.) then $
             cen1[1]=double(ind1[1])-hh+paramgauss1[1]
        endelse  
- 
-;print, 'centroid=',cen1
+    if keyword_set(meth) && strmatch(meth,"mpfit") then begin
+
+             yfit = mpfit2dpeak((im[ind1[0]-hh:ind1[0]+hh , ind1[1]-hh :ind1[1]+hh ]), paramgauss0)
+             paramgauss1=paramgauss0[4:5] 
+                  if (paramgauss1[0] ge 0) && (paramgauss1[0] le 2.*hh+1.) then $
+                  cen1[0]=double(ind1[0])-hh+paramgauss1[0]
+                  if (paramgauss1[1] ge 0) && (paramgauss1[1] le 2.*hh+1.) then $
+                  cen1[1]=double(ind1[1])-hh+paramgauss1[1]
+      endif
+      if keyword_set(meth) && strmatch(meth,"gaussfit") then begin      
+                  oversize=9.
+            yfit = GAUSS2DFIT(padarr(im[ind1[0]-hh:ind1[0]+hh , ind1[1]-hh :ind1[1]+hh ],oversize), paramgauss0)         
+            paramgauss1=paramgauss0[4:5] - (oversize-hh)/2.+1.
+                  if (paramgauss1[0] ge 0) && (paramgauss1[0] le 2.*hh+1.) then $
+                  cen1[0]=double(ind1[0])-hh+paramgauss1[0]
+                  if (paramgauss1[1] ge 0) && (paramgauss1[1] le 2.*hh+1.) then $
+                  cen1[1]=double(ind1[1])-hh+paramgauss1[1]            
+         endif  
+      
+
 return,cen1
 
 end

@@ -34,7 +34,7 @@
 ;    2010-08-15: JM added bad pixel map
 ;-
 
-pro find_spectra_positions_quadrant, quad,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,specpos,im,edge_x1,edge_x2,edge_y1,edge_y2,tight_pos, badpixmap=badpixmap
+pro find_spectra_positions_quadrant, quad,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,specpos,im,edge_x1,edge_x2,edge_y1,edge_y2,tight_pos, badpixmap=badpixmap,meth=meth
 
 case quad of 
   1: begin 
@@ -79,7 +79,7 @@ w=w0 & P=P0 ;initial guess
                   ;if (nlens/2-i eq 145) && (nlens/2-j eq 180) then stop
                   ;if (nlens/2-i eq 33) && (nlens/2-j gt 146) then stop
           ;;calculate centroid to have more accurate position
-            specpos[nlens/2+i,nlens/2+j,0:1]=localizepeak( im, cen1[0]+dx,cen1[1]+dy,wx,wy,hh,badpixmap=badpixmap)
+            specpos[nlens/2+i,nlens/2+j,0:1]=localizepeak( im, cen1[0]+dx,cen1[1]+dy,wx,wy,hh,badpixmap=badpixmap, meth=meth)
 ;if keyword_set(tight) then begin
     if (((specpos[nlens/2+i,nlens/2+j,0]-(cen1[0]+dx))^2+(specpos[nlens/2+i,nlens/2+j,1]-(cen1[1]+dy))^2) gt double(tight_pos))  then begin
         specpos[nlens/2+i,nlens/2+j,0]=cen1[0]+dx

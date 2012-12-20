@@ -30,7 +30,7 @@
 ;    2010-03-05: JM: allowed fluctuations of tilt in parameter (tight_tilt keyword)
 
 
-pro find_spectra_dispersions_quadrant, quad,peakwavelen,apprXpos0,apprYpos,nlens,w3,w3med,tilt,specpos,im,wx,wy,hh,szim,edge_x1,edge_x2,edge_y1,edge_y2,dispeak,dispeak2,tight_tilt
+pro find_spectra_dispersions_quadrant, quad,peakwavelen,apprXpos0,apprYpos,nlens,w3,w3med,tilt,specpos,im,wx,wy,hh,szim,edge_x1,edge_x2,edge_y1,edge_y2,dispeak,dispeak2,tight_tilt,meth=meth
 
 case quad of 
   1: begin 
@@ -69,7 +69,7 @@ tilt0=tiltini
       ;;if this peak is in the raw image
       if (specpos[nlens/2+i,nlens/2+j,0]+apprXpos[p]-wx-hh ge edge_x1) && (ceil(specpos[nlens/2+i,nlens/2+j,0]+apprXpos[p]+wx+hh) le szim[1]-1-edge_x2)$
         && (specpos[nlens/2+i,nlens/2+j,1]+apprYpos[p]-wy-hh ge edge_y1) && (ceil(specpos[nlens/2+i,nlens/2+j,1]+apprYpos[p]+wy+hh) le szim[2]-1-edge_y2) then begin
-        pospeak=localizepeak( im, specpos[nlens/2+i,nlens/2+j,0]+apprXpos[p],specpos[nlens/2+i,nlens/2+j,1]+apprYpos[p],wx,wy,hh)
+        pospeak=localizepeak( im, specpos[nlens/2+i,nlens/2+j,0]+apprXpos[p],specpos[nlens/2+i,nlens/2+j,1]+apprYpos[p],wx,wy,hh,meth=meth)
         if szdp[0] gt 1 then begin
           dispeak[nlens/2+i,nlens/2+j,2*p]=pospeak[0]
           dispeak[nlens/2+i,nlens/2+j,2*p+1]=pospeak[1]
