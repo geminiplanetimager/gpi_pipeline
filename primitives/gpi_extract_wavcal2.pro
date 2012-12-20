@@ -337,7 +337,7 @@ specpos[nlens/2,nlens/2,0:1]=cen1
 wx=0. & wy=0.
 wx=5. & wy=5. ; MDP change
 wx=0. & wy=0. ; JM change  wx=1. & wy=0. good for flat
-hh=2. ; box for fit
+hh=1. ; box for fit
 ;wcst=4.8 & Pcst=-1.8
 wcst=float(Modules[thisModuleIndex].w) & Pcst=float(Modules[thisModuleIndex].P)
 edge_x1=4.
