@@ -43,6 +43,7 @@
 ; PIPELINE ARGUMENT: Name="w" Type="float" Range="[0.,10.]" Default="4.8" Desc="Spectral spacing perpendicular to the dispersion axis at the image center [pixel]"
 ; PIPELINE ARGUMENT: Name="P" Type="float" Range="[-7.,7.]" Default="-1.8" Desc="Micro-pupil pattern"
 ; PIPELINE ARGUMENT: Name="emissionlinesfile" Type="string"  Default="AUTOMATIC" Desc="File of emission lines."
+; PIPELINE ARGUMENT: Name="centroidmethod" Type="int" Range="[1,3]" Default="2" Desc="Centroid methods:1 is barycentric; 2 is mpfit2dpeak, 3 is gauss2dfit"
 ; PIPELINE ARGUMENT: Name="wav_of_centrXYpos" Type="int" Range="[1,2]" Default="2" Desc="1 if centrX-Ypos is the smallest-wavelength peak of the band; 2 if centrX-Ypos refer to 1.5microns"
 ; PIPELINE ARGUMENT: Name="maxpos" Type="float" Range="[-7.,7.]" Default="2." Desc="Allowed maximum location fluctuation (in pixel) between adjacent mlens"
 ; PIPELINE ARGUMENT: Name="maxtilt" Type="float" Range="[-360.,360.]" Default="10." Desc="Allowed maximum tilt fluctuation (in degree) between adjacent mlens"
@@ -69,6 +70,7 @@
 ;   2012-12-13 MP: Bad pixel map now taken from DQ extension if present.
 ;				   Print more informative logging messages for the user
 ;				   Various bits of code cleanup.
+;   2012-12-20 JM more centroid methods added
 ;-
 
 function gpi_extract_wavcal2,  DataSet, Modules, Backbone
@@ -113,6 +115,15 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
    
 	szim=size(im)
 
+;;centroid algo chosen by the user
+if tag_exist( Modules[thisModuleIndex], "centroidmethod")  then begin
+  methint=uint(Modules[thisModuleIndex].centroidmethod)
+  case methint of
+    1:meth="barycentric"
+    2:meth="mpfit"
+    3:meth="gaussfit"
+  endcase 
+endif
 	;;create the cube which will contain in the slice 
 	; 0:x-positions (x0) of spectra (spectral direction) at a given lambda [lambda0] (can be lambda_min)
 	; 1:y-positions (y0) of spectra at a given lambda
@@ -326,7 +337,7 @@ specpos[nlens/2,nlens/2,0:1]=cen1
 wx=0. & wy=0.
 wx=5. & wy=5. ; MDP change
 wx=0. & wy=0. ; JM change  wx=1. & wy=0. good for flat
-hh=1. ; box for fit
+hh=2. ; box for fit
 ;wcst=4.8 & Pcst=-1.8
 wcst=float(Modules[thisModuleIndex].w) & Pcst=float(Modules[thisModuleIndex].P)
 edge_x1=4.
@@ -345,7 +356,7 @@ tight_tilt=float(Modules[thisModuleIndex].maxtilt)
 backbone->Log, 'Now measuring positions of all lenslets...'
 ;calculate now x-y locations of the first peak of all spectra (specpos[*,*,0] and specpos[*,*,1]): 
 ;for quadrant=1L,4 do find_spectra_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,specpos,im,edge_x1,edge_x2,edge_y1,edge_y2,tight_pos
-for quadrant=1L,4 do find_spectra_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,specpos,im,edge_x1,edge_x2,edge_y1,edge_y2,tight_pos,badpixmap=badpixmaprot
+for quadrant=1L,4 do find_spectra_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,specpos,im,edge_x1,edge_x2,edge_y1,edge_y2,tight_pos,badpixmap=badpixmaprot,meth=meth
 
 if strcmp(obstype,'flat',4,/fold) then specpos[*,*,0]-=0.5 ;take account of spatial shift in derivative
 
@@ -388,7 +399,7 @@ if n_elements(peakwavelen) gt 1 then begin
 	;wx=0. & wy=0. & hh=1. ;flat
 
 	;calculate now x-y locations of the other peaks and deduce linear dispersion coeffs and tilts
-	for quadrant=1L,4 do find_spectra_dispersions_quadrant, quadrant,peakwavelen,apprXpos,apprYpos,nlens,w3,w3med,tilt,specpos,im,wx,wy,hh,szim,edge_x1,edge_x2,edge_y1,edge_y2, dispeak, dispeak2, tight_tilt
+	for quadrant=1L,4 do find_spectra_dispersions_quadrant, quadrant,peakwavelen,apprXpos,apprYpos,nlens,w3,w3med,tilt,specpos,im,wx,wy,hh,szim,edge_x1,edge_x2,edge_y1,edge_y2, dispeak, dispeak2, tight_tilt, meth=meth
 
 
 endif ; verif si n_elements(peakwavelen) gt 1
