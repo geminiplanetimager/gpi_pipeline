@@ -63,20 +63,25 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         for i=0,nfiles-1 do $ 
         	backbone->set_keyword,'HISTORY', functionname+":    "+dataset.filenames[i]+'   '+ backbone->get_keyword("GCALLAMP"),ext_num=0
 
-        ;update with the most recent dateobs and timeobs
+        ;update with the average dateobs and timeobs
         dateobs3=dblarr(nfiles)
+        itimes=dblarr(nfiles)
         for n=0,nfiles-1 do begin
             dateobs2 =  strc(backbone->get_keyword("DATE-OBS"))+" "+strc(backbone->get_keyword("TIME-OBS"))
             dateobs3[n] = date_conv(dateobs2, "J")
         endfor
         recent=max(dateobs3,indrecent)
+
 	    ;;we add 1second to the last time-obs so the combination will the most recent
 		; MP - this is not a good algorithm. 
 	    dateobscomb=date_conv(dateobs3[indrecent]+1./24./60./60.,'F')
 	    datetimecomb=strsplit(dateobscomb,'T', /extract)
-
 	    backbone->set_keyword, 'DATE-OBS', datetimecomb[0]
 	    backbone->set_keyword, 'TIME-OBS', datetimecomb[1]
+
+
+	    backbone->set_keyword, 'DRPNFILE', nfiles,  '# of input files combined to produce this file'
+
 
 	    backbone->set_keyword, "FILETYPE", "Wavelength Solution Cal File"
 		backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
