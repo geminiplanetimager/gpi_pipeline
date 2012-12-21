@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- simplest possible DRF, just makes a simple data cube w/ no calibrations for Undispersed mode -->
+<!-- simplest possible DRF, just makes a simple data cube w/ no calibrations for Polarization mode -->
 <DRF ReductionType="PolarimetricScience" name="Quicklook Automatic Polarimetry Extraction">
 <dataset InputDir="$(GPI_RAW_DATA_DIR)" OutputDir="$(GPI_DRP_OUTPUT_DIR)">
    <fits filename=""/>
 </dataset>
-<module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0"  gpitv="0" />
+<module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
 <module name="Interpolate bad pixels in 2D frame" method="vertical"  Save="0" gpitv="0" CalibrationFile="AUTOMATIC" /> 
-<module name="Assemble Polarization Cube" CalibrationFile="AUTOMATIC" Rotate="0" Save="0" gpitv="2" />
+<module name="Assemble Polarization Cube" CalibrationFile="AUTOMATIC" Rotate="0" Save="1" gpitv="2" />
 </DRF>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <DRF ReductionType="SpectralScience" name="Rotate and combine extended object">
-    <dataset InputDir="" OutputDir="">
+    <dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
        <fits FileName="" />
    </dataset>
    <module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />

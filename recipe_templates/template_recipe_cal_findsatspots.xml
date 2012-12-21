@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <DRF ReductionType="Calibration" name='Find satellite locations'>
-<dataset InputDir="" OutputDir="">
+<dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
    <fits filename=""/>
 </dataset>
 <module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="       0" gpitv="" />
