@@ -204,7 +204,7 @@ if keyword_set(badpixmap) then mask[where(badpixmap eq 1)]=1
  	medpart0 = median(parts,dim=3)
 
 ; remove broad variations prior to clipping
-        sm_medpart1d=smooth(median(medpart0,dim=1),20,/edge,/nan)
+        sm_medpart1d=smooth(median(medpart0,dim=1),20,/edge_truncate,/nan)
         broad_variations=sm_medpart1d##(fltarr(64)+1)
 ; create a full image 
         full_broad_variations = sm_medpart1d##(fltarr(2048)+1)
