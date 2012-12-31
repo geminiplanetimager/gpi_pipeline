@@ -29,7 +29,7 @@
 ; 				set to '0' for no display, or >=1 for a display.
 ;
 ; OUTPUTS:
-;
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type="polcal" Default="AUTOMATIC"
 ; PIPELINE ARGUMENT: Name="method" Type="string" Range="[threshhold|calfile]" Default="calfile" Desc='Find background based on image value threshhold cut, or calibration file spectra/spot locations?'
 ; PIPELINE ARGUMENT: Name="abort_fraction" Type="float" Range="[0.0,1.0]" Default="0.9" Desc="Necessary fraction of pixels in mask to continue - set at 0.9 to ensure quicklook tool is robust"
 ; PIPELINE ARGUMENT: Name="chan_offset_correction" Type="int" Range="[0,1]" Default="0" Desc="Tries to correct for channel bias offsets - useful when no dark is available"
@@ -42,16 +42,18 @@
 ; PIPELINE COMMENT:  Subtract detector striping using measurements between the microspectra
 ; PIPELINE ORDER: 1.12 
 ; PIPELINE TYPE: ALL HIDDEN
-; PIPELINE NEWTYPE: SpectralScience,Calibration
+; PIPELINE NEWTYPE: SpectralScience,Calibration, PolarimetricScience
 ;
 ;
 ; HISTORY:
 ; 	Originally by Marshall Perrin, 2011-07-15
 ;   2011-07-30 MP: Updated for multi-extension FITS
 ;   2012-12-12 PI: Moved from Subtract_2d_background.pro
+;   2012-12-30 MMB: Updated for pol extraction. Included Cal file, inserted IDL version checking for smooth() function
 ;-
 function destripe_mask_spectra, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
+calfiletype='polcal'
 @__start_primitive
 
 ; check to see if the frame is a flat or ARC
@@ -176,9 +178,38 @@ if keyword_set(badpixmap) then mask[where(badpixmap eq 1)]=1
 
 	  	end
 	  	'WOLLASTON':	begin
-                    message,/info, "NO DESTRIPING PERFORMED, not implemented for the Wollaston mode"
-                    return,ok
-		; load mask from polarimetr cal file
+	  	; load mask from polarimetr cal file
+	  	
+      backbone->Log, "Using "+c_File+" to extract pol spot locations"
+      ;Most of this is lifted from directly from extractpol 
+      
+      fits_info, c_File,N_ext=n_ext ;hardcoding for testing
+      polspot_coords = readfits(c_File, ext=n_ext-1)
+      polspot_pixvals = readfits(c_File, ext=n_ext)
+      
+      sz = size(polspot_coords)
+      nx = sz[1+2]
+      ny = sz[2+2]
+      
+      for pol=0,1 do begin
+      for ix=0L,nx-1 do begin
+      for iy=0L,ny-1 do begin
+        ;if ~ptr_valid(polcoords[ix, iy,pol]) then continue
+        wg = where(finite(polspot_pixvals[*,ix,iy,pol]) and polspot_pixvals[*,ix,iy,pol] gt 0, gct)
+        if gct eq 0 then continue
+
+        spotx = polspot_coords[0,wg,ix,iy,pol]
+        spoty = polspot_coords[1,wg,ix,iy,pol]
+        
+        mask[spotx,spoty]= 1
+       
+       endfor 
+       endfor 
+       endfor 
+      
+    ;   message,/info, "NO DESTRIPING PERFORMED, not implemented for the Wollaston mode"
+    ;   return,ok
+    
 		
 	  	end
 	  	'OPEN':	begin
@@ -204,7 +235,9 @@ if keyword_set(badpixmap) then mask[where(badpixmap eq 1)]=1
  	medpart0 = median(parts,dim=3)
 
 ; remove broad variations prior to clipping
-        sm_medpart1d=smooth(median(medpart0,dim=1),20,/edge_truncate,/nan)
+        ;allowed keywords to the smooth() function changed in IDL 8.1 
+        if !version[0].release lt 8.1 then sm_medpart1d=smooth(median(medpart0,dim=1),20,/edge,/nan)else sm_medpart1d=smooth(median(medpart0,dim=1),20,/edge_truncate,/nan)
+        
         broad_variations=sm_medpart1d##(fltarr(64)+1)
 ; create a full image 
         full_broad_variations = sm_medpart1d##(fltarr(2048)+1)
