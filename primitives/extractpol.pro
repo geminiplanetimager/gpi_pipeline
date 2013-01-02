@@ -45,6 +45,8 @@
 ;   2010-10-19 JM: split HISTORY keyword if necessary
 ;   2011-07-15 MP: Code cleanup.
 ;   2011-06-07 JM: added FITS/MEF compatibility
+;   2013-01-02 MP: Updated output file orientation to be consistent with
+;				   spectral mode and raw data. 
 ;+
 
 function extractpol, DataSet, Modules, Backbone
@@ -106,7 +108,10 @@ calfiletype='polcal'
         ; need to swap X and Y here to match output from DST.
         ;  - MDP 2008-05-09
         ;polcube[iy, ix, pol] = total(input[iii])
-        polcube[iy, ix, pol] = total(input[spotx,spoty])
+        ;polcube[iy, ix, pol] = total(input[spotx,spoty])
+		; swap not desired any more - need to match orientation convention in
+		; spectral mode. -MDP 2013-01-02
+        polcube[ix, iy, pol] = total(input[spotx,spoty])
         ; No - the following does NOT make things better. This is the wrong way
         ; to normalize things here. 
         ;polcube2[iy, ix, pol] = total(input[spotx,spoty]*pixvals) 
