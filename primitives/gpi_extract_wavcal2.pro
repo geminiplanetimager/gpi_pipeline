@@ -43,7 +43,6 @@
 ; PIPELINE ARGUMENT: Name="w" Type="float" Range="[0.,10.]" Default="4.8" Desc="Spectral spacing perpendicular to the dispersion axis at the image center [pixel]"
 ; PIPELINE ARGUMENT: Name="P" Type="float" Range="[-7.,7.]" Default="-1.8" Desc="Micro-pupil pattern"
 ; PIPELINE ARGUMENT: Name="emissionlinesfile" Type="string"  Default="AUTOMATIC" Desc="File of emission lines."
-; PIPELINE ARGUMENT: Name="centroidmethod" Type="int" Range="[1,3]" Default="2" Desc="Centroid methods:1 is barycentric; 2 is mpfit2dpeak, 3 is gauss2dfit"
 ; PIPELINE ARGUMENT: Name="wav_of_centrXYpos" Type="int" Range="[1,2]" Default="2" Desc="1 if centrX-Ypos is the smallest-wavelength peak of the band; 2 if centrX-Ypos refer to 1.5microns"
 ; PIPELINE ARGUMENT: Name="maxpos" Type="float" Range="[-7.,7.]" Default="2." Desc="Allowed maximum location fluctuation (in pixel) between adjacent mlens"
 ; PIPELINE ARGUMENT: Name="maxtilt" Type="float" Range="[-360.,360.]" Default="10." Desc="Allowed maximum tilt fluctuation (in degree) between adjacent mlens"
@@ -115,15 +114,15 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
    
 	szim=size(im)
 
-;;centroid algo chosen by the user
-if tag_exist( Modules[thisModuleIndex], "centroidmethod")  then begin
-  methint=uint(Modules[thisModuleIndex].centroidmethod)
-  case methint of
-    1:meth="barycentric"
-    2:meth="mpfit"
-    3:meth="gaussfit"
-  endcase 
-endif
+;;;centroid algo chosen by the user
+;if tag_exist( Modules[thisModuleIndex], "centroidmethod")  then begin
+;  methint=uint(Modules[thisModuleIndex].centroidmethod)
+;  case methint of
+;    1:meth="barycentric"
+;    2:meth="mpfit"
+;    3:meth="gaussfit"
+;  endcase 
+;endif
 	;;create the cube which will contain in the slice 
 	; 0:x-positions (x0) of spectra (spectral direction) at a given lambda [lambda0] (can be lambda_min)
 	; 1:y-positions (y0) of spectra at a given lambda
