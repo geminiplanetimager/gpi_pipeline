@@ -78,8 +78,19 @@ w=w0 & P=P0 ;initial guess
                   ;if (nlens/2-i eq 147) && (nlens/2-j eq 180) then stop
                   ;if (nlens/2-i eq 145) && (nlens/2-j eq 180) then stop
                   ;if (nlens/2-i eq 33) && (nlens/2-j gt 146) then stop
+
           ;;calculate centroid to have more accurate position
-            specpos[nlens/2+i,nlens/2+j,0:1]=localizepeak( im, cen1[0]+dx,cen1[1]+dy,wx,wy,hh,badpixmap=badpixmap, meth=meth)
+                specpos[nlens/2+i,nlens/2+j,0:1]=localizepeak( im, cen1[0]+dx,cen1[1]+dy,wx,wy,hh,badpixmap=badpixmap, meth="mpfit")
+            ;if it fails to converge then use an other method
+            if specpos[nlens/2+i,nlens/2+j,0] eq -1 then begin
+                print, "mpfit failed to converge, let's try gauss2dfit for this mlens..."
+                specpos[nlens/2+i,nlens/2+j,0:1]=localizepeak( im, cen1[0]+dx,cen1[1]+dy,wx,wy,hh,badpixmap=badpixmap, meth="gaussfit")
+            endif
+            if specpos[nlens/2+i,nlens/2+j,0] eq -1 then begin
+                print, "gauss2dfit failed to converge, let's use barycentric centroid for this mlens..."
+                specpos[nlens/2+i,nlens/2+j,0:1]=localizepeak( im, cen1[0]+dx,cen1[1]+dy,wx,wy,hh,badpixmap=badpixmap, meth="barycentric")
+            endif
+            
 ;if keyword_set(tight) then begin
     if (((specpos[nlens/2+i,nlens/2+j,0]-(cen1[0]+dx))^2+(specpos[nlens/2+i,nlens/2+j,1]-(cen1[1]+dy))^2) gt double(tight_pos))  then begin
         specpos[nlens/2+i,nlens/2+j,0]=cen1[0]+dx

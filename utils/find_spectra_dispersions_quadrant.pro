@@ -69,7 +69,18 @@ tilt0=tiltini
       ;;if this peak is in the raw image
       if (specpos[nlens/2+i,nlens/2+j,0]+apprXpos[p]-wx-hh ge edge_x1) && (ceil(specpos[nlens/2+i,nlens/2+j,0]+apprXpos[p]+wx+hh) le szim[1]-1-edge_x2)$
         && (specpos[nlens/2+i,nlens/2+j,1]+apprYpos[p]-wy-hh ge edge_y1) && (ceil(specpos[nlens/2+i,nlens/2+j,1]+apprYpos[p]+wy+hh) le szim[2]-1-edge_y2) then begin
-        pospeak=localizepeak( im, specpos[nlens/2+i,nlens/2+j,0]+apprXpos[p],specpos[nlens/2+i,nlens/2+j,1]+apprYpos[p],wx,wy,hh,meth=meth)
+        pospeak=localizepeak( im, specpos[nlens/2+i,nlens/2+j,0]+apprXpos[p],specpos[nlens/2+i,nlens/2+j,1]+apprYpos[p],wx,wy,hh,meth="mpfit")
+                 
+            ;if it fails to converge then use an other method
+            if specpos[nlens/2+i,nlens/2+j,0] eq -1 then begin
+                print, "mpfit failed to converge, let's try gauss2dfit for this mlens..."
+                pospeak=localizepeak( im, specpos[nlens/2+i,nlens/2+j,0]+apprXpos[p],specpos[nlens/2+i,nlens/2+j,1]+apprYpos[p],wx,wy,hh,meth="gaussfit")
+             endif
+            if specpos[nlens/2+i,nlens/2+j,0] eq -1 then begin
+                print, "gauss2dfit failed to converge, let's use barycentric centroid for this mlens..."
+                pospeak=localizepeak( im, specpos[nlens/2+i,nlens/2+j,0]+apprXpos[p],specpos[nlens/2+i,nlens/2+j,1]+apprYpos[p],wx,wy,hh,meth="barycentric")
+             endif
+         
         if szdp[0] gt 1 then begin
           dispeak[nlens/2+i,nlens/2+j,2*p]=pospeak[0]
           dispeak[nlens/2+i,nlens/2+j,2*p+1]=pospeak[1]
