@@ -53,11 +53,9 @@
 ;-
 function destripe_mask_spectra, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
-calfiletype='polcal'
 @__start_primitive
 
 ; check to see if the frame is a flat or ARC
-
 if strcompress(backbone->get_keyword('OBSTYPE'),/remove_all) eq 'FLAT' or $
    strcompress(backbone->get_keyword('OBSTYPE'),/remove_all) eq 'ARC' then begin
    logstr = 'This is a flat or arc observation - no destriping will be performed!'
