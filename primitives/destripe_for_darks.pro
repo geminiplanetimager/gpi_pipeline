@@ -1,6 +1,6 @@
 ;+
 ; NAME: Destripe for Darks Only
-; PIPELINE PRIMITIVE DESCRIPTION: Aggressive destripe assuming there is no signal in the image. (for darks only!)
+; PIPELINE PRIMITIVE DESCRIPTION: Aggressive destripe assuming there is no signal in the image. (for darks only)
 ;
 ; 	Correct for fluctuations in the bias/dark level using a pixel-by-pixel 
 ; 	median across all channels, taking into account the alternating readout
