@@ -26,7 +26,7 @@
 ; HISTORY:
 ;   2009-04-22 MDP: Created, based on DST's cubeextract_polarized. 
 ;   2011-07-30 MP: Updated for multi-extension FITS
-;+
+;-
 function rotate_north_up, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive

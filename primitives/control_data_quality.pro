@@ -1,31 +1,42 @@
 ;+
 ; NAME: control_data_quality
-; PIPELINE PRIMITIVE DESCRIPTION: Control quality of data 
+; PIPELINE PRIMITIVE DESCRIPTION: Checks quality of data based on FITS keywords.
 ;
-;	
-;	
+;   This routine looks at various FITS header keywords to
+;   assess whether the data should be considered usable or not. 
 ;
-; INPUTS: data-cube
+;   The keywords checked include GPIHEALT, AVGRNOT, RMSERR.
+;   You can set the acceptable minimum data quality with the r0 and rmserr
+;   parameters to this primitive. 
 ;
+;   If a file of unacceptable quality is detected, the action taken will 
+;   be determined by the "action" parameter:
+;     0. Alert the user with a message printed to screen 
+;        but allow reduction to continue
+;     1. Halt the reduction and fail the receipe. 
 ;
-; KEYWORDS:
+;  TODO: implement pop-up window for alerts rather than just 
+;        printing a message on screen
+;
+; INPUTS: 2D image file
+; OUTPUTS: No change in data; reduction either continues or is terminated.
 ;
 ; GEM/GPI KEYWORDS:AVRGNOT,GPIHEALT,RMSERR
 ; DRP KEYWORDS:  	 
 ;
-; OUTPUTS:  
 ;
 ; PIPELINE COMMENT: Control quality of data using keywords. Appropriate action for bad quality data is user-defined. 
 ; PIPELINE ARGUMENT: Name="Action" Type="int" Range="[0,10]" Default="1" Desc="0:Simple alert and continue reduction, 1:Reduction fails"
 ; PIPELINE ARGUMENT: Name="r0" Type="float" Range="[0,2]" Default="0.08" Desc="critical r0 [m] at lambda=0.5microns"
 ; PIPELINE ARGUMENT: Name="rmserr" Type="float" Range="[0,1000]" Default="10." Desc="Critical rms wavefront error in microns. "
-; PIPELINE ORDER: 1.5
+; PIPELINE ORDER: 0.5
 ; PIPELINE TYPE: ALL-SPEC
 ; PIPELINE NEWTYPE: ALL
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:
 ;   JM 2010-10 : created
+;   MP 2013-01 : Docs updated
 ;
 ;- 
 

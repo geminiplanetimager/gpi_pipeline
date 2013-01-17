@@ -2,17 +2,13 @@
 ; NAME: calc_astrometry_binaries_sixth_orbit_catalog
 ; PIPELINE PRIMITIVE DESCRIPTION: Calibrate astrometry from binary (using 6th orbit catalog)
 ;
-;
-;
 ; INPUTS: data-cube
 ;
+; OUTPUTS:  plate scale & orientation, saved as calibration file
 ;
-; KEYWORDS:
-;	/Save	Set to 1 to save the output image to a disk file. 
 ;
 ; GEM/GPI KEYWORDS:CRPA,DATE-OBS,OBJECT,TIME-OBS
 ; DRP KEYWORDS: FILETYPE,ISCALIB
-; OUTPUTS:  plate scale & orientation
 ;
 ; PIPELINE COMMENT: Calculate astrometry from unocculted binaries; Calculate Separation and PA at date DATEOBS using the sixth orbit catalog.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"

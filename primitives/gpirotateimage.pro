@@ -23,9 +23,9 @@
 ;
 ; HISTORY:
 ;     Originally by Jerome Maire 2010-02-12
-;     2012-10-15 MP: Don't change suffix of file - this is just a rotation,
+;     2012-10-15 MP: Don't change suffi x of file - this is just a rotation,
 ;						doesn't really change the type of file.
-;
+;-
 function gpirotateimage, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive

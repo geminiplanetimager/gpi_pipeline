@@ -3,6 +3,8 @@
 ; NAME: Simple Destripe
 ; PIPELINE PRIMITIVE DESCRIPTION: Simple Destripe (hard-coded for I and T)
 ;
+;   **Deprecated, do not use**
+; 
 ; 	Correct for fluctuations in the bias/dark level using 
 ; 	area far from where the PSF is right now. 
 ; 	This is hard-coded for UCSC I&T of GPI, with specific choices
@@ -35,7 +37,8 @@
 ; 	2009-04-20 MDP: Updated to pipeline format, added docs. 
 ; 				    Some code lifted from OSIRIS subtradark_000.pro
 ;   2009-09-17 JM: added DRF parameters
-;
+;-
+
 function destripe_simple, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive

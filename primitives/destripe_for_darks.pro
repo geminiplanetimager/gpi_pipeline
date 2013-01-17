@@ -10,18 +10,17 @@
 ; 	it assumes that there's no signal anywhere in your image. So it's only
 ; 	good for darks. 
 ;
-; INPUTS: 
+; SEE ALSO: Destripe science frame
 ;
-; KEYWORDS:
+; INPUTS: A 2D dark image 
 ;
-; OUTPUTS: 
-; 	2D image corrected
+; OUTPUTS: 2D image corrected for stripe noise
 ;
 ; PIPELINE COMMENT: Subtract readout pickup noise using median across all channels.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display " 
 ; PIPELINE ARGUMENT: Name="before_and_after" Type="int" Range="[0,1]" Default="0" Desc="Show the before-and-after images for the user to see? (for debugging/testing)"
-; PIPELINE ORDER: 1.25
+; PIPELINE ORDER: 1.3
 ; PIPELINE NEWTYPE: ALL
 ; PIPELINE TYPE: ALL
 ; PIPELINE SEQUENCE: 3-
@@ -29,6 +28,7 @@
 ; HISTORY:
 ;   2012-10-16 Patrick: fixed syntax error (function name)
 ;   2012-10-13 MP: Started
+;   2013-01-16 MP: Documentation cleanup
 ;-
 function destripe_for_darks, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history

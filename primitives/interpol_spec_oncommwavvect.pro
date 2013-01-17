@@ -31,6 +31,7 @@
 ;   2009-06-20 JM: adapted to wavcal
 ;   2009-09-17 JM: added DRF parameters
 ;   2010-03-15 JM: added error handling
+;   2012-12-09 MP: Updates to WCS output
 ;- 
 
 function Interpol_Spec_OnCommWavVect, DataSet, Modules, Backbone
@@ -104,28 +105,24 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	backbone->set_keyword,'NAXIS1',nlens, ext_num=1
 	backbone->set_keyword,'NAXIS2',nlens, ext_num=1
 	backbone->set_keyword,'NAXIS3',CommonWavVect[2], ext_num=1
+	; Note: the following is correct, not a "fencepost error" (http://en.wikipedia.org/wiki/Off-by-one_error#Fencepost_error)
+	; because the CommonWavVect 0 and 1 are NOT the coordinates of the centers
+	; of the outer wavelength bins, they're the actual outer edges of those
+	; bins. - MP 2012-12-09
+	wavestep = (CommonWavVect[1]-CommonWavVect[0])/(CommonWavVect[2])
 
-	backbone->set_keyword,'CDELT3',(CommonWavVect[1]-CommonWavVect[0])/(CommonWavVect[2]),'wav. increment', ext_num=1
+	backbone->set_keyword,'CDELT3',wavestep,'wav. step [CDELT deprecated, use CD3_3 instead]', ext_num=1
+	backbone->set_keyword,'CD3_3',wavestep,'wavelength step [micron]', ext_num=1
 	; FIXME this CRPIX3 should probably be **1** in the FORTRAN index convention
-	backbone->set_keyword,'CRPIX3',0.,'pixel coordinate of reference point', ext_num=1
-	backbone->set_keyword,'CRVAL3',CommonWavVect[0]+(CommonWavVect[1]-CommonWavVect[0])/(2.*CommonWavVect[2]),'wav. at reference point', ext_num=1
-	backbone->set_keyword,'CTYPE3','WAVE', ext_num=1
-	backbone->set_keyword,'CUNIT3','microns', ext_num=1
-	;FXADDPAR, *(dataset.headers)[numfile], 'NAXIS',3, after='BITPIX'
-	;FXADDPAR, *(dataset.headers)[numfile], 'NAXIS1',nlens, after='NAXIS'
-	;FXADDPAR, *(dataset.headers)[numfile], 'NAXIS2',nlens, after='NAXIS1'
-	;FXADDPAR, *(dataset.headers)[numfile], 'NAXIS3',CommonWavVect[2], after='NAXIS2'
-	;
-	;FXADDPAR, *(dataset.headers)[numfile], 'CDELT3', (CommonWavVect[1]-CommonWavVect[0])/(CommonWavVect[2]),'wav. increment'
-	;; FIXME this CRPIX3 should probably be **1** in the FORTRAN index convention
-	;; used in FITS file headers
-	;FXADDPAR, *(dataset.headers)[numfile], 'CRPIX3', 0.,'pixel coordinate of reference point'
-	;FXADDPAR, *(dataset.headers)[numfile], 'CRVAL3', CommonWavVect[0]+(CommonWavVect[1]-CommonWavVect[0])/(2.*CommonWavVect[2]),'wav. at reference point'
-	;FXADDPAR, *(dataset.headers)[numfile], 'CTYPE3','WAVE'
-	;FXADDPAR, *(dataset.headers)[numfile], 'CUNIT3','microns'
-
+	; MP 2012-12-09:  changing to 1. Verified this is as required by WCS
+	; standards.
+	backbone->set_keyword,'CRPIX3',1.,'Spectral wavelengths are references to the first slice', ext_num=1
+	backbone->set_keyword,'CRVAL3',CommonWavVect[0]+wavestep/2,'Center wavelength for first spectral channel [micron]', ext_num=1
+	backbone->set_keyword,'CTYPE3','WAVE', '3rd axis is vaccuum wavelength', ext_num=1
+	backbone->set_keyword,'CUNIT3','microns', 'Wavelengths are in microns.', ext_num=1
+	
 	; put the datacube in the dataset.currframe output structure:
-	*(dataset.currframe[0])=Result
+	*(dataset.currframe)=Result
 
 @__end_primitive
 

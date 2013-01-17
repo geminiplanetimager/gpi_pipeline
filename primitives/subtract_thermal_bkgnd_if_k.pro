@@ -1,42 +1,42 @@
-
 ;+
 ; PIPELINE PRIMITIVE DESCRIPTION: Subtract Thermal/Sky Background if K band
 ;
-;	** special note: ** This is a new kind of "data dependent optional
-;	primitive". If the filter of the current data is YJH, return
-;	without doing *anything*, even logging the start/end of this primitive.
-;	It becomes a complete no-op for non-K-band cases. 
+;  Subtract thermal background emission, for K band data only
+;
+;	** special note: ** 
+;	
+;	This is a new kind of "data dependent optional primitive". If the filter of
+;	the current data is YJH, return without doing *anything*, even logging the
+;	start/end of this primitive.  It becomes a complete no-op for non-K-band
+;	cases.
+;
+; Algorithm:
 ;
 ;	Get the best available thermal background calibration file from CalDB
 ;	Scale it to current exposure time
 ;	Subtract it. 
-;
-; INPUTS: 
-;
-; KEYWORDS:
-; 	CalibrationFile=	Name of background file to subtract.
-;
-; OUTPUTS: 
+;   The name of the calibration file used is saved to the DRPBKGND header keyword.
 ;
 ; ALGORITHM TODO: Deal with uncertainty and pixel mask frames too.
 ;
+; INPUTS: 2D image file
+;
+; OUTPUTS: 2D image file, unchanged if YJH, background subtracted if K1 or K2.
+;
+;
 ; PIPELINE COMMENT: Subtract a dark frame. 
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="dark" Default="AUTOMATIC"
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type="dark" Default="AUTOMATIC" Desc='Name of thermal background file to subtract'
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
-; PIPELINE ORDER: 1.26
+; PIPELINE ORDER: 1.2
 ; PIPELINE TYPE: ALL
 ; PIPELINE NEWTYPE: ALL
 ;
 ; HISTORY:
-; 	Originally by Jerome Maire 2008-06
-; 	2009-04-20 MDP: Updated to pipeline format, added docs. 
-; 				    Some code lifted from OSIRIS subtradark_000.pro
-;   2009-09-02 JM: hist added in header
-;   2009-09-17 JM: added DRF parameters
-;   2010-10-19 JM: split HISTORY keyword if necessary
-;   2012-07-20 MP: added DRPDARK keyword
-;
+;   2012-12-13 MP: Initial implementation
+;   2013-01-16 MP: Documentation cleanup.
+;-
+
 function subtract_thermal_bkgnd_if_k, DataSet, Modules, Backbone
 
 

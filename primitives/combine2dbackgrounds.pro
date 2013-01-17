@@ -5,10 +5,9 @@
 ;	Generate a 2D background image for use in removing e.g. thermal emission
 ;	from lamp images
 ;
-; INPUTS: 2D image taken with lamps off. 
+; INPUTS: 2D image(s) taken with lamps off. 
 ;
-; KEYWORDS:
-; OUTPUTS:
+; OUTPUTS: thermal background file, saved as calibration file
 ;
 ; PIPELINE COMMENT: Combine 2D images with measurement of thermal or sky background
 ; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="MEAN|MEDIAN"  Default="MEDIAN" Desc="How to combine images: median, mean, or mean with outlier rejection?"

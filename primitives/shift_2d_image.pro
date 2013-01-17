@@ -3,11 +3,18 @@
 ; NAME: Shift 2D Image
 ; PIPELINE PRIMITIVE DESCRIPTION: Shift 2D Image
 ;
+;  Shift a 2D image in X and Y by arbitrary amounts. 
 ;
-; INPUTS: 
+;  This routine was developed for pipeline testing to mock up flexure 
+;  and is not intended for regular use in data reduction. Use at your
+;  own risk!
 ;
-; KEYWORDS:
-; 	CalibrationFile=	Name of dark file to subtract.
+;  Only the actual science pixels are shifted; reference pixels are NOT
+;  shifted. The best way to use this is thus after reference pixel 
+;  subtraction but before datacube extraction
+;
+; INPUTS: Any 2D image
+; OUTPUTS: 2D image shifted by (dx, dy). 
 ;
 ; OUTPUTS: 
 ; 	2D image corrected
@@ -25,7 +32,8 @@
 ;
 ; HISTORY:
 ;   2012-12-18 MP: New primitive.
-;
+;   2013-01-16 MP: Documentation cleanup
+;-
 function shift_2d_image, DataSet, Modules, Backbone
 
 primitive_version= '$Id: applydarkcorrection.pro 1078 2012-12-14 03:23:58Z mperrin $' ; get version from subversion to store in header history

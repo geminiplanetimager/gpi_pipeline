@@ -2,16 +2,13 @@
 ; NAME: combine_3dcubes
 ; PIPELINE PRIMITIVE DESCRIPTION: Combine 3D cubes
 ;
-;  TODO: more advanced combination methods. Mean,  etc.
+;  Multiple 3D cubes can be combined into one, using either a Mean or a Median. 
+;
+;  TODO: more advanced combination methods. sigma-clipped mean should be
+;  implemented, etc.
 ;
 ; INPUTS: 3d datacubes
-; common needed:
-;
-; KEYWORDS:
-; OUTPUTS:
-;
-; GEM/GPI KEYWORDS:
-; DRP KEYWORDS: NAXIS1,NAXIS2
+; OUTPUTS: a single combined datacube
 ;
 ; PIPELINE COMMENT: Combine 3D data cubes via mean or median. 
 ; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="MEAN|MEDIAN|MEANCLIP|MINIMUM"  Default="MEDIAN" Desc="How to combine images: median, mean, or mean with outlier rejection?"

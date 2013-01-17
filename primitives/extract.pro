@@ -27,7 +27,7 @@
 ; HISTORY:
 ;   2009-04-22 MDP: Created
 ;   2009-09-17 JM: added DRF parameters
-;+
+;-
 function extract, DataSet, Modules, Backbone
   common PIP
   COMMON APP_CONSTANTS

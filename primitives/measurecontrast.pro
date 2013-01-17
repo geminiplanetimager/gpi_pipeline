@@ -33,7 +33,7 @@
 ;
 ; HISTORY:
 ; 	initial version imported GPItv (with definition of contrast corrected) - JM
-;
+;-
 function measurecontrast, DataSet, Modules, Backbone
 
 primitive_version= '$Id$' ; get version from subversion to store in header history

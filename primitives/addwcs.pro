@@ -29,7 +29,7 @@
 ;  JM 2010-03-10: add handle of x0,y0 ref point with PSFcenter
 ;  2010-10-19 JM: split HISTORY keyword if necessary
 ;  2011-08-01 MP: Update for multi-extension FITS
-;
+;-
 function addwcs, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 calfiletype='plate'
@@ -59,15 +59,15 @@ calfiletype='plate'
 
 
     backbone->set_keyword, 'CTYPE1', 'RA---TAN', 'the coordinate type for the first axis'
-    backbone->set_keyword, 'CRPIX1', x0, 'x-coordinate of ref pixel'
+    backbone->set_keyword, 'CRPIX1', x0, 'x-coordinate of ref pixel [note: first pixel is 1]'
     ra= float(backbone->get_keyword( 'RA'))
-    backbone->set_keyword, 'CRVAL1', ra, 'RA at ref point' 
+    backbone->set_keyword, 'CRVAL1', ra, 'Right ascension at ref point' 
     backbone->set_keyword, 'CDELT1', pixelscale/3600.
 
     backbone->set_keyword, 'CTYPE2', 'DEC--TAN', 'the coordinate type for the second axis'
-    backbone->set_keyword, 'CRPIX2', y0, 'y-coordinate of ref pixel'
+    backbone->set_keyword, 'CRPIX2', y0, 'y-coordinate of ref pixel [note: first pixel is 1]'
     dec= float(SXPAR( Header, 'DEC',count=c2))
-    backbone->set_keyword, 'CRVAL2', double(backbone->get_keyword( 'DEC')), 'Dec at ref point'  ;TODOshould see gemini type convention
+    backbone->set_keyword, 'CRVAL2', double(backbone->get_keyword( 'DEC')), 'Declination at ref point'  ;TODO should see gemini type convention
     backbone->set_keyword, 'CDELT2', pixelscale/3600.
 
     backbone->set_keyword, 'PC1_1', 1.

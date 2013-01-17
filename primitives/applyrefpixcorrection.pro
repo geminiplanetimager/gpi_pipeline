@@ -17,12 +17,9 @@
 ;
 ; 	See discussion in section 3.1 of Rauscher et al. 2008 Prof SPIE 7021 p 63.
 ;
-; INPUTS: 
+; INPUTS: 2D image file
 ;
-; KEYWORDS:
-;
-; OUTPUTS: 
-; 	2D image corrected
+; OUTPUTS: 2D image corrected for background using reference pixels
 ;
 ; ALGORITHM TODO: Deal with uncertainty and pixel mask frames too.
 ;
@@ -43,7 +40,7 @@
 ;   2009-09-17 JM: added DRF parameters
 ;   2012-07-27 MP: Added Method parameter, James Larkin's improved algorithm
 ;   2012-10-14 MP: debugging and code cleanup.
-;
+;-
 function ApplyRefPixCorrection, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive

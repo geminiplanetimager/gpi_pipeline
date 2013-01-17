@@ -27,7 +27,7 @@
 ;
 ; HISTORY:
 ;   2012-04-10 MDP: Created, based on rotate_north_up.pro
-;+
+;-
 function rotate_field_square, DataSet, Modules, Backbone
 primitive_version= '$Id: rotate_north_up.pro 674 2012-03-31 17:54:07Z Dmitry $' ; get version from subversion to store in header history
 @__start_primitive

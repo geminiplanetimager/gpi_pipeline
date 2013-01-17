@@ -2,16 +2,13 @@
 ; NAME: combine2Dframes
 ; PIPELINE PRIMITIVE DESCRIPTION: Combine 2D images
 ;
-;  TODO: more advanced combination methods. Mean, sigclip, etc.
+;  Multiple 2D images can be combined into one using either a Mean or a Median. 
 ;
-; INPUTS: 2D image from narrow band arclamp
-; common needed:
+;  TODO: more advanced combination methods. sigma-clipped mean should be
+;  implemented, etc.
 ;
-; KEYWORDS:
-; OUTPUTS:
-;
-; GEM/GPI KEYWORDS:
-; DRP KEYWORDS: NAXIS1,NAXIS2
+; INPUTS: 2D images
+; OUTPUTS: a single combined 2D image
 ;
 ; PIPELINE COMMENT: Combine 2D images such as darks into a master file via mean or median. 
 ; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="MEAN|MEDIAN|MEANCLIP"  Default="MEDIAN" Desc="How to combine images: median, mean, or mean with outlier rejection?"

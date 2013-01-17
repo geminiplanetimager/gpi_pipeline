@@ -94,7 +94,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     ; NOTE: spotpos dimensions re-arranged relative to spectral version
     ; for better speed. And to add pol dimension of course.
     spotpos=dblarr(5,nlens,nlens,2)+!VALUES.D_NAN
-    nspot_pixels=45
+    nspot_pixels=45  ; NOTE: this **MUST** match the nspot_pixels value in
+					 ; find_pol_positions_quadrant.pro
     ; Now create the PIXELS and PIXVALS arrays, which store the actual
     ; X,Y, and values for each pixel, that we can use for optimal extraction
     spotpos_pixels = intarr(2,nspot_pixels, nlens, nlens, 2)

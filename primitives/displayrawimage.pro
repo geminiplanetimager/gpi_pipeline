@@ -2,18 +2,19 @@
 ; NAME: displayrawimage
 ; PIPELINE PRIMITIVE DESCRIPTION: Display raw data with GPItv
 ;
-; 		display in GPITV the raw image to be processed
+; 		Display in GPITV the current raw image, before any processing
 ;
 ;
 ; KEYWORDS:
 ; 	gpitv=		session number for the GPITV window to display in.
 ; 				set to '0' for no display, or >=1 for a display.
 ;
-; OUTPUTS:
+; INPUTS: A raw 2D file.
+; OUTPUTS: No change to data
 ;
-; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="1" Desc="1-500: choose gpitv session for displaying output, 0: no display "
+; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="1" Desc="1-500: choose gpitv session for displaying output, 0 for no display "
 ; PIPELINE COMMENT: Display, with GPItv, raw data to be processed  
-; PIPELINE ORDER: 1.1 
+; PIPELINE ORDER: 0.01
 ; PIPELINE NEWTYPE: ALL, HIDDEN
 ; PIPELINE TYPE: ALL HIDDEN
 ;
@@ -28,22 +29,10 @@
 function displayrawimage, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
-;;	common PIP
-;;	COMMON APP_CONSTANTS
-;;	
-;;	
-;;	   functionName = 'displayrawimage'
-;;	
- ;det=*(dataset.frames[numfile])
- ;thisModuleIndex = drpModuleIndexFromCallSequence(Modules, functionName)
-;;		thisModuleIndex = Backbone->GetCurrentModuleIndex()
  
  sesnum=fix(Modules[thisModuleIndex].gpitv)
  Backbone_comm->gpitv, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv)
- ;if (sesnum ne 0) then gpitvms, det, ses=sesnum
 
-
-;drpPushCallStack, functionName
 return, ok
 
 end

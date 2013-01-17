@@ -5,6 +5,29 @@
 ;	Interpolates between vertical (spectral dispersion) direction neighboring
 ;	pixels to fix each bad pixel.
 ;
+;   Bad pixels are identified from:
+;   1. The pixels marked bad in the current bad pixel mask (provided in the
+;      CalibrationFile parameter.)
+;   2. Any additional pixels which are marked as bad in the image extension
+;      for data quality (DQ). 
+;   3. Any pixels which are < -50 counts (i.e. are > 5 sigma negative where
+;      sigma is the CDS read noise for a single read). TODO: This threshhold
+;      should be evaluated and possibly made adjustible. 
+;
+;  The action taken on those bad pixels is determined from the 'method'
+;  parameter, which can be one of:
+;    'nan':   Bad pixels are just marked as NaN, with no interpolation
+;    'vertical': Bad pixels are repaired by interpolating over their 
+;             immediate neighbors vertically, the pixels above and below.
+;             This has been shown to work well for spectral mode GPI data
+;             since vertical is the spectral dispersion direction.
+;             (The actual algorithm is a bit more complicated than this to
+;			  handle cases where the above and/or below pixels are themselves 
+;			  also bad.)
+;    'all8':  Repair by interpolating over all 8 surrounding pixels. 
+;
+;
+;
 ;	TODO: need to evaluate whether that algorithm is still a good approach for
 ;	polarimetry mode files. 
 ;
@@ -12,18 +35,17 @@
 ;	using adjacent lenslet spectra as well. See emails of Oct 18, 2012
 ;	(excerpted below)
 ;
-; KEYWORDS:
-; 	gpitv=		session number for the GPITV window to display in.
-; 				set to '0' for no display, or >=1 for a display.
 ;
-; OUTPUTS:
+; INPUTS: 2D image, ideally post dark subtraction and destriping
+; OUTPUTS: 2D image with bad pixels marked or cleaned up. 
 ;
-; PIPELINE ARGUMENT: Name="CalibrationFile" type="badpix" default="AUTOMATIC" Desc="Filename of the desired bad pixel file to be read"
+; PIPELINE ARGUMENT: Name="CalibrationFile" type="filename" default="AUTOMATIC" Desc="Filename of the desired bad pixel file to be read"
 ; PIPELINE ARGUMENT: Name="method" Type="string" Range="[nan|vertical|all8]" Default="vertical" Desc='Repair bad bix interpolating all 8 neighboring pixels, or just the 2 vertical ones, or just flag as NaN?'
+; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="1" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ;
 ; PIPELINE COMMENT:  Repair bad pixels by interpolating between their neighbors. Can optionally just flag as NaNs or else interpolate.
-; PIPELINE ORDER: 1.1 
+; PIPELINE ORDER: 1.4 
 ; PIPELINE TYPE: ALL HIDDEN
 ; PIPELINE NEWTYPE: SpectralScience,Calibration
 ;
@@ -33,6 +55,7 @@
 ; 	2012-12-03 MP: debugging/enhancements for the case of multiple adjacent bad
 ; 					pixels
 ; 	2012-12-09 MP: Added support for using information in DQ extension
+; 	2013-01-16 MP: Documentation cleanup
 ;-
 function interpolate_badpix_2d, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -42,7 +65,7 @@ calfiletype='badpix'
 
 	sz = size( *(dataset.currframe) )
     if sz[1] ne 2048 or sz[2] ne 2048 then begin
-        backbone->Log, "Image is not 2048x2048, don't know how to handle this for interpolating"
+        backbone->Log, "Image is not 2048x2048, don't know how to handle this for interpolating", depth=3
         return, NOT_OK
     endif
 
@@ -99,7 +122,7 @@ calfiletype='badpix'
 		; just flag bad pixels as NaNs
 		(*(dataset.currframe[0]))[wbad] = !values.f_nan
 		backbone->set_keyword, 'HISTORY', 'Masking out '+strc(count)+' bad pixels to NaNs ', ext_num=0
-		backbone->Log, 'Masking out '+strc(count)+' bad pixels and to NaNs'
+		backbone->Log, 'Masking out '+strc(count)+' bad pixels and to NaNs',depth=3
 	
 	end
 
@@ -116,7 +139,7 @@ calfiletype='badpix'
 		; hot pixels due to intrapixel capacitance.
 
 		backbone->set_keyword, 'HISTORY', 'Masking out '+strc(count)+' bad pixels and replacing with interpolated values between vertical neighbors', ext_num=0
-		backbone->Log, 'Masking out '+strc(count)+' bad pixels and replacing with interpolated values between vertical neighbors'
+		backbone->Log, 'Masking out '+strc(count)+' bad pixels and replacing with interpolated values between vertical neighbors', depth=3
 
 		; handle the easy cases in a vectorized fashion for major speedup:
 		wvalid_above_and_below = where( (bpmask[wbad+2048] + bpmask[wbad-2048]) eq 0, ct_valid_above_and_below, complement=w_at_least_one_nbr_bad)
@@ -163,7 +186,7 @@ calfiletype='badpix'
 		 							 		 (*(dataset.currframe[0]))[wbad-1] + $
 									 		 (*(dataset.currframe[0]))[wbad+1] ) / 8
 		backbone->set_keyword, 'HISTORY', 'Masking out '+strc(count)+' bad pixels; replacing with interpolated values between each 8 neighbor pixels', ext_num=0
-		backbone->Log, 'Masking out '+strc(count)+' bad pixels;  replacing with interpolated values between each 8 neighbor pixels'
+		backbone->Log, 'Masking out '+strc(count)+' bad pixels;  replacing with interpolated values between each 8 neighbor pixels', depth=3
 
 	end
 	'3D': begin

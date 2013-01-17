@@ -2,16 +2,20 @@
 ; NAME: combinedarkframes
 ; PIPELINE PRIMITIVE DESCRIPTION: Combine 2D dark images
 ;
+;  Several dark frames are combined to produce a master dark file, which
+;  is saved to the calibration database. This combination can be done using
+;  either a mean or median algorithm. 
+;
+;  Also, based on the variance between the various dark frames, the 
+;  read noise is estimated, and a list of hot pixels is derived.
+;  The read noise and number of significantly hot pixels are written
+;  as keywords to the FITS header for use in trending analyses. 
+;
+;
 ;  TODO: more advanced combination methods. Mean, sigclip, etc.
 ;
-; INPUTS: 
-; common needed:
-;
-; KEYWORDS:
-;
-; GEM/GPI KEYWORDS:
-; DRP KEYWORDS:  FILETYPE, ISCALIB,NAXIS1,NAXIS2
-; OUTPUTS:
+; INPUTS:  several dark frames
+; OUTPUTS: master dark frame, saved as a calibration file
 ;
 ; PIPELINE COMMENT: Combine 2D dark images into a master file via mean or median. 
 ; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="MEAN|MEDIAN|MEANCLIP"  Default="MEDIAN" Desc="How to combine images: median, mean, or mean with outlier rejection?[MEAN|MEDIAN]"

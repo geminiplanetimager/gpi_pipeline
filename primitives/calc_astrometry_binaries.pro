@@ -2,13 +2,7 @@
 ; NAME: calc_astrometry_binaries
 ; PIPELINE PRIMITIVE DESCRIPTION: Calibrate astrometry from binary (using separation and PA)
 ;
-;
-;
 ; INPUTS: data-cube
-;
-;
-; KEYWORDS:
-;	/Save	Set to 1 to save the output image to a disk file. 
 ;
 ; GEM/GPI KEYWORDS:CRPA
 ; DRP KEYWORDS: FILETYPE,ISCALIB

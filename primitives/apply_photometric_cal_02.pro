@@ -2,14 +2,8 @@
 ; NAME: apply_photometric_cal_02
 ; PIPELINE PRIMITIVE DESCRIPTION: Calibrate Photometric Flux and save convertion in DB 
 ;
-;	
-;	
 ;
 ; INPUTS: data-cube
-;
-;
-; KEYWORDS:
-;	/Save	Set to 1 to save the output image to a disk file. 
 ;
 ; GEM/GPI KEYWORDS:EXPTIME,FILTER,IFSFILT,HMAG,IFSUNITS,SECDIAM,SPECTYPE,TELDIAM
 ; DRP KEYWORDS: CUNIT,FILETYPE,FSCALE,HISTORY,ISCALIB,PSFCENTX,PSFCENTY,SPOT1x,SPOT1y,SPOT2x,SPOT2y,SPOT3x,SPOT3y,SPOT4x,SPOT4y,SPOTWAVE

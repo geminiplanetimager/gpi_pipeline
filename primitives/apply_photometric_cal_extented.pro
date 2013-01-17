@@ -2,14 +2,7 @@
 ; NAME: apply_photometric_cal_extended
 ; PIPELINE PRIMITIVE DESCRIPTION: Calibrate Photometric Flux of extented object 
 ;
-;	
-;	
-;
 ; INPUTS: data-cube
-;
-;
-; KEYWORDS:
-;	/Save	Set to 1 to save the output image to a disk file. 
 ;
 ; OUTPUTS:  
 ;

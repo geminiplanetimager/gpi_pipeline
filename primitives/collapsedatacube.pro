@@ -4,13 +4,11 @@
 ;
 ;  TODO: more advanced collapse methods. 
 ;
-; INPUTS: 
-; common needed:
+; INPUTS: any datacube
+; OUTPUTS: image containing collapsed datacube
 ;
-; KEYWORDS:
 ; GEM/GPI KEYWORDS:
 ; DRP KEYWORDS: CDELT3, CRPIX3,CRVAL3,CTYPE3,NAXIS3
-; OUTPUTS:
 ;
 ; PIPELINE COMMENT: Collapse the wavelength dimension of a datacube via mean, median or total. 
 ; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="MEDIAN|TOTAL"  Default="TOTAL" Desc="How to collapse datacube: total or median (with flux conservation)"

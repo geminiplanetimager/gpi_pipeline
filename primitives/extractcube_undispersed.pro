@@ -39,7 +39,7 @@
 ;   Originally by James Larkin as extu.pro
 ;   2012-02-07 Pipelinified by Marshall Perrin
 ;   2012-03-30 Rotated by 90 deg to match spectral cube orientation. NaNs outside of FOV. - MP
-;+
+;-
 function extractcube_undispersed, DataSet, Modules, Backbone
 
 primitive_version= '$Id$' ; get version from subversion to store in header history

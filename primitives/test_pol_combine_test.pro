@@ -1,7 +1,7 @@
 
 ;------------------------------------------
 
-function pol_combine_test, measurements, wpangle, port=port, retardance=retardance
+function test_pol_combine_test, measurements, wpangle, port=port, retardance=retardance
 	; This is the guts of the pol_combine routine, pulled out of the DRP and
 	; reworked to expect only a single spatial element's worth of data. 
 

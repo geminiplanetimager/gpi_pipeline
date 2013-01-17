@@ -22,7 +22,7 @@
 ;
 ; HISTORY:
 ; 	written 12/11/2012 - ds
-;
+;-
 function gpi_meas_satspot_dev, DataSet, Modules, Backbone
 
 primitive_version= '$Id: gpi_meas_satspot_dev.pro 1060 2012-12-10 23:39:47Z Dmitry $' ; get version from subversion to store in header history

@@ -2,8 +2,11 @@
 ; NAME: subtract_background_2d
 ; PIPELINE PRIMITIVE DESCRIPTION: Subtract background from 2D raw image
 ;
+;  ** deprecated, use destripe_science_image instead** 
+;
 ; This program has been moved over to destripe_science_image.pro
 ; This file remains purely for archiving reasons and is now obsolete
+;
 ; Subtract the detector readout noise (striping) from the background
 ; of a 2d raw IFS image by masking spectra and using the remaining
 ; regions to obtain a sampling of the striping. The masking can be performed by using the wavelength

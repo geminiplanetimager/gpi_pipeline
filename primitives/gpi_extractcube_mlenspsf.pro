@@ -25,8 +25,7 @@
 ; 	Originally by Jerome Maire 2007-11
 ;   2012-02-01 JM: adapted to vertical dispersion
 ;   2012-02-15 JM: adapted as a pipeline module
-
-;+
+;-
 function gpi_extractcube_mlenspsf, DataSet, Modules, Backbone
   common PIP
   COMMON APP_CONSTANTS

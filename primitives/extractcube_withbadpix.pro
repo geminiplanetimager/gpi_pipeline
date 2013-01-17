@@ -31,7 +31,7 @@
 ;   2009-08-30 JM: take into acount bad-pixels
 ;   2009-09-17 JM: added DRF parameters
 ;   2012-10-18 MP: Code cleanup and debugging.
-;+
+;-
 function extractcube_withbadpix, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
      @__start_primitive

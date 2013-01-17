@@ -14,7 +14,7 @@
 ;
 ; PIPELINE COMMENT: Reads a wavelength calibration file from disk. This primitive is required for any data-cube extraction.
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="wavcal" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
-; PIPELINE ORDER: 0.01
+; PIPELINE ORDER: 0.1
 ; PIPELINE TYPE: ALL-SPEC
 ; PIPELINE NEWTYPE: SpectralScience,Calibration
 ;

@@ -27,7 +27,7 @@
 ;   2009-09-17 JM: added DRF parameters
 ;   2012-02-01 JM: adapted to vertical dispersion
 ;   2012-02-09 DS: offloaded sdpx calculation
-;+
+;-
 function extractcube, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
@@ -81,6 +81,34 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   ; put the datacube in the dataset.currframe output structure:
   *(dataset.currframe[0])=cubef3D
 
+  ; Update FITS header with RA and Dec WCS information
+  ; the spectral axis WCS will be added in interpol_spec_oncommwavvect
+  
+  ; Assume the star is precisely centered in the FOV (TBD improve this)
+   
+    x0=nlens/2
+    y0=nlens/2
+ 
+
+    backbone->set_keyword, 'CTYPE1', 'RA---TAN', 'the coordinate type for the first axis'
+    backbone->set_keyword, 'CRPIX1', x0+1, 'x-coordinate of ref pixel [note: first pixel is 1]'
+    ra= float(backbone->get_keyword( 'RA'))
+    backbone->set_keyword, 'CRVAL1', ra+1, 'Right ascension at ref point' 
+
+    backbone->set_keyword, 'CTYPE2', 'DEC--TAN', 'the coordinate type for the second axis'
+    backbone->set_keyword, 'CRPIX2', y0, 'y-coordinate of ref pixel [note: first pixel is 1]'
+    dec= float(SXPAR( Header, 'DEC',count=c2))
+    backbone->set_keyword, 'CRVAL2', double(backbone->get_keyword( 'DEC')), 'Declination at ref point'  ;TODO should see gemini type convention
+
+	
+	; enforce standard convention preferred by Gemini of using the CD instead of
+	; PC + CDELT matrices
+	backbone->del_keyword, 'PC1_1' 
+	backbone->del_keyword, 'PC1_2' 
+	backbone->del_keyword, 'PC2_1' 
+	backbone->del_keyword, 'PC2_2' 
+	backbone->del_keyword, 'CDELT1' 
+	backbone->del_keyword, 'CDELT2'
 
 @__end_primitive
 

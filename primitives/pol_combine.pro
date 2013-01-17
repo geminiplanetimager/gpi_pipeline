@@ -255,16 +255,16 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	if pct eq 0 then port="side"
 	if pct eq 1 then begin
 	    if portnum eq 1 then port='bottom'
-      if (portnum ge 2) && (portnum le 5) then port='side'
-      if portnum eq 6 then port='perfect'
-  endif    
+        if (portnum ge 2) && (portnum le 5) then port='side'
+        if portnum eq 6 then port='perfect'
+	endif    
 		print, "using port = "+port
 		sxaddhist, functionname+": using instr pol for port ="+port, hdr0
 	system_mueller = DST_instr_pol(/mueller, port=port)
 ;  	woll_mueller_vert = mueller_linpol_rot(0)
 ;	woll_mueller_horiz= mueller_linpol_rot(90)
-  woll_mueller_vert = mueller_linpol_rot(90)
-  woll_mueller_horiz= mueller_linpol_rot(0)
+    woll_mueller_vert = mueller_linpol_rot(90)
+    woll_mueller_horiz= mueller_linpol_rot(0)
 
 	for i=0L,nfiles-1 do begin
 	;if numext eq 0 then begin
@@ -453,12 +453,16 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     sxaddpar, hdrext, "CDELT3", 1, 		" Stokes axis:  I Q U V "
     sxaddpar, hdrext, "PC3_3", 1, "Stokes axis is unrotated"
 
+
+
 	; store the outputs: this should be the ONLY valid file in the stack now, 
 	; and adjust the # of files!
 ;stop
 ; endif else begin
 	*(dataset.headersPHU[numfile])=hdr0
 	*(dataset.headersExt[numfile])=hdrext
+
+	backbone->set_keyword, 'DRPNFILE', nfiles, "# of files combined to produce this output file"
 
 	*(dataset.currframe)=Stokes
 	;*(dataset.headers[numfile]) = hdr

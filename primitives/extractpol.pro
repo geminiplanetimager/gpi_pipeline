@@ -47,7 +47,7 @@
 ;   2011-06-07 JM: added FITS/MEF compatibility
 ;   2013-01-02 MP: Updated output file orientation to be consistent with
 ;				   spectral mode and raw data. 
-;+
+;-
 
 function extractpol, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -72,7 +72,7 @@ calfiletype='polcal'
     if ~strmatch(mode,"*wollaston*",/fold) then message, "That's not a polarimetry file!"
 
     ; read in polarization spot locations from the calibration file
-    fits_info, c_File,N_ext=n_ext
+    fits_info, c_File,N_ext=n_ext,/silent
     polspot_coords = readfits(c_File, ext=n_ext-1)
     polspot_pixvals = readfits(c_File, ext=n_ext)
     

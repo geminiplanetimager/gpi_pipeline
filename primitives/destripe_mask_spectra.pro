@@ -2,17 +2,19 @@
 ; NAME: destripe_mask_spectra
 ; PIPELINE PRIMITIVE DESCRIPTION: Destripe science frame
 ;
-; Subtract the detector readout noise (striping) from the background
-; of a 2d raw IFS image by masking spectra and using the remaining
-; regions to obtain a sampling of the striping. The masking can be performed by using the wavelength
-; calibration to mask the spectra (recommended) or by thresholding
-; (not recommended).
-
-; WARNING: This destriping algorithm will not work correctly on flat fields or any image
-; where there is very large amounts of signal covering the entire
-; field. 
+;  
+;  Subtract the detector readout noise (striping) from the background of a 2d
+;  raw IFS image by masking spectra and using the remaining regions to obtain a
+;  sampling of the striping. 
 ;
-
+;  The masking can be performed by using the wavelength calibration to mask the
+;  spectra (recommended) or by thresholding (not recommended).
+;
+;  WARNING: This destriping algorithm will not work correctly on flat fields or
+;  any image where there is very large amounts of signal covering the entire
+;  field. 
+;
+;
 ;
 ; KEYWORDS:
 ;       method= "[threshhold|calfile]" which masking method to adopt. Pixel threshold or by wavelength calibration file.
@@ -40,7 +42,7 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="1" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ;
 ; PIPELINE COMMENT:  Subtract detector striping using measurements between the microspectra
-; PIPELINE ORDER: 1.12 
+; PIPELINE ORDER: 1.3
 ; PIPELINE TYPE: ALL HIDDEN
 ; PIPELINE NEWTYPE: SpectralScience,Calibration, PolarimetricScience
 ;
@@ -50,6 +52,7 @@
 ;   2011-07-30 MP: Updated for multi-extension FITS
 ;   2012-12-12 PI: Moved from Subtract_2d_background.pro
 ;   2012-12-30 MMB: Updated for pol extraction. Included Cal file, inserted IDL version checking for smooth() function
+;   2013-01-16 MP: Documentation cleanup.
 ;-
 function destripe_mask_spectra, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -176,38 +179,35 @@ if keyword_set(badpixmap) then mask[where(badpixmap eq 1)]=1
 
 	  	end
 	  	'WOLLASTON':	begin
-	  	; load mask from polarimetr cal file
+	  	  ; load mask from polarimetr cal file
 	  	
-      backbone->Log, "Using "+c_File+" to extract pol spot locations"
-      ;Most of this is lifted from directly from extractpol 
-      
-      fits_info, c_File,N_ext=n_ext ;hardcoding for testing
-      polspot_coords = readfits(c_File, ext=n_ext-1)
-      polspot_pixvals = readfits(c_File, ext=n_ext)
-      
-      sz = size(polspot_coords)
-      nx = sz[1+2]
-      ny = sz[2+2]
-      
-      for pol=0,1 do begin
-      for ix=0L,nx-1 do begin
-      for iy=0L,ny-1 do begin
-        ;if ~ptr_valid(polcoords[ix, iy,pol]) then continue
-        wg = where(finite(polspot_pixvals[*,ix,iy,pol]) and polspot_pixvals[*,ix,iy,pol] gt 0, gct)
-        if gct eq 0 then continue
+		  backbone->Log, "Using "+c_File+" to extract pol spot locations"
+		  ;Most of this is lifted from directly from extractpol 
+		  
+		  fits_info, c_File,N_ext=n_ext ;hardcoding for testing
+		  polspot_coords = readfits(c_File, ext=n_ext-1)
+		  polspot_pixvals = readfits(c_File, ext=n_ext)
+		  
+		  sz = size(polspot_coords)
+		  nx = sz[1+2]
+		  ny = sz[2+2]
+		  
+		  for pol=0,1 do begin
+		    for ix=0L,nx-1 do begin
+		      for iy=0L,ny-1 do begin
+				;if ~ptr_valid(polcoords[ix, iy,pol]) then continue
+				wg = where(finite(polspot_pixvals[*,ix,iy,pol]) and polspot_pixvals[*,ix,iy,pol] gt 0, gct)
+				if gct eq 0 then continue
 
-        spotx = polspot_coords[0,wg,ix,iy,pol]
-        spoty = polspot_coords[1,wg,ix,iy,pol]
-        
-        mask[spotx,spoty]= 1
-       
-       endfor 
-       endfor 
-       endfor 
+				spotx = polspot_coords[0,wg,ix,iy,pol]
+				spoty = polspot_coords[1,wg,ix,iy,pol]
+				
+				mask[spotx,spoty]= 1
+			   
+		      endfor 
+		    endfor 
+		  endfor 
       
-    ;   message,/info, "NO DESTRIPING PERFORMED, not implemented for the Wollaston mode"
-    ;   return,ok
-    
 		
 	  	end
 	  	'OPEN':	begin
@@ -234,7 +234,11 @@ if keyword_set(badpixmap) then mask[where(badpixmap eq 1)]=1
 
 ; remove broad variations prior to clipping
         ;allowed keywords to the smooth() function changed in IDL 8.1 
-        if !version[0].release lt 8.1 then sm_medpart1d=smooth(median(medpart0,dim=1),20,/edge,/nan)else sm_medpart1d=smooth(median(medpart0,dim=1),20,/edge_truncate,/nan)
+        if !version[0].release lt 8.1 then begin
+			sm_medpart1d=smooth(median(medpart0,dim=1),20,/edge,/nan)
+		endif else begin 
+			sm_medpart1d=smooth(median(medpart0,dim=1),20,/edge_truncate,/nan)
+		endelse
         
         broad_variations=sm_medpart1d##(fltarr(64)+1)
 ; create a full image 

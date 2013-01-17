@@ -1,4 +1,3 @@
-
 ;+
 ; NAME: ApplyDarkCorrection
 ; PIPELINE PRIMITIVE DESCRIPTION: Subtract Dark Background
@@ -9,21 +8,17 @@
 ;    If no dark file of the correct time is found, then don't do any
 ;    subtraction at all, just return the input data. 
 ;
-; INPUTS: 
+; INPUTS: raw 2D image file
 ;
-; KEYWORDS:
-; 	CalibrationFile=	Name of dark file to subtract.
-;
-; OUTPUTS: 
-; 	2D image corrected
+; OUTPUTS: 2D image corrected for dark current
 ;
 ; ALGORITHM TODO: Deal with uncertainty and pixel mask frames too.
 ;
 ; PIPELINE COMMENT: Subtract a dark frame. 
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="filename" Default="AUTOMATIC"
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type="filename" Default="AUTOMATIC" Desc="Name of dark file to subtract"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
-; PIPELINE ORDER: 1.26
+; PIPELINE ORDER: 1.1
 ; PIPELINE TYPE: ALL
 ; PIPELINE NEWTYPE: ALL
 ;
@@ -36,7 +31,7 @@
 ;   2010-10-19 JM: split HISTORY keyword if necessary
 ;   2012-07-20 MP: added DRPDARK keyword
 ;   2012-12-13 MP: Remove "Sky" from primitve discription since it's inaccurate
-;
+;-
 function ApplyDarkCorrection, DataSet, Modules, Backbone
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
