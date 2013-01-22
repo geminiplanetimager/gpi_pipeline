@@ -256,7 +256,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
     
       ;if n eq 0 then painit=PA
       ;	ww=PA-painit
-		
+
       ;MAIN LOOP
       ;loop on all annuli, calculate ref. annulus, subtract.. ; loop sur tous les anneaux, determine anneau ref, soustrait
       iaim_loaded=-1
@@ -344,7 +344,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
         iaim_2load=intersect(iaim,intersect(iaim,iaim_loaded,/xor_flag),c2load)
         for k=0,c2load-1 do begin
           ia_tmp=read_binary(tmpdir+'indices_a'+nbr2txt(iaim_2load[k],3)+'.dat',data_type=3)
-          annuli_tmp=read_binary(tmpdir+'values_a'+nbr2txt(iaim_2load[k],3)+'.dat',data_type=5)
+          annuli_tmp=read_binary(tmpdir+'values_a'+nbr2txt(iaim_2load[k],3)+'.dat',data_type=4)
           annuli_tmp=reform(annuli_tmp,n_elements(ia_tmp),nfiles)
           if ir+k eq 0 then ia=ia_tmp else ia=[ia,ia_tmp]
           if ir+k eq 0 then annuli=annuli_tmp else annuli=[annuli,annuli_tmp]
@@ -428,7 +428,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
             ;enregistre la difference sur disque, ajoute (append) les valeurs de cet
             ;anneau au fichier binaire de cette image
             openw,lunit,tmpdir+prefix+nbr2txt(nlist[n],4)+'_tmp.dat',/get_lun,append=(ir+it gt 0)
-            writeu,lunit,diff
+            writeu,lunit,float(diff)
             free_lun,lunit
           endfor;fic
       endfor;section
@@ -449,8 +449,9 @@ if numfile  eq ((dataset.validframecount)-1) then begin
       print,'Image '+strtrim(n+1,2)+'/'+strtrim(nfiles,2)+': '+fnames[n]+'...'
       ;reconstruct image ;reconstruit l'image
       print,' reconstruction...'
-      im=make_array(dimcub,dimcub,type=5,value=!values.f_nan)
-      im[ind]=read_binary(tmpdir+prefix+nbr2txt(nlist[n],4)+'_tmp.dat',data_type=5)
+
+      im=make_array(dimcub,dimcub,type=4,value=!values.f_nan)
+      im[ind]=read_binary(tmpdir+prefix+nbr2txt(nlist[n],4)+'_tmp.dat',data_type=4)
       
       ;delete temp. file ; efface le fichier temporaire
       file_delete,tmpdir+prefix+nbr2txt(nlist[n],4)+'_tmp.dat'
@@ -504,6 +505,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
     endif ;cass
    ; update_progressbar,Modules,thisModuleIndex,n_elements(lambda), il ,'working...',/adi    
   endfor; wav
+
   suffix=suffix+'-loci'
   imt=dblarr(dimcub,dimcub,n_elements(lambda))
   for n=0,nfiles-1 do begin

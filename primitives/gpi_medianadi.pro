@@ -56,16 +56,16 @@ if numfile  eq ((dataset.validframecount)-1) then begin
             ;fait la mediane de toutes les images
               ;immed[*,*,il]=gpi_medfits(flist,dimcub,dimcub,gz=gz,lam=il,/silent)
               immed[*,*]=gpi_medfits(dataset.outputFileNames[0:(dataset.validframecount)-1],dimcub[1],dimcub[2],gz=gz,lam=-1,/silent,exten=n_ext)
-              
               ;update_progressbar2ADI,Modules,thisModuleIndex,CommonWavVect[2], il ,'working...' 
             ;endfor
 endif else begin
         immed=dblarr(dimcub[1],dimcub[2],dimcub[3])
             for il=0,dimcub[3]-1 do begin
+                ;okay, the following line is strange, but it bugs if passing directly the for index
+                compt=il
             ;fait la mediane de toutes les images
               ;immed[*,*,il]=gpi_medfits(flist,dimcub,dimcub,gz=gz,lam=il,/silent)
-              immed[*,*,il]=gpi_medfits(dataset.outputFileNames[0:(dataset.validframecount)-1],dimcub[1],dimcub[2],gz=gz,lam=il,/silent,exten=n_ext)
-              
+              immed[*,*,il]=gpi_medfits(dataset.outputFileNames[0:(dataset.validframecount)-1],dimcub[1],dimcub[2],gz=gz,lam=compt,/silent,exten=n_ext)
               ;update_progressbar2ADI,Modules,thisModuleIndex,CommonWavVect[2], il ,'working...' 
             endfor
 endelse
