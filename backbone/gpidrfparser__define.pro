@@ -350,11 +350,17 @@ end
 ; return a brief summary of the DRF element in a given file. 
 ; This is used by the Template scanning functions in DRFGUI.
 function gpidrfparser::get_summary
-	return, {filename: self.most_recent_filename,  $
-	reductiontype: self.ReductionType, $
-	name: self.DRFname, $
-	nsteps: n_elements(*self.modules) , $
-	nfiles: (*self.data).validframecount }
+
+if not ptr_valid(self.data) or not ptr_valid(self.modules) then begin
+    message, "No valid DRF loaded!",/info
+    return, {filename: '', reductiontype: '', name: '', nsteps: 0L,nfiles: 0L}
+endif
+
+return, {filename: self.most_recent_filename,  $
+         reductiontype: self.ReductionType, $
+         name: self.DRFname, $
+         nsteps: long(n_elements(*self.modules)) , $
+         nfiles: long((*self.data).validframecount) }
 end
 
 
