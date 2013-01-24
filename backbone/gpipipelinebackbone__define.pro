@@ -1010,7 +1010,23 @@ PRO gpiPipelineBackbone::set_keyword, keyword, value, comment, indexFrame=indexF
 		comment=comment, ext_num=ext_num, _Extra=_extra, silent=silent
 	
 end
+;--------------------------------------------------------------------------------
 
+PRO gpiPipelineBackbone::del_keyword, keyword, ext_num=ext_num, indexFrame=indexFrame
+	; Delete a keyword entirely from a specified header
+	
+	common PIP
+	if n_elements(indexFrame) eq 0 then indexFrame=numfile ; use value from common block if not explicitly provided.
+
+
+	if ~(keyword_set(ext_num)) then ext_num=0
+	if ext_num eq 0 then begin
+		sxdelpar, *(*self.data).headersPHU[indexFrame], keyword
+	endif else begin
+		sxdelpar, *(*self.data).headersEXT[indexFrame], keyword
+	endelse
+	
+end
 
 ;-----------------------------------------------------------
 ; gpiPipelineBackbone::getContinueAfterRecipeXMLParsing
