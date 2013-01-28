@@ -24,8 +24,10 @@
 ; PIPELINE ARGUMENT: Name="nlens" Type="int" Range="[0,400]" Default="281" Desc="side length of  the  lenslet array "
 ; PIPELINE ARGUMENT: Name="centrXpos" Type="int" Range="[0,2048]" Default="1024" Desc="Initial approximate x-position [pixel] of central peak at 1.5microns"
 ; PIPELINE ARGUMENT: Name="centrYpos" Type="int" Range="[0,2048]" Default="1024" Desc="Initial approximate y-position [pixel] of central peak at 1.5microns"
-; PIPELINE ARGUMENT: Name="w" Type="float" Range="[0.,10.]" Default="4.8" Desc="Spectral spacing perpendicular to the dispersion axis at the detcetor in pixel"
-; PIPELINE ARGUMENT: Name="P" Type="float" Range="[-7.,7.]" Default="-1.8" Desc="Micro-pupil pattern"
+; PIPELINE ARGUMENT: Name="w" Type="float" Range="[0.,10.]" Default="4.4" Desc="Spectral spacing perpendicular to the dispersion axis at the detcetor in pixel"
+; PIPELINE ARGUMENT: Name="P" Type="float" Range="[-7.,7.]" Default="2.18" Desc="Micro-pupil pattern"
+; PIPELINE ARGUMENT: Name="maxpos" Type="float" Range="[-7.,7.]" Default="2.5" Desc="Allowed maximum location fluctuation (in pixel) between adjacent mlens"
+; PIPELINE ARGUMENT: Name="FitWidth" Type="float" Range="[-10.,10.]" Default="3" Desc="Size of box around a spot used to find center"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1"
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[0,1]" Default="1"
 ; PIPELINE COMMENT: Derive polarization calibration files from a flat field image.
@@ -36,13 +38,14 @@
 ; HISTORY:
 ;     2009-06-17: Started, based on gpi_extract_wavcal - Marshall Perrin 
 ;   2009-09-17 JM: added DRF parameters
+;   2013-01-28 MMB: added some keywords to pass to find_pol_positions_quadrant
 ;-
 
 function gpi_extract_polcal,  DataSet, Modules, Backbone
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
-   
+
     im=*(dataset.currframe[0]) 
     
     ;if numext eq 0 then h= *(dataset.headers)[numfile] else h= *(dataset.headersPHU)[numfile]
@@ -88,6 +91,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     
     
     nlens=uint(Modules[thisModuleIndex].nlens)
+    
     ; Create the SPOTPOS array, which stores the Gaussian-fit 
     ; spot locations. 
     ;
@@ -115,7 +119,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
             (cen1[0] lt 0) || (cen1[0] gt (size(im))[1]) || $
             (cen1[1] lt 0) || (cen1[1] gt (size(im))[1])  do begin
         wx+=1 & wy+=1
-        cen1=localizepeak( im, cenx, ceny,wx,wy,hh)
+        cen1=localizepeak( im, cenx, ceny,wx,wy,hh,meth=gaussfit)
         print, 'Center peak detected at pos:',cen1
     endwhile
     spotpos[0:1,nlens/2,nlens/2,0]=cen1
@@ -133,8 +137,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     ;wcst=4.8 & Pcst=-1.8
     
     
+    tight_pos=float(Modules[thisModuleIndex].maxpos) 
+    boxwidth=float(Modules[thisModuleIndex].fitwidth)
     
-    for quadrant=1L,4 do find_pol_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,spotpos,im, spotpos_pixels, spotpos_pixvals, display=display_flag, badpixmap=badpixmap
+    for quadrant=1L,4 do find_pol_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,spotpos,im, $
+                 spotpos_pixels, spotpos_pixvals, tight_pos, boxwidth,display=display_flag, badpixmap=badpixmap
     
     
     suffix="-"+strcompress(bandeobs,/REMOVE_ALL)+'-polcal'
