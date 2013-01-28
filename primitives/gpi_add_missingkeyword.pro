@@ -1,6 +1,6 @@
 ;+
 ; NAME: gpi_add_missingkeyword
-; PIPELINE PRIMITIVE DESCRIPTION: Add missing keyword.
+; PIPELINE PRIMITIVE DESCRIPTION: Add missing keyword
 ; Useful for test data,...
 ;
 ; OUTPUTS:
@@ -10,7 +10,7 @@
 ; PIPELINE COMMENT: Add any missing keyword. (use this function several times in the DRF if you need to add more than one keyword)
 ; PIPELINE ORDER: 1.17
 ; PIPELINE TYPE: ALL HIDDEN
-; PIPELINE NEWTYPE: Testing
+; PIPELINE NEWTYPE: Calibration,Testing
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:
