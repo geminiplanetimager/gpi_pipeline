@@ -48,7 +48,7 @@ function is_pixel_in_usable_region,px, py, szim
 
     	;if (px ge H2RG_REFPIX) && (px lt szim[1]-H2RG_REFPIX) && (py ge H2RG_REFPIX) && (py lt szim[2]-H2RG_REFPIX) then return, 1 else return, 0
     	;return ((px ge H2RG_REFPIX) && (px lt szim[1]-H2RG_REFPIX) && (py ge H2RG_REFPIX) && (py lt szim[2]-H2RG_REFPIX))
-    	return ((px ge 4) && (px lt 2044) && (py ge 4) && (py lt 2044))
+    	return, ((px ge 4) && (px lt 2044) && (py ge 4) && (py lt 2044))
 
 end
 
@@ -187,7 +187,7 @@ end
 ;------------------------------
 
 pro find_pol_positions_quadrant, quad,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,spotpos,im, spotpos_pixels, spotpos_pixvals, $
-		display=display_flag, badpixmap=badpixmap
+		tight_pos, boxwidth,display=display_flag, badpixmap=badpixmap, loud=loud
 
 ; What is the default offset for the polarization spots?
 ;   The following values were determined from DST images on 2009-06-16;
@@ -219,13 +219,21 @@ endcase
 wtab=dblarr(nlens,nlens) & ptab=dblarr(nlens,nlens)
 
 counter=0 ; for display
+reset_counter=0 ; how many times have w and P been reset
+predict_counter=0 ; how many times the spots have been reset to their predicted locations
+
 w0=wcst & P0=Pcst ;initial guess
 for j=jlim1,jlim2,jdir do begin
 w=w0 & P=P0 ;initial guess ; note that w0 and P0 get changed below so this does adapt as it goes, in both directions
+
 ;print, 'w=',w,'  P=',P
 statusline, "Fitting spots in column "+strc(abs(j-jlim1)+1) +" of "+strc(abs(jlim2-jlim1)+1)+"   "
  ;print, "Fitting spots in column "+strc(abs(j-jlim1)+1) +" of "+strc(abs(jlim2-jlim1)+1)+"   "
+ 
+ ;For predicting spot locations
+  
 for i=0,ilim,idir do begin
+  predict_flag=0
 	;calculate approximate position of the next spectrum with w&P
 ;if (nlens/2+i eq 144) && (nlens/2+j eq 141) then stop
 ;if (nlens/2+i eq 132) && (nlens/2+j eq 141) then stop
@@ -236,6 +244,7 @@ for i=0,ilim,idir do begin
 
 	dx=idx[nlens/2+i,nlens/2+j]*W*P+jdy[nlens/2+i,nlens/2+j]*W
 	dy=jdy[nlens/2+i,nlens/2+j]*W*P-W*idx[nlens/2+i,nlens/2+j]
+	
 	;print, 'dx=',dx+cen1[0],'  dy=',dy+cen1[1]
   
 	;if the box around this spot is inside the valid region
@@ -255,15 +264,51 @@ for i=0,ilim,idir do begin
 	  ;if (idir eq -1)&& (j eq 116) then stop
 	  ;if (idir eq -1)&& (j eq 115) then print, 'j=115 w=',w,'  P=',P
 	  ;;calculate centroid to have more accurate position for both spots
-		mpfit_wx = 3
+		mpfit_wx = boxwidth
+		
 		spotpos[*,nlens/2+i,nlens/2+j,0]=localizepeak_mpfitpeak( im, cen1[0]+dx,cen1[1]+dy,mpfit_wx,mpfit_wx,hh,pixels=pixels, pixvals=pixvals, disp=(((counter mod 200) eq 0) and keyword_set(display_flag) ) , badpixmap=badpixmap)
-		spotpos_pixvals[0,nlens/2+i,nlens/2+j,0] = pixvals
-		spotpos_pixels[0,0,nlens/2+i,nlens/2+j,0] = pixels
 
+		;if the centroid is too far from where it should be then use the predicted location
+		if (sqrt((spotpos[0,nlens/2+i,nlens/2+j,0]-(cen1[0]+dx))^2+(spotpos[1,nlens/2+i,nlens/2+j,0]-(cen1[1]+dy))^2) gt double(tight_pos))  then begin
+		      if keyword_set(loud) then begin
+          print, "    *** Found a funny looking spot location. Going with predicted location instead"
+          print, "    *** Bad Location at ["+string(spotpos[0,nlens/2+i,nlens/2+j,0])+","+string(spotpos[1,nlens/2+i,nlens/2+j,0])+"]"
+          print, "    *** Replacing it with ["+string(cen1[0]+dx)+","+string(cen1[1]+dy)+"]"
+          endif
+          spotpos[0,nlens/2+i,nlens/2+j,0]=cen1[0]+dx
+          spotpos[1,nlens/2+i,nlens/2+j,0]=cen1[1]+dy
+          predict_counter++
+          predict_flag=1
+          ;This doesn't update spotpos_pixvals or spotpos_pixels 
+     endif else begin
+        ; Only update these variables in the spot was properly found with localize_mpfitpeak
+        ; Only these spots will get valid numbers when extracting a pol cube 
+        spotpos_pixvals[0,nlens/2+i,nlens/2+j,0] = pixvals
+        spotpos_pixels[0,0,nlens/2+i,nlens/2+j,0] = pixels
+     endelse
+        
+        
+
+    ;Now Spot 2
 		spotpos[*,nlens/2+i,nlens/2+j,1]=localizepeak_mpfitpeak( im, cen1[0]+dx+POL_DX,cen1[1]+dy+POL_DY,mpfit_wx,mpfit_wx,hh,pixels=pixels, pixvals=pixvals, badpixmap=badpixmap)
-		spotpos_pixvals[0,nlens/2+i,nlens/2+j,1] = pixvals
-		spotpos_pixels[0,0,nlens/2+i,nlens/2+j,1] = pixels
+		
+		;if the centroid is too far from where it should be then use the predicted location
+    if (sqrt((spotpos[0,nlens/2+i,nlens/2+j,1]-(cen1[0]+dx+POL_DX))^2+(spotpos[1,nlens/2+i,nlens/2+j,1]-(cen1[1]+dy+POL_DY))^2) gt double(tight_pos))  then begin
+          if keyword_set(loud) then begin
+          print, " SPOT 2"
+          print, "    *** Found a funny looking spot location. Going with predicted location instead"
+          print, "    *** Bad Location at ["+string(spotpos[0,nlens/2+i,nlens/2+j,1])+","+string(spotpos[1,nlens/2+i,nlens/2+j,1])+"]"
+          print, "    *** Replacing it with ["+string(cen1[0]+dx+POL_DX)+","+string(cen1[1]+dy+POL_DY)+"]" 
+          endif
+          spotpos[0,nlens/2+i,nlens/2+j,1]=cen1[0]+dx+POL_DX
+          spotpos[1,nlens/2+i,nlens/2+j,1]=cen1[1]+dy+POL_DY
+          ;This doesn't update spotpos_pixvals or spotpos_pixels
+     endif else begin
+        spotpos_pixvals[0,nlens/2+i,nlens/2+j,1] = pixvals
+        spotpos_pixels[0,0,nlens/2+i,nlens/2+j,1] = pixels
+     endelse
 
+    
 
 		counter++
 		if keyword_set(debug_mpfit) then begin
@@ -277,6 +322,8 @@ for i=0,ilim,idir do begin
 			stop
 		endif
 
+		if predict_flag then continue ;If the pixel had to be reset to the predicted location then don't re-estimate w & P
+		
 		if (abs(i)+abs(j) eq 0)  then continue ; don't try to re-estimate for the central pixel!
 
 		;;re-estimate w & P using the central spectrum
@@ -298,16 +345,19 @@ for i=0,ilim,idir do begin
 			  w=wtab[nlens/2+i,nlens/2+j-jdir*1] 
 			  p=ptab[nlens/2+i,nlens/2+j-jdir*1]
 		endif      
-	endelse 
-	wtab[nlens/2+i,nlens/2+j]=w  
-	ptab[nlens/2+i,nlens/2+j]=p   
+	endelse
+	
 
-	if (i eq 0) and finite(w) and finite(p) then begin
-		w0=w & P0=p
-	endif
-
+  wtab[nlens/2+i,nlens/2+j]=w  
+  ptab[nlens/2+i,nlens/2+j]=p
+  
+  if (i eq 0) and finite(w) and finite(p) then begin
+    w0=w & P0=p
+  endif
+	
+	
 endfor
 endfor
-
+  print, "--- The pixel centroid was reset "+string(predict_counter)+" times"
 
 end
