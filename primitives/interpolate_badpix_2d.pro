@@ -40,7 +40,7 @@
 ; OUTPUTS: 2D image with bad pixels marked or cleaned up. 
 ;
 ; PIPELINE ARGUMENT: Name="CalibrationFile" type="filename" default="AUTOMATIC" Desc="Filename of the desired bad pixel file to be read"
-; PIPELINE ARGUMENT: Name="method" Type="string" Range="[nan|vertical|all8]" Default="vertical" Desc='Repair bad bix interpolating all 8 neighboring pixels, or just the 2 vertical ones, or just flag as NaN?'
+; PIPELINE ARGUMENT: Name="method" Type="string" Range="[n4n|vertical|all8]" Default="vertical" Desc='Repair bad bix interpolating all 8 neighboring pixels, or just the 2 vertical ones, or just flag as NaN (n4n)?'
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="1" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ;
@@ -118,7 +118,7 @@ calfiletype='badpix'
 	
 	wbad = where(bpmask, count)
 	case strlowcase(method) of
-	'nan': begin
+	'n4n': begin
 		; just flag bad pixels as NaNs
 		(*(dataset.currframe[0]))[wbad] = !values.f_nan
 		backbone->set_keyword, 'HISTORY', 'Masking out '+strc(count)+' bad pixels to NaNs ', ext_num=0
@@ -181,10 +181,12 @@ calfiletype='badpix'
 
 		; 1 row is 2048 pixels, so we can add or subtract 2048 to get to
 		; adjacent rows
-		(*(dataset.currframe[0]))[wbad] =  ( (*(dataset.currframe[0]))[wbad+2048-1:wbad+2048+1] + $
-		 							 		 (*(dataset.currframe[0]))[wbad-2048-1:wbad-2048+1] + $
-		 							 		 (*(dataset.currframe[0]))[wbad-1] + $
-									 		 (*(dataset.currframe[0]))[wbad+1] ) / 8
+		for i=0, n_elements(wbad)-1 do begin
+		(*(dataset.currframe[0]))[wbad[i]] =  ( (*(dataset.currframe[0]))[wbad[i]+2048-1:wbad[i]+2048+1] + $
+		 							 		 (*(dataset.currframe[0]))[wbad[i]-2048-1:wbad[i]-2048+1] + $
+		 							 		 (*(dataset.currframe[0]))[wbad[i]-1] + $
+									 		 (*(dataset.currframe[0]))[wbad[i]+1] ) / 8
+		endfor
 		backbone->set_keyword, 'HISTORY', 'Masking out '+strc(count)+' bad pixels; replacing with interpolated values between each 8 neighbor pixels', ext_num=0
 		backbone->Log, 'Masking out '+strc(count)+' bad pixels;  replacing with interpolated values between each 8 neighbor pixels', depth=3
 
