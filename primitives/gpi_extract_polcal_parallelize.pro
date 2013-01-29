@@ -26,6 +26,9 @@
 ; PIPELINE ARGUMENT: Name="centrYpos" Type="int" Range="[0,2048]" Default="1024" Desc="Initial approximate y-position [pixel] of central peak at 1.5microns"
 ; PIPELINE ARGUMENT: Name="w" Type="float" Range="[0.,10.]" Default="4.8" Desc="Spectral spacing perpendicular to the dispersion axis at the detcetor in pixel"
 ; PIPELINE ARGUMENT: Name="P" Type="float" Range="[-7.,7.]" Default="-1.8" Desc="Micro-pupil pattern"
+; PIPELINE ARGUMENT: Name="maxpos" Type="float" Range="[-7.,7.]" Default="2.5" Desc="Allowed maximum location fluctuation (in pixel) between adjacent mlens"
+; PIPELINE ARGUMENT: Name="FitWidth" Type="float" Range="[-10.,10.]" Default="3" Desc="Size of box around a spot used to find center"
+
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1"
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[0,1]" Default="1"
 ; PIPELINE COMMENT: Derive polarization calibration files from a flat field image.
@@ -36,13 +39,14 @@
 ; HISTORY:
 ;     2009-06-17: Started, based on gpi_extract_wavcal - Marshall Perrin 
 ;   2009-09-17 JM: added DRF parameters
+;   2013-01-28 MMB: added some keywords to pass to find_pol_positions_quadrant
 ;-
 
 function gpi_extract_polcal_parallelize,  DataSet, Modules, Backbone
 
-	primitive_version= '$Id$' ; get version from subversion to store in header history
-	@__start_primitive
-   
+primitive_version= '$Id$' ; get version from subversion to store in header history
+@__start_primitive
+
     im=*(dataset.currframe[0]) 
     
     ;if numext eq 0 then h= *(dataset.headers)[numfile] else h= *(dataset.headersPHU)[numfile]
@@ -87,21 +91,23 @@ function gpi_extract_polcal_parallelize,  DataSet, Modules, Backbone
     ;     TBD later. See notes in extractpol.pro
     
     
-    nlens=fix(Modules[thisModuleIndex].nlens)
+    nlens=uint(Modules[thisModuleIndex].nlens)
+    
     ; Create the SPOTPOS array, which stores the Gaussian-fit 
     ; spot locations. 
     ;
     ; NOTE: spotpos dimensions re-arranged relative to spectral version
     ; for better speed. And to add pol dimension of course.
-    spotpos=fltarr(5,nlens,nlens,2)+!VALUES.D_NAN
-    nspot_pixels=45
+    spotpos=dblarr(5,nlens,nlens,2)+!VALUES.D_NAN
+    nspot_pixels=45  ; NOTE: this **MUST** match the nspot_pixels value in
+					 ; find_pol_positions_quadrant.pro
     ; Now create the PIXELS and PIXVALS arrays, which store the actual
     ; X,Y, and values for each pixel, that we can use for optimal extraction
     spotpos_pixels = intarr(2,nspot_pixels, nlens, nlens, 2)
-    spotpos_pixvals = fltarr(nspot_pixels, nlens, nlens, 2)+!values.f_nan
+    spotpos_pixvals = dblarr(nspot_pixels, nlens, nlens, 2)+!values.f_nan
     
     ;localize central peak around the center of the image
-    cen1=fltarr(2)    & cen1[0]=-1 & cen1[1]=-1
+    cen1=dblarr(2)    & cen1[0]=-1 & cen1[1]=-1
     wx=5 & wy=0
     hh=1.
     ;localize first peak ;; this coordiantes depends strongly on data!!
@@ -132,11 +138,15 @@ function gpi_extract_polcal_parallelize,  DataSet, Modules, Backbone
     ;wcst=4.8 & Pcst=-1.8
     
 
+    tight_pos=float(Modules[thisModuleIndex].maxpos) 
+    boxwidth=float(Modules[thisModuleIndex].fitwidth)
+     
+
 	sz = size(spotpos) & shmmap, "GPIDRP_spotpos", sz[1],sz[2], sz[3], sz[4],/float & shared_spotpos = shmvar("GPIDRP_spotpos") & shared_spotpos[*]=spotpos
 	sz = size(spotpos_pixels) & shmmap, "GPIDRP_spotpos_pixels", sz[1],sz[2],sz[3], sz[4],sz[5],/int & shared_spotpos_pixels = shmvar("GPIDRP_spotpos_pixels") & shared_spotpos_pixels[*]=spotpos_pixels
 	sz = size(spotpos_pixvals) & shmmap, "GPIDRP_spotpos_pixvals", sz[1],sz[2], sz[3],sz[4],/float & shared_spotpos_pixvals = shmvar("GPIDRP_spotpos_pixvals") & shared_spotpos_pixvals[*]=spotpos_pixvals
 
-	nbparallel = 4
+	nbparallel = 4 ; always 4 quadrants
 	bridges = ptrarr(nbparallel)
 	for ipar=0L,nbparallel-1 do begin
 		; create new IDL session and initialize the necessary variables
@@ -154,6 +164,16 @@ function gpi_extract_polcal_parallelize,  DataSet, Modules, Backbone
 		(*bridges[ipar])->Setvar,'wy', wy
 		(*bridges[ipar])->Setvar,'hh', hh
 		(*bridges[ipar])->Setvar,'szim', szim
+		
+		; TODO allocate and access the shared memory segments in the remote
+		; session
+		
+		; TODO run a quadrant of  find_pol_positions_quadrant in the remote
+		; session
+		
+		; The above should automatically write the output into the shared memory, I think,
+		; if we've done it right? 
+
 	endfor
 
 
@@ -161,7 +181,17 @@ function gpi_extract_polcal_parallelize,  DataSet, Modules, Backbone
     
     for quadrant=1L,4 do find_pol_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,spotpos,im, spotpos_pixels, spotpos_pixvals, display=display_flag, badpixmap=badpixmap
     
-    
+        ; now keep looping and wait for them all to finish
+        going = 1
+        stats =intarr(nbparallel)
+        while (going) do begin
+            for ipar=0L,nbparallel-1 do stats[ipar] = (*bridges[ipar])->Status()
+            if total(stats) eq 0 then going=0
+            print,"Parallel calculation still running... "+strc(fix(total(stats)))+"/"+strc(nbparallel)+" threads executing.",/erase
+            wait, 3
+        endwhile
+        message,/info, "Parallel computation done!"
+ 
     suffix="-"+strcompress(bandeobs,/REMOVE_ALL)+'-polcal'
     ;fname=strmid(filename,0,STRLEN(filename)-6)+suffix+'.fits'
     fname = file_basename(filename, ".fits")+suffix+'.fits'
