@@ -53,7 +53,7 @@ FUNCTION gpipipelinebackbone::Init,  session=session, verbose=verbose, nogui=nog
 	pipelineConfig = {$
 		logdir : gpi_get_directory("GPI_DRP_LOG_DIR"),     $ ; directory for output log files
 		continueAfterRecipeXMLParsing:0,        $    				; Should program actually run the pipeline or just parse?
-		MaxFramesInDataSets: gpi_get_setting('max_files_per_drf', default=200),        $    				; Max # of files in one dataset in a Recipe XML file
+		MaxFramesInDataSets: gpi_get_setting('max_files_per_recipe', default=200),        $    				; Max # of files in one dataset in a Recipe XML file
 		MaxMemoryUsage: 0L,                 $   			; this will eventually be used for array size limits on what gets done in memory versus swapped to disk.
 		desired_dispersion: 'vertical' $					; do we want horizontal or vertical spectra?
 	}
@@ -1071,7 +1071,7 @@ pro gpiPipelineBackbone::rescan_Config
 
 
 	; rescan config files
-	dummy = gpi_get_setting('max_files_per_drf',/rescan) ; can get any arbitrary setting here, just need to force the rescan
+	dummy = gpi_get_setting('max_files_per_recipe',/rescan) ; can get any arbitrary setting here, just need to force the rescan
 
 	config_file=gpi_get_directory('GPI_DRP_CONFIG_DIR') +path_sep()+"gpi_pipeline_primitives.xml"
 	; regenerate primitives config file (if in real IDL, not runtime version)

@@ -197,7 +197,7 @@ pro parsergui::addfile, filenames, mode=mode
 
     if ((cindex+n_elements(filenames)) gt n_elements(file)) then begin
         nover = cindex+n_elements(filenames)-n_elements(file)
-        self->Log,'WARNING: You tried to add more files than the file number limit, currently '+strc(n_elements(file))+". Adjust pipeline setting 'max_files_per_drf' in your config file if you want to load larger datasets at once." +$
+        self->Log,'WARNING: You tried to add more files than the file number limit, currently '+strc(n_elements(file))+". Adjust pipeline setting 'max_files_per_recipe' in your config file if you want to load larger datasets at once." +$
             strtrim(nover,2)+' files ignored.'
         filenames = filenames[0:n_elements(filenames)-1-nover]
     endif
