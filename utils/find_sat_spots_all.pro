@@ -63,6 +63,7 @@ scl = lambda[indx]/lambda
 
 ;;grab reference slice and find spots
 s0 = im[*,*,indx]
+if strcmp(band,'Y',/fold_case) then s0 *= hanning(sz[0],sz[1],alpha=0.01)
 cens0 = find_sat_spots(s0, winap=winap,locs=locs)
 badcens = where(~finite(cens0),ct)
 if n_elements(cens0) eq 1 || ct ne 0 then return, -1
