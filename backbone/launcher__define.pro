@@ -122,6 +122,10 @@ PRO launcher::event, ev
               objenv=obj_new('gpi_showpaths')
               obj_destroy, objenv
           end
+    'clear_queue': self->clear_queue
+    'unlock_queue': self->unlock_queue
+    'hard_reset_queue': self->hard_reset_queue
+    'hard_reset_mem': self->hard_reset_mem
   'About':begin
               tmpstr=about_message()
               ret=dialog_message(tmpstr,/information,/center,dialog_parent=ev.top)
@@ -164,7 +168,12 @@ PRO launcher::queue, cmdstr, _extra=_extra
 	if status eq 0 then begin
 		message,/info, "ERROR: could not get a lock on the inter-IDL queue semaphore after 10 tries"
 		message,/info, "       Failed to queue command "+cmdstr
-		return
+        if ~gpi_get_setting('launcher_ignore_queue_failures',/bool, default=0) then begin
+            message,/info, "Returning without queueing. Set launcher_ignore_queue_failures=1 if you want to continue anyway."
+            return
+        endif else begin
+            message,/info, "launcher_ignore_queue_failures is set =1, so we'll try to continue anyway..."
+        endelse
 	endif
 
     wq = where(*self.cmd_queue_flags, qct, comp=wopen)
@@ -206,6 +215,86 @@ PRO launcher::queue, cmdstr, _extra=_extra
 	SEM_RELEASE, self.semaphore_name  
 end
 
+
+;;------------------
+PRO launcher::unlock_queue
+    ; you should never need this normally - but it's here for debugging
+
+    message,/info, 'Trying to release lock on the queue'
+    SEM_RELEASE, self.semaphore_name
+
+
+    message,/info, 'Trying to lock then unlock the queue'
+    for i=0,9 do begin
+        status = SEM_LOCK(self.semaphore_name)
+        if status eq 1 then break ; successful lock!
+        wait, 0.1
+    endfor
+
+
+    if status eq 0 then begin
+        message,/info, "ERROR: could not get a lock on the inter-IDL queue semaphore after 10 tries"
+        return
+    endif
+
+    message,/info, 'Trying to release lock on the queue'
+    SEM_RELEASE, self.semaphore_name
+
+
+end
+
+;;------------------
+PRO launcher::hard_reset_shared_mem
+		message,/info, "Clearing all shared memory..."
+		varnames = ['gpi_gui_queue_flags', 'gpi_gui_queue', 'gpi_gui_queue_args']+self.username
+		for i=0,n_elements(varnames)-1 do begin
+			;shmmap, varnames[i], template=bytarr(1),/destroy
+			shmunmap, varnames[i]
+		endfor
+        message,/info, "Shared memory variables unmapped OK."
+
+
+        shmmap, 'gpi_gui_queue_flags'+self.username, template=bytarr(self.queuelen)
+        self.cmd_queue_flags = ptr_new(shmvar('gpi_gui_queue_flags'+self.username))
+        shmmap, 'gpi_gui_queue'+self.username, template=bytarr(80,self.queuelen)
+        self.cmd_queue = ptr_new(shmvar('gpi_gui_queue'+self.username))
+        shmmap, 'gpi_gui_queue_args'+self.username, template=bytarr(2048,self.queuelen) ;512->2048 for long arg (for instance gpitv, disp_grid...)
+        self.cmd_queue_args = ptr_new(shmvar('gpi_gui_queue_args'+self.username))
+
+        message,/info, "New shared memory segments mapped."
+
+
+end
+
+
+
+
+;;------------------
+PRO launcher::hard_reset_queue
+
+
+		status = SEM_CREATE(self.semaphore_name,/destroy)  
+		SEM_delete, self.semaphore_name
+
+
+		if status eq 1 then begin
+            message,/info, "Semaphore destroyed."
+        endif else begin
+            message,/info, '******************************************************'
+            message,/info, '*  ERROR: Unable to clear out the queue semaphore! '
+            message,/info, '******************************************************'
+        endelse
+
+        status = SEM_CREATE(self.semaphore_name)  
+        ;print, "Semaphore creation status: ", status
+        if status eq 0 then begin
+            message,/info , "Unable to create new semaphore in memory!"
+            return
+        endif else begin
+            message,/info, 'New semaphore created OK'
+        endelse
+
+end
 
 
 ;;------------------
@@ -322,6 +411,9 @@ end
 ;  will be loaded into that object.
 pro launcher::launch, objname, filename=filename, session=session, _extra=_extra
 
+    
+    ;message,/info, "extra semaphore release for debugging - MP"
+    ;SEM_RELEASE, self.semaphore_name
 	if ~(keyword_set(objname)) then return
 
 	if objname eq 'quit'  then obj_destroy, self
@@ -448,22 +540,16 @@ endif
 	self.max_sess = n_elements(self.sessions)
 	self.queuelen=10
 	self.username=strmid(getenv('USER'),0,8) ;JM fixed bug with long name (shmmap do not support them)
-	self.semaphore_name='GPI_DRP_'+self.username ; unique for each user in a multi-user system!
+
+    if gpi_get_setting('launcher_force_semaphore_name',default='') eq '' then begin
+    	self.semaphore_name='GPI_DRP_'+self.username ; unique for each user in a multi-user system!
+    endif else begin
+        self.semaphore_name=gpi_get_setting('launcher_force_semaphore_name')
+        message,/info, "Config files override default semaphore name for inter-IDL communication, using "+self.semaphore_name
+    endelse
 
 	if keyword_set(clear_shm) then begin
-		message,/info, "Clearing all shared memory..."
-		varnames = ['gpi_gui_queue_flags', 'gpi_gui_queue', 'gpi_gui_queue_args']+self.username
-		for i=0,n_elements(varnames)-1 do begin
-			shmmap, varnames[i], template=bytarr(1),/destroy
-			shmunmap, varnames[i]
-		endfor
-
-		status = SEM_CREATE(self.semaphore_name,/destroy)  
-		SEM_delete, self.semaphore_name
-
-
-		message,/info, "Memory cleared OK."
-
+        self->hard_reset_queue
 	endif
 
 	if ~(keyword_set(pipeline)) and ~(keyword_set(guis)) then guis=1
@@ -515,6 +601,10 @@ endif
 
         menu = WIDGET_BUTTON(bar, VALUE='Setup',/MENU) 
         file_bttn2=WIDGET_BUTTON(menu, VALUE='Setup environ. var.', UVALUE='Setup')
+        file_bttn2=WIDGET_BUTTON(menu, VALUE='Unlock message queue', UVALUE='unlock_queue')
+        file_bttn2=WIDGET_BUTTON(menu, VALUE='Clear message queue', UVALUE='clear_queue')
+        file_bttn2=WIDGET_BUTTON(menu, VALUE='Hard reset message queue', UVALUE='hard_reset_queue')
+        file_bttn2=WIDGET_BUTTON(menu, VALUE='Hard reset shared memory', UVALUE='hard_reset_mem')
         menu2 = WIDGET_BUTTON(bar, VALUE='About',/MENU) 
         file_bttn2=WIDGET_BUTTON(menu2, VALUE='About', UVALUE='About')
         bclose = widget_button(frame,VALUE='Data Parser',UVALUE='ParserGUI', resource_name='button', /tracking_events)
