@@ -60,22 +60,30 @@
 function interpolate_badpix_2d, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 calfiletype='badpix'
+no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there is no cal file found.
 @__start_primitive
 
 
 	sz = size( *(dataset.currframe) )
     if sz[1] ne 2048 or sz[2] ne 2048 then begin
-        backbone->Log, "Image is not 2048x2048, don't know how to handle this for interpolating", depth=3
+        backbone->Log, "Image is not 2048x2048, don't know how to handle this for bad pixel repair", depth=3
         return, NOT_OK
     endif
 
 
-	if ~file_test( c_File) then return, error("Bad pixel file does not exist!")
-    bpmask= gpi_READFITS(c_File)
+	if file_test( c_File) then begin
+        bpmask= gpi_READFITS(c_File)
 
-    backbone->set_keyword,'HISTORY',functionname+": Loaded bad pixel map",ext_num=0
-    backbone->set_keyword,'HISTORY',functionname+": "+c_File,ext_num=0
-    backbone->set_keyword,'DRPBADPX',c_File,ext_num=0
+        backbone->set_keyword,'HISTORY',functionname+": Loaded bad pixel map",ext_num=0
+        backbone->set_keyword,'HISTORY',functionname+": "+c_File,ext_num=0
+        backbone->set_keyword,'DRPBADPX',c_File,ext_num=0
+    endif else begin
+        ;return, error("Bad pixel file does not exist!")
+        backbone->Log, "No bad pixel map supplied - will continue anyway, but don't expect a clean image", depth=3
+        bpmask = bytarr(2048,2048) ; create a blank mask with implicitly all good pixels. 
+                ; This will let the reduction continue and possibly make use of the DQ extension instead
+
+    endelse
 
 	if tag_exist( Modules[thisModuleIndex], "method") then method=(Modules[thisModuleIndex].method) else method='vertical'
 
@@ -115,8 +123,25 @@ calfiletype='badpix'
 	bpmask[*,0:4] = 0
 	bpmask[*,2043:2047] = 0
 
-	
+
 	wbad = where(bpmask, count)
+    ; Check for a reasonable total number of bad pixels, <1% of the total array.
+    ; If there's more than that, something fundamental has gone wrong so let's not try 
+    ; slowly and laboriously repairing a garbage image. 
+
+    if count gt (0.01 * 2040.*2040) then begin
+        backbone->Log, "WARNING: waaaaay too many bad pixels found! "
+        backbone->Log, "   "+strc(count)+" bad = "+sigfig(count / (0.01 * 2040.*2040) *100)+ "% of the array"
+        backbone->Log, " No repair will be attempted since > 1% bad."
+
+		backbone->set_keyword, 'HISTORY', 'Found '+strc(count)+' bad pixels, which is >1% of the array ', ext_num=0
+		backbone->set_keyword, 'HISTORY', '   No repairs will be attempted. ', ext_num=0
+        return, OK  
+
+    endif
+
+
+	
 	case strlowcase(method) of
 	'n4n': begin
 		; just flag bad pixels as NaNs
