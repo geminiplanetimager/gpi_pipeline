@@ -2,7 +2,16 @@
 ; NAME: gpi_combine_badpixmaps
 ; PIPELINE PRIMITIVE DESCRIPTION: Generate Combined Bad Pixel Map
 ;
-; This routine is used to come
+; This routine is used to combine the 3 individual types of bad pixel maps::
+;  
+;     Hot bad pixels
+;     Cold bad pixels
+;     Nonlinear (too nonlinear to be usable) pixels
+;
+; into one master bad pixel map. 
+;
+; This is an unusual recipe, in that its input files are themselves files that
+; have already been reduced with the pipeline. 
 ;
 ; INPUTS: bad pixel maps 
 ; GEM/GPI KEYWORDS:
