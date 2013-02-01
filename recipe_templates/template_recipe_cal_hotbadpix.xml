@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DRF ReductionType="Calibration" name='Generate Hot Bad Pixel Map from Darks'>
+<dataset InputDir="" OutputDir="$(GPI_DRP_OUTPUT_DIR)">
+   <fits filename=""/>
+</dataset>
+<module name="Aggressive destripe assuming there is no signal in the image. (for darks only)" Save="0" gpitv="0" before_and_after='0' /> 
+<module name="Accumulate Images" Method="InMemory" />
+<module name="Combine 2D dark images" Method="Median" Save="0" gpitv="0" />
+<module name="Find Hot Pixels from a set of Darks" Save="1" gpitv="1" />
+</DRF>

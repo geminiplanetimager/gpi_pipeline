@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <DRF ReductionType="Calibration" name='Flat-field Extraction'>
-<dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
+    <dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
    <fits filename=""/>
 </dataset>
 <module name="Apply Reference Pixel Correction" before_and_after="0" Method="INTERPOLATED" Save="0" gpitv="0" />
