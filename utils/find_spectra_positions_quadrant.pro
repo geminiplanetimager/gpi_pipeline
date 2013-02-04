@@ -60,7 +60,7 @@ w=w0 & P=P0 ;initial guess
 	; directions
 ;print, 'w=',w,'  P=',P
   for i=0,ilim,idir do begin
-  ;if (i gt 100) then stop
+      ;if (i eq 1) && (j eq jlim1) then stop
      ;if (nlens/2+i eq 143) && (nlens/2+j eq 143) then stop
     ;calculate approximate position of the next spectrum with w&P
     if (abs(i)+abs(j) ne 0) then begin ;we already have position of the central spectrum 
@@ -78,21 +78,25 @@ w=w0 & P=P0 ;initial guess
                   ;if (nlens/2-i eq 147) && (nlens/2-j eq 180) then stop
                   ;if (nlens/2-i eq 145) && (nlens/2-j eq 180) then stop
                   ;if (nlens/2-i eq 33) && (nlens/2-j gt 146) then stop
-
           ;;calculate centroid to have more accurate position
-                specpos[nlens/2+i,nlens/2+j,0:1]=localizepeak( im, cen1[0]+dx,cen1[1]+dy,wx,wy,hh,badpixmap=badpixmap, meth="mpfit")
+           ;print, "estimated:",cen1[1]+dy,2047-(cen1[0]+dx)
+           if keyword_set(meth) then method="mpfit" else method="barycentric"
+                specpos[nlens/2+i,nlens/2+j,0:1]=localizepeak( im, cen1[0]+dx,cen1[1]+dy,wx,wy,hh,badpixmap=badpixmap, meth=method)
+               ; print, "estimated:",cen1[0]+dx,cen1[1]+dy, "  specpos=", specpos[nlens/2+i,nlens/2+j,0:1]  mpfit
+               ; if (cen1[1]+dy gt 1000) && (cen1[1]+dy lt 1010) && (2047-(cen1[0]+dx) gt 1025) && (2047-(cen1[0]+dx) lt 1037) then stop
             ;if it fails to converge then use an other method
             if specpos[nlens/2+i,nlens/2+j,0] eq -1 then begin
                 print, "mpfit failed to converge, let's try gauss2dfit for this mlens..."
                 specpos[nlens/2+i,nlens/2+j,0:1]=localizepeak( im, cen1[0]+dx,cen1[1]+dy,wx,wy,hh,badpixmap=badpixmap, meth="gaussfit")
-            endif
+              endif
             if specpos[nlens/2+i,nlens/2+j,0] eq -1 then begin
                 print, "gauss2dfit failed to converge, let's use barycentric centroid for this mlens..."
                 specpos[nlens/2+i,nlens/2+j,0:1]=localizepeak( im, cen1[0]+dx,cen1[1]+dy,wx,wy,hh,badpixmap=badpixmap, meth="barycentric")
-            endif
+             endif
+            
             
 ;if keyword_set(tight) then begin
-    if (((specpos[nlens/2+i,nlens/2+j,0]-(cen1[0]+dx))^2+(specpos[nlens/2+i,nlens/2+j,1]-(cen1[1]+dy))^2) gt double(tight_pos))  then begin
+    if (sqrt((specpos[nlens/2+i,nlens/2+j,0]-(cen1[0]+dx))^2+(specpos[nlens/2+i,nlens/2+j,1]-(cen1[1]+dy))^2) gt double(tight_pos))  then begin
         specpos[nlens/2+i,nlens/2+j,0]=cen1[0]+dx
         specpos[nlens/2+i,nlens/2+j,1]=cen1[1]+dy
     endif
@@ -111,7 +115,7 @@ w=w0 & P=P0 ;initial guess
               endelse
             endif else begin
               P=dy2/(jdy[nlens/2+i,nlens/2+j]*w)
-            endelse
+           endelse
 		endif else begin; in the frame, else (for corner quad=2 where i starts>0) get the w&P of (j-1) lines 
             if (wtab[nlens/2+i,nlens/2+j-jdir*1] ne 0.) then  begin
                   w=wtab[nlens/2+i,nlens/2+j-jdir*1] 
