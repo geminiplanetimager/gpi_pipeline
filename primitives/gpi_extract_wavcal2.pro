@@ -46,6 +46,7 @@
 ; PIPELINE ARGUMENT: Name="wav_of_centrXYpos" Type="int" Range="[1,2]" Default="2" Desc="1 if centrX-Ypos is the smallest-wavelength peak of the band; 2 if centrX-Ypos refer to 1.5microns"
 ; PIPELINE ARGUMENT: Name="maxpos" Type="float" Range="[-7.,7.]" Default="2." Desc="Allowed maximum location fluctuation (in pixel) between adjacent mlens"
 ; PIPELINE ARGUMENT: Name="maxtilt" Type="float" Range="[-360.,360.]" Default="10." Desc="Allowed maximum tilt fluctuation (in degree) between adjacent mlens"
+; PIPELINE ARGUMENT: Name="centroidmethod" Type="int" Range="[0,1]" Default="0" Desc="Centroid method: 0 means barycentric (fast), 1 means gaussian fit (slow)"
 ; PIPELINE ARGUMENT: Name="medfilter" Type="int" Range="[0,1]" Default="1" Desc="1: Median filtering of dispersion coeff and tilts with a (5x5) median filtering"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitvim_dispgrid" Type="int" Range="[0,500]" Default="15" Desc="1-500: choose gpitv session for displaying image output and wavcal grid overplotted, 0: no display "
@@ -115,14 +116,16 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	szim=size(im)
 
 ;;;centroid algo chosen by the user
-;if tag_exist( Modules[thisModuleIndex], "centroidmethod")  then begin
-;  methint=uint(Modules[thisModuleIndex].centroidmethod)
+if tag_exist( Modules[thisModuleIndex], "centroidmethod")  then begin
+  meth=uint(Modules[thisModuleIndex].centroidmethod)
 ;  case methint of
 ;    1:meth="barycentric"
 ;    2:meth="mpfit"
 ;    3:meth="gaussfit"
 ;  endcase 
-;endif
+endif else begin
+meth=0
+endelse
 	;;create the cube which will contain in the slice 
 	; 0:x-positions (x0) of spectra (spectral direction) at a given lambda [lambda0] (can be lambda_min)
 	; 1:y-positions (y0) of spectra at a given lambda
@@ -335,8 +338,8 @@ specpos[nlens/2,nlens/2,0:1]=cen1
 
 wx=0. & wy=0.
 wx=5. & wy=5. ; MDP change
-wx=0. & wy=0. ; JM change  wx=1. & wy=0. good for flat
-hh=1. ; box for fit
+wx=2. & wy=2. ; JM change  wx=1. & wy=0. good for flat
+hh=2. ; box for fit
 ;wcst=4.8 & Pcst=-1.8
 wcst=float(Modules[thisModuleIndex].w) & Pcst=float(Modules[thisModuleIndex].P)
 edge_x1=4.
