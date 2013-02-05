@@ -70,7 +70,7 @@ endif
 
 ;;find sat spots
 cens = find_sat_spots_all(cube,band=band,indx=indx,good=good,$
-                          refinefits=refinefits,winap=winap,locs=approx_loc)
+                          refinefits=refinefits,winap=winap,locs=approx_locs)
 if n_elements(cens) eq 1 then return, error ('FAILURE ('+functionName+'): Could not find satellite spots.')
 good = long(good)
 
