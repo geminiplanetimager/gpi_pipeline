@@ -19,14 +19,14 @@
 ; PIPELINE ARGUMENT: Name="search_window" Type="int" Range="[1,50]" Default="20" Desc="Radius of aperture used for locating satellite spots."
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="loc_input" Type="int" Range="[0,2]" Default="0" Desc="0: Find spots automatically; 1: Use values below as initial satellite spot location"
-; PIPELINE ARGUMENT: Name="x1" Type="int" Range="[0,300]" Default="0" Desc="approximate x-location of first spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
-; PIPELINE ARGUMENT: Name="y1" Type="int" Range="[0,300]" Default="0" Desc="approximate y-location of first spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
-; PIPELINE ARGUMENT: Name="x2" Type="int" Range="[0,300]" Default="0" Desc="approximate x-location of second spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
-; PIPELINE ARGUMENT: Name="y2" Type="int" Range="[0,300]" Default="0" Desc="approximate y-location of second spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
-; PIPELINE ARGUMENT: Name="x3" Type="int" Range="[0,300]" Default="0" Desc="approximate x-location of third spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
-; PIPELINE ARGUMENT: Name="y3" Type="int" Range="[0,300]" Default="0" Desc="approximate y-location of third spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
-; PIPELINE ARGUMENT: Name="x4" Type="int" Range="[0,300]" Default="0" Desc="approximate x-location of fourth spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
-; PIPELINE ARGUMENT: Name="y4" Type="int" Range="[0,300]" Default="0" Desc="approximate y-location of fourth spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
+; PIPELINE ARGUMENT: Name="x1" Type="int" Range="[0,300]" Default="0" Desc="approx x-location of top left spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
+; PIPELINE ARGUMENT: Name="y1" Type="int" Range="[0,300]" Default="0" Desc="approx y-location of top left spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
+; PIPELINE ARGUMENT: Name="x2" Type="int" Range="[0,300]" Default="0" Desc="approx x-location of bottom left spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
+; PIPELINE ARGUMENT: Name="y2" Type="int" Range="[0,300]" Default="0" Desc="approx y-location of bottom left spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
+; PIPELINE ARGUMENT: Name="x3" Type="int" Range="[0,300]" Default="0" Desc="approx x-location of top right spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
+; PIPELINE ARGUMENT: Name="y3" Type="int" Range="[0,300]" Default="0" Desc="approx y-location of top right spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
+; PIPELINE ARGUMENT: Name="x4" Type="int" Range="[0,300]" Default="0" Desc="approx x-location of bottom right spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
+; PIPELINE ARGUMENT: Name="y4" Type="int" Range="[0,300]" Default="0" Desc="approx y-location of bottom right spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
 ; PIPELINE ORDER: 2.44
 ; PIPELINE TYPE: ALL-SPEC
 ; PIPELINE NEWTYPE: Calibration,SpectralScience
