@@ -89,6 +89,8 @@ if keyword_set(usecens) then begin
    endif
 endif else cens = find_sat_spots_all(im0,band=band,good=good,refinefits=refinefits,winap=winap,locs=locs,indx=indx)
 
+if n_elements(cens) eq 1 then return, -1
+
 ;;figure out the good from the bad
 goodarr = lonarr(sz[2])
 goodarr[good] = 1
