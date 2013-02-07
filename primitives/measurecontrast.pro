@@ -16,8 +16,8 @@
 ; PIPELINE COMMENT: Measure the contrast. 
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="0" Desc="Window number to display in.  -1 for no display."
-; PIPELINE ARGUMENT: Name="SaveProfile" Type="string" Default="" Desc="Save radial profile to filename (blank for no save, dir name for default naming)"
-; PIPELINE ARGUMENT: Name="SavePNG" Type="string" Default="" Desc="Save plot to filename as PNG(blank for no save)"
+; PIPELINE ARGUMENT: Name="SaveProfile" Type="string" Default="" Desc="Save radial profile to filename as FITS (blank for no save, dir name for default naming)"
+; PIPELINE ARGUMENT: Name="SavePNG" Type="string" Default="" Desc="Save plot to filename as PNG (blank for no save, dir name for default naming) "
 ; PIPELINE ARGUMENT: Name="contrsigma" Type="float" Range="[0.,20.]" Default="5." Desc="Contrast sigma limit"
 ; PIPELINE ARGUMENT: Name="slice" Type="int" Range="[-1,50]" Default="0" Desc="Slice to plot. -1 for all"
 ; PIPELINE ARGUMENT: Name="DarkHoleOnly" Type="int" Range="[0,1]" Default="1" Desc="0: Plot profile in dark hole only; 1: Plot outer profile as well."
@@ -38,9 +38,6 @@ function measurecontrast, DataSet, Modules, Backbone
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
-
-;print, DataSet.filenames[numfile]
-;return
 
 cube = *(dataset.currframe[0])
 band = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
@@ -83,6 +80,13 @@ endfor
 
 ;;get grid fac
 apodizer = backbone->get_keyword('APODIZER', count=ct)
+if strcmp(apodizer,'UNKNOWN',/fold_case) then begin
+   val = backbone->get_keyword('OCCULTER', count=ct)
+   if ct ne 0 then begin
+      res = stregex(val,'FPM_([A-Za-z])',/extract,/subexpr)
+      if res[1] ne '' then apodizer = res[1]
+   endif
+endif 
 gridfac = gpi_get_gridfac(apodizer)
 if ~finite(gridfac) then return, error('FAILURE ('+functionName+'): Could not match apodizer.')
 
@@ -183,31 +187,56 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
       endfor
       
       if pngsave ne '' then begin
+         
+         ;;if this is a directory, then you want to save to it with the
+         ;;default naming convention
+         if file_test(pngsave,/dir) then begin
+            nm = DataSet.filenames[numfile]
+            strps = strpos(nm,'/',/reverse_search)
+            strpe = strpos(nm,'.fits',/reverse_search)
+            nm = strmid(nm,strps+1,strpe-strps-1)
+            nm = gpi_expand_path(pngsave+'/'+nm+'-contrast_profile.png')
+         endif else nm = pngsave
+
          if wind eq -1 then begin
             snapshot = tvrd()
             tvlct,r,g,b,/get
-            write_png,pngsave,snapshot,r,g,b
+            write_png,nm,snapshot,r,g,b
             device,z_buffer = 1
             set_plot,odevice
-         endif else write_png,pngsave,tvrd(true=1)
+         endif else write_png,nm,tvrd(true=1)
       endif
    endif
 
    ;;save radial contrast as fits
    if radialsave ne '' then begin
+      
+      ;;if this is a directory, then you want to save to it with the
+      ;;default naming convention
+      if file_test(radialsave,/dir) then begin
+         nm = DataSet.filenames[numfile]
+         strps = strpos(nm,'/',/reverse_search)
+         strpe = strpos(nm,'.fits',/reverse_search)
+         nm = strmid(nm,strps+1,strpe-strps-1)
+         nm = gpi_expand_path(radialsave+'/'+nm+'-contrast_profile.fits')
+      endif else nm = radialsave
+
       out = dblarr(n_elements(*asecs[inds[0]]), n_elements(inds)+1)+!values.d_nan
       out[*,0] = *asecs[inds[0]]
       for j=0,n_elements(inds)-1 do $
          out[where((*asecs[inds[0]]) eq (*asecs[inds[j]])[0]):-1,j+1] = $
          (*contrprof[inds[j]])[*,0]
-     
 
-     mkhdr,hdr,out
-     sxaddpar,hdr,'SLICES',slices,'Cube slices used.'
-     sxaddpar,hdr,'YUNITS',(['Std Dev','Median','Mean'])[contr_yunit],'Contrast units'
+      tmp = intarr((size(cube,/dim))[2])
+      tmp[inds] = 1
+      slices = string(strtrim(tmp,2),format='('+strtrim(n_elements(tmp),2)+'(A))')
+      
+      mkhdr,hdr,out
+      sxaddpar,hdr,'SLICES',slices,'Cube slices used.'
+      sxaddpar,hdr,'YUNITS',(['Std Dev','Median','Mean'])[contr_yunit],'Contrast units'
 
-     writefits,radialsave,out,hdr
-  endif 
+      writefits,nm,out,hdr
+   endif 
    
 endif
 
