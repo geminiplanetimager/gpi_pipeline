@@ -4,7 +4,8 @@
 <dataset InputDir="$(GPI_RAW_DATA_DIR)" OutputDir="$(GPI_DRP_OUTPUT_DIR)">
    <fits filename=""/>
 </dataset>
+<module name="Load Polarimetry Spot Calibration" CalibrationFile="AUTOMATIC" />
 <module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
-<module name="Interpolate bad pixels in 2D frame" method="vertical"  Save="0" gpitv="0" CalibrationFile="AUTOMATIC" /> 
-<module name="Assemble Polarization Cube" CalibrationFile="AUTOMATIC" Rotate="0" Save="1" gpitv="2" />
+<module name="Interpolate bad pixels in 2D frame" method="n4n"  Save="0" gpitv="0" CalibrationFile="AUTOMATIC" /> 
+<module name="Assemble Polarization Cube" Save="1" gpitv="2" />
 </DRF>

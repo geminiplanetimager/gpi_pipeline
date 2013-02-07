@@ -4,7 +4,8 @@
    <fits filename=""/>
 </dataset>
 <module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
+<module name="Interpolate bad pixels in 2D frame" CalibrationFile="AUTOMATIC" method="all8" />
 <module name="Accumulate Images" Method="InMemory" />
 <module name="Combine 2D images" Method="Mean"  Save="0" gpitv="0" />
-<module name="Measure Polarization Spot Calibration"  nlens="281" centrXpos="1027" centrYpos="1019" w="4.3" P="2.0" Save="1" Display="1"/>
+<module name="Measure Polarization Spot Calibration"  nlens="281" centrXpos="1027" centrYpos="1019" w="4.2" P="2.18" Save="1" Display="1"/>
 </DRF>

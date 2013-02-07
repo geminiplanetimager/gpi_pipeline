@@ -18,8 +18,11 @@
 ; ALGORITHM:
 ;
 ;
+; PIPELINE ARGUMENT: Name="HWPoffset" Type="float" Range="[-360.,360.]" Default="-29.14" Desc="The internal offset of the HWP. If unknown set to 0"
+; PIPELINE ARGUMENT: Name="IncludeSystemMueller" Type="int" Range="[0,1]" Default="1" Desc="1: Include, 0: Don't"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="10" Desc="1-500: choose gpitv session for displaying output, 0: no display "
+
 ; PIPELINE ORDER: 4.4
 ; PIPELINE TYPE: ASTR/POL
 ; PIPELINE NEWTYPE: PolarimetricScience,Calibration
@@ -29,7 +32,7 @@
 ; HISTORY:
 ;  2009-07-21: MDP Started 
 ;    2009-09-17 JM: added DRF parameters
-;
+;    2013-01-30: updated with some new keywords
 ;-
 
 ;------------------------------------------
@@ -58,25 +61,39 @@
 ;-
 
 
-function DST_waveplate, polcube, angle=angle, mueller=return_mueller, silent=silent
+function DST_waveplate, polcube, angle=angle, degrees=degrees, mueller=return_mueller, silent=silent, retardance=retardance, pband=pband
 
-	if ~(keyword_set(angle)) then angle=0
-
+	if not keyword_set(angle) then angle=0
+  if keyword_Set(degrees) then theta=angle*!dtor else theta=angle; If keyword set then the input was in degrees
+  
 ; Step 1: Compute the Mueller matrix for a retarder.
-	retardance = 0.5 ; waves
-
- 	if ~(keyword_set(silent)) then message,/info, "Applying waveplate rotation for angle ="+string(angle)+" degrees."
-	; convert to radians
- 	theta = angle*!dtor
-    d = retardance*360*!dtor
-
-    S2 = sin(2*theta)
-    C2 = cos(2*theta)
+  
+  if not keyword_set(retardance) then begin 
+   ;If the retardance isn't set then assume that we are dealing with the GPI HWP, with a
+   ;measured retardance
+   
+      if not keyword_set(pband) then pband = 'H' 
+      ;print, "Using the HWP Mueller Matrix for "+pband+" band"
+      case pband of 
+        'Y': M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9985,-0.0458],[0,0,0.0458,-0.9985]]
+        'J': M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9989,0.0390],[0,0,-0.0390,-0.9989]]
+        'H': M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9931,0.1152],[0,0,-0.1152,-0.9931]]
+        'K1':M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9983,0.0513],[0,0,-0.0513,-0.9983]]
+        'K2':M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9995,-0.0154],[0,0,0.0154,-0.9995]]
+      endcase
+      
+  mueller = mueller_rot(-theta)##M##mueller_rot(theta) ; Apply a rotation matrix. If angle wasn't set this has no effect
+  
+  endif else begin
+  d = retardance*360*!dtor
+  S2 = sin(2*theta)
+  C2 = cos(2*theta)
 
     mueller = [ [1, 0,                 0,                  0           ],$
-             	[0, C2^2+S2^2*cos(d),  S2*C2*(1-cos(d)),   -S2*sin(d)  ],$
-             	[0, S2*C2*(1-cos(d)),  S2^2+C2^2*cos(d),   C2*sin(d)   ],$
-             	[0, S2*sin(d),         -C2*sin(d),         cos(d)      ]]
+              [0, C2^2+S2^2*cos(d),  S2*C2*(1-cos(d)),   -S2*sin(d)  ],$
+              [0, S2*C2*(1-cos(d)),  S2^2+C2^2*cos(d),   C2*sin(d)   ],$
+              [0, S2*sin(d),         -C2*sin(d),         cos(d)      ]]
+  endelse 
 
 	if keyword_set(return_mueller) then return, mueller
 
@@ -102,6 +119,30 @@ function DST_waveplate, polcube, angle=angle, mueller=return_mueller, silent=sil
 
 
 end
+
+;------------------------------------------
+
+;+
+; NAME: mueller_rot
+;
+;  The mueller matrix for a rotation of angle theta
+;
+; INPUTS:
+;   theta - the angle of rotation for the matrix in radians
+; OUTPUTS:
+;   a 4 x 4 mueller matrix 
+; HISTORY:
+;   Began 2012 - MMB  
+;
+;-
+function mueller_rot, theta
+theta=double(theta)
+M=[[1,0,0,0],[0,cos(2*theta),sin(2*theta),0],[0,-sin(2*theta),cos(2*theta),0],[0,0,0,1]]
+
+return, M
+end
+
+
 ;------------------------------------------
 
 ;+
@@ -261,10 +302,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		print, "using port = "+port
 		sxaddhist, functionname+": using instr pol for port ="+port, hdr0
 	system_mueller = DST_instr_pol(/mueller, port=port)
-;  	woll_mueller_vert = mueller_linpol_rot(0)
-;	woll_mueller_horiz= mueller_linpol_rot(90)
-    woll_mueller_vert = mueller_linpol_rot(90)
-    woll_mueller_horiz= mueller_linpol_rot(0)
+  	woll_mueller_vert = mueller_linpol_rot(0)
+	woll_mueller_horiz= mueller_linpol_rot(90)
+;    woll_mueller_vert = mueller_linpol_rot(90)
+;   woll_mueller_horiz= mueller_linpol_rot(0)
 
 	for i=0L,nfiles-1 do begin
 	;if numext eq 0 then begin
@@ -272,19 +313,33 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	;endif else begin
 	  polstack[0,0,i*2] = accumulate_getimage(dataset,i,hdr0,hdrext=hdrext)
 	;endelse	
-		wpangle[i] = sxpar(hdr0, "WPANGLE")
+		wpangle[i] = float(sxpar(hdr0, "WPANGLE"))-float(Modules[thisModuleIndex].HWPOffset) ;Include the known offset
 		parang = sxpar(hdr0, "PAR_ANG") ; we want the original, not rotated or de-rotated
 										; since that's what set's how the
 										; polarizations relate to the sky
 		print, "   File "+strc(i)+ ": WP="+strc(wpangle[i]), "     PA="+strc(parang)
 		sxaddhist, functionname+":  File "+strc(i)+ ": WP="+strc(wpangle[i])+ "  PA="+strc(parang) , hdr0
 
-		wp_mueller = DST_waveplate(angle=wpangle[i], /mueller,/silent)
+    filter=strsplit(sxpar(hdr0,"IFSFILT"), '_',/extract)
+    pband=filter[1]
+
+    tabband=[['Y'],['J'],['H'],['K1'],['K2']]
+    
+    if where(strcmp(tabband, pband) eq 1) lt 0 then return, error('FAILURE ('+functioname+'): IFSFILT keyword invalid. No HWP mueller matrix for that filter')
+    
+		wp_mueller = DST_waveplate(angle=wpangle[i], pband=pband, /mueller,/silent, /degrees)
 		;skyrotation_mueller =  mueller_rotate(parang)
 
 		; FIXME: Sky rotation!!
-		total_mueller_vert = woll_mueller_vert ## wp_mueller ## system_mueller ;## skyrotation_mueller
-		total_mueller_horiz = woll_mueller_horiz ## wp_mueller ## system_mueller ;## skyrotation_mueller
+		include_mueller=uint(Modules[thisModuleIndex].IncludeSystemMueller)
+		
+		if (include_mueller eq 1) then begin ;Either include the system mueller matrix or not. Depending on the keyword
+    total_mueller_vert = woll_mueller_vert ## wp_mueller ## system_mueller ;## skyrotation_mueller
+    total_mueller_horiz = woll_mueller_horiz ## wp_mueller ## system_mueller ;## skyrotation_mueller
+    endif else begin
+    total_mueller_vert = woll_mueller_vert ## wp_mueller ;## system_mueller ;## skyrotation_mueller
+    total_mueller_horiz = woll_mueller_horiz ## wp_mueller ;## system_mueller ;## skyrotation_mueller
+    endelse
 
 		M[*,2*i] = total_mueller_vert[*,0]
 		M[*,2*i+1] = total_mueller_horiz[*,0]
@@ -306,8 +361,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	; precision limit
 	wsingular = where(w lt (machar()).eps*5, nsing)
 	if nsing gt 0 then w[wsingular]=0
-	wsingular = where(wsd lt (machar()).eps*5, nsing)
-	if nsing gt 0 then wsd[wsingular]=0
+	wsdsingular = where(wsd lt (machar()).eps*5, nsdsing)
+	if nsdsing gt 0 then wsd[wsdsingular]=0
 
 	; at this point we should have properly computed the system response matrix M.
 	; We can now iterate over each position in the FOV and compute the derived
@@ -317,20 +372,28 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	for y=0L, sz[2]-1 do begin
 		;statusline, "Solving for Stokes vector at lenslet "+printcoo(x,y)
 		wvalid = where( finite(polstack[x,y,*]), nvalid ) ; how many pixels are valid for this slice?
+		wsdvalid = where(finite(sumdiffstack[x,y,*]), nsdvalid) ; how many sum-difference pixels are value for this slice?
 		if nvalid eq 0 then continue
 		if nvalid eq nfiles*2 then begin
 			; apply the overall solution for pixels which are valid in all
 			; frames
 			stokes[x,y,*] = svsol( u, w, v, reform(polstack[x,y,*]))
-			stokes2[x,y,*] = svsol( usd, wsd, vsd, reform(sumdiffstack[x,y,*]))
+			;stokes2[x,y,*] = svsol( usd, wsd, vsd, reform(sumdiffstack[x,y,*]))
 		endif else begin
 			; apply a custom solution for pixels which are only valid in SOME
 			; frames (e.g. because of field rotation)
 			svdc, M[*,wvalid], w2, u2, v2
-			wsingular = where(w2 lt (machar()).eps*5, nsing)
-			if nsing gt 0 then w2[wsingular]=0
+			;svdc, Msumdiff[*,wsdvalid], wsd2,usd2,vsd2
 	
+			wsingular = where(w2 lt (machar()).eps*5, nsing)
+			;wsdsingular = where(wsd2 lt (machar()).eps*5, nsdsing)
+			
+			if nsing gt 0 then w2[wsingular]=0
+      ;if nsdsing gt 0 then wsd2[wsdsingular]=0
+      
 			stokes[x,y,*] = svsol( u2, w2, v2, reform(polstack[x,y,wvalid]))
+			;stokes2[x,y,*] = svsol( usd2, wsd2, vsd2, reform(sumdiffstack[x,y,wsdvalid]))
+			
 		endelse
 	endfor 
 	endfor 
@@ -341,7 +404,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	; there does not appear to be much difference between the two methods, 
 	; which seems logical given that they are a linear combination...
 	
-	
+	; stokes=stokes2 ;Output the sum difference stack
+	 
 	; Apply threshhold for ridiculously high values
 	imax = max(polstack,/nan)
 	wbad = where(abs(stokes) gt imax*4, badct)
@@ -467,6 +531,42 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	*(dataset.currframe)=Stokes
 	;*(dataset.headers[numfile]) = hdr
 	suffix = "-stokesdc"
+  
+  I=stokes[*,*,0]
+  Q=stokes[*,*,1]
+  U=stokes[*,*,2]
+  V=stokes[*,*,3]
+  
+  normQ=Q/I
+  normU=U/I
+  normV=V/I
+
+  meanclip, I[where(finite(I))], imean, istd
+  meanclip, normQ[where(finite(normQ))], qmean, qstd
+  meanclip, normU[where(finite(normU))], umean, ustd
+  meanclip, normV[where(finite(normV))], vmean, vstd
+
+
+  print, "------Mean Normalized Stokes Values------"
+  print, "Q = "+string(qmean)
+  print, "U = "+string(umean)
+  print, "V = "+string(vmean)
+  print, "P = "+string(100*sqrt(qmean^2+umean^2))+"    percent linear polarization"
+  print, string(100*sqrt(qmean^2+umean^2+vmean^2))+" percent polarization"
+  print, "------------------------------"
+  
+;; This is some code to write the mean stokes parameters out to a file called stokes.gpi
+;; It's currently set-up to just make the file in the reduced data directory
+;; If the file is there it appends to it.   
+;  filnm=fxpar(*(DataSet.HeadersPHU[numfile]),'DATAFILE',count=cdf)
+;  if ~file_test(Modules[thisModuleIndex].OutputDir+"stokes.gpi") then begin
+;    openw, lun, Modules[thisModuleIndex].OutputDir+"stokes.gpi", /get_lun, width=200 
+;    printf, lun, "#imean, qmean,umean,vmean,qstd,ustd,vstd,' ',filnm"
+;  endif else begin
+;  openu, lun, Modules[thisModuleIndex].OutputDir+"stokes.gpi",/get_lun, /append, width=200
+;  endelse
+;  printf, lun, imean, qmean,umean,vmean,istd,qstd,ustd,vstd,' ',filnm
+;  close, lun
 
 
 	@__end_primitive

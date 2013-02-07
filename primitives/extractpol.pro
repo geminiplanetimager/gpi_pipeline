@@ -30,7 +30,6 @@
 ; OUTPUTS:
 ;
 ; PIPELINE COMMENT: Extract 2 perpendicular polarizations from a 2D image.
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="polcal" Default="AUTOMATIC"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.0
@@ -51,7 +50,7 @@
 
 function extractpol, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
-calfiletype='polcal'
+;calfiletype='polcal'
 
 @__start_primitive
 
@@ -72,9 +71,12 @@ calfiletype='polcal'
     if ~strmatch(mode,"*wollaston*",/fold) then message, "That's not a polarimetry file!"
 
     ; read in polarization spot locations from the calibration file
-    fits_info, c_File,N_ext=n_ext,/silent
-    polspot_coords = readfits(c_File, ext=n_ext-1)
-    polspot_pixvals = readfits(c_File, ext=n_ext)
+    ;fits_info, c_File,N_ext=n_ext,/silent
+    ;polspot_coords = readfits(c_File, ext=n_ext-1)
+    ;polspot_pixvals = readfits(c_File, ext=n_ext)
+    
+    polspot_coords=polcal.coords
+    polspot_pixvals=polcal.pixvals
     
     sz = size(polspot_coords)
     nx = sz[1+2]
@@ -87,8 +89,8 @@ calfiletype='polcal'
 
     ;sxaddhist, functionname+": Extracting polarized slices using ", hdr
     ;sxaddhist, functionname+": "+c_File, hdr
-    backbone->set_keyword, 'HISTORY',functionname+": Extracting polarized slices using ",ext_num=0
-    backbone->set_keyword, 'HISTORY',functionname+": "+c_File,ext_num=0
+    ;backbone->set_keyword, 'HISTORY',functionname+": Extracting polarized slices using ",ext_num=0
+    ;backbone->set_keyword, 'HISTORY',functionname+": "+c_File,ext_num=0
 
     if keyword_set(mask) then mask = input*0
 

@@ -31,7 +31,7 @@
 ; 				set to '0' for no display, or >=1 for a display.
 ;
 ; OUTPUTS:
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="polcal" Default="AUTOMATIC"
+;
 ; PIPELINE ARGUMENT: Name="method" Type="string" Range="[threshhold|calfile]" Default="calfile" Desc='Find background based on image value threshhold cut, or calibration file spectra/spot locations?'
 ; PIPELINE ARGUMENT: Name="abort_fraction" Type="float" Range="[0.0,1.0]" Default="0.9" Desc="Necessary fraction of pixels in mask to continue - set at 0.9 to ensure quicklook tool is robust"
 ; PIPELINE ARGUMENT: Name="chan_offset_correction" Type="int" Range="[0,1]" Default="0" Desc="Tries to correct for channel bias offsets - useful when no dark is available"
@@ -56,6 +56,7 @@
 ;-
 function destripe_mask_spectra, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
+
 @__start_primitive
 
 ; check to see if the frame is a flat or ARC
@@ -181,12 +182,15 @@ if keyword_set(badpixmap) then mask[where(badpixmap eq 1)]=1
 	  	'WOLLASTON':	begin
 	  	  ; load mask from polarimetr cal file
 	  	
-		  backbone->Log, "Using "+c_File+" to extract pol spot locations"
+		  ;backbone->Log, "Using "+c_File+" to extract pol spot locations"
 		  ;Most of this is lifted from directly from extractpol 
 		  
-		  fits_info, c_File,N_ext=n_ext ;hardcoding for testing
-		  polspot_coords = readfits(c_File, ext=n_ext-1)
-		  polspot_pixvals = readfits(c_File, ext=n_ext)
+		  ;fits_info, c_File,N_ext=n_ext ;hardcoding for testing
+		  ;polspot_coords = readfits(c_File, ext=n_ext-1)
+		  ;polspot_pixvals = readfits(c_File, ext=n_ext)
+		  
+		  polspot_coords = polcal.coords
+		  polspot_pixvals = polcal.pixvals
 		  
 		  sz = size(polspot_coords)
 		  nx = sz[1+2]

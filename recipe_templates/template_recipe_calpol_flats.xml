@@ -3,9 +3,12 @@
 <dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
    <fits filename=""/>
 </dataset>
+<module name="Load Polarimetry Spot Calibration" CalibrationFile="AUTOMATIC" />
 <module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
+<module name="Destripe science frame" method="calfile" />
+<module name="Interpolate bad pixels in 2d frame" CalibrationFile="AUTOMATIC" method="n4n" />
 <module name="Accumulate Images" Method="InMemory" />
 <module name="Combine 2D images" Method="Mean"  Save="0" gpitv="0" />
-<module name="Assemble Polarization Cube" CalibrationFile="AUTOMATIC" Rotate="0" Save="0" gpitv="2" />
+<module name="Assemble Polarization Cube" Save="0" gpitv="2" />
 <module name="Normalize polarimetry flats" Save="1" gpitv="2" />
 </DRF>

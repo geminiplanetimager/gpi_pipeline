@@ -573,7 +573,7 @@ end
 FUNCTION gpiPipelineBackbone::Reduce
 
     COMMON APP_CONSTANTS
-    common PIP, lambda0, filename,wavcal,tilt, badpixmap, filter, dim, CommonWavVect, gpidisplay, meddec,suffix, header, heade,oBridge,listfilenames, numfile, painit,dir_sc, Dtel,numext
+    common PIP, lambda0, filename,wavcal,polcal,tilt, badpixmap, filter, dim, CommonWavVect, gpidisplay, meddec,suffix, header, heade,oBridge,listfilenames, numfile, painit,dir_sc, Dtel,numext
 
     PRINT, ''
     PRINT, SYSTIME(/UTC)
