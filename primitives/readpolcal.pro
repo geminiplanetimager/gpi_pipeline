@@ -26,12 +26,13 @@
 ;   2010-03-15 JM: added automatic detection
 ;   2010-08-19 JM: fixed bug which created new pointer everytime this primitive was called
 ;   2010-10-19 JM: split HISTORY keyword if necessary
-;   2013-01-28 MMB: Adapted to pol extraction
+;   2013-01-28 MMB: Adapted to pol extraction (based on readwavcal.pro)
+;   2013-02-07 MP: Updated logging and docs a little bit.
 ;-
 
 function readpolcal, DataSet, Modules, Backbone
 
-primitive_version= '$Id: readwavcal.pro 935 2012-09-18 20:25:58Z mperrin $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 calfiletype = 'polcal'
 @__start_primitive
 
@@ -51,9 +52,13 @@ calfiletype = 'polcal'
 ;    wavcal=*pmd_wavcalFrame
 ;    ptr_free, pmd_wavcalFrame
     fits_info, c_file, n_ext=numext, /silent
-    polspot_spotpos = readfits(c_File, ext=numext-2)
-    polspot_coords = readfits(c_File, ext=numext-1)
-    polspot_pixvals = readfits(c_File, ext=numext)
+    message,/cont, "Loading polarimetry spot peak fit data",depth=3
+    polspot_spotpos = readfits(c_File, ext=numext-2,/silent)
+    message,/cont, "Loading polarimetry spot pixel coordinate table",depth=3
+    polspot_coords = readfits(c_File, ext=numext-1,/silent)
+    message,/cont, "Loading polarimetry spot pixel value table",depth=3
+
+    polspot_pixvals = readfits(c_File, ext=numext,/silent)
 
     polcal={spotpos:polspot_spotpos, coords:polspot_coords, pixvals:polspot_pixvals}
 ;    pmd_wavcalIntFrame     = ptr_new(READFITS(c_File, Header, EXT=1, /SILENT))
@@ -62,9 +67,9 @@ calfiletype = 'polcal'
     ;update header:
 ;    sxaddhist, functionname+": get wav. calibration file", *(dataset.headers[numfile])
 ;    sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-backbone->set_keyword, "HISTORY", functionname+": get pol. calibration file",ext_num=0
+backbone->set_keyword, "HISTORY", functionname+": Read calibration file",ext_num=0
 backbone->set_keyword, "HISTORY", functionname+": "+c_File,ext_num=0
-backbone->set_keyword, "DRPWVCLF", c_File, "DRP pol spot calibration file used.", ext_num=0
+backbone->set_keyword, "DRPPOLCF", c_File, "DRP pol spot calibration file used.", ext_num=0
 
 @__end_primitive 
 
