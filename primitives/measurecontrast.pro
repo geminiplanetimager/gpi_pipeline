@@ -16,7 +16,7 @@
 ; PIPELINE COMMENT: Measure the contrast. 
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="0" Desc="Window number to display in.  -1 for no display."
-; PIPELINE ARGUMENT: Name="SaveProfile" Type="string" Default="" Desc="Save radial profile to filename (blank for no save)"
+; PIPELINE ARGUMENT: Name="SaveProfile" Type="string" Default="" Desc="Save radial profile to filename (blank for no save, dir name for default naming)"
 ; PIPELINE ARGUMENT: Name="SavePNG" Type="string" Default="" Desc="Save plot to filename as PNG(blank for no save)"
 ; PIPELINE ARGUMENT: Name="contrsigma" Type="float" Range="[0.,20.]" Default="5." Desc="Contrast sigma limit"
 ; PIPELINE ARGUMENT: Name="slice" Type="int" Range="[-1,50]" Default="0" Desc="Slice to plot. -1 for all"
@@ -38,6 +38,9 @@ function measurecontrast, DataSet, Modules, Backbone
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
+
+;print, DataSet.filenames[numfile]
+;return
 
 cube = *(dataset.currframe[0])
 band = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
