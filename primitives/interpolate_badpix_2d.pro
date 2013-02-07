@@ -131,7 +131,7 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 
     if count gt (0.01 * 2040.*2040) then begin
         backbone->Log, "WARNING: waaaaay too many bad pixels found! "
-        backbone->Log, "   "+strc(count)+" bad = "+sigfig(count / (0.01 * 2040.*2040) *100)+ "% of the array"
+        backbone->Log, "   "+strc(count)+" bad = "+sigfig(count / (0.01 * 2040.*2040) *100,2)+ "% of the array"
         backbone->Log, " No repair will be attempted since > 1% bad."
 
 		backbone->set_keyword, 'HISTORY', 'Found '+strc(count)+' bad pixels, which is >1% of the array ', ext_num=0
