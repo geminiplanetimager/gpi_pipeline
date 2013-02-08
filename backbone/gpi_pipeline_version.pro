@@ -20,6 +20,6 @@
 ;-
 
 function gpi_pipeline_version
-version = '0.9dev'
+version = '0.9.0'
 return, version
 end
