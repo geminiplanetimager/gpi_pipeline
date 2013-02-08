@@ -28,6 +28,7 @@
 ;   2010-10-19 JM: split HISTORY keyword if necessary
 ;   2013-01-28 MMB: Adapted to pol extraction (based on readwavcal.pro)
 ;   2013-02-07 MP: Updated logging and docs a little bit.
+;                  Added efficiently not reloading the same file multiple times.
 ;-
 
 function readpolcal, DataSet, Modules, Backbone
@@ -51,25 +52,38 @@ calfiletype = 'polcal'
 ;    endelse
 ;    wavcal=*pmd_wavcalFrame
 ;    ptr_free, pmd_wavcalFrame
-    fits_info, c_file, n_ext=numext, /silent
-    message,/cont, "Loading polarimetry spot peak fit data",depth=3
-    polspot_spotpos = readfits(c_File, ext=numext-2,/silent)
-    message,/cont, "Loading polarimetry spot pixel coordinate table",depth=3
-    polspot_coords = readfits(c_File, ext=numext-1,/silent)
-    message,/cont, "Loading polarimetry spot pixel value table",depth=3
 
-    polspot_pixvals = readfits(c_File, ext=numext,/silent)
+    need_to_load=1
+    if keyword_set(polcal) then if tag_exist(polcal, 'filename') then if polcal.filename eq c_file then begin
+        backbone->Log, "Requested pol cal file is already loaded, no need to load again.", depth=3
+        backbone->Log, c_File
+        need_to_load=0
+    endif
 
-    polcal={spotpos:polspot_spotpos, coords:polspot_coords, pixvals:polspot_pixvals}
+
+
+    if need_to_load then begin
+
+        fits_info, c_file, n_ext=numext, /silent
+        Backbone->Log, "Loading polarimetry spot peak fit data",depth=3
+        polspot_spotpos = readfits(c_File, ext=numext-2,/silent)
+        Backbone->Log, "Loading polarimetry spot pixel coordinate table",depth=3
+        polspot_coords = readfits(c_File, ext=numext-1,/silent)
+        Backbone->Log, "Loading polarimetry spot pixel value table",depth=3
+
+        polspot_pixvals = readfits(c_File, ext=numext,/silent)
+
+        polcal={spotpos:polspot_spotpos, coords:polspot_coords, pixvals:polspot_pixvals, filename:c_File}
+    endif
 ;    pmd_wavcalIntFrame     = ptr_new(READFITS(c_File, Header, EXT=1, /SILENT))
 ;    pmd_wavcalIntAuxFrame  = ptr_new(READFITS(c_File, Header, EXT=2, /SILENT))
 
     ;update header:
 ;    sxaddhist, functionname+": get wav. calibration file", *(dataset.headers[numfile])
 ;    sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-backbone->set_keyword, "HISTORY", functionname+": Read calibration file",ext_num=0
-backbone->set_keyword, "HISTORY", functionname+": "+c_File,ext_num=0
-backbone->set_keyword, "DRPPOLCF", c_File, "DRP pol spot calibration file used.", ext_num=0
+    backbone->set_keyword, "HISTORY", functionname+": Read calibration file",ext_num=0
+    backbone->set_keyword, "HISTORY", functionname+": "+c_File,ext_num=0
+    backbone->set_keyword, "DRPPOLCF", c_File, "DRP pol spot calibration file used.", ext_num=0
 
 @__end_primitive 
 

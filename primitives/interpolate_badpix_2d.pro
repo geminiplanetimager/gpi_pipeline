@@ -43,6 +43,7 @@
 ; PIPELINE ARGUMENT: Name="method" Type="string" Range="[n4n|vertical|all8]" Default="vertical" Desc='Repair bad bix interpolating all 8 neighboring pixels, or just the 2 vertical ones, or just flag as NaN (n4n)?'
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="1" Desc="1-500: choose gpitv session for displaying output, 0: no display "
+; PIPELINE ARGUMENT: Name="before_and_after" Type="int" Range="[0,1]" Default="0" Desc="Show the before-and-after images for the user to see? (for debugging/testing)"
 ;
 ; PIPELINE COMMENT:  Repair bad pixels by interpolating between their neighbors. Can optionally just flag as NaNs or else interpolate.
 ; PIPELINE ORDER: 1.4 
@@ -63,6 +64,8 @@ calfiletype='badpix'
 no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there is no cal file found.
 @__start_primitive
 
+ 	if tag_exist( Modules[thisModuleIndex], "before_and_after") then before_and_after=fix(Modules[thisModuleIndex].before_and_after) else before_and_after=0
+    if keyword_set(before_and_after) then im0= *dataset.currframe ; save copy for later display if desired
 
 	sz = size( *(dataset.currframe) )
     if sz[1] ne 2048 or sz[2] ne 2048 then begin
@@ -204,16 +207,55 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 		; Uses all 8 neighboring pixels
 		;
 
+
 		; 1 row is 2048 pixels, so we can add or subtract 2048 to get to
 		; adjacent rows
-		for i=0, n_elements(wbad)-1 do begin
-		(*(dataset.currframe[0]))[wbad[i]] =  ( (*(dataset.currframe[0]))[wbad[i]+2048-1:wbad[i]+2048+1] + $
-		 							 		 (*(dataset.currframe[0]))[wbad[i]-2048-1:wbad[i]-2048+1] + $
-		 							 		 (*(dataset.currframe[0]))[wbad[i]-1] + $
-									 		 (*(dataset.currframe[0]))[wbad[i]+1] ) / 8
-		endfor
-		backbone->set_keyword, 'HISTORY', 'Masking out '+strc(count)+' bad pixels; replacing with interpolated values between each 8 neighbor pixels', ext_num=0
+
+
 		backbone->Log, 'Masking out '+strc(count)+' bad pixels;  replacing with interpolated values between each 8 neighbor pixels', depth=3
+
+        valid_nbr_cts = 8- (bpmask[wbad+2048-1] + bpmask[wbad+2048] + bpmask[wbad+2048+1] + bpmask[wbad-1] +  bpmask[wbad+1] + bpmask[wbad-2048-1] + bpmask[wbad-2048] + bpmask[wbad-2048+1])
+   
+        ; Let's first consider the easy case where all adjacent pixels are good
+		wvalid_all8 = where( valid_nbr_cts eq 8, ct_valid8)
+        message,/info, "Pixels with 8 valid neighbors: "+strc(ct_valid8)
+        if ct_valid8 gt 0 then begin
+            valid_nbr_means = ((*dataset.currframe)[wvalid_all8+2048-1] + (*dataset.currframe)[wvalid_all8+2048] + (*dataset.currframe)[wvalid_all8+2048+1] +  $
+                               (*dataset.currframe)[wvalid_all8-1] +  (*dataset.currframe)[wvalid_all8+1] + $
+                               (*dataset.currframe)[wvalid_all8-2048-1] + (*dataset.currframe)[wvalid_all8-2048] + (*dataset.currframe)[wvalid_all8-2048+1])/8
+         
+            (*dataset.currframe)[wvalid_all8] = valid_nbr_means
+        endif
+
+
+        ; pixels with at least one good, and at least one bad neighbor
+        wvalid_1to7 = where(valid_nbr_cts gt 0 and valid_nbr_cts lt 8, ct_valid1to7)
+        message,/info, "Pixels with some but not all valid neighbors: "+strc(ct_valid1to7)
+
+		for i=0, n_elements(wvalid_1to7)-1 do begin
+            whereis, bpmask, wbad[wvalid_1to7[i]], myx, myy
+
+            nbrs = (*dataset.currframe)[myx-1:myx+1, myy-1:myy+1]
+            validnbrs = 1-bpmask[myx-1:myx+1, myy-1:myy+1]
+
+            validmean = total(nbrs*validnbrs) / total(validnbrs)
+            (*dataset.currframe)[myx, myy] = validmean
+
+		;(*(dataset.currframe[0]))[wbad[i]] =  ( (*(dataset.currframe[0]))[wbad[i]+2048-1:wbad[i]+2048+1] + $
+		; 							 		 (*(dataset.currframe[0]))[wbad[i]-2048-1:wbad[i]-2048+1] + $
+		; 							 		 (*(dataset.currframe[0]))[wbad[i]-1] + $
+		;							 		 (*(dataset.currframe[0]))[wbad[i]+1] ) / 8
+		endfor
+
+        ; No valid neighbors at all - still need to be fixed FIXME TODO
+        wvalid_none = where(valid_nbr_cts eq 0, ct_validnone)
+        if ct_validnone gt 0 then begin
+            message,/info, "Pixels with no valid neighbors at all: "+strc(ct_validnone)+" not fixed"
+        endif
+
+
+
+		backbone->set_keyword, 'HISTORY', 'Masking out '+strc(count)+' bad pixels; replacing with interpolated values between each 8 neighbor pixels', ext_num=0
 
 	end
 	'3D': begin
@@ -245,6 +287,12 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 	end
 
 	endcase
+
+	before_and_after=0
+	if keyword_set(before_and_after) then begin
+		atv, [[[im0]], [[*dataset.currframe]], [[bpmask]]],/bl, names=['Input image','Output Image', 'Bad Pix Mask']
+		stop
+	endif
 
 
 
