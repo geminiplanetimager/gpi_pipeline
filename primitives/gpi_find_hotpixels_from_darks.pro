@@ -6,6 +6,13 @@
 ; mask showing where the various hot pixels are. 
 ;
 ;
+; The current algorithm determines pixels that are hot according to the
+; criteria:
+;	(a) dark count rate must be > 1 e-/second for that pixel
+;	(b) that must be measured with >5 sigma confidence above the estimated
+;	    read noise of the frames. 
+;
+;
 ; KEYWORDS:
 ; DRP KEYWORDS: FILETYPE,ISCALIB
 ; OUTPUTS:

@@ -57,6 +57,8 @@
 ; 					pixels
 ; 	2012-12-09 MP: Added support for using information in DQ extension
 ; 	2013-01-16 MP: Documentation cleanup
+; 	2013-02-07 MP: Enhanced all8 interpolation to properly handle cases where
+;					there are bad pixels in the neighboring pixels.
 ;-
 function interpolate_badpix_2d, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -115,6 +117,7 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 	wlow = where(*dataset.currframe lt -50, lowct) ; should be an adjustible thresh, or based on read noise * n * sigma?
 	if lowct gt 0 then begin
 		backbone->set_keyword, 'HISTORY', 'Found '+strc(lowct)+' additional very negative pixels (< -50 cts) in that image. ', ext_num=0
+		backbone->Log,  'Found '+strc(lowct)+' additional very negative pixels (< -50 cts) in that image. ', depth=2
 		bpmask[wlow] = 1 ; 1 means bad in a bad pixel mask
 	endif
 	
@@ -144,6 +147,7 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
     endif
 
 
+	;==================   Actual repair code begins here    ====================
 	
 	case strlowcase(method) of
 	'n4n': begin
@@ -157,12 +161,8 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 	'vertical': begin
 		; Just uses neighboring pixels above and below
 
-		; 1 row is 2048 pixels, so we can add or subtract 2048 to get to
-		; adjacent rows
-		;(*(dataset.currframe[0]))[wbad] =  ( (*(dataset.currframe[0]))[wbad+2048] + (*(dataset.currframe[0]))[wbad-2048]) / 2
-
-		; The above simple method does **not** work, because it fails for the
-		; case where a pixel's neighbors above and below are invalid. This is
+		; Actually, that simple method does **not** work in general, because it fails 
+		; for the case where a pixel's neighbors above and below are invalid. This is
 		; true a *lot* of the time, due to the cross-shaped pattern around
 		; hot pixels due to intrapixel capacitance.
 
@@ -220,11 +220,12 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 		wvalid_all8 = where( valid_nbr_cts eq 8, ct_valid8)
         message,/info, "Pixels with 8 valid neighbors: "+strc(ct_valid8)
         if ct_valid8 gt 0 then begin
-            valid_nbr_means = ((*dataset.currframe)[wvalid_all8+2048-1] + (*dataset.currframe)[wvalid_all8+2048] + (*dataset.currframe)[wvalid_all8+2048+1] +  $
-                               (*dataset.currframe)[wvalid_all8-1] +  (*dataset.currframe)[wvalid_all8+1] + $
-                               (*dataset.currframe)[wvalid_all8-2048-1] + (*dataset.currframe)[wvalid_all8-2048] + (*dataset.currframe)[wvalid_all8-2048+1])/8
+			wwvalid8 = wbad[wvalid_all8] ; convert from indices into wbad, to indices into the actual image
+            valid_nbr_means = ((*dataset.currframe)[wwvalid8+2048-1] + (*dataset.currframe)[wwvalid8+2048] + (*dataset.currframe)[wwvalid8+2048+1] +  $
+                               (*dataset.currframe)[wwvalid8-1] +  (*dataset.currframe)[wwvalid8+1] + $
+                               (*dataset.currframe)[wwvalid8-2048-1] + (*dataset.currframe)[wwvalid8-2048] + (*dataset.currframe)[wwvalid8-2048+1])/8
          
-            (*dataset.currframe)[wvalid_all8] = valid_nbr_means
+            (*dataset.currframe)[wwvalid8] = valid_nbr_means
         endif
 
 
@@ -240,11 +241,6 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 
             validmean = total(nbrs*validnbrs) / total(validnbrs)
             (*dataset.currframe)[myx, myy] = validmean
-
-		;(*(dataset.currframe[0]))[wbad[i]] =  ( (*(dataset.currframe[0]))[wbad[i]+2048-1:wbad[i]+2048+1] + $
-		; 							 		 (*(dataset.currframe[0]))[wbad[i]-2048-1:wbad[i]-2048+1] + $
-		; 							 		 (*(dataset.currframe[0]))[wbad[i]-1] + $
-		;							 		 (*(dataset.currframe[0]))[wbad[i]+1] ) / 8
 		endfor
 
         ; No valid neighbors at all - still need to be fixed FIXME TODO
@@ -259,6 +255,7 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 
 	end
 	'3D': begin
+		message, "Not Implemented"
 		stop
 		;Let's say you have a bad pixel right at the middle of a spectrum. Instead of
 		;taking the 2 vertical pixel neighbors, you take instead the values along the
@@ -288,17 +285,18 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 
 	endcase
 
-	before_and_after=0
 	if keyword_set(before_and_after) then begin
 		atv, [[[im0]], [[*dataset.currframe]], [[bpmask]]],/bl, names=['Input image','Output Image', 'Bad Pix Mask']
 		stop
 	endif
 
 
-
 	; update the DQ extension if it is present
 
 	if ptr_valid( dataset.currDQ) then begin
+		; FIXME should we still leave those pixels flagged somehow to indicate
+		; that they were repaired?  Implement proper bit flag handling here at
+		; some point
 		(*(dataset.currDQ))[wbad] = 0
 		backbone->set_keyword,'HISTORY',functionname+": Updated DQ extension to indicate bad pixels were repaired.", ext_num=0
 	endif

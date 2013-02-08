@@ -74,7 +74,7 @@ tilt0=tiltini
                  
 ;            ;if it fails to converge then use an other method
             if specpos[nlens/2+i,nlens/2+j,0] eq -1 then begin
-                print, "mpfit failed to converge, let's try gauss2dfit for this mlens..."
+                print, "mpfit failed to converge, let's try gauss2dfit for this mlens (quad "+strc(quad)+", lenslet "+strc(i)+", "+strc(j)+")..."
                 pospeak=localizepeak( im, specpos[nlens/2+i,nlens/2+j,0]+apprXpos[p],specpos[nlens/2+i,nlens/2+j,1]+apprYpos[p],wx,wy,hh,meth="gaussfit")
              endif
             if specpos[nlens/2+i,nlens/2+j,0] eq -1 then begin

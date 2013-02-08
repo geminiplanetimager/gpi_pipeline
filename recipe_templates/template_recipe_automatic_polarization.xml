@@ -6,6 +6,6 @@
 </dataset>
 <module name="Load Polarimetry Spot Calibration" CalibrationFile="AUTOMATIC" />
 <module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
-<module name="Interpolate bad pixels in 2D frame" method="all8"  Save="0" gpitv="2" CalibrationFile="AUTOMATIC" /> 
+<module name="Interpolate bad pixels in 2D frame" method="all8"  Save="0" gpitv="2" CalibrationFile="AUTOMATIC" before_and_after="0"/> 
 <module name="Assemble Polarization Cube" Save="1" gpitv="5" />
 </DRF>

@@ -55,25 +55,18 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 @__start_primitive
 
 	input=*(dataset.currframe[0])
-  	;if numext eq 0 then begin 
-    	;hdr=*(dataset.headers)[numfile] 
-  	;endif else begin 
-      ;hdr=*(dataset.headersPHU)[numfile]
-      ;hdrext=*(dataset.headers)[numfile]
- 	;endelse    
 
     ; Validate the input data
     filt = gpi_simplify_keyword_value(strc(backbone->get_keyword( "IFSFILT")))
     mode= strc(backbone->get_keyword( "DISPERSR", count=ct))
-    ;if ct eq 0 then mode= strc(backbone->get_keyword( "DISPERSR", count=ct))
-    ;if ct eq 0 then mode= strc(backbone->get_keyword( "FILTER2", count=ct))
     mode = strlowcase(mode)
-    if ~strmatch(mode,"*wollaston*",/fold) then message, "That's not a polarimetry file!"
+    if ~strmatch(mode,"*wollaston*",/fold) then begin
+		backbone->Log, "ERROR: That's not a polarimetry file!"
+		return, not_ok
+	endif
 
-    ; read in polarization spot locations from the calibration file
-    ;fits_info, c_File,N_ext=n_ext,/silent
-    ;polspot_coords = readfits(c_File, ext=n_ext-1)
-    ;polspot_pixvals = readfits(c_File, ext=n_ext)
+    ; polarization spot locations come from the calibration file, loaded already
+	; in readpolcal
     
     polspot_coords=polcal.coords
     polspot_pixvals=polcal.pixvals
@@ -85,7 +78,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     polcube = fltarr(nx, ny, 2)+!values.f_nan
     polcube2 = fltarr(nx, ny, 2)+!values.f_nan
     wpangle =  strc(backbone->get_keyword( "WPANGLE"))
-	backbone->Log, "    WP angle is "+strc(wpangle)
+	backbone->Log, "WP angle is "+strc(wpangle), depth=2
 
     ;sxaddhist, functionname+": Extracting polarized slices using ", hdr
     ;sxaddhist, functionname+": "+c_File, hdr
@@ -98,6 +91,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     for pol=0,1 do begin
     for ix=0L,nx-1 do begin
     for iy=0L,ny-1 do begin
+		if ix eq 121 and iy eq 127 then stop
         ;if ~ptr_valid(polcoords[ix, iy,pol]) then continue
         wg = where(finite(polspot_pixvals[*,ix,iy,pol]) and polspot_pixvals[*,ix,iy,pol] gt 0, gct)
         if gct eq 0 then continue
@@ -114,10 +108,14 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		; swap not desired any more - need to match orientation convention in
 		; spectral mode. -MDP 2013-01-02
         polcube[ix, iy, pol] = total(input[spotx,spoty])
+
+
         ; No - the following does NOT make things better. This is the wrong way
         ; to normalize things here. 
         ;polcube2[iy, ix, pol] = total(input[spotx,spoty]*pixvals) 
+
         if keyword_set(mask) then mask[iii]=pol+1
+
     endfor 
     endfor 
     endfor 
@@ -147,12 +145,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		ra = backbone->get_keyword("RA") 
 		dec = backbone->get_keyword("dec") 
 	endelse
-	;stop
-	;if numext eq 0 then begin
-	    ;hdrim=hdr
-	;endif else begin
-	    ;hdrim=hdrext
-	;endelse
+
+
 	backbone->set_keyword, 'COMMENT', "  For specification of Stokes WCS axis, see ",ext_num=1
 	backbone->set_keyword, 'COMMENT', "  Greisen & Calabretta 2002 A&A 395, 1061, section 5.4",ext_num=1
 
@@ -199,16 +193,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 
 
-
 	suffix='-podc'
 	*(dataset.currframe[0])=polcube
-	;if numext eq 0 then begin
-	 ;*(dataset.headers[numfile])=hdrim 
-	 ;endif else begin
-	  ;*(dataset.headersPHU[numfile])=hdr
-	 ;*(dataset.headers[numfile])=hdrim
-	;endelse 
-
 
 @__end_primitive 
 end
