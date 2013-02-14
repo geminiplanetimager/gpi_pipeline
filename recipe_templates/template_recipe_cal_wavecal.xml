@@ -9,6 +9,6 @@
 <module name="Interpolate bad pixels in 2D frame" method="vertical"  Save="0" gpitv="0" CalibrationFile="AUTOMATIC" />
 <module name="Accumulate Images" Method="InMemory" />
 <module name="Combine 2D images" Method="MEAN" Save="0" gpitv="1" />
-<module name="Measure Wavelength Calibration" nlens="281" centrXpos="1024" centrYpos="1013" w="4.3" P="2." emissionlinesfile="$GPI_DRP_DIR\config\lampemissionlines.txt" centroidmethod="2" wav_of_centrXYpos="2" maxpos="2." maxtilt="10." medfilter="1" Save="       1"  gpitvim_dispgrid="10" gpitv="0" tests="0" testsDST="0" />
+<module name="Measure Wavelength Calibration" nlens="281" centrXpos="1024" centrYpos="1013" w="4.3" P="2." emissionlinesfile="$GPI_DRP_DIR\config\lampemissionlines.txt" centroidmethod="1" wav_of_centrXYpos="2" maxpos="2." maxtilt="10." medfilter="1" Save="       1"  gpitvim_dispgrid="10" gpitv="0" tests="0" testsDST="0" />
 <!-- <module name="Combine Wavelength Calibrations" Save="       1" gpitv="11" />-->
 </DRF>
