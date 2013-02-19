@@ -76,7 +76,12 @@ good = long(good)
 
 ;;write spot results to header
 backbone->set_keyword,"SPOTWAVE", cwv.lambda[indx], "Wavelength of ref for SPOT locations", ext_num=1
-PSFcenter = mean(cens[*,*,indx],dim=2)
+tmp_sz=size(cens)
+PSFcenter=fltarr(tmp_sz[1],tmp_sz[2])
+for p=0,tmp_sz[1]-1 do for q=0, tmp_sz[2]-1 do PSFcenter[p,q]=mean(cens[p,q,indx])
+
+;PSFcenter = mean(cens[*,*,indx],dim=2) ; only works from IDL8.0
+
 backbone->set_keyword,"PSFCENTX", PSFcenter[0], 'X-Locations of PSF center', ext_num=1
 backbone->set_keyword,"PSFCENTY", PSFcenter[1], 'Y-Locations of PSF center', ext_num=1
 for s=0,n_elements(good) - 1 do begin
