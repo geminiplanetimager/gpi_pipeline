@@ -64,10 +64,12 @@ calfiletype = 'wavecal'
                 shiftx=0.
                 shifty=0.
         endelse
-        print, "Apply shifts",shiftx, shifty
+        
      wavcal[*,*,0]+=shifty
      wavcal[*,*,1]+=shiftx       
-   
+         backbone->set_keyword, "HISTORY", functionname+"Manual wavecal shift dx: "+strc(shiftx,format="(f7.2)"),ext_num=0
+       backbone->set_keyword, "HISTORY", functionname+"Manual wavecal shift dy: "+strc(shifty,format="(f7.2)"),ext_num=0
+ 
 ;    pmd_wavcalIntFrame     = ptr_new(READFITS(c_File, Header, EXT=1, /SILENT))
 ;    pmd_wavcalIntAuxFrame  = ptr_new(READFITS(c_File, Header, EXT=2, /SILENT))
 

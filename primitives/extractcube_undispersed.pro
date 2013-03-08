@@ -87,6 +87,9 @@ yshf=float(Modules[thisModuleIndex].yshift)
         
         xshf+=shiftx
         yshf+=shifty  
+       backbone->set_keyword, "HISTORY", functionname+"Manual wavecal shift dx: "+strc(shiftx,format="(f7.2)"),ext_num=0
+       backbone->set_keyword, "HISTORY", functionname+"Manual wavecal shift dy: "+strc(shifty,format="(f7.2)"),ext_num=0
+ 
 
 ;; Center array
 ; Uncomment this section if you want the routine to try and adjust
