@@ -14,6 +14,7 @@
 ; 			Also updated to use WIDGET_TIMER events for monitoring the directory
 ; 			so this works properly with the event loop
 ; 2012-02-06 MDP: Pretty much complete rewrite.
+; 2013-03-28 JM: added manual shifts of the wavecal
 ;---------------------------------------------------------------------
 
 
@@ -229,6 +230,7 @@ pro automaticreducer::event, ev
 
 
 	uname = widget_info(ev.id,/uname)
+
 	case tag_names(ev, /structure_name) of
 		'WIDGET_TIMER' : begin
 			self->run
@@ -274,7 +276,7 @@ pro automaticreducer::event, ev
 				widget_control, self.watchdir_id, set_value=dir
 				ptr_free, self.previous_file_list ; we have lost info on our previous files so start over
 			endif
-			
+   
 	   endif
  
 		if (uname eq 'one') || (uname eq 'new') || (uname eq 'keep') then begin
@@ -288,6 +290,14 @@ pro automaticreducer::event, ev
 		if uname eq 'alwaysexec' then begin
 			self.alwaysexecute=widget_info(self.alwaysexecute_id,/button_set)
 		endif
+		
+    if uname eq 'changeshift' then begin
+        directory = gpi_get_directory('calibrations_DIR') 
+        widget_control, self.shiftx_id, get_value=shiftx
+        widget_control, self.shifty_id, get_value=shifty
+        writefits, directory+path_sep()+"shifts.fits", [float(shiftx),float(shifty)]
+     endif
+		
 		
 		if uname eq 'QUIT'    then begin
 			if confirm(group=ev.top,message='Are you sure you want to close the Automatic Reducer Parser GUI?',$
@@ -470,8 +480,28 @@ function automaticreducer::init, groupleader, _extra=_extra
 	        ,/ALIGN_LEFT ,VALUE='Polarization',/tracking_events, sensitive=1)
 	
 	widget_control, self.b_undispersed_id, /set_button 
+  
+          directory = gpi_get_directory('calibrations_DIR') 
 
-
+        if file_test(directory+path_sep()+"shifts.fits") then begin
+                shifts=readfits(directory+path_sep()+"shifts.fits")
+                shiftx=strc(shifts[0],format="(f7.2)")
+                shifty=strc(shifts[1],format="(f7.2)")
+        endif else begin
+                shiftx='0.'
+                shifty='0.'
+        endelse
+  
+  flexurebase = widget_base(self.top_base, /row)
+  void = Widget_Label(flexurebase ,/ALIGN_LEFT ,VALUE='     Applying wavecal shift DX: ')
+  self.shiftx_id = Widget_Text(flexurebase, UNAME='WID_DX'  $
+                              ,SCR_XSIZE=56 ,SCR_YSIZE=24  $
+                              ,SENSITIVE=1 ,XSIZE=20 ,YSIZE=1, value=shiftx, EDITABLE=1)
+  void = Widget_Label(flexurebase ,/ALIGN_LEFT ,VALUE=' DY: ')
+  self.shifty_id = Widget_Text(flexurebase, UNAME='WID_DY'  $
+                                ,SCR_XSIZE=56 ,SCR_YSIZE=24  $
+                                ,SENSITIVE=1 ,XSIZE=20 ,YSIZE=1, value=shifty, EDITABLE=1)
+  button2_id = WIDGET_BUTTON(flexurebase,Value='Apply new shifts',Uname='changeshift',/align_right,/tracking_events)
 
 	gpitvbase = Widget_Base(self.top_base, UNAME='alwaysexebase' ,ROW=1 ,/NONEXCLUSIVE, frame=0)
 	self.view_in_gpitv_id =    Widget_Button(gpitvbase, UNAME='view_in_gpitv'  $
@@ -546,6 +576,8 @@ stateF={  automaticreducer, $
 	b_spectral_id :0L,$
 	b_undispersed_id :0L,$
 	b_polarization_id :0L,$
+	shiftx_id:0L,$
+	shifty_id:0L,$
 	watchdir_id: 0L, $   ; widget ID for directory label display
 	start_id: 0L, $		; widget ID for start parsing button
 	view_in_gpitv_id: 0L, $
