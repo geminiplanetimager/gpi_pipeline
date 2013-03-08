@@ -26,6 +26,7 @@
 ;   2010-03-15 JM: added automatic detection
 ;   2010-08-19 JM: fixed bug which created new pointer everytime this primitive was called
 ;   2010-10-19 JM: split HISTORY keyword if necessary
+;   2013-03-28 JM: added manual shifts of the wavecal
 ;-
 
 function readwavcal, DataSet, Modules, Backbone
@@ -52,6 +53,21 @@ calfiletype = 'wavecal'
     wavcal = gpi_readfits(c_File,header=Header)
 
 
+; manual shifts of the wavecal for correcting flexure effects
+    directory = gpi_get_directory('calibrations_DIR') 
+
+  if file_test(directory+path_sep()+"shifts.fits") then begin
+                shifts=readfits(directory+path_sep()+"shifts.fits")
+                shiftx=float(shifts[0])
+                shifty=float(shifts[1])
+        endif else begin
+                shiftx=0.
+                shifty=0.
+        endelse
+        print, "Apply shifts",shiftx, shifty
+     wavcal[*,*,0]+=shifty
+     wavcal[*,*,1]+=shiftx       
+   
 ;    pmd_wavcalIntFrame     = ptr_new(READFITS(c_File, Header, EXT=1, /SILENT))
 ;    pmd_wavcalIntAuxFrame  = ptr_new(READFITS(c_File, Header, EXT=2, /SILENT))
 

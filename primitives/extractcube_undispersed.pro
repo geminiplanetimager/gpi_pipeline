@@ -39,6 +39,7 @@
 ;   Originally by James Larkin as extu.pro
 ;   2012-02-07 Pipelinified by Marshall Perrin
 ;   2012-03-30 Rotated by 90 deg to match spectral cube orientation. NaNs outside of FOV. - MP
+;   2013-03-08 JM: added manual shifts of the spot due to flexure
 ;-
 function extractcube_undispersed, DataSet, Modules, Backbone
 
@@ -70,6 +71,22 @@ xshf=float(Modules[thisModuleIndex].xshift)
 yshf=float(Modules[thisModuleIndex].yshift)
 ;xshf=-2.363
 ;yshf=-2.6134
+
+
+; manual shifts of the wavecal for correcting flexure effects
+    directory = gpi_get_directory('calibrations_DIR') 
+
+        if file_test(directory+path_sep()+"shifts.fits") then begin
+                shifts=readfits(directory+path_sep()+"shifts.fits")
+                shiftx=float(shifts[0])
+                shifty=float(shifts[1])
+        endif else begin
+                shiftx=0.
+                shifty=0.
+        endelse
+        
+        xshf+=shiftx
+        yshf+=shifty  
 
 ;; Center array
 ; Uncomment this section if you want the routine to try and adjust
