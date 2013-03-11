@@ -171,17 +171,22 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 		prism = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'DISPERSR', count=dispct) ))
 
 		if (dispct eq 0) or (strc(prism) eq '') then begin
-			message,/info, 'Missing or blank DISPERSR keyword!'
-			if widget_info(self.b_spectral_id,/button_set) then prism = 'PRISM'
-			if widget_info(self.b_undispersed_id,/button_set) then prism='WOLLASTON'
-			if widget_info(self.b_polarization_id,/button_set) then prism = 'OPEN'
+			message,/info, 'Missing or blank DISPERSR keyword! '
+		    prism = 'PRISM' ; this used to be user selectable but the keywords are now robust,
+							    ; so there is no need to clutter up the GUI with
+								; this option any more. 
+
+			;if widget_info(self.b_spectral_id,/button_set) then prism = 'PRISM'
+			;if widget_info(self.b_undispersed_id,/button_set) then prism='WOLLASTON'
+			;if widget_info(self.b_polarization_id,/button_set) then prism = 'OPEN'
 		endif
 
 		if ((prism ne 'PRISM') and (prism ne 'WOLLASTON') and (prism ne 'OPEN')) then begin
 			message,/info, 'Unknown DISPERSR: '+prism+". Must be one of {PRISM, WOLLASTON, OPEN} or their Gemini-style equivalents."
-			if widget_info(self.b_spectral_id,/button_set) then prism = 'PRISM'
-			if widget_info(self.b_undispersed_id,/button_set) then prism='WOLLASTON'
-			if widget_info(self.b_polarization_id,/button_set) then prism = 'OPEN'
+			;if widget_info(self.b_spectral_id,/button_set) then prism = 'PRISM'
+			;if widget_info(self.b_undispersed_id,/button_set) then prism='WOLLASTON'
+			;if widget_info(self.b_polarization_id,/button_set) then prism = 'OPEN'
+		    prism = 'PRISM' ; this used to be user selectable but see above note.
 			message,/info, 'Applying default setting instead: '+prism
 		endif
 
@@ -203,6 +208,34 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 	drf = obj_new('DRF', templatefile, parent=self,/silent)
 	drf->set_datafiles, filenames
 	drf->set_outputdir,/autodir
+
+
+	wupdate =  drf->find_module_by_name('Update Spot Shifts for Flexure', count)
+	if count ne 1 then begin
+		message,/info, "Can't find 'Update Spot Shifts for Flexure' primitive; can't apply settings."
+	endif else begin
+
+		drf->set_module_args, wupdate, method=self.flexure_mode
+		if self.flexure_mode eq 'Manual' then begin
+			widget_control, self.shiftx_id, get_value=shiftx
+			widget_control, self.shifty_id, get_value=shifty
+			drf->set_module_args, wupdate, method=self.flexure_mode, manual_dx=shiftx,  manual_dy=shifty
+		endif
+
+		; Handle flexure
+		;case self.flexure_mode of
+		;'None': begin
+		;	;; do nothing
+		;	end
+		;'Manual': begin
+		;	end
+		;'Lookup': begin
+		;	end
+		;'Auto': begin
+		;	end
+		;endcase
+	endelse
+
 
 
 	; generate a nice descriptive filename
@@ -291,13 +324,13 @@ pro automaticreducer::event, ev
 			self.alwaysexecute=widget_info(self.alwaysexecute_id,/button_set)
 		endif
 		
-    if uname eq 'changeshift' then begin
-        directory = gpi_get_directory('calibrations_DIR') 
-        widget_control, self.shiftx_id, get_value=shiftx
-        widget_control, self.shifty_id, get_value=shifty
-        writefits, directory+path_sep()+"shifts.fits", [float(shiftx),float(shifty)]
-     endif
-		
+		if uname eq 'changeshift' then begin
+			directory = gpi_get_directory('calibrations_DIR') 
+			widget_control, self.shiftx_id, get_value=shiftx
+			widget_control, self.shifty_id, get_value=shifty
+			writefits, directory+path_sep()+"shifts.fits", [float(shiftx),float(shifty)]
+		endif
+			
 		
 		if uname eq 'QUIT'    then begin
 			if confirm(group=ev.top,message='Are you sure you want to close the Automatic Reducer Parser GUI?',$
@@ -312,13 +345,13 @@ pro automaticreducer::event, ev
 			self->Log, 'Starting watching directory '+self.dirinit
 			widget_control, self.top_base, timer=1  ; Start off the timer events for updating at 1 Hz
 		endif
-                if uname eq 'Reprocess'    then begin
+        if uname eq 'Reprocess'    then begin
                    widget_control, self.listfile_id, get_uvalue=list_contents
                    ind=widget_INFO(self.listfile_id,/LIST_SELECT)
                    
                    if ind[0] eq -1 then begin
                                 ;error handling to prevent crash if someone selects 'reprocess
-;selection' prior to pressing start.
+								;selection' prior to pressing start.
                       message,/info, 'No files to reprocess. Press Start to load files in the directory being watched.'
                       ind=0
                    endif
@@ -357,8 +390,9 @@ pro automaticreducer::event, ev
 			widget_control, self.seqid, sensitive=1
         	ind=widget_info(self.seqid,/DROPLIST_SELECT)
 			self.user_template=((*self.templates).name)[ind]
-	
 		endif
+
+
 		
 
 	end 
@@ -386,6 +420,17 @@ pro automaticreducer::event, ev
 			print, self.templates[ind]
         	ind=widget_info(self.seqid,/DROPLIST_SELECT)
 			self.user_template=self.templates[ind]
+		endif
+		if uname eq 'select_flexure' then begin
+			widget_control, self.flex_type_id, sensitive=1
+        	ind=widget_info(self.flex_type_id,/DROPLIST_SELECT)
+
+			; enable DX and DY fields only if manual mode is selected
+			wids = [self.label_dx_id, self.label_dy_id, self.shiftx_id, self.shifty_id]
+			for i=0,3 do widget_control, wids[i], sensitive=(ind eq 1)
+			modes = ['None','Manual', 'Lookup',  'Auto']
+			self.flexure_mode = modes[ind]
+			print, "Flexure handling mode is now "+self.flexure_mode
 		endif
 
 	end
@@ -469,19 +514,19 @@ function automaticreducer::init, groupleader, _extra=_extra
 		uvalue='select_template',resource_name='XmDroplistButton', sensitive=0)
 
 
-	base_dir = widget_base(self.top_base, /row)
-	void = WIDGET_LABEL(base_dir,Value='Default disperser if missing keyword:')
-	parsebase = Widget_Base(base_dir, ROW=1 ,/EXCLUSIVE, frame=0)
-	self.b_spectral_id =    Widget_Button(parsebase, UNAME='Spectral'  $
-	        ,/ALIGN_LEFT ,VALUE='Spectral',/tracking_events)
-	self.b_undispersed_id =    Widget_Button(parsebase, UNAME='Undispersed'  $
-	        ,/ALIGN_LEFT ,VALUE='Undispersed',/tracking_events, sensitive=1)
-	self.b_polarization_id =    Widget_Button(parsebase, UNAME='Polarization'  $
-	        ,/ALIGN_LEFT ,VALUE='Polarization',/tracking_events, sensitive=1)
-	
-	widget_control, self.b_undispersed_id, /set_button 
+;	base_dir = widget_base(self.top_base, /row)
+;	void = WIDGET_LABEL(base_dir,Value='Default disperser if missing keyword:')
+;	parsebase = Widget_Base(base_dir, ROW=1 ,/EXCLUSIVE, frame=0)
+;	self.b_spectral_id =    Widget_Button(parsebase, UNAME='Spectral'  $
+;	        ,/ALIGN_LEFT ,VALUE='Spectral',/tracking_events)
+;	self.b_undispersed_id =    Widget_Button(parsebase, UNAME='Undispersed'  $
+;	        ,/ALIGN_LEFT ,VALUE='Undispersed',/tracking_events, sensitive=1)
+;	self.b_polarization_id =    Widget_Button(parsebase, UNAME='Polarization'  $
+;	        ,/ALIGN_LEFT ,VALUE='Polarization',/tracking_events, sensitive=1)
+;	
+;	widget_control, self.b_undispersed_id, /set_button 
   
-          directory = gpi_get_directory('calibrations_DIR') 
+        directory = gpi_get_directory('calibrations_DIR') 
 
         if file_test(directory+path_sep()+"shifts.fits") then begin
                 shifts=readfits(directory+path_sep()+"shifts.fits")
@@ -493,15 +538,24 @@ function automaticreducer::init, groupleader, _extra=_extra
         endelse
   
   flexurebase = widget_base(self.top_base, /row)
-  void = Widget_Label(flexurebase ,/ALIGN_LEFT ,VALUE='     Applying wavecal shift DX: ')
+
+  if !version.os eq 'darwin' then ysize=30 else ysize=24
+
+  self.flex_type_id = WIDGET_DROPLIST(flexurebase, title='Flexure handling:', frame=0, Value=['None','Manual', 'Lookup', 'Auto'], $
+		uname='select_flexure',resource_name='XmDroplistButton', sensitive=1,/tracking_events)
+  widget_control, self.flex_type_id, set_droplist_select=1
+  self.flexure_mode = 'Manual'
+
+
+  self.label_dx_id = Widget_Label(flexurebase ,/ALIGN_LEFT ,VALUE='DX: ')
   self.shiftx_id = Widget_Text(flexurebase, UNAME='WID_DX'  $
-                              ,SCR_XSIZE=56 ,SCR_YSIZE=24  $
+                              ,SCR_XSIZE=56 ,SCR_YSIZE=ysize  $
                               ,SENSITIVE=1 ,XSIZE=20 ,YSIZE=1, value=shiftx, EDITABLE=1)
-  void = Widget_Label(flexurebase ,/ALIGN_LEFT ,VALUE=' DY: ')
+  self.label_dy_id = Widget_Label(flexurebase ,/ALIGN_LEFT ,VALUE=' DY: ')
   self.shifty_id = Widget_Text(flexurebase, UNAME='WID_DY'  $
-                                ,SCR_XSIZE=56 ,SCR_YSIZE=24  $
+                                ,SCR_XSIZE=56 ,SCR_YSIZE=ysize  $
                                 ,SENSITIVE=1 ,XSIZE=20 ,YSIZE=1, value=shifty, EDITABLE=1)
-  button2_id = WIDGET_BUTTON(flexurebase,Value='Apply new shifts',Uname='changeshift',/align_right,/tracking_events)
+  ;button2_id = WIDGET_BUTTON(flexurebase,Value='Apply new shifts',Uname='changeshift',/align_right,/tracking_events)
 
 	gpitvbase = Widget_Base(self.top_base, UNAME='alwaysexebase' ,ROW=1 ,/NONEXCLUSIVE, frame=0)
 	self.view_in_gpitv_id =    Widget_Button(gpitvbase, UNAME='view_in_gpitv'  $
@@ -573,11 +627,15 @@ stateF={  automaticreducer, $
     parseall_id :0L,$
 	b_simple_id :0L,$
 	b_full_id :0L,$
-	b_spectral_id :0L,$
-	b_undispersed_id :0L,$
-	b_polarization_id :0L,$
+	;b_spectral_id :0L,$
+	;b_undispersed_id :0L,$
+	;b_polarization_id :0L,$
+	label_dx_id:0L,$
+	label_dy_id:0L,$
 	shiftx_id:0L,$
 	shifty_id:0L,$
+	flex_type_id:0L,$
+	flexure_mode: '', $
 	watchdir_id: 0L, $   ; widget ID for directory label display
 	start_id: 0L, $		; widget ID for start parsing button
 	view_in_gpitv_id: 0L, $

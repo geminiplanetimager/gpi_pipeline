@@ -1924,7 +1924,7 @@ function drfgui::init_widgets, _extra=_Extra, session=session
                   {cw_pdmenu_s, 1, 'File'}, $ ; file menu;
                   {cw_pdmenu_s, 0, 'Open Recipe including Data...'}, $
                   {cw_pdmenu_s, 0, 'Open Recipe discarding data...'}, $
-                  {cw_pdmenu_s, 0, 'Save Recipe As...'}, $
+                  {cw_pdmenu_s, 0, 'Save Recipe as...'}, $
                   {cw_pdmenu_s, 0, 'Create Recipe Template and Save as...'}, $
                   {cw_pdmenu_s, 2, 'Quit Recipe Editor'}, $
                   {cw_pdmenu_s, 1, 'Options'}, $

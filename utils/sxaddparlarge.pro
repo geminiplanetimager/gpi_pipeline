@@ -41,7 +41,7 @@ pro sxaddparlarge, Header, Name, Value
           SXADDPAR, header, Name, Value
         ENDIF ELSE BEGIN
           ; Figure out how many 80 character strings there are in the current string
-          clen = STRLEN(Value)
+          clen = (STRLEN(Value))[0]
           n = (clen/72) + 1
           FOR j=0, n-1 DO BEGIN
             newsubstring = STRMID(Value, j*72, 72)

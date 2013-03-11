@@ -110,8 +110,41 @@ end
 ;end
 ;
 ;--------------------------------------------------------------------------------
-pro drf::set_module_args, modnum, arginfo
-	stop
+pro drf::set_module_args, modnum, verbose=verbose, _extra=arginfo
+	; this code is convoluted for various historical reasons. 
+	;
+	; Set the arguments for a given module
+	drf_contents = self->get_contents()
+
+	; look up from the DRS config file what the allowed arguments of this module
+	; are
+	module_number = where((*self.ConfigDRS).names eq (drf_contents.modules[modnum]).name, count) ; index of the module *in the config file!*
+	if count ne 1 then begin
+		message, /info, "ERROR: Can't lookup requested module from the primitives config file. Can't set arguments."
+		return
+	endif
+
+	module_argument_indices = where(   ((*self.ConfigDRS).argmodnum) eq module_number[0]+1, count)
+
+	module_argument_names=((*self.ConfigDRS).argname)[module_argument_indices]
+	if keyword_set(verbose) then print,  "ARGS: ", module_argument_names
+
+	newargnames = tag_names(arginfo)
+	for i=0,n_elements(newargnames)-1 do begin
+		if keyword_set(verbose) then print, newargnames[i], arginfo.(i)
+
+		wm = where(strupcase(module_argument_names) eq newargnames[i], mct)
+		if mct eq 0 then begin
+			message,/info, "Not a valid argument for that primitive: "+newargnames[i]
+			stop
+		endif else begin
+			if keyword_set(verbose) then message,/info, "Setting argument "+strc(wm)+" to value = "+strc(arginfo.(i))
+			self.parsed_drf->set_module_argument, modnum, newargnames[i],  arginfo.(i)
+		endelse
+
+	endfor
+
+
 end
 ;-------------
 
@@ -390,6 +423,15 @@ function drf::init, filename, parent_object=parent_object,silent=silent,quick=qu
 	self.reductiontype = drf_summary.reductiontype
 
 	return, 1
+end
+
+;--------------------------------------------------------------------------------
+
+function drf::find_module_by_name, modulename, count
+	modules = (self->get_contents()).modules
+	wm = where(modules.name eq modulename, count)
+	return, wm
+
 end
 
 ;--------------------------------------------------------------------------------

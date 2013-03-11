@@ -329,12 +329,13 @@ end
 ;
 ;  Uses the launcher mechanism to communicate between IDL sessions
 
-PRO gpiPipelineBackbone::gpitv, filename_or_data, session=session, header=header, _extra=_extra
+PRO gpiPipelineBackbone::gpitv, filename_or_data, session=session, header=header, extheader=extheader, _extra=_extra
 
     if obj_valid(self.launcher) then begin
 
         if size(filename_or_data,/TNAME) ne 'STRING' then begin
             ; user provided an array - need to write it to a temp file on disk
+			data = filename_or_data
             tmppath = getenv('IDL_TMPDIR')
 			if file_test(tmppath, /write) then begin
 				if strmid(tmppath, strlen(tmppath)-1) ne path_sep() then tmppath +=path_sep()  ; be careful if path sep char is on the end already or not
@@ -361,7 +362,10 @@ PRO gpiPipelineBackbone::gpitv, filename_or_data, session=session, header=header
 					endif
 				endif 
 
-				writefits, tempfile, filename_or_data, header
+				writefits, tempfile, [0], header
+				writefits, tempfile, data, extheader,/append
+
+				self->Log, "Sending data to be displayed in GPITV via temp file= "+tempfile
 				CATCH, /CANCEL
 				self.TempFileNumber=i ; save last used temp file # for starting point next time this gets called
 				self.launcher->queue, 'gpitv', filename=tempfile, session=session, _extra=_extra

@@ -50,7 +50,7 @@ scidata_info = gpi_load_fits(datafile)
 
 
 
-gpitv, *scidata_info.image, header=*scidata_info.pri_header, dispwavcalgrid = newcalfile
+gpitv, *scidata_info.image, header=*scidata_info.pri_header, dispwavecalgrid = newcalfile
 
 
 end

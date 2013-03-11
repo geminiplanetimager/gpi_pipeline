@@ -124,6 +124,18 @@ function gpidrfparser::get_contents
 end
 ;
 ;------------------------------------------------------------
+pro gpidrfparser::set_module_argument, modnum, argname, value
+	all_arg_names = tag_names( (*self.modules)[modnum])
+
+	warg = where(strupcase(argname) eq all_arg_names, mct)
+	if mct ne 1 then message, 'Could not find argument '+argname+" for module number "+string(modnum)
+
+	(*self.modules)[modnum].(warg[0]) = string(value)
+
+
+end
+
+;------------------------------------------------------------
 PRO gpidrfparser::free_dataset_pointers
 
 	; Free any data which are currently read into memory

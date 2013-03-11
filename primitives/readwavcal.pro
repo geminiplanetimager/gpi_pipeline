@@ -56,20 +56,16 @@ calfiletype = 'wavecal'
 ; manual shifts of the wavecal for correcting flexure effects
     directory = gpi_get_directory('calibrations_DIR') 
 
-  if file_test(directory+path_sep()+"shifts.fits") then begin
-                shifts=readfits(directory+path_sep()+"shifts.fits")
-                shiftx=float(shifts[0])
-                shifty=float(shifts[1])
-        endif else begin
-                shiftx=0.
-                shifty=0.
-        endelse
+  ;if file_test(directory+path_sep()+"shifts.fits") then begin
+                ;shifts=readfits(directory+path_sep()+"shifts.fits")
+                ;shiftx=float(shifts[0])
+                ;shifty=float(shifts[1])
+        ;endif else begin
+                ;shiftx=0.
+                ;shifty=0.
+        ;endelse
         
-     wavcal[*,*,0]+=shifty
-     wavcal[*,*,1]+=shiftx       
-         backbone->set_keyword, "HISTORY", functionname+"Manual wavecal shift dx: "+strc(shiftx,format="(f7.2)"),ext_num=0
-       backbone->set_keyword, "HISTORY", functionname+"Manual wavecal shift dy: "+strc(shifty,format="(f7.2)"),ext_num=0
- 
+
 ;    pmd_wavcalIntFrame     = ptr_new(READFITS(c_File, Header, EXT=1, /SILENT))
 ;    pmd_wavcalIntAuxFrame  = ptr_new(READFITS(c_File, Header, EXT=2, /SILENT))
 
@@ -78,6 +74,7 @@ calfiletype = 'wavecal'
 ;    sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
 backbone->set_keyword, "HISTORY", functionname+": get wav. calibration file",ext_num=0
 backbone->set_keyword, "HISTORY", functionname+": "+c_File,ext_num=0
+
 backbone->set_keyword, "DRPWVCLF", c_File, "DRP wavelength calibration file used.", ext_num=0
 
 @__end_primitive 
