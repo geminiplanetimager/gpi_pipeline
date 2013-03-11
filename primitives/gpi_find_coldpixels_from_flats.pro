@@ -93,7 +93,11 @@ functionname='coldpixels_from_flat' ; brevity is the soul of wit...
 			return, error('FAILURE ('+functionName+'): Too few files supplied. We need at least one flat for every filter, and could not find one for '+filter_names[i])
 		endif
 		backbone->Log, "Found "+strc(mct)+" flat files for filter="+filter_names[i], depth=3
-		combinations[*,*,i] = total( imtab[*,*, wm],3) / mct
+		if mct eq 1 then begin
+			combinations[*,*,i] = imtab[*,*, wm]
+		endif else begin
+			combinations[*,*,i] = total( imtab[*,*, wm],3) / mct
+		endelse
 		combinations[*,*,i] /= median(combinations[*,*,i])
 
 	endfor
@@ -125,6 +129,17 @@ functionname='coldpixels_from_flat' ; brevity is the soul of wit...
 
 
 	maskcoldpix = (allfilts/refpattern) le 0.15 
+
+	
+	; mask out ref pix
+	maskcoldpix[0:3,*] = 0
+	maskcoldpix[*,0:3] = 0
+	maskcoldpix[2043:2047,*] = 0
+	maskcoldpix[*,2043:2047] = 0
+
+
+	atv, [[[allfilts]],[[refpattern]],[[allfilts/refpattern]],[[maskcoldpix]]],/bl
+	stop
 
 
     ;backbone->Log, 'Estimated read noise='+sigfig(rdnoise,4)+'cts  from stddev across '+strc(nfiles)+' darks.', depth=3

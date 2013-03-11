@@ -121,7 +121,7 @@ functionname='hotpixels_from_dark' ; brevity is the soul of wit...
     imtab[*,2044:2047] = !values.f_nan
 
     stddev2 = stddev(imtab,/nan) ; this std dev should be less biased
-    rdnoise=stddev2
+    rdnoise=stddev2[0]
     backbone->Log, 'Estimated read noise='+sigfig(rdnoise,4)+'cts  from stddev across '+strc(nfiles)+' darks.', depth=3
 	backbone->set_keyword, 'HISTORY', functionname+":   Estimating read noise comparing all files: ",ext_num=0
 	backbone->set_keyword, 'HISTORY', functionname+":      rdnoise = stddev(dark_i-combined_dark) = "+sigfig(rdnoise,4),ext_num=0
