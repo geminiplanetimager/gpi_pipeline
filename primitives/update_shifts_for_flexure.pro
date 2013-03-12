@@ -20,9 +20,99 @@
 ; HISTORY:
 ;   2013-03-08 MP: Started based on extractcube
 ;-
+
+
+function update_shifts_for_flexure_auto_optimize, det, wavcal, filter, coarse=coarse, guess=guess, nsteps=nsteps
+
+	if keyword_set(coarse) then begin
+		xsteps = [    -1, -0.5, 0, 0.5,  1]
+		ysteps = [-3, -2.5, -2, -1, -0.5, 0, 0.5 ]
+	endif else begin
+		if ~(keyword_set(nsteps)) then nsteps=5
+		if ~(keyword_set(guess)) then guess=[0,0]
+		xsteps = findgen(nsteps)/(nsteps-1)-0.5 + guess[0]
+		ysteps = findgen(nsteps)/(nsteps-1)-0.5 + guess[1]
+	endelse
+
+
+	dim = (size(det))[1]
+
+	mask2D = fltarr(dim,dim)
+	
+	cwv = get_cwv(filter)
+	lmin = cwv.commonwavvect[0]
+	lmax = cwv.commonwavvect[1]
+	nl   = fix(cwv.commonwavvect[2])
+
+	;xsteps = [-2,-1.5, -0.5, -1, 0, 0.5, 1, 1.5, 2]
+	;ysteps = [-2, -1, 0, 1, 2]
+
+
+	mask_traces = fltarr(dim,dim, n_elements(xsteps), n_elements(ysteps))
+
+	xcors = fltarr(n_elements(xsteps), n_elements(ysteps))
+
+
+	;mask_trace_noshifts = fltarr(dim,dim)
+
+	; We compute here basically a brute-force cross-correlation. We do this
+	; because we are cross-correlating against not an image array, but
+	; instead a mask computed from an analytic wavelength solution, and this 
+	; way is more precise due to avoiding shifting after pixel quantization 
+
+	nsteps = n_elements(ysteps)*n_elements(xsteps)
+	reflam = median(wavcal[*,*,2])
+	for iy =0,n_elements(ysteps)-1 do begin
+	for ix =0,n_elements(xsteps)-1 do begin
+		statusline, "Testing "+strc( ix+1+ n_elements(xsteps)*iy)+"/"+strc(nsteps)
+		mask_trace = fltarr(dim,dim)
+
+		for i=0,nl-1,2 do begin
+			lam = cwv.lambda[i]
+			dlam_pix = (lam - reflam) / wavcal[*,*,3]
+			;print, "wavelen:", lam, median(dlam_pix)
+			X = wavcal[*,*,1] + dlam_pix * sin(wavcal[*,*,4])
+			Y = wavcal[*,*,0] - dlam_pix * cos(wavcal[*,*,4])
+
+			wg = where(finite(x) and finite(y))
+			Xg = X[wg]
+			Yg = Y[wg]
+			;mask_trace_noshifts[round(Xg),round(Yg)] += 1  ; Be sure to round here not truncate!
+				;print, iy, ix
+				;mask_trace = dblarr(dim,dim)
+			mask_trace[round(Xg+xsteps[ix]),round(Yg+ysteps[iy])] += 1  ; Be sure to round here not truncate!
+				;mask_traces[round(X+xsteps[ix]),round(Y+ysteps[iy]),ix,iy] += 1
+		end
+		mask_traces[0,0,ix,iy] = (mask_trace ne 0) ; ignore multiple pixels set high
+
+		xcors[ix,iy] = total(mask_trace*det)
+	endfor
+	endfor
+
+	;atv, reform(mask_traces, dim,dim,  n_elements(xsteps)*n_elements(ysteps)),/bl
+
+	window, 0
+	imdisp, xcors,/axis
+	whereismax, xcors, mx, my,/silent
+	shiftx = xsteps[mx]
+	shifty = ysteps[my]
+	print, "Estimated shifts : "+strc(shiftx)+", "+strc(Shifty)
+
+	return, [shiftx, shifty]
+
+end
+
+
+
 function update_shifts_for_flexure, DataSet, Modules, Backbone
 primitive_version= '$Id: extractcube.pro 1175 2013-01-17 06:48:58Z mperrin $' ; get version from subversion to store in header history
 @__start_primitive
+
+
+	COMMON flexure_shifts_common, last_elevation, last_mjd, last_shifts
+		; for the last modeled file: the elevation, MJD, and shifts used are
+		; kept in a common block for efficient starting guess when processing
+		; a file similar in time for the automatic mode. Ignored otherwise.
 
 
   ;get the 2D detector image
@@ -67,47 +157,97 @@ primitive_version= '$Id: extractcube.pro 1175 2013-01-17 06:48:58Z mperrin $' ; 
 		if (filter eq '') then return, error('FAILURE ('+functionName+'): IFSFILT keyword not found.') 
 		
 		;get length of spectrum
-		sdpx = calc_sdpx(wavcal, filter, spectra_startys, CommonWavVect)
+		sdpx = calc_sdpx(wavcal, filter, spectra_startys, CommonWavVect, spectra_stopys)
 		if (sdpx < 0) then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
 		
+
+		backbone->Log, "Generating spectra traces to scan for flexure shifts"
+
+		my_elevation =  backbone->get_keyword('ELEVATIO', count=ct)
+		my_mjd = backbone->get_keyword('MJD-OBS', count=ct)
+		if my_mjd eq 0.0 then begin
+			; work around broken GDS config
+			my_mjd = date_conv( backbone->get_keyword('DATE-OBS')+" "+backbone->get_keyword('UTSTART'),'M')
+		endif
+
+		; if within 5 degrees and 10 minutes of prior exposure, re-use from last
+		; starting guess
+
+		if n_elements(last_elevation) ne 0 and n_elements(last_mjd) ne 0 then $
+			if (last_elevation - my_elevation) lt 5 and (last_mjd - my_mjd) lt 1./24/6 then reuse_last=1
+		
+		
+		if keyword_set(reuse_last) then begin
+			shifts = last_shifts
+			backbone->Log, "Using last image's shifts as a starting guess: "+strc(shifts[0])+", "+strc(shifts[1])
+
+		endif else begin
+			backbone->Log, "Making a first coarse estimate of shifts"
+			shifts = update_shifts_for_flexure_auto_optimize(det, wavcal, filter, /coarse)
+			backbone->Log, "Coarse shift estimate = "+strc(shifts[0])+", "+strc(shifts[1])
+		endelse
+
+		backbone->Log, "Refining estimate of shifts"
+		fineshifts = update_shifts_for_flexure_auto_optimize(det, wavcal, filter, guess=shifts)
+
+		shiftx = fineshifts[0]
+		shifty = fineshifts[1]
 		;get tilts of the spectra included in the wavelength solution:
-		tilt=wavcal[*,*,4]
+		;tilt=wavcal[*,*,4]
 		
 		; Create a simple 2D image showing the 'trace' of each spectrum
-		mask2D = fltarr(dim,dim)
-		
-		for i=0,sdpx-1 do begin       
-		 ;through spaxels
-		 cubef=dblarr(nlens,nlens) 
-		 ;get the locations on the image where intensities will be extracted:
-		 y3=spectra_startys-i
-		 x3=wavcal[*,*,1]+(wavcal[*,*,0]-x3)*tan(tilt[*,*])	
-		
-		 ;extract intensities on a 3x1 box:
-		 ;cubef=det[y3,x3]+det[y3+1,x3]+det[y3-1,x3]
-		 mask2D[x3,y3] = 1
-		endfor
-		
-		
-		; now let's cross-correlate the central part of that mask with the
-		; central part of the datacube
-		cx = 1024
-		cy = 1024
-		
-		hbx = 256 ; half box size
-		
-		cen_mask = mask2D[ cx-hbx:cx+hbx-1, cy-hbx:cy+hbx-1]
-		cen_det  =    det[ cx-hbx:cx+hbx-1, cy-hbx:cy+hbx-1]
-		
-		cor = convolve(cen_mask,cen_det,/correlate)
-		findmaxstar,cor,xi,yi,/silent       ; get rough center
-		mrecenter,cor,xi,yi,x,y,/silent,/nodisp  ; get fine center
-		
-		shiftx = hbx - x
-		shifty = hbx - y
+		;stop
+
+;		for i=0,sdpx-1 do begin       
+;      		 ;through spaxels
+;      		 cubef=dblarr(nlens,nlens) 
+;      		 ;get the locations on the image where intensities will be extracted:
+;      		 y3=spectra_startys-i
+;
+;      		 x3=wavcal[*,*,1]+(wavcal[*,*,0]-y3)*tan(tilt[*,*])	
+;      		
+;			 wg = where(y3 gt spectra_stopys, goodct)
+;			 ; mark pixels that will be used in the extraction
+;      		 if goodct gt 0 then mask2D[x3[wg],y3[wg]] = 1
+;		endfor
+;		
+;		
+;		; now let's cross-correlate the central part of that mask with the
+;		; central part of the datacube
+;		cx = 1024
+;		cy = 1024
+;		
+;		hbx = 256 ; half box size
+;		
+;		cen_mask = mask2D[ cx-hbx:cx+hbx-1, cy-hbx:cy+hbx-1]
+;		cen_det  =    det[ cx-hbx:cx+hbx-1, cy-hbx:cy+hbx-1]
+;		
+;		cor = convolve(cen_mask,cen_det,/correlate)
+;
+;		; let's assume the total shift must be <4 pixels absolute in any
+;		; direction
+;		maxshift=4
+;		cor_middle = cor[ hbx-maxshift:hbx+maxshift, hbx-maxshift:hbx+maxshift]
+;
+;		findmaxstar,cor_middle,xi,yi,/silent       ; get rough center
+;		mrecenter,cor_middle,xi,yi,x,y,/silent,/nodisp  ; get fine center
+;		
+;		shiftx = maxshift - x
+;		shifty = maxshift - y
+
 		backbone->set_keyword, 'SPOT_DX', shiftx, 'Measured X shift inferred for flexure'
 		backbone->set_keyword, 'SPOT_DY', shifty, 'Measured Y shift inferred for flexure'
+		backbone->Log, "Via cross correlation estimated shifts to be "+strc(shiftx)+", "+strc(shifty)
 	
+		
+
+		; Save the measured/estimated shifts for use in processing subsequent
+		; files.  Only do this for automatic mode - there is no benefit to
+		; saving manual or lookup table shifts. 
+		last_elevation =  my_elevation
+		last_mjd = my_mjd
+		last_shifts = [shiftx, shifty]
+
 	end
 	endcase
 
@@ -121,16 +261,24 @@ primitive_version= '$Id: extractcube.pro 1175 2013-01-17 06:48:58Z mperrin $' ; 
     backbone->set_keyword, "HISTORY", functionname+": wavecal shift dx: "+strc(shiftx,format="(f7.2)")
     backbone->set_keyword, "HISTORY", functionname+": wavecal shift dy: "+strc(shifty,format="(f7.2)")
 
+
+
+
 	; special handle the gpitv display here - display the 2D image with wavecal
 	; overplotted and this will include the shifts
 	if tag_exist( Modules[thisModuleIndex], "gpitv") then begin
 		display=fix(Modules[thisModuleIndex].gpitv) 
 		if display ne 0 then begin
-			wavecalfilename =  backbone->get_keyword('DRPWVCLF') 
+			prism = gpi_simplify_keyword_value(backbone->get_keyword('DISPERSR'))
+			case prism of
+			'PRISM': calfilename =  backbone->get_keyword('DRPWVCLF') 
+			'WOLLASTON': calfilename =  backbone->get_keyword('DRPPOLCF') 
+			endcase
+
 			backbone_comm->gpitv, *dataset.currframe , session=display, $
 				header=*(dataset.headersPHU)[numfile],  $
 				extheader=*(dataset.headersEXT)[numfile], $ 
-				dispwavecalgrid=wavecalfilename
+				dispwavecalgrid=calfilename
 
 			; disable gpitv flag to prevent regular gpitv displaying in
 			; @__end_primitive

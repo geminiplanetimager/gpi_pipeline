@@ -16,7 +16,7 @@
 ;   		"xmini" -> "spectra_lambdamin_y", "xdiff" -> "ydiff"
 ;-
 
-function calc_sdpx, wavcal, filter, spectra_lambdamin_y, CommonWavVect
+function calc_sdpx, wavcal, filter, spectra_lambdamin_y, CommonWavVect, spectra_lambdamax_y
 
   ; get lambda min and max
   cwv = get_cwv(filter)
