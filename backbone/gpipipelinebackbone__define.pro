@@ -601,6 +601,8 @@ FUNCTION gpiPipelineBackbone::Reduce
         self->Log, 'Reducing file: ' + (*self.Data).fileNames[IndexFrame], depth=1
         if obj_valid(self.statuswindow) then self.statuswindow->Set_FITS, (*self.Data).fileNames[IndexFrame], number=indexframe,nbtot=(*self.Data).validframecount
 
+        numfile=IndexFrame ; store the index in the common block
+
 
 
         ;--- Read in the file 
@@ -609,8 +611,6 @@ FUNCTION gpiPipelineBackbone::Reduce
             self->Log, "ERROR: Unable to load file "+strc(indexFrame)
             return, NOT_OK
         endif
-
-        numfile=IndexFrame ; store the index in the common block
 
 		suffix=''
 
@@ -725,6 +725,9 @@ FUNCTION gpiPipelineBackbone::load_FITS_file, indexFrame
     ; is required. 
     ;SXADDPAR, *(*self.data).HeadersExt[IndexFrame], "END",''        
     
+	self->set_keyword, "HISTORY", "Reduction with GPI Data Pipeline version "+gpi_pipeline_version()
+	self->set_keyword, "HISTORY", "  Started On " + SYSTIME(0)
+	self->set_keyword, "HISTORY", "  User: "+getenv('USER')+ "      Hostname: "+getenv('HOST')
     return, OK
 end
 

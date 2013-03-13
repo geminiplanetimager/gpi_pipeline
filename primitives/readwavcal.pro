@@ -37,45 +37,15 @@ calfiletype = 'wavecal'
 
 
     ;open the wavecal file:
-    ;rmq: pmd_wavcalFrame not used after...
-;    fits_info, c_File, n_ext=n_ext
-;    if n_ext eq 0 then begin
-;      if ~ptr_valid(pmd_wavcalFrame) then $
-;      pmd_wavcalFrame        = ptr_new(READFITS(c_File, Header, /SILENT)) else $
-;      *pmd_wavcalFrame = READFITS(c_File, Header, /SILENT)
-;    endif else begin
-;      if ~ptr_valid(pmd_wavcalFrame) then $
-;      pmd_wavcalFrame        = ptr_new(MRDFITS(c_File, 1, Header, /SILENT)) else $
-;      *pmd_wavcalFrame = MRDFITS(c_File, 1, Header, /SILENT)      
-;    endelse
-;    wavcal=*pmd_wavcalFrame
-;    ptr_free, pmd_wavcalFrame
     wavcal = gpi_readfits(c_File,header=Header)
 
 
-; manual shifts of the wavecal for correcting flexure effects
-    directory = gpi_get_directory('calibrations_DIR') 
-
-  ;if file_test(directory+path_sep()+"shifts.fits") then begin
-                ;shifts=readfits(directory+path_sep()+"shifts.fits")
-                ;shiftx=float(shifts[0])
-                ;shifty=float(shifts[1])
-        ;endif else begin
-                ;shiftx=0.
-                ;shifty=0.
-        ;endelse
-        
-
-;    pmd_wavcalIntFrame     = ptr_new(READFITS(c_File, Header, EXT=1, /SILENT))
-;    pmd_wavcalIntAuxFrame  = ptr_new(READFITS(c_File, Header, EXT=2, /SILENT))
-
     ;update header:
-;    sxaddhist, functionname+": get wav. calibration file", *(dataset.headers[numfile])
-;    sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
-backbone->set_keyword, "HISTORY", functionname+": get wav. calibration file",ext_num=0
-backbone->set_keyword, "HISTORY", functionname+": "+c_File,ext_num=0
+    ;sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
+	backbone->set_keyword, "HISTORY", functionname+": get wav. calibration file",ext_num=0
+	backbone->set_keyword, "HISTORY", functionname+": "+c_File,ext_num=0
 
-backbone->set_keyword, "DRPWVCLF", c_File, "DRP wavelength calibration file used.", ext_num=0
+	backbone->set_keyword, "DRPWVCLF", c_File, "DRP wavelength calibration file used.", ext_num=0
 
 @__end_primitive 
 

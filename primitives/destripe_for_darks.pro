@@ -36,9 +36,9 @@ function destripe_for_darks, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
- 	if tag_exist( Modules[thisModuleIndex], "before_and_after") then before_and_after=fix(Modules[thisModuleIndex].before_and_after) else before_and_after=0
- 	if tag_exist( Modules[thisModuleIndex], "remove_microphonics") then remove_microphonics=fix(Modules[thisModuleIndex].remove_microphonics) else remove_microphonics='yes'
- 	if tag_exist( Modules[thisModuleIndex], "remove_microphonics_display") then remove_microphonics_display=fix(Modules[thisModuleIndex].remove_microphonics_display) else remove_microphonics_display='no'
+ 	;if tag_exist( Modules[thisModuleIndex], "before_and_after") then before_and_after=fix(Modules[thisModuleIndex].before_and_after) else before_and_after=0
+ 	if tag_exist( Modules[thisModuleIndex], "remove_microphonics") then remove_microphonics=Modules[thisModuleIndex].remove_microphonics else remove_microphonics='yes'
+ 	if tag_exist( Modules[thisModuleIndex], "remove_microphonics_display") then remove_microphonics_display=Modules[thisModuleIndex].remove_microphonics_display else remove_microphonics_display='yes'
 
 	im =  *(dataset.currframe[0])
 
@@ -49,6 +49,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     endif
 
 
+	backbone->Log, "Removing horizontal stripes based on median across channels.",depth=2
 	; Chop the image into the 32 readout channels. 
 	; Flip every other channel to account for the readout direction
 	; alternating for the H2RG
@@ -71,7 +72,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	backbone->set_keyword, "HISTORY", "This had better be a dark frame or else it's probably messed up now."
 
 	if strlowcase(remove_microphonics) eq 'yes' then begin
-		backbone->Log, "Fourier filtering to remove microphonics noise."
+		backbone->Log, "Fourier filtering to remove microphonics noise.",depth=2
 		; first we want to mask out all the hot/cold pixels so they don't bias
 		; the FFT below
 		smoothed = median(imout,5)
@@ -96,12 +97,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		;atv, [[[imout]],[[smoothed]],[[imout-microphonics_model]]],/bl
 		;stop
 
-		if strlowcase(remove_microphonics_plots) eq 'yes' then begin
+		if strlowcase(remove_microphonics_display) eq 'yes' then begin
 			if numfile eq 0 then window,0
 			!p.multi=[0,3,1]
-			imdisp, imout, /axis, range=[-10,40], title='Destriped', charsize=2
-			imdisp, microphonics_model, /axis, range=[-10,40],title="Microphonics model", charsize=2
-			imdisp, imout-microphonics_model, /axis, range=[-10,40], title="Destriped and de-microphonicsed", charsize=2
+			imdisp, imout, /axis, range=[-10,20], title='Destriped', charsize=2
+			imdisp, microphonics_model, /axis, range=[-10,20],title="Microphonics model", charsize=2
+			imdisp, imout-microphonics_model, /axis, range=[-10,20], title="Destriped and de-microphonicsed", charsize=2
 		endif
 
 		imout -= microphonics_model
