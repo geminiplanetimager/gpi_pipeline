@@ -20,6 +20,8 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display " 
 ; PIPELINE ARGUMENT: Name="before_and_after" Type="int" Range="[0,1]" Default="0" Desc="Show the before-and-after images for the user to see? (for debugging/testing)"
+; PIPELINE ARGUMENT: Name="remove_microphonics" Type="string" Range="[yes|no]" Default="yes" Desc='Attempt to remove microphonics noise via Fourier filtering?'
+; PIPELINE ARGUMENT: Name="remove_microphonics_display" Type="string" Range="[yes|no]" Default="no" Desc='Show diagnostic plots if removing microphonics?'
 ; PIPELINE ORDER: 1.3
 ; PIPELINE NEWTYPE: ALL
 ; PIPELINE TYPE: ALL
@@ -35,6 +37,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 @__start_primitive
 
  	if tag_exist( Modules[thisModuleIndex], "before_and_after") then before_and_after=fix(Modules[thisModuleIndex].before_and_after) else before_and_after=0
+ 	if tag_exist( Modules[thisModuleIndex], "remove_microphonics") then remove_microphonics=fix(Modules[thisModuleIndex].remove_microphonics) else remove_microphonics='yes'
+ 	if tag_exist( Modules[thisModuleIndex], "remove_microphonics_display") then remove_microphonics_display=fix(Modules[thisModuleIndex].remove_microphonics_display) else remove_microphonics_display='no'
 
 	im =  *(dataset.currframe[0])
 
@@ -63,9 +67,49 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 
     imout = im - stripes
-    
 	backbone->set_keyword, "HISTORY", "Destriped, using aggressive algorithm assuming no signal in image"
 	backbone->set_keyword, "HISTORY", "This had better be a dark frame or else it's probably messed up now."
+
+	if strlowcase(remove_microphonics) eq 'yes' then begin
+		backbone->Log, "Fourier filtering to remove microphonics noise."
+		; first we want to mask out all the hot/cold pixels so they don't bias
+		; the FFT below
+		smoothed = median(imout,5)
+		diffim = imout - smoothed
+		sig = robust_sigma(diffim)
+		wgood = where(abs(diffim) lt 3*sig)
+		smoothed[wgood] = imout[wgood]
+
+		; Now we use a FFT filter to generate a model of the microphonics noise
+
+		fftim = fft(smoothed)
+		fftmask = bytarr(2048,2048)
+		fftmask[1004:1046, 1190:1210]  = 1  ; a box around the 3 peaks from the microphonics blobs,
+											; as seen in an FFT array if 'flopped'
+											; to be centered on the 0-freq component
+		;fftmask[1004:1046, 1368:1378] = 1
+		fftmask += reverse(fftmask, 2)
+		fftmask = shift(fftmask,-1024,-1024) ; flop to line up with fftim
+
+		microphonics_model = real(fft( fftim*fftmask,/inverse))
+
+		;atv, [[[imout]],[[smoothed]],[[imout-microphonics_model]]],/bl
+		;stop
+
+		if strlowcase(remove_microphonics_plots) eq 'yes' then begin
+			if numfile eq 0 then window,0
+			!p.multi=[0,3,1]
+			imdisp, imout, /axis, range=[-10,40], title='Destriped', charsize=2
+			imdisp, microphonics_model, /axis, range=[-10,40],title="Microphonics model", charsize=2
+			imdisp, imout-microphonics_model, /axis, range=[-10,40], title="Destriped and de-microphonicsed", charsize=2
+		endif
+
+		imout -= microphonics_model
+		backbone->set_keyword, "HISTORY", "Microphonics noise removed via Fourier filtering."
+
+	endif
+
+    
 
 
 	before_and_after=0
