@@ -181,7 +181,9 @@ pro parsergui::addfile, filenames, mode=mode
 
     ;-- can we add more files now?
     if (file[n_elements(file)-1] ne '') then begin
-        self->Log,'Sorry, maximum number of files reached. You cannot add any additional files/directories.'
+		msgtext='Sorry, maximum number of files reached. You cannot add any additional files/directories. Edit max_files_per_recipe in pipeline config if you want to add more.'
+        self->Log, msgtext
+        res = dialog_message(msgtxt,/error,dialog_parent=self.top_base)
         return
     endif
 
@@ -1494,7 +1496,7 @@ function parsergui::init_widgets,  _extra=_Extra  ;drfname=drfname,  ;,grouplead
 
     self.textinfoid=widget_label(parserbase,uvalue="textinfo",xsize=900,value='  ')
     ;-----------------------------------------
-    maxfilen=gpi_get_setting('parsergui_max_files',/int, default=200) ;550
+    maxfilen=gpi_get_setting('parsergui_max_files',/int, default=1000) 
     filename=strarr(maxfilen)
     printname=strarr(maxfilen)
     printfname=strarr(maxfilen)

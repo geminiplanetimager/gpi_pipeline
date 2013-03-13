@@ -963,7 +963,9 @@ pro drfgui::event,ev
             result=dialog_pickfile(path=defdir,/multiple,/must_exist,$
                 title='Select Raw Data File(s)', filter=['*.fits','*.fits.gz'],get_path=getpath)
         endif else begin
-            self->log,'Sorry, maximum number of files reached. You cannot add any additional files/directories.'
+			msgtext = 'Sorry, maximum number of files reached. You cannot add any additional files/directories.'
+            self->log, msgtext
+            res= dialog_message(msgtxt,/error,dialog_parent=self.top_base)
             result = ''
         endelse
 
@@ -2094,7 +2096,7 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 	self.textinfoid=widget_label(top_base,uvalue="textinfo",xsize=900,ysize=20,value='  ')
 	;filename array and index
 	;-----------------------------------------
-	maxfilen=550
+	maxfilen=gpi_get_setting('max_files_per_recipe',default=200)
 	filename=strarr(maxfilen)
 	printname=strarr(maxfilen)
 	datefile=lonarr(maxfilen)
