@@ -6,30 +6,34 @@ function about_message
               ;'Copyright _,_ by the University of Montreal ' + $
               ; '(UdeM), Canada', $
               '', $
-              '--------- Programming: ---------', $
+              '--------- Development: ---------', $
               '', $
               '  Marshall Perrin (mperrin@stsci.edu)', $
               '  Jerome Maire (maire@utoronto.ca)', $
 			  '', $
 			  '  Contributions from: (alphabetically)',$
 			  '    Jeff Chilcote', $
+			  '    Patrick Ingraham', $
+              '    Quinn Konopacky ', $
 			  '    Christian Marois', $
+			  '    Max Millar-Blanchaer', $
 			  '    Dmitry Savransky',$
+			  '    Schuyler Wolff',$
+			  '    Sloane Wiktorowicz',$
               '', $
               '--------- Documentation: ---------', $
               '', $
-              '  Marshall Perrin', $
-              '  Jerome Maire', $
-              '', $
-              '  This software has been tested by:', $
-              '    Kathleen Labrie, Jeff Chilcote, Quinn Konopacky ', $
+              '    Marshall Perrin', $
+              '    Jerome Maire', $
+			  '    Dmitry Savransky',$
               '', $
               '-------- Acknowledgements: --------', $
               '', $
-              '  Rene Doyon, Kathleen Labrie and GPI team members', $
+              '  Rene Doyon, Kathleen Labrie, Bruce Macintosh, and ',$
+		  	  '    all other GPI team members', $
               '    who have helped to improve the GPI DRP', $
               '  ', $
-			  '  Based in part on OSIRIS pipeline by:', $
+			  '  Some code derived from OSIRIS pipeline by:', $
 			  '    James Larkin', $
 			  '    Michael McElwain', $
 			  '    Jason Weiss', $
