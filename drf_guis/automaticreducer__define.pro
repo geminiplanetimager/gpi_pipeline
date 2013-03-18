@@ -435,6 +435,14 @@ pro automaticreducer::event, ev
 
 	end
 	
+	'WIDGET_TEXT_CH':begin
+		; text entry events are expected for the WID_DX and WID_DY fields. We do
+		; nothing with them now and instead just read in the values of those
+		; fields in ::reduceone whenever creating a new DRF
+
+		if uname ne 'WID_DX' and uname ne 'WID_DY' then message,/info, 'Got an unexpected text entry event for widget with uname='+uname
+	
+	end
     else:   begin
 		print, "No handler defined for event of type "+tag_names(ev, /structure_name)+" in automaticreducer"
 	endelse
