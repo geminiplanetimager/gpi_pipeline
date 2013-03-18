@@ -92,7 +92,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		fftmask += reverse(fftmask, 2)
 		fftmask = shift(fftmask,-1024,-1024) ; flop to line up with fftim
 
-		microphonics_model = real(fft( fftim*fftmask,/inverse))
+		microphonics_model = real_part(fft( fftim*fftmask,/inverse))
 
 		;atv, [[[imout]],[[smoothed]],[[imout-microphonics_model]]],/bl
 		;stop
