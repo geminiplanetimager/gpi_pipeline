@@ -166,15 +166,15 @@ obstype=SXPAR( h, 'OBSTYPE',count=c1)
 ;what's happen with OBSTYPE? Ok let's force this for now..
 obstype="wavecal"
 
-lamp=SXPAR( h, 'GCALLAMP',count=c2)
 lamp=backbone->get_keyword( 'GCALLAMP',count=c1)
 calc_res=0
+
 ;;calculate spectral resolution onl in the following specific cases:
  if strmatch(obstype, '*wavecal*')   then begin
     case band of 
      'H':begin
-            if strmatch(lamp, '*Argon*') then begin
-              lammin=1.68
+            if strmatch(lamp, '*Ar*',/fold) then begin
+              lammin=1.67
               lammax=1.73
               refpic=1.7
               calc_res=1
@@ -182,7 +182,7 @@ calc_res=0
             endif
         end
              'J':begin
-                if strmatch(lamp, '*Xenon*') then begin
+                if strmatch(lamp, '*Xe*',/fold) then begin
                   lammin=1.24
                   lammax=1.28
                   refpic=1.26
@@ -191,7 +191,7 @@ calc_res=0
                 endif
             end
                          'Y':begin
-                if strmatch(lamp, '*Argon*') then begin
+                if strmatch(lamp, '*Ar*',/fold) then begin
                   lammin=0.95
                   lammax=0.98
                   refpic=0.965
@@ -201,7 +201,7 @@ calc_res=0
             end
             
              'K1':begin
-                if strmatch(lamp, '*Xenon*') then begin
+                if strmatch(lamp, '*Xe*',/fold) then begin
                   lammin=2.0
                   lammax=2.05
                   refpic=2.02
@@ -210,7 +210,7 @@ calc_res=0
                 endif
                 end
               'K2':begin
-                if strmatch(lamp, '*Xenon*') then begin
+                if strmatch(lamp, '*Xe*',/fold) then begin
                   lammin=2.30
                   lammax=2.34
                   refpic=2.32
@@ -245,9 +245,10 @@ calc_res=0
  endif
 
  if strmatch(obstype, '*wavecal*') then begin
-    if strmatch(lamp, '*Argon*') then lampe='Ar'
-    if strmatch(lamp, '*Xenon*') then lampe='Xe'
-        readcol, gpi_get_directory('GPI_DST_DIR')+path_sep()+lampe+'ArcLampG.txt', wavelen, strength
+    if strmatch(lamp, '*Ar*',) then lampe='Ar'
+    if strmatch(lamp, '*Xe*') then lampe='Xe'
+       
+        readcol, gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+lampe+'ArcLampG.txt', wavelen, strength
       wavelen=1.e-4*wavelen
         spect = fltarr(n_elements(xlam))      
         wg = where(wavelen gt min(xlam) and wavelen lt max(xlam), gct)      
