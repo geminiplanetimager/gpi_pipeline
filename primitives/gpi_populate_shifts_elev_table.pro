@@ -35,6 +35,7 @@ nfiles=dataset.validframecount
     c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headersphu)[numfile],*(dataset.headersext)[numfile] ) 
     c_file = gpi_expand_path(c_file)  
      currwavcal = gpi_readfits(c_File,header=Header)
+     backbone->set_keyword, "SHIFTREF", c_File, "Shift reference file used.", ext_num=1
      currwavcal0 = (accumulate_getimage( dataset, 0))[*,*,*]
      szw=size(currwavcal)
      lambdaref=currwavcal[szw[1]/2,szw[2]/2,2]
@@ -77,51 +78,65 @@ nfiles=dataset.validframecount
    endfor  
 
         *(dataset.currframe[0])=[[elevation],[xshiftmed],[yshiftmed]]
+        ;stop
        suffix = '-shifts'
        backbone->set_keyword, "FILETYPE", "Flexure shift Cal File"
        backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
- 
+       
+       ;remove NAXIS3
+       hdrtmp=*(dataset.headersExt)[numfile]
+       sxdelpar, hdrtmp, 'NAXIS'
+       sxdelpar, hdrtmp, 'NAXIS1'
+       sxdelpar, hdrtmp, 'NAXIS2'
+       sxdelpar, hdrtmp, 'NAXIS3'
+       sxaddpar,  hdrtmp, 'NAXIS',  (size(*(dataset.currframe[0])))[0]
+       sxaddpar,  hdrtmp, 'NAXIS1', (size(*(dataset.currframe[0])))[1]
+       sxaddpar,  hdrtmp, 'NAXIS2', (size(*(dataset.currframe[0])))[2]
+       *(dataset.headersExt)[numfile]=hdrtmp
+       
  ;need plots ?
- direc="Z:"+path_sep()
-  mydevice = !D.NAME
-  ps_figure=1
-  if (ps_figure gt 0.)  then begin
-    psFilename = direc+"flex_x.ps"    
-    openps, psFilename
-    plot, elevation,xshift, xtitle='Elevation [deg]', ytitle='Shift [pixel]',psym=-1
-    closeps
-    psFilename = direc+"flex_y.ps"    
-    openps, psFilename
-    plot, elevation,yshift, xtitle='Elevation [deg]', ytitle='Shift [pixel]',psym=-1, yrange=[min(yshift)-0.5,max(yshift)+0.5]
-    closeps
-        psFilename = direc+"flex_xmed.ps"    
-    openps, psFilename
-    plot, elevation,xshiftmed, xtitle='Elevation [deg]', ytitle='Shift [pixel]',psym=-1
-    closeps
-    psFilename = direc+"flex_ymed.ps"    
-    openps, psFilename
-    plot, elevation,yshiftmed, xtitle='Elevation [deg]', ytitle='Shift [pixel]',psym=-1, yrange=[min(yshiftmed)-0.5,max(yshiftmed)+0.5]
-    closeps
-    
-        psFilename = direc+"flex_x0.ps"    
-    openps, psFilename
-    plot, elevation,xshift0, xtitle='Elevation [deg]', ytitle='Shift [pixel]',psym=-1
-    closeps
-    psFilename = direc+"flex_y0.ps"    
-    openps, psFilename
-    plot, elevation,yshift0, xtitle='Elevation [deg]', ytitle='Shift [pixel]',psym=-1, yrange=[min(yshift0)-0.5,max(yshift0)+0.5]
-    closeps
-        psFilename = direc+"flex_x0med.ps"    
-    openps, psFilename
-    plot, elevation,xshiftmed0, xtitle='Elevation [deg]', ytitle='Shift [pixel]',psym=-1
-    closeps
-    psFilename = direc+"flex_y0med.ps"    
-    openps, psFilename
-    plot, elevation,yshiftmed0, xtitle='Elevation [deg]', ytitle='Shift [pixel]',psym=-1, yrange=[min(yshiftmed0)-0.5,max(yshiftmed0)+0.5]
-    closeps
-  endif
-  SET_PLOT, mydevice
- 
+ needplot=1
+ if needplot eq 1 then begin
+       direc="Z:"+path_sep()
+        mydevice = !D.NAME
+        ps_figure=1
+        if (ps_figure gt 0.)  then begin
+          psFilename = direc+"flex_x.ps"    
+          openps, psFilename
+          plot, elevation,xshift, xtitle='Elevation [deg]', ytitle='Shift [pixel]',psym=-1
+          closeps
+          psFilename = direc+"flex_y.ps"    
+          openps, psFilename
+          plot, elevation,yshift, xtitle='Elevation [deg]', ytitle='Shift [pixel]',psym=-1, yrange=[min(yshift)-0.5,max(yshift)+0.5]
+          closeps
+              psFilename = direc+"flex_xmed.ps"    
+          openps, psFilename
+          plot, elevation,xshiftmed, xtitle='Elevation [deg]', ytitle='Shift [pixel]',psym=-1
+          closeps
+          psFilename = direc+"flex_ymed.ps"    
+          openps, psFilename
+          plot, elevation,yshiftmed, xtitle='Elevation [deg]', ytitle='Shift [pixel]',psym=-1, yrange=[min(yshiftmed)-0.5,max(yshiftmed)+0.5]
+          closeps
+          
+              psFilename = direc+"flex_x0.ps"    
+          openps, psFilename
+          plot, elevation,xshift0, xtitle='Elevation [deg]', ytitle='Shift [pixel]',psym=-1
+          closeps
+          psFilename = direc+"flex_y0.ps"    
+          openps, psFilename
+          plot, elevation,yshift0, xtitle='Elevation [deg]', ytitle='Shift [pixel]',psym=-1, yrange=[min(yshift0)-0.5,max(yshift0)+0.5]
+          closeps
+              psFilename = direc+"flex_x0med.ps"    
+          openps, psFilename
+          plot, elevation,xshiftmed0, xtitle='Elevation [deg]', ytitle='Shift [pixel]',psym=-1
+          closeps
+          psFilename = direc+"flex_y0med.ps"    
+          openps, psFilename
+          plot, elevation,yshiftmed0, xtitle='Elevation [deg]', ytitle='Shift [pixel]',psym=-1, yrange=[min(yshiftmed0)-0.5,max(yshiftmed0)+0.5]
+          closeps
+        endif
+        SET_PLOT, mydevice
+ endif
 
 @__end_primitive
 
