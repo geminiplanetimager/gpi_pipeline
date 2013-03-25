@@ -146,8 +146,81 @@ primitive_version= '$Id: extractcube.pro 1175 2013-01-17 06:48:58Z mperrin $' ; 
 		backbone->set_keyword, 'SPOT_DY', shifty, 'User manually set Y shift for flexure'
 	end
 	'lookup': begin
-
-		message, 'Finding flexures from a lookup table is not yet implemented!'
+    my_elevation =  backbone->get_keyword('ELEVATIO', count=ct)
+		calfiletype = 'shifts'
+    c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headersphu)[numfile],*(dataset.headersext)[numfile] ) 
+    c_file = gpi_expand_path(c_file)
+    lookuptable = gpi_readfits(c_File,header=Header)
+    ;;sanity check: are we using the same shift reference file?
+      
+      wavcalname=backbone->get_keyword('DRPWVCLF', count=cw)
+      shiftref = SXPAR( Header, "SHIFTREF", COUNT=cr)
+      if wavcalname eq shiftref then begin 
+    
+        		xtable=lookuptable[*,1]
+        		ytable=lookuptable[*,2]
+        		elevtable=lookuptable[*,0]
+        		if ct ge 1 then begin
+        		  elevsortedind=sort(elevtable)
+        		  sortedelev=elevtable[elevsortedind]
+        		  sortedxshift=xtable[elevsortedind]
+        		  sortedyshift=ytable[elevsortedind]
+        		  
+        		  ;;polynomial fit
+        		  shiftpolyx = POLY_FIT( sortedelev, sortedxshift, 2)
+        		  shiftpolyy = POLY_FIT( sortedelev, sortedyshift, 2)
+        		      shiftx=shiftpolyx[0]+shiftpolyx[1]*my_elevation+(my_elevation^2)*shiftpolyx[2]
+                  shifty=shiftpolyy[0]+shiftpolyy[1]*my_elevation+(my_elevation^2)*shiftpolyy[2]
+;                  fshiftx=shiftpolyx[0]+shiftpolyx[1]*findgen(90)+(findgen(90)^2)*shiftpolyx[2]
+;                  fshifty=shiftpolyy[0]+shiftpolyy[1]*findgen(90)+(findgen(90)^2)*shiftpolyy[2]
+;        		  
+;        	psFilename = "Z:\"+"flex_xfit.ps"    
+;          openps, psFilename
+;          plot, elevtable,xtable, xtitle='Elevation [deg]', ytitle='Shift [pixel]',psym=-1
+;          oplot, findgen(90),fshiftx,linestyle=2
+;          closeps
+;                    psFilename = "Z:\"+"flex_yfit.ps"    
+;          openps, psFilename
+;          plot, elevtable,ytable, xtitle='Elevation [deg]', ytitle='Shift [pixel]',psym=-1
+;          oplot, findgen(90),fshifty,linestyle=2
+;          closeps
+        		  
+;        		  indeq= where(sortedelev eq my_elevation,ceq)
+;        		  if ceq gt 0 then begin
+;        		      shiftx=mean(sortedxshift[indeq])
+;        		      shifty=mean(sortedyshift[indeq])
+;        		  endif else begin
+;        		      indlt= where(sortedelev lt my_elevation,clt)
+;                  indgt= where(sortedelev gt my_elevation,cgt)
+;                  if (clt gt 0) && (cgt gt 0) then begin
+;                      shiftx=mean(sortedxshift[indlt[n_elements(indlt)-1]])
+;                      shifty=mean(sortedyshift[indgt[0]])                      
+;                  endif 
+;                  if (clt eq 0)then begin
+;                      shiftx=mean(sortedxshift[0])
+;                      shifty=mean(sortedyshift[0])                      
+;                  endif 
+;                  if (cgt eq 0)then begin
+;                      shiftx=mean(sortedxshift[n_elements(sortedxshift)-1])
+;                      shifty=mean(sortedyshift[n_elements(sortedyshift)-1])                      
+;                  endif 
+;        		  endelse
+        		  
+          		;shiftx = INTERPOL(xtable, elevtable, my_elevation) 
+          		;shifty = INTERPOL(ytable, elevtable, my_elevation)
+          		backbone->set_keyword, 'SPOT_DX', shiftx, 'User manually set X shift for flexure'
+              backbone->set_keyword, 'SPOT_DY', shifty, 'User manually set Y shift for flexure'
+            endif else begin
+                  backbone->Log, "No ELEVATIO keyword found in image. No shifting applied."
+                  shiftx = 0.
+                  shifty = 0.
+            endelse
+         endif else begin
+                  backbone->Log, "Shift reference files are different. No shifting applied."
+                  shiftx = 0.
+                  shifty = 0.
+         endelse   
+   
 	end
 	'auto': begin
 		;------------ Experimental code for automatic flexure measurement ----------
