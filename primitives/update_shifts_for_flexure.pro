@@ -208,8 +208,8 @@ primitive_version= '$Id: extractcube.pro 1175 2013-01-17 06:48:58Z mperrin $' ; 
         		  
           		;shiftx = INTERPOL(xtable, elevtable, my_elevation) 
           		;shifty = INTERPOL(ytable, elevtable, my_elevation)
-          		backbone->set_keyword, 'SPOT_DX', shiftx, 'User manually set X shift for flexure'
-              backbone->set_keyword, 'SPOT_DY', shifty, 'User manually set Y shift for flexure'
+          		backbone->set_keyword, 'SPOT_DX', shiftx, 'Lookup table sets X shift for flexure'
+              backbone->set_keyword, 'SPOT_DY', shifty, 'Lookup table sets Y shift for flexure'
             endif else begin
                   backbone->Log, "No ELEVATIO keyword found in image. No shifting applied."
                   shiftx = 0.
