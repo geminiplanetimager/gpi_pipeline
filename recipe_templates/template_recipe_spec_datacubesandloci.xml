@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DRF  ReductionType="SpectralScience" name='Calibrated Data-cube extraction, ADI reduction'>
+<dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
+   <fits filename=""/>
+</dataset>
+<module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="       0" gpitv="" />
+<module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
+<module name="Assemble Spectral Datacube" Save="       0"  gpitv="" />
+<module name="Divide by Spectral Flat Field" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
+<module name="Interpolate Wavelength Axis" Spectralchannels="37" Save="       1" gpitv="2" />
+<module name="Accumulate Images" Method="OnDisk" />
+<module name="ADI with LOCI" nfwhm="2.5" Save="1" suffix="-loci" gpitv="10" />
+<module name="Median ADI data-cubes" Save="       1" gpitv="11" />
+</DRF>
