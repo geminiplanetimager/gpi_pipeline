@@ -20,8 +20,9 @@ pix_to_ripple   122.53444
 mems_rotation   0.017453293
 prompt_user_for_questionable_data	1
 prompt_user_for_outputdir_creation	0
-max_files_per_drf	200
-# lenslet scale based on measurement by James Larkin:
-ifs_lenslet_scale       0.01409		
+max_files_per_drf	1000
+parsergui_max_files	1000
+# lenslet scale based on measurement by Quinn Konopacky, 14.3 +- 0.15 mas/lenslet
+ifs_lenslet_scale       0.0143
 gpitv_default_scale     log
 preprocess_fits_files	1
