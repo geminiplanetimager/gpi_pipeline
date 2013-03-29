@@ -145,7 +145,13 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
       	fxaddpar, *DataSet.HeadersPHU[i], 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
       	fxaddpar, *DataSet.HeadersPHU[i], 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
 		mwrfits, 0, c_File, *DataSet.HeadersPHU[i], /create,/silent
-		mwrfits, float(*DataSet.currFrame), c_File, *DataSet.HeadersExt[i],/silent
+		; check whether we are writing a FITS bintable or a image array. If an
+		; image array, cast to float (since we never want to write doubles)
+		if size(*DataSet.currFrame,/tname) eq 'STRUCT' then begin
+			mwrfits, *DataSet.currFrame, c_File, *DataSet.HeadersExt[i],/silent
+		endif else begin
+			mwrfits, float(*DataSet.currFrame), c_File, *DataSet.HeadersExt[i],/silent
+		endelse
       	curr_hdr = *DataSet.HeadersPHU[i]
       	curr_ext_hdr = *DataSet.HeadersExt[i]
       	DataSet.OutputFilenames[i] = c_File  

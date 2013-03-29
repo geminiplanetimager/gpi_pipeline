@@ -49,6 +49,7 @@
 ; PIPELINE ARGUMENT: Name="centroidmethod" Type="int" Range="[0,1]" Default="0" Desc="Centroid method: 0 means barycentric (fast), 1 means gaussian fit (slow)"
 ; PIPELINE ARGUMENT: Name="medfilter" Type="int" Range="[0,1]" Default="1" Desc="1: Median filtering of dispersion coeff and tilts with a (5x5) median filtering"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
+; PIPELINE ARGUMENT: Name="iscalib" Type="int" Range="[0,1]" Default="1" Desc="1: save to Calibrations Database, 0: save in regular reduced data dir"
 ; PIPELINE ARGUMENT: Name="gpitvim_dispgrid" Type="int" Range="[0,500]" Default="15" Desc="1-500: choose gpitv session for displaying image output and wavcal grid overplotted, 0: no display "
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying wavcal file, 0: no display "
 ; PIPELINE ARGUMENT: Name="tests" Type="int" Range="[0,3]" Default="0" Desc="1 for extensive tests "
