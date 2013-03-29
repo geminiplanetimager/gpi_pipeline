@@ -442,7 +442,15 @@ suffix = '-wavecal'
 
 ;if (nlens mod 2) eq 1 then specpos=specpos[0:nlens-2,0:nlens-2,*]
 backbone->set_keyword, "FILETYPE", "Wavelength Solution Cal File"
-backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+
+; The user can override the ISCALIB setting, for instance to avoid writing
+; intermediate data product wavecal files to the calibrations directory
+if tag_exist( Modules[thisModuleIndex], "iscalib") then iscalib = uint(Modules[thisModuleIndex].iscalib) else iscalib = 1
+if keyword_set(iscalib) then begin
+	backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+endif else begin
+	backbone->set_keyword, "ISCALIB", 'NO', 'This file will not be saved to calibrations directory.'
+endelse
 
 ;backbone->set_keyword, "NAXIS", 3;,/blank
 ;backbone->set_keyword, "NAXIS3", 5;,/blank ;;for some reason this does not work??! error about NAXIS2 is missing which is false
