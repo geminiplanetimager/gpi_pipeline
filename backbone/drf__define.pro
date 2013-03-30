@@ -28,13 +28,12 @@ end
 
 ;--------------------------------------------------------------------------------
 
-pro drf::set_datafiles, filenames
+pro drf::set_datafiles, filenames, inputdir=inputdir
 	; TODO validate existence of files?
 	ptr_free, self.filenames
 	self.filenames = ptr_new(filenames)
 
-
-	self.inputdir = file_dirname(filenames[0])
+	if keyword_set(inputdir) then self.inputdir=inputdir else self.inputdir = file_dirname(filenames[0])
 
 end
 ;-------------
@@ -83,7 +82,9 @@ pro drf::set_outputdir, dir=dir, autodir=autodir
 		endif else begin
 			outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')
 		endelse
-	endif
+	endif else begin
+		outputdir = dir
+	endelse
 
 	self.outputdir = outputdir
 end
@@ -421,6 +422,7 @@ function drf::init, filename, parent_object=parent_object,silent=silent,quick=qu
 	self.inputdir = drf_contents.inputdir
 	self.name = drf_summary.name
 	self.reductiontype = drf_summary.reductiontype
+	self.filenames = ptr_new(drf_contents.fitsfilenames)
 
 	return, 1
 end

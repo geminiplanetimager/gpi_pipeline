@@ -10,8 +10,9 @@
 ;
 ; into one master bad pixel map. 
 ;
-; This is an unusual recipe, in that its input files are themselves files that
-; have already been reduced with the pipeline. 
+; This is an unusual recipe, in that its input file data is not actually 
+; used in any way. All it does is use the first file to identify the date for
+; which the bad pixel maps are generated.
 ;
 ; INPUTS: bad pixel maps 
 ; GEM/GPI KEYWORDS:

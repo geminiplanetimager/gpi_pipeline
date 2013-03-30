@@ -70,63 +70,6 @@ pro parsergui::init_data, _extra=_extra
 end
 
 ;--------------------------------------------------------------------------------
-;	
-;	;--------------------------------------------------------------------------------
-;	;  Change the list of Available Modules to match the currently selected
-;	;  Reduction Type
-;	;
-;	;  ARGUMENTS:
-;	;          typestr       string, name of the mode type to use
-;	;          seqval        integer, which sequence in that type to use.
-;	;
-;	pro parsergui::changemodsetting, typestr,seqval
-;	
-;	    type=(*self.PrimitiveInfo).reductiontype ; list of type for each module
-;	
-;	    if strmatch(typestr, 'On-Line Reduction') then begin
-;	        if seqval eq 1 then typetab=['ASTR','SPEC']
-;	        if seqval eq 2 then typetab=['ASTR','POL']
-;	        if seqval eq 3 then typetab=['CAL','SPEC']
-;	    endif else begin
-;	        typetab = strcompress(STRSPLIT( typestr ,'-' , /EXTRACT ),/rem)
-;	    endelse 
-;	
-;	    ; build a list of all available modules
-;	    ; the logic here is somewhat tricky and unclear.
-;	    indall=where(strmatch(type,'*ALL*',/fold_case),cm)          ; find ones that are 'all'
-;	    indastr=where(strmatch(type,'*'+typetab[0]+'*',/fold_case),cm)  ; find ones that match the first typestr
-;	    indspec=where(strmatch(type,'*'+typetab[1]+'*',/fold_case),cm)  ; find ones that match the second typestr
-;	    if typetab[1] eq 'SPEC' then comp='POL' else comp='SPEC'
-;	    indpol=indall[where(strmatch(type[indall],'*'+comp+'*',/fold_case),cm)] ; find ones in ALL that are also in the complementary set
-;	    *self.indmodtot2avail=[intersect(indall,indpol,/xor_flag),intersect(indastr,indspec)]
-;	    *self.indmodtot2avail=(*self.indmodtot2avail)[where(*self.indmodtot2avail ne -1)]
-;	    cm=n_elements(*self.indmodtot2avail)
-;	
-;	    if cm ne 0 then begin
-;	        self.nbcurrmod=cm
-;	        *self.curr_mod_avai=strarr(cm)
-;	
-;	        for i=0,cm-1 do begin
-;	            (*self.curr_mod_avai)[i]=((*self.PrimitiveInfo).names)[(*self.indmodtot2avail)[i]]
-;	            *self.indarg=where(   ((*self.PrimitiveInfo).argmodnum) eq ([(*self.indmodtot2avail)[i]]+1)[0], carg)
-;	        endfor    
-;	
-;	    endif
-;	
-;	    ;;sort in alphabetical order
-;	    *self.curr_mod_indsort=sort(*self.curr_mod_avai)
-;	    (*self.curr_mod_avai)=(*self.curr_mod_avai)[*self.curr_mod_indsort]
-;	
-;	    ;;standard recipes
-;	    selectype= self.currtype;widget_info(self.typeid,/DROPLIST_SELECT)
-;	
-;	;;standard recipes
-;	(*self.currModSelec)=strarr(5);(['','','','',''])
-;	
-;	
-;	end    
-;	
-;--------------------------------------------------------------------------------
 pro parsergui::extractparam, modnum 
 ;   modnum is the index of the selected module in the CURRENTLY ACTIVE LIST for
 ;   this mode
@@ -134,38 +77,6 @@ pro parsergui::extractparam, modnum
 end
 
    
-;	;event handler
-;	;-----------------------------------------
-;	pro parsergui::changetype, selectype, storage,notemplate=notemplate
-;	
-;	    typefield=*self.template_types
-;	
-;		self.reductiontype = (*self.template_types)[selectype]         
-;		selecseq=0
-;		self.currseq=selecseq
-;		(*self.currModSelec)=''
-;		self.nbmoduleSelec=0
-;		self->changemodsetting, typefield[selectype],selecseq+1
-;	
-;		self.selectype=selectype
-;		self.selecseq=selecseq
-;	
-;	
-;		case selectype of 
-;			0:typename='astr_spec_'
-;			1:typename='astr_pol_'
-;			2:typename='cal_spec_'
-;			3:typename='cal_pol_'
-;			4:typename='online_'
-;		endcase
-;		if ~keyword_set(notemplate) then begin
-;			self.LoadedRecipeFile = self.templatedir+path_sep()+'template_recipe_'+typename+'1.xml'
-;			;self->loaddrf, /nodata
-;		endif
-;	  
-;	end
-;	
-;	
 ;-----------------------------------------
 pro parsergui::addfile, filenames, mode=mode
     ; Add a new file to the Input FITS files list. 
@@ -447,19 +358,12 @@ pro parsergui::addfile, filenames, mode=mode
 
                                         case strupcase(current.obstype) of
                                         'DARK':begin
-                                            ;detectype=3
-                                            ;detecseq=2                        
 											templatename='Dark'
                                         end
                                         'ARC': begin 
                                             if  current.dispersr eq 'WOLLASTON' then begin 
-                                                ;detectype=4
-                                                ;detecseq=2  
 												templatename='Create Polarized Flat-field'
                                             endif else begin                                                          
-                                                ;detectype=3
-                                                ;if current.filter eq 'Y' then  detecseq=9 else $
-                                                ;detecseq=3                  
 												templatename='Wavelength Solution'
                                             endelse                     
                                         end
@@ -479,56 +383,37 @@ pro parsergui::addfile, filenames, mode=mode
 
 
                                                 ;continue        aaargh can't continue inside a case. stupid IDL
-                                                ;detectype = -1
                                                 continue_after_case=1
-                                                ;detectype=4
-                                                ;detecseq=1  
                                             endif else begin              
-                                                ;detectype=3
-                                                ;detecseq=1   
 												templatename='Flat-field Extraction'
                                             endelse                             
                                         end
                                         'OBJECT': begin
 											case strupcase(current.dispersr) of 
 											'WOLLASTON': begin 
-                                                ;detectype=2
-                                                ;detecseq=1  
 												templatename='Basic Polarization Sequence'
                                             end 
 											'PRISM': begin 
                                                 if  current.occulter eq 'blank'  then begin ;means no occulter
                                                     ;if binaries:
                                                     if strmatch(current.obsclass, 'AstromSTD',/fold) then begin
-                                                       ;detectype=3
-                                                       ;detecseq=8  
 													   templatename="Lenslet scale and orientation"
                                                     endif
                                                     if strmatch(current.obsclass, 'Science',/fold) then begin
-                                                       ;detectype=1
-                                                       ;detecseq=4  
 													   templatename="Rotate and combine extended object"
                                                     endif
                                                     if ~strmatch(current.obsclass, 'AstromSTD',/fold) && ~strmatch(current.obsclass, 'Science',/fold) then begin
-                                                       ;detectype=3
-                                                       ;detecseq=7  
 													   templatename='Satellite Flux Ratios'
                                                     endif
                                                 endif else begin 
                                                     if n_elements(file_filt_obst_disp_occ_obs_itime_object) GE 5 then begin
-                                                        ;detectype=1
-                                                        ;detecseq=3 
 														templatename='Calibrated Data-cube extraction, ADI reduction'
                                                     endif else begin
-                                                        ;detectype=1
-                                                        ;detecseq=1 
 														templatename="Simple Datacube Extraction"
                                                     endelse
                                                 endelse
                                             end 
 											'OPEN': begin
-                                                ;detectype=6
-                                                ;detecseq=1  
  												templatename="Simple Undispersed Image Extraction"
 											end
                                             endcase
@@ -536,14 +421,9 @@ pro parsergui::addfile, filenames, mode=mode
                                         else: begin 
                                             ;if strmatch(uniqsortedobstype[fc], '*laser*') then begin
                                             if strmatch(uniqsortedobstype[indsortseq[fc]], '*laser*') then begin
-												;detectype=1
-												;detecseq=1 
 												templatename="Simple Datacube Extraction"
                                             endif else begin
                                                self->Log, "Not sure what to do about obstype '"+uniqsortedobstype[indsortseq[fc]]+"'. Going to try the 'Fix Keywords' recipe but that's just a guess."
-                                              ;add missing keywords
-                                              ;detectype=3
-                                              ;detecseq=5
 											  templatename='Add set of missing keywords'
                                             endelse
                                         end
@@ -573,6 +453,35 @@ pro parsergui::addfile, filenames, mode=mode
         endif ;cond on n_elements(file) 
     endif ;condition on cindex>0, assure there are data to process
 
+	; ******  Second stage of parsing: *****
+	; Generate additional recipes for various special
+	; cases such as bad pixel map generation.
+	
+	; 1. Generate hot bad pixel map recipe if we have any > 60 s darks. 
+	;    Insert this at the end of the darks
+	DRFnames = (*self.currDRFSelec)[1,*]
+	ITimes= (*self.currDRFSelec)[8,*]
+	Nfiles= (*self.currDRFSelec)[10,*]
+	wdark = where(strc(DRFnames) eq 'Dark' and (itimes gt 60) and (nfiles ge 10), darkcount)
+	if darkcount gt 0 then begin
+		; take the DRF of the longest available dark sequence and read all of
+		; the FITS files in it
+		longestdarktime = max(itimes[wdark], wlongestdark)
+		ilongdark = wdark[wlongestdark]
+		self->clone_recipe_and_swap_template, ilongdark,  'Generate Hot Bad Pixel Map from Darks',  datetimestr=datetimestr, insert_index=insertindex
+	endif
+	
+	
+	; If we have added either the Hot bad pixel or cold bad pixel update
+	; recipes, we should update the overall bad pixel map too. 
+	DRFnames = (*self.currDRFSelec)[1,*]
+	wbp = where(DRFnames eq 'Generate Hot Bad Pixel Map from Darks' or DRFnames eq 'Generate Cold Bad Pixel Map from Flats' , bpcount)
+	if bpcount gt 0 then begin
+		ilastbp = max(wbp)
+		self->clone_recipe_and_swap_template, ilastbp,  'Combine Bad Pixel Maps',  datetimestr=datetimestr, insert_index=ilastbp+1, /lastfileonly
+
+	endif
+
     
 
     void=where(file ne '',cnz)
@@ -581,41 +490,6 @@ pro parsergui::addfile, filenames, mode=mode
 
 
 end
-;-----------------------------------------
-;	pro parsergui::cleanfilelist, fitsfiles=fitsfiles
-;	    widget_control,self.top_base,get_uvalue=storage
-;	      if ~keyword_set(fitsfiles) then begin
-;	          
-;	            (*storage.splitptr).findex = 0
-;	            (*storage.splitptr).selindex = 0
-;	            (*storage.splitptr).filename[*] = ''
-;	            (*storage.splitptr).printname[*] = '' 
-;	            (*storage.splitptr).printfname[*] = '' 
-;	            (*storage.splitptr).datefile[*] = ''  
-;	             widget_control,storage.fname,set_value=(*storage.splitptr).printname          
-;	            self->Log,'All items removed.'
-;	       endif else begin
-;	             oldind=(*storage.splitptr).findex
-;	            (*storage.splitptr).findex = n_elements(fitsfiles)
-;	            (*storage.splitptr).selindex = 0            
-;	            (*storage.splitptr).filename[0:n_elements(fitsfiles)-1] = fitsfiles
-;	
-;	            if n_elements(where((*storage.splitptr).printname) ne '') gt n_elements(fitsfiles) then begin
-;	              pn=(*storage.splitptr).printfname
-;	            (*storage.splitptr).printname[*] = '' 
-;	            (*storage.splitptr).printfname[*] = '' 
-;	              (*storage.splitptr).printname[0:n_elements(fitsfiles)-1]= pn[oldind-n_elements(fitsfiles):oldind-1]
-;	               (*storage.splitptr).printfname[0:n_elements(fitsfiles)-1]= pn[oldind-n_elements(fitsfiles):oldind-1]
-;	                widget_control,storage.fname,set_value=(*storage.splitptr).printfname
-;	            endif
-;	            (*storage.splitptr).datefile[*] = '' 
-;	            self->Log,'All items corresponding to old sequences removed.'
-;	       endelse     
-;	
-;	
-;	end
-
-
 
 ;-----------------------------------------
 ; lookup template filename
@@ -642,7 +516,7 @@ end
 
 
 ;-----------------------------------------
-pro parsergui::create_recipe_from_template, templatename, fitsfiles, current, datetimestr=datetimestr ;, mode=mode
+pro parsergui::create_recipe_from_template, templatename, fitsfiles, current, datetimestr=datetimestr, index=index ;, mode=mode
 
 	; load the DRF, save with new filenames
     ;self->loaddrf, templatename ,  /nodata
@@ -650,8 +524,6 @@ pro parsergui::create_recipe_from_template, templatename, fitsfiles, current, da
     if keyword_set(templatename) then self.LoadedRecipeFile=templatename
     if self.LoadedRecipeFile eq '' then return
 
-    ;widget_control,self.top_base,get_uvalue=storage  
-    
 
 	if ~file_test(self.LoadedRecipeFile, /read) then begin
         message, "Requested recipe file does not exist: "+self.LoadedRecipeFile,/info
@@ -670,46 +542,103 @@ pro parsergui::create_recipe_from_template, templatename, fitsfiles, current, da
 	catch,/cancel
 
 
-    ;drf_contents = drf->get_contents()
-    ;drf_module_names = drf_contents.modules.name
-
-    
-	;ptr_free, self.drf_summary
-	;ptr_free, self.current_drf
-    ;self.drf_summary = ptr_new(drf_summary)
-	;self.current_drf = ptr_new(drf)
-
-
 	; set the data files in that recipe to the requested ones
 	drf->set_datafiles, fitsfiles 
 
-	if self.outputdir eq 'AUTOMATIC' then begin
-		drf->set_outputdir, /autodir
-	endif else begin
-		drf->set_outputdir, self.outputdir
-	endelse
+	drf->set_outputdir, autodir=(self.outputdir eq 'AUTOMATIC'), dir=self.outputdir
+	;if self.outputdir eq 'AUTOMATIC' then begin
+		;drf->set_outputdir, /autodir
+	;endif else begin
+		;drf->set_outputdir, self.outputdir
+	;endelse
 
-    drf_summary = drf->get_summary()
 
 	; Generate output file name
 	prefixname=string(self.nbdrfSelec+1, format="(I03)")
 	outputfilename=datetimestr+"_"+prefixname+'_drf.waiting.xml'
 
-    if widget_info(self.autoqueue_id ,/button_set)  then chosenpath=self.queuedir else chosenpath=self.drfpath
+    ;if widget_info(self.autoqueue_id ,/button_set)  then chosenpath=self.queuedir else chosenpath=self.drfpath
 
-	outputfilename = chosenpath + path_sep() + outputfilename
-	message,/info, 'Outputting file to :' + outputfilename
+	outputfilename = self.drfpath + path_sep() + outputfilename
+	message,/info, 'Writing recipe file to :' + outputfilename
 
 	drf->savedrf, outputfilename
 
+	if widget_info(self.autoqueue_id ,/button_set)  then begin
+		outputfilename2 = self.queuedir + path_sep() + outputfilename
+		message,/info, 'Automatically Queueing recipes is enabled.'
+		message,/info, ' Therefore also writing file to :' + outputfilename2
+		drf->savedrf, outputfilename2
+	endif
+
+	self->add_drf_to_table, outputfilename, drf, current, index=index
+
+end
 
 
-	; append into table for display on scree
-    new_drf_properties = [gpi_shorten_path(outputfilename), drf_summary.name,   drf_summary.reductiontype, $
+pro parsergui::clone_recipe_and_swap_template, current_recipe_index, newtemplatename, datetimestr=datetimestr, insert_index=insert_index, $
+	lastfileonly=lastfileonly
+	; starting from an existing recipe, create a new recipe using a different
+	; template but otherwise the same files and metadata
+	
+	existingdrf = (*self.currDRFSelec)[0, current_recipe_index]
+	drf = obj_new('drf', existingdrf)
+
+	existingdrffiles =drf->get_inputdir() + path_sep() + drf->get_datafiles()
+
+	if keyword_set(lastfileonly) then existingdrffiles = existingdrffiles[n_elements(existingdrffiles)-1]
+	; copy over the descriptive info settings from the prior recipe
+	existing_metadata= {filter: (*self.currDRFSelec)[3,current_recipe_index], $
+						obstype:(*self.currDRFSelec)[4,current_recipe_index], $
+						dispersr: (*self.currDRFSelec)[5,current_recipe_index], $
+						occulter: (*self.currDRFSelec)[6,current_recipe_index], $ 
+						obsclass: (*self.currDRFSelec)[7,current_recipe_index], $
+						itime:(*self.currDRFSelec)[8,current_recipe_index], $
+						object:(*self.currDRFSelec)[9,current_recipe_index]}
+	;if ~(keyword_set(insert_index)) then insert_index = (size(*self.currDRFSelec))[2] ; append to end of table by default
+
+	newtemplatefilename = self->lookup_template_filename(newtemplatename)
+	self->create_recipe_from_template, newtemplatefilename, existingdrffiles, existing_metadata, datetimestr=datetimestr, index=insert_index
+end
+
+pro parsergui::add_drf_to_table, filename, drf, current, index=index
+	; append into table for display on screen and user manipulation
+	;
+	; PARAMETERS:
+	; filename : string, name of DRF file on disk
+	; drf : DRF object corresponding to that file
+	; current : structure with current settings from file parsing for the files
+	;           in this recipe (filter, obstype, disperser etc)
+
+    drf_summary = drf->get_summary()
+
+    new_drf_properties = [gpi_shorten_path(filename), drf_summary.name,   drf_summary.reductiontype, $
         current.filter, current.obstype, current.dispersr, current.occulter, current.obsclass, string(current.itime,format='(F7.1)'), current.object, strc(drf_summary.nfiles)] 
 
-    if self.nbdrfSelec eq 0 then (*self.currDRFSelec)= new_drf_properties else $
-        (*self.currDRFSelec)=[[(*self.currDRFSelec)],[new_drf_properties]]
+	; what I wouldn't give here to be able to use a Python List, or even just to
+	; use IDL 8.0 with its list function and null lists... argh!
+	;
+    if self.nbdrfSelec eq 0 then begin
+		; THis is the first recipe, just create the table with 1 row
+		(*self.currDRFSelec)= new_drf_properties 
+	endif else begin
+		nrecords =  (size(*self.currDRFSelec))[2] 
+		if ~(keyword_set(index)) then index = nrecords ; insert at end by default
+
+		index = (0 > index) < nrecords ; limit insertion indices to plausible values
+
+		if index eq 0 then begin 
+			; insert at front of table
+			(*self.currDRFSelec)=[[new_drf_properties], [(*self.currDRFSelec)]]
+		endif else if index eq nrecords then begin
+			; Append to end of table
+	        (*self.currDRFSelec)=[[(*self.currDRFSelec)],[new_drf_properties]]
+		endif else begin
+			; insert this recipe in a specific position earlier in the table
+			(*self.currDRFSelec) = [ [(*self.currDRFSelec)[*, 0:index-1]], [new_drf_properties], [(*self.currDRFSelec)[*,index:*]]]
+		endelse
+	endelse
+
 
     self.nbdrfSelec+=1
 
@@ -1034,16 +963,9 @@ pro parsergui::event,ev
                 (*self.currDRFSelec)[*] = ''
                 (*self.order)=0
             endelse
-    
-            ;if (indselected ge 0) AND  (indselected lt self.nbDRFSelec) AND (self.nbDRFSelec ge 1) then begin
-                  ;if indselected eq 0 then (*self.currDRFSelec)=(*self.currDRFSelec)[*,indselected+1:self.nbDRFSelec-1]
-                  ;if indselected eq (self.nbDRFSelec-1) then (*self.currDRFSelec)=(*self.currDRFSelec)[*,0:indselected-1]
-                  ;if (indselected ne 0) AND (indselected ne self.nbDRFSelec-1) then (*self.currDRFSelec)=[[(*self.currDRFSelec)[*,0:indselected-1]],[(*self.currDRFSelec)[*,indselected+1:self.nbDRFSelec-1]]]
-                 
                   
             widget_control,   self.tableSelected,  set_value=(*self.currDRFSelec)[*,*], SET_TABLE_SELECT =[-1,-1,-1,-1] ; no selection
             widget_control,   self.tableSelected, SET_TABLE_VIEW=[0,0]
-              ;endif     
 
         endif
     end
@@ -1061,7 +983,7 @@ pro parsergui::event,ev
                       endif
                 endfor      
                 self->Log,'All DRFs have been succesfully added to the queue.'
-              end
+    end
     'QueueOne'  : begin
         if self.selection eq '' then begin
               self->Log, "Nothing is currently selected!"
@@ -1082,7 +1004,7 @@ pro parsergui::event,ev
       'about': begin
               tmpstr=about_message()
               ret=dialog_message(tmpstr,/information,/center,dialog_parent=ev.top)
-    end ;; case: 'about'
+    end 
     else: begin
         addmsg, storage.info, 'Unknown event in event handler - ignoring it!'+uval
         message,/info, 'Unknown event in event handler - ignoring it!'+uval
@@ -1091,265 +1013,7 @@ pro parsergui::event,ev
 endcase
 
 end
-;--------------------------------------
-; Save a DRF to a file on disk.
-;   
-;   files        string array of FITS files for input to this DRF
-;
-;   prefix=        prefix for filename
-;   datetimestr=    middle part of filename
-;                   (supplied so all parsed DRFs match in timestamp)
-;
-;   /template    save this as a template
-;
-;	pro parsergui::savedrf, files, template=template, prefix=prefix, datetimestr=datetimestr
-;	
-;	    ; Determine input FITS files
-;	    index = where(files ne '',count)
-;	    selectype=self.currtype
-;	
-;	    if keyword_set(template) then begin
-;	      templatesflag=1 
-;	      index=0
-;	      files=''
-;	      drfpath=self.templatedir
-;	    endif else begin
-;	      templatesflag=0
-;	      drfpath=self.drfpath
-;	    endelse  
-;	    if (count eq 0) && (templatesflag eq 0) then begin
-;	      self->Log,'file list is empty.'
-;	      if (selectype eq 4) then self->Log,'Please select any file in the data input directory.'
-;	      return
-;	    endif
-;	
-;	    files = files[index]
-;	
-;	    ; Determine filename to use for output
-;	    if templatesflag then begin
-;	      (*self.drf_summary).filename = self.LoadedRecipeFile ;to check
-;	    endif else begin     
-;	      if ~keyword_set(datetimestr) then begin
-;	            caldat,systime(/julian),month,day,year, hour,minute,second
-;	          datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
-;	          hourstr = string(hour,minute,format='(i2.2,i2.2)')  
-;	          datetimestr=datestr+'-'+hourstr
-;	      endif
-;	      if keyword_set(prefix) then prefixname=string(prefix, format="(I03)") else prefixname=''
-;	      (*self.drf_summary).filename=datetimestr+"_"+prefixname+'_drf.waiting.xml'
-;	    endelse
-;	
-;	    ;get drf filename and set drfpath:
-;	    ;if ~keyword_set(nopickfile) then begin
-;	        ;newdrffilename = DIALOG_PICKFILE(TITLE='Save Data Reduction File (DRF) as', /write,/overwrite, filter='*.xml',file=(*self.drf_summary).filename,path=drfpath, get_path=newdrfpath)
-;	        ;if newdrffilename eq "" then return ; user cancelled the save as dialog, so don't save anything.
-;	        ;self.drfpath  = newdrfpath ; MDP change - update the default directory to now match whatever the user selected in the dialog box.
-;	    ;endif else newdrffilename = (*self.drf_summary).filename
-;	    ;newdrffilename = (*self.drf_summary).filename
-;	    
-;	    if (self.nbmoduleSelec ne '') && ( (*self.drf_summary).filename ne '') then begin
-;	        if widget_info(self.autoqueue_id ,/button_set)  then chosenpath=self.queuedir else chosenpath=self.drfpath
-;	
-;			if ~self->check_output_path_exists(chosenpath) then return
-;	
-;	        message,/info, "Writing to "+chosenpath+path_sep()+(*self.drf_summary).filename 
-;	        OpenW, lun, chosenpath+path_sep()+(*self.drf_summary).filename, /Get_Lun
-;	        PrintF, lun, '<?xml version="1.0" encoding="UTF-8"?>' 
-;	     
-;	           
-;	        if selectype eq 4 then begin
-;	            PrintF, lun, '<DRF logdir="'+self.logdir+'" ReductionType="OnLine">'
-;	        endif else begin
-;	            PrintF, lun, '<DRF logdir="'+self.logdir+'" ReductionType="'+(*self.template_types)[selectype] +'" Name="'+(*self.drf_summary).name+'" >'
-;	        endelse
-;	
-;	        PrintF, lun, '<dataset InputDir="'+self.inputdir+'" Name="" OutputDir="'+self.outputdir+'">' 
-;	     
-;	        FOR j=0,N_Elements(file)-1 DO BEGIN
-;	            tmp = strsplit(file[j],path_sep(),/extract)
-;	            PrintF, lun, '   <fits FileName="' + tmp[n_elements(tmp)-1] + '" />'
-;	            ;PrintF, lun, '   <fits FileName="' + file[j] + '" />'
-;	        ENDFOR
-;	    
-;	        PrintF, lun, '</dataset>'
-;	        FOR j=0,self.nbmoduleSelec-1 DO BEGIN
-;	            self->extractparam, float((*self.currModSelec)[4,j])
-;	            strarg=''
-;	            if (*self.indarg)[0] ne -1 then begin
-;	                  argn=((*self.PrimitiveInfo).argname)[[*self.indarg]]
-;	                  argd=((*self.PrimitiveInfo).argdefault)[[*self.indarg]]
-;	                  for i=0,n_elements(argn)-1 do begin
-;	                      strarg+=argn[i]+'="'+argd[i]+'" '
-;	                  endfor
-;	              endif
-;	              
-;	        
-;	            PrintF, lun, '<module name="' + (*self.currModSelec)[0,j] + '" '+ strarg +'/>'
-;	        ENDFOR
-;	        PrintF, lun, '</DRF>'
-;	        Free_Lun, lun
-;	        self->Log,'Saved  '+(*self.drf_summary).filename+ " in "+chosenpath
-;	        
-;	        ;display last paramtab
-;	                    indselected=self.nbmoduleSelec-1
-;	                   self->extractparam, float((*self.currModSelec)[4,indselected])    
-;	                  *self.currModSelecParamTab=strarr(n_elements(*self.indarg),3)
-;	                  if (*self.indarg)[0] ne -1 then begin
-;	                      (*self.currModSelecParamTab)[*,0]=((*self.PrimitiveInfo).argname)[[*self.indarg]]
-;	                      (*self.currModSelecParamTab)[*,1]=((*self.PrimitiveInfo).argdefault)[[*self.indarg]]
-;	                      (*self.currModSelecParamTab)[*,2]=((*self.PrimitiveInfo).argdesc)[[*self.indarg]]
-;	                  endif
-;	              
-;	        
-;	    endif
-;	end
-;-------------------------------------
-;	pro parsergui::loaddrf, filename, storage, nodata=nodata, silent=silent
-;		
-;	    if keyword_set(filename) then self.LoadedRecipeFile=filename
-;	
-;	    if self.LoadedRecipeFile eq '' then return
-;	
-;	    widget_control,self.top_base,get_uvalue=storage  
-;	
-;	    
-;	
-;		if ~file_test(self.LoadedRecipeFile, /read) then begin
-;	        message, "Requested recipe file does not exist: "+self.LoadedRecipeFile,/info
-;			return
-;		endif
-;	
-;		catch, parse_error
-;		if parse_error eq 0 then begin
-;			drf = obj_new('drf', self.LoadedRecipeFile)
-;		endif else begin
-;	        message, "Could not parse Recipe File: "+self.LoadedRecipeFile,/info
-;			;stop
-;	        return
-;		endelse
-;		catch,/cancel
-;	
-;	
-;	    drf_summary = drf->get_summary()
-;	    drf_contents = drf->get_contents()
-;	
-;	    drf_module_names = drf_contents.modules.name
-;	
-;	    
-;		ptr_free, self.drf_summary
-;		ptr_free, self.current_drf
-;	    self.drf_summary = ptr_new(drf_summary)
-;		self.current_drf = ptr_new(drf)
-;	
-;	
-;	    ; if requested, load the filenames in that DRF
-;	;	    ; (for Template use, don't load the data)
-;	;	    if ~keyword_set(nodata) then  begin
-;	;	        self.inputdir=drf_contents.inputdir
-;	;	         ;;get list of files in the drf
-;	;	         if strcmp((drfmodules.fitsfilenames)[0],'') ne 1  then begin
-;	;	            (*storage.splitptr).filename = drf_contents.fitsfilenames
-;	;	            (*storage.splitptr).printname = drf_contents.fitsfilenames
-;	;	            widget_control,storage.fname,set_value=(*storage.splitptr).printname
-;	;	        endif
-;	;	    endif
-;	
-;	
-;	;	    ;if necessary, update reduction type to match whatever is in that DRF (and update available modules list too)
-;	;	    if self.reductiontype ne drf_summary.reductiontype then begin
-;	;	        selectype=where(*self.template_types eq drf_summary.reductiontype, matchct)
-;	;	        if matchct eq 0 then message,"ERROR: no match for "+self.reductiontype
-;	;	        self.currtype=selectype
-;	;	        self->changetype, selectype[0], /notemplate
-;	;	    endif
-;	;	    
-;	;	
-;	;	    ; Now load the modules of the selected DRF:
-;	;	    self.nbmoduleSelec=0
-;	;	    indseqini=intarr(n_elements(drf_module_names))
-;	;	    seq=((*self.PrimitiveInfo).names)[(*self.indmodtot2avail)[*self.curr_mod_indsort]] 
-;	;	    ; seq is list of currently available modules, in alphabetical order
-;	;	    
-;	;	    for ii=0,n_elements(drf_module_names)-1 do begin
-;	;	         indseqini[ii]=where(strmatch(seq,(drf_module_names)[ii],/fold_case), matchct)
-;	;	         ; indseqini is indices of the DRF's modules into the seq array.
-;	;	         if matchct eq 0 then message,/info,"ERROR: no match for module="+ (drf_module_names)[ii]
-;	;	    endfor
-;	;	
-;	;	    
-;	;	    for ii=0,n_elements(drf_module_names)-1 do begin
-;	;	        if self.nbmoduleSelec eq 0 then (*self.currModSelec)=([(drf_module_names)[0],'','','','']) $  
-;	;	        else  (*self.currModSelec)=([[(*self.currModSelec)],[[(drf_module_names)[ii],'','','','']]])
-;	;	        self.nbmoduleSelec+=1
-;	;	
-;	;	        ;does this module need calibration file?
-;	;	        ind=where(strmatch(tag_names((drf_contents.modules)[ii]),'CALIBRATIONFILE'), matchct)
-;	;	        if ind ne [-1] then begin
-;	;	                   (*self.currModSelec)[2,self.nbmoduleSelec-1]=((drf_contents.modules)[ii]).calibrationfile
-;	;	        endif
-;	;	        (*self.currModSelec)[3,self.nbmoduleSelec-1]=((*self.PrimitiveInfo).order)[(*self.indmodtot2avail)[(*self.curr_mod_indsort)[indseqini[ii]]]] 
-;	;	
-;	;	 
-;	;	    endfor
-;	;	
-;	;	    ;sort *self.currModSelec with ORDER 
-;	;	    (*self.order)=float((*self.currModSelec)[3,*])
-;	;	
-;	;	; MDP edit: Do not re-sort loaded DRFs - just use exactly what is in the
-;	;	; template.     
-;	;	    (*self.currModSelec)[4,*]=strc(indseqini)
-;	;	;        ;;todo:check out there are no duplicate order (sinon la table d argument va se meler) 
-;	;	;        (*self.currModSelec)=(*self.currModSelec)[*,sort(*self.order)]  
-;	;	;        (*self.currModSelec)[4,*]=strc(indseqini[sort(*self.order)])
-;	;	;        (*self.order)=(*self.currModSelec)[3,*]
-;	;	
-;	;	
-;	;	    if self.debug then if not array_equal(seq[indseqini], (*self.currModSelec)[0,*]) then message, "Module arrays appear confused"
-;	;	    
-;	;	    for ii=0,n_elements(drf_module_names)-1 do begin
-;	;	        if self.debug then print, "-----"
-;	;	        if self.debug then print, drf_module_names[ii]," / ",  (*self.currModSelec)[0,ii]
-;	;	        if drf_module_names[ii] ne (*self.currModSelec)[0,ii] then message,"Module names don't match..."
-;	;	        self->extractparam, float((*self.currModSelec)[4,ii])  ; loads indarg
-;	;	
-;	;	        if self.debug then print, "   has argument(s): "+ strjoin(((*self.PrimitiveInfo).argname)[[*self.indarg]], ", " )
-;	;	
-;	;	        *self.currModSelecParamTab=strarr(n_elements(*self.indarg),3)
-;	;	        if (*self.indarg)[0] ne -1 then begin
-;	;	            (*self.currModSelecParamTab)[*,0]=((*self.PrimitiveInfo).argname)[[*self.indarg]]
-;	;	            (*self.currModSelecParamTab)[*,1]=((*self.PrimitiveInfo).argdefault)[[*self.indarg]]
-;	;	            (*self.currModSelecParamTab)[*,2]=((*self.PrimitiveInfo).argdesc)[[*self.indarg]]
-;	;	        endif
-;	;	        tag=tag_names((drf_contents.modules)[ii])
-;	;	        for jj=0,n_elements(*self.indarg)-1 do begin
-;	;	            indtag=where(strmatch( tag ,(*self.currModSelecParamTab)[jj,0],/fold), matchct)
-;	;	                if matchct eq 0 then begin
-;	;	                    message,"ERROR: no match in DRF for module parameter='"+(*self.currModSelecParamTab)[jj,0]+"'",/info
-;	;	                    message,"of module='"+(drf_module_names)[ii]+"'",/info
-;	;	                    message,"Check whether the parameter list in the DRF file '"+self.loadedRecipeFile+"' has the correct parameters for that module! ",/info
-;	;	                endif else begin
-;	;		        	    argtab=((*self.PrimitiveInfo).argdefault)
-;	;		    	        argtab[(*self.indarg)[jj]]=((drf_contents.modules)[ii]).(indtag[0]) ;use parentheses as Facilities exist to process structures in a general way using tag numbers rather than tag names
-;	;			            ((*self.PrimitiveInfo).argdefault)=argtab
-;	;					endelse
-;	;	        ;    (*self.currModSelecParamTab)[jj,1]=
-;	;	        endfor
-;	;	        if self.debug then print, "   has value(s): "+ strjoin(((*self.PrimitiveInfo).argdefault)[[*self.indarg]], ", " )
-;	;	    endfor
-;	;	
-;	;	    ;display last paramtab
-;	;	    indselected=self.nbmoduleSelec-1
-;	;	    *self.currModSelecParamTab=strarr(n_elements(*self.indarg),3)
-;	;	    if (*self.indarg)[0] ne -1 then begin
-;	;	        (*self.currModSelecParamTab)[*,0]=((*self.PrimitiveInfo).argname)[[*self.indarg]]
-;	;	        (*self.currModSelecParamTab)[*,1]=((*self.PrimitiveInfo).argdefault)[[*self.indarg]]
-;	;	        (*self.currModSelecParamTab)[*,2]=((*self.PrimitiveInfo).argdesc)[[*self.indarg]]
-;	;	    endif
-;	    ;obj_destroy, ConfigParser
-;	    ;obj_destroy, Parser
-;	
-;	end
-;	
+	
 ;------------------------------------------------
 pro parsergui::cleanup
 
@@ -1535,6 +1199,7 @@ end
 
 ;-----------------------
 pro parsergui::post_init, _extra=_extra
+	; nothing needed here - null routine to override the parent class' routine
 end
 
 ;-----------------------

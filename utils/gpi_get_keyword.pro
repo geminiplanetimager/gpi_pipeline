@@ -1,7 +1,12 @@
 ;+
 ; NAME:  gpi_get_keyword
 ;
+;
 ; get a keyword, either from primary or extension HDU
+;
+; USAGE:
+;   gpi_get_keyword, pri_header, ext_header, keyword, count=count,
+;   				 comment=comment, ext_num=ext_num, silent=silent
 ;	
 ; KEYWORDS:
 ;	ext_num		This allows you to override the keyword config file if you
