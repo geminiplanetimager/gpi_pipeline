@@ -37,28 +37,52 @@
 
 ;------------------------------------------
 
+;+
+; NAME: mueller_rot
+;
+;  The mueller matrix for a rotation of angle theta
+;
+; INPUTS:
+;   theta - the angle of rotation for the matrix in radians
+; OUTPUTS:
+;   a 4 x 4 mueller matrix 
+; HISTORY:
+;   Began 2012 - MMB  
+;
+;-
+function mueller_rot, theta
+theta=double(theta)
+M=[[1,0,0,0],[0,cos(2*theta),sin(2*theta),0],[0,-sin(2*theta),cos(2*theta),0],[0,0,0,1]]
+
+return, M
+end
+
+
+;------------------------------------------
+
 
 ;+
 ; NAME: DST_waveplate
-; 	Given a Stokes datacube, transform it to model instrumental polarization.
+;   Given a Stokes datacube, transform it to model instrumental polarization.
 ;
-; 	The result is a modified Stokes datacube with the same dimensions as the
-; 	input cube.
+;   The result is a modified Stokes datacube with the same dimensions as the
+;   input cube.
 ;
-;		Right now, this assumes the retarder is a perfect achromatic half wave plate.
-;		TODO more realistic imperfect waveplate.
+;   Right now, this assumes the retarder is a perfect achromatic half wave plate.
+;   TODO more realistic imperfect waveplate.
 ;
 ; INPUTS:
-; 	polcube		A polarization datacube. Dimensions [npixels, npixels, nlambda,	nStokes ]
-; 				NOTE: nStokes **must** be 4.
+;   polcube   A polarization datacube. Dimensions [npixels, npixels, nlambda, nStokes ]
+;         NOTE: nStokes **must** be 4.
 ; KEYWORDS:
-;	angle		Waveplate fast axis angle, in DEGREES.
-;	/mueller	if set, just return the Mueller matrix instead of applying it.
+; angle   Waveplate fast axis angle, in DEGREES.
+; /mueller  if set, just return the Mueller matrix instead of applying it.
 ; OUTPUTS:
 ;
 ; HISTORY:
-; 	Began 2008-02-05 15:29:54 by Marshall Perrin
+;   Began 2008-02-05 15:29:54 by Marshall Perrin
 ;-
+
 
 
 function DST_waveplate, polcube, angle=angle, degrees=degrees, mueller=return_mueller, silent=silent, retardance=retardance, pband=pband
@@ -72,16 +96,16 @@ function DST_waveplate, polcube, angle=angle, degrees=degrees, mueller=return_mu
    ;If the retardance isn't set then assume that we are dealing with the GPI HWP, with a
    ;measured retardance
    
-      if not keyword_set(pband) then pband = 'H' 
-      ;print, "Using the HWP Mueller Matrix for "+pband+" band"
+    if not keyword_set(pband) then pband = 'H' 
+      ;prprint, "Using the HWP Mueller Matrix for "+pband+" band"
       case pband of 
-        'Y': M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9985,-0.0458],[0,0,0.0458,-0.9985]]
-        'J': M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9989,0.0390],[0,0,-0.0390,-0.9989]]
-        'H': M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9931,0.1152],[0,0,-0.1152,-0.9931]]
-        'K1':M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9983,0.0513],[0,0,-0.0513,-0.9983]]
-        'K2':M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9995,-0.0154],[0,0,0.0154,-0.9995]]
+        'Y': M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9998,0.0186],[0,0,-0.0186,-0.9998]]
+        'J': M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9970,0.0772],[0,0,-0.0772,-0.9970]]
+        'H': M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9924,0.1228],[0,0,-0.1228,-0.9924]]
+        'K1':M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9996,0.0266],[0,0,-0.0266,-0.9996]]
+        'K2':M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9973,-0.0729],[0,0,0.0729,-0.9973]]
       endcase
-      
+   ;stop   
   mueller = mueller_rot(-theta)##M##mueller_rot(theta) ; Apply a rotation matrix. If angle wasn't set this has no effect
   
   endif else begin
@@ -120,30 +144,6 @@ function DST_waveplate, polcube, angle=angle, degrees=degrees, mueller=return_mu
 
 end
 
-;------------------------------------------
-
-;+
-; NAME: mueller_rot
-;
-;  The mueller matrix for a rotation of angle theta
-;
-; INPUTS:
-;   theta - the angle of rotation for the matrix in radians
-; OUTPUTS:
-;   a 4 x 4 mueller matrix 
-; HISTORY:
-;   Began 2012 - MMB  
-;
-;-
-function mueller_rot, theta
-theta=double(theta)
-M=[[1,0,0,0],[0,cos(2*theta),sin(2*theta),0],[0,-sin(2*theta),cos(2*theta),0],[0,0,0,1]]
-
-return, M
-end
-
-
-;------------------------------------------
 
 ;+
 ; NAME: DST_instr_pol
@@ -327,6 +327,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     
     if where(strcmp(tabband, pband) eq 1) lt 0 then return, error('FAILURE ('+functioname+'): IFSFILT keyword invalid. No HWP mueller matrix for that filter')
     
+    ;Just testing something: 
+    ;wpangle[i]=-wpangle[i]
+    ;*****
+    
+    
 		wp_mueller = DST_waveplate(angle=wpangle[i], pband=pband, /mueller,/silent, /degrees)
 		;skyrotation_mueller =  mueller_rotate(parang)
 
@@ -367,7 +372,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	; at this point we should have properly computed the system response matrix M.
 	; We can now iterate over each position in the FOV and compute the derived
 	; Stokes vector at that position.
-
+  
 	for x=0L, sz[1]-1 do begin
 	for y=0L, sz[2]-1 do begin
 		;statusline, "Solving for Stokes vector at lenslet "+printcoo(x,y)
