@@ -36,10 +36,7 @@
 ;    Jerome Maire 2008-10
 ;    2009-06 : JM fix a bug for w&P  when (i=0,j) not in the raw image
 ;    2009-06-17: MDP split for polarization dual-spot routine
-;	 2013-01-28: MMB Improvements on spot extraction
-;	 2013-02-08  MMB Fill in plausible pixels and pixvals arrays based on
-;	 			 adjacent lenslets, for cases where the mpfit results are
-;	 			 too far off.
+;
 ;-
 
 function is_pixel_in_usable_region,px, py, szim 
@@ -281,17 +278,15 @@ for i=0,ilim,idir do begin
           spotpos[0,nlens/2+i,nlens/2+j,0]=cen1[0]+dx
           spotpos[1,nlens/2+i,nlens/2+j,0]=cen1[1]+dy
           predict_counter++
-          ;predict_flag=1
+          predict_flag=1
           
-          ; Let's use the previous spot pixels in this case. 
-          
+          ; Let's use the previous spot pixels in this case.           
           pix_loc=where(spotpos_pixels[0,*,nlens/2+i-idir, nlens/2+j,0] ne 0.)
           spotpos_pixels[0,0,nlens/2+i,nlens/2+j,0] = spotpos_pixels[0,pix_loc,nlens/2+i-idir,nlens/2+j,0]+spotpos[0,nlens/2+i,nlens/2+j,0]-spotpos[0,nlens/2+i-idir,nlens/2+j,0]
           spotpos_pixels[1,0,nlens/2+i,nlens/2+j,0] = spotpos_pixels[1,pix_loc,nlens/2+i-idir,nlens/2+j,0]+spotpos[1,nlens/2+i,nlens/2+j,0]-spotpos[1,nlens/2+i-idir,nlens/2+j,0]
           spotpos_pixvals[0:n_elements(pix_loc)-1,nlens/2+i,nlens/2+j,0]=im[spotpos_pixels[0,pix_loc,nlens/2+i,nlens/2+j,0]+szim[1]*spotpos_pixels[1,pix_loc,nlens/2+i,nlens/2+j,0]]
      endif else begin
-        ; Only update these variables in the spot was properly found with localize_mpfitpeak
-        ; Only these spots will get valid numbers when extracting a pol cube 
+
         spotpos_pixvals[0,nlens/2+i,nlens/2+j,0] = pixvals
         spotpos_pixels[0,0,nlens/2+i,nlens/2+j,0] = pixels
      endelse
@@ -313,7 +308,6 @@ for i=0,ilim,idir do begin
           spotpos[1,nlens/2+i,nlens/2+j,1]=cen1[1]+dy+POL_DY
           
           ; Let's use the previous spot pixels in this case. 
-   
           pix_loc=where(spotpos_pixels[0,*,nlens/2+i-idir, nlens/2+j,1] ne 0.)
           spotpos_pixels[0,0,nlens/2+i,nlens/2+j,1] = spotpos_pixels[0,pix_loc,nlens/2+i-idir,nlens/2+j,1]+spotpos[0,nlens/2+i,nlens/2+j,1]-spotpos[0,nlens/2+i-idir,nlens/2+j,1]
           spotpos_pixels[1,0,nlens/2+i,nlens/2+j,1] = spotpos_pixels[1,pix_loc,nlens/2+i-idir,nlens/2+j,1]+spotpos[1,nlens/2+i,nlens/2+j,1]-spotpos[1,nlens/2+i-idir,nlens/2+j,1]
