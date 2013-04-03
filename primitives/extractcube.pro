@@ -27,6 +27,7 @@
 ;   2009-09-17 JM: added DRF parameters
 ;   2012-02-01 JM: adapted to vertical dispersion
 ;   2012-02-09 DS: offloaded sdpx calculation
+;   2013-04-02 JBR: Correction on the y coordinate when reading the det array to match centered pixel convention. Removal of the reference pixel aera.
 ;-
 function extractcube, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -66,12 +67,14 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
      y3=wavcal[*,*,1]+(wavcal[*,*,0]-x3)*tan(tilt[*,*])	
   
      ;extract intensities on a 3x1 box:
-     cubef=det[y3,x3]+det[y3+1,x3]+det[y3-1,x3]
-     
-     ;declare as Nan mlens not on the detector:
-     bordx=where(~finite(x3),cc)
+     ;y3 is a float and the reference is the center of the pixel. It means for instance that -0.5<y<0.5 refers to pixel number 0 and 1.5<y<2.5 refers to pixel number 2.
+     ;So the round function is needed to reference the right pixel.
+     cubef=det[Round(y3),x3]+det[Round(y3+1),x3]+det[Round(y3-1),x3]
+      
+     ;declare as Nan mlens not on the detector (or on the reference pixel aera, i.e. 5 pixels on each side):
+     bordx=where(~finite(x3) OR (x3 LE 4.0) OR (x3 GE 2043.0),cc)
      if (cc ne 0) then cubef[bordx]=!VALUES.F_NAN
-     bordy=where(~finite(y3),cc)
+     bordy=where(~finite(y3) OR (Round(y3) LE 5.0) OR (Round(y3) GE 2042.0),cc)
      if (cc ne 0) then cubef[bordy]=!VALUES.F_NAN
      
      cubef3D[*,*,i]=cubef
