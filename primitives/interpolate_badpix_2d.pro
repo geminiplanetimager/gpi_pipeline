@@ -59,6 +59,7 @@
 ; 	2013-01-16 MP: Documentation cleanup
 ; 	2013-02-07 MP: Enhanced all8 interpolation to properly handle cases where
 ;					there are bad pixels in the neighboring pixels.
+;   2013-04-02 JBR: Correction of a sign in the vertical algorithm when reading the bottom adjacent pixel.
 ;-
 function interpolate_badpix_2d, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -189,7 +190,7 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 				 (*dataset.currframe)[wslowfix] =  (*dataset.currframe)[wslowfix+2048]
 			endif else if  bpmask[wslowfix[i]-2048] eq 0 then begin
 				; adjacent below is only good one, just use that alone
-				(*dataset.currframe)[wslowfix] =  (*dataset.currframe)[wslowfix+2048]
+				(*dataset.currframe)[wslowfix] =  (*dataset.currframe)[wslowfix-2048]
 			endif else begin
 				; neither above nor below is valid. 
 				; use average of whatever surrounding pixels are in fact valid
