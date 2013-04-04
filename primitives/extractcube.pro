@@ -64,12 +64,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
      cubef=dblarr(nlens,nlens) 
      ;get the locations on the image where intensities will be extracted:
      x3=xmini-i
-     y3=wavcal[*,*,1]+(wavcal[*,*,0]-x3)*tan(tilt[*,*])	
+     y3=round(wavcal[*,*,1]+(wavcal[*,*,0]-x3)*tan(tilt[*,*]))	
   
      ;extract intensities on a 3x1 box:
      ;y3 is a float and the reference is the center of the pixel. It means for instance that -0.5<y<0.5 refers to pixel number 0 and 1.5<y<2.5 refers to pixel number 2.
      ;So the round function is needed to reference the right pixel.
-     cubef=det[Round(y3),x3]+det[Round(y3+1),x3]+det[Round(y3-1),x3]
+     cubef=det[y3,x3]+det[y3+1,x3]+det[y3-1,x3]
       
      ;declare as Nan mlens not on the detector (or on the reference pixel aera, i.e. 5 pixels on each side):
      bordx=where(~finite(x3) OR (x3 LE 4.0) OR (x3 GE 2043.0),cc)
