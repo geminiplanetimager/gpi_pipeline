@@ -15,7 +15,8 @@
 ;					an additional 2 lenslets on all sides. 
 ;
 ; HISTORY:
-;	Began 013-03-12 15:53:49 by Marshall Perrin 
+;	Began 2013-03-12 15:53:49 by Marshall Perrin 
+;	2013-04-05 MP: documentation update
 ;-
 
 function gpi_wavecal_extrapolate_edges, wavecal
@@ -28,39 +29,48 @@ function gpi_wavecal_extrapolate_edges, wavecal
 	mask2 = dilate(dilate(mask, kernel), kernel)
 
 
+	; Compute spatial derivatives of wavecal positions for x and y directions
 	dwavecaldx = wavecal - shift(wavecal,1,0,0)
 	dwavecaldy = wavecal - shift(wavecal,0,1,0)
 
+	; Smooth them, first median smooth to discard outliers then more
+	; smoothing to get nice even gradiants
 	sm_dwavecaldx = dwavecaldx
 	sm_dwavecaldy = dwavecaldy
 	for i=0,4 do sm_dwavecaldx[*,*,i] = smooth(median(dwavecaldx[*,*,i],5),7,/nan)
 	for i=0,4 do sm_dwavecaldy[*,*,i] = smooth(median(dwavecaldy[*,*,i],5),7,/nan)
 
-	; extrapolate 1 pixel in X
-
-	;mask3 = mask2-mask
-	;mask3[where(mask3 eq 0)] = !values.f_nan
 
 	mask3 = fltarr(281,281)+1.0
 	mask3[where(mask)] = !values.f_nan
 
 	sz = size(wavecal)
 
-	; Try extrapolating 2 pixels in all of the +-X and +-Y directions
+	; Try extrapolating 2 lenslets in all of the +-X and +-Y directions
+	; This is simple linaer extrapolation of lenslet positions based on 
+	; the derivatives computed above. 
+	;
+	; This results in a 4D array where the 4th axis is the direction of
+	; interpolation.
 	extrapolations = fltarr(sz[1],sz[2],sz[3],4)
 	extrapolations[0,0,0,0] =  shift(wavecal,-2, 0,0) - 2*sm_dwavecaldx
 	extrapolations[0,0,0,1] =  shift(wavecal, 2, 0,0) + 2*sm_dwavecaldx
 	extrapolations[0,0,0,2] =  shift(wavecal, 0,-2,0) - 2*sm_dwavecaldy
 	extrapolations[0,0,0,3] =  shift(wavecal, 0, 2,0) + 2*sm_dwavecaldy
 
-	; mask out and only keep the extrapolations pixels, not anything that was good
+	; mask out and only keep the extrapolated lenslets, not anything that was good
 	; originally
 	for i=0,3 do for j=0,4 do extrapolations[*,*,j,i] *= mask3
 
+	; Median across the 4th axis, ignoring the NaN pixels that make up most of
+	; tha arrays, to produce a single wavecal that includes the
+	; valid extrapolated pixels from all 4 extrapolation directions
 	med_extrap = median(extrapolations, dim=4,/even) 
 
 
-	extrapolated = wavecal
+	; Create a copy of the original wavecal and 
+	; fill in the appropriate lenslets with the extrapolation
+	extrapolated = wavecal*1.0 ; copy
 	wf = where(finite(med_extrap))
 	extrapolated[wf] = med_extrap[wf]
 
