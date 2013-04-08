@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DRF ReductionType="PolarimetricScience" name="Simple Polarization Datacube Extraction">
+<dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
+   <fits filename=""/>
+</dataset>
+<module name="Load Polarimetry Spot Calibration" CalibrationFile="AUTOMATIC" />
+<module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
+<module name="Destripe science frame" method="calfile" abort_fraction="0.9" fraction="0.7" high_limit="1000" chan_offset_correction="0" Save_stripes="0" Save="0" gpitv="1" />
+<module name="Interpolate bad pixels in 2D frame" method="n4n"  Save="0" gpitv="0" CalibrationFile="AUTOMATIC" />
+<module name="Assemble Polarization Cube" Rotate="0" Save="0" gpitv="2" />
+</DRF>
