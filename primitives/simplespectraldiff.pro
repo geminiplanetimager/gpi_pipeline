@@ -143,13 +143,17 @@ if (szim[1] mod 2) then begin
   I2=I2[0:szim[1]-2,0:szim[2]-2]
 endif 
 
+knumin=-1
+vscaleopt=1
+knum=1
+sssd=gpi_ssdi(I1,I2,L1m,L2m,vscaleopt,knumin,knum)
 
-;;todo: handle PSF center before fftscale 
-I1s=fftscale(I1,double(L2m)/double(L1m),double(L2m)/double(L1m),1e-7)
+;;;todo: handle PSF center before fftscale 
+;I1s=fftscale(I1,double(L2m)/double(L1m),double(L2m)/double(L1m),1e-7)
 
 
-;sssd=I2-k*I1s
-sssd=I1s-k*I2
+;;sssd=I2-k*I1s
+;sssd=I1s-k*I2
 
 ;suffix=suffix+'-sssd'
 ;filenm=strmid(filename,0,strlen(filename)-5)+suffix+'-sssd'+'.fits.gz'
