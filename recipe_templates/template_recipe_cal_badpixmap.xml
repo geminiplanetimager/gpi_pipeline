@@ -6,5 +6,5 @@
 <module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
 <module name="Find Bad pixels from flats" Save="1" gpitv="2" />
 <module name="Accumulate Images" Method="InMemory" />
-<module name="Combine bad pixel maps" Save="1" gpitv="2" combmethod="OR" />
+<module name="Generate Combined Bad Pixel Map" Save="1" gpitv="2" combmethod="OR" />
 </DRF>
