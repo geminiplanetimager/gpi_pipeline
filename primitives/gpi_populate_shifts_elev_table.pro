@@ -97,7 +97,7 @@ nfiles=dataset.validframecount
  ;need plots ?
  needplot=1
  if needplot eq 1 then begin
-       direc="Z:"+path_sep()
+       direc=""
         mydevice = !D.NAME
         ps_figure=1
         if (ps_figure gt 0.)  then begin
