@@ -152,7 +152,7 @@ endif
             for i=0,sdpx-1 do begin  ;through spaxels
                 ;get the locations on the image where intensities will be extracted:
                 x3=xmini-i
-                y3=wavecal2[*,*,1]+(wavecal2[*,*,0]-x3)*tan(tilt[*,*])    
+                y3=round(wavecal2[*,*,1]+(wavecal2[*,*,0]-x3)*tan(tilt[*,*]))    
                 ; Normally we extract intensities on a 3x1 box;
                 ; instead of extracting pixels, mask out those pixels.
                 dy=1
