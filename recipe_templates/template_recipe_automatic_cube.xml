@@ -7,9 +7,9 @@
 <!-- <module name="Apply Reference Pixel Correction" Save="0" gpitv="0" before_and_after='1' /> -->
 <module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
 <module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
+<module name="Update Spot Shifts for Flexure" method="None" manual_dx="0" manual_dy="0" Save="0" gpitv="3" />
 <module name="Destripe science frame" method="calfile" abort_fraction="0.9" fraction="0.7" high_limit="1000" chan_offset_correction="0" Save_stripes="0" Save="0" gpitv="0" />
 <module name="Interpolate bad pixels in 2D frame" method="vertical"  Save="0" gpitv="0" CalibrationFile="AUTOMATIC" /> 
-<module name="Update Spot Shifts for Flexure" method="None" manual_dx="0" manual_dy="0" Save="0" gpitv="3" />
 <module name="Assemble Spectral Datacube" Save="0" />
 <module name="Interpolate Wavelength Axis" Spectralchannels="37" Save="1" gpitv="5" />
 </DRF>
