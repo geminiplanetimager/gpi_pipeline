@@ -8,7 +8,7 @@
 ; OUTPUTS:
 ;
 ; PIPELINE COMMENT: Extract a 3D datacube from a 2D image. Spatial integration (3 pixels) along the dispersion axis
-; PIPELINE ARGUMENT: Name="method" Type="string" Range="[None|Manual|Lookup|Auto]" Default="None" Desc='How to accomodate spot position shifts due to flexure?'
+; PIPELINE ARGUMENT: Name="method" Type="string" Range="[None|Manual|Lookup|Auto]" Default="None" Desc='How to correct spot shifts due to flexure? [None|Manual|Lookup|Auto]'
 ; PIPELINE ARGUMENT: Name="manual_dx" Type="float" Range="[-10,10]" Default="0" Desc="If method=Manual, the X shift of spectra at the center of the detector"
 ; PIPELINE ARGUMENT: Name="manual_dy" Type="float" Range="[-10,10]" Default="0" Desc="If method=Manual, the Y shift of spectra at the center of the detector"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
