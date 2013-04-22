@@ -387,26 +387,27 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	; For dark images, the filter does not matter. I'm going to change this to
 	; just 'itime' unless someone has another opinion?
 
-	; FIXME perhaps this should be a configuration file instead?
-	types_str =[['dark', 'Dark', 'itimeReadmode'], $
-			  	['wavecal', 'Wavelength Solution Cal File', 'FiltPrism'], $
-				['flat', 'Flat Field', 'FiltPrism'], $
-				;['flat', 'Flat field', 'FiltPrism'], $
-				['badpix', 'Bad Pixel Map', 'typeonly'], $
-				['hotbadpix', 'Hot Pixel Map', 'typeonly'], $
-				['coldbadpix', 'Cold Bad Pixel Map', 'typeonly'], $
-				['nonlinearbadpix', 'Nonlinear Bad Pixel Map', 'typeonly'], $
-				['plate', 'Plate scale & orientation', 'typeonly'], $
-				['spotloc', 'Spot Location Measurement', 'FiltOnly'], $
-				['Gridratio', 'Grid Ratio', 'FiltOnly'], $
-				['mlenspsf', 'mlens psf', 'FiltPrism'], $
-				['Fluxconv', 'Fluxconv', 'FiltPrism'], $
-				['telluric', 'Telluric Transmission', 'FiltPrism'], $
-				['polcal', 'Polarimetry Spots Cal File', 'FiltPrism'], $
-				['instpol', 'Instrumental Polarization', 'FiltPrism'], $
-				['distor', 'Distortion Measurement', 'typeonly'], $
-				['background', 'Thermal/Sky Background', 'FiltPrism'], $
-				['', '', '']]
+                                ; FIXME perhaps this should be a configuration file instead?
+        types_str =[['dark', 'Dark', 'itimeReadmode'], $
+                    ['wavecal', 'Wavelength Solution Cal File', 'FiltPrism'], $
+                    ['flat', 'Flat Field', 'FiltPrism'], $
+                                ;['flat', 'Flat field', 'FiltPrism'], $
+                    ['badpix', 'Bad Pixel Map', 'typeonly'], $
+                    ['hotbadpix', 'Hot Pixel Map', 'typeonly'], $
+                    ['coldbadpix', 'Cold Bad Pixel Map', 'typeonly'], $
+                    ['nonlinearbadpix', 'Nonlinear Bad Pixel Map', 'typeonly'], $
+                    ['plate', 'Plate scale & orientation', 'typeonly'], $
+                    ['spotloc', 'Spot Location Measurement', 'FiltOnly'], $
+                    ['Gridratio', 'Grid Ratio', 'FiltOnly'], $
+                    ['mlenspsf', 'mlens psf', 'FiltPrism'], $
+                    ['Fluxconv', 'Fluxconv', 'FiltPrism'], $
+                    ['telluric', 'Telluric Transmission', 'FiltPrism'], $
+                    ['polcal', 'Polarimetry Spots Cal File', 'FiltPrism'], $
+                    ['instpol', 'Instrumental Polarization', 'FiltPrism'], $
+                    ['distor', 'Distortion Measurement', 'typeonly'], $
+                    ['background', 'Thermal/Sky Background', 'FiltPrism'], $
+                    ['shifts', 'Flexure shift Cal File', 'typeonly'], $
+                   ['', '', '']]
 	; reformat the above into a struct array.
 	aa = {type_struct, name: 'dark', description:'Dark', match_on:"itimeReadmode"}
 	types = replicate(aa, (size(types_str))[2])
