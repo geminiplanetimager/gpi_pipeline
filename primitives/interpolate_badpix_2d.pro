@@ -60,6 +60,7 @@
 ; 	2013-02-07 MP: Enhanced all8 interpolation to properly handle cases where
 ;					there are bad pixels in the neighboring pixels.
 ;   2013-04-02 JBR: Correction of a sign in the vertical algorithm when reading the bottom adjacent pixel.
+;   2013-04-22 JBR: In vertical algorithm, condition added if both upper and bottom pixels are good.
 ;-
 function interpolate_badpix_2d, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -176,33 +177,35 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 		(*dataset.currframe)[wquickfix] =  ( (*dataset.currframe)[wquickfix+2048] + (*dataset.currframe)[wquickfix-2048]) / 2
 		
 		; now slog through the rest:
-		wslowfix = wbad[w_at_least_one_nbr_bad]
-		slowct =n_elements(wslowfix)
-
-		for i=0,slowct-1 do begin
-			statusline, "Fixing bad pixel "+strc(ct_valid_above_and_below +i) +" of "+strc(count)
-			;if bpmask[wbad[i]+2048] eq 0 and bpmask[wbad[i]-2048] eq 0 then  begin
-				;; both adjacent pixels above and below are good
-				;(*dataset.currframe)[wbad] =  ( (*dataset.currframe)[wbad+2048] + (*dataset.currframe)[wbad-2048]) / 2
-			;endif else 
-			if bpmask[wslowfix[i]+2048] eq 0 then begin
-				; adjacent above is only good one, just use that alone.
-				 (*dataset.currframe)[wslowfix] =  (*dataset.currframe)[wslowfix+2048]
-			endif else if  bpmask[wslowfix[i]-2048] eq 0 then begin
-				; adjacent below is only good one, just use that alone
-				(*dataset.currframe)[wslowfix] =  (*dataset.currframe)[wslowfix-2048]
-			endif else begin
-				; neither above nor below is valid. 
-				; use average of whatever surrounding pixels are in fact valid
-				whereis, bpmask, wslowfix[i], bx, by
-				localvalid = 1-bpmask[bx-1:bx+1, by-1:by+1]
-				localdata = (*dataset.currframe)[bx-1:bx+1, by-1:by+1]
-				goodmean = total(localdata * localvalid) / total(localvalid)
-				(*dataset.currframe)[wslowfix[i]] = goodmean
-			endelse
-
-		endfor
-
+		if (w_at_least_one_nbr_bad[0] NE -1) then begin
+  		wslowfix = wbad[w_at_least_one_nbr_bad]
+  		slowct =n_elements(wslowfix)
+  
+  		for i=0,slowct-1 do begin
+  			statusline, "Fixing bad pixel "+strc(ct_valid_above_and_below +i) +" of "+strc(count)
+  			;if bpmask[wbad[i]+2048] eq 0 and bpmask[wbad[i]-2048] eq 0 then  begin
+  				;; both adjacent pixels above and below are good
+  				;(*dataset.currframe)[wbad] =  ( (*dataset.currframe)[wbad+2048] + (*dataset.currframe)[wbad-2048]) / 2
+  			;endif else 
+  			if bpmask[wslowfix[i]+2048] eq 0 then begin
+  				; adjacent above is only good one, just use that alone.
+  				 (*dataset.currframe)[wslowfix] =  (*dataset.currframe)[wslowfix+2048]
+  			endif else if  bpmask[wslowfix[i]-2048] eq 0 then begin
+  				; adjacent below is only good one, just use that alone
+  				(*dataset.currframe)[wslowfix] =  (*dataset.currframe)[wslowfix-2048]
+  			endif else begin
+  				; neither above nor below is valid. 
+  				; use average of whatever surrounding pixels are in fact valid
+  				whereis, bpmask, wslowfix[i], bx, by
+  				localvalid = 1-bpmask[bx-1:bx+1, by-1:by+1]
+  				localdata = (*dataset.currframe)[bx-1:bx+1, by-1:by+1]
+  				goodmean = total(localdata * localvalid) / total(localvalid)
+  				(*dataset.currframe)[wslowfix[i]] = goodmean
+  			endelse
+  
+  		endfor
+  	endif
+      
 	end
 	'all8': begin 
 		; Uses all 8 neighboring pixels
