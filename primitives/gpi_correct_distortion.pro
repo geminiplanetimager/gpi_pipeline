@@ -22,6 +22,7 @@
 ;
 ; HISTORY:
 ; 	Originally by Jerome Maire 2009-12
+;   2013-04-23 Major change of the code, now based on Quinn's routine for distortion correction - JM
 ;- 
 
 function gpi_correct_distortion, DataSet, Modules, Backbone
@@ -32,39 +33,41 @@ calfiletype='distor'
 
 	cubef3D=*(dataset.currframe[0])
 
-	nlens=(size(cubef3D))[1]
-	xx=findgen(nlens)#replicate(1L,nlens)
-	yy=replicate(1L,nlens)#findgen(nlens)
+	sz=(size(cubef3D))
+	x0 = 140.  ;center of cube slice
+  y0 = 140.  ; center of cube slice
+	
 
-  
-  ;  pmd_fluxcalFrame        = ptr_new(READFITS(c_File, Headercal, /SILENT))
     parms= gpi_readfits(c_File, header=Headercal)
     
-    parmsx=parms[0,*]
-    parmsy=parms[1,*]
+    a=parms[*,0]
+    b=parms[*,1]
     
-	;distormodely=rotate(transpose(mydistor4(XX,YY,parmsx)),2)
-	;distormodelx=rotate(transpose(mydistor4(XX,YY,parmsy)),2)
-	distormodelx=mydistor4(XX,YY,parmsx)
-	distormodely=mydistor4(XX,YY,parmsy)
-	cubef3D2=cubef3D
-	cubef3D3=cubef3D
+    
+    ;;; 3. Set up x and y coordinate arrays
+  xobs = REBIN(FINDGEN(sz[1],1),sz[1],sz[2])
+  x1 = xobs - x0
+  yobs = REBIN(FINDGEN(1,sz[2]),sz[1],sz[2])
+  y1 = yobs - y0
 
+;;; 4. Perform forward transformation (x -> x')
+  xp = 140.+POLYSOL(x1,y1,a)
+  yp = 140.+POLYSOL(x1,y1,b)
 
-cubef3D_corrected=cubef3D
-nwav=(size(cubef3D))[3]
-for ii=0, nwav-1 do cubef3D2[*,*,ii]=rotate(transpose(cubef3D[*,*,ii]),2)
+;;; 5. Bilinearly interpolate output image at negative offset locations
+  ix = 2*xobs - xp
+  jy = 2*yobs - yp
+  
+  for ii=0, sz[3]-1 do begin
+    im_in=cubef3D[*,*,ii]
+    im_out = BILINEAR(im_in,ix,jy)
+    cubef3D[*,*,ii]=im_out
+  endfor
+  *(dataset.currframe[0])=cubef3D
+    
+    
 
-;for ii=0, nwav-1 do cubef3D_corrected[*,*,ii]= interpolate(cubef3D2[*,*,ii],distormodelx,distormodely)
-;for ii=0, nwav-1 do cubef3D_corrected[*,*,ii]= interpolate(cubef3D2[*,*,ii],xx+distormodelx,yy+distormodely)
-for hh=0,nwav-1 do cubef3D_corrected[*,*,hh,0] = warp_tri(xx+(distormodelx),yy+(distormodely),xx,yy,cubef3D2[*,*,hh,0]) ;,/quintic
-
-for ii=0, nwav-1 do cubef3D3[*,*,ii]=rotate(transpose(cubef3D_corrected[*,*,ii]),2)
-;stop
-
-*(dataset.currframe[0])=cubef3D3
-
-suffix+='-distor'
+suffix+='-distorcorr'
 
 @__end_primitive
 
