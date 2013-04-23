@@ -34,8 +34,29 @@ nfiles=dataset.validframecount
     calfiletype = 'wavecal'
     c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headersphu)[numfile],*(dataset.headersext)[numfile] ) 
     c_file = gpi_expand_path(c_file)  
-     currwavcal = gpi_readfits(c_File,header=Header)
-     backbone->set_keyword, "SHIFTREF", c_File, "Shift reference file used.", ext_num=1
+    currwavcal = gpi_readfits(c_File,header=Header)
+    backbone->set_keyword, "SHIFTREF", c_File, "Shift reference file used.", ext_num=1
+    
+;; must make sure the reference file has zenith angle of 90 -
+;; elevation 0, and uses the same lamp!
+
+; get c_file primary header
+    pri_cal_header=headfits(c_File,exten=0)
+
+     if abs(gpi_get_keyword(pri_cal_header,header,'ELEVATIO')) ge 1 then begin
+        logstr = 'Reference calibration is not at horizontal (elevation eq 0), aborting sequence'
+        backbone->Log,logstr
+        message,/info, logstr
+        return, NOT_OK
+     endif
+
+     if strcompress(backbone->get_keyword('GCALLAMP')) ne strcompress(gpi_get_keyword(pri_cal_header,header,'GCALLAMP')) then begin
+        logstr = 'Reference file does not use the same lamp! Aborting sequence'
+        backbone->Log,logstr
+        message,/info, logstr
+        return, NOT_OK
+     endif
+
      currwavcal0 = (accumulate_getimage( dataset, 0))[*,*,*]
      szw=size(currwavcal)
      lambdaref=currwavcal[szw[1]/2,szw[2]/2,2]
