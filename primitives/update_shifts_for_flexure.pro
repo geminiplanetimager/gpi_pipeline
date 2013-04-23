@@ -147,20 +147,27 @@ primitive_version= '$Id: extractcube.pro 1175 2013-01-17 06:48:58Z mperrin $' ; 
 	end
 	'lookup': begin
     my_elevation =  backbone->get_keyword('ELEVATIO', count=ct)
+; the above line returns zero if no keyword is found. This is
+; acceptable since all data taken without this keyword has an
+; elevation of zero!
+ 
 		calfiletype = 'shifts'
-    c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headersphu)[numfile],*(dataset.headersext)[numfile] ) 
+
+    c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headersphu)[numfile],*(dataset.headersext)[numfile] )
     c_file = gpi_expand_path(c_file)
     lookuptable = gpi_readfits(c_File,header=Header)
+
     ;;sanity check: are we using the same shift reference file?
-      
-      wavcalname=backbone->get_keyword('DRPWVCLF', count=cw)
-      shiftref = SXPAR( Header, "SHIFTREF", COUNT=cr)
-      if wavcalname eq shiftref then begin 
+; - this isn't necessary - we just want the most recent model
+
+      ;wavcalname=backbone->get_keyword('DRPWVCLF', count=cw)
+      ;shiftref = SXPAR( Header, "SHIFTREF", COUNT=cr)
+      ;if wavcalname eq shiftref then begin 
     
         		xtable=lookuptable[*,1]
         		ytable=lookuptable[*,2]
         		elevtable=lookuptable[*,0]
-        		if ct ge 1 then begin
+        		;if ct ge 1 then begin
         		  elevsortedind=sort(elevtable)
         		  sortedelev=elevtable[elevsortedind]
         		  sortedxshift=xtable[elevsortedind]
@@ -209,17 +216,17 @@ primitive_version= '$Id: extractcube.pro 1175 2013-01-17 06:48:58Z mperrin $' ; 
           		;shiftx = INTERPOL(xtable, elevtable, my_elevation) 
           		;shifty = INTERPOL(ytable, elevtable, my_elevation)
           		backbone->set_keyword, 'SPOT_DX', shiftx, 'Lookup table sets X shift for flexure'
-              backbone->set_keyword, 'SPOT_DY', shifty, 'Lookup table sets Y shift for flexure'
-            endif else begin
-                  backbone->Log, "No ELEVATIO keyword found in image. No shifting applied."
-                  shiftx = 0.
-                  shifty = 0.
-            endelse
-         endif else begin
-                  backbone->Log, "Shift reference files are different. No shifting applied."
-                  shiftx = 0.
-                  shifty = 0.
-         endelse   
+                        backbone->set_keyword, 'SPOT_DY', shifty, 'Lookup table sets Y shift for flexure'
+                 ;    endif else begin
+                  ;      backbone->Log, "No ELEVATIO keyword found in image. No shifting applied."
+                  ;      shiftx = 0.
+                  ;      shifty = 0.
+                  ;   endelse
+                 ; endif else begin
+                  ;backbone->Log, "Shift reference files are different. No shifting applied."
+                  ;shiftx = 0.
+                  ;shifty = 0.
+         ;endelse   
    
 	end
 	'auto': begin
