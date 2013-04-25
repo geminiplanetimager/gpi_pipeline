@@ -2,13 +2,27 @@
 ; NAME: Destripe for Darks Only
 ; PIPELINE PRIMITIVE DESCRIPTION: Aggressive destripe assuming there is no signal in the image. (for darks only)
 ;
-; 	Correct for fluctuations in the bias/dark level using a pixel-by-pixel 
+; 	Correct for fluctuations in the background bias level
+; 	(i.e. horizontal stripes in	the raw data) using a pixel-by-pixel 
 ; 	median across all channels, taking into account the alternating readout
 ; 	directions for every other channel. 
 ;
 ; 	This provides a very high level of rejection for stripe noise, but of course
 ; 	it assumes that there's no signal anywhere in your image. So it's only
 ; 	good for darks. 
+;
+;
+;   A second noise source that can be removed by this routine is the 
+;   so-called microphonics noise induced by high frequency vibrational modes of
+;   the H2RG. This noise has a characteristic frequenct both temporally and 
+;   spatially, which lends itself to removal via Fourier filtering. After
+;   destriping, the image is Fourier transformed, masked to select only the
+;   Fourier frequencies of interest, and transformed back to yield a model for
+;   the microphonics striping that can be subtracted from the data. Empirically
+;   this correction works quite well. Set the "remove_microphonics" option to
+;   enable this, and set "remove_microphonics_display" to show on screen a
+;   diagnostic plot that lets you see the stripe & microphonics removal in
+;   action.
 ;
 ; SEE ALSO: Destripe science frame
 ;
@@ -17,11 +31,11 @@
 ; OUTPUTS: 2D image corrected for stripe noise
 ;
 ; PIPELINE COMMENT: Subtract readout pickup noise using median across all channels.
-; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display " 
 ; PIPELINE ARGUMENT: Name="before_and_after" Type="int" Range="[0,1]" Default="0" Desc="Show the before-and-after images for the user to see? (for debugging/testing)"
 ; PIPELINE ARGUMENT: Name="remove_microphonics" Type="string" Range="[yes|no]" Default="yes" Desc='Attempt to remove microphonics noise via Fourier filtering?'
 ; PIPELINE ARGUMENT: Name="remove_microphonics_display" Type="string" Range="[yes|no]" Default="no" Desc='Show diagnostic plots if removing microphonics?'
+; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
+; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display " 
 ; PIPELINE ORDER: 1.3
 ; PIPELINE NEWTYPE: ALL
 ; PIPELINE TYPE: ALL
@@ -31,6 +45,8 @@
 ;   2012-10-16 Patrick: fixed syntax error (function name)
 ;   2012-10-13 MP: Started
 ;   2013-01-16 MP: Documentation cleanup
+;   2012-03-13 MP: Added Fourier filtering to remove microphonics noise
+;   2013-04-25 MP: Improved documentation, display for microphonics removal.
 ;-
 function destripe_for_darks, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -42,6 +58,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	im =  *(dataset.currframe[0])
 
+	if keyword_set(remove_microphonics_display) then if remove_microphonics_display eq 'yes' then im0 = im ; save a copy of input image for later display
 	sz = size(im)
     if sz[1] ne 2048 or sz[2] ne 2048 then begin
         backbone->Log, "REFPIX: Image is not 2048x2048, don't know how to destripe"
@@ -94,15 +111,27 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 		microphonics_model = real_part(fft( fftim*fftmask,/inverse))
 
+
+		; For some reason presumably explicable in Fourier space, the resulting
+		; microphonics model often appears to have extra striping in the top rows
+		; of the image. This leads to some *induced* extra striping there
+		; when subtracted. Let's force the top rows to zero to avoid this. 
+		microphonics_model[*, 1975:*] = 0
+
 		;atv, [[[imout]],[[smoothed]],[[imout-microphonics_model]]],/bl
 		;stop
 
 		if strlowcase(remove_microphonics_display) eq 'yes' then begin
 			if numfile eq 0 then window,0
-			!p.multi=[0,3,1]
-			imdisp, imout, /axis, range=[-10,20], title='Destriped', charsize=2
-			imdisp, microphonics_model, /axis, range=[-10,20],title="Microphonics model", charsize=2
-			imdisp, imout-microphonics_model, /axis, range=[-10,20], title="Destriped and de-microphonicsed", charsize=2
+			!p.multi=[0,4,1]
+			loadct, 0
+
+			mean_offset = mean(im0) - mean(imout)
+			imdisp, im0 - mean_offset, /axis, range=[-10,30], title='Input Data', charsize=2
+			imdisp, imout, /axis, range=[-10,30], title='Destriped', charsize=2
+			imdisp, microphonics_model, /axis, range=[-10,30],title="Microphonics model", charsize=2
+			imdisp, imout-microphonics_model, /axis, range=[-5,15], title="Destriped and de-microphonicsed", charsize=2
+			xyouts, 0.5, 0.9, /normal, "Stripe & Microphonics Noise Removal for "+backbone->get_keyword('DATAFILE'), charsize=2, alignment=0.5
 		endif
 
 		imout -= microphonics_model
