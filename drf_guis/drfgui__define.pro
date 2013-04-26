@@ -957,10 +957,10 @@ pro drfgui::event,ev
         pfile = (*storage.splitptr).printname
         datefile = (*storage.splitptr).datefile
 
-		defdir = self->get_input_dir()
+		if self.last_used_input_dir eq '' then self.last_used_input_dir = self->get_input_dir()
 
         if (file[n_elements(file)-1] eq '') then begin
-            result=dialog_pickfile(path=defdir,/multiple,/must_exist,$
+            result=dialog_pickfile(path=self.last_used_input_dir,/multiple,/must_exist,$
                 title='Select Raw Data File(s)', filter=['*.fits','*.fits.gz'],get_path=getpath)
         endif else begin
 			msgtext = 'Sorry, maximum number of files reached. You cannot add any additional files/directories.'
@@ -990,12 +990,15 @@ pro drfgui::event,ev
             file[cindex:cindex+n_elements(result)-1] = result
 
             for i=0,n_elements(result)-1 do begin
-                tmp = strsplit(result[i],path_sep(),/extract)
-                pfile[cindex+i] = tmp[n_elements(tmp)-1]+'    '
+                ;tmp = strsplit(result[i],path_sep(),/extract)
+                ;pfile[cindex+i] = tmp[n_elements(tmp)-1]+'    '
+				pfile[cindex+i] = file_basename(result[i])+'    '
             endfor
 
-            self.inputdir=strjoin(tmp[0:n_elements(tmp)-2],path_sep())
-            if !VERSION.OS_FAMILY ne 'Windows' then self.inputdir = "/"+self.inputdir 
+			self.inputdir = file_dirname(result[0])
+			self.last_used_input_dir = self.inputdir ; for use next time we open files
+            ;self.inputdir=strjoin(tmp[0:n_elements(tmp)-2],path_sep())
+            ;if !VERSION.OS_FAMILY ne 'Windows' then self.inputdir = "/"+self.inputdir 
           
             
 
@@ -2202,6 +2205,7 @@ pro drfgui__define
               template_types: ptr_new(), $ ; pointer to list of available template types
 			  drf_summary: ptr_new(), $		; name and filename etc for current DRF
 			  widgets_for_modes: ptr_new(), $ ; widget IDs for basic/normal/advanced modes. see set_view_mode.
+			  last_used_input_dir: '', $ ; save the most recently used directory. Start there again on subsequent file additions
 			  INHERITS gpi_gui_base }
 
 

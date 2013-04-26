@@ -462,7 +462,7 @@ pro parsergui::addfile, filenames, mode=mode
 	DRFnames = (*self.currDRFSelec)[1,*]
 	ITimes= (*self.currDRFSelec)[8,*]
 	Nfiles= (*self.currDRFSelec)[10,*]
-	wdark = where(strc(DRFnames) eq 'Dark' and (itimes gt 60) and (nfiles ge 10), darkcount)
+	wdark = where(DRFnames eq 'Dark' and (itimes gt 60) and (nfiles ge 10), darkcount)
 	if darkcount gt 0 then begin
 		; take the DRF of the longest available dark sequence and read all of
 		; the FITS files in it
@@ -470,9 +470,24 @@ pro parsergui::addfile, filenames, mode=mode
 		ilongdark = wdark[wlongestdark]
 		self->clone_recipe_and_swap_template, ilongdark,  'Generate Hot Bad Pixel Map from Darks',  datetimestr=datetimestr, insert_index=insertindex
 	endif
+
+	; 2. If we have added some (how many? At least 3? ) different flat field
+	; recipes, then combine those all together to generate cold pixel maps
 	
+	DRFnames = (*self.currDRFSelec)[1,*]
+	wflat = where(DRFnames eq 'Flat-field Extraction', flatcount)
+	; do we need to check distinct filters here? 
+	if flatcount ge 4 then begin
+		; generate a list of all the files
+		; merge them into one list
+		; edit clone_recipe routine to allow you to pass in a list of filenames
+		; clone a new instance of 'Generate Cold Bad Pixel Map from Flats'
+		; recipe using those. Add at the end of all the flats. 
+
+	endif
+
 	
-	; If we have added either the Hot bad pixel or cold bad pixel update
+	; 3. If we have added either the Hot bad pixel or cold bad pixel update
 	; recipes, we should update the overall bad pixel map too. 
 	DRFnames = (*self.currDRFSelec)[1,*]
 	wbp = where(DRFnames eq 'Generate Hot Bad Pixel Map from Darks' or DRFnames eq 'Generate Cold Bad Pixel Map from Flats' , bpcount)
@@ -571,37 +586,37 @@ pro parsergui::create_recipe_from_template, templatename, fitsfiles, current, da
 		drf->savedrf, outputfilename2
 	endif
 
-	self->add_drf_to_table, outputfilename, drf, current, index=index
+	self->add_recipe_to_table, outputfilename, drf, current, index=index
 
 end
 
 
-pro parsergui::clone_recipe_and_swap_template, current_recipe_index, newtemplatename, datetimestr=datetimestr, insert_index=insert_index, $
+pro parsergui::clone_recipe_and_swap_template, existing_recipe_index, newtemplatename, datetimestr=datetimestr, insert_index=insert_index, $
 	lastfileonly=lastfileonly
 	; starting from an existing recipe, create a new recipe using a different
 	; template but otherwise the same files and metadata
 	
-	existingdrf = (*self.currDRFSelec)[0, current_recipe_index]
+	existingdrf = (*self.currDRFSelec)[0, existing_recipe_index]
 	drf = obj_new('drf', existingdrf)
 
 	existingdrffiles =drf->get_inputdir() + path_sep() + drf->get_datafiles()
 
 	if keyword_set(lastfileonly) then existingdrffiles = existingdrffiles[n_elements(existingdrffiles)-1]
 	; copy over the descriptive info settings from the prior recipe
-	existing_metadata= {filter: (*self.currDRFSelec)[3,current_recipe_index], $
-						obstype:(*self.currDRFSelec)[4,current_recipe_index], $
-						dispersr: (*self.currDRFSelec)[5,current_recipe_index], $
-						occulter: (*self.currDRFSelec)[6,current_recipe_index], $ 
-						obsclass: (*self.currDRFSelec)[7,current_recipe_index], $
-						itime:(*self.currDRFSelec)[8,current_recipe_index], $
-						object:(*self.currDRFSelec)[9,current_recipe_index]}
+	existing_metadata= {filter: (*self.currDRFSelec)[3,existing_recipe_index], $
+						obstype:(*self.currDRFSelec)[4,existing_recipe_index], $
+						dispersr: (*self.currDRFSelec)[5,existing_recipe_index], $
+						occulter: (*self.currDRFSelec)[6,existing_recipe_index], $ 
+						obsclass: (*self.currDRFSelec)[7,existing_recipe_index], $
+						itime:(*self.currDRFSelec)[8,existing_recipe_index], $
+						object:(*self.currDRFSelec)[9,existing_recipe_index]}
 	;if ~(keyword_set(insert_index)) then insert_index = (size(*self.currDRFSelec))[2] ; append to end of table by default
 
 	newtemplatefilename = self->lookup_template_filename(newtemplatename)
 	self->create_recipe_from_template, newtemplatefilename, existingdrffiles, existing_metadata, datetimestr=datetimestr, index=insert_index
 end
 
-pro parsergui::add_drf_to_table, filename, drf, current, index=index
+pro parsergui::add_recipe_to_table, filename, drf, current, index=index
 	; append into table for display on screen and user manipulation
 	;
 	; PARAMETERS:
@@ -1219,7 +1234,6 @@ PRO parsergui__define
               selection: '', $
 			  DEBUG:0, $
 			  current_drf: ptr_new(), $
-			  last_used_input_dir: '', $ ; save the most recently used directory. Start there again on subsequent file additions
               currDRFSelec: ptr_new(), $
            INHERITS drfgui}
 
