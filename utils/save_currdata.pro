@@ -126,16 +126,16 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	FXADDPAR,  *(dataset.headersPHU[numfile]),'NEXTEND',1+keyword_set(addexten_var)+keyword_set(addexten_qa)
 
 
-    caldat,systime(/julian),month,day,year, hour,minute,second
-    datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
-    hourstr = string(hour,minute,second,format='(i2.2,i2.2,i2.2)')  
+    caldat,systime(/julian,/utc),month,day,year, hour,minute,second
+    datestr = string(year,month,day,format='(i4.4,"-",i2.2,"-",i2.2)')
+    hourstr = string(hour,minute,second,format='(i2.2,":",i2.2,":",i2.2)')  
 
 	;--- write out either some user-supplied data (if explicitly provided), or the current data frame
 	if ( keyword_set( savedata ) ) then begin  ; The calling function has specified some special data to save, in place of the currFrame data
 	  	if ~( keyword_set( saveheader ) ) then saveheader = *(dataset.headersExt[numfile])
 		if ~( keyword_set( savePHU ) ) then savePHU = *(dataset.headersPHU[numfile])
-		fxaddpar, savePHU, 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
-		fxaddpar, savePHU, 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
+		fxaddpar, savePHU, 'DRPVER', version, ' Version number of GPI DRP software'
+		fxaddpar, savePHU, 'DRPDATE', datestr+' '+hourstr, ' UT creation time of this reduced data file'
 		mwrfits, 0, c_File, savePHU, /create,/silent
 		writefits, c_File, float(savedata), saveheader, /append
 
