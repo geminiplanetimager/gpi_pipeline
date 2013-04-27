@@ -24,13 +24,16 @@
 ;	 Generate a median image across the 32 readout channels
 ;	 Smooth by 20 pixels to generate the broad variations
 ;	 mask out any pixels that are >3 sigma discrepant vs the broad variations
-;	 Generate a better median image across the 32 readout channels
+;	 Generate a better median image across the 32 readout channels post masking
 ;	 Perform some sanity checks for model validity and interpolate NaNs as needed
 ;	 Expand to a 2D image model of the detector
 ;
 ;
+; OPTIONAL/EXPERIMENTAL: 
+;  Microphonics removal is also available here. See the documentation for
+;  Destripe for Darks for more details. The
 ;
-; OUTPUTS:
+;
 ;
 ; PIPELINE ARGUMENT: Name="method" Type="string" Range="[threshhold|calfile]" Default="calfile" Desc='Find background based on image value threshhold cut, or calibration file spectra/spot locations?'
 ; PIPELINE ARGUMENT: Name="abort_fraction" Type="float" Range="[0.0,1.0]" Default="0.9" Desc="Necessary fraction of pixels in mask to continue - set at 0.9 to ensure quicklook tool is robust"
@@ -38,9 +41,10 @@
 ; PIPELINE ARGUMENT: Name="fraction" Type="float" Range="[0.0,1.0]" Default="0.7" Desc="What fraction of the total pixels in a row should be masked"
 ; PIPELINE ARGUMENT: Name="high_limit" Type="float" Range="[0,Inf]" Default="1" Desc="Pixel value where exceeding values are assigned a larger mask"
 ; PIPELINE ARGUMENT: Name="Save_stripes" Type="int" Range="[0,1]" Default="0" Desc="Save the striping noise image subtracted from frame?"
+; PIPELINE ARGUMENT: Name="display" Type="string" Range="[yes|no]" Default="no" Desc='Show diagnostic before and after plots when running?'
+; PIPELINE ARGUMENT: Name="remove_microphonics" Type="string" Range="[yes|no]" Default="no" Desc='Attempt to remove microphonics noise via Fourier filtering?'
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: Save output to disk, 0: Don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="1" Desc="1-500: choose gpitv session for displaying output, 0: no display "
-;
 ; PIPELINE COMMENT:  Subtract detector striping using measurements between the microspectra
 ; PIPELINE ORDER: 1.3
 ; PIPELINE TYPE: ALL HIDDEN
@@ -76,6 +80,10 @@ endif
  if tag_exist( Modules[thisModuleIndex], "high_limit") then high_limit=float(Modules[thisModuleIndex].high_limit) else high_limit=1000
  if tag_exist( Modules[thisModuleIndex], "Save") then save=float(Modules[thisModuleIndex].Save) else Save=0
  if tag_exist( Modules[thisModuleIndex], "Save_stripes") then save_stripes=float(Modules[thisModuleIndex].Save_stripes) else Save_stripes=0 
+ if tag_exist( Modules[thisModuleIndex], "remove_microphonics") then remove_microphonics=Modules[thisModuleIndex].remove_microphonics else remove_microphonics='yes'
+ if tag_exist( Modules[thisModuleIndex], "display") then display=Modules[thisModuleIndex].display else display='yes'
+ display = strlowcase(string(display))
+
 
  ;get the 2D detector image
  image=*(dataset.currframe[0])
@@ -98,6 +106,9 @@ endif
 
  ; load in bad pixel map if it exists
  if keyword_set(badpixmap) then mask[where(badpixmap eq 1)]=1
+
+ backbone->set_keyword, "HISTORY", "Destriping, using spectral masking + median across channels"
+ backbone->set_keyword, "HISTORY", "   (This does not work on flat fields!)"
 
  if strlowcase(method) eq 'threshhold' then begin
 
@@ -128,13 +139,12 @@ endif
 	mode = gpi_simplify_keyword_value(backbone->get_keyword('DISPERSR', count=c))
 	filter= gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=c))
 	case strupcase(strc(mode)) of
-		'PRISM':        begin
-			  ; Assume wavecal already loaded by readwavcal primitive
+		'PRISM':  begin
+			; Assume wavecal already loaded by readwavcal primitive
 			  
-			  ; Extrapolate wavecal an additional 2 lenslets, to let us mask out
-			  ; the edge spectra that are half on the detector.
-
-			  wavecal2 = gpi_wavecal_extrapolate_edges(wavcal)
+			; Extrapolate wavecal an additional 2 lenslets, to let us mask out
+			; the edge spectra that are half on/half off the detector.
+			wavecal2 = gpi_wavecal_extrapolate_edges(wavcal)
 			  
 
             ; The following code is lifted directly from extractcube.
@@ -147,8 +157,6 @@ endif
 			; must also mask edges where no wavcal is present
 			mask[0:8,*]=1
 			mask[2040:2047,*]=1
-			;mask[*,0:10]=1
-			;mask[*,2028:2047]=1
             for i=0,sdpx-1 do begin  ;through spaxels
                 ;get the locations on the image where intensities will be extracted:
                 x3=xmini-i
@@ -208,10 +216,9 @@ endif
 			  endfor 
 		end
 		'OPEN':    begin
+ 				   backbone->set_keyword, "HISTORY", "NO DESTRIPING PERFORMED, not implemented for Undispersed mode"
                    message,/info, "NO DESTRIPING PERFORMED, not implemented for Undispersed mode"
                    return,ok
-                   ;return, error ('FAILURE ('+functionName+'): method=calfile not implemented for prism='+mode)
-                   ;else: return, error ('FAILURE ('+functionName+'): method=calfile not implemented for prism='+mode)
 		end
         endcase
 
@@ -256,18 +263,7 @@ endif
     parts = transpose(reform(im, 64,32, 2048),[0,2,1])
     for i=0,15 do parts[*,*,2*i+1] = reverse(parts[*,*,2*i+1]) 
 
-	; do a controlled median - flags as NaN when less than 3 pixels are used.a
-	; See below for vectorized replacement code for this:
-	 
-	;medpart=fltarr(64,2048)
-	;for c=0, 63 do begin
-	;   for l=0, 2047 do begin
-	;	  ind=where(finite(parts[c,l,*]) eq 1)
-	;	  if N_ELEMENTS(ind) le 3 then parts[c,l,*]=!values.f_nan
-	;	  medpart[c,l]=median(parts[c,l,*],/even)  
-	;   endfor
-	;endfor
-
+	; do a controlled median - flags as NaN when less than 3 pixels are used.
 	medpart = median(parts,/even,dim=3)
 	validcts = total(finite(parts),3)
 	wlow = where(validcts le 3, lowct)
@@ -284,7 +280,7 @@ endif
 	   backbone->set_keyword, "HISTORY", "NOT Destriped, too many pixels above the abort_fraction in Subtract_background_2d"
 	   logstr = 'NOT Destriped, too many pixels '+strcompress(string(total(finite(medpart))/(2048.0*64)),/remove_all)+' above the abort_fraction '+strcompress(string(abort_fraction),/remove_all)+' in Subtract_background_2d'
 	   backbone->set_keyword, "HISTORY", logstr,ext_num=0
-	   message,/info, 'NOT Destriped, too many pixels '+strcompress(string(total(finite(medpart))/(2048.0*64)),/remove_all)+' above the abort_fraction '+strcompress(string(abort_fraction),/remove_all)+' in Subtract_background_2d'
+	   message,/info, logstr
 	   return, ok
 	endif
 
@@ -304,39 +300,37 @@ endif
 	;----- Generate 2D model to subtract from the image
     ; Generate a model stripe image from that median, replicated for 
     ; each of the 32 channels with appropriate flipping
-        model = rebin(medpart, 64,2048,32)
-        for i=0,15 do model[*,*,2*i+1] = reverse(model[*,*,2*i+1]) 
-        stripes = reform(transpose(model, [0,2,1]), 2048, 2048)    
+	model = rebin(medpart, 64,2048,32)
+	for i=0,15 do model[*,*,2*i+1] = reverse(model[*,*,2*i+1]) 
+	stripes = reform(transpose(model, [0,2,1]), 2048, 2048)    
 
 	; replace NaN's by smoothed values - these are the lines that were masked out
 
 	; the values that are masked out at the top and bottom - set to zero
-        ;stripes[*,0:10]=0
-        ;stripes[*,2028:2047]=0
-		stripes[*,0:4] = 0
-		stripes[*,2044:2047] = 0
+	stripes[*,0:4] = 0
+	stripes[*,2044:2047] = 0
 
 	; now other values that have nans
-        nan_ind=where(finite(stripes) eq 0)
-        if nan_ind[0] ne -1 then begin
-           sm_im=smooth(stripes,5,/nan)
-           stripes[nan_ind]=sm_im[nan_ind]
-        endif
+	nan_ind=where(finite(stripes) eq 0)
+	if nan_ind[0] ne -1 then begin
+	   sm_im=smooth(stripes,5,/nan)
+	   stripes[nan_ind]=sm_im[nan_ind]
+	endif
     
 	;---- OPTIONAL channel offset repair
 	; derive median channel offsets
 	;stripes0=stripes ; for testing
 	if keyword_set(chan_offset_correction) then begin
-	   ;ch_off=fltarr(2048,2048)
-	   for c=0, 31 do begin
-		  ;ch_off[c*64:((c+1)*64)-1,*]=(median(im[c*64:((c+1)*64)-1,*]))
+ 		backbone->set_keyword, "HISTORY", " Also applying optional channel offset correction."
+	   	for c=0, 31 do begin
 		  stripes[c*64:((c+1)*64)-1,*]*=(median(im[c*64:((c+1)*64)-1,*]) $
 										 /median(stripes[c*64:((c+1)*64)-1,*]))
-	   endfor
+	   	endfor
 	endif
 
-
 	;---- At last, the actual subtraction!
+
+	if display eq 'yes' then im0 = image ; save for display
 	imout = image - stripes
 
 	; input safety to make sure no NaN's are in the image
@@ -351,9 +345,91 @@ endif
 	endif
 
 
-    backbone->set_keyword, "HISTORY", "Destriped, using spectral masking + median across channels"
-    backbone->set_keyword, "HISTORY", "This does not work on flat fields!"
 
+
+    ;--- OPTIONAL / EXPERIMENTAL  microphonics repair
+
+	if strlowcase(remove_microphonics) eq 'yes' then begin
+		backbone->Log, "Fourier filtering to remove microphonics noise.",depth=2
+
+		; Now we use a FFT filter to generate a model of the microphonics noise
+		; We do this here **entirely ignoring the masking out of spectra** and trusting
+		; in Fourier space frequency selection to pick out only the microphonics-related 
+		; power in the image. YMMV, Use at your own risk!
+		fftim = fft(imout)
+		fftmask = bytarr(2048,2048)
+		fftmask[1004:1046, 1190:1210]  = 1  ; a box around the 3 peaks from the microphonics blobs,
+											; as seen in an FFT array if 'flopped'
+											; to be centered on the 0-freq component
+		;fftmask[1004:1046, 1368:1378] = 1
+		fftmask += reverse(fftmask, 2)
+		fftmask = shift(fftmask,-1024,-1024) ; flop to line up with fftim
+
+		microphonics_model = real_part(fft( fftim*fftmask,/inverse))
+
+		; For some reason presumably explicable in Fourier space, the resulting
+		; microphonics model often appears to have extra striping in the top rows
+		; of the image. This leads to some *induced* extra striping there
+		; when subtracted. Let's force the top rows to zero to avoid this. 
+		microphonics_model[*, 1975:*] = 0
+
+		if display eq 'yes' then im_destriped = imout ; save for use in display
+
+		imout -= microphonics_model
+		backbone->set_keyword, "HISTORY", "Microphonics noise removed via Fourier filtering."
+		backbone->set_keyword, "HISTORY", "   CAUTION - may or may not work well on science data."
+		backbone->set_keyword, "HISTORY", "   YMMV depending on image content. User discretion is advised."
+
+
+;		; calculate a microphonics model from the masked image
+;		destriped = im-stripes
+;		m5im = median(destriped,5)
+;		medval = median(medpart)
+;		wf = where(finite(destriped), fct)
+;		wnf = where(~finite(m5im), nfct)
+;		if fct gt 0 then m5im[wf] = destriped[wf]
+;		if nfct gt 0 then m5im[wnf] = medval[wnf]
+;
+;		fft_m5im = fft(m5im)
+;		model2 = real(fft( fft_m5im*fftmask,/inverse))
+;		
+;
+;
+;
+;		atv, [[[image]],[[image-stripes]],[[microphonics_model]], [[image-stripes-microphonics_model]]],/bl, min=-10, max=40
+;		stop
+	endif
+
+
+	if display eq 'yes' then begin
+		select_window, 1
+		loadct, 0
+		erase
+
+		if strlowcase(remove_microphonics) eq 'yes' then begin
+			; display for destriping and microphonics removal
+			!p.multi=[0,4,1]
+			mean_offset = mean(im0) - mean(imout)
+			imdisp, im0 - mean_offset, /axis, range=[-10,30], title='Input Data', charsize=2
+			imdisp, im_destriped, /axis, range=[-10,30], title='Destriped', charsize=2
+			imdisp, microphonics_model, /axis, range=[-10,30],title="Microphonics model", charsize=2
+			imdisp, imout, /axis, range=[-5,15], title="Destriped and de-microphonicsed", charsize=2
+			xyouts, 0.5, 0.95, /normal, "Stripe & Microphonics Noise Removal for "+backbone->get_keyword('DATAFILE'), charsize=2, alignment=0.5
+		endif else begin
+			; display for just destriping
+	 		if numfile eq 0 then window,0
+			!p.multi=[0,3,1]
+			mean_offset = mean(im0) - mean(imout)
+			imdisp, im0-mean_offset, /axis, range=[-10,30], title='Input Data', charsize=2
+			imdisp, stripes-mean_offset, /axis, range=[-10,30], title='Stripes Model', charsize=2
+			imdisp, imout, /axis, range=[-10,30], title='Destriped Data', charsize=2
+			xyouts, 0.5, 0.95, /normal, "Stripe Noise Removal for "+backbone->get_keyword('DATAFILE'), charsize=2, alignment=0.5
+		endelse
+	endif
+ 
+
+
+	; and now output
 	*(dataset.currframe[0]) = imout
 	backbone->set_keyword, "HISTORY", "Subtracted 2D image background estimated from pixels between spectra",ext_num=0
 	suffix='-bgsub2d'

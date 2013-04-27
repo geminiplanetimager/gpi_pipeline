@@ -31,9 +31,8 @@
 ; OUTPUTS: 2D image corrected for stripe noise
 ;
 ; PIPELINE COMMENT: Subtract readout pickup noise using median across all channels.
-; PIPELINE ARGUMENT: Name="before_and_after" Type="int" Range="[0,1]" Default="0" Desc="Show the before-and-after images for the user to see? (for debugging/testing)"
 ; PIPELINE ARGUMENT: Name="remove_microphonics" Type="string" Range="[yes|no]" Default="yes" Desc='Attempt to remove microphonics noise via Fourier filtering?'
-; PIPELINE ARGUMENT: Name="remove_microphonics_display" Type="string" Range="[yes|no]" Default="no" Desc='Show diagnostic plots if removing microphonics?'
+; PIPELINE ARGUMENT: Name="display" Type="string" Range="[yes|no]" Default="no" Desc='Show diagnostic before and after plots when running?'
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display " 
 ; PIPELINE ORDER: 1.3
@@ -52,13 +51,13 @@ function destripe_for_darks, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
- 	;if tag_exist( Modules[thisModuleIndex], "before_and_after") then before_and_after=fix(Modules[thisModuleIndex].before_and_after) else before_and_after=0
  	if tag_exist( Modules[thisModuleIndex], "remove_microphonics") then remove_microphonics=Modules[thisModuleIndex].remove_microphonics else remove_microphonics='yes'
- 	if tag_exist( Modules[thisModuleIndex], "remove_microphonics_display") then remove_microphonics_display=Modules[thisModuleIndex].remove_microphonics_display else remove_microphonics_display='yes'
+ 	if tag_exist( Modules[thisModuleIndex], "display") then display=Modules[thisModuleIndex].display else display='yes'
+	display = strlowcase(string(display))
 
 	im =  *(dataset.currframe[0])
 
-	if keyword_set(remove_microphonics_display) then if remove_microphonics_display eq 'yes' then im0 = im ; save a copy of input image for later display
+	if display eq 'yes' then im0 = im ; save a copy of input image for later display
 	sz = size(im)
     if sz[1] ne 2048 or sz[2] ne 2048 then begin
         backbone->Log, "REFPIX: Image is not 2048x2048, don't know how to destripe"
@@ -111,42 +110,46 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 		microphonics_model = real_part(fft( fftim*fftmask,/inverse))
 
-
 		; For some reason presumably explicable in Fourier space, the resulting
 		; microphonics model often appears to have extra striping in the top rows
 		; of the image. This leads to some *induced* extra striping there
 		; when subtracted. Let's force the top rows to zero to avoid this. 
 		microphonics_model[*, 1975:*] = 0
 
-		;atv, [[[imout]],[[smoothed]],[[imout-microphonics_model]]],/bl
-		;stop
-
-		if strlowcase(remove_microphonics_display) eq 'yes' then begin
-			if numfile eq 0 then window,0
-			!p.multi=[0,4,1]
-			loadct, 0
-
-			mean_offset = mean(im0) - mean(imout)
-			imdisp, im0 - mean_offset, /axis, range=[-10,30], title='Input Data', charsize=2
-			imdisp, imout, /axis, range=[-10,30], title='Destriped', charsize=2
-			imdisp, microphonics_model, /axis, range=[-10,30],title="Microphonics model", charsize=2
-			imdisp, imout-microphonics_model, /axis, range=[-5,15], title="Destriped and de-microphonicsed", charsize=2
-			xyouts, 0.5, 0.9, /normal, "Stripe & Microphonics Noise Removal for "+backbone->get_keyword('DATAFILE'), charsize=2, alignment=0.5
-		endif
+		if display eq 'yes' then im_destriped = imout ; save for use in display
 
 		imout -= microphonics_model
 		backbone->set_keyword, "HISTORY", "Microphonics noise removed via Fourier filtering."
 
 	endif
 
-    
 
+	if display eq 'yes' then begin
+		select_window, 1
+		loadct, 0
+		erase
 
-	before_and_after=0
-	if keyword_set(before_and_after) then begin
-		atv, [[[im]],[[stripes]],[[imout]]],/bl, names=['Input image','Stripe Model', 'Subtracted']
-		stop
+		if strlowcase(remove_microphonics) eq 'yes' then begin
+			; display for destriping and microphonics removal
+			!p.multi=[0,4,1]
+			mean_offset = mean(im0) - mean(imout)
+			imdisp, im0 - mean_offset, /axis, range=[-10,30], title='Input Data', charsize=2
+			imdisp, im_destriped, /axis, range=[-10,30], title='Destriped', charsize=2
+			imdisp, microphonics_model, /axis, range=[-10,30],title="Microphonics model", charsize=2
+			imdisp, imout, /axis, range=[-5,15], title="Destriped and de-microphonicsed", charsize=2
+			xyouts, 0.5, 0.95, /normal, "Stripe & Microphonics Noise Removal for "+backbone->get_keyword('DATAFILE'), charsize=2, alignment=0.5
+		endif else begin
+			; display for just destriping
+	 		if numfile eq 0 then window,0
+			!p.multi=[0,3,1]
+			mean_offset = mean(im0) - mean(imout)
+			imdisp, im0-mean_offset, /axis, range=[-10,30], title='Input Data', charsize=2
+			imdisp, stripes-mean_offset, /axis, range=[-10,30], title='Stripes Model', charsize=2
+			imdisp, imout, /axis, range=[-10,30], title='Destriped Data', charsize=2
+			xyouts, 0.5, 0.95, /normal, "Stripe Noise Removal for "+backbone->get_keyword('DATAFILE'), charsize=2, alignment=0.5
+		endelse
 	endif
+   
 
 	*(dataset.currframe[0]) = imout
 

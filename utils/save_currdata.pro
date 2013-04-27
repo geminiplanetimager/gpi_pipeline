@@ -134,8 +134,8 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	if ( keyword_set( savedata ) ) then begin  ; The calling function has specified some special data to save, in place of the currFrame data
 	  	if ~( keyword_set( saveheader ) ) then saveheader = *(dataset.headersExt[numfile])
 		if ~( keyword_set( savePHU ) ) then savePHU = *(dataset.headersPHU[numfile])
-		fxaddpar, savePHU, 'DRPVER', version, ' Version number of GPI DRP software'
-		fxaddpar, savePHU, 'DRPDATE', datestr+' '+hourstr, ' UT creation time of this reduced data file'
+		fxaddpar, savePHU, 'DRPVER', version, ' Version number of GPI DRP software', after='TLCVER'
+		fxaddpar, savePHU, 'DRPDATE', datestr+' '+hourstr, ' UT creation time of this reduced data file', after='UTEND'
 		mwrfits, 0, c_File, savePHU, /create,/silent
 		writefits, c_File, float(savedata), saveheader, /append
 

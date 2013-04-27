@@ -9,7 +9,9 @@
 ;	IDL's default window and wset commands
 ;
 ; INPUTS:
+;	num		window ID number
 ; KEYWORDS:
+;	/show	set to raise the window to the foreground (wshow)
 ; OUTPUTS:
 ;
 ; HISTORY:
@@ -20,12 +22,12 @@
 ;-
 
 
-pro select_window, num
+pro select_window, num, show=show
 
    Device, Window_State=theseWindows
     if (theseWindows[num] eq 1) then begin
         wset,num
-        wshow
+        if keyword_set(show) then wshow
         return
     endif else window, num
 
