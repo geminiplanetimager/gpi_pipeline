@@ -159,7 +159,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		good = erode(good, bytarr(5,5)+1) 
 
 
-		wgood = where(good)
+		wgood = where(good, goodct)
+		if goodct eq 0 then begin
+			backbone->Log, "ERROR: In the combined dark, somehow all pixels are flagged as bad."
+			return, -1
+		endif
 		meandark = mean(combined_center[wgood])
 
 		backbone->set_keyword, 'HISTORY', functionname+":   Good pixels mean dark rate = "+sigfig(meandark/itime,3)+" counts/sec" ,ext_num=0
