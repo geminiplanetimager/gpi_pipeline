@@ -951,140 +951,141 @@ pro drfgui::event,ev
         endelse
   end
   'ADDFILE' : begin
-        index = (*storage.splitptr).selindex
-        cindex = (*storage.splitptr).findex
-        file = (*storage.splitptr).filename
-        pfile = (*storage.splitptr).printname
-        datefile = (*storage.splitptr).datefile
-
-		if self.last_used_input_dir eq '' then self.last_used_input_dir = self->get_input_dir()
-
-        if (file[n_elements(file)-1] eq '') then begin
-            result=dialog_pickfile(path=self.last_used_input_dir,/multiple,/must_exist,$
-                title='Select Raw Data File(s)', filter=['*.fits','*.fits.gz'],get_path=getpath)
-        endif else begin
-			msgtext = 'Sorry, maximum number of files reached. You cannot add any additional files/directories.'
-            self->log, msgtext
-            res= dialog_message(msgtxt,/error,dialog_parent=self.top_base)
-            result = ''
-        endelse
-
-        result = strtrim(result,2)
-        for i=0,n_elements(result)-1 do begin   ; Check for duplicate
-            if (total(file eq result[i]) ne 0) then result[i] = ''
-        endfor
-        for i=0,n_elements(result)-1 do begin
-            tmp = strsplit(result[i],'.',/extract)
-        endfor
-
-        w = where(result ne '')
-        if (w[0] ne -1) then begin
-            result = result(w)
-
-            if ((cindex+n_elements(result)) gt n_elements(file)) then begin
-                nover = cindex+n_elements(result)-n_elements(file)
-                self->log,'WARNING: You tried to add more files than the file number limit. '+$
-                    strtrim(nover,2)+' files ignored.'
-                result = result[0:n_elements(result)-1-nover]
-            endif
-            file[cindex:cindex+n_elements(result)-1] = result
-
-            for i=0,n_elements(result)-1 do begin
-                ;tmp = strsplit(result[i],path_sep(),/extract)
-                ;pfile[cindex+i] = tmp[n_elements(tmp)-1]+'    '
-				pfile[cindex+i] = file_basename(result[i])+'    '
-            endfor
-
-			self.inputdir = file_dirname(result[0])
-			self.last_used_input_dir = self.inputdir ; for use next time we open files
-            ;self.inputdir=strjoin(tmp[0:n_elements(tmp)-2],path_sep())
-            ;if !VERSION.OS_FAMILY ne 'Windows' then self.inputdir = "/"+self.inputdir 
-          
-            
-
-            cindex = cindex+n_elements(result)
-            (*storage.splitptr).selindex = max([0,cindex-1])
-            (*storage.splitptr).findex = cindex
-            (*storage.splitptr).filename = file
-            (*storage.splitptr).printname = pfile
-            (*storage.splitptr).datefile = datefile 
-
-
-			message,/info, 'Skipping validation for now - besides these vars were not used anywhere'
-			if 0 then begin
-				;;TEST DATA SANITY
-				;;ARE THEY VALID  GEMINI-GPI-IFS DATA?
-				validtelescop=self->validkeyword( file, cindex,'TELESCOP','Gemini',storage)
-				validinstrum=self->validkeyword( file, cindex,'INSTRUME','GPI',storage)
-				validinstrsub=self->validkeyword( file, cindex,'INSTRSUB','IFS',storage)     
-				;;DATA HEALTH
-				validhealth=self->validkeyword( file, cindex,'GPIHEALT','good',storage)
-				validstate=self->validkeyword( file, cindex,'GPISTATE','good',storage)
-				validrawgemqa=self->validkeyword( file, cindex,'RAWGEMQA','good',storage)
-			endif
-
-
-            ;; RESOLVE FILTER
-            self.filter=self->resolvekeyword( file, cindex,'filter1')
-
-            ;;RESOLVE TIMEOBS
-
-            dateobsfile=self->resolvekeyword( file, cindex,'DATE-OBS',/date)
-            timeobsfile=self->resolvekeyword( dateobsfile, n_elements(dateobsfile),'TIME-OBS',/date)
-            if (dateobsfile[0] ne '') &&  (timeobsfile[0] ne '') then begin
-                  head=headfits( timeobsfile[0])
-                  date=strsplit(strcompress(sxpar( Head, 'DATE-OBS',  COUNT=cc),/rem),'-',/EXTRACT)
-                  timeobs=strsplit(strcompress(sxpar( Head, 'TIME-OBS',  COUNT=cc),/rem),':',/EXTRACT)
-                  if (n_elements(date) eq 3) && (n_elements(timeobs) eq 3) then $
-                      self.ftimeobs = JULDAY(date[1], date[2], date[0], timeobs[0], timeobs[1], timeobs[2]) 
-            endif
-            ;;RESOLVE MOD
-            self.dispersr=self->resolvekeyword( file, cindex,'PRISM') ; FIXME
-
-            ;;RESOLVE TYPE
-            self.ftype=self->resolvekeyword( file, cindex,'OBSTYPE')
-            ;;RESOLVE CLASS
-            ;self.fseq=resolvekeyword( file, cindex,'OBSCLASS')
-
-            
-            isresolvebuttonset=widget_info(self.resolvetypeseq_id,/button_set)
-            if isresolvebuttonset then begin
-                detectype=0
-                if strmatch(self.dispersr,'pol*',/fold) && strmatch(self.ftype,'obj*',/fold) then detectype=2
-                if strmatch(self.dispersr,'pol*',/fold) && ~strmatch(self.ftype,'obj*',/fold) then detectype=4
-                if strmatch(self.dispersr,'spec*',/fold) && strmatch(self.ftype,'obj*',/fold) then detectype=1
-                if strmatch(self.dispersr,'spec*',/fold) && ~strmatch(self.ftype,'obj*',/fold) then detectype=3
-                detecseq=1
-                if strmatch(self.ftype,'flat*',/fold) then begin 
-                    detecseq=1 & detectype=3 
-                endif
-                if strmatch(self.ftype,'dark*',/fold) then begin 
-                    detecseq=2 & detectype=3 
-                endif
-                if strmatch(self.ftype,'lamp*',/fold)||strmatch(self.ftype,'Ar*',/fold)||strmatch(self.ftype,'Xe*',/fold)||strmatch(self.ftype,'wavecal*',/fold) then begin 
-                    detecseq=3 & detectype=3 
-                endif
-
-                if detectype ne 0 then begin
-                    ;;set type & seq widgets
-                    widget_control, self.typeid, get_value=typetab
-                    self->log,'resolved TYPE: '+typetab[detectype-1]+", id="+strc(detectype-1)
-                    widget_control, self.typeid,SET_DROPLIST_SELECT=detectype-1
-                    self->changetype, detectype-1;,/notemplate
-                    self->log,'resolved SEQUENCE: '+self.ftype
-                    widget_control, self.seqid,SET_DROPLIST_SELECT=detecseq-1
-                    self->change_current_template, typetab[detectype-1],detecseq-1
-                endif else begin
-                    self->log,'Sorry, no resolved TYPE or SEQUENCE.'
-                endelse
-            endif
-
-            widget_control,storage.fname,set_value=pfile
-            self->log,strtrim(n_elements(result),2)+' files added.'
-            self->log,'resolved FILTER band: '+self.filter
+     index = (*storage.splitptr).selindex
+     cindex = (*storage.splitptr).findex
+     file = (*storage.splitptr).filename
+     pfile = (*storage.splitptr).printname
+     datefile = (*storage.splitptr).datefile
+     
+     if self.last_used_input_dir eq '' then self.last_used_input_dir = self->get_input_dir()
+     
+     if (file[n_elements(file)-1] eq '') then begin
+        result=dialog_pickfile(path=self.last_used_input_dir,/multiple,/must_exist,$
+                               title='Select Raw Data File(s)', filter=['*.fits','*.fits.gz'],get_path=getpath)
+     endif else begin
+        msgtext = 'Sorry, maximum number of files reached. You cannot add any additional files/directories.'
+        self->log, msgtext
+        res= dialog_message(msgtxt,/error,dialog_parent=self.top_base)
+        result = ''
+     endelse
+     
+     result = strtrim(result,2)
+     for i=0,n_elements(result)-1 do begin ; Check for duplicate
+        if (total(file eq result[i]) ne 0) then result[i] = ''
+     endfor
+     for i=0,n_elements(result)-1 do begin
+        tmp = strsplit(result[i],'.',/extract)
+     endfor
+     
+     w = where(result ne '')
+     if (w[0] ne -1) then begin
+        result = result(w)
+        
+        if ((cindex+n_elements(result)) gt n_elements(file)) then begin
+           nover = cindex+n_elements(result)-n_elements(file)
+           self->log,'WARNING: You tried to add more files than the file number limit. '+$
+                     strtrim(nover,2)+' files ignored.'
+           result = result[0:n_elements(result)-1-nover]
         endif
-    end
-    'WILDCARD' : begin
+        file[cindex:cindex+n_elements(result)-1] = result
+        
+        for i=0,n_elements(result)-1 do begin
+                                ;tmp = strsplit(result[i],path_sep(),/extract)
+                                ;pfile[cindex+i] = tmp[n_elements(tmp)-1]+'    '
+           pfile[cindex+i] = file_basename(result[i])+'    '
+        endfor
+        
+        self.inputdir = file_dirname(result[0])
+        self.last_used_input_dir = self.inputdir ; for use next time we open files
+                                ;self.inputdir=strjoin(tmp[0:n_elements(tmp)-2],path_sep())
+                                ;if !VERSION.OS_FAMILY ne 'Windows' then self.inputdir = "/"+self.inputdir 
+        
+        
+        
+        cindex = cindex+n_elements(result)
+        (*storage.splitptr).selindex = max([0,cindex-1])
+        (*storage.splitptr).findex = cindex
+        (*storage.splitptr).filename = file
+        (*storage.splitptr).printname = pfile
+        (*storage.splitptr).datefile = datefile 
+        
+        
+        message,/info, 'Skipping validation for now - besides these vars were not used anywhere'
+        if 0 then begin
+           ;;TEST DATA SANITY
+           ;;ARE THEY VALID  GEMINI-GPI-IFS DATA?
+           validtelescop=self->validkeyword( file, cindex,'TELESCOP','Gemini',storage)
+           validinstrum=self->validkeyword( file, cindex,'INSTRUME','GPI',storage)
+           validinstrsub=self->validkeyword( file, cindex,'INSTRSUB','IFS',storage)     
+           ;;DATA HEALTH
+           validhealth=self->validkeyword( file, cindex,'GPIHEALT','good',storage)
+           validstate=self->validkeyword( file, cindex,'GPISTATE','good',storage)
+           validrawgemqa=self->validkeyword( file, cindex,'RAWGEMQA','good',storage)
+        endif
+        
+        
+        ;; RESOLVE FILTER
+        self.filter=self->resolvekeyword( file, cindex,'filter1')
+        
+        ;;RESOLVE TIMEOBS
+        
+        dateobsfile=self->resolvekeyword( file, cindex,'DATE-OBS',/date)
+        timeobsfile=self->resolvekeyword( dateobsfile, n_elements(dateobsfile),'TIME-OBS',/date)
+        if (dateobsfile[0] ne '') &&  (timeobsfile[0] ne '') then begin
+           head=headfits( timeobsfile[0])
+           date=strsplit(strcompress(sxpar( Head, 'DATE-OBS',  COUNT=cc),/rem),'-',/EXTRACT)
+           timeobs=strsplit(strcompress(sxpar( Head, 'TIME-OBS',  COUNT=cc),/rem),':',/EXTRACT)
+           if (n_elements(date) eq 3) && (n_elements(timeobs) eq 3) then $
+              self.ftimeobs = JULDAY(date[1], date[2], date[0], timeobs[0], timeobs[1], timeobs[2]) 
+        endif
+        ;;RESOLVE MOD
+        self.dispersr=self->resolvekeyword( file, cindex,'PRISM') ; FIXME
+        
+        ;;RESOLVE TYPE
+        self.ftype=self->resolvekeyword( file, cindex,'OBSTYPE')
+        ;;RESOLVE CLASS
+                                ;self.fseq=resolvekeyword( file, cindex,'OBSCLASS')
+        
+        
+        isresolvebuttonset=widget_info(self.resolvetypeseq_id,/button_set)
+        if isresolvebuttonset then begin
+           detectype=0
+           if strmatch(self.dispersr,'pol*',/fold) && strmatch(self.ftype,'obj*',/fold) then detectype=2
+           if strmatch(self.dispersr,'pol*',/fold) && ~strmatch(self.ftype,'obj*',/fold) then detectype=4
+           if strmatch(self.dispersr,'spec*',/fold) && strmatch(self.ftype,'obj*',/fold) then detectype=1
+           if strmatch(self.dispersr,'spec*',/fold) && ~strmatch(self.ftype,'obj*',/fold) then detectype=3
+           detecseq=1
+           if strmatch(self.ftype,'flat*',/fold) then begin 
+              detecseq=1 & detectype=3 
+           endif
+           if strmatch(self.ftype,'dark*',/fold) then begin 
+              detecseq=2 & detectype=3 
+           endif
+           if strmatch(self.ftype,'lamp*',/fold)||strmatch(self.ftype,'Ar*',/fold)||strmatch(self.ftype,'Xe*',/fold)||strmatch(self.ftype,'wavecal*',/fold) then begin 
+              detecseq=3 & detectype=3 
+           endif
+           
+           if detectype ne 0 then begin
+              ;;set type & seq widgets
+              widget_control, self.typeid, get_value=typetab
+              self->log,'resolved TYPE: '+typetab[detectype-1]+", id="+strc(detectype-1)
+              widget_control, self.typeid,SET_DROPLIST_SELECT=detectype-1
+              self->changetype, detectype-1 ;,/notemplate
+              self->log,'resolved SEQUENCE: '+self.ftype
+              widget_control, self.seqid,SET_DROPLIST_SELECT=detecseq-1
+              self->change_current_template, typetab[detectype-1],detecseq-1
+           endif else begin
+              self->log,'Sorry, no resolved TYPE or SEQUENCE.'
+           endelse
+        endif
+        
+        widget_control,storage.fname,set_value=pfile
+        self->log,strtrim(n_elements(result),2)+' files added.'
+        self->log,'resolved FILTER band: '+self.filter
+     endif
+  end
+
+  'WILDCARD' : begin
         index = (*storage.splitptr).selindex
         cindex = (*storage.splitptr).findex
         file = (*storage.splitptr).filename
@@ -1499,134 +1500,146 @@ end
 ; 	/nopickfile	Automatically use the self.drffilename as the output file name
 ;
 pro drfgui::savedrf, file, storage,template=template, nopickfile=nopickfile
-    flag = 1
-
-
-    index = where(file ne '',count)
-    
-    selectype=widget_info(self.typeid,/DROPLIST_SELECT)
-
-    if keyword_set(template) then begin
-      templatesflag=1 
-      index=0
-      file=''
-      drfpath=self.templatedir
-    endif else begin
-      templatesflag=0
-      drfpath=self.drfpath
-    endelse  
-    
-    if (count eq 0) && (templatesflag eq 0) then begin
-      self->log,'file list is empty.'
-      if (selectype eq 4) then self->log,'Please select any file in the data input directory.'
-      return
-    endif
-
-    file = file[index]
-
-    if templatesflag then begin
-      self.drffilename = self.loadedRecipeFile ;to check
-    endif else begin     
-      caldat,systime(/julian),month,day,year, hour,minute,second
-      datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
-      hourstr = string(hour,minute,second,format='(i2.2,i2.2,i2.2)')  
-      self.drffilename=datestr+'_'+hourstr+'_drf.waiting.xml'
-    endelse
-
-    ;get drf filename and set drfpath:
-    if ~keyword_set(nopickfile) then begin
-        newdrffilename = DIALOG_PICKFILE(TITLE='Save Data Reduction File (Recipe) as', /write,/overwrite, filter='*.xml',file=self.drffilename,path=drfpath, get_path=newdrfpath)
-        if newdrffilename eq "" then begin
-			self->Log, "User cancelled save; doing nothing."
-			return ; user cancelled the save as dialog, so don't save anything.
-		endif
-        self.drfpath  = newdrfpath ; MDP change - update the default directory to now match whatever the user selected in the dialog box.
-    endif else begin
-		newdrffilename = self.drffilename
-		self.drfpath = file_dirname(newdrffilename) ; update the default output directory to match whatever the user selected this time
-	endelse
-
-
-	valid = self->check_output_path_exists(self.drfpath)
-	if ~valid then return
-
-
-    
-    if (self.nbmoduleSelec ne '') && (newdrffilename ne '') then begin
-          self.drffilename = file_basename(newdrffilename)
-
-        self->log,'Now writing Recipe...';+ self.drfpath+path_sep()+self.drffilename
-        
-        message,/info, "Writing to "+self.drfpath+path_sep()+self.drffilename 
-        OpenW, lun, self.drfpath+path_sep()+self.drffilename, /Get_Lun
-        PrintF, lun, '<?xml version="1.0" encoding="UTF-8"?>' 
-     
-        ;relative pathes with environment variables        
-            isrelativebuttonset=widget_info(self.relativepath_id,/button_set)
-            if isrelativebuttonset then begin
-              ;logdirtmp=gpi_shorten_path(self.logdir) 
-              inputdirtmp=gpi_shorten_path(self.inputdir) 
-              outputdirtmp=gpi_shorten_path(self.outputdir) 
-            endif else begin
-              ;logdirtmp=gpi_expand_path(self.logdir)
-              inputdirtmp=gpi_expand_path(self.inputdir)
-              outputdirtmp=gpi_expand_path(self.outputdir)
-            endelse  
-           
-        if selectype eq 4 then begin
-            PrintF, lun, '<DRF ReductionType="OnLine">'
-        endif else begin
-            PrintF, lun, '<DRF ReductionType="'+(*self.template_types)[selectype] +'">'
-        endelse
-
-         PrintF, lun, '<dataset InputDir="'+inputdirtmp+'" OutputDir="'+outputdirtmp+'">' 
-         ;PrintF, lun, '<dataset InputDir="'+''+'" Name="" OutputDir="'+self.outputdir+'">'
-     
-        FOR j=0,N_Elements(file)-1 DO BEGIN
-            tmp = strsplit(file[j],path_sep(),/extract)
-            PrintF, lun, '   <fits FileName="' + tmp[n_elements(tmp)-1] + '" />'
-            ;PrintF, lun, '   <fits FileName="' + file[j] + '" />'
-        ENDFOR
-    
-        PrintF, lun, '</dataset>'
-        FOR j=0,self.nbmoduleSelec-1 DO BEGIN
-            self->extractparam, float((*self.currModSelec)[4,j])
-            strarg=''
-            if (*self.indarg)[0] ne -1 then begin
-                  argn=((*self.PrimitiveInfo).argname)[[*self.indarg]]
-                  argd=((*self.PrimitiveInfo).argdefault)[[*self.indarg]]
-                  for i=0,n_elements(argn)-1 do begin
-                      strarg+=argn[i]+'="'+argd[i]+'" '
-                  endfor
-            endif
-              
-        
-            PrintF, lun, '<module name="' + (*self.currModSelec)[0,j] + '" '+ strarg +'/>'
-        ENDFOR
-        PrintF, lun, '</DRF>'
-        Free_Lun, lun
-        self->log,'Saved  '+self.drffilename
-        
-        ;display last paramtab
-        indselected=self.nbmoduleSelec-1
-        self->extractparam, float((*self.currModSelec)[4,indselected])    
-        *self.currModSelecParamTab=strarr(n_elements(*self.indarg),3)
-        if (*self.indarg)[0] ne -1 then begin
-			(*self.currModSelecParamTab)[*,0]=((*self.PrimitiveInfo).argname)[[*self.indarg]]
-			(*self.currModSelecParamTab)[*,1]=((*self.PrimitiveInfo).argdefault)[[*self.indarg]]
-			(*self.currModSelecParamTab)[*,2]=((*self.PrimitiveInfo).argdesc)[[*self.indarg]]
-        endif
-              
-        widget_control,   self.tableArgs,  set_value=(*self.currModSelecParamTab), SET_TABLE_VIEW=[0,0]
+  flag = 1
   
-        widget_control,   self.tableSelected,  set_value=(*self.currModSelec)[0:2,*], SET_TABLE_SELECT =[-1,self.nbmoduleSelec-1,-1,self.nbmoduleSelec-1]
-        widget_control,   self.tableSelected, SET_TABLE_VIEW=[0,0]
-        widget_control,   self.tableAvailable,  set_value=transpose(*self.curr_mod_avai);, SET_TABLE_SELECT =[-1,self.nbmoduleSelec-1,-1,self.nbmoduleSelec-1]
-		widget_control,   self.tableAvailable, SET_TABLE_VIEW=[0,0]
+  index = where(file ne '',count)
+  
+  selectype=widget_info(self.typeid,/DROPLIST_SELECT)
+  
+  if keyword_set(template) then begin
+     templatesflag=1 
+     index=0
+     file=''
+     drfpath=self.templatedir
+  endif else begin
+     templatesflag=0
+     drfpath=self.drfpath
+  endelse  
+  
+  if (count eq 0) && (templatesflag eq 0) then begin
+     self->log,'file list is empty.'
+     if (selectype eq 4) then self->log,'Please select any file in the data input directory.'
+     return
+  endif
+  
+  file = file[index]
+  
+  if templatesflag then begin
+     self.drffilename = self.loadedRecipeFile ;to check
+  endif else begin     
+     caldat,systime(/julian),month,day,year, hour,minute,second
+     datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
+     hourstr = string(hour,minute,second,format='(i2.2,i2.2,i2.2)')  
+     self.drffilename=datestr+'_'+hourstr+'_drf.waiting.xml'
+  endelse
+  
+  ;;get drf filename and set drfpath:
+  if ~keyword_set(nopickfile) then begin
+     newdrffilename = DIALOG_PICKFILE(TITLE='Save Data Reduction File (Recipe) as', /write,/overwrite, filter='*.xml',file=self.drffilename,path=drfpath, get_path=newdrfpath)
+     if newdrffilename eq "" then begin
+        self->Log, "User cancelled save; doing nothing."
+        return                  ; user cancelled the save as dialog, so don't save anything.
+     endif
+     self.drfpath  = newdrfpath ; MDP change - update the default directory to now match whatever the user selected in the dialog box.
+  endif else begin
+     newdrffilename = self.drffilename
+     self.drfpath = file_dirname(newdrffilename) ; update the default output directory to match whatever the user selected this time
+  endelse
+  
+  valid = self->check_output_path_exists(self.drfpath)
+  if ~valid then return
+    
+  if (self.nbmoduleSelec ne '') && (newdrffilename ne '') then begin
+     self.drffilename = file_basename(newdrffilename)
+     
+     self->log,'Now writing Recipe...' ;+ self.drfpath+path_sep()+self.drffilename
+     
+     message,/info, "Writing to "+self.drfpath+path_sep()+self.drffilename 
+     OpenW, lun, self.drfpath+path_sep()+self.drffilename, /Get_Lun
+     PrintF, lun, '<?xml version="1.0" encoding="UTF-8"?>' 
+     
+     ;;figure out if there are multiple input directories
+     ind = strpos(file,path_sep(),/reverse_search)
+     indirs = strarr(n_elements(file))
+     infiles = strarr(n_elements(file))
+     for j = 0,n_elements(file)-1 do begin indirs[j] = strmid(file[j],0,ind[j]) & infiles[j] = strmid(file[j],ind[j]+1) & endfor
+     indirsu = UNIQ(indirs, SORT(indirs))
+
+     ;;for multiple input directories, place symoblic links in
+     ;;output_dir/tmp
+     if n_elements(indirsu) gt 1 then begin
+        inputdirtmp = self.outputdir+path_sep()+'inputtmp'
+        if ~file_test(/dir,inputdirtmp) then begin
+           file_mkdir,inputdirtmp
+           if ~file_test(/dir,inputdirtmp) then begin
+              self->log, "ERROR: could not create tmp directory for input files."
+              return
+           endif
+        endif
+        self->log,'Creating symbolic links to input files in '+inputdirtmp
+        for j = 0,n_elements(file)-1 do if ~file_test(inputdirtmp+path_sep()+infiles[j]) then file_link,file[j],inputdirtmp
+     endif else inputdirtmp = self.inputdir
+
+     ;;shorten or expand input/output paths as requested        
+     isrelativebuttonset=widget_info(self.relativepath_id,/button_set)
+     if isrelativebuttonset then begin
+        ;;logdirtmp=gpi_shorten_path(self.logdir) 
+        inputdirtmp=gpi_shorten_path(inputdirtmp) 
+        outputdirtmp=gpi_shorten_path(self.outputdir) 
+     endif else begin
+        ;;logdirtmp=gpi_expand_path(self.logdir)
+        inputdirtmp=gpi_expand_path(inputdirtmp)
+        outputdirtmp=gpi_expand_path(self.outputdir)
+     endelse  
+     
+     if selectype eq 4 then begin
+        PrintF, lun, '<DRF ReductionType="OnLine">'
+     endif else begin
+        PrintF, lun, '<DRF ReductionType="'+(*self.template_types)[selectype] +'">'
+     endelse
+     
+     PrintF, lun, '<dataset InputDir="'+inputdirtmp+'" OutputDir="'+outputdirtmp+'">'
+     
+     FOR j=0,N_Elements(file)-1 DO PrintF, lun, '   <fits FileName="' + infiles[j] + '" />'
+
+     PrintF, lun, '</dataset>'
+     FOR j=0,self.nbmoduleSelec-1 DO BEGIN
+        self->extractparam, float((*self.currModSelec)[4,j])
+        strarg=''
+        if (*self.indarg)[0] ne -1 then begin
+           argn=((*self.PrimitiveInfo).argname)[[*self.indarg]]
+           argd=((*self.PrimitiveInfo).argdefault)[[*self.indarg]]
+           for i=0,n_elements(argn)-1 do begin
+              strarg+=argn[i]+'="'+argd[i]+'" '
+           endfor
+        endif
         
-    endif else begin
-		self->log, "ERROR: either no primitives selected or no output filename. Can't save until you fix that."
-	endelse
+        PrintF, lun, '<module name="' + (*self.currModSelec)[0,j] + '" '+ strarg +'/>'
+     ENDFOR
+     PrintF, lun, '</DRF>'
+     Free_Lun, lun
+     self->log,'Saved  '+self.drffilename
+     
+     ;;display last paramtab
+     indselected=self.nbmoduleSelec-1
+     self->extractparam, float((*self.currModSelec)[4,indselected])    
+     *self.currModSelecParamTab=strarr(n_elements(*self.indarg),3)
+     if (*self.indarg)[0] ne -1 then begin
+        (*self.currModSelecParamTab)[*,0]=((*self.PrimitiveInfo).argname)[[*self.indarg]]
+        (*self.currModSelecParamTab)[*,1]=((*self.PrimitiveInfo).argdefault)[[*self.indarg]]
+        (*self.currModSelecParamTab)[*,2]=((*self.PrimitiveInfo).argdesc)[[*self.indarg]]
+     endif
+     
+     widget_control,   self.tableArgs,  set_value=(*self.currModSelecParamTab), SET_TABLE_VIEW=[0,0]
+     
+     widget_control,   self.tableSelected,  set_value=(*self.currModSelec)[0:2,*], SET_TABLE_SELECT =[-1,self.nbmoduleSelec-1,-1,self.nbmoduleSelec-1]
+     widget_control,   self.tableSelected, SET_TABLE_VIEW=[0,0]
+     widget_control,   self.tableAvailable,  set_value=transpose(*self.curr_mod_avai) ;, SET_TABLE_SELECT =[-1,self.nbmoduleSelec-1,-1,self.nbmoduleSelec-1]
+     widget_control,   self.tableAvailable, SET_TABLE_VIEW=[0,0]
+     
+  endif else begin
+     self->log, "ERROR: either no primitives selected or no output filename. Can't save until you fix that."
+  endelse
 end
 
 ;-------------------------------------
