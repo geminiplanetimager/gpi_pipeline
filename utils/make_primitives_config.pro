@@ -12,6 +12,13 @@
 ;   2012-08-17 MP: Renamed to make_primitive_config, added /sortbyorder option,
 ;   				and converted XML output to Gemini nomenclature of
 ;   				primitives and recipes. Major change.
+;   2013-04-29 MP: Added some checks for '&' characters in XML strings which are
+;   			   not allowed. Converts them to 'and' rather than trying to
+;   			   escape them since I don't see a need to render an '&' as part
+;   			   of a primitive description in the UI, and I'm not sure
+;   			   exactly how IDL's SAX XML parser would handle that. Easiest
+;   			   to just avoid the problem entirely since this is not an
+;   			   important use case. 
 
 
 pro make_primitives_config, sortbyorder=sortbyorder
@@ -80,6 +87,12 @@ pro make_primitives_config, sortbyorder=sortbyorder
 		Free_Lun, Unit
 	endfor
 
+	; Enforce character restrictions for XML:
+	; No bare ampersands allowed!
+	for i=0, cc-1 do begin
+		if strpos(primitivesdescrip[i], '&') gt 0 then primitivesdescrip[i] = strepex(primitivesdescrip[i], '&', 'and',/all)
+		if strpos(primitivescomment[i], '&') gt 0 then primitivescomment[i] = strepex(primitivescomment[i], '&', 'and',/all)
+	endfor
 
 	outputfile = gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'gpi_pipeline_primitives.xml'
 	outputfile = repstr(outputfile, path_sep()+path_sep(), path_sep()) ; clean up erroneous duplicate path seps which openw will fail on
