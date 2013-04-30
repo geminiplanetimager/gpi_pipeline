@@ -34,6 +34,9 @@
 ;   2012-06-06 MP: Added fallback safety checks for DATAFILE= missing or NONE 
 ;   2012-08-07 MP: Added explicit casts to float data type for output files.
 ;   2012-10-10 MP: Code cleanup. Removed filenm keyword, not used anywhere. 
+;   2013-04-26 MP: Minor formatting improvements to time stamps and DRPVER
+;				   Also fixed fatal error when trying to write bintables with
+;				   a vestigial NAXIS3 keyword left in the header. 
 ;-
 
 
@@ -142,12 +145,16 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 		curr_hdr = savePHU
 		curr_ext_hdr = saveheader
 	endif else begin
-      	fxaddpar, *DataSet.HeadersPHU[i], 'DRPVER', version, 'Version number of GPI data reduction pipeline software'
-      	fxaddpar, *DataSet.HeadersPHU[i], 'DRPDATE', datestr+'-'+hourstr, 'Date and time of creation of the DRP reduced data [yyyymmdd-hhmmss]'
+      	fxaddpar, *DataSet.HeadersPHU[i], 'DRPVER', version, ' Version number of GPI DRP software', after='TLCVER'
+      	fxaddpar, *DataSet.HeadersPHU[i], 'DRPDATE', datestr+'T'+hourstr, ' UT creation time of this reduced data file', after='UTEND'
 		mwrfits, 0, c_File, *DataSet.HeadersPHU[i], /create,/silent
 		; check whether we are writing a FITS bintable or a image array. If an
 		; image array, cast to float (since we never want to write doubles)
 		if size(*DataSet.currFrame,/tname) eq 'STRUCT' then begin
+			; save a struct as a FITS bintable extension
+			;   special note: we must be sure to not have a NAXIS3 keyword in
+			;   the extension header, as this will break fxaddpar annoyingly.
+			sxdelpar, *DataSet.HeadersExt[i], 'NAXIS3'
 			mwrfits, *DataSet.currFrame, c_File, *DataSet.HeadersExt[i],/silent
 		endif else begin
 			mwrfits, float(*DataSet.currFrame), c_File, *DataSet.HeadersExt[i],/silent
@@ -178,7 +185,7 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 
 	;--- Update progress bar
 	statuswindow = (Backbone_comm->Getprogressbar() )
-	if obj_valid(statuswindow) then statuswindow->set_suffix, s_Ext
+	if obj_valid(statuswindow) then statuswindow->set_last_saved_file, c_File
   
 	;--- Display image, if requested
 	if ( keyword_set( display ) ) && (display ne 0) then Backbone_comm->gpitv, c_File, ses=display

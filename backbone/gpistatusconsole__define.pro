@@ -181,9 +181,14 @@ pro gpistatusconsole::set_action, suffix
 	self->set, (*self.state).wLabel2,    '  Current action:      ', suffix
 end
 
-pro gpistatusconsole::set_suffix, suffix
-	self->set, (*self.state).wLabel2Suf, '  Latest saved suffix: ', suffix
+;pro gpistatusconsole::set_suffix, suffix
+	;self->set, (*self.state).wLabel2LastName, '  Latest saved suffix: ', suffix
+;end
+
+pro gpistatusconsole::set_last_saved_file, filename
+	self->set, (*self.state).wLabel2LastName, '  Latest saved file: ', filename
 end
+
 
 pro gpistatusconsole::set_GenLogF, suffix
 	self->set, (*self.state).wGenLogF, 'Pipeline Logfile:      ', suffix
@@ -313,9 +318,9 @@ function gpistatusconsole::init
 	w_status_base =  widget_base(wChildBase,/column, frame=DEBUG_FRAMES)
 	wLabelAction = WIDGET_LABEL(w_status_base, VALUE="" ,  UVALUE='LABEL',/DYNAMIC_RESIZE,/ALIGN_LEFT)
 	wLabelRecipeFile = WIDGET_LABEL(w_status_base, VALUE='  ',  UVALUE='LABEL',/DYNAMIC_RESIZE,/ALIGN_LEFT)
-	wLabelFITS = WIDGET_LABEL(w_status_base, VALUE='  Lastest Input FITS:  --',  UVALUE='LABEL',/DYNAMIC_RESIZE,/ALIGN_LEFT)
+	wLabelFITS = WIDGET_LABEL(w_status_base, VALUE='  Latest Input FITS:  --',  UVALUE='LABEL',/DYNAMIC_RESIZE,/ALIGN_LEFT)
 	wLabel2 = WIDGET_LABEL(w_status_base, VALUE='  Action:', UVALUE='LABELP',XSIZE=600,/ALIGN_LEFT)
-	wLabel2suf = WIDGET_LABEL(w_status_base, VALUE='  Saved (suffix):',  UVALUE='LABELPsuf',XSIZE=600,/ALIGN_LEFT)
+	wLabel2lastname= WIDGET_LABEL(w_status_base, VALUE='  Latest saved file:  --',  UVALUE='LABELPsuf',XSIZE=600,/ALIGN_LEFT)
 
 	; status for ENTIRE DRF
 	wLabelstatus = WIDGET_LABEL(w_status_base, VALUE=' Current Recipe Completion Status:',  UVALUE='LABEL3',/DYNAMIC_RESIZE)
@@ -358,7 +363,7 @@ function gpistatusconsole::init
 
 	State2 = {self:self, wChildBase:self.base_wid, wDrawProgress:wDrawProgress, $
 	    wDrawProgressf:wDrawProgressf,vProgress:0,vProgressf:0, xpos:0,xposf:0, $
-	    wLabelAction:wLabelAction, wLabelRecipeFile:wLabelRecipeFile, wLabelFITS:wLabelFITS,wLabel2:wLabel2,wLabel2suf:wLabel2suf,wLabelstatus:wLabelstatus, $
+	    wLabelAction:wLabelAction, wLabelRecipeFile:wLabelRecipeFile, wLabelFITS:wLabelFITS,wLabel2:wLabel2,wLabel2lastname:wLabel2lastname,wLabelstatus:wLabelstatus, $
 		wEventLog: wEventLog, wRecipeLog: wRecipeLog, wGenLogF: wGenLogF, id_calibdir:id_calibdir, diff:diff, fits_count:0L, fits_current_index: 0L, quit: q}
 	pState = PTR_NEW(State2)
 	WIDGET_CONTROL, self.base_wid, SET_UVALUE=pState
@@ -377,7 +382,7 @@ function gpistatusconsole::init
 	self->Set_DRF, '--'
 	self->Set_FITS, '--'
 	self->Set_action, '--'
-	self->Set_suffix, '--'
+	self->Set_last_saved_file, '--'
 	
 	return, 1
 
