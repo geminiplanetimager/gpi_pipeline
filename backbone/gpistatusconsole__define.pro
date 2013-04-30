@@ -45,6 +45,9 @@ end
 pro gpistatusconsole::rescanconfig_end
    self.rescanconfig=0
 end
+pro gpistatusconsole::clear_abort
+  self.abort = 0
+end
 
 
 ;---- Actual GUI display code:
@@ -84,10 +87,10 @@ end
 
 ;Actual event handling:
 pro gpistatusconsole::event,ev
-		widget_control, ev.id,GET_UVALUE=uval
-        if size(uval,/TYPE) eq 7 then begin
-        if uval eq 'rescanDB' then self.rescan =1
-        if uval eq 'rescanConfig' then self.rescanconfig =1
+  widget_control, ev.id,GET_UVALUE=uval
+  if size(uval,/TYPE) eq 7 then begin
+     if uval eq 'rescanDB' then self.rescan =1
+     if uval eq 'rescanConfig' then self.rescanconfig =1
 ;        if uval eq 'changedir' then begin
 ;          issetenvok=0
 ;          if issetenvok eq 0 then begin
@@ -101,50 +104,41 @@ pro gpistatusconsole::event,ev
 ;            endwhile
 ;          endif 
 ;        endif
-		if uval eq 'flushqueue' then begin
-		 	conf = dialog_message("Are you sure you want to clear all recipes currently in the queue? This will delete those files and cannot be undone.",/question,title="Confirm Clear Queue",/default_no,/center, dialog_parent=ev.top)
-		 	if conf eq "Yes" then begin
-				self.flushq =1
-			endif
-		endif
-	 	if uval eq 'quit' then begin
-		 	if confirm(message="Are you sure you want to exit the GPI Data Reduction Pipeline?",$
-                label0='Cancel',label1='Exit', group=ev.top, title='Confirm Exit') then begin
-				 ;message,/info, 'Setting pipeline QUIT flag'
-				 self.quit =1 ;widget_control, ev.top,/DESTROY
-				 ; TODO actually close the entire GPI pipeline now...
-				 ;  Actually closing the pipeline requires the main loop to call
-				 ;  checkquit()
-			 endif
-			 return
-		endif
-        if uval eq 'abort' then begin
-			 conf = dialog_message("Are you sure you want to abort the current recipe?",/question,title="Confirm abort",/default_no,/center)
-			 if conf eq "Yes" then begin
-				 ;message,/info, 'Setting pipeline QUIT flag'
-				 self.abort =1 ;widget_control, ev.top,/DESTROY
-				 ; TODO actually close the entire GPI pipeline now...
-				 ;  Actually closing the pipeline requires the main loop to call
-				 ;  checkquit()
-			 endif
-             return
-         endif
+     if uval eq 'flushqueue' then begin
+        conf = dialog_message("Are you sure you want to clear all recipes currently in the queue? This will delete those files and cannot be undone.",/question,title="Confirm Clear Queue",/default_no,/center, dialog_parent=ev.top)
+        if conf eq "Yes" then begin
+           self.flushq =1
+        endif
+     endif
+     if uval eq 'quit' then begin
+        if confirm(message="Are you sure you want to exit the GPI Data Reduction Pipeline?",$
+                   label0='Cancel',label1='Exit', group=ev.top, title='Confirm Exit') then begin
+           self.quit =1         ; TODO actually close the entire GPI pipeline now...
+                                ;  Actually closing the pipeline requires the main loop to call
+                                ;  checkquit()
+        endif
+        return
+     endif
+     if uval eq 'abort' then begin
+        self.abort =1
+        return
+     endif 
 
-      endif else begin
-         if tag_names(ev,/STRUCTURE_NAME) eq 'WIDGET_BASE' then begin ; resize
-			 ;print, "new size: ", ev.x, ev.y
-			 ; keep the minimum X size enforced, and split the Y resize up
-			 ; between the two list widgets
-			 ;
-			 ; TODO FIXME
-			 ;   Really this should calculate for each widget the exact X pixel
-			 ;   spacing neede to fit that window within the 
-			 diff = (*uval).diff
-            ;WIDGET_CONTROL, (*uval).quit,      SCR_XSIZE = (ev.x > diff[0] )
-            widget_control, (*uval).wEventLog,  SCR_XSIZE = (ev.x - diff[0] )>diff[2], SCR_YSIZE=(ev.Y-diff[1])/2
-            widget_control, (*uval).wRecipeLog,    SCR_XSIZE = (ev.x - diff[0] )>diff[2], SCR_YSIZE=(ev.Y-diff[1])/2
-         endif
-      endelse
+  endif else begin
+     if tag_names(ev,/STRUCTURE_NAME) eq 'WIDGET_BASE' then begin ; resize
+                                ;print, "new size: ", ev.x, ev.y
+                                ; keep the minimum X size enforced, and split the Y resize up
+                                ; between the two list widgets
+                                ;
+                                ; TODO FIXME
+                                ;   Really this should calculate for each widget the exact X pixel
+                                ;   spacing neede to fit that window within the 
+        diff = (*uval).diff
+                                ;WIDGET_CONTROL, (*uval).quit,      SCR_XSIZE = (ev.x > diff[0] )
+        widget_control, (*uval).wEventLog,  SCR_XSIZE = (ev.x - diff[0] )>diff[2], SCR_YSIZE=(ev.Y-diff[1])/2
+        widget_control, (*uval).wRecipeLog,    SCR_XSIZE = (ev.x - diff[0] )>diff[2], SCR_YSIZE=(ev.Y-diff[1])/2
+     endif
+  endelse
 end 
     
 
@@ -341,7 +335,7 @@ function gpistatusconsole::init
     q=widget_button(rowbase,VALUE='Rescan Calib. DB',UVALUE='rescanDB')
     q=widget_button(rowbase,VALUE='Rescan DRP Config',UVALUE='rescanConfig')
 	;q=widget_button(rowbase,VALUE='Change directories',UVALUE='changedir')
-	q=widget_button(rowbase,VALUE='Abort current Recipe',UVALUE='abortDRF', resource_name='red_button')
+	q=widget_button(rowbase,VALUE='Abort current Recipe',UVALUE='abort', resource_name='red_button')
     q=widget_button(rowbase,VALUE='Clear recipe Queue',UVALUE='flushqueue', resource_name='red_button')
 	q=widget_button(rowbase,VALUE='Quit GPI DRP',UVALUE='quit', resource_name='red_button')
 

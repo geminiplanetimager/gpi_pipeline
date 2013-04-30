@@ -619,19 +619,27 @@ FUNCTION gpiPipelineBackbone::Reduce
         ;-- Iterate over the modules in the 'Modules' array and run each.
         status = OK
         FOR indexModules = 0, N_ELEMENTS(*self.Modules)-1 DO BEGIN
-            ; Continue if the current module's skip field equals 0 and no previous module
-            ; has failed (Result = 1).
-            IF ((*self.Modules)[indexModules].Skip EQ 0) AND (status EQ OK) THEN BEGIN
-                ;Result = Self -> RunModule(Modules, indexModules, Data[IndexFrame], Backbone)
-                if obj_valid(self.statuswindow) then self.statuswindow->Update, *self.Modules, indexModules, (*self.data).validframecount, IndexFrame,   ' Working...'
-                status = Self -> RunModule(*self.Modules, indexModules)
-
-            ENDIF
-			if obj_valid(self.statuswindow) then if self.statuswindow->checkabort() then begin
-                self->Log, "User pressed ABORT button! Aborting Recipe"
-                status = NOT_OK
-                break
-            endif
+           ;; Continue if the current module's skip field equals 0 and no previous module
+           ;; has failed (Result = 1).
+           IF ((*self.Modules)[indexModules].Skip EQ 0) AND (status EQ OK) THEN BEGIN
+                                ;Result = Self -> RunModule(Modules, indexModules, Data[IndexFrame], Backbone)
+              if obj_valid(self.statuswindow) then self.statuswindow->Update, *self.Modules, indexModules, (*self.data).validframecount, IndexFrame,   ' Working...'
+              status = Self -> RunModule(*self.Modules, indexModules)
+              
+           ENDIF
+           if obj_valid(self.statuswindow) then begin
+              self.statuswindow->checkevents
+              if self.statuswindow->checkabort() then begin
+                 conf = dialog_message("Are you sure you want to abort the current recipe?",/question,title="Confirm abort",/default_no,/center)
+                 if conf eq "Yes" then begin
+                    self->Log, "User pressed ABORT button! Aborting Recipe"
+                    status = NOT_OK
+                    break
+                 endif else begin
+                    self.statuswindow->clear_abort
+                 endelse
+              endif 
+           endif 
         ENDFOR
 
         ;-- Log the result.
