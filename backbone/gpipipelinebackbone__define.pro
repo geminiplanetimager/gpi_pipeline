@@ -64,14 +64,16 @@ FUNCTION gpipipelinebackbone::Init,  session=session, verbose=verbose, nogui=nog
 
 	config_file=gpi_get_directory('GPI_DRP_CONFIG_DIR') +path_sep()+"gpi_pipeline_primitives.xml"
     self.verbose = keyword_set(verbose)
-    ver = gpi_pipeline_version()
+    ver = gpi_pipeline_version(/svn)
+	nspaces = 30 - strlen(ver)
+	spaces = strmid('                            ',0,nspaces) ; is there a better way to do this?
 
     print, "                                                    "
     PRINT, "*****************************************************"
     print, "*                                                   *"
     PRINT, "*          GPI DATA REDUCTION PIPELINE              *"
     print, "*                                                   *"
-    print, "*                   VERSION "+ver+"                    *"
+    print, "*             VERSION "+ver+spaces+"*"
     print, "*                                                   *"
     print, "*          Jerome Maire, Marshall Perrin et al.     *"
     print, "*                                                   *"
@@ -725,7 +727,7 @@ FUNCTION gpiPipelineBackbone::load_FITS_file, indexFrame
     ; is required. 
     ;SXADDPAR, *(*self.data).HeadersExt[IndexFrame], "END",''        
     
-	self->set_keyword, "HISTORY", "Reduction with GPI Data Pipeline version "+gpi_pipeline_version()
+	self->set_keyword, "HISTORY", "Reduction with GPI Data Pipeline version "+gpi_pipeline_version(/svn)
 	self->set_keyword, "HISTORY", "  Started On " + SYSTIME(0)
 	self->set_keyword, "HISTORY", "  User: "+getenv('USER')+ "      Hostname: "+getenv('HOST')
     return, OK
@@ -844,7 +846,7 @@ PRO gpiPipelineBackbone::OpenLog
 		  FREE_LUN, LOG_GENERAL
 		  OPENW, LOG_GENERAL, LogFile, /GET_LUN,/APPEND
 		  PRINTF, LOG_GENERAL, '--------------------------------------------------------------'
-		  PRINTF, LOG_GENERAL, '   GPI Data Reduction Pipeline, version '+gpi_pipeline_version()
+		  PRINTF, LOG_GENERAL, '   GPI Data Reduction Pipeline, version '+gpi_pipeline_version(/svn)
 		  PRINTF, LOG_GENERAL, '   Started On ' + SYSTIME(0)
 		  PRINTF, LOG_GENERAL, '   User: '+getenv('USER')+ "      Hostname: "+getenv('HOST')
 		  PRINTF, LOG_GENERAL, ''
