@@ -460,12 +460,12 @@ sxaddpar,*dataset.headersExt[numfile],'NAXIS3',5,after='NAXIS2'
 backbone->set_keyword, "HISTORY", " ",ext_num=0;,/blank
 backbone->set_keyword, "HISTORY", " Wavelength solution File Format:",ext_num=0
 backbone->set_keyword, "HISTORY", " Dispersion for each spectrum is defined as ",ext_num=0
-backbone->set_keyword, "HISTORY", " lambda=w3*(sqrt((x-x0)^2+(y-y0)^2))+lambda0",ext_num=0
-backbone->set_keyword, "HISTORY", "    Slice 1:  x-positions (x0) of spectra (x:spectral direction) at [lambda0]",ext_num=0
-backbone->set_keyword, "HISTORY", "    Slice 2:  y-positions (y0) of spectra at [lambda0]",ext_num=0
+backbone->set_keyword, "HISTORY", " lambda=w * (sqrt((x-x0)^2+(y-y0)^2))+lambda0",ext_num=0
+backbone->set_keyword, "HISTORY", "    Slice 1:  Y-positions (y0) of spectra (Y=spectral direction) at [lambda0]",ext_num=0
+backbone->set_keyword, "HISTORY", "    Slice 2:  X-positions (x0) of spectra at [lambda0]",ext_num=0
 backbone->set_keyword, "HISTORY", "    Slice 3:  lambda0 [um]",ext_num=0
-backbone->set_keyword, "HISTORY", "    Slice 4:   w3 [um/pixel]",ext_num=0
-backbone->set_keyword, "HISTORY", "    Slice 5:   tilts of spectra [rad]",ext_num=0
+backbone->set_keyword, "HISTORY", "    Slice 4:  dispersion w [um/pixel]",ext_num=0
+backbone->set_keyword, "HISTORY", "    Slice 5:  tilts of spectra [radians]",ext_num=0
 backbone->set_keyword, "HISTORY", " ",ext_num=0;,/blank
 
 

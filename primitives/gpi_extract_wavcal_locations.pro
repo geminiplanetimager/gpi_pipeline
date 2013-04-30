@@ -343,17 +343,16 @@ sxaddpar, h, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.
 
 for pind=0,n_elements(peakwavelen)-1 do sxaddpar, h, "PEAKWAV"+strcompress(string(pind),/re), peakwavelen[pind], 'Wav of peak used for wav.solution measurement'
 
-
-sxaddhist, " ",/blank, h
-sxaddhist, " Wavelength solution File Format:",  h
-sxaddhist, " Dispersion for each spectrum is defined as ",h
-sxaddhist, " lambda=w3*(sqrt((x-x0)^2+(y-y0)^2))+lambda0",h
-sxaddhist, "    Slice 1:  x-positions (x0) of spectra (x:spectral direction) at [lambda0]",  h
-sxaddhist, "    Slice 2:  y-positions (y0) of spectra at [lambda0]",  h
-sxaddhist, "    Slice 3:  lambda0 [um]",  h
-sxaddhist, "    Slice 4:   w3 [um/pixel]",  h
-sxaddhist, "    Slice 5:   tilts of spectra [rad]",  h
-sxaddhist, " ",/blank, h
+backbone->set_keyword, "HISTORY", " ",ext_num=0;,/blank
+backbone->set_keyword, "HISTORY", " Wavelength solution File Format:",ext_num=0
+backbone->set_keyword, "HISTORY", " Dispersion for each spectrum is defined as ",ext_num=0
+backbone->set_keyword, "HISTORY", " lambda=w * (sqrt((x-x0)^2+(y-y0)^2))+lambda0",ext_num=0
+backbone->set_keyword, "HISTORY", "    Slice 1:  Y-positions (y0) of spectra (Y=spectral direction) at [lambda0]",ext_num=0
+backbone->set_keyword, "HISTORY", "    Slice 2:  X-positions (x0) of spectra at [lambda0]",ext_num=0
+backbone->set_keyword, "HISTORY", "    Slice 3:  lambda0 [um]",ext_num=0
+backbone->set_keyword, "HISTORY", "    Slice 4:  dispersion w [um/pixel]",ext_num=0
+backbone->set_keyword, "HISTORY", "    Slice 5:  tilts of spectra [radians]",ext_num=0
+backbone->set_keyword, "HISTORY", " ",ext_num=0;,/blank
 
 
 ;rotate (180deg) the wavcal to have quadrant "aligned" (modulo 26deg) with the image  
