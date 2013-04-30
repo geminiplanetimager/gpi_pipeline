@@ -1,7 +1,7 @@
 function about_message
 
-    ver=strc(gpi_pipeline_version())
-    tmpstr=['GPI DRP Revision: '+ver+'  - Gemini Planet Imager Data-Reduction Pipeline', $
+    ver=strc(gpi_pipeline_version(/svn))
+    tmpstr=['GPI Data Reduction Pipeline Version: '+ver, $
               '', $
               ;'Copyright _,_ by the University of Montreal ' + $
               ; '(UdeM), Canada', $
@@ -17,6 +17,7 @@ function about_message
               '    Quinn Konopacky ', $
 			  '    Christian Marois', $
 			  '    Max Millar-Blanchaer', $
+			  '    Jean-Baptiste Ruffio',$
 			  '    Dmitry Savransky',$
 			  '    Schuyler Wolff',$
 			  '    Sloane Wiktorowicz',$
@@ -26,11 +27,12 @@ function about_message
               '    Marshall Perrin', $
               '    Jerome Maire', $
 			  '    Dmitry Savransky',$
+			  '    Jean-Baptiste Ruffio',$
               '', $
               '-------- Acknowledgements: --------', $
               '', $
-              '  Rene Doyon, Kathleen Labrie, Bruce Macintosh, and ',$
-		  	  '    all other GPI team members', $
+              '  Rene Doyon, Bruce Macintosh, Stephen Goodsell, and ',$
+		  	  '    all other Gemini and GPI team members', $
               '    who have helped to improve the GPI DRP', $
               '  ', $
 			  '  Some code derived from OSIRIS pipeline by:', $
@@ -38,6 +40,9 @@ function about_message
 			  '    Michael McElwain', $
 			  '    Jason Weiss', $
 			  '    Shelley Wright', $
+              ' ', $
+			  '  GPItv display tool derived from ATV by', $
+              '    Aaron Barth et al.', $
               ' ', $
               '------------------------------', $
               ' ', $
