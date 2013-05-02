@@ -10,6 +10,7 @@
 ; 	Began 2010-04-08 19:25:24 by Marshall Perrin 
 ;   2010-10-19 JM: split HISTORY keyword if necessary
 ;   2011-07-30 MP: Updated for multi-extension FITS
+;   2013-04-26 MP: primitive version output aesthetic improvement
 ;-
 
 
@@ -23,8 +24,13 @@
 
 ; record this primitive name AND its version in the header for traceability.
 	if ~(keyword_set(primitive_version)) then primitive_version="unknown"
-  backbone->set_keyword,'HISTORY', "Running "+functionname+"; version "+primitive_version, ext_num=0
+	if strmid(primitive_version,0,4) eq '$Id:' then begin
+		; given an SVN version ID string, parse out just the bits we want
+		parts = strsplit(primitive_version,/extract)
+		primitive_version = "   "+ parts[2]+"   by "+parts[5]+" "+parts[3]
 
+	endif
+  backbone->set_keyword,'HISTORY', "Running "+functionname+" version id"+primitive_version, ext_num=0
 
 ; if appropriate, attempt to locate and verify a calibration file.
 	if keyword_set(calfiletype) then begin
