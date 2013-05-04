@@ -143,10 +143,39 @@ if (szim[1] mod 2) then begin
   I2=I2[0:szim[1]-2,0:szim[2]-2]
 endif 
 
+tmp = backbone->get_keyword("SATSMASK", ext_num=1, count=ct)
+if ct eq 0 then $
+   return, error('FAILURE ('+functionName+'): SATSMASK undefined.  Use "Measure satellite spot locations" before this one.')
+
+;;grab satspots 
+goodcode = hex2bin(tmp,(size(cubefin,/dim))[2])
+good = long(where(goodcode eq 1))
+cens = fltarr(2,4,(size(cubefin,/dim))[2])
+for s=0,n_elements(good) - 1 do begin 
+   for j = 0,3 do begin 
+      tmp = fltarr(2) + !values.f_nan 
+      reads,backbone->get_keyword('SATS'+strtrim(long(good[s]),2)+'_'+strtrim(j,2),ext_num=1),tmp,format='(F7," ",F7)' 
+      cens[*,j,good[s]] = tmp 
+   endfor 
+endfor
+spotloc=fltarr(2,4)
+
+spotloc[0,0]=mean(cens[0,0,numL1:numL2])
+spotloc[1,0]=mean(cens[1,0,numL1:numL2])
+
+spotloc[0,1]=mean(cens[0,1,numL1:numL2])
+spotloc[1,1]=mean(cens[1,1,numL1:numL2])
+
+spotloc[0,2]=mean(cens[0,2,numL1:numL2])
+spotloc[1,2]=mean(cens[1,2,numL1:numL2])
+
+spotloc[0,3]=mean(cens[0,3,numL1:numL2])
+spotloc[1,3]=mean(cens[1,3,numL1:numL2])
+
 knumin=-1
 vscaleopt=1
 knum=1
-sssd=gpi_ssdi(I1,I2,L1m,L2m,vscaleopt,knumin,knum)
+sssd=gpi_ssdi(I1,I2,L1m,L2m,vscaleopt,knumin,knum,spotloc)
 
 ;;;todo: handle PSF center before fftscale 
 ;I1s=fftscale(I1,double(L2m)/double(L1m),double(L2m)/double(L1m),1e-7)
