@@ -11,11 +11,12 @@
 ;Output parameters
 ;vscaleopt and knum are output parameters
 
-function gpi_ssdi,I1,I2,L1m,L2m,vscaleopt,knumin,knum
+function gpi_ssdi,I1,I2,L1m,L2m,vscaleopt,knumin,knum,locs
 
 ;Image magnification with ROT
-locs =  find_sat_spots(I1)
 
+;locs =  find_sat_spots(I1)
+;stop
 ;Search for optimal image magnification
 vres=fltarr(200)
 vscale=make_array(200,/index)
