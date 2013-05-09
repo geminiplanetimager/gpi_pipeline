@@ -170,7 +170,7 @@ endelse
 	  return, error('FAILURE ('+functionName+'): Failed to load emission lines.') 
 	endelse
 
-        if  Modules[thisModuleIndex].lamp_override eq 0 then begin
+        if  Modules[thisModuleIndex].lamp_override eq 1 then begin
            message,/info, "Lamp override enabled, bypassing lamp/filter enforcements"
            backbone->set_keyword, "HISTORY", "Lamp override enabled, bypassing lamp/filter enforcements"
         endif
