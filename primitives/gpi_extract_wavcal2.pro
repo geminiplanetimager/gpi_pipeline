@@ -50,6 +50,7 @@
 ; PIPELINE ARGUMENT: Name="medfilter" Type="int" Range="[0,1]" Default="1" Desc="1: Median filtering of dispersion coeff and tilts with a (5x5) median filtering"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="iscalib" Type="int" Range="[0,1]" Default="1" Desc="1: save to Calibrations Database, 0: save in regular reduced data dir"
+; PIPELINE ARGUMENT: Name="lamp_override" Type="int" Range="[0,1]" Default="0" Desc="0,1: override the filter/lamp combinations?"
 ; PIPELINE ARGUMENT: Name="gpitvim_dispgrid" Type="int" Range="[0,500]" Default="15" Desc="1-500: choose gpitv session for displaying image output and wavcal grid overplotted, 0: no display "
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying wavcal file, 0: no display "
 ; PIPELINE ARGUMENT: Name="tests" Type="int" Range="[0,3]" Default="0" Desc="1 for extensive tests "
@@ -169,42 +170,54 @@ endelse
 	  return, error('FAILURE ('+functionName+'): Failed to load emission lines.') 
 	endelse
 
-case strcompress(bandeobs,/REMOVE_ALL) of
-	'Y':begin
-		if (cinstru eq 1) && strmatch(instrum,'*DST*') then begin
-            specpixlength=15. ;spec pix length for rough estimation of peak positions
-            bandwidth=0.2  ;bandwidth in microns
+        if  Modules[thisModuleIndex].lamp_override eq 0 then begin
+           message,/info, "Lamp override enabled, bypassing lamp/filter enforcements"
+           backbone->set_keyword, "HISTORY", "Lamp override enabled, bypassing lamp/filter enforcements"
+        endif
+        case strcompress(bandeobs,/REMOVE_ALL) of
+           'Y':begin
+           ; error handling for usable filters
+              if Modules[thisModuleIndex].lamp_override eq 0 and lamp ne 'Xe' and lamp ne 'Ar' then return, error('ERROR ('+functionName+'): Incorrect Lamp/Filter combination - Y band wavelength calibrations should be performed with Argon or Xenon lamps. You can override this error by setting the lamp_override keyword to 1') 
+              
+              if (cinstru eq 1) && strmatch(instrum,'*DST*') then begin
+                 specpixlength=15. ;spec pix length for rough estimation of peak positions
+                 bandwidth=0.2     ;bandwidth in microns
         endif else begin
 			specpixlength=17. ;spec pix length for rough estimation of peak positions
 			bandwidth=0.2;0.18; 0.23  ;bandwidth in microns
-        endelse
-    end
-	'J':begin
-		if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.15],[1.33]] ;[[1.12],[1.35]]
-		if (cinstru eq 1) && strmatch(instrum,'*DST*') then begin
-			specpixlength= 15. ;spec pix length for rough estimation of peak positions
-			bandwidth=0.18; 0.23  ;bandwidth in microns
-        endif else begin
-			specpixlength=17. ;spec pix length for rough estimation of peak positions
-			bandwidth=0.23;0.18; 0.23  ;bandwidth in microns
-        endelse
-    end
-	'H':begin
+                     endelse
+     end
+           'J':begin
+              if ~keyword_set(lamp_override) and lamp ne 'Xe' then return, error('ERROR ('+functionName+'): Incorrect Lamp/Filter combination - J band wavelength calibrations should be performed with the Xenon lamp. You can override this error by setting the lamp_override keyword to 1') 
+              if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.15],[1.33]] ;[[1.12],[1.35]]
+              if (cinstru eq 1) && strmatch(instrum,'*DST*') then begin
+                 specpixlength= 15.    ;spec pix length for rough estimation of peak positions
+                 bandwidth=0.18        ; 0.23  ;bandwidth in microns
+              endif else begin
+                 specpixlength=17.     ;spec pix length for rough estimation of peak positions
+                 bandwidth=0.23        ;0.18; 0.23  ;bandwidth in microns
+              endelse
+           end
+           'H':begin
+           if Modules[thisModuleIndex].lamp_override eq 0 and lamp ne 'Xe' then return, error('ERROR ('+functionName+'): Incorrect Lamp/Filter combination - H band wavelength calibrations should be performed with the Xenon lamp. You can override this error by setting the lamp_override keyword to 1') 
       if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.5],[1.8]]
 		specpixlength=20. ;17. ;spec pix length for rough estimation of peak positions
 		bandwidth=0.3 ;bandwidth in microns
-    end
+             end
 	'K1':begin
-		if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.9],[2.19]]
-		specpixlength=20. ;spec pix length for rough estimation of peak positions
-		bandwidth=0.3 ;bandwidth in microns
-    end
-  'K2':begin
+           if Modules[thisModuleIndex].lamp_override eq 0 and lamp ne 'Xe' then return, error('ERROR ('+functionName+'): Incorrect Lamp/Filter combination - K1 band wavelength calibrations should be performed with the Xenon lamp. You can override this error by setting the lamp_override keyword to 1') 
+           if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.9],[2.19]]
+           specpixlength=20.    ;spec pix length for rough estimation of peak positions
+           bandwidth=0.3        ;bandwidth in microns
+        end
+        'K2':begin
+           if  Modules[thisModuleIndex].lamp_override eq 0 and lamp ne 'Xe' then return, error('ERROR ('+functionName+'): Incorrect Lamp/Filter combination - K2 band wavelength calibrations should be performed with the Xenon lamp. You can override this error by setting the lamp_override keyword to 1')
         if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[2.13],[2.4]]
         specpixlength=20. ;spec pix length for rough estimation of peak positions
-        bandwidth=0.27  ;bandwidth in microns
-    end
+        bandwidth=0.27    ;bandwidth in microns
+     end
 endcase
+
 
 
     ;;2010-07-14 J.Maire: The following added for testing, 
