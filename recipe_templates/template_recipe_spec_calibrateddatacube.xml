@@ -3,15 +3,15 @@
 <dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
    <fits filename=""/>
 </dataset>
-<module name="Load bad pixel map" CalibrationFile="AUTOMATIC" />
 <module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
-<module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="       0"  gpitv="" />
-<module name="Destripe science frame" method="calfile" abort_fraction="0.9" fraction="0.7" high_limit="1000" chan_offset_correction="0" Save_stripes="0" Save="0" gpitv="1" />
+<module name="Interpolate bad pixels in 2D frame" method="vertical"  Save="0" gpitv="0" CalibrationFile="AUTOMATIC" before_and_after="0" /> 
+<module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0"  gpitv="" />
+<module name="Destripe science frame" method="calfile" abort_fraction="0.9" fraction="0.7" high_limit="1000" chan_offset_correction="0" Save_stripes="0" display="0" Save="0" gpitv="1" remove_microphonics="0" />
 <module name="Assemble Spectral Datacube" Save="       0" gpitv="0" />
-<module name="Divide by Spectral Flat Field" CalibrationFile="AUTOMATIC" Save="       0"  gpitv="0" />
+<module name="Divide by Spectral Flat Field" CalibrationFile="AUTOMATIC" Save="0"  gpitv="0" />
 <module name="Interpolate Wavelength Axis" Spectralchannels="37" Save="       1"  gpitv="2" />
 <module name="Load Satellite Spot locations" CalibrationFile="AUTOMATIC" />
-<module name="Measure telluric transmission" method="1" Correct_datacube="1" Save_corrected_datacube="1" Save_telluric_transmission="1"  gpitv="2" />
-<module name="Calibrate Photometric Flux" FinalUnits="1" CalibrationFile="AUTOMATIC" Save="       1" gpitv="2" />
-<module name="Update World Coordinates" CalibrationFile="AUTOMATIC" Save="       0" gpitv="0" />
+<module name="Measure telluric transmission" method="1" Correct_datacube="1" suffix="-telcal" Save_corrected_datacube="1" Save_telluric_transmission="1"  gpitv="2" />
+<module name="Calibrate Photometric Flux" FinalUnits="1" CalibrationFile="AUTOMATIC" Save="1" gpitv="2" />
+<module name="Update World Coordinates" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
 </DRF>
