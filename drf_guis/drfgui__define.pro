@@ -1774,7 +1774,7 @@ pro drfgui::loaddrf, filename, nodata=nodata, silent=silent, log=log
         for jj=0,n_elements(*self.indarg)-1 do begin
             indtag=where(strmatch( tag ,(*self.currModSelecParamTab)[jj,0],/fold), matchct)
                         if matchct eq 0 then begin
-                            message,"ERROR: no match in Recipe file for primitive parameter='"+(*self.currModSelecParamTab)[jj,0]+"'",/info
+                            message,"WARNING: no match in Recipe file for primitive parameter='"+(*self.currModSelecParamTab)[jj,0]+"'",/info
                             message,"of primitive='"+(drf_module_names)[ii]+"'",/info
                             message,"Check whether the parameter list in the Recipe file '"+self.loadedrecipefile+"' has the correct parameters for that primitive! ",/info
                         endif
