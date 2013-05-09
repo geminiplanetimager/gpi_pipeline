@@ -188,7 +188,7 @@ endelse
                      endelse
      end
            'J':begin
-              if ~keyword_set(lamp_override) and lamp ne 'Xe' then return, error('ERROR ('+functionName+'): Incorrect Lamp/Filter combination - J band wavelength calibrations should be performed with the Xenon lamp. You can override this error by setting the lamp_override keyword to 1') 
+              if Modules[thisModuleIndex].lamp_override eq 0 and lamp ne 'Xe' then return, error('ERROR ('+functionName+'): Incorrect Lamp/Filter combination - J band wavelength calibrations should be performed with the Xenon lamp. You can override this error by setting the lamp_override keyword to 1') 
               if strmatch(obstype,'*flat*',/fold) then peakwavelen=[[1.15],[1.33]] ;[[1.12],[1.35]]
               if (cinstru eq 1) && strmatch(instrum,'*DST*') then begin
                  specpixlength= 15.    ;spec pix length for rough estimation of peak positions
