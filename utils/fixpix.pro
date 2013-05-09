@@ -226,16 +226,15 @@ for j=0,nimg-1 do begin
       dd = dd + 2
     endif else found=1
   endrep until (found ne -1)
-
 ; calculate distances to adjacent good pixels 
   dist_circle,distarr,2*dd+1,dd,dd
-  gdist = distarr(wgood)
-  gpix = cut(wgood)
+  gdist = distarr[wgood]
+  gpix = cut[wgood]
 
 ; sort good pixels by distance
   ss = sort(gdist)
-  gdist = gdist(ss)
-  gpix = gpix(ss)
+  gdist = gdist[ss]
+  gpix = gpix[ss]
 
 
 ; accounting for pixels with the same distance at the edge
