@@ -224,13 +224,26 @@ endif
 
     endelse
 
+    im=image
+    im[where(mask eq 1)]=!values.f_nan
+   
+	;---- OPTIONAL channel offset repair
+	; derive median channel offsets
+        
+    if keyword_set(chan_offset_correction) then begin
+       backbone->set_keyword, "HISTORY", " Also applying optional channel offset correction."
+       chan_offset=fltarr(2048,2048)
+       for c=0, 31 do begin
+          chan_offset[c*64:((c+1)*64)-1,*]=(median(im[c*64:((c+1)*64)-1,*]))
+       endfor
+    im-=chan_offset
+    endif
+
 	;--- Generate a first estimate of the striping
     ; Chop the image into the 32 readout channels. 
     ; Flip every other channel to account for the readout direction
     ; alternating for the H2RG
-    im=image
-    im[where(mask eq 1)]=!values.f_nan
-    
+ 
     parts = transpose(reform(im, 64,32, 2048),[0,2,1])
     for i=0,15 do parts[*,*,2*i+1] = reverse(parts[*,*,2*i+1]) 
 
@@ -317,22 +330,11 @@ endif
 	   stripes[nan_ind]=sm_im[nan_ind]
 	endif
     
-	;---- OPTIONAL channel offset repair
-	; derive median channel offsets
-	;stripes0=stripes ; for testing
-	if keyword_set(chan_offset_correction) then begin
- 		backbone->set_keyword, "HISTORY", " Also applying optional channel offset correction."
-	   	for c=0, 31 do begin
-		  stripes[c*64:((c+1)*64)-1,*]*=(median(im[c*64:((c+1)*64)-1,*]) $
-										 /median(stripes[c*64:((c+1)*64)-1,*]))
-	   	endfor
-	endif
-
 	;---- At last, the actual subtraction!
 
 	if display eq 'yes' then im0 = image ; save for display
 	imout = image - stripes
-
+        if keyword_set(chan_offset_correction) then imout-=chan_offset
 	; input safety to make sure no NaN's are in the image
 	nan_check=where(finite(imout) eq 0)
 	
@@ -343,9 +345,6 @@ endif
 	   message,/info, 'Destripe failed in Subtract_background_2d - NaN found in mask - so no destripe performed'
 	   imout=image
 	endif
-
-
-
 
     ;--- OPTIONAL / EXPERIMENTAL  microphonics repair
 
@@ -426,8 +425,6 @@ endif
 			xyouts, 0.5, 0.95, /normal, "Stripe Noise Removal for "+backbone->get_keyword('DATAFILE'), charsize=2, alignment=0.5
 		endelse
 	endif
- 
-
 
 	; and now output
 	*(dataset.currframe[0]) = imout
