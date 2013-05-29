@@ -2,9 +2,17 @@
 ; NAME: create microphonics model
 ; PIPELINE PRIMITIVE DESCRIPTION: Create a microphonics noise model.
 ;
-;  Create a microphonics noise model in Fourier space.
+;  Create a microphonics noise model in Fourier space. The model consits only on the absolute value of the Fourier coefficients.
+;  This has to be applied after the accumulate images primitive.
+;  
+;  For each frame, it computes the absolute value of the Fourier coefficients around the 3 microphonics identified peaks.
+;  Then it combines the results of all frames based on the method defined by Combining method.
+;  Either adding all the models or taking the median.
+;  Then it normalizes the model.
+;  
+;  If Gauss_Interp = 1: Each of the 3 peaks is fitted by a 2d gaussian. Better not using it. It doesn't give better results.
 ;
-; INPUTS:  several dark frames
+; INPUTS:  several dark frames with strong microphonics
 ; OUTPUTS: microphonics model in Fourier space, saved as a calibration file
 ;
 ; PIPELINE COMMENT: Create a microphonics noise model in Fourier space.
@@ -18,10 +26,10 @@
 ; PIPELINE SEQUENCE: 22-
 ;
 ; HISTORY:
-;    Jean-Baptiste Ruffio 2013-05
+;     Originally by Jean-Baptiste Ruffio 2013-05
 ;-
 function create_microphonics_model, DataSet, Modules, Backbone
-primitive_version= '$Id: create_microphonics_model.pro 1501 2013-04-29 21:24:26Z jruffio $' ; get version from subversion to store in header history
+primitive_version= '$Id: create_microphonics_model.pro ??? ??? jruffio $' ; get version from subversion to store in header history
 @__start_primitive
 
  if tag_exist( Modules[thisModuleIndex], "Gauss_Interp") then Gauss_Interp=float(Modules[thisModuleIndex].Gauss_Interp) else Gauss_Interp=0
@@ -79,7 +87,7 @@ primitive_version= '$Id: create_microphonics_model.pro 1501 2013-04-29 21:24:26Z
     combined_abs_peaks_Fimtab = abs((shift(fft(imtab[*,*,0]),1024,1024))[1004:1046, 1190:1210])
   endelse
    
-   ;interpolate each pek with a 2d gaussian if asked
+   ;interpolate each peak with a 2d gaussian if asked
    if Gauss_Interp eq 1 then begin
       ;isolate the peaks
       peakleft = combined_abs_peaks_Fimtab[0:11, *]

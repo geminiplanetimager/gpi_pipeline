@@ -13,9 +13,17 @@
 ;  WARNING: This destriping algorithm will not work correctly on flat fields or
 ;  any image where there is very large amounts of signal covering the entire
 ;  field. If called on such data, it will print a warning message and return
-;  without modifying the data array. 
+;  without modifying the data array.
+;  
+; Summary of the primitive:
+; The principle of the primitive is to build models of the different source of noise you want to treat and then subtract them to the real image at the end.
+; 1/ mask computation
+; 2/ Channels offset model based on im = image => chan_offset
+; 3/ Microphonics computation based on im = image - chan_offset => microphonics_model
+; 4/ Destriping model based on im = image - chan_offset - microphonics_model => stripes
+; 5/ Output: imout = image - chan_offset - microphonics_model - stripes
 ;
-; Algorithm Details:
+; Destripping Algorithm Details:
 ;    Generate a mask of where the spectra are located, based on the
 ;      already-loaded wavelength or pol spots solutions.
 ;    Mask out those pixels. 
@@ -30,32 +38,36 @@
 ;
 ;
 ; OPTIONAL/EXPERIMENTAL: 
-;  The microphonics noise attenuation can be activitate by setting the parameter remove_microphonics to 1 or 2.
+;  The microphonics noise attenuation can be activitated by setting the parameter remove_microphonics to 1 or 2.
 ;  The microphonics from the image can be saved in a file using the parameter save_microphonics.
+;  If Plot_micro_peaks equal 'yes', then it will open 3 plot windows with the peaks aera of the microphonics in Fourier space (Before microphonics subtraction, the microphonics to be removed and the final result). Used for debugging purposes.
 ;  
 ;  If remove_microphonics = 1:
-;  The algo is always applied.
+;    The algorithm is always applied.
 ;  
 ;  If remove_microphonics = 2:
-;  The algo is applied only of the quantity of noise is greater than the micro_treshold parameter.
-;  The quantity of microphonics noise is measured with the ratio of the dot_product and the norm of the image: dot_product/sqrt(sum(abs(fft(image))^2)).
+;    The algorithm is applied only of the quantity of noise is greater than the micro_treshold parameter.
+;    A default empirical value of 0.01 has been set based on the experience of the author of the algorithm. 
+;    The quantity of microphonics noise is measured with the ratio of the dot_product and the norm of the image: dot_product/sqrt(sum(abs(fft(image))^2)).
+;    With dot_product = sum(abs(fft(image))*abs(fft(noise_model))) which correspond to the projection of the image on the microphonics noise model in the absolute Fourier space.
 ;  
 ;  There are 3 implemented methods right now depending on the value of the parameter method_microphonics.
 ;  
 ;  If method_microphonics = 1:
-;  The microphonics noise removal is based on a fixed precomputed model. This model is the normalized absolute value of the Fourier coefficients.
-;  The filtering consist of diminishing the intensity of the frequencies corresponding to the noise in the image proportionaly to the dot product of the image witht the noise.
-;  The phase remains unchanged.
-;  The filtered coefficients in Fourier space become 1-dot_product*(Amplitude_noise_model/Amplitude_image).
-;  With dot_product = sum(abs(fft(image))*abs(fft(noise_model))).
+;    The microphonics noise removal is based on a fixed precomputed model. This model is the normalized absolute value of the Fourier coefficients.
+;    The filtering consist of diminishing the intensity of the frequencies corresponding to the noise in the image proportionaly to the dot product of the image witht the noise model.
+;    The phase remains unchanged.
+;    The filtered coefficients in Fourier space become (1-dot_product*(Amplitude_noise_model/Amplitude_image)).
+;    With dot_product = sum(abs(fft(image))*abs(fft(noise_model))) which correspond to the projection of the image on the microphonics noise model in the absolute Fourier space.
 ;  
 ;  If method_microphonics = 2:
-;  The frequencies around the 3 identified peaks of the microphonics noise in Fourier space are all set to zero.
-;  It is better not to use it.
+;    The frequencies around the 3 identified peaks of the microphonics noise in Fourier space are all set to zero.
+;    This algorithm is the best one of you are sure that there is no data in this aera but it is probably better not to use it...
 ;  
 ;  If method_microphonics = 3:
-;  A 2d gaussian is fitted for each of the three peaks of the microphonics noise in Fourier space and then removed.
-;  Only the absolute value is considered and the phase remains unchanged.
+;    A 2d gaussian is fitted for each of the three peaks of the microphonics noise in Fourier space and then removed.
+;    Only the absolute value is considered and the phase remains unchanged.
+;    This algorthim is not as efficient as the two others but if you don't have an accurate model, it can be better than nothing.
 ;
 ;
 ; PIPELINE ARGUMENT: Name="method" Type="string" Range="[threshhold|calfile]" Default="calfile" Desc='Find background based on image value threshhold cut, or calibration file spectra/spot locations?'
@@ -86,9 +98,10 @@
 ;   2012-12-30 MMB: Updated for pol extraction. Included Cal file, inserted IDL version checking for smooth() function
 ;   2013-01-16 MP: Documentation cleanup.
 ;   2013-03-12 MP: Code cleanup, some speed enhancements by vectorization
+;   2013-05-28 JBR: Primitive copy pasted from the destripe_mask_spectra.pro primitive. Microphonics noise enhancement. Microphonics algorithm now applied before the destripping.
 ;-
 function destripe_mask_spectra_micro, DataSet, Modules, Backbone
-primitive_version= '$Id: destripe_mask_spectra_micro.pro 1537 2013-05-16 20:28:56Z ingraham $' ; get version from subversion to store in header history
+primitive_version= '$Id: destripe_mask_spectra_micro.pro ??? ???  jruffio $' ; get version from subversion to store in header history
 calfiletype = 'Micro Model'
 @__start_primitive
 
@@ -116,9 +129,24 @@ endif
  display = strlowcase(string(display))
  
  ;get the 2D detector image
+ ;This variable will remain unchanged
  image=*(dataset.currframe[0])
 
  backbone->Log, 'Generating model of 2D image background based on pixels in between spectra'
+ 
+ ;////////////////////////////////////////////////////////////////////////////////
+ ;Summary of the primitive
+ ;The principle of the primitive is to build models of the different source of noise you want to treat and then subtract them to the real image at the end.
+ ;1/ mask computation
+ ;2/ Channels offset model computation based on im = image => chan_offset
+ ;3/ Microphonics computation based on im = image - chan_offset => microphonics_model
+ ;4/ Destriping model computation based on im = image - chan_offset - microphonics_model => stripes
+ ;5/ Output: imout = image - chan_offset - microphonics_model - stripes
+ ;////////////////////////////////////////////////////////////////////////////////
+
+;////////////////////////////////////////////////////////////////////////////////
+;/////////////////////////////Building the mask//////////////////////////////////
+;////////////////////////////////////////////////////////////////////////////////
 
  ; The first step is to figure out which pixels are from spectra (or pol spots)
  ; and which are not. Perhaps eventually this will be done from a lookup table
@@ -254,20 +282,178 @@ endif
 
     endelse
 
-    im=image
-    im[where(mask eq 1)]=!values.f_nan
-   
+
+;////////////////////////////////////////////////////////////////////////////////
   ;---- OPTIONAL channel offset repair
   ; derive median channel offsets
-        
+;////////////////////////////////////////////////////////////////////////////////
+
+    im=image
+    im[where(mask eq 1)]=!values.f_nan
+
     if keyword_set(chan_offset_correction) then begin
        backbone->set_keyword, "HISTORY", " Also applying optional channel offset correction."
        chan_offset=fltarr(2048,2048)
        for c=0, 31 do begin
           chan_offset[c*64:((c+1)*64)-1,*]=(median(im[c*64:((c+1)*64)-1,*]))
        endfor
-    im-=chan_offset
+    ;im-=chan_offset
     endif
+
+;////////////////////////////////////////////////////////////////////////////////
+    ;--- OPTIONAL / EXPERIMENTAL  microphonics repair
+;////////////////////////////////////////////////////////////////////////////////
+
+  if (remove_microphonics GE 1) then begin
+    microphonics_model = fltarr(2048, 2048)
+    backbone->Log, "Fourier filtering to remove microphonics noise.",depth=2
+    backbone->set_keyword, "HISTORY", "Fourier filtering to remove microphonics noise."
+    
+    ;load the image from which to remove the noise and subtract the channels offset if the option is activated
+    im = image
+        if keyword_set(chan_offset_correction) then im-=chan_offset
+    
+    ;load the microphonics model
+    micro_noise_abs_model = gpi_readfits(c_File,header=Header)
+    ;micro_noise_abs_model = readfits("/Users/jruffio/IDLWorkspace/pipeline/primitives/microphonics_model_abs_normalized.fits")
+    
+    ;measure the noise before anything is done
+    FT_im = fft(image)
+    noise_before = total(abs(FT_im)*micro_noise_abs_model)/sqrt(total(abs(FT_im)^2))
+    backbone->Log, "The measured noise before is"+ string(noise_before),depth=2
+    backbone->set_keyword, "HISTORY", "The measured noise before is"+ string(noise_before)
+    
+    ;If the algorithm is applied based on the treshold, load the treshold or get a default value
+    ;Else treshold set to zero to be sure the algo will be applied
+    if (remove_microphonics eq 2) then begin
+        if tag_exist( Modules[thisModuleIndex], "micro_treshold") then micro_treshold = float(Modules[thisModuleIndex].micro_treshold) else begin
+          micro_treshold = 0.01
+          backbone->Log, "Parameter micro_treshold not found. Default value = 0.01",depth=2
+          backbone->set_keyword, "HISTORY", "Parameter micro_treshold not found. Default value = 0.01"
+        endelse
+    endif else begin
+        micro_treshold = 0.0
+    endelse
+      
+        ;this will be always applied if remove_microphonics = 1 because micro_teshold would equal 0.0
+        if (noise_before  GE micro_treshold) then begin
+        ;Conditions for the different methods based on the parameter: methode_microphonics
+          if (method_microphonics eq 1) then begin 
+              ;model projection
+              ;see the primitive documentation for the explanation
+              abs_FT_im = abs(FT_im)
+              ;abs_FT_im[0:25,165:183] = median(abs_FT_im[0:25,165:183],2)
+              ;abs_FT_im[(2048-25):2047,165:183] = median(abs_FT_im[(2048-25):2047,165:183],2)
+              ;abs_FT_im[(2048-25):2047,(2048-183):(2048-165)] = median(abs_FT_im[(2048-25):2047,(2048-183):(2048-165)],2)
+              ;abs_FT_im[0:25,(2048-183):(2048-165)] = median(abs_FT_im[0:25,(2048-183):(2048-165)],2)
+          
+              dot_product = total(abs_FT_im*micro_noise_abs_model)
+              FT_im_filt = (1-dot_product*micro_noise_abs_model/abs_FT_im) * FT_im
+              im_filt = real_part(fft(FT_im_filt,/inverse))
+              microphonics_model = im-im_filt
+        backbone->Log, "Microphonics noise filtering applied.",depth=2
+              backbone->set_keyword, "HISTORY", "Microphonics noise filtering applied."
+              
+              noise_after = total(abs(FT_im_filt)*micro_noise_abs_model)/sqrt(total(abs(FT_im_filt)^2))
+              backbone->Log, "The measured noise after is"+ string(noise_after),depth=2
+              backbone->set_keyword, "HISTORY", "The measured noise after is"+ string(noise_after)
+              
+              ;If Plot_micro_peaks equal 'yes', then it will open 3 plot windows with the peaks aera of the microphonics in Fourier space (Before microphonics subtraction, the microphonics to be removed and the final result). Used for debugging purposes.   
+              if strlowcase(Plot_micro_peaks) eq 'yes' then begin
+                window, 20, retain=2
+                surface, (shift(abs(FT_im),1024,1024))[1004:1046, 1190:1210],TITLE = 'before' 
+                window, 21, retain=2
+                surface, (shift(dot_product*micro_noise_abs_model,1024,1024))[1004:1046, 1190:1210],TITLE = 'the noise'
+                window, 22, retain=2
+                surface, (shift(abs(FT_im_filt),1024,1024))[1004:1046, 1190:1210],TITLE = 'after' 
+              endif 
+          
+          endif else if (method_microphonics eq 2) then begin ;all to zero
+             ;///////////// just erasing the noise frequencies///////////////
+             ; Now we use a FFT filter to generate a model of the microphonics noise
+             ; We do this here **entirely ignoring the masking out of spectra** and trusting
+             ; in Fourier space frequency selection to pick out only the microphonics-related 
+             ; power in the image. YMMV, Use at your own risk!
+               fftmask = bytarr(2048,2048)
+             fftmask[1004:1046, 1190:1210]  = 1  ; a box around the 3 peaks from the microphonics blobs,
+                               ; as seen in an FFT array if 'flopped'
+                               ; to be centered on the 0-freq component
+             ;fftmask[1004:1046, 1368:1378] = 1
+             fftmask += reverse(fftmask, 2)
+             fftmask = shift(fftmask,-1024,-1024) ; flop to line up with fftim
+          
+             microphonics_model = real_part(fft( FT_im*fftmask,/inverse))
+          
+             ; For some reason presumably explicable in Fourier space, the resulting
+             ; microphonics model often appears to have extra striping in the top rows
+             ; of the image. This leads to some *induced* extra striping there
+             ; when subtracted. Let's force the top rows to zero to avoid this. 
+             microphonics_model[*, 1975:*] = 0
+               
+             backbone->set_keyword, "HISTORY", "Microphonics noise removed via Fourier filtering."
+             backbone->set_keyword, "HISTORY", "   CAUTION - may or may not work well on science data."
+             backbone->set_keyword, "HISTORY", "   YMMV depending on image content. User discretion is advised."
+           endif else if (method_microphonics eq 3) then begin ;gaussian fit
+              abs_FT_im = shift(abs(FT_im),1024,1024)
+              
+              peakleft = abs_FT_im[1004:1015, 1190:1210]
+              peakmiddle = abs_FT_im[1016:1035, 1190:1210]
+              peakright = abs_FT_im[1036:1046, 1190:1210]
+              
+              peakleft_gauss = gauss2dfit(peakleft, para_left)
+              peakmiddle_gauss = gauss2dfit(peakmiddle, para_middle)
+              peakright_gauss = gauss2dfit(peakright, para_right)
+              peakleft_gauss = peakleft_gauss-para_left[0]
+              peakmiddle_gauss = peakmiddle_gauss-para_middle[0]
+              peakright_gauss = peakright_gauss-para_right[0]
+              
+              correction = fltarr(2048,2048)
+              correction[1004:1046, 1190:1210] = [peakleft_gauss,peakmiddle_gauss,peakright_gauss]
+              correction = shift(correction, -1024, -1024)
+              correction += reverse(reverse(correction, 2),1)
+              
+              abs_FT_im = shift(abs_FT_im,-1024,-1024)
+              FT_im_filt = (1-correction/abs_FT_im) * FT_im
+              im_filt = real_part(fft(FT_im_filt,/inverse))
+              microphonics_model = im - im_filt
+              backbone->Log, "Microphonics noise filtering applied.",depth=2
+              backbone->set_keyword, "HISTORY", "Microphonics noise filtering applied."
+              
+              noise_after = total(abs(FT_im_filt)*micro_noise_abs_model)/sqrt(total(abs(FT_im_filt)^2))
+              backbone->Log, "The measured noise after is"+ string(noise_after),depth=2
+              backbone->set_keyword, "HISTORY", "The measured noise after is"+ string(noise_after)
+              
+              ;If Plot_micro_peaks equal 'yes', then it will open 3 plot windows with the peaks aera of the microphonics in Fourier space (Before microphonics subtraction, the microphonics to be removed and the final result). Used for debugging purposes. 
+              if strlowcase(Plot_micro_peaks) eq 'yes' then begin
+                window, 20, retain=2
+                surface, (shift(abs(FT_im),1024,1024))[1004:1046, 1190:1210],TITLE = 'before'
+                window, 21, retain=2
+                surface, (shift(correction,1024,1024))[1004:1046, 1190:1210],TITLE = 'the noise'
+                window, 22, retain=2
+                surface, (shift(abs(FT_im_filt),1024,1024))[1004:1046, 1190:1210],TITLE = 'after' 
+              endif 
+          endif
+        endif else begin
+          backbone->Log, "Not enough microphonics. Algorithm not applied.",depth=2
+          backbone->set_keyword, "HISTORY", "Not enough microphonics. Algorithm not applied."
+        endelse
+
+
+  if strlowcase(save_microphonics) eq 'yes' then begin
+    *(dataset.currframe[0])=microphonics_model
+    suffix='-micronoise'
+    b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display)
+  endif
+  endif
+
+
+;////////////////////////////////////////////////////////////////////////////////
+;--- DESTRIPPING
+;////////////////////////////////////////////////////////////////////////////////
+
+    im = image
+        if keyword_set(chan_offset_correction) then im-=chan_offset
+  if remove_microphonics ge 1 then im-=microphonics_model
 
   ;--- Generate a first estimate of the striping
     ; Chop the image into the 32 readout channels. 
@@ -360,13 +546,16 @@ endif
      stripes[nan_ind]=sm_im[nan_ind]
   endif
     
-  ;---- At last, the actual subtraction!
-
-  if display eq 'yes' then im0 = image ; save for display
+    
+;////////////////////////////////////////////////////////////////////////////////
+;---- At last, the actual subtraction!
+;////////////////////////////////////////////////////////////////////////////////
   imout = image - stripes
         if keyword_set(chan_offset_correction) then imout-=chan_offset
+  if remove_microphonics ge 1 then imout-=microphonics_model
   ; input safety to make sure no NaN's are in the image
   nan_check=where(finite(imout) eq 0)
+
   
   if nan_check[0] ne -1 then begin
      backbone->set_keyword, "HISTORY", "NOT Destriped, failed in Subtract_background_2d - NaN found in mask"
@@ -376,170 +565,7 @@ endif
      imout=image
   endif
 
-    ;--- OPTIONAL / EXPERIMENTAL  microphonics repair
 
-  if (remove_microphonics GE 1) then begin
-    backbone->Log, "Fourier filtering to remove microphonics noise.",depth=2
-    backbone->set_keyword, "HISTORY", "Fourier filtering to remove microphonics noise."
-    im = imout
-    
-    micro_noise_abs_model = gpi_readfits(c_File,header=Header)
-    ;micro_noise_abs_model = readfits("/Users/jruffio/IDLWorkspace/pipeline/primitives/microphonics_model_abs_normalized.fits")
-    
-    FT_im = fft(im)
-    noise_before = total(abs(FT_im)*micro_noise_abs_model)/sqrt(total(abs(FT_im)^2))
-    backbone->Log, "The measured noise before is"+ string(noise_before),depth=2
-    backbone->set_keyword, "HISTORY", "The measured noise before is"+ string(noise_before)
-    
-
-    if (remove_microphonics eq 2) then begin
-        if tag_exist( Modules[thisModuleIndex], "micro_treshold") then micro_treshold = float(Modules[thisModuleIndex].micro_treshold) else begin
-          micro_treshold = 0.01
-          backbone->Log, "Parameter micro_treshold not found. Default value = 0.01",depth=2
-          backbone->set_keyword, "HISTORY", "Parameter micro_treshold not found. Default value = 0.01"
-        endelse
-    endif else begin
-        ;if it is not automatic, treshold set to zero to be sure the algo will be applied
-        micro_treshold = 0.0
-    endelse
-      
-        if (noise_before  GE micro_treshold) then begin
-          if (method_microphonics eq 1) then begin ;model projection
-              abs_FT_im = abs(FT_im)
-              abs_FT_im[0:25,165:183] = median(abs_FT_im[0:25,165:183],2)
-              abs_FT_im[(2048-25):2047,165:183] = median(abs_FT_im[(2048-25):2047,165:183],2)
-              abs_FT_im[(2048-25):2047,(2048-183):(2048-165)] = median(abs_FT_im[(2048-25):2047,(2048-183):(2048-165)],2)
-              abs_FT_im[0:25,(2048-183):(2048-165)] = median(abs_FT_im[0:25,(2048-183):(2048-165)],2)
-          
-              dot_product = total(abs_FT_im*micro_noise_abs_model)
-              FT_im_filt = (1-dot_product*micro_noise_abs_model/abs_FT_im) * FT_im
-              im_filt = real_part(fft(FT_im_filt,/inverse))
-              imout = im_filt
-              backbone->Log, "Microphonics noise filtering applied.",depth=2
-              backbone->set_keyword, "HISTORY", "Microphonics noise filtering applied."
-              
-              noise_after = total(abs(FT_im_filt)*micro_noise_abs_model)/sqrt(total(abs(FT_im_filt)^2))
-              backbone->Log, "The measured noise after is"+ string(noise_after),depth=2
-              backbone->set_keyword, "HISTORY", "The measured noise after is"+ string(noise_after)
-                  
-              if strlowcase(save_microphonics) eq 'yes' then begin
-                *(dataset.currframe[0])=im-im_filt
-                suffix='-micronoise'
-                b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display)
-              endif
-              
-              if strlowcase(Plot_micro_peaks) eq 'yes' then begin
-                window, 20
-                surface, (shift(abs(FT_im),1024,1024))[1004:1046, 1190:1210],TITLE = 'before' 
-                window, 21
-                surface, (shift(dot_product*micro_noise_abs_model,1024,1024))[1004:1046, 1190:1210],TITLE = 'the noise'
-                window, 22
-                surface, (shift(abs(FT_im_filt),1024,1024))[1004:1046, 1190:1210],TITLE = 'after' 
-              endif 
-          
-          endif else if (method_microphonics eq 2) then begin ;all to zero
-             ;///////////// just erasing the noise frequencies///////////////
-             ; Now we use a FFT filter to generate a model of the microphonics noise
-             ; We do this here **entirely ignoring the masking out of spectra** and trusting
-             ; in Fourier space frequency selection to pick out only the microphonics-related 
-             ; power in the image. YMMV, Use at your own risk!
-             fftim = fft(imout)
-             fftmask = bytarr(2048,2048)
-             fftmask[1004:1046, 1190:1210]  = 1  ; a box around the 3 peaks from the microphonics blobs,
-                               ; as seen in an FFT array if 'flopped'
-                               ; to be centered on the 0-freq component
-             ;fftmask[1004:1046, 1368:1378] = 1
-             fftmask += reverse(fftmask, 2)
-             fftmask = shift(fftmask,-1024,-1024) ; flop to line up with fftim
-          
-             microphonics_model = real_part(fft( fftim*fftmask,/inverse))
-          
-             ; For some reason presumably explicable in Fourier space, the resulting
-             ; microphonics model often appears to have extra striping in the top rows
-             ; of the image. This leads to some *induced* extra striping there
-             ; when subtracted. Let's force the top rows to zero to avoid this. 
-             microphonics_model[*, 1975:*] = 0
-          
-             if display eq 'yes' then im_destriped = imout ; save for use in display
-          
-             imout -= microphonics_model
-             
-             if strlowcase(save_microphonics) eq 'yes' then begin
-                  *(dataset.currframe[0])=microphonics_model
-                  suffix='-micronoise'
-                  b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display)
-             endif
-                
-             backbone->set_keyword, "HISTORY", "Microphonics noise removed via Fourier filtering."
-             backbone->set_keyword, "HISTORY", "   CAUTION - may or may not work well on science data."
-             backbone->set_keyword, "HISTORY", "   YMMV depending on image content. User discretion is advised."
-           endif else if (method_microphonics eq 3) then begin ;gaussian fit
-              abs_FT_im = shift(abs(FT_im),1024,1024)
-              
-              peakleft = abs_FT_im[1004:1015, 1190:1210]
-              peakmiddle = abs_FT_im[1016:1035, 1190:1210]
-              peakright = abs_FT_im[1036:1046, 1190:1210]
-              
-              peakleft_gauss = gauss2dfit(peakleft, para_left)
-              peakmiddle_gauss = gauss2dfit(peakmiddle, para_middle)
-              peakright_gauss = gauss2dfit(peakright, para_right)
-              peakleft_gauss = peakleft_gauss-para_left[0]
-              peakmiddle_gauss = peakmiddle_gauss-para_middle[0]
-              peakright_gauss = peakright_gauss-para_right[0]
-              
-              correction = fltarr(2048,2048)
-              correction[1004:1046, 1190:1210] = [peakleft_gauss,peakmiddle_gauss,peakright_gauss]
-              correction = shift(correction, -1024, -1024)
-              correction += reverse(reverse(correction, 2),1)
-              
-              abs_FT_im = shift(abs_FT_im,-1024,-1024)
-              FT_im_filt = (1-correction/abs_FT_im) * FT_im
-              im_filt = real_part(fft(FT_im_filt,/inverse))
-              imout = im_filt
-              backbone->Log, "Microphonics noise filtering applied.",depth=2
-              backbone->set_keyword, "HISTORY", "Microphonics noise filtering applied."
-              
-              noise_after = total(abs(FT_im_filt)*micro_noise_abs_model)/sqrt(total(abs(FT_im_filt)^2))
-              backbone->Log, "The measured noise after is"+ string(noise_after),depth=2
-              backbone->set_keyword, "HISTORY", "The measured noise after is"+ string(noise_after)
-                  
-              if strlowcase(save_microphonics) eq 'yes' then begin
-                *(dataset.currframe[0])=im-im_filt
-                suffix='-micronoise'
-                b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display)
-              endif
-              if strlowcase(Plot_micro_peaks) eq 'yes' then begin
-                window, 20
-                surface, (shift(abs(FT_im),1024,1024))[1004:1046, 1190:1210],TITLE = 'before' 
-                window, 21
-                surface, (shift(correction,1024,1024))[1004:1046, 1190:1210],TITLE = 'the noise'
-                window, 22
-                surface, (shift(abs(FT_im_filt),1024,1024))[1004:1046, 1190:1210],TITLE = 'after' 
-              endif 
-          endif
-        endif else begin
-          backbone->Log, "Not enough microphonics. Algorithm not applied.",depth=2
-          backbone->set_keyword, "HISTORY", "Not enough microphonics. Algorithm not applied."
-        endelse
-
-;   ; calculate a microphonics model from the masked image
-;   destriped = im-stripes
-;   m5im = median(destriped,5)
-;   medval = median(medpart)
-;   wf = where(finite(destriped), fct)
-;   wnf = where(~finite(m5im), nfct)
-;   if fct gt 0 then m5im[wf] = destriped[wf]
-;   if nfct gt 0 then m5im[wnf] = medval[wnf]
-;
-;   fft_m5im = fft(m5im)
-;   model2 = real(fft( fft_m5im*fftmask,/inverse))
-;   
-;
-;
-;
-;   atv, [[[image]],[[image-stripes]],[[microphonics_model]], [[image-stripes-microphonics_model]]],/bl, min=-10, max=40
-;   stop
-  endif
 
 
   if display eq 'yes' then begin
@@ -550,9 +576,9 @@ endif
     if strlowcase(remove_microphonics) eq 'yes' then begin
       ; display for destriping and microphonics removal
       !p.multi=[0,4,1]
-      mean_offset = mean(im0) - mean(imout)
-      imdisp, im0 - mean_offset, /axis, range=[-10,30], title='Input Data', charsize=2
-      imdisp, im_destriped, /axis, range=[-10,30], title='Destriped', charsize=2
+      mean_offset = mean(image) - mean(imout)
+      imdisp, image - mean_offset, /axis, range=[-10,30], title='Input Data', charsize=2
+      imdisp, image - stripes, /axis, range=[-10,30], title='Destriped', charsize=2
       imdisp, microphonics_model, /axis, range=[-10,30],title="Microphonics model", charsize=2
       imdisp, imout, /axis, range=[-5,15], title="Destriped and de-microphonicsed", charsize=2
       xyouts, 0.5, 0.95, /normal, "Stripe & Microphonics Noise Removal for "+backbone->get_keyword('DATAFILE'), charsize=2, alignment=0.5
@@ -560,8 +586,8 @@ endif
       ; display for just destriping
       if numfile eq 0 then window,0
       !p.multi=[0,3,1]
-      mean_offset = mean(im0) - mean(imout)
-      imdisp, im0-mean_offset, /axis, range=[-10,30], title='Input Data', charsize=2
+      mean_offset = mean(image) - mean(imout)
+      imdisp, image-mean_offset, /axis, range=[-10,30], title='Input Data', charsize=2
       imdisp, stripes-mean_offset, /axis, range=[-10,30], title='Stripes Model', charsize=2
       imdisp, imout, /axis, range=[-10,30], title='Destriped Data', charsize=2
       xyouts, 0.5, 0.95, /normal, "Stripe Noise Removal for "+backbone->get_keyword('DATAFILE'), charsize=2, alignment=0.5

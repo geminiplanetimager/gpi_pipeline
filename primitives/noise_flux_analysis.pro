@@ -11,9 +11,7 @@
 ;     DNBACK, total data number outside the lenslets aera (if not a dark and not a cube)
 ;   
 ;   
-;   If StddevMed > 1: Generate fits keywords related with total flux in the image
-;   
-;   the primitive will generate a file with the suffix '-stddevmed' containing an 3d array... to be continued
+;   If StddevMed > 1: Generate fits keywords related with the standard deviation in the image
 ;   
 ;   If StddevMed = 2:
 ;     Compute the local median and the local standard deviation by moving a square of size Width.
@@ -22,13 +20,18 @@
 ;     If 2d image: Generate a file with the suffix '-stddevmed' containing an 3d array. [*,*,0] is the median and [*,*,1] is the standard deviation.
 ;     If 3d image: Generate two files '-stddev' and '-median'. Both same size of the original image.
 ;     
+;     
 ;   If microNoise = 1:
 ;     Estimate the quantity of microphonics noise in the image based on a model stored as a calibration file.
 ;     The quantity of microphonics noise is measured with the ratio of the dot_product and the norm of the image: dot_product/sqrt(sum(abs(fft(image))^2)).
+;     With dot_product = sum(abs(fft(image))*abs(fft(noise_model))) which correspond to the projection of the image on the microphonics noise model in the absolute Fourier space.
 ;     The fits keyword associated is MICRONOI.
 ;   
+;   
 ;   If FourierTransf = 1 or 2:
-;     Build and save the Fourier transform of the image. If 1, the output is the one directly from the idl function (fft). Therefore, the Fourier image is not centered. If 2, the output will be centered.
+;     Build and save the Fourier transform of the image.
+;     If 1, the output is the one directly from the idl function (fft). Therefore, the Fourier image is not centered.
+;     If 2, the output will be centered.
 ;     In the case of a cube it is not a 3d fft that is performed but several 2d ffts.
 ;     suffix='-absfft' or suffix='-absfftdc' if it is a cube.
 ;
@@ -48,13 +51,13 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.0
 ; PIPELINE TYPE: ALL-SPEC
-; PIPELINE NEWTYPE: SpectralScience, Calibration
+; PIPELINE NEWTYPE: SpectralScience, Calibration, PolarimetricScience
 ;
 ; HISTORY:
 ;   Originally by Jean-Baptiste Ruffio 2013-05
 ;-
 function noise_flux_analysis, DataSet, Modules, Backbone
-primitive_version= '$Id: noise_flux_analysis.pro 1501 2013-04-29 21:24:26Z jruffio $' ; get version from subversion to store in header history
+primitive_version= '$Id: noise_flux_analysis.pro ?? ?? jruffio $' ; get version from subversion to store in header history
 calfiletype = 'Micro Model'
 @__start_primitive
 
@@ -81,15 +84,6 @@ calfiletype = 'Micro Model'
 if ~strcmp(strtrim(backbone->get_keyword('OBSTYPE'), 2),'DARK') and (size_im[0] EQ 2) then begin
       backbone->Log, "No dark image detected. Trying to apply lenslets mask"
       
-      nlens=(size(wavcal))[1]       ;pixel sidelength of final datacube (spatial dimensions) 
-      dim=(size(im))[1]            ;detector sidelength in pixels
-    
-      ;handle if readwavcal or not used before
-      if (nlens eq 0) || (dim eq 0)  then begin
-         backbone->Log, "Skipping noise and flux analysis. Failed to load wavelength calibration data prior to calling this primitive.'
-         skipping = 1
-      endif
-      
         ;define the common wavelength vector with the IFSFILT keyword:
         filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
         
@@ -97,39 +91,85 @@ if ~strcmp(strtrim(backbone->get_keyword('OBSTYPE'), 2),'DARK') and (size_im[0] 
         if (filter eq '') then begin
            backbone->Log, "Skipping noise and flux analysis. IFSFILT keyword not found."
            skipping = 1
-         endif
-      
-        ;get length of spectrum
-        sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect)
-        if (sdpx < 0) then begin
-          backbone->Log, "Skipping noise and flux analysis. Wavelength solution is bogus! All values are NaN."
-          skipping = 1
         endif
+               
+        mode = gpi_simplify_keyword_value(backbone->get_keyword('DISPERSR', count=c))
+        case strupcase(strc(mode)) of
+          'PRISM':  begin
+              nlens=(size(wavcal))[1]       ;pixel sidelength of final datacube (spatial dimensions) 
+              dim=(size(im))[1]            ;detector sidelength in pixels
+            
+              ;handle if readwavcal or not used before
+              if (nlens eq 0) || (dim eq 0)  then begin
+                 backbone->Log, "Skipping noise and flux analysis. Failed to load wavelength calibration data prior to calling this primitive.'
+                 skipping = 1
+              endif
+            
+              ;get length of spectrum
+              sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect)
+              if (sdpx < 0) then begin
+                backbone->Log, "Skipping noise and flux analysis. Wavelength solution is bogus! All values are NaN."
+                skipping = 1
+              endif
+              
+              if (skipping EQ 0) then begin
+                ;Find the coordinates of the lenslets
+                xx = fltarr(nlens,nlens,sdpx)
+                yy = fltarr(nlens,nlens,sdpx)
+                for i=0,21 do begin
+                  xx[*,*,i] = xmini - i
+                  yy[*,*,i] = round(wavcal[*,*,1]+(wavcal[*,*,0]-xx[*,*,i])*tan(wavcal[*,*,4]))
+                endfor
+                xCoord_mask = xx[where(finite(xx) AND finite(yy) AND ~((xx LE 4.0) OR (xx GE 2043.0)) AND ~((yy LE 5.0) OR (yy GE 2042.0)) )]
+                yCoord_mask = yy[where(finite(xx) AND finite(yy) AND ~((xx LE 4.0) OR (xx GE 2043.0)) AND ~((yy LE 5.0) OR (yy GE 2042.0)) )]
+                
+                mask = intarr(nx,ny)
+                mask[yCoord_mask-1, xCoord_mask] = 1
+                mask[yCoord_mask, xCoord_mask] = 1
+                mask[yCoord_mask+1, xCoord_mask] = 1
+                
+                mask[*,0:4] = 2
+                mask[0:4,*] = 2
+                mask[*,(ny-5):(ny-1)] = 2
+                mask[(nx-5):(nx-1),*] = 2
+          end
+          'WOLLASTON':    begin
+              ; Assume pol cal info already loaded by readpolcal primitive 
+              polspot_coords = polcal.coords
+              polspot_pixvals = polcal.pixvals
+              
+              sz = size(polspot_coords)
+              nx = sz[1+2]
+              ny = sz[2+2]
+              
+              for pol=0,1 do begin
+                for ix=0L,nx-1 do begin
+                  for iy=0L,ny-1 do begin
+                  ;if ~ptr_valid(polcoords[ix, iy,pol]) then continue
+                  wg = where(finite(polspot_pixvals[*,ix,iy,pol]) and polspot_pixvals[*,ix,iy,pol] gt 0, gct)
+                  if gct eq 0 then continue
         
-        if (skipping EQ 0) then begin
-          ;Find the coordinates of the lenslets
-          xx = fltarr(nlens,nlens,sdpx)
-          yy = fltarr(nlens,nlens,sdpx)
-          for i=0,21 do begin
-            xx[*,*,i] = xmini - i
-            yy[*,*,i] = round(wavcal[*,*,1]+(wavcal[*,*,0]-xx[*,*,i])*tan(wavcal[*,*,4]))
-          endfor
-          xCoord_mask = xx[where(finite(xx) AND finite(yy) AND ~((xx LE 4.0) OR (xx GE 2043.0)) AND ~((yy LE 5.0) OR (yy GE 2042.0)) )]
-          yCoord_mask = yy[where(finite(xx) AND finite(yy) AND ~((xx LE 4.0) OR (xx GE 2043.0)) AND ~((yy LE 5.0) OR (yy GE 2042.0)) )]
+                  spotx = polspot_coords[0,wg,ix,iy,pol]
+                  spoty = polspot_coords[1,wg,ix,iy,pol]
+                  
+                  mask[spotx,spoty]= 1
+                   
+                  endfor 
+                endfor 
+              endfor 
+          end
+          'OPEN':    begin
+                 backbone->set_keyword, "HISTORY", "NO ANALYSIS PERFORMED, not implemented for Undispersed mode"
+                         message,/info, "NO ANALYSIS PERFORMED, not implemented for Undispersed mode"
+                         return,ok
+          end
+          endcase
           
-          mask_lenslets = intarr(nx,ny)
-          mask_lenslets[yCoord_mask-1, xCoord_mask] = 1
-          mask_lenslets[yCoord_mask, xCoord_mask] = 1
-          mask_lenslets[yCoord_mask+1, xCoord_mask] = 1
-          
-          mask_lenslets[*,0:4] = 2
-          mask_lenslets[0:4,*] = 2
-          mask_lenslets[*,(ny-5):(ny-1)] = 2
-          mask_lenslets[(nx-5):(nx-1),*] = 2
           
           ;Extract the pixels belonging to the lenslets
-          im_lenslets = im[where(mask_lenslets EQ 1)]
-          im_background =  im[where(mask_lenslets EQ 0)]
+          im_lenslets = im[where(mask EQ 1)]
+          im_background =  im[where(mask EQ 0)]
+          stop
         endif
 endif
 
