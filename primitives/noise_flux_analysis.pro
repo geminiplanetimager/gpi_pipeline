@@ -57,7 +57,7 @@
 ;   Originally by Jean-Baptiste Ruffio 2013-05
 ;-
 function noise_flux_analysis, DataSet, Modules, Backbone
-primitive_version= '$Id: noise_flux_analysis.pro ?? ?? jruffio $' ; get version from subversion to store in header history
+primitive_version= '$Id: noise_flux_analysis.pro ?? 2013-05-29 ?? jruffio $' ; get version from subversion to store in header history
 calfiletype = 'Micro Model'
 @__start_primitive
 
@@ -132,6 +132,7 @@ if ~strcmp(strtrim(backbone->get_keyword('OBSTYPE'), 2),'DARK') and (size_im[0] 
                 mask[0:4,*] = 2
                 mask[*,(ny-5):(ny-1)] = 2
                 mask[(nx-5):(nx-1),*] = 2
+              endif
           end
           'WOLLASTON':    begin
               ; Assume pol cal info already loaded by readpolcal primitive 
@@ -165,11 +166,11 @@ if ~strcmp(strtrim(backbone->get_keyword('OBSTYPE'), 2),'DARK') and (size_im[0] 
           end
           endcase
           
-          
+        if (skipping EQ 0) then begin  
           ;Extract the pixels belonging to the lenslets
           im_lenslets = im[where(mask EQ 1)]
           im_background =  im[where(mask EQ 0)]
-          stop
+          ;stop
         endif
 endif
 

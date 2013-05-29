@@ -29,7 +29,7 @@
 ;     Originally by Jean-Baptiste Ruffio 2013-05
 ;-
 function create_microphonics_model, DataSet, Modules, Backbone
-primitive_version= '$Id: create_microphonics_model.pro ??? ??? jruffio $' ; get version from subversion to store in header history
+primitive_version= '$Id: create_microphonics_model.pro ?? 2013-05-29 ?? jruffio $' ; get version from subversion to store in header history
 @__start_primitive
 
  if tag_exist( Modules[thisModuleIndex], "Gauss_Interp") then Gauss_Interp=float(Modules[thisModuleIndex].Gauss_Interp) else Gauss_Interp=0
@@ -49,6 +49,10 @@ primitive_version= '$Id: create_microphonics_model.pro ??? ??? jruffio $' ; get 
     itimes[i] = sxpar(hdrext, 'ITIME')
     ; verify all input files have the same exp time?
     if itimes[i] ne itimes[0] then return, error('FAILURE ('+functionName+"): Exposure times are inconsistent. First file was "+strc(itimes[0])+" s, but file "+strc(i)+" is not.")
+;    stop
+    if strcompress(sxpar(hdr, 'OBSTYPE'),/remove_all) ne 'DARK' then begin
+       return, error('FAILURE ('+functionName+"): This is not a dark or OBSTYPE keyword missing - no microphonics model will be extracted")
+    endif
   endfor
 
   ; now combine them to create the model.

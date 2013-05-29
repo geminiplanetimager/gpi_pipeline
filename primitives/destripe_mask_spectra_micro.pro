@@ -101,7 +101,7 @@
 ;   2013-05-28 JBR: Primitive copy pasted from the destripe_mask_spectra.pro primitive. Microphonics noise enhancement. Microphonics algorithm now applied before the destripping.
 ;-
 function destripe_mask_spectra_micro, DataSet, Modules, Backbone
-primitive_version= '$Id: destripe_mask_spectra_micro.pro ??? ???  jruffio $' ; get version from subversion to store in header history
+primitive_version= '$Id: destripe_mask_spectra_micro.pro ?? 2013-05-29 ??  jruffio $' ; get version from subversion to store in header history
 calfiletype = 'Micro Model'
 @__start_primitive
 
@@ -318,7 +318,7 @@ endif
     ;micro_noise_abs_model = readfits("/Users/jruffio/IDLWorkspace/pipeline/primitives/microphonics_model_abs_normalized.fits")
     
     ;measure the noise before anything is done
-    FT_im = fft(image)
+    FT_im = fft(im)
     noise_before = total(abs(FT_im)*micro_noise_abs_model)/sqrt(total(abs(FT_im)^2))
     backbone->Log, "The measured noise before is"+ string(noise_before),depth=2
     backbone->set_keyword, "HISTORY", "The measured noise before is"+ string(noise_before)
@@ -348,7 +348,9 @@ endif
               ;abs_FT_im[0:25,(2048-183):(2048-165)] = median(abs_FT_im[0:25,(2048-183):(2048-165)],2)
           
               dot_product = total(abs_FT_im*micro_noise_abs_model)
-              FT_im_filt = (1-dot_product*micro_noise_abs_model/abs_FT_im) * FT_im
+              isnotnull = where(abs_FT_im ne 0.0)
+              FT_im_filt = fltarr(2048,2048)
+              FT_im_filt[isnotnull] = (1-dot_product*micro_noise_abs_model[isnotnull]/abs_FT_im[isnotnull]) * FT_im[isnotnull]
               im_filt = real_part(fft(FT_im_filt,/inverse))
               microphonics_model = im-im_filt
         backbone->Log, "Microphonics noise filtering applied.",depth=2
@@ -357,7 +359,7 @@ endif
               noise_after = total(abs(FT_im_filt)*micro_noise_abs_model)/sqrt(total(abs(FT_im_filt)^2))
               backbone->Log, "The measured noise after is"+ string(noise_after),depth=2
               backbone->set_keyword, "HISTORY", "The measured noise after is"+ string(noise_after)
-              
+              stop
               ;If Plot_micro_peaks equal 'yes', then it will open 3 plot windows with the peaks aera of the microphonics in Fourier space (Before microphonics subtraction, the microphonics to be removed and the final result). Used for debugging purposes.   
               if strlowcase(Plot_micro_peaks) eq 'yes' then begin
                 window, 20, retain=2
