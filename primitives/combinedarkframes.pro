@@ -58,6 +58,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		itimes[i] = sxpar(hdrext, 'ITIME')
 		; verify all input files have the same exp time?
 		if itimes[i] ne itimes[0] then return, error('FAILURE ('+functionName+"): Exposure times are inconsistent. First file was "+strc(itimes[0])+" s, but file "+strc(i)+" is not.")
+		if strcompress(sxpar(hdr, 'OBSTYPE'),/remove_all) ne 'DARK' then begin
+       return, error('FAILURE ('+functionName+"): This is not a dark or OBSTYPE keyword missing - no master dark will be built")
+    endif
 	endfor
 
 	
