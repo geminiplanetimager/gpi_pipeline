@@ -124,7 +124,7 @@ im=*(dataset.currframe[0])
 ;*(dataset.currframe[0])=im-persis*itime/gain
 
 ; for testing purposes
-if 1 eq 1 then begin
+if 0 eq 1 then begin
    loadct,0
    window,1,retain=2
    tvdl,subarr(im,400,[250,1350]),-50,50
