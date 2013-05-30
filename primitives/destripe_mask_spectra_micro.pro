@@ -365,11 +365,11 @@ endif
               ;If Plot_micro_peaks equal 'yes', then it will open 3 plot windows with the peaks aera of the microphonics in Fourier space (Before microphonics subtraction, the microphonics to be removed and the final result). Used for debugging purposes.   
               if strlowcase(Plot_micro_peaks) eq 'yes' then begin
                 window, 20, retain=2
-                surface, (shift(abs(FT_im),1024,1024))[1004:1046, 1190:1210],TITLE = 'before' 
+                surface, (shift(abs(FT_im),1024,1024))[1004:1046, 1190:1210],TITLE = 'Before microphonics subtraction', SUBTITLE = 'Aera of the 3 microphonics peaks in absolute Fourier Space', CHARSIZE = 3, XTITLE = 'x-axis in pixels', YTITLE = 'y-axis in pixels', ZTITLE = 'Data number'
                 window, 21, retain=2
-                surface, (shift(dot_product*micro_noise_abs_model,1024,1024))[1004:1046, 1190:1210],TITLE = 'the noise'
+                surface, (shift(dot_product*micro_noise_abs_model,1024,1024))[1004:1046, 1190:1210],TITLE = 'The subtracted microphonics model', SUBTITLE = 'Aera of the 3 microphonics peaks in absolute Fourier Space', CHARSIZE = 3, XTITLE = 'x-axis in pixels', YTITLE = 'y-axis in pixels', ZTITLE = 'Data number'
                 window, 22, retain=2
-                surface, (shift(abs(FT_im_filt),1024,1024))[1004:1046, 1190:1210],TITLE = 'after' 
+                surface, (shift(abs(FT_im_filt),1024,1024))[1004:1046, 1190:1210],TITLE = 'After microphonics subtraction', SUBTITLE = 'Aera of the 3 microphonics peaks in absolute Fourier Space', CHARSIZE = 3, XTITLE = 'x-axis in pixels', YTITLE = 'y-axis in pixels', ZTITLE = 'Data number'
               endif 
           
           endif else if (method_microphonics eq 2) then begin ;all to zero
@@ -430,11 +430,11 @@ endif
               ;If Plot_micro_peaks equal 'yes', then it will open 3 plot windows with the peaks aera of the microphonics in Fourier space (Before microphonics subtraction, the microphonics to be removed and the final result). Used for debugging purposes. 
               if strlowcase(Plot_micro_peaks) eq 'yes' then begin
                 window, 20, retain=2
-                surface, (shift(abs(FT_im),1024,1024))[1004:1046, 1190:1210],TITLE = 'before'
+                surface, (shift(abs(FT_im),1024,1024))[1004:1046, 1190:1210],TITLE = 'Before microphonics subtraction', SUBTITLE = 'Aera of the 3 microphonics peaks in absolute Fourier Space', CHARSIZE = 3, XTITLE = 'x-axis in pixels', YTITLE = 'y-axis in pixels', ZTITLE = 'Data number'
                 window, 21, retain=2
-                surface, (shift(correction,1024,1024))[1004:1046, 1190:1210],TITLE = 'the noise'
+                surface, (shift(correction,1024,1024))[1004:1046, 1190:1210],TITLE = 'The subtracted microphonics model', SUBTITLE = 'Aera of the 3 microphonics peaks in absolute Fourier Space', CHARSIZE = 3, XTITLE = 'x-axis in pixels', YTITLE = 'y-axis in pixels', ZTITLE = 'Data number'
                 window, 22, retain=2
-                surface, (shift(abs(FT_im_filt),1024,1024))[1004:1046, 1190:1210],TITLE = 'after' 
+                surface, (shift(abs(FT_im_filt),1024,1024))[1004:1046, 1190:1210],TITLE = 'After microphonics subtraction', SUBTITLE = 'Aera of the 3 microphonics peaks in absolute Fourier Space', CHARSIZE = 3, XTITLE = 'x-axis in pixels', YTITLE = 'y-axis in pixels', ZTITLE = 'Data number' 
               endif 
           endif
         endif else begin
