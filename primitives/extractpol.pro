@@ -91,7 +91,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     for pol=0,1 do begin
     for ix=0L,nx-1 do begin
     for iy=0L,ny-1 do begin
-		if ix eq 121 and iy eq 127 then stop
+		;if ix eq 121 and iy eq 127 then stop
         ;if ~ptr_valid(polcoords[ix, iy,pol]) then continue
         wg = where(finite(polspot_pixvals[*,ix,iy,pol]) and polspot_pixvals[*,ix,iy,pol] gt 0, gct)
         if gct eq 0 then continue
