@@ -349,10 +349,12 @@ endif
           
               dot_product = total(abs_FT_im*micro_noise_abs_model)
               isnotnull = where(abs_FT_im ne 0.0)
-              FT_im_filt = fltarr(2048,2048)
+              FT_im_filt = FT_im
               FT_im_filt[isnotnull] = (1-dot_product*micro_noise_abs_model[isnotnull]/abs_FT_im[isnotnull]) * FT_im[isnotnull]
+	      ;FT_im_filt = (1-dot_product*micro_noise_abs_model/abs_FT_im) * FT_im
               im_filt = real_part(fft(FT_im_filt,/inverse))
               microphonics_model = im-im_filt
+stop
         backbone->Log, "Microphonics noise filtering applied.",depth=2
               backbone->set_keyword, "HISTORY", "Microphonics noise filtering applied."
               
@@ -558,6 +560,60 @@ endif
   ; input safety to make sure no NaN's are in the image
   nan_check=where(finite(imout) eq 0)
 
+  
+  if nan_check[0] ne -1 then begin
+     backbone->set_keyword, "HISTORY", "NOT Destriped, failed in Subtract_background_2d - NaN found in mask"
+     logstr = 'Destripe failed in Subtract_background_2d - NaN found in output image - so no destripe performed'
+     backbone->set_keyword, "HISTORY", logstr,ext_num=0
+     message,/info, 'Destripe failed in Subtract_background_2d - NaN found in mask - so no destripe performed'
+     imout=image
+  endif
+
+
+
+
+
+  ; interpolate pixels having NaN to be the median of the row
+  ; this could be improved to fit a line!
+  nans=where(finite(medpart) eq 0)
+  if nans[0] ne -1 then begin          
+     for i=0, 2048-1 do begin
+      ind=where(finite(medpart[*,i]) eq 0)
+      if ind[0] eq -1 then continue   
+      medpart[ind,i]=median(medpart[*,i])
+     endfor 
+  endif        
+              
+
+  ;----- Generate 2D model to subtract from the image
+    ; Generate a model stripe image from that median, replicated for 
+    ; each of the 32 channels with appropriate flipping
+  model = rebin(medpart, 64,2048,32)
+  for i=0,15 do model[*,*,2*i+1] = reverse(model[*,*,2*i+1]) 
+  stripes = reform(transpose(model, [0,2,1]), 2048, 2048)    
+
+  ; replace NaN's by smoothed values - these are the lines that were masked out
+
+  ; the values that are masked out at the top and bottom - set to zero
+  stripes[*,0:4] = 0
+  stripes[*,2044:2047] = 0
+
+  ; now other values that have nans
+  nan_ind=where(finite(stripes) eq 0)
+  if nan_ind[0] ne -1 then begin
+     sm_im=smooth(stripes,5,/nan)
+     stripes[nan_ind]=sm_im[nan_ind]
+  endif
+    
+  ;---- At last, the actual subtraction!
+  imout = image - stripes
+        if keyword_set(chan_offset_correction) then imout-=chan_offset
+	if remove_microphonics ge 1 then imout-=microphonics_model
+  ; input safety to make sure no NaN's are in the image
+  nan_check=where(finite(imout) eq 0)
+
+               ; window, 23, retain=2
+               ; surface, (shift(abs(fft(imout)),1024,1024))[1004:1046, 1190:1210],TITLE = 'after' 
   
   if nan_check[0] ne -1 then begin
      backbone->set_keyword, "HISTORY", "NOT Destriped, failed in Subtract_background_2d - NaN found in mask"
