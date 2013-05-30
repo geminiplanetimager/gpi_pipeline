@@ -354,7 +354,7 @@ endif
 	      ;FT_im_filt = (1-dot_product*micro_noise_abs_model/abs_FT_im) * FT_im
               im_filt = real_part(fft(FT_im_filt,/inverse))
               microphonics_model = im-im_filt
-stop
+
         backbone->Log, "Microphonics noise filtering applied.",depth=2
               backbone->set_keyword, "HISTORY", "Microphonics noise filtering applied."
               
