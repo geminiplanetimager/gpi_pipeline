@@ -50,7 +50,7 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.0
-; PIPELINE TYPE: ALL-SPEC
+; PIPELINE TYPE:  ALL HIDDEN
 ; PIPELINE NEWTYPE: SpectralScience, Calibration, PolarimetricScience
 ;
 ; HISTORY:
@@ -92,7 +92,8 @@ if ~strcmp(strtrim(backbone->get_keyword('OBSTYPE'), 2),'DARK') and (size_im[0] 
            backbone->Log, "Skipping noise and flux analysis. IFSFILT keyword not found."
            skipping = 1
         endif
-               
+        
+        mask = intarr(nx,ny)
         mode = gpi_simplify_keyword_value(backbone->get_keyword('DISPERSR', count=c))
         case strupcase(strc(mode)) of
           'PRISM':  begin
@@ -123,7 +124,6 @@ if ~strcmp(strtrim(backbone->get_keyword('OBSTYPE'), 2),'DARK') and (size_im[0] 
                 xCoord_mask = xx[where(finite(xx) AND finite(yy) AND ~((xx LE 4.0) OR (xx GE 2043.0)) AND ~((yy LE 5.0) OR (yy GE 2042.0)) )]
                 yCoord_mask = yy[where(finite(xx) AND finite(yy) AND ~((xx LE 4.0) OR (xx GE 2043.0)) AND ~((yy LE 5.0) OR (yy GE 2042.0)) )]
                 
-                mask = intarr(nx,ny)
                 mask[yCoord_mask-1, xCoord_mask] = 1
                 mask[yCoord_mask, xCoord_mask] = 1
                 mask[yCoord_mask+1, xCoord_mask] = 1
