@@ -45,7 +45,7 @@
 ; PIPELINE ARGUMENT: Name="Width" Type="int" Range="[3,2048]" Default="101" Desc='If Stddev = 2, Width of the moving rectangle. It has to be odd.'
 ; PIPELINE ARGUMENT: Name="PixelsSkipped" Type="int" Range="[0,2047]" Default="100" Desc='If Stddev = 2, Pixels skipped between two points'
 ; PIPELINE ARGUMENT: Name="MicroNoise" Type="int" Range="[0,1]" Default="1" Desc='Trigger the microphonics noise analysis'
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="string" Default="/Users/jruffio/gpi/Reduced/calibrations/S20130430S0003-microModel.fits" Desc="Filename of the desired microphonics model file to be read"
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type="string" Default="AUTOMATIC" Desc="Filename of the desired microphonics model file to be read"
 ; PIPELINE ARGUMENT: Name="FourierTransf" Type="int" Range="[0,1,2]" Default="1" Desc='1: frequency 0 on the bottom left. 2: frequencies 0 will be centered on the image.'
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
@@ -58,7 +58,7 @@
 ;-
 function noise_flux_analysis, DataSet, Modules, Backbone
 primitive_version= '$Id: noise_flux_analysis.pro ?? 2013-05-29 ?? jruffio $' ; get version from subversion to store in header history
-calfiletype = 'Micro Model'
+calfiletype = 'micro'
 @__start_primitive
 
   ;get the 2D detector image

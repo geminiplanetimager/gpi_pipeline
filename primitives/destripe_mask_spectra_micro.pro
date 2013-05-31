@@ -79,7 +79,7 @@
 ; PIPELINE ARGUMENT: Name="display" Type="string" Range="[yes|no]" Default="no" Desc='Show diagnostic before and after plots when running?'
 ; PIPELINE ARGUMENT: Name="remove_microphonics" Type="int" Range="[0,2]" Default="0" Desc='Remove microphonics noise based on a precomputed fixed model.0: not applied. 1: applied. 2: the algoritm is applied only if the measured noise is greater than micro_treshold'
 ; PIPELINE ARGUMENT: Name="method_microphonics" Type="int" Range="[1,3]" Default="0" Desc='Method applied for microphonics 1: model projection. 2: all to zero 3: gaussian fit'
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="string" Default="/Users/jruffio/gpi/Reduced/calibrations/S20130430S0003-microModel.fits" Desc="Filename of the desired microphonics model file to be read"
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type="string" Default="AUTOMATIC" Desc="Filename of the desired microphonics model file to be read"
 ; PIPELINE ARGUMENT: Name="Plot_micro_peaks" Type="string" Range="[yes|no]" Default="no" Desc="Plot in 3d the peaks corresponding to the microphonics"
 ; PIPELINE ARGUMENT: Name="save_microphonics" Type="string" Range="[yes|no]" Default="no" Desc='If remove_microphonics = 1 or (auto and micro_treshold overpassed), save the removed microphonics'
 ; PIPELINE ARGUMENT: Name="micro_treshold" Type="float" Range="[0.0,1.0]" Default="0.01" Desc='If remove_microphonics = 2, set the treshold. This value is sum(abs(fft(image))*abs(fft(noise_model)))/sqrt(sum(image^2))'
@@ -102,7 +102,7 @@
 ;-
 function destripe_mask_spectra_micro, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
-calfiletype = 'Micro Model'
+calfiletype = 'micro'
 @__start_primitive
 
 ; check to see if the frame is a flat or ARC
