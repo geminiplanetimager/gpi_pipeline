@@ -615,7 +615,7 @@ FUNCTION gpiPipelineBackbone::Reduce
             self->Log, "ERROR: The following file was aborted during the exposure and should be removed from the dataset:"+strc(filename)
             return, NOT_OK
         endif
-        stop,abort_flag
+
         if load_status eq NOT_OK then begin
             self->Log, "ERROR: Unable to load file "+strc(indexFrame)
             return, NOT_OK
