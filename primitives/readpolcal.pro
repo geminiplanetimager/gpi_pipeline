@@ -89,11 +89,11 @@ calfiletype = 'polcal'
 ;                shifty=0.
 ;        endelse
 ;       polspot_coords[0,*,*,*,*]+=shiftx
-;       polspot_coords[1,*,*,*,*]+=shifty     
+;       polspot_coords[1,*,*,*,*]+=shifty          
+;       backbone->set_keyword, "HISTORY", functionname+"Manual wavecal shift dx: "+strc(shiftx,format="(f7.2)"),ext_num=0
+;       backbone->set_keyword, "HISTORY", functionname+"Manual wavecal shift dy: "+strc(shifty,format="(f7.2)"),ext_num=0   
 ;//////////////////////// 
-        
-       backbone->set_keyword, "HISTORY", functionname+"Manual wavecal shift dx: "+strc(shiftx,format="(f7.2)"),ext_num=0
-       backbone->set_keyword, "HISTORY", functionname+"Manual wavecal shift dy: "+strc(shifty,format="(f7.2)"),ext_num=0
+
        
         polcal={spotpos:polspot_spotpos, coords:polspot_coords, pixvals:polspot_pixvals, filename:c_File}
     endif
