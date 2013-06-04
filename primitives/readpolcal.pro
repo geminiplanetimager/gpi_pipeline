@@ -29,6 +29,7 @@
 ;   2013-01-28 MMB: Adapted to pol extraction (based on readwavcal.pro)
 ;   2013-02-07 MP: Updated logging and docs a little bit.
 ;                  Added efficiently not reloading the same file multiple times.
+;   2013-06-04 JBR: shifts for flexure is now commented. Use the primitive update_shifts_for_flexure.pro.
 ;-
 
 function readpolcal, DataSet, Modules, Backbone

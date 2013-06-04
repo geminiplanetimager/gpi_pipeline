@@ -46,6 +46,7 @@
 ;   2013-03-25 JM: Implemented lookup table version.
 ;   2013-04-22 PI: A few bug fixes to lookup table code.
 ;   2013-04-25 MP: Documentation improvements.
+;   2013-06-04 JBR: Now compatible with polarimetry.
 ;-
 
 
