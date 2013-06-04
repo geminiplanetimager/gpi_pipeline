@@ -76,16 +76,21 @@ calfiletype = 'polcal'
         ; manual shifts of the wavecal for correcting flexure effects
     directory = gpi_get_directory('calibrations_DIR') 
 
-  if file_test(directory+path_sep()+"shifts.fits") then begin
-                shifts=readfits(directory+path_sep()+"shifts.fits")
-                shiftx=float(shifts[0])
-                shifty=float(shifts[1])
-        endif else begin
-                shiftx=0.
-                shifty=0.
-        endelse
-     polspot_coords[0,*,*,*,*]+=shiftx
-     polspot_coords[1,*,*,*,*]+=shifty        
+;////////////////////////
+;13-06-04 jruffio: The following is now in the update_shifts_for_flexure primitive for consistency with prism mode
+;////////////////////////
+;        if file_test(directory+path_sep()+"shifts.fits") then begin
+;                shifts=readfits(directory+path_sep()+"shifts.fits")
+;                shiftx=float(shifts[0])
+;                shifty=float(shifts[1])
+;        endif else begin
+;                shiftx=0.
+;                shifty=0.
+;        endelse
+;       polspot_coords[0,*,*,*,*]+=shiftx
+;       polspot_coords[1,*,*,*,*]+=shifty     
+;//////////////////////// 
+        
        backbone->set_keyword, "HISTORY", functionname+"Manual wavecal shift dx: "+strc(shiftx,format="(f7.2)"),ext_num=0
        backbone->set_keyword, "HISTORY", functionname+"Manual wavecal shift dy: "+strc(shifty,format="(f7.2)"),ext_num=0
        

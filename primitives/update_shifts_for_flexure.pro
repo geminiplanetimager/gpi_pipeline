@@ -37,8 +37,8 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 1.99
-; PIPELINE TYPE: ALL-SPEC
-; PIPELINE NEWTYPE: SpectralScience, Calibration
+; PIPELINE TYPE: ALL
+; PIPELINE NEWTYPE: SpectralScience, Calibration, PolarimetricScience
 ;
 ; HISTORY:
 ;   2013-03-08 MP: Started based on extractcube, initial attempts at automated
@@ -147,12 +147,36 @@ primitive_version= '$Id: extractcube.pro 1175 2013-01-17 06:48:58Z mperrin $' ; 
 
 
   det=*(dataset.currframe[0])   ;get the 2D detector image
-  nlens=(size(wavcal))[1]       ;pixel sidelength of final datacube (spatial dimensions) 
   dim=(size(det))[1]            ;detector sidelength in pixels
+  
+  mode = gpi_simplify_keyword_value(backbone->get_keyword('DISPERSR', count=c))
+  case strupcase(strc(mode)) of
+    'PRISM':  begin
+      nlens=(size(wavcal))[1]       ;pixel sidelength of final datacube (spatial dimensions) 
+      
+    
+      ;error handle if readwavcal not used before
+      if (nlens eq 0) || (dim eq 0)  then begin
+         return, error('FAILURE ('+functionName+'): Failed to load wavelength calibration data prior to calling this primitive.') 
+      endif
+    end
+    'WOLLASTON':    begin
+        polspot_coords = polcal.coords
+        polspot_pixvals = polcal.pixvals
+        
+        if ((size(polspot_coords))[0] eq 0) || (dim eq 0)  then begin
+          return, error('FAILURE ('+functionName+'): Failed to load polarimetry calibration data prior to calling this primitive.') 
+        endif
 
-  ;error handle if readwavcal not used before
-  if (nlens eq 0) || (dim eq 0)  then $
-     return, error('FAILURE ('+functionName+'): Failed to load wavelength calibration data prior to calling this primitive.') 
+        nlens=(size(polspot_coords))[3] 
+    end
+    else: begin
+           backbone->set_keyword, "HISTORY", "NO SHIFTS FOR FLEXURE APPLIED, Don't recognize current mode (PRISM|WOLLASTON)"
+                   message,/info, "NO SHIFTS FOR FLEXURE APPLIED, Don't recognize current mode (PRISM|WOLLASTON)"
+                   return,ok
+    end
+  endcase
+  
 
 
   if tag_exist( Modules[thisModuleIndex], "display") then display=Modules[thisModuleIndex].display else display='yes'
@@ -211,7 +235,6 @@ primitive_version= '$Id: extractcube.pro 1175 2013-01-17 06:48:58Z mperrin $' ; 
 		shiftpolyy = POLY_FIT( sortedelev, sortedyshift, 2)
 		shiftx=shiftpolyx[0]+shiftpolyx[1]*my_elevation+(my_elevation^2)*shiftpolyx[2]
 		shifty=shiftpolyy[0]+shiftpolyy[1]*my_elevation+(my_elevation^2)*shiftpolyy[2]
-
 
 		if strlowcase(display) eq 'yes' then begin
 			select_window, 0
@@ -283,6 +306,12 @@ primitive_version= '$Id: extractcube.pro 1175 2013-01-17 06:48:58Z mperrin $' ; 
     end
     'auto': begin
         ;------------ Experimental code for automatic flexure measurement ----------
+        
+        if ~strcmp(mode,'PRISM') then begin
+          backbone->set_keyword, "HISTORY", "NO SHIFTS FOR FLEXURE APPLIED, Method auto is not implemented for another mode than PRISM"
+                   message,/info, "NO SHIFTS FOR FLEXURE APPLIED, Method auto is not implemented for another mode than PRISM"
+                   return,ok
+        endif
                 
         ;define the common wavelength vector with the IFSFILT keyword:
         filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
@@ -383,17 +412,25 @@ primitive_version= '$Id: extractcube.pro 1175 2013-01-17 06:48:58Z mperrin $' ; 
     end
     endcase
 
-
-    ;  Now we actually apply the shifts to the wavelength solution
-    wavcal[*,*,0]+=shifty
-    wavcal[*,*,1]+=shiftx       
+  case strupcase(strc(mode)) of
+    'PRISM':  begin
+      ;  Now we actually apply the shifts to the wavelength solution
+      wavcal[*,*,0]+=shifty
+      wavcal[*,*,1]+=shiftx  
+    end
+    'WOLLASTON':    begin
+       ;  Now we actually apply the shifts to the wavelength solution
+       polspot_coords[0,*,*,*,*]+=shiftx
+       polspot_coords[1,*,*,*,*]+=shifty
+       polcal.coords = polspot_coords
+    end
+  endcase
+     
     logmsg = "Applied shifts of "+strc(shiftx)+", "+strc(shifty)+" based on method="+method
     backbone->Log, logmsg
     backbone->set_keyword, "HISTORY", functionname+": "+logmsg
     backbone->set_keyword, "HISTORY", functionname+": wavecal shift dx: "+strc(shiftx,format="(f7.2)")
     backbone->set_keyword, "HISTORY", functionname+": wavecal shift dy: "+strc(shifty,format="(f7.2)")
-
-
 
 
     ; special handle the gpitv display here - display the 2D image with wavecal
