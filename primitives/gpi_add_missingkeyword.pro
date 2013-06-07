@@ -6,7 +6,7 @@
 ; OUTPUTS:
 
 ; PIPELINE ARGUMENT: Name="keyword" Type="string"  Default="" Desc="Enter keyword name to add."
-; PIPELINE ARGUMENT: Name="value" Type="string"  Default="" Desc="Enter value of the keyword to add."
+; PIPELINE ARGUMENT: Name="value" Default="" Desc="Enter value of the keyword to add."
 ; PIPELINE COMMENT: Add any missing keyword. (use this function several times in the DRF if you need to add more than one keyword)
 ; PIPELINE ORDER: 1.17
 ; PIPELINE TYPE: ALL HIDDEN
