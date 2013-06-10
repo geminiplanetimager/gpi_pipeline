@@ -30,14 +30,25 @@
 ;
 ;
 ; OPTIONAL/EXPERIMENTAL: 
-;  Microphonics removal is also available here. See the documentation for
-;  Destripe for Darks for more details. The
+; Channel Bias offset Correction: In order to correct for the small
+; bias offsets between the adjacent detector channels, a constant is
+; determined by taking the median value of the unmasked region of each
+; channel. This constant is then subtracted BEFORE any destriping or
+; microphonics removal is performed. Note that a constant may not
+; always represent the bias, linear and non-linear trends have been
+; observed. For this reason the chan_offset_correction keyword is not
+; enbabled (hence set to 0) by default.
+;
+;  A preliminary Microphonics removal is also available here that is
+;  identical to what is used in the Destripe for Darks primitive, see
+;  its documentation for more details. An upgraded version is in the
+;  testing stages and will be fully integrated into the pipeline shortly.
 ;
 ;
 ;
 ; PIPELINE ARGUMENT: Name="method" Type="string" Range="[threshhold|calfile]" Default="calfile" Desc='Find background based on image value threshhold cut, or calibration file spectra/spot locations?'
 ; PIPELINE ARGUMENT: Name="abort_fraction" Type="float" Range="[0.0,1.0]" Default="0.9" Desc="Necessary fraction of pixels in mask to continue - set at 0.9 to ensure quicklook tool is robust"
-; PIPELINE ARGUMENT: Name="chan_offset_correction" Type="int" Range="[0,1]" Default="0" Desc="Tries to correct for channel bias offsets - useful when no dark is available"
+; PIPELINE ARGUMENT: Name="chan_offset_correction" Type="int" Range="[0,1]" Default="0" Desc="Compensates for channel bias offsets"
 ; PIPELINE ARGUMENT: Name="fraction" Type="float" Range="[0.0,1.0]" Default="0.7" Desc="What fraction of the total pixels in a row should be masked"
 ; PIPELINE ARGUMENT: Name="high_limit" Type="float" Range="[0,Inf]" Default="1" Desc="Pixel value where exceeding values are assigned a larger mask"
 ; PIPELINE ARGUMENT: Name="Save_stripes" Type="int" Range="[0,1]" Default="0" Desc="Save the striping noise image subtracted from frame?"
