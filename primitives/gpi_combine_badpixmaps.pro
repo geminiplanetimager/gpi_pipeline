@@ -86,8 +86,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 		data = gpi_load_fits(c_File)
 		if n_elements(*data.image) ne 2048l*2048 then begin
-		   return, error ('ERROR ('+strtrim(functionname)+'): calibration file  ' + 
-						  strtrim(string(c_file),2) + ' does not have the correct size or dimensions.' )
+		   return, error ('ERROR ('+strtrim(functionname)+'): calibration file  ' + strtrim(string(c_file),2) + ' does not have the correct size or dimensions.' )
 		endif
 		bpmasks[*,*,i] = *data.image
 
