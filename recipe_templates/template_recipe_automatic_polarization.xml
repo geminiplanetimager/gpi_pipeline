@@ -8,6 +8,7 @@
 <module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
 <module name="Update Spot Shifts for Flexure" method="None" manual_dx="0" manual_dy="0" Save="0" gpitv="3" display="no" />
 <module name="Destripe science frame micro" method="calfile" abort_fraction="0.9" fraction="0.7" high_limit="1000" chan_offset_correction="0" Save_stripes="0" Save="0" display="no" gpitv="0" remove_microphonics="0"  method_microphonics="1" CalibrationFile="AUTOMATIC" Plot_micro_peaks="no" save_microphonics="no" micro_treshold="0.01"/>
+<module name="Destripe science frame" method="calfile" abort_fraction="0.9" fraction="0.7" high_limit="1000" chan_offset_correction="0" Save_stripes="0" Save="0" gpitv="1" display='no' />
 <module name="Interpolate bad pixels in 2D frame" method="all8"  Save="0" gpitv="2" CalibrationFile="AUTOMATIC" before_and_after="0"/> 
 <module name="Assemble Polarization Cube" Save="1" gpitv="5" />
 </DRF>
