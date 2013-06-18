@@ -20,7 +20,7 @@
 ;   Fourier frequencies of interest, and transformed back to yield a model for
 ;   the microphonics striping that can be subtracted from the data. Empirically
 ;   this correction works quite well. Set the "remove_microphonics" option to
-;   enable this, and set "remove_microphonics_display" to show on screen a
+;   enable this, and set "display" to show on screen a
 ;   diagnostic plot that lets you see the stripe & microphonics removal in
 ;   action.
 ;
@@ -48,6 +48,7 @@
 ;   2013-04-25 MP: Improved documentation, display for microphonics removal.
 ;-
 function destripe_for_darks, DataSet, Modules, Backbone
+compile_opt defint32, strictarr, logical_predicate
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
