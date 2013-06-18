@@ -26,12 +26,12 @@
 ;	2012-08-08		The large number of improvements in the last few months
 ;					clearly justify a bump to at least 0.8.1...
 ;	2013-02-11		Release 0.9.0 for GPI Acceptance Testing
-;
+;	2013-06-17      Release 0.9.1 at end of GPI Acceptance Testing
 ;-
 
 function gpi_pipeline_version, svn=svn
 
-version = '0.9.0'
+version = '0.9.1'
 
 if keyword_set(svn) then begin
 	; append svn version ID also
