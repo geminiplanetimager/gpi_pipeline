@@ -7,6 +7,7 @@
 ;
 ; HISTORY:
 ; 	Began 2012-01-31 01:08:13 by Marshall Perrin 
+; 	2013-04-26 Minor formatting tweak to match TLC outputs
 ;-
 
 
@@ -36,7 +37,12 @@ PRO gpi_set_keyword, keyword, value, pri_header, ext_header, comment=comment, ex
 	if n_elements(silent) eq 0 and ~(keyword_set(verbose)) then silent=1
 	if keyword_set(verbose) then silent=0
 
-	if ~(keyword_set(comment)) then comment='' 
+	if ~(keyword_set(comment)) then comment=' '
+	; for aesthetics always enforce a space character at the start of the comment:
+	;   (this keeps DRP-produced keywords consistent looking with how TLC writes
+	;   keywords.)
+	if strmid(comment,0,1) ne ' ' then comment =' '+comment
+
 	wmatch = where( strmatch( (*keyword_info).keyword, keyword, /fold), matchct)
 
 

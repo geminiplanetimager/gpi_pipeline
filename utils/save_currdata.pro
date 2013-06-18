@@ -14,6 +14,8 @@
 ;          SavePHU=		 Primary header for writing along with the SaveData data.
 ;
 ; OUTPUT : Saves the dataset to disk
+; 	output_filename=	optional return keyword argument giving the filename
+; 						used to save the data, including path
 ;
 ; STATUS : 
 ;

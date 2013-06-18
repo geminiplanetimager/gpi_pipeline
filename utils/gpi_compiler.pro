@@ -17,16 +17,30 @@
 ;;				  Output directory now has pipeline version number in it.
 ;; 2012-12-10 MP: Also, always compile gpitv. Look up gpitv path automatically,
 ;;				  too.
-pro gpi_compiler, compildir, drpdirectory=drpdirectory, gpitvdir=gpitvdir
+;; 2013-06-17 MP: Compress output into convenient zip automatically.
+;;				  More specific output options per platform.
+pro gpi_compiler, compile_dir, drpdirectory=drpdirectory, gpitvdir=gpitvdir
 
 	compile_opt defint32, strictarr, logical_predicate
 
 	if N_params() EQ 0 then begin ;Prompt for directory of produced executables?
-  		compildir = ' ' 
-        read,'Enter name of the directory where to create executables: ',compildir    
+  		compile_dir = ' ' 
+        read,'Enter name of the directory where to create executables: ',compile_dir    
   	endif
+
+
+;======== Ensure the primitives config file is up to date for inclusion in the distribution files
+make_primitives_config
+
+
+;======== Compile all routines found inside the GPI_DRP_DIR =======
+;  This will implicitly end up compiling a bunch of stuff inside the
+;  external dependencies directory as needed. 
+;
+	; first find all the .pro files inside the gpi_drp_dir
 	if keyword_set(drpdirectory) then directory=drpdirectory else $
 	directory=gpi_get_directory('GPI_DRP_DIR')
+
 
 	list = FILE_SEARCH(directory,'[A-Za-z]*.pro',count=cc, FULLY_QUALIFY_PATH =0 )
 
@@ -39,23 +53,19 @@ pro gpi_compiler, compildir, drpdirectory=drpdirectory, gpitvdir=gpitvdir
 
 
 
-	;if keyword_set(gpitv) then begin
-		if ~keyword_set(gpitvdir) then begin
-			which, gpitv__define, output=gpitvpath,/quiet
-			gpitvdir = file_dirname(gpitvpath)
-		endif
-		gpitvroutine=FILE_SEARCH(gpitvdir,'[A-Za-z]*.pro',count=cg) 
-		if (cg eq 0) then begin
-			print,"You need to properly define the DRP directory (and GPItv dir). Use the drpdirectory and gpitvdir keywords or set the GPI_DRP_DIR environment variable. "
-			return
-		endif else begin
-			print, "Found routines for gpitv"
-			totlist = [list, gpitvroutine]
-		endelse
-	;endif else begin
-		;print," *****  GPITV will NOT be compiled."
-		;totlist=list
-	;endelse
+	; Also include gpitv, which lives in its own directory
+	if ~keyword_set(gpitvdir) then begin
+		which, gpitv__define, output=gpitvpath,/quiet
+		gpitvdir = file_dirname(gpitvpath)
+	endif
+	gpitvroutine=FILE_SEARCH(gpitvdir,'[A-Za-z]*.pro',count=cg) 
+	if (cg eq 0) then begin
+		print,"You need to properly define the DRP directory (and GPItv dir). Use the drpdirectory and gpitvdir keywords or set the GPI_DRP_DIR environment variable. "
+		return
+	endif else begin
+		print, "Found routines for gpitv"
+		totlist = [list, gpitvroutine]
+	endelse
 
 
 	print, totlist
@@ -63,7 +73,11 @@ pro gpi_compiler, compildir, drpdirectory=drpdirectory, gpitvdir=gpitvdir
 	nelem=n_elements(totlist)
 
 
-   ; Establish error handler. When errors occur, the index of the 
+   ; Establish error handler.
+   ; Just print out informative messages for compilation failures, don't abort
+   ; the whole thing.
+   ;
+   ; When errors occur, the index of the 
    ; error is returned in the variable Error_status: 
    CATCH, Error_status 
  ;This statement begins the error handler: 
@@ -99,68 +113,68 @@ CATCH,/CANCEL
 
 
 
-;==== by the time we've gotten here, we've compiled everything successfully
+;======== Create executables ========
+; by the time we've gotten here, we've compiled everything successfully
 ; Now make the executables. 
 ;
-compildir += path_sep()
-if file_test(compildir,/dir) eq 0 then spawn, 'mkdir ' + compildir
+compile_dir += path_sep()
+if file_test(compile_dir,/dir) eq 0 then spawn, 'mkdir ' + compile_dir
 
 
-launcher_names = ['launch_drp', 'gpipiperun', 'automaticreducer', 'gpitv']
+launcher_names = ['gpi_launch_guis', 'gpi_launch_pipeline',  'gpitv']
 
 for i=0,n_elements(launcher_names)-1 do begin
 	message,/info, "Now creating " + launcher_names[i]+".sav"
-	SAVE, /ROUTINES, FILENAME = compildir+launcher_names[i]+'.sav' 
+	SAVE, /ROUTINES, FILENAME = compile_dir+launcher_names[i]+'.sav' 
 	; create the executables
-	MAKE_RT, launcher_names[i], compildir, savefile=compildir+launcher_names[i]+'.sav', /vm, /MACINT64, /LIN32, /WIN32,/overwrite
+	
+	case !version.os of
+	'darwin': begin
+		platform = 'macosx'
+		macint64 = 1
+	end
+	'linux': begin
+		platform = 'linux'
+		lin64=1
+	end
+	'Win32': begin
+		platform ='win32'
+		win32=1
+	end
+	endcase
+
+	
+	MAKE_RT, launcher_names[i], compile_dir, savefile=compile_dir+launcher_names[i]+'.sav', /vm,  $
+		MACINT64=macint64, LIN64=lin64, WIN32=win32, /overwrite
 
 
 endfor
 
-;SAVE, /ROUTINES, FILENAME = compildir+'launch_drp.sav' 
-;; create the executables
-;MAKE_RT, 'launch_drp', compildir, savefile=compildir+'launch_drp.sav', /vm, /MACINT64, /LIN32, /WIN32,/overwrite
-;
-;SAVE, /ROUTINES, FILENAME = compildir+'gpipiperun.sav' 
-;MAKE_RT, 'gpipiperun', compildir, savefile=compildir+'gpipiperun.sav', /vm, /MACINT64, /LIN32, /WIN32,/overwrite
-;
-;SAVE, /ROUTINES, FILENAME = compildir+'automaticreducer.sav' 
-;MAKE_RT, 'automaticreducer', compildir, savefile=compildir+'automaticreducer.sav', /vm, /MACINT64, /LIN32, /WIN32,/overwrite
-;
-;SAVE, /ROUTINES, FILENAME = compildir+'gpitv.sav' 
-;MAKE_RT, 'gpitv', compildir, savefile=compildir+'gpitv.sav', /vm, /MACINT64, /LIN32, /WIN32,/overwrite
 
-;==============
+;======== Prepare Output Directory Structure =====
 ; Now, clean up the separate executables into one nicely organized set
 ; including various additional directories as needed by the DRP
 
 message,/info, "Now cleaning up and organizing the output files..."
 
 
-output_dir = compildir+'pipeline-'+gpi_pipeline_version()
+output_dir = compile_dir+'gpi_pipeline-'+gpi_pipeline_version()
 
 file_mkdir, output_dir
+file_mkdir, output_dir+path_sep()+'executables'
 ;;put all files in the same dir
-file_copy, compildir+'launch_drp'+path_sep()+'*', output_dir+path_sep()+'', /recursive, /overwrite
-file_copy, compildir+'gpipiperun'+path_sep()+'*', output_dir+path_sep()+'', /recursive, /overwrite
-file_copy, compildir+'gpitv'+path_sep()+'*', output_dir+path_sep()+'', /recursive, /overwrite
-file_copy, compildir+'automaticreducer'+path_sep()+'*', output_dir+path_sep()+'', /recursive, /overwrite
+for i=0,n_elements(launcher_names)-1 do begin
+	message,/info, "Now cleaning up from compiling " + launcher_names[i]
+	file_copy, compile_dir+ launcher_names[i]  +path_sep()+'*', output_dir+path_sep()+'executables', /recursive, /overwrite
+	file_delete, compile_dir+launcher_names[i], /recursive
+	file_delete, compile_dir+launcher_names[i]+'.sav'
+endfor
 
-file_delete, compildir+'launch_drp', /recursive
-file_delete, compildir+'gpipiperun', /recursive
-file_delete, compildir+'gpitv', /recursive
-file_delete, compildir+'automaticreducer', /recursive
-file_delete, compildir+'launch_drp.sav'
-file_delete, compildir+'gpipiperun.sav'
-file_delete, compildir+'gpitv.sav'
-file_delete, compildir+'automaticreducer.sav'
-;;create directories structure for the DRP
 file_mkdir, output_dir+path_sep()+'log',$
-            output_dir+path_sep()+'dst',$
-            output_dir+path_sep()+'dst'+path_sep()+'pickles',$
             output_dir+path_sep()+'recipe_templates',$
             output_dir+path_sep()+'queue',$
             output_dir+path_sep()+'log',$
+            output_dir+path_sep()+'scripts',$
             output_dir+path_sep()+'config',$
             output_dir+path_sep()+'config'+path_sep()+'filters'
 ;;copy DRF templates, etc...            
@@ -169,17 +183,68 @@ file_copy, directory+path_sep()+'config'+path_sep()+'*.xml', output_dir+path_sep
 file_copy, directory+path_sep()+'config'+path_sep()+'*.txt', output_dir+path_sep()+'config'+path_sep(),/overwrite           
 file_copy, directory+path_sep()+'config'+path_sep()+'*.dat', output_dir+path_sep()+'config'+path_sep(),/overwrite              
 file_copy, directory+path_sep()+'config'+path_sep()+'filters'+path_sep()+'*.fits', output_dir+path_sep()+'config'+path_sep()+'filters'+path_sep(),/overwrite
-if file_test(directory+path_sep()+'dst'+path_sep()+'pickles',/dir) eq 1 then $ 
-file_copy, directory+path_sep()+'dst'+path_sep()+'pickles'+path_sep()+'*.*t', output_dir+path_sep()+'dst'+path_sep()+'pickles'+path_sep(),/overwrite else $
- print, "**** WARNING Pickles library from the DST is missing..."
+
+
+if !version.os_family eq 'unix' then begin
+
+	; Special case: copy the 'gpi-pipeline-compiled version of the startup script,
+	; but drop the '-compiled' extension while doing so
+	file_copy, directory+path_sep()+'scripts'+path_sep()+'gpi-pipeline-compiled', output_dir+path_sep()+'scripts'+path_sep()+"gpi-pipeline",/overwrite   
+endif
+
 file_copy, directory+path_sep()+'gpi.bmp',output_dir+path_sep(),/overwrite
 
-;;remove non-necessary txt file
-Result = FILE_SEARCH(output_dir+path_sep()+'*script_source.txt') 
-file_delete, Result
+;;remove non-necessary txt files 
+Result = FILE_SEARCH(output_dir+path_sep()+'*script_source.txt', count=ct) 
+if ct gt 0 then file_delete, Result
 
+message,/info, ""
 message,/info, 'Compilation done.'   
 message,/info, "   Output is in "+output_dir
+message,/info, ""
+
+
+;======== Package output into zip files =======================================================
+
+
+if !version.os_family eq 'unix' then begin
+
+	message,/info,'Creating ZIP file archive'
+	cd, compile_dir, current=old_dir
+
+	; create a version with the included runtime
+	zipfilename =  'gpi_pipeline-'+gpi_pipeline_version()+'_runtime_'+platform+'.zip'
+	zipcmd=  'zip -r '+zipfilename+' gpi_pipeline-'+gpi_pipeline_version()
+	message,/info, zipcmd
+	spawn, zipcmd
+
+	; now create a version that is OS independent
+	; just leave out the runtime.
+	idl_rt_dir = 'idl'+ strmid(!version.release, 0,1) +  strmid(!version.release, 2,1)
+	zipfilename_no_idl =  'gpi_pipeline-'+gpi_pipeline_version()+'.zip'
+	zipcmd = 'zip -r '+zipfilename_no_idl+' gpi_pipeline-'+gpi_pipeline_version()+' -x "*/'+idl_rt_dir+'/*" '
+	message,/info, zipcmd
+	spawn, zipcmd
+
+
+
+	cd, old_dir
+
+	message,/info, 'The ZIP files ready for distribution are:'
+	message,/info, "      "+output_dir+path_sep()+zipfilename
+	message,/info, "      "+output_dir+path_sep()+zipfilename_no_idl
+
+endif else begin
+	message,/info, 'You are running on Windows, therefore you need'
+	message,/info, 'to zip up the output directories by yourself.'
+	message,/info, ''
+	message,/info, '(And if you know how, please modify gpi_compiler to call zip automatically on Windows...)'
+
+endelse
+
+
+
+
 
 
 

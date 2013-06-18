@@ -6,14 +6,15 @@
 ;    extract  Pickles spectra data file
 ;
 ; HISTORY:
-;   2007/12 J�r�me Maire
+;   2007/12 Jerome Maire
+;   2013-06-17 MP minor typo bugfix
 ;-
 function ExtractSpectra2,  spect, lambda, lamb=lamb
 
 ;common DST_INPUT
 widthL=(lambda(1)-lambda(0))
 
-fileSpectra=gpi_get_directory('DST')++path_sep()+'pickles'+path_sep()+'uk'+spect+'.dat'
+fileSpectra=gpi_get_directory('DST')+path_sep()+'pickles'+path_sep()+'uk'+spect+'.dat'
 Spectra = READ_ASCII(fileSpectra, DATA_START=10) ;[lambda(A) f(lambda)/f(0.5556um)]   lambda sampling: 5A
 
 Spectra.field1(1,*)=Spectra.field1(0,*)*Spectra.field1(1,*) ;flambda=�f

@@ -20,6 +20,8 @@ end
 ;-------------------------------------------------------------------
 pro setenvir::event, ev
 
+compile_opt defint32, strictarr, logical_predicate
+
 ;common filestateF
 
 widget_control,ev.id,get_uvalue=uval
@@ -159,6 +161,8 @@ function setenvir::act
 end
 ;--------------------------
 function setenvir::init
+
+compile_opt defint32, strictarr, logical_predicate
 
 self.base = widget_base(title='Environment variables', /column)
 base=self.base

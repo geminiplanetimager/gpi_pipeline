@@ -157,7 +157,7 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 			val_obsolete = gpi_get_keyword(pri_header, ext_header, obsolete_keywords[i], count=count_obs, comment=comment,/silent)
 			if count_obs eq 0 then begin
 				val_obsolete = default_values[i]
-				comment = 'KEYWORD WAS MISSING - Default value'
+				comment = ' KEYWORD WAS MISSING - Default value'
 			endif
 			;if count_obs gt 0 then begin 
 				gpi_set_keyword, approved_keywords[i], val_obsolete, pri_header, ext_header, comment=comment,/silent
@@ -317,11 +317,11 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 	if count eq 0 then begin
 		val_port = gpi_get_keyword(pri_header, ext_header, 'ISS_PORT', count=count,/silent)
 		newport=0
-		if count eq 0 then newport=6
+		if count eq 0 then newport=1
 		if strmatch(val_port,'*bottom*') then newport=1
 		if strmatch(val_port,'*side*') then newport=2
 		if strmatch(val_port,'*perfect*') then newport=6
-		if newport ne val_port then gpi_set_keyword, 'INPORT', newport, pri_header, ext_header, comment='Which ISS instrument port?', /silent
+		if newport ne val_port then gpi_set_keyword, 'INPORT', newport, pri_header, ext_header, comment=' Which ISS instrument port?', /silent
 		sxdelpar, pri_header, 'ISS_PORT'
 	endif 
 
@@ -330,8 +330,8 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
     filnm=fxpar(pri_header,'DATAFILE',count=cdf)
     if cdf gt 1 then  sxdelpar, pri_header, "DATAFILE"
 
-	gpi_set_keyword_if_missing, pri_header, ext_header, "DATAFILE", file_basename(filename), "File name", before="END"
-	gpi_set_keyword_if_missing, pri_header, ext_header, "DATAPATH", file_dirname(filename), "Original path of DRP input", before="END"
+	gpi_set_keyword_if_missing, pri_header, ext_header, "DATAFILE", file_basename(filename), " Original DRP input file name", before="END"
+	gpi_set_keyword_if_missing, pri_header, ext_header, "DATAPATH", file_dirname(filename), " Original DRP input file path", before="END"
    
 
     ;---- is the frame from the entire detector or just a subarray?
