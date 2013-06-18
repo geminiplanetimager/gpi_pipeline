@@ -12,6 +12,7 @@ CD1_1	Extension
 CD1_2	Extension
 CD2_1	Extension
 CD2_2	Extension
+CD3_3	Extension
 CDELT1	Extension
 CDELT2	Extension
 CDELT3	Extension
