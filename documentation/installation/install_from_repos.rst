@@ -25,8 +25,8 @@ repository.
 Once you have that account, in a directory of your choosing (preferably
 somewhere inside your ``$IDL_PATH``) execute the commands:
 
-  >>> svn checkout https://repos.seti.org/gpi/pipeline --username <yourusername>
-  >>> svn checkout https://repos.seti.org/gpi/external --username <yourusername>
+  >>> svn checkout https://repos.seti.org/gpi/pipeline/trunk pipeline --username <yourusername>
+  >>> svn checkout https://repos.seti.org/gpi/external/trunk external --username <yourusername>
 
 
 The above commands will download the GPI data pipeline and associated tools, plus a

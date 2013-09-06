@@ -10,11 +10,11 @@ This web site is written using a documentation tool called `Sphinx <http://sphin
 Quickstart
 ------------
 
-Check out the documentation source code from the SVN server. It's in another
-subdirectory of the same repository that hosts the pipeline code:
+The documentation source code is available as part of the pipeline source code, in the documentation subdirectory inside the pipeline root. 
 
+If you want to check only this directory out from the repository for some reason, you may do this as follows:
 
-  >>> svn checkout https://repos.seti.org/gpi/documentation
+  >>> svn checkout https://repos.seti.org/gpi/pipeline/trunk/documentation
 
 The source files are plain text files using a simple text markup
 language called `ReStructuredText (RST)
