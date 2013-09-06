@@ -1,0 +1,12 @@
+# This file gives a list of the starting dates for various IFS runs (cooldowns). 
+# Calibration files are generally only useful for the same run, as
+# instrument or detector properties may change due to the thermal cycling. 
+# year	month	day 
+2011	07	01
+2011	08	01
+2011	10	20
+2011	11	25
+2012	02	01
+2012	04	25
+2012	10 	01
+2012	12	25

@@ -1,0 +1,14 @@
+; these are the zero point fluxes of vega for each gpi filter
+; the values were determined by integrating the spectrum:
+; ftp://ftp.stsci.edu/cdbs/current_calspec/alpha_lyr_stis_005.fits
+; information about this file can be found at the address below
+; http://www.stsci.edu/hst/observatory/cdbs/calspec.html
+; units of the following are are in erg/cm2/s/um
+; A user can read this file using the following command
+; readcol, vega_flux_file, vega_filt,filt_cen_wave,vega_flux,format='A,D,D',/silent
+; Filter	central_wavelength(um)	Flux
+Y  1.0473831   5.1508988e-06
+J  1.2344508   3.1868226e-06
+H  1.6473029   1.1382920e-06
+K1  2.0425281   5.3415049e-07
+K2  2.2515272   3.7012793e-07

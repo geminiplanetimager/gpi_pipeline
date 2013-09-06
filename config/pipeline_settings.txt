@@ -1,0 +1,29 @@
+# Very simple pipeline configuration file for GPI IFS data pipeline
+# This file format is just
+# SETTING_NAME<tab>SETTING_VALUE
+# settings are case insensitive
+# values are all returned as strings
+#
+# For a description of what each option means, 
+# See http://docs.planetimager.org/pipeline_dev/installation/config_settings.html
+
+strict_validation	1
+organize_raw_data_by_dates	1
+organize_reduced_data_by_dates  1
+organize_recipes_by_dates	1
+# back compatibility - retain 'organize_DRFs' for now. but it's deprecated:
+organize_DRFs_by_dates		1
+parsergui_auto_queue    0
+prevent_multiple_instances  0
+prompt_user_for_overwrite 1
+prompt_user_for_questionable_data	1
+prompt_user_for_outputdir_creation	0
+max_files_per_recipe	1000
+parsergui_max_files     1000
+gpitv_default_scale     log
+preprocess_fits_files	1
+enable_primitive_debug  1
+enable_parser_debug     1
+username_in_log_filename	1
+
+

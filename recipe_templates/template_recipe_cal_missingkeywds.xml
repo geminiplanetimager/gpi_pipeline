@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DRF ReductionType="Calibration" name='Add set of missing keywords' ShortName="missingkeywds">
+<dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
+   <fits filename=""/>
+</dataset>
+<module name="Add Gemini and GPI keywords." overwrite="1" keyword1="IFSFILT" value1="H" keyword2="OBSTYPE" value2="Xenon" keyword3="PRISM" value3="Spectral" keyword4="PRISM" value4="Spectral" Save="       1"  gpitv="4" />
+</DRF>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DRF ReductionType="PolarimetricScience" name="Polarization Quicklook" ShortName="online2">
+<dataset InputDir="E:\GPIdatabase\science" OutputDir="E:\GPIdatabase\">
+   <fits filename=""/>
+</dataset>
+<module name="Load Polarimetry Spot Calibration" CalibrationFile="AUTOMATIC" />
+<module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
+<module name="Interpolate bad pixels in 2D frame" method="all8"  Save="0" gpitv="0" CalibrationFile="AUTOMATIC" /> 
+<module name="Assemble Polarization Cube" Save="0" Rotate="0" gpitv="5"/>
+<module name="Accumulate Images" Method="InMemory" />
+<module name="Combine Polarization Sequence" Save="1" gpitv="6" />
+</DRF>
