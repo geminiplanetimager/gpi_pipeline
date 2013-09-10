@@ -105,6 +105,5 @@ backbone->set_keyword, "NAXIS1", 2, ext_num=1
   backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
 
 
-if tag_exist( Modules[thisModuleIndex], "suffix") then suffix=Modules[thisModuleIndex].suffix
 @__end_primitive 
 end
