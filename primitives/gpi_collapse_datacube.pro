@@ -59,7 +59,6 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     sxdelpar, *(dataset.headersExt[numfile]), 'CTYPE3'
     sxaddpar, *(dataset.headersExt[numfile]), 'NAXIS',2, /savecom
 
-	if tag_exist( Modules[thisModuleIndex], "suffix") then suffix2=suffix+Modules[thisModuleIndex].suffix
   
 	if tag_exist( Modules[thisModuleIndex],"ReuseOutput")  then begin
 	   ; put the datacube in the dataset.currframe output structure:
@@ -71,7 +70,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
    
     if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
-      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix2, savedata=collapsed_im, display=display)
+      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, savedata=collapsed_im, display=display)
       if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
     endif else begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
