@@ -128,34 +128,60 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	   return, error('FAILURE ('+functionName+'): Output filename creation failed.')
 
 
+    ;============  File name collision handling ======
+	; Check if the requested output filename already exists. 
 
-    ; Check if the requested output filename already exists. If so, ask the user
-	; if it should be overwritten or not
-	;
-	; Iterate if necessary. Foolish users, always trying to overwrite things...
-	
-	while (file_test(c_File) and gpi_get_setting('prompt_user_for_overwrite', default=1,/silent)) do  begin
-		statuswindow = backbone_comm->getstatusconsole()
+	if file_test(c_File) then begin
+		case gpi_get_setting('file_overwrite_handling', default='ask_user',/silent) of
+		'overwrite': begin  
+			; we just overwrite it, bull in a china shop style
+			backbone_comm->Log, 'Overwriting existing output filename: '+c_File
+		end
+		'ask_user': begin
+			; If so, ask the user if it should be overwritten or not
+			;
+			; Iterate if necessary. Foolish users, always trying to overwrite things...
+			
+			while file_test(c_File) do  begin
+			;and gpi_get_setting('prompt_user_for_overwrite', default=1,/silent)) 
+				statuswindow = backbone_comm->getstatusconsole()
 
-		if obj_valid(statuswindow) then begin
-			status_top_widget = statuswindow->get_top_base() 
-		endif else begin
-			backbone->Log, 'Output Filename: '+c_File
-			backbone->Log, 'File already exists, and prompt_user_for_overwrite is set. However, GUI is not currently available.'
-			return, error( " Won't overwrite automatically but cannot prompt user for a new filename!")
-		endelse
+				if obj_valid(statuswindow) then begin
+					status_top_widget = statuswindow->get_top_base() 
+				endif else begin
+					backbone_comm->Log, 'Output Filename: '+c_File
+					backbone_comm->Log, 'File already exists, and prompt_user_for_overwrite is set. However, GUI is not currently available.'
+					return, error( " Won't overwrite automatically but cannot prompt user for a new filename!")
+				endelse
 
-		if confirm(message=['The file '+c_File+' already exists on disk. ','',  'Are you sure you want to overwrite this file?'], $
-				label0='Change Filename',label1='Overwrite', title="Confirm Overwrite File", group_leader=status_top_widget) then begin
-					; user has chosen to overwrite
-					break
-		endif else begin
-			c_File = dialog_pickfile(/write, default_extension='fits', file=c_File, filter='*.fits', $
-				path=s_OutputDir, title='Select New Filename' )
-		endelse
+				if confirm(message=['The file '+c_File+' already exists on disk. ','',  'Are you sure you want to overwrite this file?'], $
+						label0='Change Filename',label1='Overwrite', title="Confirm Overwrite File", group_leader=status_top_widget) then begin
+							; user has chosen to overwrite
+							break
+				endif else begin
+					c_File = dialog_pickfile(/write, default_extension='fits', file=c_File, filter='*.fits', $
+						path=s_OutputDir, title='Select New Filename' )
+				endelse
 
-	endwhile
+			endwhile
+		end
+		'append_number': begin
+			; Append an extension number to the filename to avoid overwriting.
+			basefn = fsc_base_filename(c_File, extension=extfn)
+			counter=0
+			while file_test(c_File) do begin
+				counter += 1
+				c_File = basefn + "_"+strc(counter)+"."+extfn
+			endwhile
+			backbone_comm->Log, 'Appended _'+strc(counter)+" to output filename to avoid overwriting."
+		end
+		else: begin
+			backbone_comm->Log, 'Invalid setting for file_overwrite_handling. Must be one of [overwrite, ask_user, append_number]'
+			return, error('Invalid setting for file_overwrite_handling. Must be one of [overwrite, ask_user, append_number]')
+		end
 
+		endcase
+	endif	
 
 
 

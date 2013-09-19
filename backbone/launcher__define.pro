@@ -491,10 +491,14 @@ end
 
 ;+------------------
 ; launcher::recompile
-;    Recompile all relevant routines. Triggered when the user selects 'Rescan DRP
+;    Recompile all the main relevant routines. Triggered when the user selects 'Rescan DRP
 ;    Config' in the DRP Status Console.  (for non-compiled versions of the code)
 ;-
 PRO launcher::recompile
+
+    ; rescan config files
+    dummy = gpi_get_setting('max_files_per_recipe',/rescan) ; can get any arbitrary setting here, just need to force the rescan
+
 
 	idlfuncs = ['drfgui__define', 'parsergui__define', 'gpitv__define', 'queueview__define', 'automaticreducer__define']
 	names = ['Recipe Editor', 'Data Parser', 'GPItv', 'Queue Viewer', 'Automatic Reducer']

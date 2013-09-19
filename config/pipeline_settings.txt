@@ -15,7 +15,8 @@ organize_recipes_by_dates	1
 organize_DRFs_by_dates		1
 parsergui_auto_queue    0
 prevent_multiple_instances  0
-prompt_user_for_overwrite 1
+# prompt_user_for_overwrite 1
+file_overwrite_handling		append_number
 prompt_user_for_questionable_data	1
 prompt_user_for_outputdir_creation	0
 max_files_per_recipe	1000
