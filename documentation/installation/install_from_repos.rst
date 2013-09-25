@@ -46,7 +46,7 @@ delete the excess copies from this directory if you so desire. Two folders (pipe
     .. image:: icon_linux2.png
   
   On Mac OS and Linux, you will likely want to add the ``pipeline\scripts`` subdirectory
-  to your shell's ``$PATH``.
+  to your shell's ``$PATH``. For users having IDL 8.2+, the str_sep.pro program is now an obsolete command. Although no pipeline source code calls this function, it is still used in other external dependencies. For the time being, users should add the ``idl/lib/obsolete folder to their`` ``$IDL_PATH`` to remedy this issue.
 
 
 Proceed now to :ref:`configuring`.
