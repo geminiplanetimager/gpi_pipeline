@@ -21,7 +21,7 @@ setenv,  "GPI_REDUCED_DATA_DIR="+getenv('GPI_DATA_ROOT')+path_sep()+"\Reduced\" 
 ; drp setup is standard
 setenv,  "GPI_DRP_DIR=C:\GPI\pipeline\"	                    ; pipeline code location
 setenv,  "GPI_DRP_CONFIG_DIR="+getenv('GPI_DRP_DIR')+path_sep()+"\config\"            ; default config settings 
-setenv,  "GPI_DRP_TEMPLATES_DIR="+getenv('GPI_DRP_DIR')+path_sep()+"\drf_templates"	  ; pipeline DRF template location
+setenv,  "GPI_DRP_TEMPLATES_DIR="+getenv('GPI_DRP_DIR')+path_sep()+"\recipe_templates"	  ; pipeline DRF template location
 
 setenv,  "GPI_DRP_CALIBRATIONS_DIR="+getenv('GPI_REDUCED_DATA_DIR')+path_sep()+"\calibrations\"	; pipeline calibration location
 setenv,  "GPI_DRP_LOG_DIR="+getenv('GPI_REDUCED_DATA_DIR')+path_sep()+"\logs\"	                ; default log dir

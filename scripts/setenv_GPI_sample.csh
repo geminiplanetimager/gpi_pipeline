@@ -38,7 +38,7 @@ setenv GPI_REDUCED_DATA_DIR "${GPI_DATA_ROOT}/Reduced/" # where should we put re
 # drp setup is standard
 #setenv GPI_DRP_DIR "/path/to/your/GPI/code/pipeline"
 #setenv GPI_DRP_CONFIG_DIR "${GPI_DRP_DIR}/config/"          # default config settings 
-#setenv GPI_DRP_TEMPLATES_DIR "${GPI_DRP_DIR}/drf_templates"	# pipeline DRF template location
+#setenv GPI_DRP_TEMPLATES_DIR "${GPI_DRP_DIR}/recipe_templates"	# pipeline DRF template location
 
 #setenv GPI_DRP_CALIBRATIONS_DIR "${GPI_REDUCED_DATA_DIR}/calibrations/"	# pipeline calibration location
 #setenv GPI_DRP_LOG_DIR "${GPI_REDUCED_DATA_DIR}/logs/"	                    # default log dir
