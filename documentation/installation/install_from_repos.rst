@@ -33,7 +33,7 @@ The above commands will download the GPI data pipeline and associated tools, plu
 directory containing external dependencies of the code, for instance the
 Goddard IDL library, the Coyote library, etc. You may already have copies of
 many of these external routines in your own IDL library, in which case you can
-delete the excess copies from this directory if you so desire. 
+delete the excess copies from this directory if you so desire. Two folders (pipeline and external) will be created in the directory from which you performed the command. 
 
 .. warning::
     All code has been tested extensively with the external program versions in the repository.  Error-free operation is not guaranteed for other versions of these libraries. The usual caveats about name collisions between different versions of IDL routines apply.   If you have old versions of e.g. the Goddard IDL library functions in your $IDL_PATH, you may encounter difficulties. We suggest placing the data pipeline code first in your $IDL_PATH.

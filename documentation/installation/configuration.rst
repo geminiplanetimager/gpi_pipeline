@@ -82,7 +82,7 @@ and ``$GPI_REDUCED_DATA_DIR``. The raw data dir may be read-only.
     the VOspace is much, much slower than local disk. See the setenv_GPI_sample files for more
     details.
 
-The additional **optional** path settings are as follows:
+The additional path settings are as follows:
 
 
 =======================   ======================================   ======================================================================
@@ -97,7 +97,7 @@ GPI_CALIBRATIONS_DIR      Location of Calibration Files Database    ``$GPI_REDUC
 GPI_RECIPE_OUTPUT_DIR     Where to save user-created Recipes        ``$GPI_REDUCED_DATA/recipes``
 =======================   ======================================   ======================================================================
 
-
+Note for users who checkedout the pipeline from the SVN respository. The GPI_DRP_DIR variable should point to the pipeline directory **inside** the directory where the files where checked out as described in :ref:`Installing from the Source Code Repository <installing-from-repos>`.
 
 If valid environment variables are not found during pipeline startup, a dialog
 will be displayed to alert the user of this fact. The required paths must be
