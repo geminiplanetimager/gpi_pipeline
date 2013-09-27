@@ -61,11 +61,12 @@ function fit_PSF, pixel_array, FIRST_GUESS = first_guess, $
                   ;PSF, x_vector_psf, y_vector_psf, $
                   ptr_obj_psf,$
                   FIT_PARAMETERS = fit_parameters,$
-                  ERROR_FLAG = error_flag, QUIET = quiet, ANTI_STUCK = anti_stuck
+                  ERROR_FLAG = error_flag, QUIET = quiet, ANTI_STUCK = anti_stuck, $
+									no_error_checking=no_error_checking
+
 
 error_flag = 0
 
-tmp0 = systime(1)
 ;////////////////////////////////////
 ;// Check the validity of the inputs
 pixel_array_sz = size(pixel_array)
@@ -73,6 +74,8 @@ if pixel_array_sz[0] eq 3 or pixel_array_sz[0] eq 2 then begin
   nx = pixel_array_sz[1]
   ny = pixel_array_sz[2]
   if pixel_array_sz[0] eq 3 then nz = pixel_array_sz[3] else nz = 1
+
+	if keyword_set(no_error_checking) eq 0 then begin
 
   if ~keyword_set(FIRST_GUESS) then begin
       error_flag = -7
@@ -92,7 +95,8 @@ if pixel_array_sz[0] eq 3 or pixel_array_sz[0] eq 2 then begin
     error_flag = -4
     return, ptr_new()
   endif
-  
+  endif  ; error checking
+
   if keyword_set(x0) then begin
     if n_elements(x0) eq 1 then begin
       x0 = fltarr(nz) + x0
@@ -114,9 +118,7 @@ endif else begin
   error_flag = -1
   return, ptr_new()
 endelse
-tmp = systime(1)-tmp0
 
-tmp0 = systime(1)
 ;////////////////////////////////////
   fitted_PSF = fltarr(nx,ny,nz) + !values.f_nan
   ;the coordinates corresponding to the fitted PSF
@@ -125,7 +127,6 @@ tmp0 = systime(1)
   
   ;these are the outputs of the function. centroid and intensity of the best fit.
   fit_parameters = fltarr(3,nz) + !values.f_nan
-  tmp = systime(1)-tmp0
   
 ;todo: check the validity of the psf and coordinates vectors
 psf = (*ptr_obj_psf).values
@@ -136,6 +137,13 @@ if (where(finite(psf)))[0] ne -1 then begin
   initialize_psf_interp, psf, x_vector_psf, y_vector_psf;, /SPLINE, RESOLUTION = 2
   
   ;loop over all the slice of the pixel_array cube. It fit the same PSF to all of them.
+
+ parinfo = replicate({limited:[0,0], limits:[0.0,0]}, 3)
+    parinfo[0].limited = [1,1]
+    parinfo[1].limited = [1,1]
+    parinfo[2].limited = [1,0]
+    parinfo[2].limits  = 0.0
+
   for i_slice = 0L,long(nz-1) do begin
     if ~keyword_set(QUIET) then statusline, "Fit PSF: "+strc(i_slice+1) +" of "+strc(long(nz)) + " slices fitted"
     
@@ -157,7 +165,7 @@ if (where(finite(psf)))[0] ne -1 then begin
   ;                1D/Z     - Poisson weighting (counting statistics)
   ;                1D       - Unweighted
     ;TODO: pick a weight but take care to infinite values
-    my_weights = 1D
+    my_weights = 1.0
   ;  my_weights = double(pixel_array[*,*,i_slice]
   ;  my_weights = 1D/pixel_array[*,*,i_slice]
   ;  weights_not_finite = where(~finite(my_weights))
@@ -178,13 +186,8 @@ if (where(finite(psf)))[0] ne -1 then begin
   ;               respectively.  Zero, one or two of these values can be
   ;               set, depending on the values of LIMITED.  Both LIMITED
   ;               and LIMITS must be given together.
-    parinfo = replicate({limited:[0,0], limits:[0.0,0]}, 3)
-    parinfo[0].limited = [1,1]
     parinfo[0].limits  = [x0[i_slice],x0[i_slice]+nx]
-    parinfo[1].limited = [1,1]
     parinfo[1].limits  = [y0[i_slice],y0[i_slice]+ny]
-    parinfo[2].limited = [1,0]
-    parinfo[2].limits  = 0.0D
   
     ;Fit the result of evaluate_PSF to the current slice. evaluate_psf uses the common psf_lookup_table to get the PSF to fit. Then it shifts and scales it according to the parameters (centroid and intensity).
     if keyword_set(QUIET) then parameters = MPFIT2DFUN("EVALUATE_PSF", x_grid, y_grid, pixel_array[*,*,i_slice], err, $
@@ -195,7 +198,7 @@ if (where(finite(psf)))[0] ne -1 then begin
                                                       first_guess[*,i_slice], $
                                                       WEIGHTS = my_weights, PARINFO = parinfo, $
                                                       BESTNORM = chisq, YFIT = yfit  )
-    fitted_PSF[*,*,i_slice] = yfit
+    fitted_PSF[*,*,i_slice] = temporary(yfit)
     
     if keyword_set(anti_stuck) and chisq gt TOTAL( (0.1*pixel_array[*,*,i_slice])^2 * ABS(MY_WEIGHTS) ) then begin
       ;this means the fitting sucked so it might be possible that the convergence algorithm got stuck in a local minimum so we gonna try to make him move by changing a bit the initial value.
@@ -222,9 +225,10 @@ if (where(finite(psf)))[0] ne -1 then begin
       endif else begin
         if ~keyword_set(QUIET) then print, "WARNING: Problem solved!"
       endelse
-    endif
+    endif ; end of anti-stuck
+
     ;store the results of the fit
-    fit_parameters[*,i_slice] = parameters
+    fit_parameters[*,i_slice] = temporary(parameters)
   
     ;parameters = MPFIT2DFUN("EVALUATE_PSF", x_grid, y_grid, pixel_array[*,*,i_slice], err, [x_centroids_first_guess[i_slice]+0.5,y_centroids_first_guess[i_slice]+0.5,intensities_first_guess[i_slice]], WEIGHTS = my_weights, PARINFO = parinfo,BESTNORM = chisq )
     ;CHISQ = TOTAL( (pixel_array[*,*,i_slice]-evaluate_psf(x_grid, y_grid, parameters))^2 * ABS(MY_WEIGHTS) )

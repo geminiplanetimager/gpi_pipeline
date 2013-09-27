@@ -59,7 +59,7 @@
 ;                                             
 ; - ERROR_FLAG = error_flag
 ;     -8: There are not enough finite point in the PSF so we can't compute the spline interpolation. The new centroid is therefore computed with a simple barycenter of the finite values. 
-;     -7: no valid samples to buuild the PSF.
+;     -7: no valid samples to build the PSF.
 ;     -6: CENTROID_MODE unknown.
 ;     -5: In the case of MASK, the dimension of a single slice in mask is not consistent with the slices of pixel_array.
 ;     -4: The number of PSF samples is not the same for all the inputs.
@@ -67,7 +67,7 @@
 ;     -2: There is at least one input with a number of dimensions either not consistent with the others.
 ;     -1: The inputs don't match with any mode (MASK or XCOORDS AND YCOORDS). Verify that you don't define MASK if you define the others and vice versa. Check if pixel_array has the right number of dimensions regarding the chosen mode.
 ;     0: Everything looks fine.
-;     >1: Give the number of points where the PSF couldn't be evaluated. Either because there were no points around this corrdinate in the input data or because all the values don't respect the the 3 sigma variation constraint.
+;     >1: Give the number of points where the PSF couldn't be evaluated. Either because there were no points around this coordinate in the input data or because all the values don't respect the the 3 sigma variation constraint.
 ;
 ; HISTORY:
 ;   Originally by Jean-Baptiste Ruffio 2013-06
@@ -80,15 +80,18 @@ function get_PSF, pixel_array, x_centroids, y_centroids, intensities, sky_values
                   CENTROID_MODE = centroid_mode, $
                   PLOT_SAMPLES = plot_samples,$
                   HOW_WELL_SAMPLED = how_well_sampled,$
-                  LENSLET_INDICES = lenslet_indices
+                  LENSLET_INDICES = lenslet_indices, no_error_checking=no_error_checking
                   
+
 error_flag = 0
 
 ;////////////////////////////////////
 ;// Check the validity of the inputs in both case (vector of coordinates or stamps).
 ;// In case of stamps, the stamps are reformed in vectors of coordinates. This way, only one type of array are considered in the next section
 pixel_array_sz = size(pixel_array)
-if keyword_set(xcoords) and keyword_set(ycoords) and ~keyword_set(mask) and pixel_array_sz[0] eq 2 then begin
+
+; check to see if this is the first run through
+	if keyword_set(xcoords) and keyword_set(ycoords) and ~keyword_set(mask) and pixel_array_sz[0] eq 2 then begin
   xcoords_sz = size(xcoords)
   ycoords_sz = size(ycoords)
   x_centroids_sz = size(x_centroids)
@@ -96,6 +99,7 @@ if keyword_set(xcoords) and keyword_set(ycoords) and ~keyword_set(mask) and pixe
   intensities_sz = size(intensities)
   sky_values_sz = size(sky_values)
   
+	if keyword_set(no_error_checking) eq 0 then begin
   ;check that all the arrays have the expecting number of dimensions
   if ~(xcoords_sz[0] eq 2 and ycoords_sz[0] eq 2 and x_centroids_sz[0] eq 1 and y_centroids_sz[0] eq 1 and intensities_sz[0] eq 1 and sky_values_sz[0] eq 1) then begin
     error_flag = -2
@@ -111,7 +115,8 @@ if keyword_set(xcoords) and keyword_set(ycoords) and ~keyword_set(mask) and pixe
     error_flag = -4
     return, ptr_new()
   endif
-  
+  endif
+
   all_pix_values = pixel_array
   n_PSF_samples = pixel_array_sz[2]
 endif else if ~keyword_set(xcoords) and ~keyword_set(ycoords) and keyword_set(mask) and pixel_array_sz[0] eq 3 then begin
@@ -125,6 +130,7 @@ endif else if ~keyword_set(xcoords) and ~keyword_set(ycoords) and keyword_set(ma
   intensities_sz = size(intensities)
   sky_values_sz = size(sky_values)
 
+if keyword_set(no_error_checking) eq 0 then begin
   ;check that all the arrays have the expecting number of dimensions
   if ~(mask_sz[0] eq 3 and x_centroids_sz[0] eq 1 and y_centroids_sz[0] eq 1 and intensities_sz[0] eq 1 and sky_values_sz[0] eq 1) then begin
     error_flag = -2
@@ -140,42 +146,67 @@ endif else if ~keyword_set(xcoords) and ~keyword_set(ycoords) and keyword_set(ma
     error_flag = -4
     return, ptr_new()
   endif
-  
+endif
+
   image_x_sampling = findgen(nx_pix)
   image_y_sampling = findgen(ny_pix)
   
   ;should try to remove this loop (done see below)
-  xcoords = fltarr(nx_pix*ny_pix,n_PSF_samples)
-  ycoords = fltarr(nx_pix*ny_pix,n_PSF_samples)
-  all_pix_values = fltarr(nx_pix*ny_pix,n_PSF_samples)
-  for i=0,nx_pix-1 do begin
-    for j=0,ny_pix-1 do begin
-      xcoords[j*nx_pix+i,*] = image_x_sampling[i]
-      ycoords[j*nx_pix+i,*] = image_y_sampling[j]
-      all_pix_values[j*nx_pix+i,*] = pixel_array[i,j,*]
-      not_relevant = where(mask[i,j,*] eq 0)
-      if not_relevant[0] ne -1 then begin
-        xcoords[j*nx_pix+i,not_relevant] = !values.f_nan
-        ycoords[j*nx_pix+i,not_relevant] = !values.f_nan
-        all_pix_values[j*nx_pix+i,not_relevant] = !values.f_nan
-      endif
-    endfor
-  endfor
-  
-  ;reform the stamps
+;time0=systime(1)
+;  xcoords = fltarr(nx_pix*ny_pix,n_PSF_samples)
+;  ycoords = fltarr(nx_pix*ny_pix,n_PSF_samples)
+;  all_pix_values = fltarr(nx_pix*ny_pix,n_PSF_samples)
+;
+;  for i=0,nx_pix-1 do begin
+;    for j=0,ny_pix-1 do begin
+;      xcoords[j*nx_pix+i,*] = image_x_sampling[i]
+;      ycoords[j*nx_pix+i,*] = image_y_sampling[j]
+;      all_pix_values[j*nx_pix+i,*] = pixel_array[i,j,*]
+;      not_relevant = where(mask[i,j,*] eq 0)
+;      if not_relevant[0] ne -1 then begin
+;        xcoords[j*nx_pix+i,not_relevant] = !values.f_nan
+;        ycoords[j*nx_pix+i,not_relevant] = !values.f_nan
+;        all_pix_values[j*nx_pix+i,not_relevant] = !values.f_nan
+;      endif
+;    endfor
+;  endfor
+;  time1=systime(1)
+;print, time1-time0
+;all_pix_values1=temporary(all_pix_values)
+;xcoords1=temporary(xcoords)
+;ycoords1=temporary(ycoords)
+;delvarx, all_pix_values, xcoords, ycoords
+;
+;time2=systime(1)
+;  ;reform the stamps
 ;  all_pix_values = reform(pixel_array,nx_pix*ny_pix,n_PSF_samples)
 ;  xcoords = (reform(image_x_sampling#(fltarr(ny_pix)+1.0),nx_pix*ny_pix))#(fltarr(n_PSF_samples)+1.0)
 ;  ycoords = (reform((fltarr(nx_pix)+1.0)#image_y_sampling,nx_pix*ny_pix))#(fltarr(n_PSF_samples)+1.0)
-;  
-;;  xcoords = rebin(reform(rebin(image_x_sampling,nx_pix,ny_pix),nx_pix*ny_pix),nx_pix*ny_pix,n_PSF_samples)
-;;  ycoords = rebin(reform(rebin(reform(image_y_sampling,1,ny_pix),nx_pix,ny_pix),nx_pix*ny_pix),nx_pix*ny_pix,n_PSF_samples)
 ;  not_relevant = where((reform(mask,nx_pix*ny_pix,n_PSF_samples)) eq 0)
 ;  if not_relevant[0] ne -1 then begin
 ;    all_pix_values[not_relevant] = !values.f_nan
 ;    xcoords[not_relevant] = !values.f_nan
 ;    ycoords[not_relevant] = !values.f_nan
 ;  endif
-  
+; time3=systime(1)
+;print, time3-time2
+;all_pix_values2=temporary(all_pix_values)
+;xcoords2=temporary(xcoords)
+;ycoords2=temporary(ycoords)
+;delvarx, all_pix_values, xcoords, ycoords
+;
+; this one is the quickest
+all_pix_values = reform(pixel_array,nx_pix*ny_pix,n_PSF_samples)	
+  xcoords = rebin(reform(rebin(image_x_sampling,nx_pix,ny_pix),nx_pix*ny_pix),nx_pix*ny_pix,n_PSF_samples)
+  ycoords = rebin(reform(rebin(reform(image_y_sampling,1,ny_pix),nx_pix,ny_pix),nx_pix*ny_pix),nx_pix*ny_pix,n_PSF_samples)
+  not_relevant = where((reform(mask,nx_pix*ny_pix,n_PSF_samples)) eq 0)
+  if not_relevant[0] ne -1 then begin
+    all_pix_values[not_relevant] = !values.f_nan
+    xcoords[not_relevant] = !values.f_nan
+    ycoords[not_relevant] = !values.f_nan
+  endif
+
+
 endif else begin
  error_flag = -1
  return, ptr_new()
@@ -216,7 +247,7 @@ PSF_y_sampling = (findgen(PSF_ny_samples) - floor(PSF_ny_samples/2))* PSF_y_step
 x_grid_PSF = rebin(PSF_x_sampling,PSF_nx_samples,PSF_ny_samples)
 y_grid_PSF = rebin(reform(PSF_y_sampling,1,PSF_ny_samples),PSF_nx_samples,PSF_ny_samples)
 
-PSF = fltarr(PSF_nx_samples, PSF_ny_samples) + !values.f_nan
+PSF = fltarr(PSF_nx_samples, PSF_ny_samples) ;+ !values.f_nan
 how_well_sampled = fltarr(PSF_nx_samples, PSF_ny_samples)
 tilt = !values.f_nan
   
@@ -234,47 +265,128 @@ if where_coords_NOT_too_big[0] ne -1 then begin
     plot,all_x_coords,all_y_coords ,psym=3,$
                   TITLE = "PSF sampling (green = psf grid, white = samples)", $
                   XTITLE = "x axis (in pixel)", $
-                  YTITLE = "y axis (in pixel)"
-    oplot, reform(x_grid_PSF, n_elements(x_grid_PSF)),reform(y_grid_PSF, n_elements(y_grid_PSF)),psym=3,color=155
-    stop
+                  YTITLE = "y axis (in pixel)", yr=[-1,1],xr=[-1,1]
+    oplot, reform(x_grid_PSF, n_elements(x_grid_PSF)),reform(y_grid_PSF, n_elements(y_grid_PSF)),psym=1,color=155
+    ;stop
   endif
   
-  val_loc_x_coords = value_locate(PSF_x_sampling, all_x_coords + PSF_x_step/2.)
-  val_loc_y_coords = value_locate(PSF_y_sampling, all_y_coords + PSF_y_step/2.)
-  ;for i=0,88 do for j = 0,32 do cou[j,i] = n_elements(where(val_loc_x_coords eq j and val_loc_y_coords eq i))
-  
-  for i = 0,PSF_nx_samples-1 do begin
-    for j = 0,PSF_ny_samples-1 do begin
-      indices_for_current_point = where(val_loc_x_coords eq i AND val_loc_y_coords eq j,cc)
-      if indices_for_current_point[0] ne -1 then begin
+ ;for i=0,88 do for j = 0,32 do cou[j,i] = n_elements(where(val_loc_x_coords eq j and val_loc_y_coords eq i))
+
+; this is the slowest part by far - takes 98% of the time to run this function
+; this builds the high-res PSF
+
+	; now we loop 5 times
+kernel= [ [ 0.041632, -0.080816, -0.078368, -0.081816,  0.041632], $
+					[-0.080816, -0.019592,  0.200816, -0.019592, -0.080816], $
+					[ 0.078368,  0.200816,  0.441632,  0.200816,  0.078368], $
+					[-0.080816, -0.019592,  0.200816, -0.019592, -0.080816], $
+					[ 0.041632, -0.080816, -0.078368, -0.081816,  0.041632]  ]
+kernel/=total(kernel) 
+xshift=0.0 & yshift=0.0
+
+;loadct,0
+
+; JB code - but this only grabs the points in a half psf_x_step box - we want the full box
+;val_loc_x_coords = value_locate(PSF_x_sampling-xshift, all_x_coords + PSF_x_step/2.) 
+;val_loc_y_coords = value_locate(PSF_y_sampling+yshift, all_y_coords + PSF_y_step/2.)
+
+time0=systime(1)
+	for l=0, 10 do begin
+; this finds all the samplings for a given psf coordinate
+; takes very little time
+val_loc_x_coords = value_locate(PSF_x_sampling-xshift, all_x_coords) 
+val_loc_y_coords = value_locate(PSF_y_sampling-yshift, all_y_coords)
+	  for i = 0,PSF_nx_samples-1 do begin
+			; the indices_for_current_point variable is determined in the following manner simply for speed reasons.
+			possible_ind= where((val_loc_x_coords eq i or val_loc_x_coords eq i+1))
+			if possible_ind[0] eq -1 then begin
+				error_flag += 1
+        PSF[i,*] = !values.f_nan
+				continue
+			endif
+			tmp_val_loc_y_coords=val_loc_y_coords[possible_ind]
+
+  	  for j = 0,PSF_ny_samples-1 do begin
+
+				tmp=where((tmp_val_loc_y_coords eq j or tmp_val_loc_y_coords eq j+1))
+					if tmp[0] eq -1 then begin
+						error_flag += 1
+        		PSF[i,j] = !values.f_nan
+						continue
+					endif
+				indices_for_current_point=temporary(possible_ind[temporary(tmp)])
+
+
+				; the next line is the slowest - this is the original method
+				;indices_for_current_point = where((val_loc_x_coords ge i and val_loc_x_coords le i+1) and (val_loc_y_coords ge j and val_loc_y_coords le j+1) )
+
+			  if indices_for_current_point[0] ne -1 then begin
         matching_values = all_pix_values[indices_for_current_point]
-        if n_elements(matching_values) ge 2 then begin
-          ;curr_sigma = robust_sigma(matching_values)
-          curr_sigma = stddev(matching_values)
-          curr_median = median(matching_values, /even)
-          where_valid_values = where( abs(matching_values-curr_median) lt 3.0*curr_sigma,n_valid_values )
-          if where_valid_values[0] ne -1 then begin
-            matching_values = matching_values[where_valid_values]
-            PSF[i,j] = median(matching_values)
-            how_well_sampled[i,j] = n_valid_values
+					; make sure no nan's are present
+					bad=where(finite(matching_values) eq 0, complement=good)
+					if good[0] eq -1 then begin
+						 error_flag += 1
+             PSF[i,j] = !values.f_nan
+						continue
+					endif
+    	    if n_elements(matching_values[good]) ge 3 then begin
+      				; calculate residual.
+							resid= matching_values - PSF[i,j]
+						;stop,[i,j]
+							meanclip, resid, curr_mean, curr_sigma, clipsig=2.5, subs=subs;,/verbose   
+					;curr_sigma = robust_sigma(matching_values) ; WAY SLOWER
+            	PSF[i,j] += curr_mean ; median is too slow
+            	how_well_sampled[i,j] = N_ELEMENTS(temporary(subs))
           endif else begin
             error_flag += 1
             PSF[i,j] = !values.f_nan
-          endelse
+						continue
+          			endelse
         endif else begin
-          ;if n_elements(matching_values) eq 1 then PSF[i,j] = matching_values[0] else begin
             error_flag += 1
             PSF[i,j] = !values.f_nan
-          ;endelse
-        endelse
-      endif else begin
-        error_flag += 1
-        PSF[i,j] = !values.f_nan
-      endelse
-    endfor
-  endfor
+        		continue		
+				endelse
+      endfor
+  	endfor
+; now we smooth by a kernel
+;window,1,xsize=200,ysize=500
+;tvdl,psf
+
+psf2 = CONVOL( psf, kernel , /EDGE_TRUNCATE, /NAN, /NORMALIZE )
+ind=where(finite(psf) eq 0)
+if ind[0] ne -1 then psf2[ind]=0.0;!values.f_nan
+; normalize so that the psf is the same total
+psf2*=total(psf,/nan)/total(psf2,/nan)
+
+;window, 2, xsize=200, ysize=500
+;tvdl,psf2;,min(psf,/nan),max(psf,/nan)
+
+; this might have shifted the CofM of the epsf, to compensate
+; we shift all the samplings to match the original
+if l eq 0 then begin
+x_centroid0 = total(psf*x_grid_PSF,/nan)/total(psf,/nan);
+y_centroid0 = total(psf*y_grid_PSF,/nan)/total(psf,/nan);
+endif
+
+new_x_centroid = total(psf2*x_grid_PSF,/nan)/total(psf2,/nan);
+new_y_centroid = total(psf2*y_grid_PSF,/nan)/total(psf2,/nan);
+
+; the psf must be centered at 0,0 - but we dont have a real psf
+; so we just have to maintain the same centroid as the first pass
+xshift = (new_x_centroid-x_centroid0);*psf_x_step 
+yshift = (new_y_centroid-y_centroid0);*psf_y_step
+; force x to be zero for a moment
+;if l eq 9 then print,l,xshift,yshift
+if finite(xshift+yshift) eq 0 then stop, 'shifts are not a number ?!? - get_psf2 line 360'
+;stop,l,xshift,yshift
+psf=temporary(psf2) 
+
+	endfor ; iterative loop
+;print, time0-systime(1)
+
   ;////////////////////////////////////
-  
+;stop, 'finished iterative loop'
   ;////////////////////////////////////
   ;// Needs to recenter the PSF.
   ;// This is to verify the property explained in the paper ###### paragraph #. Sorry I don't have the paper right now...
