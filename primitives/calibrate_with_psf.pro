@@ -85,9 +85,11 @@ function calibrate_with_PSF, DataSet, Modules, Backbone
         sub_pix_res_y = 4
         cent_mode = "BARYCENTER"
                                 ; raw data stamps
-        if nfiles ge 2 then $
-           spaxels = get_spaxels(my_first_mode, dataset.frames[0:(nfiles-1)], dataset.wavcals[0:(nfiles-1)], width_PSF, /STAMPS_MODE) $
-        else $
+        if nfiles ge 2 then begin
+					time0=systime(1,/seconds)
+           spaxels = get_spaxels(my_first_mode, dataset.frames[0:(nfiles-1)], dataset.wavcals[0:(nfiles-1)], width_PSF, /STAMPS_MODE) 
+  				time_cut=systime(1,/seconds)-time0
+			 endif else $
            spaxels = get_spaxels(my_first_mode, image, wavcal, width_PSF, /STAMPS_MODE)
      end
      'WOLLASTON': begin
@@ -98,7 +100,7 @@ function calibrate_with_PSF, DataSet, Modules, Backbone
         sub_pix_res_y = 4
         cent_mode = "EDGE"
                                 ; raw data stamps
-        spaxels = get_spaxels(my_first_mode, image, polcal, width_PSF, /STAMPS_MODE)
+		        spaxels = get_spaxels(my_first_mode, image, polcal, width_PSF, /STAMPS_MODE)
 ;  return: {values: ptr_values,$
 ;          xcoords: ptr_xcoords,$
 ;          ycoords: ptr_ycoords,$
@@ -117,9 +119,9 @@ function calibrate_with_PSF, DataSet, Modules, Backbone
   diff_image = fltarr(2048,2048)
   new_image = fltarr(2048,2048)
   
-  n_neighbors = 2               ; number on each side - so 4 gives a 9x9 box
-  n_neighbors_flex = 2          ; for the flexure shift determination
-  n_neighbors_flex = 4 ; for the flexure shift determination
+  n_neighbors = 4               ; number on each side - so 4 gives a 9x9 box - 3 gives a 7x7 box
+;  n_neighbors_flex = 3          ; for the flexure shift determination - not currently used
+
   values_tmp = *(spaxels.values[(where(ptr_valid(spaxels.values)))[0]])
   nx_pix = (size(values_tmp))[1]
   ny_pix = (size(values_tmp))[2]
@@ -162,28 +164,39 @@ debug=1
 
   imin_test = 0 & imax_test=280
   jmin_test = 0 & jmax_test=280
-  imin_test = 140 & imax_test = 160
-  jmin_test = 140 & jmax_test = 160
+; imin_test = 145 & imax_test = 155
+; jmin_test = 145 & jmax_test = 155
+; imin_test = 135-20 & imax_test = 135+20
+; jmin_test = 135-20 & jmax_test = 135+20
   ; code check range
-;  imin_test = 148 & imax_test = 152
-;  jmin_test = 148 & jmax_test = 152
+; imin_test = 148 & imax_test = 152
+; jmin_test = 148 & jmax_test = 152
+
+  xind=135 & yind=135
+  pp_neighbors=8
+
+time1=systime(1,/seconds)
   for it_flex=0,it_flex_max-1 do begin
      print, 'starting iteration '+strc(it_flex+1)+' of '+strc(it_flex_max)+' for flexure'
                                 ; make an array to look at the stddev as a function of iterations
      
      for it = 0, it_max-1 do begin
+		time_it0=systime(1,/seconds)
                                 ;  stop do begin
-        for k=0,kmax do begin
-                                ;    for i=0,281-1 do begin
-                                ;      for j=0,281-1 do begin
-           for i=imin_test,imax_test do begin
-              statusline, "Get and fit PSF: Fitting line "+strc(i+1)+" of 281 and spot "+strc(k+1)+" of "+strc(kmax+1)+" for iteration " +strc(it+1)+" of "+strc(it_max)
+        for k=0,kmax do begin ; loop over spots/lenslet - only non-zero for polarimetry
+
+           ; now loop over each lenslet
+           for i=imin_test,imax_test do begin				
+              ;statusline, "Get and fit PSF: Fitting line "+strc(i+1)+" of 281 and spot "+strc(k+1)+" of "+strc(kmax+1)+" for iteration " +strc(it+1)+" of "+strc(it_max)
+						
               for j=jmin_test,jmax_test do begin
+								
                  ; see if there are any intensities and not all nans
-                 if spaxels.intensities[i,j,k] ne 0.0 then begin
-                    
-                                ; takes a chunk of the array to
-                                ; work with so you're not
+                 if spaxels.intensities[i,j,k] eq 0.0 then continue
+				
+									time_ij0=systime(1,/seconds)
+
+                     ; takes a chunk of the array to work with so you're not
                                 ; passing the entire array
                     
                                 ;TODO: it doesnt manage the edges
@@ -198,167 +211,198 @@ debug=1
                     ptrs_current_xcoords = reform(spaxels.xcoords[imin:imax,jmin:jmax,k,*],nspaxels)
                     ptrs_current_ycoords = reform(spaxels.ycoords[imin:imax,jmin:jmax,k,*],nspaxels)
                     ptrs_current_masks = reform(spaxels.masks[imin:imax,jmin:jmax,k,*],nspaxels)
-                    
+                   
+										time_ij1 = systime(1,/seconds)
+
                     not_null_ptrs = where(ptr_valid(ptrs_current_stamps), n_not_null_ptrs)
                     current_stamps = fltarr(nx_pix,ny_pix,n_not_null_ptrs)
                     current_x0 = fltarr(n_not_null_ptrs)
                     current_y0 = fltarr(n_not_null_ptrs)
                     current_masks = fltarr(nx_pix,ny_pix,n_not_null_ptrs)
+
+										time_ij2 = systime(1,/seconds)
+
                     for it_ptr = 0,n_not_null_ptrs-1 do begin
                        current_stamps[*,*,it_ptr] = *ptrs_current_stamps[not_null_ptrs[it_ptr]]
                        current_x0[it_ptr] = (*ptrs_current_xcoords[not_null_ptrs[it_ptr]])[0]
                        current_y0[it_ptr] = (*ptrs_current_ycoords[not_null_ptrs[it_ptr]])[0]
                        current_masks[*,*,it_ptr] = *ptrs_current_masks[not_null_ptrs[it_ptr]]
                     endfor
-                    
+                    time_ij3 = systime(1,/seconds)
+
                     current_xcen = (spaxels.xcentroids[imin:imax,jmin:jmax,k,*])[not_null_ptrs]
                     current_ycen = (spaxels.ycentroids[imin:imax,jmin:jmax,k,*])[not_null_ptrs]
                     current_flux = (spaxels.intensities[imin:imax,jmin:jmax,k,*])[not_null_ptrs]
                     current_sky =  (spaxels.sky_values[imin:imax,jmin:jmax,k,*])[not_null_ptrs]
                     
-                                ;0.000568
-                                ;            stop
-                                ;stop
-                    tmp0 = systime(1)
-                    ptr_current_PSF = get_PSF( current_stamps, $
-                                               current_xcen - current_x0, $
-                                               current_ycen - current_y0, $
-                                               current_flux, $
-                                               current_sky, $
+                               
+  	                time_ij4 = systime(1,/seconds)
+										print, "Get and fit PSF: Fitting [line,column] ["+strc(i+1)+','+strc(j+1)+"] of 281 and spot "+strc(k+1)+" of "+strc(kmax+1)
+	
+                    ptr_current_PSF = get_PSF2( temporary(current_stamps), $
+                                               temporary(current_xcen - current_x0), $
+                                               temporary(current_ycen - current_y0), $
+                                               temporary(current_flux), $
+                                               temporary(current_sky), $
                                                nx_pix,ny_pix,$
                                                sub_pix_res_x,sub_pix_res_y, $
-                                               MASK = current_masks,  $
+                                               MASK = temporary(current_masks),  $
                                 ;XCOORDS = polspot_coords_x, $
                                 ;YCOORDS = polspot_coords_y, $
                                                ERROR_FLAG = myerror_flag, $
                                                CENTROID_MODE = cent_mode, $
                                                HOW_WELL_SAMPLED = my_Sampling,$
-                                               LENSLET_INDICES = [i,j,k]) ;,$
-                                ;/plot_samples )
-                    ; now fit the PSF to each elevation psf
-                    for it_elev = 0,nfiles-1 do begin
-                       first_guess_parameters = [spaxels.xcentroids[i,j,k,it_elev], spaxels.ycentroids[i,j,k,it_elev], spaxels.intensities[i,j,k,it_elev]]
-                       ptr_fitted_PSF = fit_PSF( *spaxels.values[i,j,k,it_elev] - spaxels.sky_values[i,j,k,it_elev], $
-                                                 FIRST_GUESS = first_guess_parameters, $
+                                               LENSLET_INDICES = [i,j,k], no_error_checking=1);,$
+                               ; /plot_samples )
+time_ij5 = systime(1,/seconds)
+
+                    ; now fit the PSF to each elevation psf and each neighbour
+										
+									 for it_elev = 0,nfiles-1 do begin
+											for pi=imin, imax do begin
+												for pj=jmin, jmax do begin
+
+time_it_elev0 = systime(1,/seconds)
+											
+											; check to make sure pointer is valid
+											if ptr_valid(spaxels.values[pi,pj,k,it_elev]) eq 0 then continue
+                       ; want to use previously determined best parameters if possible
+;												if keyword_set(best_parameters) then first_guess_parameters = (best_parameters) $
+;													else first_guess_parameters = [spaxels.xcentroids[pi,pj,k,it_elev], spaxels.ycentroids[pi,pj,k,it_elev], spaxels.intensities[pi,pj,k,it_elev]]
+
+;												if finite(total(first_guess_parameters)) eq 0 then first_guess_parameters = [spaxels.xcentroids[pi,pj,k,it_elev], spaxels.ycentroids[pi,pj,k,it_elev], spaxels.intensities[pi,pj,k,it_elev]]
+ 
+											first_guess_parameters = [spaxels.xcentroids[pi,pj,k,it_elev], spaxels.ycentroids[pi,pj,k,it_elev], spaxels.intensities[pi,pj,k,it_elev]]
+
+;stop,pi,pj,'just before fitting'
+                       ptr_fitted_PSF = fit_PSF( *spaxels.values[pi,pj,k,it_elev] - spaxels.sky_values[pi,pj,k,it_elev], $
+                                                 FIRST_GUESS = (first_guess_parameters), $
                                                  ptr_current_PSF,$
-                                                 X0 = (*spaxels.xcoords[i,j,k,it_elev])[0,0], Y0 = (*spaxels.ycoords[i,j,k,it_elev])[0,0], $
+                                                 X0 = (*spaxels.xcoords[pi,pj,k,it_elev])[0,0], Y0 = (*spaxels.ycoords[pi,pj,k,it_elev])[0,0], $
                                                  FIT_PARAMETERS = best_parameters, $
                                                  /QUIET, $
                                 ;                              /anti_stuck, $
-                                                 ERROR_FLAG = my_other_error_flag) ;
+                                                 ERROR_FLAG = my_other_error_flag, no_error_checking=1) ;
                        
-                       PSFs[i,j,k] = ptr_current_PSF
-                       fitted_spaxels.values[i,j,k,it_elev] = ptr_fitted_PSF
-                       fitted_spaxels.xcentroids[i,j,k,it_elev] = best_parameters[0]
-                       fitted_spaxels.ycentroids[i,j,k,it_elev] = best_parameters[1]
-                       fitted_spaxels.intensities[i,j,k,it_elev] = best_parameters[2]
-;                fit_error_flag[i,j,k] = my_other_error_flag                       
+time_it_elev1 = systime(1,/seconds)
 
-; #########################################                       
-; FROM HERE TO THE ENDFOR IS JUST DEBUGGING
-; #########################################
-; 
+												; only store high-res psf in the place for which it was determined 
+                       if pi eq i and pj eq j then PSFs[i,j,k] = (ptr_current_PSF)
+                       fitted_spaxels.values[pi,pj,k,it_elev] =temporary(ptr_fitted_PSF)
+                       fitted_spaxels.xcentroids[pi,pj,k,it_elev] = best_parameters[0]
+                       fitted_spaxels.ycentroids[pi,pj,k,it_elev] = best_parameters[1]
+                       fitted_spaxels.intensities[pi,pj,k,it_elev] = best_parameters[2]
+										endfor ; end loop over pj
+									endfor ; end loop over pi
+time_it_elev2 = systime(1,/seconds)
+
 ;
-;                       value_to_consider = where(*spaxels.masks[i,j,k,it_elev] eq 1)
-;                       if value_to_consider[0] ne -1 then begin
-;                          diff_image[ (*spaxels.xcoords[i,j,k,it_elev])[value_to_consider], (*spaxels.ycoords[i,j,k,it_elev])[value_to_consider] ] = (*spaxels.values[i,j,k,it_elev])[value_to_consider] - (spaxels.sky_values[i,j,k,it_elev])[value_to_consider]-((*ptr_fitted_PSF)*(*spaxels.masks[i,j,k,it_elev]))[value_to_consider]
-;                                ; what is new image?
-;                          new_image[ (*spaxels.xcoords[i,j,k,it_elev])[value_to_consider], (*spaxels.ycoords[i,j,k,it_elev])[value_to_consider] ] += ((*ptr_fitted_PSF)*(*spaxels.masks[i,j,k,it_elev]))[value_to_consider]
-;                       
-;                                ; calculate the stddev
-;;                            stddev_arr=fltarr(281,281,kmax+1,nfiles,it_max,it_flex_max)
+;; #########################################                       
+;; FROM HERE TO THE ENDFOR IS JUST DEBUGGING
+;; #########################################
 ;
-;                             ; interested in the weighted stddev
-;                             ; weight by intensity
-;                          mask0=(*spaxels.masks[i,j,k,it_elev])
-;                          mask0[where(mask0 eq 0)]=!values.f_nan
-;                          mask=(*spaxels.masks[i,j,k,it_elev])[value_to_consider]
-;                          sz=size(mask0)
 ;
-;;                          weights0=reform((*spaxels.values[i,j,k,it_elev]) - (spaxels.sky_values[i,j,k,it_elev]),sz[1],sz[2])*mask0
-;;                          weights=((*spaxels.values[i,j,k,it_elev])[value_to_consider] - (spaxels.sky_values[i,j,k,it_elev])[value_to_consider])*mask
-;                          gain=float(backbone->get_keyword('sysgain'))
-;                          weights0=sqrt((*ptr_fitted_PSF)*gain)/gain
-;                          weights=sqrt((*ptr_fitted_PSF)[value_to_consider]*gain)/gain
+;                      value_to_consider = where(*spaxels.masks[i,j,k,it_elev] eq 1)
+;                      if value_to_consider[0] ne -1 then begin
+;                         diff_image[ (*spaxels.xcoords[i,j,k,it_elev])[value_to_consider], (*spaxels.ycoords[i,j,k,it_elev])[value_to_consider] ] = (*spaxels.values[i,j,k,it_elev])[value_to_consider] - (spaxels.sky_values[i,j,k,it_elev])[value_to_consider]-((*fitted_spaxels.values[i,j,k,it_elev])*(*spaxels.masks[i,j,k,it_elev]))[value_to_consider]
+;                               ; what is new image?
+;                         new_image[ (*spaxels.xcoords[i,j,k,it_elev])[value_to_consider], (*spaxels.ycoords[i,j,k,it_elev])[value_to_consider] ] += ((*fitted_spaxels.values[i,j,k,it_elev])*(*spaxels.masks[i,j,k,it_elev]))[value_to_consider]
+;                      
+;                               ; calculate the stddev
+;                           stddev_arr=fltarr(281,281,kmax+1,nfiles,it_max,it_flex_max)
 ;
-;                          intensity0=reform((*spaxels.values[i,j,k,it_elev]) - (spaxels.sky_values[i,j,k,it_elev]),sz[1],sz[2])*mask0
-;                          intensity=((*spaxels.values[i,j,k,it_elev])[value_to_consider] - (spaxels.sky_values[i,j,k,it_elev])[value_to_consider])*mask
+;                            ; interested in the weighted stddev
+;                            ; weight by intensity
+;                         mask0=(*spaxels.masks[i,j,k,it_elev])
+;                         mask0[where(mask0 eq 0)]=!values.f_nan
+;                         mask=(*spaxels.masks[i,j,k,it_elev])[value_to_consider]
+;                         sz=size(mask0)
 ;
-;                          diff0=mask0*(reform((*spaxels.values[i,j,k,it_elev]) - (spaxels.sky_values[i,j,k,it_elev]),sz[1],sz[2])-(*ptr_fitted_PSF))
-;                          diff=(*spaxels.values[i,j,k,it_elev])[value_to_consider] - (spaxels.sky_values[i,j,k,it_elev])[value_to_consider]-((*ptr_fitted_PSF)*(*spaxels.masks[i,j,k,it_elev]))[value_to_consider]
-;                          model=(*ptr_fitted_PSF)*mask
-;                          w_mean=total(diff*weights,/nan)/total(weights,/nan)/total(mask,/nan)
-;                          intensity_arr[i,j,k,it_elev,it,it_flex]=total(intensity*weights,/nan)/total(weights,/nan)
-;                          stddev_arr[i,j,k,it_elev,it,it_flex]= total(weights*(diff-w_mean)^2.0,/nan)/total(weights,/nan)
-;                          diff_intensity_arr[i,j,k,it_elev,it,it_flex]=total(weights*diff,/nan)/total(weights)
-;;if i eq 150 and j eq 150 and it eq it_max-1 and it_elev eq nfiles-1 and it_flex eq it_flex_max-1 then stop
+;                         weights0=reform((*spaxels.values[i,j,k,it_elev]) - (spaxels.sky_values[i,j,k,it_elev]),sz[1],sz[2])*mask0
+;                         weights=((*spaxels.values[i,j,k,it_elev])[value_to_consider] - (spaxels.sky_values[i,j,k,it_elev])[value_to_consider])*mask
+;                         gain=float(backbone->get_keyword('sysgain'))
+;                         weights0=sqrt((*fitted_spaxels.values[i,j,k,it_elev])*gain)/gain
+;                         weights=sqrt((*fitted_spaxels.values[i,j,k,it_elev])[value_to_consider]*gain)/gain
 ;
-;                             if i eq 150 and j eq 150 and it_elev eq 0 and it_flex eq it_flex_max-1 then begin
-;                                loadct,0
-;                                window,1,retain=2,xsize=300,ysize=300,title='orig- '+strc(i)+', '+strc(j)
-;                                sz=(*spaxels.values[150,150])
-;                                mask=(*spaxels.masks[i,j,k,it_elev])
-;                                orig=mask*(*spaxels.values[i,j,k,it_elev])
-;                                tvdl,orig,min(orig,/nan),max(orig,/nan)
-;                                
-;                                window,3,retain=3,xsize=300,ysize=300,title='model- '+strc(i)+', '+strc(j)
-;                                fit=((*ptr_fitted_PSF)*(*spaxels.masks[i,j,k,it_elev]))
-;                                tvdl,fit,min(orig,/nan),max(orig,/nan)
-;                                window,2,retain=2,xsize=300,ysize=300,title='percentage residuals- '+strc(i)+', '+strc(j)
-;                                sky=mask*(spaxels.sky_values[i,j,k,it_elev])
-;                                tvdl,mask*(orig-sky-fit)/fit,-0.1,0.1
-;;                                stop
-;                             endif ; display if
-;                          endif    ; check for no dead values
-                    endfor ; loop to fit psfs
-                 endif     ; check to see if there are any intensities in the slice
-              endfor ; end loop over j lenslets (columns?)
+;                         intensity0=reform((*spaxels.values[i,j,k,it_elev]) - (spaxels.sky_values[i,j,k,it_elev]),sz[1],sz[2])*mask0
+;                         intensity=((*spaxels.values[i,j,k,it_elev])[value_to_consider] - (spaxels.sky_values[i,j,k,it_elev])[value_to_consider])*mask
+;
+;                         diff0=mask0*(reform((*spaxels.values[i,j,k,it_elev]) - (spaxels.sky_values[i,j,k,it_elev]),sz[1],sz[2])-(*fitted_spaxels.values[i,j,k,it_elev]))
+;                         diff=(*spaxels.values[i,j,k,it_elev])[value_to_consider] - (spaxels.sky_values[i,j,k,it_elev])[value_to_consider]-((*fitted_spaxels.values[i,j,k,it_elev])*(*spaxels.masks[i,j,k,it_elev]))[value_to_consider]
+;                         model=(*fitted_spaxels.values[i,j,k,it_elev])*mask
+;                         w_mean=total(diff*weights,/nan)/total(weights,/nan)/total(mask,/nan)
+;                         intensity_arr[i,j,k,it_elev,it,it_flex]=total(intensity*weights,/nan)/total(weights,/nan)
+;                         stddev_arr[i,j,k,it_elev,it,it_flex]= total(weights*(diff-w_mean)^2.0,/nan)/total(weights,/nan)
+;                         diff_intensity_arr[i,j,k,it_elev,it,it_flex]=total(weights*diff,/nan)/total(weights)
+;                         if i eq 150 and j eq 150 and it eq it_max-1 and it_elev eq nfiles-1 and it_flex eq it_flex_max-1 then stop
+;
+;                            ;; if i eq 150 and j eq 150 and it_elev eq 0 and it_flex eq it_flex_max-1 then begin
+;                            ;;    loadct,0
+;                            ;;    window,1,retain=2,xsize=300,ysize=300,title='orig- '+strc(i)+', '+strc(j)
+;                            ;;    sz=(*spaxels.values[150,150])
+;                            ;;    mask=(*spaxels.masks[i,j,k,it_elev])
+;                            ;;    orig=mask*(*spaxels.values[i,j,k,it_elev])
+;                            ;;    tvdl,orig,min(orig,/nan),max(orig,/nan)
+;                               
+;                            ;;    window,3,retain=3,xsize=300,ysize=300,title='model- '+strc(i)+', '+strc(j)
+;                            ;;    fit=((*fitted_spaxels.values[i,j,k,it_elev])*(*spaxels.masks[i,j,k,it_elev]))
+;                            ;;    tvdl,fit,min(orig,/nan),max(orig,/nan)
+;                            ;;    window,2,retain=2,xsize=300,ysize=300,title='percentage residuals- '+strc(i)+', '+strc(j)
+;                            ;;    sky=mask*(spaxels.sky_values[i,j,k,it_elev])
+;                            ;;    tvdl,mask*(orig-sky-fit)/fit,-0.1,0.1
+;                            ;;    stop
+;                            ;; endif ; display if
+;													endif ; check for no dead values
+;        
+;; ####################            
+;; END OF DEBUG
+;; ####################
+;
+time_it_elev3 = systime(1,/seconds)
+
+                    endfor      ; loop to fit psfs in elevation
+
+	time_ij6 = systime(1,/seconds)
+;print, (time_ij1-time_ij0)/(time_ij6-time_ij0)
+;print, (time_ij2-time_ij1)/(time_ij6-time_ij0)
+;print, (time_ij3-time_ij2)/(time_ij6-time_ij0)
+;print, (time_ij4-time_ij3)/(time_ij6-time_ij0)
+
+;print, 'time to cut arrays', time_cut
+
+print, '% of time to do get_psf', (time_ij5-time_ij4)/(time_ij6-time_ij0)
+print, '% of time to do fit_psf', (time_ij6-time_ij5)/(time_ij6-time_ij0)
+print, 'total time=',time_ij6-time_ij0
+
+
+; now we need to step in the number of neighbours
+j+=(2*n_neighbors)
+
+
+              endfor       ; end loop over j lenslets (columns?)
+i+=(2*n_neighbors)
            endfor ; end loop over i lenslsets (rows?)
         endfor ; end loop over spots (1 for spectra, 2 for polarization)
         
         print, 'Iteration complete in '+strc((systime(1)-time0)/60.)+' minutes'
                                 ; put the fitted values into the originals before re-iterating
+;stop,'just about to modify centroids'
         spaxels.xcentroids = fitted_spaxels.xcentroids
         spaxels.ycentroids = fitted_spaxels.ycentroids
         spaxels.intensities= fitted_spaxels.intensities
         
-     endfor ; end loop over flexure iterations
+     endfor                     ; end loop over internal iterations
      
-                                ; if we are on the last interation for
-                                ; the flexure - do we want to end
-                                ;               here? I don't
-                                ;               think so because we
-                                ;               want the centroids to
-                                ;               be at their best
-                                ;               positions and the
-                                ;               flexures to be updated
-
      ;set the first file as the reference image/elevation.
      ;All the transformations to go from one elevation to another are computed from that image or to that image.
      not_null_ptrs = where(finite(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,0]), n_not_null_ptrs) ; select only the lenslets for which we have a calibration.
      ;The previous index vector will be used for all the images so it should be valid for all of them.
-     ;This should be fine if the all the images were computed using the same wavelnegth solution wich could be shifted using the lookup table.
-     xcen_ref = (spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,0])[not_null_ptrs] ;get the centroids coordinates (it's the only thing we need for this step)
-     ycen_ref = (spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,0])[not_null_ptrs]
-;     xcen_ref_rel = xcen_ref - spaxels.xcentroids[140,140,0,0]
-;     ycen_ref_rel = ycen_ref - spaxels.ycentroids[140,140,0,0]
-     
-                                ;declare the variables
-;     shift_x = fltarr(nfiles)
-;     shift_y = fltarr(nfiles)
-;     tip = fltarr(nfiles)
-;     tilt = fltarr(nfiles)
-;     shift_x[0] = 0.0
-;     shift_y[0] = 0.0
-;     tip[0] = 1.0
-;     tilt[0] = 1.0
-     
-     
-;     xtransf_ref_to_im = fltarr(3,nfiles)
-;     xtransf_im_to_ref = fltarr(3,nfiles)
-;     ytransf_ref_to_im = fltarr(3,nfiles)
-;     ytransf_im_to_ref = fltarr(3,nfiles)
+     ;This should be fine if the all the images were computed using the same wavelnegth solution which could be shifted using the lookup table.
 
+;get the reference centroids coordinates (it's the only thing we need for this step)
+     xcen_ref = (spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,0])[not_null_ptrs] 
+     ycen_ref = (spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,0])[not_null_ptrs]
+     
      degree_of_the_polynomial_fit = 2 ; degree of the polynomial surface used for the flexure correction
      ;declare the arrays which will contain the coefficients of the polynomial surface for every single image (ie elevation)
      ;The third dimension indicated which file to consider
@@ -376,220 +420,128 @@ debug=1
      ytransf_ref_to_im[0,1,0] = 1
      ytransf_im_to_ref[0,1,0] = 1
      
-     ;declare the two variables defining the mean. They will be set in the next loop by adding the contribution of each elevation to the mean
-     mean_xcen_ref = xcen_ref/nfiles
-     mean_ycen_ref = ycen_ref/nfiles
-     
-     
      ;loop over the other images with different elevations
-     ;We first compute the flexure transformation and then add the contribution of the current image to the mean position of the centroids.
+     ; note that we only compute the
+     ; it_elev=0 position for pixel phase reasons
+
+  ;We first compute the flexure transformation and then add the contribution of the current image to the mean position of the centroids.
      ;at the end of this loop we have all the transformation im->ref and ref>im for all the elevations and the mean position of the centroid in the reference image.
-     for it_elev = 1,nfiles-1 do begin
-     
-     ;Different methods were tried to compute the flexure correction. THey are commented.
-     ;The current one use a 2d polynomial surface. Contrary to the linear interpolation (shift + tip/tilt), it takes into account the distortion in x depending on y (and y on x).
-     
-;//////////////////////////independant axes lin fit with origin in the middle of the detector
-;        not_null_ptrs = where(finite(spaxels.xcentroids[*,*,k,0]), n_not_null_ptrs)
-;        xcen_ref = (spaxels.xcentroids[*,*,k,0])[not_null_ptrs]
-;        ycen_ref = (spaxels.ycentroids[*,*,k,0])[not_null_ptrs]
-;        xcen = (spaxels.xcentroids[*,*,k,it_elev])[not_null_ptrs]
-;        ycen = (spaxels.ycentroids[*,*,k,it_elev])[not_null_ptrs]
-;          
-;          window,0
-;          plot, xcen_ref, (xcen_ref - xcen) , psym = 3
-;          window,1
-;          plot,  (ycen_ref - ycen),ycen_ref, psym = 3
-;          
-;          coef_linfit = linfit(xcen_ref, xcen)
-;          tip = coef_linfit[1]
-;          shift_x = coef_linfit[0]/tip
-;          
-;          coef_linfit = linfit(ycen_ref, ycen)
-;          tilt = coef_linfit[1]
-;          shift_y = coef_linfit[0]/tilt
-;          
-;          new_xcen = (xcen - shift_x)/tip
-;          new_ycen = (ycen - shift_y)/tilt
-;          window,3
-;          plot, xcen_ref, (xcen_ref - new_xcen), psym = 3
-;          window,4
-;          plot,  (ycen_ref - new_ycen),ycen_ref, psym = 3
-        
-        
-;//////////////////////////independant axes lin fit
-;        xcen = (spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,it_elev])[not_null_ptrs]
-;        ycen = (spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,it_elev])[not_null_ptrs]
-;        xcen_rel = xcen - spaxels.xcentroids[140,140,0,0]
-;        ycen_rel = ycen - spaxels.ycentroids[140,140,0,0]
-;        
-;        coef_linfit = linfit(xcen_ref_rel, xcen_rel)
-;        tip[it_elev] = coef_linfit[1]
-;        shift_x[it_elev] = coef_linfit[0]/tip[it_elev]
-;        
-;        coef_linfit = linfit(ycen_ref_rel, ycen_rel)
-;        tilt[it_elev] = coef_linfit[1]
-;        shift_y[it_elev] = coef_linfit[0]/tilt[it_elev]
-;        
-;        new_xcen_rel = (xcen_rel/tip[it_elev] - shift_x[it_elev])
-;        new_ycen_rel = (ycen_rel/tilt[it_elev] - shift_y[it_elev])
-;        new_xcen = spaxels.xcentroids[140,140,0,0] + new_xcen_rel
-;        new_ycen = spaxels.ycentroids[140,140,0,0] + new_ycen_rel
-;        
-;        mean_xcen_ref = mean_xcen_ref+new_xcen/nfiles
-;        mean_ycen_ref = mean_ycen_ref+new_ycen/nfiles
-;        
-;          window,0
-;          plot, xcen_ref_rel, (xcen_ref_rel - xcen_rel) , psym = 3;, yrange = [0.8-0.6,0.8+0.6]
-;          window,1
-;          plot,  (ycen_ref_rel - ycen_rel),ycen_ref_rel, psym = 3;, xrange = [0.2-0.6,0.2+0.6]
-;          ;legend, ['ref','current elev'], psym = [1,3]
-;          window,3
-;          plot, xcen_ref_rel, (xcen_ref_rel - new_xcen_rel), psym = 3;, yrange = [-0.6,0.6]
-;          window,4
-;          plot,  (ycen_ref_rel - new_ycen_rel),ycen_ref_rel, psym = 3;, xrange = [-0.6,0.6]
-;          window,7 
-;          tvdl, (spaxels.xcentroids[*,*,0,0] - spaxels.xcentroids[*,*,0,4] + shift_x[it_elev])>(-0.1)<0.1
-;          window,8
-;          tvdl, (spaxels.ycentroids[*,*,0,0] - spaxels.ycentroids[*,*,0,4] + shift_y[it_elev])>(-0.1)<0.1
+     ;The current transformation method uses 2d polynomial surface. Contrary to the linear interpolation (shift + tip/tilt), it takes into account the distortion in x depending on y (and y on x).
 
+; mean position in referece arrays - for entire detector
+; only really good for showing errors in flexure etc
+     xcen_ref_arr=fltarr(N_ELEMENTS(xcen_ref),nfiles)
+     ycen_ref_arr=fltarr(N_ELEMENTS(ycen_ref),nfiles)
 
-;//////////////////////////independant axes poly fit
-;        xcen = (spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,it_elev])[not_null_ptrs]
-;        coef_polyfit = poly_fit(xcen_ref, xcen,2,yfit = myfit1)
-;        xcen_ref_in_im = poly(xcen_ref,coef_polyfit)
-;;        delta = coef_polyfit[1]^2-4*coef_polyfit[2]*(coef_polyfit[0]-xcen)
-;;        if coef_polyfit[2] gt 0.0 then new_xcen = (-coef_polyfit[1]+sqrt(delta))/(2*coef_polyfit[2]) else new_xcen = (-coef_polyfit[1]-sqrt(delta))/(2*coef_polyfit[2])
-;        xtransf_ref_to_im[*,it_elev] = coef_polyfit
-;        coef_polyfit = poly_fit(xcen,xcen_ref,2,yfit = myfit2)
-;        xcen_in_ref = poly(xcen,coef_polyfit)
-;        xtransf_im_to_ref[*,it_elev] = coef_polyfit
-;     
-;        ;in reference space
-;        window,0
-;        plot, xcen_ref, (xcen - xcen_ref) , psym = 3;, yrange = [0.8-0.6,0.8+0.6]
-;        oplot, xcen_ref, (myfit1 - xcen_ref), psym = 7, color = 150
-;        window,1
-;        plot, xcen_ref, (xcen_ref - xcen_in_ref) , psym = 3;, yrange = [0.8-0.6,0.8+0.6]
-;        
-;        ;in current image space
-;        window,0
-;        plot, xcen_ref, (xcen - xcen_ref) , psym = 3;, yrange = [0.8-0.6,0.8+0.6]
-;        oplot, xcen_ref, (myfit2 - xcen_ref), psym = 7, color = 150
-;        window,1
-;        plot, xcen_ref_in_im, (xcen_ref_in_im - xcen) , psym = 3;, yrange = [0.8-0.6,0.8+0.6]
-;        
-;        ycen = (spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,it_elev])[not_null_ptrs]
-;        coef_polyfit = poly_fit(ycen_ref, ycen,2,yfit = myfit3)
-;        ycen_ref_in_im = poly(ycen_ref,coef_polyfit)
-;;        delta = coef_polyfit[1]^2-4*coef_polyfit[2]*(coef_polyfit[0]-ycen)
-;;        if coef_polyfit[2] gt 0.0 then new_ycen = (-coef_polyfit[1]+sqrt(delta))/(2*coef_polyfit[2]) else new_ycen = (-coef_polyfit[1]-sqrt(delta))/(2*coef_polyfit[2])
-;        ytransf_ref_to_im[*,it_elev] = coef_polyfit
-;        coef_polyfit = poly_fit(ycen,ycen_ref,2,yfit = myfit4)
-;        ycen_in_ref = poly(ycen,coef_polyfit)
-;        ytransf_im_to_ref[*,it_elev] = coef_polyfit
-;        
-;        mean_xcen_ref = mean_xcen_ref+xcen_in_ref/nfiles
-;        mean_ycen_ref = mean_ycen_ref+ycen_in_ref/nfiles
-;        
-;        ;in reference space
-;        window,0
-;        plot, (ycen - ycen_ref), ycen_ref , psym = 3;, yrange = [0.8-0.6,0.8+0.6]
-;        oplot, (myfit3 - ycen_ref), ycen_ref, psym = 7, color = 150
-;        window,1
-;        plot, (ycen_ref - ycen_in_ref), xcen_ref , psym = 3;, yrange = [0.8-0.6,0.8+0.6]
-;        
-;        ;in current image space
-;        window,0
-;        plot, (ycen - ycen_ref), ycen_ref , psym = 3;, yrange = [0.8-0.6,0.8+0.6]
-;        oplot, (myfit4 - ycen_ref), ycen_ref, psym = 7, color = 150
-;        window,1
-;        plot, (ycen_ref_in_im - ycen), ycen_ref_in_im , psym = 3;, yrange = [0.8-0.6,0.8+0.6]
-;        
-;          window,7 
-;          tvdl, (spaxels.xcentroids[*,*,0,0] - spaxels.xcentroids[*,*,0,3])
-;          window,8
-;          tvdl, (spaxels.ycentroids[*,*,0,0] - spaxels.ycentroids[*,*,0,3])
-        
-;//////////////////////////independant axes surface fit
+     pp_xcen_ref_arr=fltarr((2*pp_neighbors+1.0)^2, nfiles)
+     pp_ycen_ref_arr=fltarr((2*pp_neighbors+1.0)^2, nfiles)
+
+     for it_elev = 0,nfiles-1 do begin
         ;Get the centroids of the current image (ie elevation)
         xcen = (spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,it_elev])[not_null_ptrs]
         ycen = (spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,it_elev])[not_null_ptrs]
         
-        ;First block computes the transformation from the reference to the current image for the x coordinates
-        data_sfit = [transpose(xcen_ref), transpose(ycen_ref),transpose(xcen)] ;Prepare the input for the sfit fitting function. xcen is function of xcen_ref and ycen_ref.
-        xcen_sfit = SFIT( data_sfit, degree_of_the_polynomial_fit, /IRREGULAR, KX=coef_sfit ) ;Fitting function with a polynamial surface of degree "degree_of_the_polynomial_fit".
-        xtransf_ref_to_im[*,*,it_elev] = coef_sfit ;Store the resulting coefficients into our own variable
-        xcen_ref_in_im = fltarr(n_elements(xcen_ref)) ;declare the new list of x coordinates for the centroids of the reference image transformed for the current image elevation.
-        ;Loop to compute xcen_ref_in_im using the previous coefficients. It only computes a 2d polynom.
-        ;JB: If someone now a real function to do that, feel free to change.
+        ;Computes the transformation from the reference to the current image for the x coordinates
+        ;Prepare the input for the sfit fitting function. xcen is function of xcen_ref and ycen_ref.
+        data_sfit = [transpose(xcen_ref), transpose(ycen_ref),transpose(xcen)] 
+        ;Fitting function with a polynamial surface of degree "degree_of_the_polynomial_fit".
+        xcen_sfit = SFIT( data_sfit, degree_of_the_polynomial_fit, /IRREGULAR, KX=coef_sfit)
+        ;Store the resulting coefficients 
+        xtransf_ref_to_im[*,*,it_elev] = coef_sfit 
+        ;declare the new list of the reference xcentroids in the image
+        ; from the current image (at a given elevation)
+        xcen_ref_in_im = fltarr(n_elements(xcen_ref)) 
+        ;Loop to compute xcen_ref_in_im using the previous coefficients. 
         for i=0,degree_of_the_polynomial_fit do for j= 0,degree_of_the_polynomial_fit do xcen_ref_in_im += xtransf_ref_to_im[i,j,it_elev]*xcen_ref^j * ycen_ref^i
         
-        ;Second block, x coordinates, from the image to the reference. (See first block for complete description)
+        ;Now, x coordinates, from the image to the reference. 
         data_sfit = [transpose(xcen), transpose(ycen),transpose(xcen_ref)]
         xcen_ref_sfit = SFIT( data_sfit, degree_of_the_polynomial_fit, /IRREGULAR, KX=coef_sfit )
         xtransf_im_to_ref[*,*,it_elev] = coef_sfit
         xcen_in_ref = fltarr(n_elements(xcen_ref))
         for i=0,degree_of_the_polynomial_fit do for j= 0,degree_of_the_polynomial_fit do xcen_in_ref += xtransf_im_to_ref[i,j,it_elev]*xcen^j * ycen^i
         
-        ;Third block, y coordinates, ref to im. (See first block for complete description)
+        ;Now, y coordinates, ref to im. 
         data_sfit = [transpose(xcen_ref), transpose(ycen_ref),transpose(ycen)]
         ycen_sfit = SFIT( data_sfit, degree_of_the_polynomial_fit, /IRREGULAR, KX=coef_sfit )
         ytransf_ref_to_im[*,*,it_elev] = coef_sfit
         ycen_ref_in_im = fltarr(n_elements(xcen_ref))
         for i=0,degree_of_the_polynomial_fit do for j= 0,degree_of_the_polynomial_fit do ycen_ref_in_im += ytransf_ref_to_im[i,j,it_elev]*xcen_ref^j * ycen_ref^i
         
-        ;Fourth block, y coordinates, im to ref. (See first block for complete description)
+        ;Now, y coordinates, im to ref. 
         data_sfit = [transpose(xcen), transpose(ycen),transpose(ycen_ref)]
         ycen_ref_sfit = SFIT( data_sfit, degree_of_the_polynomial_fit, /IRREGULAR, KX=coef_sfit )
         ytransf_im_to_ref[*,*,it_elev] = coef_sfit
         ycen_in_ref = fltarr(n_elements(xcen_ref))
         for i=0,degree_of_the_polynomial_fit do for j= 0,degree_of_the_polynomial_fit do ycen_in_ref += ytransf_im_to_ref[i,j,it_elev]*xcen^j * ycen^i
 
-        mean_xcen_ref = mean_xcen_ref+xcen_in_ref/nfiles
-        mean_ycen_ref = mean_ycen_ref+ycen_in_ref/nfiles
+; we want the mean position in the reference
+; already have the first component of the mean computed
+; now add the component to the mean
+        xcen_ref_arr[*,it_elev] = xcen_in_ref
+        ycen_ref_arr[*,it_elev] = ycen_in_ref
 
-;       ;The next few lines are there to be copy pasted in the console after a stop to test flexure correction with wavelength solution.
-;        a = readfits("/Users/jruffio/Shared_with_JB/S20130329S0046-H--wavecal.fits",exten_no=1)
-;        b = readfits("/Users/jruffio/Shared_with_JB/S20130329S0048-H--wavecal.fits",exten_no=1)
-;        xa = a[*,*,1]
-;        ya = a[*,*,0]
-;        xb = b[*,*,1]
-;        yb = b[*,*,0]
-;          window,8
-;          tvdl, (xb - xa)
-;          window,9
-;          tvdl, (yb - ya)
-;     not_null_ptrs = where(finite(xa) and finite(xb), n_not_null_ptrs)
-;     xcen_ref = (xa)[not_null_ptrs]
-;     ycen_ref = (ya)[not_null_ptrs]
-;     xcen = (xb)[not_null_ptrs]
-;     ycen = (yb)[not_null_ptrs]
+; plot pixel phase
+; only want the values from the neighbours
+        if 1 eq 1 then begin
+           pp_xcen = reform((spaxels.xcentroids[xind-pp_neighbors:xind+pp_neighbors,yind-pp_neighbors:yind+pp_neighbors,*,it_elev]),(2*pp_neighbors+1.0)^2)
+           pp_ycen = reform((spaxels.ycentroids[xind-pp_neighbors:xind+pp_neighbors,yind-pp_neighbors:yind+pp_neighbors,*,it_elev]),(2*pp_neighbors+1.0)^2)
+           ; bring into reference
+           ; first x
+           pp_xcen_in_ref = fltarr(n_elements(pp_xcen))
+           for i=0,degree_of_the_polynomial_fit do $
+              for j= 0,degree_of_the_polynomial_fit do $
+                 pp_xcen_in_ref += xtransf_im_to_ref[i,j,it_elev]*pp_xcen^j * pp_ycen^i
+           ;now y
+           pp_ycen_in_ref = fltarr(n_elements(pp_ycen))
+           for i=0,degree_of_the_polynomial_fit do $
+              for j= 0,degree_of_the_polynomial_fit do $
+                 pp_ycen_in_ref += ytransf_im_to_ref[i,j,it_elev]*pp_xcen^j * pp_ycen^i
+        
+           ; now we want to create/calculate a mean
+           if it_elev eq 0 then begin
+              pp_xcen_ref_arr[*,it_elev]=pp_xcen_in_ref
+              pp_ycen_ref_arr[*,it_elev]=pp_ycen_in_ref
+              ; now create centroid arrays
+              pp_xcens_arr=pp_xcen_in_ref
+              pp_ycens_arr=pp_ycen_in_ref
+           endif else begin
+              pp_xcen_ref_arr[*,it_elev] = pp_xcen_in_ref
+              pp_ycen_ref_arr[*,it_elev] = pp_ycen_in_ref
+              pp_xcens_arr=[pp_xcens_arr,[pp_xcen_in_ref]]
+              pp_ycens_arr=[pp_ycens_arr,[pp_ycen_in_ref]]
+           endelse
+        ;  window, 11 ;pixel phase of the image in the reference
+;  plot, mean_xcen_ref - floor(mean_xcen_ref) ,xcen_in_ref-mean_xcen_ref, psym = 3
 
-
+        endif
 
 ;////////////PLOTS PLOTS PLOTS PLOTS///////////////////
 ;          ;Plot in lenslet space the difference between the current image and the reference.
-;          window,8
+;          window,8,retain=2
 ;          tvdl, (spaxels.xcentroids[*,*,0,0] - spaxels.xcentroids[*,*,0,it_elev])
-;          window,9
+;          window,9,retain=2
 ;          tvdl, (spaxels.ycentroids[*,*,0,0] - spaxels.ycentroids[*,*,0,it_elev])
 ;        
 ;        ;The plots show the residuals in a 1d plot using different axes.
-;        ;in reference space
-;            ;x shift
-;        window,0
-;        plot, xcen_ref, (xcen - xcen_ref) , psym = 3;, yrange = [0.8-0.6,0.8+0.6]
-;        oplot, xcen_ref, (xcen_sfit - xcen_ref), psym = 3, color = 150
-;        window,1
-;        plot, xcen_ref, (xcen_in_ref - xcen_ref) , psym = 3;, yrange = [0.8-0.6,0.8+0.6]
-;        
-;        window,2
-;        plot, ycen_ref, (xcen - xcen_ref) , psym = 3;, yrange = [0.8-0.6,0.8+0.6]
-;        oplot, ycen_ref, (xcen_sfit - xcen_ref), psym = 7, color = 150
-;        window,3
-;        plot, ycen_ref, (xcen_in_ref - xcen_ref) , psym = 3;, yrange = [0.8-0.6,0.8+0.6]
-;        
+;        in reference space
+
+; so this represents the difference in positions between elevations
+           ;x shift
+;       window,0,retain=2
+;       plot, xcen_ref, (xcen - xcen_ref) , psym = 3;, yrange = [0.8-0.6,0.8+0.6]
+       ; this is the difference between the fit and 
+       ; the centroids in the reference for this elevation
+;       oplot, xcen_ref, (xcen_sfit - xcen_ref), psym = 3, color = 150
+;       window,1,retain=2
+;       plot, xcen_ref, (xcen_in_ref - xcen_ref) , psym = 3;, yrange = [0.8-0.6,0.8+0.6]
+       
+;       window,2,retain=2
+;       plot, ycen_ref, (xcen - xcen_ref) , psym = 3;, yrange = [0.8-0.6,0.8+0.6]
+;       oplot, ycen_ref, (xcen_sfit - xcen_ref), psym = 7, color = 150
+;       window,3,retain=2
+;       plot, ycen_ref, (xcen_in_ref - xcen_ref) , psym = 3;, yrange = [0.8-0.6,0.8+0.6]
+
 ;            ;y shift
 ;        window,4
 ;        plot, (ycen - ycen_ref), ycen_ref, psym = 3;, yrange = [0.8-0.6,0.8+0.6]
@@ -629,58 +581,91 @@ debug=1
 ;        oplot, (ycen_ref_sfit - ycen), xcen, psym = 7, color = 150
 ;        window,7
 ;        plot, (ycen_ref_in_im - ycen), xcen, psym = 3;, yrange = [0.8-0.6,0.8+0.6]
-        
+    
+    endfor   ; ends loop over different elevations
 
-; Test  using rotation matrix to go from an image to another
-;  loadct, 3
-;          X0 = [[new_xcen_rel],[new_ycen_rel]]
-;          th =  -0.0005 / (180.*3.14)
-;          res_rot = [[cos(th), -sin(th)],[sin(th),cos(th)]]#transpose(X0)
-;          new_xcen_rel_rot = reform(res_rot[0,*],1,n_elements(res_rot[0,*]))
-;          new_ycen_rel_rot = reform(res_rot[1,*],1,n_elements(res_rot[0,*]))
-;          window,5
-;          plot, xcen_ref_rel, (xcen_ref_rel - new_xcen_rel_rot), psym = 3, yrange = [-0.5,0.5]
-;          window,6
-;          plot,  (ycen_ref_rel - new_ycen_rel_rot),ycen_ref, psym = 3, xrange = [-0.5,0.5]  
-     endfor
-     
-     
-;  res_fit = CURVEFIT( xcen_ref - floor(xcen_ref), xcen_ref-mean_xcen_ref, xcen_ref*0.0 + 1.0, [0.01], FUNCTION_NAME="jb_sin" , /noderivative)
+;  pp_xcens_arr - these are the centroids in the reference image.
+
+; must calculate the means for pp_mean_xcen_ref
+pp_mean_xcen_ref=fltarr((2*pp_neighbors+1.0)^2)
+pp_mean_ycen_ref=fltarr((2*pp_neighbors+1.0)^2)
+
+;for i=0, (2*pp_neighbors+1.0)^2-1 do pp_mean_xcen_ref[i]=mean(pp_xcen_ref_arr[i,where(abs(pp_xcen_ref_arr[i,*]-median(pp_xcen_ref_arr[i,*],/even)) lt 2.5*robust_sigma(pp_xcen_ref_arr[i,*]))])
+;for i=0, (2*pp_neighbors+1.0)^2-1 do pp_mean_ycen_ref[i]=mean(pp_ycen_ref_arr[i,where(abs(pp_ycen_ref_arr[i,*]-median(pp_ycen_ref_arr[i,*],/even)) lt 2.5*robust_sigma(pp_ycen_ref_arr[i,*]))])
+
+for i=0, (2*pp_neighbors+1.0)^2-1 do begin
+	meanclip,pp_xcen_ref_arr[i,*],tmp_mean,tmp2, clipsig=2.5
+	pp_mean_xcen_ref[i]=tmp_mean
+;=mean(pp_xcen_ref_arr[i,where(abs(pp_xcen_ref_arr[i,*]-median(pp_xcen_ref_arr[i,*],/even)) lt 2.5*stddev(pp_xcen_ref_arr[i,*]))])
+endfor
+
+for i=0, (2*pp_neighbors+1.0)^2-1 do begin
+	meanclip,pp_ycen_ref_arr[i,*], tmp_mean, tmp, clipsig=2.5
+	pp_mean_ycen_ref[i]=tmp_mean
+;pp_mean_ycen_ref[i]=mean(pp_ycen_ref_arr[i,where(abs(pp_ycen_ref_arr[i,*]-median(pp_ycen_ref_arr[i,*],/even)) lt 2.5*stddev(pp_ycen_ref_arr[i,*]))])
+endfor
+
+xresid=fltarr((2*pp_neighbors+1.0)^2*nfiles)
+xpp=fltarr((2*pp_neighbors+1.0)^2*nfiles)
+incre=(2*pp_neighbors+1.0)^2
+for i=0,nfiles-1 do xresid[incre*i:incre*(i+1)-1]=pp_xcens_arr[incre*i:incre*(i+1)-1]-pp_mean_xcen_ref
+;for i=0,nfiles-1 do xpp[incre*i:incre*(i+1)-1]=pp_mean_xcen_ref-floor(pp_mean_xcen_ref+0.5)  
+xpp2=pp_xcens_arr-floor(pp_xcens_arr+0.5)  
+;window,1,retain=2,xsize=600,ysize=400
+;plot, xpp, xresid, psym = 3,xr=[-0.5,0.5],yr=[-0.12,0.12],/xs,/ys
+window,2,retain=2,xsize=600,ysize=400
+plot, xpp2, xresid, psym = 3,xr=[-0.5,0.5],yr=[-0.2,0.2],/xs,/ys,xtitle='X-pixel phase',ytitle='residuals (x-xbar)'
+
+yresid=fltarr((2*pp_neighbors+1.0)^2*nfiles)
+ypp=fltarr((2*pp_neighbors+1.0)^2*nfiles)
+incre=(2*pp_neighbors+1.0)^2
+for i=0,nfiles-1 do yresid[incre*i:incre*(i+1)-1]=pp_ycens_arr[incre*i:incre*(i+1)-1]-pp_mean_ycen_ref
+;for i=0,nfiles-1 do ypp[incre*i:incre*(i+1)-1]=pp_mean_ycen_ref-floor(pp_mean_ycen_ref+0.5)  
+ypp2=pp_ycens_arr-floor(pp_ycens_arr+0.5)  
+;window,3,retain=2,xsize=600,ysize=400
+;plot, ypp, yresid, psym = 3,xr=[-0.5,0.5],yr=[-0.12,0.12],/xs,/ys
+window,4,retain=2,xsize=600,ysize=400
+plot, ypp2, yresid, psym = 3,xr=[-0.5,0.5],yr=[-0.2,0.2],/xs,/ys,xtitle='Y-pixel phase',ytitle='residuals (y-ybar)'
 
 
-;  ;plot the pixel phase error of the reference and of the last computed image in the loop.
-;  window, 10 ;pixel phase of the reference in the reference
-;  plot, mean_xcen_ref - floor(mean_xcen_ref) ,xcen_ref-mean_xcen_ref, psym = 3
-;  window, 11 ;pixel phase of the image in the reference
-;  plot, mean_xcen_ref - floor(mean_xcen_ref) ,xcen_in_ref-mean_xcen_ref, psym = 3
-;  window, 12 ;pixel phase of the image in the image (it means we have to get the mean in the image space first)
-;  mean_xcen_ref_in_im = fltarr(n_elements(xcen_ref))
-;  for i=0,degree_of_the_polynomial_fit do for j= 0,degree_of_the_polynomial_fit do mean_xcen_ref_in_im += xtransf_ref_to_im[i,j,it_elev]*xcen_ref^j * ycen_ref^i
-;  plot, mean_xcen_ref_in_im - floor(mean_xcen_ref_in_im) ,xcen-mean_xcen_ref_in_im, psym = 3
+;stop,"about to apply flexure correction to centroids"
 
+; calculate the mean position of each mlens psf - but use a rejection
+; must calculate the means for pp_mean_xcen_ref
+mean_xcen_ref=fltarr(N_ELEMENTS(xcen_ref))
+mean_ycen_ref=fltarr(N_ELEMENTS(ycen_ref))
+
+;for i=0, N_ELEMENTS(xcen_ref)-1 do mean_xcen_ref[i]=mean(xcen_ref_arr[i,where(abs(xcen_ref_arr[i,*]-median(xcen_ref_arr[i,*])) lt 2.5*robust_sigma(xcen_ref_arr[i,*]))])
+;for i=0, N_ELEMENTS(ycen_ref)-1 do mean_ycen_ref[i]=mean(ycen_ref_arr[i,where(abs(ycen_ref_arr[i,*]-median(ycen_ref_arr[i,*])) lt 2.5*robust_sigma(ycen_ref_arr[i,*]))])
+
+for i=0, N_ELEMENTS(xcen_ref)-1 do meanclip,xcen_ref_arr[i,*], mean_xcen_ref[i],tmp,clipsig=2.5
+
+for i=0, N_ELEMENTS(ycen_ref)-1 do meanclip,ycen_ref_arr[i,*], mean_ycen_ref[i],tmp, clipsig=2.5
+
+; transforms the mean positions of each spot back into their images
+; replaces each centroid with this mean position
     ;THE RESULT OF THE NEXT LOOP HAS NOT BEEN CHECK YET.
      x_id = not_null_ptrs mod 281
      y_id = not_null_ptrs / 281
      z_id = not_null_ptrs / (281L*281L)
      for it_elev = 0,nfiles-1 do begin
-;        spaxels.xcentroids[x_id,y_id,z_id,lonarr(n_elements(x_id))+it_elev] = tip[it_elev]*(mean_xcen_ref + shift_x[it_elev])
-;        spaxels.ycentroids[x_id,y_id,z_id,lonarr(n_elements(x_id))+it_elev] = tip[it_elev]*(mean_ycen_ref + shift_x[it_elev])
-        
-;        spaxels.xcentroids[x_id,y_id,z_id,lonarr(n_elements(x_id))+it_elev] = poly(mean_xcen_ref,xtransf_ref_to_im[*,it_elev])
-;        spaxels.ycentroids[x_id,y_id,z_id,lonarr(n_elements(x_id))+it_elev] = poly(mean_ycen_ref,ytransf_ref_to_im[*,it_elev])
-        
+
         mean_xcen_ref_in_im = fltarr(n_elements(xcen_ref))
-        for i=0,degree_of_the_polynomial_fit do for j= 0,degree_of_the_polynomial_fit do mean_xcen_ref_in_im += xtransf_ref_to_im[i,j,it_elev]*xcen_ref^j * ycen_ref^i
-        mean_ycen_ref_in_im = fltarr(n_elements(xcen_ref))
-        for i=0,degree_of_the_polynomial_fit do for j= 0,degree_of_the_polynomial_fit do mean_ycen_ref_in_im += ytransf_ref_to_im[i,j,it_elev]*xcen_ref^j * ycen_ref^i
+        for i=0,degree_of_the_polynomial_fit do for j= 0,degree_of_the_polynomial_fit do mean_xcen_ref_in_im += xtransf_ref_to_im[i,j,it_elev]*mean_xcen_ref^j * mean_ycen_ref^i
+
+        mean_ycen_ref_in_im = fltarr(n_elements(ycen_ref))
+        for i=0,degree_of_the_polynomial_fit do for j= 0,degree_of_the_polynomial_fit do mean_ycen_ref_in_im += ytransf_ref_to_im[i,j,it_elev]*mean_xcen_ref^j * mean_ycen_ref^i
+
+        ;stop,'in application of flexure correction'
         spaxels.xcentroids[x_id,y_id,z_id,lonarr(n_elements(x_id))+it_elev] = mean_xcen_ref_in_im
         spaxels.ycentroids[x_id,y_id,z_id,lonarr(n_elements(x_id))+it_elev] = mean_ycen_ref_in_im
-     endfor
+        
+     endfor                     ; ends loop over it_elev to apply flexure correction (line 670)
      
      ;//////STOP HERE if you want to play with the pixel phase plots or the centroid coordinates in the different images.
-     stop
+     ;stop,'just before end of flexure correction' ; this is where JB_TEST.sav is created
      
-  endfor
+  endfor ; end of flexure correction loop (over it_elev)
 
   
      print, 'Run complete in '+strc((systime(1)-time0)/60.)+' minutes'
@@ -711,6 +696,9 @@ debug=1
               endif      
            endfor
         endfor
+; set the values with no flat info to NaN
+ind=where(flat_field_arr2 eq 0.000)
+if ind[0] ne -1 then flat_field_arr[ind]=!values.f_nan
 ; so now loop over each pixel and calculate the weighted mean
         final_flat=fltarr(2048,2048)
         weights=fltarr(2048,2048,nfiles)
@@ -719,10 +707,41 @@ debug=1
         final_flat2=total(weights*flat_field_arr2,3)/total(weights,3)
            writefits, "flat_field_arr.fits",flat_field_arr
         endif
+; for lenslet 135,135 
+tvdl, subarr(final_flat2,100,[953,978]),0,2
+        
+; ####################
+; create flexure plots
+; ####################
+; stored in xtransf_im_to_ref
+xx=(fltarr(2048)+1)##findgen(2048)
+xx1d=reform(xx,2048*2048)
+yy=findgen(2048)##(fltarr(2048)+1)
+yy1d=reform(yy,2048*2048)
 
-        
-        
-  stop
+xflex_trans_arr1d=fltarr(2048*2048,nfiles)
+for it_elev=0,nfiles-1 do $
+	for i=0,degree_of_the_polynomial_fit do $
+		for j= 0,degree_of_the_polynomial_fit do $
+			xflex_trans_arr1d[*,it_elev] += xtransf_im_to_ref[i,j,it_elev]*xx1d^j * yy1d^i
+; now put back into 2-d arrays
+xflex_trans_arr2d=(reform(xflex_trans_arr1d,2048,2048,nfiles))
+; we want the difference, so we must subtract the xx array
+for it_elev=0,nfiles-1 do xflex_trans_arr2d[*,*,it_elev]-=xx
+
+; now do it in the y-direction
+yflex_trans_arr1d=fltarr(2048*2048,nfiles)
+for it_elev=0,nfiles-1 do $
+	for i=0,degree_of_the_polynomial_fit do $
+		for j= 0,degree_of_the_polynomial_fit do $
+			yflex_trans_arr1d[*,it_elev] += ytransf_im_to_ref[i,j,it_elev]*xx1d^j * yy1d^i
+; now put back into 2-d arrays
+yflex_trans_arr2d=(reform(yflex_trans_arr1d,2048,2048,nfiles))
+; we want the difference, so we must subtract the xx array
+for it_elev=0,nfiles-1 do yflex_trans_arr2d[*,*,it_elev]-=yy
+
+
+
 ;  writefits, "/home/LAB/Desktop/diff_image7.fits",diff_image
 ;  writefits, "/home/LAB/Desktop/new_image.fits",new_image
 ;  writefits, "/users/jruffio/Desktop/diff_image7.fits",diff_image
