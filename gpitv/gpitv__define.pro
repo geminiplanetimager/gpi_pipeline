@@ -12006,11 +12006,22 @@ endfor
        ytitle = 'X [Pixel Value]', $
        color = col, xmargin=[15,3]
 
+    meanXcen = mean(cents[0,*])
+	plots, [min(*(*self.state).CWV_ptr), max(*(*self.state).CWV_ptr)], [meanXcen, meanXcen], /lines, color=6
+	xyouts, min(*(*self.state).CWV_ptr)+0.05, meanXcen+0.01, "Mean: "+strc(meanXcen), color=6, charsize=1.5
+
+
   plot,(*(*self.state).CWV_ptr),cents[1,*],$
        xst = 3, yst = 3, psym = 4, $
        ytitle = 'Y [Pixel Value]', $
        color = col, xmargin=[15,3], $
        xtitle = 'Wavelength ['+'!4' + string("154B) + '!Xm]' ;;"just here to keep emacs from flipping out
+
+
+    meanYcen = mean(cents[1,*])
+	plots, [min(*(*self.state).CWV_ptr), max(*(*self.state).CWV_ptr)], [meanYcen, meanYcen], /lines, color=6
+	xyouts, min(*(*self.state).CWV_ptr)+0.05, meanYcen+0.01, "Mean: "+strc(meanYcen), color=6, charsize=1.5
+
   
   ;;put window back to orig state
   !P.MULTI = pmulti0
