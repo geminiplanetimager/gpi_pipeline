@@ -142,7 +142,7 @@ function calibrate_with_PSF, DataSet, Modules, Backbone
   time0=systime(1) 
 ; start the iterations
   it_max=1
-  it_flex_max = 2
+  it_flex_max = 3
   
 ; make an array to look at the stddev as a function of iterations
 
@@ -638,10 +638,15 @@ mean_ycen_ref=fltarr(N_ELEMENTS(ycen_ref))
 ;for i=0, N_ELEMENTS(xcen_ref)-1 do mean_xcen_ref[i]=mean(xcen_ref_arr[i,where(abs(xcen_ref_arr[i,*]-median(xcen_ref_arr[i,*])) lt 2.5*robust_sigma(xcen_ref_arr[i,*]))])
 ;for i=0, N_ELEMENTS(ycen_ref)-1 do mean_ycen_ref[i]=mean(ycen_ref_arr[i,where(abs(ycen_ref_arr[i,*]-median(ycen_ref_arr[i,*])) lt 2.5*robust_sigma(ycen_ref_arr[i,*]))])
 
-for i=0, N_ELEMENTS(xcen_ref)-1 do meanclip,xcen_ref_arr[i,*], mean_xcen_ref[i],tmp,clipsig=2.5
+for i=0, N_ELEMENTS(xcen_ref)-1 do begin
+	meanclip,xcen_ref_arr[i,*], tmp_mean, tmp,clipsig=2.5
+	mean_xcen_ref[i]=tmp_mean
+endfor
 
-for i=0, N_ELEMENTS(ycen_ref)-1 do meanclip,ycen_ref_arr[i,*], mean_ycen_ref[i],tmp, clipsig=2.5
-
+for i=0, N_ELEMENTS(ycen_ref)-1 do begin
+	meanclip,ycen_ref_arr[i,*], tmp_mean,tmp, clipsig=2.5
+	mean_ycen_ref[i]=tmp_mean
+endfor
 ; transforms the mean positions of each spot back into their images
 ; replaces each centroid with this mean position
     ;THE RESULT OF THE NEXT LOOP HAS NOT BEEN CHECK YET.
@@ -741,7 +746,7 @@ yflex_trans_arr2d=(reform(yflex_trans_arr1d,2048,2048,nfiles))
 for it_elev=0,nfiles-1 do yflex_trans_arr2d[*,*,it_elev]-=yy
 
 
-
+stop
 ;  writefits, "/home/LAB/Desktop/diff_image7.fits",diff_image
 ;  writefits, "/home/LAB/Desktop/new_image.fits",new_image
 ;  writefits, "/users/jruffio/Desktop/diff_image7.fits",diff_image
