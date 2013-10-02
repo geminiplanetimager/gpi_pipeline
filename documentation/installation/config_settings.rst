@@ -53,8 +53,11 @@ autogui_auto_queue                      0,1                              Unused?
 prompt_user_for_questionable_data       0,1                              Unused?        if set, when the pipeline encounters a "questionable" (aborted/lousy seeing/otherwise 
                                                                                         flagged as bad DQ) frame, it should ask the user whether to process that file or not. 
                                                                                         If this is not set, the pipeline will silently discard the file.
-prompt_user_for_overwrite               0,1                              1              If this is set, users will be asked before the pipeline overwrites any existing output
-                                                                                        FITS files, and offered a chance to choose a different output filename.
+file_overwrite_handling                 overwrite,ask,append            ask             How should the pipeline act when it tries to output a file but a file with that filename
+                                                                                        already exists on disk? Depending on this option it will either 'ask' the user for
+                                                                                        confirmation before overwriting and offer a chance to choose a different filename,
+                                                                                        'append' a number to the filename to generate a new unique filename such that both
+                                                                                        the old and new file will remain on disk, or 'overwrite' to just overwrite the existing file.
 force_rescan_config_on_startup          0,1                              0              When you start the pipeline, force an automatic rescan of the pipeline primitives
                                                                                         and other settings. (Regenerate the index of available primitives, compile all, etc.)
                                                                                         Equivalent to pressing the Rescan Config button on the Status Console. a
