@@ -168,7 +168,7 @@ function extract_one_spectrum2, DataSet, Modules, Backbone
      lamp=backbone->get_keyword( 'GCALLAMP',count=c1)
      calc_res=0
 
-     ;;calculate spectral resolution onl in the following specific cases:
+     ;;calculate spectral resolution only in the following specific cases:
      if strmatch(obstype, '*wavecal*')   then begin
         case band of 
            'H':begin
@@ -179,6 +179,14 @@ function extract_one_spectrum2, DataSet, Modules, Backbone
                  calc_res=1
                  nterm=3
               endif
+              if strmatch(lamp, '*Xe*',/fold) then begin
+                 lammin=1.51
+                 lammax=1.57
+                 refpic=1.54226
+                 calc_res=1
+                 nterm=3
+              endif
+
            end
            'J':begin
               if strmatch(lamp, '*Xe*',/fold) then begin
@@ -229,11 +237,13 @@ function extract_one_spectrum2, DataSet, Modules, Backbone
            
            ;;let's see what the resolution vs fov
            specresfov=fltarr((size(main_image_stack))[1],(size(main_image_stack))[2])
+           centergauss=fltarr((size(main_image_stack))[1],(size(main_image_stack))[2])
            for xx=0, (size(main_image_stack))[1]-1 do begin
               for yy=0, (size(main_image_stack))[2]-1 do begin
                  spectrum=main_image_stack[xx,yy,*]
                  if (total(finite(spectrum)) gt 5) then begin
                     res=gaussfit(xlam[indwav], spectrum[indwav],A,nterms=nterm)
+                    centergauss[xx,yy]=A[1]
                     fwhm=2.*sqrt(2.*alog(2.))*A[2]
                     specresfov[xx,yy]=refpic/FWHM
                  endif
@@ -303,7 +313,45 @@ function extract_one_spectrum2, DataSet, Modules, Backbone
   endif 
 ;drpPushCallStack, functionName
 
-  return, ok
 
+bins=0.001
+;H-Band
+;minp=1.5
+;maxp=1.8
+;Y-Band
+;minp=0.9
+;maxp=1.2
+;J-Band
+minp=1.1
+maxp=1.35
+;k1-Band
+;minp=1.95
+;maxp=2.2
+hist1=HISTOGRAM(centergauss, MIN = minp, MAX = maxp, BINSIZE = bins, locations=loc) 
+ histcum=total(hist1,/cum)
+indtheoemission = where(strength eq 1.)
+wavtheo=wavelen[indtheoemission]
+if band eq "H" then wavtheo=1.54226
+if band eq "Y" then wavtheo=0.965778
+if band eq "J" then wavtheo=1.2626
+if band eq "K1" then wavtheo=2.02677
+void = max(hist1,indmax)
+maxwav=loc[indmax]
+openps,"emissionlineshist"+band+"band.ps",  ysize=20, xsize=20
+!P.MULTI = [0, 1, 2, 0, 0] 
+ plot,loc,hist1,ytitle='# of lenslets', xtitle='Mesured wavelength of the emission line [um]',$
+linestyle=0, charsize=1.5 ,xstyle=1;,yrange=platescale*[-1.,1.];,yrange=platescale*[min(poscompy_und)-1.,max(poscompy_und)+1.]
+plots, [wavtheo,wavtheo], [0, max(hist1)],linestyle=1, color=cgcolor('blue'), /clip
+xyouts, 0.98*minp,1.15*max(hist1),"Difference [in detector pixel] between expected and measured emission line="+strc((maxwav-wavtheo)/(0.3/37.),format='(g7.3)'), charsize=1.1
+plot,loc,histcum/max(histcum)*100.,ytitle='Cumulative # of lenslets [%]', xtitle='Mesured wavelength of the emission line  [um]',$
+linestyle=0, charsize=1.5
+plots, [wavtheo,wavtheo], [0, 100.], color=cgcolor('blue'),linestyle=1;, /clip
+;legend,['barycentric centroid','mpfit2dpeak'], linestyle=[0,1,2]
+closeps
+ 
+
+
+
+  return, ok
 
 end
