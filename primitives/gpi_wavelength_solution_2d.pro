@@ -219,7 +219,7 @@ for i = istart,iend do begin
                 
                endfor
 
-        backbone->Log,"Lenslet fitting"+sigfig((i/iend)*100,3)+"% complete"
+        backbone->Log,"Have now fit"+strc(i*j)+"/78961 lenslets"
 
         endfor
 
