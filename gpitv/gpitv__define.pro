@@ -7995,7 +7995,7 @@ if cc gt 0 then begin
     if val eq 3 then readmodestr += "-"+strc(gpi_get_keyword(h, e,'READS')/2) ; convert from total reads to read pairs for MCDS
     if val eq 4 then readmodestr += "-"+strc(gpi_get_keyword(h, e,'READS'))
     ncoadds = gpi_get_keyword(h, e, 'COADDS')
-    if ncoadds gt 1 then readmodestr += " *"+strc(gpi_get_keyword(h, e,'COADDONE'))
+    if ncoadds gt 1 then readmodestr += " *"+strc(gpi_get_keyword(h, e,'COADDS'))
 endif else readmodestr = 'No info'
 widget_control, (*self.state).readmode_id, set_value = readmodestr
 
