@@ -322,6 +322,16 @@ R       Rotate image by arbitrary angle
    !,@,#   Save current view to blink_image 1,2,3 (note these are Shift-1,2,3 respectively)
 
 
+Displaying the state of GPI during some FITS file
+--------------------------------------------------------
+
+
+If you have the ``gpidiagram`` display utility available in your $PATH, then gpitv can launch a
+gpidiagram display to show the state of most important mechanisms in GPI at the time that file was taken
+(based on the state information in the FITS header). 
+
+Note that this requires you have ``gpidiagram`` in your $PATH directly, not an alias, or else gpitv won't be able
+to find it. 
 
 .. rubric:: Footnotes
 
