@@ -67,12 +67,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 				*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile],$
 				ignore_cooldown_cycles = ignore_cooldowns[i], /verbose) 
 
-		if size(c_file,/tname) eq 'int' then begin ; this will only happen if NOT_OK = -1 is returned
-			;if c_file eq not_ok then begin
+		if strmatch(size(c_file,/tname), 'int',/fold_case) then begin ; this will only happen if NOT_OK = -1 is returned
 			if required[i] then begin
 				return, error('ERROR ('+strtrim(functionname)+'): bad pix mask of type '+bptypes[i]+' could not be found in calibrations database.')
 			endif else begin
 				backbone->Log, "Could not find any file for optional bad pixel type "+bptypes[i]
+				backbone->Log, "  That file is optional so we are continuing anyway."
 				continue
 			endelse
 
@@ -89,6 +89,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		if n_elements(*data.image) ne 2048l*2048 then begin
 		   return, error ('ERROR ('+strtrim(functionname)+'): calibration file  ' + strtrim(string(c_file),2) + ' does not have the correct size or dimensions.' )
 		endif
+
+		; hard coded workaround temporary fix for over-aggressive cold pix masking from
+		; Jan 13
+		;if bptypes[i] eq 'coldbadpix' then (*data.image)[*, 2025:2032] = 0
+
 		bpmasks[*,*,i] = *data.image
 
 		backbone->Log, "From file "+c_file+", have "+strc(fix(total(*data.image)))+" "+types[i]
