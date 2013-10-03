@@ -35,10 +35,10 @@ changes will be visible to everyone.
 
 
 .. note::
-   The official release copy at `http://docs.planetimager.org/pipeline/`_ is only built manually,
+   The official release copy at http://docs.planetimager.org/pipeline/ is only built manually,
    generally whenever there is a new version of the pipeline software released publicly.
 
-   There is also a nightly build of the latest documentation available at `http://docs.planetimager.org/pipeline_dev/`_.
+   There is also a nightly build of the latest documentation available at http://docs.planetimager.org/pipeline_dev/
 
 
 Some Sphinx Syntax Tips
@@ -53,7 +53,20 @@ is that you don't use dollar signs to enclose it, you use the string ":math:" an
 Building the docs
 ------------------
 
-cd to the root directory `documentation`. If Sphinx is installed on your computer, you should be able to just run `make html`::
+**Requirements:** You will need the `sphinx documentation tool <http://sphinx-doc.org>`_ and 
+its `numpydoc extension <https://pypi.python.org/pypi/numpydoc>`_. We assume you already have
+an installation of python; if not you will need that too. See `Installing Scientific Python <http://python4astronomers.github.com/installation/python_install.html>`_ for installation advice. 
+
+Assuming you have the `pip <http://www.pip-installer.org/en/latest/installing.html>`_ python package installer, 
+you can easily install the required tools from `PyPI <https://pypi.python.org/pypi>`_::
+
+   >>> pip install Sphinx
+   >>> pip install numpydoc
+
+
+
+**How to build**
+cd to the root directory `documentation`. If Sphinx is propery installed, you should be able to just run `make html`::
 
     >>> make html
     [huge printout of compiling status informational messages]
@@ -63,22 +76,11 @@ cd to the root directory `documentation`. If Sphinx is installed on your compute
          open  ./doc_output/html/index.html
 
 
-The documentation will be built to html and you can view it locally. A similar command on the server will 
+The documentation will be built to HTML and you can view it locally. A similar command on the server will 
 update the documentation there. 
 
 You can also similarly build the documentation to PDF, LaTeX, Windows Help, or several other formats as desired. Use ``make help`` to see the available output formats. 
 
-
-**Requirements:** You will need the `sphinx documentation tool <http://sphinx-doc.org>`_ and 
-its `numpydoc extension <https://pypi.python.org/pypi/numpydoc>`_. We assume you already have
-an installation of python; if not you will need that too. See `Installing Scientific Python <http://python4astronomers.github.com/installation/python_install.html>`_ for installation advice. 
-
-You can install the required tools from `PyPI <https://pypi.python.org/pypi>`_::
-
-   >>> pip install Sphinx
-   >>> pip install numpydoc
-
-(You can also use the 'easy_install' Python installer, but that is deprecated and `pip <http://www.pip-installer.org/en/latest/installing.html>`_ is now the recommended package installer.)
 
 
 Documenting Primitives
