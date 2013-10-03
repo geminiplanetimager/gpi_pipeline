@@ -315,7 +315,7 @@ endif
     ;load the microphonics model
     calfiletype = 'micro'
     c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headersphu)[numfile],*(dataset.headersext)[numfile] )
-    if ( not file_test ( string(c_file) ) ) then return, error ('error in call ('+strtrim(functionname)+'): calibration file  ' +  strtrim(string(c_file),2) + ' not found.' )
+    if ( ~ file_test ( string(c_file) ) ) then return, error ('error in call ('+strtrim(functionname)+'): calibration file  ' +  strtrim(string(c_file),2) + ' not found.' )
     
     micro_noise_abs_model = gpi_readfits(c_File,header=Header)
     ;micro_noise_abs_model = readfits("/Users/jruffio/IDLWorkspace/pipeline/primitives/microphonics_model_abs_normalized.fits")

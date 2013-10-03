@@ -31,7 +31,7 @@ calfiletype = 'flat'
     specflat = gpi_readfits(c_File)
 
     ; error check sizes of arrays, wavelengths are consistent, etc. 
-    if not array_equal( (size(*(dataset.currframe[0])))[1:3], (size(specflat))[1:3]) then $
+    if ~ array_equal( (size(*(dataset.currframe[0])))[1:3], (size(specflat))[1:3]) then $
         return, error('FAILURE ('+functionName+'): Supplied flat field and data cube files do not have the same dimensions')
 
 	minwavelength = backbone->get_keyword('DRP_WMIN', count=mincount)

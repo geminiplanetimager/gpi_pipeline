@@ -81,8 +81,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 			backbone->set_keyword, 'history',"  "+c_file 
 		endelse
 
-		c_file = gpi_expand_path(c_file)  
-		if ( not file_test ( c_file ) ) then $
+		c_file = gpi_expand_path(c_file) 
+		if ( ~ file_test ( c_file ) ) then $
 		   return, error ('ERROR ('+strtrim(functionname)+'): calibration file  ' +  strtrim(string(c_file),2) + ' not found.' )
 
 		data = gpi_load_fits(c_File)
