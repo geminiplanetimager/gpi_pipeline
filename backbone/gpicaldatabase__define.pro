@@ -438,7 +438,8 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	; just 'itime' unless someone has another opinion?
 
                                 ; FIXME perhaps this should be a configuration file instead?
-        types_str =[['dark', 'Dark', 'itimeReadmode'], $
+        types_str =[['dark', 'Dark', 'ApproxItimeReadmode'], $  ;  dark with scaling of inttime allows 
+					['dark_exact', 'Dark', 'itimeReadmode'],  $ ;  dark with exact match required
                     ['wavecal', 'Wavelength Solution Cal File', 'FiltPrism'], $
                     ['flat', 'Flat Field', 'FiltPrism'], $
                                 ;['flat', 'Flat field', 'FiltPrism'], $
@@ -588,6 +589,36 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 		;		endif
 		;
 	end
+	'ApproxItimeReadmode': begin
+	    imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
+	   		((calfiles_table.readoutmode) eq readoutmode ) and $
+	   		(calfiles_table.itime) eq itime,cc)
+		errdesc = 'with same ITIME and Detector Readout Mode'
+		; NOTE: we are no longer going to hand back approximate matches, since
+		; that would involve rescaling in darks that we do not do. Instead, you
+		; must always have the appropriate ITIME darks. 
+
+		max_allowed_rescale = 3.0	
+	
+		; FIXME if no exact match found for itime, fall back to closest in time match
+		; which has approximately the right time within the allowed rescaling
+		; factor
+		if cc eq 0 then begin
+			self->Log, "No exact match found for ITIME, thus looking for closest approximate match instead",depth=3
+		   	imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
+				( (calfiles_table.itime gt itime/max_allowed_rescale) or (calfiles_table.itime lt itime*max_allowed_rescale)) , cc)
+			errdesc = 'with approximatedly same ITIME and Detector Readout Mode'
+			;deltatimes = calfiles_table[imatches_typeonly].itime - itime
+
+			;mindelta = min( abs(deltatimes), wmin)
+			;imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
+				            ;(calfiles_table.itime) eq calfiles_table[wmin[0]].itime,cc)
+
+	        self->Log, " Found "+strc(cc)+" approx matches with ITIME within a factor of "+sigfig(max_allowed_rescale,3)+" of ITIME="+strc(itime)
+
+
+		endif
+	end
 	'FiltPrism': begin
 		 imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
 	   		((calfiles_table.filter) eq filter ) and $
@@ -614,11 +645,24 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	if keyword_set(verbose) then self->Log, "Closest date offset is "+strc(timediff)
 
 
+	; If we are matching a wavecal, always return the closest in time without
+	; any other considerations. This is because we may be trying to match
+	; multiple wavecals taken during the night to measure the IFS internal flexure.
+	if strlowcase(type) eq 'wavecal' then begin
+  		ibest = imatches[minind]
+		bestcalib=(calfiles_table.PATH)[ibest]+path_sep()+(calfiles_table.FILENAME)[ibest]
+		;print, bestcalib
+		self->Log, "Returning best cal file= "+bestcalib,depth=3
+		
+		return, bestcalib
+	endif
+
+	; The logic is more complicated for other types of calibration files.
+
 	; If you have multiple calibration files of the same
 	; type within +-12 hrs of one another, use the one with the maximum
 	; integration time. The logic here is that combined data products used as calibration
 	; files will have higher exp time than their individual components. 
-	
 	within1day = where(abs( (calfiles_table.JD)[imatches] - ((calfiles_table.JD)[imatches])[minind] ) le 0.5, datecount)
 	
 
@@ -630,7 +674,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 		; multiple plausible files found within 1 day. Use the highest exposure
 		; time. If there are several with identical exposure time, use the 
 		; closest in time.
-		;
+		
 		if keyword_set(verbose) then self->Log, ' There are '+strc(datecount)+' possible cal files at that date +- 12 hrs.'
 		itimes =  ((calfiles_table[imatches])[within1day]).itime
 		maxitime = max(itimes, maxitimeind)
