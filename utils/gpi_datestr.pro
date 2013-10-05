@@ -26,9 +26,6 @@ FUNCTION gpi_datestr, jd=jd, current=current
 	endif
 
 	if keyword_set(current) then begin
-	    ; FIXME be more careful here about UTC vs local time?
-        ;caldat,systime(/julian,/utc),month,day,year, hour,minute,second
-        ;datestr = string(year mod 100,month,day,format='(i2.2,i2.2,i2.2)')
         datestr = string(systime(/julian,/utc),format = '(C(CYI2.2,CMOI2.2,CDI2.2))')
 
 	endif else if keyword_set(jd) then begin
