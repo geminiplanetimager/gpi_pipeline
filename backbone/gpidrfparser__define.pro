@@ -588,7 +588,7 @@ PRO gpidrfparser::startelement, URI, Local, qName, AttNames, AttValues
 ;		          endelse
 ;				ENDIF
 			ENDIF ELSE BEGIN
-				self->Log, 'ERROR: <fits/> element is incomplete, Probably no filename', DEPTH=2
+				self->Log, 'NOTE: <fits/> element has empty filename', DEPTH=2
 				;stop
    			    ;pipelineconfig.continueAfterDRFParsing = 0
 			ENDELSE
@@ -729,7 +729,7 @@ pro gpidrfparser::log, text, _extra=_extra
 		self.backbone->log, text, _extra=_extra
 	endif else begin
 		;message,"Log facility not available! Can't log: ",/info
-		message, text,/info, level=-1
+		if ~self.silent then message, text,/info, level=-1
 	endelse
 
 end
