@@ -584,11 +584,20 @@ pro parsergui::create_recipe_from_template, templatename, fitsfiles, current, da
 
 	; Generate output file name
         recipe=drf->get_summary() 
-	first_file=strsplit(fitsfiles[0],'S.',/extract)
+		first_file=strsplit(fitsfiles[0],'S.',/extract) ; split on letter S or period
         last_file=strsplit(fitsfiles[size(fitsfiles,/n_elements)-1],'S.',/extract)
         prefixname=string(self.num_recipes_in_table+1, format="(I03)")
 ;	outputfilename=datetimestr+"_"+prefixname+'_drf.waiting.xml'
+;
+
+	if n_elements(first_file) gt 2 then begin
+		; normal Gemini style filename
         outputfilename='S'+first_file[1]+'S'+first_file[2]+'-'+last_file[2]+'_'+recipe.shortname+'_drf.waiting.xml'
+	endif else begin
+		; somethinh else? e.g. temporary workaround for 
+        outputfilename=file_basename(first_file[0])+'-'+file_basename(last_file[0])+'_'+recipe.shortname+'_drf.waiting.xml'
+	endelse
+
 
 
 	outputfilename = self.drfpath + path_sep() + outputfilename

@@ -1516,7 +1516,18 @@ drf_summary = self.drf->get_summary()
      last_file=strsplit(fullfiles[size(fullfiles,/n_elements)-1],'S.',/extract)
      ;print,'drffilename = ', 'S'+last_file[1]+'S'+first_file[2]+'-'+last_file[2]+'_'+'_drf.waiting.xml'
      ;self.drffilename=datestr+'_'+hourstr+'_drf.waiting.xml'
-     self.drffilename='S'+last_file[1]+'S'+first_file[2]+'-'+last_file[2]+'_'+drf_summary.ShortName+'_drf.waiting.xml'
+
+
+    if n_elements(first_file) gt 2 then begin
+        ; normal Gemini style filename
+        outputfilename='S'+first_file[1]+'S'+first_file[2]+'-'+last_file[2]+'_'+drf_summary.shortname+'_drf.waiting.xml'
+    endif else begin
+        ; somethinh else? e.g. temporary workaround for
+        outputfilename=file_basename(first_file[0])+'-'+file_basename(last_file[0])+'_'+drf_summary.shortname+'_drf.waiting.xml'
+    endelse
+
+
+     self.drffilename= outputfilename
   endelse
 
   
@@ -1552,7 +1563,10 @@ drf_summary = self.drf->get_summary()
      for j = 0,n_elements(file)-1 do begin indirs[j] = strmid(file[j],0,ind[j]) & infiles[j] = strmid(file[j],ind[j]+1) & endfor
      indirsu = UNIQ(indirs, SORT(indirs))
 
-     ;;for multiple input directories, place symoblic links in
+	 ; absolute pathnames
+	 for i = 0,n_elements(file)-1 do file[i]=gpi_expand_path(file[i]) 
+
+     ;;for multiple input directories, place symbolic links in
      ;;output_dir/tmp
      if n_elements(indirsu) gt 1 then begin
         inputdirtmp = self.outputdir+path_sep()+'inputtmp'
