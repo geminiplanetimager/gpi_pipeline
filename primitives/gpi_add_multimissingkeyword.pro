@@ -24,10 +24,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 @__start_primitive
  
    if tag_exist( Modules[thisModuleIndex], "keyword1") && tag_exist( Modules[thisModuleIndex], "value1") then $
-   backbone->set_keyword, Modules[thisModuleIndex].keyword, Modules[thisModuleIndex].value1
+   backbone->set_keyword, Modules[thisModuleIndex].keyword1, Modules[thisModuleIndex].value1
 
    if tag_exist( Modules[thisModuleIndex], "keyword2") && tag_exist( Modules[thisModuleIndex], "value2") then $
-   backbone->set_keyword, Modules[thisModuleIndex].keyword, Modules[thisModuleIndex].value2
+   backbone->set_keyword, Modules[thisModuleIndex].keyword2, Modules[thisModuleIndex].value2
    
 
    
