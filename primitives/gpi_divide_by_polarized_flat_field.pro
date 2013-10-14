@@ -13,9 +13,7 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 3.5
-; PIPELINE TYPE: ALL/POL
 ; PIPELINE NEWTYPE: PolarimetricScience, Calibration
-; PIPELINE SEQUENCE: 11-
 ;
 ;
 ; HISTORY:
@@ -41,12 +39,8 @@ calfiletype='flat'
     ; update FITS header history
     backbone->set_keyword,'HISTORY', functionname+": dividing by flat",ext_num=0
     backbone->set_keyword,'HISTORY', functionname+": "+c_File,ext_num=0
-    ;fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": dividing by flat"
-    ;fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": "+c_File
 
     *(dataset.currframe) /= polflat
 
-    if tag_exist( Modules[thisModuleIndex], "Save") && tag_exist( Modules[thisModuleIndex], "suffix") then suffix+=Modules[thisModuleIndex].suffix
-  
 @__end_primitive
 end
