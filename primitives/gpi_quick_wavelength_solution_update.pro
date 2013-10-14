@@ -25,7 +25,6 @@
 ; PIPELINE ARGUMENT: Name="boxsizex" Type="Int" Range="[0,15]" Default="7" Desc="x dimension of a lenslet cutout"
 ; PIPELINE ARGUMENT: Name="boxsizey" Type="Int" Range="[0,50]" Default="24" Desc="y dimension of a lenslet cutout"
 ; PIPELINE ARGUMENT: Name="whichpsf" Type="Int" Range="[0,1]" Default="0" Desc="Type of psf 0;gaussian, 1;microlens"
-; PIPELINE ARGUMENT: Name="display" Type="string" Range="[yes|no]" Default="no" Desc='Show diagnostic plots when running?'
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="wavcal" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitvim_dispgrid" Type="int" Range="[0,500]" Default="15" Desc="1-500: choose gpitv session for displaying image output and wavcal grid overplotted, 0: no display "
@@ -112,6 +111,9 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
 
         ;backbone->Log,filter+lamp
         ;backbone->Log, gpi_get_directory('GPI_DRP_CONFIG_DIR')
+
+		if (filter ne 'Y') and (filter ne 'J') and (filter ne 'H') and (filter ne 'K1') and (filter ne 'K2') then return, error("Invalid IFSFILT keyword: "+filter)
+
         datafn = gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+filter+lamp+'.dat'
         readcol, datafn,wl,flux,skipline=1,format='F,F'
         readcol,datafn,nmgauss,numline=1,format='I'
@@ -302,8 +304,8 @@ backbone->set_keyword, "HISTORY", ext_num=0, "    Mean shifts (X,Y) vs. prior wa
   suffix='wavecal'
 
 ;Note the below is a quick hack stolen from save_currdata.pro and should be replaced
-
 ;wavecalimage=save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, "-"+filter+"-"+suffix, savedata=newwavecal,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile] ,output_filename=output_filename)
+	  prev_saved_fn = backbone_comm->get_last_saved_file() ; ideally this will be the 2D image which was saved right before this step
 
 
     if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
@@ -312,8 +314,20 @@ backbone->set_keyword, "HISTORY", ext_num=0, "    Mean shifts (X,Y) vs. prior wa
       if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
       if tag_exist( Modules[thisModuleIndex], "gpitvim_dispgrid") && ( fix(Modules[thisModuleIndex].gpitvim_dispgrid) ne 0 ) then $
            if strcmp(obstype,'flat',4,/fold) then im=im0
+
+
+	  last_saved_fn = backbone_comm->get_last_saved_file()
+	  my_base_fn = (strsplit(dataset.filenames[numFile], '_',/extract))[0]
+	  if strpos(prev_saved_fn, my_base_fn) ge 0 then begin
+
+		backbone_comm->gpitv, prev_saved_fn, session=fix(Modules[thisModuleIndex].gpitvim_dispgrid), dispwavecalgrid=output_filename, imname='Wavecal grid for '+  dataset.filenames[numfile]  ;Modules[thisModuleIndex].name
+	  endif else begin
+
+		backbone_comm->gpitv, double(image), session=fix(Modules[thisModuleIndex].gpitvim_dispgrid), header=*(dataset.headersPHU)[numfile], dispwavecalgrid=output_filename, imname='Wavecal grid for '+  dataset.filenames[numfile]  ;Modules[thisModuleIndex].name
+	  endelse
+
+	  
           
-      backbone_comm->gpitv, double(image), session=fix(Modules[thisModuleIndex].gpitvim_dispgrid), header=*(dataset.headersPHU)[numfile], dispwavecalgrid=output_filename, imname='Wavecal grid for '+  dataset.filenames[numfile]  ;Modules[thisModuleIndex].name
            ;gpitvms, double(im), ses=fix(Modules[thisModuleIndex].gpitvim_dispgrid),head=h,opt='dispwavcalgrid='+output_filename
     endif else begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $

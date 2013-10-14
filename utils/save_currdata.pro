@@ -86,18 +86,8 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 		return, error('FAILURE: supplied output directory is a blank string.')
 	endif
 
-	if ~file_test(s_OutputDir,/directory, /write) then begin
-
-		if gpi_get_setting('prompt_user_for_outputdir_creation',/bool, default=1) then $
-            res =  dialog_message('The requested output directory '+s_OutputDir+' does not exist. Should it be created now?', $
-            title="Nonexistent Output Directory", /question) else res='Yes'
-
-        if res eq 'Yes' then begin
-            file_mkdir, s_OutputDir
-        endif else begin
-			return, error("FAILURE: Directory "+s_OutputDir+" does not exist or is not writeable.",/alert)
-		endelse
-	endif
+	dir_ok = gpi_check_dir_exists(s_Outputdir)
+	if dir_ok eq NOT_OK then return, NOT_OK
 
 	; ensure we have a directory separator, if it's not there already
 	if strmid(s_OutputDir, strlen(s_OutputDir)-1,1) ne path_sep() then s_OutputDir+= path_sep()
@@ -250,8 +240,9 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	endif
 
 	;--- Update progress bar
-	statuswindow = (Backbone_comm->Getprogressbar() )
-	if obj_valid(statuswindow) then statuswindow->set_last_saved_file, c_File
+	;statuswindow = (Backbone_comm->Getprogressbar() )
+	;if obj_valid(statuswindow) then statuswindow->set_last_saved_file, c_File
+	if obj_valid(backbone_comm) then backbone_comm->set_last_saved_file, c_File
   
 	;--- Display image, if requested
 	if ( keyword_set( display ) ) && (display ne 0) then Backbone_comm->gpitv, c_File, ses=display

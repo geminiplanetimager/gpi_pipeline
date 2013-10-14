@@ -1190,6 +1190,17 @@ function gpiPipelineBackbone::getstatusconsole
     return, self.statuswindow
 end
 
+pro gpipipelinebackbone::set_last_saved_file, filename
+	self.last_saved_filename = filename
+    statuswindow = self->Getprogressbar() 
+	if obj_valid(statuswindow) then statuswindow->set_last_saved_file, filename
+
+end
+function gpipipelinebackbone::get_last_saved_file
+	return, self.last_saved_filename 
+end
+
+
 
 ;+-----------------------------------------------------------
 ; gpiPipelineBackbone__define
@@ -1211,6 +1222,7 @@ PRO gpiPipelineBackbone__define
             ;ReductionType:'', $
             CurrentlyExecutingModuleNumber:0, $
             TempFileNumber: 0, $ ; Used for passing multiple files to multiple gpitv sessions. See self->gpitv pro above
+			last_saved_filename: '', $ ; remember the last filename saved
             generallogfilename: '', $
             log_date: '',            $  ;date string of current log file
             verbose: 0, $
