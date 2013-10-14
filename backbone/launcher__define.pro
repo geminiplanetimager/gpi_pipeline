@@ -615,12 +615,12 @@ FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, cle
         ;FindPro, 'drfgui__define', dirlist=dirlist,/noprint
         dirpro= gpi_get_directory('GPI_DRP_DIR')
 
-    if file_test(dirpro+path_sep()+'gpi.bmp') then begin
-  		button_image = READ_BMP(dirpro+path_sep()+'gpi.bmp', /RGB) 
-  		button_image = TRANSPOSE(button_image, [1,2,0]) 
-  		sz = size(button_image)
-  		logo = WIDGET_draw( baseid2,   $
-  			SCR_XSIZE=sz[1] ,SCR_YSIZE=sz[2])
+		if file_test(dirpro+path_sep()+'gpi.bmp') then begin
+			button_image = READ_BMP(dirpro+path_sep()+'gpi.bmp', /RGB) 
+			button_image = TRANSPOSE(button_image, [1,2,0]) 
+			sz = size(button_image)
+			logo = WIDGET_draw( baseid2,   $
+				SCR_XSIZE=sz[1] ,SCR_YSIZE=sz[2])
 		endif	
 	
 		tmp = widget_label(baseid2, value=' ')
@@ -661,6 +661,12 @@ FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, cle
 
 		; init timer events to check:
 		widget_control, self.baseid, timer=1
+
+		; if at Gemini, automatically launch the autoreducer always upon
+		; startup.
+		if keyword_set(gpi_get_setting('at_gemini',default=0)) then self->launch, 'automaticreducer', session=44
+
+
 	endif
 
 
