@@ -22,14 +22,14 @@
 ;-
 
 
-pro select_window, num, show=show
+pro select_window, num, show=show, _extra=_extra
 
    Device, Window_State=theseWindows
     if (theseWindows[num] eq 1) then begin
         wset,num
         if keyword_set(show) then wshow
         return
-    endif else window, num
+    endif else window, num, _extra=_extra
 
 
 end
