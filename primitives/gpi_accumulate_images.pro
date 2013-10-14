@@ -18,13 +18,14 @@
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:
-;  2009-07-22: MDP started
+;   2009-07-22 MDP: started
 ;   2009-09-17 JM: added DRF parameters
+;   2013-08, 2013-10 MDP: Minor code formatting cleanup
 ;-
 
 Function gpi_accumulate_images, DataSet, Modules, Backbone
 
-primitive_version= '$Id$' ; get version from subversion to store in header history
+  primitive_version= '$Id$' ; get version from subversion to store in header history
   @__start_primitive
    
   thisModuleIndex = Backbone->GetCurrentModuleIndex()
@@ -64,5 +65,5 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	endcase
 
 
-if numfile  eq ((dataset.validframecount)-1) then return, OK else return, GOTO_NEXT_FILE
+if numfile  eq (dataset.validframecount-1) then return, OK else return, GOTO_NEXT_FILE
 end
