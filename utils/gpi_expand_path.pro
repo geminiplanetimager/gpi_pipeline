@@ -32,6 +32,8 @@
 ; 		as either $THIS, $(THIS), or ${THIS} and it will work in all cases.
 ;	2012-08-22 MP: Updated to work with new directory names set in ways other
 ;		than just environment variables (though those work still too)
+;	2013-10-07 MP: improved handling for absolute path specs in the middle of
+;					a string
 ;-
 
 
@@ -52,7 +54,20 @@ if res ge 0 then begin
 	first_char = strmid(varname,0,1)
 	if first_char eq '(' or first_char eq '{' then varname=strmid(varname,1,length-3)
 	if ~(keyword_set(vars_expanded)) or ~(keyword_set(recursion)) then vars_expanded = [varname] else vars_expanded =[vars_expanded,varname]
-	expanded = strmid(inputpath,0,res)+ gpi_get_directory(varname)+ strmid(inputpath,res+length)
+
+	var_value = gpi_get_directory(varname) 
+	; if we have a variable name starting with a / for absolute path, but
+	; then there is stuff prior to that in the file spec, we should log
+	; that confusing state but hand back a valid absolute path anyway.
+	
+	if strmid(var_value,0,1) eq '/' and strmid(inputpath,0,res) ne '' then begin
+		message,/info, 'Encountered absolute path variable in the middle of a filename; discarding everything that came before.'
+		expanded = gpi_get_directory(varname)+ strmid(inputpath,res+length)
+	endif else begin
+		expanded = strmid(inputpath,0,res)+ gpi_get_directory(varname)+ strmid(inputpath,res+length)
+	endelse
+
+
 	return, gpi_expand_path(expanded, vars_expanded=vars_expanded,/recursion) ; Recursion!
 endif
 
