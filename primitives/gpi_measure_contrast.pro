@@ -168,7 +168,10 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
                        ((size(cube,/dim))[2]-1)*100.+100.)
       endelse
 
-      if wind ne -1 then window,wind,xsize=800,ysize=600,retain=2 else begin
+      if wind ne -1 then begin
+		  ; reuse existing window if possible
+		  select_window,wind,xsize=800,ysize=600,retain=2 
+	  endif else begin
          odevice = !D.NAME
          set_plot,'Z',/copy
          device,set_resolution=[800,600],z_buffer = 0
