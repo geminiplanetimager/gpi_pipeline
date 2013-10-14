@@ -102,7 +102,7 @@ if ~strcmp(strtrim(backbone->get_keyword('OBSTYPE'), 2),'DARK') and (size_im[0] 
             
               ;handle if readwavcal or not used before
               if (nlens eq 0) || (dim eq 0)  then begin
-                 backbone->Log, "Skipping noise and flux analysis. Failed to load wavelength calibration data prior to calling this primitive.'
+                 backbone->Log, "Skipping noise and flux analysis. Failed to load wavelength calibration data prior to calling this primitive."
                  skipping = 1
               endif
             
