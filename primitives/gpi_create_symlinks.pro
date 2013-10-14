@@ -77,7 +77,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 
     dir_ok = gpi_check_dir_exists(link_destination)
-    if dir_ok = NOT_OK then return, NOT_OK
+    if dir_ok eq NOT_OK then return, NOT_OK
 
 
 	file_link,  file_to_link, link_destination
