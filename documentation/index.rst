@@ -32,6 +32,7 @@ Contents
    gpitv/index.rst
    ifs/index.rst
    developers/index.rst
+   faq.rst
 
 
 Indices and tables
