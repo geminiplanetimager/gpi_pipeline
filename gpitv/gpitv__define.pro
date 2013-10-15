@@ -495,6 +495,7 @@ state = {                   $
         retain_current_slice: 1, $       ; toggles stickiness of current image when loading new file
         retain_current_zoom: 1, $         ; align next image by default?
         retain_current_stretch: 0 ,$      ; use previous minmax for new image?
+        isfirstimage: 1, $                ; is this the first image?
         ;default_autoscale: 1, $          ; autoscale images by default?
         ;autozoom: 1 ,$                      ; zoom images to fit window on open?
         autohandedness: 1 ,$                ; flip images if necessary to have East counterclockwise of North on open?
@@ -5838,44 +5839,54 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   if (keyword_set(asinh))  then self->setscaling, 'asinh'
   if (keyword_set(sqrt))   then self->setscaling, 'square root'
   
-  if ~(*self.state).retain_current_zoom then begin
+  ;;reset zoom and centering if not retaining current zoom or if this
+  ;;is the first image
+  if ~(*self.state).retain_current_zoom || (*self.state).isfirstimage then begin
      (*self.state).zoom_level =  0
      (*self.state).zoom_factor = 1.0
+     
+     ;;need to generate a scaled image and pan image before calling
+     ;;autozoom (which calls self->refresh)
+     if (*self.state).isfirstimage then begin
+        self->scaleimage
+        self->makepan
+     endif 
 
      self->autozoom
-
-	 ; kill any state about having rotated or inverted the previous image
-	 (*self.state).rot_angle = 0
-	 (*self.state).invert_image = 'none'
-	 self->update_menustate_rotate_invert
-
-
-	  ; if asked, check if we need to flip to get handedness to normal astronomical
-	  ; left-handed sky
-	  ; This doesn't happen if retain_current_zoom is set. by design
-	  if (*self.state).autohandedness then self->autohandedness
+     
+     ;; kill any state about having rotated or inverted the previous image
+     (*self.state).rot_angle = 0
+     (*self.state).invert_image = 'none'
+     self->update_menustate_rotate_invert
+     
+     ;; if asked, check if we need to flip to get handedness to normal astronomical
+     ;; left-handed sky
+     ;; This doesn't happen if retain_current_zoom is set. by design
+     if (*self.state).autohandedness then self->autohandedness
 
   endif
-  self->recenter, align= (*self.state).retain_current_zoom ; must call recenter whether keeping alignment or not, to update some state vars
+  self->recenter, align=(*self.state).retain_current_zoom ; must call recenter whether keeping alignment or not, to update some state vars
 
   self->settitle
   self->set_minmax
   self->collapsecube
   self->setcubeslicelabel
-  
 
-  ; if asked, autoscale now
+  ;; if asked, autoscale now
   if ~(*self.state).retain_current_stretch then self->autoscale
   self->displayall
 
-  ; display the wavecalgrid, optionally
+  ;; display the wavecalgrid, optionally
   if keyword_set(dispwavecalgrid) && ((size(*self.images.main_image))[0] EQ 2) then begin
      (*self.state).wcfilename=dispwavecalgrid
      self->wavecalgrid, gridcolor=1, tiltcolor=2, labeldisp=0,  labelcolor=7, charsize=1.0, charthick=1
   endif
 
-  ; update all children
+  ;; update all children
   self->update_child_windows
+
+  ;;if you got here, you're no longer on the first image
+  if ~strcmp(imname,"NO IMAGE LOADED   ") then (*self.state).isfirstimage = 0
 
 end
 
