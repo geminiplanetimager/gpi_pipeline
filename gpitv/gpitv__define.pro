@@ -1477,7 +1477,10 @@ case event_name of
    'Draw Region': self->regionlabel
    'WCS Grid': self->wcsgridlabel
    'Select Wavecal File':begin
-      (*self.state).wcfilename= DIALOG_PICKFILE( TITLE='Select Wavecal File ', FILTER = '*.fits', FILE='*.fits',/MUST_EXIST )
+	  fitsfile = DIALOG_PICKFILE( TITLE='Select Wavecal File ', FILTER = '*wavecal*.fits', FILE='*.fits',/MUST_EXIST,$
+			path=gpi_get_directory('GPI_CALIBRATIONS_DIR'))
+     if (fitsfile EQ '') then return ; 'cancel' button returns empty string
+      (*self.state).wcfilename= fitsfile
       self->message, msgtype = 'information',  "Wavelength Cal file set to "+(*self.state).wcfilename 
    end
    'Get Wavecal from CalDB': self->getautowavecal
@@ -5598,8 +5601,10 @@ pro GPItv::readfits, fitsfilename=fitsfilename, imname=imname, _extra=_extra
   ;; If fitsfilename hasn't been passed to this routine, get filename
   ;; from dialog_pickfile.
   if (n_elements(fitsfilename) EQ 0) then begin
-     fitsfile = $
-        dialog_pickfile(filter = '*.fits', $
+		at_gemini = gpi_get_setting('at_gemini', /bool,default=0,/silent)
+		if keyword_set(at_gemini) then filter='S20'+gpi_datestr(/current)+"S*.fits" else filter ='*.fits,*.fits.gz'
+		fitsfile = $
+			dialog_pickfile(filter = filter, $
                         dialog_parent = (*self.state).base_id, $
                         /must_exist, $
                         /read, $
@@ -6530,8 +6535,9 @@ pro GPItv::writefits
 
 
 ; Get filename to save image
-;stop
-filename = dialog_pickfile(filter = '*.fits', $
+at_gemini = gpi_get_setting('at_gemini', /bool,default=0,/silent)
+if keyword_set(at_gemini) then filter='S20'+gpi_datestr(/current)+"S*.fits" else filter ='*.fits'
+filename = dialog_pickfile(filter = filter, $
                            file = 'GPItv.fits', $
                            dialog_parent =  (*self.state).base_id, $
                            path = (*self.state).output_dir, $
@@ -9367,10 +9373,10 @@ pro GPItv::plot, x, y, _extra = options
 ; variable structure, and plot the line plot
 
 
-if (not(xregistered(self.xname,/noshow))) then begin
-    self->message, msgtype='error','You need to start GPItv first!'
-    return
-endif
+;if (not(xregistered(self.xname,/noshow))) then begin
+;    self->message, msgtype='error','You need to start GPItv first!'
+;    return
+;endif
 
 if (N_params() LT 1) then begin
    self->message, msgtype='error', 'Too few parameters for GPItvPLOT.'
@@ -9412,10 +9418,10 @@ pro GPItv::xyouts, x, y, text, _extra = options
 ; variable structure, and overplot the text
 
 
-if (not(xregistered(self.xname, /noshow))) then begin
-    self->message, msgtype='error', 'You need to start GPItv first!'
-    return
-endif
+;if (not(xregistered(self.xname, /noshow))) then begin
+;    self->message, msgtype='error', 'You need to start GPItv first!'
+;    return
+;endif
 
 if (N_params() LT 3) then begin
    self->message, msgtype='error', 'Too few parameters for GPItvXYOUTS'
@@ -9462,10 +9468,10 @@ pro GPItv::arrow, x1, y1, x2, y2, _extra = options
 ; variable structure, and overplot the arrow
 
 
-if (not(xregistered(self.xname, /noshow))) then begin
-    self->message, msgtype='error', 'You need to start GPItv first!'
-    return
-endif
+;if (not(xregistered(self.xname, /noshow))) then begin
+;    self->message, msgtype='error', 'You need to start GPItv first!'
+;    return
+;endif
 
 if (N_params() LT 4) then begin
    self->message, msgtype='error', 'Too few parameters for GPItvARROW'
@@ -9509,10 +9515,10 @@ pro GPItv::regionfile, region_file
 ; structure, and overplot the regions
 
 
-if (not(xregistered(self.xname, /noshow))) then begin
-    self->message, msgtype='error', 'You need to start GPItv first!'
-    return
-endif
+;if (not(xregistered(self.xname, /noshow))) then begin
+;    self->message, msgtype='error', 'You need to start GPItv first!'
+;    return
+;endif
 
 if (self.pdata.nplot LT self.pdata.maxplot) then begin
    self.pdata.nplot = self.pdata.nplot + 1
@@ -9706,10 +9712,10 @@ pro GPItv::wcsgrid, _extra = options
 ; Routine to read in wcs overplot options, store in a heap variable
 ; structure, and overplot the grid
 
-if (not(xregistered(self.xname, /noshow))) then begin
-    self->message, msgtype='error', 'You need to start GPItv first!'
-    return
-endif
+;if (not(xregistered(self.xname, /noshow))) then begin
+;    self->message, msgtype='error', 'You need to start GPItv first!'
+;    return
+;endif
 
 if (self.pdata.nplot LT self.pdata.maxplot) then begin
    self.pdata.nplot = self.pdata.nplot + 1
@@ -9740,10 +9746,10 @@ pro GPItv::wavecalgrid, _extra = options
 ; structure, and overplot the grid
 
 
-if (not(xregistered(self.xname, /noshow))) then begin
-    self->message, msgtype='error', 'You need to start GPItv first!'
-    return
-endif
+;if (not(xregistered(self.xname, /noshow))) then begin
+;    self->message, msgtype='error', 'You need to start GPItv first!'
+;    return
+;endif
 
 
 if (self.pdata.nplot LT self.pdata.maxplot) then begin
@@ -11104,10 +11110,10 @@ pro GPItv::contour, z, x, y, _extra = options
 ; overplot correctly.
 
 
-if (not(xregistered(self.xname, /noshow))) then begin
-    self->message, msgtype='error', 'You need to start GPItv first!'
-    return
-endif
+;if (not(xregistered(self.xname, /noshow))) then begin
+;    self->message, msgtype='error', 'You need to start GPItv first!'
+;    return
+;endif
 
 if (N_params() LT 1) then begin
    self->message, msgtype='error', 'Too few parameters for GPItvCONTOUR.'
@@ -11152,11 +11158,11 @@ end
 pro GPItv::plotcolorbar,_extra=options
 
 
-	help, options
-   if (not(xregistered(self.xname, /noshow))) then begin
-      self->message, msgtype='error', 'You need to start GPItv first!'
-      return
-   endif
+;	help, options
+;   if (not(xregistered(self.xname, /noshow))) then begin
+;      self->message, msgtype='error', 'You need to start GPItv first!'
+;      return
+;   endif
 
    if (self.pdata.nplot lt self.pdata.maxplot) then begin
       self.pdata.nplot=self.pdata.nplot+1;
