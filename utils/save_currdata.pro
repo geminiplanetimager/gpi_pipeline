@@ -162,11 +162,11 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 		;'ask_user': begin
 		;'append_number': begin
 			; Append an extension number to the filename to avoid overwriting.
-			basefn = fsc_base_filename(c_File, extension=extfn)
+			basefn = fsc_base_filename(c_File, extension=extfn, directory=directory)
 			counter=0
 			while file_test(c_File) do begin
 				counter += 1
-				c_File = basefn + "_"+strc(counter)+"."+extfn
+				c_File = directory + basefn + "_"+strc(counter)+"."+extfn
 			endwhile
 			backbone_comm->Log, 'Appended _'+strc(counter)+" to output filename to avoid overwriting."
 		endif else begin

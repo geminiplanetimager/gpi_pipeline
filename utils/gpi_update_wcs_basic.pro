@@ -123,6 +123,7 @@ pro gpi_update_wcs_basic,backbone,imsize=imsize
   utend = backbone->get_keyword('UTEND',count=ct) & totcount += ct
   dateobs =  backbone->get_keyword('DATE-OBS',count=ct) & totcount += ct
   ngroup =  backbone->get_keyword('NGROUP',count=ct) & totcount += ct
+ 
   if (totcount ne 6)  then begin
      backbone->log,'GPI_UPDATE_WCS_BASIC: Could not extract timing information from header.'
      return
@@ -134,17 +135,19 @@ pro gpi_update_wcs_basic,backbone,imsize=imsize
   readtimed = double(readtime)/1d6/3600d0                   ;us -> dec hrs
   if utendd lt utstartd then dateline = 1 else dateline = 0 ;account for crossing UTC dateline
   expend = utendd - 0.5d0*readtimed
-  expstart = utendd - (ngroup-0.5)*readtimed
+  ;expstart = utendd - (ngroup-0.5)*readtimed
+  expstart = utendd - itime/3600d
   if expend lt 0d then begin
      expend += 24d0
      dateline = 0
   endif 
 
   ;;sanity checks
-  if (abs(itime/3600d - (expend-expstart)) gt 1d-6) || (expstart lt utstartd) then begin
+  ;if (abs(itime/3600d - (expend-expstart)) gt 1d-6) || (expstart lt utstartd) then begin
+  if expstart lt utstartd then begin   
      backbone->log,'GPI_UPDATE_WCS_BASIC: Error calculating exposure start and end times.'
      return
-  endif 
+  endif
 
   ;;get the date
   ymd0 = double(strsplit(dateobs,'-',/extract))
