@@ -15896,28 +15896,21 @@ if (not (xregistered(self.xname+'_histogram', /noshow))) then begin
     tmp_string = strcompress('Image Max:  ' + string((*self.state).image_max))
     max_label= widget_label(stats_base1, value = tmp_string, /align_left)
 
-
-    tmp_string = strcompress('# Pixels in Box:  ' + string(100000))
-    (*self.state).stat_npix_id = widget_label(stats_base2a, value = tmp_string,$
-      /align_left)
-    tmp_string = strcompress('Min:  ' + '0.00000000000')
-    (*self.state).statbox_min_id = widget_label(stats_base2a, value = tmp_string,$
-      /align_left)
-    tmp_string = strcompress('Max:  ' + '0.00000000000')
-    (*self.state).statbox_max_id = widget_label(stats_base2a, value = tmp_string, $
-      /align_left)
-    tmp_string = strcompress('Mean:  ' + '0.00000000000')
-    (*self.state).statbox_mean_id = widget_label(stats_base2a, value = tmp_string, $
-      /align_left)
-    tmp_string = strcompress('Median:  ' + '0.00000000000')
-    (*self.state).statbox_median_id = widget_label(stats_base2a, value = tmp_string, $
-      /align_left)
-    tmp_string = strcompress('StdDev:  ' + '0.00000000000')
-    (*self.state).statbox_stdev_id = widget_label(stats_base2a, value = tmp_string, $
-      /align_left)
-    tmp_string = strcompress('NbNan:  ' + '0000')
-    (*self.state).statbox_nbnan_id = widget_label(stats_base2a, value = tmp_string, $
-      /align_left)
+    tmp_string0 = 'Mean :   ' + '         '
+    tmp_string1 = '90% <:   ' + '         '
+    tmp_string2 = '95% <:   ' + '         '
+    tmp_string3 = '99% <:   ' + '         '
+    tmp_string4 = '99.9% <:   ' + '         '
+    tmp_string5 = 'Exp Time to Full Well for 99.5% :' 
+    tmp_string6 = ' TBD s                           ' 
+	
+    (*self.state).stat_npix_id =    widget_label(stats_base2a, value = tmp_string0, /align_left)
+    (*self.state).statbox_min_id =  widget_label(stats_base2a, value = tmp_string1, /align_left)
+    (*self.state).statbox_max_id =  widget_label(stats_base2a, value = tmp_string2,  /align_left)
+    (*self.state).statbox_mean_id = widget_label(stats_base2a, value = tmp_string3,  /align_left)
+    (*self.state).statbox_median_id= widget_label(stats_base2a, value = tmp_string4,  /align_left)
+    (*self.state).statbox_stdev_id = widget_label(stats_base2a, value = tmp_string5,  /align_left)
+    (*self.state).statbox_nbnan_id = widget_label(stats_base2a, value = tmp_string6,  /align_left)
 
 ;    stat_save = widget_button(stats_base2, value = 'Save Stats', $
 ;          uvalue = 'stats_save')
@@ -15949,68 +15942,78 @@ self->hist_refresh
 end
 
 
+;---------------
 pro GPItv::hist_refresh
 
-; Calculate histogram and update the results
+	; Calculate histogram and update the results
 
 
-self->setwindow, (*self.state).histplot_window_id
-erase
+	self->setwindow, (*self.state).histplot_window_id
+	erase
 
-im = (*self.images.main_image)
+	im = (*self.images.main_image)
 
-sz = size(im)
-if sz[1] eq 2048 and sz[2] eq 2048 then begin
-	; H2RG has ref pixels around the edge - ignore those
-	; custom for GPI
-	im = im[4:2043, 4:2043]
-endif
+	sz = size(im)
+	if sz[1] eq 2048 and sz[2] eq 2048 then begin
+		; H2RG has ref pixels around the edge - ignore those
+		; custom for GPI
+		im = im[4:2043, 4:2043]
+	endif
 
-wg = where(finite(im))
-im = im[wg]
+	wg = where(finite(im))
+	im = im[wg]
 
-plothist, im,/ylog, /xlog, $
-	xtitle="Pixel values", ytitle='Number of pixels', /nan
-
-self->resetwindow
+	plothist, im,/ylog, /xlog, $
+		xtitle="Pixel values", ytitle='Number of pixels', /nan
 
 
-sorted = im[sort(im)]
 
-npix = n_elements(im)
-print, "90%: "+strc(sorted[npix*0.9])
-print, "95%: "+strc(sorted[npix*0.95])
-print, "99%: "+strc(sorted[npix*0.99])
+	sorted = im[sort(im)]
+
+	npix = n_elements(im)
+	;print, "90%: "+strc(sorted[npix*0.9])
+	;print, "95%: "+strc(sorted[npix*0.95])
+	;print, "99%: "+strc(sorted[npix*0.99])
+
+    tmp_string0 = 'Mean:    ' + sigfig(mean(im[wg]),4) 
+    tmp_string1 = '90% <:   ' + sigfig(sorted[npix*0.90], 4)
+	tmp_string2 = '95% <:   ' + sigfig(sorted[npix*0.95], 4)
+    tmp_string3 = '99% <:   ' + sigfig(sorted[npix*0.99], 4)
+    tmp_string4 = '99.5% <: ' + sigfig(sorted[npix*0.995], 4)
+    tmp_string5 = 'Exp Time to Full Well for 99.5% :' 
+
+	vals = [0.90, 0.95, 0.99, 0.995]
+	for i=0, n_elements(vals)-1 do begin
+		pixval = sorted[npix*vals[i]]
+		if i eq n_elements(vals)-1 then color='cyan' else color='red'
+		oplot, [pixval, pixval], [0.00001, 1e9], /line, color=fsc_color(color)
+	endfor
+
+	self->resetwindow
+
+	itime = sxpar( *((*self.state).exthead_ptr), 'ITIME', count=ct)
+	if ct eq 0 then begin
+		tmp_string6 = '  ERROR: cannot find ITIME header' 
+	endif else begin
+		satcounts = 33000. ;  HARD CODED FOR GPI H2RG  - about 100 k e- full well, gain of 3.
+
+		full_well_itime = satcounts / sorted[npix*0.995] * itime
+		tmp_string6 = '       '+sigfig(full_well_itime, 3) + ' s' 
+
+	endelse
 
 
-return
+	widget_control, (*self.state).stat_npix_id, set_value = tmp_string0
+	widget_control, (*self.state).statbox_min_id, set_value = tmp_string1
+	widget_control, (*self.state).statbox_max_id, set_value = tmp_string2
+	widget_control, (*self.state).statbox_mean_id, set_value = tmp_string3
+	widget_control, (*self.state).statbox_median_id, set_value = tmp_string4
+	widget_control, (*self.state).statbox_stdev_id, set_value = tmp_string5
+	widget_control, (*self.state).statbox_nbnan_id, set_value = tmp_string6
+    
 
-cut = float((*self.images.main_image)[xmin:xmax, ymin:ymax])
-npix = (xmax - xmin + 1) * (ymax - ymin + 1)
+	return
 
-cutmin = min(cut, max=maxx, /nan)
-cutmax = maxx
-cutmean = mean(cut, /nan, /double)
-cutmedian = median(cut)
-cutstddev = stddev(cut, /nan, /double)
-
-tmp_string = strcompress('# Pixels in Box:  ' + string(npix))
-widget_control, (*self.state).stat_npix_id, set_value = tmp_string
-tmp_string = strcompress('Min:  ' + string(cutmin, format='(g12.6)'))
-widget_control, (*self.state).statbox_min_id, set_value = tmp_string
-tmp_string = strcompress('Max:  ' + string(cutmax, format='(g12.6)'))
-widget_control, (*self.state).statbox_max_id, set_value = tmp_string
-tmp_string = strcompress('Mean:  ' + string(cutmean, format='(g12.6)'))
-widget_control, (*self.state).statbox_mean_id, set_value = tmp_string
-tmp_string = strcompress('Median:  ' + string(cutmedian, format='(g12.6)'))
-widget_control, (*self.state).statbox_median_id, set_value = tmp_string
-tmp_string = strcompress('StdDev:  ' + string(cutstddev, format='(g12.6)'))
-widget_control, (*self.state).statbox_stdev_id, set_value = tmp_string
- void=where(~FINITE(cut), cnan)
-tmp_string = strcompress('NbNan:  ' + string(cnan))
-widget_control, (*self.state).statbox_nbnan_id, set_value = tmp_string
-
-self->tvstats
 
 end
 
