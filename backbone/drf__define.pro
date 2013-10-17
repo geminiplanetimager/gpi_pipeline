@@ -10,6 +10,38 @@
 ;
 ;	This is now the preferred implementation for manipulating recipe files.
 ;
+; RELATIVE AND ABSOLUTE PATHS:
+;
+;		For historical reasons, some recipes use a non-null inputdir and then
+;		provide just filenames. Others can provide absolute filenames for each
+;		FITS file, in which case inputdir should be a null string. 
+;
+;		In either case it should be permissible to use defined environment
+;		variables in path names. 
+;
+;		The internal variable self.datafilenames should essentially always be an
+;		array of absolute pathnames. 
+;
+; INTERNAL VARIABLES:
+;	.datafilenames			list of data filenames present   
+;	.name				Descriptive Name  
+;	.shortname			Short name for use in filenames
+;	.reductiontype		Descriptive Type of reduction
+;	.inputdir			Input directory
+;
+;
+; MANIPULATING DATA FILENAMES: 
+;
+;    use add_datafiles, set_datafiles, clear_datafiles, get_datafiles
+; 
+;
+; MANIPULATING PRIMITIVES:
+;  
+;	
+;    use list_primitives, add_primitive, remove_primitive, reorder_primitives
+;    also use get_primitive_args, set_primitive_args
+; 
+;
 ; INPUTS:
 ; KEYWORDS:
 ; OUTPUTS:
@@ -27,20 +59,108 @@ pro drf::log, messagestr
 end
 
 ;--------------------------------------------------------------------------------
+pro drf::set_datafiles, filenames, validate=validate, status=status
+	; Given a list of filenames, set the recipe's data filenames to that list
+	;
+	; KEYWORDS:
+	;	/validate		Check that all files exist
+	;
+	;	status			Return 0 if add is OK, -1 if not OK
 
-pro drf::set_datafiles, filenames, inputdir=inputdir
-	; TODO validate existence of files?
-	ptr_free, self.filenames
-	self.filenames = ptr_new(filenames)
+	self.modified = 1
+	ptr_free, self.datafilenames
 
-	if keyword_set(inputdir) then self.inputdir=inputdir else self.inputdir = file_dirname(filenames[0])
+	newfilenames = strarr(n_elements(filenames))
+	for i=0,n_elements(filenames)-1 do newfilenames[i] = gpi_expand_path(filenames[i])
+
+	self.datafilenames = ptr_new(newfilenames)
+
+	status=0 ; OK
+	if keyword_set(validate) then status=self->validate_contents()
 
 end
 ;-------------
+pro drf::add_datafiles, filenames_to_add, validate=validate, status=status
+	; Add one or more files to a recipe
+	;
+	; KEYWORDS:
+	;	/validate		Check that all files exist
+	;
+	;	status			Return 0 if add is OK, -1 if not OK
+	;
+	self.modified = 1
+	
 
-FUNCTION drf::get_datafiles
-	if ptr_valid(self.filenames) then return, *self.filenames else return, ''
+	if ~ptr_valid(self.datafilenames) then begin
+		; if we don't already have some files then we can just set the filenames
+		; equal to the new ones
+		self->set_datafiles, filenames_to_add, validate=validate, status=status
+	endif else begin
+		newfilenames = strarr(n_elements(filenames_to_add))
+		for i=0,n_elements(filenames_to_add)-1 do newfilenames[i] = gpi_expand_path(filenames_to_add[i])
 
+		*self.datafilenames = [*self.datafilenames, newfilenames]
+	endelse
+
+	status=0 ; OK
+	if keyword_set(validate) then status=self->validate_contents()
+
+end
+
+;-------------
+FUNCTION drf::get_datafiles, absolute=absolute, status=status
+	; obtain the list of files in a recipe
+	;
+	; KEYWORDS:
+	;   /absolute		return absolute paths. Default is to use GPI env vars
+	
+	if ptr_valid(self.datafilenames) then begin
+		tmpfiles= *self.datafilenames 
+
+		; enforce absolute paths if requested
+		if keyword_set(absolute) then for i=0,n_elements(tmpfiles)-1 do tmpfiles[i] = gpi_expand_path(tmpfiles[i]) $
+			else for i=0,n_elements(tmpfiles)-1 do tmpfiles[i] = gpi_shorten_path(tmpfiles[i]) 
+
+		status=0 ; OK
+	endif else begin
+		tmpfiles = ['']
+		status=-1 ; NOT_OK
+	endelse
+
+		
+	return, tmpfiles
+
+
+end
+
+
+;-------------
+PRO drf::remove_datafile, filename, status=status
+	; remove one datafile from the current list of filenames
+	
+	absfilename = gpi_expand_path(filename)
+
+
+	wmatch = where(*self.datafilenames eq absfilename, ct, complement=wcomplement)
+
+	if ct eq 0 then begin
+		self->Log, "WARNING: There is no filename named "+filename+" present in this recipe."
+		status=-1
+	endif else begin
+		self->Log, "Removed from recipe: "+filename
+		*self.datafilenames = (*self.datafilenames)[wcomplement]
+		self.modified = 1
+		status=0
+	endelse
+
+end
+
+;-------------
+PRO drf::clear_datafiles
+	; Remove all data files from this recipe
+	self.modified = 1
+	ptr_free, self.datafilenames
+	
 end
 
 ;--------------------------------------------------------------------------------
@@ -48,11 +168,12 @@ end
 function drf::get_datestr
 	; return the datedir formatted string corresponding to the
 	; first data file in this DRF
+	;
 	; This is used for the DRF output path if organize by dates is set
-	if ptr_valid(self.filenames) and file_test((*self.filenames)[0]) then begin
+	if ptr_valid(self.datafilenames) and file_test((*self.datafilenames)[0]) then begin
 		; determine the output dir based on the date associated with the first
 		; FITS header
-		head = headfits((*self.filenames)[0])
+		head = headfits((*self.datafilenames)[0])
 		dateobs = sxpar(head,'DATE-OBS', count=count)
 		if count gt 0 then begin
 			parts = strsplit(dateobs,'-',/extract)
@@ -74,6 +195,7 @@ end
 ;--------------------------------------------------------------------------------
 
 pro drf::set_outputdir, dir=dir, autodir=autodir
+	self.modified = 1
 
 	if keyword_set(autodir) then begin
 		; figure out the output directory?
@@ -94,27 +216,200 @@ FUNCTION drf::get_outputdir
 	return, self.outputdir
 end
 
-FUNCTION drf::get_inputdir
-	return, self.inputdir
-end
+;FUNCTION drf::get_inputdir
+;	return, self.inputdir
+;end
 
 
 ;----------------
 
-;FUNCTION drf::get_
+;--------------------------------------------------------------------------------
+pro drf::reorder_primitives, new_order,  verbose=verbose, _extra=arginfo
+	; Change order of primitives. 
+	; argument new_order must be some permutation of the integers 0 to N-1 where
+	; N is the total number of primitives present
+
+	nprims = n_elements(*self.primitives)
+
+	; sanity check!
+
+	if n_elements(new_order) ne nprims then begin
+		message, "Invalid primitive ordering: wrong number of elements in array",/info
+        return
+    end
+	for i=0,nprims-1 do begin
+		wm = where(new_order eq i, ct)
+		if ct gt 1 then begin
+			message,"Invalid primitive ordering: index "+strc(i)+" is present more than once.",/info
+			return
+		endif else if ct eq 0 then begin
+			message,"Invalid primitive ordering: index "+strc(i)+" is not present.",/info
+			return
+		end
+	endfor
+
+
+	self->log, "Primitives reordered: "+aprint(new_order)
+
+	self.modified = 1
+	*self.primitives = (*self.primitives)[new_order]
+	
+end
 
 ;--------------------------------------------------------------------------------
-pro drf::set_module_args, modnum, verbose=verbose, _extra=arginfo
+
+pro drf::add_primitive, primitive_name, index=index, status=status
+	;+
+	; Add a primitive to this DRF
+	;
+	; Arguments: 
+	;    primitive name:  Descriptive name of that primitive
+	;    index:			  Where in the order to add that primitive.
+	;					  Leave empty to use the default based on the defined
+	;					  order values. 0-based like all IDL indices.
+	;
+	;-
+	self.modified = 1
+	
+
+
+	self->load_configdrs
+	module_number = where((*self.ConfigDRS).names eq primitive_name, count) ; index of the module *in the config file!*
+	module_number = module_number[0] ; scalarize, since IDL will probably hand back a 1-element array here.
+	if count ne 1 then begin
+		message, /info, "ERROR: Cannot find that primitive in the config file: "+primitive_name+".  Cannot add primitive."
+		status= -1 ; NOT_OK
+		return
+	endif
+
+
+
+
+	;--- Create a structure describing that primitive and its arguments
+	
+
+	; look up the arguments of that new primitive
+	module_argument_indices = where(   ((*self.ConfigDRS).argmodnum) eq module_number[0]+1, count)
+	module_argument_names=((*self.ConfigDRS).argname)[module_argument_indices]
+	module_argument_defaults=((*self.ConfigDRS).argdefault)[module_argument_indices]
+
+
+	new_primitive_info = {structModule} 
+	new_primitive_info.name = primitive_name
+
+	for i=0, n_elements(module_argument_names)-1 do begin
+		present_tags= tag_names(new_primitive_info)
+		wm = where(present_tags eq strupcase(module_argument_names[i]), mct)
+		if mct eq 0 then new_primitive_info = create_struct(new_primitive_info, module_argument_names[i], module_argument_defaults[i]) else new_primitive_info.(wm[0]) = module_argument_defaults[i]
+	endfor
+
+
+	;--- Now determine where we should add that in to the existing structure array
+	if n_elements(index) gt 0 then begin
+		; sanity check
+		index = fix(index)
+		if index lt 0 then index = 0
+		if index gt n_elements(*self.primitives) then index=n_elements(*self.primitives)
+	endif else begin
+		; determine default position
+		; first look up the orders of all the primitives already present in this
+		; recipe
+
+		names = (*self.primitives).name
+		orders = fltarr( n_elements(names))
+		for i=0,n_elements(names)-1 do begin
+			wm = where( (*self.ConfigDRS).names eq names[i], count)
+			if count gt 0 then orders[i] = ((*self.ConfigDRS).order)[wm[0]]
+		endfor
+		; now find the first primitive which has an order greater than that of
+		; the newly added primitive
+		new_prim_order = ((*self.ConfigDRS).order)[module_number]
+		wmin = where( orders gt new_prim_order, count)
+		; if they're all lower then add at the end
+		if count eq 0 then index = n_elements(*self.primitives) else index=wmin[0]
+	endelse
+
+	;--- Now merge the new structure into the primitives array, and order it appropriately
+
+	; add an entry to the primitives array 
+	if ~ ptr_valid(self.primitives) then begin
+		; (including the case where that array might be null?)
+		self.primitives=ptr_new(new_primitive_info) 
+	endif else begin
+
+		*self.primitives = struct_merge( *self.primitives, new_primitive_info) ; this will append the new primitive onto the end, as well as merging the fields
+
+		; if we want it somewhere other than at the end, move it there
+		nlast =  n_elements(*self.primitives)-1
+		if index eq 0 then begin
+			newindices = [ nlast, indgen( nlast-1)]
+			*self.primitives = (*self.primitives)[newindices]
+		endif else if index ne nlast then begin 
+			newindices = [ indgen(index), nlast, indgen( nlast-index)+index ]
+			*self.primitives = (*self.primitives)[newindices]
+		endif 
+	endelse
+
+
+	status= 0 ; OK
+
+end
+
+;--------------------------------------------------------------------------------
+
+pro drf::remove_primitive, index_to_remove
+	;+
+	; Add a primitive to this DRF
+	;
+	; Arguments: 
+	;    primitive_index:  Integer index of the primitive to remove
+	;
+	;-
+	self.modified = 1
+	
+	if index_to_remove lt 0 then return ; invalid index
+
+	indices = indgen(n_elements(*self.primitives))
+
+	new_indices = indices[where(indices ne index_to_remove)]
+
+	self->Log, "Removing primitive: "+ ((*self.primitives)[index_to_remove]).name
+	*self.primitives = (*self.primitives)[new_indices]
+
+
+end
+
+
+;--------------------------------------------------------------------------------
+pro drf::set_primitive_args, modnum, verbose=verbose, status=status, _extra=arginfo
 	; this code is convoluted for various historical reasons. 
 	;
-	; Set the arguments for a given module
-	drf_contents = self->get_contents()
+	; Set the arguments for a given primitive. Must call for one primitive at a time.
+	;
+	; uses the _extra syntax so you can just do e.g.
+	;    drf->set_primitive_args, 3, calibrationfile='something.fits', my_parameter=5.2
+
+	OK = 0
+	NOT_OK = -1
+
+
+	if n_elements(modnum) eq 0 then begin
+		message,/info, 'You must provide a primitive index when calling set_primitive_args'
+		status=NOT_OK
+		return
+	endif
+ 
+
+	self.modified = 1
+	;drf_contents = self->get_contents()
 
 	; look up from the DRS config file what the allowed arguments of this module
 	; are
-	module_number = where((*self.ConfigDRS).names eq (drf_contents.modules[modnum]).name, count) ; index of the module *in the config file!*
+	self->load_configdrs
+	module_number = where((*self.ConfigDRS).names eq ((*self.primitives)[modnum]).name, count) ; index of the module *in the config file!*
 	if count ne 1 then begin
 		message, /info, "ERROR: Can't lookup requested module from the primitives config file. Can't set arguments."
+		status=NOT_OK
 		;return
 	endif
 
@@ -130,20 +425,40 @@ pro drf::set_module_args, modnum, verbose=verbose, _extra=arginfo
 		wm = where(strupcase(module_argument_names) eq newargnames[i], mct)
 		if mct eq 0 then begin
 			message,/info, "Not a valid argument for that primitive: "+newargnames[i]
-			stop
+			status=NOT_OK
+			return
+			;stop
 		endif else begin
 			if keyword_set(verbose) then message,/info, "Setting argument "+strc(wm)+" to value = "+strc(arginfo.(i))
-			self.parsed_drf->set_module_argument, modnum, newargnames[i],  arginfo.(i)
+			; FIXME
+			;self.parsed_drf->set_module_argument, modnum, newargnames[i],  arginfo.(i)
+
+			all_arg_names = tag_names( (*self.primitives)[modnum])
+
+			warg = where(strupcase(newargnames[i]) eq all_arg_names, mct)
+			if mct ne 1 then message, 'Could not find argument '+argname+" for primitive number "+string(modnum)
+
+			(*self.primitives)[modnum].(warg[0]) = string(arginfo.(i))
+
 		endelse
 
 	endfor
-
+	status=OK
 
 end
 ;-------------
+FUNCTION drf::list_primitives, count=count
+	; Return the string names of the primitives in this recipe, in order
+	
+	if arg_present(count) then count = total((*self.primitives).name ne '')
+	
+	return, (*self.primitives).name
 
-FUNCTION drf::get_module_args, modnum, count=count,verbose=verbose
-	; Return the module arguments for a given module
+end
+
+;-------------
+FUNCTION drf::get_primitive_args, modnum, count=count,verbose=verbose, status=status
+	; Return the primitive arguments for a given primitive
 	;
 	; PARAMETERS:
 	; 	modnum	int
@@ -152,23 +467,41 @@ FUNCTION drf::get_module_args, modnum, count=count,verbose=verbose
 	; RETURNS
 	; 	module argument info, as a structure
 	;
-    
-	drf_contents = self->get_contents()
+	OK = 0
+	NOT_OK = -1
 
-	; look up from the DRS config file what the allowed arguments of this module
-	; are
-	module_number = where((*self.ConfigDRS).names eq (drf_contents.modules.name)[modnum]) ; index of the module *in the config file!*
+	if n_elements(modnum) eq 0 then begin
+		message,/info, 'You must provide a primitive index when calling get_primitive_args'
+		status=NOT_OK
+		return, 'You must provide a primitive index when calling get_primitive_args'
+	endif
+    
+	; look up from the DRS config file what the allowed arguments of this module are
+	self->load_configdrs
+	module_number = where((*self.ConfigDRS).names eq ((*self.primitives).name)[modnum], mct) ; index of the module *in the config file!*
+
+	if mct eq 0 then begin
+		message,/info, 'Unknown primitive: '+((*self.primitives).name)[modnum] +" is not in the primitives config file."
+		count=-1
+		status=NOT_OK
+		return, {names: '', values:'', defaults:'', ranges: '', descriptions: ''}
+	endif
 	module_argument_indices = where(   ((*self.ConfigDRS).argmodnum) eq module_number[0]+1, count)
 
-		if keyword_set(verbose) then print,  (drf_contents.modules.name)[modnum]
+	if keyword_set(verbose) then print,  ((*self.primitives).name)[modnum]
 
+	status=OK
 	if count eq 0 then return, ''
 	
 	module_argument_names=((*self.ConfigDRS).argname)[module_argument_indices]
 	module_argument_defaults=((*self.ConfigDRS).argdefault)[module_argument_indices]
+	module_argument_ranges=((*self.ConfigDRS).argrange)[module_argument_indices]
+	module_argument_descs=((*self.ConfigDRS).argdesc)[module_argument_indices]
 
 		if keyword_set(verbose) then print,  "ARGS: ", module_argument_names
 		if keyword_set(verbose) then print,  "DEFS: ", module_argument_defaults
+		if keyword_set(verbose) then print,  "RANGE:", module_argument_ranges
+		if keyword_set(verbose) then print,  "DESCR:", module_argument_descs
 
 
 	; look in the contents of the DRF for what they are
@@ -176,50 +509,72 @@ FUNCTION drf::get_module_args, modnum, count=count,verbose=verbose
 
 	for i=0,count-1 do begin
 
-		exists = tag_exist(drf_contents.modules[modnum], module_argument_names[i], index=j)
-		if exists eq 1 then module_argument_values[i] = drf_contents.modules[modnum].(j)
+		exists = tag_exist( (*self.primitives)[modnum], module_argument_names[i], index=j)
+		if exists eq 1 then module_argument_values[i] = (*self.primitives)[modnum].(j)
 		if module_argument_values[i] eq '' then module_argument_values[i] = module_argument_defaults[i]
 	endfor
 
-	return, {names: module_argument_names, values:module_argument_values, defaults:module_argument_defaults}
+	return, {names: module_argument_names, values:module_argument_values, defaults:module_argument_defaults, ranges: module_argument_ranges, descriptions: module_argument_descs}
 end
 
 ;
 ;--------------------------------------
 function drf::check_output_path_exists, path
 	if strc(path) eq "" then return, 0 ; blank paths are invalid
+	return, gpi_check_dir_exists(path)
 
-	if file_test(path,/dir,/write) then begin
-		return, 1 
-	endif else  begin
-		if gpi_get_setting('prompt_user_for_outputdir_creation',/bool) then res =  dialog_message('The requested output directory '+path+' does not exist. Should it be created now?', title="Nonexistent Output Directory", /question) else res='Yes'
-		if res eq 'Yes' then begin
-			file_mkdir, path
-			return, 1
-		endif else return, 0
-
-	endelse
-	return, 0
+;	if file_test(path,/dir,/write) then begin
+;		return, 1 
+;	endif else  begin
+;		if gpi_get_setting('prompt_user_for_outputdir_creation',/bool) then res =  dialog_message('The requested output directory '+path+' does not exist. Should it be created now?', title="Nonexistent Output Directory", /question) else res='Yes'
+;		if res eq 'Yes' then begin
+;			file_mkdir, path
+;			return, 1
+;		endif else return, 0
+;
+;	endelse
+;	return, 0
 
 end
 
 
 
 ;--------------------------------------
-; simply a wrapper for the validate function of the XML object
 function drf::validate_contents
-	return, self.parsed_drf->validate_contents()
+	OK = 0
+	NOT_OK = -1
+
+
+	valid = OK ; assume valid unless we find a problem? 
+
+	if ~ptr_valid(self.datafilenames) then return, NOT_OK
+	if ~ptr_valid(self.primitives) then return, NOT_OK
+
+	nfiles = n_elements(*self.datafilenames)
+
+	for i=0L, nfiles - 1 do begin
+		full_input_filename = gpi_expand_path( (*Self.DataFilenames)[i])
+		if ~ file_test(full_input_filename,/read) then begin
+			self->Log, 'ERROR: The file "'+ full_input_filename+'" does not exist on disk or is unreadable.  Cannot load requested data.'
+			valid = NOT_OK
+		endif 
+	endfor 
+
+	if valid eq OK then begin
+		self->Log, "Validation OK: all input files in that recipe exist."
+	endif else begin
+		self->Log, "ERROR: Validation FAILED!  One or more input files in that recipe are unreadable."
+	endelse
+
+	return, valid
+
+
 end
 
-;--------------------------------------------------------------------------------
-; back compatibility hook for old method name: 
-pro drf::savedrf, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silent=silent
-	self->save, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silent=silent
-end
 
 ;--------------------------------------------------------------------------------
 
-pro drf::save, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silent=silent
+pro drf::save, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silent=silent, status=status, outputfilename=outputfile
 	; write out to disk!
 	;
 	; KEYWORDS:
@@ -227,41 +582,46 @@ pro drf::save, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silent=s
 	; 						environment variables for relative paths
 	; 	/autodir			Automatically decide the best output directory to
 	; 						save this file to
+	OK = 0
+	NOT_OK = -1
 
 	outputfile=outputfile0 ; don't modify input outputfile variable.
 
 	if keyword_set(autodir) then begin 
 		if gpi_get_setting('organize_recipes_by_dates',/bool) then begin
-			outputdir = gpi_get_directory('GPI_DRF_OUTPUT_DIR')+path_sep()+self->get_datestr()
+			self.outputdir = gpi_get_directory('GPI_DRF_OUTPUT_DIR')+path_sep()+self->get_datestr()
 		endif else begin
 			; if the organize by dates is turned off, then 
 			; FIXME should this output to the current directory, or what
-			outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')
+			self.outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')
 		endelse
-		outputfile=outputdir +path_sep()+file_basename(outputfile)
+		outputfile=self.outputdir +path_sep()+file_basename(outputfile)
 	end
 
 
-	valid = self->check_output_path_exists(file_dirname(outputfile))
-	if ~valid then begin
+	if  self->check_output_path_exists(self.outputdir) eq NOT_OK then begin
 		self->Log, "Could not write to nonexistent directory: "+file_dirname(outputfile)
+		status=NOT_OK
 		return
 	endif
 	if ~(keyword_set(silent)) then self->log,'Writing recipe to '+gpi_shorten_path(outputfile)
 
 	OpenW, lun, outputfile, /Get_Lun
-
-
 	PrintF, lun, self->tostring(absolutepaths=absolutepaths)
 	Free_Lun, lun
-	;self->log,'Saved  '+outputfile
+
 	self.last_saved_filename=outputfile
+	self.modified= 0 ; we're now synced with the disk version of this file.
+	status=OK
 
 end
 
 ;-------------
-PRO drf::queue, filename=filename
+PRO drf::queue, filename=filename, queued_filename=queued_filename, status=status
 	; save a DRF into the queue
+
+	OK = 0
+	NOT_OK = -1
 
 	if ~(keyword_set(filename)) then filename=self.last_saved_filename
 
@@ -290,14 +650,38 @@ function drf::tostring, absolutepaths=absolutepaths
 
 	if ~(keyword_set(absolutepaths ))then begin
 		;relative pathes with environment variables        
-	  	inputdir=gpi_shorten_path(self.inputdir) 
+	  	;inputdir=gpi_shorten_path(self.inputdir) 
 	  	outputdir=gpi_shorten_path(self.outputdir) 
 	endif else begin
-	  	inputdir=gpi_expand_path(self.inputdir)
+	  	;inputdir=gpi_expand_path(self.inputdir)
 	  	outputdir=gpi_expand_path(self.outputdir)
 	endelse  
         
-        drfsummary=self->get_summary()
+
+	; Are all the input files in the same directory?
+	filenames = self->get_datafiles()
+	dirnames = strarr(n_elements(filenames))
+	for i=0,n_elements(filenames)-1 do dirnames[i] = file_dirname(filenames[i])
+	uniqdirs = uniqvals(dirnames)
+
+	if n_elements(uniqdirs) eq 1 then begin
+		; all files are from a common input directory! So pull that out to the
+		; inputdir parameter
+		inputdir = uniqdirs[0]
+		for i=0,n_elements(filenames)-1 do filenames[i] = file_basename(filenames[i])
+
+		if keyword_set(absolutepaths) then inputdir=gpi_expand_path(inputdir) else inputdir=gpi_shorten_path(inputdir)
+	endif else begin
+		; filenames are in multiple directories
+		; So leave the paths on the individual filenames.
+		inputdir = ''
+
+		for i=0,n_elements(filenames)-1 do $
+			if keyword_set(absolutepaths) then filenames[i]=gpi_expand_path(filenames[i]) else filenames[i]=gpi_shorten_path(filenames[i])
+
+	endelse
+
+
  
 	if (!D.NAME eq 'WIN') then newline = string([13B, 10B]) else newline = string(10B)
 
@@ -305,35 +689,35 @@ function drf::tostring, absolutepaths=absolutepaths
         
 	outputstring +='<?xml version="1.0" encoding="UTF-8"?>'+newline 
     
-	outputstring +='<DRF Name="'+self.name+'" ReductionType="'+self.reductiontype+'" ShortName="'+drfsummary.ShortName+'">'+newline
+	outputstring +='<recipe Name="'+self.name+'" ReductionType="'+self.reductiontype+'" ShortName="'+self.ShortName+'">'+newline
 
-	outputstring +='<dataset InputDir="'+inputdir+'" OutputDir="'+outputdir+'">'+newline 
+	outputstring +='<dataset '
+	if inputdir ne '' then outputstring+= 'InputDir="'+inputdir+'" ' ; only write an inputdir parameter if it's non-null!
+	outputstring +='OutputDir="'+outputdir+'">'+newline 
  
-	if ptr_valid(self.filenames) then $
-	FOR j=0,N_Elements(*self.filenames)-1 DO BEGIN
-		outputstring +='   <fits FileName="' + file_basename( (*self.filenames)[j]) + '" />'+newline
+	if ptr_valid(self.datafilenames) then $
+	FOR j=0,N_Elements(*self.datafilenames)-1 DO BEGIN
+		outputstring +='   <fits FileName="' + filenames[j] + '" />'+newline
 	ENDFOR
 	outputstring +='</dataset>'+newline
 
-    drf_contents = self->get_contents()
-    drf_module_names = drf_contents.modules.name
+    drf_primitive_names = (*self.primitives).name 
 
+	FOR j=0,n_elements(drf_primitive_names)-1 DO BEGIN
 
-	FOR j=0,n_elements(drf_module_names)-1 DO BEGIN
-
-		module_args = self->get_module_args(j, count=count)
+		primitive_args = self->get_primitive_args(j, count=count)
 		strarg='' ; no arguments yet
 
 		if count gt 0 then begin
-			  for i=0,n_elements(module_args.names)-1 do begin
-				  strarg+=module_args.names[i]+'="'+module_args.values[i]+'" '
+			  for i=0,n_elements(primitive_args.names)-1 do begin
+				  strarg+=primitive_args.names[i]+'="'+primitive_args.values[i]+'" '
 			  endfor
 		endif
 		  
 	
-		outputstring +='<module name="' + drf_module_names[j] + '" '+ strarg +'/>'+newline
+		outputstring +='<primitive name="' + drf_primitive_names[j] + '" '+ strarg +'/>'+newline
 	ENDFOR
-	outputstring +='</DRF>'+newline
+	outputstring +='</recipe>'+newline
 	
 	return, outputstring
 
@@ -359,10 +743,20 @@ function drf::get_configParser
     return, ConfigParser
 
 end
+;--------------------------------------------------------------------------------
+pro drf::load_configdrs
+    if ~ptr_valid(self.ConfigDRS) then begin
+		configparser = self->get_configparser()
+		self.ConfigDRS = ptr_new(ConfigParser->getidlfunc())
+		obj_destroy, configparser
+	endif
+
+end
 
 
 ;--------------------------------------------------------------------------------
-function drf::init, filename, parent_object=parent_object,silent=silent,quick=quick
+function drf::init, filename, parent_object=parent_object,silent=silent,quick=quick, $
+	as_template=as_template
 	;
 	; INPUTS:
 	; 	filename	name of DRF XML file to read in and create an object from.
@@ -378,6 +772,8 @@ function drf::init, filename, parent_object=parent_object,silent=silent,quick=qu
 	; 					If you're not actually the pipeline, you probably don't
 	; 					care about this, and it's faster to not do the
 	; 					conversion.
+	; 	/as_template	We're opening this file as a template, so don't load any
+	;					FITS files that might be present
 	;
 	; 					FIXME: this could almost certainly be programmed more
 	; 					elegantly; This is already a workaround for legacy
@@ -400,6 +796,8 @@ function drf::init, filename, parent_object=parent_object,silent=silent,quick=qu
 	endif
 
 	self.loaded_filename=filename
+	self.last_saved_filename=''
+	self.modified=0
 
     ; now parse the requested DRF.
 	if ~(keyword_set(quick)) then begin
@@ -411,15 +809,30 @@ function drf::init, filename, parent_object=parent_object,silent=silent,quick=qu
     ; then parse the DRF and get its contents
     self.parsed_drf= OBJ_NEW('gpiDRFParser')
     self.parsed_drf->ParseFile, self.loaded_filename,  ConfigParser, gui=self, silent=silent
+    drf_summary = self.parsed_drf->get_summary()
+    drf_contents = self.parsed_drf->get_contents()
 
-    drf_summary = self->get_summary()
-    drf_contents = self->get_contents()
-    ;drf_module_names = drf_contents.modules.name
+	; set this object's state accordingly
+	self.reductiontype =	drf_summary.reductiontype
+	self.name =				drf_summary.name
+	self.shortname =		drf_summary.shortname
+	if self.shortname eq '' then self.shortname = strcompress(self.name,/remove_all) ; handle old recipes lacking a shortname
 
-	self.inputdir = drf_contents.inputdir
-	self.name = drf_summary.name
-	self.reductiontype = drf_summary.reductiontype
-	self.filenames = ptr_new(drf_contents.fitsfilenames)
+	self.outputdir =		drf_contents.outputdir
+	self.primitives =		ptr_new(drf_contents.modules)
+
+	if ~ keyword_set(as_template) then begin
+		self.datafilenames =	ptr_new(drf_contents.fitsfilenames)
+		if strc(drf_contents.inputdir) ne '' then begin ; convert to absolute pathnames.
+			*self.datafilenames = drf_contents.inputdir + path_sep() + *self.datafilenames
+		endif
+
+		; and convert to absolute pathnames
+		for i=0,n_elements(*self.datafilenames)-1 do (*self.datafilenames)[i] = gpi_expand_path(  (*self.datafilenames)[i] )
+
+	endif else begin
+		; ignore any specified input dir if we're opening as a template.
+	endelse
 
 	return, 1
 end
@@ -427,22 +840,53 @@ end
 ;--------------------------------------------------------------------------------
 
 function drf::find_module_by_name, modulename, count
-	modules = (self->get_contents()).modules
-	wm = where(modules.name eq modulename, count)
+	; Given a primitive name, return the corresponding index
+
+	;modules = (self->get_contents()).modules
+	wm = where( (*self.primitives).name eq modulename, count)
 	return, wm
 
+end
+;--------------------------------------------------------------------------------
+function drf::is_modified ; has the currently loaded DRF been modified since it was loaded?
+	return, self.modified
 end
 
 ;--------------------------------------------------------------------------------
 function drf::get_summary
-	summary = self.parsed_drf->get_summary()
-	if ptr_valid(self.filenames) then summary.nfiles = n_elements(*self.filenames) else summary.nfiles=0
-	return, summary
+	; Like the get_summary of gpidrfparser
+	if ptr_valid(self.datafilenames) then nfiles = n_elements(*self.datafilenames) else nfiles=0
+	if ptr_valid(self.primitives) then nsteps = n_elements(*self.primitives) else nsteps=0
+
+
+	if self.last_saved_filename eq '' then myfilename = self.loaded_filename else myfilename=self.last_saved_filename
+	return, {filename: myfilename,  $
+			 reductiontype: self.ReductionType, $
+			 name: self.name, $
+			 ShortName: self.ShortName, $
+			 nsteps: nsteps , $
+			 nfiles: nfiles }
+
 end
 ;--------------------------------------------------------------------------------
 
 function drf::get_contents
-	return, self.parsed_drf->get_contents()
+	; Like the get_contents of gpidrfparser, except without inputdir
+	;   (since part of the point of this object is to hide the inputdir 
+	;   manipulations from the calling program and just always provide
+	;   absolute pathnames!)
+
+	if ptr_valid(self.datafilenames) then begin
+		fitsfilenames = *self.datafilenames 
+	endif else begin
+		fitsfilenames = ''
+	endelse
+
+	return, {fitsfilenames: fitsfilenames,  $
+			 ;inputdir: self.inputdir, $
+			 outputdir: self.outputdir, $
+			 modules: *self.primitives, $  ; return using both 'modules' and 'primitives' label for back compatibility
+			 primitives: *self.primitives  }
 end
 
 
@@ -450,9 +894,25 @@ end
 pro drf::cleanup
 
 	obj_destroy, self.parsed_drf
-	ptr_free, self.filenames
+	ptr_free, self.datafilenames
+	ptr_free, self.primitives
 	ptr_free, self.configDRS
 
+end
+
+;--------------------------------------------------------------------------------
+; back compatibility hooks for old method names: 
+pro drf::savedrf, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silent=silent
+	self->save, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silent=silent
+end
+
+pro drf::set_module_args, modnum, verbose=verbose, _extra=arginfo
+	self->set_primitive_args, modnum, verbose=verbose, _extra=arginfo
+
+end
+
+FUNCTION drf::get_module_args, modnum, count=count,verbose=verbose
+	return, self->get_primitive_args( modnum, count=count,verbose=verbose)
 end
 
 
@@ -464,14 +924,17 @@ PRO drf__define
 	state = {drf, $
 		loaded_filename: '',$		; name of input file loaded from disk
 		last_saved_filename: '', $	; last saved filename
+		modified: 0, $				; has this DRF been modified relative to the disk file?
 		name: '', $			; descriptive string name
 		reductiontype: '',$	; what type of reduction?
-                ShortName: '', $      ; short name to be used in naming of recipes
+        ShortName: '', $      ; short name to be used in naming of recipes
 		parsed_drf: obj_new(), $	;gpiDRFParser object for the XML file itself
 		where_to_log: obj_new(),$		;; optional target object for log messages
-		inputdir: '', $
+		;inputdir: '', $			; Deprecated, may still be present in XML but 
+									; automatically gets folded in to datafilenames
 		outputdir: '', $
-		filenames: ptr_new(), $
+		datafilenames: ptr_new(), $
+		primitives: ptr_new(), $
 		configDRS: ptr_new() $  ; DRS modules configuration info
 		}
 
