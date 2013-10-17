@@ -31,7 +31,12 @@ function automaticreducer::refresh_file_list, count=count, init=init, _extra=_ex
 	; KEYWORDS:
 	;    count	returns the # of files found
 
-    filetypes = '*.{fts,fits}'
+
+	if keyword_set(gpi_get_setting('at_gemini', default=0,/silent)) then begin
+		filetypes = 'S20'+gpi_datestr()+'S*.fits'
+	endif else begin
+		filetypes = '*.{fts,fits}'
+	endelse
     searchpattern = self.dirinit + path_sep() + filetypes
 	current_files =FILE_SEARCH(searchpattern,/FOLD_CASE, count=count)
 	
@@ -105,12 +110,6 @@ pro automaticreducer::run
 
 	self->handle_new_files, new_files
 
-
-;	if chang ne '' then begin
-;		  widget_control, self.listfile_id, SET_VALUE= list2[0:(n_elements(list2)-1)<(self.maxnewfile-1)] ;display the list
-;		  ;check if the file has been totally copied
-;		  self.parserobj=gpiparsergui( chang,  mode=self.parsemode)
-;	endif
 end
 
 ;-------------------------------------------------------------------
@@ -167,6 +166,8 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 
 		info = gpi_load_fits(filenames[0], /nodata)
 		prism = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'DISPERSR', count=dispct) ))
+		obsclass = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'OBSCLASS', count=obsclassct) ))
+		gcallamp = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'GCALLAMP', count=gcallampct) ))
 
 		if (dispct eq 0) or (strc(prism) eq '') then begin
 			message,/info, 'Missing or blank DISPERSR keyword! '
@@ -189,7 +190,13 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 		endif
 
 		case prism of
-		'PRISM': templatename='Quicklook Automatic Datacube Extraction'
+		'PRISM': begin
+			if obsclass eq 'ARC' and gcallamp eq 'XE' then begin
+				templatename='Quick Wavelength Solution'
+			endif else begin
+				templatename='Quicklook Automatic Datacube Extraction'
+			endelse
+		end
 		'WOLLASTON': templatename='Quicklook Automatic Polarimetry Extraction'
 		'OPEN':templatename='Quicklook Automatic Undispersed Extraction'
 		endcase
@@ -207,10 +214,9 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 	drf->set_datafiles, filenames
 	drf->set_outputdir,/autodir
 
-
 	wupdate =  drf->find_module_by_name('Update Spot Shifts for Flexure', count)
 	if count ne 1 then begin
-		message,/info, "Can't find 'Update Spot Shifts for Flexure' primitive; can't apply settings."
+		message,/info, "Can't find 'Update Spot Shifts for Flexure' primitive; can't apply settings. Continuing anyway."
 	endif else begin
 
 		drf->set_module_args, wupdate, method=self.flexure_mode
@@ -483,12 +489,22 @@ function automaticreducer::init, groupleader, _extra=_extra
     self.view_in_gpitv = 1
     self.ignore_indiv_reads = 1
 	;self.awaiting_parsing = ptr_new(/alloc)
-	self.flexure_mode = 'Lookup'
+
+
+	; should we include any flexure calibration? By default
+	; turn this on ONLY if there is at least one flexure cal
+	; file present
+	cdb= obj_new('gpicaldatabase')
+	caltable = cdb->get_data()
+	availtypes =  uniqvals( (*caltable).type)
+	wflexurefile = where(availtypes eq 'Flexure shift Cal File', flexurect)
+	if flexurect eq 0 then self.flexure_mode = 'None' else self.flexure_mode = 'Lookup'
+
 
 
 	self.top_base = widget_base(title = self.name, $
 				   /column,  $
-				   resource_name='GPI_DRP_AutoRed', $
+				   resource_name='GPI_DRP', $
 				   MBAR=bar, $ 
 				   /tlb_size_events,  /tlb_kill_request_events)
 
