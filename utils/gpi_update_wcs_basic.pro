@@ -108,7 +108,7 @@ pro gpi_update_wcs_basic,backbone,imsize=imsize
   backbone->del_keyword, 'CDELT2'
   backbone->del_keyword, 'CDELT3'
 
-  ;;specify coord sys (this needs to be updated - probably ICRS?)
+  ;;specify coord sys - Gemini standard is FK5 J2000.0
   backbone->set_keyword, "RADESYS", "FK5", "RA and Dec are in FK5"
   backbone->set_keyword, "EQUINOX", 2000.0, "RA, Dec equinox is J2000"
 
