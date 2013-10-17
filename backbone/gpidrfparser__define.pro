@@ -88,13 +88,13 @@ function gpidrfparser::get_contents
 	endif
 
 
-        if (*self.data).validframecount gt 0 then begin
-           fitsfilenames = (*self.data).filenames[0:(*self.data).validframecount-1]
-        endif else begin
-           fitsfilenames = [''] ; FIXME should be null array in IDL >=8
-        endelse
+	if (*self.data).validframecount gt 0 then begin
+	   fitsfilenames = (*self.data).filenames[0:(*self.data).validframecount-1]
+	endif else begin
+	   fitsfilenames = [''] ; FIXME should be null array in IDL >=8
+	endelse
 
-        if n_elements(*self.modules) gt 0 then modules = (*self.modules) else modules = ['']
+	if n_elements(*self.modules) gt 0 then modules = (*self.modules) else modules = ['']
 
 	return, {fitsfilenames: fitsfilenames, inputdir: (*self.data).inputdir, outputdir: (*self.data).outputdir, modules: modules }
 end
