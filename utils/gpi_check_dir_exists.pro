@@ -14,7 +14,8 @@
 ;-
 
 function gpi_check_dir_exists, s_OutputDir
-    COMMON APP_CONSTANTS
+	OK = 0
+	NOT_OK = -1
 
 
 	if ~file_test(s_OutputDir,/directory, /write) then begin
