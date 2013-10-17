@@ -1564,7 +1564,7 @@ case event_name of
 		   ; rotation, it takes an absolute rotation relative to the image's
 		   ; native orientation. So we need to take the difference
 
-		   self->rotate, npa -  (*self.state).rot_angle
+		   self->rotate,   (*self.state).rot_angle - npa
 
 
 		endif else begin
@@ -4742,8 +4742,15 @@ if (not ptr_valid( (*self.state).exthead_ptr)) or (*self.state).wcstype ne 'none
 	return
 endif
 
+extast, *(*self.state).exthead_ptr, astr
 
-getrot, *(*self.state).exthead_ptr, npa, cdelt, /silent
+if ~(keyword_set(astr)) then begin
+	self->message, "Image does not have valid WCS astrometry header"
+	self->message, "Cannot determine handedness. Skipping autohandedness!"
+	return
+endif
+
+getrot, astr, npa, cdelt, /silent
 ; from getrot docs:
 ; 		CDELT[1] is always positive, whereas
 ;    	CDELT[0] is negative for a normal left-handed coordinate
