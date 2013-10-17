@@ -123,6 +123,7 @@ pro dirviewer::event, ev
 
 	uname = widget_info(ev.id,/uname)
 
+
 	event_type = tag_names(ev, /structure_name)
 	if event_type eq '' then event_type='CW_BGROUP' ; oddly doesn't get set itself?
 	case event_type of
@@ -287,7 +288,7 @@ pro dirviewer::event, ev
 		   print, (event.x-uval.wids.padding[0])/ratio_x, (event.y-uval.wids.padding[1])/ratio_y
 	end
   	'WIDGET_KILL_REQUEST': begin ; kill request
-		if dialog_message('Are you sure you want to close the Scan Directory viewer?', title="Confirm close", dialog_parent=ev.top, /question) eq 'Yes' then $
+		if dialog_message('Are you sure you want to close the Browse Directory viewer?', title="Confirm close", dialog_parent=ev.top, /question) eq 'Yes' then $
 			obj_destroy, self
 		return
 	end
@@ -1032,7 +1033,10 @@ FUNCTION dirviewer::init, $
 
   ;; Set up the filter.
 
-  IF N_Elements(filter) EQ 0 THEN filter = ['*.fits*']
+  at_gemini = keyword_set(gpi_get_setting('at_gemini', /bool,default=0,/silent))
+  if keyword_set(at_gemini) then default_filter = ['S'+gpi_datestr(/current)+"S*.fits"] else default_filter=['*.fits']
+  IF N_Elements(filter) EQ 0 THEN filter = default_filter
+
   only2D = Keyword_Set(only2d)
   only3D = Keyword_Set(only3d)
   IF N_Elements(title) EQ 0 THEN title = 'View Images in Directory'
@@ -1092,7 +1096,7 @@ FUNCTION dirviewer::init, $
   xsize = Max(StrLen(theFiles)) + 0.1*Max(StrLen(theFiles)) > 20
 
   colbase1 = widget_base(fsrowbaseID, /col)
-  f2 = cw_field(colbase1,title='Pattern:', value = '*.fits*', xsize=15, uname='file_pattern', /all_events)
+  f2 = cw_field(colbase1,title='Pattern:', value = filter, xsize=15, uname='file_pattern', /all_events)
 
   filelistID = Widget_List(colbase1, Value=theFiles, YSize = 15, XSize=xsize, event_pro='dirviewer_list_event')
 
