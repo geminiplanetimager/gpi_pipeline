@@ -157,6 +157,12 @@ pro gpi_update_wcs_basic,backbone,imsize=imsize
      caldat, jd0+1d0, m1, d1, y1
      ymd1 = double([y1,m1,d1])
   endif else ymd1 = ymd0
+  hms0 = sixty(expstart)
+  hms1 = sixty(expend)
+  jd0 = julday(ymd0[1], ymd0[2], ymd0[0],hms0[0],hms0[1],hms0[2])
+  jd1 = julday(ymd1[1], ymd1[2], ymd1[0],hms1[0],hms1[1],hms1[2])
+  epoch0 = (jd0 - 2451545d0)/365.25d0 + 2000d0 
+  epoch1 = (jd1 - 2451545d0)/365.25d0 + 2000d0 
   
   ;;grab longitude of observatory
   lon = gpi_get_constant('observatory_lon',default=-70.73669333333333d0)/15d0 ;East lon (dec. hr)
@@ -164,34 +170,29 @@ pro gpi_update_wcs_basic,backbone,imsize=imsize
   ;; converting from UT to GMST - call CT2LST on prime meridian
   CT2LST, gmst0, 0., 0., expstart, ymd0[2], ymd0[1], ymd0[0]
   CT2LST, gmst1, 0., 0., expend, ymd1[2], ymd1[1], ymd1[0]
+  
   ;;GMST -> LST
   lst0 = gmst0 + lon
   lst1 = gmst1 + lon
 
+  ;;precess RA/DEC to current epoch
+  ra0 = ra
+  dec0 = dec
+  precess, ra0, dec0, 2000d0, epoch0
+
   ;; get hour angles
-  ha0 = lst0 - ra/15d0
-  ha1 = lst1 - ra/15d0
+  ha0 = lst0 - ra0/15d0
+  ha1 = lst1 - ra0/15d0
   
   ;; calcualte average parang
-  avparang = calc_avparang(ha0,ha1,dec)
+  avparang = calc_avparang(ha0,ha1,dec0)
 
   ;;calculate the MJD-AVG
-  if dateline then begin
-     avtime = (expstart-24d0 + expend)/2d0
-     if avtime lt 0 then begin
-        avtime += 24d0
-        avymd = ymd0
-     endif else avymd = ymd1
-  endif else begin
-     avtime = (expstart + expend)/2d0
-     avymd = ymd0
-  endelse 
-  avtime = sixty(avtime)
-  avmjd = julday(avymd[1],avymd[2],avymd[0],avtime[0],avtime[1],avtime[2])-2400000.5d0
+  avmjd = (jd0+jd1)/2d0 - 2400000.5d0
 
   ;;write additional keywords
-  backbone->set_keyword, "EXPSTART", string(sixty(expstart),format='(I2.2,":",I2.2,":",F6.3)'),"true exposure start time (UTC)"
-  backbone->set_keyword, "EXPEND", string(sixty(expend),format='(I2.2,":",I2.2,":",F6.3)'),"true exposure start time (UTC)"
+  backbone->set_keyword, "EXPSTART", string(sixty(expstart),format='(I02.2,":",I02.2,":",F06.3)'),"true exposure start time (UTC)"
+  backbone->set_keyword, "EXPEND", string(sixty(expend),format='(I02.2,":",I02.2,":",F06.3)'),"true exposure start time (UTC)"
   backbone->set_keyword, "AVPARANG", avparang, "average parallactic angle during exposure"
   backbone->set_keyword, "MJD-AVG", avmjd, "MJD at midpoint of exposure"
 
