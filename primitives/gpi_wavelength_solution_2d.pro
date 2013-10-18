@@ -21,8 +21,7 @@
 ; to construct a new wavelength solution file by simulating the detector image 
 ; and performing a least squares fit.
 
-
-; PIPELINE ARGUMENT: Name="display" Type="Int" Range="[0,1]" Default="0" Desc="Whether or not to plot each lenslet in comparison to the detector lenslet: 1;display, 0;no display"
+; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="-1" Desc="-1 = No display; 0 = New (unused) window; else = Window number to display diagnostic plot."
 ; PIPELINE ARGUMENT: Name="boxsizex" Type="Int" Range="[0,15]" Default="7" Desc="x dimension of a lenslet cutout"
 ; PIPELINE ARGUMENT: Name="boxsizey" Type="Int" Range="[0,50]" Default="24" Desc="y dimension of a lenslet cutout"
 ; PIPELINE ARGUMENT: Name="whichpsf" Type="Int" Range="[0,1]" Default="0" Desc="Type of psf 0;gaussian, 1;microlens"
@@ -54,7 +53,7 @@ primitive_version= '$Id: __template.pro 1742 2013-07-19 18:03:57Z mperrin $' ; g
 ;Beginning of Wavelength Solution code:
 
 ;Initialize the input parameters:
- 	if tag_exist( Modules[thisModuleIndex], "display") then display=uint(Modules[thisModuleIndex].display) else display=0
+ 	if tag_exist( Modules[thisModuleIndex], "display") then display=fix(Modules[thisModuleIndex].display) else display=-1
  	if tag_exist( Modules[thisModuleIndex], "boxsizex") then boxsizex=uint(Modules[thisModuleIndex].boxsizex) else boxsizex=7
  	if tag_exist( Modules[thisModuleIndex], "boxsizey") then boxsizey=uint(Modules[thisModuleIndex].boxsizey) else boxsizey=24
  	if tag_exist( Modules[thisModuleIndex], "whichpsf") then whichpsf=uint(Modules[thisModuleIndex].whichpsf) else whichpsf=0
@@ -210,7 +209,8 @@ for i = istart,iend do begin
 
                   ;lensletmodel[startx:stopx, starty:stopy] += zmodplot
 
-;                if display EQ 1  then begin
+;                if display ne -1  then begin
+;                if display eq 0 then window,/free else select_window, display
 ;				  !p.multi= [0,2,1]
 ;				  vmax = max(lensletarray)
 ;				  imdisp, alogscale(lensletarray, 0, vmax), /axis, title='Real data subarray', /xs, /ys

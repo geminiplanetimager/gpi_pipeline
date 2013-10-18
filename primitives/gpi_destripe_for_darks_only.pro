@@ -32,7 +32,7 @@
 ;
 ; PIPELINE COMMENT: Subtract readout pickup noise using median across all channels. This is an aggressive destriping algorithm suitable only for use on images that have no light. Also includes microphonics noise removal.
 ; PIPELINE ARGUMENT: Name="remove_microphonics" Type="string" Range="[yes|no]" Default="yes" Desc='Attempt to remove microphonics noise via Fourier filtering?'
-; PIPELINE ARGUMENT: Name="display" Type="string" Range="[yes|no]" Default="no" Desc='Show diagnostic before and after plots when running?'
+; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="-1" Desc="-1 = No display; 0 = New (unused) window else = Window number to display diagonostics in."
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display " 
 ; PIPELINE ORDER: 1.3
@@ -52,12 +52,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 @__start_primitive
 
  	if tag_exist( Modules[thisModuleIndex], "remove_microphonics") then remove_microphonics=Modules[thisModuleIndex].remove_microphonics else remove_microphonics='yes'
- 	if tag_exist( Modules[thisModuleIndex], "display") then display=Modules[thisModuleIndex].display else display='yes'
-	display = strlowcase(string(display))
+ 	if tag_exist( Modules[thisModuleIndex], "display") then display=fix(Modules[thisModuleIndex].display) else display=-1
 
 	im =  *(dataset.currframe[0])
 
-	if display eq 'yes' then im0 = im ; save a copy of input image for later display
+	if display ne -1 then im0 = im ; save a copy of input image for later display
 	sz = size(im)
     if sz[1] ne 2048 or sz[2] ne 2048 then begin
         backbone->Log, "REFPIX: Image is not 2048x2048, don't know how to destripe"
@@ -116,7 +115,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		; when subtracted. Let's force the top rows to zero to avoid this. 
 		microphonics_model[*, 1975:*] = 0
 
-		if display eq 'yes' then im_destriped = imout ; save for use in display
+		if display ne -1 then im_destriped = imout ; save for use in display
 
 		imout -= microphonics_model
 		backbone->set_keyword, "HISTORY", "Microphonics noise removed via Fourier filtering."
@@ -124,8 +123,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	endif
 
 
-	if display eq 'yes' then begin
-		select_window, 1
+	if display ne -1 then begin
+		if display eq 0 then window,/free else select_window,display
 		loadct, 0
 		erase
 

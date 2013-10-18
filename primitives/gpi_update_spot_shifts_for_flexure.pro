@@ -33,7 +33,7 @@
 ; PIPELINE ARGUMENT: Name="method" Type="string" Range="[None|Manual|Lookup|Auto]" Default="None" Desc='How to correct spot shifts due to flexure? [None|Manual|Lookup|Auto]'
 ; PIPELINE ARGUMENT: Name="manual_dx" Type="float" Range="[-10,10]" Default="0" Desc="If method=Manual, the X shift of spectra at the center of the detector"
 ; PIPELINE ARGUMENT: Name="manual_dy" Type="float" Range="[-10,10]" Default="0" Desc="If method=Manual, the Y shift of spectra at the center of the detector"
-; PIPELINE ARGUMENT: Name="display" Type="string" Range="[yes|no]" Default="no" Desc='Show diagnostic plot when running? [yes|no]'
+; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="-1" Desc="-1 = No display; 0 = New (unused) window; else = Window number to display diagnostic plot."
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 1.99
@@ -184,7 +184,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   
 
 
-  if tag_exist( Modules[thisModuleIndex], "display") then display=Modules[thisModuleIndex].display else display='yes'
+  if tag_exist( Modules[thisModuleIndex], "display") then display=fix(Modules[thisModuleIndex].display) else display=-1
   if tag_exist( Modules[thisModuleIndex], "Method") then Method= strupcase(Modules[thisModuleIndex].method) else method="None"
   backbone->set_keyword, 'DRPFLEX', Method, ' Selected method for handling flexure-induced shifts'
 
@@ -243,8 +243,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		shiftx=shiftpolyx[0]+shiftpolyx[1]*my_elevation+(my_elevation^2)*shiftpolyx[2]
 		shifty=shiftpolyy[0]+shiftpolyy[1]*my_elevation+(my_elevation^2)*shiftpolyy[2]
 
-		if strlowcase(display) eq 'yes' then begin
-			select_window, 0
+		if display ne -1 then begin
+                   if display eq 0 then window,/free else select_window, display
 			!p.multi=[0,2,1]
 			elevs = findgen(90)
 			plot, sortedelev, sortedxshift, xtitle='Elevation [deg]', ytitle='X shift from Flexure [pixel]', xrange=[-10,100], yrange=[-0.9, 0.1], psym=1, charsize=1.5

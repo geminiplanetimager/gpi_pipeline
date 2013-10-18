@@ -76,7 +76,7 @@
 ; PIPELINE ARGUMENT: Name="fraction" Type="float" Range="[0.0,1.0]" Default="0.7" Desc="What fraction of the total pixels in a row should be masked"
 ; PIPELINE ARGUMENT: Name="high_limit" Type="float" Range="[0,Inf]" Default="1" Desc="Pixel value where exceeding values are assigned a larger mask"
 ; PIPELINE ARGUMENT: Name="Save_stripes" Type="int" Range="[0,1]" Default="0" Desc="Save the striping noise image subtracted from frame?"
-; PIPELINE ARGUMENT: Name="display" Type="string" Range="[yes|no]" Default="no" Desc='Show diagnostic before and after plots when running?'
+; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="-1" Desc="-1 = No display; 0 = New (unused) window else = Window number to display diagonostics in."
 ; PIPELINE ARGUMENT: Name="remove_microphonics" Type="int" Range="[0,2]" Default="0" Desc='Remove microphonics noise based on a precomputed fixed model.0: not applied. 1: applied. 2: the algoritm is applied only if the measured noise is greater than micro_threshold'
 ; PIPELINE ARGUMENT: Name="method_microphonics" Type="int" Range="[1,3]" Default="0" Desc='Method applied for microphonics 1: model projection. 2: all to zero 3: gaussian fit'
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="micro" Default="AUTOMATIC" Desc="Filename of the desired microphonics model file to be read"
@@ -124,8 +124,8 @@ endif
  if tag_exist( Modules[thisModuleIndex], "remove_microphonics") then remove_microphonics=uint(Modules[thisModuleIndex].remove_microphonics) else remove_microphonics=0
  if tag_exist( Modules[thisModuleIndex], "Plot_micro_peaks") then Plot_micro_peaks=string(Modules[thisModuleIndex].Plot_micro_peaks) else Plot_micro_peaks='no'
  if tag_exist( Modules[thisModuleIndex], "save_microphonics") then save_microphonics=Modules[thisModuleIndex].save_microphonics else save_microphonics='no'
- if tag_exist( Modules[thisModuleIndex], "display") then display=Modules[thisModuleIndex].display else display='yes'
- display = strlowcase(string(display))
+ if tag_exist( Modules[thisModuleIndex], "display") then display=fix(Modules[thisModuleIndex].display) else display=-1
+gpitvsess = fix(Modules[thisModuleIndex].gpitv)
  
  ;get the 2D detector image
  ;This variable will remain unchanged
@@ -449,7 +449,7 @@ endif
   if strlowcase(save_microphonics) eq 'yes' then begin
     *(dataset.currframe[0])=microphonics_model
     suffix='-micronoise'
-    b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display)
+    b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=gpitvsess)
   endif
   endif
 
@@ -635,8 +635,8 @@ endif
 
 
 
-  if display eq 'yes' then begin
-    select_window, 1
+  if display ne -1 then begin
+     if display eq 0 then window,/free else select_window, display
     loadct, 0
     erase
 
@@ -666,7 +666,7 @@ endif
   backbone->set_keyword, "HISTORY", "Subtracted 2D image background estimated from pixels between spectra",ext_num=0
   suffix='-bgsub2d'
 
-  if tag_exist( Modules[thisModuleIndex], "Save_Stripes") && ( Modules[thisModuleIndex].Save_stripes eq 1 ) then b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, '-stripes', display=display,savedata=full_noise_model,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile])
+  if tag_exist( Modules[thisModuleIndex], "Save_Stripes") && ( Modules[thisModuleIndex].Save_stripes eq 1 ) then b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, '-stripes', display=gpitvsess,savedata=full_noise_model,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile])
   
   logstr = 'Robust sigma of unmasked pixels before destriping: '+strc(robust_sigma(image[where(~mask)]))
   backbone->set_keyword, "HISTORY", logstr,ext_num=0

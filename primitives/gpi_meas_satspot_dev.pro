@@ -13,7 +13,7 @@
 ; 
 ;
 ; PIPELINE COMMENT: Measured vs. wavelength scaled sat spot locations
-; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="0" Desc="Window number to display in.  -1 for no display."
+; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="1" Desc="-1 = No display; 0 = New (unused) window; else = Window number to display in."
 ; PIPELINE ARGUMENT: Name="SaveData" Type="string" Default="" Desc="Save data to filename (blank for no save)"
 ; PIPELINE ARGUMENT: Name="SavePNG" Type="string" Default="" Desc="Save plot to filename as PNG(blank for no save)"
 ; PIPELINE ORDER: 2.7
@@ -74,7 +74,10 @@ pngsave = Modules[thisModuleIndex].SavePNG
 ;;plot
 if (wind ne -1) || (pngsave ne '') then begin
    
-   if wind ne -1 then window,wind,xsize=800,ysize=600,retain=2 else begin
+   if wind ne -1 then begin
+      if wind eq 0 then window,/free,xsize=800,ysize=600,retain=2 else $
+         select_window,wind,xsize=800,ysize=600,retain=2 
+   endif else begin
       odevice = !D.NAME
       set_plot,'Z',/copy
       device,set_resolution=[800,600],z_buffer = 0

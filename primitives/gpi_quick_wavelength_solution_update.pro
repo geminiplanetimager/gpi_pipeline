@@ -20,7 +20,7 @@
 ; PIPELINE COMMENT: Given an existing wavecal and a new Xe lamp image, this primitive updates the wavecal roughly based on the X,Y positions measured for a subset of the Xe spectra. 
 ;
 ;
-; PIPELINE ARGUMENT: Name="display" Type="Int" Range="[0,1]" Default="0" Desc="Whether or not to plot each lenslet in comparison to the detector lenslet: 1;display, 0;no display"
+; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="-1" Desc="-1 = No display; 0 = New (unused) window; else = Window number to display each lenslet in comparison to the detector lenslet in."
 ; PIPELINE ARGUMENT: Name="spacing" Type="Int" Range="[0,20]" Default="10" Desc="Test every Nth lenslet for this value of N."
 ; PIPELINE ARGUMENT: Name="boxsizex" Type="Int" Range="[0,15]" Default="7" Desc="x dimension of a lenslet cutout"
 ; PIPELINE ARGUMENT: Name="boxsizey" Type="Int" Range="[0,50]" Default="24" Desc="y dimension of a lenslet cutout"
@@ -58,13 +58,11 @@ calfiletype='wavecal'
 ;Beginning of Wavelength Solution code:
 
 ;Initialize the input parameters:
- 	if tag_exist( Modules[thisModuleIndex], "display") then display=uint(Modules[thisModuleIndex].display) else display=0
+ 	if tag_exist( Modules[thisModuleIndex], "display") then display=fix(Modules[thisModuleIndex].display) else display=-1
  	if tag_exist( Modules[thisModuleIndex], "spacing") then spacing=uint(Modules[thisModuleIndex].spacing) else spacing=10
  	if tag_exist( Modules[thisModuleIndex], "boxsizex") then boxsizex=uint(Modules[thisModuleIndex].boxsizex) else boxsizex=7
  	if tag_exist( Modules[thisModuleIndex], "boxsizey") then boxsizey=uint(Modules[thisModuleIndex].boxsizey) else boxsizey=24
  	if tag_exist( Modules[thisModuleIndex], "whichpsf") then whichpsf=uint(Modules[thisModuleIndex].whichpsf) else whichpsf=0
- 	if tag_exist( Modules[thisModuleIndex], "display") then display=uint(Modules[thisModuleIndex].display) else display=0
-
 
 ;Define common block to be used in wrapper.pro and ngauss.pro
 common ngausscommon, numgauss, wl, flux, lambdao,my_psf
@@ -251,7 +249,8 @@ for i = istart,iend,spacing do begin
 
 	backbone->Log, "Mean shifts (X,Y) of this file vs. old wavecal: "+printcoo(mnx, mny)+" pixels"
 
-	if keyword_set(display) then begin
+	if display ne -1 then begin
+		if display eq 0 then window,/free else select_window, display
 		!p.multi=[0,1,2]
 		if n_elements(uniqvals(xdiffs)) gt 1 then begin
 			plothist, xdiffs, bin=0.01, title="X pos offset [current-old]", xtitle="Detector pixels", $
@@ -263,8 +262,9 @@ for i = istart,iend,spacing do begin
 			plothist, ydiffs, bin=0.01, title="Y pos offset [current-old]", xtitle="Detector pixels", $
 				ytitle='# of tested lenslets'
 			ver, mny,/line
-		endif
-	endif
+                     endif
+                !p.multi=0
+        endif 
 
 
 	shiftedwavecal = refwlcal

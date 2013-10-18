@@ -22,7 +22,7 @@
 ;
 ;
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="display" Type="string" Range="[yes|no]" Default="yes" Desc='Show diagnostic plot when running? [yes|no]'
+; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="1" Desc="-1 = No display; 0 = New (unused) window else = Window number to display diagnostic plot in."
 ; PIPELINE ARGUMENT: Name="saveplots" Type="string" Range="[yes|no]" Default="no" Desc='Save diagnostic plots to PS files after running? [yes|no]'
 ; PIPELINE COMMENT: Derive shifts vs elevation lookup table.
 ; PIPELINE NEWTYPE: Calibration
@@ -36,7 +36,7 @@ function gpi_populate_flexure_shifts_vs_elevation_table,  DataSet, Modules, Back
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
-    if tag_exist( Modules[thisModuleIndex], "display") then display=strlowcase(Modules[thisModuleIndex].display) else display='yes'
+    if tag_exist( Modules[thisModuleIndex], "display") then display=fix(Modules[thisModuleIndex].display) else display=-1
     if tag_exist( Modules[thisModuleIndex], "saveplots") then saveplots=strlowcase(Modules[thisModuleIndex].saveplots) else saveplots='no'
 
     nfiles=dataset.validframecount
@@ -165,8 +165,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         SET_PLOT, mydevice
 	endif
 
-	if strlowcase(display) eq 'yes' then begin
-		select_window, 0
+	if display ne -1 then begin
+		if display eq 0 then window,/free else select_window, display
 		elevsortedind=sort(elevation)
 		sortedelev=elevation[elevsortedind]
 		sortedxshift=xshiftmed[elevsortedind]

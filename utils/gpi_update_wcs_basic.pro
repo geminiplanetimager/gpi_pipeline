@@ -169,8 +169,8 @@ pro gpi_update_wcs_basic,backbone,imsize=imsize
   lst1 = gmst1 + lon
 
   ;; get hour angles
-  ha0 = gmst0 - ra/15d0
-  ha1 = gmst1 - ra/15d0
+  ha0 = lst0 - ra/15d0
+  ha1 = lst1 - ra/15d0
   
   ;; calcualte average parang
   avparang = calc_avparang(ha0,ha1,dec)
