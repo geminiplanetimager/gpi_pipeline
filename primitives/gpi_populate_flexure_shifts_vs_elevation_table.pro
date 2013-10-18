@@ -185,6 +185,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 		legend,/bottom,/right, ['Shifts in lookup table','Model'], color=[!p.color, !p.color, fsc_color('yellow')], line=[0,1,1], psym=[1,0,2], charsize=1.5
 
+                !p.multi = 0
 	endif
 
 

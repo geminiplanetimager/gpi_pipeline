@@ -319,5 +319,5 @@ print,'max at='+strc(maxat,format='(3g0.2)')+'deg'+'  Fwhm='+strc(FWHM,format='(
 
  
     SET_PLOT, mydevice ;set_plot,'win'
-
+!P.MULTI = 0
  end

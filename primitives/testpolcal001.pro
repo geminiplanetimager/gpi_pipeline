@@ -334,5 +334,5 @@ print,'90% x:'+strc(loccum[value_locate(histcumx3,90.)],format='(f4.2)')+'pix  '
 ;   
 ;  closeps 
 ;   set_plot,'win'
-
+!P.MULTI = 0
  end

@@ -121,6 +121,6 @@ openps,gpi_get_directory('GPI_REDUCED_DATA_DIR')+path_sep()+'test08.ps', xsize=1
    legend,[name+'measured PA (CRPA=0) [deg] ='+strc(mean(angle_star_deg)),'DST PA [deg]='+strc(mean(pa))],linestyle=[0,1],psym=[1,0]
 closeps
   SET_PLOT, mydevice ;set_plot,'win'
-
+!P.MULTI = 0
 return, ok
  end

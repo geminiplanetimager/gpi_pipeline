@@ -396,5 +396,6 @@ psFilenameSNR2 =Modules[thisModuleIndex].OutputDir+filnm+suffix+'SDIATTEN2.ps'
     legend,['Attenuation: slice#7 input datacube - SDI output'],linestyle=[0]
     closeps
    SET_PLOT, mydevice ;set_plot,'win'
+!P.MULTI = 0
 return, ok
  end

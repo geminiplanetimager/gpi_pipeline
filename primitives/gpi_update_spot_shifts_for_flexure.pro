@@ -257,7 +257,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 			legend,/bottom,/right, ['Shifts in lookup table','Model','Applied shift'], color=[!p.color, !p.color, fsc_color('yellow')], line=[0,1,1], psym=[1,0,2], charsize=1.5
 			xyouts, 0.5, 0.96, /normal, "Flexure Shift Model for "+backbone->get_keyword('DATAFILE'), charsize=1.8, alignment=0.5
-
+                        !p.multi = 0
 		endif
 
 

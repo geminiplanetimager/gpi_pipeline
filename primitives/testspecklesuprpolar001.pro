@@ -161,5 +161,6 @@ psFilenameSNR2 =Modules[thisModuleIndex].OutputDir+'test12_'+filnm+suffix+'POLAT
     legend,['(rms of total intensity [sum of e- and o- images]) / (rms of polarized intensity)','Requirements Att=5'],linestyle=[0,2]
     closeps
    SET_PLOT, mydevice ;set_plot,'win'
+!P.MULTI = 0
 return, ok
  end

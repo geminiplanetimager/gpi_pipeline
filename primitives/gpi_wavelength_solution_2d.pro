@@ -215,6 +215,7 @@ for i = istart,iend do begin
 ;				  vmax = max(lensletarray)
 ;				  imdisp, alogscale(lensletarray, 0, vmax), /axis, title='Real data subarray', /xs, /ys
 ;				  imdisp, alogscale(zmodplot, 0, vmax), /axis,  title='Model', /xs, /ys
+;                                 !p.multi = 0
 ;				endif
                 
                endfor

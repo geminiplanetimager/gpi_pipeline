@@ -153,7 +153,7 @@ legends=(Modules[thisModuleIndex].legendfig)
   
   
    SET_PLOT, mydevice; set_plot,'win'
-
+!P.MULTI = 0
    @__end_primitive
 
  end

@@ -187,6 +187,6 @@ plot,ewav, 100.*abs(espe-theospectrum)/theospectrum,ytitle='Abs. relative Diff. 
 xyouts, ewav[2],70.,'mean error='+strc(mean(100.*abs(espe-theospectrum)/theospectrum), format='(f5.2)')+' %'
 closeps
  SET_PLOT, mydevice ;set_plot,'win'
-
+!P.MULTI = 0
 return, ok
  end

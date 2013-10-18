@@ -46,7 +46,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	; The angle by design ought to be atan(1,2), but in practice with the 
 	; as built instrument there appears to be a slight offset from this.
 	; Hence the following default:
-	rotangle_d = gpi_get_setting('ifs_lenslet_rotation', default=atan(1,2)*!radeg -2)
+	rotangle_d = gpi_get_constant('ifs_rotation', default=atan(1,2)*!radeg -2)
 	; and we need to flip the sign here since we want to rotate back in the
 	; opposite direction
 	rotangle_d *= -1

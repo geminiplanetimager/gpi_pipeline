@@ -659,6 +659,7 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
       imdisp, imout, /axis, range=[-10,30], title='Destriped Data', charsize=2
       xyouts, 0.5, 0.95, /normal, "Stripe Noise Removal for "+backbone->get_keyword('DATAFILE'), charsize=2, alignment=0.5
     endelse
+    !P.MULTI = 0
   endif
 
   ; and now output

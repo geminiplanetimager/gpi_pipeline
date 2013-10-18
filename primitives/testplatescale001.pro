@@ -80,6 +80,6 @@ openps,getenv('GPI_REDUCED_DATA_DIR')+path_sep()+'test07.ps', xsize=18, ysize=27
    legend,['measured x-axis PA (CRPA=0) [deg] ='+strc(mean(xaxis_pa_at_zeroCRPA)),'DST PA [deg]=90.'],linestyle=[0,1],psym=[1,0]
 closeps
   SET_PLOT, mydevice ;set_plot,'win'
-
+!P.MULTI = 0
 return, ok
  end

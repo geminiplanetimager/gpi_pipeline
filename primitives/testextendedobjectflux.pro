@@ -127,5 +127,5 @@ legends=(Modules[thisModuleIndex].legendfig)
 ;             if pairs eq 1 then oPLOT, loc,histLin2,psym=1   
   closeps
   SET_PLOT, mydevice ;  set_plot,'win'
-
+!P.MULTI = 0
  end

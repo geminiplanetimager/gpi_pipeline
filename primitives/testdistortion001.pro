@@ -136,6 +136,6 @@ oplot, lambda,100.*err_relat_corr,linestyle=0
 legend,['Uncorrected distortion','Corrected distortion:'+method],linestyle=[1,0]
 closeps
  SET_PLOT, mydevice ;set_plot,'win'
-
+!P.MULTI = 0
 return, ok
  end

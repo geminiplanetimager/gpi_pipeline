@@ -375,5 +375,8 @@ psFilenameSNR2 =Modules[thisModuleIndex].OutputDir+'test10_'+filnm+suffix+s_Ext+
     legend,['Attenuation: slice#7','Att. median (over wav.)'],linestyle=[0,2]
     closeps
    SET_PLOT, mydevice ;set_plot,'win'
+!P.MULTI = 0
+
 return, ok
+
  end

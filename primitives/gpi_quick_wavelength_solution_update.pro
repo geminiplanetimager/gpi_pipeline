@@ -223,12 +223,17 @@ for i = istart,iend,spacing do begin
 
                   ;lensletmodel[startx:stopx, starty:stopy] += zmodplot
 
-;                if display EQ 1  then begin
+;                if display n1e -1  then begin
+;                  if display eq 0 then window,/free else select_window, display
 ;				  !p.multi= [0,2,1]
 ;				  vmax = max(lensletarray)
 ;				  imdisp, alogscale(lensletarray, 0, vmax), /axis, title='Real data subarray', /xs, /ys
-;				  imdisp, alogscale(zmodplot, 0, vmax), /axis,  title='Model', /xs, /ys
-;				endif
+;				  imdisp, alogscale(zmodplot, 0,
+;				  vmax), /axis,  title='Model', /xs,
+;				  /ys
+;                  !p.multi = 0
+;        	endif
+
                 
                endfor
 

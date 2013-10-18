@@ -348,9 +348,7 @@ linestyle=0, charsize=1.5
 plots, [wavtheo,wavtheo], [0, 100.], color=cgcolor('blue'),linestyle=1;, /clip
 ;legend,['barycentric centroid','mpfit2dpeak'], linestyle=[0,1,2]
 closeps
- 
-
-
+!P.MULTI = 0
 
   return, ok
 
