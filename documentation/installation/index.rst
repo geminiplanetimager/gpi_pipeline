@@ -8,7 +8,8 @@
 GPI Data Pipeline Installation & Configuration 
 ##################################################
 
-This chapter describes how to install the GPI data pipeline and configure it. 
+This chapter describes how to install the GPI data pipeline and configure it. The installation of the pipeline is dependent upon your operating system. In the instructions defined below, special directions corresponding to your operating system are indicated by the Windows, Macintosh (Apple), and Linux/Unix (Penguin) icons.
+ 
 
 If you already have IDL, the quickest route is to :ref:`download the latest source ZIP file <installing-from-zips>`, unzip it into your ``$IDL_PATH``, and :ref:`configure your path settings <configuring>`.
 

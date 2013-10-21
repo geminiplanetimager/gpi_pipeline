@@ -4,7 +4,7 @@ Installing from Software Release Zip Files
 =============================================
 
 This section describes how to install the pipeline from Zip files containing
-released source code of the pipeline. This is appropriate for anyone who has a
+released source code of the pipeline. This is appropriate for anyone who **has** a
 full copy of IDL, but does not immediately intend to contribute to ongoing
 pipeline development. 
 
@@ -25,7 +25,7 @@ pipeline development.
 
 
 
-Unzip this file in a directory that is a part of your ``$IDL_PATH``.
+Unzip this file in a directory that is a part of your ``$IDL_PATH`` (To determine where your ``$IDL_PATH`` is, type ``echo $IDL_PATH`` in a terminal prompt.
 
 .. admonition:: Mac OS and Linux
 
@@ -34,15 +34,13 @@ Unzip this file in a directory that is a part of your ``$IDL_PATH``.
     .. image:: icon_linux2.png
   
   On Mac OS and Linux, you will likely want to add the ``pipeline\scripts`` subdirectory
-  to your shell's ``$PATH``.
-
-
+  to your shell's ``$PATH``. How you do this depends upon your chosen shell (sh, csh, tcsh, bash etc). This is addressed in the :ref:`configuring` section. 
 
 
 .. warning::
    The usual caveats about name collisions between different versions of IDL routines apply.
    If you have old versions of e.g. the Goddard IDL library functions in your $IDL_PATH, 
-   you may encounter difficulties. We suggest placing the data pipeline code first in your $IDL_PATH.
+   you may encounter difficulties. We suggest placing the data pipeline code first in your $IDL_PATH. More information can be found in the :ref:`frequently-asked-questions` section. 
    
 
 Proceed now to :ref:`configuring`.
