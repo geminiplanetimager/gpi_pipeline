@@ -1,6 +1,7 @@
 function klip, cubein, refslice=refslice, band=band, locs=locs, $
                annuli=annuli, movmt=movmt, prop=prop, arcsec=arcsec, $
-               snr=snr, signal=signal,statuswindow=statuswindow,nummodules=nummodules
+               snr=snr, signal=signal, eqarea=eqarea, $
+               statuswindow=statuswindow,nummodules=nummodules
 ;+
 ; NAME:
 ;       klip
@@ -22,12 +23,15 @@ function klip, cubein, refslice=refslice, band=band, locs=locs, $
 ;      refslice - Index of reference slice (defaults to 0)
 ;      locs - 2x4x(# of slices) array of Sat spot locations
 ;      band - Cube spectral band (defaults to H)
-;      annuli - Number of annuli KLIP uses (defaults to 10)
+;      annuli - Number of annuli KLIP uses (defaults to 10).  0 means
+;               use the entire cube, 1 means to generate a single
+;               annulus out from the IWA, N generate N annuli from the
+;               IWA to the OWA and one outside of that.
 ;      movmt - Minimum pixel movement for reference slices (defaults
 ;              to 2)
 ;      prop - Proportion of eigenvalues used to truncate KL transform
 ;             vectors (defaults to .99999)
-;      arcsec - Radius of interest only if using 1 annulus (defaults
+;      arcsec - Radius of interest only if using 1 or no annulus (defaults
 ;               to .4)
 ;      /signal - command to calculate the SNR
 ;      
@@ -55,6 +59,7 @@ function klip, cubein, refslice=refslice, band=band, locs=locs, $
 ;
 ; REVISION HISTORY
 ;      Written 2013. Tyler Barker
+;      10.21.2013 - ds - Partial rewrite to improve performance.
 ;-
 
 ;;cube dimensions
@@ -64,152 +69,159 @@ if n_elements(lambda_dimen) ne 3 then begin
    return,-1
 endif
 
-;;by defulat use 0th slice as reference and assume H band
-if n_elements(refslice) eq 0 then refslice = 0
-
-;;get wavelength information, generate wavelengths, and calculate
-;;wavelength change per frame
-if not keyword_set(band) then band = 'H'
-cwv = get_cwv(band,spectralchannels=lambda_dimen[2])
-lambda = cwv.lambda
-wav_per_frame=(lambda[lambda_dimen[2]-1]-lambda[0])/lambda_dimen[2]
-
 ;;need to have satellite spots
 if n_elements(size(locs,/dim)) ne 3 then begin
    message,'You must supply the full set of satellite spots.',/continue
    return,-1
 endif
 
-;;by defulat use 10 annuli
-if n_elements(annuli) eq 0 then annuli=10
-annuli=float(annuli)
+;;set defaults 
+if n_elements(refslice) eq 0 then refslice = 0
+if not keyword_set(band) then band = 'H'
+if n_elements(annuli) eq 0 then annuli = 10
+annuli = double(annuli) ;ensure that this param is floating point
+if n_elements(prop) eq 0 then prop = .99999
+if n_elements(movmt) eq 0 then movmt = 2.0
 
-;;by default use a proportion of .99999
-if n_elements(prop) eq 0 then prop=.99999
+;;get wavelength information, generate wavelengths, and calculate
+;;wavelength change per frame
+cwv = get_cwv(band,spectralchannels=lambda_dimen[2])
+if size(cwv,/type) ne 8 then return,-1
+lambda = cwv.lambda
 
-;;by default use 2.0 minimum pixel movement
-if n_elements(movmt) eq 0 then movmt=2.0
+;;get the pixel scale, telescope diam  and define conversion factors
+;;and figure out IWA in pixels
+pixscl = gpi_get_constant('ifs_lenslet_scale',default=0.0143d0) ;as/lenslet
+rad2as = 180d0*3600d0/!dpi ;rad->as
+tel_diam = gpi_get_constant('primary_diam',default=7.7701d0) ;m
+IWA = 2.8d0 * lambda[refslice]*1d-6/tel_diam*rad2as/pixscl; 2.8 l/D (pix)
+OWA = 44d0 * lambda[refslice]*1d-6/tel_diam*rad2as/pixscl; 
+waffle = OWA/2*sqrt(2) ;radial location of MEMS waffle
 
-;;get the pixel scale for arcsec conversion
-pixscl = gpi_get_constant('ifs_lenslet_scale',default=0.0143d0) 
+if ceil(waffle) - floor(IWA) lt annuli*2 then begin
+   message,'Your requested annuli will be smaller than 2 pixels. Returning.',/continue
+   return,-1
+endif 
 
-;;by default arcsec interest is .4
-if annuli eq 1 then begin
+;;figure out starting and ending points of annuli and their centers
+case annuli of
+   0: rads = [0,lambda_dimen[1]/2+1]
+   1: rads = [floor(IWA),ceil(waffle)]
+   else: begin
+      if keyword_set(eqarea) then begin
+         rads = dblarr(annuli+1)
+         rads[0] = floor(IWA)
+         rads[n_elements(rads)-1] = ceil(waffle)
+         A = !dpi*(rads[n_elements(rads)-1]^2d0 - rads[0]^2d0)
+         for j = 1,n_elements(rads)-2 do rads[j] = sqrt(A/!dpi/annuli + rads[j-1]^2d0)
+      endif else rads = round(dindgen(annuli+1d0) / (annuli) * (ceil(waffle) - floor(IWA)) + floor(IWA))
+   end 
+endcase 
+if max(rads) lt lambda_dimen[1]/2+1 then rads = [rads,lambda_dimen[1]/2+1]
+
+;;by default arcsec of interest is .4
+if annuli lt 1 then begin
    if n_elements(arcsec) eq 0 then arcsec=.4
-   arcsec=arcsec/pixscl
-endif
+   radcents = arcsec/pixscl
+endif else radcents = (rads[0:n_elements(rads)-2]+rads[1:n_elements(rads)-1])/2d0
 
-;;initialize the final cube 
-signal_final=fltarr(lambda_dimen[1]^2,lambda_dimen[2])
-
-;;this processing has the effect of killing all nans.  Restore them in
-;;the final signal:
+;;initialize the final cube.  KLIP has the effect of killing all nans.
+;;Store them now so you can estore them in the final signal
+signal_final=fltarr(lambda_dimen[0]*lambda_dimen[1],lambda_dimen[2])
 badinds = where(~finite(cubein),badindsct)
-
-;;sets up the annuli to measure the SNR
-in_annu=make_annulus(3)
-out_annu=make_annulus(7,4)
-
-;;prepare the points to find SNR
-snr_map=where(finite(cubein[*,*,0])) ;map of the good points
-snr_arr=array_indices(cubein[*,*,0],snr_map) ;array of the good points
 
 ;;if you're going to be updating the statusbar, you need to
 ;;know how many total iterations will be done
 if keyword_set(statuswindow) then begin
    if ~keyword_set(nummodules) then nummodules = 1
-   start_rads=float(floor((2.8e-6*lambda)*6.48e5/(gpi_get_constant('primary_diam',default=7.7701d0)*!dpi)/pixscl))
-   totiter = total(floor((lambda_dimen[1]/2+20.0 - start_rads)/(lambda_dimen[1]/(2*annuli)))+1)
+   totiter = (n_elements(rads)-1)*lambda_dimen[2]
 endif 
 
-;;klip algorithm (need to do for each slice)
-for ref_value=0,lambda_dimen[2]-1,1 do begin
-   ;;gets the inner working angle in pixels
-   mult_const=6.48e5/(gpi_get_constant('primary_diam',default=7.7701d0)*!dpi)
-   in_ang0=(2.8e-6*lambda[ref_value])
-   in_ang1=in_ang0*mult_const/pixscl
-   start_rad=float(floor(in_ang1))
+;;figure out where the data actually is in the cube with respect to
+;;the center point:
+map = where(finite(cubein[*,*,refslice]))
+map_2_D = array_indices(cubein[*,*,refslice],map)
+c0 = (total(locs[*,*,refslice],2)/4) # (fltarr(n_elements(map))+1.)
+coordsp = cv_coord(from_rect=map_2_D - c0,/to_polar)
 
-   ;;sets up the annulus coordinates
-   map=where(cubein[*,*,ref_value])
-   map_2_D=array_indices(cubein[*,*,ref_value],map)
-   c0 = (total(locs[*,*,0],2)/4) # (fltarr(n_elements(map))+1.)
-   coordsp = cv_coord(from_rect=map_2_D - c0,/to_polar)
+;;get the number of pixels planet at center of each annulus moves between
+;;slices
+movmts  = (lambda[0]/lambda - 1d0) # radcents
 
-   ;;runs klip for each annulus
-   for rad=start_rad,lambda_dimen[1]/2+20.0,lambda_dimen[1]/(2*annuli) do begin
+;;flatten cube for easier indexing
+fcube = reform(cubein,lambda_dimen[0]*lambda_dimen[1],lambda_dimen[2]) 
+
+;;klip algorithm (need to do for each slice and annulus)
+for radcount = 0,n_elements(rads)-2 do begin
+   ;;rad range: rads[radcount]<= R <rads[radcount+1] 
+   radinds = where((coordsp[1,*] ge rads[radcount]) and (coordsp[1,*] lt rads[radcount+1]))
+   R = fcube[map(radinds),*] ;;ref set
+
+   ;;check that you haven't just grabbed a blank annulus
+   if (total(finite(R)) eq 0) then begin 
+      if keyword_set(statuswindow) && obj_valid(statuswindow) then $
+         statuswindow->set_percent,-1,double(lambda_dimen[2])/totiter*100d/nummodules,/append
+      continue
+   endif 
+
+   ;;create mean subtracted versions and get rid of NaNs
+   mean_R_dim1=dblarr(N_ELEMENTS(R[0,*]))                        
+   for zz=0,N_ELEMENTS(R[0,*])-1 do mean_R_dim1[zz]=mean(R[*,zz],/double,/nan)
+   R_bar=R-matrix_multiply(replicate(1,n_elements(radinds),1),mean_R_dim1,/btranspose)
+   ind=where(R_bar ne R_bar,count)
+   if count ne 0 then begin 
+      R[ind] = 0
+      R_bar[ind] = 0
+   endif 
+
+   ;;find covariance of all slices
+   covar0 = matrix_multiply(R_bar,R_bar,/atranspose)/(n_elements(radinds)-1) 
+
+   ;;cycle through slices
+   for ref_value=0,lambda_dimen[2]-1 do begin
 
       ;;update progress as needed
-      if keyword_set(statuswindow) && obj_valid(statuswindow) then begin
+      if keyword_set(statuswindow) && obj_valid(statuswindow) then $
          statuswindow->set_percent,-1,1d/totiter*100d/nummodules,/append
+
+      ;;figure out which slices are to be used
+      sliceinds = where(abs(movmts[*,radcount] - movmts[ref_value,radcount]) gt movmt, count)
+      if count lt 2 then begin 
+         sliceinds = where(abs(movmts[*,radcount] - movmts[ref_value,radcount]) gt 1., count)
+         if count lt 2 then begin 
+            message,'No reference slices available for requested motion. Skipping.',/cont
+            continue
+         endif 
       endif 
 
-      ;;calculates the reference set
-      range=ceil(((movmt/rad+1)*lambda[0]-lambda[0])/wav_per_frame);calc # of frames
-      if rad lt 25.0 then range=ceil(((movmt/(25.0)+1)*lambda[0]-lambda[0])/wav_per_frame)
-      if annuli eq 1.0 then range=ceil(((movmt/arcsec+1)*lambda[0]-lambda[0])/wav_per_frame)
-      if range gt (lambda_dimen[2]/2-1) then range=lambda_dimen[2]/2-1
-      choice=findgen(lambda_dimen[2])      ;sets up array to figure out which slices to use
-      exclude=findgen(2*range-1)-range+ref_value+1   ;use -1 to include the end range values
-      ind=where(exclude gt (lambda_dimen[2]-1), count)
-      if count ne 0 then exclude[ind]=ref_value
-      ind=where(exclude lt 0,count)
-      if count ne 0 then exclude[ind]=ref_value
-      remove, exclude, choice   ;this takes the range around ref_value out of the choices
-      
-      ;;set the annular rings to a certain width
-      inds=where((coordsp[1,*] gt rad-(lambda_dimen[1]/(4*annuli)+1)) and (coordsp[1,*] lt rad+(lambda_dimen[1]/(4*annuli)+1)))
+      ;;grab covariance submatrix
+      covar = covar0[sliceinds,*]
+      covar = covar[*,sliceinds]
 
-      ;;set up the target slice and reference slices
-      R=reform(cubein[*,*,choice],lambda_dimen[1]^2,size(choice, dimension=1),1) 
-      R=R[inds,*]
-      T=reform(cubein[*,*,ref_value],lambda_dimen[1]^2,1)   
-      T=T[inds]  
-
-      ;;check that you haven't just grabbed a blank annulus
-      if (total(finite(T)) eq 0) || (total(finite(R)) eq 0) then continue
-
-      ;;gets the size of the reference slice
-      dimen=size(R,/dimensions) 
-      col=dimen[0]             
-      row=dimen[1]              
-
-      ;;create mean subtracted versions and get rid of NaNs
-      mean_R_dim1=dblarr(N_ELEMENTS(R[0,*]))
-      ; mean_R_dim1=mean(R,dimension=1,/double,/nan) ; IDL 8.0+ only
-      for zz=0,N_ELEMENTS(R[0,*])-1 do mean_R_dim1[zz]=mean(R[*,zz],/double,/nan)
-      
-
-      R_bar=R-matrix_multiply(replicate(1,col,1),mean_R_dim1,/btranspose)
-      ind=where(R_bar ne R_bar,count)
-      if count ne 0 then R_bar[ind]=0 ; else R_bar[N_ELEMENTS(R_bar)-1]=0
- 
-      ; mean(T,dimension=1,/double,/nan) ; IDL 8.0+ only
-           
-      T_bar=T-mean(T,/double,/nan)##replicate(1,col,1) 
-      ind=where(T_bar ne T_bar,count)
-      if count ne 0 then T_bar[ind]=0 ; else T_bar[N_ELEMENTS(T_bar)-1]=0 
-      
-      ;;calculate the covariance and eigenspace
-      covar=matrix_multiply(R_bar,R_bar,/atranspose)/(col-1) 
-      residual=1 ;initialize the residual
-      evals=eigenql(covar,eigenvectors=evecs,/double,residual=residual)  
+      ;;get the eigendecomposition
+      residual = 1 ;initialize the residual
+      evals = eigenql(covar,eigenvectors=evecs,/double,residual=residual)  
 
       ;;determines which eigenalues to truncate
-      evals_cut=where(total(evals,/cumulative) gt prop*total(evals))
-      K=evals_cut(0)
+      evals_cut = where(total(evals,/cumulative) gt prop*total(evals))
+      K = evals_cut(0)
       if K eq -1 then continue
 
       ;;creates mean subtracted and truncated KL transform vectors
-      Z=evecs##R_bar
-      G=sqrt(invert(diag_matrix(evals)))/sqrt(col-1)
-      Z_bar=G##Z
-      Z_bar_trunc=Z_bar(*,0:K) 
+      Z=evecs ## R_bar[*,sliceinds]
+      G = diag_matrix(sqrt(1d0/evals/(n_elements(radinds)-1)))
+
+      Z_bar = G ## Z
+      Z_bar_trunc=Z_bar[*,0:K] 
+
+      T = R_bar[*,ref_value]
+      ;;T = R[*,ref_value]
 
       ;;Project KL transform vectors and subtract from target
-      signal_step_1=matrix_multiply(T_bar,Z_bar_trunc,/atranspose)
-      signal_step_2=matrix_multiply(signal_step_1,Z_bar_trunc,/btranspose)
-      signal_final[inds,ref_value]=T_bar-transpose(signal_step_2)
+      signal_step_1 = matrix_multiply(T,Z_bar_trunc,/atranspose)
+      signal_step_2 = matrix_multiply(signal_step_1,Z_bar_trunc,/btranspose)
+      Test = T - transpose(signal_step_2)
+      signal_final[map(radinds),ref_value] = Test
 
    endfor
 endfor
@@ -223,6 +235,14 @@ signal_final=Ima1
 
 ;; calculate the SNR (extremely slow)
 if keyword_set(signal) then begin
+   ;;sets up the annuli to measure the SNR
+   in_annu=make_annulus(3)
+   out_annu=make_annulus(7,4)
+
+   ;;prepare the points to find SNR
+   snr_map=where(finite(cubein[*,*,0]))      ;map of the good points
+   snr_arr=array_indices(cubein[*,*,0],snr_map) ;array of the good points
+
    snr=fltarr(lambda_dimen[0],lambda_dimen[1],lambda_dimen[2])
    for slice=0,36,1 do begin
       for x=0,n_elements(snr_arr[0,*])-1,1 do begin

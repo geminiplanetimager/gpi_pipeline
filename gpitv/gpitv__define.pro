@@ -484,7 +484,7 @@ state = {                   $
         klip_mode: 0, $                   ; boolean indicating whether you're in KLIP mode
         high_pass_mode: 0,$               ; boolean indicating whether you're in high pass filter mode
         specalign_to: 0L, $               ; index of slice you're aligned to
-        klip_annuli: 10L, $               ; default # of KLIP annuli to use
+        klip_annuli: 5L, $                ; default # of KLIP annuli to use
         klip_movmt: 2.0, $                ; default minimum pixels to move for KLIP ref set
         klip_prop: 0.99999, $             ; default truncation for KLIP
         klip_arcsec: 0.4, $               ; Area of interest for single annulus
