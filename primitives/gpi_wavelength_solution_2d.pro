@@ -97,7 +97,8 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
 	filternm = backbone->get_keyword('IFSFILT', count=ct2)
         filter = gpi_simplify_keyword_value(filternm)
         
-        if ct1 OR ct2 EQ 0 then print,"One of the header keywords doesn't exists"
+        if ct1 OR ct2 EQ 0 then print,"One of the header keywords doesn't exist"
+        
         backbone->Log,filter+lamp
         backbone->Log, gpi_get_directory('GPI_DRP_CONFIG_DIR')
         datafn = gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+filter+lamp+'.dat'
@@ -255,7 +256,7 @@ backbone->set_keyword, "HISTORY", " ",ext_num=0;,/blank
 
 ;Note the below is a quick hack stolen from save_currdata.pro and should be replaced
 
-wavecalimage=save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, "-"+filter+"-"+suffix, savedata=newwavecal,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile] ,output_filename=output_filename)
+wavecalimage=save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, "-"+filter+"-"+suffix,display=0, savedata=newwavecal,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile] ,output_filename=output_filename)
 
 
 @__end_primitive
