@@ -57,8 +57,8 @@ export GPI_REDUCED_DATA_DIR="${GPI_DATA_ROOT}/Reduced/" # where should we put re
 #---------- make sure the startup scripts are in your $PATH   -----a
 #           and the IDL code is in your $IDL_PATH
 # 
-export IDL_PATH="+/home/labuser1/GPI/pipeline/${IDL_PATH}" #  ** CHANGE REQUIRED** same pipeline code location (contains subdirectories backbone, config, gpitv etc.) as GPI_DRP_DIR
-export PATH="${PATH}:/home/labuser1/GPI/pipeline/scripts"	#  ** CHANGE REQUIRED** the scripts subdirectory of the directory declared just above
+export IDL_PATH="+/home/labuser1/GPI/:${IDL_PATH}" #  ** CHANGE REQUIRED** location of the pipeline and external directories
+export PATH="${PATH}:/home/labuser1/GPI/pipeline/scripts"	#  ** CHANGE REQUIRED** the scripts directory located in the pipeline directory which is located in the directory declared just above
 
 
 
