@@ -624,11 +624,11 @@ FUNCTION gpiPipelineBackbone::Reduce
     ; For GPI, we declare that there can only be one dataset in a DRF, which
     ; can in turn contain some number of data files, which get stored in the
     ; 'frame' arrays etc. 
-    self->Log, 'Reducing data set containing '+strc((*self.Data).validframecount)+" file(s).",  depth=1
+    self->Log, 'Reducing data set containing '+strc((*self.Data).validframecount)+" file(s).",  depth=0
 
     FOR IndexFrame = 0, (*self.Data).validframecount-1 DO BEGIN
         if debug ge 1 then print, "########### start of file "+strc(indexFrame+1)+" ################"
-        self->Log, 'Reducing file: ' + (*self.Data).fileNames[IndexFrame], depth=1
+        self->Log, 'Reducing file: ' + (*self.Data).fileNames[IndexFrame], depth=1,/flush
         if obj_valid(self.statuswindow) then self.statuswindow->Set_FITS, (*self.Data).fileNames[IndexFrame], number=indexframe,nbtot=(*self.Data).validframecount
 
         numfile=IndexFrame ; store the index in the common block
@@ -665,7 +665,7 @@ FUNCTION gpiPipelineBackbone::Reduce
               if self.statuswindow->checkabort() then begin
                  conf = dialog_message("Are you sure you want to abort the current recipe?",/question,title="Confirm abort",/default_no,/center)
                  if conf eq "Yes" then begin
-                    self->Log, "User pressed ABORT button! Aborting Recipe"
+                    self->Log, "User pressed ABORT button! Aborting Recipe",/flush
                     status = NOT_OK
                     break
                  endif else begin
@@ -807,7 +807,7 @@ FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
     common PIP
 
     if debug ge 2 then message,/info, " Now running primitive "+Modules[ModNum].Name+', '+ Modules[ModNum].IDLCommand
-    self->Log, "Running primitive "+string(Modules[ModNum].Name, format='(A30)')+"  for frame "+strc(numfile), depth=2
+    self->Log, "Running primitive "+string(Modules[ModNum].Name, format='(A30)')+"  for frame "+strc(numfile), depth=2,/flush
     ; Execute the call sequence and pass the return value to DRP_EVALUATE
 
     ; Add the currently executing module number to the Backbone structure
