@@ -26,7 +26,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   if tag_exist( Modules[thisModuleIndex], "keyword") && tag_exist( Modules[thisModuleIndex], "value") then begin
     
     backbone->set_keyword, Modules[thisModuleIndex].keyword, Modules[thisModuleIndex].value
-    backbone->Log, 'Added keyword "'+Modules[thisModuleIndex].keyword+'", value="'+Modules[thisModuleIndex].value+'".'
+    backbone->Log, 'Added keyword "'+Modules[thisModuleIndex].keyword+'", value="'+Modules[thisModuleIndex].value+'".', depth=3
   endif else begin
     backbone->Log, 'WARNING: Add missing keyword was called, but there were no arguments describing a keyword to add. Doing nothing.'
   endelse
