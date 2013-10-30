@@ -941,7 +941,7 @@ void = widget_label ((*self.state).info_head_id, $
 ;                                      value = (*self.state).waveleng,  $
 ;                                      uvalue = 'waveleng',  frame = 1, /DYNAMIC_RESIZE, /ALIGN_LEFT)
 void = widget_label ((*self.state).info_head_id, $
-                                      value = '   Prism: ',  $
+                                      value = '   Disperser: ',  $
                                       uvalue = 'text',  frame = 0,  /DYNAMIC_RESIZE, /ALIGN_LEFT)
 (*self.state).filter2_id = widget_label ((*self.state).info_head_id, $
                                       value = (*self.state).filter2,  $
@@ -962,7 +962,7 @@ void = widget_label ((*self.state).info_head_id, $
                                       uvalue = 'coadds',  frame = 1, /DYNAMIC_RESIZE, /ALIGN_CENTER)
 
 void = widget_label ((*self.state).info_head_id, $
-                                      value = 'Target: ',  $
+                                      value = 'Object: ',  $
                                       uvalue = 'text',  frame = 0,  /DYNAMIC_RESIZE, /ALIGN_LEFT)
 (*self.state).object_id = widget_label ((*self.state).info_head_id, $
                                       value = (*self.state).object,  $
