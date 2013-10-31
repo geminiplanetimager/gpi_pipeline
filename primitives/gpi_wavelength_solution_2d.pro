@@ -159,13 +159,14 @@ split_for, istart,iend, nsplit=numsplit,varnames=['jstart','jend','refwlcal','bo
 '   q++',$
 '   continue',$
 'endif',$
-'res=wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss")',$              
+'res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss")',$              
 'newwavecal[i,j,1]=res[0]+startx',$
 'newwavecal[i,j,0]=res[1]+starty',$
 'newwavecal[i,j,2]=refwlcal[i,j,2]',$
 'newwavecal[i,j,3]=res[2]',$
 'newwavecal[i,j,4]=res[3]',$
-'endfor']
+'endfor',$
+'print,"Have now fit "+strc(i*j)+"/78961 lenslets"']
 
 
 ;print,'The new wavecals:',size(newwavecal0)
@@ -182,8 +183,8 @@ for k=0,numsplit-1 do begin
    width[strc(k)] = scope_varfetch('count' + strc(k))
    if k EQ 0 then istart=0 else istart=total(width[0:k-1])
    iend=istart+width[k]-1
-   dummywave = scope_varfetch('newwavecal'+strc(k)+'[istart:iend,*,*]')
-   newwavecal[istart:iend,*,*]=dummywave
+   dummywave = scope_varfetch('newwavecal'+strc(k))
+   newwavecal[istart:iend,*,*]=dummywave[istart:iend,*,*]
 endfor
 
 
