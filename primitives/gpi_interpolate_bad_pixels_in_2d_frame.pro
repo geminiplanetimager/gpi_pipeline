@@ -200,8 +200,10 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
   			endif else begin
   				; neither above nor below is valid. 
   				; use average of whatever surrounding pixels are in fact valid
-  				whereis, bpmask, wslowfix[i], bx, by
-  				localvalid = 1-bpmask[bx-1:bx+1, by-1:by+1]
+  				;whereis, bpmask, wslowfix[i], bx, by ; only works on sqaure arrays - being deprecated
+  				tmp=array_indices(bpmask,wslowfix[i])
+					bx=tmp[0] & by=tmp[1]		
+					localvalid = 1-bpmask[bx-1:bx+1, by-1:by+1]
   				localdata = (*dataset.currframe)[bx-1:bx+1, by-1:by+1]
   				goodmean = total(localdata * localvalid) / total(localvalid)
   				(*dataset.currframe)[wslowfix[i]] = goodmean
@@ -242,7 +244,9 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
         message,/info, "Pixels with some but not all valid neighbors: "+strc(ct_valid1to7)
 
 		for i=0, n_elements(wvalid_1to7)-1 do begin
-            whereis, bpmask, wbad[wvalid_1to7[i]], myx, myy
+            ;whereis, bpmask, wbad[wvalid_1to7[i]], myx, myy ; only works on square arrays - program being deprecated
+						tmp=array_indices(bpmask,wbad[wvalid_1to7[i]])
+						myx=tmp[0] & myy=tmp[1]						
 
             nbrs = (*dataset.currframe)[myx-1:myx+1, myy-1:myy+1]
             validnbrs = 1-bpmask[myx-1:myx+1, myy-1:myy+1]
