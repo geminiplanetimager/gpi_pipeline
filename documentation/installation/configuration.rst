@@ -90,26 +90,28 @@ Note that the user must have write permissions to the ``$GPI_DRP_QUEUE_DIR`` and
 
 The following are paths are set automatically by the pipeline, but you shoudl be aware of their existence: 
 
-=======================   =======================================   =================================================================
-Variable                   Contains                                 Default Value if Not Set Explicitly
-=======================   =======================================   =================================================================
-GPI_DRP_DIR               Root dir of pipeline software             Determined automatically, location of the IDL pipeline code 
-																																		(contains subdirectories backbone, config, gpitv etc)
-GPI_DRP_CONFIG_DIR        Path to directory containing pipeline     ``$GPI_DRP_DIR/config``
-                          config files and ancillary data.           
-GPI_DRP_TEMPLATES_DIR     Path to recipe templates                  ``$GPI_DRP_DIR/recipe_templates``
-=======================   =======================================   =================================================================
+======================  =======================================  ===========================================================
+Variable                  Contains                                   Default Value if Not Set Explicitly
+======================  =======================================  ===========================================================
+GPI_DRP_DIR             Root dir of pipeline software             Determined automatically, location of
+                                                                  the IDL pipeline code. Contains 
+                                                                  subdirectories: backbone, config, 
+                                                                  gpitv etc
+GPI_DRP_CONFIG_DIR      Path to directory containing pipeline    ``$GPI_DRP_DIR/config``
+                        config files and ancillary data.           
+GPI_DRP_TEMPLATES_DIR   Path to recipe templates                 ``$GPI_DRP_DIR/recipe_templates``
+======================  =======================================  ===========================================================
 
 
 The following are paths are also set automatically by the pipeline but the directories **must be created** by the user: 
 
-=======================   ======================================   ======================================================================
-Variable                  Contains                                  Default Value if Not Set Explicitly
-=======================   ======================================   ======================================================================
-GPI_DRP_LOG_DIR           Path to save output log files             ``$GPI_REDUCED_DATA_DIR/logs``
-GPI_CALIBRATIONS_DIR      Location of Calibration Files Database    ``$GPI_REDUCED_DATA_DIR/calibrations``
-GPI_RECIPE_OUTPUT_DIR     Where to save user-created Recipes        ``$GPI_REDUCED_DATA_DIR/recipes``
-=======================   ======================================   ======================================================================
+======================   ======================================  ==========================================
+Variable                   Contains                                  Default Value if Not Set Explicitly
+======================   ======================================  ==========================================
+GPI_DRP_LOG_DIR          Path to save output log files             ``$GPI_REDUCED_DATA_DIR/logs``
+GPI_CALIBRATIONS_DIR     Location of Calibration Files Database    ``$GPI_REDUCED_DATA_DIR/calibrations``
+GPI_RECIPE_OUTPUT_DIR    Where to save user-created Recipes        ``$GPI_REDUCED_DATA_DIR/recipes``
+======================   ======================================  ==========================================
 
 
 The required paths above must be set before you can proceed and those that will be
@@ -130,7 +132,7 @@ settings.
 The System default settings are stored in the file
 ``$GPI_DRP_DIR/config/pipeline_settings.txt`` provided with the pipeline software. 
 
-We recommend that users copy this file to their home directories rather than modifying the version specific file. The location of the user config file depends on the operating system. 
+Although not necessary, we recommend that users who will be using the pipeline frequently to copy this file to their home directories rather than modifying the version specific file. The location of the user config file depends on the operating system. 
 
 .. admonition:: Note for Subversion Users
 
