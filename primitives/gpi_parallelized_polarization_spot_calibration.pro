@@ -2,8 +2,6 @@
 ; NAME: gpi_parallelized_polarization_spot_calibration
 ; PIPELINE PRIMITIVE DESCRIPTION: Parallelized Polarization Spot Calibration
 ;
-;  ** experimental / in development **
-;
 ;   This is a parallelized version of the polarization spot algorithm.
 ;   The normal version is in gpi_measure_polarization_spot_calibration
 ;
@@ -27,10 +25,10 @@
 ;
 ; PIPELINE ORDER: 1.8
 ; PIPELINE ARGUMENT: Name="nlens" Type="int" Range="[0,400]" Default="281" Desc="side length of  the  lenslet array "
-; PIPELINE ARGUMENT: Name="centrXpos" Type="int" Range="[0,2048]" Default="1024" Desc="Initial approximate x-position [pixel] of central peak at 1.5microns"
-; PIPELINE ARGUMENT: Name="centrYpos" Type="int" Range="[0,2048]" Default="1024" Desc="Initial approximate y-position [pixel] of central peak at 1.5microns"
-; PIPELINE ARGUMENT: Name="w" Type="float" Range="[0.,10.]" Default="4.8" Desc="Spectral spacing perpendicular to the dispersion axis at the detcetor in pixel"
-; PIPELINE ARGUMENT: Name="P" Type="float" Range="[-7.,7.]" Default="-1.8" Desc="Micro-pupil pattern"
+; PIPELINE ARGUMENT: Name="centrXpos" Type="int" Range="[0,2048]" Default="969" Desc="Initial approximate x-position [pixel] of central peak at 1.5microns"
+; PIPELINE ARGUMENT: Name="centrYpos" Type="int" Range="[0,2048]" Default="1000" Desc="Initial approximate y-position [pixel] of central peak at 1.5microns"
+; PIPELINE ARGUMENT: Name="w" Type="float" Range="[0.,10.]" Default="4.4" Desc="Spectral spacing perpendicular to the dispersion axis at the detcetor in pixel"
+; PIPELINE ARGUMENT: Name="P" Type="float" Range="[-7.,7.]" Default="2.18" Desc="Micro-pupil pattern"
 ; PIPELINE ARGUMENT: Name="maxpos" Type="float" Range="[-7.,7.]" Default="2.5" Desc="Allowed maximum location fluctuation (in pixel) between adjacent mlens"
 ; PIPELINE ARGUMENT: Name="FitWidth" Type="float" Range="[-10.,10.]" Default="3" Desc="Size of box around a spot used to find center"
 
@@ -40,10 +38,11 @@
 ; PIPELINE NEWTYPE: Testing
 ;
 ; HISTORY:
-;     2009-06-17: Started, based on gpi_extract_wavcal - Marshall Perrin 
+;   2009-06-17: Started, based on gpi_extract_wavcal - Marshall Perrin 
 ;   2009-09-17 JM: added DRF parameters
 ;   2013-01-28 MMB: added some keywords to pass to find_pol_positions_quadrant
 ;   2013-07-17 MP: Renamed for consistency
+;   2013-10-31 MMB: Big update, 
 ;-
 
 function gpi_parallelized_polarization_spot_calibration,  DataSet, Modules, Backbone
@@ -62,21 +61,20 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     ;bandeobs=SXPAR( h, 'FILTER', count=ct)
     ;if ct eq 0 then bandeobs= sxpar(h,'IFSFILT')
 
-       ; TODO verify image is a POL mode FLAT FIELD. 
+    ;DONE -  TODO verify image is a POL mode FLAT FIELD.  - DONE (copied from gpi_measure_polarization_spot_calibration.pro - the single thread version)
     ;mode = sxpar(h,'prism', count=ct)
     ;if ct eq 0 then disp = sxpar(h,'DISPERSR')
-    ;if ct eq 0 then disp = sxpar(h,'FILTER2')
+    ;if ct eq 0 then disp = sxpar(h,'FILTER2')(
 
-
+    ; verify image is a POL mode FLAT FIELD. 
     if ~strmatch(mode,'*wollaston*',/fold_case)  then return, error('FAILURE ('+functionName+'): Invalid input -- a POLARIMETRY mode file is required.') 
     if(~strmatch(obstype,'*arc*',/fold_case)) && (~strmatch(obstype,'*flat*',/fold_case)) then $
         return, error('FAILURE ('+functionName+'): Invalid input -- The OBSTYPE keyword does not mark this data as a FLAT or ARC image.') 
-    
 
     ;if (size(im))[0] eq 0 then im=readfits(filename,h)
     szim=size(im)
 
-
+    ;szbp=size(badpixelmap)
     ; version 1 sketch: We model each peak as a 2D rotated Gaussian. 
     ;
     ; for each peak, we store
@@ -96,19 +94,40 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     
     
     nlens=uint(Modules[thisModuleIndex].nlens)
+    nspot_pixels=45  ; NOTE: this **MUST** match the nspot_pixels value in
+           ; find_pol_positions_quadrant.pro
     
+    
+    ; Setting up the shared memory
+    shmmap, 'spotpos', /double, 5,nlens,nlens,2
+    shmmap, 'spotpos_pixels', /integer, 2, nspot_pixels,nlens,nlens,2
+    shmmap, 'spotpos_pixvals', /double, nspot_pixels,nlens,nlens,2
+    shmmap, 'imshr',type=szim[0], szim[1],szim[2] ;2d array
+    ;shmmap, 'badpixmap', type=szbp[0], szbp[1],szbp[2] 
+    
+    spotpos=shmvar('spotpos')
+    spotpos_pixels=shmvar('spotpos_pixels')
+    spotpos_pixvals=shmvar('spotpos_pixvals')
+    imshr=shmvar('imshr')
+    ;bpshr=shmvar('bpshr')
+    
+    spotpos[*]+=!values.d_nan
+    spotpos_pixvals[*]+=!values.f_nan
+    imshr[0,0]=im
+    
+    
+    ;bpshr[0,0]=badpixmap
     ; Create the SPOTPOS array, which stores the Gaussian-fit 
     ; spot locations. 
     ;
     ; NOTE: spotpos dimensions re-arranged relative to spectral version
     ; for better speed. And to add pol dimension of course.
-    spotpos=dblarr(5,nlens,nlens,2)+!VALUES.D_NAN
-    nspot_pixels=45  ; NOTE: this **MUST** match the nspot_pixels value in
-					 ; find_pol_positions_quadrant.pro
+    ;spotpos[0,0,0,0]=dblarr(5,nlens,nlens,2)+!VALUES.D_NAN
+    
     ; Now create the PIXELS and PIXVALS arrays, which store the actual
     ; X,Y, and values for each pixel, that we can use for optimal extraction
-    spotpos_pixels = intarr(2,nspot_pixels, nlens, nlens, 2)
-    spotpos_pixvals = dblarr(nspot_pixels, nlens, nlens, 2)+!values.f_nan
+    ;spotpos_pixels[0,0,0,0,0] = intarr(2,nspot_pixels, nlens, nlens, 2)
+    ;spotpos_pixvals[0,0,0,0,0] = dblarr(nspot_pixels, nlens, nlens, 2)+!values.f_nan
     
     ;localize central peak around the center of the image
     cen1=dblarr(2)    & cen1[0]=-1 & cen1[1]=-1
@@ -124,7 +143,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
             (cen1[0] lt 0) || (cen1[0] gt (size(im))[1]) || $
             (cen1[1] lt 0) || (cen1[1] gt (size(im))[1])  do begin
         wx+=1 & wy+=1
-        cen1=localizepeak( im, cenx, ceny,wx,wy,hh)
+        cen1=localizepeak( im, cenx, ceny,wx,wy,hh, meth=gaussfit)
         print, 'Center peak detected at pos:',cen1
     endwhile
     spotpos[0:1,nlens/2,nlens/2,0]=cen1
@@ -146,12 +165,14 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     boxwidth=float(Modules[thisModuleIndex].fitwidth)
      
 
-	sz = size(spotpos) & shmmap, "GPIDRP_spotpos", sz[1],sz[2], sz[3], sz[4],/float & shared_spotpos = shmvar("GPIDRP_spotpos") & shared_spotpos[*]=spotpos
-	sz = size(spotpos_pixels) & shmmap, "GPIDRP_spotpos_pixels", sz[1],sz[2],sz[3], sz[4],sz[5],/int & shared_spotpos_pixels = shmvar("GPIDRP_spotpos_pixels") & shared_spotpos_pixels[*]=spotpos_pixels
-	sz = size(spotpos_pixvals) & shmmap, "GPIDRP_spotpos_pixvals", sz[1],sz[2], sz[3],sz[4],/float & shared_spotpos_pixvals = shmvar("GPIDRP_spotpos_pixvals") & shared_spotpos_pixvals[*]=spotpos_pixvals
+	;sz = size(spotpos) & shmmap, "GPIDRP_spotpos", sz[1],sz[2], sz[3], sz[4],/float & shared_spotpos = shmvar("GPIDRP_spotpos") & shared_spotpos[*]=spotpos
+	;sz = size(spotpos_pixels) & shmmap, "GPIDRP_spotpos_pixels", sz[1],sz[2],sz[3], sz[4],sz[5],/int & shared_spotpos_pixels = shmvar("GPIDRP_spotpos_pixels") & shared_spotpos_pixels[*]=spotpos_pixels
+	;sz = size(spotpos_pixvals) & shmmap, "GPIDRP_spotpos_pixvals", sz[1],sz[2], sz[3],sz[4],/float & shared_spotpos_pixvals = shmvar("GPIDRP_spotpos_pixvals") & shared_spotpos_pixvals[*]=spotpos_pixvals
 
 	nbparallel = 4 ; always 4 quadrants
 	bridges = ptrarr(nbparallel)
+	
+	t0=Systime(/Seconds)
 	for ipar=0L,nbparallel-1 do begin
 		; create new IDL session and initialize the necessary variables
 		; there.
@@ -168,22 +189,35 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		(*bridges[ipar])->Setvar,'wy', wy
 		(*bridges[ipar])->Setvar,'hh', hh
 		(*bridges[ipar])->Setvar,'szim', szim
+		(*bridges[ipar])->Setvar,'tight_pos', tight_pos
+		(*bridges[ipar])->Setvar,'boxwidth', boxwidth
+		(*bridges[ipar])->Setvar,'im', im
+		;(*bridges[ipar])->Setvar,'display_flag', display_flag
 		
-		; TODO allocate and access the shared memory segments in the remote
-		; session
+		(*bridges[ipar])->Execute, "SHMMap, 'spotpos', /double, 5,"+string(nlens)+","+string(nlens)+",2"
+		(*bridges[ipar])->Execute, "SHMMap, 'spotpos_pixels', /integer, 2,"+string(nspot_pixels)+","+string(nlens)+","+string(nlens)+",2"
+		(*bridges[ipar])->Execute, "SHMMap, 'spotpos_pixvals', /double,"+string(nspot_pixels)+","+string(nlens)+","+string(nlens)+",2"
+		;(*bridges[ipar])->Execute, "SHMMap, 'imshr', type="+string(szim[0])+","+string(szim[1])+","+string(szim[2])
+		;(*bridges[ipar])->Execute, "SHMMap, 'bpshr', type="+szbp[0]+","+szbp[1]+","+szbp[2]
 		
-		; TODO run a quadrant of  find_pol_positions_quadrant in the remote
-		; session
 		
+		(*bridges[ipar])->Execute, "spotpos=shmvar('spotpos')"
+		(*bridges[ipar])->Execute, "spotpos_pixels=shmvar('spotpos_pixels')"
+		(*bridges[ipar])->Execute, "spotpos_pixvals=shmvar('spotpos_pixvals')"
+		;(*bridges[ipar])->Execute, "im=shmvar('imshr')"
+		;(*bridges[ipar])->Execute, ";=shmvar('imshr')"
+
+    ;The orginal called for a badpixelmap, but this is now dealt with earlier in the pipeline
+		(*bridges[ipar])->Execute, "find_pol_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,spotpos,im, spotpos_pixels, spotpos_pixvals, tight_pos, boxwidth, display=display_flag", /nowait
+		;wait, 5
+		;
 		; The above should automatically write the output into the shared memory, I think,
 		; if we've done it right? 
+    ; Yes I believe so
 
 	endfor
-
-
-    
-    
-    for quadrant=1L,4 do find_pol_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,spotpos,im, spotpos_pixels, spotpos_pixvals, display=display_flag, badpixmap=badpixmap
+	    
+    ;for quadrant=1L,4 do find_pol_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,spotpos,im, spotpos_pixels, spotpos_pixvals, display=display_flag, badpixmap=badpixmap
     
         ; now keep looping and wait for them all to finish
         going = 1
@@ -191,10 +225,31 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         while (going) do begin
             for ipar=0L,nbparallel-1 do stats[ipar] = (*bridges[ipar])->Status()
             if total(stats) eq 0 then going=0
-            print,"Parallel calculation still running... "+strc(fix(total(stats)))+"/"+strc(nbparallel)+" threads executing.",/erase
+            print,"Parallel calculation still running... "+strc(fix(total(stats)))+"/"+strc(nbparallel)+" threads executing." ;,/erase
             wait, 3
         endwhile
         message,/info, "Parallel computation done!"
+      print, "This took "+string(SysTime(/Seconds)-t0)+" seconds"
+     
+     
+     ;Cleanup 
+     ;Some of this may be excessive, but better safe than sorry!
+     for quadrant=0L,3 do begin
+      
+     (*bridges[quadrant])->Execute, "spotpos=0d"
+     (*bridges[quadrant])->Execute, "spotpos_pixels=0d"
+     (*bridges[quadrant])->Execute, "spotpos_pixvals=0d"
+     (*bridges[quadrant])->Execute, "im=0d"
+      
+      (*bridges[quadrant])->Execute, "SHmunMap, 'spotpos'"
+      (*bridges[quadrant])->Execute, "SHMunMap, 'spotpos_pixels'"
+      (*bridges[quadrant])->Execute, "SHMunMap, 'spotpos_pixvals'"
+     ; (*bridges[quadrant])->Execute, "SHMunMap, 'imshr'"
+     
+      obj_destroy, (*bridges[quadrant])
+      
+     endfor
+     
  
     suffix="-"+strcompress(bandeobs,/REMOVE_ALL)+'-polcal'
     ;fname=strmid(filename,0,STRLEN(filename)-6)+suffix+'.fits'
@@ -213,8 +268,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     backbone->set_keyword, "HISTORY", "    Axis 4:  Polarization ( -- or | ) ",ext_num=0
 	backbone->set_keyword, "HISTORY", "      ",ext_num=0
     
+    ;Unmapping the shared memory
     
     
+
 
 ;@__end_primitive
 ; - NO - 
@@ -234,6 +291,11 @@ end
 
 *(dataset.currframe[0])=spotpos
 if tag_exist( Modules[thisModuleIndex], "stopidl") then if keyword_set( Modules[thisModuleIndex].stopidl) then stop
+
+    shmunmap, 'spotpos'
+    shmunmap, 'spotpos_pixels'
+    shmunmap, 'spotpos_pixvals'
+    shmunmap, 'imshr'
 
 return, ok
 
