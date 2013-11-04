@@ -342,7 +342,7 @@ pro drf::add_primitive, primitive_name, index=index, status=status
 		; if we want it somewhere other than at the end, move it there
 		nlast =  n_elements(*self.primitives)-1
 		if index eq 0 then begin
-			newindices = [ nlast, indgen( nlast-1)]
+			if nlast gt 1 then newindices = [ nlast, indgen( nlast-1)] else newindices = [ nlast, 0] 
 			*self.primitives = (*self.primitives)[newindices]
 		endif else if index ne nlast then begin 
 			newindices = [ indgen(index), nlast, indgen( nlast-index)+index ]
@@ -657,16 +657,16 @@ PRO drf::queue, filename=filename, queued_filename=queued_filename, status=statu
 
 	outname = file_basename(filename)
 	outname = strepex(outname,"([^\.]+)\..+$", "&0.waiting.xml") ; replace file extension to .waiting.xml
-	queue_filename = gpi_get_directory("GPI_DRP_QUEUE_DIR")+path_sep()+outname
+	queued_filename = gpi_get_directory("GPI_DRP_QUEUE_DIR")+path_sep()+outname
 
 
 	prev_outputfile = self.last_saved_filename ; save value before this gets overwritten in save
 
-	self->saveDRF, queue_filename,/silent
+	self->saveDRF, queued_filename,/silent
 
 	self.last_saved_filename= prev_outputfile ; restore previous value
 
-	self->Log, "    Queued "+file_basename(queue_filename)
+	self->Log, "    Queued "+file_basename(queued_filename)
 
 end
 

@@ -561,7 +561,7 @@ pro gpi_recipe_editor::queue, filename; , storage=storage
       	return
     endif 
 
-	self.drf->queue, filename, queued_filename=outputfn
+	self.drf->queue, filename=filename, queued_filename=outputfn
 
     self->log,'Queued '+outputfn
 
