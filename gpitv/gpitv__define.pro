@@ -153,16 +153,16 @@ state = {                   $
         wave_bar_id: 0L, $                 ; id of wavelength label
         bmask_bar_id: 0L, $                ; id of the bmask label
         coord_bar_id: 0L, $                ; id of coordinate label
-        ;;woffset_bar_id: 0L, $          ; id of wavesamp offset label
-        wcs_bar_id: 0L, $           ; id of WCS label widget
-        itime: 0.0,$             ;exposure integration time (not including any coadding)
-        coadds:0.0,$                ;coadds
-        current_units:'',$                  ;current unit of data displayed (i.e. BUNIT)
-        intrinsic_units:'',$         ;unit for the actual pixel values in the file itself, and hence also
-		$							; the main_image_backup stack
-        unitslist:ptr_new(/alloc), $      ;tab of available units
-        units_droplist_id:'',$      ;id of units droplist
-        flux_calib_convfac:fltarr(100),$       ; flux calibration conversion factor from the image's intrinsic units to ph/s/nm/m^2
+        ;;woffset_bar_id: 0L, $            ; id of wavesamp offset label
+        wcs_bar_id: 0L, $                  ; id of WCS label widget
+        itime: 0.0,$                       ; exposure integration time (not including any coadding)
+        coadds:0.0,$                       ; coadds
+        current_units:'',$                 ; current unit of data displayed (i.e. BUNIT)
+        intrinsic_units:'',$               ; unit for the actual pixel values in the file itself, and hence also
+		$							       ; the main_image_backup stack
+        unitslist:ptr_new(/alloc), $       ; tab of available units
+        units_droplist_id:'',$             ; id of units droplist
+        flux_calib_convfac:fltarr(100),$   ; flux calibration conversion factor from the image's intrinsic units to ph/s/nm/m^2
         min_text_id: 0L,  $         ; id of min= widget
         max_text_id: 0L, $          ; id of max= widget
         menu_ids: lonarr(150), $    ; list of top menu items
@@ -178,8 +178,8 @@ state = {                   $
         keyboard_text_id: 0L, $     ; id of keyboard input widget
         image_min: 0.0, $           ; min(*self.images.main_image)
         image_max: 0.0, $           ; max(*self.images.main_image)
-        minIma_id:0L,$
-        maxIma_id:0L,$
+        minIma_id:0L,$				; widget id for displaying image_min
+        maxIma_id:0L,$				; widget id for displaying image_max
         min_value: 0.0, $                  ; min data value mapped to colors
         max_value: 0.0, $                  ; max data value mapped to colors
         draw_window_size: [520L, 512L], $  ; size of main draw window
@@ -187,9 +187,9 @@ state = {                   $
         pan_window_size: 121L, $           ; size of pan window
         pan_scale: 0.0, $                  ; magnification of pan image
         image_size: [0L,0L,0L], $          ; [0:1] gives size of *self.images.main_image
-                                ; [0:2] gives size of *self.images.main_image_stack
-        prev_image_2d: 1,$      ;Boolean - whether previous image was 2D
-        collapse_button: 0L,$   ;id of collapse button
+                                           ; [0:2] gives size of *self.images.main_image_stack
+        prev_image_2d: 1,$      ; Boolean - whether previous image was 2D
+        collapse_button: 0L,$   ; id of collapse button
         cur_image_num: 0L, $    ; gives current image number in
                                 ; *self.images.main_image_stack
         curimnum_base_id0: 0L, $           ; id of cur_image_num base widget
@@ -198,10 +198,10 @@ state = {                   $
         curimnum_textLamb_id: 0L, $        ; id of cur_image_num textbox widget
         curimnum_lambLabel_id: 0L, $       ; id of cur_image_num textbox widget
         curimnum_slidebar_id: 0L, $        ; id of cur_image_num slider widget
-        cube_mode: 	'', $              ; 0 = unknown, 1 = wave, 2 = pol
+        cube_mode: 	'', $                  ; 0 = unknown, 1 = wave, 2 = pol
         scale_mode_droplist_id: 0L, $      ; id of scale droplist widget
         curimnum_minmaxmode: 'Constant', $ ; mode for determining min/max
-                                ; of display when changing curimnum
+                                           ; of display when changing curimnum
         invert_colormap: 0L, $  ; 0=normal, 1=inverted
         coord: [0L, 0L],  $     ; cursor position in image coords
         plot_coord: [0L, 0L], $ ; cursor position when a plot
@@ -2959,7 +2959,7 @@ if keyword_set(window) then begin  ; print message to popup window
         else:
     endcase
 endif else begin           ;  print message to IDL console
-   message = strcompress(strupcase(msgtype) + ': ' + msg_txt)
+   message = "GPITV:"+strcompress(strupcase(msgtype) + ': ' + msg_txt)
    print, message
 endelse
 
@@ -14734,7 +14734,7 @@ h = ['GPItv HELP',$
 'ImageInfo->Contrast:          Brings up the contrast display window',$
 'ImageInfo->Photometry:        Brings up the photometry window',$
 'ImageInfo->Statistics:        Brings up the statistics window',$
-'ImageInfo->Hisogram/Exposure: Brings up the histogram window',$
+'ImageInfo->Histogram/Exposure: Brings up the histogram window',$
 'ImageInfo->Pixel Table:       Brings up a pixel table that tracks as the cursor moves',$
 'ImageInfo->Star Position:     Brings up star position window',$
 'ImageInfo->Display Coordinate System:',$
