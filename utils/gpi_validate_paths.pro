@@ -4,7 +4,6 @@
 ; DESCRIPTION: Validate environment variables/paths for GPI IFS Software
 ;
 ; KEYWORDS:
-;    /first		first time invocation, so check some extra stuff?
 ;    /get_path_info		don't actually check anything, but return a
 ;						structure of information about what would 
 ;						have been checked. Used in setenvir__define
@@ -23,38 +22,39 @@
 ;                 need to set paths explicitly because there are reasonable
 ;                 defaults'. However, they must all still be valid paths as
 ;                 returned by gpi_get_directory (which is where those defaults
-;                 are in fact set...) so we should include them all here.a
-; 2012-10-10 MP: Slight reorganization, more explicit error messages. 
+;                 are in fact set...) so we should include them all here.
+; 2012-10-10 MP:  Slight reorganization, more explicit error messages. 
+; 2013-11-04 MP:  Auto create some directories if they don't exist, and
+;				  remove the obsolete /first option
 ;  
 ;
 ;  FIXME: should try to clean up / reorganize this code? 
 ;-
 
-function gpi_validate_paths, first=first, get_path_info=get_path_info
+function gpi_validate_paths, get_path_info=get_path_info
   compile_opt defint32, strictarr, logical_predicate
 
-  ;;these are the things we care about
-  env =       {name:'GPI_DRP_QUEUE_DIR',     writeable:1, isdir:1, description:"Recipe Queue directory"}
-  env = [env, {name:'GPI_RAW_DATA_DIR',      writeable:0, isdir:1, description:"Directory for raw data input"}]
-  env = [env, {name:'GPI_REDUCED_DATA_DIR',  writeable:1, isdir:1, description:"Directory for reduced data output"}]
-  env = [env, {name:'GPI_DRP_DIR',           writeable:0, isdir:1, description:"Directory for root of GPI DRP"}]
-  env = [env, {name:'GPI_DRP_CONFIG_DIR',    writeable:0, isdir:1, description:"Directory for DRP config files"}]
-  env = [env, {name:'GPI_DRP_TEMPLATES_DIR', writeable:0, isdir:1, description:"Directory for recipe templates"}]
-  env = [env, {name:'GPI_CALIBRATIONS_DIR',  writeable:1, isdir:1, description:"Directory for calibration files"}]
-  env = [env, {name:'GPI_DRP_LOG_DIR',       writeable:1, isdir:1, description:"Directory for log file output"}]
+  ;;Define a table of the the things we care about for each directory
+  env =       {name:'GPI_RAW_DATA_DIR',      writeable:0, isdir:1, autocreate: 0, description:"Directory for raw data input"}
+  env = [env, {name:'GPI_REDUCED_DATA_DIR',  writeable:1, isdir:1, autocreate: 0, description:"Directory for reduced data output"}]
+  env = [env, {name:'GPI_DRP_QUEUE_DIR',     writeable:1, isdir:1, autocreate: 0, description:"Recipe Queue directory"}]
+  env = [env, {name:'GPI_DRP_DIR',           writeable:0, isdir:1, autocreate: 0, description:"Directory for root of GPI DRP"}]
+  env = [env, {name:'GPI_DRP_CONFIG_DIR',    writeable:0, isdir:1, autocreate: 0, description:"Directory for DRP config files"}]
+  env = [env, {name:'GPI_DRP_TEMPLATES_DIR', writeable:0, isdir:1, autocreate: 0, description:"Directory for recipe templates"}]
+  env = [env, {name:'GPI_CALIBRATIONS_DIR',  writeable:1, isdir:1, autocreate: 1, description:"Directory for calibration files"}]
+  env = [env, {name:'GPI_DRP_LOG_DIR',       writeable:1, isdir:1, autocreate: 1, description:"Directory for log file output"}]
+  env = [env, {name:'GPI_RECIPE_OUTPUT_DIR', writeable:1, isdir:1, autocreate: 1, description:"Directory for recipe file output"}]
 
 
   if keyword_set(get_path_info) then return, env
 
   ;;if this is a first incarnation, check for proper idl version and
   ;;try to fill in as many missing env vars with defaults
-  if keyword_set(first) then begin 
-     runfromvm = LMGR(/VM)
-     if (runfromvm eq 0) && (float(!version.release) lt 7.0) then begin
-        void = dialog_message('The GPI DRP can not run with IDL version below v7.0.'+$
-                              'Please use IDL v7.0 or higher, or run DRP from executables.')
-        return,-1
-     endif
+  runfromvm = LMGR(/VM)
+  if (runfromvm eq 0) && (float(!version.release) lt 7.0) then begin
+	void = dialog_message('The GPI DRP can not run with IDL version below v7.0.'+$
+						  'Please use IDL v7.0 or higher, or run DRP from executables.')
+	return,-1
   endif
 
   if (!D.NAME eq 'WIN') then newline = string([13B, 10B]) else newline = string(10B)
@@ -67,6 +67,21 @@ function gpi_validate_paths, first=first, get_path_info=get_path_info
      if res eq 0 then begin
         retval = 0
         message,env[j].name+' value of '+newline+dir+newline+' derived from a(n) '+method+' is not valid: directory does not exist',/info
+
+		; for certain directories, just create them if they don't exist already
+		if env[j].autocreate then begin
+			if gpi_get_setting('prompt_user_for_outputdir_creation',/bool) then $
+				res =  dialog_message('The directory for '+env[j].name+", which is "+dir+', does not exist. Should it be created now?', $
+				title="Nonexistent Output Directory", /question) else res='Yes'
+
+			if res eq 'Yes' then begin
+				message,/info, "Automatically creating "+dir
+				file_mkdir, dir
+				res = file_test(dir, dir = env[j].isdir)
+				if res then retval=1
+			endif 
+		endif
+
      endif
 
 	 if env[j].writeable then begin
