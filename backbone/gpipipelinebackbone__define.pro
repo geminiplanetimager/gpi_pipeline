@@ -22,26 +22,60 @@
 
 
 ;+-----------------------------------------------------------
+; gpiPipelineBackbone::AboutMessage
+;		Utility function to print the about pipeline message
+;
+;------------------------------------------------------------
+
+pro gpipipelinebackbone::aboutmessage
+    ver = gpi_pipeline_version(/svn)
+	nspaces = 30 - strlen(ver)
+	spaces = strmid('                            ',0,nspaces) ; is there a better way to do this?
+
+    print, "                                                         "
+    PRINT, "     *****************************************************"
+    print, "     *                                                   *"
+    PRINT, "     *          GPI DATA REDUCTION PIPELINE              *"
+    print, "     *                                                   *"
+    print, "     *             VERSION "+ver+spaces+"*"
+    print, "     *                                                   *"
+    print, "     *         By the GPI Data Analysis Team             *"
+    print, "     *                                                   *"
+    print, "     *   Perrin, Maire, Ingraham, Savransky, Marois,     *"
+    print, "     *   Doyon, Chilcote, Draper, Greenbaum, Konopacky,  *"
+    print, "     *   Marchis, Millar-Blanchaer, Pueyo, Ruffio,       *"
+    print, "     *   Sadakuni, Wolff, & Wiktorowicz                  *"
+    print, "     *                                                   *"
+    print, "     *      For documentation & full credits, see        *"
+    print, "     *      http://docs.planetimager.org/pipeline/       *"
+    print, "     *                                                   *"
+    print, "     *****************************************************"
+    print, "                                                         "
+
+end
+
+;+-----------------------------------------------------------
 ; gpiPipelineBackbone::Init
 ;
 ;    Initialize backbone: Create internal data stores and objects,
 ;    Open log files, optionally rescan calDB & config files
-;-
+;-_
 
 
 FUNCTION gpipipelinebackbone::Init,  session=session, verbose=verbose, nogui=nogui
     ; Application constants
     COMMON APP_CONSTANTS, $
-        LOG_GENERAL,  $       	 ; File unit number of the general log file
+        ;LOG_GENERAL,  $       	 ; File unit number of the general log file
         OK, NOT_OK, ERR_UNKNOWN, GOTO_NEXT_FILE,        $        ; Indicates success
         backbone_comm, $         ; Object pointer for main backbone (for access in subroutines & modules) 
         loadedcalfiles, $        ; object holding loaded calibration files (as pointers)
         DEBUG                    ; is DEBUG mode enabled?
     
 
-	DEBUG=1
+	DEBUG=0
 
-	LOG_GENERAL = 1       ; LUNs for logfiles
+	;LOG_GENERAL = 1       ; LUNs for logfiles
+	self.LOG_GENERAL = 1
 	OK = 0
 	NOT_OK = -1
 	ERR_UNKNOWN = -3
@@ -58,30 +92,12 @@ FUNCTION gpipipelinebackbone::Init,  session=session, verbose=verbose, nogui=nog
 	}
 	self.pipelineconfig=ptr_new(pipelineConfig)
 
+	self->AboutMessage
 
     !quiet=0 ; always print out any output from "message" command, etc.
 
 	config_file=gpi_get_directory('GPI_DRP_CONFIG_DIR') +path_sep()+"gpi_pipeline_primitives.xml"
     self.verbose = keyword_set(verbose)
-    ver = gpi_pipeline_version(/svn)
-	nspaces = 30 - strlen(ver)
-	spaces = strmid('                            ',0,nspaces) ; is there a better way to do this?
-
-    print, "                                                    "
-    PRINT, "*****************************************************"
-    print, "*                                                   *"
-    PRINT, "*          GPI DATA REDUCTION PIPELINE              *"
-    print, "*                                                   *"
-    print, "*             VERSION "+ver+spaces+"*"
-    print, "*                                                   *"
-    print, "*         By the GPI Data Analysis Team             *"
-    print, "*      Perrin, Maire, Ingraham, Marois et al.       *"
-    print, "*                                                   *"
-    print, "*      For documentation & full credits, see        *"
-    print, "*      http://docs.planetimager.org/pipeline/       *"
-    print, "*                                                   *"
-    print, "*****************************************************"
-    print, "                                                    "
 
     error=0
     ;CATCH, Error       ; Catch errors before the pipeline
@@ -102,8 +118,8 @@ FUNCTION gpipipelinebackbone::Init,  session=session, verbose=verbose, nogui=nog
 		self.nogui=keyword_set(nogui)
 		if ~(keyword_set(nogui)) then begin
 			self->SetupStatusConsole
-			self.statuswindow->log,"* GPI DATA REDUCTION PIPELINE  *"
-			self.statuswindow->log,"* VERSION "+ver+"  *"
+			self.statuswindow->display_log,"* GPI DATA REDUCTION PIPELINE  *"
+			self.statuswindow->display_log,"* VERSION "+gpi_pipeline_version(/svn)+"  *"
 			self.statuswindow->set_calibdir, self.GPICalDB->get_calibdir()
 		endif
     
@@ -130,8 +146,8 @@ FUNCTION gpipipelinebackbone::Init,  session=session, verbose=verbose, nogui=nog
 
     ENDIF ELSE BEGIN
         Self -> ErrorHandler
-        CLOSE, LOG_GENERAL
-        FREE_LUN, LOG_GENERAL
+        CLOSE, self.LOG_GENERAL
+        FREE_LUN, self.LOG_GENERAL
     ENDELSE
 
 
@@ -181,9 +197,9 @@ PRO gpiPipelineBackbone::Cleanup
     PTR_FREE, Self.Data
     PTR_FREE, Self.Modules
 
-    if keyword_set(LOG_GENERAL) then begin
-        CLOSE, LOG_GENERAL
-        FREE_LUN, LOG_GENERAL
+    if keyword_set(self.LOG_GENERAL) then begin
+        CLOSE, self.LOG_GENERAL
+        FREE_LUN, self.LOG_GENERAL
     endif
 
 END
@@ -286,7 +302,7 @@ PRO gpiPipelineBackbone::SetRecipeQueueStatus, drfstruct, newstatus
 		; if this is a new file (newstatus is working) then append this to the DRF
 		; log in the progressbar
 		; otherwise just update the latest entry in the DRF log in progressbar 
-		self.statuswindow->DRFlog, newfilename, replace=(newstatus ne "working")
+		self.statuswindow->display_recipe_log, newfilename, replace=(newstatus ne "working")
 	endif
 
 end
@@ -407,6 +423,7 @@ PRO gpiPipelineBackbone::Run_queue, QueueDir
 	gui_wait_time = 1./drp_gui_poll_freq
 	disk_to_gui_ratio =  fix(disk_poll_wait_time/gui_wait_time) > 1 ; check for disk actions at some multiple of the GUI check time step
 
+	self->AboutMessage
     print, "    "
     print, "   Now polling for Recipe files in "+queueDir+" at "+strc(drp_disk_poll_freq) +" Hz"
     print, "    "
@@ -786,7 +803,7 @@ end
 pro  gpiPipelineBackbone::SetupStatusConsole
   if not(xregistered('gpistatusconsole',/noshow)) then begin
         obj_destroy, self.statuswindow
-        self.statuswindow = OBJ_NEW('gpistatusconsole')
+        self.statuswindow = OBJ_NEW('gpistatusconsole', self)
         self.statuswindow->set_GenLogF, self.generallogfilename
   endif else begin
 	  message,/info, ' progress bar window already initialized and running.'
@@ -879,25 +896,37 @@ PRO gpiPipelineBackbone::OpenLog
 
     self.log_date = gpi_datestr(/current)
 
+	logdir =  (*self.pipelineConfig).logdir
+	; ensure it ends in trailing path sep
+	if ( strmid(logdir, strlen(logdir)-1,1) ne path_sep()) then logdir=logdir+path_sep()
+
+	dir_ok = gpi_check_dir_exists(logdir)	; will potentially prompt user to create it
+	if dir_ok eq NOT_OK then return
+
+
 	if gpi_get_setting('username_in_log_filename',default=0) then begin
-		logfile = (*self.pipelineConfig).logdir + path_sep() +'gpi_drp_'+self.log_date+"_"+getenv('USER')+".log"
+		logfile = logdir +'gpi_drp_'+self.log_date+"_"+getenv('USER')+".log"
 	endif else begin
-		logfile = (*self.pipelineConfig).logdir + path_sep() +'gpi_drp_'+self.log_date+".log"
+		logfile = logdir +'gpi_drp_'+self.log_date+".log"
 	endelse
 	catch, error_status
 
 	if error_status ne 0 then begin
+		; don't use message here or you get a circular error infinite loop
     	print, "ERROR in OPENLOG: "
    		print, "could not open file "+LogFile
+		print, "Please check your path settings and try restarting the pipeline."
+		stop
   	endif else begin
-		  CLOSE, LOG_GENERAL
-		  FREE_LUN, LOG_GENERAL
-		  OPENW, LOG_GENERAL, LogFile, /GET_LUN,/APPEND
-		  PRINTF, LOG_GENERAL, '--------------------------------------------------------------'
-		  PRINTF, LOG_GENERAL, '   GPI Data Reduction Pipeline, version '+gpi_pipeline_version(/svn)
-		  PRINTF, LOG_GENERAL, '   Started On ' + SYSTIME(0)
-		  PRINTF, LOG_GENERAL, '   User: '+getenv('USER')+ "      Hostname: "+getenv('HOST')
-		  PRINTF, LOG_GENERAL, ''
+		  CLOSE, self.LOG_GENERAL
+		  FREE_LUN, self.LOG_GENERAL
+		  OPENW, new_LUN, LogFile, /GET_LUN,/APPEND
+		  self.LOG_GENERAL = new_LUN
+		  PRINTF, self.LOG_GENERAL, '--------------------------------------------------------------'
+		  PRINTF, self.LOG_GENERAL, '   GPI Data Reduction Pipeline, version '+gpi_pipeline_version(/svn)
+		  PRINTF, self.LOG_GENERAL, '   Started On ' + SYSTIME(0)
+		  PRINTF, self.LOG_GENERAL, '   User: '+getenv('USER')+ "      Hostname: "+getenv('HOST')
+		  PRINTF, self.LOG_GENERAL, ''
 		  print, ""
 		  print, " Opened log file for writing: "+logFile
 		  print, ""
@@ -944,18 +973,16 @@ PRO gpiPipelineBackbone::Log, Text, DEPTH = TextDepth, flush=flush, debug=debugf
     localText = TDString + Text                 ; Create indented log string
 
     ; Print it to the chosen file
-    LUN = LOG_GENERAL
-
     annotated_log = Time + ' ' + localText
 
     ; also display logs to the DRP status console GUI
-    IF obj_valid(self.statuswindow) then self.statuswindow->Log, annotated_log
+    IF obj_valid(self.statuswindow) then self.statuswindow->display_Log, annotated_log
 
     catch, error_writing
     if error_writing eq 0 then begin
-        PRINTF, LUN, annotated_log
+        PRINTF, self.LOG_GENERAL, annotated_log
     endif
-    if keyword_set(flush) then flush,LUN
+    if keyword_set(flush) then flush,self.LOG_GENERAL
 
     ; Print it to the screen
     print, annotated_log
@@ -1219,6 +1246,7 @@ PRO gpiPipelineBackbone__define
             statuswindow: obj_new(), $
             launcher: obj_new(), $
             gpicaldb: obj_new(), $
+			LOG_GENERAL: 0L, $   ; LUN (file handle) to the pipeline log file
             ;ReductionType:'', $
             CurrentlyExecutingModuleNumber:0, $
             TempFileNumber: 0, $ ; Used for passing multiple files to multiple gpitv sessions. See self->gpitv pro above

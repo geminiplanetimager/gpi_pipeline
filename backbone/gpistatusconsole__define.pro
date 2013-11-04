@@ -254,12 +254,14 @@ pro gpistatusconsole::update, Modules,indexModules, nbtotfile, filenum, status, 
   
 end
 
+;---------------------------------------------
+;pro gpistatusconsole::log, logstring
 
 
 ;
 ;--------------------------------------------
 ; Append a log string to the event log.
-pro gpistatusconsole::log, logstring
+pro gpistatusconsole::display_log, logstring
 
 	widget_control, (*self.state).wEventLog, get_value=logval
 	
@@ -274,7 +276,7 @@ end
 ;--------------------------------------------
 ; Append or replace a log string to the log of processed recipes
 ; 
-pro gpistatusconsole::DRFlog, logstring, replace=replace
+pro gpistatusconsole::display_recipe_log, logstring, replace=replace
 
 	widget_control, (*self.state).wRecipeLog, get_value=logval
 	
@@ -303,7 +305,7 @@ end
 
 ;--------------------------------------------
 
-function gpistatusconsole::init
+function gpistatusconsole::init, backbone
 
     ; Create a common block to hold the widget ID, wChildBase. This
     ; is used to cleanup if processing is completed, the user aborts
@@ -376,7 +378,10 @@ function gpistatusconsole::init
 	diff = [geom_b.SCR_XSIZE-geom_t.SCR_XSIZE, geom_b.SCR_YSIZE-geom_t.SCR_YSIZE-geom_t2.SCR_YSIZE, geom_t.SCR_XSIZE]
 
 
-	State2 = {self:self, wChildBase:self.top_base, wDrawProgress:wDrawProgress, $
+	State2 = {self:self, $
+		backbone: backbone, $		; handle to parent pipeline backbone instance
+		wChildBase:self.top_base,  $
+		wDrawProgress:wDrawProgress, $
 	    wDrawProgressf:wDrawProgressf,vProgress:0d,vProgressf:0d, xpos:0,xposf:0, $
 	    wLabelAction:wLabelAction, wLabelRecipeFile:wLabelRecipeFile, wLabelFITS:wLabelFITS,wLabel2:wLabel2,wLabel2lastname:wLabel2lastname,wLabelstatus:wLabelstatus, $
 		wEventLog: wEventLog, wRecipeLog: wRecipeLog, wGenLogF: wGenLogF, id_calibdir:id_calibdir, diff:diff, fits_count:0L, fits_current_index: 0L, quit: q}
@@ -409,7 +414,7 @@ pro gpistatusconsole__define
 MAXLOG = 1000
 
 st = {gpistatusconsole, $
-	state: ptr_new(),$
+	state: ptr_new(),$			; most object state info
 	quit: 0L, $
 	abort: 0L, $
 	flushq:0L,$
