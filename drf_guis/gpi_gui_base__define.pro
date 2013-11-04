@@ -24,9 +24,8 @@ compile_opt DEFINT32, STRICTARR
 
 
 pro gpi_gui_base::log, logtext
+	message,logtext,/info, level=-1
 	addmsg, self.widget_log, logtext
-	print, "LOG: "+logtext
-
 end
 
 ;------------------------------------------------
