@@ -26,6 +26,7 @@ Contents
    recipesqueue.rst
    starting.rst
    quickstart.rst
+   launcher.rst
    data_parser.rst
    recipe_editor.rst
    autoreducer.rst
