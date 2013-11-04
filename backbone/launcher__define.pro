@@ -128,12 +128,14 @@ PRO launcher::event, ev
     'unlock_queue': self->unlock_queue
     'hard_reset_queue': self->hard_reset_queue
     'hard_reset_mem': self->hard_reset_mem
-  'About':begin
+    'About':begin
               tmpstr=gpi_drp_about_message()
               ret=dialog_message(tmpstr,/information,/center,dialog_parent=ev.top)
           end
+	'Launcher Help...': gpi_open_help, 'usage'
+	'GPI DRP Help...': gpi_open_help, ''
 	'GPItv': self->launch, 'gpitv'
-	'RecipeEditor': self->launch, 'drfgui', session=40
+	'RecipeEditor': self->launch, 'gpi_recipe_editor', session=40
 	'ParserGUI': self->launch, 'parsergui', session=41
 	'QueueView': self->launch, 'queueview', session=42
     'dst': begin
@@ -471,7 +473,7 @@ pro launcher::launch, objname, filename=filename, session=session, _extra=_extra
 	endif else begin
 		; need to create a new object
 
-		valid_cmds = ['gpitv', 'drfgui', 'parsergui', 'queueview', 'dst', 'automaticreducer','makedatalogfile']
+		valid_cmds = ['gpitv', 'gpi_recipe_editor', 'parsergui', 'queueview', 'dst', 'automaticreducer','makedatalogfile']
 		provide_launcher_handle = [0,0,0,0,0,1,0]
 
 		if total(strmatch(valid_cmds, objname,/fold_case)) eq 0 then begin
@@ -500,7 +502,7 @@ PRO launcher::recompile
     dummy = gpi_get_setting('max_files_per_recipe',/rescan) ; can get any arbitrary setting here, just need to force the rescan
 
 
-	idlfuncs = ['drfgui__define', 'parsergui__define', 'gpitv__define', 'queueview__define', 'automaticreducer__define']
+	idlfuncs = ['gpi_recipe_editor__define', 'parsergui__define', 'gpitv__define', 'queueview__define', 'automaticreducer__define']
 	names = ['Recipe Editor', 'Data Parser', 'GPItv', 'Queue Viewer', 'Automatic Reducer']
 
 
@@ -556,8 +558,7 @@ end
 FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, clear_shm=clear_shm, _extra=_extra
 
 	; Ensure environment variables are set properly & to valid values. If not, ask the user to fix them.
-	issetenvok=gpi_validate_paths(/first)
-	if ~ issetenvok then begin
+	if ~gpi_validate_paths() then begin
 		obj=obj_new('gpi_showpaths')
 		obj_destroy, obj
 		return, 0
@@ -612,7 +613,6 @@ FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, cle
 		self.baseid = WIDGET_BASE(TITLE='GPI Launcher',/tlb_size_events,  /tlb_kill_request_events,/row, /base_align_center, xoffset=100, RESOURCE_NAME='GPI_DRP',MBAR=bar)
 		basecol_id=WIDGET_BASE(self.baseid ,/column)
 		baseid2=WIDGET_BASE(basecol_id,/row,/BASE_ALIGN_CENTER )
-        ;FindPro, 'drfgui__define', dirlist=dirlist,/noprint
         dirpro= gpi_get_directory('GPI_DRP_DIR')
 
 		if file_test(dirpro+path_sep()+'gpi.bmp') then begin
@@ -627,12 +627,14 @@ FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, cle
 		frame = widget_base(baseid2,/column)
 
         menu = WIDGET_BUTTON(bar, VALUE='Setup',/MENU) 
-        file_bttn2=WIDGET_BUTTON(menu, VALUE='Setup environ. var.', UVALUE='Setup')
+        file_bttn2=WIDGET_BUTTON(menu, VALUE='Check environ. vars.', UVALUE='Setup')
         file_bttn2=WIDGET_BUTTON(menu, VALUE='Unlock message queue', UVALUE='unlock_queue')
         file_bttn2=WIDGET_BUTTON(menu, VALUE='Clear message queue', UVALUE='clear_queue')
         file_bttn2=WIDGET_BUTTON(menu, VALUE='Hard reset message queue', UVALUE='hard_reset_queue')
         file_bttn2=WIDGET_BUTTON(menu, VALUE='Hard reset shared memory', UVALUE='hard_reset_mem')
-        menu2 = WIDGET_BUTTON(bar, VALUE='About',/MENU) 
+        menu2 = WIDGET_BUTTON(bar, VALUE='Help',/MENU) 
+        file_bttn2=WIDGET_BUTTON(menu2, VALUE='Launcher Help...', UVALUE='Launcher Help...')
+        file_bttn2=WIDGET_BUTTON(menu2, VALUE='GPI DRP Help...', UVALUE='GPI DRP Help...')
         file_bttn2=WIDGET_BUTTON(menu2, VALUE='About', UVALUE='About')
         bclose = widget_button(frame,VALUE='Data Parser',UVALUE='ParserGUI', resource_name='button', /tracking_events)
         bclose = widget_button(frame,VALUE='Recipe Editor',UVALUE='RecipeEditor', resource_name='button', /tracking_events)
@@ -664,7 +666,7 @@ FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, cle
 
 		; if at Gemini, automatically launch the autoreducer always upon
 		; startup.
-		if keyword_set(gpi_get_setting('at_gemini',default=0)) then self->launch, 'automaticreducer', session=44
+		if keyword_set(gpi_get_setting('at_gemini',default=0,/silent)) then self->launch, 'automaticreducer', session=44
 
 
 	endif
