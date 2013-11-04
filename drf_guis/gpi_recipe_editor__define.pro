@@ -249,9 +249,8 @@ end
 ;-
 pro gpi_recipe_editor::change_current_template, typestring,seqnum, notemplate=notemplate
 
-    ;if self.selecseq eq seqnum then return ; do nothing for no change
 
-
+	; check if the current recipe has been modified
 	if obj_valid(self.drf) then begin
 		if self.drf->is_modified() then begin
 			res =  dialog_message('The currently opened recipe file has been modified. Loading a new template will discard your modifications. Are you sure you want to change templates?', $
@@ -261,25 +260,29 @@ pro gpi_recipe_editor::change_current_template, typestring,seqnum, notemplate=no
 
 	endif
 
-    self.selecseq=seqnum
-    
+	; check that the requested reduction type is valid and retrieve its
+	; template filenames
     wm = where((*self.templates).reductiontype eq typestring, mct)
     if mct eq 0 then begin
 		message, 'Requested reduction type "'+typestring+'" is invalid/unknown. Cannot load any Recipes!',/info
-		widget_control, self.seqid,SET_DROPLIST_SELECT=0
+		widget_control, self.template_name_id,SET_DROPLIST_SELECT=0
 		return
 	endif
 
 
-    chosen_template = wm[seqnum]
-
-    widget_control, self.seqid,SET_DROPLIST_SELECT=seqnum
-
-    print, "Chosen template filename:"+((*self.templates)[chosen_template]).filename
-
+	; Now we can switch to that template
     if ~(keyword_set(notemplate)) then begin
+		chosen_template = wm[seqnum]
+		widget_control, self.template_name_id,SET_DROPLIST_SELECT=seqnum
+		print, "Chosen template filename:"+((*self.templates)[chosen_template]).filename
+
+		; Load the new template, preserving the data files of the current recipe
+		if ptr_valid(self.drf) then datafiles = self.drf->get_datafiles()
+
         self->open, ((*self.templates)[chosen_template]).filename,  /template
-		;self->update_title_bar, "Template from "+file_basename(((*self.templates)[chosen_template]).filename )
+
+		if n_elements(datafiles) gt 0 then self.drf->set_datafiles, datafiles
+		self->refresh_filenames_display
 
     endif
 
@@ -318,7 +321,7 @@ pro gpi_recipe_editor::update_available_primitives, requested_type,  all=all
     cm=n_elements(*self.indmodtot2avail)
 
     if cm ne 0 then begin
-        self.nbcurrmod=cm
+        ;self.nbcurrmod=cm
         *self.curr_mod_avai=strarr(cm)
 
         for i=0,cm-1 do begin
@@ -358,10 +361,11 @@ pro gpi_recipe_editor::refresh_arguments_table, primitive_index
 
     self.num_primitives = n_elements( self.drf->list_primitives() )
 
-    if n_elements(primitive_index) eq 0 then primitive_index= 0 
-    if n_elements(primitive_index) gt self.num_primitives then primitive_index= self.num_primitives-1
+    if n_elements(primitive_index) eq 0 then primitive_index=self.selected_primitive_index
+    if primitive_index lt 0 then primitive_index=0
+    ;if primitive_index gt self.num_primitives-1 then primitive_index= self.num_primitives-1
 
-
+	self.selected_primitive_index = primitive_index
 	arg_info = self.drf->get_primitive_args(primitive_index)
 
 	arg_table_text = strarr( n_elements(arg_info.names) ,4)
@@ -371,7 +375,6 @@ pro gpi_recipe_editor::refresh_arguments_table, primitive_index
 	arg_table_text[*,3] = arg_info.descriptions
 
     widget_control,   self.tableArgs_id, set_value= arg_table_text 
-              
 end
 
 ;+--------------------------------------------------------------------------------
@@ -405,7 +408,7 @@ pro gpi_recipe_editor::refresh_primitives_table, new_selected=new_selected
 		wauto = where( primitives_args.CALIBRATIONFILE eq 'AUTOMATIC', autoct)
 		wmanual = where( primitives_args.CALIBRATIONFILE ne '' and primitives_args.CALIBRATIONFILE ne 'AUTOMATIC',manualct)
 		if autoct gt 0 then primitives_table_values[1, wauto] = 'Auto' 
-		if manualct gt 0 then primitives_table_values[1, wspecified] = 'Manual' 
+		if manualct gt 0 then primitives_table_values[1, wmanual] = 'Manual' 
 	endif
 
 	tableview = widget_info(self.RecipePrimitivesTable_id,/table_view) ; coordinates of top left view corner
@@ -495,9 +498,9 @@ pro gpi_recipe_editor::changetype, type_num, notemplate=notemplate, force_update
     wm = where(strmatch((*self.templates).reductiontype, self.reductiontype, /fold_case), mct)
     if mct eq 0 then begin
 		message, "Invalid template type, or no known templates for that type: "+self.reductiontype,/info
-	    widget_control, self.seqid, set_value= ['                ']
+	    widget_control, self.template_name_id, set_value= ['                ']
 	endif else begin
-	    widget_control, self.seqid, set_value= ((*self.templates)[wm]).name
+	    widget_control, self.template_name_id, set_value= ((*self.templates)[wm]).name
 	endelse
 
     self->update_available_primitives, self.reductiontype; , 1
@@ -596,8 +599,6 @@ pro gpi_recipe_editor::event,ev
 
         end
         else: print, tag_names(ev, /structure_name)
-
-
         endcase
         return
     endif
@@ -607,9 +608,9 @@ pro gpi_recipe_editor::event,ev
         if (ev.ENTER EQ 1) then begin 
               case uval of 
               'FNAME':textinfo='Press "Add Files" or "Wildcard" buttons to add FITS files to process.'
-              'moduavai': textinfo='Left-click for Primitve Desciption | Right-click to add the selected primitive to the current Recipe.'
+              'available_primitives': textinfo='Left-click for Primitve Desciption | Right-click to add the selected primitive to the current Recipe.'
               'RecipePrimitivesTable_id':textinfo='Left-click to see argument parameters of the module | Right-click to remove the selected module from the current Recipe.'
-              'tableargs':textinfo='Left-click on Value cell to change the value. Press Enter to validate.'
+              'arguments_table':textinfo='Left-click on Value cell to change the value. Press Enter to validate.'
               'mod_desc':textinfo='Click on a module in the Available Primitives list to display its description here.'
               'text_status':textinfo='Status log message display window.'
               'ADDFILE': textinfo='Click to add files to current input list'
@@ -627,10 +628,8 @@ pro gpi_recipe_editor::event,ev
               else:
               endcase
               widget_control,self.textinfo_id,set_value=textinfo
-          ;widget_control, event.ID, SET_VALUE='Press to Quit'   
         endif else begin 
               widget_control,self.textinfo_id,set_value=''
-          ;widget_control, event.id, set_value='what does this button do?'   
         endelse 
         return
     endif 
@@ -649,17 +648,17 @@ pro gpi_recipe_editor::event,ev
 
     ; Menu and button events: 
     case uval of 
-	'typefield':begin
-        selectype=widget_info(self.typeid,/DROPLIST_SELECT)
+	'reduction_type_dropdown':begin
+        selectype=widget_info(self.reduction_type_id,/DROPLIST_SELECT)
         self->changetype, selectype
     end
    
-	'seqfield':begin
-        selecseq=widget_info(self.seqid,/DROPLIST_SELECT)
+	'template_name_dropdown':begin
+        selecseq=widget_info(self.template_name_id,/DROPLIST_SELECT)
         self->change_current_template, self.reductiontype, selecseq
 	end
 
-    'moduavai':begin
+    'available_primitives':begin
         IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_TABLE_CELL_SEL') THEN BEGIN  ;LEFT CLICK
             ; Update displayed module comment
                selection = WIDGET_INFO(self.tableAvailable_id, /TABLE_SELECT) 
@@ -681,32 +680,31 @@ pro gpi_recipe_editor::event,ev
      	ENDIF 
 
     end
-	'Add primitive': self->AddPrimitive
-	'Remove primitive': self->RemovePrimitive
     'RecipePrimitivesTable_id':begin     ; Table of currently selected modules (i.e. those in the recipe) 
         IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_TABLE_CELL_SEL') THEN BEGIN  ;LEFT CLICK
-               selection = WIDGET_INFO((self.RecipePrimitivesTable_id), /TABLE_SELECT) 
+				selection = WIDGET_INFO((self.RecipePrimitivesTable_id), /TABLE_SELECT) 
 
-               ;update arguments table
-               indselected=selection[1]
+				if gpi_get_setting('enable_editor_debug', default=0,/bool,/silent) then $
+				print, "prim. table selection: ", selection
 
-			   self->refresh_arguments_table, indselected
+				;update arguments table
+				indselected=selection[1]
 
+				self->refresh_arguments_table, indselected
+
+
+				current_args = self.drf->get_primitive_args( indselected )
+				n_args = (self.drf->get_summary()).nsteps
+				wm = where( strmatch( strupcase(current_args.names),  'CALIBRATIONFILE'), mct)
+				if gpi_get_setting('enable_editor_debug', default=0,/bool,/silent) then $
+					if mct gt 0 then print, 'has calibration file '+ current_args.values[wm]
 			return
-;               if indselected lt self.num_primitives then begin
-;                   self->extractparam, float((*self.currModSelec)[4,indselected])
-;    
-;                  *self.currModSelecParamTab=strarr(n_elements(*self.indarg),4)
-;                  if (*self.indarg)[0] ne -1 then begin
-;                      (*self.currModSelecParamTab)[*,0]=((*self.PrimitiveInfo).argname)[[*self.indarg]]
-;                      (*self.currModSelecParamTab)[*,1]=((*self.PrimitiveInfo).argdefault)[[*self.indarg]]
-;                      (*self.currModSelecParamTab)[*,2]=((*self.PrimitiveInfo).argrange)[[*self.indarg]]
-;                      (*self.currModSelecParamTab)[*,3]=((*self.PrimitiveInfo).argdesc)[[*self.indarg]]
-;                  endif
-;                  widget_control,   self.tableArgs_id,  set_value=(*self.currModSelecParamTab)
-;               endif  
+				;, calibrationfile='tmp'
+
                ;;if click on FindCalibration File mode
-               if (selection[0] eq 1) && (selection[2] eq 1) && (n_elements((*self.currModSelecParamTab)) gt 0)  && (ev.sel_bottom ne -1) then begin
+               if (selection[0] eq 1) && (selection[2] eq 1) && (nsteps gt 0)  && (ev.sel_bottom ne -1) then begin
+
+				   self.drf->set_primitive_args,  indselected, calibrationfile='Manual'
                     if (*self.currModSelec)[1,selection[1]] eq 'Manual' then begin
                        (*self.currModSelec)[1,selection[1]]='Auto'
                        resolvedcalibfile='AUTOMATIC'
@@ -761,93 +759,97 @@ pro gpi_recipe_editor::event,ev
                  endif
                endif               
         ENDIF 
-        ;IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_CONTEXT') THEN BEGIN  ;RIGHT CLICK. delete currently selected module from list
-			;self->RemovePrimitive              
-        ;ENDIF
     end      
-    'tableargs': begin
-        IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_TABLE_CH') THEN BEGIN 
+    'arguments_table': begin
+      IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_TABLE_CH') THEN BEGIN 
         selected_cell = WIDGET_INFO(self.tableArgs_id, /TABLE_SELECT)
 
-		n_args = (size(*self.currModSelecParamTab))[1]
-		if selected_cell[1]  gt n_args -1 then return ; user has tried to select an empty cell
+		n_args = (self.drf->get_summary()).nsteps
+		;n_args = (size(*self.currModSelecParamTab))[1]
+		if selected_cell[1] gt n_args -1 then return ; user has tried to select an empty cell
+		if selected_cell[0] ne 1 then return ; user has tried to edit something other than the Value field
 
-        if selected_cell[0] eq 1 then begin
-            WIDGET_CONTROL, self.tableArgs_id, GET_VALUE=selection_value,USE_TABLE_SELECT= selected_cell
+		WIDGET_CONTROL, self.tableArgs_id, GET_VALUE=selection_value,USE_TABLE_SELECT= selected_cell
 
-            ;;verify user-value: type 
-            argtabtype=((*self.PrimitiveInfo).argtype)
-            type=argtabtype[(*self.indarg)[selected_cell[1]]]
-            val=0.
-            isnum=str2num(selection_value[0],type=typenum)
-            case typenum of
-              1:typeName ='INT'
-              2:typeName ='INT'
-              3:typeName ='INT'
-              4:typeName ='FLOAT'
-              5:typeName ='FLOAT'
-              7:typeName ='STRING'
-              12:typeName ='INT'
-            endcase    
-            ;leave the possib. to enter a blank string:
-            if (selection_value[0] eq '') then typeName='STRING'
-            ;compare default type and user value type 
-            typeflag = 1 & rangeflag = 1
-            if type ne '' then $;keep the possibility to have no type control if default type has been set to ''
-            ; Check to ensure the argument has the proper type. 
-              ; Special case: it is acceptable to enter an INT type into an
-              ; argument expecting a FLOAT, because of course the set of
-              ; integers is a subset of the set of floats. 
-            if (strcmp(typeName,type,/fold))  $
-              or (strlowcase(type) eq 'float' and strlowcase(typename) eq 'int')  $
-              or (strlowcase(type) eq 'enum' and strlowcase(typename) eq 'string')  $
-              then $
-              typeflag=1 $
-            else typeflag=0
+		; figure out what type, range, etc is allowed for this primitive argument
+		priminfo = self.drf->get_primitive_args(self.selected_primitive_index)
+		argname=  priminfo.names[selected_cell[1]]
+		required_type=  priminfo.types[selected_cell[1]]
+		range= priminfo.ranges[selected_cell[1]]
 
+		; figure out what type of value the user has tried to enter
+		;leave the possib. to enter a blank string:
+		if (selection_value[0] eq '') then begin
+			typeName='STRING'
+		endif else begin
+			isnum=str2num(selection_value[0],type=typenum)
+			case typenum of
+			  1:typeName ='INT'
+			  2:typeName ='INT'
+			  3:typeName ='INT'
+			  4:typeName ='FLOAT'
+			  5:typeName ='FLOAT'
+			  7:typeName ='STRING'
+			  12:typeName ='INT'
+			endcase    
+		endelse
 
-            ;;verify user-value: range 
-            if (strcmp('string',type,/fold) ne 1) && (strcmp('string',typeName,/fold) ne 1) && (type ne '') then begin
-              argtabrange=((*self.PrimitiveInfo).argrange)
-              range=argtabrange[(*self.indarg)[selected_cell[1]]]
-              ranges=strsplit(range,'[,]',/extract)
-              if (float(ranges[0]) le float(selection_value[0])) && (float(ranges[0]) le float(selection_value[0])) then rangeflag=1 else rangeflag=0
-            endif
-             if (strcmp('enum',type,/fold) eq 1) && (strcmp('string',typeName,/fold) eq 1) && (type ne '') then begin
-              argtabrange=((*self.PrimitiveInfo).argrange)
-              range=argtabrange[(*self.indarg)[selected_cell[1]]]
-              ranges=strsplit(range,'[,]',/extract)
-              if strmatch(ranges[0],"*"+selection_value[0]+"*",/fold)  then rangeflag=1 else rangeflag=0
-            endif
-            if (typeflag eq 0) || (rangeflag eq 0) then begin
-              err=''
-              if (typeflag eq 0) then err+='type '
-              if (rangeflag eq 0) then err+='range '
-              self->log,'Sorry, you entered a value with wrong: '+err
-              res = dialog_message('Sorry, you tried to enter a value but it had the wrong '+err+". The value was NOT updated; please try again.",/error, title='Unable to set value')
-              
-              ;stop
-            endif else begin 
-              ;;
-              argtab=((*self.PrimitiveInfo).argdefault)
-              argtab[(*self.indarg)[selected_cell[1]]]=selection_value[0]
-              ((*self.PrimitiveInfo).argdefault)=argtab
-              ;is it a change of the calibrationfile?
-              argname=((*self.PrimitiveInfo).argname)
-              if argname[(*self.indarg)[selected_cell[1]]] eq 'CalibrationFile' then begin
-                 selection = WIDGET_INFO((self.RecipePrimitivesTable_id), /TABLE_SELECT) 
-                 indselected=selection[1]
-                 (*self.currModSelec)[2,indselected]=selection_value[0] ;change curModSelec tab for display
-                 widget_control,   self.RecipePrimitivesTable_id,  set_value=(*self.currModSelec)[0:2,*]
-                 widget_control,   self.RecipePrimitivesTable_id, SET_TABLE_VIEW=[0,0]
-              endif
-            endelse
-        endif else begin
-          self->log,'Sorry, you can only change the Value field. Edit the IDL source of the module to change or add Arguments. '
-          res = dialog_message( 'Sorry, you can only change the Value field. Edit the IDL source of the module to change or add Arguments. ',/error, title='Unable to add new argument')
-          
-        endelse
-      ENDIF
+		;compare required type and user's new value type 
+		type_ok = 1 & range_ok = 1
+		; Check to ensure the argument has the proper type. 
+		  ; Special case: it is acceptable to enter an INT type into an
+		  ; argument expecting a FLOAT, because of course the set of
+		  ; integers is a subset of the set of floats. 
+		  ; FIXME shouldn't we also allow numeric types as a subset of STRING?
+		if (strcmp(typeName,required_type,/fold))  $
+		  or (strlowcase(required_type) eq 'float' and strlowcase(typename) eq 'int')  $
+		  or (strlowcase(required_type) eq 'enum' and strlowcase(typename) eq 'string')  $
+		  then $
+		  type_ok=1 $
+		else type_ok=0
+
+		if ~type_ok then begin
+			errormessage = ["Sorry, you tried to enter a value for "+argname+", but it had the wrong type ("+strupcase(typename)+").", "Please enter a value of type "+strupcase(required_type)+". The value was NOT updated; please try again."]
+			self->log,errormessage[0]+"  "+errormessage[1] ; merge 2 lines into 1
+			res = dialog_message(errormessage,/error, title='Unable to set value')
+			self->refresh_arguments_table
+			return
+		endif
+	
+
+		;;verify user-value: range 
+		if (strcmp('string',required_type,/fold) ne 1) && (strcmp('string',typeName,/fold) ne 1) && (required_type ne '') then begin
+			; if not a string, check min and max
+			ranges=strsplit(range,'[,]',/extract)
+			if (float(ranges[0]) le float(selection_value[0])) && (float(ranges[1]) ge float(selection_value[0])) then range_ok=1 else range_ok=0
+		endif
+		if ((strcmp('enum',required_type,/fold) eq 1) && (strcmp('string',typeName,/fold) eq 1)) || $
+		   ((strcmp('string', required_type,/fold) eq 1) && (range ne "")) then begin
+			; if an ENUM, or a STRING with a non-null range, then check value
+			ranges=strsplit(range,'[,|]',/extract)
+			matches = strmatch(ranges,selection_value[0],/fold)
+			wm = where(matches, mct)
+			if mct gt 0 then range_ok=1 else range_ok=0
+		endif
+
+		;print, required_type
+		;print, "range:|"+range+"|"
+
+		if ~range_ok then begin
+			errormessage = ["Sorry, you tried to enter a value for "+argname+", "+selection_value[0]+", but it wasn't within the allowable range.", "Please enter a value within "+range+ ".  The value was NOT updated; please try again."]
+			self->log,errormessage[0]+"  "+errormessage[1] ; merge 2 lines into 1
+			res = dialog_message(errormessage,/error, title='Unable to set value')
+			self->refresh_arguments_table
+			return
+		endif
+	
+		; if we get here, the type and range are OK, so set the value
+		  
+		new_arg_info = create_struct(argname,selection_value[0])
+		self.drf->set_primitive_args, self.selected_primitive_index, _extra=new_arg_info
+		self->refresh_arguments_table
+		if argname eq 'CalibrationFile' then self->refresh_primitives_table
+	ENDIF
   end
   'ADDFILE' : begin
      
@@ -885,9 +887,6 @@ pro gpi_recipe_editor::event,ev
 		self.drf->add_datafiles, result
 
     end
-    'FNAME' : begin
-        (*storage.splitptr).selindex = ev.index
-    end
     'REMOVE' : begin
         self->removefile, storage, file
     end
@@ -899,16 +898,12 @@ pro gpi_recipe_editor::event,ev
             self->log,'All filenames removed.'
         endif
     end
-	;'sortmethod': begin
-        ;sortfieldind=widget_info(self.sortfileid,/DROPLIST_SELECT)
-	;end
 	'outputdir': begin
 		widget_control, self.outputdir_id, get_value=tmp
 		;if self->check_output_path_exists(tmp) then begin
 		if gpi_check_dir_exists(tmp) eq OK then begin
 			self.drf->set_outputdir, tmp
 			self->log,'Output Directory changed to:'+self.drf->get_outputdir()
-            self.outputoverride = 1
 		endif 
 		widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
     end
@@ -919,7 +914,7 @@ pro gpi_recipe_editor::event,ev
 			self.drf->set_outputdir, result
 			widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
 			self->log,'Output Directory changed to:'+self.drf->get_outputdir()
-            self.outputoverride = 1
+            ;self.outputoverride = 1
 		endif
     end
     'Save Recipe': begin
@@ -956,7 +951,8 @@ pro gpi_recipe_editor::event,ev
         if confirm(group=ev.top,message='Are you sure you want to close the Recipe Editor?',$
             label0='Cancel',label1='Close') then obj_destroy, self
     end
-
+	'Add primitive': self->AddPrimitive
+	'Remove primitive': self->RemovePrimitive
     'Rescan Templates...':	self->scan_templates
 	'Basic View':			self->set_view_mode, 1
 	'Normal View':			self->set_view_mode, 2
@@ -998,6 +994,14 @@ pro gpi_recipe_editor::event,ev
               tmpstr=gpi_drp_about_message()
               ret=dialog_message(tmpstr,/information,/center,dialog_parent=ev.top)
     end
+	'FNAME': begin
+		; user has clicked on filename display text widget
+		; this should launch a gpitv, which is handled elsewhere so nothing
+		; needs to happen here
+	end
+	'Recipe Editor Help...':  gpi_open_help,'usage/recipe_editor.html'
+	'Recipe Templates Help...': gpi_open_help, 'usage/templates.html'
+	'GPI DRP Help...': gpi_open_help, ''
     
     else: begin
 		print, 'Unknown event: '+uval
@@ -1183,7 +1187,7 @@ pro gpi_recipe_editor::save, template=template, nopickfile=nopickfile
   OK = 0
   NOT_OK = -1
 	
-  selectype=widget_info(self.typeid,/DROPLIST_SELECT)
+  selectype=widget_info(self.reduction_type_id,/DROPLIST_SELECT)
   
   if keyword_set(template) then begin
      templatesflag=1 
@@ -1202,10 +1206,6 @@ pro gpi_recipe_editor::save, template=template, nopickfile=nopickfile
 		res = dialog_message('You have no data files loaded. Either load some files, or else you can only save this recipe as a template',/error, title='No FITS files selected')
 		return
 	endif
-	  
-;fullfiles=files[where(files NE '')]  
-;file = file[index]  
-;drf_summary = self.drf->get_summary()
 
   if templatesflag then begin
      self.drffilename = self.loadedRecipeFile ;to check
@@ -1218,7 +1218,7 @@ pro gpi_recipe_editor::save, template=template, nopickfile=nopickfile
 
 	drf_summary = self.drf->get_summary()
 
-    if n_elements(first_file) gt 2 then begin
+    if n_elements(first_file) gt 2 and n_elements(last_file) gt 2 then begin
         ; normal Gemini style filename
         outputfilename='S'+first_file[1]+'S'+first_file[2]+'-'+last_file[2]+'_'+drf_summary.shortname+'_drf.waiting.xml'
     endif else begin
@@ -1316,11 +1316,11 @@ pro gpi_recipe_editor::open, filename, template=template, silent=silent, log=log
     if self.reductiontype ne drf_summary.reductiontype then begin
         selectype=where(strmatch(*self.template_types, strc(drf_summary.reductiontype),/fold_case), matchct)
         if matchct ne 1 then message,"ERROR: no match for "+self.reductiontype
-        if self.typeid ne 0 then  widget_control, self.typeid, SET_DROPLIST_SELECT=selectype
+        if self.reduction_type_id ne 0 then  widget_control, self.reduction_type_id, SET_DROPLIST_SELECT=selectype
         self->changetype, selectype[0], /notemplate
     endif
     
-	self->refresh_filenames_display ; update the filenames display
+	if ~(keyword_set(template)) then self->refresh_filenames_display ; update the filenames display
 	self->refresh_primitives_table 
 	self->refresh_arguments_table
 
@@ -1351,7 +1351,7 @@ pro gpi_recipe_editor::cleanup
 	
 	ptr_free, self.table_background_colors, self.PrimitiveInfo, self.curr_mod_avai
 	ptr_free, self.curr_mod_indsort, self.currModSelec
-	ptr_free, self.currModSelecParamTab, self.indmodtot2avail, self.templates, self.template_types
+	ptr_free, self.indmodtot2avail, self.templates, self.template_types
 
 	if (xregistered (self.xname) gt 0) then    widget_control,self.top_base,/destroy
 	
@@ -1373,7 +1373,7 @@ pro gpi_recipe_editor::init_data, _extra=_Extra
 	self.currModSelec=      ptr_new(/ALLOCATE_HEAP)
 	;self.order=             ptr_new(/ALLOCATE_HEAP)
 	;self.indarg=            ptr_new(/ALLOCATE_HEAP)                ; ???
-	self.currModSelecParamTab=  ptr_new(/ALLOCATE_HEAP)
+	;self.currModSelecParamTab=  ptr_new(/ALLOCATE_HEAP)
 	self.indmodtot2avail=   ptr_new(/ALLOCATE_HEAP)
 
 
@@ -1483,6 +1483,11 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
                   {cw_pdmenu_s, 4, 'Open Recipe as Template...'}, $
                   {cw_pdmenu_s, 0, 'Create Recipe Template and Save as...'}, $
                   {cw_pdmenu_s, 6, 'Quit Recipe Editor'}, $
+                  {cw_pdmenu_s, 1, 'Edit'}, $ 
+                  {cw_pdmenu_s, 0, 'Add primitive'}, $
+                  {cw_pdmenu_s, 0, 'Remove primitive'}, $
+                  {cw_pdmenu_s, 4, 'Move primitive up'}, $
+                  {cw_pdmenu_s, 2, 'Move primitive down'}, $
                   {cw_pdmenu_s, 1, 'Options'}, $
                   {cw_pdmenu_s, 0, 'Rescan Templates...'}, $
                   {cw_pdmenu_s, 12, 'Basic View'}, $
@@ -1492,8 +1497,10 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
                   {cw_pdmenu_s, 8, 'Show default + hidden Primitives'}, $
                   {cw_pdmenu_s, 10, 'Show all Primitives'}, $
                   {cw_pdmenu_s, 1, 'Help'}, $         ; help menu
-                  {cw_pdmenu_s, 0, 'Help...'}, $
-                  {cw_pdmenu_s, 2, 'About'} $
+                  {cw_pdmenu_s, 0, 'Recipe Editor Help...'}, $
+                  {cw_pdmenu_s, 0, 'Recipe Templates Help...'}, $
+                  {cw_pdmenu_s, 0, 'GPI DRP Help...'}, $
+                  {cw_pdmenu_s, 4, 'About'} $
                 ]
 
 	top_menu = cw_pdmenu_checkable(bar, top_menu_desc, $
@@ -1553,9 +1560,9 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
 	;self.resolvetypeseq_id = Widget_Button(base_radio, UNAME='RESOLVETYPESEQBUTTON' ,/ALIGN_LEFT ,VALUE='Resolve type/seq. when adding file(s)',UVALUE='autoresolvetypeseq')
 
 	rowbase_template = widget_base(top_baseidentseq,row=1)
-	self.typeid = WIDGET_DROPLIST( rowbase_template, title='Reduction type:    ', frame=0, Value=*self.template_types,uvalue='typefield',resource_name='XmDroplistButton')
+	self.reduction_type_id = WIDGET_DROPLIST( rowbase_template, title='Reduction type:    ', frame=0, Value=*self.template_types,uvalue='reduction_type_dropdown',resource_name='XmDroplistButton')
 	rowbase_template2 = widget_base(top_baseidentseq,row=1)
-        self.seqid  = WIDGET_DROPLIST( rowbase_template2, title='Recipe Template:', frame=0, Value=['Simple Data-cube extraction','Calibrated Data-cube extraction','Calibrated Data-cube extraction, ADI reduction'],uvalue='seqfield',resource_name='XmDroplistButton')
+    self.template_name_id  = WIDGET_DROPLIST( rowbase_template2, title='Recipe Template:', frame=0, Value=['Simple Data-cube extraction','Calibrated Data-cube extraction','Calibrated Data-cube extraction, ADI reduction'],uvalue='template_name_dropdown',resource_name='XmDroplistButton')
 
 	;one nice logo 
 	button_image = READ_BMP(gpi_get_directory('GPI_DRP_DIR')+path_sep()+'gpi.bmp', /RGB) 
@@ -1580,7 +1587,7 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
 	self.tableAvailable_id = WIDGET_TABLE(top_basemoduleavailable, VALUE=data,$;  $ ;/COLUMN_MAJOR, $ 
 			COLUMN_LABELS=['Available Primitives'], /TRACKING_EVENTS,$
 			xsize=1,ysize=50,scr_xsize=400,$  ;JM: ToDo: ysize as a function of #mod avail.
-			/NO_ROW_HEADERS, /SCROLL,y_SCROLL_SIZE =self.nlines_modules,COLUMN_WIDTHS=380,frame=1,uvalue='moduavai',/ALL_EVENTS,/CONTEXT_EVENTS , $
+			/NO_ROW_HEADERS, /SCROLL,y_SCROLL_SIZE =self.nlines_modules,COLUMN_WIDTHS=380,frame=1,uvalue='available_primitives',/ALL_EVENTS,/CONTEXT_EVENTS , $
 			background_color=rebin(*self.table_BACKground_colors,3,2,1)) ;/COLUMN_MAJOR,
 	
 	lab = widget_label(top_basemoduleavailable, value="Primitive Description:")
@@ -1607,7 +1614,7 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
                                       COLUMN_LABELS=['Parameter', 'Value','Range','Description'], /resizeable_columns, $
                                       xsize=4,ysize=20, /TRACKING_EVENTS,$
                                       /NO_ROW_HEADERS, /SCROLL,y_SCROLL_SIZE =nlines_args,scr_xsize=800,/COLUMN_MAJOR,$
-                                      COLUMN_WIDTHS=[120,120,120,440],frame=1,EDITABLE=[0,1,0,0],uvalue='tableargs' , $
+                                      COLUMN_WIDTHS=[120,120,120,440],frame=1,EDITABLE=[0,1,0,0],uvalue='arguments_table' , $
                                       background_color=rebin(*self.table_BACKground_colors,3,2*4,/sample)    ) ;,/COLUMN_MAJOR                
 		
 
@@ -1636,9 +1643,9 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
 	printname=strarr(maxfilen)
 	datefile=lonarr(maxfilen)
 	findex=0
-	selindex=0
+	;selindex=0
 	splitptr=ptr_new({filename:filename,printname:printname,$
-	  findex:findex,selindex:selindex,datefile:datefile, maxfilen:maxfilen})
+	  findex:findex,datefile:datefile, maxfilen:maxfilen})
 
 	;make and store data storage
 	;-----------------------------------------
@@ -1696,57 +1703,35 @@ end
 ;-
 pro gpi_recipe_editor__define
     struct = {gpi_recipe_editor,   $
-			  drf: obj_new(), $   ; DRF object holding the contents of the current recipe
-              ;drf_summary: ptr_new(), $   ;Gives the filename and description of a recipe
-              ;defoutputdir_id:0L,$
-              ;deflogdir_id:0L,$
-              ;defdrfpath_id:0L,$
-              ;defqueuedir_id:0L,$ 
+			  drf: obj_new(), $			; DRF object holding the contents of the current recipe
               drfpath :'',$				; default directory for saving DRFs
-              drffilename :'',$			; 
-              ;sortfileid :0L,$  
-              ;sorttab:strarr(3),$       
-              ;definputcaldir_id:0L,$
-              outputdir_id:0L,$
-              outputoverride:0L,$
-              ;calibfileid:0L,$
-              ;calibfiletab:strarr(3), $
-              ;resolvetypeseq_id:0L,$
-              loadedRecipeFile:'',$
-              ;deftemplatedir_id:0L,$
-              ;filter:'',$ ;from data keywords
-              ;ftimeobs:0.,$ ;from data keywords
-              ;dispersr:'',$ ;from data keywords
-              ;ftype:'',$ ;from data keywords
-              ;fseq:'',$ ;from data keywords
-              reductiontype:'',$
-              tableAvailable_id: 0L,$				; widget ID for available primitves table
-              descr_id: 0L,$						; widget ID for primitive description
-              textinfo_id: 0L,$						; widget ID for status bar for mouseover text
-              RecipePrimitivesTable_id: 0L,$		; widget ID for primitives list table
-              tableArgs_id: 0L,$					; widget ID for paramters/arguments table
-              nbcurrmod: 0L,$
-              typeid: 0L,$
-              seqid: 0L,$
-              selecseq:-1,$
+              drffilename :'',$			; name of current recipe file
+              loadedRecipeFile:'',$		; file read from disk
+              last_used_input_dir: '', $; save the most recently used directory. Start there again on subsequent file additions
+              reductiontype:'',$				; currently selected reduction type name string
+              outputdir_id:0L,$					; widget ID of output dir selection field
+              tableAvailable_id: 0L,$			; widget ID for available primitves table
+              descr_id: 0L,$					; widget ID for primitive description
+              textinfo_id: 0L,$					; widget ID for status bar for mouseover text
+              RecipePrimitivesTable_id: 0L,$	; widget ID for primitives list table
+              tableArgs_id: 0L,$				; widget ID for paramters/arguments table
+              reduction_type_id: 0L,$			; widget ID for reduction type dropdown
+              template_name_id: 0L,$			; widget ID for template name dropdown
+              widgets_for_modes: ptr_new(), $	; widget IDs for basic/normal/advanced modes. see set_view_mode.
+			  selected_primitive_index: 0L, $	; index of current primitive whose arguments are shown in the args table
               showhidden: 0, $
               reductiontypes: ['SpectralScience','PolarimetricScience','Calibration','Testing'], $
-              table_background_colors: ptr_new(), $ ; ptr to RGB triplets for table cell colors
-              nlines_modules: 0, $                    ; how many lines to display modules on screen? (used in resize)
-              PrimitiveInfo: ptr_new(), $
-              curr_mod_avai: ptr_new(), $         ; list of available primitive names (strings) in current mode
-              curr_mod_indsort: ptr_new(), $
-              currModSelec: ptr_new(), $
-              ;order: ptr_new(), $
-              ;indarg: ptr_new(), $                ; ???
+              table_background_colors: ptr_new(), $	; ptr to RGB triplets for table cell colors
+              nlines_modules: 0, $                  ; how many lines to display modules on screen? (used in resize)
+              PrimitiveInfo: ptr_new(), $			; Available primitives from pipeline_config.xml, as structure array
+              curr_mod_avai: ptr_new(), $			; list of available primitive names (strings) in current mode
+              curr_mod_indsort: ptr_new(), $		; indices to alphabetize current available primitives
+              currModSelec: ptr_new(), $			; ??? Current selected primitives
               num_primitives:  0L,$					; Number of primitives in the current recipe
-              currModSelecParamTab: ptr_new(), $
+              ;currModSelecParamTab: ptr_new(), $	; 
               indmodtot2avail: ptr_new(), $
-              ;missingkeyw:0,$
-              templates: ptr_new(), $       ; pointer to struct containing template info. See Scan_templates
-              template_types: ptr_new(), $ ; pointer to list of available template types
-              widgets_for_modes: ptr_new(), $ ; widget IDs for basic/normal/advanced modes. see set_view_mode.
-              last_used_input_dir: '', $             ; save the most recently used directory. Start there again on subsequent file additions
+              templates: ptr_new(), $			; pointer to struct containing template info. See Scan_templates
+              template_types: ptr_new(), $		; pointer to list of available template types
               INHERITS gpi_gui_base }
 
 end

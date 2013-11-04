@@ -436,9 +436,27 @@ pro drf::set_primitive_args, modnum, verbose=verbose, status=status, _extra=argi
 			all_arg_names = tag_names( (*self.primitives)[modnum])
 
 			warg = where(strupcase(newargnames[i]) eq all_arg_names, mct)
-			if mct ne 1 then message, 'Could not find argument '+argname+" for primitive number "+string(modnum)
+			if mct eq 1 then begin
+				(*self.primitives)[modnum].(warg[0]) = string(arginfo.(i))
+			endif else begin
+				message, 'Could not find argument '+strupcase(newargnames[i])+" for primitive number "+string(modnum),/info
+				message, 'Appending new field to the primitive arguments struct array',/info
 
-			(*self.primitives)[modnum].(warg[0]) = string(arginfo.(i))
+				; we have to jump through some hoops here to append an
+				; additional field into the array of primitive info structures.
+				; First, update the info for just this one primitive
+				combined_primitive_info =create_struct((*self.primitives)[modnum], newargnames[i], string(arginfo.(i)))
+				; then merge that into the overall structure (which will update
+				; fields for all of them, but appends an extra redundant
+				; primitive info record at the end)
+				*self.primitives = struct_merge( *self.primitives, combined_primitive_info) ; this will append the new primitive onto the end, as well as merging the fields
+				; then put it back in the right order and delete the redundant
+				; record
+				(*self.primitives)[modnum] = (*self.primitives)[n_elements(*self.primitives)-1]
+				*self.primitives = (*self.primitives)[0:n_elements(*self.primitives)-2]
+			endelse
+
+
 
 		endelse
 
@@ -473,8 +491,16 @@ FUNCTION drf::get_primitive_args, modnum, count=count,verbose=verbose, status=st
 	if n_elements(modnum) eq 0 then begin
 		message,/info, 'You must provide a primitive index when calling get_primitive_args'
 		status=NOT_OK
-		return, 'You must provide a primitive index when calling get_primitive_args'
+		return, {names: '', values:'', defaults:'', ranges: '', descriptions: '', types:''}
 	endif
+
+	nprims = n_elements(*self.primitives)
+	if (modnum lt 0) or (modnum gt nprims-1) then begin
+		message, /info, 'Invalue primitive index outside of 0 to '+strc(nprims-1)
+		status=NOT_OK
+		return, {names: '', values:'', defaults:'', ranges: '', descriptions: '', types:''}
+	endif
+
     
 	; look up from the DRS config file what the allowed arguments of this module are
 	self->load_configdrs
@@ -484,7 +510,7 @@ FUNCTION drf::get_primitive_args, modnum, count=count,verbose=verbose, status=st
 		message,/info, 'Unknown primitive: '+((*self.primitives).name)[modnum] +" is not in the primitives config file."
 		count=-1
 		status=NOT_OK
-		return, {names: '', values:'', defaults:'', ranges: '', descriptions: ''}
+		return, {names: '', values:'', defaults:'', ranges: '', descriptions: '', types:''}
 	endif
 	module_argument_indices = where(   ((*self.ConfigDRS).argmodnum) eq module_number[0]+1, count)
 
@@ -497,11 +523,13 @@ FUNCTION drf::get_primitive_args, modnum, count=count,verbose=verbose, status=st
 	module_argument_defaults=((*self.ConfigDRS).argdefault)[module_argument_indices]
 	module_argument_ranges=((*self.ConfigDRS).argrange)[module_argument_indices]
 	module_argument_descs=((*self.ConfigDRS).argdesc)[module_argument_indices]
+	module_argument_types=((*self.ConfigDRS).argtype)[module_argument_indices]
 
 		if keyword_set(verbose) then print,  "ARGS: ", module_argument_names
 		if keyword_set(verbose) then print,  "DEFS: ", module_argument_defaults
 		if keyword_set(verbose) then print,  "RANGE:", module_argument_ranges
 		if keyword_set(verbose) then print,  "DESCR:", module_argument_descs
+		if keyword_set(verbose) then print,  "TYPES:", module_argument_types
 
 
 	; look in the contents of the DRF for what they are
@@ -514,7 +542,7 @@ FUNCTION drf::get_primitive_args, modnum, count=count,verbose=verbose, status=st
 		if module_argument_values[i] eq '' then module_argument_values[i] = module_argument_defaults[i]
 	endfor
 
-	return, {names: module_argument_names, values:module_argument_values, defaults:module_argument_defaults, ranges: module_argument_ranges, descriptions: module_argument_descs}
+	return, {names: module_argument_names, values:module_argument_values, defaults:module_argument_defaults, ranges: module_argument_ranges, descriptions: module_argument_descs, types:module_argument_types}
 end
 
 ;
@@ -922,20 +950,20 @@ end
 PRO drf__define
 
 	state = {drf, $
-		loaded_filename: '',$		; name of input file loaded from disk
-		last_saved_filename: '', $	; last saved filename
-		modified: 0, $				; has this DRF been modified relative to the disk file?
-		name: '', $			; descriptive string name
-		reductiontype: '',$	; what type of reduction?
-        ShortName: '', $      ; short name to be used in naming of recipes
-		parsed_drf: obj_new(), $	;gpiDRFParser object for the XML file itself
-		where_to_log: obj_new(),$		;; optional target object for log messages
-		;inputdir: '', $			; Deprecated, may still be present in XML but 
-									; automatically gets folded in to datafilenames
-		outputdir: '', $
-		datafilenames: ptr_new(), $
-		primitives: ptr_new(), $
-		configDRS: ptr_new() $  ; DRS modules configuration info
-		}
+        loaded_filename: '',$       ; name of input file loaded from disk
+        last_saved_filename: '', $  ; last saved filename
+        modified: 0, $              ; has this DRF been modified relative to the disk file?
+        name: '', $                 ; descriptive string name
+        reductiontype: '',$         ; what type of reduction?
+        ShortName: '', $            ; short name to be used in naming of recipes
+        parsed_drf: obj_new(), $    ;gpiDRFParser object for the XML file itself
+        where_to_log: obj_new(),$   ; optional target object for log messages
+        ;inputdir: '', $            ; Deprecated, may still be present in XML but 
+                                    ; automatically gets folded in to datafilenames
+        outputdir: '', $
+        datafilenames: ptr_new(), $
+        primitives: ptr_new(), $
+        configDRS: ptr_new() $  ; DRS modules configuration info
+        }
 
 end
