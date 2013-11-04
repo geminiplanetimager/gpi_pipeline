@@ -758,7 +758,10 @@ pro gpi_recipe_editor::event,ev
                   widget_control,   self.tableArgs_id,  set_value=(*self.currModSelecParamTab)
                  endif
                endif               
-        ENDIF 
+        ENDIF ; end of left click
+    	IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_CONTEXT') THEN BEGIN  ;RIGHT CLICK
+           self->RemovePrimitive
+     	ENDIF  
     end      
     'arguments_table': begin
       IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_TABLE_CH') THEN BEGIN 
