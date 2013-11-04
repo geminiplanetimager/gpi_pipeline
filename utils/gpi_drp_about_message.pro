@@ -21,34 +21,25 @@ function gpi_drp_about_message
               '  Jerome Maire (maire@utoronto.ca)', $
 			  '', $
 			  '  Contributions from: (alphabetically)',$
-			  '    Jeff Chilcote', $
-			  '    Patrick Ingraham', $
-              '    Quinn Konopacky ', $
-			  '    Christian Marois', $
-			  '    Max Millar-Blanchaer', $
-			  '    Jean-Baptiste Ruffio',$
-			  '    Dmitry Savransky',$
-			  '    Schuyler Wolff',$
+			  '    Jeff Chilcote, Rene Doyon, ', $
+			  '    Zack Draper, Alex Greenbaum, ', $
+			  '    Patrick Ingraham, Quinn Konopacky, ', $
+			  '    Franck Marchis, Christian Marois', $
+			  '    Max Millar-Blanchaer, Laurent Pueyo, ', $
+			  '    Jean-Baptiste Ruffio, Dmitry Savransky, ',$
+			  '    Naru Sadakuni, Schuyler Wolff',$
 			  '    Sloane Wiktorowicz',$
-              '', $
-              '--------- Documentation: ---------', $
-              '', $
-              '    Marshall Perrin', $
-              '    Jerome Maire', $
-			  '    Dmitry Savransky',$
-			  '    Jean-Baptiste Ruffio',$
               '', $
               '-------- Acknowledgements: --------', $
               '', $
-              '  Rene Doyon, Bruce Macintosh, Stephen Goodsell, and ',$
-		  	  '    all other Gemini and GPI team members', $
+              '  Bruce Macintosh, Stephen Goodsell, Kathleen Labrie,',$
+		  	  '    and all other Gemini and GPI team members', $
               '    who have helped to improve the GPI DRP', $
               '  ', $
 			  '  Some code derived from OSIRIS pipeline by:', $
-			  '    James Larkin', $
-			  '    Michael McElwain', $
-			  '    Jason Weiss', $
-			  '    Shelley Wright', $
+			  '    James Larkin, Michael McElwain', $
+			  '    Jason Weiss, Shelley Wright', $
+			  '    & Marshall Perrin', $
               ' ', $
 			  '  GPItv display tool derived from ATV by', $
               '    Aaron Barth et al.', $
