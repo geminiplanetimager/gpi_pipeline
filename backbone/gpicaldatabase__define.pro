@@ -97,7 +97,7 @@ FUNCTION gpicaldatabase::init, directory=directory, dbfilename=dbfilename, backb
 		; TODO add file locking to prevent multiple copies from fighting over the
 		; DB?
 		
-		data = mrdfits(caldbfile,1)
+		data = mrdfits(caldbfile,1,/silent)
 		; TODO error checking that this is in fact a calib DB struct?
 		;
 		; FIXME MRDFITS does not remove trailing whitespace added to every field
@@ -119,7 +119,7 @@ FUNCTION gpicaldatabase::init, directory=directory, dbfilename=dbfilename, backb
 	;--- read in list of cooldown dates for the IFS
 	;    This is used to restrict which sets of calibration files are
 	;    worth looking at when matching. 
-	readcol, gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'ifs_cooldown_history.txt', year, month, date, count=count
+	readcol, gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'ifs_cooldown_history.txt', year, month, date, count=count,/silent
 	if count gt 0 then begin
 		jds = dblarr(n_elements(year))
 		for i=0,n_elements(year)-1 do jds[i] = julday(month[i], date[i], year[i]) 
