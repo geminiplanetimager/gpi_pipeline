@@ -341,10 +341,10 @@ suffix='wplnt' 		 ; set this to the desired output filename suffix
 	; ################################################
 
 	; must get the orientation of the planet correct (and the PSF) 	
-; easiest way to do this is by translating the image in a cube full of zeros
-	pixscl= 1000d0*gpi_get_constant('ifs_lenslet_scale') ; mas/pixel
+        ; easiest way to do this is by translating the image in a cube full of zeros
+	pixscl = gpi_get_ifs_lenslet_scale(*DataSet.HeadersExt[numfile])*1000d0 ; mas/pixel
 	; assume no rotation for a moment
-	getrot, *dataset.headersext[0], rot, cdelt, /silent
+	getrot, *dataset.headersext[numfile], rot, cdelt, /silent
 	position_angle2=position_angle+90+rot+gpi_get_constant('ifs_rotation_angle', default=-24.5)
 	pos_x=(separation/pixscl) * cos(position_angle2*!dtor)
 	; negative due to orientation of North

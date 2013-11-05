@@ -84,7 +84,5 @@ for j=n_elements(warncode)-1,0,-1 do warndec += warncode[j]*ulong64(2)^ulong64(n
 warnhex = strtrim(string(warndec,format='((Z))'),2)
 backbone->set_keyword,'SATSWARN',warnhex,'HEX->binary mask for slices with varying sat fluxes.',ext_num=1
 
-suffix='-satsfluxes'
-
 @__end_primitive
 end

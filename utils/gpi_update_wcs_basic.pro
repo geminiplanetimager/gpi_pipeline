@@ -104,9 +104,15 @@ pro gpi_update_wcs_basic,backbone,imsize=imsize
   backbone->del_keyword, 'PC2_1' 
   backbone->del_keyword, 'PC2_2' 
   backbone->del_keyword, 'PC3_3'
-  backbone->del_keyword, 'CDELT1' 
-  backbone->del_keyword, 'CDELT2'
-  backbone->del_keyword, 'CDELT3'
+  backbone->del_keyword, 'PC1_1',ext_num=1 
+  backbone->del_keyword, 'PC1_2',ext_num=1 
+  backbone->del_keyword, 'PC2_1',ext_num=1 
+  backbone->del_keyword, 'PC2_2',ext_num=1  
+  backbone->del_keyword, 'PC3_3',ext_num=1 
+  
+  ;backbone->del_keyword, 'CDELT1' 
+  ;backbone->del_keyword, 'CDELT2'
+  ;backbone->del_keyword, 'CDELT3'
 
   ;;specify coord sys - Gemini standard is FK5 J2000.0
   backbone->set_keyword, "RADESYS", "FK5", "RA and Dec are in FK5"

@@ -28,7 +28,7 @@
 ; PIPELINE COMMENT: Reduce speckle noise using the KLIP algorithm across the spectral axis of a datacube.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="refslice" Type="int" Range="[0,100]" Default="0" Desc="Slice of the reference PSF"
-; PIPELINE ARGUMENT: Name="annuli" Type="int" Range="[0,100]" Default="10" Desc="Number of annuli used"
+; PIPELINE ARGUMENT: Name="annuli" Type="int" Range="[0,100]" Default="5" Desc="Number of annuli used"
 ; PIPELINE ARGUMENT: Name="movement" Type="float" Range="[0.0,5.0]" Default="2.0" Desc="Minimum pixel movement for reference set"
 ; PIPELINE ARGUMENT: Name="prop" Type="float" Range="[0.8,1.0]" Default=".99999" Desc="Proportion of eigenvalues used to truncate KL transform vectors"
 ; PIPELINE ARGUMENT: Name="arcsec" Type="float" Range="[0.0,1.0]" Default=".4" Desc="Radius of interest if using 1 annulus"

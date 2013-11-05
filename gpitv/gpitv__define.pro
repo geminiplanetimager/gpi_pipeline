@@ -18771,7 +18771,9 @@ pro GPItv::tvcontr, nosat=nosat, ps3=ps3, nodh=nodh
      ;;highlight the dark hole edge
      if not(keyword_set(nodh)) then begin
         lambda = (*(*self.state).CWV_ptr)[ind]
-        pixscl = gpi_get_constant('ifs_lenslet_scale',default = 0.0143)
+        pixscl = gpi_get_ifs_lenslet_scale(*(*self.state).exthead_ptr,res=res)
+        if res lt 0 then self->message, msgtype = 'information', 'Missing valid WCS: using constant file value.'
+        
         pix_to_ripple = gpi_get_constant('pix_to_ripple',$
                                         default=44d0*1d-6/gpi_get_constant('primary_diam',default=7.7701d0)*$
                                         180d0/!dpi*3600d0/pixscl*1.5040541d)

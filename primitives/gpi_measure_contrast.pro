@@ -35,6 +35,8 @@ function gpi_measure_contrast, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
+suffix='-contr'
+
 cube = *(dataset.currframe[0])
 band = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
 ;;error handle if extractcube not used before
@@ -274,6 +276,8 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
    endif 
    
 endif
+
+*(dataset.currframe)=copsf
 
 @__end_primitive 
 

@@ -90,7 +90,5 @@ for j=n_elements(goodcode)-1,0,-1 do gooddec += goodcode[j]*ulong64(2)^ulong64(n
 goodhex = strtrim(string(gooddec,format='((Z))'),2)
 backbone->set_keyword,'SATSMASK',goodhex,'HEX->binary mask for slices with found sats',ext_num=1
 
-suffix='-satspots'
-
 @__end_primitive
 end

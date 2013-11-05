@@ -167,7 +167,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     ;
     ; The rotation matrix here is used to convert from IMAGE coords to SKY
     ; coords. Hence the sense of the rotation is opposite the Parallactic Angle
-    pixelscale = gpi_get_constant('ifs_lenslet_scale')
+    pixelscale = gpi_get_ifs_lenslet_scale(*DataSet.HeadersExt[numfile])
 
     ; rotation matrix.
     ;
