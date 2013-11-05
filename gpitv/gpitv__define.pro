@@ -15991,7 +15991,10 @@ pro GPItv::hist_refresh
 
 	self->resetwindow
 
-	itime = sxpar( *((*self.state).exthead_ptr), 'ITIME', count=ct)
+	if ptr_valid ((*self.state).exthead_ptr) then begin
+		itime = sxpar( *((*self.state).exthead_ptr), 'ITIME', count=ct)
+	endif else ct=0
+
 	if ct eq 0 then begin
 		tmp_string6 = '  ERROR: cannot find ITIME header' 
 	endif else begin
