@@ -105,7 +105,7 @@ endif
 
 ;;figure out starting and ending points of annuli and their centers
 case annuli of
-   0: rads = [0,lambda_dimen[1]/2+1]
+   0: rads = [0,lambda_dimen[1]+1]
    1: rads = [floor(IWA),ceil(waffle)]
    else: begin
       if keyword_set(eqarea) then begin
@@ -204,7 +204,7 @@ for radcount = 0,n_elements(rads)-2 do begin
 
       ;;determines which eigenalues to truncate
       evals_cut = where(total(evals,/cumulative) gt prop*total(evals))
-      K = evals_cut(0)
+      K = evals_cut[0]
       if K eq -1 then continue
 
       ;;creates mean subtracted and truncated KL transform vectors
