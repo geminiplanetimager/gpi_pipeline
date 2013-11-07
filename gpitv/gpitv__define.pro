@@ -6013,8 +6013,6 @@ pro GPItv::update_sat_spots,locs0=locs0
   filt_prof0=mrdfits( gpi_get_directory('GPI_DRP_CONFIG')+'/filters/GPI-filter-'+filter+'.fits',1,/silent)
   filt_prof=interpol(filt_prof0.transmission,filt_prof0.wavelength,cube_waves)
   ;; since the throughput is measured at 1.55um and includes the filter profile
-  ;; we divide by the filter transmission at this wavelength in the final determination
-  filt_155_trans=interpol(filt_prof0.transmission,filt_prof0.wavelength,1.55)
   
   ;; note that Naru measured the photometry using a 3 pixel radius - he calculated later that the sum of the entire spot is equal to 0.57*3pixel photometry
   ;; i did this in one slice and got 0.63 - not far off
