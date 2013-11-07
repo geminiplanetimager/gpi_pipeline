@@ -30,7 +30,7 @@ function gpi_get_ifs_lenslet_scale,h,res=res
 
 avparang = sxpar(h,'AVPARANG',count=ct)
 
-if (ct ne 1) || (avparang eq 0d0) then begin
+if ct ne 1 then begin
    res = -2
    return, gpi_get_constant('ifs_lenslet_scale',default = 0.0143d0)
 endif 

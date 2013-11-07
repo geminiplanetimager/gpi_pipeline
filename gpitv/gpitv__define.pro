@@ -502,16 +502,17 @@ state = {                   $
         showfullpaths: 0L, $                ;toggle to display full paths in headers
         noinfo: 0L, $                       ;toggle to supress informational messages
         nowarn: 0L, $                       ;toggle to supress warning messages
-        cubehelix_start_id: 0L, $ ; cubehelix start color
-        cubehelix_nrot_id: 0L, $ ; cubehelix # of rotations
-        cubehelix_hue_id: 0L,   $ ; cubehelix hue strength
-        cubehelix_gamma_id: 0L, $ ; cubehelix gamma parameter
-        cubehelix_plot_id: 0L,  $; cubehelix color plot window id
-        cubehelix_start: 0.5, $ ; cubehelix start color
-        cubehelix_nrot: -1.5, $ ; cubehelix # of rotations
-        cubehelix_hue: 1.0,   $ ; cubehelix hue strength
-        cubehelix_gamma: 1.0,  $ ; cubehelix gamma parameter
-        helptext_id: 0L $       ; id of textbase for help window
+        cubehelix_start_id: 0L, $           ; cubehelix start color
+        cubehelix_nrot_id: 0L, $            ; cubehelix # of rotations
+        cubehelix_hue_id: 0L,   $           ; cubehelix hue strength
+        cubehelix_gamma_id: 0L, $           ; cubehelix gamma parameter
+        cubehelix_plot_id: 0L,  $           ; cubehelix color plot window id
+        cubehelix_start: 0.5, $             ; cubehelix start color
+        cubehelix_nrot: -1.5, $             ; cubehelix # of rotations
+        cubehelix_hue: 1.0,   $             ; cubehelix hue strength
+        cubehelix_gamma: 1.0,  $            ; cubehelix gamma parameter
+        helptext_id: 0L, $                  ; id of textbase for help window
+        filetype: '' $                      ; type of file currently loaded
         }
 
 cd, curr=curr
@@ -7948,6 +7949,8 @@ val = gpi_simplify_keyword_value(gpi_get_keyword(h, e, 'IFSFILT',count=cc))
 if cc gt 0 then widget_control, (*self.state).filter1_id, set_value = val else $
   widget_control, (*self.state).filter1_id, set_value = 'No info'
 if cc gt 0 then (*self.state).obsfilt=strcompress(val,/REMOVE_ALL) else (*self.state).obsfilt=''
+val = gpi_get_keyword(h, e, 'FILETYPE',count=cc)
+if cc gt 0 then (*self.state).filetype = val else (*self.state).filetype = ''
 
 val = gpi_get_keyword(h, e, 'DISPERSR',count=cc)
 ;; Make short prism names. Bizarre inexplicable bug where long Gemini style names make widgets get smaller?!?! WTF? -MP
@@ -19050,8 +19053,10 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
   endif 
 
   ;;if this is image doesn't look like it has sat spots, don't waste
-  ;;time on it (unless forced)
-  if ~(keyword_set(forcesat))  && ((*self.state).collapse eq 0)  && ((*self.state).current_units ne 'Contrast')  then begin
+  ;;time on it (unless forced or a special case)
+  if ~(keyword_set(forcesat))  && ((*self.state).collapse eq 0)  && $
+     ((*self.state).current_units ne 'Contrast')  && $
+     (strpos(strupcase((*self.state).filetype),'ADI') eq -1) then begin
      if median((*self.images.main_image)[where(finite(*self.images.main_image))]) lt 1. then begin
         self->message, msgtype='warning', 'This image does not appear to have satellite spots.'
         self->message, msgtype='warning', 'If you disagree, press Find Sat Spots.'

@@ -243,6 +243,7 @@ function gpi_klip_algorithm_angular_differential_imaging, DataSet, Modules, Back
      endfor
   endfor
 
+  backbone->set_keyword, "FILETYPE", "Spectral Cube ADI KLIP"
   @__end_primitive
 end 
 
