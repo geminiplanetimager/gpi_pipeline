@@ -37,6 +37,8 @@ function gpi_satspots_from_header,h,good=good,fluxes=fluxes,warns=warns
 ;      10.21.2013 - ds
 ;-
 
+  compile_opt defint32, strictarr, logical_predicate
+
   ;;figure out the number of slices
   nlam = sxpar(h,'NAXIS3',count=ct)
   if (ct ne 1) || (nlam lt 1) then return, -1

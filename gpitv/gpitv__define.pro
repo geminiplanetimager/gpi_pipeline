@@ -5967,11 +5967,11 @@ pro GPItv::update_sat_spots,locs0=locs0
   cube_waves = *((*self.state).CWV_ptr)
 
   ;;get vega flux
-  ; vega zero points and filter central wavelenghts stored in gpi_constants config file
-	filt_cen_wave=gpi_get_constant('cen_wave_'+filter) ; in um
-	zero_vega=gpi_get_constant('zero_pt_flux_'+filter) ; in erg/cm2/s/um
+  ;; vega zero points and filter central wavelenghts stored in gpi_constants config file
+  filt_cen_wave=gpi_get_constant('cen_wave_'+filter)       ; in um
+  zero_vega=gpi_get_constant('zero_pt_flux_'+filter)       ; in erg/cm2/s/um
   
-	;;#####
+  ;;#####
   ;;must convert to photons
   ;;#####
   h=6.626068d-27                      ; erg / s
@@ -5986,26 +5986,25 @@ pro GPItv::update_sat_spots,locs0=locs0
   ;; multiply by instrument throughput (18.6%) in H-band
   ;; assumes H-band PPM and 080m12_04  Lyot, and H-filter
   
-
-	; get instrument transmission (and resolution)
-	; corrections for lyot, PPM, and filter transmission
-	pupil_mask_string=gpi_simplify_keyword_value(sxpar(header,'APODIZER'))	
-	lyot_mask_string=sxpar(header,'LYOTMASK')
-
-	transmission=calc_transmission(filter, pupil_mask_string, lyot_mask_string, resolution=resolution, without_filter=1)
-
-	if transmission[0] eq -1 then begin
+  
+  ;; get instrument transmission (and resolution)
+  ;; corrections for lyot, PPM, and filter transmission
+  pupil_mask_string=gpi_simplify_keyword_value(sxpar(header,'APODIZER'))	
+  lyot_mask_string=sxpar(header,'LYOTMASK')
+  
+  transmission=calc_transmission(filter, pupil_mask_string, lyot_mask_string, resolution=resolution, without_filter=1)
+  
+  if transmission[0] eq -1 then begin
      self->message,msgtype='error',['Failed to calculate transmission']
      return
   endif
-
-
-	;transmission=calc_transmission(filter, pupil_mask_string, lyot_mask_string, resolution=resolution, without_filter=1)
-  ; no filter transmission included!	
-	zero_vega*=transmission ; ph/s/um
   
-;; multiply by the integration time
-  zero_vega*=sxpar(extheader,'ITIME')      ; ph/um
+  ;;transmission=calc_transmission(filter, pupil_mask_string, lyot_mask_string, resolution=resolution, without_filter=1)
+  ;; no filter transmission included!	
+  zero_vega*=transmission       ; ph/s/um
+  
+  ;; multiply by the integration time
+  zero_vega*=sxpar(extheader,'ITIME')   ; ph/um
   ;; now the unit wavelength
   zero_vega*=(filt_cen_wave/resolution) ; width of a wavelength slice - so its now in ph/slice
   

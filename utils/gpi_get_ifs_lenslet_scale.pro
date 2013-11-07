@@ -27,6 +27,7 @@ function gpi_get_ifs_lenslet_scale,h,res=res
 ; REVISION HISTORY
 ;      Written ds 10.24.2013
 ;-
+compile_opt defint32, strictarr, logical_predicate
 
 avparang = sxpar(h,'AVPARANG',count=ct)
 

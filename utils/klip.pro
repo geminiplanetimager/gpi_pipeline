@@ -62,6 +62,8 @@ function klip, cubein, refslice=refslice, band=band, locs=locs, $
 ;      10.21.2013 - ds - Partial rewrite to improve performance.
 ;-
 
+compile_opt defint32, strictarr, logical_predicate
+
 ;;cube dimensions
 lambda_dimen= size(cubein,/dim) 
 if n_elements(lambda_dimen) ne 3 then begin

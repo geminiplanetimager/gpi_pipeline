@@ -59,7 +59,9 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
 ; MODIFICATION HISTORY:
 ;	Written 08.15.2013 - ds
 ;-
-  
+
+  compile_opt defint32, strictarr, logical_predicate
+
   ;;we're assuming that the star is centered
   if ~keyword_set(imsize) then imsize = [281,281]
   x0 = imsize[0]/2

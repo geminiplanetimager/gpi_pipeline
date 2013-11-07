@@ -1,7 +1,7 @@
 function get_sat_fluxes,im0,band=band,good=good,cens=cens,warns=warns,$
                         gaussfit=gaussfit,refinefits=refinefits,totflux=totflux,$
                         winap=winap,gaussap=gaussap,locs=locs,indx=indx,$
-                        usecens=usecens
+                        usecens=usecens,satmag=satmag
 ;+
 ; NAME:
 ;       get_sat_fluxes
@@ -44,6 +44,7 @@ function get_sat_fluxes,im0,band=band,good=good,cens=cens,warns=warns,$
 ;       warns - Array of warning flags.  0 = no warning, 1 = fluxes
 ;               vary by more than 25%, -1 = sat spots could not be
 ;               found
+;       satmag - Average magnitude of sattelite spots
 ;
 ; EXAMPLE:
 ;
@@ -68,6 +69,9 @@ function get_sat_fluxes,im0,band=band,good=good,cens=cens,warns=warns,$
 ;       08.17.2012 Updated to match new find_sat_spots syntax - ds
 ;       09.18.2012 Offloaded sat spot finding to find_sat_spots_all
 ;       and added option to bypass this altogether - ds
+;       11.07.2013 - ds - Folded Naru and Patrick's sat
+;                    magnitude calculation into this code to use as
+;                    common backend.
 ;-
 
 compile_opt defint32, strictarr, logical_predicate
@@ -152,6 +156,12 @@ for j=0,n_elements(good)-1 do begin
    if total(abs((ic_psfs[*,good[j]] - mean(ic_psfs[*,good[j]]))/mean(ic_psfs[*,good[j]])) gt 0.25) ne 0 then $
       warns[good[j]] = 1 
 endfor 
+
+;;calculate satellite magnitude, if asked for it
+if arg_present(satmag) then begin
+
+
+endif
 
 return, ic_psfs
 

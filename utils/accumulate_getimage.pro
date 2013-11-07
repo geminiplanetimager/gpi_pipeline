@@ -20,11 +20,11 @@
 ;   2013-11-05 - ds - Added support for single slice return
 ;-
 
-
 FUNCTION accumulate_getimage, dataset, index, hdr, hdrext=hdrext, slice=slice
   common PIP
   common APP_CONSTANTS
 
+  compile_opt defint32, strictarr, logical_predicate
   
   case size( *(dataset.frames[index])   ,/TNAME ) of
      ;; Option 1: Nothing has been accumulated in position N. 
