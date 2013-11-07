@@ -5912,17 +5912,25 @@ pro GPItv::update_sat_spots,locs0=locs0
 ;
 ;locs0 - Starting locations to try
 
-  ;;always use the backup main image so that you know you're
-  ;;operating on the orig image.
-  sats = get_sat_fluxes(*self.images.main_image_backup,band=(*self.state).obsfilt,$
-                        good=good,cens=cens,warns=warns,$
-                        winap=(*self.state).contrwinap,gaussap=(*self.state).contrap,$
-                        indx=(*self.state).cur_image_num,locs=locs0,gaussfit=1,refinefits=1)
-  if n_elements(sats) eq 1 and sats[0] eq -1 then begin
-     self->message,msgtype='error',['Failed to locate satellite spots in this image.',$
-                                    'Check that it is a coronagraphic image with an occulted target.']
-     return
-  endif
+  ;;if the info is in the header, just get it from there
+  cens = -1
+  if ptr_valid( (*self.state).exthead_ptr) then cens = gpi_satspots_from_header(*((*self.state).exthead_ptr),good=good,fluxes=sats,warns=warns)
+
+  ;;otherwise, look for them
+  if n_elements(cens) eq 1 then begin
+
+     ;;always use the backup main image so that you know you're
+     ;;operating on the orig image.
+     sats = get_sat_fluxes(*self.images.main_image_backup,band=(*self.state).obsfilt,$
+                           good=good,cens=cens,warns=warns,$
+                           winap=(*self.state).contrwinap,gaussap=(*self.state).contrap,$
+                           indx=(*self.state).cur_image_num,locs=locs0,gaussfit=1,refinefits=1)
+     if n_elements(sats) eq 1 and sats[0] eq -1 then begin
+        self->message,msgtype='error',['Failed to locate satellite spots in this image.',$
+                                       'Check that it is a coronagraphic image with an occulted target.']
+        return
+     endif
+  endif 
   
   ;;Added by Naru 130709: Measuring sat spot total fluxes and
   ;;calculated central star brightness in magnitudes

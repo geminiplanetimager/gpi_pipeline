@@ -905,7 +905,7 @@ pro gpi_recipe_editor::event,ev
 		widget_control, self.outputdir_id, get_value=tmp
 		;if self->check_output_path_exists(tmp) then begin
 		if gpi_check_dir_exists(tmp) eq OK then begin
-			self.drf->set_outputdir, tmp
+			self.drf->set_outputdir, dir=tmp
 			self->log,'Output Directory changed to:'+self.drf->get_outputdir()
 		endif 
 		widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
@@ -914,7 +914,7 @@ pro gpi_recipe_editor::event,ev
     'outputdir_browse': begin
 		result = DIALOG_PICKFILE(TITLE='Select an Output Directory', /DIRECTORY,/MUST_EXIST)
 		if result ne '' then begin
-			self.drf->set_outputdir, result
+			self.drf->set_outputdir, dir=result
 			widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
 			self->log,'Output Directory changed to:'+self.drf->get_outputdir()
             ;self.outputoverride = 1
