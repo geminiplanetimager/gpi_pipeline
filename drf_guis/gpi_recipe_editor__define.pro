@@ -767,7 +767,9 @@ pro gpi_recipe_editor::event,ev
       IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_TABLE_CH') THEN BEGIN 
         selected_cell = WIDGET_INFO(self.tableArgs_id, /TABLE_SELECT)
 
-		n_args = (self.drf->get_summary()).nsteps
+		;n_args = (self.drf->get_summary()).nsteps
+		priminfo = self.drf->get_primitive_args(self.selected_primitive_index)
+		n_args = n_elements(priminfo.names)
 		;n_args = (size(*self.currModSelecParamTab))[1]
 		if selected_cell[1] gt n_args -1 then return ; user has tried to select an empty cell
 		if selected_cell[0] ne 1 then return ; user has tried to edit something other than the Value field
@@ -775,7 +777,6 @@ pro gpi_recipe_editor::event,ev
 		WIDGET_CONTROL, self.tableArgs_id, GET_VALUE=selection_value,USE_TABLE_SELECT= selected_cell
 
 		; figure out what type, range, etc is allowed for this primitive argument
-		priminfo = self.drf->get_primitive_args(self.selected_primitive_index)
 		argname=  priminfo.names[selected_cell[1]]
 		required_type=  priminfo.types[selected_cell[1]]
 		range= priminfo.ranges[selected_cell[1]]
