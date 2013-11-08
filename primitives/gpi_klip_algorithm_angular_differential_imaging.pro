@@ -226,8 +226,11 @@ function gpi_klip_algorithm_angular_differential_imaging, DataSet, Modules, Back
   ;;update WCS info
   gpi_update_wcs_basic,backbone,parang=0d0,imsize=dim
 
-  ;;update satspot locations to new rotation
-  gpi_rotate_header_satspots,backbone,PAs[numfile],locs[*,*,*,numfile],imcent=imcent
+  ;;update satspot locations to new position and rotation
+  flocs = locs[*,*,*,numfile]
+  fcens = cens[*,*,numfile]
+  for j=0,1 do for k=0,nlam-1 do flocs[j,*,k] +=  imcent[j] - fcens[j,k]
+  gpi_rotate_header_satspots,backbone,PAs[numfile],flocs,imcent=imcent
 
   backbone->set_keyword, "FILETYPE", "Spectral Cube ADI KLIP"
   @__end_primitive

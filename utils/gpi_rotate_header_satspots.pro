@@ -13,7 +13,8 @@ pro gpi_rotate_header_satspots,backbone,ang,locs,imcent=imcent
 ;      Backbone - Pipeline backbone object
 ;      ang - Angle to rotate by (degrees)
 ;      locs - 2x4xl array of sat locations.
-;      imcent - image center
+;      imcent - rotation pivot point.  If not set, defaults to center
+;               of sat spots.
 ;
 ; OUTPUTS:
 ;
@@ -51,12 +52,8 @@ pro gpi_rotate_header_satspots,backbone,ang,locs,imcent=imcent
   nlam = sz[2]
 
   if ~keyword_set(imcent) then begin
-     imsize = [backbone->get_keyword('NAXIS1',count=ct1),backbone->get_keyword('NAXIS2',count=ct2)]
-     if ct1+ct2 ne 2 then begin
-        backbone->log,'GPI_ROTATE_HEADER_SATSPOTS: NAXISi keywords not found in header.'
-        return
-     end 
-     imcent = (imsize-1)/2d0
+     imcent = total(locs,2)/4d0
+     imcent = [mean(imcent[0,*]),mean(imcent[1,*])]
   endif 
   
   newlocs = dblarr(2,4,nlam)
