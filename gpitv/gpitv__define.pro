@@ -4738,7 +4738,7 @@ pro gpitv::autohandedness
 ;-
 
 
-if (not ptr_valid( (*self.state).exthead_ptr)) or (*self.state).wcstype ne 'none' then begin
+if (not ptr_valid( (*self.state).exthead_ptr)) or (*self.state).wcstype eq 'none' then begin
 	self->message, 'No valid WCS present; cannot set image handedness'
 	return
 endif
