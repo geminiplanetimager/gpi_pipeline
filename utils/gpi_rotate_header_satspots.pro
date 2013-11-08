@@ -1,4 +1,4 @@
-pro gpi_rotate_header_satspots,backbone,ang,locs
+pro gpi_rotate_header_satspots,backbone,ang,locs,imcent=imcent
 ;+
 ; NAME:
 ;      GPI_ROTATE_HEADER_SATSPOTS
@@ -12,8 +12,8 @@ pro gpi_rotate_header_satspots,backbone,ang,locs
 ; INPUTS:
 ;      Backbone - Pipeline backbone object
 ;      ang - Angle to rotate by (degrees)
-;      locs - 2x4xl array of sat locations
-;      imcent - Rotation pivot point.  If not set, use image center.
+;      locs - 2x4xl array of sat locations.
+;      imcent - image center
 ;
 ; OUTPUTS:
 ;
