@@ -227,21 +227,7 @@ function gpi_klip_algorithm_angular_differential_imaging, DataSet, Modules, Back
   gpi_update_wcs_basic,backbone,parang=0d0,imsize=dim
 
   ;;update satspot locations to new rotation
-  newlocs = dblarr(2,4,nlam)
-  rotang = PAs[numfile]*!dpi/180d0 ;;remember coordsys is left-handed
-  rotMat = [[cos(rotang),sin(rotang)],$
-            [-sin(rotang),cos(rotang)]]
-  c0 = imcent # (dblarr(4) + 1d0)
-  for j = 0,nlam-1 do newlocs[*,*,j] = (rotMat # (locs[*,*,j,numfile] - c0))+c0
-
-  for s=0,nlam - 1 do begin
-     for j = 0,3 do begin
-        backbone->set_keyword,'SATS'+strtrim(s,2)+'_'+strtrim(j,2),$
-                              string(strtrim(newlocs[*,j,s],2),format='(F7.3," ",F7.3)'),$
-                              'Location of sat. spot '+strtrim(j,2)+' of slice '+strtrim(s,2),$
-                              ext_num=1
-     endfor
-  endfor
+  gpi_rotate_header_satspots,backbone,PAs[numfile],locs[*,*,*,numfile],imcent=imcent
 
   backbone->set_keyword, "FILETYPE", "Spectral Cube ADI KLIP"
   @__end_primitive

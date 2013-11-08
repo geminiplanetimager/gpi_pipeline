@@ -21,7 +21,6 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
 ; KEYWORD PARAMETERS:
 ;
 ; OUTPUTS:
-;     res - Exit status.  0 for OK, else error message
 ;
 ; COMMON BLOCKS:
 ;     
@@ -31,7 +30,10 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
 ; EXAMPLE:
 ;
 ; NOTES:
-;     This is intended to be called from pipeline primitives. 
+;     This is intended to be called from pipeline primitives. When a
+;     parang input is given, both the PAR_ANG and AVPARANG keywords
+;     are set to this value.  This makes the PAR_ANG not correspond to
+;     the UTSART
 ;
 ; ====== Rotation =======
 ; First some notes on FITS headers and orientations. 
@@ -85,7 +87,7 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
      par_ang = double(backbone->get_keyword( 'PAR_ANG',count=ct))
      totcount += ct 
   endif else begin
-     backbone->set_keyword, "PAR_ANG", parang, "parallactic angle"
+     backbone->set_keyword, "PAR_ANG", parang, "average parallactic angle during exposure"
      par_ang = parang
      totcount += 1
   endelse

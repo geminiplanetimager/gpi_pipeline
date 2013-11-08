@@ -149,10 +149,17 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
     cube=cube_r
 
-
     ;;update WCS info
-    gpi_update_wcs_basic,backbone,0d0,imsize=sz[0:1]
+    ;;if avparang exists get that, otherwise fall back to PAR_ANG
+    ang0 = backbone->get_keyword('AVPARANG',count=ct)
+    if ct eq 0 then ang0 = backbone->get_keyword('PAR_ANG',count=ct)
+    gpi_update_wcs_basic,backbone,parang=0d0,imsize=sz[1:2]
 
+    ;;if there are satspots, rotate them as well
+    locs = gpi_satspots_from_header(*DataSet.HeadersExt[numfile])
+    if n_elements(locs) gt 1 then  begin
+       gpi_rotate_header_satspots,backbone,ang0,locs
+    endif 
 
     suffix += '-northup'
 

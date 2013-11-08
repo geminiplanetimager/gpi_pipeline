@@ -124,9 +124,14 @@ function gpi_rotate_field_of_view_square, DataSet, Modules, Backbone
   ang0 = backbone->get_keyword('AVPARANG',count=ct)
   if ct eq 0 then ang0 = backbone->get_keyword('PAR_ANG',count=ct)
   ;;update WCS info
-  gpi_update_wcs_basic,backbone,parang=ang0-rotangle_d,imsize=sz[0:1]
+  gpi_update_wcs_basic,backbone,parang=ang0-rotangle_d,imsize=sz[1:2]
+
+  ;;if there are satspots, rotate them as well
+  locs = gpi_satspots_from_header(*DataSet.HeadersExt[numfile])
+  if n_elements(locs) gt 1 then  gpi_rotate_header_satspots,backbone,rotangle_d-ang0,locs
 
   *(dataset.currframe[0])=cube
+  suffix += '-fovsquare'
   
 @__end_primitive
 
