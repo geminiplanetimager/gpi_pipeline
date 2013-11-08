@@ -86,7 +86,8 @@ res=read6thorbitcat( name, dateobs, timeobs)
 rho=res.sep ;float(Modules[thisModuleIndex].rho) ;get current separation of the binaries
 pa=res.pa ;float(Modules[thisModuleIndex].pa) ;get current position angle of the binaries
 
-cdelt1=float(SXPAR( *(dataset.headersExt)[0], 'CDELT1'))
+getrot,  *(dataset.headersExt)[0], npa, cdelt, /silent
+cdelt1 = cdelt[0]
 
 ;;calculate distance in pixels
 dist= cdelt1*3600.* sqrt( ((gfit1[4,*]-gfit2[4,*])^2.) + ((gfit1[5,*]-gfit2[5,*])^2.)  )

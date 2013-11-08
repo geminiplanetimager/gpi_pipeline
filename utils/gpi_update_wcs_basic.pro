@@ -63,7 +63,14 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
   compile_opt defint32, strictarr, logical_predicate
 
   ;;we're assuming that the star is centered
-  if ~keyword_set(imsize) then imsize = [281,281]
+  if ~keyword_set(imsize) then begin
+     imsize = [backbone->get_keyword('NAXIS1',count=ct1),backbone->get_keyword('NAXIS2',count=ct2)]
+     if ct1+ct2 ne 2 then begin
+        backbone->log,'GPI_UPDATE_WCS_BASIC: NAXISi keywords not found in header.'
+        return
+     end 
+  end 
+
   x0 = imsize[0]/2
   y0 = imsize[1]/2
 
@@ -121,10 +128,6 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
   backbone->del_keyword, 'PC2_1',ext_num=1 
   backbone->del_keyword, 'PC2_2',ext_num=1  
   backbone->del_keyword, 'PC3_3',ext_num=1 
-  
-                                ;backbone->del_keyword, 'CDELT1' 
-                                ;backbone->del_keyword, 'CDELT2'
-                                ;backbone->del_keyword, 'CDELT3'
 
   ;;specify coord sys - Gemini standard is FK5 J2000.0
   backbone->set_keyword, "RADESYS", "FK5", "RA and Dec are in FK5"

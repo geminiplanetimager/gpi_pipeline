@@ -31,10 +31,6 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 @__start_primitive
 
     cube=*(dataset.currframe[0])
-    ;if numext eq 0 then hdr=*(dataset.headers)[numfile] else 
-	;hdr   =*(dataset.headersPHU)[numfile]
-	;hdrext=*(dataset.headersExt)[numfile]
-    ;hdr=*(dataset.headers[numfile])
     sz = size(cube)
     nslice = sz[3] ; works for either POL or SPEC modes
 
@@ -70,9 +66,13 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	;d_PA = backbone->get_keyword('PA', count=pa_ct) ; in degrees
 	;if PA_ct eq 0 then  
-	d_PAR_ANG = backbone->get_keyword('PAR_ANG', count=pa_ct) 
-    message,/info, "PAR_ANG is "+strc(d_PAR_ANG)
 
+        ;;preferentially use AVPARANG
+        d_PAR_ANG = backbone->get_keyword('AVPARANG',count=pa_ct)
+        if pa_ct eq 0 then d_PAR_ANG = backbone->get_keyword('PAR_ANG',count=pa_ct)
+
+        ;message,/info, "PAR_ANG is "+strc(d_PAR_ANG)
+    
     ; we first pad into a 289x289 array. This is large enough to have the
     ; full FOV within it at all orientations. 
     padsize=289
@@ -146,96 +146,19 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         stop
     endif
     backbone->set_keyword, 'HISTORY', "Rotated by "+sigfig(d_PAR_ANG, 4)+" deg to have north up",ext_num=0
-    ;backbone->set_keyword, "PA", 0.0, 'Image is rotated to have north=up';/saveComment
 
-
-    ;atv, [[[cube]],[[cube_r]]],/bl
     cube=cube_r
 
 
-
-
-
-
-    ;--- Update FITS header information here. --
-    ; Only modify parameters which we have just changed!
-    ;
-    ; Some notes on angle conventions for WCS:
-    ; The rotation angle below needs to be the angle for how much the image's Y
-    ; axis was rotated with respect to north. This is termed the 'Vertical
-    ; angle'; see http://www.ucolick.org/~sla/deimos/swpdr/va.html
-    ;
-    ; The rotation matrix here is used to convert from IMAGE coords to SKY
-    ; coords. Hence the sense of the rotation is opposite the Parallactic Angle
-    pixelscale = gpi_get_ifs_lenslet_scale(*DataSet.HeadersExt[numfile])
-
-    ; rotation matrix.
-    ;
-    ; TODO: figure out whether the image is SKY RIGHT or SKY LEFT
-    ;  i.e. where's east??
-	new_PA = 0.0
-    pc = [[cos(-new_PA*!dtor), -sin(-new_PA*!dtor)], $
-          [sin(-new_PA*!dtor), cos(-new_PA*!dtor)]]
-	  
-	; 2012-12-09 MP update: Gemini standards require us to write CDi_j instead
-	; of the older PCi_j and CDELTi keywords. 
-	; See Griesen et al. 2002 section 2.1.2 for a detailed discussion of the relation between these. 
-	; Briefly, the CD matrix is the PC matrix plus the scaling factor formerly
-	; known as CDELT.
-	cdmatrix = pc * pixelscale / 3600
-
-    ra = backbone->get_keyword("RA") 
-    dec = backbone->get_keyword("dec") 
-
-;    sxaddhist, /comment, "  For specification of Stokes WCS axis, see ", hdr
-;    sxaddhist, /comment, "  Greisen & Calabretta 2002 A&A 395, 1061, section 5.4", hdr
-;
-;    sxaddpar, hdr, "FILETYPE", "Stokes Cube", "What kind of IFS file is this?"
-;    sxaddpar, hdr, "WCSAXES", 3, "Number of axes in WCS system"
-;    sxaddpar, hdr, "CTYPE1", "RA---TAN","Right Ascension."
-;    sxaddpar, hdr, "CTYPE2", "DEC--TAN","Declination."
-;    sxaddpar, hdr, "CTYPE3", "STOKES",     "Polarization"
-;    sxaddpar, hdr, "CUNIT1", "deg",  "R.A. unit is degrees, always"
-;    sxaddpar, hdr, "CUNIT2", "deg",  "Declination unit is degrees, always"
-;    sxaddpar, hdr, "CUNIT3", "N/A",       "Polarizations"
-    sz = size(cube)
-    backbone->set_keyword, "NAXIS1", sz[1], ext_num=1
-    backbone->set_keyword, "NAXIS2", sz[2], ext_num=1
-    backbone->set_keyword, "CRVAL1", ra, "R.A. at reference pixel"
-    backbone->set_keyword, "CRVAL2", dec, "Declination at reference pixel"
-;    backbone->set_keyword, "CRVAL3", -6, " Stokes axis: image 0 is Y parallel, 1 is X parallel "
-    ; need to add 1 here to account for "IRAF/FITS" 1-based convention used for
-    ; WCS coordinates
-    backbone->set_keyword, "CRPIX1", xcen+1,         "Reference pixel location"
-    backbone->set_keyword, "CRPIX2", ycen+1,         "Reference pixel location"
-;    backbone->set_keyword, "CRPIX3", 0,         "Reference pixel location"
-    ;backbone->set_keyword, "CDELT1", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
-    ;backbone->set_keyword, "CDELT2", pixelscale/3600., "Pixel scale is "+sigfig(pixelscale,2)+" arcsec/pixel"
-;    backbone->set_keyword, "CDELT3", 1, "Stokes axis: image 0 is Y parallel, 1 is X parallel"
-
-
-    backbone->set_keyword, "CD1_1", cdmatrix[0,0], "partial of first axis coordinate w.r.t. x"
-    backbone->set_keyword, "CD1_2", cdmatrix[0,1], "partial of first axis coordinate w.r.t. y"
-    backbone->set_keyword, "CD2_1", cdmatrix[1,0], "partial of second axis coordinate w.r.t. x"
-    backbone->set_keyword, "CD2_2", cdmatrix[1,1], "partial of second axis coordinate w.r.t. y"
-;    sxaddpar, hdr, "PC3_3", 1, "Stokes axis is unrotated"
-    ; TODO WCS paper III suggests adding MJD-AVG to specify midpoint of
-    ; observations for conversions to barycentric.
-;    sxaddpar, hdr, "RADESYS", "FK5", "RA and Dec are in FK5"
-;    sxaddpar, hdr, "EQUINOX", 2000.0, "RA, Dec equinox is J2000"
-;
+    ;;update WCS info
+    gpi_update_wcs_basic,backbone,0d0,imsize=sz[0:1]
 
 
     suffix += '-northup'
 
     *(dataset.currframe[0])=cube
-	;*(dataset.headersPHU)[numfile] = hdr
-	;*(dataset.headersExt)[numfile] = hdrext
-    
-    ;if numext eq 0 then *(dataset.headers)[numfile]=hdr else *(dataset.headersPHU)[numfile]=hdr
-    ;*(dataset.headers[numfile])=hdr
-    
-@__end_primitive
+
+    @__end_primitive
 
 end
 

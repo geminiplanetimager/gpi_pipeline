@@ -22,7 +22,7 @@ if n_params() lt 3 then x0=dimx/2
 imt=rot(im,deg,1.0,x0,y0,missing=missing,cubic=-0.5,/pivot)
 
 ;update astrometry if defined
-if keyword_set(hdr) && (strcompress(strc(sxpar(hdr, 'CDELT1')),/rem) ne '')  then begin
+if keyword_set(hdr) && (strcompress(strc(sxpar(hdr, 'CD1_1')),/rem) ne '')  then begin
     extast, hdr, astr
 	if (n_elements(astr) gt 0)  then begin
     crpix=astr.crpix
