@@ -43,7 +43,7 @@ function gpi_wavelength_solution_2d_par, DataSet, Modules, Backbone
 compile_opt defint32, strictarr, logical_predicate
 
 ; don't edit the following line, it will be automatically updated by subversion:
-primitive_version= '$Id: __template.pro 1742 2013-07-19 18:03:57Z mperrin $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 
 ; the following line sources a block of code common to all primitives
 ; It loads some common blocks, records the primitive version in the header for

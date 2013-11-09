@@ -22,7 +22,7 @@
 ;     Originally by Jean-Baptiste Ruffio 2013-06
 ;-
 function calibrate_with_PSF, DataSet, Modules, Backbone
-  primitive_version= '$Id: create_2d_LF_flat_psffit.pro 1558 2013-05-31 18:42:08Z jruffio $' ; get version from subversion to store in header history
+  primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
   
   if tag_exist( Modules[thisModuleIndex], "filter_wavelength") then filter_wavelength=float(Modules[thisModuleIndex].filter_wavelength) else filter_wavelength=-1

@@ -42,7 +42,7 @@ function gpi_wavelength_solution_2d, DataSet, Modules, Backbone
 compile_opt defint32, strictarr, logical_predicate
 
 ; don't edit the following line, it will be automatically updated by subversion:
-primitive_version= '$Id: __template.pro 1742 2013-07-19 18:03:57Z mperrin $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 
 ; the following line sources a block of code common to all primitives
 ; It loads some common blocks, records the primitive version in the header for
@@ -99,8 +99,8 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
         
         if ct1 OR ct2 EQ 0 then print,"One of the header keywords doesn't exist"
         
-        backbone->Log,filter+lamp
-        backbone->Log, gpi_get_directory('GPI_DRP_CONFIG_DIR')
+        backbone->Log,"Now finding wavelength solution for "+filter+lamp, depth=3
+        ;backbone->Log, gpi_get_directory('GPI_DRP_CONFIG_DIR')
         datafn = gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+filter+lamp+'.dat'
         readcol, datafn,wl,flux,skipline=1,format='F,F'
         readcol,datafn,nmgauss,numline=1,format='I'
@@ -122,6 +122,7 @@ jstart=0
 jend=280
 
 ;count=0
+        backbone->Log,"Parallelizing over "+strc(numsplit)+" IDL processes", depth=3,/flush
 
 ;Parallelize the top level for loop
 ; for i=istart,iend do begin
