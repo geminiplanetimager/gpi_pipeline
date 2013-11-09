@@ -39,7 +39,7 @@ function gpi_rotate_field_of_view_square, DataSet, Modules, Backbone
 
 
   if tag_exist( Modules[thisModuleIndex], "Method") then Method= strupcase(Modules[thisModuleIndex].method) else method="CUBIC" ;; can be CUBIC or FFT
-  if tag_exist( Modules[thisModuleIndex], "crop") then crop= strupcase(Modules[thisModuleIndex].crop) else crop=0 
+  if tag_exist( Modules[thisModuleIndex], "crop") then crop= long(Modules[thisModuleIndex].crop) else crop=0 
   message,/info, " using rotation method "+method
   if method ne 'CUBIC' and method ne 'FFT' then return, error("Invalid rotation method: "+method)
 
@@ -113,11 +113,12 @@ function gpi_rotate_field_of_view_square, DataSet, Modules, Backbone
      stop
   endif
   backbone->set_keyword, 'HISTORY', "Rotated by "+sigfig(rotangle_d, 4)+" deg to have FOV square",ext_num=0
-  
+
   cube=cube_r
   if keyword_set(crop) then begin
      cube = cube[48:233, 47:232, *]
      backbone->set_keyword, 'HISTORY', "Cropped to square FOV only"
+     sz = size(cube)
   endif
 
   ;;if avparang exists get that, otherwise fall back to PAR_ANG
@@ -127,8 +128,14 @@ function gpi_rotate_field_of_view_square, DataSet, Modules, Backbone
   gpi_update_wcs_basic,backbone,parang=ang0-rotangle_d,imsize=sz[1:2]
 
   ;;if there are satspots, rotate them as well
-  locs = gpi_satspots_from_header(*DataSet.HeadersExt[numfile])
-  if n_elements(locs) gt 1 then  gpi_rotate_header_satspots,backbone,rotangle_d-ang0,locs
+  locs = gpi_satspots_from_header(*DataSet.HeadersExt[numfile]) 
+  if n_elements(locs) gt 1 then  begin
+     if keyword_set(crop) then begin
+        locs[0,*,*] -= 48
+        locs[1,*,*] -= 47
+     endif
+     gpi_rotate_header_satspots,backbone,rotangle_d,locs
+  endif 
 
   *(dataset.currframe[0])=cube
   suffix += '-fovsquare'
