@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- simplest possible DRF, create a quick look cube and measure contrast if possible-->
+<!-- fairly simple DRF, create a quick look cube and measure contrast if possible-->
 <DRF ReductionType="SpectralScience" name="Quicklook Automatic Datacube Extraction" ShortName="quickcube" >>
 <dataset InputDir="${GPI_RAW_DATA_DIR}" OutputDir="${GPI_REDUCED_DATA_DIR}">
    <fits FileName="" />
