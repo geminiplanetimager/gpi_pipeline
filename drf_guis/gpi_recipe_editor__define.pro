@@ -899,7 +899,8 @@ pro gpi_recipe_editor::event,ev
             label0='Cancel',label1='Proceed') then begin
 
 			self.drf->clear_datafiles
-            self->log,'All filenames removed.'
+			self->refresh_filenames_display ; update the filenames display
+			self->log,'All filenames removed.'
         endif
     end
 	'outputdir': begin
