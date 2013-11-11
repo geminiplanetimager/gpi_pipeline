@@ -59,8 +59,17 @@ function gpi_get_setting, settingname, expand_path=expand_path, integer=int, boo
 	endif
 
 	user_settings_file = gpi_expand_path("~")+path_sep()+".gpi_pipeline_settings"
-	if strmatch(!VERSION.OS_FAMILY , 'Windows',/fold) then  user_settings_file = gpi_get_directory("GPI_DRP_CONFIG_DIR")+path_sep()+"gpi_pipeline_settings.txt"
-	global_settings_file = gpi_get_directory("GPI_DRP_CONFIG_DIR")+path_sep()+"pipeline_settings.txt"
+;	if strmatch(!VERSION.OS_FAMILY , 'Windows',/fold) then  user_settings_file = gpi_get_directory("GPI_DRP_CONFIG_DIR")+path_sep()+"gpi_pipeline_settings.txt"
+  if strmatch(!VERSION.OS_FAMILY , 'Windows',/fold) and  (n_elements(usersettings) eq 0) then begin
+        message,/info, "Your environment variables  that define your paths are not defined correctly"
+        return, 'ERROR'
+  endif
+
+
+global_settings_file = gpi_get_directory("GPI_DRP_CONFIG_DIR")+path_sep()+"pipeline_settings.txt"
+
+
+
 
 	;-------- First, load the user settings, if present
 	if n_elements(usersettings) eq 0  and file_test(user_settings_file) then begin
