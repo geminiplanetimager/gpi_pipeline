@@ -516,8 +516,9 @@ end
 ;-
 pro gpi_recipe_editor::removefile, file
 
-
 	self.drf->remove_datafile, file
+	self->refresh_filenames_display ; update the filenames display
+
 ;    index =     (*storage.splitptr).selindex
 ;    file =      (*storage.splitptr).filename
 ;    printfile = (*storage.splitptr).printname
@@ -889,10 +890,16 @@ pro gpi_recipe_editor::event,ev
 		endif else self->log,strc(count)+' files added.'
 
 		self.drf->add_datafiles, result
+		self->refresh_filenames_display ; update the filenames display
 
     end
     'REMOVE' : begin
-        self->removefile, storage, file
+		    widget_control,self.top_base,get_uvalue=storage  
+			selected_index = widget_info(storage.fname,/list_select) ; 
+			filelist = self.drf->get_datafiles()
+
+			if selected_index gt n_elements(filelist)-1 then selected_index = n_elements(filelist)-1
+			self->removefile, filelist[selected_index]
     end
     'REMOVEALL' : begin
         if confirm(group=ev.top,message='Remove all filenames from the list?',$

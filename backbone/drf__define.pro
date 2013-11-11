@@ -94,12 +94,13 @@ pro drf::add_datafiles, filenames_to_add, validate=validate, status=status
 	if ~ptr_valid(self.datafilenames) then begin
 		; if we don't already have some files then we can just set the filenames
 		; equal to the new ones
-		self->set_datafiles, filenames_to_add, validate=validate, status=status
+		self->set_datafiles, uniqvals(filenames_to_add), validate=validate, status=status
 	endif else begin
 		newfilenames = strarr(n_elements(filenames_to_add))
 		for i=0,n_elements(filenames_to_add)-1 do newfilenames[i] = gpi_expand_path(filenames_to_add[i])
 
-		*self.datafilenames = [*self.datafilenames, newfilenames]
+		*self.datafilenames = uniqvals([*self.datafilenames, newfilenames])
+
 	endelse
 
 	status=0 ; OK
