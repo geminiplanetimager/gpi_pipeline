@@ -158,7 +158,7 @@ function gpi_gui_base::check_output_path_exists, path
 		return, 1 
 	endif else  begin
 
-		if gpi_get_setting('prompt_user_for_outputdir_creation',/bool) then res =  dialog_message('The requested output directory '+path+' does not exist. Should it be created now?', title="Nonexistent Output Directory", dialog_parent=self.top_base, /question) else res='Yes'
+		if gpi_get_setting('prompt_user_for_outputdir_creation',/bool, default=0,/silent) then res =  dialog_message('The requested output directory '+path+' does not exist. Should it be created now?', title="Nonexistent Output Directory", dialog_parent=self.top_base, /question) else res='Yes'
 		if res eq 'Yes' then begin
 			file_mkdir, path
 			return, 1

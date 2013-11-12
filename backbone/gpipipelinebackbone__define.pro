@@ -86,7 +86,7 @@ FUNCTION gpipipelinebackbone::Init,  session=session, verbose=verbose, nogui=nog
 	pipelineConfig = {$
 		logdir : gpi_get_directory("GPI_DRP_LOG_DIR"),     $ ; directory for output log files
 		continueAfterRecipeXMLParsing:0,        $    				; Should program actually run the pipeline or just parse?
-		MaxFramesInDataSets: gpi_get_setting('max_files_per_recipe', default=200),        $    				; Max # of files in one dataset in a Recipe XML file
+		MaxFramesInDataSets: gpi_get_setting('max_files_per_recipe', default=1000, /silent),        $    ; Max # of files in one dataset in a Recipe XML file
 		MaxMemoryUsage: 0L,                 $   			; this will eventually be used for array size limits on what gets done in memory versus swapped to disk.
 		desired_dispersion: 'vertical' $					; do we want horizontal or vertical spectra?
 	}

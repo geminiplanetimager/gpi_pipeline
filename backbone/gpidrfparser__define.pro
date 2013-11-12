@@ -621,7 +621,7 @@ PRO gpidrfparser::newdataset, AttNames, AttValues
 
 	DataSet = {structDataSet}			; Create a new structDataSet variable
 
-	MAXFRAMESINDATASETS = gpi_get_setting('max_files_per_recipe', default=200)
+	MAXFRAMESINDATASETS = gpi_get_setting('max_files_per_recipe', default=1000,/silent)
 	DataSet.Frames = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
 	DataSet.HeadersPHU = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
 	DataSet.HeadersExt = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
