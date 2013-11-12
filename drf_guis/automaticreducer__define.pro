@@ -17,27 +17,32 @@
 ; 2013-03-28 JM: added manual shifts of the wavecal
 ;---------------------------------------------------------------------
 
+;+-------------------------
+; automaticreducer::set_default_filespec
+;    Set default wildcard for files to watch for
+;-------------------------
+pro automaticreducer::set_default_filespec
+	if keyword_set(gpi_get_setting('at_gemini', default=0,/silent)) then begin
+		self.watch_filespec = 'S20'+gpi_datestr(/current)+'S*.fits'
+	endif else begin
+		self.watch_filespec = '*.fits'
+	endelse
+end
 
-
-
+;+-----------------------------------------------------------------------
+; Do an initial check of the files that are already in that directory. 
+;
+; Determine the files that are there already
+; If there are new files:
+; 	Display the list sorted by file access time
+;
+; KEYWORDS:
+;    count	returns the # of files found
+;------------------------------------------------------------------------
 
 function automaticreducer::refresh_file_list, count=count, init=init, _extra=_extra
-	; Do the initial check of the files that are already in that directory. 
-	;
-	; Determine the files that are there already
-	; If there are new files:
-	; 	Display the list sorted by file access time
-	;
-	; KEYWORDS:
-	;    count	returns the # of files found
 
-
-	if keyword_set(gpi_get_setting('at_gemini', default=0,/silent)) then begin
-		filetypes = 'S20'+gpi_datestr()+'S*.fits'
-	endif else begin
-		filetypes = '*.{fts,fits}'
-	endelse
-    searchpattern = self.dirinit + path_sep() + filetypes
+    searchpattern = self.watch_directory + path_sep() + self.watch_filespec
 	current_files =FILE_SEARCH(searchpattern,/FOLD_CASE, count=count)
 	
 	if count gt 0 and keyword_set(self.ignore_indiv_reads) then begin
@@ -54,7 +59,6 @@ function automaticreducer::refresh_file_list, count=count, init=init, _extra=_ex
 		Result = FILE_INFO(current_files[j] )
 		dateold[j]=Result.ctime
 	endfor
-	;list3=current_files[REVERSE(sort(dateold))] ; ascending
 	list3=current_files[(sort(dateold))]  ; descending
 
 	if keyword_set(init) then begin
@@ -62,7 +66,7 @@ function automaticreducer::refresh_file_list, count=count, init=init, _extra=_ex
 			self->Log, 'Found '+strc(count) +" files on startup of automatic processing. Skipping those..." $
 		else $
 			self->Log, 'No FITS files found in that directory yet...' 
-		widget_control, self.listfile_id, SET_VALUE= list3 ;[0:(n_elements(list3)-1)<(self.maxnewfile-1)] ;display the list
+		widget_control, self.listfile_id, SET_VALUE= list3 
 		widget_control, self.listfile_id, set_uvalue = list3  ; because oh my god IDL is stupid and doesn't provide any way to retrieve
 															  ; values from a  list widget!   Argh. See
 															  ; http://www.idlcoyote.com/widget_tips/listselection.html 
@@ -76,7 +80,7 @@ function automaticreducer::refresh_file_list, count=count, init=init, _extra=_ex
 	new_files = cmset_op( current_files, 'AND' ,/NOT2, *self.previous_file_list, count=count)
 
 	if count gt 0 then begin
-		widget_control, self.listfile_id, SET_VALUE= list3 ;[0:(n_elements(list3)-1)<(self.maxnewfile-1)] ;display the list
+		widget_control, self.listfile_id, SET_VALUE= list3 
 		widget_control, self.listfile_id, set_uvalue = list3  ; because oh my god IDL is stupid and doesn't provide any way to retrieve this later
 		widget_control, self.listfile_id, set_list_top = 0>(n_elements(list3) -8) ; update the scroll position in the list
 		*self.previous_file_list = current_files ; update list for next invocation
@@ -118,31 +122,24 @@ pro automaticreducer::handle_new_files, new_filenames ;, nowait=nowait
 	; Handle one or more new files that were either
 	;   1) detected by the run loop, or
 	;   2) manually selected and commanded to be reprocessed by the user.
-	;
-	
 	
 	   
-	if self.parsemode eq 1 then begin
-		; process the file right away
-		for i=0L,n_elements(new_filenames)-1 do begin
-            if strc(new_filenames[i]) eq  '' then begin
-                message,/info, ' Received an empty string as a filename; ignoring it.'
-                continue
-            endif
-            finfo = file_info(new_filenames[i])
-            if (finfo.size ne 20998080) and (finfo.size ne 21000960) and (finfo.size ne 16790400) then begin
-                message,/info, "File size is not an expected value: "+strc(finfo.size)+" bytes. Waiting 0.5 s for file write to complete?"
-                wait, 0.5
-            endif
+	; process the file right away
+	for i=0L,n_elements(new_filenames)-1 do begin
+		if strc(new_filenames[i]) eq  '' then begin
+			message,/info, ' Received an empty string as a filename; ignoring it.'
+			continue
+		endif
+		finfo = file_info(new_filenames[i])
+		if (finfo.size ne 20998080) and (finfo.size ne 21000960) and (finfo.size ne 16790400) then begin
+			message,/info, "File size is not an expected value: "+strc(finfo.size)+" bytes. Waiting 0.5 s for file write to complete?"
+			wait, 0.5
+		endif
 
-			if keyword_set(self.view_in_gpitv) then self->view_file, new_filenames[i]
-			self->reduce_one, new_filenames[i];,wait=~(keyword_set(nowait))
-		endfor
+		if keyword_set(self.view_in_gpitv) then self->view_file, new_filenames[i]
+		self->reduce_one, new_filenames[i];,wait=~(keyword_set(nowait))
+	endfor
 
-	endif else begin
-		; save the files to process later
-		;if ptr_valid(self.awaiting_parsing) then *self.awaiting_parsing = [*self.awaiting_parsing, new_filenames] else self.awaiting_parsing = ptr_new(new_filenames)
-	endelse
 
 end
 
@@ -212,7 +209,7 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 
 	drf = obj_new('DRF', templatefile, parent=self,/silent)
 	drf->set_datafiles, filenames
-	drf->set_outputdir,/autodir
+	drf->set_outputdir,'AUTOMATIC' ;/autodir
 
 	wupdate =  drf->find_module_by_name('Update Spot Shifts for Flexure', count)
 	if count ne 1 then begin
@@ -262,6 +259,7 @@ pro automaticreducer::event, ev
 		; sometimes.
 		case ev.value of
 		'Change Directory...': self->change_directory
+		'Change Filename Wildcard...': self->change_wildcard
 		'Quit Autoreducer': self->confirm_close
 		'View new files in GPITV': begin
 			self.view_in_gpitv = ~ self.view_in_gpitv
@@ -294,6 +292,7 @@ pro automaticreducer::event, ev
         if (ev.ENTER EQ 1) then begin 
               case uname of 
                   'changedir':textinfo='Click to select a different directory to watch for new files.'
+                  'changewildcard':textinfo='Click to enter a new filename specification to watch for new files.'
 				  'one': textinfo='Each new file will be reduced on its own right away.'
 				  'keep': textinfo='All new files will be reduced in a batch whenever you command.'
                   'search':textinfo='Start the looping search of new FITS placed in the right-top panel directories. Restart the detection for changing search parameters.'
@@ -322,8 +321,9 @@ pro automaticreducer::event, ev
 	'WIDGET_BUTTON':begin
 		case uname of 
 	    'changedir': self->change_directory
+	    'changewildcard': self->change_wildcard
 		'flush': self.parserobj=gpiparsergui(/cleanlist)
-		'alwaysexec': self.alwaysexecute=widget_info(self.alwaysexecute_id,/button_set)
+		;'alwaysexec': self.alwaysexecute=widget_info(self.alwaysexecute_id,/button_set)
 		'changeshift': begin
 			directory = gpi_get_directory('calibrations_DIR') 
 			widget_control, self.shiftx_id, get_value=shiftx
@@ -332,8 +332,8 @@ pro automaticreducer::event, ev
 		end
 		'QUIT': self->confirm_close
 		'Start': begin
-			message,/info,'Starting watching directory '+self.dirinit
-			self->Log, 'Starting watching directory '+self.dirinit
+			message,/info,'Starting watching directory '+self.watch_directory
+			self->Log, 'Starting watching directory '+self.watch_directory
 			widget_control, self.top_base, timer=1  ; Start off the timer events for updating at 1 Hz
 		end
         'Reprocess': begin
@@ -419,7 +419,7 @@ pro automaticreducer::event, ev
 	end
     else:   begin
 		print, "No handler defined for event of type "+tag_names(ev, /structure_name)+" in automaticreducer"
-		stop
+		;stop
 	endelse
 endcase
 end
@@ -436,15 +436,31 @@ end
 ;--------------------------------------
 ; Ask for new path then change directory
 pro automaticreducer::change_directory
-	dir = DIALOG_PICKFILE(PATH=self.dirinit, Title='Choose directory to watch for new raw GPI files...',/must_exist , /directory)
+	dir = DIALOG_PICKFILE(PATH=self.watch_directory, Title='Choose directory to watch for new raw GPI files...',/must_exist , /directory)
 	if dir ne '' then begin
 		self->Log, 'Directory changed to '+dir
-		self.dirinit=dir
+		self.watch_directory=dir
 		widget_control, self.watchdir_id, set_value=dir
 		ptr_free, self.previous_file_list ; we have lost info on our previous files so start over
 	endif
 
 end
+;--------------------------------------
+; Ask for new filename spec then change 
+pro automaticreducer::change_wildcard
+
+
+	new_wildcard = TextBox(Title='Provide New Filename Wildcard...', Group_Leader=self.top_base, $
+      Label='Filename Wildcard (can use * and ?): ', Cancel=cancelled, XSize=200, Value=self.watch_filespec)
+   	IF NOT cancelled THEN BEGIN
+		self.watch_filespec= new_wildcard
+		widget_control, self.wildcard_id, set_value=new_wildcard
+		; let's not forget previous files here, this just updates what matches happen in the future
+		;ptr_free, self.previous_file_list ; we have lost info on our previous files so start over
+   	ENDIF
+
+end
+
 ;--------------------------------------
 ; Set flexure mode, and toggle manual entry field visibility appropriately
 PRO automaticreducer::set_flexure_mode, modestr
@@ -462,7 +478,7 @@ end
 ; memory when quitting.  
 PRO automaticreducer::cleanup
 
-		self.continue_scanning=0
+		;self.continue_scanning=0
 	; Kill top-level base if it still exists
 	if (xregistered ('automaticreducer')) then widget_control, self.top_base, /destroy
 
@@ -481,26 +497,21 @@ function automaticreducer::init, groupleader, _extra=_extra
 	; Initialization code for automatic processing GUI
 
 	self.name='GPI Automatic Reducer'
-	self.dirinit=self->get_input_dir()
-	self.maxnewfile=60
-	self.alwaysexecute=1
-	self.parsemode=1
-	self.continue_scanning=1
+	self.watch_directory=self->get_input_dir()
     self.view_in_gpitv = 1
     self.ignore_indiv_reads = 1
-	;self.awaiting_parsing = ptr_new(/alloc)
 
 
-	; should we include any flexure calibration? By default
-	; turn this on ONLY if there is at least one flexure cal
-	; file present
+	; should we include any flexure compensation in the recipes? 
+	; By default turn this on ONLY if there is at least one flexure cal
+	; file present in the Calibrations DB
 	cdb= obj_new('gpicaldatabase')
 	caltable = cdb->get_data()
 	availtypes =  uniqvals( (*caltable).type)
 	wflexurefile = where(availtypes eq 'Flexure shift Cal File', flexurect)
 	if flexurect eq 0 then self.flexure_mode = 'None' else self.flexure_mode = 'Lookup'
 
-
+	self->set_default_filespec
 
 	self.top_base = widget_base(title = self.name, $
 				   /column,  $
@@ -508,11 +519,11 @@ function automaticreducer::init, groupleader, _extra=_extra
 				   MBAR=bar, $ 
 				   /tlb_size_events,  /tlb_kill_request_events)
 
-
 	tmp_struct = {cw_pdmenu_s, flags:0, name:''}
 	top_menu_desc = [ $
                   {cw_pdmenu_s, 1, 'File'}, $ ; file menu;
                   {cw_pdmenu_s, 0, 'Change Directory...'}, $
+                  {cw_pdmenu_s, 0, 'Change Filename Wildcard...'}, $
                   {cw_pdmenu_s, 2, 'Quit Autoreducer'}, $
                   {cw_pdmenu_s, 1, 'Options'}, $
                   {cw_pdmenu_s, 8, 'View new files in GPITV'},$
@@ -538,9 +549,14 @@ function automaticreducer::init, groupleader, _extra=_extra
 
 
 	base_dir = widget_base(self.top_base, /row)
-	void = WIDGET_LABEL(base_dir,Value='Directory being watched: ', /align_left)
-	self.watchdir_id =  WIDGET_LABEL(base_dir,Value=self.dirinit+"     ", /align_left)
+	void = WIDGET_LABEL(base_dir,Value='Directory being watched: ', xsize=140, /align_left)
+	self.watchdir_id =  WIDGET_LABEL(base_dir,Value=self.watch_directory, xsize=250, /align_left)
 	button_id = WIDGET_BUTTON(base_dir,Value='Change...',Uname='changedir',/align_right,/tracking_events)
+
+	base_dir = widget_base(self.top_base, /row)
+	void = WIDGET_LABEL(base_dir,Value='Filename wildcard spec: ', xsize=140, /align_left)
+	self.wildcard_id =  WIDGET_LABEL(base_dir,Value=self.watch_filespec, xsize=250,  /align_left)
+	button_id = WIDGET_BUTTON(base_dir,Value='Change...',Uname='changewildcard',/align_right,/tracking_events)
 
 	   
 ;	base_dir = widget_base(self.top_base, /row)
@@ -560,11 +576,11 @@ function automaticreducer::init, groupleader, _extra=_extra
 	base_dir = widget_base(self.top_base, /row)
 	void = WIDGET_LABEL(base_dir,Value='Reduce using:')
 	parsebase = Widget_Base(base_dir, UNAME='kindbase' ,ROW=1 ,/EXCLUSIVE, frame=0)
-	self.b_simple_id =    Widget_Button(parsebase, UNAME='default_recipe'  $
+	self.b_default_rec_id =    Widget_Button(parsebase, UNAME='default_recipe'  $
 	        ,/ALIGN_LEFT ,VALUE='Default automatic recipes',/tracking_events)
-	self.b_full_id =    Widget_Button(parsebase, UNAME='select_recipe'  $
+	self.b_specific_rec_id =    Widget_Button(parsebase, UNAME='select_recipe'  $
 	        ,/ALIGN_LEFT ,VALUE='Specific recipe',/tracking_events, sensitive=1)
-	widget_control, self.b_simple_id, /set_button 
+	widget_control, self.b_default_rec_id, /set_button 
 
 	base_dir = widget_base(self.top_base, /row)
 	self.seqid = WIDGET_DROPLIST(base_dir , title='Select template:', frame=0, Value=(*self.templates).name, $
@@ -615,7 +631,7 @@ function automaticreducer::init, groupleader, _extra=_extra
 
 
 	lab = widget_label(self.top_base, value="History:")
-	self.widget_log=widget_text(self.top_base,/scroll, ysize=8, xsize=70, /ALIGN_LEFT, uname="text_status",/tracking_events)
+	self.widget_log=widget_text(self.top_base,/scroll, ysize=8, xsize=60, /ALIGN_LEFT, uname="text_status",/tracking_events)
 
 	buttonbar = widget_base(self.top_base, row=1)
 
@@ -627,10 +643,9 @@ function automaticreducer::init, groupleader, _extra=_extra
 
 	self.information_id=widget_label(self.top_base,uvalue="textinfo",xsize=450,value='                                                                                ')
 
-	storage={$;info:info,fname:fname,$
-		group:'',$
-		self: self}
+	storage={ group:'', self: self} ; used to get handle to self in widget callbacks
 	widget_control,self.top_base ,set_uvalue=storage,/no_copy
+
 
 	; Realize the widgets and run XMANAGER to manage them.
 	; Register the widget with xmanager if it's not already registered
@@ -640,7 +655,7 @@ function automaticreducer::init, groupleader, _extra=_extra
 	endif
 
 	
-	RETURN, 1;filename
+	RETURN, 1
 
 END
 ;-----------------------
@@ -655,37 +670,25 @@ pro automaticreducer__define
 
 
 stateF={  automaticreducer, $
-    dirinit:'',$ ;initial root  directory for the tree
-    user_template:'',$   ;command to execute when fits file double clicked
-    scandir_id:0L,$ 
-    continue_scanning:0, $
     parserobj:obj_new(),$
 	launcher_handle: obj_new(), $	; handle to the launcher, *if* we were invoked that way.
+    watch_directory:'',$			; initial root  directory for the tree
+	watch_filespec: '*.fits', $		; file windcard spec
+    user_template:'',$				; user-specified template to execute when fits file double clicked
+	flexure_mode: '', $				; how to handle flexure in recipes?
     listfile_id:0L,$;wid id for list of fits file
-    alwaysexecute_id:0L,$ ;wid id for automatically execute commande 
-    alwaysexecute:0,$
-    ;parseone_id :0L,$
-    ;parsenew_id :0L,$
-    ;parseall_id :0L,$
-	b_simple_id :0L,$
-	b_full_id :0L,$
-	;b_spectral_id :0L,$
-	;b_undispersed_id :0L,$
-	;b_polarization_id :0L,$
-	label_dx_id:0L,$
-	label_dy_id:0L,$
-	shiftx_id:0L,$
-	shifty_id:0L,$
-	flex_base_id:0L,$
-	flexure_mode: '', $
-	watchdir_id: 0L, $   ; widget ID for directory label display
-	start_id: 0L, $		; widget ID for start parsing button
-	;view_in_gpitv_id: 0L, $
-	;ignore_raw_reads_id: 0L, $
-    parsemode:0L,$
-    information_id:0L,$
+	b_default_rec_id :0L,$			; widget ID for default recipe button
+	b_specific_rec_id :0L,$			; widget ID for specific chosen recipe button
+	flex_base_id:0L,$				; widget ID for flexure widgets base
+	label_dx_id:0L,$				; widget ID for flexure delta X label
+	label_dy_id:0L,$				; widget ID for flexure delta Y label
+	shiftx_id:0L,$					; widget ID for flexure delta X
+	shifty_id:0L,$					; widget ID for flexure delta Y
+	watchdir_id: 0L, $				; widget ID for directory label display
+	wildcard_id: 0L, $				; widget ID for file wildcard spec display
+	start_id: 0L, $					; widget ID for start parsing button
+    information_id:0L,$				; widget ID for info status bar
     maxnewfile:0L,$
-    ;awaiting_parsing: ptr_new(),$ ;list of detected files 
     isnewdirroot:0,$ ;flag for  root dir
     button_id:0L,$ 
 	previous_file_list: ptr_new(), $ ; List of files that have previously been encountered
