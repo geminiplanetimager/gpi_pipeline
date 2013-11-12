@@ -249,7 +249,6 @@ pro parsergui::addfile, filenames, mode=mode
             caldat,systime(/julian),month,day,year, hour,minute,second
             datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
             hourstr = string(hour,minute,format='(i2.2,i2.2)')  
-            datetimestr=datestr+'-'+hourstr
           
             current = {gpi_obs}
 
@@ -395,8 +394,8 @@ pro parsergui::addfile, filenames, mode=mode
 
 												templatename1 = self->lookup_template_filename("Calibrate Polarization Spots Locations")
 												templatename2 = self->lookup_template_filename('Create Polarized Flat-field')
-                                                self->create_recipe_from_template, templatename1, file_filt_obst_disp_occ_obs_itime_object, current, datetimestr=datetimestr
-                                                self->create_recipe_from_template, templatename2, file_filt_obst_disp_occ_obs_itime_object, current, datetimestr=datetimestr
+                                                self->create_recipe_from_template, templatename1, file_filt_obst_disp_occ_obs_itime_object, current 
+                                                self->create_recipe_from_template, templatename2, file_filt_obst_disp_occ_obs_itime_object, current 
 
 
                                                 ;continue        aaargh can't continue inside a case. stupid IDL
@@ -451,7 +450,7 @@ pro parsergui::addfile, filenames, mode=mode
 										; Now create the actual DRF based on a
 										; template:
 										templatename = self->lookup_template_filename(templatename)
-										self->create_recipe_from_template, templatename, file_filt_obst_disp_occ_obs_itime_object, current, datetimestr=datetimestr
+										self->create_recipe_from_template, templatename, file_filt_obst_disp_occ_obs_itime_object, current
 
 
                                     endfor ;loop on object
@@ -482,7 +481,7 @@ pro parsergui::addfile, filenames, mode=mode
 				; the FITS files in it
 				longestdarktime = max(itimes[wdark], wlongestdark)
 				ilongdark = wdark[wlongestdark]
-				self->clone_recipe_and_swap_template, ilongdark,  'Generate Hot Bad Pixel Map from Darks',  datetimestr=datetimestr, insert_index=insertindex
+				self->clone_recipe_and_swap_template, ilongdark,  'Generate Hot Bad Pixel Map from Darks',   insert_index=insertindex
 			endif
 
 			; 2. If we have added some (how many? At least 3? ) different flat field
@@ -507,7 +506,7 @@ pro parsergui::addfile, filenames, mode=mode
 			wbp = where(DRFnames eq 'Generate Hot Bad Pixel Map from Darks' or DRFnames eq 'Generate Cold Bad Pixel Map from Flats' , bpcount)
 			if bpcount gt 0 then begin
 				ilastbp = max(wbp)
-				self->clone_recipe_and_swap_template, ilastbp,  'Combine Bad Pixel Maps',  datetimestr=datetimestr, insert_index=ilastbp+1, /lastfileonly
+				self->clone_recipe_and_swap_template, ilastbp,  'Combine Bad Pixel Maps',   insert_index=ilastbp+1, /lastfileonly
 
 			endif
 	endif
@@ -549,8 +548,12 @@ end
 ; parsergui::create_recipe_from_template
 ; 	Creates a recipe from a template and a list of FITS files. 
 ;
+; 	KEYWORDS:
+; 	index=		index to use when inserting this into the GUI table for display
+;
+;
 ;-
-pro parsergui::create_recipe_from_template, templatename, fitsfiles, current, datetimestr=datetimestr, index=index ;, mode=mode
+pro parsergui::create_recipe_from_template, templatename, fitsfiles, current,  index=index ;, mode=mode
 
 	; load the DRF, save with new filenames
     ;self->loaddrf, templatename ,  /nodata
@@ -587,8 +590,6 @@ pro parsergui::create_recipe_from_template, templatename, fitsfiles, current, da
 		first_file=strsplit(fitsfiles[0],'S.',/extract) ; split on letter S or period
         last_file=strsplit(fitsfiles[size(fitsfiles,/n_elements)-1],'S.',/extract)
         prefixname=string(self.num_recipes_in_table+1, format="(I03)")
-;	outputfilename=datetimestr+"_"+prefixname+'_drf.waiting.xml'
-;
 
 	if n_elements(first_file) gt 2 then begin
 		; normal Gemini style filename
@@ -624,15 +625,21 @@ end
 ;
 ;     This is used for some of the templates, for instance creating bad pixel
 ;     maps is cloned from a recipe used to reduce darks.
+;
+;
+;   KEYWORDS:
+;		insert_index	index to use when creating recipe filename to add it
+;						into the table in the parser GUI display
 ;-
 
-pro parsergui::clone_recipe_and_swap_template, existing_recipe_index, newtemplatename, datetimestr=datetimestr, insert_index=insert_index, $
+pro parsergui::clone_recipe_and_swap_template, existing_recipe_index, newtemplatename,  insert_index=insert_index, $
 	lastfileonly=lastfileonly
 	
 	existingdrf = (*self.recipes_table)[0, existing_recipe_index]
 	drf = obj_new('drf', existingdrf)
 
-	existingdrffiles =drf->get_inputdir() + path_sep() + drf->get_datafiles()
+	;existingdrffiles =drf->get_inputdir() + path_sep() + drf->get_datafiles()
+	existingdrffiles = drf->get_datafiles(/absolute)
 
 	if keyword_set(lastfileonly) then existingdrffiles = existingdrffiles[n_elements(existingdrffiles)-1]
 	; copy over the descriptive info settings from the prior recipe
@@ -646,7 +653,7 @@ pro parsergui::clone_recipe_and_swap_template, existing_recipe_index, newtemplat
 						object:(*self.currDRFSelec)[10,existing_recipe_index]}
 
 	newtemplatefilename = self->lookup_template_filename(newtemplatename)
-	self->create_recipe_from_template, newtemplatefilename, existingdrffiles, existing_metadata, datetimestr=datetimestr, index=insert_index
+	self->create_recipe_from_template, newtemplatefilename, existingdrffiles, existing_metadata,  index=insert_index
 end
 
 ;+
@@ -1021,6 +1028,10 @@ pro parsergui::event,ev
 		'Data Parser Help...': gpi_open_help, 'usage/data_parser.html'
 		'Recipe Templates Help...': gpi_open_help, 'usage/templates.html'
 		'GPI DRP Help...': gpi_open_help, ''
+		'About': begin
+              tmpstr=gpi_drp_about_message()
+              ret=dialog_message(tmpstr,/information,/center,dialog_parent=ev.top)
+          end
 		endcase
 
 
@@ -1109,7 +1120,8 @@ function parsergui::init_widgets,  _extra=_Extra
                   {cw_pdmenu_s, 1, 'Help'}, $         ; help menu
                   {cw_pdmenu_s, 0, 'Data Parser Help...'}, $
                   {cw_pdmenu_s, 0, 'Recipe Templates Help...'}, $
-                  {cw_pdmenu_s, 2, 'GPI DRP Help...'} $
+                  {cw_pdmenu_s, 0, 'GPI DRP Help...'}, 
+                  {cw_pdmenu_s, 6, 'About...'} $
 				  ]
  
 	self.menubar = obj_new('checkable_menu',  $
