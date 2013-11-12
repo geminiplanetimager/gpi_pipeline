@@ -999,7 +999,7 @@ pro drfgui::event,ev
         endif
 
         ;;update output directory as needed
-        if ~self.outputoverride  && gpi_get_setting('organize_reduced_data_by_dates',/bool) && n_elements(date eq 3) then begin
+        if ~self.outputoverride  && gpi_get_setting('organize_reduced_data_by_dates',/bool, default=1) && n_elements(date eq 3) then begin
            parts = strsplit(sxpar( Head, 'DATE-OBS',  COUNT=cc),'-',/EXTRACT)
            datestr = string(parts[0] mod 100,parts[1],parts[2],format='(i2.2,i2.2,i2.2)')
            self.outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')+path_sep()+datestr
@@ -1012,11 +1012,7 @@ pro drfgui::event,ev
         ;;RESOLVE TYPE
         self.ftype=self->resolvekeyword( file, cindex,'OBSTYPE')
         ;;RESOLVE CLASS
-                                ;self.fseq=resolvekeyword( file, cindex,'OBSCLASS')
         
-        
-        ;isresolvebuttonset=widget_info(self.resolvetypeseq_id,/button_set)
-        ;if isresolvebuttonset then begin
 		if 1 then begin
            detectype=0
            if strmatch(self.dispersr,'pol*',/fold) && strmatch(self.ftype,'obj*',/fold) then detectype=2
@@ -1452,7 +1448,7 @@ function drfgui::check_output_path_exists, path
 		return, 1 
 	endif else  begin
 
-		if gpi_get_setting('prompt_user_for_outputdir_creation',/bool) then $
+		if gpi_get_setting('prompt_user_for_outputdir_creation',/bool,default=0) then $
 			res =  dialog_message('The requested output directory '+path+' does not exist. Should it be created now?', $
 			title="Nonexistent Output Directory", dialog_parent=self.top_base, /question) else res='Yes' 
 		if res eq 'Yes' then begin
@@ -2125,7 +2121,7 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 
 	;filename array and index
 	;-----------------------------------------
-	maxfilen=gpi_get_setting('max_files_per_recipe',default=200)
+	maxfilen=gpi_get_setting('max_files_per_recipe',default=1000)
 	filename=strarr(maxfilen)
 	printname=strarr(maxfilen)
 	datefile=lonarr(maxfilen)

@@ -53,7 +53,7 @@
 ;    the debug flag as needed. 
 ;-
 function  parsergui::init, groupleader, _extra=_extra
-	self.DEBUG = gpi_get_setting('enable_parser_debug', /bool, default=0) ; print extra stuff?
+	self.DEBUG = gpi_get_setting('enable_parser_debug', /bool, default=0,/silent) ; print extra stuff?
 	self.xname='parsergui'
 	self.name = 'GPI Data Parser'
 	if self.debug then message,/info, 'Parser init'
@@ -157,7 +157,7 @@ pro parsergui::addfile, filenames, mode=mode
     ;;TEST DATA SANITY
     ;;ARE THEY VALID  GEMINI & GPI & IFS DATA?
 	
-    if gpi_get_setting('strict_validation',/bool)  then begin
+    if gpi_get_setting('strict_validation',/bool, default=1,/silent)  then begin
 
         validtelescop=bytarr(cindex)
         validinstrum=bytarr(cindex)
@@ -582,7 +582,8 @@ pro parsergui::create_recipe_from_template, templatename, fitsfiles, current,  i
 	; set the data files in that recipe to the requested ones
 	drf->set_datafiles, fitsfiles 
 
-	drf->set_outputdir, autodir=(self.outputdir eq 'AUTOMATIC'), dir=self.outputdir
+	;drf->set_outputdir, autodir=(self.outputdir eq 'AUTOMATIC'), dir=self.outputdir
+	drf->set_outputdir, self.outputdir
 
 
 	; Generate output file name
@@ -1227,7 +1228,7 @@ function parsergui::init_widgets,  _extra=_Extra
     self.autoqueue_id =    Widget_Button(directbase, UNAME='direct'  $
 		,/ALIGN_LEFT ,VALUE='Queue all generated recipes automatically',uvalue='direct' )
 	
-	if gpi_get_setting('parsergui_auto_queue',/bool) then widget_control,self.autoqueue_id, /set_button   
+	if gpi_get_setting('parsergui_auto_queue',/bool, default=0,/silent) then widget_control,self.autoqueue_id, /set_button   
 
     space = widget_label(top_baseexec,uvalue=" ",xsize=100,value='  ')
     button2b=widget_button(top_baseexec,value="Open in Recipe Editor",uvalue="DRFGUI", /tracking_events)
@@ -1238,7 +1239,7 @@ function parsergui::init_widgets,  _extra=_Extra
 
     self.textinfoid=widget_label(parserbase,uvalue="textinfo",xsize=900,value='  ')
     ;-----------------------------------------
-    maxfilen=gpi_get_setting('parsergui_max_files',/int, default=1000) 
+    maxfilen=gpi_get_setting('parsergui_max_files',/int, default=1000,/silent) 
     filename=strarr(maxfilen)
     printname=strarr(maxfilen)
     printfname=strarr(maxfilen)
