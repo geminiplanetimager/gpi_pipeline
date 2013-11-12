@@ -22,7 +22,7 @@ prompt_user_for_outputdir_creation	0
 max_files_per_recipe	1000
 parsergui_max_files     1000
 gpitv_default_scale     log
-preprocess_fits_files	1
+preprocess_fits_files	0
 enable_primitive_debug  1
 enable_parser_debug     1
 username_in_log_filename	1
