@@ -39,7 +39,7 @@ setenv GPI_RAW_DATA_DIR "${GPI_DATA_ROOT}/Detector/"    # where is raw data?
 setenv GPI_REDUCED_DATA_DIR "${GPI_DATA_ROOT}/Reduced/" # where should we put reduced data?
 
 
-#---- Optional paths (not genererally needed) -------
+#---- Optional paths (not generally needed) -------
 # these variables are optional - you may omit them if your 
 # drp setup is standard
 #setenv GPI_DRP_DIR "/home/labuser1/GPI/pipeline"  # pipeline code location (contains subdirectories backbone, config, gpitv etc.)
@@ -51,8 +51,6 @@ setenv GPI_REDUCED_DATA_DIR "${GPI_DATA_ROOT}/Reduced/" # where should we put re
 #setenv GPI_DRP_CALIBRATIONS_DIR "${GPI_REDUCED_DATA_DIR}/calibrations/"	# pipeline calibration location
 #setenv GPI_DRP_LOG_DIR "${GPI_REDUCED_DATA_DIR}/logs/"	                    # default log dir
 
-#---- DST install only (optional) -----
-#setenv GPI_DST_DIR "${GPI_CODE_ROOT}/dst/"	 
 
 #---------- make sure the startup scripts are in your $PATH   -----a
 #           and the IDL code is in your $IDL_PATH
