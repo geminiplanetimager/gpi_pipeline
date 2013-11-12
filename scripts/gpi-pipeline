@@ -21,6 +21,8 @@ endif
 # start the GUIs:
 \xterm -bg \#000033 -fg \#CCCC00 -geometry 80x30+20+20  -sb +ls -T 'idl: GPI DRP GUIs' -e idl $GPI_DRP_DIR/scripts/gpi-pipeline__launchguis.pro  &
 
+sleep 0.25 # slight pause, in some cases helps avoid redundant dialogs about missing directories since the first pipeline may create them before the second starts
+
 # Start the pipeline:
 \xterm -bg \#000033 -fg \#FFFFAA -geometry 80x30+20+450 -sb +ls -T 'idl: GPI Pipeline' -e idl $GPI_DRP_DIR/scripts/gpi-pipeline__launchdrp.pro   &
 
