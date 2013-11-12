@@ -195,7 +195,7 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
             if strc(s_OutputDir) eq "" then return, error('FAILURE: supplied output directory is a blank string.')
             
             if ~file_test(s_OutputDir,/directory, /write) then begin
-               if gpi_get_setting('prompt_user_for_outputdir_creation',/bool) then $
+               if gpi_get_setting('prompt_user_for_outputdir_creation',/bool, default=0,/silent) then $
                   res =  dialog_message('The requested output directory '+s_OutputDir+' does not exist. Should it be created now?', $
                                         title="Nonexistent Output Directory", /question) else res='Yes'
                
@@ -236,7 +236,7 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
          if strc(s_OutputDir) eq "" then return, error('FAILURE: supplied output directory is a blank string.')
          
          if ~file_test(s_OutputDir,/directory, /write) then begin
-            if gpi_get_setting('prompt_user_for_outputdir_creation',/bool) then $
+            if gpi_get_setting('prompt_user_for_outputdir_creation',/bool, default=0,/silent) then $
                res =  dialog_message('The requested output directory '+s_OutputDir+' does not exist. Should it be created now?', $
                                      title="Nonexistent Output Directory", /question) else res='Yes'
             

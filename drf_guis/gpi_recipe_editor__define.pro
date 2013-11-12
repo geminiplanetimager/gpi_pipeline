@@ -184,7 +184,7 @@ end
 ;-
 function gpi_recipe_editor::get_default_input_dir
 
-	if gpi_get_setting('organize_raw_data_by_dates',/bool) then begin
+	if gpi_get_setting('organize_raw_data_by_dates',/bool,/silent) then begin
 		; Input data organized by dates
 		inputdir = gpi_get_directory('RAW_DATA') + path_sep() + gpi_datestr(/current)
 	
@@ -1168,7 +1168,7 @@ function gpi_recipe_editor::check_output_path_exists, path
 		return, 1 
 	endif else  begin
 
-		if gpi_get_setting('prompt_user_for_outputdir_creation',/bool) then $
+		if gpi_get_setting('prompt_user_for_outputdir_creation',/bool,default=0,/silent) then $
 			res =  dialog_message('The requested output directory '+path+' does not exist. Should it be created now?', $
 			title="Nonexistent Output Directory", dialog_parent=self.top_base, /question) else res='Yes' 
 		if res eq 'Yes' then begin
@@ -1650,7 +1650,7 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
 
 	;filename array and index
 	;-----------------------------------------
-	maxfilen=gpi_get_setting('max_files_per_recipe',default=200)
+	maxfilen=gpi_get_setting('max_files_per_recipe',default=1000,/silent)
 	filename=strarr(maxfilen)
 	printname=strarr(maxfilen)
 	datefile=lonarr(maxfilen)

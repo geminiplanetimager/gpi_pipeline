@@ -70,7 +70,7 @@ function gpi_validate_paths, get_path_info=get_path_info
 
 		; for certain directories, just create them if they don't exist already
 		if env[j].autocreate then begin
-			if gpi_get_setting('prompt_user_for_outputdir_creation',/bool) then $
+			if gpi_get_setting('prompt_user_for_outputdir_creation',/bool, default=0,/silent) then $
 				res =  dialog_message('The directory for '+env[j].name+", which is "+dir+', does not exist. Should it be created now?', $
 				title="Nonexistent Output Directory", /question) else res='Yes'
 

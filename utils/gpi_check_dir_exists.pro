@@ -25,7 +25,7 @@ function gpi_check_dir_exists, s_OutputDir
 	if ~file_test(s_OutputDir,/directory) then begin
 		; directory does not exist at all.
 		; Perhaps we should automatically create it:
-		if gpi_get_setting('prompt_user_for_outputdir_creation',/bool) then $
+		if gpi_get_setting('prompt_user_for_outputdir_creation',/bool, default=0,/silent) then $
             res =  dialog_message('The requested output directory '+s_OutputDir+' does not exist. Should it be created now?', $
             title="Nonexistent Output Directory", /question) else res='Yes'
 

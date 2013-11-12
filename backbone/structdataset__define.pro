@@ -36,7 +36,7 @@ pro structDataset__define
 
     ; Dataset structure containing the specified input files
     ;   both filenames and data.
-	MAXFRAMESINDATASETS = gpi_get_setting('max_files_per_recipe',/integer, default=200)
+	MAXFRAMESINDATASETS = gpi_get_setting('max_files_per_recipe',/integer, default=1000,/silent)
      void = {structDataSet, $
             Name:'', $
             InputDir:'', $

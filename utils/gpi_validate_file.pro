@@ -65,7 +65,7 @@ FUNCTION gpi_validate_file, filename,verbose=verbose
 	if val1+val2+val3 eq 3 then valid=1 else valid=0
 
 	if valid eq 1 then return, 1 else begin
-		STRICT_VALIDATION= gpi_get_setting('strict_validation',/int)
+		STRICT_VALIDATION= gpi_get_setting('strict_validation',/bool, default=1,/silent)
 		if STRICT_VALIDATION then begin
 			print, "File "+filename+" is NOT a valid Gemini-GPI-IFS file!"
 			return, 0
