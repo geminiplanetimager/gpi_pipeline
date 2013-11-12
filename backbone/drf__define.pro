@@ -195,31 +195,55 @@ end
 
 ;--------------------------------------------------------------------------------
 
-pro drf::set_outputdir, dir=dir, autodir=autodir
+pro drf::set_outputdir, dir ;, autodir=autodir
+	if self.outputdir eq dir then return  ; no change, so just return
+	if n_elements(dir) eq 0 then begin
+		self->Log, "ERROR: missing argument to set_outputdir. Therefore no change."
+		return
+	endif
+
 	self.modified = 1
 
-	if keyword_set(autodir) then begin
-		; figure out the output directory?
-		if gpi_get_setting('organize_reduced_data_by_dates',/bool) then begin
-			outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')+path_sep()+self->get_datestr()
-		endif else begin
-			outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')
-		endelse
-	endif else begin
-		outputdir = dir
-	endelse
+;	if keyword_set(autodir) or (strupcase(dir) eq 'AUTOMATIC') then begin
+;		; figure out the output directory?
+;		if gpi_get_setting('organize_reduced_data_by_dates',/bool,default=1) then begin
+;			outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')+path_sep()+self->get_datestr()
+;		endif else begin
+;			outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')
+;		endelse
+;	endif else begin
+;		outputdir = dir
+;	endelse
 
-	self.outputdir = outputdir
+	self.outputdir = dir
+	self->Log, "Output dir set to "+self.outputdir
 end
 ;-------------
-
-FUNCTION drf::get_outputdir
-	return, self.outputdir
+FUNCTION drf::get_automatic_default_outputdir
+	; Return a plausible output directory based on the pipeline configurations
+	if gpi_get_setting('organize_reduced_data_by_dates',/bool,default=1) then begin
+		outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')+path_sep()+self->get_datestr()
+	endif else begin
+		outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')
+	endelse
+	return, outputdir
 end
 
-;FUNCTION drf::get_inputdir
-;	return, self.inputdir
-;end
+
+;-------------
+FUNCTION drf::get_outputdir
+	; return output directory. If the actual value in the
+	; XML file is the string 'AUTOMATIC' then return instead
+	; the default output directory (which may or may not have a date in it)
+	
+
+	if (strupcase(self.outputdir) eq 'AUTOMATIC') then begin
+		return, self->get_automatic_default_outputdir()
+	endif else begin
+		return, self.outputdir
+	endelse
+
+end
 
 
 ;----------------
@@ -555,7 +579,7 @@ function drf::check_output_path_exists, path
 ;	if file_test(path,/dir,/write) then begin
 ;		return, 1 
 ;	endif else  begin
-;		if gpi_get_setting('prompt_user_for_outputdir_creation',/bool) then res =  dialog_message('The requested output directory '+path+' does not exist. Should it be created now?', title="Nonexistent Output Directory", /question) else res='Yes'
+;		if gpi_get_setting('prompt_user_for_outputdir_creation',/bool, default=0) then res =  dialog_message('The requested output directory '+path+' does not exist. Should it be created now?', title="Nonexistent Output Directory", /question) else res='Yes'
 ;		if res eq 'Yes' then begin
 ;			file_mkdir, path
 ;			return, 1
@@ -610,29 +634,31 @@ pro drf::save, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silent=s
 	; 	/absolutepaths		write DRFs using absolute paths in their text, not
 	; 						environment variables for relative paths
 	; 	/autodir			Automatically decide the best output directory to
-	; 						save this file to
+	; 						save **this recipe file** to. This is distinct from
+	;						the "automatic" option for the recipe file's actual
+	;						internal output directory, which sets the output
+	;						directory for pipeline processed FITS files. 
 	OK = 0
 	NOT_OK = -1
 
 	outputfile=outputfile0 ; don't modify input outputfile variable.
 
 	if keyword_set(autodir) then begin 
-		if gpi_get_setting('organize_recipes_by_dates',/bool) then begin
-			self.outputdir = gpi_get_directory('GPI_DRF_OUTPUT_DIR')+path_sep()+self->get_datestr()
-		endif else begin
-			; if the organize by dates is turned off, then 
-			; FIXME should this output to the current directory, or what
-			self.outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')
-		endelse
-		outputfile=self.outputdir +path_sep()+file_basename(outputfile)
+		recipe_outputdir = gpi_get_directory('GPI_RECIPE_OUTPUT_DIR')
+		if gpi_get_setting('organize_recipes_by_dates',/bool) then  begin
+			recipe_outputdir += path_sep()+self->get_datestr()
+		endif 
+		if  self->check_output_path_exists(recipe_outputdir) eq NOT_OK then begin
+			self->Log, "Could not write to nonexistent directory: "+file_dirname(outputfile)
+			status=NOT_OK
+			return
+		endif
+
+		outputfile=recipe_outputdir +path_sep()+file_basename(outputfile)
+
 	end
 
 
-	if  self->check_output_path_exists(self.outputdir) eq NOT_OK then begin
-		self->Log, "Could not write to nonexistent directory: "+file_dirname(outputfile)
-		status=NOT_OK
-		return
-	endif
 	if ~(keyword_set(silent)) then self->log,'Writing recipe to '+gpi_shorten_path(outputfile)
 
 	OpenW, lun, outputfile, /Get_Lun
@@ -663,7 +689,7 @@ PRO drf::queue, filename=filename, queued_filename=queued_filename, status=statu
 
 	prev_outputfile = self.last_saved_filename ; save value before this gets overwritten in save
 
-	self->saveDRF, queued_filename,/silent
+	self->save, queued_filename,/silent
 
 	self.last_saved_filename= prev_outputfile ; restore previous value
 
@@ -686,7 +712,6 @@ function drf::tostring, absolutepaths=absolutepaths
 	  	outputdir=gpi_expand_path(self.outputdir)
 	endelse  
         
-
 	; Are all the input files in the same directory?
 	filenames = self->get_datafiles()
 	dirnames = strarr(n_elements(filenames))
@@ -961,7 +986,7 @@ PRO drf__define
         where_to_log: obj_new(),$   ; optional target object for log messages
         ;inputdir: '', $            ; Deprecated, may still be present in XML but 
                                     ; automatically gets folded in to datafilenames
-        outputdir: '', $
+        outputdir: '', $			; Output directory for the contents of this recipe
         datafilenames: ptr_new(), $
         primitives: ptr_new(), $
         configDRS: ptr_new() $  ; DRS modules configuration info
