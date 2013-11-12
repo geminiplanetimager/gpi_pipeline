@@ -28,8 +28,6 @@ organize_reduced_data_by_dates          0,1                             1       
                                                                                         $GPI_DRP_OUTPUT_DIR? Such directories will be created if needed. 
 organize_recipes_by_dates               0,1                             1               Should saved DRFs be output in directories organized by data under 
                                                                                         $GPI_DRP_OUTPUT_DIR? Such directories will be created if needed. 
-autogui_write_drfs_to                   reduced                         Unused?         Where should the Automatic Reducer GUI save the DRFs that it produces? 
-                                                                                        (TBC - not sure this is implemented??)
 prompt_user_for_outputdir_creation      0,1                             1               If set to zero, whenever you need to create a directory to save some requested 
                                                                                         filename (e.g. for storing output files or DRFs), just go ahead and do so without 
                                                                                         asking the user about it. If set, ask the user first before creating the directory.
@@ -87,7 +85,7 @@ gpitv_retain_current_slice              0,1                              1      
                                                                                         0: Open all images to the same default slice.
 gpitv_retain_current_zoom               0,1                              1              Toggle auto zoom + recenter or keep same zoom + position for newly loaded images.
 gpitv_retain_current_stretch            0,1                              0              Toggle autoscaling of display stretch for newly loaded images.
-gpitv_auto_handedness                   0,1                              1               Toggle whether to automatically flip images if needed to have East
+gpitv_auto_handedness                   0,1                              1              Toggle whether to automatically flip images if needed to have East
                                                                                         counterclockwise of North. Has no effect is retain_current_zoom is 1. 
 gpitv_showfullpaths                     0,1                              0              Toggle to show the full path to files in the gpitv titlebar.
 gpitv_noinfo                            0,1                              0              Toggle suppression of informational messages.
