@@ -1121,7 +1121,7 @@ function parsergui::init_widgets,  _extra=_Extra
                   {cw_pdmenu_s, 1, 'Help'}, $         ; help menu
                   {cw_pdmenu_s, 0, 'Data Parser Help...'}, $
                   {cw_pdmenu_s, 0, 'Recipe Templates Help...'}, $
-                  {cw_pdmenu_s, 0, 'GPI DRP Help...'}, 
+                  {cw_pdmenu_s, 0, 'GPI DRP Help...'}, $
                   {cw_pdmenu_s, 6, 'About...'} $
 				  ]
  
