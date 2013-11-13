@@ -3,28 +3,46 @@
 # SETTING_NAME<tab>SETTING_VALUE
 # settings are case insensitive
 # values are all returned as strings
+# The below values are the defaults. i
+# The # character starts a comment; uncomment each line to change values.
 #
 # For a description of what each option means, 
-# See http://docs.planetimager.org/pipeline_dev/installation/config_settings.html
+# see http://docs.planetimager.org/pipeline_dev/installation/config_settings.html
 
-strict_validation	1
+## Data & directory organization
 organize_raw_data_by_dates	1
 organize_reduced_data_by_dates  1
 organize_recipes_by_dates	1
-# back compatibility - retain 'organize_DRFs' for now. but it's deprecated:
-organize_DRFs_by_dates		1
-parsergui_auto_queue    0
-prevent_multiple_instances  0
-# prompt_user_for_overwrite 1
-file_overwrite_handling		append_number
-prompt_user_for_questionable_data	1
-prompt_user_for_outputdir_creation	0
-max_files_per_recipe	1000
-parsergui_max_files     1000
-gpitv_default_scale     log
-preprocess_fits_files	0
-enable_primitive_debug  1
-enable_parser_debug     1
-username_in_log_filename	1
+# apodizer_spec		$GPI_DRP_CONFIG_DIR/apodizer_spec.txt
+
+## Pipeline behavior
+# strict_validation	1
+# parsergui_auto_queue    0
+# prompt_user_for_questionable_data	1
+# file_overwrite_handling		ask
+# force_rescan_config_on_startup	0
+# force_rescan_caldb_on_startup		0
+# username_in_log_filename	0
+
+## GPItv settings
+# gpitv_default_scale	log
+# gpitv_retain_current_slice		1
+# gpitv_retain_current_zoom		0
+# gpitv_retain_current_stretch		0
+# gpitv_auto_handedness		1
+# gpitv_showfullpaths		0
+# gpitv_noinfo		0
+# gpitv_nowarn			0
+
+## Debug and development 
+# max_files_per_recipe	1000
+# parsergui_max_files     1000
+# enable_primitive_debug  0
+# enable_parser_debug     0
+# enable_gpitv_debug	0
+# drp_queue_poll_freq	1.0
+# drp_gui_poll_freq	10
+# prevent_multiple_instances  0
+# preprocess_fits_files	0
 
 
