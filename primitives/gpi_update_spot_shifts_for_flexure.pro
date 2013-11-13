@@ -212,7 +212,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
  
         calfiletype = 'shifts'
 
-        c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headersphu)[numfile],*(dataset.headersext)[numfile] )
+        c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /ignore_cooldown_cycles)
 	if ( ~ file_test ( string(c_file) ) ) then begin
 		return, error ('error in call ('+strtrim(functionname)+'): calibration file  ' +  strtrim(string(c_file),2) + ' not found.' )
 	endif
@@ -437,7 +437,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   endcase
      
     logmsg = "Applied shifts of "+strc(shiftx)+", "+strc(shifty)+" based on method="+method
-    backbone->Log, logmsg
+    backbone->Log, logmsg, depth=3
     backbone->set_keyword, "HISTORY", "  "+logmsg
 
 
