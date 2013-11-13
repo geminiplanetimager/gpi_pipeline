@@ -47,7 +47,7 @@ PRO gpi_launch_pipeline, noinit=noinit, $
 	Queue_Dir = gpi_get_directory('GPI_DRP_QUEUE_DIR')
 
 
-	if gpi_get_setting('prevent_multiple_instances',/bool) then begin
+	if gpi_get_setting('prevent_multiple_instances',/bool, default=0) then begin
 	  ; Use a semaphore lock to prevent multiple instances of the pipeline
 	  ; from running at once. 
 	  ;
@@ -87,7 +87,7 @@ PRO gpi_launch_pipeline, noinit=noinit, $
 
 	OBJ_DESTROY, backbone
 
-	if gpi_get_setting('prevent_multiple_instances',/bool) then begin
+	if gpi_get_setting('prevent_multiple_instances',/bool,default=0) then begin
 		sem_release, sem_name
 		sem_delete, sem_name
 	endif 
