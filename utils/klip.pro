@@ -157,7 +157,7 @@ fcube = reform(cubein,lambda_dimen[0]*lambda_dimen[1],lambda_dimen[2])
 for radcount = 0,n_elements(rads)-2 do begin
    ;;rad range: rads[radcount]<= R <rads[radcount+1] 
    radinds = where((coordsp[1,*] ge rads[radcount]) and (coordsp[1,*] lt rads[radcount+1]))
-   R = fcube[map(radinds),*] ;;ref set
+   R = fcube[map[radinds],*] ;;ref set
 
    ;;check that you haven't just grabbed a blank annulus
    if (total(finite(R)) eq 0) then begin 
@@ -223,7 +223,7 @@ for radcount = 0,n_elements(rads)-2 do begin
       signal_step_1 = matrix_multiply(T,Z_bar_trunc,/atranspose)
       signal_step_2 = matrix_multiply(signal_step_1,Z_bar_trunc,/btranspose)
       Test = T - transpose(signal_step_2)
-      signal_final[map(radinds),ref_value] = Test
+      signal_final[map[radinds],ref_value] = Test
 
    endfor
 endfor
