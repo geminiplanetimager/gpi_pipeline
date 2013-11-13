@@ -455,8 +455,10 @@ pro automaticreducer::change_wildcard
    	IF NOT cancelled THEN BEGIN
 		self.watch_filespec= new_wildcard
 		widget_control, self.wildcard_id, set_value=new_wildcard
-		; let's not forget previous files here, this just updates what matches happen in the future
-		;ptr_free, self.previous_file_list ; we have lost info on our previous files so start over
+		; the following will also trigger regenerating the file list from
+		; scratch, ignoring any already-present files that match the new
+		; wildcard rather than trying to reprocess them all instantly.
+		ptr_free, self.previous_file_list ; we have lost info on our previous files so start over
    	ENDIF
 
 end
@@ -688,6 +690,7 @@ stateF={  automaticreducer, $
 	wildcard_id: 0L, $				; widget ID for file wildcard spec display
 	start_id: 0L, $					; widget ID for start parsing button
     information_id:0L,$				; widget ID for info status bar
+	previous_datestr: '', $			; previous date, used for checking when/if to update if at_gemini
     maxnewfile:0L,$
     isnewdirroot:0,$ ;flag for  root dir
     button_id:0L,$ 
