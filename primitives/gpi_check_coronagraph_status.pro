@@ -9,6 +9,7 @@
 ;
 ; HISTORY:
 ;   2013-08-02 ds - initial version
+;   2013-11-12 MP - add check for PUPVIEWR inserted
 ;- 
 
 function gpi_check_coronagraph_status, DataSet, Modules, Backbone
@@ -41,6 +42,12 @@ if strpos(lyot,'080') eq -1 then return,retval
 aoon = backbone->get_keyword('AOON', count=ct)
 if ct eq 0 then return, retval
 if ~strcmp(strupcase(aoon),'TRUE') then return,retval
+
+; are we looking at the back side of the pupil viewer fold?
+pupviewer = backbone->get_keyword('PUPVIEWR',count=ct)
+if ct eq 0 then return, retval
+if fix(pupviewer) eq 1 then return, retval
+
 
 return, OK
 
