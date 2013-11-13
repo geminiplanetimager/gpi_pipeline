@@ -205,7 +205,6 @@ function drfgui::get_obs_keywords, filename
 		print, "Invalid/missing keywords for file "+filename
 		if cc gt 0 then self->Log, 'Missing keyword(s): '+strjoin(keytab[indzero]," ")
 
-		stop
 	endif else begin
 		self.missingkeyw=0 ; added by Marshall for cleanup & consistency
 		obsstruct.valid=1
