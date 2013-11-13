@@ -394,9 +394,51 @@ pro gpidrfparser::load_data_to_pipeline, backbone=backbone, status=status
 		;Backbone.ReductionType = Self.ReductionType
 		Backbone.Data = Self.Data
 		Backbone.Modules = Self.Modules
+
+		; Ugly hack / workaround - implement 'AUTOMATIC' output dir support here.
+		if tag_exist( (*backbone.modules)[0], 'outputdir') then $
+		if (*backbone.modules)[0].outputdir  eq 'AUTOMATIC' then begin
+			if gpi_get_setting('organize_reduced_data_by_dates',/bool,default=1) then begin
+				outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')+path_sep()+self->get_datestr()
+			endif else begin
+				outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')
+			endelse
+			(*backbone.modules).outputdir = outputdir
+			
+		endif
+
 	ENDIF 
 
 	status=OK 
+
+end
+
+
+function gpidrfparser::get_datestr
+	; return the datedir formatted string corresponding to the
+	; first data file in this DRF
+	;
+	; This is used for the DRF output path if organize by dates is set
+	if ptr_valid(self.data) then begin
+		; determine the output dir based on the date associated with the first
+		; FITS header
+
+		head = headfits( gpi_expand_path((*self.data).inputdir + path_sep() +  (*self.data).filenames[0]) ) 
+		dateobs = sxpar(head,'DATE-OBS', count=count)
+		if count gt 0 then begin
+			parts = strsplit(dateobs,'-',/extract)
+			datestr = string(parts[0] mod 100,parts[1],parts[2],format='(i2.2,i2.2,i2.2)')
+		endif else begin
+			self->Log, 'ERROR: output data should be organized by date, but no DATE-OBS keyword present.'
+			self->Log, "Assuming today's date just as a guess...."
+			datestr = gpi_datestr()
+		endelse
+	endif else begin
+		self->Log, 'ERROR: output data should be organized by date, but no data present to *have* a date'
+		self->Log, "Assuming today's date just as a guess...."
+		datestr = gpi_datestr()
+	endelse 
+	return,datestr
 
 end
 
