@@ -60,6 +60,8 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
 ;
 ; MODIFICATION HISTORY:
 ;	Written 08.15.2013 - ds
+;	2013-11-12 M. P: Modified to account for IFS internal rotations as
+;					 determined by Perrin, Thomas, Chilcote, & Savransky
 ;-
 
   compile_opt defint32, strictarr, logical_predicate
@@ -105,12 +107,16 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
   backbone->set_keyword, 'CRVAL1', ra, 'Right ascension at ref point' 
   backbone->set_keyword, 'CRVAL2', dec, 'Declination at ref point' ;TODO should see gemini type convention
 
-  pc = [[cos(-PAR_ANG*!dtor), -sin(-PAR_ANG*!dtor)], $
-        [sin(-PAR_ANG*!dtor), cos(-PAR_ANG*!dtor)]]
+  ifs_rotation = gpi_get_constant('ifs_rotation')
+  vert_angle = -(360-PAR_ANG) + ifs_rotation  -90 ; 90 deg is rotation of the H2RG w.r.t. where the (0,0) corner is
+
+  ;;; CLockwise rotation of negative PA
+  pc = [[cos(vert_angle*!dtor), -sin(vert_angle*!dtor)], $
+        [sin(vert_angle*!dtor), cos(vert_angle*!dtor)]]
   cdmatrix = pc * pixelscale / 3600d0
 
-  ;; flip sign of X axis? 
-  cdmatrix[0, *] *= -1
+  ;; flip sign of X axis?  ; Not necessary if GPI is on bottom port!
+  ;cdmatrix[0, *] *= -1
   
   backbone->set_keyword, "CD1_1", cdmatrix[0,0], "partial of first axis coordinate w.r.t. x"
   backbone->set_keyword, "CD1_2", cdmatrix[0,1], "partial of first axis coordinate w.r.t. y"
