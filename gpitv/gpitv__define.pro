@@ -9763,6 +9763,7 @@ if (self.pdata.nplot LT self.pdata.maxplot) then begin
    self.pdata.nplot = self.pdata.nplot + 1
 
 ; set default font to 1
+  if ~(keyword_set(options)) then  options = create_struct(options, 'dummy', 1)
   c = where(tag_names(options) EQ 'FONT', count)
   if (count EQ 0) then options = create_struct(options, 'font', 1)
 
@@ -10935,7 +10936,6 @@ upperright = round( (0.5 >  (([(*self.state).draw_window_size] / (*self.state).z
                                 ; y0 = lowerleft[1]+(0.1*(upperright[1]-lowerleft[1]))
 xmax = lowerleft[0]+(0.95*(upperright[0]-lowerleft[0]))
 ymax = lowerleft[1]+(0.95*(upperright[1]-lowerleft[1]))
-;stop
 ;wcfilename= DIALOG_PICKFILE( TITLE='GPI pipeline: Select files ', FILTER = 'specpos*.fits', FILE='*.fits',/MUST_EXIST )
 
 ; TODO catch this in memory to save speed on repeated drawings?
@@ -11073,7 +11073,6 @@ else: begin		; Plot spectral mode cal grid
 				xyouts, X2[0,ii], X2[1,ii], $
         strc(ii)+';'+strc(jj),/DEVICE, color=labelcolor,charsize=charsize,charthick=charthick;, _extra = (*(self.pdata.plot_ptr[iplot])).options
 				
-				;stop
 			endif
 		endfor
 		plots,X,/DEVICE, color=gridcolor;, thick=3
@@ -11083,7 +11082,6 @@ end
 endcase
 
 
-;stop
 ;for ii=0,sz[1]-1 do begin
 ;X2=fltarr(2,sz[1])+!VALUES.F_NAN
 ;	for jj=0,sz[1]-1 do begin
@@ -11105,7 +11103,6 @@ endcase
 ;     yticks = yticks,yminor=4, $
 ;     charsize=0.9
 ;
-;   ;stop
 end
 ;----------------------------------------------------------------------
 pro GPItv::contour, z, x, y, _extra = options
@@ -11230,7 +11227,6 @@ pro GPItv::plot1colorbar,iplot
      YTICKFORMAT='(A1)', XTICKFORMAT=format, XTICKLEN=ticklen, $
      XRANGE=[minrange, maxrange], FONT=font, XMinor=minor, _EXTRA=extra
 
-   ;stop
    self->resetwindow
    (*self.state).newrefresh=1
 
@@ -13504,7 +13500,6 @@ if (not (keyword_set(ps))) then begin
                           ']', /remove_all))
 
 ;Call plothist to create histogram arrays
-;stop
   plothist, hist_image, xhist, yhist, bin=(*self.state).binsize, /NaN, /nodata
 
 ;Create ymax for plot with slight buffer (if initial plot, else take
@@ -14280,7 +14275,6 @@ if (self.pdata.nplot LT self.pdata.maxplot) then begin
 
    c = where(tag_names(options) EQ 'THETAOFFSET', count)
    if (count EQ 0) then options = create_struct(options, 'thetaoffset', '0.00')
-	;stop
    c = where(tag_names(options) EQ 'POLMASK', count)
 ; Don't create a polmask if there isn't one supplied.
 

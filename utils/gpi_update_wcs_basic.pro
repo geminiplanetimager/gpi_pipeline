@@ -79,7 +79,7 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
   y0 = imsize[1]/2
 
   ;;grab the pixelscale
-  pixelscale = gpi_get_constant('ifs_lenslet_scale')
+  pixelscale = gpi_get_constant('ifs_lenslet_scale') ; arcseconds
   
   ;;get the necessary keywords from the header
   totcount = 0
