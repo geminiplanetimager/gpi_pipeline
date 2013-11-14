@@ -493,7 +493,7 @@ state = {                   $
         rgb_mode: 0, $		  
         activator: 0, $                   ; is "activator" mode on?
         retain_current_slice: 1, $       ; toggles stickiness of current image when loading new file
-        retain_current_zoom: 1, $         ; align next image by default?
+        retain_current_view: 1, $         ; align next image by default?
         retain_current_stretch: 0 ,$      ; use previous minmax for new image?
         isfirstimage: 1, $                ; is this the first image?
         ;default_autoscale: 1, $          ; autoscale images by default?
@@ -740,7 +740,7 @@ top_menu_desc = [ $
                 {cw_pdmenu_s, 0, 'Clear KLIP Data'}, $
                 {cw_pdmenu_s, 12, 'Retain Current Slice'}, $
                 {cw_pdmenu_s, 8, 'Retain Current Stretch'}, $
-                {cw_pdmenu_s, 8, 'Retain Current Zoom'}, $
+                {cw_pdmenu_s, 8, 'Retain Current View'}, $
 ;                {cw_pdmenu_s, 8, 'Auto Align'}, $
                 {cw_pdmenu_s, 8, 'Auto Handedness'}, $
                 {cw_pdmenu_s, 8, 'Suppress Information Messages'}, $
@@ -789,10 +789,10 @@ if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (temp eq 1) ) then (*self.state).re
 widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Retain Current Stretch")],$
                  set_button = (*self.state).retain_current_stretch
 
-tmp = gpi_get_setting('gpitv_retain_current_zoom',/silent,/int)
-if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (temp eq 1) ) then (*self.state).retain_current_zoom = tmp
-widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Retain Current Zoom")],$
-                 set_button = (*self.state).retain_current_zoom
+tmp = gpi_get_setting('gpitv_retain_current_view',/silent,/int)
+if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (temp eq 1) ) then (*self.state).retain_current_view = tmp
+widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Retain Current View")],$
+                 set_button = (*self.state).retain_current_view
 
 ;tmp = gpi_get_setting('gpitv_default_autoscale',/silent,/int)
 ;if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (temp eq 1) ) then (*self.state).default_autoscale = tmp
@@ -1648,10 +1648,10 @@ case event_name of
       widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Retain Current Stretch")],$
                        set_button = (*self.state).retain_current_stretch
    end
-   "Retain Current Zoom": begin
-      (*self.state).retain_current_zoom = 1 - (*self.state).retain_current_zoom
-      widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Retain Current Zoom")],$
-                       set_button = (*self.state).retain_current_zoom
+   "Retain Current View": begin
+      (*self.state).retain_current_view = 1 - (*self.state).retain_current_view
+      widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Retain Current View")],$
+                       set_button = (*self.state).retain_current_view
    end
 
 
@@ -5849,9 +5849,9 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   if (keyword_set(asinh))  then self->setscaling, 'asinh'
   if (keyword_set(sqrt))   then self->setscaling, 'square root'
   
-  ;;reset zoom and centering if not retaining current zoom or if this
+  ;;reset zoom and centering if not retaining current view or if this
   ;;is the first image
-  if ~(*self.state).retain_current_zoom || (*self.state).isfirstimage then begin
+  if ~(*self.state).retain_current_view || (*self.state).isfirstimage then begin
      (*self.state).zoom_level =  0
      (*self.state).zoom_factor = 1.0
      
@@ -5871,11 +5871,11 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
      
      ;; if asked, check if we need to flip to get handedness to normal astronomical
      ;; left-handed sky
-     ;; This doesn't happen if retain_current_zoom is set. by design
+     ;; This doesn't happen if retain_current_view is set. by design
      if (*self.state).autohandedness then self->autohandedness
 
   endif
-  self->recenter, align=(*self.state).retain_current_zoom ; must call recenter whether keeping alignment or not, to update some state vars
+  self->recenter, align=(*self.state).retain_current_view ; must call recenter whether keeping alignment or not, to update some state vars
 
   self->settitle
   self->set_minmax
@@ -14759,7 +14759,7 @@ h = ['GPItv HELP',$
 'Options->Retain Current Slice: Current slice index will be displayed when next image is loaded',$
 '                              (if next image is a data cube)',$
 'Options->Retain Current Stretch: Current stretch settings will be applied to next image loaded',$
-'Options->Retain Current Zoom: Current zoom + position settings will be applied to next image loaded',$
+'Options->Retain Current View: Current zoom + position settings will be applied to next image loaded',$
 ;'Options->Auto Align:          Center image on load',$
 ;'Options->Auto Zoom:           ZoomFit on load',$
 'Options->Supress Information Messages: Do not print out information messages',$
@@ -18775,9 +18775,9 @@ pro GPItv::tvcontr, nosat=nosat, ps3=ps3, nodh=nodh
         pixscl = gpi_get_ifs_lenslet_scale(*(*self.state).exthead_ptr,res=res)
         if res lt 0 then self->message, msgtype = 'information', 'Missing valid WCS: using constant file value.'
         
-        pix_to_ripple = gpi_get_constant('pix_to_ripple',$
-                                        default=44d0*1d-6/gpi_get_constant('primary_diam',default=7.7701d0)*$
-                                        180d0/!dpi*3600d0/pixscl*1.5040541d)
+        pix_to_ripple = gpi_get_constant('pix_to_ripple',default = $
+                                         44d0*1d-6/gpi_get_constant('primary_diam',default=7.7701d0)*$
+                                         180d0/!dpi*3600d0/pixscl*1.5040541d)
         pix_to_ripple *= lambda/1.5040541d
         
         memsrot = gpi_get_constant('mems_rotation',default=1d0)

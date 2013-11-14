@@ -27,7 +27,7 @@ organize_recipes_by_dates	1
 ## GPItv settings
 # gpitv_default_scale	log
 # gpitv_retain_current_slice		1
-# gpitv_retain_current_zoom		0
+# gpitv_retain_current_view     0
 # gpitv_retain_current_stretch		0
 # gpitv_auto_handedness		1
 # gpitv_showfullpaths		0
