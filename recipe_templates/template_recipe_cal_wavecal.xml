@@ -4,6 +4,7 @@
    <fits filename=""/>
 </dataset>
 <module name="Apply Reference Pixel Correction" before_and_after="0" Method="INTERPOLATED" Save="0" gpitv="0" />
+<primitive name="Add DISPERSR keyword if missing" Value="DISP_PRISM_G6262" />
 <module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0"  gpitv="0" />
 <module name="Subtract Thermal/Sky Background if K band" CalibrationFile="AUTOMATIC" Save="0"  gpitv="10" />
 <module name="Interpolate bad pixels in 2D frame" method="vertical"  Save="0" gpitv="0" CalibrationFile="AUTOMATIC" />

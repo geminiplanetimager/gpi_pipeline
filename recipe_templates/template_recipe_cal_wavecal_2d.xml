@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<recipe Name="Wavelength Solution 2D" ReductionType="Calibration" ShortName="wavecal1">
+<dataset InputDir="${GPI_RAW_DATA_DIR}" OutputDir="${GPI_REDUCED_DATA_DIR}">
+</dataset>
+<primitive name="Apply Reference Pixel Correction" Save="           0" gpitv="0" before_and_after="0" Method="INTERPOLATED" />
+<primitive name="Add DISPERSR keyword if missing" value="DISP_PRISM_G6262" />
+<primitive name="Subtract Dark Background" CalibrationFile="AUTOMATIC" RequireExactMatch="0" Save="           0" gpitv="0" />
+<primitive name="Subtract Thermal/Sky Background if K band" CalibrationFile="AUTOMATIC" Save="           0" gpitv="10" />
+<primitive name="Interpolate bad pixels in 2D frame" CalibrationFile="AUTOMATIC" method="vertical" Save="           0" gpitv="0" before_and_after="0" />
+<primitive name="Parallel 2D Wavelength Solution" display="0" boxsizex="7" boxsizey="24" whichpsf="0" numsplit="4" />
+</recipe>
+

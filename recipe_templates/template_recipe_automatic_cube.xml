@@ -6,6 +6,7 @@
 </dataset>
 <!-- <primitive name="Apply Reference Pixel Correction" Save="0" gpitv="0" before_and_after='1' /> -->
 <primitive name="Flag Quicklook" Save="0" />
+<primitive name="Add DISPERSR keyword if missing" Value="DISP_PRISM_G6262" />
 <primitive name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
 <primitive name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
 <primitive name="Update Spot Shifts for Flexure" method="Lookup" manual_dx="0" manual_dy="0" display="-1" Save="0" gpitv="0" />
