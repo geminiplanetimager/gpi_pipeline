@@ -277,7 +277,7 @@ pro gpi_recipe_editor::change_current_template, typestring,seqnum, notemplate=no
 		print, "Chosen template filename:"+((*self.templates)[chosen_template]).filename
 
 		; Load the new template, preserving the data files of the current recipe
-		if ptr_valid(self.drf) then datafiles = self.drf->get_datafiles()
+		if obj_valid(self.drf) then datafiles = self.drf->get_datafiles()
 
         self->open, ((*self.templates)[chosen_template]).filename,  /template
 
@@ -365,6 +365,8 @@ pro gpi_recipe_editor::refresh_arguments_table, primitive_index
     if primitive_index lt 0 then primitive_index=0
     ;if primitive_index gt self.num_primitives-1 then primitive_index= self.num_primitives-1
 
+	if primitive_index gt self.num_primitives-1 then return
+
 	self.selected_primitive_index = primitive_index
 	arg_info = self.drf->get_primitive_args(primitive_index)
 
@@ -375,6 +377,7 @@ pro gpi_recipe_editor::refresh_arguments_table, primitive_index
 	arg_table_text[*,3] = arg_info.descriptions
 
     widget_control,   self.tableArgs_id, set_value= arg_table_text 
+    widget_control,   self.tableArgs_id, set_table_view= [0,0]
 end
 
 ;+--------------------------------------------------------------------------------
@@ -686,7 +689,7 @@ pro gpi_recipe_editor::event,ev
 				selection = WIDGET_INFO((self.RecipePrimitivesTable_id), /TABLE_SELECT) 
 
 				if gpi_get_setting('enable_editor_debug', default=0,/bool,/silent) then $
-				print, "prim. table selection: ", selection
+					print, "prim. table selection: ", selection
 
 				;update arguments table
 				indselected=selection[1]
@@ -694,71 +697,71 @@ pro gpi_recipe_editor::event,ev
 				self->refresh_arguments_table, indselected
 
 
-				current_args = self.drf->get_primitive_args( indselected )
-				n_args = (self.drf->get_summary()).nsteps
-				wm = where( strmatch( strupcase(current_args.names),  'CALIBRATIONFILE'), mct)
-				if gpi_get_setting('enable_editor_debug', default=0,/bool,/silent) then $
-					if mct gt 0 then print, 'has calibration file '+ current_args.values[wm]
-			return
-				;, calibrationfile='tmp'
-
-               ;;if click on FindCalibration File mode
-               if (selection[0] eq 1) && (selection[2] eq 1) && (nsteps gt 0)  && (ev.sel_bottom ne -1) then begin
-
-				   self.drf->set_primitive_args,  indselected, calibrationfile='Manual'
-                    if (*self.currModSelec)[1,selection[1]] eq 'Manual' then begin
-                       (*self.currModSelec)[1,selection[1]]='Auto'
-                       resolvedcalibfile='AUTOMATIC'
-                       (*self.currModSelec)[2,selection[1]]=resolvedcalibfile
-                        indcal=where((*self.currModSelecParamTab)[*,0] eq 'CalibrationFile',cf)
-                        indcalib=where(((*self.PrimitiveInfo).argname)[[*self.indarg]] eq 'CalibrationFile', ccf)
-                        argtab=((*self.PrimitiveInfo).argdefault)
-                        argtab[(*self.indarg)[indcalib]]=resolvedcalibfile
-                        ((*self.PrimitiveInfo).argdefault)=argtab
-                        (*self.currModSelecParamTab)[indcal,1]=resolvedcalibfile
-                    endif else begin
-                    if (*self.currModSelec)[1,selection[1]] eq 'Auto' then begin
-                       (*self.currModSelec)[1,selection[1]]='Manual'
-                       (*self.currModSelec)[2,selection[1]]='Click here to select a calibration file'
-                       resolvedcalibfile=''
-                        indcal=where((*self.currModSelecParamTab)[*,0] eq 'CalibrationFile',cf)
-                        indcalib=where(((*self.PrimitiveInfo).argname)[[*self.indarg]] eq 'CalibrationFile', ccf)
-                        argtab=((*self.PrimitiveInfo).argdefault)
-                        argtab[(*self.indarg)[indcalib]]=resolvedcalibfile
-                        ((*self.PrimitiveInfo).argdefault)=argtab
-                        (*self.currModSelecParamTab)[indcal,1]=resolvedcalibfile
-                       
-                    endif    
-                    endelse                
-                  widget_control,   self.RecipePrimitivesTable_id,  set_value=(*self.currModSelec)[0:2,*]
-                  widget_control,   self.tableArgs_id,  set_value=(*self.currModSelecParamTab)
-               endif
-               
-               ;;if click on calib file, open a dialogpickfile
-               if (selection[0] eq 2) && (selection[2] eq 2) && (n_elements((*self.currModSelecParamTab)) gt 0) then begin
-                 indcal=where((*self.currModSelecParamTab)[*,0] eq 'CalibrationFile',cf)
-                 if cf eq 1 then begin                     
-                     ;extractparam,  float((*self.currModSelec)[4,selection[1]])
-                  if *self.indarg ne [-1] then begin
-                     indcalib=where(((*self.PrimitiveInfo).argname)[[*self.indarg]] eq 'CalibrationFile', ccf)
-                     if (ccf ne 0)  then begin 
-                        extfile=((*self.PrimitiveInfo).argtype)[[(*self.indarg)[indcalib]]]
-                        resolvedcalibfile = DIALOG_PICKFILE(TITLE='Select Calibration File of type: '+extfile , PATH=self.inputcaldir,/MUST_EXIST,FILTER = '*'+extfile+'*.*')
-						if resolvedcalibfile ne '' then begin ; if user cancels we get a null string back, in which case do nothing.
-							argtab=((*self.PrimitiveInfo).argdefault)
-							argtab[(*self.indarg)[indcalib]]=resolvedcalibfile
-							((*self.PrimitiveInfo).argdefault)=argtab
-							(*self.currModSelecParamTab)[indcal,1]=resolvedcalibfile
-							;((*self.PrimitiveInfo).argdefault)[[(*self.indarg)[indcalib]]]=resolvedcalibfile
-							(*self.currModSelec)[2,selection[1]]=resolvedcalibfile
-							(*self.currModSelec)[1,selection[1]] = 'Manual'
-						endif
-                     endif
-                  endif
-                  widget_control,   self.RecipePrimitivesTable_id,  set_value=(*self.currModSelec)[0:2,*]
-                  widget_control,   self.tableArgs_id,  set_value=(*self.currModSelecParamTab)
-                 endif
-               endif               
+;				current_args = self.drf->get_primitive_args( indselected )
+;				n_args = (self.drf->get_summary()).nsteps
+;				wm = where( strmatch( strupcase(current_args.names),  'CALIBRATIONFILE'), mct)
+;				if gpi_get_setting('enable_editor_debug', default=0,/bool,/silent) then $
+;					if mct gt 0 then print, 'has calibration file '+ current_args.values[wm]
+;			return
+;				;, calibrationfile='tmp'
+;
+;               ;;if click on FindCalibration File mode
+;               if (selection[0] eq 1) && (selection[2] eq 1) && (nsteps gt 0)  && (ev.sel_bottom ne -1) then begin
+;
+;				   self.drf->set_primitive_args,  indselected, calibrationfile='Manual'
+;                    if (*self.currModSelec)[1,selection[1]] eq 'Manual' then begin
+;                       (*self.currModSelec)[1,selection[1]]='Auto'
+;                       resolvedcalibfile='AUTOMATIC'
+;                       (*self.currModSelec)[2,selection[1]]=resolvedcalibfile
+;                        indcal=where((*self.currModSelecParamTab)[*,0] eq 'CalibrationFile',cf)
+;                        indcalib=where(((*self.PrimitiveInfo).argname)[[*self.indarg]] eq 'CalibrationFile', ccf)
+;                        argtab=((*self.PrimitiveInfo).argdefault)
+;                        argtab[(*self.indarg)[indcalib]]=resolvedcalibfile
+;                        ((*self.PrimitiveInfo).argdefault)=argtab
+;                        (*self.currModSelecParamTab)[indcal,1]=resolvedcalibfile
+;                    endif else begin
+;                    if (*self.currModSelec)[1,selection[1]] eq 'Auto' then begin
+;                       (*self.currModSelec)[1,selection[1]]='Manual'
+;                       (*self.currModSelec)[2,selection[1]]='Click here to select a calibration file'
+;                       resolvedcalibfile=''
+;                        indcal=where((*self.currModSelecParamTab)[*,0] eq 'CalibrationFile',cf)
+;                        indcalib=where(((*self.PrimitiveInfo).argname)[[*self.indarg]] eq 'CalibrationFile', ccf)
+;                        argtab=((*self.PrimitiveInfo).argdefault)
+;                        argtab[(*self.indarg)[indcalib]]=resolvedcalibfile
+;                        ((*self.PrimitiveInfo).argdefault)=argtab
+;                        (*self.currModSelecParamTab)[indcal,1]=resolvedcalibfile
+;                       
+;                    endif    
+;                    endelse                
+;                  widget_control,   self.RecipePrimitivesTable_id,  set_value=(*self.currModSelec)[0:2,*]
+;                  widget_control,   self.tableArgs_id,  set_value=(*self.currModSelecParamTab)
+;               endif
+;               
+;               ;;if click on calib file, open a dialogpickfile
+;               if (selection[0] eq 2) && (selection[2] eq 2) && (n_elements((*self.currModSelecParamTab)) gt 0) then begin
+;                 indcal=where((*self.currModSelecParamTab)[*,0] eq 'CalibrationFile',cf)
+;                 if cf eq 1 then begin                     
+;                     ;extractparam,  float((*self.currModSelec)[4,selection[1]])
+;                  if *self.indarg ne [-1] then begin
+;                     indcalib=where(((*self.PrimitiveInfo).argname)[[*self.indarg]] eq 'CalibrationFile', ccf)
+;                     if (ccf ne 0)  then begin 
+;                        extfile=((*self.PrimitiveInfo).argtype)[[(*self.indarg)[indcalib]]]
+;                        resolvedcalibfile = DIALOG_PICKFILE(TITLE='Select Calibration File of type: '+extfile , PATH=self.inputcaldir,/MUST_EXIST,FILTER = '*'+extfile+'*.*')
+;						if resolvedcalibfile ne '' then begin ; if user cancels we get a null string back, in which case do nothing.
+;							argtab=((*self.PrimitiveInfo).argdefault)
+;							argtab[(*self.indarg)[indcalib]]=resolvedcalibfile
+;							((*self.PrimitiveInfo).argdefault)=argtab
+;							(*self.currModSelecParamTab)[indcal,1]=resolvedcalibfile
+;							;((*self.PrimitiveInfo).argdefault)[[(*self.indarg)[indcalib]]]=resolvedcalibfile
+;							(*self.currModSelec)[2,selection[1]]=resolvedcalibfile
+;							(*self.currModSelec)[1,selection[1]] = 'Manual'
+;						endif
+;                     endif
+;                  endif
+;                  widget_control,   self.RecipePrimitivesTable_id,  set_value=(*self.currModSelec)[0:2,*]
+;                  widget_control,   self.tableArgs_id,  set_value=(*self.currModSelecParamTab)
+;                 endif
+;               endif               
         ENDIF ; end of left click
     	IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_CONTEXT') THEN BEGIN  ;RIGHT CLICK
            self->RemovePrimitive
