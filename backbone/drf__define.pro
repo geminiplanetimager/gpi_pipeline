@@ -521,7 +521,7 @@ FUNCTION drf::get_primitive_args, modnum, count=count,verbose=verbose, status=st
 
 	nprims = n_elements(*self.primitives)
 	if (modnum lt 0) or (modnum gt nprims-1) then begin
-		message, /info, 'Invalue primitive index outside of 0 to '+strc(nprims-1)
+		message, /info, 'Invalid primitive index outside of 0 to '+strc(nprims-1)
 		status=NOT_OK
 		return, {names: '', values:'', defaults:'', ranges: '', descriptions: '', types:''}
 	endif
@@ -658,6 +658,15 @@ pro drf::save, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silent=s
 
 	end
 
+	recipe_outputdir = file_dirname(outputfile)
+	dir_ok = gpi_check_dir_exists(recipe_outputdir)
+	if dir_ok ne OK then begin
+		self->Log, "Invalid output directory: " +recipe_outputdir
+		status=NOT_OK
+		return
+	endif
+
+
 
 	if ~(keyword_set(silent)) then self->log,'Writing recipe to '+gpi_shorten_path(outputfile)
 
@@ -693,7 +702,7 @@ PRO drf::queue, filename=filename, queued_filename=queued_filename, status=statu
 
 	self.last_saved_filename= prev_outputfile ; restore previous value
 
-	self->Log, "    Queued "+file_basename(queued_filename)
+	self->Log, "    Queued "+queued_filename
 
 end
 
