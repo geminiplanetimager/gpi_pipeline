@@ -105,7 +105,7 @@ if ~finite(gridfac) then return, error('FAILURE ('+functionName+'): Could not ma
    nlambda=n_elements(lambda)
    widthL=(lambdamax-lambdamin)
    SURFA=!PI*(Dtel^2.)/4.-!PI*((Obscentral)^2.)/4.
-   gaindetector=1. ;1.1 ;from ph to count: IS IT IN THE KEYWORD LIST?
+   gaindetector=double(backbone->get_keyword( 'SYSGAIN'))
    ifsunits=strcompress(backbone->get_keyword( 'BUNIT'),/rem)
 
 ;; normalize by n_elements(lambdapsf) because widthL is the width of the entire band here
@@ -164,9 +164,9 @@ unitslist = ['Counts', 'Counts/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A
 	*(dataset.currframe[0])=cubef3D
 	for i=0,n_elements(convfac)-1 do $
 	backbone->set_keyword, 'FSCALE'+strc(i), convfac[i]*(exposuretime), "scale to convert from counts to 'ph/s/nm/m^2", ext_num=1
-	backbone->set_keyword, 'CUNIT',  unitslist[unitschoice] ,"Data units", ext_num=0
+	backbone->set_keyword, 'CUNIT',  unitslist[unitschoice] ,"Data units", ext_num=1
 	;update raw IFS units:
-	backbone->set_keyword, 'BUNIT',  unitslist[unitschoice] ,"Data units", ext_num=0
+	backbone->set_keyword, 'BUNIT',  unitslist[unitschoice] ,"Data units", ext_num=1
 		;FXADDPAR, *(dataset.headersExt)[numfile], 'FSCALE'+strc(i), convfac[i]*(exposuretime) ;fscale to convert from counts to 'ph/s/nm/m^2'
 	;FXADDPAR, *(dataset.headersExt)[numfile], 'CUNIT',  unitslist[unitschoice]  
 
