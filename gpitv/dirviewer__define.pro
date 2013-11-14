@@ -639,7 +639,7 @@ pro dirviewer::refresh
 		  *info.theFiles = [*info.theFiles, specificFiles[self->BSort(specificFiles)]]
 	ENDFOR
 
-	if keyword_set(self.time_sort) then begin
+	if keyword_set(self.time_sort) and n_elements(*info.theFiles) gt 0 then begin
 		specificfiles = *info.theFiles	
 		fileinfo = file_info(specificfiles[0])
 		fileinfos = replicate(fileinfo, n_elements(specificfiles))
