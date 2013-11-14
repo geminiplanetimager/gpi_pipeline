@@ -72,7 +72,7 @@ FUNCTION gpipipelinebackbone::Init,  session=session, verbose=verbose, nogui=nog
         DEBUG                    ; is DEBUG mode enabled?
     
 
-	DEBUG=0
+	DEBUG= gpi_get_setting('enable_primitive_debug',default=0,/silent)
 
 	;LOG_GENERAL = 1       ; LUNs for logfiles
 	self.LOG_GENERAL = 1
@@ -832,13 +832,14 @@ FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
 
     ; if we use call_function to run the module, then the IDL code will STOP at the location
     ; of any error, instead of returning here... This is way better for
-    ; debugging. On the other hand, for production use, we want to use exec, since that
-    ; gracefully handles any failures without stopping overall pipeline execution.
+    ; debugging. On the other hand, for production use, we don't want it to stop
+	; so instead use a catch block so that it will 
+    ; gracefully handle any failures without stopping overall pipeline execution.
 
     ; Users can switch between these two modes using the 'enable_primitive_debug' pipeline configuration setting
 
     if self.verbose then  self->Log,"        idl command: "+Modules[ModNum].IDLCommand
-    if gpi_get_setting('enable_primitive_debug',default=0) then begin
+    if gpi_get_setting('enable_primitive_debug',default=0,/silent) then begin
         call_function_error=0 ; don't use catch when debugging, stop on errors
     endif else begin
     	catch, call_function_error
@@ -847,6 +848,7 @@ FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
 	if call_function_error eq 0 then begin
 		status = call_function( Modules[ModNum].IDLCommand, *self.data, Modules, self ) 
 	endif else begin
+		stop
 		self->Log, "  ERROR in calling primitive '"+Modules[ModNum].Name+"'. Check primitive name and arguments?"
 		self->Log,"        idl command attempted: "+Modules[ModNum].IDLCommand
 
