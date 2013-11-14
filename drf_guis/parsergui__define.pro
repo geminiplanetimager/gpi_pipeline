@@ -234,6 +234,14 @@ pro parsergui::addfile, filenames, mode=mode
         endfor
         widget_control,storage.fname,set_value=pfile ; update displayed filename information - filenames plus parsed keywords
 
+		wvalid = where(finfo.valid, nvalid, complement=winvalid, ncomplement=ninvalid)
+		if ninvalid gt 0 then begin
+			self->Log, "Some files are lacking valid required FITS keywords: "
+			self->Log, strjoin(file[winvalid], ", ")
+			self->Log, "These will be ignored in all further parsing steps."
+			finfo = finfo[wvalid]
+		endif
+
 
 	self->Log,'Now analyzing data based on keywords...'
 
