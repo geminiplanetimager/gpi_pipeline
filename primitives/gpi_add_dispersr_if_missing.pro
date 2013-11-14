@@ -23,12 +23,20 @@ primitive_version= '$Id: gpi_add_missingkeyword.pro 2026 2013-10-29 22:44:50Z mp
 @__start_primitive
 
 	val = backbone->get_keyword("DISPERSR", count=ct)
-	if ct gt 0 then return, OK ; nothing needs to be done. 
+	if ct eq 0 then begin
+		backbone->set_keyword, "DISPERSR", Modules[thisModuleIndex].value
+		backbone->Log, 'Added missing DISPERSR keyword value="'+Modules[thisModuleIndex].value+'".', depth=3
+	endif
+
+	val = backbone->get_keyword("INPORT", count=ct)
+	if ct eq 0 then begin
+		backbone->set_keyword, "INPORT", 5
+		backbone->Log, 'Added missing INPORT keyword value="5".', depth=3
+	endif
 
 
-    
-    backbone->set_keyword, "DISPERSR", Modules[thisModuleIndex].value
-    backbone->Log, 'Added missing DISPERSR keyword value="'+Modules[thisModuleIndex].value+'".', depth=3
+
+
    
    
 @__end_primitive
