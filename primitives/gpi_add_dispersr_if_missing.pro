@@ -1,6 +1,6 @@
 ;+
 ; NAME: gpi_add_dispersr_if_missing
-; PIPELINE PRIMITIVE DESCRIPTION: Add DISPERSR keyword if missing - workaround for 1st light run
+; PIPELINE PRIMITIVE DESCRIPTION: Add DISPERSR keyword if missing
 ; Useful for test data,...
 ;
 ; OUTPUTS: The FITS file is modified in memory to add the specified keyword and
@@ -17,7 +17,7 @@
 ;   2013-07-11 MP: Documentation cleanup.
 ;-
 
-function gpi_add_missingkeyword,  DataSet, Modules, Backbone
+function gpi_add_dispersr_if_missing,  DataSet, Modules, Backbone
 
 primitive_version= '$Id: gpi_add_missingkeyword.pro 2026 2013-10-29 22:44:50Z mperrin $' ; get version from subversion to store in header history
 @__start_primitive
