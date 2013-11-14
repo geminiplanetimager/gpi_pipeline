@@ -8,12 +8,17 @@
 ; HISTORY:
 ;   2007/12 Jerome Maire
 ;   2013-06-17 MP minor typo bugfix
+;    2013-11-14 JM path changed for Pickles lib and file existence check
 ;-
 function ExtractSpectra2,  spect, lambda, lamb=lamb
 
 widthL=(lambda(1)-lambda(0))
 
-fileSpectra=gpi_get_directory('DST')+path_sep()+'pickles'+path_sep()+'uk'+spect+'.dat'
+fileSpectra=gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'pickles'+path_sep()+'uk'+spect+'.dat'
+ ;; in either case, does the requested file actually exist?
+   if ( ~ file_test ( fileSpectra ) ) then  return, error (spec+' not found in Pickles library.  ')
+      
+ 
 Spectra = READ_ASCII(fileSpectra, DATA_START=10) ;[lambda(A) f(lambda)/f(0.5556um)]   lambda sampling: 5A
 
 Spectra.field1(1,*)=Spectra.field1(0,*)*Spectra.field1(1,*) ;flambda=�f
@@ -112,6 +117,7 @@ end
 ;   r
 ;   2008-04-02 JM: do not force filter to be H in n_phot_H call
 ;   2008-04-07	MP: The sky background stuff in here is wrong; moved to dst_add_sky
+;   2013-11-14 JM: updated keywords
 ;-
 
 function PIP_nbphot_trans_lowres, hdr, lambda, atmostrans=atmostrans, filtertrans=filtertrans
@@ -121,8 +127,8 @@ function PIP_nbphot_trans_lowres, hdr, lambda, atmostrans=atmostrans, filtertran
       magni=double(SXPAR( hdr, 'Hmag'))
     spect=strcompress(SXPAR( hdr, 'SPECTYPE'),/rem)
     print, 'star mag=',magni,' spectype=',spect
-    Dtel=double(SXPAR( hdr, 'TELDIAM'))
-    Obscentral=double(SXPAR( hdr, 'SECDIAM'))
+        Dtel=gpi_get_constant('primary_diam',default=7.7701d0)
+    Obscentral=gpi_get_constant('secondary_diam',default=1.02375d0)
     exposuretime=double(SXPAR( hdr, 'ITIME'))
     filter=gpi_simplify_keyword_value(SXPAR( hdr, 'IFSFILT'))
   
