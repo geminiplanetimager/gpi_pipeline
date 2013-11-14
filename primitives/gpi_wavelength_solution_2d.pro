@@ -26,7 +26,9 @@
 ; PIPELINE ARGUMENT: Name="boxsizex" Type="Int" Range="[0,15]" Default="7" Desc="x dimension of a lenslet cutout"
 ; PIPELINE ARGUMENT: Name="boxsizey" Type="Int" Range="[0,50]" Default="24" Desc="y dimension of a lenslet cutout"
 ; PIPELINE ARGUMENT: Name="whichpsf" Type="Int" Range="[0,1]" Default="0" Desc="Type of psf 0;gaussian, 1;microlens"
-; 
+; PIPELINE ARGUMENT: Name="parallel" Type="Int" Range="[0,1]" Default="0" Desc="Option for Parallelization 0;none, 1;parallel"
+; PIPELINE ARGUMENT: Name="numsplit" Type="Int" Range="[1,281]" Default="1" Desc="Number of cores for parallelization"
+;
 ; where in the order of the primitives should this go by default?
 ; PIPELINE ORDER: 1.7
 ;
@@ -58,9 +60,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
  	if tag_exist( Modules[thisModuleIndex], "boxsizex") then boxsizex=uint(Modules[thisModuleIndex].boxsizex) else boxsizex=7
  	if tag_exist( Modules[thisModuleIndex], "boxsizey") then boxsizey=uint(Modules[thisModuleIndex].boxsizey) else boxsizey=24
  	if tag_exist( Modules[thisModuleIndex], "whichpsf") then whichpsf=uint(Modules[thisModuleIndex].whichpsf) else whichpsf=0
- 
-;Define common block to be used in wrapper.pro and ngauss.pro
-common ngausscommon, numgauss, wl, flux, lambdao,my_psf
+  	if tag_exist( Modules[thisModuleIndex], "parallel") then parallel=uint(Modules[thisModuleIndex].parallel) else parallel=1
+ 	if tag_exist( Modules[thisModuleIndex], "numsplit") then numsplit=uint(Modules[thisModuleIndex].numsplit) else numsplit=1
 
 
 ;Load in the image. Primitive assumes a dark,flat,badpixel,flexure, and microphonics corrected lamp image. 
@@ -79,7 +80,7 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
         print,wlcalsize
 
         newwavecal=dblarr(wlcalsize)
-        newwavecal[*,*,2]=refwlcal[*,*,2]
+        
 
 
         ;READ IN BAD PIXEL MAP
@@ -102,9 +103,7 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
         backbone->Log,"Now finding wavelength solution for "+filter+lamp, depth=3
         ;backbone->Log, gpi_get_directory('GPI_DRP_CONFIG_DIR')
         datafn = gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+filter+lamp+'.dat'
-        readcol, datafn,wl,flux,skipline=1,format='F,F'
-        readcol,datafn,nmgauss,numline=1,format='I'
-        numgauss=nmgauss[0]
+ 
 
 ;print,'numgauss=',numgauss
 
@@ -116,75 +115,89 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
         yinterp=dblarr(78961)
         q=0L
 
+   
+
+
 istart=0
 iend=280
 jstart=0
 jend=280
 
-;count=0
         backbone->Log,"Parallelizing over "+strc(numsplit)+" IDL processes", depth=3,/flush
 
+if parallel EQ 1 then begin
+
+readcol, datafn,wla,fluxa,skipline=1,format='F,F'
+readcol,datafn,nmgauss,numline=1,format='I'
+ 
+
+count=0
+
 ;Parallelize the top level for loop
-; for i=istart,iend do begin
-;split_for, istart,iend, nsplit=numsplit,varnames=['jstart','jend','refwlcal','boxsizex','boxsizey','image','badpix','newwavecal','q','wlcalsize','xinterp','yinterp','wla','fluxa','nmgauss','count'],outvar=['newwavecal','count'], commands=[$
-;'common ngausscommon, numgauss, wl, flux, lambdao,my_psf',$
-;'numgauss=nmgauss[0]',$
-;'wl=wla',$
-;'flux=fluxa',$
-;'count=count+1',$
-;'for j = jstart,jend do begin',$
-;'xo=refwlcal[i,j,1]',$
-;'yo=refwlcal[i,j,0]',$
-;'startx=floor(xo-boxsizex/2.0)',$
-;'starty=round(yo)-20',$
-;'stopx = startx+boxsizex' ,$
-;'stopy = starty+boxsizey' ,$
-;'if refwlcal[i,j,0] NE refwlcal[i,j,0] then begin' ,$
-;'    newwavecal[i,j,*]=!values.f_nan' ,$
-;'    continue' ,$
-;'endif' ,$
-;'if starty LT 0 then starty=0' ,$
-;'if startx LT 0 then startx=0' ,$
-;'lensletarray=image[startx:stopx, starty:stopy]',$
-;'badpixmap=badpix[startx:stopx, starty:stopy]',$
-;'catch,error_status',$
-;'if error_status NE 0 then begin',$
-;'   catch,/cancel',$
-;'   print, "errorstatus, i, j =====",error_status,i,j',$
-;'   print, "error message =====",!error_state.msg',$
-;'   print, "q ============", q',$
-;'   xinterp[q]=i',$
-;'   yinterp[q]=j',$
-;'   q++',$
-;'   continue',$
-;'endif',$
-;'res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss")',$              
-;'newwavecal[i,j,1]=res[0]+startx',$
-;'newwavecal[i,j,0]=res[1]+starty',$
-;'newwavecal[i,j,2]=refwlcal[i,j,2]',$
-;'newwavecal[i,j,3]=res[2]',$
-;'newwavecal[i,j,4]=res[3]',$
-;'endfor',$
-;'print,"Have now fit "+strc(i*j)+"/78961 lenslets"']
+
+ split_for, istart,iend, nsplit=numsplit,varnames=['jstart','jend','refwlcal','boxsizex','boxsizey','image','badpix','newwavecal','q','wlcalsize','xinterp','yinterp','wla','fluxa','nmgauss','count'],outvar=['newwavecal','count'], commands=[$
+'common ngausscommon, numgauss, wl, flux, lambdao,my_psf',$
+'numgauss=nmgauss[0]',$
+'wl=wla',$
+'flux=fluxa',$
+'count=count+1',$
+'for j = jstart,jend do begin',$
+'xo=refwlcal[i,j,1]',$
+'yo=refwlcal[i,j,0]',$
+'startx=floor(xo-boxsizex/2.0)',$
+'starty=round(yo)-20',$
+'stopx = startx+boxsizex' ,$
+'stopy = starty+boxsizey' ,$
+'if refwlcal[i,j,0] NE refwlcal[i,j,0] then begin' ,$
+'    newwavecal[i,j,*]=!values.f_nan' ,$
+'    continue' ,$
+'endif' ,$
+'if starty LT 0 then starty=0' ,$
+'if startx LT 0 then startx=0' ,$
+'lensletarray=image[startx:stopx, starty:stopy]',$
+'badpixmap=badpix[startx:stopx, starty:stopy]',$
+'catch,error_status',$
+'if error_status NE 0 then begin',$
+'   catch,/cancel',$
+'   print, "errorstatus, i, j =====",error_status,i,j',$
+'   print, "error message =====",!error_state.msg',$
+'   print, "q ============", q',$
+'   xinterp[q]=i',$
+'   yinterp[q]=j',$
+'   q++',$
+'   continue',$
+'endif',$
+'res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss")',$              
+'newwavecal[i,j,1]=res[0]+startx',$
+'newwavecal[i,j,0]=res[1]+starty',$
+'newwavecal[i,j,2]=refwlcal[i,j,2]',$
+'newwavecal[i,j,3]=res[2]',$
+'newwavecal[i,j,4]=res[3]',$
+'endfor',$
+'print,"Have now fit "+strc(i*j)+"/78961 lenslets"']
 
 
-;print,'The new wavecals:',size(newwavecal0)
+width=dblarr(numsplit)
 
-;print,'Counting:'
-;print,count0
-;print,count1
-;print,count2
-;print,count3
+for k=0,numsplit-1 do begin
+   width[strc(k)] = scope_varfetch('count' + strc(k))
+   if k EQ 0 then istart=0 else istart=total(width[0:k-1])
+   iend=istart+width[k]-1
+   dummywave = scope_varfetch('newwavecal'+strc(k))
+   newwavecal[istart:iend,*,*]=dummywave[istart:iend,*,*]
+endfor
 
-;width=dblarr(numsplit)
 
-;for k=0,numsplit-1 do begin
-;   width[strc(k)] = scope_varfetch('count' + strc(k))
-;   if k EQ 0 then istart=0 else istart=total(width[0:k-1])
-;   iend=istart+width[k]-1
-;   dummywave = scope_varfetch('newwavecal'+strc(k))
-;   newwavecal[istart:iend,*,*]=dummywave[istart:iend,*,*]
-;endfor
+endif else begin
+
+;Define common block to be used in wrapper.pro and ngauss.pro
+common ngausscommon, numgauss, wl, flux, lambdao,my_psf
+
+ readcol, datafn,wl,flux,skipline=1,format='F,F'
+ readcol,datafn,nmgauss,numline=1,format='I'
+ numgauss=nmgauss[0]
+
+newwavecal[*,*,2]=refwlcal[*,*,2]
 
 for i = istart,iend do begin
       for j = jstart,jend do begin
@@ -252,12 +265,27 @@ for i = istart,iend do begin
 
  		  res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss")                  
 
+
+                  ;take a running average of the unused
+                  ;result parameters to be used in
+                  ;interpolation
+                  sizeres=size(res,/dimensions)
+
 ;; 		; note swap of Y and X here to match GPI convention:
-                   newwavecal[i,j,1]=res[0]+startx
-                   newwavecal[i,j,0]=res[1]+starty
-                   newwavecal[i,j,3]=res[2]      ;w
-                   newwavecal[i,j,4]=res[3]      ;theta
-                  
+                  if sizeres LT 3 then begin
+                     print,'Setting the wavecal to default values'
+                     xshift=mean(newwavecal[i-5:i-1,j-5:j-1,1],/nan)-mean(refwlcal[i-5:i-1,j-5:j-1,1],/nan)
+                     yshift=mean(newwavecal[i-5:i-1,j-5:j-1,0],/nan)-mean(refwlcal[i-5:i-1,j-5:j-1,0],/nan)
+                     newwavecal[i,j,1]=xo+xshift
+                     newwavecal[i,j,0]=yo+yshift
+                     newwavecal[i,j,3]=7.0      ;w
+                     newwavecal[i,j,4]=7.0     ;theta
+                  endif else begin
+                     newwavecal[i,j,1]=res[0]+startx
+                     newwavecal[i,j,0]=res[1]+starty
+                     newwavecal[i,j,3]=res[2] ;w
+                     newwavecal[i,j,4]=res[3] ;theta
+                  endelse
 
 ;;                   sizearray=size(lensletarray,/dimension)
 ;;                   ydimension=sizearray[1]
@@ -289,6 +317,7 @@ for i = istart,iend do begin
 
          endfor
 
+endelse
 
 
 ;Edit the header of the original raw data products to (-mean.fits
