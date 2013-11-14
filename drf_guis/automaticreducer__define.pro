@@ -23,7 +23,7 @@
 ;-------------------------
 pro automaticreducer::set_default_filespec
 	if keyword_set(gpi_get_setting('at_gemini', default=0,/silent)) then begin
-		self.watch_filespec = 'S20'+gpi_datestr(/current)+'S*.fits'
+		self.watch_filespec = 'S20'+gpi_datestr(/current)+'*.fits'
 	endif else begin
 		self.watch_filespec = '*.fits'
 	endelse
@@ -198,6 +198,8 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 		'OPEN':templatename='Quicklook Automatic Undispersed Extraction'
 		endcase
 	endif else begin
+		ind=widget_info(self.seqid,/DROPLIST_SELECT)
+		self.user_template=((*self.templates).name)[ind]
 		templatename = self.user_template
 	endelse
 		
@@ -381,7 +383,6 @@ pro automaticreducer::event, ev
 		end
 		else: begin
 			message,/info, 'Unknown button event: '+uname
-			stop
 		endelse
 		endcase
 
@@ -400,9 +401,9 @@ pro automaticreducer::event, ev
   	'WIDGET_KILL_REQUEST': self->confirm_close
   	'WIDGET_DROPLIST': begin 
 		if uname eq 'select_template' then begin
-			print, self.templates[ind]
         	ind=widget_info(self.seqid,/DROPLIST_SELECT)
-			self.user_template=self.templates[ind]
+			;print, self.templates[ind]
+			self.user_template= (*self.templates)[ind].name
 		endif
 	end
 	
@@ -415,7 +416,8 @@ pro automaticreducer::event, ev
 	
 	end
 	'WIDGET_MENU': begin
-		stop
+		;stop
+		
 	end
     else:   begin
 		print, "No handler defined for event of type "+tag_names(ev, /structure_name)+" in automaticreducer"
@@ -586,7 +588,7 @@ function automaticreducer::init, groupleader, _extra=_extra
 
 	base_dir = widget_base(self.top_base, /row)
 	self.seqid = WIDGET_DROPLIST(base_dir , title='Select template:', frame=0, Value=(*self.templates).name, $
-		uvalue='select_template',resource_name='XmDroplistButton', sensitive=0)
+		uvalue='select_template', uname='select_template', resource_name='XmDroplistButton', sensitive=0)
 
 
 ;	base_dir = widget_base(self.top_base, /row)
