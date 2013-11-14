@@ -98,14 +98,14 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 
 	; Generate output filename
 	; remove extension if need be
-	base_filename = file_basename(filenm)
+	base_filename = file_basename(gpi_expand_path(filenm))
 	extloc = strpos(base_filename,'.', /reverse_search)
 
 	; suffix must be separated by a dash
 	if strmid(s_Ext,0,1) eq '-' then strreplace, s_Ext,'-','_' ; swap dashes to underscores!
 	if strmid(s_Ext,0,1) ne '_' then s_Ext = '_'+s_Ext
 
-	c_File = s_OutputDir + strmid(filenm,0,extloc)+ s_Ext+'.fits'
+	c_File = s_OutputDir + strmid(base_filename,0,extloc)+ s_Ext+'.fits'
 
 	if ( NOT bool_is_string(c_File) ) then $
 	   return, error('FAILURE ('+functionName+'): Output filename creation failed.')

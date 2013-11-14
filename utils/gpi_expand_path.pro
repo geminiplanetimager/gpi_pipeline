@@ -17,6 +17,17 @@
 ; OUTPUTS:
 ; 	returns the path with the variables expanded
 ;
+; INPUT KEYWORDS:
+;	/notruncate	By default if you have a string with a variable
+;				in the middle of a path which has an absolute
+;				path in it, the first part of the path should be
+;				truncated off. Sometimes you don't want this behavior,
+;				in particular the call in gpidrfparser__define that
+;				expands all variables in an entire DRF before
+;				storing it in a FITS header history.
+;	/recursion	Used internally by this function when calling itself
+;				recursively. Not otherwise useful.
+;
 ; OUTPUT KEYWORD:
 ; 	vars_expanded	returns a list of the variables expanded. 
 ;
@@ -37,7 +48,7 @@
 ;-
 
 
-FUNCTION gpi_expand_path, inputpath, vars_expanded=vars_expanded, recursion=recursion
+FUNCTION gpi_expand_path, inputpath, vars_expanded=vars_expanded, recursion=recursion, notruncate=notruncate
 
 compile_opt defint32, strictarr, logical_predicate
 
@@ -60,7 +71,7 @@ if res ge 0 then begin
 	; then there is stuff prior to that in the file spec, we should log
 	; that confusing state but hand back a valid absolute path anyway.
 	
-	if strmid(var_value,0,1) eq '/' and strmid(inputpath,0,res) ne '' then begin
+	if strmid(var_value,0,1) eq '/' and strmid(inputpath,0,res) ne '' and ~(keyword_set(notruncate)) then begin
 		message,/info, 'Encountered absolute path variable in the middle of a filename; discarding everything that came before.'
 		expanded = gpi_get_directory(varname)+ strmid(inputpath,res+length)
 	endif else begin
