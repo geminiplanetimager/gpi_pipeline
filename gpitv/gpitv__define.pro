@@ -1566,6 +1566,7 @@ case event_name of
 		   ; native orientation. So we need to take the difference
 
 		   self->rotate,   (*self.state).rot_angle - npa
+		   self->autohandedness
 
 
 		endif else begin
@@ -1802,7 +1803,6 @@ case event.type of
 	end
 	else: begin
            self->message, msgtype = 'error',  'unknown event, ignoring it'
-		;stop
 	end
 endcase
 
@@ -3084,7 +3084,6 @@ if (*self.state).rgb_mode then begin
 	rgb_stretch = indgen((*self.state).ncolors)
 	tmp_image0 = tmp_image
 	tmp_image = p[tmp_image]
-	;stop
 	; tmp_image normally runs 8-254 (the state.ncolors range)
 	;print,minmax(p)
 endif ;else print, minmax(tmp_image)
@@ -4758,7 +4757,7 @@ getrot, astr, npa, cdelt, /silent
 ; 		system, and positive for a right-handed system.
 
 if cdelt[0] gt 0 then begin
-	self->message, 'Image handedness is right-handed; inverting X axis'
+	self->message, 'Inverting X axis to get desired image handedness.'
 	self->invert, 'x'
 endif
 
@@ -5028,10 +5027,8 @@ widget_control, (*self.state).value_bar_id, $
 	set_value = strc(string((*self.images.main_image)[(*self.state).coord[0],(*self.state).coord[1]], format='(g14.5)'))
 ;val = string((*self.images.main_image)[(*self.state).coord[0],(*self.state).coord[1]], format='(g14.5)')
 ;print, "|"+val+"|"
-;stop
 ;print, (*self.images.main_image)[(*self.state).coord[0],(*self.state).coord[1]]
 ;widget_control, (*self.state).value_bar_id, set_value="TEST12345"
-;stop
 
 
 ; Update coordinate display.
@@ -5414,12 +5411,12 @@ widget_control, /hourglass
 
 (*self.state).image_min = min(*self.images.main_image, max=maxx, /nan)
 (*self.state).image_max = maxx
+;print, "adjusting  image min and max in getstats: "+string((*self.state).image_min) +", "+string( maxx )
 
  ;tmp_string = string((*self.state).image_min, (*self.state).image_max,format='("Min=", g14.7,"  Max=", g14.7)')
 widget_control, (*self.state).minIma_id, set_value=string((*self.state).image_min, format='(g14.7)')
 widget_control, (*self.state).maxIma_id, set_value=string((*self.state).image_max, format='(g14.7)')
 
-;stop
 if ((*self.state).min_value GE (*self.state).max_value) then begin
     (*self.state).min_value = (*self.state).min_value - 1
     (*self.state).max_value = (*self.state).max_value + 1
@@ -6378,7 +6375,6 @@ endif else begin
       survey=band, /eso
 endelse
 
-;stop
 gpitv, temporary(tmpimg), header=temporary(tmphdr)
 
 end
@@ -6565,7 +6561,6 @@ IF (filename EQ (*self.state).output_dir) then BEGIN
   self->message, 'Must indicate filename to save.', msgtype = 'error', /window
   return
 ENDIF
-;stop
 
 ;----------------------------------------DGW 29 August 2005
 ;Error trap code taken from GPItv_writePS
@@ -6589,11 +6584,9 @@ if (strupcase(result) EQ 'NO') then return
 header=(*(*self.state).head_ptr)
 
 IF ((*self.state).image_size[2] eq 1) THEN BEGIN
-    ;stop
   writefits, filename, *self.images.main_image,header
 
 ENDIF ELSE BEGIN
-    ;stop
   formdesc = ['0, button, Write Current Image Slice, quit', $
               '0, button, Write All Image Slices, quit', $
               '0, button, Cancel, quit']
@@ -8288,7 +8281,6 @@ widget_control, (*self.state).wcs_bar_id, set_value = '                 '
 
 ; Get the equinox of the coordinate system
 ; GPI note - EQUINOX is in PHDU so this is OK
-if ~(keyword_set(head)) then stop
 equ = get_equinox(head, code)  
 if strc(equ) eq '' then equ = 2000.0 ; default is J2000 if missing or blank
 if (code NE -1) then begin
@@ -11442,7 +11434,6 @@ end
 ;---------------------------------------------------------------------
 
 pro GPItv::wcsgridlabel
-
 ; Front-end widget for WCS labels
 
 
@@ -11473,6 +11464,7 @@ if (gridform.tag6 eq 1) then begin
     1: wcslabelcolor = 0
     else: wcslabelcolor = gridform.tag1
   endcase
+
 
 self->wcsgrid, gridcolor=gridcolor, wcslabelcolor=wcslabelcolor, $
   charsize=gridform.tag2, charthick=gridform.tag3
@@ -11522,13 +11514,22 @@ end
 ;---------------------------------------------------------------------
 
 pro GPItv::wavecalgridlabel
-
 ; Front-end widget for wavecal labels
+
+
+; Check for applied shifts to account for flexure
+shiftx = sxpar( *((*self.state).head_ptr), 'SPOT_DX', count=ct)
+if ct eq 0 then shiftx=0
+shifty = sxpar( *((*self.state).head_ptr), 'SPOT_DY', count=ct)
+if ct eq 0 then shifty=0
+
 
 formdesc = ['0, droplist, black|red|green|blue|cyan|magenta|yellow|white,label_left=Grid Color:, set_value=1 ', $
             '0, droplist, black|red|green|blue|cyan|magenta|yellow|white,label_left=Tilt Color:, set_value=2 ', $
             '0, droplist, no|yes,label_left=mlens coord labels:, set_value=0 ', $
             '0, droplist, black|red|green|blue|cyan|magenta|yellow|white,label_left=Label Color:, set_value=7 ', $
+            '0, float, '+string(shiftx)+', label_left=Spot Shift X: ', $
+            '0, float, '+string(shifty)+', label_left=Spot Shift Y: ', $
             '0, float, 1.0, label_left=Charsize: ', $
             '0, integer, 1, label_left=Charthick: ', $
             '1, base, , row', $
@@ -11541,7 +11542,7 @@ gridform=cw_form(formdesc, /column, title = title_base+' wavecal Grid')
 gridcolor = gridform.tag0
 wcslabelcolor = gridform.tag1
 
-if (gridform.tag8 eq 1) then begin
+if (gridform.tag10 eq 1) then begin
 ;; switch red and black indices
 ;  case gridform.tag0 of
 ;    0: gridcolor = 1
@@ -11554,6 +11555,13 @@ if (gridform.tag8 eq 1) then begin
 ;    1: wcslabelcolor = 0
 ;    else: wcslabelcolor = gridform.tag1
 ;  endcase
+
+shiftx = gridform.tag4
+shifty = gridform.tag5
+
+print, "Shifts", shiftx, shifty
+sxaddpar,  *((*self.state).head_ptr), 'SPOT_DX', shiftx
+sxaddpar,  *((*self.state).head_ptr), 'SPOT_DY', shifty
 
 self->wavecalgrid, gridcolor=gridform.tag0, tiltcolor=gridform.tag1, labeldisp=gridform.tag2, $
   labelcolor=gridform.tag3, charsize=gridform.tag4, charthick=gridform.tag5
@@ -14372,7 +14380,6 @@ c = where(tag_names((*(self.pdata.plot_ptr[iplot])).options) EQ 'POLMASK', polma
 	endif else good  =where (mag gt (*self.state).polarim_lowthresh and mag lt (*self.state).polarim_highthresh)
 
 if n_elements(good) eq 1 then return
-;;stop
         ;if n_elements(missing) gt 0 then begin
                 ;good = where(mag lt missing)
                 ;if keyword_set(dots) then bad = where(mag ge missing, nbad)
@@ -14386,7 +14393,6 @@ if n_elements(good) eq 1 then return
     	x_step=(x1-x0)/(sz[1]-1.0)   ; Convert to float. Integer math
     	y_step=(y1-y0)/(sz[2]-1.0)   ; could result in divide by 0
     	theta = 0.5 * atan(u,q)+thetaoffset*!dtor
-		;stop
     	maxmag = .50
 
     ; remember position angle is defined starting at NORTH so
@@ -16394,7 +16400,6 @@ if (not (keyword_set(enc_ener))) then begin
       endelse
   endif
 endif else begin
-;stop
 eerad=((findgen(nr)+1.)/double(nr))*double((*self.state).r)
   plot, eerad, 100.*ee/(ee[nr-1]),  xtitle = 'Radius (pixels)', xrange=[eerad[0],eerad[n_elements(eerad)-1]],yrange=[0.,100.],$
           ytitle = 'Encircled Energy (%)',  charsize=1.2, xstyle=1,ystyle=1;, /ynozero
@@ -16482,7 +16487,6 @@ pro GPItv::apphot_refresh, ps=ps, enc_ener=enc_ener, sav=sav
         (*self.state).photwarning = 'Warning: No pixels in sky!'
      endelse
   endif
-;stop
 ; Do the photometry now
   case (*self.state).skytype of
      0: aper, *self.images.main_image, [x], [y], flux, errap, sky, skyerr, phpadu, apr, $
@@ -17154,7 +17158,6 @@ pro GPItv::tvlamb
 ; with circles showing the photometric apterture.
 
 
-;stop
 ;print,'numla',(*self.state).lambzoom_window_id
 self->setwindow, (*self.state).lambzoom_window_id
 erase
@@ -17211,7 +17214,6 @@ out_xs = xi * xs_delta + xs[0]
 out_ys = yi * ys_delta + ys[0]
 
 sz = size(image)
-;stop
 xsize = Float(sz[1])       ;image width
 ysize = Float(sz[2])       ;image height
 dev_width = dev_pos[2] - dev_pos[0] + 1
@@ -17636,7 +17638,6 @@ end
 		(*self.state).currsdi=widget_info((*self.state).sdilist_id,/DROPLIST_SELECT)
 		sdilist = ['Methane', 'User-defined'];, 'Met2',  'Met3']
 		if strmatch(sdilist[(*self.state).currsdi], 'User-defined') then begin
-		;stop
 			widget_control, (*self.state).sdiL1_id, EDITABLE=0
 			widget_control, (*self.state).sdiL2_id, EDITABLE=0
 			widget_control, (*self.state).sdiL3_id, EDITABLE=0
@@ -18173,7 +18174,6 @@ out_xs = xi * xs_delta + xs[0]
 out_ys = yi * ys_delta + ys[0]
 
 sz = size(image)
-;stop
 xsize = Float(sz[1])       ;image width
 ysize = Float(sz[2])       ;image height
 dev_width = dev_pos[2] - dev_pos[0] + 1
@@ -18743,7 +18743,6 @@ pro GPItv::tvcontr, nosat=nosat, ps3=ps3, nodh=nodh
   out_ys = yi * ys_delta + ys[0]
 
   sz = size(image)
-                                ;stop
   xsize = Float(sz[1])          ;image width
   ysize = Float(sz[2])          ;image height
   dev_width = dev_pos[2] - dev_pos[0] + 1
