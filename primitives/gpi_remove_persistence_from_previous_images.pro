@@ -90,12 +90,16 @@ UTSTART_sec=UTSTART_sec-float(itime)-1.45479
 time0=systime(1,/seconds)
 UTEND_arr=strarr(N_ELEMENTS(current_files))
 for f=0, N_ELEMENTS(current_files)-1 do begin
+; check to make sure its actually a fits file with 2 extensions
+fits_info,current_files[f],n_ext=n_ext,/silent
+if n_ext[0] eq -1 then continue
+
    tmp_hdr=headfits(current_files[f],ext=0)
    ; incase there is some header issue or it grabbed some weird file
    if string(tmp_hdr[0]) eq '-1' then continue
    time_str=sxpar(tmp_hdr,'UTEND')
-   ; incase there is no UTEND keyword
-   if string(time_str[0]) eq '0' then continue
+	; incase there is no UTEND keyword
+   if string(time_str[0]) eq 0 then continue
    ; put UTEND in seconds
    UTEND_arr[f]=float(strmid(time_str,0,2))*3600+$ ; UTEND in seconds
                 float(strmid(time_str,3,2))*60+$
@@ -122,7 +126,6 @@ endif
 ; apply correction
 ; load persistence params for model
 persis_params = gpi_readfits(c_File,header=Header)
-
 persis=fltarr(2048,2048)
 tmp_model=fltarr(2048,2048)
 for f=0, N_ELEMENTS(ind)-1 do begin
@@ -167,7 +170,6 @@ if N_ELEMENTS(tmp_model) eq 1 then stop,'model failure at line 146'
    
    persis=temporary(persis)>tmp_model
 endfor
-
 ;get exposure time of the image of interest
 itime=backbone->get_keyword('ITIME')
 ; and now subtract the persistence (in ADU)
