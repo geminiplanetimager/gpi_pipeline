@@ -328,7 +328,7 @@ pro gpidrfparser::load_data_to_pipeline, backbone=backbone, status=status
   
     ; Parse file for environment variables, and store
     complete_drf = strjoin(fileAsStringArray, " ")
-    expanded = gpi_expand_path(complete_drf, vars_expanded=vars_expanded)
+    expanded = gpi_expand_path(complete_drf, vars_expanded=vars_expanded,/notruncate)
     if keyword_set(vars_expanded) then begin
 		record = "$"+vars_expanded +" = "+getenv(vars_expanded)
 ;	  wlong = where(strlen(record) gt 67, longct)
