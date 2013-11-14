@@ -85,7 +85,9 @@ PRO dirviewer_event, ev
 	; simple wrapper to call object routine
     widget_control,ev.top,get_uvalue=storage
    
-    if size(storage,/tname) eq 'STRUCT' then storage.self->event, ev else storage->event, ev
+    if size(storage,/tname) eq 'STRUCT' then begin
+		if obj_valid(storage.self) then storage.self->event, ev
+	endif else storage->event, ev
 end
 
 ;-------------------------------------------------------------------
@@ -1034,7 +1036,7 @@ FUNCTION dirviewer::init, $
   ;; Set up the filter.
 
   at_gemini = keyword_set(gpi_get_setting('at_gemini', /bool,default=0,/silent))
-  if keyword_set(at_gemini) then default_filter = ['S'+gpi_datestr(/current)+"S*.fits"] else default_filter=['*.fits']
+  if keyword_set(at_gemini) then default_filter = ['S20'+gpi_datestr(/current)+"S*.fits"] else default_filter=['*.fits']
   IF N_Elements(filter) EQ 0 THEN filter = default_filter
 
   only2D = Keyword_Set(only2d)
