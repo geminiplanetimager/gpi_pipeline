@@ -50,6 +50,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 
 ;;grab satspots 
+
+tmp = backbone->get_keyword("SATSMASK", ext_num=1, count=ct)
+if ct eq 0 then $
+   return, error('FAILURE ('+functionName+'): SATSMASK undefined.  Use "Measure satellite spot locations" before this one.')
+
 goodcode = hex2bin(tmp,(size(cube,/dim))[2])
 good = long(where(goodcode eq 1))
 cens = fltarr(2,4,(size(cube,/dim))[2])
@@ -92,8 +97,8 @@ if ~finite(gridfac) then return, error('FAILURE ('+functionName+'): Could not ma
 
    magni=double(backbone->get_keyword( 'HMAG'))
    spect=strcompress(backbone->get_keyword( 'SPECTYPE'),/rem)
-   Dtel=double(backbone->get_keyword( 'TELDIAM'))
-   Obscentral=double(backbone->get_keyword( 'SECDIAM'))
+        Dtel=gpi_get_constant('primary_diam',default=7.7701d0)
+    Obscentral=gpi_get_constant('secondary_diam',default=1.02375d0)
    exposuretime=double(backbone->get_keyword( 'ITIME')) ;TODO use ITIME instead
    ;BE SURE THAT TIME keyword IS IN SECONDS
    ;filter=backbone->get_keyword( 'FILTER')
@@ -108,19 +113,17 @@ if ~finite(gridfac) then return, error('FAILURE ('+functionName+'): Could not ma
 
 gridratio=replicate(gridfac,n_elements(lambda))
 
-
 ;;here is the flux conversion factor!
 convfac=fltarr(n_elements(nbphotnormtheo))
 for i=0,n_elements(nbphotnormtheo)-1 do $
-convfac[i]=((nbphotnormtheo[i]*(gridratio[i]))/(gaindetector*( satflux[i,0]))) ;TODO implement good[s]? for satflux
+convfac[i]=((nbphotnormtheo[i]*(gridratio[i]))/(gaindetector*( mean(satflux[*,i])))) ;TODO implement good[s]? for satflux
 
 ;http://www.gemini.edu/sciops/instruments/?q=sciops/instruments&q=node/10257  
 ;assume IFSUNITS is always in Counts/s/coadd
 ;convert datacube from IFSunits  to [photons/s/nm/m^2]
 cubef3D=cube; JM:todo:use only one variable for the cube
-        for i=0,CommonWavVect[2]-1 do begin
-          cubef3D[*,*,i]*=double(convfac[i])
-        endfor
+        for i=0,CommonWavVect[2]-1 do   cubef3D[*,*,i]*=double(convfac[i])
+        
 
 unitslist = ['Counts', 'Counts/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A','ergs/s/cm^2/Hz']
  
@@ -172,8 +175,7 @@ unitslist = ['Counts', 'Counts/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A
 ;  sxaddhist, functionname+": "+c_File, *(dataset.headers[numfile])
 ;  fsxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": applying photometric calib"
 ;  fxaddpar,*(dataset.headersPHU[numfile]),'HISTORY',functionname+": "+c_File
-    backbone->set_keyword,'HISTORY',functionname+": applying photometric calib",ext_num=0
-    backbone->set_keyword,'HISTORY',functionname+": "+c_File,ext_num=0
+
 @__end_primitive
 
 
