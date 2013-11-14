@@ -147,6 +147,7 @@ pro dirviewer::event, ev
                   "QUIT":textinfo='Click to close this window.'
 				  'ignore_indiv': textinfo="Ignore files for the individual reads of a CDS or UTR sequence."
 				  'live_view': textinfo='Update gpitv automatically on every file action'
+				  'time_sort': textinfo='Sort files by modification time instead of alphabetically'
 				  'auto_latest': textinfo='Always automatically view the latest file in the directory.'
               else:textinfo=' '
               endcase
@@ -221,6 +222,14 @@ pro dirviewer::event, ev
 			self.live_view= val
 			print, "Auto GPItv view mode set to "+strc(self.live_view)
 		endif
+		if uname eq 'time_sort' then begin
+			wid = Widget_Info(ev.top, Find_by_UName='time_sort')
+			widget_control, wid, get_value=val
+			self.time_sort= val
+			print, "Sort by time set to "+strc(self.time_sort)
+			self->refresh
+		endif
+	
 		if uname eq 'auto_latest' then begin
 			wid = Widget_Info(ev.top, Find_by_UName='auto_latest')
 			widget_control, wid, get_value=val
@@ -624,12 +633,25 @@ pro dirviewer::refresh
 			is_writing = stregex(specificFiles, '.fits.writing$',/boolean)
 			wgood = where(~ is_writing)
 			specificFiles=specificFiles[wgood]
-	
 
 	   IF fileCount GT 0 THEN IF N_Elements(*(info.theFiles)) EQ 0 THEN $
 		  *info.theFiles = specificFiles[self->BSort(specificFiles)] ELSE $
 		  *info.theFiles = [*info.theFiles, specificFiles[self->BSort(specificFiles)]]
 	ENDFOR
+
+	if keyword_set(self.time_sort) then begin
+		specificfiles = *info.theFiles	
+		fileinfo = file_info(specificfiles[0])
+		fileinfos = replicate(fileinfo, n_elements(specificfiles))
+		for j=0,n_elements(specificfiles)-1 do fileinfos[j] = file_info(specificfiles[j])
+
+		sorter = sort(fileinfos.mtime)
+		*info.theFiles = (*info.theFiles)[sorter]
+
+	endif
+
+
+
 	fileCount = N_Elements(*info.theFiles)
 	IF fileCount EQ 0 THEN *info.theFiles = "" ELSE BEGIN
 	   IF (*self.state).filename EQ "" THEN (*self.state).filename = (*info.theFiles)[0]
@@ -1022,6 +1044,7 @@ FUNCTION dirviewer::init, $
   print, 'initializing GPItv directory viewer'
   self.ignore_indiv=1
   self.live_view = 1
+  self.time_sort= gpi_get_setting('at_gemini', default=0,/silent)
   self.auto_latest=0
   self.check_period=5
   
@@ -1036,7 +1059,7 @@ FUNCTION dirviewer::init, $
   ;; Set up the filter.
 
   at_gemini = keyword_set(gpi_get_setting('at_gemini', /bool,default=0,/silent))
-  if keyword_set(at_gemini) then default_filter = ['S20'+gpi_datestr(/current)+"S*.fits"] else default_filter=['*.fits']
+  if keyword_set(at_gemini) then default_filter = ['S20'+gpi_datestr(/current)+"*.fits"] else default_filter=['*.fits']
   IF N_Elements(filter) EQ 0 THEN filter = default_filter
 
   only2D = Keyword_Set(only2d)
@@ -1142,8 +1165,9 @@ FUNCTION dirviewer::init, $
 
   ;; Define buttons widgets.
   button = cw_bgroup(buttonBase, " ", label_left='Ignore indiv reads?', /nonexclusive, uvalue="ignore_indiv",uname='ignore_indiv', set=self.ignore_indiv)
-  button = cw_bgroup(buttonBase, " ", label_left='Auto GPItv?', /nonexclusive, uvalue="live_view", uname='live_view', set=self.live_view)
+;  button = cw_bgroup(buttonBase, " ", label_left='Auto GPItv?', /nonexclusive, uvalue="live_view", uname='live_view', set=self.live_view)
   button = cw_bgroup(buttonBase, " ", label_left='Auto latest?', /nonexclusive, uvalue="auto_latest", uname='auto_latest', set=self.auto_latest)
+  button = cw_bgroup(buttonBase, " ", label_left='Sort by time?', /nonexclusive, uvalue="time_sort", uname='time_sort', set=self.time_sort)
   button = cw_bgroup(buttonBase, " ", label_left='Fixed scale?', /nonexclusive, uvalue="fix_scales", uname='fix_scales', set=self.fix_scales)
   button = Widget_Button(buttonBase2, Value='View in GPItv', uname='view_in_gpitv',/tracking_events)
   button = Widget_Button(buttonBase2, Value='Refresh', uname='refresh',/tracking_events)
@@ -1273,6 +1297,7 @@ struct={dirviewer, $
 		parent_gpitv: obj_new(), $ ; handle of the parent gpitv object
 		ignore_indiv: 1, $			; Ignore individual read files
 		live_view: 1, $				; View in GPITV automatically
+		time_sort: 1, $				; View in GPITV automatically
 		auto_latest: 0, $			; Auto view latest file
         last_filename: '' , $          ; last filename sent to gpitv
 		check_period: 5, $			; how often to check for new files if auto_latest?
