@@ -5688,14 +5688,14 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   endif
 
   ; if retaining view, apply previous inversion to the new image
-  if (*self.state).retain_current_zoom &&  ((*self.state).invert_image ne 'none') then begin
+  if (*self.state).retain_current_view &&  ((*self.state).invert_image ne 'none') then begin
 	  prior_invert = (*self.state).invert_image
 	  (*self.state).invert_image = 'none'
 	  self->invert, prior_invert, /nodisplay
   endif
 
   ; if retaining view, apply previous rotation to the new image
-  if (*self.state).retain_current_zoom &&  ( (*self.state).rot_angle  ne 0) then begin
+  if (*self.state).retain_current_view &&  ( (*self.state).rot_angle  ne 0) then begin
 	  prior_rotation = (*self.state).rot_angle
 	  (*self.state).rot_angle = 0.0
 	  self->rotate, prior_rotation, /nodisplay
