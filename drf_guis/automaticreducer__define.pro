@@ -42,6 +42,8 @@ end
 
 function automaticreducer::refresh_file_list, count=count, init=init, _extra=_extra
 
+	self.current_datestr = gpi_datestr(/current)
+
     searchpattern = self.watch_directory + path_sep() + self.watch_filespec
 	current_files =FILE_SEARCH(searchpattern,/FOLD_CASE, count=count)
 	
@@ -94,8 +96,14 @@ function automaticreducer::refresh_file_list, count=count, init=init, _extra=_ex
 end
 
 ;--------------------------------------------------------------------------------
+pro automaticreducer::start
+	message,/info,'Starting watching directory '+self.watch_directory
+	self->Log, 'Starting watching directory '+self.watch_directory
+	widget_control, self.top_base, timer=1  ; Start off the timer events for updating at 1 Hz
+end
 
 
+;--------------------------------------------------------------------------------
 
 pro automaticreducer::run
 	; This is what runs every 1 second to check the contents of that directory
@@ -107,12 +115,21 @@ pro automaticreducer::run
 
 	new_files = self->refresh_file_list(count=count)
 	
-	if count eq 0 then return  ; no new files found
+	if count gt 0 then begin  ; new files found
+		message,/info, 'Found '+strc(count)+" new files to process!"
+		for i=0,n_elements(new_files)-1 do self->log, "New file: "+new_files[i]
 
-	message,/info, 'Found '+strc(count)+" new files to process!"
-	for i=0,n_elements(new_files)-1 do self->log, "New file: "+new_files[i]
+		self->handle_new_files, new_files
+	endif
 
-	self->handle_new_files, new_files
+
+	; if running at the observatory, be ready to automatically advance the file
+	; specification when the date changes. 
+	if keyword_set(gpi_get_setting('at_gemini', default=0,/silent)) then if gpi_datestr(/current) ne self.current_datestr then begin
+		self->set_default_filespec
+		widget_control, self.wildcard_id, set_value=new_wildcard
+
+	endif 
 
 end
 
@@ -333,11 +350,7 @@ pro automaticreducer::event, ev
 			writefits, directory+path_sep()+"shifts.fits", [float(shiftx),float(shifty)]
 		end
 		'QUIT': self->confirm_close
-		'Start': begin
-			message,/info,'Starting watching directory '+self.watch_directory
-			self->Log, 'Starting watching directory '+self.watch_directory
-			widget_control, self.top_base, timer=1  ; Start off the timer events for updating at 1 Hz
-		end
+		'Start': self->start
         'Reprocess': begin
                    widget_control, self.listfile_id, get_uvalue=list_contents
                    ind=widget_INFO(self.listfile_id,/LIST_SELECT)
@@ -431,7 +444,7 @@ pro automaticreducer::view_file, filename, log=log
 	if keyword_set(log) then self->Log,'User requested to view: '+filename
 
 	if obj_valid(self.launcher_handle) then $
-		self.launcher_handle->launch, 'gpitv', filename=filename, session=45 ; arbitrary session number picked to be 1 more than this launcher
+		self.launcher_handle->launch, 'gpitv', filename=filename, session=1 ; arbitrary session number picked to be 1 more than this launcher
 
 end
 
@@ -460,7 +473,14 @@ pro automaticreducer::change_wildcard
 		; the following will also trigger regenerating the file list from
 		; scratch, ignoring any already-present files that match the new
 		; wildcard rather than trying to reprocess them all instantly.
-		ptr_free, self.previous_file_list ; we have lost info on our previous files so start over
+		list = [''] ; update list for next invocation
+		*self.previous_file_list = list
+		widget_control, self.listfile_id, SET_VALUE= list 
+		widget_control, self.listfile_id, set_uvalue = list  ; because oh my god IDL is stupid and doesn't provide any way to retrieve
+															  ; values from a  list widget!   Argh. See
+															  ; http://www.idlcoyote.com/widget_tips/listselection.html 
+		widget_control, self.listfile_id, set_list_top = 0>(n_elements(list) -8) ; update the scroll position in the list
+	
    	ENDIF
 
 end
@@ -658,6 +678,11 @@ function automaticreducer::init, groupleader, _extra=_extra
 		XMANAGER, 'automaticreducer', self.top_base, /NO_BLOCK
 	endif
 
+	if keyword_set(gpi_get_setting('at_gemini', default=0,/silent)) then begin
+		self->run
+		self->start
+	endif
+
 	
 	RETURN, 1
 
@@ -692,7 +717,7 @@ stateF={  automaticreducer, $
 	wildcard_id: 0L, $				; widget ID for file wildcard spec display
 	start_id: 0L, $					; widget ID for start parsing button
     information_id:0L,$				; widget ID for info status bar
-	previous_datestr: '', $			; previous date, used for checking when/if to update if at_gemini
+	current_datestr: '', $			; previous date, used for checking when/if to update if at_gemini
     maxnewfile:0L,$
     isnewdirroot:0,$ ;flag for  root dir
     button_id:0L,$ 
