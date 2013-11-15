@@ -3865,11 +3865,14 @@ end
 
 ;------------------------------------------------------------------
 
-pro GPItv::change_image_units, new_requested_units
+pro GPItv::change_image_units, new_requested_units, silent=silent
 ; Update the currently displayed image to a new choice of display unit.
 ; This involves rescaling the actual pixel values of the main image stack,
 ; and applying the same transformation to the min/max display scaling.
 
+  if n_elements(new_requested_units) eq 0 then return
+
+  if ~(keyword_set(silent)) then $
   self->Message, "Unit conversion requested from "+(*self.state).current_units +" to "+new_requested_units,$
                  msgtype = 'information'
   
@@ -4049,13 +4052,17 @@ pro GPItv::change_image_units, new_requested_units
   if (*self.state).CWV_NLam gt 0 then $
      *self.images.main_image = (*self.images.main_image_stack)[*, *, (*self.state).cur_image_num]
 
-  self->getstats,/noerase       ; updates image min/max stats displayed on screen
-  self->recenter
-  self->autoscale
-  self->set_minmax
-  self->displayall
-  self->update_child_windows
-  self->resetwindow
+	; update current unit displayed in the droplist
+	ind = where(STRCMP(  *(*self.state).unitslist,(*self.state).current_units))
+	widget_control, (*self.state).units_droplist_id, set_droplist_select = ind, set_value=*(*self.state).unitslist
+ 
+	self->getstats,/noerase       ; updates image min/max stats displayed on screen
+	self->recenter
+	self->autoscale
+	self->set_minmax
+	self->displayall
+	self->update_child_windows
+	self->resetwindow
 
 end
 
@@ -7768,8 +7775,8 @@ val = gpi_simplify_keyword_value(gpi_get_keyword(h, e, 'IFSFILT',count=cc))
 if cc gt 0 then widget_control, (*self.state).filter1_id, set_value = val else $
   widget_control, (*self.state).filter1_id, set_value = 'No info'
 if cc gt 0 then (*self.state).obsfilt=strcompress(val,/REMOVE_ALL) else (*self.state).obsfilt=''
-val = gpi_get_keyword(h, e, 'FILETYPE',count=cc)
-if cc gt 0 then (*self.state).filetype = val else (*self.state).filetype = ''
+;val = gpi_get_keyword(h, e, 'FILETYPE',count=cc)
+;if cc gt 0 then (*self.state).filetype = val else (*self.state).filetype = ''
 
 val = gpi_get_keyword(h, e, 'DISPERSR',count=cc)
 ;; Make short prism names. Bizarre inexplicable bug where long Gemini style names make widgets get smaller?!?! WTF? -MP
@@ -7912,7 +7919,9 @@ endelse
 
 ; update the drop list to the current list of known units, and update the
 ; selection accordingly
+if keyword_set((*self.state).retain_current_stretch) then if ((*self.state).current_units ne (*self.state).intrinsic_units) then prior_retained_units = (*self.state).current_units
 (*self.state).current_units = (*self.state).intrinsic_units
+
 ind = where(STRCMP(  *(*self.state).unitslist,(*self.state).current_units))
 widget_control, (*self.state).units_droplist_id, set_droplist_select = ind, set_value=*(*self.state).unitslist
 
@@ -8008,6 +8017,11 @@ if naxis eq 3 then begin
     endcase
  endif else (*self.state).cube_mode='UNKNOWN'
 
+
+if keyword_set(prior_retained_units) then begin
+	self->message, "Retaining prior units: "+prior_retained_units
+	self->change_image_units,prior_retained_units,  /silent
+endif
 if ~keyword_set(noresize) then self->resize ; MDP addition 2008-10-20
 
 end
