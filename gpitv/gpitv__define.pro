@@ -116,6 +116,7 @@ state = {                   $
         head_ptr: ptr_new(), $       ; pointer to image header (PHDU if multi-extension)
         exthead_ptr: ptr_new(), $    ; pointer to extension header for currently loaded extension
         astr_ptr: ptr_new(), $       ; pointer to astrometry info structure
+        main_image_astr_backup: ptr_new(), $       ; pointer to astrometry info structure as originally read from disk
         astr_from: 'None',$          ; is astrometry from PHDU or Extension HDU? (or not loaded)
         wcstype: 'none', $           ; coord info type (none/angle/lambda)
         equinox: 'J2000', $          ; equinox of coord system
@@ -1555,18 +1556,25 @@ case event_name of
 	end
    'Rotate north up': begin
 		if ptr_valid( (*self.state).exthead_ptr) and (*self.state).wcstype ne 'none' then begin
+		   self->message, 'Rotating to north=up, east=left'
+
+		   ; Let's flip the handedness so we get the conventional "north up,
+		   ; east left" view. 
+		   ; Always do inversions prior to rotation.
+		   self->autohandedness,/nodisplay
+		   
 		   ; compute which direction North is pointing, relative to the +Y axis
 		   ; of the image
 		   ;
-
 		   getrot, *(*self.state).exthead_ptr, npa, cdelt, /silent
-		   self->message, 'DEBUG: rotating by '+strc(npa)+' to have north up'
+
+
+
 		   ; the gpitv::rotate function however doesn't take a relative
 		   ; rotation, it takes an absolute rotation relative to the image's
 		   ; native orientation. So we need to take the difference
 
 		   self->rotate,   (*self.state).rot_angle - npa
-		   self->autohandedness
 
 
 		endif else begin
@@ -3519,8 +3527,7 @@ end
 
 ;-----------------------------------------------------
 pro GPItv::invert, ichange, nodisplay=nodisplay
-; Routine to do image axis-inversion (X,Y,X&Y)
-;  With FITS header astrometry update too. 
+; Wrapper routine to set up image axis-inversion (X,Y,X&Y)
 ;
 ; Inputs:
 ;  ichange			string, {'x', 'y', 'xy', 'none'}
@@ -3530,301 +3537,243 @@ pro GPItv::invert, ichange, nodisplay=nodisplay
 ;
 ; Keyword:
 ;   /nodisplay		Just update the arrays without calling redisplay
-;					Useful if you are performing multiple transformations in a
-;					row.
-;
+;					Useful if you are performing multiple transformations in a row.
 
 
-; do we have a 3D cube, in which case we will have to invert each slice?
- szmis=size(*self.images.main_image_stack)
-  
-
-has_astr = ptr_valid( (*self.state).astr_ptr )
-if has_astr then begin
-	; which header is the astrometry info from?
-	if (*self.state).astr_from eq 'PHDU' then astr_header = *((*self.state).head_ptr) else astr_header = *((*self.state).exthead_ptr)
-endif
-
-;;if there are sat spots in memory, they need to be updated as well
-if (n_elements(*self.satspots.cens) eq 8L * (*self.state).image_size[2]) then update_sats = 1 else update_sats = 0
-
-; compare the current and desired inversion state strings to determine which
-; axes need to be flipped
-if ( ( strmatch(ichange, 'x*') and ~strmatch((*self.state).invert_image, 'x*')) or $
-	 (~strmatch(ichange, 'x*') and  strmatch((*self.state).invert_image, 'x*')) ) then need_x_flip =1
-if ( ( strmatch(ichange, '*y') and ~strmatch((*self.state).invert_image, '*y')) or $
-	 (~strmatch(ichange, '*y') and  strmatch((*self.state).invert_image, '*y')) ) then need_y_flip =1
+	(*self.state).invert_image = ichange
 
 
-if keyword_set(need_x_flip) then begin
-	if ptr_valid((*self.state).head_ptr) then begin ; transformation with astrometry header updates
-		hreverse2, *self.images.main_image,  astr_header , *self.images.main_image,  astr_header , 1, /silent
-	endif else begin								; simple transformations without astrometry headers to worry about
-		*self.images.main_image = reverse(*self.images.main_image)
-	endelse
-	; if datacube, update all planes
-	if szmis[0] eq 3 then $
-		for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]))
+	self->refresh_image_invert_rotate 
 
-        if update_sats then (*self.satspots.cens)[0,*,*] = (*self.state).image_size[0] - (*self.satspots.cens)[0,*,*]
-endif
-if keyword_set(need_y_flip) then begin
-	if ptr_valid((*self.state).head_ptr) then begin ; transformation with astrometry header updates
-		hreverse2, *self.images.main_image,  astr_header , *self.images.main_image,  astr_header , 2, /silent
-	endif else begin								; simple transformations without astrometry headers to worry about
-		*self.images.main_image = reverse(*self.images.main_image, 2)
-	endelse
-	; if datacube, update all planes
-	if szmis[0] eq 3 then $
-		for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]), 2)
+	; update the menu checkboxes
+	self->update_menustate_rotate_invert
 
-        if update_sats then (*self.satspots.cens)[1,*,*] = (*self.state).image_size[1] - (*self.satspots.cens)[1,*,*]
-endif
+	;Redisplay inverted image with current zoom, update pan, and refresh image
+	if ~(keyword_set(nodisplay)) then begin 
+	   self->displayall
+	   self->update_child_windows
+	endif 
 
-(*self.state).invert_image = ichange
-
-; do the actual inversion (ugly complicated.)
-; THis is a horrible chunk of code because you have 4 possible starting states
-; and the same 4 as ending states, so there's 12 possible transitions plus 4
-; null ops. Yuck.
-
-   
-;
-;case ichange of
-;    'x': begin
-;        if ptr_valid((*self.state).head_ptr) then begin
-;			; X rots with header
-;			
-;			 
-;           if ((*self.state).invert_image eq 'none') then begin
-;             hreverse2, *self.images.main_image,  astr_header , $
-;               *self.images.main_image,  astr_header , 1, /silent
-;               if szmis[0] eq 3 then $
-;               for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]))
-;			endif
-;           if ((*self.state).invert_image eq 'x') then return
-;           if ((*self.state).invert_image eq 'y') then begin
-;             hreverse2, *self.images.main_image,  astr_header , $
-;               *self.images.main_image,  astr_header , 2, /silent
-;             hreverse2, *self.images.main_image,  astr_header , $
-;               *self.images.main_image,  astr_header , 1, /silent
-;           	if szmis[0] eq 3 then $
-;            for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]), 2)
-;           	if szmis[0] eq 3 then $
-;            for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]))
-; 		   endif
-;           if ((*self.state).invert_image eq 'xy') then begin
-;             hreverse2, *self.images.main_image,  astr_header , $
-;               *self.images.main_image,  astr_header , 2, /silent
-;          	if szmis[0] eq 3 then $
-;            for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]), 2)
-;		   endif
-;		
-;         endif else begin
-;			; X rots,   no header
-;           if ((*self.state).invert_image eq 'none') then begin
-;             *self.images.main_image = reverse(*self.images.main_image)
-;             if szmis[0] eq 3 then $
-;             for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]))
-;			endif
-;           if ((*self.state).invert_image eq 'x') then return
-;           if ((*self.state).invert_image eq 'y') then begin
-;             *self.images.main_image = reverse(*self.images.main_image,2)
-;             *self.images.main_image = reverse(*self.images.main_image)
-;             if szmis[0] eq 3 then $
-;            for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]), 2)
-;          	if szmis[0] eq 3 then $
-;            for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]))
-;
-;           endif
-;           if ((*self.state).invert_image eq 'xy') then begin
-;             *self.images.main_image = reverse(*self.images.main_image,2)
-;            if szmis[0] eq 3 then $
-;            for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]), 2)
-;
-;             endif
-;         endelse
-;
-;         (*self.state).invert_image = 'x'
-;    end
-;
-;    'y': begin
-;         if ptr_valid((*self.state).head_ptr) then begin
-;           if ((*self.state).invert_image eq 'none') then begin
-;             hreverse2, *self.images.main_image,  astr_header , $
-;               *self.images.main_image,  astr_header , 2, /silent
-;            if szmis[0] eq 3 then $
-;            for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]), 2)
-;           endif
-;           if ((*self.state).invert_image eq 'y') then return
-;           if ((*self.state).invert_image eq 'x') then begin
-;             hreverse2, *self.images.main_image,  astr_header , $
-;               *self.images.main_image,  astr_header , 1, /silent
-;             hreverse2, *self.images.main_image,  astr_header , $
-;               *self.images.main_image,  astr_header , 2, /silent
-;             if szmis[0] eq 3 then $
-;            for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]))
-;          	if szmis[0] eq 3 then $
-;            for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]), 2)
-;
-;           endif
-;           if ((*self.state).invert_image eq 'xy') then begin
-;             hreverse2, *self.images.main_image,  astr_header , $
-;               *self.images.main_image,  astr_header , 1, /silent
-;                         	if szmis[0] eq 3 then $
-;            for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]))
-;
-;  		   endif
-;
-;         endif else begin
-;		   ; Y rots, no header
-;           if ((*self.state).invert_image eq 'none') then begin
-;             *self.images.main_image=reverse(*self.images.main_image,2)
-;             if szmis[0] eq 3 then $
-;            for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]), 2)
-;             endif
-;           if ((*self.state).invert_image eq 'x') then begin
-;             *self.images.main_image = reverse(*self.images.main_image)
-;             *self.images.main_image=reverse(*self.images.main_image,2)
-;             if szmis[0] eq 3 then $
-;            for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]))
-;          	if szmis[0] eq 3 then $
-;            for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]), 2)
-;
-;           endif
-;           if ((*self.state).invert_image eq 'y') then return
-;           if ((*self.state).invert_image eq 'xy') then begin
-;             *self.images.main_image = reverse(*self.images.main_image)
-;             if szmis[0] eq 3 then $
-;            for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]))
-;
-;             endif
-;         endelse
-;
-;         (*self.state).invert_image = 'y'
-;    end
-;
-;
-;    'xy': begin
-;         if ptr_valid((*self.state).head_ptr) then begin
-;           if ((*self.state).invert_image eq 'none') then begin
-;             hreverse2, *self.images.main_image,  astr_header , $
-;               *self.images.main_image,  astr_header , 1, /silent
-;             hreverse2, *self.images.main_image,  astr_header , $
-;               *self.images.main_image,  astr_header , 2, /silent
-;             if szmis[0] eq 3 then $
-;            for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]))
-;          	if szmis[0] eq 3 then $
-;            for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]), 2)
-;
-;           endif
-;           if ((*self.state).invert_image eq 'x') then begin
-;             hreverse2, *self.images.main_image,  astr_header , $
-;               *self.images.main_image,  astr_header , 2, /silent
-;               	if szmis[0] eq 3 then $
-;               for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]), 2)
-;               endif
-;           if ((*self.state).invert_image eq 'y') then begin
-;             hreverse2, *self.images.main_image,  astr_header , $
-;               *self.images.main_image,  astr_header , 1, /silent
-;             if szmis[0] eq 3 then $
-;             for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]))
-;
-;               endif
-;           if ((*self.state).invert_image eq 'xy') then return
-;
-;         endif else begin
-;		   ; XY rots, no header
-;           if ((*self.state).invert_image eq 'none') then begin
-;             *self.images.main_image = reverse(*self.images.main_image)
-;             *self.images.main_image = reverse(*self.images.main_image,2)
-;             if szmis[0] eq 3 then $
-;            for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]))
-;          	if szmis[0] eq 3 then $
-;            for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]), 2)
-;
-;           endif
-;           if ((*self.state).invert_image eq 'x') then begin
-;             *self.images.main_image = reverse(*self.images.main_image,2)
-;             if szmis[0] eq 3 then $
-;            for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]), 2)
-;			endif
-;           if ((*self.state).invert_image eq 'y') then begin
-;             *self.images.main_image = reverse(*self.images.main_image)
-;           if ((*self.state).invert_image eq 'xy') then return
-;            if szmis[0] eq 3 then $
-;            for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]))
-;
-;           endif
-;         endelse
-;
-;         (*self.state).invert_image = 'xy'
-;    end
-;    'none': begin ; do not invert; revert to normal (X,Y) axes view
-;
-;		; FIXME there's no update here for main_image_stack!!
-;         if ptr_valid((*self.state).head_ptr) then begin
-;           if ((*self.state).invert_image eq 'none') then return
-;           if ((*self.state).invert_image eq 'x') then $
-;             hreverse2, *self.images.main_image,  astr_header , $
-;               *self.images.main_image,  astr_header , 1, /silent
-;           if ((*self.state).invert_image eq 'y') then $
-;             hreverse2, *self.images.main_image,  astr_header , $
-;               *self.images.main_image,  astr_header , 2, /silent
-;           if ((*self.state).invert_image eq 'xy') then begin
-;             hreverse2, *self.images.main_image,  astr_header , $
-;               *self.images.main_image,  astr_header , 1, /silent
-;             hreverse2, *self.images.main_image,  astr_header , $
-;               *self.images.main_image,  astr_header , 2, /silent
-;           endif
-;
-;         endif else begin
-;		   ; no rot, with no header
-;           if ((*self.state).invert_image eq 'none') then return
-;           if ((*self.state).invert_image eq 'x') then $
-;             *self.images.main_image = reverse(*self.images.main_image)
-;           if ((*self.state).invert_image eq 'y') then $
-;             *self.images.main_image = reverse(*self.images.main_image,2)
-;           if ((*self.state).invert_image eq 'xy') then begin
-;             *self.images.main_image = reverse(*self.images.main_image)
-;             *self.images.main_image = reverse(*self.images.main_image,2)
-;           endif
-;         endelse
-;
-;         (*self.state).invert_image = 'none'
-;    end
-;
-;    else:  self->message, msgtype = 'error', 'problem in GPItv->invert!'
-;endcase
-;
-; if we've transformed an astrometry header, store it back as appropriate.
-if keyword_set(astr_header) then begin
-   if (*self.state).astr_from eq 'PHDU' then begin
-	   ; stick modified header back into the PHDU slot.
-	   if ptr_valid( (*self.state).exthead_ptr ) then extensionheader = *((*self.state).exthead_ptr)
-	  self->setheader, astr_header, extensionhead=extensionheader
-   endif else begin
-	   ; stick modified header back into the extension HDU slot
-	   ; have to make copy first of the PHDU header, or else the ptr_free in setheader clobbers itself.
-	   copy_of_head = *((*self.state).head_ptr)
-	   self->setheader, copy_of_head,  extensionhead=astr_header
-   endelse
-endif
-
-; update the menu checkboxes
-self->update_menustate_rotate_invert
-
-
-;Redisplay inverted image with current zoom, update pan, and refresh image
-if ~(keyword_set(nodisplay)) then begin 
-   self->displayall
-   self->update_child_windows
-endif 
-
-self->resetwindow
+	self->resetwindow
 
 end
 ;----------------------------------------------------------
+
+pro gpitv::refresh_image_invert_rotate
+; This is a unified routine to apply image transformations such as rotation and
+; inversion. These are noncommutative operations and so we have to specify a 
+; specific order of operations, which is hereby defined to be
+;				INVERT and then ROTATE
+; Of course either of those could be a null operation. 
+; For simplicity, we always restore from the main image stack at the start of
+; such a transformation. This is less computationally efficient than
+; doing only the minimal transformation, but the old "more efficient"
+; way inherited from atv wasn't an unambiguous repeatable transformation
+; that could be retained when switching between images in a non-buggy fashion.
+
+
+	;----------  Setup for rotation and inversion --------
+   ;; first, grab the backup image and restore it, along with its 
+   ;; astrometry header
+   *self.images.main_image_stack = *self.images.main_image_backup
+   *self.images.main_image = (*self.images.main_image_stack)[*, *, (*self.state).cur_image_num]
+   *(*self.state).astr_ptr = *(*self.state).main_image_astr_backup
+
+	has_astr = ptr_valid( (*self.state).astr_ptr )
+	if has_astr then begin
+		; which header is the astrometry info from?
+		if (*self.state).astr_from eq 'PHDU' then astr_header = *((*self.state).head_ptr) else astr_header = *((*self.state).exthead_ptr)
+		; put the restored backup astrometry into the header
+		putast, astr_header, *(*self.state).astr_ptr
+	endif
+
+	;;if there are sat spots in memory, they need to be updated as well
+	if (n_elements(*self.satspots.cens) eq 8L * (*self.state).image_size[2]) then update_sats = 1 else update_sats = 0
+
+	; do we have a 3D cube, in which case we will have to transform each slice?
+	szmis=size(*self.images.main_image_stack)
+	has_cube = szmis[0] eq 3
+
+	;----------  inversion  --------
+
+	; is X flip needed? 
+	if strpos((*self.state).invert_image, 'x') ge 0 then begin
+		self->message, 'inverting in x'
+		;if ptr_valid((*self.state).head_ptr) then begin ; transformation with astrometry header updates
+		if has_astr then begin
+			hreverse2, *self.images.main_image,  astr_header , *self.images.main_image,  astr_header , 1, /silent
+		endif else begin								; simple transformations without astrometry headers to worry about
+			*self.images.main_image = reverse(*self.images.main_image)
+		endelse
+		; if datacube, update all planes
+		if has_cube  then $
+			for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]))
+
+		if update_sats then (*self.satspots.cens)[0,*,*] = (*self.state).image_size[0] - (*self.satspots.cens)[0,*,*]
+	endif
+
+	; is Y flip needed? 
+	if strpos((*self.state).invert_image, 'y') ge 0 then begin
+		self->message, 'inverting in y'
+		if has_astr then begin ; transformation with astrometry header updates
+			hreverse2, *self.images.main_image,  astr_header , *self.images.main_image,  astr_header , 2, /silent
+		endif else begin								; simple transformations without astrometry headers to worry about
+			*self.images.main_image = reverse(*self.images.main_image, 2)
+		endelse
+		; if datacube, update all planes
+		if has_cube then $
+			for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = reverse(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]), 2)
+
+		if update_sats then (*self.satspots.cens)[1,*,*] = (*self.state).image_size[1] - (*self.satspots.cens)[1,*,*]
+	endif
+
+
+	;----------  rotation  --------
+
+	; Do we have to rotate? 
+	if (*self.state).rot_angle ne 0 then begin
+		desired_angle = (*self.state).rot_angle  ; for back compatibility with prior implementation
+
+		;; Are we rotating by some multiple of 90 degrees? If so, we can do so
+		;; exactly.
+		if (desired_angle/90. eq fix(desired_angle/90)) then begin
+		   
+		   desired_angle = desired_angle mod 360
+		   if desired_angle lt 0 then desired_angle +=360
+		   rchange = strc(fix(desired_angle)) ; how much do we need to change the image to get the new rotation?
+		   ;self->Message, 'Rotating exactly to '+strc(desired_angle)+", which is "+rchange+" deg relative to current orientation"
+		   self->message, 'Rotating exactly to '+rchange
+
+		   case rchange of
+			  '0':  rot_dir=0           ;; do nothing
+			  '90': rot_dir=1
+			  '180': rot_dir=2
+			  '270': rot_dir=3
+		   endcase
+
+		   if has_astr then begin
+			  ;; do rotation with astrometry update
+			  ;;
+			  ;; If a cube is present, have to modify it to ignore wavelength axis or hrotate will crash
+			  if szmis[0] eq 3 then begin
+				 sxaddpar, astr_header, 'NAXIS', 2
+				 sxdelpar, astr_header, 'NAXIS3'
+			  endif
+
+			  hrotate, *self.images.main_image, astr_header, newim, new_astr_header, rot_dir
+			  astr_header = new_astr_header
+
+			  if szmis[0] eq 3 then begin
+				 sxaddpar, astr_header, 'NAXIS', 3
+				 sxaddpar, astr_header, 'NAXIS3', szmis[3]
+			  endif
+
+			  *self.images.main_image = newim
+		   endif else begin
+			  ;; no astrometry, just do the rotate
+			  *self.images.main_image = rotate(*self.images.main_image, rot_dir)
+		   endelse
+		   
+		   szmis=size(*self.images.main_image_stack)
+		   ;; if a datacube, rotate all the slices
+		   if has_cube then $
+			  for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = rotate(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]), rot_dir)
+
+		endif else begin
+		   ;; arbitrary rotation angle, requires interpolating rotation. 
+		   ;;
+		   ;; Algorithm note: This is an inherently lossy process. We use cubic
+		   ;; interpolation where possible, nearest neighbor elsewhere (i.e. at the
+		   ;; edges of the array where cubic fails). This is a hack but this is just for rough 
+		   ;; quick and dirty display work.
+		   ;;
+		   ;; Luckily in this new implementation we're always starting fresh
+		   ;; from a restored main_image_backup, possibly with some lossless
+		   ;; inversion step applied afterwards. So that's fine. 
+
+		   self->Message, 'Rotating with interpolation to '+strc(desired_angle)
+		   
+		   if has_astr then begin
+			  ;; do rotation with astrometry update
+			  
+			  ;; WARNING: hrot2 expects angles **clockwise**, in contradiction of the
+			  ;; convention adopted by hrotate (and most astronomers) Aaaaargh. -MDP
+			  ;;
+			  ;; Perform one rotation with interpolation (for more accuracy) and
+			  ;; one with nearest neighbor (to get sharp edges of the valid region)
+			  hrot2, *self.images.main_image, astr_header, nearest , new_astr_header, (-1)*desired_angle, $
+						-1, -1, 2,  interp=0,  missing=!values.f_nan
+
+			  hrot2, *self.images.main_image, astr_header, interpolated, discarded_new_astr_header, (-1)*desired_angle,$
+						-1, -1, 2,  cubic=-0.5, missing=!values.f_nan
+	
+			  astr_header = new_astr_header
+			  wnan = where(~finite(interpolated), nanct)
+			  if nanct gt 0 then interpolated[wnan] = nearest[wnan]
+			  *self.images.main_image = interpolated
+		   endif else begin
+			  ;; no astrometry, just do the rotate
+			  interpolated = rot(*self.images.main_image, desired_angle,  cubic=-0.5, missing=!values.f_nan)
+			  nearest = rot(*self.images.main_image, desired_angle,  interp =0,  missing=!values.f_nan)
+			  wnan = where(~finite(interpolated), nanct)
+			  if nanct gt 0 then interpolated[wnan] = nearest[wnan]
+			  *self.images.main_image = interpolated
+		   endelse
+
+		   ;; if a datacube, rotate all the slices
+		   if has_cube then for i=0,szmis[3]-1 do begin
+			  interpolated = rot(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]), (-1)*desired_angle,  cubic=-0.5, missing=!values.f_nan)
+			  nearest = rot(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]), (-1)*desired_angle, interp=0,  missing=!values.f_nan)
+			  wnan = where(~finite(interpolated), nanct)
+			  if nanct gt 0 then interpolated[wnan] = nearest[wnan]
+			  (*self.images.main_image_stack)[*,*,i] = interpolated
+		   endfor
+		   
+		endelse 
+
+
+		;;if there are sat spots in memory, they need to be updated as well
+		if (n_elements(*self.satspots.cens) eq 8L * (*self.state).image_size[2]) then begin
+		   rotang = desired_angle*!dpi/180d0
+		   rotMat = [[cos(rotang),sin(rotang)],$
+					 [-sin(rotang),cos(rotang)]]
+		   c0 = (*self.state).image_size[0:1]/2 # (dblarr(4) + 1d0)
+		   for j = 0,(*self.state).image_size[2]-1 do (*self.satspots.cens)[*,*,j] = (rotMat # ((*self.satspots.cens)[*,*,j] - c0))+c0
+
+		endif
+
+	endif else self->message, "Rotating to 0 (no rotation)" ; end of rotation section
+
+	;--------- finish up the transformation and clean up --------------
+  
+	; if we've transformed an astrometry header, store it back as appropriate.
+	if keyword_set(astr_header) then begin
+	   if (*self.state).astr_from eq 'PHDU' then begin
+		   ; stick modified header back into the PHDU slot.
+			*((*self.state).head_ptr) = astr_header	
+		   ;if ptr_valid( (*self.state).exthead_ptr ) then extensionheader = *((*self.state).exthead_ptr)
+		  ;self->setheader, astr_header, extensionhead=extensionheader
+	   endif else begin
+		   ; stick modified header back into the extension HDU slot
+		   *((*self.state).exthead_ptr) = astr_header
+		   ; have to make copy first of the PHDU header, or else the ptr_free in setheader clobbers itself.
+		   ;copy_of_head = *((*self.state).head_ptr)
+		   ;self->setheader, copy_of_head,  extensionhead=astr_header
+	   endelse
+	endif
+
+
+   ;;if a collapse mode was previously applied, reapply it
+   widget_control, (*self.state).collapse_button, get_value=modelist
+   if  modelist[(*self.state).collapse] ne 'Show Cube Slices' then self->collapsecube
+
+
+
+end
+
+
+;----------------------------------------------------------
+
 
 pro gpitv::update_menustate_rotate_invert
 
@@ -3868,191 +3817,49 @@ pro GPItv::rotate, desired_angle, get_angle=get_angle, nodisplay=nodisplay
 ; need arbitrary rotations for gpitv
 ;
 ; If /get_angle set, create widget to enter rotation angle
+;
+; INPUTS:
+;	desired_angle		Desired rotation counterclockwise, from the unrotated
+;						image's starting orientation (i.e. this is absolute
+;						not relative rotation.)
+;
 ;-
 
-; do we have a 3D cube, in which case we will have to invert each slice?
-szmis=size(*self.images.main_image_stack)
- 
-has_astr = ptr_valid( (*self.state).astr_ptr )
-if has_astr then begin
-   ;; which header is the astrometry info from?
-   if (*self.state).astr_from eq 'PHDU' then astr_header = *((*self.state).head_ptr) else astr_header = *((*self.state).exthead_ptr)
-endif
 
-widget_control, /hourglass
+	if (keyword_set(get_angle)) then begin
+	   
+	   formdesc = [ '0, LABEL, Enter Desired Rotation, CENTER', $
+	   '0, float,'+strtrim((*self.state).rot_angle,2)+', label_left=Rotation Angle: ', $
+	   '0, LABEL, Rotations are in degrees measured counterclockwise, LEFT', $
+	   '0, LABEL, in the image after any axes inversions are applied., LEFT', $
+	   '0, LABEL, Enter here the absolute rather than relative angle desired., LEFT', $
+				   '1, base, , row', $
+				   '0, button, Cancel, quit', $
+				   '0, button, Rotate, quit']
+	   
+	   textform = cw_form(formdesc, /column, title = 'Rotate')
+	   
+	   if (textform.tag6 EQ 1) then return ; cancel button
+	   if (textform.tag7 EQ 1) then desired_angle = float(textform.tag1)
+	   
+	endif
 
-if (keyword_set(get_angle)) then begin
-   
-   formdesc = ['0, float,'+strtrim((*self.state).rot_angle,2)+', label_left=Rotation Angle: ', $
-               '1, base, , row', $
-               '0, button, Cancel, quit', $
-               '0, button, Rotate, quit']
-   
-   textform = cw_form(formdesc, /column, title = 'Rotate')
-   
-   if (textform.tag2 EQ 1) then return
-   if (textform.tag3 EQ 1) then desired_angle = float(textform.tag0)
-   
-endif
+	(*self.state).rot_angle  = desired_angle
 
-;;find delta from current rotation
-delta_angle = (float(desired_angle) - (*self.state).rot_angle )
+	widget_control, /hourglass
 
-;; Are we rotating by some multiple of 90 degrees? If so, we can do so
-;; exactly.
-if (delta_angle/90. eq fix(delta_angle/90)) then begin
-   
-   delta_angle = delta_angle mod 360
-   if delta_angle lt 0 then delta_angle +=360
-   rchange = strc(fix(delta_angle)) ; how much do we need to change the image to get the new rotation?
-   self->Message, 'Rotating exactly to '+strc(desired_angle)+", which is "+rchange+" deg relative to current orientation"
+	self->refresh_image_invert_rotate 
 
-   case rchange of
-      '0':  rot_dir=0           ;; do nothing
-      '90': rot_dir=1
-      '180': rot_dir=2
-      '270': rot_dir=3
-   endcase
+	; update the menu checkboxes
+	self->update_menustate_rotate_invert
 
-   if has_astr then begin
-      ;; do rotation with astrometry update
-      ;;
-      ;; If a cube is present, have to modify it to ignore wavelength axis or hrotate will
-      ;; crash
-      if szmis[0] eq 3 then begin
-         sxaddpar, astr_header, 'NAXIS', 2
-         sxdelpar, astr_header, 'NAXIS3'
-      endif
+	;Redisplay inverted image with current zoom, update pan, and refresh image
+	if ~(keyword_set(nodisplay)) then begin 
+	   self->displayall
+	   self->update_child_windows
+	endif 
 
-      hrotate, *self.images.main_image, astr_header, newim, new_astr_header, rot_dir
-      if szmis[0] eq 3 then begin
-         sxaddpar, astr_header, 'NAXIS', 3
-         sxaddpar, astr_header, 'NAXIS3', szmis[3]
-      endif
-
-      *self.images.main_image = newim
-   endif else begin
-      ;; no astrometry, just do the rotate
-      *self.images.main_image = rotate(*self.images.main_image, rot_dir)
-   endelse
-   
-   szmis=size(*self.images.main_image_stack)
-   ;; if a datacube, rotate all the slices
-   if szmis[0] eq 3 then $
-      for i=0,szmis[3]-1 do (*self.images.main_image_stack)[*,*,i] = rotate(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]), rot_dir)
-
-endif else begin
-   ;; arbitrary rotation angle, requires interpolating rotation. 
-   ;;
-   ;; Algorithm note: This is an inherently lossy process. We use cubic
-   ;; interpolation where possible, nearest neighbor elsewhere (i.e. at the
-   ;; edges of the array where cubic fails). This is a hack but this is just for rough 
-   ;; quick and dirty display work.
-   ;;
-   ;; To avoid degradation from multiple interpolations, we always start fresh
-   ;; from the main_image_backup for such rotations. **however** we also have to
-   ;; do one additional rotation from whatever the current image is to the
-   ;; desired rotation (even if this is doubly lossy) to get the astrometry
-   ;; header updated properly. We discard the pixel results of this, but keep
-   ;; the astrometry keywords. 
-   ;;
-
-
-   ;; first, grab the backup image and restore it
-   *self.images.main_image_stack = *self.images.main_image_backup
-   *self.images.main_image = (*self.images.main_image_stack)[*, *, (*self.state).cur_image_num]
-
-   self->Message, 'Rotating with interpolation to '+strc(desired_angle)+", which is "+strc(delta_angle)+" relative to current orientation"
-   
-   ;rchange = float(delta_angle) + (*self.state).rot_angle
-   if ptr_valid((*self.state).astr_ptr) then begin
-      ;; do rotation with astrometry update
-	  
-	  ;; start by doing a rotation by delta_angle just to fix the
-	  ;; output new astrometry header, relative to the current astrometry header
-	  ;;
-	  ;; WARNING: hrot2 expects angles **clockwise**, in contradiction of the
-	  ;; convention adopted by hrotate (and most astronomers) Aaaaargh. -MDP
-	  hrot2, *self.images.main_image, astr_header, dummy_image, new_astr_header, (-1)*delta_angle, $
-				 -1, -1, 2,  interp=0,  missing=!values.f_nan
-	  ;; now do a rotation  by desired_angle to get the output image, relative to the
-	  ;; backup image.
-      if szmis[0] eq 3 then begin
-         sxaddpar, astr_header, 'NAXIS', 2
-         sxdelpar, astr_header, 'NAXIS3'
-      endif
-      hrot2, *self.images.main_image, astr_header, interpolated, discarded_new_astr_header, (-1)*desired_angle,$
-             -1, -1, 2,  cubic=-0.5, missing=!values.f_nan
-      hrot2, *self.images.main_image, astr_header, nearest, discarded_new_astr_header, (-1)*desired_angle, $
-             -1, -1, 2,  interp=0,  missing=!values.f_nan
-      if szmis[0] eq 3 then begin
-         sxaddpar, astr_header, 'NAXIS', 3
-         sxaddpar, astr_header, 'NAXIS3', szmis[3]
-      endif
-      wnan = where(~finite(interpolated), nanct)
-      if nanct gt 0 then interpolated[wnan] = nearest[wnan]
-      *self.images.main_image = interpolated
-   endif else begin
-      ;; no astrometry, just do the rotate
-      interpolated = rot(*self.images.main_image, desired_angle,  cubic=-0.5, missing=!values.f_nan)
-      nearest = rot(*self.images.main_image, desired_angle,  interp =0,  missing=!values.f_nan)
-      wnan = where(~finite(interpolated), nanct)
-      if nanct gt 0 then interpolated[wnan] = nearest[wnan]
-      *self.images.main_image = interpolated
-   endelse
-   ;; if a datacube, rotate all the slices
-   szmis=size(*self.images.main_image_stack)
-   if szmis[0] eq 3 then $
-      for i=0,szmis[3]-1 do begin
-      interpolated = rot(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]), (-1)*desired_angle,  cubic=-0.5, missing=!values.f_nan)
-      nearest = rot(reform((*self.images.main_image_stack)[*,*,i],szmis[1],szmis[2]), (-1)*desired_angle, interp=0,  missing=!values.f_nan)
-      wnan = where(~finite(interpolated), nanct)
-      if nanct gt 0 then interpolated[wnan] = nearest[wnan]
-      (*self.images.main_image_stack)[*,*,i] = interpolated
-   endfor
-   
-   ;;if a collapse mode was previously applied, reapply it
-   widget_control, (*self.state).collapse_button, get_value=modelist
-   if  modelist[(*self.state).collapse] ne 'Show Cube Slices' then self->collapsecube
-endelse 
-
-(*self.state).rot_angle = float(desired_angle)  mod 360.
-
-;;if there are sat spots in memory, they need to be updated as well
-if (n_elements(*self.satspots.cens) eq 8L * (*self.state).image_size[2]) then begin
-   rotang = delta_angle*!dpi/180d0
-   rotMat = [[cos(rotang),sin(rotang)],$
-             [-sin(rotang),cos(rotang)]]
-   c0 = (*self.state).image_size[0:1]/2 # (dblarr(4) + 1d0)
-   for j = 0,(*self.state).image_size[2]-1 do (*self.satspots.cens)[*,*,j] = (rotMat # ((*self.satspots.cens)[*,*,j] - c0))+c0
-
-endif
-
-;; if we've transformed an astrometry header, store it back as appropriate.
-if keyword_set(new_astr_header) then begin
-   if (*self.state).astr_from eq 'PHDU' then begin
-      ;; stick modified header back into the PHDU slot.
-      if ptr_valid( (*self.state).exthead_ptr ) then extensionheader = *((*self.state).exthead_ptr)
-      self->setheader, new_astr_header, extensionhead=extensionheader
-   endif else begin
-      ;; stick modified header back into the extension HDU slot
-      ;; have to make copy first of the PHDU header, or else the ptr_free in setheader clobbers itself.
-      copy_of_head = *((*self.state).head_ptr)
-      self->setheader, copy_of_head,  extensionhead=new_astr_header
-	  self->Message, 'astrometry header updated for rotation'
-   endelse
-endif
-;
-; update the menu checkboxes
-self->update_menustate_rotate_invert
-
-;Redisplay inverted image with current zoom, update pan, and refresh image
-if ~(keyword_set(nodisplay)) then begin
-   self->displayall
-   self->update_child_windows
-endif
-   
-self->resetwindow
+	self->resetwindow
 
 end
 
@@ -4727,13 +4534,17 @@ end
 
 ;--------------------------------------------------------------------
 
-pro gpitv::autohandedness
+pro gpitv::autohandedness, nodisplay=nodisplay
 ;+
 ; Check image parity from the WCS header
 ; If the image is right-handed, flip the X dimension so that it becomes
 ; left handed. (i.e. East is counterclockwise of North)
 ; 
-;
+; Keyword:
+;   /nodisplay		Just update the arrays without calling redisplay
+;					Useful if you are performing multiple transformations in a row.
+
+
 ;-
 
 
@@ -4758,7 +4569,7 @@ getrot, astr, npa, cdelt, /silent
 
 if cdelt[0] gt 0 then begin
 	self->message, 'Inverting X axis to get desired image handedness.'
-	self->invert, 'x'
+	self->invert, 'x',/nodisplay
 endif
 
 end
@@ -5875,6 +5686,24 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
      if (*self.state).autohandedness then self->autohandedness
 
   endif
+
+  ; if retaining view, apply previous inversion to the new image
+  if (*self.state).retain_current_zoom &&  ((*self.state).invert_image ne 'none') then begin
+	  prior_invert = (*self.state).invert_image
+	  (*self.state).invert_image = 'none'
+	  self->invert, prior_invert, /nodisplay
+  endif
+
+  ; if retaining view, apply previous rotation to the new image
+  if (*self.state).retain_current_zoom &&  ( (*self.state).rot_angle  ne 0) then begin
+	  prior_rotation = (*self.state).rot_angle
+	  (*self.state).rot_angle = 0.0
+	  self->rotate, prior_rotation, /nodisplay
+  endif
+
+
+
+
   self->recenter, align=(*self.state).retain_current_view ; must call recenter whether keeping alignment or not, to update some state vars
 
   self->settitle
@@ -8224,6 +8053,7 @@ if (n_elements(head) LE 1) then begin
     (*self.state).head_ptr = ptr_new()
     ptr_free, (*self.state).astr_ptr
     (*self.state).astr_ptr = ptr_new()
+    (*self.state).main_image_astr_backup = ptr_new()
     (*self.state).astr_from = 'None'
     widget_control, (*self.state).wcs_bar_id, set_value = '---No WCS Info---'
     return
@@ -8278,6 +8108,10 @@ widget_control, (*self.state).wcs_bar_id, set_value = '                 '
 
 ; Create a pointer to the header info
 (*self.state).astr_ptr = ptr_new(astr)
+; save another copy for restoring after transformations.
+ptr_free, (*self.state).main_image_astr_backup 
+(*self.state).main_image_astr_backup  = ptr_new(astr)
+
 
 ; Get the equinox of the coordinate system
 ; GPI note - EQUINOX is in PHDU so this is OK
