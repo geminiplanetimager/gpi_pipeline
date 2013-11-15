@@ -51,7 +51,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
   haall=dblarr(dataset.validframecount)
   for n=0,dataset.validframecount-1 do begin
     ;header=*(dataset.headers[n])
-    haall[n]=double(backbone->get_keyword('HA', indexFrame=n))
+    haall[n]=double(ten_string(backbone->get_keyword('HA', indexFrame=n)))
     paall[n]=double(backbone->get_keyword('PAR_ANG', indexFrame=n ,count=ct))
     lat = ten_string('-30 14 26.700') ; Gemini South
     dec=double(backbone->get_keyword('DEC'))
@@ -64,11 +64,17 @@ if numfile  eq ((dataset.validframecount)-1) then begin
   ;;get some parameters of datacubes, could have been already defined before; ToDo:check if already defined and remove this piece of code..
   dimcub=(size(*(dataset.currframe[0])))[1]  ;
   xc=dimcub/2 & yc=dimcub/2
-  lambdamin=CommonWavVect[0]
-  lambdamax=CommonWavVect[1]
-  ;Common Wavelength Vector
-  lambda=dblarr(CommonWavVect[2])
-  for i=0,CommonWavVect[2]-1 do lambda[i]=lambdamin+double(i)*(lambdamax-lambdamin)/(CommonWavVect[2]-1)
+   filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
+        ;get the common wavelength vector
+            ;error handle if extractcube not used before
+    if (strlen(filter) eq 0)  then $
+        return, error('FAILURE ('+functionName+'): Datacube or filter not defined. Use extractcube module before.')        
+    cwv=get_cwv(filter)
+    CommonWavVect=cwv.CommonWavVect
+    lambda=cwv.lambda
+    lambdamin=CommonWavVect[0]
+    lambdamax=CommonWavVect[1]
+ 
 
 
   subsuffix='-loci'
