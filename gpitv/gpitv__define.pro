@@ -7832,6 +7832,7 @@ val=gpi_get_keyword(h, e, 'OBSTYPE',count=cc,/silent)
 val = strmid(val, 0, max_display_len)
 ;; special case for arc lamps: append the GCAL lamp name
 if strc(val) eq 'ARC' then val='ARC - '+strc(gpi_get_keyword(h, e,'GCALLAMP'))
+if strc(val) eq 'FLAT' then val='FLAT - '+strc(gpi_get_keyword(h, e,'GCALLAMP'))+ ","+strc(strmid(gpi_get_keyword(h, e,'GCALFILT'),0,3))
 
 if cc gt 0 then widget_control, (*self.state).obstype_id, set_value = val else $
   widget_control, (*self.state).obstype_id, set_value = 'No info'
@@ -17848,20 +17849,20 @@ widget_control, /hourglass
 
 if n_elements((*self.state).image_size) eq 3 then begin
      
-   im=*self.images.main_image_stack
- for s=0,N_ELEMENTS(im[0,0,*])-1 do im[*,*,s]=im[*,*,s]-filter_image(im[*,*,s],median=9)
+	im=*self.images.main_image_stack
+	for s=0,N_ELEMENTS(im[0,0,*])-1 do im[*,*,s]=im[*,*,s]-filter_image(im[*,*,s],median=9)
 
-; sigmas of sat spot are 1.39 and 1.46 in H 
-npix=5
-psf=psf_gaussian(npixel=npix,FWHM=(2.355*1.43))
+	; sigmas of sat spot are 1.39 and 1.46 in H 
+	npix=5
+	psf=psf_gaussian(npixel=npix,FWHM=(2.355*1.43))
 
-iden_kernel=fltarr(npix,npix)
-iden_kernel[npix/2,npix/2]=1
-;kernel=iden_kernel-psf
-kernel=psf
-; normalize such that the total is equal to 1
-kernel/=total(kernel)
-;   for s=0,N_ELEMENTS(im[0,0,*])-1 do im[*,*,s]=convol(im[*,*,s],kernel)
+	iden_kernel=fltarr(npix,npix)
+	iden_kernel[npix/2,npix/2]=1
+	;kernel=iden_kernel-psf
+	kernel=psf
+	; normalize such that the total is equal to 1
+	kernel/=total(kernel)
+	;   for s=0,N_ELEMENTS(im[0,0,*])-1 do im[*,*,s]=convol(im[*,*,s],kernel)
 
 
    *self.images.main_image_stack=im
