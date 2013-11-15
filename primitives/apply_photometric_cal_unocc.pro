@@ -114,7 +114,7 @@ throuhput=fltarr(n_elements(lambda))
 for i=0,n_elements(lambda)-1 do $
 throuhput[i]=(gaindetector*( total(cube[*,*,i],/nan))) /( nbphot_juststar[i] ) ;TODO implement good[s]? for satflux
 
-;;HERE YOU SHOULD SAVE YOUR THROUHGPUT FOR FURTHER ANALYSIS
+;;HERE YOU SHOULD SAVE YOUR THROUHGPUT IF YOU WANT
 stop
 @__end_primitive
 
