@@ -627,7 +627,7 @@ function automaticreducer::init, groupleader, _extra=_extra
   
 	self.flex_base_id = widget_base(self.top_base, /row, map=0)
 
-	if !version.os eq 'darwin' then ysize=30 else ysize=24
+	if !version.os eq 'darwin' or !version.os eq 'linux'then ysize=30 else ysize=24
 
 	tmp = widget_label(self.flex_base_id ,/ALIGN_LEFT , value="IFS Internal Flexure     ")
 
