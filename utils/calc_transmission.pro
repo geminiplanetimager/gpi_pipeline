@@ -2,7 +2,7 @@ function calc_transmission, filter, pupil_mask_string, lyot_mask_string, without
 ; this determines the transmission of the instrument for a given setup
 ; it also outputs the default resolution of a spectrum for a given band
 
-; the nominal transmission of 18.6% is the transmission at 1.55um and
+; the nominal transmission of 14.2% is the transmission at 1.55um and
 ; assumes the H-band PPM, the 080m12_04 Lyot and the H-band filter.
 ; this transmission value was measured for the ATP testing (REQ-FPR-0210)
 
@@ -12,7 +12,8 @@ function calc_transmission, filter, pupil_mask_string, lyot_mask_string, without
 
 compile_opt defint32, strictarr, logical_predicate
 
-	transmission=0.186
+;	transmission=0.142 ; observed lab data
+	transmission=0.065 ; on-sky value measured over the entire H-band - not perfect - needs further refining
 
 	; normalized to H-band Lyot - 080m12_04 
 	lyot_trans=0.8102486d0 ; for  080m12_04 
@@ -56,12 +57,17 @@ compile_opt defint32, strictarr, logical_predicate
 ; now compensate for filter transmissions
 ; must first divide by the H-band transmission at 1.55um 
 ; load H filter
+;filt_prof_H0=mrdfits( gpi_get_directory('GPI_DRP_CONFIG')+'/filters/GPI-filter-H.fits',1,/silent)
+;filt_155_trans=interpol(filt_prof_H0.transmission,filt_prof_H0.wavelength,1.55)
+;transmission/=filt_155_trans
+
+; now we must divide by the H-band filter transmission
 filt_prof_H0=mrdfits( gpi_get_directory('GPI_DRP_CONFIG')+'/filters/GPI-filter-H.fits',1,/silent)
-filt_155_trans=interpol(filt_prof_H0.transmission,filt_prof_H0.wavelength,1.55)
-transmission/=filt_155_trans
+H_band_trans=int_tabulated(filt_prof_H0.wavelength,filt_prof_H0.transmission)/0.3 ; 0.3 is the bandpass
+transmission/=H_band_trans
 
 ; now multiply by the filter transmission of the central wavelength for the given filter
-
+; this is an approximation - it should use the entire filter bandpass
 if keyword_set(without_filter) eq 0 then begin
 	; load filters for integration	
 filt_prof0=mrdfits( gpi_get_directory('GPI_DRP_CONFIG')+'/filters/GPI-filter-'+filter+'.fits',1,/silent)
@@ -72,9 +78,8 @@ filt_cen_wave_trans=interpol(filt_prof0.transmission,filt_prof0.wavelength, filt
 transmission*=filt_cen_wave_trans
 endif
 
-; determine the resolution
-
-; each slice is how big in wavelength space
+; determine the resolution - shouldnt be necessary....
+;; each slice is how big in wavelength space
 	case filter of
 	 ; from Jeff's ATP report - 4.14 REQ-FPR-0620: Spectral Resolution
 	'Y': resolution=39.0
