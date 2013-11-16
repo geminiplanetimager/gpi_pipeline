@@ -71,15 +71,38 @@ tmp = backbone->get_keyword("SATSWARN", ext_num=1, count=ct)
 if ct eq 0 then $
    return, error('FAILURE ('+functionName+'): SATSWARN undefined.  Use "Measure satellite spot fluxes" before this one.')
 
-;;grab sat fluxes
+;;grab sat TOTAL fluxes
 warns = hex2bin(tmp,(size(cube,/dim))[2])
 satflux = fltarr(4,(size(cube,/dim))[2])
 for s=0,n_elements(good) - 1 do begin
    for j = 0,3 do begin 
+   ;this is NOT total fluxes
       satflux[j,good[s]] = backbone->get_keyword('SATF'+strtrim(long(good[s]),2)+'_'+strtrim(j,2),ext_num=1) 
    endfor 
 endfor
 
+ sat1flux = fltarr(n_elements(cens[0,0,*]))    ;;top left
+  sat2flux = fltarr(n_elements(cens[0,0,*]))    ;;bottom left
+  sat3flux = fltarr(n_elements(cens[0,0,*]))    ;;top right
+  sat4flux = fltarr(n_elements(cens[0,0,*]))    ;;bottom right
+  mean_sat_flux = fltarr(n_elements(cens[0,0,*]))
+  
+ 
+ 
+  for s=0,n_elements(cens[0,0,*])-1 do begin
+     ;;using aperature radius 3 pixels
+     aper, cube[*,*,s],cens[0,0,s],cens[1,0,s],flux,eflux,sky,skyerr,1.,3.,[10.,20.],[-10.,2*max(satflux)],/flux,/exact,/nan,/silent 
+     sat1flux[s]=flux
+     aper, cube[*,*,s],cens[0,1,s],cens[1,1,s],flux,eflux,sky,skyerr,1.,3.,[10.,20.],[-10.,2*max(satflux)],/flux,/exact,/nan,/silent
+     sat2flux[s]=flux
+     aper, cube[*,*,s],cens[0,2,s],cens[1,2,s],flux,eflux,sky,skyerr,1.,3.,[10.,20.],[-10.,2*max(satflux)],/flux,/exact,/nan,/silent
+     sat3flux[s]=flux
+     aper, cube[*,*,s],cens[0,3,s],cens[1,3,s],flux,eflux,sky,skyerr,1.,3.,[10.,20.],[-10.,2*max(satflux)],/flux,/exact,/nan,/silent
+     sat4flux[s]=flux
+     ;;calculate a median satellite spectrum
+     mean_sat_flux[s]=median([sat1flux[s], sat2flux[s], sat3flux[s], sat4flux[s]]) ; counts/slice
+  endfor
+  
 ;;get grid fac
 apodizer = backbone->get_keyword('APODIZER', count=ct)
 if strcmp(apodizer,'UNKNOWN',/fold_case) then begin
@@ -124,6 +147,7 @@ convfac[i]=((nbphotnormtheo[i]*(gridratio[i]))/(gaindetector*( mean(satflux[*,i]
 cubef3D=cube; JM:todo:use only one variable for the cube
         for i=0,CommonWavVect[2]-1 do   cubef3D[*,*,i]*=double(convfac[i])
         
+        
 
 unitslist = ['Counts', 'Counts/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A','ergs/s/cm^2/Hz']
  
@@ -132,10 +156,10 @@ unitslist = ['Counts', 'Counts/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A
       unitschoice=fix(Modules[thisModuleIndex].FinalUnits)
       case unitschoice of
       0: begin ;'Counts'
-        for i=0,CommonWavVect[2]-1 do cubef3D[*,*,i]/=(float(convfac[i])/float(exposuretime))
+        for i=0,CommonWavVect[2]-1 do cubef3D[*,*,i]/=(float(convfac[i]))
       end
       1:begin ;'Counts/s'
-        for i=0,CommonWavVect[2]-1 do cubef3D[*,*,i]/=(float(convfac[i]))
+        for i=0,CommonWavVect[2]-1 do cubef3D[*,*,i]/=(float(convfac[i])/float(exposuretime))
         end
       2: begin ;'ph/s/nm/m^2'
         end
