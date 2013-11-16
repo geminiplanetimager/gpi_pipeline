@@ -484,6 +484,7 @@ state = {                   $
         specalign_mode: 0, $              ; boolean indicating whether you're in specalign mode
         klip_mode: 0, $                   ; boolean indicating whether you're in KLIP mode
         high_pass_mode: 0,$               ; boolean indicating whether you're in high pass filter mode
+        high_pass_size: 9,$               ; high pass filter size of median box
         specalign_to: 0L, $               ; index of slice you're aligned to
         klip_annuli: 5L, $                ; default # of KLIP annuli to use
         klip_movmt: 2.0, $                ; default minimum pixels to move for KLIP ref set
@@ -737,6 +738,7 @@ top_menu_desc = [ $
                 {cw_pdmenu_s, 2, 'Native'}, $
                 {cw_pdmenu_s, 1, 'Options'}, $ ;options menu
                 {cw_pdmenu_s, 0, 'Contrast Plot Settings...'}, $
+                {cw_pdmenu_s, 0, 'High pass filter Settings...'}, $
                 {cw_pdmenu_s, 0, 'KLIP Settings...'}, $
                 {cw_pdmenu_s, 0, 'Clear KLIP Data'}, $
                 {cw_pdmenu_s, 12, 'Retain Current Slice'}, $
@@ -1638,8 +1640,9 @@ case event_name of
    END
 
    ;;Options options
-   'Contrast Plot Settings...':			self->contrast_settings
-   'KLIP Settings...':                          self->KLIP_settings
+   'Contrast Plot Settings...':		self->contrast_settings
+   'KLIP Settings...':              self->KLIP_settings
+   'High pass filter Settings...':  self->high_pass_filter_settings
    'Clear KLIP Data': BEGIN
       ptr_free,self.images.klip_image
       self.images.klip_image = ptr_new(/allocate_heap)
@@ -17862,9 +17865,11 @@ pro GPItv::high_pass_filter, status=status
 widget_control, /hourglass
 
 if n_elements((*self.state).image_size) eq 3 then begin
+
+	medboxsize = (*self.state).high_pass_size
      
 	im=*self.images.main_image_stack
-	for s=0,N_ELEMENTS(im[0,0,*])-1 do im[*,*,s]=im[*,*,s]-filter_image(im[*,*,s],median=9)
+	for s=0,N_ELEMENTS(im[0,0,*])-1 do im[*,*,s]=im[*,*,s]-filter_image(im[*,*,s],median=medboxsize)
 
 	; sigmas of sat spot are 1.39 and 1.46 in H 
 	npix=5
@@ -18408,6 +18413,32 @@ pro GPItv::KLIP_settings
   self.images.klip_image = ptr_new(/allocate_heap)
   
 end
+
+;----------------------------------------------------------------------
+
+pro GPItv::high_pass_filter_settings
+  
+  ;; Routine to get user input on various high pass settings
+  box_line = strcompress('0, float,'+string((*self.state).high_pass_size) + $ ;1
+                            ',label_left = Median Box Size:,' + $
+                            'width = 10')
+  
+  formdesc = ['0, label, Select options for high pass filter', $
+              box_line,$
+              '0, button, Save Settings, quit', $ ;5
+              '0, button, Cancel, quit']          ;6
+  
+	if (*self.state).multisess GT 0 then title = "GPItv #"+strc((*self.state).multisess) else title="GPItv"
+	title += " High pass filter settings"
+  textform = cw_form(formdesc, /column,  title = title)
+  
+  if (textform.tag3 EQ 1) then return ; cancelled (tag# = # of inputs above+2)
+  
+  (*self.state).high_pass_size = textform.tag1
+
+  
+end
+
 
 ;----------------------------------------------------------------------
 
