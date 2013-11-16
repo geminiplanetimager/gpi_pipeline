@@ -28,6 +28,8 @@
 ; PIPELINE COMMENT: Reduce speckle noise using the KLIP algorithm with ADI data with center forced to image center
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="annuli" Type="int" Range="[0,100]" Default="0" Desc="Number of annuli to use"
+; PIPELINE ARGUMENT: Name="centerx" Type="int" Range="[0,281]" Default="140" Desc="Center X Pixel"
+; PIPELINE ARGUMENT: Name="centery" Type="int" Range="[0,281]" Default="140" Desc="Center Y Pixel"
 ; PIPELINE ARGUMENT: Name="MinRotation" Type="float" Range="[0.0,360.0]" Default="1" Desc="Minimum rotation between images (degrees)"
 ; PIPELINE ARGUMENT: Name="prop" Type="float" Range="[0.8,1.0]" Default=".99999" Desc="Proportion of eigenvalues used to truncate KL transform vectors"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="5" Desc="1-500: choose gpitv session for displaying output, 0: no display "
@@ -43,6 +45,13 @@ function gpi_klip_algorithm_angular_differential_imaging_forcecent, DataSet, Mod
   @__start_primitive
 
   if numfile ne ((dataset.validframecount)-1) then return, OK
+
+  ;;get user inputs
+  annuli=long(Modules[thisModuleIndex].annuli)
+  minrot=double(Modules[thisModuleIndex].minRotation)
+  prop=double(Modules[thisModuleIndex].prop)
+  cx=long(Modules[thisModuleIndex].centerx)
+  cy=long(Modules[thisModuleIndex].centery)
 
   ;; get some info about the dataset
   nlam = backbone->get_keyword('NAXIS3',indexFrame=0, count=ct)
@@ -74,14 +83,8 @@ function gpi_klip_algorithm_angular_differential_imaging_forcecent, DataSet, Mod
       ;     locs[*,*,*,j] = tmp
 
      ;for k = 0,nlam-1 do cens[*,k,j] = [mean(locs[0,*,k,j]),mean(locs[1,*,k,j])]
-     for k = 0,nlam-1 do cens[*,k,j] = (dim - 1)/2
+     for k = 0,nlam-1 do cens[*,k,j] = [cx,cy]
  endfor
-
-  
-  ;;get user inputs
-  annuli=long(Modules[thisModuleIndex].annuli)
-  minrot=double(Modules[thisModuleIndex].minRotation)
-  prop=double(Modules[thisModuleIndex].prop)
   
   ;;get the status console and number of modules
   statuswindow = backbone->getstatusconsole()
