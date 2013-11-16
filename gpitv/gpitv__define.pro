@@ -5792,7 +5792,8 @@ pro GPItv::update_sat_spots,locs0=locs0
      ;;calculate a mean satellite spectrum
      mean_sat_flux[s]=mean([sat1flux[s], sat2flux[s], sat3flux[s], sat4flux[s]]) ; counts/slice
   endfor
-  ;;convert to photons per second - need the gain
+  
+	;;convert to photons per second - need the gain
   header=(*(*self.state).head_ptr)
   extheader=(*(*self.state).exthead_ptr)
   gain=sxpar(extheader,'sysgain') ;  electrons/ADU
@@ -5815,8 +5816,8 @@ pro GPItv::update_sat_spots,locs0=locs0
   zero_vega*=(filt_cen_wave/(h*c))    ; ph/cm2/s/um
   
   ;; get the pupil area (cm^2)
-  primary_diam = gpi_get_constant('primary_diam',default=7.7701d0)*100d
-  secondary_diam = gpi_get_constant('secondary_diam',default=1.02375d0)*100d
+  primary_diam = gpi_get_constant('primary_diam',default=7.7701d0)*100d ; cm
+  secondary_diam = gpi_get_constant('secondary_diam',default=1.02375d0)*100d ; cm
   area=(!pi*(primary_diam/2.0)^2.0 - !pi*(secondary_diam/2.0)^2.0 ) 
   zero_vega*=area               ; ph/s/um
   ;; multiply by instrument throughput (18.6%) in H-band
@@ -5835,19 +5836,19 @@ pro GPItv::update_sat_spots,locs0=locs0
      return
   endif
   
-  ;;transmission=calc_transmission(filter, pupil_mask_string, lyot_mask_string, resolution=resolution, without_filter=1)
-  ;; no filter transmission included!	
+  ;; no filter transmission included - instead we will integrate the vega spectrum over the filter profile	
   zero_vega*=transmission       ; ph/s/um
   
   ;; multiply by the integration time
   zero_vega*=sxpar(extheader,'ITIME')   ; ph/um
   ;; now the unit wavelength
-  zero_vega*=(filt_cen_wave/resolution) ; width of a wavelength slice - so its now in ph/slice
+	; calculate the width of a wavelength slice 
+	dlambda=cube_waves[1]-cube_waves[0]
+	zero_vega*=dlambda ; now in ph/slice
   
   ;; load filters for integration	
   filt_prof0=mrdfits( gpi_get_directory('GPI_DRP_CONFIG')+'/filters/GPI-filter-'+filter+'.fits',1,/silent)
   filt_prof=interpol(filt_prof0.transmission,filt_prof0.wavelength,cube_waves)
-  ;; since the throughput is measured at 1.55um and includes the filter profile
   
   ;; note that Naru measured the photometry using a 3 pixel radius - he calculated later that the sum of the entire spot is equal to 0.57*3pixel photometry
   ;; i did this in one slice and got 0.63 - not far off
@@ -5857,7 +5858,6 @@ pro GPItv::update_sat_spots,locs0=locs0
   ;; need to use satellite intensity flux calibration to get magnitude of star
   ;;msat-mstar=-2.5log(Fsat/Fstar)
   mags=sat_mag+2.5*alog10(((*self.state).gridfac))
-
   ;;update sat spots to account for any inversion/rotation
   ichange = (*self.state).invert_image 
   if strmatch(ichange,'x*') then cens[0,*,*] = (*self.state).image_size[0] - cens[0,*,*]
