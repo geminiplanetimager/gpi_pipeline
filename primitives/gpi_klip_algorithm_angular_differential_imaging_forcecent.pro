@@ -74,7 +74,7 @@ function gpi_klip_algorithm_angular_differential_imaging_forcecent, DataSet, Mod
       ;     locs[*,*,*,j] = tmp
 
      ;for k = 0,nlam-1 do cens[*,k,j] = [mean(locs[0,*,k,j]),mean(locs[1,*,k,j])]
-     cens[*,k,j] = (dim - 1)/2
+     for k = 0,nlam-1 do cens[*,k,j] = (dim - 1)/2
  endfor
 
   
