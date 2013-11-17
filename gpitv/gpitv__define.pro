@@ -2663,8 +2663,9 @@ pro GPItv::labelmeasure, event
 		if pa lt 0 then pa += 360.0
 		if distance lt 100.0 then formatstr = "(g7.4)" else formatstr= "(g6.5)"
 		self->xyouts,((*self.state).vector_coord1[0]+(*self.state).coord[0])/2+3,((*self.state).vector_coord1[1]+(*self.state).coord[1])/2+3,$
-			string(pixel_distance, format=('(f8.1)'))+ " pixels!C"+ $
-			string(distance,format=formatstr)+" arcsec!C   PA="+string(pa,format=formatstr)+" degr",charsize=2
+			"    "+strc(string(pixel_distance, format=('(f8.1)')))+ " pixels!C"+ $
+			"    "+sigfig(distance,3)+" arcsec!C       PA="+sigfig(pa,3)+" degr",charsize=2, color='white'
+			;string(distance,format=formatstr)+" arcsec!C   PA="+string(pa,format=formatstr)+" degr",charsize=2
 		;print,"distance is "+string(distance)+" arcseconds"
 	endelse
 	; For Motion events, don't save annotation
@@ -4372,7 +4373,7 @@ pro GPItv::changeimage,imagenum,next=next,previous=previous, nocheck=nocheck,$
 
 	; check imagenum is withing bounds
 	if (imagenum lt 0) or (imagenum gt ((*self.state).image_size[2]-1)) then begin
-        (*self.state).cur_image_num = (*self.state).cur_image_num
+        ;(*self.state).cur_image_num = (*self.state).cur_image_num
         widget_control, (*self.state).curimnum_text_id, $
                                 set_value = string((*self.state).cur_image_num)
         text_warn = 'Please enter a value between 0 and ' + $
@@ -5576,7 +5577,6 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
      end ;end 2d case
 
      3: begin                   ; case of 3-d imagecube
-        *self.images.main_image = (*self.images.main_image_stack)[*, *, 0]
         (*self.state).image_size = (size(*self.images.main_image_stack))[1:3]
         
         ;;if we didn't have an image before, or sticky is
@@ -5588,6 +5588,8 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
 	    ;; but update the current slice if necessary if it's out of range
 		if (*self.state).cur_image_num ge (*self.state).image_size[2] then (*self.state).cur_image_num = (*self.state).image_size[2]-1
 		if (*self.state).cur_image_num lt 0 then (*self.state).cur_image_num = 0
+
+        *self.images.main_image = (*self.images.main_image_stack)[*, *, (*self.state).cur_image_num]
         
         ;;draw the image slicer
         widget_control,(*self.state).curimnum_base_id0,map=1, xsize=(*self.state).draw_window_size[0], ysize=45
