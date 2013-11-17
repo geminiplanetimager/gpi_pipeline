@@ -338,6 +338,7 @@ state = {                   $
         contr_font_size: 1.4, $             ;  for plot annotations
         contr_plotmult: 0, $                ; plot contrasts for single slice/all slices
         contr_autocent: 1, $                ; 0=manual, 1=auto, find sat centers 
+        contr_highpassspots: 1, $           ; pass /highpass
         contr_plotouter: 0, $               ; plot contrasts for region outside of dark hole
         contr_yunit:0, $                    ; 0 = sigma, 1 = median, 2 = mean
         contr_xunit:0, $                    ; 0 = as, 1 = l/D
@@ -737,7 +738,7 @@ top_menu_desc = [ $
                 {cw_pdmenu_s, 0, 'Ecliptic (J2000)'}, $
                 {cw_pdmenu_s, 2, 'Native'}, $
                 {cw_pdmenu_s, 1, 'Options'}, $ ;options menu
-                {cw_pdmenu_s, 0, 'Contrast Plot Settings...'}, $
+                {cw_pdmenu_s, 0, 'Contrast Settings...'}, $
                 {cw_pdmenu_s, 0, 'High pass filter Settings...'}, $
                 {cw_pdmenu_s, 0, 'KLIP Settings...'}, $
                 {cw_pdmenu_s, 0, 'Clear KLIP Data'}, $
@@ -1640,7 +1641,7 @@ case event_name of
    END
 
    ;;Options options
-   'Contrast Plot Settings...':		self->contrast_settings
+   'Contrast Settings...':		self->contrast_settings
    'KLIP Settings...':              self->KLIP_settings
    'High pass filter Settings...':  self->high_pass_filter_settings
    'Clear KLIP Data': BEGIN
@@ -5759,7 +5760,7 @@ pro GPItv::update_sat_spots,locs0=locs0
      ;;always use the backup main image so that you know you're
      ;;operating on the orig image.
      sats = get_sat_fluxes(*self.images.main_image_backup,band=(*self.state).obsfilt,$
-                           good=good,cens=cens,warns=warns,$
+                           good=good,cens=cens,warns=warns,highpass=(*self.state).contr_highpassspots,$
                            winap=(*self.state).contrwinap,gaussap=(*self.state).contrap,$
                            indx=(*self.state).cur_image_num,locs=locs0,gaussfit=1,refinefits=1)
      if n_elements(sats) eq 1 and sats[0] eq -1 then begin
@@ -14605,7 +14606,7 @@ h = ['GPItv HELP',$
 '                              Ecliptic(J2000): Coordinates displayed are Ecliptic (J2000)',$
 '                              Native:        Coordinates displayed are those of the image',$
 '',$
-'Options->Contrast Plot Settings...: Brings up contrast plot settings window',$
+'Options->Contrast Settings...: Brings up contrast plot settings window',$
 'Options->KLIP Settings...:    Brings up KLIP settings window',$
 'Options->Clear KLIP Data:     Removes KLIP processed cube from memory',$
 'Options->Retain Current Slice: Current slice index will be displayed when next image is loaded',$
@@ -18849,9 +18850,9 @@ pro GPItv::contrast_settings
   plotouter = strcompress('0, button, Dark Hole Only|All Image, exclusive,' + $  ;7
                          'label_left = Plot Contrast In:, set_value =' + $
                          string( (*self.state).contr_plotouter))
-  autocent = strcompress('0, button, Manual|Auto, exclusive,' + $ ;8
-                         'label_left = Locate Satellite Spots:, set_value =' + $
-                         string( (*self.state).contr_autocent))
+  autocent = strcompress('0, button, Auto Locate Sat Spots|Use Highpass Filter,' + $ ;8
+                         ' set_value = ' + $
+                         '['+strtrim((*self.state).contr_autocent,2)+'\,'+strtrim((*self.state).contr_highpassspots,2)+']')
   yunits = strcompress('0, button, Sigma|Median|Mean, exclusive,' + $ ;9
                          'label_left = Contrast Y units:, set_value =' + $
                          string( (*self.state).contr_yunit))
@@ -18877,7 +18878,8 @@ pro GPItv::contrast_settings
   (*self.state).contr_font_size = textform.tag5
   (*self.state).contr_plotmult = textform.tag6
   (*self.state).contr_plotouter = textform.tag7
-  (*self.state).contr_autocent = textform.tag8
+  (*self.state).contr_autocent = (textform.tag8)[0]
+  (*self.state).contr_highpassspots = (textform.tag8)[1]
   (*self.state).contr_yunit = textform.tag9
   (*self.state).contr_xunit = textform.tag10
 

@@ -1,5 +1,5 @@
 function find_sat_spots_all,im0,band=band,indx=indx,good=good,$
-                        refinefits=refinefits,winap=winap,locs=locs
+                        refinefits=refinefits,winap=winap,locs=locs,highpass=highpass
 ;+
 ; NAME:
 ;       find_sat_spots_all
@@ -26,6 +26,8 @@ function find_sat_spots_all,im0,band=band,indx=indx,good=good,$
 ;       indx - Index of slice to start with (defaults to zero)
 ;      
 ;       cens - 2x4xl array of sat spot center pixel locations
+;
+;       highpass - High pass filter image used for initial sat spot finding
 ;
 ; OPTIONAL OUTPUT:
 ;       good - Indices of the slices where sat spots could be found
@@ -64,7 +66,7 @@ scl = lambda[indx]/lambda
 ;;grab reference slice and find spots
 s0 = im[*,*,indx]
 if strcmp(band,'Y',/fold_case) then s0 *= hanning(sz[0],sz[1],alpha=0.01)
-cens0 = find_sat_spots(s0, winap=winap,locs=locs)
+cens0 = find_sat_spots(s0, winap=winap,locs=locs,highpass=highpass)
 badcens = where(~finite(cens0),ct)
 if n_elements(cens0) eq 1 || ct ne 0 then return, -1
 

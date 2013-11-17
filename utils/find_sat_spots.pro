@@ -1,4 +1,4 @@
-function find_sat_spots,s0,leg=leg,locs=locs0, winap = winap
+function find_sat_spots,s0,leg=leg,locs=locs0, winap = winap, highpass=highpass
 ;+
 ; NAME:
 ;       find_sat_spots
@@ -57,8 +57,11 @@ ref = exp(-0.5*fr^2)
 
 ;;if not given initial centers, need to hunt for them
 if not keyword_set(locs0) then begin
+   s0i = s0
+   if keyword_set(highpass) then s0i -= filter_image(s0i,median=9)
+
    ;;fourier coregister with gaussian to smooth image
-   fourier_coreg,s0,ref,out,/wind
+   fourier_coreg,s0i,ref,out,/wind
 
    ;;define mask 3C2 and 4C2 comb sets
    msk = make_annulus(winap)
