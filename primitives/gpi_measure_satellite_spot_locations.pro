@@ -6,8 +6,9 @@
 ;
 ; PIPELINE COMMENT: Measure the locations of the satellite spots in the datacube, and save the results to the FITS keyword headers.
 ; PIPELINE ARGUMENT: Name="refine_fits" Type="int" Range="[0,1]" Default="1" Desc="0: Use wavelength scaling only; 1: Fit each slice"
-; PIPELINE ARGUMENT: Name="reference_index" Type="int" Range="[0,50]" Default="0" Desc="Index of slice to use for initial satellite detection."
+; PIPELINE ARGUMENT: Name="reference_index" Type="int" Range="[-1,50]" Default="-1" Desc="Index of slice to use for initial satellite detection. -1 for Auto."
 ; PIPELINE ARGUMENT: Name="search_window" Type="int" Range="[1,50]" Default="20" Desc="Radius of aperture used for locating satellite spots."
+; PIPELINE ARGUMENT: Name="highpass" Type="int" Range="[0,1]" Default="1" Desc="1: Use high pass filter 0: don't"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="loc_input" Type="int" Range="[0,2]" Default="0" Desc="0: Find spots automatically; 1: Use values below as initial satellite spot location"
 ; PIPELINE ARGUMENT: Name="x1" Type="int" Range="[0,300]" Default="0" Desc="approx x-location of top left spot on central slice of the datacube in pixels (not considered if CalibrationFile is defined)"
@@ -43,8 +44,10 @@ if ((size(cube))[0] ne 3) || (strlen(band) eq 0)  then $
 ;;get user inputs
 refinefits = fix(Modules[thisModuleIndex].refine_fits)
 indx = fix(Modules[thisModuleIndex].reference_index)
+if indx eq -1 then indx = round((size(cube,/dim))[2]/2.)
 winap = fix(Modules[thisModuleIndex].search_window)
 loc_input = fix(Modules[thisModuleIndex].loc_input)
+highpass = fix(Modules[thisModuleIndex].highpass)
 if loc_input eq 1 then begin 
    approx_loc=fltarr(4,2)
    approx_loc[0,0]=fix(Modules[thisModuleIndex].x1)
@@ -60,7 +63,7 @@ endif
 
 ;;find sat spots
 cens = find_sat_spots_all(cube,band=band,indx=indx,good=good,$
-                          refinefits=refinefits,winap=winap,locs=approx_locs)
+                          refinefits=refinefits,winap=winap,locs=approx_locs,highpass=highpass)
 if n_elements(cens) eq 1 then return, error ('FAILURE ('+functionName+'): Could not find satellite spots.')
 good = long(good)
 
