@@ -18,10 +18,10 @@
 ; PIPELINE ARGUMENT: Name="Mass" Type="int" Range="[1,15]"  Default="10" Desc="Mass of planet in Jupiter masses"
 ; PIPELINE ARGUMENT: Name="model_type" Type="string" Range="[hot,cold]"  Default="hot" Desc="Hot or Cold Start formation scenario"
 
-; PIPELINE ARGUMENT: Name="Position_angle" Type="float" Range="[0,360]"  Default="45.0" Desc="Position angle of the planet in degrees East of North"
-; PIPELINE ARGUMENT: Name="Separation" Type="float" Range="[0,1400]"  Default="500" Desc="Separation in milli-arcseconds"
+; PIPELINE ARGUMENT: Name="position_angle" Type="float" Range="[0,360]"  Default="45.0" Desc="Position angle of the planet in degrees East of North"
+; PIPELINE ARGUMENT: Name="Separation" Type="float" Range="[0,1800]"  Default="500" Desc="Separation in milli-arcseconds"
 ; PIPELINE ARGUMENT: Name="Star_Mag" Type="float" Range="[-1,8]"  Default="-1" Desc="Stellar Magnitude in H band, -1 estimates stellar magnitude from satellite spots"
-; PIPELINE ARGUMENT: Name="distance" Type="float" Range="[0-1000]"  Default="10.0" Desc="distance to system in parsecs"
+; PIPELINE ARGUMENT: Name="distance" Type="float" Range="[0,1000]"  Default="10.0" Desc="distance to system in parsecs"
 ; PIPELINE ARGUMENT: Name="write_header_info" Type="int" Range="[0,1]" Default="1" Desc="1: Write planet info to headers 0: don't write planet info to headers"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
@@ -41,7 +41,6 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 @__start_primitive
 suffix='wplnt' 		 ; set this to the desired output filename suffix
-
  	if tag_exist( Modules[thisModuleIndex], "age") then age=long(Modules[thisModuleIndex].age) else age=10
 	if tag_exist( Modules[thisModuleIndex], "mass") then mass=long(Modules[thisModuleIndex].mass) else mass=10
 	if tag_exist( Modules[thisModuleIndex], "model_type") then model_type=string(Modules[thisModuleIndex].model_type) else model_type='hot'
@@ -51,8 +50,6 @@ suffix='wplnt' 		 ; set this to the desired output filename suffix
 	if tag_exist( Modules[thisModuleIndex], "distance") then distance=float(Modules[thisModuleIndex].distance) else distance=10.0
 	if tag_exist( Modules[thisModuleIndex], "star_mag") then star_mag=float(Modules[thisModuleIndex].star_mag) else star_mag=-1.0	
 	if tag_exist( Modules[thisModuleIndex], "write_header_info") then write_header_info=long(Modules[thisModuleIndex].write_header_info) else write_header_info=1.0	
-
-
 
 	; #############################
 	; get magnitude of central star
@@ -171,7 +168,8 @@ suffix='wplnt' 		 ; set this to the desired output filename suffix
 	zero_vega/=(backbone->get_keyword('sysgain')) ; ADU/um
 	; each slice is how big in wavelength space
 	; answer returned from calc_transmission
-	zero_vega*=(lambda/resolution); photons/slice
+	dlambda=(lambda[1]-lambda[0])
+	zero_vega*=(lambda/dlambda); photons/slice
 	
 	; load filters for integration	
 	filt_prof0=mrdfits( gpi_get_directory('GPI_DRP_CONFIG')+'/filters/GPI-filter-'+filter+'.fits',1,/silent)
