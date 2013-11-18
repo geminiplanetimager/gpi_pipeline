@@ -142,14 +142,16 @@ PRO drf::remove_datafile, filename, status=status
 	absfilename = gpi_expand_path(filename)
 
 
-	wmatch = where(*self.datafilenames eq absfilename, ct, complement=wcomplement)
+	;wmatch = where(*self.datafilenames eq absfilename, ct, complement=wcomplement)
+  wmatch = where(*self.datafilenames eq absfilename, ct, complement=wcomplement, ncomplement=ncomplement)
 
 	if ct eq 0 then begin
 		self->Log, "WARNING: There is no filename named "+filename+" present in this recipe."
 		status=-1
 	endif else begin
 		self->Log, "Removed from recipe: "+filename
-		if n_elements(wcomplement) gt 0 then *self.datafilenames = (*self.datafilenames)[wcomplement] else ptr_free, self.datafiles
+ 		if ncomplement gt 0 then *self.datafilenames = (*self.datafilenames)[wcomplement] else ptr_free, self.datafilenames
+	;	if n_elements(wcomplement) gt 0 then *self.datafilenames = (*self.datafilenames)[wcomplement] else ptr_free, self.datafiles
 		self.modified = 1
 		status=0
 	endelse
