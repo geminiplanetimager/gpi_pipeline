@@ -75,8 +75,7 @@ function gpi_klip_algorithm_angular_differential_imaging, DataSet, Modules, Back
 
      for k = 0,nlam-1 do cens[*,k,j] = [mean(locs[0,*,k,j]),mean(locs[1,*,k,j])]
   endfor
-
-  
+ 
   ;;get user inputs
   annuli=long(Modules[thisModuleIndex].annuli)
   minrot=double(Modules[thisModuleIndex].minRotation)
@@ -154,16 +153,15 @@ function gpi_klip_algorithm_angular_differential_imaging, DataSet, Modules, Back
         mean_R_dim1=dblarr(N_ELEMENTS(R[0,*]))                        
         for zz=0,N_ELEMENTS(R[0,*])-1 do mean_R_dim1[zz]=mean(R[*,zz],/double,/nan)
         R_bar = R-matrix_multiply(replicate(1,n_elements(radinds),1),mean_R_dim1,/btranspose)
-        naninds = where(R_bar ne R_bar,count)
-        if count ne 0 then begin 
+        naninds = where(R_bar ne R_bar,countnan)
+        if countnan ne 0 then begin 
            R[naninds] = 0
            R_bar[naninds] = 0
+           naninds = array_indices(R_bar,naninds)
         endif
-        naninds = array_indices(R_bar,naninds)
 
         ;;find covariance of all slices
         covar0 = matrix_multiply(R_bar,R_bar,/atranspose)/(n_elements(radinds)-1d0) 
-
 
         ;;cycle through images
         for imnum = 0,nfiles-1 do begin
@@ -209,9 +207,9 @@ function gpi_klip_algorithm_angular_differential_imaging, DataSet, Modules, Back
            Test = T - transpose(signal_step_2)
            
            ;;restore,NANs,rotate estimate by -PA and add to output
-           Test[naninds[0,where(naninds[1,*] eq imnum)]] = !values.d_nan
+           if countnan ne 0 then Test[naninds[0,where(naninds[1,*] eq imnum)]] = !values.d_nan
 
-           final_im[*,*,l] += rot(reform(Test,dim),-PAs[imnum],/interp,cubic=-0.5)
+           final_im[*,*,l] += rot(reform(Test,dim),PAs[imnum],/interp,cubic=-0.5)
         endfor
      endfor
   endfor 
