@@ -141,7 +141,7 @@ PRO drf::remove_datafile, filename, status=status
 	
 	absfilename = gpi_expand_path(filename)
 
-  wmatch = where(*self.datafilenames eq absfilename, ct, complement=wcomplement, ncomplement=ncomplement)
+	wmatch = where(*self.datafilenames eq absfilename, ct, complement=wcomplement, ncomplement=ncomplement)
 
 	if ct eq 0 then begin
 		self->Log, "WARNING: There is no filename named "+filename+" present in this recipe."
@@ -213,7 +213,7 @@ function drf::get_datestr
 		self->Log, "Assuming today's date just as a guess...."
 		datestr = gpi_datestr()
 	endelse 
-	;stop
+	stop
 	return,datestr
 
 end
