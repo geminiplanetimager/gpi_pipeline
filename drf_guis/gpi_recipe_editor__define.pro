@@ -924,9 +924,9 @@ pro gpi_recipe_editor::event,ev
     end
    
     'outputdir_browse': begin
-		result = DIALOG_PICKFILE(TITLE='Select an Output Directory', /DIRECTORY,/MUST_EXIST)
+		result = DIALOG_PICKFILE(TITLE='Select an Output Directory', /DIRECTORY,/MUST_EXIST, path=self.drf->get_outputdir())
 		if result ne '' then begin
-			self.drf->set_outputdir, dir=result
+			self.drf->set_outputdir, result
 			widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
 			self->log,'Output Directory changed to:'+self.drf->get_outputdir()
             ;self.outputoverride = 1
@@ -1339,7 +1339,7 @@ pro gpi_recipe_editor::open, filename, template=template, silent=silent, log=log
 	self->refresh_primitives_table 
 	self->refresh_arguments_table
 
-    widget_control,   self.outputdir_id, set_value=self.outputdir
+    widget_control,   self.outputdir_id, set_value=self.drf->get_outputdir()
     widget_control,   self.RecipePrimitivesTable_id,   SET_TABLE_VIEW=[0,0] ; set cursor to upper left corner
 
 	self->log,'Recipe:'+self.loadedRecipeFile+' has been succesfully loaded.'
@@ -1703,7 +1703,7 @@ end
 ;-
 PRO gpi_recipe_editor::post_init, drfname=drfname, _extra=_extra
     if keyword_set(drfname) then begin
-        self->loaddrf, drfname, /log
+        self->open, drfname, /log
     end
 	self->set_view_mode, 2
 

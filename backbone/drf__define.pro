@@ -176,9 +176,34 @@ function drf::get_datestr
 		; FITS header
 		head = headfits((*self.datafilenames)[0])
 		dateobs = sxpar(head,'DATE-OBS', count=count)
+		timeobs= sxpar(head,'UTSTART', count=count2)
 		if count gt 0 then begin
 			parts = strsplit(dateobs,'-',/extract)
+
+			if count2 gt 0 then begin
+				utctimeparts = strsplit(timeobs,':',/extract)
+			endif else utctimeparts = [0,6,0]  ; will give wrong values but at least won't crash the code. 
+
+			; Rules for selecting current date and time at the observatory are
+			; such that it won't increment in the middle of the night. 
+			
+			;; get the current date and time of day
+			;; the day increments at 1400 local Chilean time, regardless of 
+			;; whether it's standard or daylight time
+			;;
+			;; However, annoyingly, we don't keep Chilean local time in the 
+			;; FITS header. We can use as a proxy the 3 hour times from UTC
+			;; that is appropriate for Chilean summer time, under the assumption
+			;; that most GPI data will be taken in the summer and a 1 hour
+			;; offset in the winter on the date rollover is not that big a deal. 
+			chile_time_hours = utctimeparts[1]-3
+			if chile_time_hours lt 0 then chile_time_hours += 24
+			if chile_time_hours gt 14d0 then parts[2] += 1d0 ; increment to next day preemptively after 2 pm Chilean
+
 			datestr = string(parts[0] mod 100,parts[1],parts[2],format='(i2.2,i2.2,i2.2)')
+
+
+
 		endif else begin
 			self->Log, 'ERROR: output data should be organized by date, but no DATE-OBS keyword present.'
 			self->Log, "Assuming today's date just as a guess...."
@@ -195,7 +220,7 @@ end
 
 ;--------------------------------------------------------------------------------
 
-pro drf::set_outputdir, dir ;, autodir=autodir
+pro drf::set_outputdir, dir, verbose=verbose ;, autodir=autodir
 	if self.outputdir eq dir then return  ; no change, so just return
 	if n_elements(dir) eq 0 then begin
 		self->Log, "ERROR: missing argument to set_outputdir. Therefore no change."
@@ -216,7 +241,7 @@ pro drf::set_outputdir, dir ;, autodir=autodir
 ;	endelse
 
 	self.outputdir = dir
-	self->Log, "Output dir set to "+self.outputdir
+	if keyword_set(verbose) then self->Log, "Output dir set to "+self.outputdir
 end
 ;-------------
 FUNCTION drf::get_automatic_default_outputdir
