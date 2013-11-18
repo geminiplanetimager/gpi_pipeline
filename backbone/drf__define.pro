@@ -149,7 +149,7 @@ PRO drf::remove_datafile, filename, status=status
 		status=-1
 	endif else begin
 		self->Log, "Removed from recipe: "+filename
-		*self.datafilenames = (*self.datafilenames)[wcomplement]
+		if n_elements(wcomplement) gt 0 then *self.datafilenames = (*self.datafilenames)[wcomplement] else ptr_free, self.datafiles
 		self.modified = 1
 		status=0
 	endelse
@@ -214,6 +214,7 @@ function drf::get_datestr
 		self->Log, "Assuming today's date just as a guess...."
 		datestr = gpi_datestr()
 	endelse 
+	;stop
 	return,datestr
 
 end
