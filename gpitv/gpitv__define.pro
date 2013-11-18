@@ -4062,7 +4062,6 @@ pro GPItv::change_image_units, new_requested_units, silent=silent
 	widget_control, (*self.state).units_droplist_id, set_droplist_select = ind, set_value=*(*self.state).unitslist
  
 	self->getstats,/noerase       ; updates image min/max stats displayed on screen
-	self->recenter
 	self->autoscale
 	self->set_minmax
 	self->displayall
