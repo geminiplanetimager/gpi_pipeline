@@ -494,7 +494,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	readoutmode=newfile.readoutmode ;self->get_readoutmode_as_string(fits_data)
 
 	;---- optional: restrict based on dates of IFS cooldown runs (so 
-	if (gpi_get_setting('caldb_restricts_by_cooldown', /bool, default=1,/silent) $
+	if (gpi_get_setting('caldb_restricts_by_cooldown', /bool, default=0,/silent) $
 	    and not keyword_set(ignore_cooldown_cycles)) then begin
 		calfiles_table = (*self.data)
 		
