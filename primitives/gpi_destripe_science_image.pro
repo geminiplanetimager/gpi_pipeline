@@ -198,8 +198,9 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
   case strupcase(strc(mode)) of
     'PRISM':  begin
       ; Assume wavecal already loaded by readwavcal primitive
-        
-      ; Extrapolate wavecal an additional 2 lenslets, to let us mask out
+			; add error handling
+      if keyword_set(wavecal) eq 0 then return, error('FAILURE ('+functionName+'): Must load wavelength calibration to perform destriping')
+			; Extrapolate wavecal an additional 2 lenslets, to let us mask out
       ; the edge spectra that are half on/half off the detector.
       wavecal2 = gpi_wavecal_extrapolate_edges(wavcal)
         
