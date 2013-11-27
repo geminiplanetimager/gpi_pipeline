@@ -4,8 +4,8 @@
 ; Useful for test data,...
 ;
 ; OUTPUTS:
-; PIPELINE ARGUMENT: Name="overwrite" Type="int"  Default="0" Desc="0:do not overwrite already existent keyword; 1:overwrite"
-; PIPELINE ARGUMENT: Name="exten" Type="int"  Default="0" Desc="Choose the extension num to place your keyword(s). 0 for FITS or MEF-PHU. 1 for extension1."
+; PIPELINE ARGUMENT: Name="overwrite" Type="int" Range="[0.0,1.0]" Default="0" Desc="0:do not overwrite already existent keyword; 1:overwrite"
+; PIPELINE ARGUMENT: Name="exten" Type="int" Range="[0.0,1.0]" Default="0" Desc="Choose the extension num to place your keyword(s). 0 for FITS or MEF-PHU. 1 for extension1."
 ; PIPELINE ARGUMENT: Name="keyword1" Type="string"  Default="FILTER" Desc="Enter keyword name to add."
 ; PIPELINE ARGUMENT: Name="value1" Type="string"  Default="H" Desc="Enter value of the keyword to add."
 ; PIPELINE ARGUMENT: Name="keyword2" Type="string"  Default="OBSTYPE" Desc="Enter keyword name to add."
