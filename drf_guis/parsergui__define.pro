@@ -481,8 +481,8 @@ pro parsergui::addfile, filenames, mode=mode
 
 			; First retrieve the names, itimes, and nfiles from the current list of recipes
 			DRFnames = (*self.recipes_table)[1,*]
-			ITimes= (*self.recipes_table)[8,*]
-			Nfiles= (*self.recipes_table)[10,*]
+			ITimes= (*self.recipes_table)[9,*]
+			Nfiles= (*self.recipes_table)[11,*]
 			wdark = where(DRFnames eq 'Dark' and (itimes gt 60) and (nfiles ge 10), darkcount)
 			if darkcount gt 0 then begin
 				; take the DRF of the longest available dark sequence and read all of
@@ -711,7 +711,7 @@ pro parsergui::add_recipe_to_table, filename, drf, current, index=index
     self.num_recipes_in_table+=1
 
     widget_control, self.tableSelected, ysize=((size(*self.recipes_table))[2] > 20 )
-    widget_control, self.tableSelected, set_value=(*self.recipes_table)[0:10,*]
+    widget_control, self.tableSelected, set_value=(*self.recipes_table)[0:11,*]
     widget_control, self.tableSelected, background_color=rebin(*self.table_BACKground_colors,3,2*11,/sample)    
 
 end
@@ -995,7 +995,7 @@ pro parsergui::event,ev
     end
     'DRFGUI': begin
         if self.selection eq '' then return
-            gpidrfgui, drfname=self.selection, self.top_base
+            rec_editor = obj_new('gpi_recipe_editor', drfname=self.selection, self.top_base)
     end
 
 
@@ -1059,8 +1059,14 @@ pro parsergui::ask_add_files
 	;-- Ask the user to select more input files:
 	if self.last_used_input_dir eq '' then self.last_used_input_dir = self->get_input_dir()
 
+	if keyword_set(gpi_get_setting('at_gemini', default=0,/silent)) then begin
+		filespec = 'S20'+gpi_datestr(/current)+'*.fits'
+	endif else begin
+		filespec = ['*.fits','*.fits.gz']
+	endelse
+
 	result=dialog_pickfile(path=self.last_used_input_dir,/multiple,/must_exist,$
-			title='Select Raw Data File(s)', filter=['*.fits','*.fits.gz'])
+			title='Select Raw Data File(s)', filter=filespec)
 	result = strtrim(result,2)
 
 	if result[0] ne '' then begin
