@@ -139,12 +139,16 @@ PRO gpidrfparser::free_dataset_pointers
 
 	; Free any data which are currently read into memory
 	IF PTR_VALID(Self.Data) THEN if keyword_set(*self.data) then BEGIN
+			PTR_FREE, (*Self.Data).Frames[*]
 			PTR_FREE, (*Self.Data).QualFrames[*]
 			PTR_FREE, (*Self.Data).UncertFrames[*]
-			PTR_FREE, (*Self.Data).HeadersExt[*]
 			PTR_FREE, (*Self.Data).HeadersPHU[*]
-			PTR_FREE, (*Self.Data).Frames[*]
+			PTR_FREE, (*Self.Data).HeadersExt[*]
+			PTR_FREE, (*Self.Data).HeadersDQ[*]
+			PTR_FREE, (*Self.Data).HeadersUncert[*]
 			PTR_FREE, (*Self.Data).CurrFrame
+			PTR_FREE, (*Self.Data).CurrDQ
+			PTR_FREE, (*Self.Data).CurrUncert
 	ENDIF
 	PTR_FREE, Self.Modules
 	PTR_FREE, Self.Data
@@ -331,17 +335,7 @@ pro gpidrfparser::load_data_to_pipeline, backbone=backbone, status=status
     expanded = gpi_expand_path(complete_drf, vars_expanded=vars_expanded,/notruncate)
     if keyword_set(vars_expanded) then begin
 		record = "$"+vars_expanded +" = "+getenv(vars_expanded)
-;	  wlong = where(strlen(record) gt 67, longct)
-;	  if longct gt 0 then begin
-;		  newrecord=['']
-;		for j=0L,longct-1 do begin
-;			nparts = ceil(strlen(record[j]) / 67.)
-;			parts = strmid(record[j], indgen(nparts)*67, indgen(nparts)*67+66)
-;
-;
-;		endfor 
-;	  endif
-  	; Split into no more than 67 chars per line, to stick into FITS header
+		; Split into no more than 67 chars per line, to stick into FITS header
 		newrecord=[' -- Variables used in DRF: --']
 		for j=0L,n_elements(record)-1 do begin
 			if strlen(record[j]) le 67 then newrecord=[newrecord, record[j]] else begin
@@ -687,11 +681,14 @@ PRO gpidrfparser::newdataset, AttNames, AttValues
 	DataSet = {structDataSet}			; Create a new structDataSet variable
 
 	MAXFRAMESINDATASETS = gpi_get_setting('max_files_per_recipe', default=1000,/silent)
-	DataSet.Frames = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
-	DataSet.HeadersPHU = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
-	DataSet.HeadersExt = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
-	DataSet.UncertFrames = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
-	DataSet.QualFrames = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
+	DataSet.Frames =		PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
+	DataSet.QualFrames =	PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
+	DataSet.UncertFrames =	PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
+
+	DataSet.HeadersPHU =	PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
+	DataSet.HeadersExt =	PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
+	DataSet.HeadersDQ =		PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
+	DataSet.HeadersUncert = PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)
 
 	FOR i = 0, N_ELEMENTS(AttNames) - 1 DO BEGIN	; Place attribute values in the
 		CASE AttNames[i] OF			; variable fields.
@@ -700,15 +697,6 @@ PRO gpidrfparser::newdataset, AttNames, AttValues
 		            DataSet.InputDir = getenv(AttValues[i]) else $
 		            DataSet.InputDir = AttValues[i]		            
 		            end
-;		'Name': BEGIN
-;			IF Self -> DataSetNameIsUnique(AttValues[i]) THEN BEGIN
-;			  DataSet.Name = AttValues[i]
-;			ENDIF ELSE BEGIN
-;				self->Log, 'DataSet Name ' + AttValues[i] + ' attribute is duplicated.', DEPTH=2
-;				self->Log, 'DRF will be aborted', DEPTH = 2
-;				continueAfterRecipeXMLParsing = 0
-;			ENDELSE
-;	    END
 		'OutputDir':	begin
                 if strlen(getenv(AttValues[i])) ne 0 then $
                 DataSet.OutputDir = getenv(AttValues[i]) else $
@@ -721,8 +709,7 @@ PRO gpidrfparser::newdataset, AttNames, AttValues
 	; This adds the new dataset to the array of datasets; this is an array
 	; of structDataSet elements.
 	if N_ELEMENTS(*Self.Data) EQ 0 THEN *Self.Data = DataSet $	; Add the DataSet
-	ELSE *Self.Data = [*Self.Data, DataSet]				; variable to the
-									; array.
+	ELSE *Self.Data = [*Self.Data, DataSet]				; variable to the array.
 
 
 END

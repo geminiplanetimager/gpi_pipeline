@@ -13,6 +13,8 @@
 ;   controlled by the pipeline setting variable 'preprocess_fits_files'.
 ;
 ;
+;   See also: gpi_readfits for a simpler "read the first data array" function.
+;
 ; INPUTS:
 ; KEYWORDS:
 ; 	/nodata		Don't return (or update) the data, just give the headers.
@@ -113,6 +115,7 @@ FUNCTION gpi_load_fits, filename, nodata=nodata, silent=silent, _extra=_extra
 		ext2data  = (mrdfits(filename , iext, ext2_Header, /SILENT))
 		extname = strc(sxpar(ext2_Header, 'EXTNAME'))
 		mydata = create_struct(mydata, extname, ptr_new(ext2data,/no_copy))
+		mydata = create_struct(mydata, extname+"_HEADER", ptr_new(ext2_header,/no_copy))
 	endfor
 	
 

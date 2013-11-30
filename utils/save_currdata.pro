@@ -46,7 +46,7 @@
 
 
 function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=savedata, saveheader=saveheader, savePHU=savePHU,  $
-		output_filename=c_File, level2=level2, addexten_var=addexten_var, addexten_qa=addexten_qa
+		output_filename=c_File, level2=level2
 
     COMMON APP_CONSTANTS
     COMMON PIP
@@ -54,10 +54,10 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	getmyname, functionname
 	version = gpi_pipeline_version()
 
-    if keyword_set(level2) then i=level2-1 else i=numfile ;; WTF??
+    if keyword_set(level2) then i=level2-1 else i=numfile ;; Huh?  Used in some of the ADI/LOCI infrastructure? Cryptic, needs explanatory comment please.
 
-	;-- Generate output filename, starting from the input one.
-	;   Also determine output directory
+	;=== Generate output filename, starting from the input one.
+	;    Also determine output directory
 	filenm=fxpar(*(DataSet.HeadersPHU[i]),'DATAFILE',count=cdf)
     if (cdf eq 0) or (strc(filenm) eq 'NONE') or (strc(filenm) eq '')  then begin 
 		; if DATAFILE keyword not present or not valid, then 
@@ -110,8 +110,7 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	if ( NOT bool_is_string(c_File) ) then $
 	   return, error('FAILURE ('+functionName+'): Output filename creation failed.')
 
-
-    ;============  File name collision handling ======
+    ;====  File name collision handling  ====
 	; Check if the requested output filename already exists. 
 
 	if file_test(c_File) then begin
@@ -165,10 +164,6 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 
 
 	; Now we can proceed to actually writing out the file. 
-	; First update the header if we're writing out VAR or DQ extensions.
-	FXADDPAR,  *(dataset.headersPHU[numfile]),'NEXTEND',1+keyword_set(addexten_var)+keyword_set(addexten_qa)
-
-
     caldat,systime(/julian,/utc),month,day,year, hour,minute,second
     datestr = string(year,month,day,format='(i4.4,"-",i2.2,"-",i2.2)')
     hourstr = string(hour,minute,second,format='(i2.2,":",i2.2,":",i2.2)')  
@@ -176,6 +171,9 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 
 	;--- write out either some user-supplied data (if explicitly provided), or the current data frame
 	if ( keyword_set( savedata ) ) then begin  ; The calling function has specified some special data to save, in place of the currFrame data
+		; First update the header if we're writing out VAR or DQ extensions.
+		FXADDPAR,  *(dataset.headersPHU[numfile]),'NEXTEND',1+keyword_set(addexten_var)+keyword_set(addexten_qa)
+
 	  	if ~( keyword_set( saveheader ) ) then saveheader = *(dataset.headersExt[numfile])
 		if ~( keyword_set( savePHU ) ) then savePHU = *(dataset.headersPHU[numfile])
 		fxaddpar, savePHU, 'DRPVER', version, ' Version number of GPI DRP software', after='TLCVER'
@@ -192,6 +190,9 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	endif else begin
       	fxaddpar, *DataSet.HeadersPHU[i], 'DRPVER', version, ' Version number of GPI DRP software', after='TLCVER'
       	fxaddpar, *DataSet.HeadersPHU[i], 'DRPDATE', datestr+'T'+hourstr, ' UT creation time of this reduced data file', after='UTEND'
+		; update the header if we're writing out VAR or DQ extensions.
+		FXADDPAR,  *(dataset.headersPHU[numfile]),'NEXTEND',1+ptr_valid(dataSet.CurrDQ)+ptr_valid(dataset.CurrUncert)
+
 
 		; update Gemini DATALABel keyword if present
 		datalab = sxpar(*DataSet.HeadersPHU[i], 'DATALAB', count=ctdatalab)
@@ -209,14 +210,13 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 		endif else begin
 			mwrfits, float(*DataSet.currFrame), c_File, *DataSet.HeadersExt[i],/silent
 		endelse
-      	;curr_hdr = *DataSet.HeadersPHU[i]
-      	;curr_ext_hdr = *DataSet.HeadersExt[i]
+
+		if ptr_valid(dataset.currDQ) then mwrfits, byte(*dataset.currDQ), c_File, *DataSet.HeadersDQ[i], /silent
+		if ptr_valid(dataset.currUncert) then mwrfits, byte(*dataset.currUncert), c_File, *DataSet.HeadersUncert[i], /silent
+
       	DataSet.OutputFilenames[i] = c_File  
 	endelse
 
-	if keyword_set(addexten_qa) then mwrfits, byte(addexten_qa), c_File,/silent
-	if keyword_set(addexten_var) then mwrfits, float(addexten_var), c_File,/silent
-  
 	if keyword_set(debug) then print, "  Data output ===>>> "+c_File
 	Backbone_comm->Log, "File output to: "+c_File, depth=1
 
@@ -234,8 +234,6 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	endif
 
 	;--- Update progress bar
-	;statuswindow = (Backbone_comm->Getprogressbar() )
-	;if obj_valid(statuswindow) then statuswindow->set_last_saved_file, c_File
 	if obj_valid(backbone_comm) then backbone_comm->set_last_saved_file, c_File
   
 	;--- Display image, if requested

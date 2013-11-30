@@ -613,17 +613,9 @@ FUNCTION gpiPipelineBackbone::Reduce
 		filter, $
 		dim, $
 		CommonWavVect, $
-		;gpidisplay, $
-		;meddec, $
 		suffix, $
 		header, $
-		;heade, $
-		;oBridge, $
-		;listfilenames, $
 		numfile, $		; index of current file in the dataset
-		;painit, $
-		;dir_sc, $
-		;Dtel, $
 		numext			; number of extensions in the current file
 
     PRINT, ''
@@ -748,20 +740,27 @@ FUNCTION gpiPipelineBackbone::load_FITS_file, indexFrame
         return,NOT_OK
     endif
 
+	; free previously allocated arrays
+	ptr_free, (*self.data).currFrame, (*self.data).currDQ, (*self.data).currUncert
 
-	; Do all the actual work now in a separate function: 
+	; Do all the actual loading work in a separate function: 
 	file_data = gpi_load_fits(filename)
 
-	;	The image is already a pointer, so we can just copy over the pointer. 
+	;	The returned image is already a pointer, so we can just copy over the
+	;	pointer. Likewise for the header.
 	(*self.data).currframe = file_data.image
-
-	ptr_free, (*self.data).currDQ, (*self.data).currUncert
-
-	if tag_exist(file_data, 'DQ') then (*self.data).currDQ = file_data.DQ
-	if tag_exist(file_data, 'UNCERT') then *(*self.data).currUncert = file_data.UNCERT
-
-	; likewise copy over the extension header
 	(*self.data).HeadersExt[IndexFrame] = file_data.ext_header
+
+
+	if tag_exist(file_data, 'DQ') then begin
+		(*self.data).currDQ = file_data.DQ
+		(*self.data).HeadersDQ[IndexFrame] = file_data.DQ_header
+	endif
+	if tag_exist(file_data, 'UNCERT') then begin
+		(*self.data).currUncert = file_data.UNCERT
+		(*self.data).HeadersUncert[IndexFrame] = file_data.Uncert_header
+	endif
+
 
 	; we deal with the primary header in a special way below, so just save it
 	; here. 
@@ -772,7 +771,7 @@ FUNCTION gpiPipelineBackbone::load_FITS_file, indexFrame
 
     ;--- update the headers: append the DRF onto the actual FITS header
     ;  At this point the *(*self.data).HeadersPHU[IndexFrame] variable contains
-    ;  ONLY the DRF appended in FITS header COMMENT form. 
+    ;  ONLY the DRF appended in FITS header COMMENT form. (from gpidrfparser)
     ;  Append this onto the REAL fits header we just read in from disk.
     ;
 	

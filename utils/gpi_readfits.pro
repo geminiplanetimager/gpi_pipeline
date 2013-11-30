@@ -6,6 +6,8 @@
 ;		1) if the file has no extensions, just read the primary HDU
 ;		2) if the file does have image extensions, read the first one. 
 ;
+;	See also: gpi_load_fits which does a more thorough job of loading everything
+;
 ; INPUTS: filename
 ; KEYWORDS:	
 ; 	header		for returning the header

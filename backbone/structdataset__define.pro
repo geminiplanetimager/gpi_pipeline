@@ -21,13 +21,10 @@
 ; 	However, we do still always load all the headers at once because that's cheap. 
 ; 	
 ;
-; INPUTS:
-; KEYWORDS:
-; OUTPUTS:
-;
 ; HISTORY:
 ; 	Moved to its own file 2010-04-19 19:27:30 by Marshall Perrin 
 ; 	2011-07-29: Added HeadersPHU and HeadersExt to support Gemini MEF standard.
+; 	2013-11-30 MP: Added HeadersDQ to store data quality extension headers 
 ;-
 
 
@@ -47,11 +44,14 @@ pro structDataset__define
             currFrame:PTR_new(/ALLOCATE_HEAP), $	; Current data to process.
             currUncert:PTR_new(/ALLOCATE_HEAP), $	; Uncertainty image for current frame
             currDQ:PTR_new(/ALLOCATE_HEAP), $ 		; Data Quality frame for current frame
-            HeadersExt:PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP), $
-            HeadersPHU:PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP), $
-            Frames:PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP), $
-            Wavcals:PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP), $
-            Polcals:PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP), $
-            UncertFrames:PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP), $
-            QualFrames:PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)}
+            HeadersPHU:PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP), $   ; Primary headers for all frames
+            HeadersExt:PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP), $	; SCI extension headers for all frames
+            HeadersDQ:PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP), $	; DQ extension headers for all frames
+            HeadersUncert:PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP), $	; Uncert/VAR extension headers for all frames
+            Frames:PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP), $		; SCI data array for all frames (used for accumulate images)
+            Wavcals:PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP), $		;  used in microlens PSF calibration
+            Polcals:PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP), $		;  used in microlens PSF calibration
+            UncertFrames:PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP), $ ; ERR data array for all frames (used for accumulate images)
+            QualFrames:PTRARR(MAXFRAMESINDATASETS, /ALLOCATE_HEAP)}		; DQ data array for all frames (used for accumulate images)
+
 end
