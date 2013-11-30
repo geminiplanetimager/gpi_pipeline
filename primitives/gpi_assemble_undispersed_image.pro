@@ -41,6 +41,7 @@
 ;   2012-03-30 Rotated by 90 deg to match spectral cube orientation. NaNs outside of FOV. - MP
 ;   2013-03-08 JM: added manual shifts of the spot due to flexure
 ;   2013-07-17 MP: Rename for consistency
+;   2013-11-30 MDP: Clear DQ and Uncert pointers
 ;-
 function gpi_assemble_undispersed_image, DataSet, Modules, Backbone
 
@@ -138,9 +139,11 @@ end
 
 outarr = rotate(outarr, 1)
 
+	; put the datacube in the dataset.currframe output structure:
+	*(dataset.currframe)=outarr
+	ptr_free, *dataset.currDQ  ; right now we're not creating a DQ cube
+	ptr_free, *dataset.currUncert  ; right now we're not creating an uncert cube
 
-; put the datacube in the dataset.currframe output structure:
-*(dataset.currframe[0])=outarr
 
 @__end_primitive
 

@@ -9,7 +9,6 @@
 ;
 ; KEYWORDS: 
 ; GEM/GPI KEYWORDS:IFSFILT
-; OUTPUTS:
 ;
 ; PIPELINE COMMENT: Assemble a 3D datacube from a 2D image. Spatial integration (3 pixels box) along the dispersion axis
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
@@ -27,8 +26,9 @@
 ;   2012-02-01 JM: adapted to vertical dispersion
 ;   2012-02-09 DS: offloaded sdpx calculation
 ;   2013-04-02 JBR: Correction on the y coordinate when reading the det array to match centered pixel convention. Removal of the reference pixel area.
-;   2013-07-17 MP: Rename for consistency
+;   2013-07-17 MDP: Rename for consistency
 ;   2013-08-06 MDP: Documentation update, code cleanup to relabel X and Y properly
+;   2013-11-30 MDP: Clear DQ and Uncert pointers
 ;-
 function gpi_assemble_spectral_datacube, DataSet, Modules, Backbone
   primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -95,9 +95,12 @@ function gpi_assemble_spectral_datacube, DataSet, Modules, Backbone
   ;; the spectral axis WCS will be added in interpol_spec_oncommwavvect
   gpi_update_wcs_basic,backbone,imsize=[nlens,nlens]
 
-  suffix='-rawspdc'
-  ;; put the datacube in the dataset.currframe output structure:
-  *dataset.currframe=cubef3D
+	suffix='-rawspdc'
+	;; put the datacube in the dataset.currframe output structure:
+	*dataset.currframe=cubef3D
+	ptr_free, *dataset.currDQ  ; right now we're not creating a DQ cube
+	ptr_free, *dataset.currUncert  ; right now we're not creating an uncert cube
+
 
   @__end_primitive
 

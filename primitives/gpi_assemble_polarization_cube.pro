@@ -45,6 +45,7 @@
 ;   2013-01-02 MP: Updated output file orientation to be consistent with
 ;				   spectral mode and raw data. 
 ;	2013-07-17 MP: Renamed for consistency
+;   2013-11-30 MDP: Clear DQ and Uncert pointers
 ;-
 
 function gpi_assemble_polarization_cube, DataSet, Modules, Backbone
@@ -137,7 +138,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     ;backbone->set_keyword, "CDELT3", 1, "Stokes axis: image 0 is Y parallel, 1 is X parallel"
 
     suffix='-podc'
-    *(dataset.currframe[0])=polcube
+    *(dataset.currframe)=polcube
+	ptr_free, *dataset.currDQ  ; right now we're not creating a DQ cube
+	ptr_free, *dataset.currUncert  ; right now we're not creating an uncert cube
 
     @__end_primitive 
 end
