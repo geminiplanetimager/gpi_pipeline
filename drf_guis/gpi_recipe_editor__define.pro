@@ -581,6 +581,9 @@ end
 ;-
 pro gpi_recipe_editor::event,ev
 
+	OK = 0
+	NOT_OK = -1
+	
     ;get type of event
     widget_control,ev.id,get_uvalue=uval
 
@@ -917,14 +920,14 @@ pro gpi_recipe_editor::event,ev
 		widget_control, self.outputdir_id, get_value=tmp
 		;if self->check_output_path_exists(tmp) then begin
 		if gpi_check_dir_exists(tmp) eq OK then begin
-			self.drf->set_outputdir, dir=tmp
+			self.drf->set_outputdir, tmp
 			self->log,'Output Directory changed to:'+self.drf->get_outputdir()
 		endif 
 		widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
     end
    
     'outputdir_browse': begin
-		result = DIALOG_PICKFILE(TITLE='Select an Output Directory', /DIRECTORY,/MUST_EXIST, path=self.drf->get_outputdir())
+		result = DIALOG_PICKFILE(TITLE='Select an Output Directory', /DIRECTORY,/MUST_EXIST, path=gpi_expand_path(self.drf->get_outputdir()))
 		if result ne '' then begin
 			self.drf->set_outputdir, result
 			widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
@@ -1206,7 +1209,7 @@ pro gpi_recipe_editor::save, template=template, nopickfile=nopickfile
   
   if keyword_set(template) then begin
      templatesflag=1 
-     drfpath=gpi_get_directory('GPI_DRP_TEMPATES_DIR')
+     drfpath=gpi_get_directory('GPI_DRP_TEMPLATES_DIR')
   endif else begin
      templatesflag=0
      drfpath=self.drfpath
