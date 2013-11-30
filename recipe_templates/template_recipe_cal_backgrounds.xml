@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <DRF ReductionType="Calibration" name='Combine Thermal/Sky Background Images' ShortName="backgrounds">
-<dataset InputDir="" OutputDir="($GPI_DRP_OUTPUT_DIR)">
+<dataset InputDir="$(GPI_RAW_DATA_DIR)" OutputDir="AUTOMATIC">
    <fits filename=""/>
 </dataset>
 <module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />

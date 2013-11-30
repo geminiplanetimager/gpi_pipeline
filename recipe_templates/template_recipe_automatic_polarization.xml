@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- simplest possible DRF, just makes a simple data cube w/ no calibrations for Polarization mode -->
 <DRF ReductionType="PolarimetricScience" name="Quicklook Automatic Polarimetry Extraction" ShortName="quickpol">
-  <dataset InputDir="$(GPI_RAW_DATA_DIR)" OutputDir="$(GPI_DRP_OUTPUT_DIR)">
+  <dataset InputDir="$(GPI_RAW_DATA_DIR)" OutputDir="AUTOMATIC">
     <fits filename=""/>
   </dataset>
   <primitive name="Flag Quicklook" Save="0" />
