@@ -285,7 +285,7 @@ pro queueview::event,ev
     'cleardone': self->Rescan,/initialize
 	'DRFGUI': begin
 		if self.selection eq '' then return
-            gpidrfgui, drfname=self.selection, self.top_base
+            rec_editor = obj_new('gpi_recipe_editor', drfname=self.selection, self.top_base)
 	end
 
 
