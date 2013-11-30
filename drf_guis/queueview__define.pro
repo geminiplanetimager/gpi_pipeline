@@ -40,10 +40,10 @@ PRO queueview::rescan, initialize=initialize
 
 	files  = file_search(self.queuedir+path_sep()+"*xml")
 	if (keyword_set(initialize)) then begin
-		self->Log, "Scanning all waiting/working DRFs in queue"
+		self->Log, "Scanning all waiting/working Recipes in queue"
 		wongoing = where(strmatch(files,"*.waiting.xml",/fold) or strmatch(files,"*.working.xml",/fold), gct)
 		if gct ge 1 then files=files[wongoing] else files =''
-	endif else self->Log, "Scanning all available DRFs in queue"
+	endif else self->Log, "Scanning all available Recipes in queue"
 
 	if n_elements(files) eq 0 then return
 	if files[0] eq '' then begin
@@ -241,18 +241,18 @@ pro queueview::event,ev
 	'WIDGET_TRACKING': begin ; Mouse-over help text display:
 		if (ev.ENTER EQ 1) then begin 
 			  case uval of 
-			  'tableselec':textinfo='Click to select a DRF, then use action buttons below.'
+			  'tableselec':textinfo='Click to select a Recipe, then use action buttons below.'
 			  'text_status':textinfo='Status log message display window.'
 			  'ADDFILE': textinfo='Click to add files to current input list'
 			  'WILDCARD': textinfo='Click to add files to input list using a wildcard (*.fits etc)'
 			  'REMOVE': textinfo='Click to remove currently highlighted file from the input list'
 			  'REMOVEALL': textinfo='Click to remove all files from the input list'
-			  'Rescan': textinfo='Click to redisplay ALL DRFS in the queue directory'
+			  'Rescan': textinfo='Click to redisplay ALL Recipes in the queue directory'
 			  'cleardone': textinfo='Click to redisplay only waiting/working DRFS in the queue directory'
-			  'requeue': textinfo='Click to re-queue selected DRF (by setting state="waiting").'
-			  'DRFGUI': textinfo='Click to load currently selected DRF into the DRFGUI editor'
+			  'requeue': textinfo='Click to re-queue selected Recipe (by setting state="waiting").'
+			  'DRFGUI': textinfo='Click to load currently selected recipe into the Recipe Editor'
 			  'Delete': textinfo='Click to delete the currently selected DRF from the queue. (Cannot be undone!)'
-			  'DeleteAll': textinfo='Click to delete ALL DRFs from the queue. (Cannot be undone!)'
+			  'DeleteAll': textinfo='Click to delete ALL RECIPES from the queue. (Cannot be undone!)'
 			  'QUIT': textinfo='Click to close this window.'
 			  else:
 			  endcase
@@ -299,8 +299,8 @@ pro queueview::event,ev
 		endif
 	end
 	'DeleteAll': begin
-		if confirm(group=self.top_base,message='Are you sure you want to delete ALL DRFs from the queue?', label0='Cancel',label1='Delete', title="Confirm Delete ALL DRFs") then begin
-		if confirm(group=self.top_base,message='Really really sure you want to delete them all?', label0='Cancel',label1='Delete', title="Confirm Delete ALL DRFs") then begin
+		if confirm(group=self.top_base,message='Are you sure you want to delete ALL DRFs from the queue?', label0='Cancel',label1='Delete', title="Confirm Delete ALL Recipes") then begin
+		if confirm(group=self.top_base,message='Really really sure you want to delete them all?', label0='Cancel',label1='Delete', title="Confirm Delete ALL Recipes") then begin
 			files = file_search( self.queuedir+path_sep()+"*.xml", count=ct)
 			if ct gt 0 then file_delete, files, /ALLOW_NONEXISTENT
 			self->rescan,/init
@@ -413,7 +413,7 @@ function queueview::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
     ; white and off-white pale blue
     self.table_BACKground_colors = ptr_new([[255,255,255],[240,240,255]])
 
-	COLUMN_LABELS=['DRF Name','Recipe','Type','# FITS']
+	COLUMN_LABELS=['Recipe Name','Recipe','Type','# FITS']
 	ncols=n_elements(column_labels)
 	self.tableSelected = WIDGET_TABLE(guibase, $; VALUE=data, $ ;/COLUMN_MAJOR, $ 
 			COLUMN_LABELS=COLUMN_LABELS,/resizeable_columns, $
@@ -433,7 +433,7 @@ function queueview::init_widgets, testdata=testdata, _extra=_Extra  ;drfname=drf
     button2b=widget_button(top_baseexec,value="Rescan",uvalue="Rescan", /tracking_events)
     button2b=widget_button(top_baseexec,value="Clear Completed",uvalue="cleardone", /tracking_events)
     button2b=widget_button(top_baseexec,value="Re-queue selected",uvalue="requeue", /tracking_events)
-    button2b=widget_button(top_baseexec,value="View/Edit in DRFGUI",uvalue="DRFGUI", /tracking_events)
+    button2b=widget_button(top_baseexec,value="Open in Recipe Editor",uvalue="DRFGUI", /tracking_events)
     button2b=widget_button(top_baseexec,value="Delete selected",uvalue="Delete", /tracking_events)
     button2b=widget_button(top_baseexec,value="Delete All",uvalue="DeleteAll", /tracking_events)
 
