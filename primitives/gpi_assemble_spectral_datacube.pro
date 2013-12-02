@@ -98,8 +98,8 @@ function gpi_assemble_spectral_datacube, DataSet, Modules, Backbone
 	suffix='-rawspdc'
 	;; put the datacube in the dataset.currframe output structure:
 	*dataset.currframe=cubef3D
-	ptr_free, *dataset.currDQ  ; right now we're not creating a DQ cube
-	ptr_free, *dataset.currUncert  ; right now we're not creating an uncert cube
+	ptr_free, dataset.currDQ  ; right now we're not creating a DQ cube
+	ptr_free, dataset.currUncert  ; right now we're not creating an uncert cube
 
 
   @__end_primitive
