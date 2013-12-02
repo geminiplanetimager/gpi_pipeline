@@ -24,6 +24,7 @@
 ;   2013-04		   manual shifts code moved to new update_shifts_for_flexure
 ;   2013-07-10 MP: Documentation update and code cleanup
 ;   2013-07-16 MP: Rename file for consistency
+;   2013-12-02 JM: get ELEVATIO and INPORT for later flexure correction
 ;-
 
 function gpi_load_wavelength_calibration, DataSet, Modules, Backbone
@@ -42,7 +43,29 @@ calfiletype = 'wavecal'
 	backbone->set_keyword, "HISTORY", functionname+": "+c_File,ext_num=0
 
 	backbone->set_keyword, "DRPWVCLF", c_File, "DRP wavelength calibration file used.", ext_num=0
-
+	
+	;get elevation amd port for flexure effect correction
+	  wc_elev = sxpar(  Header, 'ELEVATIO', count=count) 
+	  if count eq 0 then begin
+	      void=mrdfits(c_File, 0, headerphu,/silent)
+	      wc_elev = sxpar(  headerphu, 'ELEVATIO', count=count)
+	  endif
+    backbone->set_keyword, "WVELEV", wc_elev, "Wavelength solution elevation", ext_num=0
+    
+        wc_inport = sxpar(  Header, 'INPORT', count=count) 
+    if count eq 0 then begin
+        void=mrdfits(c_File, 0, headerphu,/silent)
+        wc_inport= sxpar(  headerphu, 'INPORT', count=count)
+    endif
+    backbone->set_keyword, "WVPORT", wc_inport, "Wavelength solution inport", ext_num=0
+    
+        wc_date = sxpar(  Header, 'DATE-OBS', count=count) 
+    if count eq 0 then begin
+        void=mrdfits(c_File, 0, headerphu,/silent)
+        wc_date= sxpar(  headerphu, 'DATE-OBS', count=count)
+    endif
+    backbone->set_keyword, "WVDATE", wc_date, "Wavelength solution obstime", ext_num=0
+    
 @__end_primitive 
 
 end

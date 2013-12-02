@@ -48,6 +48,7 @@
 ;   2013-04-25 MP: Documentation improvements.
 ;   2013-06-04 JBR: Now compatible with polarimetry.
 ;   2013-07-17 MP: Rename for consistency
+;   2013-12-02 JM: new way of dealing with the lookup table for flexure effect correction, independent of the reference wavelength solution used to calculate the shifts
 ;-
 
 
@@ -209,7 +210,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         ; the above line returns zero if no keyword is found. This is
         ; acceptable since all data taken without this keyword has an
         ; elevation of zero!
- 
+
         calfiletype = 'shifts'
 
         c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /ignore_cooldown_cycles)
@@ -221,12 +222,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
         lookuptable = gpi_readfits(c_File,header=Header)
 
-        ;;sanity check: are we using the same shift reference file?
-        ; - this isn't necessary - we just want the most recent model
 
-        ;wavcalname=backbone->get_keyword('DRPWVCLF', count=cw)
-        ;shiftref = SXPAR( Header, "SHIFTREF", COUNT=cr)
-        ;if wavcalname eq shiftref then begin 
     
 		xtable=lookuptable[*,1]
 		ytable=lookuptable[*,2]
@@ -240,8 +236,21 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		;;polynomial fit
 		shiftpolyx = POLY_FIT( sortedelev, sortedxshift, 2)
 		shiftpolyy = POLY_FIT( sortedelev, sortedyshift, 2)
-		shiftx=shiftpolyx[0]+shiftpolyx[1]*my_elevation+(my_elevation^2)*shiftpolyx[2]
-		shifty=shiftpolyy[0]+shiftpolyy[1]*my_elevation+(my_elevation^2)*shiftpolyy[2]
+		my_shiftx=shiftpolyx[0]+shiftpolyx[1]*my_elevation+(my_elevation^2)*shiftpolyx[2]
+		my_shifty=shiftpolyy[0]+shiftpolyy[1]*my_elevation+(my_elevation^2)*shiftpolyy[2]
+
+    ;;now calculate shifts of the current wavelength solution
+    wc_elevation= backbone->get_keyword('WVELEV', count=ct)
+    if ct eq 0  then begin
+    return, error ('error in call ('+strtrim(functionname)+'): Wavelength solution elevation not found.' )
+  endif
+    
+    wcshiftx=shiftpolyx[0]+shiftpolyx[1]*wc_elevation+(wc_elevation^2)*shiftpolyx[2]
+    wcshifty=shiftpolyy[0]+shiftpolyy[1]*wc_elevation+(wc_elevation^2)*shiftpolyy[2]
+    
+    ;;now calculate the absolute shifts independent of the reference 
+      shiftx= wcshiftx - my_shiftx
+      shifty= wcshifty - my_shifty 
 
 		if display ne -1 then begin
                    if display eq 0 then window,/free else select_window, display
