@@ -659,7 +659,8 @@ end
 
 ;--------------------------------------------------------------------------------
 
-pro drf::save, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silent=silent, status=status, outputfilename=outputfile
+pro drf::save, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silent=silent, status=status, $
+	outputfilename=outputfile, template=template
 	; write out to disk!
 	;
 	; KEYWORDS:
@@ -670,6 +671,8 @@ pro drf::save, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silent=s
 	;						the "automatic" option for the recipe file's actual
 	;						internal output directory, which sets the output
 	;						directory for pipeline processed FITS files. 
+	;   /template			Save as a template, i.e. not including any FITS
+	;						filenames
 	OK = 0
 	NOT_OK = -1
 
@@ -703,7 +706,7 @@ pro drf::save, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silent=s
 	if ~(keyword_set(silent)) then self->log,'Writing recipe to '+gpi_shorten_path(outputfile)
 
 	OpenW, lun, outputfile, /Get_Lun
-	PrintF, lun, self->tostring(absolutepaths=absolutepaths)
+	PrintF, lun, self->tostring(absolutepaths=absolutepaths, template=template)
 	Free_Lun, lun
 
 	self.last_saved_filename=outputfile
@@ -740,7 +743,7 @@ end
 
 ;-------------
 
-function drf::tostring, absolutepaths=absolutepaths
+function drf::tostring, absolutepaths=absolutepaths, template=template
 	; Return a DRF formatted as an XML string
 
 
@@ -790,6 +793,7 @@ function drf::tostring, absolutepaths=absolutepaths
 	if inputdir ne '' then outputstring+= 'InputDir="'+inputdir+'" ' ; only write an inputdir parameter if it's non-null!
 	outputstring +='OutputDir="'+outputdir+'">'+newline 
  
+	if ~(keyword_set(template)) then $ ; don't write out FITS if we're saving as a template
 	if ptr_valid(self.datafilenames) then $
 	FOR j=0,N_Elements(*self.datafilenames)-1 DO BEGIN
 		outputstring +='   <fits FileName="' + filenames[j] + '" />'+newline

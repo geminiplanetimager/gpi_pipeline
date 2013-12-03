@@ -1283,7 +1283,7 @@ pro gpi_recipe_editor::save, template=template, nopickfile=nopickfile
 
 	self.drffilename = file_basename(output_recipe_filename)
 	self->log,'Now writing Recipe to '+self.drfpath+path_sep()+self.drffilename 
-	self.drf->save, self.drfpath+path_sep()+self.drffilename, outputfilename=outputfilename
+	self.drf->save, self.drfpath+path_sep()+self.drffilename, outputfilename=outputfilename, template=template
 
 	self.drffilename  = outputfilename
 	self->update_title_bar, outputfilename
