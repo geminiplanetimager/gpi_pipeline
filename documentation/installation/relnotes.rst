@@ -6,12 +6,110 @@ Release Notes
 
 You may wish to skip ahead to  :ref:`configuring`.
 
+
+Version 0.9.3
+=========================================
+Released 2013 Nov 12
+
+The current stable version of the pipeline is 0.9.3, 
+released for GPI first light at Gemini South. This includes
+updates and enhancements based on testing at Gemini in September and October 2013.
+
+
+* New Primitives:
+
+  * New and improved "2D Wavelength Solution" (a.k.a. "Wavecal 2.0") algorithm,
+    which works by fitting a forward model to the lenslet spectra pixels
+    directly in 2D, rather than measuring each peak sequentially then fitting a
+    line in 1D.  This algorithm is demonstrably more robust, more precise, and
+    better able to handle overlapping adjacent spectra and various noise
+    sources than the original algorithm.  A prior wavecal from the Calibration
+    Database is used as a starting guess for each fit rather than starting from
+    zero a priori knowledge each time, Further improving robustness.  Extensive
+    testing has shown this new algorithm is strictly better than the old
+    algorithm (which is retained in the pipeline still as an option in any
+    case) in every respect except for being slower. Two versions of this
+    algorithm are provided, one which is single threaded and a parallelized
+    implementation for use on multi-core machnes. (Wolff)
+  * Derived primitive "Quick Wavelength Solution Update" based on the above, which only fits
+    every ~400th lenslet (adjustible) and then applies an appropriate average
+    bulk shift to the best available prior wavecal from CalDB. This provides an ability to 
+    generate "Quicklook" quality wavecals in very short run time (Perrin & Wolff).
+  * New ADI KLIP primitive, "KLIP algorithm Angular Differential Imaging". (Savransky)
+  * New primitive "Flag as Quicklook" that sets a QUIKLOOK=True FITS header
+    keyword in output files. (Perrin)
+  * New primitive "Create Symbolic Links" for those times when you really want to make
+    it looks like one file is being written to two different places.  Only works on
+    POSIX compliant operating systems, e.g. Mac OS and Linux. 
+  
+
+
+* Pipeline infrastructure and enhancements to existing primitives: 
+
+  * SDI KLIP algorithm performance dramatically sped up by about 3-4x.  Updates to accumulate_images framework
+    to allow retrieving images slice by slice. 
+  * Now will detect if the pipeline is about to overwrite an existing output file, and
+    (depending on the value of a new file_overwrite_handling setting) either prompt the user what should be done, 
+    overwrite it, write the new file to a different output name, or don't write anything at all but raise an error. (Perrin)
+  * Adds DATALAB keyword support and swap to underscores for suffixes. Closes issue 311
+  * Implement scaling for dark subtractions with non-identical exposure times of science images and the reference darks;
+    closes action 173 from Pre-Ship Review Report.
+  * New utility function gpi_sanity_check_wavecal provides quality checks on
+    derived wavelength calibrations. 
+  * Polarization spot position measurement primitive parallelized for much improved speed.
+  * Improved update_wcs_basic command that does precise calculations of AVPARANG and MJD-AVG
+  * Define a new pipeline setting "at_gemini", which enables several small adjustments
+    in file paths and wildcards suitable for the case of the pipeline running integrated into the
+    Gemini network on Cerro Pachon. If you're not one of the observatory computers on the summit, this is not expected to be of use to you. (Perrin)
+  * New utility function gpi_get_ifs_lenslet_scale for consistent calculations everywhere (Savransky)
+  * Updated accumulate_getimage to optionally return single slices (Savransky)
+  * Improvements to the Recipe class (DRF) internal implementation. (Perrin)
+  * Infrastructure and tools in preparation for eventual next-generation data cube extraction algorithm (Ingraham)
+  * Updated handling of sat spot locations in header.
+  * Updated WCS handling with proper coordinate rotation as determined prior to being on sky. (Perrin, Thomas, Chilcote, Savransky)
+
+* Recipe Editor, Data Parser, Autoreducer GUIS: 
+
+  * Major revision/refactoring of Recipe Editor code. Now uses Recipe class internally for improved abstraction and better overall
+    code clarity and ease of long term maintenance.  While the GUI has not changed substantially, this was a
+    major overhaul to the internals of this tool. (Perrin)
+  * 
+
+* GPItv enhancements and bug fixes:
+
+  * Add display of the mean stellar position across all wavelengths to the Star Position plot. (Perrin)
+  * Bug fix sign error for Rotate North Up; add WCS existence check for auto-handedness function
+    
+* Improved documentation and installation guide (Ingraham, Perrin). 
+
+  * New FAQ section in the docs (Ingraham)
+
+* Source code housekeeping:
+
+  * Subversion repository reorganized to use standard "trunk", "tags", "branches" directories. (Perrin)
+
+* Miscellaneous bug fixes and minor tasks:
+
+  * 2D plotting should reuse an existing IDL graphics window by default if possible.
+  * Remove obsolete user-changable suffixes feature.  (Perrin)
+  * improved handling for absolute path specs in the middle of a filename string
+  * Improved logging in several places. (Perrin)
+  * Clean up of deprecated code (Ingraham)
+  * Better error message text for read only versus missing output directories (Perrin, Ingraham?
+  * Removed all direct use of CDELT1 & CDELT2 keywords - everything is now handled through extast and getrot. Addressed bug 325. (Savransky)
+  * Various minor bug fixes, typo corrections, and other small stuff.  (Perrin, Ingraham, Savransky)
+
+
+
+
+
+
 Version: 0.9.2 
 =========================================
 Released 2013 Sept 5
 
-The current stable version of the pipeline is 0.9.2, 
-released for the start of GPI integration at Gemini South. This version
+This version was  
+released for the start of GPI integration at Gemini South. It 
 includes updates and enhancements from during the GPI pre-ship acceptance review and following weeks.
 
 
