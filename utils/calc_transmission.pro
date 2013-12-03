@@ -17,7 +17,6 @@ compile_opt defint32, strictarr, logical_predicate
 
 	; normalized to H-band Lyot - 080m12_04 
 	lyot_trans=0.8102486d0 ; for  080m12_04 
-
 	case lyot_mask_string of
 	'LYOT_OPEN_G6231': lyot_correction=(1.0/lyot_trans)
 	'080m12_02': lyot_correction=(0.8557484/lyot_trans)
@@ -43,6 +42,7 @@ compile_opt defint32, strictarr, logical_predicate
 	'Y': apod_correction=(0.45/0.45)
 	'J': apod_correction=(0.45/0.45)
 	'H': apod_correction=(0.45/0.45)
+	'HL': apod_correction=(0.379/0.45) ; spec value from the design fits files
 	'K1':  apod_correction=(0.405/0.45)
 	'K2':  apod_correction=(0.36/0.45)
 ;	else: return, error('FAILURE (calc_transmission): No throughput defined for the given Apodizer')
