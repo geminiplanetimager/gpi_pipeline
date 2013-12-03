@@ -902,6 +902,10 @@ pro gpi_recipe_editor::event,ev
     'REMOVE' : begin
 		    widget_control,self.top_base,get_uvalue=storage  
 			selected_index = widget_info(storage.fname,/list_select) ; 
+			if selected_index eq -1 then begin
+				self->Log, 'You have to click to select a file before you can remove anything.'
+				return ; nothing is selected so do nothing
+			endif
 			filelist = self.drf->get_datafiles()
 
 			if selected_index gt n_elements(filelist)-1 then selected_index = n_elements(filelist)-1

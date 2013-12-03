@@ -141,10 +141,16 @@ PRO drf::remove_datafile, filename, status=status
 	
 	absfilename = gpi_expand_path(filename)
 
+	if ~ptr_valid(self.datafilenames) then begin
+		self->Log, "WARNING: There are NO filenames present in this recipe; cannot remove "+filename+"."
+		status=-1
+		return
+	endif
+
 	wmatch = where(*self.datafilenames eq absfilename, ct, complement=wcomplement, ncomplement=ncomplement)
 
 	if ct eq 0 then begin
-		self->Log, "WARNING: There is no filename named "+filename+" present in this recipe."
+		self->Log, "WARNING: There is no filename named "+filename+" present in this recipe to remove."
 		status=-1
 	endif else begin
 		self->Log, "Removed from recipe: "+filename
