@@ -27,6 +27,7 @@
 ; HISTORY:
 ;     Originally by Jean-Baptiste Ruffio 2013-06
 ;     2013-07-17 MP: Renamed for consistency
+;	  2013-12-03 MP: Add check for GCALLAMP=QH on input images 
 ;-
 function gpi_create_2d_low_frequency_flat, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -58,6 +59,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     if ~strcmp(my_mode, 'WOLLASTON') then return, error('Image '+strc(nfiles+1)+' is not polarimetric data (DISPERSR keyword). Cannot create LF flat!')
     ;2013-06-04 jruffio: this check has to be disabled right now because headers for polarimetric data are not consistent
     ;if strcompress(backbone->get_keyword('OBSTYPE'),/remove_all) ne 'FLAT' then return, error('Image '+strc(nfiles+1)+' is not a flat  (OBSTYPE keyword). Cannot create LF flat!')
+    my_lamp= backbone->get_keyword('GCALLAMP', indexFrame=nfiles)
+	if strc(my_lamps) ne "QH" then return,  error('FAILURE ('+functionName+'): Expected quartz halogen flat lamp images as input, but GCALLAMP != QH.')
   endwhile
   nfiles+=1 ; because it was previously used as an index and index starts at 0
   

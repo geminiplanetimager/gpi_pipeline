@@ -26,13 +26,12 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.01
-; PIPELINE TYPE: CAL-SPEC
 ; PIPELINE NEWTYPE: Calibration
-; PIPELINE SEQUENCE: 22-
 
 ;
 ; HISTORY:
 ;  2013-03-08 MP: Implemented in pipeline based on algorithm from Christian
+;  2013-12-03 MP: Add check for GCALLAMP=QH on input images 
 ;-
 
 function shift_nowrap, image, dx, dy, value=value
@@ -66,13 +65,17 @@ functionname='coldpixels_from_flat' ; brevity is the soul of wit...
 	imtab = dblarr(sz[1], sz[2], nfiles)
 
 	filters = strarr(nfiles)
+	lamps= strarr(nfiles)
 
 	backbone->Log, "	Reading in n="+strc(nfiles)+' files'
 
 	; read in all the images at once
-	for i=0,nfiles-1 do begin & $
-		imtab[*,*,i] =  accumulate_getimage(dataset,i,hdr, hdrext=hdrext) &$ 
-		filters[i] = sxpar(hdr, 'IFSFILT') &$
+	for i=0,nfiles-1 do begin
+		imtab[*,*,i] =  accumulate_getimage(dataset,i,hdr, hdrext=hdrext) 
+		filters[i] = sxpar(hdr, 'IFSFILT') 
+		lamps[i] = sxpar(hdr, 'GCALLAMP') 
+
+		if strc(lamps[i]) ne "QH" then return,  error('FAILURE ('+functionName+'): Expected quartz halogen flat lamp images as input, but GCALLAMP != QH.')
 	endfor
 
 	for i=0,nfiles-1 do filters[i] = gpi_simplify_keyword_value(filters[i])

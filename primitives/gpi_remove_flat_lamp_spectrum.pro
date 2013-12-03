@@ -17,15 +17,14 @@
 ; PIPELINE ARGUMENT: Name="method" Type="string" Range="polyfit|linfit|blackbody|none" Default="blackbody" Desc="Method to use for removing lamp spectrum"
 
 ; PIPELINE ORDER: 2.25
-; PIPELINE TYPE: CAL-SPEC
 ; PIPELINE NEWTYPE: Calibration
-; PIPELINE SEQUENCE: 21-
 ;
 ; HISTORY:
 ; 	2009-06-20 JM: created
 ; 	2009-07-22 MP: added doc header keywords
 ; 	2012-10-11 MP: added min/max wavelength checks
 ; 	2013-07-17 MP: Rename for consistency
+;   2013-12-03 MP: Add check for GCALLAMP=QH on input images 
 ;-
 
 function gpi_remove_flat_lamp_spectrum, DataSet, Modules, Backbone
@@ -33,7 +32,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 @__start_primitive
 	suffix='specflat'
 
-	cubef3D=*(dataset.currframe[0])
+	cubef3D=*dataset.currframe
+
+
+	my_lamp = backbone->get_keyword('GCALLAMP')
+	if strc(my_lamp) ne "QH" then return,  error('FAILURE ('+functionName+'): Expected quartz halogen flat lamp images as input, but GCALLAMP != QH.')
+
 
     nlens=(size(wavcal))[1]
   	;;get length of spectrum
