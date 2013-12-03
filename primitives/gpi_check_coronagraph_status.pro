@@ -24,7 +24,7 @@ apodizer = backbone->get_keyword('APODIZER', count=ct)
 if ct eq 0 then return, retval
 val = strupcase(apodizer)
 if (strpos(val,'_Y_') eq -1) &&  (strpos(val,'_J_') eq -1) &&  (strpos(val,'_H_') eq -1) && $
-   (strpos(val,'_K1_') eq -1) &&  (strpos(val,'_K2_') eq -1) then return,retval
+   (strpos(val,'_HL_') eq -1) && (strpos(val,'_K1_') eq -1) &&  (strpos(val,'_K2_') eq -1) then return,retval
 
 
 ;;we are only okay with one of the coronagraph science masks
