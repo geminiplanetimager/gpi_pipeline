@@ -120,6 +120,15 @@ end
 
 ;-------------------------------------------------------------------
 
+pro dirviewer::show
+
+;;bring to object to front
+res = xregistered(self.xname)
+
+end 
+
+;-------------------------------------------------------------------
+
 pro dirviewer::event, ev
 	; main event handler routine
 

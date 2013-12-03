@@ -4262,7 +4262,7 @@ pro GPItv::pixtable
 ; around the current cursor position
 
 
-if (not(xregistered(self.xname+'_pixtable', /noshow))) then begin
+if (not(xregistered(self.xname+'_pixtable'))) then begin
 
 
   (*self.state).pixtable_base_id = $
@@ -8033,21 +8033,20 @@ end
 ;----------------------------------------------------------------------
 
 pro GPItv::update_child_windows, noheader=noheader
-	; refresh all available child windows if they are present
-	; This is useful after e.g. reloading a new image from disk
+  ;; refresh all available child windows if they are present
+  ;; This is useful after e.g. reloading a new image from disk
 
-
-	if xregistered(self.xname+'_apphot', /noshow) then self->apphot_refresh
-	if xregistered(self.xname+'_anguprof', /noshow) then self->anguprof_refresh
-	if xregistered(self.xname+'_contrprof',/noshow) then self->contrprof_refresh
-	if xregistered(self.xname+'_pixtable', /noshow) then self->pixtable_update
-    if xregistered(self.xname+'_lineplot', /noshow) then self->lineplot_update
-    if xregistered(self.xname+'_stats', /noshow) then self->stats_refresh
-
-   if xregistered(self.xname+'_sdi', /noshow) then self->sdi
-
-
-	if ~(keyword_set(noheader)) then if obj_valid((*self.state).subwindow_headerviewer) then self->headinfo
+  if xregistered(self.xname+'_apphot', /noshow) then self->apphot_refresh
+  if xregistered(self.xname+'_anguprof', /noshow) then self->anguprof_refresh
+  if xregistered(self.xname+'_contrprof',/noshow) then self->contrprof_refresh
+  if xregistered(self.xname+'_pixtable', /noshow) then self->pixtable_update
+  if xregistered(self.xname+'_lineplot', /noshow) then self->lineplot_update
+  if xregistered(self.xname+'_stats', /noshow) then self->stats_refresh
+  
+  if xregistered(self.xname+'_sdi', /noshow) then self->sdi
+  if xregistered(self.xname+'_hist', /noshow) then self->hist_refresh
+  
+  if ~(keyword_set(noheader)) then if obj_valid((*self.state).subwindow_headerviewer) then self->headinfo
 
 end
 
@@ -8212,6 +8211,7 @@ pro GPItv::headinfo
 	endif else begin
 		; re-use the existing window. 
 		cfh = (*self.state).subwindow_headerviewer
+                widget_control,cfh.cfitshedit_id,/show
 		if is_file_on_disk then cfh->OpenFile, filename=(*self.state).imagename  else cfh->OpenFile, header=*((*self.state).head_ptr)
 	endelse 
 
@@ -8304,14 +8304,10 @@ pro GPItv::directory_viewer
 		(*self.state).subwindow_dirviewer= obj_new('dirviewer', directory = (*self.state).current_dir, $
 			title='View Images in Directory for '+title_base, parent_gpitv=self, group_leader=(*self.state).base_id )
 	endif else begin
-		; bring window to front? 
-		; re-use the existing window. 
+		; re-use the existing window and bring to front 
 		self->message, msgtype='information', "Reusing dir viewer"
-		;cfh = (*self.state).subwindow_headerviewer
-		;if is_file_on_disk then cfh->OpenFile, filename=(*self.state).imagename  else cfh->OpenFile, header=*((*self.state).head_ptr)
-		
+                (*self.state).subwindow_dirviewer->show
 	endelse 
-
 
 end
 
@@ -11860,7 +11856,7 @@ endfor
 
   if (not (keyword_set(ps))) then begin
 
-     if (not (xregistered(self.xname+'_lineplot', /noshow))) then begin
+     if (not (xregistered(self.xname+'_lineplot'))) then begin
         ;;create new lineplot window
         self->lineplot_init
         newplot = 1
@@ -12781,7 +12777,7 @@ pro GPItv::linesplot
 s=(*self.state).linesbox
 
 ;check if a window is already open; if so, don't open a new one
-if (not (xregistered(self.xname+'_linesplot', /noshow))) then begin
+if (not (xregistered(self.xname+'_linesplot'))) then begin
 
 
     ;main base for linesplot
@@ -12943,7 +12939,7 @@ pro GPItv::surfplot, ps=ps, update=update
 
 if (not (keyword_set(ps))) then begin
 
-  if (not (xregistered(self.xname+'_lineplot', /noshow))) then begin
+  if (not (xregistered(self.xname+'_lineplot'))) then begin
     self->lineplot_init
   endif
 
@@ -13086,7 +13082,7 @@ pro GPItv::contourplot, ps=ps, update=update
 
 if (not (keyword_set(ps))) then begin
 
-   if (not (xregistered(self.xname+'_lineplot', /noshow))) then begin
+   if (not (xregistered(self.xname+'_lineplot'))) then begin
       ;; Only initialize plot window and plot ranges to the min/max ranges
       ;; when rowplot window is not already present.  Otherwise, use
       ;; the values currently set in the min/max range boxes
@@ -13251,7 +13247,7 @@ pro GPItv::histplot, ps=ps, update=update
 
 if (not (keyword_set(ps))) then begin
 
-  if (not (xregistered(self.xname+'_lineplot', /noshow))) then begin
+  if (not (xregistered(self.xname+'_lineplot'))) then begin
     self->lineplot_init
   endif
 
@@ -13426,7 +13422,7 @@ if (not (keyword_set(ps))) then begin
 ; but the 'Hold Range' button is not selected.  Otherwise, use the values
 ; currently in the min/max boxes
 
-  if (not (xregistered(self.xname+'_lineplot', /noshow))) then begin
+  if (not (xregistered(self.xname+'_lineplot'))) then begin
     self->lineplot_init
 
     widget_control,(*self.state).lineplot_xmin_id, $
@@ -14379,7 +14375,7 @@ if (*self.state).polarim_present eq 0 then begin
 	;return
 endif
 
-if (not (xregistered(self.xname+'_polarim', /noshow))) then begin
+if (not (xregistered(self.xname+'_polarim'))) then begin
 
 	self.pdata.nplot = (*self.state).polarim_plotindex
 
@@ -14771,7 +14767,7 @@ h = ['GPItv HELP',$
 'NOTE: If GPItv should crash, type GPItv_shutdown at the idl prompt.']
 
 
-if (not (xregistered(self.xname+'_help', /noshow))) then begin
+if (not (xregistered(self.xname+'_help'))) then begin
    
    helptitle = strcompress('GPItv v' + (*self.state).version + ' help')
    
@@ -15083,7 +15079,7 @@ pro GPItv::showstats
 
 (*self.state).cursorpos = (*self.state).coord
 
-if (not (xregistered(self.xname+'_stats', /noshow))) then begin
+if (not (xregistered(self.xname+'_stats'))) then begin
 
 
 	if (*self.state).multisess GT 0 then title_base = "GPItv #"+strc((*self.state).multisess) else title_base = 'GPItv '
@@ -15485,7 +15481,7 @@ if ((*self.state).mosaic eq 1) then return
 
 
 ;;if none exists then create one
-if (not (xregistered(self.xname+'_showstats3d', /noshow))) then begin
+if (not (xregistered(self.xname+'_showstats3d'))) then begin
    ;;main base for stat3d
    res=widget_info((*self.state).base_id, /geometry)
    stats_base = $
@@ -15728,7 +15724,7 @@ pro GPItv::showhist
 
 (*self.state).cursorpos = (*self.state).coord
 
-if (not (xregistered(self.xname+'_histogram', /noshow))) then begin
+if (not (xregistered(self.xname+'_hist'))) then begin
 
 
 	if (*self.state).multisess GT 0 then title_base = "GPItv #"+strc((*self.state).multisess) else title_base = 'GPItv '
@@ -16827,7 +16823,7 @@ pro GPItv::apphot
 
 (*self.state).cursorpos = (*self.state).coord
 
-if (not (xregistered(self.xname+'_apphot', /noshow))) then begin
+if (not (xregistered(self.xname+'_apphot'))) then begin
 
 	if (*self.state).multisess GT 0 then title_base = "GPItv #"+strc((*self.state).multisess) else title_base = 'GPItv '
     apphot_base = $
@@ -17335,7 +17331,7 @@ pro GPItv::lambprof
 
 (*self.state).cursorpos = (*self.state).coord
 
-if (not (xregistered(self.xname+'_lambprof', /noshow))) then begin
+if (not (xregistered(self.xname+'_lambprof'))) then begin
 
     lambprof_base = $
       widget_base(/base_align_center, $
@@ -17661,7 +17657,7 @@ pro GPItv::sdi
 
 ;; aperture radial profil front end
 ;if ( (xregistered(self.xname+'_sdi', /noshow)) or not (xregistered(self.xname+'_sdi', /noshow))) then begin
-if ~(xregistered(self.xname+'_sdi', /noshow)) then begin  
+if ~(xregistered(self.xname+'_sdi')) then begin  
    sdi_base = $
       widget_base(/base_align_center, $
                   group_leader = (*self.state).base_id, $
@@ -18271,7 +18267,7 @@ pro GPItv::anguprof
 
 (*self.state).cursorpos = (*self.state).coord
 
-if (not (xregistered(self.xname+'_anguprof', /noshow))) then begin
+if (not (xregistered(self.xname+'_anguprof'))) then begin
 
     anguprof_base = $
       widget_base(/base_align_center, $
