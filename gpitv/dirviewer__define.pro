@@ -1,6 +1,9 @@
 ;+
 ; NAME:
-;   SELECTFITS
+;   dirviewer
+;
+;	Derived from on "SELECTFITS" by Marshall Perrin
+;	Based in turn on 'SELECTIMAGE' by David Fanning
 ;
 ; PURPOSE:
 ;
@@ -57,14 +60,6 @@
 ;
 ;   PALETTE -- The current color table palette returned as a 256-by-3 byte array.
 ;
-; COMMON BLOCKS:
-;
-;   None.
-;
-; RESTRICTIONS:
-;
-;   Probably doesn't work correctly on VMS systems :-( If you can help, please
-;   contact me. I don't have a VMS system to test on.
 ;
 ; OTHER COYOTE LIBRARY FILES REQUIRED:
 ;
@@ -77,6 +72,7 @@
 ;
 ;	2004-05-01 	Split from David Fanning's SELECTIMAGE.PRO function. See
 ;	that file for modification history prior to this date.
+;	2011-2012   Modifications and customizations for use with gpitv.
 ;
 ;-
 
@@ -140,7 +136,7 @@ pro dirviewer::event, ev
 	case event_type of
 		'WIDGET_TIMER' : begin
 			self->check_for_new
-			if self.auto_latest then widget_control, ev.top, timer=self.check_period ; check again at 1 Hz
+			if self.auto_load_new or self.auto_refresh then widget_control, ev.top, timer=self.check_period ; check again at 0.2 Hz
 			return
 		end
 
@@ -148,16 +144,16 @@ pro dirviewer::event, ev
       'WIDGET_TRACKING': begin ; Mouse-over help text display:
         if (ev.ENTER EQ 1) then begin 
               case uname of 
+                  'dir_name':textinfo='Current directory path.'
                   'changedir':textinfo='Click to select a different directory to view files in.'
-                  'changedir_today':textinfo="Click to cd to today's IFS data dir"
+                  'changedir_today':textinfo="Click to cd to today's IFS raw data dir"
                   'changedir_today_red':textinfo="Click to cd to today's IFS reduced data dir"
-				  'one': textinfo='Each new file will be reduced on its own right away.'
-				  'keep': textinfo='All new files will be reduced in a batch whenever you command.'
-                  "QUIT":textinfo='Click to close this window.'
+                  "Close":textinfo='Click to close this window.'
 				  'ignore_indiv': textinfo="Ignore files for the individual reads of a CDS or UTR sequence."
-				  'live_view': textinfo='Update gpitv automatically on every file action'
 				  'time_sort': textinfo='Sort files by modification time instead of alphabetically'
-				  'auto_latest': textinfo='Always automatically view the latest file in the directory.'
+				  'auto_load_new': textinfo='Always automatically view the latest file in the directory.'
+				  'auto_refresh': textinfo='Automatically refresh the files list every 5 s.'
+				  'refresh': textinfo='Refresh the list of FITS filenames'
               else:textinfo=' '
               endcase
 			  if keyword_set((*self.state).information_id) then widget_control,(*self.state).information_id,set_value=textinfo
@@ -225,12 +221,12 @@ pro dirviewer::event, ev
 			print, "Ignore Individual reads set to "+strc(self.ignore_indiv)
 			self->refresh
 		endif
-		if uname eq 'live_view' then begin
-			wid = Widget_Info(ev.top, Find_by_UName='live_view')
-			widget_control, wid, get_value=val
-			self.live_view= val
-			print, "Auto GPItv view mode set to "+strc(self.live_view)
-		endif
+;		if uname eq 'live_view' then begin
+;			wid = Widget_Info(ev.top, Find_by_UName='live_view')
+;			widget_control, wid, get_value=val
+;			self.live_view= val
+;			print, "Auto GPItv view mode set to "+strc(self.live_view)
+;		endif
 		if uname eq 'time_sort' then begin
 			wid = Widget_Info(ev.top, Find_by_UName='time_sort')
 			widget_control, wid, get_value=val
@@ -238,13 +234,23 @@ pro dirviewer::event, ev
 			print, "Sort by time set to "+strc(self.time_sort)
 			self->refresh
 		endif
-	
-		if uname eq 'auto_latest' then begin
-			wid = Widget_Info(ev.top, Find_by_UName='auto_latest')
+		if uname eq 'auto_refresh' then begin
+			wid = Widget_Info(ev.top, Find_by_UName='auto_refresh')
 			widget_control, wid, get_value=val
-			self.auto_latest= val
-			print, "Automatic Latest File mode set to "+strc(self.auto_latest)
-			if self.auto_latest then begin
+			self.auto_refresh= val
+			print, "Automatic refresh File mode set to "+strc(self.auto_refresh)
+			if self.auto_refresh then begin
+				self->check_for_new
+				widget_control, ev.top, timer=self.check_period ; check again at 1 Hz
+			endif
+		endif
+	
+		if uname eq 'auto_load_new' then begin
+			wid = Widget_Info(ev.top, Find_by_UName='auto_load_new')
+			widget_control, wid, get_value=val
+			self.auto_load_new= val
+			print, "Automatic New File Loading mode set to "+strc(self.auto_load_new)
+			if self.auto_load_new then begin
 				self->check_for_new
 				widget_control, ev.top, timer=self.check_period ; check again at 1 Hz
 			endif
@@ -746,15 +752,14 @@ pro dirviewer::check_for_new
 
 	; see if there are any new ones
 	newfiles = cmset_op(new_filelist, 'and',/not2, old_filelist, count=count)
-	if count gt 0 then begin
-		print, "New files detected:"
-		print, newfiles
+	if count gt 0 and keyword_set(self.auto_load_new) then begin
+		;print, "New files detected:"
+		;print, newfiles
 		; just use the first
 		newfile = newfiles[0]
 
 		;(*self.state).filename = newfile
 		self->highlight_selected, newfile
-
 
 
 	endif
@@ -874,13 +879,13 @@ PRO dirviewer::Update,file,fileInfo,r,g,b,previewsize,image,info, directory=dire
 
 
 	; Update the display with what you have.
-	Widget_Control, info.labelnaxesID, Set_Value="NAXES: " + strcompress(string(fileinfo.naxes),/remove_all)
-	Widget_Control, info.labelnaxisID, Set_Value="NAXIS: " + (fileinfo.naxis)
+	Widget_Control, info.labelnaxesID, Set_Value="NAXES: " + strcompress(string(fileinfo.naxes),/remove_all) +"        NAXIS: " + (fileinfo.naxis)
+	;Widget_Control, info.labelnaxisID, Set_Value="NAXIS: " + (fileinfo.naxis)
 	(*self.state).min_value = Min(image,/NAN)
 	(*self.state).max_value = Max(image,/NAN)
 
-	Widget_Control, info.labelminvalID, Set_Value="Min Value: " + (string((*self.state).min_value,format="(G9.4)"))
-	Widget_Control, info.labelmaxvalID, Set_Value="Max Value: " + (string((*self.state).max_value ,format="(G9.4)"))
+	;Widget_Control, info.labelminvalID, Set_Value="Min Value: " + (string((*self.state).min_value,format="(G9.4)"))
+	;Widget_Control, info.labelmaxvalID, Set_Value="Max Value: " + (string((*self.state).max_value ,format="(G9.4)"))
 
 	; Draw the preview image.
 
@@ -893,7 +898,8 @@ PRO dirviewer::Update,file,fileInfo,r,g,b,previewsize,image,info, directory=dire
 	cgImage, scaled_image, /Keep_Aspect, /NoInterpolation
 
 
-	if keyword_set(self.live_view) then self->view_in_gpitv
+	;if keyword_set(self.live_view) then 
+	self->view_in_gpitv
 
 end
 
@@ -1052,9 +1058,13 @@ FUNCTION dirviewer::init, $
   
   print, 'initializing GPItv directory viewer'
   self.ignore_indiv=1
-  self.live_view = 1
+  ;self.live_view = 1
+  ; if we're at Gemini, new files may be arriving at any time, and the filenames
+  ; may not be strictly increasing alphabetically if we're toggling between
+  ; Engineering and Science readouts
   self.time_sort= gpi_get_setting('at_gemini', default=0,/silent)
-  self.auto_latest=0
+  self.auto_refresh=gpi_get_setting('at_gemini', default=0,/silent)
+  self.auto_load_new=0
   self.check_period=5
   
   if ~ keyword_set(parent_gpitv) then begin
@@ -1073,7 +1083,7 @@ FUNCTION dirviewer::init, $
 
   only2D = Keyword_Set(only2d)
   only3D = Keyword_Set(only3d)
-  IF N_Elements(title) EQ 0 THEN title = 'View Images in Directory'
+  IF N_Elements(title) EQ 0 THEN title = 'Browse Images in Directory'
 
   ;; Get the current directory. Some processing involved.
 
@@ -1101,7 +1111,7 @@ FUNCTION dirviewer::init, $
         file = StrMid(filename, StrLen(directory)+1)
      ENDIF ELSE file = filename
   ENDELSE
-  IF N_Elements(previewSize) EQ 0 THEN previewSize = 250
+  IF N_Elements(previewSize) EQ 0 THEN previewSize = 270
 
   theFiles = ""
   filename = ""
@@ -1113,6 +1123,7 @@ FUNCTION dirviewer::init, $
   tlb = Widget_Base(Title=title, Column=1, /Base_Align_Center, Group_Leader=group_leader,/tlb_kill_request_events)
 
   fileSelectBase = Widget_Base(tlb, Column=1, Frame=0)
+  information_id= Widget_label(tlb, value="                                                                ") ; status bar
   buttonBase = Widget_Base(tlb, Row=1)
   buttonBase2 = Widget_Base(tlb, Row=1)
 
@@ -1141,15 +1152,15 @@ FUNCTION dirviewer::init, $
   previewID = Widget_Draw(colbase2, XSize=previewSize, YSize=previewSize)
                                 ;spacer = Widget_Label(fsrowbaseID, Value="  ")
 
-  labelBaseID = Widget_Base(fileSelectBase, Column=1, /Base_Align_Left, frame=1)
+  labelBaseID = Widget_Base(fileSelectBase, Column=1, /Base_Align_Left, frame=0)
   imageType = '2D Image'
   xsize = 0
   ysize = 0
   imageDataType = Size(image, /TNAME)
   labelNAXESID = Widget_Label(labelBaseID, Value="NAXES: " + StrTrim(0,2), /Dynamic_Resize)
-  labelNAXISID = Widget_Label(labelBaseID, Value="NAXIS: " + StrTrim(0,2), /Dynamic_Resize)
-  labelminvalID = Widget_Label(labelBaseID, Value="Min Value: " + StrTrim(0,2), /Dynamic_Resize)
-  labelmaxvalID = Widget_Label(labelBaseID, Value="Max Value: " + StrTrim(0,2), /Dynamic_Resize)
+  ;labelNAXISID = Widget_Label(labelBaseID, Value="NAXIS: " + StrTrim(0,2), /Dynamic_Resize)
+  ;labelminvalID = Widget_Label(labelBaseID, Value="Min Value: " + StrTrim(0,2), /Dynamic_Resize)
+  ;labelmaxvalID = Widget_Label(labelBaseID, Value="Max Value: " + StrTrim(0,2), /Dynamic_Resize)
 
 
   ;; Size the draw widget appropriately.
@@ -1173,11 +1184,12 @@ FUNCTION dirviewer::init, $
   IF count GT 0 THEN Widget_Control, filelistID, Set_List_Select=index
 
   ;; Define buttons widgets.
-  button = cw_bgroup(buttonBase, " ", label_left='Ignore indiv reads?', /nonexclusive, uvalue="ignore_indiv",uname='ignore_indiv', set=self.ignore_indiv)
+;  button = cw_bgroup(buttonBase, " ", label_left='Ignore indiv reads?', /nonexclusive, uvalue="ignore_indiv",uname='ignore_indiv', set=self.ignore_indiv)
 ;  button = cw_bgroup(buttonBase, " ", label_left='Auto GPItv?', /nonexclusive, uvalue="live_view", uname='live_view', set=self.live_view)
-  button = cw_bgroup(buttonBase, " ", label_left='Auto latest?', /nonexclusive, uvalue="auto_latest", uname='auto_latest', set=self.auto_latest)
+  button = cw_bgroup(buttonBase, " ", label_left='Auto refresh?', /nonexclusive, uvalue="auto_refresh", uname='auto_refresh', set=self.auto_refresh)
+  button = cw_bgroup(buttonBase, " ", label_left='Auto load new files?', /nonexclusive, uvalue="auto_load_new", uname='auto_load_new', set=self.auto_load_new)
   button = cw_bgroup(buttonBase, " ", label_left='Sort by time?', /nonexclusive, uvalue="time_sort", uname='time_sort', set=self.time_sort)
-  button = cw_bgroup(buttonBase, " ", label_left='Fixed scale?', /nonexclusive, uvalue="fix_scales", uname='fix_scales', set=self.fix_scales)
+  ;button = cw_bgroup(buttonBase, " ", label_left='Fixed scale?', /nonexclusive, uvalue="fix_scales", uname='fix_scales', set=self.fix_scales)
   button = Widget_Button(buttonBase2, Value='View in GPItv', uname='view_in_gpitv',/tracking_events)
   button = Widget_Button(buttonBase2, Value='Refresh', uname='refresh',/tracking_events)
   button = Widget_Button(buttonBase2, Value='Close', uname='Close',/tracking_events)
@@ -1229,10 +1241,10 @@ FUNCTION dirviewer::init, $
           filter: Ptr_New(filter), $     ; The file filter.
                                 ;filenameObj: filenameObj, $         ; The FileSelect compound widget object reference.
           dataDirectory: directory, $    ; The current data directory.
-          labelNAXESID: labelNAXESID, $  ; The ID of the NAXES label
-          labelNAXISID: labelNAXISID, $  ; The ID of the NAXIS label
-          labelmaxvalID: labelmaxvalID, $ ; The ID of the Max Value label.
-          labelminvalID: labelminvalID $  ; The ID of the Max Value label.
+          labelNAXESID: labelNAXESID $  ; The ID of the NAXES label
+          ;labelNAXISID: labelNAXISID, $  ; The ID of the NAXIS label
+          ;labelmaxvalID: labelmaxvalID, $ ; The ID of the Max Value label.
+          ;labelminvalID: labelminvalID $  ; The ID of the Max Value label.
          }
 
   state = {scaling: 1, $        ; coded this way for compatibilty with gpitv code
@@ -1242,7 +1254,7 @@ FUNCTION dirviewer::init, $
            asinh_beta: 500.0, $
            directory: '', $                 ; Directory currently being watched
            filename: '', $                  ; currently selected filename
-           information_id: 0,$              ; widget ID for status bar
+           information_id: information_id,$ ; widget ID for status bar
            dummy: 0}
 
   self.state = ptr_new(state,/no_copy)
@@ -1269,6 +1281,7 @@ FUNCTION dirviewer::init, $
 
   self->refresh                 ; get list of files
 
+  if self.auto_load_new or self.auto_refresh then widget_control, self.top_base, timer=self.check_period ; check again at 0.2 Hz
 
   return, 1
 
@@ -1305,11 +1318,11 @@ struct={dirviewer, $
 		xname: '', $				; X session name
 		parent_gpitv: obj_new(), $ ; handle of the parent gpitv object
 		ignore_indiv: 1, $			; Ignore individual read files
-		live_view: 1, $				; View in GPITV automatically
-		time_sort: 1, $				; View in GPITV automatically
-		auto_latest: 0, $			; Auto view latest file
+		time_sort: 1, $				; Sort by time rather than by alphabetical filename
+		auto_refresh: 0, $			; Auto refresh files list at 1 Hz
+		auto_load_new: 0, $			; Auto view latest file
         last_filename: '' , $          ; last filename sent to gpitv
-		check_period: 5, $			; how often to check for new files if auto_latest?
+		check_period: 5, $			; how often to check for new files if auto_load_new?
 		fix_scales: 0, $			; Keep display scale stretch fixed? 
 		state: ptr_new() $
        }
