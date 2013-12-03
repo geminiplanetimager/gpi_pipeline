@@ -87,7 +87,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	wlcalsize=size(refwlcal,/dimensions)
 	print,wlcalsize
 	nlens = wlcalsize[0]
-	n_valid_lenslets = fix(total(finite(refwlcal[*,*,0])))
+	n_valid_lenslets = long(total(finite(refwlcal[*,*,0])))
 
 	newwavecal=dblarr(wlcalsize)
 	
@@ -158,10 +158,10 @@ if keyword_set(parallel) then begin
 	'wl=wla',$
 	'flux=fluxa',$
 	'count=count+1',$
-	'n_valid_lenslets = fix(total(finite(refwlcal[*,jstart:jend,0])))' ,$
+	'n_valid_lenslets = long(total(finite(refwlcal[*,jstart:jend,0])))' ,$
 	'print,"Will fit "+strc(n_valid_lenslets)+ " lenslets in process"+strc(which_bridge)',$
 	'for j = jstart,jend do begin',$
-	'    print, which_bridge, j', $
+	;'    print, which_bridge, j', $
 	'    xo=refwlcal[i,j,1]', $
 	'    yo=refwlcal[i,j,0]',$
 	'    startx= (floor(xo-boxsizex/2.0)) > 0',$
@@ -402,11 +402,10 @@ backbone->set_keyword, "HISTORY", " ",ext_num=0;,/blank
 
 ;SAVE THE NEW WAVELENGTH CALIBRATION:
 
-  suffix='wavecal'
+suffix='wavecal'
 
 wavecalimage=save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, "_"+filter+"_"+suffix,display=0, savedata=newwavecal,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile] ,output_filename=output_filename)
 
-stop
 
 
 @__end_primitive
