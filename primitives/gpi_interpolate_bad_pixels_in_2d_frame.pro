@@ -43,6 +43,7 @@
 ; PIPELINE ARGUMENT: Name="method" Type="string" Range="[n4n|vertical|all8]" Default="vertical" Desc='Repair bad bix interpolating all 8 neighboring pixels, or just the 2 vertical ones, or just flag as NaN (n4n)?'
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="1" Desc="1-500: choose gpitv session for displaying output, 0: no display "
+; PIPELINE ARGUMENT: Name="negative_bad_thresh" Type="float" Range="[-100000,0]" Default="-50" Desc="Pixels more negative than this should be considered bad. "
 ; PIPELINE ARGUMENT: Name="before_and_after" Type="int" Range="[0,1]" Default="0" Desc="Show the before-and-after images for the user to see? (for debugging/testing)"
 ;
 ; PIPELINE COMMENT:  Repair bad pixels by interpolating between their neighbors. Can optionally just flag as NaNs or else interpolate.
@@ -70,6 +71,9 @@ calfiletype='badpix'
 no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there is no cal file found.
 @__start_primitive
 
+
+	if tag_exist( Modules[thisModuleIndex], "negative_bad_thresh") then negative_bad_thresh=float(Modules[thisModuleIndex].negative_bad_thresh) else negative_bad_thresh=-50
+
  	if tag_exist( Modules[thisModuleIndex], "before_and_after") then before_and_after=fix(Modules[thisModuleIndex].before_and_after) else before_and_after=0
     if keyword_set(before_and_after) then im0= *dataset.currframe ; save copy for later display if desired
 
@@ -86,6 +90,13 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
         backbone->set_keyword,'HISTORY',functionname+": Loaded bad pixel map",ext_num=0
         backbone->set_keyword,'HISTORY',functionname+": "+c_File,ext_num=0
         backbone->set_keyword,'DRPBADPX',c_File,ext_num=0
+
+
+			logtext = 'Found '+strc(total(bpmask))+' pixels marked as bad in that bad pixel map '
+			backbone->Log, logtext, depth=2
+			backbone->set_keyword, 'HISTORY', logtext, ext_num=0
+	
+
     endif else begin
         ;return, error("Bad pixel file does not exist!")
         backbone->Log, "No bad pixel map supplied - will continue anyway, but don't expect a clean image", depth=3
@@ -112,7 +123,9 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 		wbpfromDQ = where(bpfromDQ, bpfromDQcount)
 		if bpfromDQcount gt 0 then begin
 			bpmask[wbpfromDQ] = 1
-			backbone->set_keyword, 'HISTORY', 'Found '+strc(bpfromDQcount)+' pixels marked as bad in DQ image FITS extension ', ext_num=0
+			logtext = 'Found '+strc(bpfromDQcount)+' pixels marked as bad in DQ image FITS extension '
+			backbone->Log, logtext, depth=2
+			backbone->set_keyword, 'HISTORY', logtext, ext_num=0
 		endif
 
 	endif
@@ -121,7 +134,7 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 
 
 	; MP (temporary?) fix for missed cold pixels: also repair anything super negative
-	wlow = where(*dataset.currframe lt -50, lowct) ; should be an adjustible thresh, or based on read noise * n * sigma?
+	wlow = where(*dataset.currframe lt negative_bad_thresh, lowct) ; should be an adjustible thresh, or based on read noise * n * sigma?
 	if lowct gt 0 then begin
 		backbone->set_keyword, 'HISTORY', 'Found '+strc(lowct)+' additional very negative pixels (< -50 cts) in that image. ', ext_num=0
 		backbone->Log,  'Found '+strc(lowct)+' additional very negative pixels (< -50 cts) in that image. ', depth=2
