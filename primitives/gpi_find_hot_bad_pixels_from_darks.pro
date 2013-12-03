@@ -19,6 +19,7 @@
 ;
 ; PIPELINE COMMENT: Find hot pixels from a stack of dark images (best with deep integration darks)
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
+; PIPELINE ARGUMENT: Name="hot_bad_thresh" Type="float" Range="[0,100.]"  Default="1.0" Desc="Threshhold to consider a hot pixel bad, in electrons/second."
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.01
 ; PIPELINE TYPE: CAL-SPEC
@@ -36,6 +37,8 @@ function gpi_find_hot_bad_pixels_from_darks, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 functionname='hotpixels_from_dark' ; brevity is the soul of wit...
+
+	if tag_exist( Modules[thisModuleIndex], "hot_bad_thresh") then hot_bad_thresh=float(Modules[thisModuleIndex].hot_bad_thresh) else hot_bad_thresh=1.0
 
 	method='median'
 
@@ -151,15 +154,15 @@ functionname='hotpixels_from_dark' ; brevity is the soul of wit...
 	backbone->set_keyword, 'HISTORY', functionname+":   "+strc(highct)+" pixels are high, 5 sigma above read noise" ,ext_num=0
 	backbone->set_keyword, 'HISTORY', functionname+":   "+strc(lowct)+" pixels are low, 5 sigma below read noise" ,ext_num=0
 
-    hotcutoff = itime/gain
+    hotcutoff = itime/gain*hot_bad_thresh
     whot = where(combined_center gt hotcutoff, hotct)
-	backbone->set_keyword, 'HISTORY', functionname+":   Hot pixels (>1 e-/sec) would have >"+sigfig(hotcutoff,5)+" counts",ext_num=0
+	backbone->set_keyword, 'HISTORY', functionname+":   Hot pixels (>"+strc(hot_bad_thresh)+" e-/sec) would have >"+sigfig(hotcutoff,5)+" counts",ext_num=0
 	backbone->set_keyword, 'HISTORY', functionname+":   "+strc(hotct)+" such pixels are present." ,ext_num=0
     whot2 = where( (combined_center gt hotcutoff) and (combined_center gt (med_combined+nsig*rdnoise)), hotct2)
 	backbone->set_keyword, 'HISTORY', functionname+":   "+strc(hotct2)+" such pixels are present & >5 sigma * rdnoise" ,ext_num=0
     backbone->set_keyword, 'ESTNHTPX', hotct2, "Estimated number of 'hot' pixels, >1 e-/sec "
 
-	backbone->Log, "Hot pixels (>1 e-/sec) would have >"+sigfig(hotcutoff,5)+" counts", depth=3
+	backbone->Log, "Hot pixels (>"+strc(hot_bad_thresh)+" e-/sec) would have >"+sigfig(hotcutoff,5)+" counts", depth=3
 	backbone->Log, "   "+strc(hotct2)+" such pixels are present & >5 sigma * rdnoise", depth=3
 
 
