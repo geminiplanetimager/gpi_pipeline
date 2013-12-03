@@ -99,8 +99,9 @@ function gpi_get_directory, dirname,expand_path=expand_path,method=method
         if dir[0] ne '' then result = dir else result = file_basename(gpi_get_directory("GPI_DRP_DIR"))+path_sep()+"dst" ; optional, may not be present...
      end
      else: begin
-        message, 'could not find default value for '+dirname+'; that is an unknown directory name.',/info
-        result = "Not a known directory"
+        message, 'ERROR: could not find default value for '+dirname+'; that is an unknown directory name.',/info
+        ;result = "Not a known directory" ; bad idea, returning a string here gets it used literally as a directory name by some calling functions
+		result = -1
      endelse
   endcase
 
