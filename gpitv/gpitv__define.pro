@@ -159,6 +159,7 @@ state = {                   $
         itime: 0.0,$                       ; exposure integration time (not including any coadding)
         coadds:0.0,$                       ; coadds
         current_units:'',$                 ; current unit of data displayed (i.e. BUNIT)
+        current_unit_scaling: ptr_new(),$  ; multiplicative scaling factor for the current unit
         intrinsic_units:'',$               ; unit for the actual pixel values in the file itself, and hence also
 		$							       ; the main_image_backup stack
         unitslist:ptr_new(/alloc), $       ; tab of available units
@@ -784,53 +785,43 @@ ONE_LINE_TOOLBAR = 1 ; set this to 1 to switch the toolbar to one line across th
 
 ;;process options & defaults
 tmp = gpi_get_setting('gpitv_retain_current_slice',/silent,/int)
-if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (temp eq 1) ) then (*self.state).retain_current_slice = tmp
+if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (tmp eq 1) ) then (*self.state).retain_current_slice = tmp
 widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Retain Current Slice")],$
                  set_button = (*self.state).retain_current_slice
 
 tmp = gpi_get_setting('gpitv_retain_current_stretch',/silent,/int)
-if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (temp eq 1) ) then (*self.state).retain_current_stretch = tmp
+if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (tmp eq 1) ) then (*self.state).retain_current_stretch = tmp
 widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Retain Current Stretch")],$
                  set_button = (*self.state).retain_current_stretch
 
 tmp = gpi_get_setting('gpitv_retain_current_view',/silent,/int)
-if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (temp eq 1) ) then (*self.state).retain_current_view = tmp
+if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (tmp eq 1) ) then (*self.state).retain_current_view = tmp
 widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Retain Current View")],$
                  set_button = (*self.state).retain_current_view
 
-;tmp = gpi_get_setting('gpitv_default_autoscale',/silent,/int)
-;if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (temp eq 1) ) then (*self.state).default_autoscale = tmp
-;widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Always Autoscale")],$
-;                 set_button = (*self.state).default_autoscale
-
-;tmp = gpi_get_setting('gpitv_autozoom',/silent,/int)
-;if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (temp eq 1) ) then (*self.state).autozoom = tmp
-;widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Auto Zoom")],$
-;                 set_button = (*self.state).autozoom
-
 tmp = gpi_get_setting('gpitv_auto_handedness',/silent,/int)
-if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (temp eq 1) ) then (*self.state).autohandedness = tmp
+if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (tmp eq 1) ) then (*self.state).autohandedness = tmp
 widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Auto Handedness")],$
                  set_button = (*self.state).autohandedness
 
 tmp = gpi_get_setting('gpitv_showfullpaths',/silent,/int)
-if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (temp eq 1) ) then (*self.state).showfullpaths = tmp
+if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (tmp eq 1) ) then (*self.state).showfullpaths = tmp
 widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Display Full Paths")],$
                  set_button = (*self.state).showfullpaths
 
-user_default_scale = gpi_get_setting('gpitv_default_scale', default='log')
+user_default_scale = gpi_get_setting('gpitv_default_scale', default='log',/silent)
 if strcmp(user_default_scale,'sqrt',/fold_case) then user_default_scale = 'square root'
 tmp = where(strcmp((*self.state).scalings,user_default_scale,/fold_case),cc)
 if cc eq 0 then user_default_scale = 'log'
 self->setscaling, user_default_scale, /nodisplay
 
 tmp = gpi_get_setting('gpitv_noinfo',/silent,/int)
-if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (temp eq 1) ) then (*self.state).noinfo = tmp
+if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (tmp eq 1) ) then (*self.state).noinfo = tmp
 widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Suppress Information Messages")],$
                  set_button = (*self.state).noinfo
 
 tmp = gpi_get_setting('gpitv_nowarn',/silent,/int)
-if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (temp eq 1) ) then (*self.state).nowarn = tmp
+if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (tmp eq 1) ) then (*self.state).nowarn = tmp
 widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Suppress Warning Messages")],$
                  set_button = (*self.state).nowarn
 
@@ -3894,6 +3885,7 @@ pro GPItv::change_image_units, new_requested_units, silent=silent
   if ((*self.state).current_units eq 'Contrast') then begin
      *self.images.main_image_stack = *self.images.main_image_backup
      (*self.state).current_units = (*self.state).intrinsic_units
+
   endif 
   
   ;;no need to do anything if requested is same as current
@@ -3935,11 +3927,17 @@ pro GPItv::change_image_units, new_requested_units, silent=silent
         
         ;;get the contrast cube
         if proceed then begin
-           copsf = (*self.images.main_image_stack)
-           ;;scale by sat spot mean
-           for j = 0, (size(copsf,/dim))[2]-1 do $
+            copsf = (*self.images.main_image_stack)
+            ;;scale by sat spot mean
+            for j = 0, (size(copsf,/dim))[2]-1 do $
               copsf[*,*,j] = copsf[*,*,j]/((1./(*self.state).gridfac)*mean((*self.satspots.satflux)[*,j]))
-           *self.images.main_image_stack = copsf
+            *self.images.main_image_stack = copsf
+
+
+			conversion_factor = 1./((1./(*self.state).gridfac)*mean((*self.satspots.satflux)[*, (*self.state).cur_image_num ]))
+			(*self.state).max_value *= conversion_factor
+			(*self.state).min_value *= conversion_factor
+
         endif
 
         if ~proceed then begin    
@@ -4045,7 +4043,7 @@ pro GPItv::change_image_units, new_requested_units, silent=silent
         endelse	
 
         ;;do the actual conversion here
-        *self.images.main_image *= conversion_factor
+        *self.images.main_image *= conversion_factor		
         *self.images.main_image_stack *= conversion_factor
         (*self.state).max_value *= conversion_factor
         (*self.state).min_value *= conversion_factor
@@ -4062,7 +4060,7 @@ pro GPItv::change_image_units, new_requested_units, silent=silent
 	widget_control, (*self.state).units_droplist_id, set_droplist_select = ind, set_value=*(*self.state).unitslist
  
 	self->getstats,/noerase       ; updates image min/max stats displayed on screen
-	self->autoscale
+	;self->autoscale
 	self->set_minmax
 	self->displayall
 	self->update_child_windows
@@ -5558,7 +5556,12 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   *self.images.main_image_backup = *self.images.main_image_stack
   ;;handle missing headers
   if ~(keyword_set(header)) then begin
-     self->message,msgtype='information',"No header supplied! Creating a basic one with MKHDR"
+	 ; if we're loading a dummy header for a null image because the
+	 ; user started gpitv without specifying an image yet, then
+	 ; don't print any errors about a missing header here; that's obvious.
+	 silent = (imname eq "NO IMAGE LOADED   ") ; must match dummy image name assigned in ::init 
+
+     if ~silent then self->message,msgtype='information',"No header supplied! Creating a basic one with MKHDR"
      mkhdr,header,*self.images.main_image
   endif
   
@@ -7769,21 +7772,26 @@ if n_elements(h) lt 2 then begin
 endif
 if ptr_valid( (*self.state).exthead_ptr ) then e = *((*self.state).exthead_ptr) else e = ['']
 
-val = gpi_get_keyword(h, e, 'DATE-OBS',count=cc)
+; if we're loading a dummy header for a null image because the
+; user started gpitv without specifying an image yet, then
+; don't print any errors about missing keywords in the following.
+silent = ((*self.state).imagename eq "NO IMAGE LOADED   ") ; must match dummy image name assigned in ::init 
+
+val = gpi_get_keyword(h, e, 'DATE-OBS',count=cc, silent=silent)
 if cc gt 0 then widget_control, (*self.state).dateobs_id, set_value = val else $
   widget_control, (*self.state).dateobs_id, set_value = 'No info'
-val = gpi_get_keyword(h, e, 'UTSTART',count=cc)
-if cc eq 0 then val = gpi_get_keyword(h, e,  'TIME-OBS',count=cc)
+val = gpi_get_keyword(h, e, 'UTSTART',count=cc, silent=silent)
+if cc eq 0 then val = gpi_get_keyword(h, e,  'TIME-OBS',count=cc, silent=silent)
 if cc gt 0 then widget_control, (*self.state).timeobs_id, set_value = val else $
   widget_control, (*self.state).timeobs_id, set_value = 'No info'
-val = gpi_simplify_keyword_value(gpi_get_keyword(h, e, 'IFSFILT',count=cc))
+val = gpi_simplify_keyword_value(gpi_get_keyword(h, e, 'IFSFILT',count=cc, silent=silent))
 if cc gt 0 then widget_control, (*self.state).filter1_id, set_value = val else $
   widget_control, (*self.state).filter1_id, set_value = 'No info'
 if cc gt 0 then (*self.state).obsfilt=strcompress(val,/REMOVE_ALL) else (*self.state).obsfilt=''
 ;val = gpi_get_keyword(h, e, 'FILETYPE',count=cc)
 ;if cc gt 0 then (*self.state).filetype = val else (*self.state).filetype = ''
 
-val = gpi_get_keyword(h, e, 'DISPERSR',count=cc)
+val = gpi_get_keyword(h, e, 'DISPERSR',count=cc, silent=silent)
 ;; Make short prism names. Bizarre inexplicable bug where long Gemini style names make widgets get smaller?!?! WTF? -MP
 if cc gt 0 then begin
     if size(val,/TNAME) ne 'STRING' then val = strc(val)
@@ -7792,7 +7800,7 @@ if cc gt 0 then begin
 
     if val eq 'WOLLASTON' then begin
         ; add in WPANGLE too
-        val += ", "+strc(string(gpi_get_keyword(h, e, 'WPANGLE'), format='(F6.1)'))
+        val += ", "+strc(string(gpi_get_keyword(h, e, 'WPANGLE', silent=silent), format='(F6.1)'))
     endif
 
     widget_control, (*self.state).filter2_id, set_value = strc(val)
@@ -7800,7 +7808,7 @@ endif else widget_control, (*self.state).filter2_id, set_value = 'No info'
 
 ;; Display 'ABORTED IMAGE' in bold red letters on top of GPItv when
 ;; aborted flag eq true
-abort = gpi_get_keyword(h,e,'ABORTED',count=cc)
+abort = gpi_get_keyword(h,e,'ABORTED',count=cc, silent=silent)
 if (cc eq 1) AND (abort eq 1) then begin
    thisdevice=!D.name
    set_plot,'Z'
@@ -7825,16 +7833,16 @@ endif else begin
 endelse
 
 ;; actual exposure time
-itime = gpi_get_keyword(h, e, 'ITIME',count=cce)
+itime = gpi_get_keyword(h, e, 'ITIME',count=cce, silent=silent)
 if cce gt 0 then  (*self.state).itime = itime else  (*self.state).itime = 0 
 widget_control, (*self.state).exptime_id, set_value = STRING(itime,format='(f10.2)')
 
 ;; coadds
-val=STRING(gpi_get_keyword(h, e, 'COADDS',count=cca),format='(I4)')
-if cca gt 0 then (*self.state).coadds=double(gpi_get_keyword(h, e, 'COADDS')) else (*self.state).coadds=0.
+val=STRING(gpi_get_keyword(h, e, 'COADDS',count=cca, silent=silent),format='(I4)')
+if cca gt 0 then (*self.state).coadds=double(gpi_get_keyword(h, e, 'COADDS', silent=silent)) else (*self.state).coadds=0.
 
 ;; object name
-val=gpi_get_keyword(h, e, 'OBJECT',count=cc,/silent)
+val=gpi_get_keyword(h, e, 'OBJECT',count=cc, silent=silent)
 val = strmid(val, 0, max_display_len)
 if val eq "" then val='No info'
 if cc gt 0 then widget_control, (*self.state).object_id, set_value = val else $
@@ -7852,7 +7860,7 @@ if cc gt 0 then widget_control, (*self.state).obstype_id, set_value = val else $
 ;;val=gpi_get_keyword(h, e, 'OBSCLASS',count=cc)
 ;;if cc gt 0 then widget_control, (*self.state).obsclass_id, set_value = val else widget_control, (*self.state).obsclass_id, set_value = 'No info'
 
-val = gpi_get_keyword(h, e, 'SAMPMODE',count=cc)
+val = gpi_get_keyword(h, e, 'SAMPMODE',count=cc, silent=silent)
 if cc gt 0 then begin
     if size(val,/TNAME) ne 'STRING' then begin
         ;; convert readout mode as a string
@@ -7869,7 +7877,7 @@ widget_control, (*self.state).readmode_id, set_value = readmodestr
 
 ;;apodizer - which apodizer is selected is used to look up the
 ; satellite spot flux ratios
-val = gpi_get_keyword(h, e, 'APODIZER',count=cc)
+val = gpi_get_keyword(h, e, 'APODIZER',count=cc, silent=silent)
 if cc eq 0 then (*self.state).gridfac = !values.f_nan else begin
     ;;hack to account for user defined apodizer
     if strcmp(val,'UNKNOWN',/fold_case) then begin 
@@ -7903,7 +7911,7 @@ endelse
 
 
 ;units of data are in the BUNIT keyword
-void=gpi_get_keyword(h, e, 'BUNIT',COUNT=cu)
+void=gpi_get_keyword(h, e, 'BUNIT',COUNT=cu, silent=silent)
 if cu eq 1 then begin
 	(*self.state).intrinsic_units=strtrim(gpi_get_keyword(h, e, 'BUNIT'), 2)
 	
@@ -8023,7 +8031,8 @@ if naxis eq 3 then begin
  endif else (*self.state).cube_mode='UNKNOWN'
 
 
-if keyword_set(prior_retained_units) then begin
+if keyword_set(prior_retained_units) then $
+if ((prior_retained_units ne 'Unknown') and ((*self.state).current_units ne 'Unknown')) then begin
 	self->message, "Retaining prior units: "+prior_retained_units
 	self->change_image_units,prior_retained_units,  /silent
 endif
@@ -8284,7 +8293,7 @@ pro GPItv::switchextension
 	; this sets the various displayed keywords and other associated metadata
 	self->setup_new_image, header=head, imname=(*self.state).imagename, _extra=_extra
 	if extension gt 1 then begin
-		 (*self.state).title_extras = ", extension "+strc(i)+": "+fcb.extname[i]
+		 (*self.state).title_extras = "extension "+strc(i)+": "+fcb.extname[i]
 		 self->settitle
 	endif
 	self->refresh
@@ -8299,13 +8308,13 @@ pro GPItv::directory_viewer
 
 
 	if not obj_valid((*self.state).subwindow_dirviewer) then begin
-		self->message, msgtype='information', "Creating new dir viewer"
+		self->message, msgtype='information', "Creating new dir browser"
 		if (*self.state).multisess GT 0 then title_base = "GPItv #"+strc((*self.state).multisess) else title_base = 'GPItv '
 		(*self.state).subwindow_dirviewer= obj_new('dirviewer', directory = (*self.state).current_dir, $
-			title='View Images in Directory for '+title_base, parent_gpitv=self, group_leader=(*self.state).base_id )
+			title='Browse Images for '+title_base, parent_gpitv=self, group_leader=(*self.state).base_id )
 	endif else begin
 		; re-use the existing window and bring to front 
-		self->message, msgtype='information', "Reusing dir viewer"
+		self->message, msgtype='information', "Reusing dir browser"
                 (*self.state).subwindow_dirviewer->show
 	endelse 
 
@@ -10894,8 +10903,8 @@ else: begin		; Plot spectral mode cal grid
 		;wnz = where( wavecal[*,jj,0]+wavecal[*,jj,1] ne 0 )
 		X2[0,*]=(float(wavecal[*,jj,1]) - (*self.state).offset[0] + 0.5) *  (*self.state).zoom_factor
 		X2[1,*]=(float(wavecal[*,jj,0]) - (*self.state).offset[1] + 0.5) *  (*self.state).zoom_factor
-		X[0,*]=(float(wavecal[jj,*,1]) - (*self.state).offset[0] + 0.5) * (*self.state).zoom_factor
-		X[1,*]=(float(wavecal[jj,*,0]) - (*self.state).offset[1] + 0.5) * (*self.state).zoom_factor
+		X[0,*] =(float(wavecal[jj,*,1]) - (*self.state).offset[0] + 0.5) * (*self.state).zoom_factor
+		X[1,*] =(float(wavecal[jj,*,0]) - (*self.state).offset[1] + 0.5) * (*self.state).zoom_factor
 		for ii=0,sz[1]-1 do begin
 			;if (wavecal[ii,jj,0]+wavecal[ii,jj,1] ne 0) then begin ;&& (wavecal[ii+1,jj,0]+wavecal[ii+1,jj,0] ne 0) then begin
 				;X2[0,ii]=(float(wavecal[ii,jj,1]) - (*self.state).offset[0] + 0.5) *  (*self.state).zoom_factor
