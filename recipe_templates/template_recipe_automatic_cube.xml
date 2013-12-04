@@ -10,7 +10,6 @@
 <primitive name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
 <primitive name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
 <primitive name="Update Spot Shifts for Flexure" method="Lookup" manual_dx="0" manual_dy="0" display="-1" Save="0" gpitv="0" />
-<primitive name="Destripe science image" method="calfile" abort_fraction="0.9" chan_offset_correction="0" fraction="0.7" high_limit="1000" Save_stripes="0" display="-1" remove_microphonics="0" method_microphonics="1" CalibrationFile="" Plot_micro_peaks="no" save_microphonics="no" micro_threshold="0.01" Save="0" gpitv="0" />
 <primitive name="Interpolate bad pixels in 2D frame" CalibrationFile="AUTOMATIC" method="vertical" Save="0" gpitv="0" before_and_after="0" />
 <primitive name="Assemble Spectral Datacube" Save="0" gpitv="0" />
 <primitive name="Interpolate Wavelength Axis" Spectralchannels="37" Save="1" gpitv="5" />
