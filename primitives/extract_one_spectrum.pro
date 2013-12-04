@@ -117,9 +117,24 @@ function extract_one_spectrum, DataSet, Modules, Backbone
      if cc eq 1 then units=calunits 
 
      s_Ext='-spectrum_x'+Modules[thisModuleIndex].xcenter+'_y'+Modules[thisModuleIndex].ycenter
-     filnm=backbone->get_keyword('DATAFILE') ;sxpar(hdr,'DATAFILE')
-     slash=strpos(filnm,path_sep(),/reverse_search)
-     psFilename = Modules[thisModuleIndex].OutputDir+'fig'+path_sep()+strmid(filnm, slash,strlen(filnm)-5-slash)+s_Ext+'.ps'
+       filenm=(backbone->get_keyword( 'DATAFILE',count=cdf))
+    if (cdf eq 0) or (strc(filenm) eq 'NONE') or (strc(filenm) eq '')  then begin 
+    ; if DATAFILE keyword not present or not valid, then 
+        ; fallback to input filename
+        filenm = dataset.filenames[numfile]
+    endif
+
+     base_filename = file_basename(gpi_expand_path(filenm))
+  extloc = strpos(base_filename,'.', /reverse_search)
+
+  ; suffix must be separated by a dash
+  if strmid(s_Ext,0,1) eq '-' then strreplace, s_Ext,'-','_' ; swap dashes to underscores!
+  if strmid(s_Ext,0,1) ne '_' then s_Ext = '_'+s_Ext
+
+  ;c_File = s_OutputDir + strmid(base_filename,0,extloc)+ s_Ext+'.fits'
+
+     slash=strpos(filenm,path_sep(),/reverse_search)
+     psFilename = Modules[thisModuleIndex].OutputDir+path_sep()+strmid(filenm, slash,strlen(filenm)-5-slash)+s_Ext+'.ps'
 
      ;;method#2 standard photometric measurement (DAOphot-like)
      cubcent2=main_image_stack
