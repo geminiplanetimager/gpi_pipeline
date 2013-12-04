@@ -74,7 +74,6 @@
 ; PIPELINE ARGUMENT: Name="abort_fraction" Type="float" Range="[0.0,1.0]" Default="0.9" Desc="Necessary fraction of pixels in mask to continue - set at 0.9 to ensure quicklook tool is robust"
 ; PIPELINE ARGUMENT: Name="chan_offset_correction" Type="int" Range="[0,1]" Default="0" Desc="Tries to correct for channel bias offsets - useful when no dark is available"
 ; PIPELINE ARGUMENT: Name="fraction" Type="float" Range="[0.0,1.0]" Default="0.7" Desc="What fraction of the total pixels in a row should be masked"
-; PIPELINE ARGUMENT: Name="high_limit" Type="float" Range="[0,Inf]" Default="1" Desc="Pixel value where exceeding values are assigned a larger mask"
 ; PIPELINE ARGUMENT: Name="Save_stripes" Type="int" Range="[0,1]" Default="0" Desc="Save the striping noise image subtracted from frame?"
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="-1" Desc="-1 = No display; 0 = New (unused) window else = Window number to display diagonostics in."
 ; PIPELINE ARGUMENT: Name="remove_microphonics" Type="int" Range="[0,2]" Default="0" Desc='Remove microphonics noise based on a precomputed fixed model.0: not applied. 1: applied. 2: the algoritm is applied only if the measured noise is greater than micro_threshold'
@@ -86,7 +85,7 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: Save output to disk, 0: Don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="1" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE COMMENT:  Subtract detector striping using measurements between the microspectra
-; PIPELINE ORDER: 1.3
+; PIPELINE ORDER: 1.35
 ; PIPELINE NEWTYPE: SpectralScience,Calibration, PolarimetricScience
 ;
 ;
@@ -98,6 +97,7 @@
 ;   2013-01-16 MP: Documentation cleanup.
 ;   2013-03-12 MP: Code cleanup, some speed enhancements by vectorization
 ;   2013-05-28 JBR: Primitive copy pasted from the destripe_mask_spectra.pro primitive. Microphonics noise enhancement. Microphonics algorithm now applied before the destriping.
+;   2013-12-04 PI: Removed high_limit- now does masking based on readnoise levels 
 ;-
 function gpi_destripe_science_image, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -117,7 +117,6 @@ endif
  if tag_exist( Modules[thisModuleIndex], "abort_fraction") then abort_fraction=float(Modules[thisModuleIndex].abort_fraction) else abort_fraction=0.9
  if tag_exist( Modules[thisModuleIndex], "Chan_offset_correction") then chan_offset_correction=float(Modules[thisModuleIndex].chan_offset_correction) else chan_offset_correction=0.0
  if tag_exist( Modules[thisModuleIndex], "fraction") then fraction=float(Modules[thisModuleIndex].fraction) else fraction=0.7
- if tag_exist( Modules[thisModuleIndex], "high_limit") then high_limit=float(Modules[thisModuleIndex].high_limit) else high_limit=1000
  if tag_exist( Modules[thisModuleIndex], "Save") then save=float(Modules[thisModuleIndex].Save) else Save=0
  if tag_exist( Modules[thisModuleIndex], "Save_stripes") then save_stripes=float(Modules[thisModuleIndex].Save_stripes) else Save_stripes=0 
  if tag_exist( Modules[thisModuleIndex], "method_microphonics") then method_microphonics=uint(Modules[thisModuleIndex].method_microphonics) else method_microphonics=1
@@ -204,15 +203,38 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
       ; the edge spectra that are half on/half off the detector.
       wavecal2 = gpi_wavecal_extrapolate_edges(wavcal)
         
-
             ; The following code is lifted directly from extractcube.
-
             sdpx = calc_sdpx(wavecal2, filter, xmini, CommonWavVect)
             if (sdpx < 0) then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
-
             tilt=wavecal2[*,*,4]
-      if ~keyword_set(high_limit) then high_limit=3000
-      ; must also mask edges where no wavcal is present
+
+		          
+				; when building the mask, it should be based upon whether or not the bleeding from the ajacent pixels is higher than the readnoise of a raw dark frame, divided by the sqrt of the reads. So the readnoise is 8 electrons.
+ nreads = gpi_simplify_keyword_value(backbone->get_keyword('GROUPS0', count=c))
+ ncoadds = gpi_simplify_keyword_value(backbone->get_keyword('COADDS0', count=c))
+if ncoadds[0] eq -1 or nreads[0] eq -1 then begin
+   message,/info, "Either COADDS0 or GROUPS0 keywords not in header, Assuming CDS mode and zero coadds"
+	nreads=2
+	ncoadds=1
+endif
+ readnoise=8.0/(sqrt(nreads-1))/sqrt(float(ncoadds))
+
+; so if the tail is greater than the readnoise, it should be dropped.
+; this requires a model for the tail.
+; lets just assume its gaussian, FWHM = 1.6, so the 2nd pixel from the peak has about 317 times less flux
+; so if the peak/317 is greater than readnoise then this is the high_limit - assuming the spectrum is perfectly centered
+
+; /2 is because there is contamination from the left and right side!
+high_limit=readnoise*317.0/2 ; this is the optimal case assuming the spectrum is perfectly centered on a pixel
+high_limit=readnoise*17.8/2 ; this is the case wehre it is exactly in the middle of two pixels
+; the 3rd pixel over has 60000 times less flux
+very_high_limit=readnoise*60000.0/2 ; this is the optimal case assuming the spectrum is perfectly centered on a pixel
+very_high_limit=readnoise*5620.0 ; ; this is the case wehre it is exactly in the middle of two pixelsi
+;very_high_limit=readnoise*620.0/2
+
+; this is dependent upon where the peak falls in the pixel
+
+			 ; must also mask edges where no wavcal is present
       mask[0:8,*]=1
       mask[2040:2047,*]=1
             for i=0,sdpx-1 do begin  ;through spaxels
@@ -225,28 +247,34 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
                 mask[y3,x3] = 1
                 mask[y3+dy,x3] = 1
                 mask[y3-dy,x3] = 1
-
                 high_ind=where(image[y3,x3] gt high_limit $
                               and finite(image[x3,y3] eq 1),complement=low_ind)
         ; mask a 5x1 box for pixels passing
         ; the high limit
-        dy=2
-        if high_ind[0] ne -1 then begin
-           mask[y3[high_ind]+dy,x3[high_ind]] = 1
-           mask[y3[high_ind]-dy,x3[high_ind]] = 1
+        dy_arr=[-2,2] & dx_arr=[-1,1]
+        if high_ind[0] ne -1 then begin 			
+					for yy=0, N_ELEMENTS(dy_arr)-1 do begin
+						for xx=0, N_ELEMENTS(dx_arr)-1 do begin
+           		mask[y3[high_ind]+dy_arr[yy],x3[high_ind]+dx_arr[xx]] = 1
+           	endfor
+					endfor
         endif
         ; limit where cross-talk dominates
         ; entire spectrum.
-        very_high_ind=where(image[y3,x3] gt 4000 $
+        very_high_ind=where(image[y3,x3] gt very_high_limit $
                  and finite(image[x3,y3] eq 1))
         ; mask a 7x1 box for pixels passing
         ; the high limit
-        dy=3
+        dy_arr=[-3,3] & dx_arr=[-2,2]
         if very_high_ind[0] ne -1 then begin
-           mask[y3[very_high_ind]+dy,x3[very_high_ind]] = 1
-           mask[y3[very_high_ind]-dy,x3[very_high_ind]] = 1
-        endif
+					for yy=0, N_ELEMENTS(dy_arr)-1 do begin
+						for xx=0, N_ELEMENTS(dx_arr)-1 do begin
+           		mask[y3[very_high_ind]+dy_arr[yy],x3[very_high_ind]+dx_arr[xx]] = 1
+           	endfor
+					endfor
+				endif
       endfor
+
     end
     'WOLLASTON':    begin
         ; Assume pol cal info already loaded by readpolcal primitive 
@@ -460,8 +488,10 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 ;////////////////////////////////////////////////////////////////////////////////
 
     im = image
-        if keyword_set(chan_offset_correction) then im-=chan_offset
-  if remove_microphonics ge 1 then im-=microphonics_model
+		im[where(mask eq 1)]=!values.f_nan
+
+    if keyword_set(chan_offset_correction) then im-=chan_offset
+	  if remove_microphonics ge 1 then im-=microphonics_model
 
   ;--- Generate a first estimate of the striping
     ; Chop the image into the 32 readout channels. 
@@ -514,13 +544,12 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
   ;                                  script but rather exit nicely
 
   if total(finite(medpart))/(2048.0*64) le abort_fraction then begin
-     backbone->set_keyword, "HISTORY", "NOT Destriped, too many pixels above the abort_fraction in Subtract_background_2d"
-     logstr = 'NOT Destriped, too many pixels '+strcompress(string(total(finite(medpart))/(2048.0*64)),/remove_all)+' above the abort_fraction '+strcompress(string(abort_fraction),/remove_all)+' in Subtract_background_2d'
+     backbone->set_keyword, "HISTORY", "NOT Destriped, masked pixels in the noise model greater than abort_fraction "
+     logstr = 'NOT Destriped, percentage of valid pixels to derive noise model '+strcompress(string(total(finite(medpart))/(2048.0*64)),/remove_all)+' below the abort_fraction '+strcompress(string(abort_fraction),/remove_all)+' in destripe_science_image'
      backbone->set_keyword, "HISTORY", logstr,ext_num=0
      message,/info, logstr
      return, ok
   endif
-
 
   ; interpolate pixels having NaN to be the median of the row
   ; this could be improved to fit a line!
@@ -617,6 +646,7 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
     if remove_microphonics ge 1 then full_noise_model+=microphonics_model
 
     imout = image - full_noise_model
+
 
 
   ; input safety to make sure no NaN's are in the image
