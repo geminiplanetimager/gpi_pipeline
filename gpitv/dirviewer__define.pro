@@ -838,8 +838,9 @@ PRO dirviewer::Update,file,fileInfo,r,g,b,previewsize,image,info, directory=dire
 			fileinfo.naxis = aprint([sxpar(header,"NAXIS1"),sxpar(header,"NAXIS2"),sxpar(header,"NAXIS3")])
 		endelse
 
-		 if fileinfo.naxes gt 2 then image = image[*,*,0]
-
+		 if fileinfo.naxes gt 2 then begin
+				image = image[*,*,floor(sz[3]/2)]
+			endif
 	ENDIF else begin
 		; no files found - filename is blank?
 		return
