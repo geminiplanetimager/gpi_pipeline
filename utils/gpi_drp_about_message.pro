@@ -17,17 +17,17 @@ function gpi_drp_about_message
               '', $
               '--------- Development: ---------', $
               '', $
-              '  Marshall Perrin (mperrin@stsci.edu)', $
-              '  Jerome Maire (maire@utoronto.ca)', $
+              '  Marshall Perrin   (mperrin@stsci.edu)', $
+              '  Jerome Maire      (maire@utoronto.ca)', $
+			  '  Patrick Ingraham  (patricki@stanford.edu)', $
+			  '  Dmitry Savransky  (savransky1@llnl.gov), ', $ 
+			  '  Rene Doyon        (doyon@astro.umontreal.ca),', $ 
 			  '', $
-			  '  Contributions from: (alphabetically)',$
-			  '    Jeff Chilcote, Rene Doyon, ', $
-			  '    Zack Draper, Alex Greenbaum, ', $
-			  '    Patrick Ingraham, Quinn Konopacky, ', $
-			  '    Franck Marchis, Christian Marois', $
-			  '    Max Millar-Blanchaer, Laurent Pueyo, ', $
-			  '    Jean-Baptiste Ruffio, Dmitry Savransky, ',$
-			  '    Naru Sadakuni, Schuyler Wolff',$
+			  '  with contributions from: ',$
+			  '    Jeff Chilcote, Zack Draper, Michael Fitzgerald,', $
+			  '    Alex Greenbaum, Quinn Konopacky, Franck Marchis,', $
+			  '    Christian Marois, Max Millar-Blanchaer, Laurent Pueyo, ', $
+			  '    Jean-Baptiste Ruffio, Naru Sadakuni, Schuyler Wolff',$
 			  '    Sloane Wiktorowicz',$
               '', $
               '-------- Acknowledgements: --------', $
