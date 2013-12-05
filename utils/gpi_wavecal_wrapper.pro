@@ -7,6 +7,18 @@
 ;
 ;  ***** y is [0] and x is [1] in wavelength calibration files *****
 ;
+; RETURNS:
+;    results array as follows
+;    res[0]:    X0 position for this lenslet spectrum
+;    res[1]:	Y0 position for this lenslet spectrum
+;    res[2]:    Dispersion for this lenslet.
+;    res[3]:	Spectral tilt theta,     
+;    res[4]:    lenslet PSF Gaussian sigma_x
+;    res[5]:    lenslet PSF Gaussian sigma_y
+;    res[6]:    lenslet PSF Gaussian rotation
+;    res[7]:    Total flux in lenslet array in counts
+;    res[8:n]:	Relative flux ratios of the individual spectral lines
+;
 ;+
 
 FUNCTION gpi_wavecal_wrapper, xdim,ydim,refwlcal,lensletarray,badpixels,wlcalsize,startx,starty,whichpsf
@@ -56,7 +68,7 @@ start_params[4:6] = [1.5, 1.5, 0]
 
 
 ;Compute a weighted error array to be passed to mp2dfitfunct
-ERR = sqrt(lensletarray)
+ERR = sqrt(lensletarray )
 wayt = 1D/ERR^2*(1-badpixels)
 
 wnan = where(~finite(wayt), nanct)
@@ -68,31 +80,31 @@ oldypos=start_params[1]
 
 ;Place limits on each parameter to be called by mpfit2dfunc.pro
 ; X position 
-parinfo[0].limited(0) = 1
-parinfo[0].limits(0) = oldxpos-pixelshifttolerance
-parinfo[0].limited(1) = 1
-parinfo[0].limits(1) = oldxpos+pixelshifttolerance
+parinfo[0].limited[0] = 1
+parinfo[0].limits[0] = oldxpos-pixelshifttolerance
+parinfo[0].limited[1] = 1
+parinfo[0].limits[1] = oldxpos+pixelshifttolerance
 ; Y position
-parinfo[1].limited(0) = 1
-parinfo[1].limits(0) = oldypos-pixelshifttolerance
-parinfo[1].limited(1) = 1
-parinfo[1].limits(1) = oldypos+pixelshifttolerance
+parinfo[1].limited[0] = 1
+parinfo[1].limits[0] = oldypos-pixelshifttolerance
+parinfo[1].limited[1] = 1
+parinfo[1].limits[1] = oldypos+pixelshifttolerance
 ; Theta
 deltatheta = 0.1 ; radians, so this is about 2 degrees
-parinfo[3].limited(0)=1
-parinfo[3].limits(0)=theta-deltatheta
-parinfo[3].limited(1)=1
-parinfo[3].limits(1)=theta+deltatheta
+parinfo[3].limited[0]=1
+parinfo[3].limits[0]=theta-deltatheta
+parinfo[3].limited[1]=1
+parinfo[3].limits[1]=theta+deltatheta
 ; X sigma
-parinfo[4].limited(0)=1
-parinfo[4].limits(0)=0.4
-parinfo[4].limited(1)=1
-parinfo[4].limits(1)=2.0
+parinfo[4].limited[0]=1
+parinfo[4].limits[0]=0.4
+parinfo[4].limited[1]=1
+parinfo[4].limits[1]=4.0
 ; Y sigma
-parinfo[5].limited(0)=1
-parinfo[5].limits(0)=0.4
-parinfo[5].limited(1)=1
-parinfo[5].limits(1)=2.0
+parinfo[5].limited[0]=1
+parinfo[5].limits[0]=0.4
+parinfo[5].limited[1]=1
+parinfo[5].limits[1]=4.0
 ; Flux Scaling
  ;parinfo[7].limited(0)=1
  ;parinfo[7].limits(0)=0.0001*start_params[7]
@@ -109,16 +121,16 @@ parinfo[5].limits(1)=2.0
 
 
 ;for k=wstart,wend,winc do begin
-k=w
+	k=w
 
     start_params[2]=k
     deltaw=0.01*w
     ; dispersion
     parinfo[2].relstep=0.1
-    parinfo[2].limited(0)=1
-    parinfo[2].limits(0)=k-deltaw
-    parinfo[2].limited(1)=1
-    parinfo[2].limits(1)=k+deltaw
+    parinfo[2].limited[0]=1
+    parinfo[2].limits[0]=k-deltaw
+    parinfo[2].limited[1]=1
+    parinfo[2].limits[1]=k+deltaw
 
     case whichpsf of
        'nmicrolens': begin
@@ -128,8 +140,6 @@ k=w
            resultd=mpfit2dfun('ngauss',x,y,lensletarray, ERR,weight=wayt, start_params,parinfo=parinfo,bestnorm=bestnorm,/quiet, status=status, errmsg =errmsg)
         end
     endcase
-
-;	print, "Status: ", status
 
 	if status lt 0 then print, "ERROR: ", errmsg
     

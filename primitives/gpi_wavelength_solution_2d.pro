@@ -144,14 +144,15 @@ if keyword_set(parallel) then begin
 	readcol, datafn,wla,fluxa,skipline=1,format='F,F'
 	readcol,datafn,nmgauss,numline=1,format='I'
 	 
-	count=0
+	count=0 ; count of lenslet columns fit
+	lensletcount = 0 ; count of individual lenslets fit
 
 	;Parallelize the top level for loop
 
 
 	 split_for, istart,iend, nsplit=numsplit,$ 
 		 varnames=['jstart','jend','refwlcal','boxsizex','boxsizey','image','badpix','newwavecal',$
-		           'q','wlcalsize','xinterp','yinterp','wla','fluxa','nmgauss','count','lensletmodel'], $
+		           'q','wlcalsize','xinterp','yinterp','wla','fluxa','nmgauss','count','lensletmodel','lensletcount'], $
 		 outvar=['newwavecal','count','lensletmodel'], commands=[$
 	'common ngausscommon, numgauss, wl, flux, lambdao,my_psf',$
 	'numgauss=nmgauss[0]',$
@@ -159,7 +160,7 @@ if keyword_set(parallel) then begin
 	'flux=fluxa',$
 	'count=count+1',$
 	'n_valid_lenslets = long(total(finite(refwlcal[*,jstart:jend,0])))' ,$
-	'print,"Will fit "+strc(n_valid_lenslets)+ " lenslets in process"+strc(which_bridge)',$
+	;'print,"Fitting "+strc(n_valid_lenslets)+ " lenslets in process "+strc(which_bridge)',$
 	'for j = jstart,jend do begin',$
 	;'    print, which_bridge, j', $
 	'    xo=refwlcal[i,j,1]', $
@@ -197,8 +198,9 @@ if keyword_set(parallel) then begin
 	'    y=indgen(sizearray[1])',$
 	'    zmodplot=ngauss(x,y,res)',$
 	'    lensletmodel[startx:stopx, starty:stopy] += zmodplot',$
+	'    lensletcount+=1',$
  	'endfor',$
-	'print,"Have now fit "+strc(i*j)+"/"+strc(n_valid_lenslets)+ " lenslets in process"+strc(which_bridge)']
+	'print,"Have now fit "+strc(lensletcount)+"/"+strc(n_valid_lenslets)+ " lenslets in process "+strc(which_bridge)']
 
 
 	width=dblarr(numsplit)
@@ -227,6 +229,8 @@ endif else begin
 
 	completed_fits = 0
 
+	debug=0 ; set this to 1 to enable a breakpoint after each row.
+
 	for i = istart,iend do begin
       for j = jstart,jend do begin
             xo=refwlcal[i,j,1]
@@ -240,7 +244,7 @@ endif else begin
 ;;           ; backbone->Log, "Lenslet index in datacube:   i="+strc(i)+", j="+strc(j)
 ;;           ; backbone->Log, "Initial guess from prior wavecal:   x0="+xo+"y0="+yo
          
-            if refwlcal[i,j,0] NE refwlcal[i,j,0] then begin
+            if total(~finite(refwlcal[i,j,*])) gt 0 then begin
                 newwavecal[i,j,*]=!values.f_nan
                 continue
             endif
@@ -344,6 +348,7 @@ endif else begin
             endfor
 
 			backbone->Log,"Have now fit " +strc(completed_fits)+"/"+strc(n_valid_lenslets)+" lenslets"
+			if debug then stop
 
          endfor
 
