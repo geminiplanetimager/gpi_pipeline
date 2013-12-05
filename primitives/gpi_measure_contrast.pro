@@ -193,7 +193,8 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
             s_OutputDir = Modules[thisModuleIndex].OutputDir
             s_OutputDir = gpi_expand_path(s_OutputDir) 
             if strc(s_OutputDir) eq "" then return, error('FAILURE: supplied output directory is a blank string.')
-            
+            s_OutputDir = s_OutputDir+path_sep()+'contrast'+path_sep()
+
             if ~file_test(s_OutputDir,/directory, /write) then begin
                if gpi_get_setting('prompt_user_for_outputdir_creation',/bool, default=0,/silent) then $
                   res =  dialog_message('The requested output directory '+s_OutputDir+' does not exist. Should it be created now?', $
@@ -211,10 +212,10 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
          ;;default naming convention
          if file_test(pngsave,/dir) then begin
             nm = DataSet.filenames[numfile]
-            strps = strpos(nm,'/',/reverse_search)
+            strps = strpos(nm,path_sep(),/reverse_search)
             strpe = strpos(nm,'.fits',/reverse_search)
             nm = strmid(nm,strps+1,strpe-strps-1)
-            nm = gpi_expand_path(pngsave+'/'+nm+'-contrast_profile.png')
+            nm = gpi_expand_path(pngsave+path_sep()+nm+'_contrast_profile.png')
          endif else nm = pngsave
 
          if wind eq -1 then begin
@@ -234,7 +235,8 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
          s_OutputDir = Modules[thisModuleIndex].OutputDir
          s_OutputDir = gpi_expand_path(s_OutputDir) 
          if strc(s_OutputDir) eq "" then return, error('FAILURE: supplied output directory is a blank string.')
-         
+         s_OutputDir = s_OutputDir+path_sep()+'contrast'+path_sep()
+
          if ~file_test(s_OutputDir,/directory, /write) then begin
             if gpi_get_setting('prompt_user_for_outputdir_creation',/bool, default=0,/silent) then $
                res =  dialog_message('The requested output directory '+s_OutputDir+' does not exist. Should it be created now?', $
@@ -255,7 +257,7 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
          strps = strpos(nm,'/',/reverse_search)
          strpe = strpos(nm,'.fits',/reverse_search)
          nm = strmid(nm,strps+1,strpe-strps-1)
-         nm = gpi_expand_path(radialsave+path_sep()+nm+'-contrast_profile.fits')
+         nm = gpi_expand_path(radialsave+path_sep()+nm+'_contrast_profile.fits')
       endif else nm = radialsave
       
       out = dblarr(n_elements(*asecs[inds[0]]), n_elements(inds)+1)+!values.d_nan
