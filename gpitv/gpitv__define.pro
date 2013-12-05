@@ -1657,25 +1657,6 @@ case event_name of
                        set_button = (*self.state).retain_current_view
    end
 
-
-;   'Auto Align': begin
-;      (*self.state).retain_current_align = 1 - (*self.state).retain_current_align
-;      widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Auto Align")],$
-;                       set_button = (*self.state).retain_current_align
-;   end
-;   
-;   'Always Autoscale': begin
-;      (*self.state).default_autoscale = 1 - (*self.state).default_autoscale
-;      widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Always Autoscale")],$
-;                       set_button = (*self.state).default_autoscale
-;   end
-;
-;   "Auto Zoom": begin
-;      (*self.state).autozoom = 1  - (*self.state).autozoom
-;      widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Auto Zoom")],$
-;                       set_button = (*self.state).autozoom
-;   end
-
    "Auto Handedness": begin
       (*self.state).autohandedness = ~ (*self.state).autohandedness
       widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Auto Handedness")],$
@@ -5585,7 +5566,7 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
         ;;unset, default display image to 1/4 of the cube to
         ;;avoid showing "bad first frame" otherwise, keep the current
         ;;slice
-        if ((*self.state).prev_image_2D eq 1) || ((*self.state).retain_current_slice eq 0) then $
+        if ((*self.state).prev_image_2D eq 1) || ((*self.state).retain_current_slice eq 0) || (*self.state).isfirstimage then $
            (*self.state).cur_image_num=round((*self.state).image_size[2]/4.)
 	    ;; but update the current slice if necessary if it's out of range
 		if (*self.state).cur_image_num ge (*self.state).image_size[2] then (*self.state).cur_image_num = (*self.state).image_size[2]-1
@@ -5727,7 +5708,7 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   self->setcubeslicelabel
 
   ;; if asked, autoscale now
-  if ~(*self.state).retain_current_stretch then self->autoscale
+  if (~(*self.state).retain_current_stretch or (*self.state).isfirstimage) then self->autoscale
   self->displayall
 
   ;; display the wavecalgrid, optionally
