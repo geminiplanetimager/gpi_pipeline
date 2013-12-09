@@ -26,12 +26,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
  
   if tag_exist( Modules[thisModuleIndex], "keyword") && tag_exist( Modules[thisModuleIndex], "value") && tag_exist( Modules[thisModuleIndex], "valuetype") then begin
     
-   case valuetype of
-      "string":castvalue=value
-      "float":castvalue=float(value)
-      "int":castvalue=fix(value)
-      "double":castvalue=double(value)
-      "byte": castvalue=byte(value)
+   case Modules[thisModuleIndex].valuetype of
+      "string":castvalue=Modules[thisModuleIndex].value
+      "float":castvalue=float(Modules[thisModuleIndex].value)
+      "int":castvalue=fix(Modules[thisModuleIndex].value)
+      "double":castvalue=double(Modules[thisModuleIndex].value)
+      "byte": castvalue=byte(Modules[thisModuleIndex].value)
       else:   backbone->Log, 'WARNING: Add missing keyword was called, but an incorrect valuetype was chosen. Choose from string, float, int, double, or byte. Doing nothing.'
    endcase
 
