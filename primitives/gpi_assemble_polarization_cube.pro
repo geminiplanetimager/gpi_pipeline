@@ -139,8 +139,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
     suffix='-podc'
     *(dataset.currframe)=polcube
-	ptr_free, *dataset.currDQ  ; right now we're not creating a DQ cube
-	ptr_free, *dataset.currUncert  ; right now we're not creating an uncert cube
+;	ptr_free, *dataset.currDQ  ; right now we're not creating a DQ cube
+;	ptr_free, *dataset.currUncert  ; right now we're not creating an uncert cube
 
     @__end_primitive 
 end

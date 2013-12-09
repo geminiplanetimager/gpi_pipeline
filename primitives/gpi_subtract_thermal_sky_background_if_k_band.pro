@@ -29,6 +29,7 @@
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="dark" Default="AUTOMATIC" Desc='Name of thermal background file to subtract'
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
+
 ; PIPELINE ORDER: 1.2
 ; PIPELINE NEWTYPE: ALL
 ;
@@ -61,8 +62,7 @@ calfiletype = 'background'
 	
 	itime = backbone->get_keyword('ITIME')
 
-	scaled_background = background_data * itime
-
+        scaled_background = background_data * itime * (2.0/3.0)
 
 
 	*(dataset.currframe[0]) -= scaled_background

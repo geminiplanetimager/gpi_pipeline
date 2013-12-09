@@ -292,7 +292,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	wpangle = fltarr(nfiles)		; waveplate angles
 
 	portnum=strc(sxpar(hdr0,"INPORT", count=pct))
-
+stop
+portnum=4
 	if pct eq 0 then port="side"
 	if pct eq 1 then begin
 	    if portnum eq 1 then port='bottom'
