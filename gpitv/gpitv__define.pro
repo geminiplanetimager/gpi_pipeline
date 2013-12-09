@@ -7835,8 +7835,10 @@ val = strmid(val, 0, max_display_len)
 if strc(val) eq 'ARC' then val='ARC - '+strc(gpi_get_keyword(h, e,'GCALLAMP'))
 if strc(val) eq 'FLAT' then val='FLAT - '+strc(gpi_get_keyword(h, e,'GCALLAMP'))+ ","+strc(strmid(gpi_get_keyword(h, e,'GCALFILT'),0,3))
 
-if cc gt 0 then widget_control, (*self.state).obstype_id, set_value = val else $
-  widget_control, (*self.state).obstype_id, set_value = 'No info'
+if cc gt 0 then begin
+	val = strmid(val,0,12)
+	widget_control, (*self.state).obstype_id, set_value = val 
+endif else  widget_control, (*self.state).obstype_id, set_value = 'No info'
 
 ;;val=gpi_get_keyword(h, e, 'OBSCLASS',count=cc)
 ;;if cc gt 0 then widget_control, (*self.state).obsclass_id, set_value = val else widget_control, (*self.state).obsclass_id, set_value = 'No info'
@@ -10860,26 +10862,36 @@ else: begin		; Plot spectral mode cal grid
 	wavecal[*,*,0]+=shifty
 	wavecal[*,*,1]+=shiftx
 
-	case (*self.state).obsfilt of
-	  'Y':lambc=1.16 ;TBverified
-		'J':lambc=1.33 ;1.35
-		'H':lambc=1.8
-		'K1':lambc=2.19
-		'K2':lambc=2.4
-		else: begin
-		        (*self.state).obsfilt='H' & lambc=1.8
-		        self->message, msgtype = 'warning', 'No filter found! Filter has been set to H band.'
-		      end
-	endcase
+
+	waveinfo = get_cwv((*self.state).obsfilt)
+	if size(waveinfo,/TNAME) ne 'STRUCT' then begin
+		self->message, msgtype = 'warning', 'Invalid filter name or no filter found! Cannot overplot wavecal grid'
+		return
+	endif
+	; min and max wavelengths:
+	lambdarange =[ waveinfo.commonwavvect[0], waveinfo.commonwavvect[1] ]
+
+;	case (*self.state).obsfilt of
+;	  'Y':lambc=1.16 ;TBverified
+;		'J':lambc=1.33 ;1.35
+;		'H':lambc=1.8
+;		'K1':lambc=2.19
+;		'K2':lambc=2.4
+;		else: begin
+;		        (*self.state).obsfilt='H' & lambc=1.8
+;		        self->message, msgtype = 'warning', 'No filter found! Filter has been set to H band.'
+;		      end
+;	endcase
 
 	if ((size(wavecal))[3] ne 5) then begin
 		self->message, msgtype = 'warning', 'Selected wavecal file has invalid array axes lengths. Can not plot.'
 		return
 	endif
+
+	X=fltarr(2,sz[1])+!VALUES.F_NAN
+	X2=fltarr(2,sz[1])+!VALUES.F_NAN
+	DISP=fltarr(2,2)+!VALUES.F_NAN
 	for jj=0,sz[1]-1 do begin
-		X=fltarr(2,sz[1])+!VALUES.F_NAN
-		X2=fltarr(2,sz[1])+!VALUES.F_NAN
-		DISP=fltarr(2,2)+!VALUES.F_NAN
 		; FIXME - recode for more speed by vectorizing the X & X2 assignments as above
 		;wnz = where( wavecal[*,jj,0]+wavecal[*,jj,1] ne 0 )
 		X2[0,*]=(float(wavecal[*,jj,1]) - (*self.state).offset[0] + 0.5) *  (*self.state).zoom_factor
@@ -10897,14 +10909,26 @@ else: begin		; Plot spectral mode cal grid
 			;endif
 
 			if  wavecal[ii,jj,3] ne 0 then begin
-				DISP[0,0]=X2[0,ii] & DISP[1,0]=X2[1,ii]
-				d2=(lambc-wavecal[ii,jj,2])/wavecal[ii,jj,3]	
+;				DISP[0,0]=X2[0,ii] & DISP[1,0]=X2[1,ii]
+;				d2=(lambc-wavecal[ii,jj,2])/wavecal[ii,jj,3]	
+;
+;				DISP[0,1]=d2*sin(wavecal[ii,jj,4])+wavecal[ii,jj,1]
+;				DISP[1,1]=-d2*cos(wavecal[ii,jj,4])+wavecal[ii,jj,0]
+;
+;				DISP[0,1]=(DISP[0,1]- (*self.state).offset[0] + 0.5) * (*self.state).zoom_factor
+;				DISP[1,1]=(DISP[1,1]- (*self.state).offset[1] + 0.5) * (*self.state).zoom_factor
+;
+				for kk=0,1 do begin
+					; find location of endpoints in detector coords
+					distance = (lambdarange[kk]-wavecal[ii,jj,2])/wavecal[ii,jj,3]	
+					DISP[0,kk] = distance*sin(wavecal[ii,jj,4])+wavecal[ii,jj,1]
+					DISP[1,kk] = -distance*cos(wavecal[ii,jj,4])+wavecal[ii,jj,0]
+					; transform to display coords
+					DISP[0,kk] = (DISP[0,kk]- (*self.state).offset[0] + 0.5) * (*self.state).zoom_factor
+					DISP[1,kk] = (DISP[1,kk]- (*self.state).offset[1] + 0.5) * (*self.state).zoom_factor
+				endfor
 
-				DISP[0,1]=d2*sin(wavecal[ii,jj,4])+wavecal[ii,jj,1]
-				DISP[1,1]=-d2*cos(wavecal[ii,jj,4])+wavecal[ii,jj,0]
 
-				DISP[0,1]=(DISP[0,1]- (*self.state).offset[0] + 0.5) * (*self.state).zoom_factor
-				DISP[1,1]=(DISP[1,1]- (*self.state).offset[1] + 0.5) * (*self.state).zoom_factor
 				plots,DISP,/DEVICE, color=tiltcolor;, thick=3
 				;print, 'd2=',d2
 				;print, 'dispx=',disp[0,*]
