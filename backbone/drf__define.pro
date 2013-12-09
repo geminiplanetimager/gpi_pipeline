@@ -399,7 +399,7 @@ pro drf::add_primitive, primitive_name, index=index, status=status
 		; if we want it somewhere other than at the end, move it there
 		nlast =  n_elements(*self.primitives)-1
 		if index eq 0 then begin
-			if nlast gt 1 then newindices = [ nlast, indgen( nlast-1)] else newindices = [ nlast, 0] 
+			if nlast gt 1 then newindices = [ nlast, indgen( nlast)] else newindices = [ nlast, 0] 
 			*self.primitives = (*self.primitives)[newindices]
 		endif else if index ne nlast then begin 
 			newindices = [ indgen(index), nlast, indgen( nlast-index)+index ]
