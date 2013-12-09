@@ -754,6 +754,7 @@ FUNCTION gpiPipelineBackbone::load_FITS_file, indexFrame
 
 	if tag_exist(file_data, 'DQ') then begin
 		(*self.data).currDQ = file_data.DQ
+		(*self.data).HeadersDQ[IndexFrame] = file_data.DQ_header
 	endif
 	if tag_exist(file_data, 'UNCERT') then begin
 		(*self.data).currUncert = file_data.UNCERT
