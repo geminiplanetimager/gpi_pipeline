@@ -135,8 +135,8 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 					return, error( " Won't overwrite automatically but cannot prompt user for a new filename!")
 				endelse
 
-				if confirm(message=['The file '+c_File+' already exists on disk. ','',  'Are you sure you want to overwrite this file?'], $
-						label0='Change Filename',label1='Overwrite', title="Confirm Overwrite File", group_leader=status_top_widget) then begin
+				if keyword_set(confirm(message=['The file '+c_File+' already exists on disk. ','',  'Are you sure you want to overwrite this file?'], $
+						label0='Change Filename',label1='Overwrite', title="Confirm Overwrite File", group_leader=status_top_widget)) then begin
 							; user has chosen to overwrite
 							break
 				endif else begin
