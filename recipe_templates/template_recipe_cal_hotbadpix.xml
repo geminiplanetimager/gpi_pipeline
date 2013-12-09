@@ -3,7 +3,7 @@
 <dataset InputDir="$(GPI_RAW_DATA_DIR)" OutputDir="AUTOMATIC">
    <fits filename=""/>
 </dataset>
-<module name="Destripe for Darks Only" Save="0" gpitv="0" before_and_after='0' remove_microphonics='yes' display='yes' /> 
+<module name="Destripe for Darks Only" Save="0" gpitv="0" before_and_after='0' remove_microphonics='yes' display='1' /> 
 <module name="Accumulate Images" Method="InMemory" />
 <module name="Find Hot Bad Pixels from Darks" Save="1" gpitv="1" hot_bad_thresh="1.0"/>
 </DRF>
