@@ -65,7 +65,7 @@ function automaticreducer::refresh_file_list, count=count, init=init, _extra=_ex
 
 	if keyword_set(init) then begin
 		if count gt 0 then $
-			self->Log, 'Found '+strc(count) +" files on startup of automatic processing. Skipping those..." $
+			self->Log, 'Found '+strc(count) +" files on "+self.reason_for_rescan+". Skipping those..." $
 		else $
 			self->Log, 'No FITS files found in that directory yet...' 
 		widget_control, self.listfile_id, SET_VALUE= list3 
@@ -456,6 +456,7 @@ pro automaticreducer::change_directory
 		self->Log, 'Directory changed to '+dir
 		self.watch_directory=dir
 		widget_control, self.watchdir_id, set_value=dir
+		self.reason_for_rescan =  "change of directory"
 		ptr_free, self.previous_file_list ; we have lost info on our previous files so start over
 	endif
 
@@ -470,16 +471,23 @@ pro automaticreducer::change_wildcard
    	IF NOT cancelled THEN BEGIN
 		self.watch_filespec= new_wildcard
 		widget_control, self.wildcard_id, set_value=new_wildcard
-		; the following will also trigger regenerating the file list from
-		; scratch, ignoring any already-present files that match the new
-		; wildcard rather than trying to reprocess them all instantly.
-		list = [''] ; update list for next invocation
-		*self.previous_file_list = list
-		widget_control, self.listfile_id, SET_VALUE= list 
-		widget_control, self.listfile_id, set_uvalue = list  ; because oh my god IDL is stupid and doesn't provide any way to retrieve
-															  ; values from a  list widget!   Argh. See
-															  ; http://www.idlcoyote.com/widget_tips/listselection.html 
-		widget_control, self.listfile_id, set_list_top = 0>(n_elements(list) -8) ; update the scroll position in the list
+
+		; trash the list of previous files from the old wildcard, we need to
+		; regenerate a new list for the new wildcard to ignore all existing
+		; files.  
+		self.reason_for_rescan =  "change of filename wildcard"
+		ptr_free, self.previous_file_list ; we have lost info on our previous files so start over
+
+;		; the following will also trigger regenerating the file list from
+;		; scratch, ignoring any already-present files that match the new
+;		; wildcard rather than trying to reprocess them all instantly.
+;		list = [''] ; update list for next invocation
+;		*self.previous_file_list = list
+;		widget_control, self.listfile_id, SET_VALUE= list 
+;		widget_control, self.listfile_id, set_uvalue = list  ; because oh my god IDL is stupid and doesn't provide any way to retrieve
+;															  ; values from a  list widget!   Argh. See
+;															  ; http://www.idlcoyote.com/widget_tips/listselection.html 
+;		widget_control, self.listfile_id, set_list_top = 0>(n_elements(list) -8) ; update the scroll position in the list
 	
    	ENDIF
 
@@ -678,6 +686,7 @@ function automaticreducer::init, groupleader, _extra=_extra
 		XMANAGER, 'automaticreducer', self.top_base, /NO_BLOCK
 	endif
 
+	self.reason_for_rescan =  "startup of autoreducer"
 	if keyword_set(gpi_get_setting('at_gemini', default=0,/silent)) then begin
 		self->run
 		self->start
@@ -724,6 +733,7 @@ stateF={  automaticreducer, $
 	previous_file_list: ptr_new(), $ ; List of files that have previously been encountered
 	view_in_gpitv: 0L, $		; Setting: View in GPITv? 
 	ignore_indiv_reads: 0L, $	; Setting: Ignore individual reads?
+	reason_for_rescan: '', $	; why are we rescanning the directory? (used in log messages)
     INHERITS parsergui} ;wid for detect-new-files button
 
 end
