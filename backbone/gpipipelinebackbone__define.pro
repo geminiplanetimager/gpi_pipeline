@@ -847,7 +847,6 @@ FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
 	if call_function_error eq 0 then begin
 		status = call_function( Modules[ModNum].IDLCommand, *self.data, Modules, self ) 
 	endif else begin
-		stop
 		self->Log, "  ERROR in calling primitive '"+Modules[ModNum].Name+"'. Check primitive name and arguments?"
 		self->Log,"        idl command attempted: "+Modules[ModNum].IDLCommand
 
