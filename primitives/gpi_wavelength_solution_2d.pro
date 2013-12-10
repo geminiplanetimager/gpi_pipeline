@@ -19,8 +19,6 @@
 
 
 ; PIPELINE ARGUMENT: Name="display" Type="Int" Range="[0,1]" Default="0" Desc="Whether or not to plot each lenslet spectrum model in comparison to the detector measured spectrum: 1;display, 0;no display"
-; PIPELINE ARGUMENT: Name="boxsizex" Type="Int" Range="[0,15]" Default="7" Desc="x dimension of a lenslet cutout for one spectrum"
-; PIPELINE ARGUMENT: Name="boxsizey" Type="Int" Range="[0,50]" Default="24" Desc="y dimension of a lenslet cutout for one spectrum"
 ; PIPELINE ARGUMENT: Name="whichpsf" Type="Int" Range="[0,1]" Default="0" Desc="Type of lenslet PSF model, 0: gaussian, 1: microlens"
 ; PIPELINE ARGUMENT: Name="parallel" Type="Int" Range="[0,1]" Default="0" Desc="Option for Parallelization,  0: none, 1: parallel"
 ; PIPELINE ARGUMENT: Name="numsplit" Type="Int" Range="[0,100]" Default="0" Desc="Number of cores for parallelization. Set to 0 for autoselect."
@@ -56,12 +54,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 ;Initialize the input parameters:
  	if tag_exist( Modules[thisModuleIndex], "display") then display=uint(Modules[thisModuleIndex].display) else display=0
- 	if tag_exist( Modules[thisModuleIndex], "boxsizex") then boxsizex=uint(Modules[thisModuleIndex].boxsizex) else boxsizex=7
- 	if tag_exist( Modules[thisModuleIndex], "boxsizey") then boxsizey=uint(Modules[thisModuleIndex].boxsizey) else boxsizey=24
  	if tag_exist( Modules[thisModuleIndex], "whichpsf") then whichpsf=uint(Modules[thisModuleIndex].whichpsf) else whichpsf=0
   	if tag_exist( Modules[thisModuleIndex], "parallel") then parallel=uint(Modules[thisModuleIndex].parallel) else parallel=1
- 	if tag_exist( Modules[thisModuleIndex], "numsplit") then numsplit=fix(Modules[thisModuleIndex].numsplit) else numsplit=!CPU.TPOOL_NTHREADS
-	if numsplit lt 1 then numsplit=!CPU.TPOOL_NTHREADS
+ 	if tag_exist( Modules[thisModuleIndex], "numsplit") then numsplit=fix(Modules[thisModuleIndex].numsplit) else numsplit=!CPU.TPOOL_NTHREADS*2
+	if numsplit lt 1 then numsplit=!CPU.TPOOL_NTHREADS*2
   	if tag_exist( Modules[thisModuleIndex], "save_model_image") then save_model_image=uint(Modules[thisModuleIndex].parallel) else save_model_image=0
   	if tag_exist( Modules[thisModuleIndex], "save_model_params") then save_model_params=uint(Modules[thisModuleIndex].parallel) else save_model_params=0
 
@@ -88,7 +84,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	nlens = wlcalsize[0]
 	n_valid_lenslets = long(total(finite(refwlcal[*,*,0])))
 
-	newwavecal=dblarr(wlcalsize)
+	newwavecal=dblarr(wlcalsize) + !values.f_nan
 	
 
 	valid = gpi_sanity_check_wavecal(c_File, errmsg=errmsg,/noplot)
@@ -141,6 +137,9 @@ jstart=0
 jend=nlens-1
 
 
+im_uncert = gpi_estimate_2d_uncertainty_image( *dataset.currframe , *dataset.headersPHU[numfile], *dataset.headersExt[numfile])
+
+
 if keyword_set(parallel) then begin
 
 	backbone->Log,"Parallelizing over "+strc(numsplit)+" IDL processes", depth=3,/flush
@@ -151,13 +150,22 @@ if keyword_set(parallel) then begin
 	count=0 ; count of lenslet columns fit
 	lensletcount = 0 ; count of individual lenslets fit
 
+
+	; must create these after reading # of emission lines
+	sizeres = 9+nmgauss[0]
+    if ~(keyword_set(modelparams)) then modelparams=fltarr( (size(refwlcal))[1],(size(refwlcal))[2],sizeres )+!values.f_nan
+    if ~(keyword_set(modelbackgrounds)) then modelbackgrounds = fltarr( (size(refwlcal))[1],(size(refwlcal))[2] ) + !values.f_nan
+
 	;Parallelize the top level for loop
 
+	; Note : the following block of code is mostly comment free. 
+	; See the same algorithm implemented below in the single threaded code for
+	; the comments. 
 
-	 split_for, istart,iend, nsplit=numsplit,$ 
-		 varnames=['jstart','jend','refwlcal','boxsizex','boxsizey','image','badpix','newwavecal',$
-		           'q','wlcalsize','xinterp','yinterp','wla','fluxa','nmgauss','count','lensletmodel','lensletcount'], $
-		 outvar=['newwavecal','count','lensletmodel'], commands=[$
+	 gpi_split_for, istart,iend, nsplit=numsplit,$ 
+		 varnames=['jstart','jend','refwlcal','image','im_uncert','badpix','newwavecal',$
+		           'q','wlcalsize','xinterp','yinterp','wla','fluxa','nmgauss','count','lensletmodel','lensletcount','modelparams','modelbackgrounds'], $
+		 outvar=['newwavecal','count','lensletmodel','modelparams','modelbackgrounds'], commands=[$
 	'common ngausscommon, numgauss, wl, flux, lambdao,my_psf',$
 	'numgauss=nmgauss[0]',$
 	'wl=wla',$
@@ -172,23 +180,18 @@ if keyword_set(parallel) then begin
 	'boxpad=2',$
 	;'print,"Fitting "+strc(n_valid_lenslets)+ " lenslets in process "+strc(which_bridge)',$
 	'for j = jstart,jend do begin',$
-	;'    print, which_bridge, j', $
-;	'    xo=refwlcal[i,j,1]', $
-;	'    yo=refwlcal[i,j,0]',$
-;	'    startx= (floor(xo-boxsizex/2.0)) > 0',$
-;	'    starty= (round(yo)-20) > 0',$
-;	'    stopx = (startx+boxsizex) < 2047' ,$
-;	'    stopy = (starty+boxsizey) < 2047' ,$
 	'	 startx = floor(min([locations_lambda_min[i,j,1], locations_lambda_max[i,j,1]]) - boxpad) > 4',$
 	'	 starty = floor(min([locations_lambda_min[i,j,0], locations_lambda_max[i,j,0]]) - boxpad) > 4',$
 	'	 stopx = ceil(max([locations_lambda_min[i,j,1], locations_lambda_max[i,j,1]]) + boxpad) < 2043',$
 	'	 stopy = ceil(max([locations_lambda_min[i,j,0], locations_lambda_max[i,j,0]]) + boxpad) < 2043',$
-	'    if refwlcal[i,j,0] NE refwlcal[i,j,0] then begin' ,$
+    '    if total(~finite(refwlcal[i,j,*])) gt 0 then begin',$
 	'        newwavecal[i,j,*]=!values.f_nan' ,$
 	'        continue' ,$
 	'    endif' ,$
 	'    if (stopx lt 4) || (stopy lt 4) || (startx gt 2040) || (starty gt 2040) then continue',$
+	'	 if (startx lt 4) || (starty lt 4) || (stopx gt 2040) || (stopy gt 2040) then continue',$
 	'    lensletarray=image[startx:stopx, starty:stopy]',$
+	'    lensletarray_uncert=image[startx:stopx, starty:stopy]',$
 	'    badpixmap=badpix[startx:stopx, starty:stopy]',$
 	'    catch,error_status',$
 	'    if error_status NE 0 then begin',$
@@ -201,21 +204,25 @@ if keyword_set(parallel) then begin
 	'       q++',$
 	'       continue',$
 	'    endif',$
-	'    res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",modelimage=modelimage)',$              
+	'    res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss", $',$              
+	'            modelimage=modelimage, modelbackground=modelbackground)  ',$
+	'    sizeres=size(res,/dimensions)',$
 	'    newwavecal[i,j,1]=res[0]+startx',$
 	'    newwavecal[i,j,0]=res[1]+starty',$
 	'    newwavecal[i,j,2]=refwlcal[i,j,2]',$
 	'    newwavecal[i,j,3]=res[2]',$
 	'    newwavecal[i,j,4]=res[3]',$
-	'    sizearray=size(lensletarray,/dimension) ',$ ; set up output arrays for lensletmodel
-	'    x=indgen(sizearray[0])',$
-	'    y=indgen(sizearray[1])',$
-	'    zmodplot=ngauss(x,y,res)',$
-	'    lensletmodel[startx:stopx, starty:stopy] += zmodplot',$
+    '	 modelparams[i,j,*] = res',$
+    '	 modelbackgrounds[i,j] = modelbackground',$
+	'    modelparams[i,j,1] = res[0]+startx',$
+	'    modelparams[i,j,0] = res[1]+starty',$
+	'    lensletmodel[startx:stopx, starty:stopy] += modelimage',$
+	;'    lensletmodel_counts[startx:stopx, starty:stopy] += 1 ',$
 	'    lensletcount+=1',$
  	'endfor',$
 	'print,"Have now fit "+strc(lensletcount)+"/"+strc(n_valid_lenslets)+ " lenslets in process "+strc(which_bridge)']
 
+	backbone->Log,"Parallel process execution complete.", depth=3,/flush
 
 	width=dblarr(numsplit)
 
@@ -227,7 +234,14 @@ if keyword_set(parallel) then begin
 	   newwavecal[istart:iend,*,*]=dummywave[istart:iend,*,*]
 	   dummymodel = scope_varfetch('lensletmodel'+strc(k))
 	   lensletmodel+= dummymodel
+	   dummyparams = scope_varfetch('modelparams'+strc(k))
+	   wf = where(finite(dummyparams),fct)
+	   if fct gt 0 then modelparams[wf] = dummyparams[wf]
+	   dummyparams = scope_varfetch('modelbackgrounds'+strc(k))
+	   wf = where(finite(dummyparams),fct)
+	   if fct gt 0 then modelbackgrounds[wf] = dummyparams[wf]
 	endfor
+	backbone->Log,"Calculation results retrieved from child processes.", depth=3,/flush
 
 
 endif else begin
@@ -251,15 +265,15 @@ endif else begin
 
 	newwavecal[*,*,2]=refwlcal[*,*,2]
 
-	completed_fits = 0
+	lensletcount= 0
 
-	debug=1 ; set this to 1 to enable a breakpoint after each row.
+	debug=5 ; set this to 1 to enable a breakpoint after each row.
 	;debugall=1
 	;debuglenslet = [39,138]  ; set this to debug the fit of one specific pixel only
 	;debuglenslet = [39,148]  ; set this to debug the fit of one specific pixel only
-	;debuglenslet=[101,18]
+	;debuglenslet=[15,190]
+	;debuglenslet=[119,26]
 
-	im_uncert = gpi_estimate_2d_uncertainty_image( *dataset.currframe , *dataset.headersPHU[numfile], *dataset.headersExt[numfile])
 
 	boxpad=2
 
@@ -269,14 +283,6 @@ endif else begin
 			if keyword_set(debuglenslet) then begin
 				if (i ne debuglenslet[0]) or (j ne debuglenslet[1]) then continue
 			endif
-
-            ;xo=refwlcal[i,j,1]
-            ;yo=refwlcal[i,j,0]
-            ;startx=floor(xo-boxsizex/2.0) > 0
-            ;starty=(round(yo)-20)  > 0
-            ;stopx = (startx+boxsizex) < 2047
-            ;stopy = (starty+boxsizey) <2047
-
 			; compute an enlarged circumcribing rectangle around the 
 			; extreme pixels in that lenslet, based on the prior wavecal.
 
@@ -341,9 +347,9 @@ endif else begin
 
 		  ; Now do an actual fit for one lenslet's spectrum! 
  		  res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",$
-			  modelimage=modelimage, debug=keyword_set(debuglenslet) or keyword_set(debugall))  
+			  modelimage=modelimage, modelbackground=modelbackground, debug=keyword_set(debuglenslet) or keyword_set(debugall))  
 
-		  completed_fits +=1
+		  lensletcount +=1
 
 		  ;take a running average of the unused
 		  ;result parameters to be used in interpolation
@@ -366,12 +372,16 @@ endif else begin
             endelse
 
 			; save all model wavecal fit parameters
-			if ~(keyword_set(modelparams)) then modelparams=fltarr( (size(refwlcal))[1],(size(refwlcal))[2],sizeres )+!values.f_nan
+			if ~(keyword_set(modelparams)) then begin
+				modelparams=fltarr( (size(refwlcal))[1],(size(refwlcal))[2],sizeres )+!values.f_nan
+				modelbackgrounds = fltarr( (size(refwlcal))[1],(size(refwlcal))[2] ) + !values.f_nan
+			endif
 			modelparams[i,j,*] = res
-			; swap Y and X to match wavecal file convention (consistency to
+			modelbackgrounds[i,j] = modelbackground
+			; swap Y and X to match wavecal file convention (consistency will
 			; minimize confusion)
 			modelparams[i,j,1] = res[0]+startx
-			modelparams[i,j,0] = res[1]+startx
+			modelparams[i,j,0] = res[1]+starty
 
 
                    lensletmodel[startx:stopx, starty:stopy] += modelimage
@@ -386,16 +396,41 @@ endif else begin
                 
             endfor
 
-			backbone->Log,"Have now fit " +strc(completed_fits)+"/"+strc(n_valid_lenslets)+" lenslets"
-			if keyword_set(debug) and (completed_fits gt 0) and (i mod debug eq 0) then stop
+			backbone->Log,"Column "+strc(i)+"/"+strc(iend-istart+1)+". Have now fit " +strc(lensletcount)+"/"+strc(n_valid_lenslets)+" lenslets"
+			if keyword_set(debug) and (lensletcount gt 0) and (i mod debug eq 0) then stop
 
 
          endfor
 
 endelse
 
+
+
+if keyword_set(debug) or keyword_set(debuglenslet) then stop
+
+
+
 ;OPTIONAL: SAVE THE DETECTOR MODEL IMAGE
 if keyword_set(save_model_image) then begin
+
+	; Generate 2D backgrounds, smoothed from above 
+	wg = where(finite(modelbackgrounds))
+	bkgx = (modelparams[*,*,1])[wg]
+	bkgy = (modelparams[*,*,0])[wg]
+	triangulate, bkgx, bkgy, triangles, b
+	smoothed_background =griddata(bkgx, bkgy, modelbackgrounds[wg], xout=findgen(2048), yout=findgen(2048),/grid, /nearest, triangles=triangles)
+	smoothed_background = filter_image(smoothed_background,fwhm=30)
+
+	;smoothed_background = trigrid(  bkgx, bkgy, modelbackgrounds[wg], tr, xout=indgen(2048), yout=indgen(2048) )
+	smoothed_background[*,0:3] = 0
+	smoothed_background[0:3,*] = 0
+	smoothed_background[2044:2047,*] = 0
+	smoothed_background[*,2044:2047] = 0
+
+	lensletmodel -= smoothed_background
+
+
+
 	pheader_copy = *dataset.headersPHU[numfile]
 	eheader_copy = *dataset.headersExt[numfile]
 	sxaddpar, pheader_copy, 'FILETYPE','Detector Model Synthesized during Wavecal Fit'
@@ -478,6 +513,5 @@ suffix='wavecal'
 	
 
 @__end_primitive_wavecal
-;@__end_primitive
 
 end

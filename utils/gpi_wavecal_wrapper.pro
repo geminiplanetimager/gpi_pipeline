@@ -21,14 +21,15 @@
 ;    res[4]:    lenslet PSF Gaussian sigma_x
 ;    res[5]:    lenslet PSF Gaussian sigma_y
 ;    res[6]:    lenslet PSF Gaussian rotation
-;    res[7]:    Total flux in lenslet array in counts
-;    res[8:n]:	Relative flux ratios of the individual spectral lines
+;    res[7]:	Constant background offset across the image
+;    res[8]:    Total flux in lenslet array in counts
+;    res[9:n]:	Relative flux ratios of the individual spectral lines
 ;
 ;+
 
 FUNCTION gpi_wavecal_wrapper, xdim,ydim,refwlcal,lensletarray,badpixels,wlcalsize,startx,starty,whichpsf,$
 	image_uncert=image_uncert, debug=debug, $
-	modelimage=modelimage, modelmask=modelmask
+	modelimage=modelimage, modelmask=modelmask, modelbackground=modelbackground
 
 common ngausscommon, numgauss, wl, flux, lambdao, my_psf
 
@@ -42,17 +43,17 @@ w=refwlcal[xdim,ydim,3]
 theta=refwlcal[xdim,ydim,4]
 
 ;Initialize the starting parameters to be input to mpfit2dfunc
-startparmssize=8+nflux
+startparmssize=9+nflux
 start_params=dblarr(startparmssize)
 
-parinfo = replicate({relstep:0.D, step:0.D, value:0.D, fixed:0, limited:[0,0],limits:[0.D,0.D]}, 8+nflux[0])
+parinfo = replicate({relstep:0.D, step:0.D, value:0.D, fixed:0, limited:[0,0],limits:[0.D,0.D]}, 9+nflux[0])
 
 for z=0,nflux[0]-1 do begin
-    start_params[8+z]=flux[z]
-    parinfo[8+z].limited[0]=1
-    parinfo[8+z].limits[0]=0.5*flux[z] ; was 20%, now 50% 
-    parinfo[8+z].limited[1]=1
-    parinfo[8+z].limits[1]=1.5*flux[z]
+    start_params[9+z]=flux[z]
+    parinfo[9+z].limited[0]=1
+    parinfo[9+z].limits[0]=0.5*flux[z] ; was 20%, now 50% 
+    parinfo[9+z].limited[1]=1
+    parinfo[9+z].limits[1]=1.5*flux[z]
 endfor
 
 start_params[3]=theta
@@ -67,7 +68,7 @@ ydimension=sz[1]
 x=indgen(xdimension)
 y=indgen(ydimension)
 
-start_params[7]=total(lensletarray);-min(lensletarray)*size(lensletarray,/n_elements)
+start_params[8]=total(lensletarray);-min(lensletarray)*size(lensletarray,/n_elements)
 ;print,'flux scaling',start_params[7]
 
 ;Provide starting guesses for the gaussian parameters (sigmax,sigmay,rotation)
@@ -96,6 +97,17 @@ parinfo[1].limited[0] = 1
 parinfo[1].limits[0] = oldypos-pixelshifttolerance
 parinfo[1].limited[1] = 1
 parinfo[1].limits[1] = oldypos+pixelshifttolerance
+;
+; dispersion
+k=w
+start_params[2]=k
+deltaw=0.01*w
+parinfo[2].relstep=0.1
+parinfo[2].limited[0]=1
+parinfo[2].limits[0]=k-deltaw
+parinfo[2].limited[1]=1
+parinfo[2].limits[1]=k+deltaw
+
 ; Theta
 deltatheta = 0.1 ; radians, so this is about 2 degrees
 parinfo[3].limited[0]=1
@@ -121,6 +133,9 @@ parinfo[5].limits[1]=max_fwhm
  ;parinfo[7].limited(1)=1
  ;parinfo[7].limits(1)=start_params[7]
 
+; Constant background offset must be positive?
+parinfo[7].limited[0]=1
+parinfo[7].limits[0]=0.0
 
 ;wprior=refwlcal[xdim,ydim,3]
 ;wstart=0.999*w
@@ -131,16 +146,6 @@ parinfo[5].limits[1]=max_fwhm
 
 
 ;for k=wstart,wend,winc do begin
-	k=w
-
-    start_params[2]=k
-    deltaw=0.01*w
-    ; dispersion
-    parinfo[2].relstep=0.1
-    parinfo[2].limited[0]=1
-    parinfo[2].limits[0]=k-deltaw
-    parinfo[2].limited[1]=1
-    parinfo[2].limits[1]=k+deltaw
 
     case whichpsf of
        'nmicrolens': begin
@@ -157,11 +162,17 @@ parinfo[5].limits[1]=max_fwhm
 
 	; Return other helpful stuff to the calling routine:
 	if arg_present(modelimage) then begin
-		; return the 2D model image resulting from the fit 
+		; return the 2D model image resulting from the fit,
 		case whichpsf of
 		  'nmicrolens': modelimage=nmicrolens(x,y,bestres)
 		  'ngauss': modelimage=ngauss(x,y,bestres)
 		endcase
+
+		; remove the constant background since we have to handle overlaps
+		; carefully when combining these. This implementation is easiest given
+		; the normalization present in the ngauss function
+		modelbackground= min(modelimage)
+		modelimage -= modelbackground
 	endif
 	if arg_present(modelmask) then begin
 		; return a 2D mask of which pixels were used in that fit.

@@ -11,14 +11,16 @@
 ;    start_params[4]-FWHM x of gaussian
 ;    start_params[5]-FWHM y of gaussian
 ;    start_params[6]-rotation of gaussian
-;    start_params[7]-scaling
-;    start_params[8-end]-flux ratios
+;    start_params[7]-constant background offset
+;    start_params[8]-scaling
+;    start_params[9-end]-flux ratios
 ;    
 ; HISTORY:
 ;    Created by Schuyler Wolff
 ;    2013-12-04 Marshall Perrin: modifications to support rotated Gaussians. 
 ;				added one_2d_gaussian function and helper functions, and some
 ;				other mostly minor changes.
+;	 2013-12-10 Marshall Perrin: Added constant background offset
 ;-
 ;-----------------------------------
 ; Helper functions lifted from mpfit2dpeak:
@@ -86,7 +88,7 @@ w=start_params[2]
 fwhmx=start_params[4]
 fwhmy=start_params[5]
 rotation=start_params[6]
-;background=start_params[7]
+background=start_params[7]
 
 zmod=dblarr(xoffset,yoffset)
 
@@ -96,7 +98,7 @@ yvals = make_array(szx,szy,/index,/integer) / szx
 
 for i=0, numgauss-1 do begin
    lambda=wl[i]
-   coeff=start_params[8+i]
+   coeff=start_params[9+i]
    xcent=xo+sin(theta)*(lambda-lambdao)/w
    ycent=yo-cos(theta)*(lambda-lambdao)/w
 ;   zmod=zmod+mpfit2dpeak_gauss()
@@ -107,9 +109,11 @@ for i=0, numgauss-1 do begin
 ;print,i
 endfor
 
-;normalize this to the science image
-zmod=zmod*start_params[7]/total(zmod)
+;normalize this to the scale factor relative to the science image
+zmod=zmod*start_params[8]/total(zmod)
 
+; and add in constant background
+zmod += background
 
 return, zmod
 

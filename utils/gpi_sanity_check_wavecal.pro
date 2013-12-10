@@ -35,7 +35,7 @@
 
 function gpi_sanity_check_wavecal, filename_or_cal_data, silent=silent, $
 	noplots=noplots,all=all, threshold=threshold, charsize=charsize, errmsg=errmsg, $
-	repair=repair
+	repair=repair,stop=stop
 
 
 	if ~(keyword_set(charsize)) then charsize=2 ; larger for the small plots
@@ -86,7 +86,7 @@ function gpi_sanity_check_wavecal, filename_or_cal_data, silent=silent, $
 
 	xdiff = data[*,*,0] - shift(data[*,*,0],1)
 	ydiff = data[*,*,1] - shift(data[*,*,1],1)
-	dispdiff = data[*,*,3] - shift(data[*,*,3],0,1)
+	dispdiff = data[*,*,3] - shift(data[*,*,3],1)
 	thetadiff = data[*,*,4] - shift(data[*,*,4],1)
 	wg = where(finite(xdiff) and finite(ydiff))
 	pct_wide_x = total( abs(xdiff[wg]-mean(xdiff[wg]) ) gt 2 ) / n_elements(wg)
@@ -133,7 +133,7 @@ function gpi_sanity_check_wavecal, filename_or_cal_data, silent=silent, $
 		ver, mean(ydiff[wg],/nan)+2,/line, color=cgcolor('yellow')
 		ver, mean(ydiff[wg],/nan)-2,/line, color=cgcolor('yellow')
 
-
+		loadct,0
 		sig = stddev(xdiff-mean(xdiff[wg]),/nan)
 		imdisp, bytscl(xdiff-mean(xdiff[wg]),-3*sig, 3*sig),/noscale ,/axis,title='Variations in d(X0)/dx', charsize=charsize
 
@@ -152,6 +152,7 @@ function gpi_sanity_check_wavecal, filename_or_cal_data, silent=silent, $
 		!p.multi=0
 		!y.omargin= 0
 	endif
+
 
 
 	if ~valid then begin
@@ -215,6 +216,9 @@ function gpi_sanity_check_wavecal, filename_or_cal_data, silent=silent, $
 	;stop
 
 	if ~(keyword_set(silent)) then message,/info, errmsg
+
+	if keyword_set(stop) then stop
+	;atv, [[[xdiff-mean(xdiff[wg])]],[[ydiff-mean(ydiff[wg])]],[[dispdiff]],[[thetadiff]]],/bl
 
 	return, 1
 
