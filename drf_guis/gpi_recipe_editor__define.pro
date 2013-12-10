@@ -1221,7 +1221,7 @@ pro gpi_recipe_editor::save, template=template, nopickfile=nopickfile
   
   OK = 0
   NOT_OK = -1
-	
+  
   selectype=widget_info(self.reduction_type_id,/DROPLIST_SELECT)
   
   if keyword_set(template) then begin
@@ -1234,7 +1234,6 @@ pro gpi_recipe_editor::save, template=template, nopickfile=nopickfile
   
 
   ;; Generate a default output filename
-  
   files= self.drf->get_datafiles()
   wg = where(files ne '', goodct)
   if goodct eq 0 and ~(keyword_set(template))then begin
@@ -1242,65 +1241,60 @@ pro gpi_recipe_editor::save, template=template, nopickfile=nopickfile
      return
   endif
   
-  if templatesflag then begin
-     self.drffilename = self.loadedRecipeFile ;to check
-  endif else begin     
-     caldat,systime(/julian),month,day,year, hour,minute,second
-     datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
-     hourstr = string(hour,minute,second,format='(i2.2,i2.2,i2.2)') 
-     
-     ;;get rid of any leading paths on the first and last files
-     first_file = file_basename(files[0])    
-     last_file = file_basename(files[size(files,/n_elements)-1])
- 
-     first_file=strsplit(first_file,'.',/extract)
-     last_file=strsplit(last_file,'.',/extract)
+  if ~self.customdrffilename then begin
+     if templatesflag then begin
+        outputfilename = self.loadedRecipeFile ;to check
+     endif else begin     
+        caldat,systime(/julian),month,day,year, hour,minute,second
+        datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
+        hourstr = string(hour,minute,second,format='(i2.2,i2.2,i2.2)') 
+        
+        ;;get rid of any leading paths on the first and last files
+        first_file = file_basename(files[0])    
+        last_file = file_basename(files[size(files,/n_elements)-1])
+        
+        first_file=strsplit(first_file,'.',/extract)
+        last_file=strsplit(last_file,'.',/extract)
+        
+        drf_summary = self.drf->get_summary()
+        
+        if first_file[0] eq last_file[0] then outputfilename = first_file[0]+'_'+drf_summary.shortname+'_drf.waiting.xml' else $
+           outputfilename = first_file[0]+'-'+last_file[0]+'_'+drf_summary.shortname+'_drf.waiting.xml'
+     endelse
+  endif else outputfilename = self.drffilename
 
-     drf_summary = self.drf->get_summary()
+  ;;get drf filename and set drfpath:
+  if ~keyword_set(nopickfile) then begin
+     output_recipe_filename = DIALOG_PICKFILE(TITLE='Save Data Reduction Recipe File as', /write,/overwrite, filter='*.xml',file=outputfilename,path=drfpath, get_path=newdrfpath)
+     if output_recipe_filename eq "" then begin
+        self->Log, "User cancelled save; doing nothing."
+        return                  ; user cancelled the save as dialog, so don't save anything.
+     endif
+     if file_basename(output_recipe_filename) ne outputfilename then self.customdrffilename = 1
+     if ~templatesflag then self.drfpath  = newdrfpath ; MDP change - update the default directory to now match whatever the user selected in the dialog box. but only if not 
+  endif else output_recipe_filename = outputfilename
 
-     if first_file[0] eq last_file[0] then outputfilename = first_file[0]+'_'+drf_summary.shortname+'_drf.waiting.xml' else $
-        outputfilename = first_file[0]+'-'+last_file[0]+'_'+drf_summary.shortname+'_drf.waiting.xml'
-
-     self.drffilename= outputfilename
-  endelse
-
-    
-    ;;get drf filename and set drfpath:
-    if ~keyword_set(nopickfile) then begin
-       output_recipe_filename = DIALOG_PICKFILE(TITLE='Save Data Reduction Recipe File as', /write,/overwrite, filter='*.xml',file=self.drffilename,path=drfpath, get_path=newdrfpath)
-       if output_recipe_filename eq "" then begin
-          self->Log, "User cancelled save; doing nothing."
-          return                  ; user cancelled the save as dialog, so don't save anything.
-       endif
-       self.drfpath  = newdrfpath ; MDP change - update the default directory to now match whatever the user selected in the dialog box.
-    endif else begin
-       output_recipe_filename = self.drffilename
-       self.drfpath = file_dirname(output_recipe_filename) ; update the default output directory to match whatever the user selected this time
-    endelse
+  if gpi_check_dir_exists(self.drfpath) eq NOT_OK then return 
   
-	if gpi_check_dir_exists(self.drfpath) eq NOT_OK then return 
-
-	prims = self.drf->list_primitives( count=num_primitives)
-
-	
-	if (num_primitives eq 0) then begin
-    	res=dialog_message ("ERROR: no primitives selected. Can't save until you fix that.")
-     	self->log, "ERROR: no primitives selected. Can't save until you fix that."
-		return 
-	endif
-	if (output_recipe_filename eq '') then begin
-    	res=dialog_message ("ERROR: no output filename provided. Can't save until you fix that.")
-     	self->log, "ERROR: no output filename provided. Can't save until you fix that."
-		return 
-	endif 
-
-	self.drffilename = file_basename(output_recipe_filename)
-	self->log,'Now writing Recipe to '+self.drfpath+path_sep()+self.drffilename 
-	self.drf->save, self.drfpath+path_sep()+self.drffilename, outputfilename=outputfilename, template=template
-
-	self.drffilename  = outputfilename
-	self->update_title_bar, outputfilename
-
+  prims = self.drf->list_primitives( count=num_primitives)
+  
+  if (num_primitives eq 0) then begin
+     res=dialog_message ("ERROR: no primitives selected. Can't save until you fix that.")
+     self->log, "ERROR: no primitives selected. Can't save until you fix that."
+     return 
+  endif
+  if (output_recipe_filename eq '') then begin
+     res=dialog_message ("ERROR: no output filename provided. Can't save until you fix that.")
+     self->log, "ERROR: no output filename provided. Can't save until you fix that."
+     return 
+  endif 
+  
+  self.drffilename = file_basename(output_recipe_filename)
+  self->log,'Now writing Recipe to '+self.drfpath+path_sep()+self.drffilename 
+  self.drf->save, self.drfpath+path_sep()+self.drffilename, outputfilename=outputfilename, template=template
+  
+  self->update_title_bar, outputfilename
+  
 end
 
 
@@ -1739,12 +1733,13 @@ end
 ;-
 pro gpi_recipe_editor__define
     struct = {gpi_recipe_editor,   $
-			  drf: obj_new(), $			; DRF object holding the contents of the current recipe
-              drfpath :'',$				; default directory for saving DRFs
-              drffilename :'',$			; name of current recipe file
-              loadedRecipeFile:'',$		; file read from disk
-              last_used_input_dir: '', $; save the most recently used directory. Start there again on subsequent file additions
-              reductiontype:'',$				; currently selected reduction type name string
+              drf: obj_new(), $          ; DRF object holding the contents of the current recipe
+              drfpath : '',$              ; default directory for saving DRFs
+              drffilename :'',$          ; name of current recipe file
+              customdrffilename : 0,$    ; if user has overwritten the filename
+              loadedRecipeFile:'',$      ; file read from disk
+              last_used_input_dir: '', $ ; save the most recently used directory. Start there again on subsequent file additions
+              reductiontype:'',$         ; currently selected reduction type name string
               outputdir_id:0L,$					; widget ID of output dir selection field
               tableAvailable_id: 0L,$			; widget ID for available primitves table
               descr_id: 0L,$					; widget ID for primitive description
