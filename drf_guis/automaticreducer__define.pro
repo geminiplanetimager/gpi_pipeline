@@ -539,9 +539,13 @@ function automaticreducer::init, groupleader, _extra=_extra
 	; file present in the Calibrations DB
 	cdb= obj_new('gpicaldatabase')
 	caltable = cdb->get_data()
-	availtypes =  uniqvals( (*caltable).type)
-	wflexurefile = where(availtypes eq 'Flexure shift Cal File', flexurect)
-	if flexurect eq 0 then self.flexure_mode = 'None' else self.flexure_mode = 'Lookup'
+	if ptr_valid(caltable) then begin
+		availtypes =  uniqvals( (*caltable).type)
+		wflexurefile = where(availtypes eq 'Flexure shift Cal File', flexurect)
+		if flexurect eq 0 then self.flexure_mode = 'None' else self.flexure_mode = 'Lookup'
+	endif else begin ; if there is no valid caldb at all
+		self.flexure_mode = 'None'
+	endelse
 
 	self->set_default_filespec
 
