@@ -114,6 +114,7 @@ FUNCTION gpi_load_fits, filename, nodata=nodata, silent=silent, _extra=_extra
 	for iext=2,numext do begin
 		ext2data  = (mrdfits(filename , iext, ext2_Header, /SILENT))
 		extname = strc(sxpar(ext2_Header, 'EXTNAME'))
+		if extname eq '0' then extname='unnamed_extension'
 		mydata = create_struct(mydata, extname, ptr_new(ext2data,/no_copy))
 		mydata = create_struct(mydata, extname+"_HEADER", ptr_new(ext2_header,/no_copy))
 	endfor
