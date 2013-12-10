@@ -25,7 +25,7 @@ if strmid(save_suffix,0,1) ne '_' then save_suffix = '_'+save_suffix
     	if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
 	
 		; save it: (Wavecals get the filter name in the filename before the suffix)
-    	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, "_"+filter+suffix, display=display,savedata=shiftedwavecal,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile], output_filename=output_filename)
+    	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, "_"+filter+save_suffix, display=display,savedata=shiftedwavecal,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile], output_filename=output_filename)
     	if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
 
 		; display wavecal overplotted on top of 2D image
