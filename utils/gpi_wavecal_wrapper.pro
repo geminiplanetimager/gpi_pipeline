@@ -7,6 +7,11 @@
 ;
 ;  ***** y is [0] and x is [1] in wavelength calibration files *****
 ;
+;
+; INPUTS:
+;
+;
+;
 ; RETURNS:
 ;    results array as follows
 ;    res[0]:    X0 position for this lenslet spectrum
@@ -21,7 +26,9 @@
 ;
 ;+
 
-FUNCTION gpi_wavecal_wrapper, xdim,ydim,refwlcal,lensletarray,badpixels,wlcalsize,startx,starty,whichpsf
+FUNCTION gpi_wavecal_wrapper, xdim,ydim,refwlcal,lensletarray,badpixels,wlcalsize,startx,starty,whichpsf,$
+	image_uncert=image_uncert, debug=debug, $
+	modelimage=modelimage, modelmask=modelmask
 
 common ngausscommon, numgauss, wl, flux, lambdao, my_psf
 
@@ -42,10 +49,10 @@ parinfo = replicate({relstep:0.D, step:0.D, value:0.D, fixed:0, limited:[0,0],li
 
 for z=0,nflux[0]-1 do begin
     start_params[8+z]=flux[z]
-    parinfo[8+z].limited(0)=1
-    parinfo[8+z].limits(0)=0.8*flux[z]
-    parinfo[8+z].limited(1)=1
-    parinfo[8+z].limits(1)=1.2*flux[z]
+    parinfo[8+z].limited[0]=1
+    parinfo[8+z].limits[0]=0.5*flux[z] ; was 20%, now 50% 
+    parinfo[8+z].limited[1]=1
+    parinfo[8+z].limits[1]=1.5*flux[z]
 endfor
 
 start_params[3]=theta
@@ -68,11 +75,11 @@ start_params[4:6] = [1.5, 1.5, 0]
 
 
 ;Compute a weighted error array to be passed to mp2dfitfunct
-ERR = sqrt(lensletarray )
-wayt = 1D/ERR^2*(1-badpixels)
+ERR = sqrt(lensletarray ) ; FIXME this needs to be updated to take into account gain, read noise, etc.
+weights = 1D/ERR^2*(1-(badpixels ne 0))
 
-wnan = where(~finite(wayt), nanct)
-if nanct gt 0 then wayt[wnan] = 0
+wnan = where(~finite(weights), nanct)
+if nanct gt 0 then weights[wnan] = 0
 
 pixelshifttolerance=2.5
 oldxpos=start_params[0]
@@ -95,16 +102,19 @@ parinfo[3].limited[0]=1
 parinfo[3].limits[0]=theta-deltatheta
 parinfo[3].limited[1]=1
 parinfo[3].limits[1]=theta+deltatheta
-; X sigma
+
+if lambdao lt 1.1 then max_fwhm= 4 else max_fwhm=2
+
+; X FWHM
 parinfo[4].limited[0]=1
 parinfo[4].limits[0]=0.4
 parinfo[4].limited[1]=1
-parinfo[4].limits[1]=4.0
-; Y sigma
+parinfo[4].limits[1]=max_fwhm
+; Y FWHM
 parinfo[5].limited[0]=1
 parinfo[5].limits[0]=0.4
 parinfo[5].limited[1]=1
-parinfo[5].limits[1]=4.0
+parinfo[5].limits[1]=max_fwhm
 ; Flux Scaling
  ;parinfo[7].limited(0)=1
  ;parinfo[7].limits(0)=0.0001*start_params[7]
@@ -134,25 +144,34 @@ parinfo[5].limits[1]=4.0
 
     case whichpsf of
        'nmicrolens': begin
-           resultd=mpfit2dfun('nmicrolens',x,y,lensletarray, ERR,weight=wayt, start_params,parinfo=parinfo,bestnorm=bestnorm,/quiet, status=status, errmsg =errmsg)
+           bestres=mpfit2dfun('nmicrolens',x,y,lensletarray, ERR,weight=weights, start_params,parinfo=parinfo,bestnorm=bestnorm,/quiet, status=status, errmsg =errmsg)
         end
         'ngauss': begin
-           resultd=mpfit2dfun('ngauss',x,y,lensletarray, ERR,weight=wayt, start_params,parinfo=parinfo,bestnorm=bestnorm,/quiet, status=status, errmsg =errmsg)
+           bestres=mpfit2dfun('ngauss',x,y,lensletarray, ERR,weight=weights, start_params,parinfo=parinfo,bestnorm=bestnorm,/quiet, status=status, errmsg =errmsg)
         end
     endcase
 
 	if status lt 0 then print, "ERROR: ", errmsg
-    
  
+	loww=k
 
-    ;if float(bestnorm) LE float(max) then begin
-    ;    max=bestnorm
-        loww=k
-        bestres=resultd
-    ;endif
+	; Return other helpful stuff to the calling routine:
+	if arg_present(modelimage) then begin
+		; return the 2D model image resulting from the fit 
+		case whichpsf of
+		  'nmicrolens': modelimage=nmicrolens(x,y,bestres)
+		  'ngauss': modelimage=ngauss(x,y,bestres)
+		endcase
+	endif
+	if arg_present(modelmask) then begin
+		; return a 2D mask of which pixels were used in that fit.
+		modelmask = weights ne 0
+	endif
 
-;endfor
-
+	if keyword_set(debug) then begin
+		atv,[[[lensletarray]],[[modelimage]]],/bl
+		stop
+	endif
        
 ;TO DO: set bestres=0 as a flag for a failed fit, then interpolate the
 ;correct value in the wavelength solution 2d primitive

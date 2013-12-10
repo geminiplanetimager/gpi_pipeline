@@ -47,7 +47,7 @@ function gpi_wavecal_extrapolate_edges, wavecal
 	sz = size(wavecal)
 
 	; Try extrapolating 2 lenslets in all of the +-X and +-Y directions
-	; This is simple linaer extrapolation of lenslet positions based on 
+	; This is simple linear extrapolation of lenslet positions based on 
 	; the derivatives computed above. 
 	;
 	; This results in a 4D array where the 4th axis is the direction of

@@ -86,11 +86,12 @@ w=start_params[2]
 fwhmx=start_params[4]
 fwhmy=start_params[5]
 rotation=start_params[6]
+;background=start_params[7]
 
 zmod=dblarr(xoffset,yoffset)
 
-xvals = make_array(szx,szy,/index,/integer) mod 8
-yvals = make_array(szx,szy,/index,/integer) / 8
+xvals = make_array(szx,szy,/index,/integer) mod szx
+yvals = make_array(szx,szy,/index,/integer) / szx
 
 
 for i=0, numgauss-1 do begin
