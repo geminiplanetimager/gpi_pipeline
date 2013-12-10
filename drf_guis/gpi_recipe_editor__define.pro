@@ -874,7 +874,8 @@ pro gpi_recipe_editor::event,ev
 		self.last_used_input_dir = file_dirname(result[0]) ; for use next time we open files
 
 
-        self->log,strtrim(n_elements(result),2)+' files added.'
+                self->log,strtrim(n_elements(result),2)+' files added.'
+                widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
  
   end
 
@@ -897,6 +898,7 @@ pro gpi_recipe_editor::event,ev
 
 		self.drf->add_datafiles, result
 		self->refresh_filenames_display ; update the filenames display
+                widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
 
     end
     'REMOVE' : begin
@@ -910,6 +912,7 @@ pro gpi_recipe_editor::event,ev
 
 			if selected_index gt n_elements(filelist)-1 then selected_index = n_elements(filelist)-1
 			self->removefile, filelist[selected_index]
+                        widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
     end
     'REMOVEALL' : begin
         if confirm(group=ev.top,message='Remove all filenames from the list?',$
@@ -920,24 +923,31 @@ pro gpi_recipe_editor::event,ev
 			self->log,'All filenames removed.'
         endif
     end
-	'outputdir': begin
-		widget_control, self.outputdir_id, get_value=tmp
-		;if self->check_output_path_exists(tmp) then begin
-		if gpi_check_dir_exists(tmp) eq OK then begin
-			self.drf->set_outputdir, tmp
-			self->log,'Output Directory changed to:'+self.drf->get_outputdir()
-		endif 
-		widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
+    
+    'outputdir': begin
+       widget_control, self.outputdir_id, get_value=tmp
+       if gpi_check_dir_exists(tmp) eq OK then begin
+          self.drf->set_outputdir, tmp
+          self->log,'Output Directory changed to:'+self.drf->get_outputdir()
+          self.drf->set_outputoverride
+          widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
+       endif 
+       
+       if strcmp(tmp,'AUTO',4,/fold_case) then begin
+          self.drf->clear_outputoverride
+          self.drf->update_outputdir
+          widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
+       endif 
     end
    
     'outputdir_browse': begin
-		result = DIALOG_PICKFILE(TITLE='Select an Output Directory', /DIRECTORY,/MUST_EXIST, path=gpi_expand_path(self.drf->get_outputdir()))
-		if result ne '' then begin
-			self.drf->set_outputdir, result
-			widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
-			self->log,'Output Directory changed to:'+self.drf->get_outputdir()
-            ;self.outputoverride = 1
-		endif
+       result = DIALOG_PICKFILE(TITLE='Select an Output Directory', /DIRECTORY,/MUST_EXIST, path=gpi_expand_path(self.drf->get_outputdir()))
+       if result ne '' then begin
+          self.drf->set_outputdir, result
+          self.drf->set_outputoverride
+          widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
+          self->log,'Output Directory changed to:'+self.drf->get_outputdir()
+       endif
     end
     'Save Recipe': begin
         self->save, /nopickfile
@@ -1010,7 +1020,10 @@ pro gpi_recipe_editor::event,ev
 	end
  	'Show all Primitives': begin
     	self->update_available_primitives, self.reductiontype, /all
-	end
+        end
+       'Dump DRF to Main': begin
+          (scope_varfetch('drf',  level=1, /enter)) = self.drf
+       end 
  
     'About': begin
               tmpstr=gpi_drp_about_message()
@@ -1517,7 +1530,8 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
                   {cw_pdmenu_s, 8, 'Advanced View'}, $
                   {cw_pdmenu_s, 12, 'Show default Primitives'}, $
                   {cw_pdmenu_s, 8, 'Show default + hidden Primitives'}, $
-                  {cw_pdmenu_s, 10, 'Show all Primitives'}, $
+                  {cw_pdmenu_s, 8, 'Show all Primitives'}, $
+                  {cw_pdmenu_s, 10, 'Dump DRF to Main'}, $
                   {cw_pdmenu_s, 1, 'Help'}, $         ; help menu
                   {cw_pdmenu_s, 0, 'Recipe Editor Help...'}, $
                   {cw_pdmenu_s, 0, 'Recipe Templates Help...'}, $

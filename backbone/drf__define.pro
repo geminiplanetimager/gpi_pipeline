@@ -74,6 +74,7 @@ pro drf::set_datafiles, filenames, validate=validate, status=status
 	for i=0,n_elements(filenames)-1 do newfilenames[i] = gpi_expand_path(filenames[i])
 
 	self.datafilenames = ptr_new(newfilenames)
+        self->update_outputdir
 
 	status=0 ; OK
 	if keyword_set(validate) then status=self->validate_contents()
@@ -81,31 +82,32 @@ pro drf::set_datafiles, filenames, validate=validate, status=status
 end
 ;-------------
 pro drf::add_datafiles, filenames_to_add, validate=validate, status=status
-	; Add one or more files to a recipe
-	;
-	; KEYWORDS:
-	;	/validate		Check that all files exist
-	;
-	;	status			Return 0 if add is OK, -1 if not OK
-	;
-	self.modified = 1
-	
-
-	if ~ptr_valid(self.datafilenames) then begin
-		; if we don't already have some files then we can just set the filenames
-		; equal to the new ones
-		self->set_datafiles, uniqvals(filenames_to_add), validate=validate, status=status
-	endif else begin
-		newfilenames = strarr(n_elements(filenames_to_add))
-		for i=0,n_elements(filenames_to_add)-1 do newfilenames[i] = gpi_expand_path(filenames_to_add[i])
-
-		*self.datafilenames = uniqvals([*self.datafilenames, newfilenames])
-
-	endelse
-
-	status=0 ; OK
-	if keyword_set(validate) then status=self->validate_contents()
-
+  ;; Add one or more files to a recipe
+  ;;
+  ;; KEYWORDS:
+  ;;	/validate		Check that all files exist
+  ;;
+  ;;	status			Return 0 if add is OK, -1 if not OK
+  ;;
+  self.modified = 1
+  
+  
+  if ~ptr_valid(self.datafilenames) then begin
+     ;; if we don't already have some files then we can just set the filenames
+     ;; equal to the new ones
+     self->set_datafiles, uniqvals(filenames_to_add), validate=validate, status=status
+  endif else begin
+     newfilenames = strarr(n_elements(filenames_to_add))
+     for i=0,n_elements(filenames_to_add)-1 do newfilenames[i] = gpi_expand_path(filenames_to_add[i])
+     
+     *self.datafilenames = uniqvals([*self.datafilenames, newfilenames])
+     
+     self->update_outputdir
+  endelse 
+  
+  status=0                      ; OK
+  if keyword_set(validate) then status=self->validate_contents()
+  
 end
 
 ;-------------
@@ -157,8 +159,9 @@ PRO drf::remove_datafile, filename, status=status
  		if ncomplement gt 0 then *self.datafilenames = (*self.datafilenames)[wcomplement] else ptr_free, self.datafilenames
 		self.modified = 1
 		status=0
-	endelse
+        endelse
 
+        self->update_outputdir
 end
 
 ;-------------
@@ -166,7 +169,6 @@ PRO drf::clear_datafiles
 	; Remove all data files from this recipe
 	self.modified = 1
 	ptr_free, self.datafilenames
-	
 end
 
 ;--------------------------------------------------------------------------------
@@ -227,28 +229,38 @@ end
 
 ;--------------------------------------------------------------------------------
 
-pro drf::set_outputdir, dir, verbose=verbose ;, autodir=autodir
-	if self.outputdir eq dir then return  ; no change, so just return
-	if n_elements(dir) eq 0 then begin
-		self->Log, "ERROR: missing argument to set_outputdir. Therefore no change."
-		return
-	endif
+pro drf::update_outputdir
 
-	self.modified = 1
+  ;; if recipe editor has not previously overriden the output,
+  ;; set it yourself
+  if ~self.outputoverride then begin
+     if gpi_get_setting('organize_reduced_data_by_dates',/bool,default=1) then begin
+        outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')+path_sep()+self->get_datestr()
+     endif else begin
+        outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')
+     endelse
+     self->set_outputdir, outputdir
+  endif 
 
-;	if keyword_set(autodir) or (strupcase(dir) eq 'AUTOMATIC') then begin
-;		; figure out the output directory?
-;		if gpi_get_setting('organize_reduced_data_by_dates',/bool,default=1) then begin
-;			outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')+path_sep()+self->get_datestr()
-;		endif else begin
-;			outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')
-;		endelse
-;	endif else begin
-;		outputdir = dir
-;	endelse
+end
 
-	self.outputdir = dir
-	if keyword_set(verbose) then self->Log, "Output dir set to "+self.outputdir
+;--------------------------------------------------------------------------------
+
+pro drf::set_outputdir, dir, verbose=verbose
+
+  if gpi_get_setting('auto_shorten_paths',/bool,default=1) then $
+     dir = gpi_shorten_path(dir) else dir = gpi_expand_path(dir)
+  
+  if self.outputdir eq dir then return ; no change, so just return
+  if n_elements(dir) eq 0 then begin
+     self->Log, "ERROR: missing argument to set_outputdir. Therefore no change."
+     return
+  endif
+  
+  self.modified = 1
+  
+  self.outputdir = dir
+  if keyword_set(verbose) then self->Log, "Output dir set to "+self.outputdir
 end
 ;-------------
 FUNCTION drf::get_automatic_default_outputdir
@@ -897,6 +909,7 @@ function drf::init, filename, parent_object=parent_object,silent=silent,quick=qu
 	self.loaded_filename=filename
 	self.last_saved_filename=''
 	self.modified=0
+        self.outputoverride = 0
 
     ; now parse the requested DRF.
 	if ~(keyword_set(quick)) then begin
@@ -948,9 +961,21 @@ function drf::find_module_by_name, modulename, count
 end
 ;--------------------------------------------------------------------------------
 function drf::is_modified ; has the currently loaded DRF been modified since it was loaded?
-	return, self.modified
+  return, self.modified
 end
+;--------------------------------------------------------------------------------
 
+function drf::get_outputoverride  ; has the currently loaded DRF been modified since it was loaded?
+	return, self.outputoverride
+end
+;--------------------------------------------------------------------------------
+pro drf::set_outputoverride ; has the outputdir been overwritten
+  self.outputoverride = 1
+end
+;--------------------------------------------------------------------------------
+pro drf::clear_outputoverride 
+	self.outputoverride = 0
+end
 ;--------------------------------------------------------------------------------
 function drf::get_summary
 	; Like the get_summary of gpidrfparser
@@ -1032,6 +1057,7 @@ PRO drf__define
         ;inputdir: '', $            ; Deprecated, may still be present in XML but 
                                     ; automatically gets folded in to datafilenames
         outputdir: '', $			; Output directory for the contents of this recipe
+        outputoverride: 0, $        ; whether the outputdir has been set manually
         datafilenames: ptr_new(), $
         primitives: ptr_new(), $
         configDRS: ptr_new() $  ; DRS modules configuration info
