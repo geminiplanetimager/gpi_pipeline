@@ -10811,8 +10811,8 @@ if ct eq 0 then shifty=0
 case filetype of
 "Polarimetry Spots Cal File": begin	; Plot polarimetry mode cal grid
 	wavecal=readfits((*self.state).wcfilename, ext=1,/SILENT)
-	wavecal[*,*,0]+=shifty
-	wavecal[*,*,1]+=shiftx
+	wavecal[1,*,*,*,*]+=shifty
+	wavecal[0,*,*,*,*]+=shiftx
 
 	for jj=0,sz[2]-1 do begin
 		X =fltarr(2,sz[2])+!VALUES.F_NAN
