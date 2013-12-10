@@ -28,10 +28,10 @@ if ~(keyword_set(primitive_version)) then primitive_version="unknown"
 if strmid(primitive_version,0,4) eq '$Id:' then begin
                                 ; given an SVN version ID string, parse out just the bits we want
    parts = strsplit(primitive_version,/extract)
-   primitive_version = "   "+ parts[2]+"   by "+parts[5]+" "+parts[3]
+   primitive_version = " "+ parts[2]+" by "+parts[5]+" "+parts[3]
 
 endif
-backbone->set_keyword,'HISTORY', "Running "+functionname+" version id"+primitive_version, ext_num=0
+backbone->set_keyword,'HISTORY', "Running "+functionname+" rev "+primitive_version, ext_num=0
 
 ;; if appropriate, attempt to locate and verify a calibration file.
 if keyword_set(calfiletype) then begin
