@@ -1233,33 +1233,33 @@ pro gpi_recipe_editor::save, template=template, nopickfile=nopickfile
   endelse  
   
 
-	; Generate a default output filename
-
-	files= self.drf->get_datafiles()
-	wg = where(files ne '', goodct)
-	if goodct eq 0 and ~(keyword_set(template))then begin
-		res = dialog_message('You have no data files loaded. Either load some files, or else you can only save this recipe as a template',/error, title='No FITS files selected')
-		return
-	endif
-
+  ;; Generate a default output filename
+  
+  files= self.drf->get_datafiles()
+  wg = where(files ne '', goodct)
+  if goodct eq 0 and ~(keyword_set(template))then begin
+     res = dialog_message('You have no data files loaded. Either load some files, or else you can only save this recipe as a template',/error, title='No FITS files selected')
+     return
+  endif
+  
   if templatesflag then begin
      self.drffilename = self.loadedRecipeFile ;to check
   endif else begin     
      caldat,systime(/julian),month,day,year, hour,minute,second
      datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
-     hourstr = string(hour,minute,second,format='(i2.2,i2.2,i2.2)')  
-     first_file=strsplit(files[0],'S.',/extract)
-     last_file=strsplit(files[size(files,/n_elements)-1],'S.',/extract)
+     hourstr = string(hour,minute,second,format='(i2.2,i2.2,i2.2)') 
+     
+     ;;get rid of any leading paths on the first and last files
+     first_file = file_basename(files[0])    
+     last_file = file_basename(files[size(files,/n_elements)-1])
+ 
+     first_file=strsplit(first_file,'.',/extract)
+     last_file=strsplit(last_file,'.',/extract)
 
-	drf_summary = self.drf->get_summary()
+     drf_summary = self.drf->get_summary()
 
-    if n_elements(first_file) gt 2 and n_elements(last_file) gt 2 then begin
-        ; normal Gemini style filename
-        outputfilename='S'+first_file[1]+'S'+first_file[2]+'-'+last_file[2]+'_'+drf_summary.shortname+'_drf.waiting.xml'
-    endif else begin
-        ; something else? e.g. temporary workaround for
-        outputfilename=file_basename(first_file[0])+'-'+file_basename(last_file[0])+'_'+drf_summary.shortname+'_drf.waiting.xml'
-    endelse
+     if first_file[0] eq last_file[0] then outputfilename = first_file[0]+'_'+drf_summary.shortname+'_drf.waiting.xml' else $
+        outputfilename = first_file[0]+'-'+last_file[0]+'_'+drf_summary.shortname+'_drf.waiting.xml'
 
      self.drffilename= outputfilename
   endelse
