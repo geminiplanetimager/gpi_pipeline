@@ -13944,9 +13944,42 @@ case uvalue of
        endcase
     end
     'lineplot_save': begin
-		message, /info, "This feature not yet implemented, sorry!"
+       case ((*self.state).plot_type) of
+          'centerplot': begin
+             nm = (*self.state).imagename
+             strps = strpos(nm,'/',/reverse_search)
+             strpe = strpos(nm,'.fits',/reverse_search)
+             nm = strmid(nm,strps+1,strpe-strps-1)
+             outfile = dialog_pickfile(filter='*.fits', $
+                                       file=nm+'-center_position.fits', get_path = tmp_dir, $
+                                       path=(*self.state).current_dir,$
+                                       title='Please Select File to save center positions')
+             
+             IF (strcompress(outfile, /remove_all) EQ '') then RETURN
+     
+             IF (outfile EQ tmp_dir) then BEGIN
+                self->message, 'Must indicate filename to save.', $
+                               msgtype = 'error', /window
+                return
+             ENDIF
 
-	end
+             ;;output & header
+             tmp=*self.satspots[*].cens
+             cents=fltarr(2,N_ELEMENTS(tmp[0,0,*]))
+             for p=0, N_ELEMENTS(tmp[0,0,*]) -1 do begin
+                for q=0, 1 do cents[q,p]=mean(tmp[q,*,p])
+             endfor
+
+             mkhdr,hdr,cents
+     
+             ;;write
+             writefits,outfile,cents,hdr
+          end
+          else: begin
+             message, /info, "This feature not yet implemented, sorry!"
+          end 
+       endcase 
+    end
     'lineplot_ps': begin
         fname = strcompress((*self.state).current_dir + 'GPItv_plot.ps', /remove_all)
         forminfo = cmps_form(cancel = canceled, create = create, $
