@@ -136,7 +136,7 @@ function gpi_destripe_for_darks_only, DataSet, Modules, Backbone
         imdisp, im_destriped, /axis, range=[-10,30], title='Destriped', charsize=2
         imdisp, microphonics_model, /axis, range=[-10,30],title="Microphonics model", charsize=2
         imdisp, imout, /axis, range=[-10,30], title="Destriped and de-microphonicsed", charsize=2
-        xyouts, 0.5, 0.95, /normal, "Stripe & Microphonics Noise Removal for "+strc(backbone->get_keyword('DATAFILE')), charsize=2, alignment=0.5
+        xyouts, 0.5, 0.95, /normal, "Stripe & Microphonics Noise Removal for "+strc( dataset.filenames[numfile]), charsize=2, alignment=0.5
      endif else begin
                                 ; display for just destriping
         if numfile eq 0 then window,0
@@ -145,7 +145,7 @@ function gpi_destripe_for_darks_only, DataSet, Modules, Backbone
         imdisp, im0-mean_offset, /axis, range=[-10,30], title='Input Data', charsize=2
         imdisp, stripes-mean_offset, /axis, range=[-10,30], title='Stripes Model', charsize=2
         imdisp, imout, /axis, range=[-10,30], title='Destriped Data', charsize=2
-        xyouts, 0.5, 0.95, /normal, "Stripe Noise Removal for "+backbone->get_keyword('DATAFILE'), charsize=2, alignment=0.5
+        xyouts, 0.5, 0.95, /normal, "Stripe & Microphonics Noise Removal for "+strc( dataset.filenames[numfile]), charsize=2, alignment=0.5
      endelse
      !P.MULTI = 0
   endif

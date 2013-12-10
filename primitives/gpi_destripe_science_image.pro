@@ -679,7 +679,7 @@ very_high_limit=readnoise*5620.0 ; ; this is the case wehre it is exactly in the
       imdisp, image - stripes, /axis, range=[-10,30], title='Destriped', charsize=2
       imdisp, microphonics_model, /axis, range=[-10,30],title="Microphonics model", charsize=2
       imdisp, imout, /axis, range=[-5,15], title="Destriped and de-microphonicsed", charsize=2
-      xyouts, 0.5, 0.95, /normal, "Stripe & Microphonics Noise Removal for "+backbone->get_keyword('DATAFILE'), charsize=2, alignment=0.5
+      xyouts, 0.5, 0.95, /normal, "Stripe & Microphonics Noise Removal for "+strc( dataset.filenames[numfile]), charsize=2, alignment=0.5
     endif else begin
       ; display for just destriping
       if numfile eq 0 then window,0
@@ -688,7 +688,7 @@ very_high_limit=readnoise*5620.0 ; ; this is the case wehre it is exactly in the
       imdisp, image-mean_offset, /axis, range=[-10,30], title='Input Data', charsize=2
       imdisp, stripes-mean_offset, /axis, range=[-10,30], title='Stripes Model', charsize=2
       imdisp, imout, /axis, range=[-10,30], title='Destriped Data', charsize=2
-      xyouts, 0.5, 0.95, /normal, "Stripe Noise Removal for "+backbone->get_keyword('DATAFILE'), charsize=2, alignment=0.5
+      xyouts, 0.5, 0.95, /normal, "Stripe Noise Removal for "+strc( dataset.filenames[numfile]), charsize=2, alignment=0.5
     endelse
     !P.MULTI = 0
   endif
