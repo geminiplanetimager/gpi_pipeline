@@ -103,7 +103,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		stddev1 = stddev(imtab) ; that std dev will be biased low if we have median combined
 								; the frames above, because there will be many pixels that are
 								; precisely 0.0 in the subtraction (where those were the pixels that
-								; got selected by the median. Let's mask those out
+								; got selected by the median. Let's mask those out:
 		wz = where(imtab eq 0, zct)
 		if zct gt 0 then imtab[wz] = !values.f_nan
 
@@ -115,7 +115,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 		stddev2 = stddev(imtab,/nan) ; this std dev should be less biased
 		rdnoise=stddev2
-		backbone->Log, 'Estimated read noise='+strc(rdnoise)+'cts  from stddev across '+strc(nfiles)+' darks.'
+		backbone->Log, 'Estimated read noise='+strc(rdnoise)+' cts from stddev across '+strc(nfiles)+' darks.'
 		backbone->set_keyword, 'HISTORY', functionname+":   Estimating read noise comparing all files: ",ext_num=0
 		backbone->set_keyword, 'HISTORY', functionname+":      rdnoise = stddev(dark_i-combined_dark) = "+sigfig(rdnoise,4),ext_num=0
 		backbone->set_keyword, 'EST_RDNS', rdnoise, 'Estimated read noise from stddev across '+strc(nfiles)+' darks [counts]' ,ext_num=0
@@ -176,6 +176,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	endif
     
+
+	; TODO: Do something here with the DQ extensions?
 
 	;----- store the output into the backbone datastruct
 	*(dataset.currframe)=combined_im
