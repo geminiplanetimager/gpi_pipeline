@@ -18973,7 +18973,8 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
   if ~(keyword_set(forcesat))  && ((*self.state).collapse eq 0)  && $
      ((*self.state).current_units ne 'Contrast')  && $
      (strpos(strupcase((*self.state).filetype),'ADI') eq -1) then begin
-     if median((*self.images.main_image)[where(finite(*self.images.main_image))]) lt 1. then begin
+     apod = gpi_simplify_keyword_value(sxpar((*(*self.state).head_ptr),'APODIZER'))
+     if (median((*self.images.main_image)[where(finite(*self.images.main_image))]) lt 1.) || (strlen(strtrim(apod,2)) gt 2) then begin
         self->message, msgtype='warning', 'This image does not appear to have satellite spots.'
         self->message, msgtype='warning', 'If you disagree, press Find Sat Spots.'
         self->clear_contrprof_windows
