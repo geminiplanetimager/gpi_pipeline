@@ -672,59 +672,58 @@ end
 ;--------------------------------------------------------------------------------
 
 pro drf::save, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silent=silent, status=status, $
-	outputfilename=outputfile, template=template
-	; write out to disk!
-	;
-	; KEYWORDS:
-	; 	/absolutepaths		write DRFs using absolute paths in their text, not
-	; 						environment variables for relative paths
-	; 	/autodir			Automatically decide the best output directory to
-	; 						save **this recipe file** to. This is distinct from
-	;						the "automatic" option for the recipe file's actual
-	;						internal output directory, which sets the output
-	;						directory for pipeline processed FITS files. 
-	;   /template			Save as a template, i.e. not including any FITS
-	;						filenames
-	OK = 0
-	NOT_OK = -1
-
-	outputfile=outputfile0 ; don't modify input outputfile variable.
-
-	if keyword_set(autodir) then begin 
-		recipe_outputdir = gpi_get_directory('GPI_RECIPE_OUTPUT_DIR')
-		if gpi_get_setting('organize_recipes_by_dates',/bool) then  begin
-			recipe_outputdir += path_sep()+self->get_datestr()
-		endif 
-		if  self->check_output_path_exists(recipe_outputdir) eq NOT_OK then begin
-			self->Log, "Could not write to nonexistent directory: "+file_dirname(outputfile)
-			status=NOT_OK
-			return
-		endif
-
-		outputfile=recipe_outputdir +path_sep()+file_basename(outputfile)
-
-	end
-
-	recipe_outputdir = file_dirname(outputfile)
-	dir_ok = gpi_check_dir_exists(recipe_outputdir)
-	if dir_ok ne OK then begin
-		self->Log, "Invalid output directory: " +recipe_outputdir
-		status=NOT_OK
-		return
-	endif
-
-
-
-	if ~(keyword_set(silent)) then self->log,'Writing recipe to '+gpi_shorten_path(outputfile)
-
-	OpenW, lun, outputfile, /Get_Lun
-	PrintF, lun, self->tostring(absolutepaths=absolutepaths, template=template)
-	Free_Lun, lun
-
-	self.last_saved_filename=outputfile
-	self.modified= 0 ; we're now synced with the disk version of this file.
-	status=OK
-
+               outputfilename=outputfile, template=template
+  ;; write out to disk!
+  ;;
+  ;; KEYWORDS:
+  ;; 	/absolutepaths		write DRFs using absolute paths in their text, not
+  ;; 						environment variables for relative paths
+  ;; 	/autodir			Automatically decide the best output directory to
+  ;; 						save **this recipe file** to. This is distinct from
+  ;;						the "automatic" option for the recipe file's actual
+  ;;						internal output directory, which sets the output
+  ;;						directory for pipeline processed FITS files. 
+  ;;   /template			Save as a template, i.e. not including any FITS
+  ;;						filenames
+  OK = 0
+  NOT_OK = -1
+  
+  outputfile=outputfile0        ; don't modify input outputfile variable.
+  
+  if keyword_set(autodir) then begin 
+     recipe_outputdir = gpi_get_directory('GPI_RECIPE_OUTPUT_DIR')
+     if gpi_get_setting('organize_recipes_by_dates',/bool) then  begin
+        recipe_outputdir += path_sep()+self->get_datestr()
+     endif 
+     if  self->check_output_path_exists(recipe_outputdir) eq NOT_OK then begin
+        self->Log, "Could not write to nonexistent directory: "+file_dirname(outputfile)
+        status=NOT_OK
+        return
+     endif
+     
+     outputfile=recipe_outputdir +path_sep()+file_basename(outputfile)
+     
+  end
+  
+  recipe_outputdir = file_dirname(outputfile)
+  dir_ok = gpi_check_dir_exists(recipe_outputdir)
+  if dir_ok ne OK then begin
+     self->Log, "Invalid output directory: " +recipe_outputdir
+     status=NOT_OK
+     return
+  endif
+  
+  if ~(keyword_set(silent)) then self->log,'Writing recipe to '+gpi_shorten_path(outputfile)
+  
+  OpenW, lun, outputfile, /Get_Lun
+  PrintF, lun, self->tostring(absolutepaths=absolutepaths, template=template)
+  Free_Lun, lun
+  
+  self.last_saved_filename = outputfile
+  self.loaded_filename = outputfile
+  self.modified= 0              ; we're now synced with the disk version of this file.
+  status=OK
+  
 end
 
 ;-------------
@@ -974,23 +973,34 @@ pro drf::set_outputoverride ; has the outputdir been overwritten
 end
 ;--------------------------------------------------------------------------------
 pro drf::clear_outputoverride 
-	self.outputoverride = 0
+  self.outputoverride = 0
+end
+;--------------------------------------------------------------------------------
+function drf::get_loaded_filename
+  return,self.loaded_filename
+end
+;--------------------------------------------------------------------------------
+pro drf::set_loaded_filename,in
+  self.loaded_filename = in
+end
+;--------------------------------------------------------------------------------
+function drf::get_last_saved_filename
+  return,self.last_saved_filename
 end
 ;--------------------------------------------------------------------------------
 function drf::get_summary
-	; Like the get_summary of gpidrfparser
-	if ptr_valid(self.datafilenames) then nfiles = n_elements(*self.datafilenames) else nfiles=0
-	if ptr_valid(self.primitives) then nsteps = n_elements(*self.primitives) else nsteps=0
-
-
-	if self.last_saved_filename eq '' then myfilename = self.loaded_filename else myfilename=self.last_saved_filename
-	return, {filename: myfilename,  $
-			 reductiontype: self.ReductionType, $
-			 name: self.name, $
-			 ShortName: self.ShortName, $
-			 nsteps: nsteps , $
-			 nfiles: nfiles }
-
+  ;; Like the get_summary of gpidrfparser
+  if ptr_valid(self.datafilenames) then nfiles = n_elements(*self.datafilenames) else nfiles=0
+  if ptr_valid(self.primitives) then nsteps = n_elements(*self.primitives) else nsteps=0
+  
+  if self.last_saved_filename eq '' then myfilename = self.loaded_filename else myfilename=self.last_saved_filename
+  return, {filename: myfilename,  $
+           reductiontype: self.ReductionType, $
+           name: self.name, $
+           ShortName: self.ShortName, $
+           nsteps: nsteps , $
+           nfiles: nfiles }
+  
 end
 ;--------------------------------------------------------------------------------
 
@@ -1039,8 +1049,6 @@ FUNCTION drf::get_module_args, modnum, count=count,verbose=verbose
 	return, self->get_primitive_args( modnum, count=count,verbose=verbose)
 end
 
-
-
 ;--------------------------------------------------------------------------------
 
 PRO drf__define
@@ -1052,11 +1060,11 @@ PRO drf__define
         name: '', $                 ; descriptive string name
         reductiontype: '',$         ; what type of reduction?
         ShortName: '', $            ; short name to be used in naming of recipes
-        parsed_drf: obj_new(), $    ;gpiDRFParser object for the XML file itself
+        parsed_drf: obj_new(), $    ; gpiDRFParser object for the XML file itself
         where_to_log: obj_new(),$   ; optional target object for log messages
         ;inputdir: '', $            ; Deprecated, may still be present in XML but 
                                     ; automatically gets folded in to datafilenames
-        outputdir: '', $			; Output directory for the contents of this recipe
+        outputdir: '', $	    ; Output directory for the contents of this recipe
         outputoverride: 0, $        ; whether the outputdir has been set manually
         datafilenames: ptr_new(), $
         primitives: ptr_new(), $

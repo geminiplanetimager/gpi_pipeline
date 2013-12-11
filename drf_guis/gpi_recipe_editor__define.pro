@@ -1317,8 +1317,6 @@ pro gpi_recipe_editor::open, filename, template=template, silent=silent, log=log
 
     self.loadedRecipeFile = filename
 
-
-
     widget_control,self.top_base,get_uvalue=storage  
     
     ; now parse the requested DRF.
