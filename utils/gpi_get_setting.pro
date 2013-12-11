@@ -124,7 +124,11 @@ global_settings_file = gpi_get_directory("GPI_DRP_CONFIG_DIR")+path_sep()+"pipel
 			; no match found!
 			if n_elements(default) gt 0 then begin
 				; If we have a default, use that
-				if ~(keyword_set(silent)) then message,/info,'No setting found for '+settingname+"; using default value="+strtrim(default,2)
+				
+				; and in practice displaying any message here just clutters up
+				; the log; using the default is a normal event so no need to
+				; alert or log about it. Thus comment out the following:
+				;if ~(keyword_set(silent)) then message,/info,'No setting found for '+settingname+"; using default value="+strtrim(default,2)
 				return, default
 			endif else begin
 				; Otherwise alert the user we have no good setting
