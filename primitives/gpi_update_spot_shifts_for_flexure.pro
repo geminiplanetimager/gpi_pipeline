@@ -206,7 +206,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         backbone->set_keyword, 'SPOT_DY', shifty, ' User manually set lenslet PSF Y shift'
     end
     'lookup': begin
-        my_elevation =  backbone->get_keyword('ELEVATIO', count=ct)
+        my_elevation =  double(backbone->get_keyword('ELEVATIO', count=ct))
         ; the above line returns zero if no keyword is found. This is
         ; acceptable since all data taken without this keyword has an
         ; elevation of zero!
@@ -251,7 +251,6 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     ;;now calculate the absolute shifts independent of the reference 
       shiftx= wcshiftx - my_shiftx
       shifty= wcshifty - my_shifty 
-
 		if display ne -1 then begin
                    if display eq 0 then window,/free else select_window, display
 			!p.multi=[0,2,1]
@@ -259,12 +258,16 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 			plot, sortedelev, sortedxshift, xtitle='Elevation [deg]', ytitle='X shift from Flexure [pixel]', xrange=[-10,100], yrange=[-0.9, 0.1], psym=1, charsize=1.5
 			oplot, elevs, poly(elevs, shiftpolyx), /line
 			oplot, [my_elevation], [shiftx], psym=2, color=fsc_color('yellow'), symsize=2
+			oplot, [my_elevation,my_elevation],[-1,1], color=fsc_color("blue"), linestyle=2
+			oplot, [wc_elevation,wc_elevation],[-1,1], color=fsc_color("red"), linestyle=2
 
 			plot, sortedelev, sortedyshift, xtitle='Elevation [deg]', ytitle='Y shift from Flexure [pixel]', xrange=[-10,100], yrange=[-0.9, 0.1], psym=1, charsize=1.5
 			oplot, elevs, poly(elevs, shiftpolyy), /line
 			oplot, [my_elevation], [shifty], psym=2, color=fsc_color('yellow'), symsize=2
+			oplot, [my_elevation,my_elevation],[-0.6,1], color=fsc_color("blue"), linestyle=2
+      oplot, [wc_elevation,wc_elevation],[-0.6,1], color=fsc_color("red"), linestyle=2
 
-			legend,/bottom,/right, ['Shifts in lookup table','Model','Applied shift'], color=[!p.color, !p.color, fsc_color('yellow')], line=[0,1,1], psym=[1,0,2], charsize=1.5
+			legend,/bottom,/right, ['Shifts in lookup table','Model','Applied shift','Data Elevation','Calibration Elevation'], color=[!p.color, !p.color, fsc_color('yellow'), fsc_color('blue'), fsc_color('red')], line=[0,1,1,2,2], psym=[1,0,2,0,0], charsize=1.5
 			xyouts, 0.5, 0.96, /normal, "Flexure Shift Model for "+backbone->get_keyword('DATAFILE'), charsize=1.8, alignment=0.5
                         !p.multi = 0
 		endif
@@ -475,8 +478,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
             'PRISM': calfilename =  backbone->get_keyword('DRPWVCLF') 
             'WOLLASTON': calfilename =  backbone->get_keyword('DRPPOLCF') 
             endcase
-
-
+            
 			if keyword_set(output_filename) then begin
 				; gpitv display of the saved output file
 				;
