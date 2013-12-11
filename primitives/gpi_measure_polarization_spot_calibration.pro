@@ -23,8 +23,8 @@
 ;
 ; PIPELINE ORDER: 1.8
 ; PIPELINE ARGUMENT: Name="nlens" Type="int" Range="[0,400]" Default="281" Desc="side length of  the  lenslet array "
-; PIPELINE ARGUMENT: Name="centrXpos" Type="int" Range="[0,2048]" Default="1024" Desc="Initial approximate x-position [pixel] of central peak at 1.5microns"
-; PIPELINE ARGUMENT: Name="centrYpos" Type="int" Range="[0,2048]" Default="1024" Desc="Initial approximate y-position [pixel] of central peak at 1.5microns"
+; PIPELINE ARGUMENT: Name="centrXpos" Type="int" Range="[0,2048]" Default="969" Desc="Initial approximate x-position [pixel] of central peak at 1.5microns"
+; PIPELINE ARGUMENT: Name="centrYpos" Type="int" Range="[0,2048]" Default="1000" Desc="Initial approximate y-position [pixel] of central peak at 1.5microns"
 ; PIPELINE ARGUMENT: Name="w" Type="float" Range="[0.,10.]" Default="4.4" Desc="Spectral spacing perpendicular to the dispersion axis at the detcetor in pixel"
 ; PIPELINE ARGUMENT: Name="P" Type="float" Range="[-7.,7.]" Default="2.18" Desc="Micro-pupil pattern"
 ; PIPELINE ARGUMENT: Name="maxpos" Type="float" Range="[-7.,7.]" Default="2.5" Desc="Allowed maximum location fluctuation (in pixel) between adjacent mlens"
@@ -127,9 +127,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     
     tight_pos=float(Modules[thisModuleIndex].maxpos) 
     boxwidth=float(Modules[thisModuleIndex].fitwidth)
+    ;t0=Systime(/seconds)
     
     for quadrant=1L,4 do find_pol_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,spotpos,im, $
                  spotpos_pixels, spotpos_pixvals, tight_pos, boxwidth,display=display_flag, badpixmap=badpixmap
+    
+    ;print, "This took "+string(systime(/seconds)-t0)+" seconds"
     
     
     suffix="-"+strcompress(ifsfilter,/REMOVE_ALL)+'-polcal'
