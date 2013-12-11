@@ -568,7 +568,8 @@ FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, cle
 	self.max_sess = n_elements(self.sessions)
 	self.queuelen=10
 	self.username=strmid(getenv('USER'),0,8) ;JM fixed bug with long name (shmmap do not support them)
-
+    if strmatch(!VERSION.OS_FAMILY , 'Windows',/fold) then self.username=strmid(getenv('USERNAME'),0,8) ; windows username is different
+	
     if gpi_get_setting('launcher_force_semaphore_name',default='',/silent) eq '' then begin
     	self.semaphore_name='GPI_DRP_'+self.username ; unique for each user in a multi-user system!
     endif else begin
