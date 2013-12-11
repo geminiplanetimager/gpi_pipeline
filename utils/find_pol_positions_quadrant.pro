@@ -195,7 +195,7 @@ pro find_pol_positions_quadrant, quad,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim
 ;
 ;POL_DX = 7 ;this parameter needs to be used for DST image
 ;POL_DY = -3  ;this parameter needs to be used for DST image
-POL_DX = 3  ;good for USC test data
+POL_DX = 2  ;good for USC test data
 POL_DY = -7 ;good for USC test data
 
 print, "   *** fitting polarization spots in quadrant "+strc(quad)
