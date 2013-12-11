@@ -114,13 +114,14 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     endfor 
     endfor 
 
-    ;; Update FITS header with RA and Dec WCS information
-    sz = size(polcube)
-    gpi_update_wcs_basic,backbone,imsize=sz[1:2]
+    ;; Update FITS header with RA and Dec WCS information 
+    ;; As long as it's not a TEL_SIM image
+    
+    sz = size(polcube)    
+    if ~strcmp(string(backbone->get_keyword('OBJECT')), 'TEL_SIM') then gpi_update_wcs_basic,backbone,imsize=sz[1:2]
 
     backbone->set_keyword, 'COMMENT', "  For specification of Stokes WCS axis, see ",ext_num=1
     backbone->set_keyword, 'COMMENT', "  Greisen & Calabretta 2002 A&A 395, 1061, section 5.4",ext_num=1
-
    
     backbone->set_keyword, "NAXIS", sz[0], /saveComment
     backbone->set_keyword, "NAXIS1", sz[1], /saveComment, after='NAXIS'
@@ -139,9 +140,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
     suffix='-podc'
     *(dataset.currframe)=polcube
-;	ptr_free, *dataset.currDQ  ; right now we're not creating a DQ cube
-;	ptr_free, *dataset.currUncert  ; right now we're not creating an uncert cube
+    ptr_free, dataset.currDQ  ; right now we're not creating a DQ cube
+    ptr_free, dataset.currUncert  ; right now we're not creating an uncert cube
 
+ 
     @__end_primitive 
 end
 
