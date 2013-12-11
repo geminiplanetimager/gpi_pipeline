@@ -197,8 +197,6 @@ function gpi_sanity_check_wavecal, filename_or_cal_data, silent=silent, $
 			message,/info, '   '+outfn
 
 
-			stop
-
 		endif
 
 

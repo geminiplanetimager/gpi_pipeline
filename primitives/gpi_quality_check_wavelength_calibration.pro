@@ -8,6 +8,7 @@
 ; PIPELINE COMMENT: Performs a basic quality check on a wavecal based on the statistical distribution of measured inter-lenslet spacings. 
 ; PIPELINE ARGUMENT: Name="error_action" Type="string" Range="[Fail|Ask_user]" Default="Ask_user" Desc="If the quality check fails, should the recipe immediately fail or should I alert the user and ask what they want to do?"
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="-1" Desc="-1 = No display; 0 = New (unused) window; else = Window number to display diagnostic plot."
+; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ORDER: 4.5
 ; PIPELINE TYPE: CAL-SPEC
 ; PIPELINE NEWTYPE: Calibration
@@ -61,6 +62,6 @@ primitive_version= '$Id: gpi_combine_wavelength_calibrations.pro 1715 2013-07-17
 	endelse
 
 
-@__end_primitive
+@__end_primitive_wavecal
 
 end

@@ -29,38 +29,10 @@ primitive_version= '$Id: gpi_combine_wavelength_calibrations.pro 1715 2013-07-17
 	backbone->set_keyword, 'HISTORY',  functionname+": Extrapolated/padded edges to provide approximate solutions for spectra only partially on the detector." 
 
 	; Now the wavecal is done and ready to be saved.	
-	; We handle this a bit more manually here than is typically done via __end_primitive,
+	; We handle this a bit differently here than is typically done via __end_primitive,
 	; because we want to make use of some nonstandard display hooks to show the wavecal (optionally).
 	
 
-    if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
-    	if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
-	
-		; save it:
-    	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, filter+"_"+suffix, display=display,savedata=shiftedwavecal,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile], output_filename=output_filename)
-    	if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
-
-		; display wavecal overplotted on top of 2D image
-	  	prev_saved_fn = backbone_comm->get_last_saved_file() ; ideally this should be the 2D image which was saved shortly before this step
-		; verify that the prev saved file is from this same data file
-	  	my_base_fn = (strsplit(dataset.filenames[numFile], '_',/extract))[0]
-	  	if strpos(prev_saved_fn, my_base_fn) ge 0 then begin
-			backbone_comm->gpitv, prev_saved_fn, session=fix(Modules[thisModuleIndex].gpitvim_dispgrid), dispwavecalgrid=output_filename, imname='Wavecal grid for '+  dataset.filenames[numfile]  ;Modules[thisModuleIndex].name
-	  	endif else begin
-			backbone->Log, "Cannot display wavecal plotted on top of 2D image, because 2D image wasn't saved in the previous step."
-	  	endelse
-	  
-          
-    endif else begin
-		; not saving the wavecal
-      	if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
-        	backbone_comm->gpitv, double(*DataSet.currFrame), session=fix(Modules[thisModuleIndex].gpitv), header=*(dataset.headersPHU)[numfile], imname='Pipeline result from '+ Modules[thisModuleIndex].name,dispwavecalgrid=output_filename
-    endelse
-
-return, ok
-
-
-; Not needed here because we just included here all of the steps just above
-;@__end_primitive
+@__end_primitive_wavecal
 
 end

@@ -88,7 +88,12 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
 
 
         ;READ IN BAD PIXEL MAP
-        badpix=*dataset.currdq GT 0
+		if ptr_valid(dataset.currdq) then begin
+	        badpix=*dataset.currdq GT 0
+		endif else begin
+			sz = size(image)
+			badpix = bytarr(sz[0], sz[1])
+		endelse
         ;badpix=dblarr(size(image))
         ;badpix[*]=0
 
@@ -132,6 +137,9 @@ jend=280
 
 	backbone->Log, "Fitting spectral lines for every "+strc(spacing)+"th lenslet"
 counter=0
+statuswindow = backbone->getstatusconsole()
+
+numiterations = float(iend-istart)*(iend-istart)/(spacing^2)
 
 for i = istart,iend,spacing do begin
 	for j = jstart,jend,spacing do begin
@@ -197,9 +205,9 @@ for i = istart,iend,spacing do begin
 
 		  endif
 
-		  res=wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss")                  
+		  res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss") 
 
-		; note swap of Y and X here to match GPI convention:
+				; note swap of Y and X here to match GPI convention:
                   newwavecal[i,j,1]=res[0]+startx
                   newwavecal[i,j,0]=res[1]+starty
                   newwavecal[i,j,3]=res[2]      ;w
@@ -211,33 +219,11 @@ for i = istart,iend,spacing do begin
                   xdimension=sizearray[0]
                   x=indgen(xdimension)
                   y=indgen(ydimension)
+
+
+				  statuswindow->set_percent,-1,1d/numIterations*100d/double(N_ELEMENTS(Modules)),/append
                   
-                  ;case whichpsf of
-                  ;   'nmicrolens': begin
-                  ;      zmodplot=nmicrolens(x,y,res)
-                  ;   end
-                  ;   'ngauss': begin
-                  ;      zmodplot=ngauss(x,y,res)
-                  ;   end
-                  ;endcase
-
-                  ;lensletmodel[startx:stopx, starty:stopy] += zmodplot
-
-;                if display n1e -1  then begin
-;                  if display eq 0 then window,/free else select_window, display
-;				  !p.multi= [0,2,1]
-;				  vmax = max(lensletarray)
-;				  imdisp, alogscale(lensletarray, 0, vmax), /axis, title='Real data subarray', /xs, /ys
-;				  imdisp, alogscale(zmodplot, 0,
-;				  vmax), /axis,  title='Model', /xs,
-;				  /ys
-;                  !p.multi = 0
-;        	endif
-
-                
                endfor
-
-        ;backbone->Log,"Have now fit"+strc(i*j)+"/78961 lenslets"
 
         endfor
 
@@ -249,10 +235,13 @@ for i = istart,iend,spacing do begin
 	xdiffs = (newwavecal[*,*,0])[wg] - (refwlcal[*,*,0])[wg]
 	ydiffs = (newwavecal[*,*,1])[wg] - (refwlcal[*,*,1])[wg]
 
-	mnx = mean(xdiffs)
-	mny = mean(ydiffs)
+	mnx = mean(xdiffs,/nan)
+	mny = mean(ydiffs,/nan)
+	sdx = stddev(xdiffs,/nan)
+	sdy = stddev(ydiffs,/nan)
 
-	backbone->Log, "Mean shifts (X,Y) of this file vs. old wavecal: "+printcoo(mnx, mny)+" pixels"
+
+	backbone->Log, "Mean shifts (X,Y) of this file vs. old wavecal: "+printcoo(mnx, mny)+" pixels,   +- "+printcoo(sdx,sdy)+" pixels 1 sigma"
 
 	if display ne -1 then begin
 		if display eq 0 then window,/free else select_window, display
@@ -275,10 +264,10 @@ for i = istart,iend,spacing do begin
 	shiftedwavecal = refwlcal
 	shiftedwavecal[*,*,0] += mnx
 	shiftedwavecal[*,*,1] += mny
-;Edit the header of the original raw data products to (-mean.fits
-;filenames) to include the information about the new wavelength
-;calibration. Taken from the gpi_measure_wavelength_calibration.pro
-;primitive file. 
+; Edit the header of the original raw data products 
+; to include the information about the new wavelength
+; calibration. Taken from the gpi_measure_wavelength_calibration.pro
+; primitive file. 
 
 backbone->set_keyword, "FILETYPE", "Wavelength Solution Cal File"
 backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
@@ -303,46 +292,14 @@ backbone->set_keyword, "HISTORY", "  Quality may not be as good as a full thorou
 backbone->set_keyword, "HISTORY", " ",ext_num=0;,/blank
 backbone->set_keyword, "HISTORY", ext_num=0, "    Performed spectral fit for "+strc(counter)+" lenslets total."
 backbone->set_keyword, "HISTORY", ext_num=0, "    Mean shifts (X,Y) vs. prior wavecal: "+printcoo(mnx, mny)+" pixels"
+backbone->set_keyword, "HISTORY", ext_num=0, "                    1 sigma dispersions: "+printcoo(sdx, sdy)+" pixels"
 
-;SAVE THE NEW WAVELENGTH CALIBRATION:
 
   suffix='wavecal'
-
-;Note the below is a quick hack stolen from save_currdata.pro and should be replaced
-;wavecalimage=save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, "-"+filter+"-"+suffix, savedata=newwavecal,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile] ,output_filename=output_filename)
-	  prev_saved_fn = backbone_comm->get_last_saved_file() ; ideally this will be the 2D image which was saved right before this step
+*dataset.currframe = shiftedwavecal
+ptr_free, dataset.currDQ, dataset.currUncert
 
 
-    if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
-      if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
-      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, filter+"-"+suffix, display=display,savedata=shiftedwavecal,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile] ,output_filename=output_filename)
-      if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
-      if tag_exist( Modules[thisModuleIndex], "gpitvim_dispgrid") && ( fix(Modules[thisModuleIndex].gpitvim_dispgrid) ne 0 ) then $
-           if strcmp(obstype,'flat',4,/fold) then im=im0
-
-
-	  last_saved_fn = backbone_comm->get_last_saved_file()
-	  my_base_fn = (strsplit(dataset.filenames[numFile], '_',/extract))[0]
-	  if strpos(prev_saved_fn, my_base_fn) ge 0 then begin
-
-		backbone_comm->gpitv, prev_saved_fn, session=fix(Modules[thisModuleIndex].gpitvim_dispgrid), dispwavecalgrid=output_filename, imname='Wavecal grid for '+  dataset.filenames[numfile]  ;Modules[thisModuleIndex].name
-	  endif else begin
-
-		backbone_comm->gpitv, double(image), session=fix(Modules[thisModuleIndex].gpitvim_dispgrid), header=*(dataset.headersPHU)[numfile], dispwavecalgrid=output_filename, imname='Wavecal grid for '+  dataset.filenames[numfile]  ;Modules[thisModuleIndex].name
-	  endelse
-
-	  
-          
-           ;gpitvms, double(im), ses=fix(Modules[thisModuleIndex].gpitvim_dispgrid),head=h,opt='dispwavcalgrid='+output_filename
-    endif else begin
-      if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
-          backbone_comm->gpitv, double(*DataSet.currFrame), session=fix(Modules[thisModuleIndex].gpitv), header=*(dataset.headersPHU)[numfile], imname='Pipeline result from '+ Modules[thisModuleIndex].name,dispwavecalgrid=output_filename
-          ;gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=h
-    endelse
-
-return, ok
-
-
-@__end_primitive
+@__end_primitive_wavecal
 
 end
