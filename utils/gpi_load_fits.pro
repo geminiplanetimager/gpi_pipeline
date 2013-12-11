@@ -19,7 +19,7 @@
 ; KEYWORDS:
 ; 	/nodata		Don't return (or update) the data, just give the headers.
 ;				This is of course faster, for cases where you just need the
-;				headers.
+;				headers only. PHDU and first image ext HDU headers will be loaded.
 ; 	/silent		Don't display any text on screen while working.
 ; OUTPUTS:
 ;
