@@ -518,7 +518,7 @@ function gpiPipelineBackbone::Run_One_Recipe, CurrentRecipe
 		Self.Parser = OBJ_NEW('gpiDRFParser', backbone=self)
 		Self.Parser -> ParseFile, CurrentRecipe.name,  Self.ConfigParser, backbone=self, status=status
         if status ne OK then begin
-			; technically it parsed, in the sense of reading the XML, but
+			; technically it may have parsed, in the sense of reading the XML, but
 			; there was something bogus about the file, like nonexistent data
 			; So throw an error even though it's syntactically valid.
 			parsererror =1
@@ -545,8 +545,16 @@ function gpiPipelineBackbone::Run_One_Recipe, CurrentRecipe
 		; Recreate a parser object for the next DRF in the pipeline
 		(*self.PipelineConfig).continueAfterRecipeXMLParsing = 0
 
+		; save the most recent error message to the log.
+		Help, /Last_Message, Output=theErrorMessage
+	    FOR j=0,N_Elements(theErrorMessage)-1 DO BEGIN
+			self->log,theErrorMessage[j]
+		ENDFOR
+
 	    ; This code if continueAfterRecipeXMLParsing == 0
 	    self->log, 'Reduction failed due to error in file ' + CurrentRecipe.name,/flush
+
+
 	    self->SetRecipeQueueStatus, CurrentRecipe, 'failed'
 	    self->free_dataset_pointers 		 ; If we failed with outstanding data, then clean it up.
 		return, NOT_OK
