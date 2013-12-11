@@ -20,6 +20,7 @@
 ;
 ; PIPELINE ARGUMENT: Name="HWPoffset" Type="float" Range="[-360.,360.]" Default="-29.14" Desc="The internal offset of the HWP. If unknown set to 0"
 ; PIPELINE ARGUMENT: Name="IncludeSystemMueller" Type="int" Range="[0,1]" Default="1" Desc="1: Include, 0: Don't"
+; PIPELINE ARGUMENT: Name="IncludeSkyRotation" Type="int" Range="[0,1]" Default="1" Desc="1: Include, 0: Don't"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="10" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 
@@ -171,16 +172,17 @@ end
 ;-
 
 
-function DST_instr_pol, polcube, mueller=mueller, port=port
+function DST_instr_pol, polcube, mueller=mueller, port=port, pband=pband
 
 
 ; Step 1: Compute the Mueller matrix corresponding to the instrumental
 ; polarization.
 
-
 ; We take this from the GPI optical model in ZEMAX and Matlab 
 ; by J. Atwood, K. Wallace and J. R. Graham
 ;  - see the OCDD appendix 15. 
+
+;The instrumental mueller matrices 
 
 
 ; Where is GPI mounted? 
@@ -192,7 +194,16 @@ case port of
 			[0.0006, 0.0012, 0.5182, -0.0920], $
 			[0.0000, -0.0062, 0.0920, 0.5181] $
 			]
-	"bottom": message, "No system mueller matrix for bottom port yet!"
+	"bottom": begin
+	          message, "No system mueller matrix for bottom port yet!"
+	          message, "Using a perfect telescope mueller matrix for now"
+	          system_mueller = [ $
+            [ 1.0, 0.0, 0.0, 0.0 ], $
+            [ 0.0, 1.0, 0.0, 0.0 ], $
+            [ 0.0, 0.0, 1.0, 0.0 ], $
+            [ 0.0, 0.0, 0.0, 1.0 ] $
+            ]
+            end
 	"perfect": system_mueller = [ $
 			[ 1.0, 0.0, 0.0, 0.0 ], $
 			[ 0.0, 1.0, 0.0, 0.0 ], $
@@ -201,7 +212,23 @@ case port of
 			]
 endcase
 
-if keyword_set(mueller) then return, system_mueller
+;Insert the instrumental polarization measured in the UCSC lab
+ if ~keyword_set(pband) then pband = 'H' 
+ print, "Using the instrumental polarization matrix from the "+pband+" band"
+ case pband of 
+    'Y': M_IP=[[1.,0,0,0],[-0.024, 0.94, 0.04, 0.26], [-0.026, -0.099, 0.94, 0.16], [0.04, 0.8, 0.9, -0.4]]
+    'J': M_IP=[[1.,0,0,0], [-0.024, 0.95, 0.049, 0.25], [-0.018, -0.108, 0.95, 0.09], [0.1, 0.1, 0.4, -2.8]]
+    'H': M_IP=[[1.,0,0,0], [-0.022, 0.96, 0.054, 0.19], [-0.009, -0.097, 0.96, 0.01], [0.04, 0.22, 0.17, -1.2]]
+    'K1':M_IP=[[1.,0,0,0], [-0.007, 0.97, 0.071, 0.15], [-0.009, -0.1, 0.96, 0.036], [0.3,0.3, 0.9, -1.0]]
+    'K2': begin
+          M_IP=[[1.,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]
+          print, "No instrumental polarization matrix measured in the lab"
+          print, "Instead using an indentity matrix"
+          end
+ endcase
+
+
+if keyword_set(mueller) then return, M_IP##system_mueller
 
 ; Step 2: Apply that Mueller matrix to the polarization data cube. 
 ;
@@ -292,8 +319,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	wpangle = fltarr(nfiles)		; waveplate angles
 
 	portnum=strc(sxpar(hdr0,"INPORT", count=pct))
-stop
-portnum=4
+;<<<<<<< .mine
+; 
+;=======
+;stop
+;portnum=4
+;>>>>>>> .r2226
 	if pct eq 0 then port="side"
 	if pct eq 1 then begin
 	    if portnum eq 1 then port='bottom'
@@ -302,11 +333,19 @@ portnum=4
 	endif    
 		print, "using port = "+port
 		sxaddhist, functionname+": using instr pol for port ="+port, hdr0
-	system_mueller = DST_instr_pol(/mueller, port=port)
+	;system_mueller = DST_instr_pol(/mueller, port=port)
   	woll_mueller_vert = mueller_linpol_rot(0)
 	woll_mueller_horiz= mueller_linpol_rot(90)
 ;    woll_mueller_vert = mueller_linpol_rot(90)
 ;   woll_mueller_horiz= mueller_linpol_rot(0)
+    
+    ;Getting Filter Information
+    filter=strsplit(sxpar(hdr0,"IFSFILT"), '_',/extract)
+    pband=filter[1]
+    tabband=[['Y'],['J'],['H'],['K1'],['K2']]
+    if where(strcmp(tabband, pband) eq 1) lt 0 then return, error('FAILURE ('+functioname+'): IFSFILT keyword invalid. No HWP mueller matrix for that filter')
+    
+    system_mueller = DST_instr_pol(/mueller, pband=pband, port=port)
 
 	for i=0L,nfiles-1 do begin
 	;if numext eq 0 then begin
@@ -320,31 +359,21 @@ portnum=4
 										; polarizations relate to the sky
 		print, "   File "+strc(i)+ ": WP="+strc(wpangle[i]), "     PA="+strc(parang)
 		sxaddhist, functionname+":  File "+strc(i)+ ": WP="+strc(wpangle[i])+ "  PA="+strc(parang) , hdr0
-
-    filter=strsplit(sxpar(hdr0,"IFSFILT"), '_',/extract)
-    pband=filter[1]
-
-    tabband=[['Y'],['J'],['H'],['K1'],['K2']]
-    
-    if where(strcmp(tabband, pband) eq 1) lt 0 then return, error('FAILURE ('+functioname+'): IFSFILT keyword invalid. No HWP mueller matrix for that filter')
-    
-    ;Just testing something: 
-    ;wpangle[i]=-wpangle[i]
-    ;*****
-    
-    
+ 
 		wp_mueller = DST_waveplate(angle=wpangle[i], pband=pband, /mueller,/silent, /degrees)
-		;skyrotation_mueller =  mueller_rotate(parang)
-
-		; FIXME: Sky rotation!!
+		
 		include_mueller=uint(Modules[thisModuleIndex].IncludeSystemMueller)
+		include_sky=uint(Modules[thisModuleIndex].IncludeSkyRotation)
+		
+		; FIXME: Sky rotation!!  
+    if include_sky eq 1 then skyrotation_mueller =  mueller_rot(parang) else skyrotation_mueller=identity(4)
 		
 		if (include_mueller eq 1) then begin ;Either include the system mueller matrix or not. Depending on the keyword
-    total_mueller_vert = woll_mueller_vert ## wp_mueller ## system_mueller ;## skyrotation_mueller
-    total_mueller_horiz = woll_mueller_horiz ## wp_mueller ## system_mueller ;## skyrotation_mueller
+    total_mueller_vert = woll_mueller_vert ## wp_mueller ## system_mueller ## skyrotation_mueller
+    total_mueller_horiz = woll_mueller_horiz ## wp_mueller ## system_mueller ## skyrotation_mueller
     endif else begin
-    total_mueller_vert = woll_mueller_vert ## wp_mueller ;## system_mueller ;## skyrotation_mueller
-    total_mueller_horiz = woll_mueller_horiz ## wp_mueller ;## system_mueller ;## skyrotation_mueller
+    total_mueller_vert = woll_mueller_vert ## wp_mueller ## skyrotation_mueller 
+    total_mueller_horiz = woll_mueller_horiz ## wp_mueller ## skyrotation_mueller 
     endelse
 
 		M[*,2*i] = total_mueller_vert[*,0]
@@ -558,7 +587,7 @@ portnum=4
   print, "U = "+string(umean)
   print, "V = "+string(vmean)
   print, "P = "+string(100*sqrt(qmean^2+umean^2))+"    percent linear polarization"
-  print, string(100*sqrt(qmean^2+umean^2+vmean^2))+" percent polarization"
+  print, string(100*sqrt(qmean^2+umean^2+vmean^2))+"     percent polarization"
   print, "------------------------------"
   
 ;; This is some code to write the mean stokes parameters out to a file called stokes.gpi
