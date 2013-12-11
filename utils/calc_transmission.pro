@@ -38,7 +38,7 @@ compile_opt defint32, strictarr, logical_predicate
 	case pupil_mask_string of
 	'CLEAR': apod_correction=(1.0/0.45) ; actually a tad oversized - but accounted for by Lyot/telescope
 	'CLEARGP': apod_correction=(1.0/0.45) ; has a secondary - but any calculation of flux should already account for this
-	'NRM': lyot_correction=(0.06198/lyot_trans) ; From anand document - LenoxSTScI_delivery_APOD_NRM10withTHRUPUT.xlsx
+	'NRM': apod_correction=(0.06198/0.45) ; From anand document - LenoxSTScI_delivery_APOD_NRM10withTHRUPUT.xlsx
 	'Y': apod_correction=(0.45/0.45)
 	'J': apod_correction=(0.45/0.45)
 	'H': apod_correction=(0.45/0.45)
