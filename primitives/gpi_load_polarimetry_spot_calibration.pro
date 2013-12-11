@@ -42,7 +42,7 @@ calfiletype = 'polcal'
 
         fits_info, c_file, n_ext=numext, /silent
         Backbone->Log, "Loading polarimetry spot peak fit data",depth=3
-        polspot_spotpos = readfits(c_File, ext=numext-2,/silent)
+        polspot_spotpos = readfits(c_File, header,ext=numext-2,/silent)
         Backbone->Log, "Loading polarimetry spot pixel coordinate table",depth=3
         polspot_coords = readfits(c_File, ext=numext-1,/silent)
         Backbone->Log, "Loading polarimetry spot pixel value table",depth=3
@@ -55,6 +55,37 @@ calfiletype = 'polcal'
     backbone->set_keyword, "HISTORY", functionname+": Read calibration file",ext_num=0
     backbone->set_keyword, "HISTORY", functionname+": "+c_File,ext_num=0
     backbone->set_keyword, "DRPPOLCF", c_File, "DRP pol spot calibration file used.", ext_num=0
+    
+    void=mrdfits(c_file, 0, headerphu, /silent)
+    object=sxpar(headerphu, 'OBJECT')
+    
+    if strcmp(object,'TEL_SIM') then begin ;If using the telescope simulator use some basic options. 
+      wc_elev=0
+      wc_inport='perfect' ;J
+    endif else begin
+      ;get elevation amd port for flexure effect correction
+      wc_elev = sxpar(  Header, 'ELEVATIO', count=count) 
+      if count eq 0 then begin
+        void=mrdfits(c_File, 0, headerphu,/silent)
+        wc_elev = sxpar(  headerphu, 'ELEVATIO', count=count)
+      endif
+    
+      wc_inport = sxpar(  Header, 'INPORT', count=count) 
+      if count eq 0 then begin
+        void=mrdfits(c_File, 0, headerphu,/silent)
+        wc_inport= sxpar(  headerphu, 'INPORT', count=count)
+      endif      
+    endelse
+    
+    wc_date = sxpar(  Header, 'DATE-OBS', count=count) 
+    if count eq 0 then begin
+      void=mrdfits(c_File, 0, headerphu,/silent)
+      wc_date= sxpar(  headerphu, 'DATE-OBS', count=count)
+    endif
+    
+    backbone->set_keyword, "WVELEV", wc_elev, "Wavelength solution elevation", ext_num=0
+    backbone->set_keyword, "WVPORT", wc_inport, "Wavelength solution inport", ext_num=0
+    backbone->set_keyword, "WVDATE", wc_date, "Wavelength solution obstime", ext_num=0
 
 @__end_primitive 
 
