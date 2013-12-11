@@ -13,9 +13,9 @@
 ; 	0 if the file is invalid and strict validation is enabled. 
 ;
 ; NOTES:
-; 	FIXME TODO
-; 	This needs to read in whether to use strict validation from some 
-; 	configuration file. 
+;
+;	Could be extended to also handle aborted files and other reasons to ignore
+;	something.
 ;
 ; HISTORY:
 ; 	Began 2012-01-31 00:45:08 by Marshall Perrin 
@@ -50,8 +50,6 @@ end
 ;-----------------------------------------------------
 FUNCTION gpi_validate_file, filename,verbose=verbose
 	forward_function gpi_validate_file_one_keyword
-
-
 
 
 	if not file_test(filename) then return, 0
