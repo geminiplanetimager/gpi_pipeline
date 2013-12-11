@@ -45,7 +45,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
   for n=0,dataset.validframecount-1 do begin
     ;if numext eq 0 then h= *(dataset.headers)[n] else h= *(dataset.headersPHU)[n]
     ;header=*(dataset.headers[n])
-    haall[n]=double(backbone->get_keyword('HA', indexFrame=n))
+    haall[n]=double(ten_string(backbone->get_keyword('HA', indexFrame=n)))
     paall[n]=double(backbone->get_keyword('PAR_ANG', indexFrame=n ,count=ct))
     lat = ten_string('-30 14 26.700') ; Gemini South
     dec=double(backbone->get_keyword('DEC'))
@@ -59,6 +59,11 @@ if numfile  eq ((dataset.validframecount)-1) then begin
   ;;get some parameters of datacubes, could have been already defined before; ToDo:check if already defined and remove this piece of code..
   dimcub=(size(*(dataset.currframe[0])))[1]  ;
   xc=dimcub/2 & yc=dimcub/2
+  
+  filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
+  cwv=get_cwv(filter)
+  commonwavvect=cwv.commonwavvect
+  
   lambdamin=CommonWavVect[0]
   lambdamax=CommonWavVect[1]
   ;Common Wavelength Vector
@@ -160,7 +165,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
         endfor ;loop on lambda
 
     ;save the difference
-	  subsuffix=suffix
+	 ;  subsuffix=suffix
     
     ;subsuffix='-comb'  ;this the suffix that will be added to the name of the ADI residual  
 	  fname=strmid(fn,0,strpos(fn,suffix)-1)+suffix+subsuffix+'.fits'
@@ -174,7 +179,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
       *(dataset.currframe[0])=im
       ;*(dataset.headers[numfile])=header
       thisModuleIndex = Backbone->GetCurrentModuleIndex()
-;stop
+
     if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
       if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
       b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix+subsuffix, display=display, level2=n+1)
