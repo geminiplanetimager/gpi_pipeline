@@ -18,10 +18,12 @@
 ; 	Began 2011-07-29 18:37:06 by Marshall Perrin 
 ;-
 
-FUNCTION gpi_readfits, filename, header=header
+FUNCTION gpi_readfits, filename, header=header, priheader=priheader
 
 	compile_opt defint32, strictarr, logical_predicate
 	fits_info, filename, n_ext = numexten, /silent
+
+	if arg_present(priheader) then priheader = headfits(filename)
 
 	return, mrdfits(filename, numexten gt 0, header,/silent)
 
