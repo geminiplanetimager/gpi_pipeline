@@ -184,9 +184,11 @@ function drfgui::get_obs_keywords, filename
 	ptr_free, fits_data.pri_header, fits_data.ext_header
 
 	obsstruct = {gpi_obs, $
+				FILENAME: filename,$
 				ASTROMTC: strc(  gpi_get_keyword(head, ext_head,  'ASTROMTC', count=ct0)), $
 				OBSCLASS: strc(  gpi_get_keyword(head, ext_head,  'OBSCLASS', count=ct1)), $
 				obstype:  strc(  gpi_get_keyword(head, ext_head,  'OBSTYPE',  count=ct2)), $
+				obsmode:  strc(  gpi_get_keyword(head, ext_head,  'OBSMODE',  count=ct2)), $
 				OBSID:    strc(  gpi_get_keyword(head, ext_head,  'OBSID',    count=ct3)), $
 				filter:   strc(gpi_simplify_keyword_value(strc(   gpi_get_keyword(head, ext_head,  'IFSFILT',   count=ct4)))), $
 				dispersr: strc(gpi_simplify_keyword_value(gpi_get_keyword(head, ext_head,  'DISPERSR', count=ct5))), $
@@ -194,23 +196,25 @@ function drfgui::get_obs_keywords, filename
 				LYOTMASK: strc(  gpi_get_keyword(head, ext_head,  'LYOTMASK',     count=ct7)), $
 				APODIZER: strc(  gpi_get_keyword(head, ext_head,  'APODIZER',     count=ct8)), $
 				ITIME:    float( gpi_get_keyword(head, ext_head,  'ITIME',    count=ct9)), $
-				OBJECT:   strc(  gpi_get_keyword(head, ext_head,  'OBJECT',   count=ct10)), $
+				OBJECT:   string(  gpi_get_keyword(head, ext_head,  'OBJECT',   count=ct10)), $
 				valid: 0}
 	vec=[ct0,ct1,ct2,ct3,ct4,ct5,ct6,ct7,ct8,ct9, ct10]
 	if total(vec) lt n_elements(vec) then begin
 		self.missingkeyw=1 
 		;give some info on missing keyw:
-		keytab=['ASTROMTC','OBSCLASS','OBSTYPE','OBSID', 'IFSFILT','DISPERSR','OCCULTER','LYOTMASK','APODIZER', 'ITIME', 'OBJECT']
+		keytab=['ASTROMTC','OBSCLASS','OBSTYPE','OBSID', 'IFSFILT','DISPERSR','OCCULTER','LYOTMASK','APODIZER', 'ITIME', 'OBJECT','OBSMODE']
 		indzero=where(vec eq 0, cc)
-		print, "Invalid/missing keywords for file "+filename
-		if cc gt 0 then self->Log, 'Missing keyword(s): '+strjoin(keytab[indzero]," ")
+		;print, "Invalid/missing keywords for file "+filename
+		logmsg = 'Missing keyword(s): '+strjoin(keytab[indzero]," ")+" for "+filename
+		if cc gt 0 then self->Log, logmsg
+		message,/info, logmsg
 
 	endif else begin
 		self.missingkeyw=0 ; added by Marshall for cleanup & consistency
 		obsstruct.valid=1
 	endelse
 
-	
+	if obsstruct.dispersr eq 'PRISM' then obsstruct.dispersr='Spectral'	 ; preferred display nomenclature is as Spectral/Wollaston. Both are prisms!
 	
 	return, obsstruct
 

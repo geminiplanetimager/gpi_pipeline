@@ -51,13 +51,20 @@
 ; parsergui::init
 ;    object initialization routine for parsergui. Just calls the parent one, and sets
 ;    the debug flag as needed. 
+;
+;    KEYWORDS:
+;		parse_contents_of=		Provide a directory path and it will parse all
+;								the contents of that directory. 
 ;-
-function  parsergui::init, groupleader, _extra=_extra
+function  parsergui::init, groupleader, parse_contents_of=parse_contents_of, _extra=_extra
 	self.DEBUG = gpi_get_setting('enable_parser_debug', /bool, default=0,/silent) ; print extra stuff?
 	self.xname='parsergui'
 	self.name = 'GPI Data Parser'
 	if self.debug then message,/info, 'Parser init'
-	return, self->drfgui::init(groupleader, _extra=_extra)
+	drfgui_retval = self->drfgui::init(groupleader, _extra=_extra)
+
+	if keyword_set(parse_contents_of) then message,"Not yet implemented"
+	return, drfgui_retval
 end
 
 ;+--------------------------------------------------------------------------------
@@ -85,19 +92,18 @@ pro parsergui::extractparam, modnum
     *self.indarg=where(   ((*self.PrimitiveInfo).argmodnum) eq ([(*self.indmodtot2avail)[(*self.curr_mod_indsort)[modnum]]]+1)[0], carg)
 end
 
-   
+
 ;+-----------------------------------------
 ; parsergui::addfile
 ;
-;     This is actually the main logic routine for parsergui.
+;     This adds a list of files to the current list
 ;
 ;     Add one or more new file(a) to the Input FITS files list, validate them
 ;     and check keywords, and then apply the parsing rules to generate recipes.
 ;
-;
-;
 ;-
-pro parsergui::addfile, filenames, mode=mode
+pro parsergui::addfile, filenames
+
 
     widget_control,self.top_base,get_uvalue=storage  
     index = (*storage.splitptr).selindex
@@ -135,19 +141,62 @@ pro parsergui::addfile, filenames, mode=mode
 
     file[cindex:cindex+n_elements(filenames)-1] = filenames
 
-    for i=0,n_elements(filenames)-1 do begin
-        tmp = strsplit(filenames[i],path_sep(),/extract)
-        pfile[cindex+i] = tmp[n_elements(tmp)-1]+'    '
-    endfor
+    ;for i=0,n_elements(filenames)-1 do begin
+        ;tmp = strsplit(filenames[i],path_sep(),/extract)
+        ;pfile[cindex+i] = tmp[n_elements(tmp)-1]+'    '
+    ;endfor
 
-    self.inputdir=strjoin(tmp[0:n_elements(tmp)-2],path_sep())
-    if !VERSION.OS_FAMILY ne 'Windows' then self.inputdir = "/"+self.inputdir 
+    ;self.inputdir=strjoin(tmp[0:n_elements(tmp)-2],path_sep())
+    ;if !VERSION.OS_FAMILY ne 'Windows' then self.inputdir = "/"+self.inputdir 
+    cindex = cindex+n_elements(filenames)
+    (*storage.splitptr).selindex = max([0,cindex-1])
+    (*storage.splitptr).findex = cindex
+    (*storage.splitptr).filename = file
+    (*storage.splitptr).printname = pfile
+    (*storage.splitptr).datefile = datefile 
+
+
+
+
+end
+
+
+
+;+-----------------------------------------
+; parsergui::parse_current_files
+;
+;     This is actually the main logic routine for parsergui.
+;
+;     Add one or more new file(a) to the Input FITS files list, validate them
+;     and check keywords, and then apply the parsing rules to generate recipes.
+;
+;
+;
+;-
+pro parsergui::parse_current_files
+
+    widget_control,self.top_base,get_uvalue=storage  
+    index = (*storage.splitptr).selindex
+    cindex = (*storage.splitptr).findex
+    file = (*storage.splitptr).filename
+    pfile = (*storage.splitptr).printname
+    datefile = (*storage.splitptr).datefile
+
+	t0 = systime(/seconds)
+
+
+	; discard any blanks. 
+	wnotblank = where(file ne '')
+	file=file[wnotblank]
+
+
+    ;self.inputdir=strjoin(tmp[0:n_elements(tmp)-2],path_sep())
+    ;if !VERSION.OS_FAMILY ne 'Windows' then self.inputdir = "/"+self.inputdir 
 
 
     self->Log, "Loading and parsing files..."
-	;print, "time 1: ", systime(/seconds) - t0
     ;-- Update information in the structs
-    cindex = cindex+n_elements(filenames)
+    ;cindex = cindex+n_elements(filenames)
     (*storage.splitptr).selindex = max([0,cindex-1])
     (*storage.splitptr).findex = cindex
     (*storage.splitptr).filename = file
@@ -159,80 +208,64 @@ pro parsergui::addfile, filenames, mode=mode
 	
     if gpi_get_setting('strict_validation',/bool, default=1,/silent)  then begin
 
-        validtelescop=bytarr(cindex)
-        validinstrum=bytarr(cindex)
-        validinstrsub=bytarr(cindex)
+		nfiles = n_elements(file)
+        valid=bytarr(nfiles)
 
-        for ff=0, cindex-1 do begin
+        for ff=0, nfiles-1 do begin
 			;print, "time 2, file "+strc(ff)+": ", systime(/seconds) - t0
 			if self.debug then message,/info, 'Verifying keywords for file '+file[ff]
 			if self.debug then message,/info, '  This code needs to be made more efficient...'
-            validtelescop[ff]=self->validkeyword( file[ff], 1,'TELESCOP','Gemini*',storage) 
-            validinstrum[ff]= self->validkeyword( file[ff], 1,'INSTRUME','GPI',storage)
-            validinstrsub[ff]=self->validkeyword( file[ff], 1,'INSTRSUB','IFS',storage)            
-			;print, "time 3, file "+strc(ff)+": ", systime(/seconds) - t0
+
+            valid[ff]=gpi_validate_file( file[ff] ) 
         endfor  
 
-        indnonvaliddata0=[where(validtelescop eq 0),where(validinstrum eq 0),where(validinstrsub eq 0)]
-        indnonvaliddata=indnonvaliddata0[uniq(indnonvaliddata0,sort( indnonvaliddata0 ))]
-        indnonvaliddata2=where(indnonvaliddata ne -1, cnv)
+        indnonvalid=where(valid eq 0, cnv, complement=wvalid, ncomplement=countvalid)
         if cnv gt 0 then begin
-            indnonvaliddata3=indnonvaliddata[indnonvaliddata2]
-            nonvaliddata=file[indnonvaliddata3]
-            self->Log,'WARNING: non-valid data have been detected and removed:'+nonvaliddata
-            indvaliddata=intersect(indnonvaliddata3,indgen(cindex),countvalid,/xor)
-             ;correct for a strange side effect with the intersect function above : test for instance: print, intersect([0],[0],ac,/xor)
-            if n_elements(indnonvaliddata3) eq cindex then countvalid = 0
-            if countvalid eq 0 then file=''
-            if countvalid gt 0 then file=file[indvaliddata]
+            self->Log,'WARNING: invalid files (based on FITS keywords) have been detected and removed:' + strjoin(file[indnonvalid],",")
 
-                cindex = countvalid
-                (*storage.splitptr).selindex = max([0,cindex-1])
-                (*storage.splitptr).findex = cindex
-                (*storage.splitptr).filename = file
-                pfile=file
-                (*storage.splitptr).printname = pfile
-                (*storage.splitptr).datefile = datefile 
-            endif
+            if countvalid eq 0 then file=''
+            if countvalid gt 0 then file=file[wvalid]
+			nfiles = n_elements(file)
+
+			(*storage.splitptr).selindex = max([0,countvalid-1])
+			(*storage.splitptr).findex = countvalid
+			(*storage.splitptr).filename = file
+			(*storage.splitptr).printname = file
+			(*storage.splitptr).datefile = datefile 
+        endif else begin
+			self->Log, "All "+strc(n_elements(file))+" files pass basic FITS keyword validity check."
+		endelse
       
     endif else begin ;if data are test data don't remove them but inform a bit
-        for ff=0, cindex-1 do begin
+        for ff=0, nfiles-1 do begin
 			if self.debug then message,/info, 'Checking for valid headers: '+file[ff]
-			;print, "time 2, file "+strc(ff)+": ", systime(/seconds) - t0
-			validtelescop=self->validkeyword( file[ff], 1,'TELESCOP','Gemini',storage)
-			;print, "time 2a, file "+strc(ff)+": ", systime(/seconds) - t0
-			validinstrum =self->validkeyword( file[ff], 1,'INSTRUME','GPI',storage)
-			;print, "time 2b, file "+strc(ff)+": ", systime(/seconds) - t0
-			validinstrsub=self->validkeyword( file[ff], 1,'INSTRSUB','IFS',storage)
-			;print, "time 3, file "+strc(ff)+": ", systime(/seconds) - t0
+			valid = gpi_validate_file(file[i])
 		endfor
     endelse
     (*self.currModSelec)=strarr(5)
     (*self.recipes_table)=strarr(10)
 
-
+    for i=0,nfiles-1 do pfile[i] = file_basename(file[i]) 
     widget_control,storage.fname,set_value=pfile ; update displayed filename information - temporary, just show filename
 
-    if cindex gt 0 then begin ;assure that data are selected
+    if nfiles gt 0 then begin ;assure that data are selected
 	self->Log,'Now reading in keywords for all files...'
 
 
         self.num_recipes_in_table=0
         ;; RESOLVE FILTER(S) AND OBSTYPE(S)
         tmp = self->get_obs_keywords(file[0])
-        finfo = replicate(tmp,cindex)
+        finfo = replicate(tmp,nfiles)
 
-        for jj=0,cindex-1 do begin
+        for jj=0,nfiles-1 do begin
             finfo[jj] = self->get_obs_keywords(file[jj])
             ;;we want Xenon&Argon considered as the same 'lamp' object for Y,K1,K2bands (for H&J, better to do separately to keep only meas. from Xenon)
             if (~strmatch(finfo[jj].filter,'[HJ]')) && (strmatch(finfo[jj].object,'Xenon') || strmatch(finfo[jj].object,'Argon')) then $
                     finfo[jj].object='Lamp'
-            ;; we also want Flat considered for wavelength solution in Y band
-            if strmatch(finfo[jj].object,'Flat*')  &&  strmatch(finfo[jj].filter,'Y') then $
-            finfo[jj].object='Lamp'
-            pfile[jj] = pfile[jj]+"     "+finfo[jj].dispersr +" "+finfo[jj].filter+" "+finfo[jj].obstype+" "+string(finfo[jj].itime,format='(F5.1)')+"  "+finfo[jj].object
+            pfile[jj] = pfile[jj]+"     "+finfo[jj].obsmode+" "+finfo[jj].dispersr +" "+finfo[jj].obstype+" "+string(finfo[jj].itime,format='(F5.1)')+"  "+finfo[jj].object
         endfor
-        widget_control,storage.fname,set_value=pfile ; update displayed filename information - filenames plus parsed keywords
+		wnz = where(pfile ne '')
+        widget_control,storage.fname,set_value=pfile[wnz] ; update displayed filename information - filenames plus parsed keywords
 
 		wvalid = where(finfo.valid, nvalid, complement=winvalid, ncomplement=ninvalid)
 		if ninvalid gt 0 then begin
@@ -243,20 +276,19 @@ pro parsergui::addfile, filenames, mode=mode
 		endif
 
 
-	self->Log,'Now analyzing data based on keywords...'
+		self->Log,'Now analyzing data based on keywords...'
 
-        (*storage.splitptr).printfname=pfile
 
-	; Mark filter as irrelevant for Dark exposures
-	wdark = where(strlowcase(finfo.obstype) eq 'dark', dct)
-	if dct gt 0 then finfo[wdark].filter='-'
+		; Mark filter as irrelevant for Dark exposures
+		wdark = where(strlowcase(finfo.obstype) eq 'dark', dct)
+		if dct gt 0 then finfo[wdark].filter='-'
 
         if (n_elements(file) gt 0) && (strlen(file[0]) gt 0) then begin
 
             ; save starting date and time for use in DRF filenames
-            caldat,systime(/julian),month,day,year, hour,minute,second
-            datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
-            hourstr = string(hour,minute,format='(i2.2,i2.2)')  
+            ;caldat,systime(/julian),month,day,year, hour,minute,second
+            ;datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
+            ;hourstr = string(hour,minute,format='(i2.2,i2.2)')  
           
             current = {gpi_obs}
 
@@ -286,8 +318,6 @@ pro parsergui::addfile, filenames, mode=mode
             uniqobsclass = uniqvals(finfo.obsclass, /sort)
             uniqitimes = uniqvals(finfo.itime, /sort)
             uniqobjects = uniqvals(finfo.object, /sort)
-
-
 
             nbfilter=n_elements(uniqfilter)
             message,/info, "Now adding "+strc(n_elements(finfo))+" files. "
@@ -373,12 +403,14 @@ pro parsergui::addfile, filenames, mode=mode
                                         if cobj eq 0 then continue ; this particular combination of filter, obstype, dispersr, occulter, class, time, object has no files. 
 
 										; otherwise, try to match it:
-                                        file_filt_obst_disp_occ_obs_itime_object = file[indfobject]
+                                        file_filt_obst_disp_occ_obs_itime_object = finfo[indfobject].filename
                          
 
+										current.obsmode = finfo[indfobject[0]].obsmode
+										current.lyotmask= finfo[indfobject[0]].lyotmask
                                         ;identify which templates to use
                                         print,  current.obstype ; uniqsortedobstype[indsortseq[fc]]
-                                        self->Log, "Found sequence of OBSTYPE="+current.obstype+", DISPERSR="+current.dispersr+", IFSFILT="+current.filter+ " with "+strc(cobj)+" files."
+                                        self->Log, "Found sequence of OBSTYPE="+current.obstype+", OBSMODE="+current.obsmode+", DISPERSR="+current.dispersr+", IFSFILT="+current.filter+ " with "+strc(cobj)+" files targeting "+current.object
 
                                         case strupcase(current.obstype) of
                                         'DARK':begin
@@ -417,7 +449,7 @@ pro parsergui::addfile, filenames, mode=mode
 											'WOLLASTON': begin 
 												templatename='Basic Polarization Sequence'
                                             end 
-											'PRISM': begin 
+											'SPECTRAL': begin 
                                                 if  current.occulter eq 'SCIENCE'  then begin ;'Science fold' means no occulter
                                                     ;if binaries:
                                                     if strmatch(current.obsclass, 'AstromSTD',/fold) then begin
@@ -469,59 +501,60 @@ pro parsergui::addfile, filenames, mode=mode
                 endfor ;loop on fc obstype
             endfor ;loop on ff filter
         endif ;cond on n_elements(file) 
+
+		if self.num_recipes_in_table gt 0 then begin
+				; ******  Second stage of parsing: *****
+				; Generate additional recipes for various special
+				; cases such as bad pixel map generation.
+				
+				; 1. Generate hot bad pixel map recipe if we have any > 60 s darks. 
+				;    Insert this at the end of the darks
+
+				; First retrieve the names, itimes, and nfiles from the current list of recipes
+				DRFnames = (*self.recipes_table)[1,*]
+				ITimes= (*self.recipes_table)[8,*]
+				Nfiles= (*self.recipes_table)[10,*]
+				wdark = where(DRFnames eq 'Dark' and (itimes gt 60) and (nfiles ge 10), darkcount)
+				if darkcount gt 0 then begin
+					; take the DRF of the longest available dark sequence and read all of
+					; the FITS files in it
+					longestdarktime = max(itimes[wdark], wlongestdark)
+					ilongdark = wdark[wlongestdark]
+					self->clone_recipe_and_swap_template, ilongdark,  'Generate Hot Bad Pixel Map from Darks',   insert_index=insertindex
+				endif
+
+				; 2. If we have added some (how many? At least 3? ) different flat field
+				; recipes, then combine those all together to generate cold pixel maps
+				
+				DRFnames = (*self.recipes_table)[1,*]
+				wflat = where(DRFnames eq 'Flat-field Extraction', flatcount)
+				; do we need to check distinct filters here? 
+				if flatcount ge 4 then begin
+					; generate a list of all the files
+					; merge them into one list
+					; edit clone_recipe routine to allow you to pass in a list of filenames
+					; clone a new instance of 'Generate Cold Bad Pixel Map from Flats'
+					; recipe using those. Add at the end of all the flats. 
+
+				endif
+
+				
+				; 3. If we have added either the Hot bad pixel or cold bad pixel update
+				; recipes, we should update the overall bad pixel map too. 
+				DRFnames = (*self.recipes_table)[1,*]
+				wbp = where(DRFnames eq 'Generate Hot Bad Pixel Map from Darks' or DRFnames eq 'Generate Cold Bad Pixel Map from Flats' , bpcount)
+				if bpcount gt 0 then begin
+					ilastbp = max(wbp)
+					self->clone_recipe_and_swap_template, ilastbp,  'Combine Bad Pixel Maps',   insert_index=ilastbp+1, /lastfileonly
+
+				endif
+		endif
+		
+
     endif ;condition on cindex>0, assure there are data to process
 
-	if self.num_recipes_in_table gt 0 then begin
-			; ******  Second stage of parsing: *****
-			; Generate additional recipes for various special
-			; cases such as bad pixel map generation.
-			
-			; 1. Generate hot bad pixel map recipe if we have any > 60 s darks. 
-			;    Insert this at the end of the darks
-
-			; First retrieve the names, itimes, and nfiles from the current list of recipes
-			DRFnames = (*self.recipes_table)[1,*]
-			ITimes= (*self.recipes_table)[9,*]
-			Nfiles= (*self.recipes_table)[11,*]
-			wdark = where(DRFnames eq 'Dark' and (itimes gt 60) and (nfiles ge 10), darkcount)
-			if darkcount gt 0 then begin
-				; take the DRF of the longest available dark sequence and read all of
-				; the FITS files in it
-				longestdarktime = max(itimes[wdark], wlongestdark)
-				ilongdark = wdark[wlongestdark]
-				self->clone_recipe_and_swap_template, ilongdark,  'Generate Hot Bad Pixel Map from Darks',   insert_index=insertindex
-			endif
-
-			; 2. If we have added some (how many? At least 3? ) different flat field
-			; recipes, then combine those all together to generate cold pixel maps
-			
-			DRFnames = (*self.recipes_table)[1,*]
-			wflat = where(DRFnames eq 'Flat-field Extraction', flatcount)
-			; do we need to check distinct filters here? 
-			if flatcount ge 4 then begin
-				; generate a list of all the files
-				; merge them into one list
-				; edit clone_recipe routine to allow you to pass in a list of filenames
-				; clone a new instance of 'Generate Cold Bad Pixel Map from Flats'
-				; recipe using those. Add at the end of all the flats. 
-
-			endif
-
-			
-			; 3. If we have added either the Hot bad pixel or cold bad pixel update
-			; recipes, we should update the overall bad pixel map too. 
-			DRFnames = (*self.recipes_table)[1,*]
-			wbp = where(DRFnames eq 'Generate Hot Bad Pixel Map from Darks' or DRFnames eq 'Generate Cold Bad Pixel Map from Flats' , bpcount)
-			if bpcount gt 0 then begin
-				ilastbp = max(wbp)
-				self->clone_recipe_and_swap_template, ilastbp,  'Combine Bad Pixel Maps',   insert_index=ilastbp+1, /lastfileonly
-
-			endif
-	endif
-    
-
     void=where(file ne '',cnz)
-    self->Log,'Data Parsed: '+strtrim(cnz,2)+' FITS files added.'
+    self->Log,'Data Parsed: '+strtrim(cnz,2)+' FITS files.'
     self->Log,'             '+strtrim(self.num_recipes_in_table,2)+' recipe files created.'
     ;self->Log,'resolved FILTER band: '+self.filter
 
@@ -561,7 +594,7 @@ end
 ;
 ;
 ;-
-pro parsergui::create_recipe_from_template, templatename, fitsfiles, current,  index=index ;, mode=mode
+pro parsergui::create_recipe_from_template, templatename, fitsfiles, current,  index=index
 
 	; load the DRF, save with new filenames
     ;self->loaddrf, templatename ,  /nodata
@@ -578,7 +611,7 @@ pro parsergui::create_recipe_from_template, templatename, fitsfiles, current,  i
 	;catch, parse_error
 	parse_error=0
 	if parse_error eq 0 then begin
-		drf = obj_new('drf', self.LoadedRecipeFile)
+		drf = obj_new('drf', self.LoadedRecipeFile,/silent)
 	endif else begin
         message, "Could not parse Recipe File: "+self.LoadedRecipeFile,/info
 		;stop
@@ -655,7 +688,7 @@ pro parsergui::clone_recipe_and_swap_template, existing_recipe_index, newtemplat
 	existing_metadata= {filter: (*self.currDRFSelec)[3,existing_recipe_index], $
 						obstype:(*self.currDRFSelec)[4,existing_recipe_index], $
 						dispersr: (*self.currDRFSelec)[5,existing_recipe_index], $
-						occulter: (*self.currDRFSelec)[6,existing_recipe_index], $ 
+						obsmode: (*self.currDRFSelec)[6,existing_recipe_index], $ 
 						lyotmask: (*self.currDRFSelec)[7,existing_recipe_index], $ 
 						obsclass: (*self.currDRFSelec)[8,existing_recipe_index], $
 						itime:(*self.currDRFSelec)[9,existing_recipe_index], $
@@ -681,7 +714,7 @@ pro parsergui::add_recipe_to_table, filename, drf, current, index=index
     drf_summary = drf->get_summary()
 
     new_recipe_row = [gpi_shorten_path(filename), drf_summary.name,   drf_summary.reductiontype, $
-        current.filter, current.obstype, current.dispersr, current.occulter, current.lyotmask, current.obsclass, string(current.itime,format='(F7.1)'), current.object, strc(drf_summary.nfiles)] 
+        current.filter, current.obstype, current.dispersr, current.obsmode, current.obsclass, string(current.itime,format='(F7.1)'), current.object, strc(drf_summary.nfiles)] 
 
 	; what I wouldn't give here to be able to use a Python List, or even just to
 	; use IDL 8.0 with its list function and null lists... argh!
@@ -711,7 +744,7 @@ pro parsergui::add_recipe_to_table, filename, drf, current, index=index
     self.num_recipes_in_table+=1
 
     widget_control, self.tableSelected, ysize=((size(*self.recipes_table))[2] > 20 )
-    widget_control, self.tableSelected, set_value=(*self.recipes_table)[0:11,*]
+    widget_control, self.tableSelected, set_value=(*self.recipes_table)[0:10,*]
     widget_control, self.tableSelected, background_color=rebin(*self.table_BACKground_colors,3,2*11,/sample)    
 
 end
@@ -760,6 +793,7 @@ pro parsergui::event,ev
               'WILDCARD': textinfo='Click to add files to input list using a wildcard (*.fits etc)'
               'REMOVE': textinfo='Click to highlight a file, then press this button to remove that currently highlighted file from the input list.'
               'REMOVEALL': textinfo='Click to remove all files from the input list'
+              'REPARSE': textinfo='Click to reprocess all the currently selected FITS files to generate recipes.'
               'DRFGUI': textinfo='Click to load currently selected Recipe into the Recipe Editor'
               'Delete': textinfo='Click to delete the currently selected Recipe. (Cannot be undone!)'
               'QueueAll': textinfo='Click to add all DRFs to the execution queue.'
@@ -847,6 +881,7 @@ pro parsergui::event,ev
         endelse
         
         self->AddFile, result
+		self->parse_current_files
         
     end
     'FNAME' : begin
@@ -867,6 +902,10 @@ pro parsergui::event,ev
             self->Log,'All items removed.'
         endif
     end
+	'REPARSE': begin
+        self->Log,'User requested re-parsing all files.'
+		self->parse_current_files
+	end
     'sortmethod': begin
         sortfieldind=widget_info(self.sortfileid,/DROPLIST_SELECT)
     end
@@ -1072,6 +1111,7 @@ pro parsergui::ask_add_files
 	if result[0] ne '' then begin
 		self.last_used_input_dir = file_dirname(result[0])
 		self->AddFile, result
+		self->parse_current_files
 	endif
 
 end
@@ -1111,6 +1151,13 @@ function parsergui::init_widgets,  _extra=_Extra
       nlines_modules=10
       nlines_args=6
     endelse
+
+	if screensize[0] lt 1200 then begin
+		table_xsize=1150
+	endif else begin
+		table_xsize=1350
+	endelse
+
     CASE !VERSION.OS_FAMILY OF  
         ; **NOTE** Mac OS X reports an OS family of 'unix' not 'MacOS'
        'unix': begin 
@@ -1166,11 +1213,15 @@ function parsergui::init_widgets,  _extra=_Extra
     button=widget_button(top_basefilebutt,value="Remove",uvalue="REMOVE", $
         xsize=90,ysize=30, /tracking_events);,xoffset=210,yoffset=115)
     button=widget_button(top_basefilebutt,value="Remove All",uvalue="REMOVEALL", $
-        xsize=90,ysize=30, /tracking_events);,xoffset=310,yoffset=115)
-    ;top_basefilebutt2=widget_base(top_basefilebutt,/BASE_ALIGN_LEFT,/row,frame=DEBUG_SHOWFRAMES)
+        xsize=90,ysize=30, /tracking_events)
+    label = widget_label(top_basefilebutt, value="    ")
+    button=widget_button(top_basefilebutt,value="Re-Parse All Files",uvalue="REPARSE", $
+        xsize=180,ysize=30, /tracking_events)
+
+
     top_basefilebutt2=top_basefilebutt
     self.sorttab=['obs. date/time','alphabetic filename','file creation date']
-    self.sortfileid = WIDGET_DROPLIST( top_basefilebutt2, title='Sort data by:',  Value=self.sorttab,uvalue='sortmethod')
+    self.sortfileid = WIDGET_DROPLIST( top_basefilebutt2, title='   Sort data by:',  Value=self.sorttab,uvalue='sortmethod')
     drfbrowse = widget_button(top_basefilebutt2,  $
                             XOFFSET=174 ,SCR_XSIZE=80, ysize= 30 $; ,SCR_YSIZE=23  $
                             ,/ALIGN_CENTER ,VALUE='Sort data',uvalue='sortdata')                          
@@ -1219,12 +1270,13 @@ function parsergui::init_widgets,  _extra=_Extra
 	self.table_BACKground_colors = ptr_new([[255,255,255],[240,240,255]])
 
 	;col_labels = ['Recipe File','Recipe Name','Recipe Type','IFSFILT','OBSTYPE','DISPERSR','OCCULTER','OBSCLASS','ITIME','OBJECT', '# FITS']
-	col_labels = ['Recipe File','Recipe Name','Recipe Type','IFSFILT','OBSTYPE','DISPERSR','OCCULTER','LYOTMASK', 'OBSCLASS','ITIME','OBJECT', '# FITS']
+	col_labels = ['Recipe File','Recipe Name','Recipe Type','IFSFILT','OBSTYPE','DISPERSR','OBSMODE', 'OBSCLASS','ITIME','OBJECT', '# FITS']
 	xsize=n_elements(col_labels)
 	self.tableSelected = WIDGET_TABLE(parserbase, $; VALUE=data, $ ;/COLUMN_MAJOR, $ 
 		COLUMN_LABELS=col_labels,/resizeable_columns, $
 		xsize=xsize,ysize=20,uvalue='tableselec',value=(*self.recipes_table), /TRACKING_EVENTS,$
-		/NO_ROW_HEADERS, /SCROLL,y_SCROLL_SIZE =nlines_modules,scr_xsize=1150, COLUMN_WIDTHS=[340,200,100,50,62,62,62,62,62,62,62, 50],frame=1,/ALL_EVENTS,/CONTEXT_EVENTS, $
+		/NO_ROW_HEADERS, /SCROLL,y_SCROLL_SIZE =nlines_modules,scr_xsize=table_xsize, $
+		COLUMN_WIDTHS=[520,200,100,50,62,62,72,72,62,82, 50],frame=1,/ALL_EVENTS,/CONTEXT_EVENTS, $
 		background_color=rebin(*self.table_BACKground_colors,3,2*11,/sample)    ) ;,/COLUMN_MAJOR                
 
 	; Create the status log window 
@@ -1248,7 +1300,7 @@ function parsergui::init_widgets,  _extra=_Extra
     button2b=widget_button(top_baseexec,value="Open in Recipe Editor",uvalue="DRFGUI", /tracking_events)
     button2b=widget_button(top_baseexec,value="Delete selected Recipe",uvalue="Delete", /tracking_events)
 
-    space = widget_label(top_baseexec,uvalue=" ",xsize=200,value='  ')
+    space = widget_label(top_baseexec,uvalue=" ",xsize=100,value='  ')
     button3=widget_button(top_baseexec,value="Close Data Parser GUI",uvalue="QUIT", /tracking_events, resource_name='red_button')
 
     self.textinfoid=widget_label(parserbase,uvalue="textinfo",xsize=900,value='  ')
@@ -1256,11 +1308,11 @@ function parsergui::init_widgets,  _extra=_Extra
     maxfilen=gpi_get_setting('parsergui_max_files',/int, default=1000,/silent) 
     filename=strarr(maxfilen)
     printname=strarr(maxfilen)
-    printfname=strarr(maxfilen)
+    ;printfname=strarr(maxfilen)
     datefile=lonarr(maxfilen)
     findex=0
     selindex=0
-    splitptr=ptr_new({filename:filename,printname:printname,printfname:printfname,$
+    splitptr=ptr_new({filename:filename,printname:printname,$
       findex:findex,selindex:selindex,datefile:datefile, maxfilen:maxfilen})
 
     ;make and store data storage
