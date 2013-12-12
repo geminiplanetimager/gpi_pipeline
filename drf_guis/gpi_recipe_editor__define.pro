@@ -1250,8 +1250,8 @@ pro gpi_recipe_editor::save, template=template, nopickfile=nopickfile
         hourstr = string(hour,minute,second,format='(i2.2,i2.2,i2.2)') 
         
         ;;get rid of any leading paths on the first and last files
-        first_file = file_basename(files[0])    
-        last_file = file_basename(files[size(files,/n_elements)-1])
+        first_file = file_basename(gpi_expand_path(files[0]))
+        last_file = file_basename(gpi_expand_path(files[size(files,/n_elements)-1]))
         
         first_file=strsplit(first_file,'.',/extract)
         last_file=strsplit(last_file,'.',/extract)
