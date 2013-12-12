@@ -32,6 +32,7 @@
 ; PIPELINE COMMENT: Extract 2 perpendicular polarizations from a 2D image.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
+; PIPELINE ARGUMENT: Name="Method" Type="String" Range="BOX|PSF" Default="BOX" Desc="Method for pol cube reconstruction, simple box or optimal PSF"
 ; PIPELINE ORDER: 2.0
 ; PIPELINE NEWTYPE: PolarimetricScience, Calibration
 ;
@@ -52,6 +53,13 @@ function gpi_assemble_polarization_cube, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 
 @__start_primitive
+
+
+	if tag_exist( Modules[thisModuleIndex], "method") then method=(Modules[thisModuleIndex].method) else method='BOX'
+	if method eq '' then method='BOX'
+	method = strupcase(method)
+
+	if method ne 'BOX' and method ne 'PSF' then return, error("Not a valid method argument name: "+method)
 
 	input=*(dataset.currframe[0])
 
@@ -79,7 +87,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     wpangle =  strc(backbone->get_keyword( "WPANGLE"))
 	backbone->Log, "WP angle is "+strc(wpangle), depth=2
 
+	mask=1
     if keyword_set(mask) then mask = input*0
+	mask2 = input*0
 
     ;  Extract the data to a datacube
     for pol=0,1 do begin
@@ -101,18 +111,31 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         ;polcube[iy, ix, pol] = total(input[spotx,spoty])
 		; swap not desired any more - need to match orientation convention in
 		; spectral mode. -MDP 2013-01-02
-        polcube[ix, iy, pol] = total(input[spotx,spoty])
+		case method of
+		'PSF': polcube[ix, iy, pol] = total(input[spotx,spoty])
+		'BOX': begin
+			cenx = polcal.spotpos[0,ix,iy,pol]
+			ceny =  polcal.spotpos[1,ix,iy,pol]
+			boxsize=2
+			polcube[ix, iy, pol] = total(input[ cenx-boxsize:cenx+boxsize, ceny-boxsize:ceny+boxsize]  )
+			mask2[cenx-boxsize:cenx+boxsize, ceny-boxsize:ceny+boxsize] += pol+1
+		end
+		endcase
 
 
         ; No - the following does NOT make things better. This is the wrong way
         ; to normalize things here. 
         ;polcube2[iy, ix, pol] = total(input[spotx,spoty]*pixvals) 
 
-        if keyword_set(mask) then mask[iii]=pol+1
+        if keyword_set(mask) then mask[spotx, spoty]=pol+1
+		;mask2[ polcal.spotpos[0,ix,iy,pol],  polcal.spotpos[1,ix,iy,pol]] = pol+1
 
     endfor 
     endfor 
+	;atv, [[[input]],[[mask]],[[mask2]]],/bl
+	;stop
     endfor 
+
 
     ;; Update FITS header with RA and Dec WCS information 
     ;; As long as it's not a TEL_SIM image
@@ -140,8 +163,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
     suffix='-podc'
     *(dataset.currframe)=polcube
-    ptr_free, dataset.currDQ  ; right now we're not creating a DQ cube
-    ptr_free, dataset.currUncert  ; right now we're not creating an uncert cube
+	ptr_free, dataset.currDQ  ; right now we're not creating a DQ cube
+	ptr_free, dataset.currUncert  ; right now we're not creating an uncert cube
 
  
     @__end_primitive 
