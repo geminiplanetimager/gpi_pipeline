@@ -14,7 +14,10 @@
 ; OUTPUTS:
 ;
 ; PIPELINE COMMENT: Rotate datacubes so that north is up. 
-; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="CUBIC|FFT" Default="CUBIC"
+; PIPELINE ARGUMENT: Name="Rot_Method" Type="string" Range="CUBIC|FFT" Default="CUBIC" Desc='Method to compute the rotation'
+; PIPELINE ARGUMENT: Name="Center_Method" Type="string" Range="HEADERS|MANUAL" Default="HEADERS" Desc="Determine the center of rotation from FITS header keywords, manual entry"
+; PIPELINE ARGUMENT: Name="centerx" Type="int" Range="[0,281]" Default="140" Desc="Center X Pixel if Center_Method=Manual"
+; PIPELINE ARGUMENT: Name="centery" Type="int" Range="[0,281]" Default="140" Desc="Center Y Pixel if Center_Method=Manual"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 3.9
@@ -33,9 +36,36 @@ function gpi_rotate_north_up, DataSet, Modules, Backbone
   sz = size(cube)
   nslice = sz[3]                ; works for either POL or SPEC modes
 
-  if tag_exist( Modules[thisModuleIndex], "Method") then Method= strupcase(Modules[thisModuleIndex].method) else method="CUBIC" ; can be CUBIC or FFT
-  message,/info, " using rotation method "+method
-  if method ne 'CUBIC' and method ne 'FFT' then return, error("Invalid rotation method: "+method)
+  if tag_exist( Modules[thisModuleIndex], "Rot_Method") then Rot_Method= strupcase(Modules[thisModuleIndex].rot_method) else rot_method="CUBIC" ; can be CUBIC or FFT
+  if tag_exist( Modules[thisModuleIndex], "center_Method") then center_Method= strupcase(Modules[thisModuleIndex].center_method) else center_method="HEADERS" ; can be CUBIC or FFT
+  backbone->Log," using rotation method "+rot_method
+  backbone->Log, " using centering method "+center_method
+  if rot_method ne 'CUBIC' and rot_method ne 'FFT' then return, error("Invalid rotation method: "+rot_method)
+  if center_method ne 'HEADERS' and center_method ne 'MANUAL' then return, error("Invalid rotation method: "+center_method)
+
+
+	case strupcase(center_method) of
+	'HEADERS': begin
+		centerx = backbone->get_keyword('PSFCENTX', count=ct1)
+		centery = backbone->get_keyword('PSFCENTY', count=ct2)
+  		if ct1+ct2 ne 2 then begin
+			return, error("Could not get PSFCENTX and PSFCENTY keywords from header. Cannot determine PSF center.")
+  		endif 
+
+	end
+	'MANUAL': begin
+  		centerx=long(Modules[thisModuleIndex].centerx)
+  		centery=long(Modules[thisModuleIndex].centery)
+
+		 backbone->set_keyword, 'PSFCENTX', centerx, 'Manually set by user'
+		 backbone->set_keyword, 'PSFCENTY', centery, 'Manually set by user'
+
+
+	end
+	endcase
+	
+  backbone->Log, " center =  "+printcoo(centerx,centery)
+
 
   ;; ====== Rotation =======
   ;; First some notes on FITS headers and orientations. 
@@ -62,13 +92,6 @@ function gpi_rotate_north_up, DataSet, Modules, Backbone
   ;;      that Gemini takes into account those when orienting the telescope
   ;;      such that GPI is oriented precisely aligned with the zenith?
 
-  ;;try to get PSF centers, otherwise use center
-  xcen = backbone->get_keyword('PSFCENTX', count=ct1)
-  ycen = backbone->get_keyword('PSFCENTY', count=ct2)
-  if ct1+ct2 ne 2 then begin
-     xcen = (sz[1]-1)/2
-     ycen = (sz[2]-1)/2
-  endif 
 
   ;; get WCS info from header
   astr_header =  *DataSet.HeadersExt[numfile]
@@ -81,6 +104,10 @@ function gpi_rotate_north_up, DataSet, Modules, Backbone
      hreverse2, cube[*,*,0],  astr_header , tmp,  astr_header , 1, /silent
      for i=0,nslice-1 do cube[*,*,i] = reverse(reform(cube[*,*,i],sz[1],sz[2]))
      npa = -npa
+	 centerx0=centerx
+	 centerx = sz[1]-1-centerx
+	 backbone->set_keyword, 'PSFCENTX', centerx, 'After image flip for handedness'
+
   endif
 
   ;;d_PAR_ANG is the angle you wish to rotate
@@ -90,11 +117,11 @@ function gpi_rotate_north_up, DataSet, Modules, Backbone
   hrot2, cube[*,*,0], astr_header, nearest , astr_header, -d_PAR_ANG, $
          -1, -1, 2,  interp=0,  missing=!values.f_nan
   
-  case method of
+  case rot_method of
      'FFT': begin
         padsize=289
-        cube = padarr(cube0, padsize, [xcen,ycen], value=!values.f_nan)
-        xcen = (padsize-1)/2+1 & ycen = (padsize-1)/2+1
+        cube = padarr(cube0, padsize, [centerx,centery], value=!values.f_nan)
+        centerx = (padsize-1)/2+1 & centery = (padsize-1)/2+1
 
         ;; In order to not have ugly ringing from the FFT rotation, we must
         ;;  (a) not have any NaNs in the input data! and
@@ -136,14 +163,15 @@ function gpi_rotate_north_up, DataSet, Modules, Backbone
         cube_r = cube
         for i=0,sz[3]-1 do begin
            ;;rot has the same stupid CW conventionas hrot2
-           interpolated = rot(reform(cube_r[*,*,i],sz[1],sz[2]), -d_PAR_ANG,1.,xcen,ycen, cubic=-0.5, missing=!values.f_nan)
-           nearest = rot(reform(cube_r[*,*,i],sz[1],sz[2]), -d_PAR_ANG, 1.,xcen,ycen, interp=0,  missing=!values.f_nan)
+           interpolated = rot(reform(cube_r[*,*,i],sz[1],sz[2]), -d_PAR_ANG,1.,centerx,centery, cubic=-0.5, /pivot, missing=!values.f_nan)
+           nearest = rot(reform(cube_r[*,*,i],sz[1],sz[2]), -d_PAR_ANG, 1.,centerx,centery, interp=0, /pivot, missing=!values.f_nan)
            wnan = where(~finite(interpolated), nanct)
            if nanct gt 0 then interpolated[wnan] = nearest[wnan]
            cube_r[*,*,i] = interpolated
         endfor
      end  
   endcase 
+
 
   backbone->set_keyword, 'HISTORY', "Rotated by "+sigfig(d_PAR_ANG, 4)+" deg to have north up",ext_num=0
 
