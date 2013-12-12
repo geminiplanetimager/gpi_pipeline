@@ -32,14 +32,15 @@ function gpi_measure_satellite_spot_locations, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
-cube = *(dataset.currframe[0])
+cube = *(dataset.currframe[0]) 
 band = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
-;;wavelength info
-cwv = get_cwv(band,spectralchannels=(size(cube,/dim))[2])  
 
 ;;error handle if extractcube not used before
 if ((size(cube))[0] ne 3) || (strlen(band) eq 0)  then $
    return, error('FAILURE ('+functionName+'): Datacube or filter not defined. Use extractcube module before this one.')   
+
+;;wavelength info
+cwv = get_cwv(band,spectralchannels=(size(cube,/dim))[2])  
 
 ;;get user inputs
 refinefits = fix(Modules[thisModuleIndex].refine_fits)
