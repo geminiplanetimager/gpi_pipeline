@@ -174,57 +174,63 @@ end
 ;--------------------------------------------------------------------------------
 
 function drf::get_datestr
-	; return the datedir formatted string corresponding to the
-	; first data file in this DRF
-	;
-	; This is used for the DRF output path if organize by dates is set
-	if ptr_valid(self.datafilenames) && file_test((*self.datafilenames)[0]) then begin
-		; determine the output dir based on the date associated with the first
-		; FITS header
-		head = headfits((*self.datafilenames)[0])
-		dateobs = sxpar(head,'DATE-OBS', count=count)
-		timeobs= sxpar(head,'UTSTART', count=count2)
-		if count gt 0 then begin
-			parts = strsplit(dateobs,'-',/extract)
+  ;; return the datedir formatted string corresponding to the
+  ;; first data file in this DRF
+	
+  ;; This is used for the DRF output path if organize by dates is set
+  if ptr_valid(self.datafilenames) && file_test((*self.datafilenames)[0]) then begin
+     ;;if the filename is standard, pull the date out of that,
+     ;;otherwise fall back to the DATE-OBS
+     fname = file_basename(gpi_expand_path((*self.datafilenames)[0]))
+     basename = stregex(fname,'S([[:digit:]]{8})[SE][[:digit:]]{4}',/extract,/subexpr)
+     if basename[0] ne '' then begin
+        datestr = strmid(basename[1],2)
+     endif else begin
+        ;; determine the output dir based on the date associated with the first
+        ;; FITS header
+        head = headfits((*self.datafilenames)[0])
+        dateobs = sxpar(head,'DATE-OBS', count=count)
+        timeobs= sxpar(head,'UTSTART', count=count2)
+        if count gt 0 then begin
+           parts = strsplit(dateobs,'-',/extract)
+           
+           if count2 gt 0 then begin
+              utctimeparts = strsplit(timeobs,':',/extract)
+           endif else utctimeparts = [0,6,0] ; will give wrong values but at least won't crash the code. 
+           
+           ;; Rules for selecting current date and time at the observatory are
+           ;; such that it won't increment in the middle of the night. 
+           ;;
+           ;; the date string YYMMDD increments at 1400 local Chilean time, regardless of 
+           ;; whether it's standard or daylight time
+           ;;
+           ;; However, annoyingly, we don't keep Chilean local time in the 
+           ;; FITS header. We can use as a proxy the 3 hour times from UTC
+           ;; that is appropriate for Chilean summer time, under the assumption
+           ;; that most GPI data will be taken in the summer and a 1 hour
+           ;; offset in the winter on the date rollover is not that big a deal. 
+           ;; FIXME: do this more carefully eventually.
+           ;; Or just grab the datestr from the original filename or some
+           ;; related string in the header?
+           chile_time_hours = utctimeparts[1]-3
+           if chile_time_hours lt 0 then chile_time_hours += 24
+           if chile_time_hours gt 14d0 then parts[2] += 1d0 ; increment to next day preemptively after 2 pm Chilean
+           datestr = string(parts[0] mod 100,parts[1],parts[2],format='(i2.2,i2.2,i2.2)')
+           
+        endif else begin
+           self->Log, 'ERROR: output data should be organized by date, but no DATE-OBS keyword present.'
+           self->Log, "Assuming today's date just as a guess...."
+           datestr = gpi_datestr()
+        endelse
+     endelse 
+  endif else begin
+     self->Log, 'ERROR: output data should be organized by date, but no data present *have* a date'
+     self->Log, "Assuming today's date just as a guess...."
+     datestr = gpi_datestr()
+  endelse
 
-			if count2 gt 0 then begin
-				utctimeparts = strsplit(timeobs,':',/extract)
-			endif else utctimeparts = [0,6,0]  ; will give wrong values but at least won't crash the code. 
-
-			; Rules for selecting current date and time at the observatory are
-			; such that it won't increment in the middle of the night. 
-			;
-			; the date string YYMMDD increments at 1400 local Chilean time, regardless of 
-			; whether it's standard or daylight time
-			;
-			; However, annoyingly, we don't keep Chilean local time in the 
-			; FITS header. We can use as a proxy the 3 hour times from UTC
-			; that is appropriate for Chilean summer time, under the assumption
-			; that most GPI data will be taken in the summer and a 1 hour
-			; offset in the winter on the date rollover is not that big a deal. 
-			; FIXME: do this more carefully eventually.
-			; Or just grab the datestr from the original filename or some
-			; related string in the header?
-			chile_time_hours = utctimeparts[1]-3
-			if chile_time_hours lt 0 then chile_time_hours += 24
-			if chile_time_hours gt 14d0 then parts[2] += 1d0 ; increment to next day preemptively after 2 pm Chilean
-
-			datestr = string(parts[0] mod 100,parts[1],parts[2],format='(i2.2,i2.2,i2.2)')
-
-
-
-		endif else begin
-			self->Log, 'ERROR: output data should be organized by date, but no DATE-OBS keyword present.'
-			self->Log, "Assuming today's date just as a guess...."
-			datestr = gpi_datestr()
-		endelse
-	endif else begin
-		self->Log, 'ERROR: output data should be organized by date, but no data present to *have* a date'
-		self->Log, "Assuming today's date just as a guess...."
-		datestr = gpi_datestr()
-	endelse 
-	return,datestr
-
+  return, datestr
+  
 end
 
 ;--------------------------------------------------------------------------------
@@ -755,82 +761,72 @@ end
 ;-------------
 
 function drf::tostring, absolutepaths=absolutepaths, template=template
-	; Return a DRF formatted as an XML string
+  ;; Return a DRF formatted as an XML string
 
-
-	if ~(keyword_set(absolutepaths ))then begin
-		;relative pathes with environment variables        
-	  	;inputdir=gpi_shorten_path(self.inputdir) 
-	  	outputdir=gpi_shorten_path(self.outputdir) 
-	endif else begin
-	  	;inputdir=gpi_expand_path(self.inputdir)
-	  	outputdir=gpi_expand_path(self.outputdir)
-	endelse  
+  if ~(keyword_set(absolutepaths ))then begin
+     outputdir=gpi_shorten_path(self.outputdir) 
+  endif else begin
+     outputdir=gpi_expand_path(self.outputdir)
+  endelse  
         
-	; Are all the input files in the same directory?
-	filenames = self->get_datafiles()
-	dirnames = strarr(n_elements(filenames))
-	for i=0,n_elements(filenames)-1 do dirnames[i] = file_dirname(filenames[i])
-	uniqdirs = uniqvals(dirnames)
-
-	if n_elements(uniqdirs) eq 1 then begin
-		; all files are from a common input directory! So pull that out to the
-		; inputdir parameter
-		inputdir = uniqdirs[0]
-		for i=0,n_elements(filenames)-1 do filenames[i] = file_basename(filenames[i])
-
-		if keyword_set(absolutepaths) then inputdir=gpi_expand_path(inputdir) else inputdir=gpi_shorten_path(inputdir)
-	endif else begin
-		; filenames are in multiple directories
-		; So leave the paths on the individual filenames.
-		inputdir = ''
-
-		for i=0,n_elements(filenames)-1 do $
-			if keyword_set(absolutepaths) then filenames[i]=gpi_expand_path(filenames[i]) else filenames[i]=gpi_shorten_path(filenames[i])
-
-	endelse
-
-
+  ;; Are all the input files in the same directory?
+  filenames = self->get_datafiles()
+  dirnames = strarr(n_elements(filenames))
+  for i=0,n_elements(filenames)-1 do dirnames[i] = file_dirname(filenames[i])
+  uniqdirs = uniqvals(dirnames)
+  
+  if n_elements(uniqdirs) eq 1 then begin
+     ;; all files are from a common input directory! So pull that out to the
+     ;; inputdir parameter
+     inputdir = uniqdirs[0]
+     for i=0,n_elements(filenames)-1 do filenames[i] = file_basename(filenames[i])
+     
+     if keyword_set(absolutepaths) then inputdir=gpi_expand_path(inputdir) else inputdir=gpi_shorten_path(inputdir)
+  endif else begin
+     ;; filenames are in multiple directories
+     ;; So leave the paths on the individual filenames.
+     inputdir = ''
+     
+     for i=0,n_elements(filenames)-1 do $
+        if keyword_set(absolutepaths) then filenames[i]=gpi_expand_path(filenames[i]) else filenames[i]=gpi_shorten_path(filenames[i])   
+  endelse
  
-	if (!D.NAME eq 'WIN') then newline = string([13B, 10B]) else newline = string(10B)
+  if (!D.NAME eq 'WIN') then newline = string([13B, 10B]) else newline = string(10B)
+  
+  outputstring = ''
+  outputstring +='<?xml version="1.0" encoding="UTF-8"?>'+newline 
+  outputstring +='<recipe Name="'+self.name+'" ReductionType="'+self.reductiontype+'" ShortName="'+self.ShortName+'">'+newline
+  outputstring +='<dataset '
+  if inputdir ne '' then outputstring+= 'InputDir="'+inputdir+'" ' ; only write an inputdir parameter if it's non-null!
+  outputstring +='OutputDir="'+outputdir+'">'+newline 
 
-	outputstring = ''
-        
-	outputstring +='<?xml version="1.0" encoding="UTF-8"?>'+newline 
-    
-	outputstring +='<recipe Name="'+self.name+'" ReductionType="'+self.reductiontype+'" ShortName="'+self.ShortName+'">'+newline
-
-	outputstring +='<dataset '
-	if inputdir ne '' then outputstring+= 'InputDir="'+inputdir+'" ' ; only write an inputdir parameter if it's non-null!
-	outputstring +='OutputDir="'+outputdir+'">'+newline 
- 
-	if ~(keyword_set(template)) then $ ; don't write out FITS if we're saving as a template
-	if ptr_valid(self.datafilenames) then $
-	FOR j=0,N_Elements(*self.datafilenames)-1 DO BEGIN
-		outputstring +='   <fits FileName="' + filenames[j] + '" />'+newline
-	ENDFOR
-	outputstring +='</dataset>'+newline
-
-    drf_primitive_names = (*self.primitives).name 
-
-	FOR j=0,n_elements(drf_primitive_names)-1 DO BEGIN
-
-		primitive_args = self->get_primitive_args(j, count=count)
-		strarg='' ; no arguments yet
-
-		if count gt 0 then begin
-			  for i=0,n_elements(primitive_args.names)-1 do begin
-				  strarg+=primitive_args.names[i]+'="'+primitive_args.values[i]+'" '
-			  endfor
-		endif
-		  
-	
-		outputstring +='<primitive name="' + drf_primitive_names[j] + '" '+ strarg +'/>'+newline
-	ENDFOR
-	outputstring +='</recipe>'+newline
-	
-	return, outputstring
-
+  if ~(keyword_set(template)) then $ ; don't write out FITS if we're saving as a template
+     if ptr_valid(self.datafilenames) then $
+        FOR j=0,N_Elements(*self.datafilenames)-1 DO BEGIN
+     outputstring +='   <fits FileName="' + filenames[j] + '" />'+newline
+  ENDFOR
+  outputstring +='</dataset>'+newline
+  
+  drf_primitive_names = (*self.primitives).name 
+  
+  FOR j=0,n_elements(drf_primitive_names)-1 DO BEGIN
+     
+     primitive_args = self->get_primitive_args(j, count=count)
+     strarg=''                  ; no arguments yet
+     
+     if count gt 0 then begin
+        for i=0,n_elements(primitive_args.names)-1 do begin
+           strarg+=primitive_args.names[i]+'="'+primitive_args.values[i]+'" '
+        endfor
+     endif
+     
+     
+     outputstring +='<primitive name="' + drf_primitive_names[j] + '" '+ strarg +'/>'+newline
+  ENDFOR
+  outputstring +='</recipe>'+newline
+  
+  return, outputstring
+  
 end
 
 ;--------------------------------------------------------------------------------
