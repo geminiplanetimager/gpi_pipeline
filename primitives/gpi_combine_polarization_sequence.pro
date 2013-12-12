@@ -195,8 +195,8 @@ case port of
 			[0.0000, -0.0062, 0.0920, 0.5181] $
 			]
 	"bottom": begin
-	          message, "No system mueller matrix for bottom port yet!"
-	          message, "Using a perfect telescope mueller matrix for now"
+	          print, "No system mueller matrix for bottom port yet!"
+	          print, "Using a perfect telescope mueller matrix for now"
 	          system_mueller = [ $
             [ 1.0, 0.0, 0.0, 0.0 ], $
             [ 0.0, 1.0, 0.0, 0.0 ], $
@@ -363,10 +363,13 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		wp_mueller = DST_waveplate(angle=wpangle[i], pband=pband, /mueller,/silent, /degrees)
 		
 		include_mueller=uint(Modules[thisModuleIndex].IncludeSystemMueller)
-		include_sky=uint(Modules[thisModuleIndex].IncludeSkyRotation)
 		
-		; FIXME: Sky rotation!!  
+		; FIXME: Sky rotation!!
+		;include_sky=uint(Modules[thisModuleIndex].IncludeSkyRotation)
+    include_sky=1
+		  
     if include_sky eq 1 then skyrotation_mueller =  mueller_rot(parang) else skyrotation_mueller=identity(4)
+		
 		
 		if (include_mueller eq 1) then begin ;Either include the system mueller matrix or not. Depending on the keyword
     total_mueller_vert = woll_mueller_vert ## wp_mueller ## system_mueller ## skyrotation_mueller
@@ -587,6 +590,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   print, "U = "+string(umean)
   print, "V = "+string(vmean)
   print, "P = "+string(100*sqrt(qmean^2+umean^2))+"    percent linear polarization"
+  print, "PA = "+string(atan(qmean,umean)/!dtor)+" Mean PA across the field"
   print, string(100*sqrt(qmean^2+umean^2+vmean^2))+"     percent polarization"
   print, "------------------------------"
   
