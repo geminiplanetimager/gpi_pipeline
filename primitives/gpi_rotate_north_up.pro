@@ -64,7 +64,7 @@ function gpi_rotate_north_up, DataSet, Modules, Backbone
 	end
 	endcase
 	
-  backbone->Log, " center =  "+printcoo(centerx,centery)
+  backbone->Log, " center =  ("+strc(centerx)+", "+strc(centery)+")"
 
 
   ;; ====== Rotation =======
