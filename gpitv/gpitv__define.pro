@@ -502,7 +502,7 @@ state = {                   $
         isfirstimage: 1, $                ; is this the first image?
         ;default_autoscale: 1, $          ; autoscale images by default?
         ;autozoom: 1 ,$                      ; zoom images to fit window on open?
-        autohandedness: 1 ,$                ; flip images if necessary to have East counterclockwise of North on open?
+        autohandedness: 0 ,$                ; flip images if necessary to have East counterclockwise of North on open?
         showfullpaths: 0L, $                ;toggle to display full paths in headers
         noinfo: 0L, $                       ;toggle to supress informational messages
         nowarn: 0L, $                       ;toggle to supress warning messages
@@ -1045,7 +1045,7 @@ tmp_string = string(12, 12, 12.001, -60, 60, 60.01, ' J2000', $
 ;;for calculation of locations of sat-spots
 IF keyword_set(nbrsatspot) THEN (*self.state).nbrsatspot=nbrsatspot
 
-modelist = ['Recenter/Color', 'Zoom', 'Blink', 'Statistics 2D/3D','Vector','Measure Distance', $
+modelist = ['Recenter/Color', 'Zoom', 'Blink', 'Statistics 2D/3D','Plot Cut along Vector','Measure Distance', $
             'Photometry','Spectrum Plot','Draw Region','Row/Column Plot','Gauss Row/Column Plot',$
             'Histogram/Contour Plot','Surface Plot']
 ;;if (*self.state).nbrsatspot ne 0 then modelist=[modelist,'SAT-SPOT LOCALIZE']
@@ -10790,7 +10790,7 @@ endif
 ; read from primary image if present, otherwise read from 1st extension
 ; always look at the primary header.
 fits_info, (*self.state).wcfilename, n_ext=n_ext,/silent
-wavecal=readfits((*self.state).wcfilename, ext=n_ext,/SILENT)
+wavecal=readfits((*self.state).wcfilename, ext=(1 < n_ext),/SILENT)
 wavecalheader=headfits((*self.state).wcfilename,/SILENT)
 
 filetype = sxpar(wavecalheader, "FILETYPE")
@@ -12524,13 +12524,13 @@ if (newplot EQ 1 OR (*self.state).plot_type NE 'vectorplot' OR $
 
   plot, vectdist, pixval, $
     xst = 3, yst = 3, psym = 10, $
-    title = strcompress('Plot of vector [' + $
+    title = strcompress('Plot of cut through image [' + $
                       strcompress(string((*self.state).vector_coord1[0]) + ',' + $
                       string((*self.state).vector_coord1[1]),/remove_all) + $
                       '] to [' + $
                       strcompress(string((*self.state).vector_coord2[0]) + ',' + $
                       string((*self.state).vector_coord2[1]),/remove_all) + ']'), $
-    xtitle = 'Vector Distance', $
+    xtitle = 'Distance along image cut vector', $
     ytitle = 'Pixel Value', $
     color = 7, xmargin=[15,3], $
     xran = [(*self.state).lineplot_xmin, (*self.state).lineplot_xmax], $
@@ -12542,13 +12542,13 @@ endif else begin
 
   plot, vectdist, pixval, $
     xst = 3, yst = 3, psym = 10, $
-    title = strcompress('Plot of vector [' + $
+    title = strcompress('Plot of cut through image [' + $
                       strcompress(string((*self.state).vector_coord1[0]) + ',' + $
                       string((*self.state).vector_coord1[1]),/remove_all) + $
                       '] to [' + $
                       strcompress(string((*self.state).vector_coord2[0]) + ',' + $
                       string((*self.state).vector_coord2[1]),/remove_all) + ']'), $
-    xtitle = 'Vector Distance', $
+    xtitle = 'Distance along image cut vector', $
     ytitle = 'Pixel Value', $
     color = 0, xmargin=[15,3], $
     xran = [(*self.state).lineplot_xmin, (*self.state).lineplot_xmax], $
@@ -14684,8 +14684,8 @@ h = ['GPItv HELP',$
 '                               Button 3: Image 3D statistics:',$
 ' 					            Select arbitrary box with two clicks, defining the corners',$
 '',$
-'Vector:                        Button 1: Press and hold while dragging across image.',$
-'                               Release to draw vectorplot between two points.',$
+'Plot Cut along Vector:         Button 1: Press and hold while dragging across image.',$
+'                               Release to draw vector cut plot between two points.',$
 '',$
 'Measure Distance:              Button 1: Press and hold while dragging across image.',$
 '                               Release to display distance between two points.',$
