@@ -5547,6 +5547,7 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   endif
   
   ;; set the main image and update gui appropriately
+  thirddimchange = 0 ;;track whether we're switching between a 2&3d image
   case (size(*self.images.main_image))[0] of
      2: begin                   ; 2D image   
         (*self.state).image_size = [(size(*self.images.main_image_stack))[1:2], 1]
@@ -5556,6 +5557,7 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
         ;; hide the image slicer & set image number to 0
         widget_control, (*self.state).curimnum_base_id0,map=0,xsize=1,ysize=1
         (*self.state).cur_image_num = 0
+        if (*self.state).prev_image_2D eq 0 then thirddimchange = 1 
         (*self.state).prev_image_2D = 1 ; set so that next image knows its coming from a 2D image
      end ;end 2d case
 
@@ -5568,10 +5570,10 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
         ;;slice
         if ((*self.state).prev_image_2D eq 1) || ((*self.state).retain_current_slice eq 0) || (*self.state).isfirstimage then $
            (*self.state).cur_image_num=round((*self.state).image_size[2]/4.)
-	    ;; but update the current slice if necessary if it's out of range
-		if (*self.state).cur_image_num ge (*self.state).image_size[2] then (*self.state).cur_image_num = (*self.state).image_size[2]-1
-		if (*self.state).cur_image_num lt 0 then (*self.state).cur_image_num = 0
-
+        ;; but update the current slice if necessary if it's out of range
+        if (*self.state).cur_image_num ge (*self.state).image_size[2] then (*self.state).cur_image_num = (*self.state).image_size[2]-1
+        if (*self.state).cur_image_num lt 0 then (*self.state).cur_image_num = 0
+        
         *self.images.main_image = (*self.images.main_image_stack)[*, *, (*self.state).cur_image_num]
         
         ;;draw the image slicer
@@ -5596,6 +5598,7 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
                         set_slider_min = 0, $
                         set_slider_max = (*self.state).image_size[2]-1
         widget_control, (*self.state).scale_mode_droplist_id, sensitive = 1
+        if (*self.state).prev_image_2D eq 1 then thirddimchange = 1 
         (*self.state).prev_image_2D = 0 ; set so that next image knows its coming from a 3D image
      end                        ;end 3d case
 
@@ -5658,13 +5661,13 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   
   ;;reset zoom and centering if not retaining current view or if this
   ;;is the first image
-  if ~(*self.state).retain_current_view || (*self.state).isfirstimage then begin
+  if ~(*self.state).retain_current_view || (*self.state).isfirstimage || thirddimchange then begin
      (*self.state).zoom_level =  0
      (*self.state).zoom_factor = 1.0
      
      ;;need to generate a scaled image and pan image before calling
      ;;autozoom (which calls self->refresh)
-     if (*self.state).isfirstimage then begin
+     if (*self.state).isfirstimage || thirddimchange then begin
         self->scaleimage
         self->makepan
      endif 
@@ -12444,6 +12447,22 @@ endif else begin
     color = 7
 endelse
 
+;;do some sanity checking first
+tmp = where([(*self.state).vector_coord1[0],(*self.state).vector_coord2[0]] gt (*self.state).image_size[0],ct1)
+tmp = where([(*self.state).vector_coord1[1],(*self.state).vector_coord2[1]] gt (*self.state).image_size[1],ct2)
+
+if ct1+ct2 ne 0 then begin
+   self->message, 'Selected vector is out of range of current image.', msgtype='warning'
+   (*self.state).vector_coord1 =  [0L, 0L]
+   (*self.state).vector_coord2 =  [0L, 0L]
+   (*self.state).plot_type = '' ;need this to reset units next time
+   if (xregistered(self.xname+'_lineplot', /noshow)) then begin
+      self->setwindow, (*self.state).lineplot_window_id
+      erase
+   endif 
+   return
+endif
+
 d = sqrt(((*self.state).vector_coord1[0]-(*self.state).vector_coord2[0])^2 + $
          ((*self.state).vector_coord1[1]-(*self.state).vector_coord2[1])^2)
 
@@ -12481,84 +12500,83 @@ endfor
 
 
 if (not (keyword_set(ps))) then begin
-newplot = 0
-  if (not (xregistered(self.xname+'_lineplot', /noshow))) then begin
-    self->lineplot_init
-    ;(*self.state).holdrange_value = 0.
-    ;widget_control, (*self.state).holdrange_butt_id, set_button=(*self.state).holdrange_value
-    newplot = 1
-  endif
-
-  widget_control, (*self.state).histbutton_base_id, map=0
-  widget_control, (*self.state).holdrange_butt_id, sensitive=1
-
-widget_control, (*self.state).lineplot_xmin_id, get_value=xmin
-    widget_control, (*self.state).lineplot_xmax_id, get_value=xmax
-    widget_control, (*self.state).lineplot_ymin_id, get_value=ymin
-    widget_control, (*self.state).lineplot_ymax_id, get_value=ymax
-if (newplot EQ 1 OR (*self.state).plot_type NE 'vectorplot' OR $
-        keyword_set(fullrange) OR $
+   newplot = 0
+   if (not (xregistered(self.xname+'_lineplot', /noshow))) then begin
+      self->lineplot_init
+      ;;(*self.state).holdrange_value = 0.
+      ;;widget_control, (*self.state).holdrange_butt_id, set_button=(*self.state).holdrange_value
+      newplot = 1
+   endif
+   
+   widget_control, (*self.state).histbutton_base_id, map=0
+   widget_control, (*self.state).holdrange_butt_id, sensitive=1
+   
+   widget_control, (*self.state).lineplot_xmin_id, get_value=xmin
+   widget_control, (*self.state).lineplot_xmax_id, get_value=xmax
+   widget_control, (*self.state).lineplot_ymin_id, get_value=ymin
+   widget_control, (*self.state).lineplot_ymax_id, get_value=ymax
+   if (newplot EQ 1 OR (*self.state).plot_type NE 'vectorplot' OR $
+       keyword_set(fullrange) OR $
        ((*self.state).holdrange_value EQ 0 AND keyword_set(newcoord))) then begin
-        xmin = 0.0
-        xmax = max(vectdist)
-        ymin = min(pixval,/NAN)
-        ymax = max(pixval,/NAN)
-
-    endif
-
-    widget_control, (*self.state).lineplot_xmin_id, set_value=xmin
-    widget_control, (*self.state).lineplot_xmax_id, set_value=xmax
-    widget_control, (*self.state).lineplot_ymin_id, set_value=ymin
-    widget_control, (*self.state).lineplot_ymax_id, set_value=ymax
-
-    (*self.state).lineplot_xmin = xmin
-    (*self.state).lineplot_xmax = xmax
-    (*self.state).lineplot_ymin = ymin
-    (*self.state).lineplot_ymax = ymax
-
-  (*self.state).plot_type = 'vectorplot'
-  self->setwindow, (*self.state).lineplot_window_id
-  erase
-
-
-
-  plot, vectdist, pixval, $
-    xst = 3, yst = 3, psym = 10, $
-    title = strcompress('Plot of cut through image [' + $
-                      strcompress(string((*self.state).vector_coord1[0]) + ',' + $
-                      string((*self.state).vector_coord1[1]),/remove_all) + $
-                      '] to [' + $
-                      strcompress(string((*self.state).vector_coord2[0]) + ',' + $
-                      string((*self.state).vector_coord2[1]),/remove_all) + ']'), $
-    xtitle = 'Distance along image cut vector', $
-    ytitle = 'Pixel Value', $
-    color = 7, xmargin=[15,3], $
-    xran = [(*self.state).lineplot_xmin, (*self.state).lineplot_xmax], $
-    yran = [(*self.state).lineplot_ymin, (*self.state).lineplot_ymax]
-
+      xmin = 0.0
+      xmax = max(vectdist)
+      ymin = min(pixval,/NAN)
+      ymax = max(pixval,/NAN)
+      
+   endif
+   
+   widget_control, (*self.state).lineplot_xmin_id, set_value=xmin
+   widget_control, (*self.state).lineplot_xmax_id, set_value=xmax
+   widget_control, (*self.state).lineplot_ymin_id, set_value=ymin
+   widget_control, (*self.state).lineplot_ymax_id, set_value=ymax
+   
+   (*self.state).lineplot_xmin = xmin
+   (*self.state).lineplot_xmax = xmax
+   (*self.state).lineplot_ymin = ymin
+   (*self.state).lineplot_ymax = ymax
+   
+   (*self.state).plot_type = 'vectorplot'
+   self->setwindow, (*self.state).lineplot_window_id
+   erase
+   
+   
+   
+   plot, vectdist, pixval, $
+         xst = 3, yst = 3, psym = 10, $
+         title = strcompress('Plot of cut through image [' + $
+                             strcompress(string((*self.state).vector_coord1[0]) + ',' + $
+                                         string((*self.state).vector_coord1[1]),/remove_all) + $
+                             '] to [' + $
+                             strcompress(string((*self.state).vector_coord2[0]) + ',' + $
+                                         string((*self.state).vector_coord2[1]),/remove_all) + ']'), $
+         xtitle = 'Distance along image cut vector', $
+         ytitle = 'Pixel Value', $
+         color = 7, xmargin=[15,3], $
+         xran = [(*self.state).lineplot_xmin, (*self.state).lineplot_xmax], $
+         yran = [(*self.state).lineplot_ymin, (*self.state).lineplot_ymax]
+   
 endif else begin
-
-; Postscript output
-
-  plot, vectdist, pixval, $
-    xst = 3, yst = 3, psym = 10, $
-    title = strcompress('Plot of cut through image [' + $
-                      strcompress(string((*self.state).vector_coord1[0]) + ',' + $
-                      string((*self.state).vector_coord1[1]),/remove_all) + $
-                      '] to [' + $
-                      strcompress(string((*self.state).vector_coord2[0]) + ',' + $
-                      string((*self.state).vector_coord2[1]),/remove_all) + ']'), $
-    xtitle = 'Distance along image cut vector', $
-    ytitle = 'Pixel Value', $
-    color = 0, xmargin=[15,3], $
-    xran = [(*self.state).lineplot_xmin, (*self.state).lineplot_xmax], $
-    yran = [(*self.state).lineplot_ymin, (*self.state).lineplot_ymax]
-
+   
+   ;; Postscript output
+   plot, vectdist, pixval, $
+         xst = 3, yst = 3, psym = 10, $
+         title = strcompress('Plot of cut through image [' + $
+                             strcompress(string((*self.state).vector_coord1[0]) + ',' + $
+                                         string((*self.state).vector_coord1[1]),/remove_all) + $
+                             '] to [' + $
+                             strcompress(string((*self.state).vector_coord2[0]) + ',' + $
+                                         string((*self.state).vector_coord2[1]),/remove_all) + ']'), $
+         xtitle = 'Distance along image cut vector', $
+         ytitle = 'Pixel Value', $
+         color = 0, xmargin=[15,3], $
+         xran = [(*self.state).lineplot_xmin, (*self.state).lineplot_xmax], $
+         yran = [(*self.state).lineplot_ymin, (*self.state).lineplot_ymax]
+   
 endelse
 
 if (not (keyword_set(ps))) then begin
-  widget_control, (*self.state).lineplot_base_id, /clear_events
-  self->resetwindow
+   widget_control, (*self.state).lineplot_base_id, /clear_events
+   self->resetwindow
 endif
 
 end
