@@ -48,7 +48,6 @@
 ;
 ; PIPELINE COMMENT:  Repair bad pixels by interpolating between their neighbors. Can optionally just flag as NaNs or else interpolate.
 ; PIPELINE ORDER: 1.4 
-; PIPELINE TYPE: ALL HIDDEN
 ; PIPELINE NEWTYPE: SpectralScience, PolarimetricScience, Calibration
 ;
 ;
@@ -64,6 +63,8 @@
 ;   2013-04-22 JBR: In vertical algorithm, condition added if both upper and bottom pixels are good.
 ;	2013-06-26 MP: Added better FITS history logging for the case of not having a bad pixel map.
 ;	2013-07-12 MP: Rename file for consistency
+;	2013-12-16 MP: Update to allow bad pixel map files to have values other than
+;					1, with any nonzero value being interpreted as bad. 
 ;-
 function gpi_interpolate_bad_pixels_in_2d_frame, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -92,9 +93,9 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
         backbone->set_keyword,'DRPBADPX',c_File,ext_num=0
 
 
-			logtext = 'Found '+strc(total(bpmask))+' pixels marked as bad in that bad pixel map '
-			backbone->Log, logtext, depth=2
-			backbone->set_keyword, 'HISTORY', logtext, ext_num=0
+		logtext = 'Found '+strc(total(bpmask ne 0))+' pixels marked as bad in that bad pixel map '
+		backbone->Log, logtext, depth=2
+		backbone->set_keyword, 'HISTORY', logtext, ext_num=0
 	
 
     endif else begin
@@ -150,7 +151,7 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 	bpmask[*,2043:2047] = 0
 
 
-	wbad = where(bpmask, count)
+	wbad = where(bpmask ne 0, count)
     ; Check for a reasonable total number of bad pixels, <1% of the total array.
     ; If there's more than that, something fundamental has gone wrong so let's not try 
     ; slowly and laboriously repairing a garbage image. 
@@ -158,8 +159,8 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
     if count gt (0.03 * 2040.*2040) then begin
         backbone->Log, "WARNING: waaaaay too many bad pixels found! "
         backbone->Log, "   "+strc(count)+" bad = "+sigfig(count / (0.01 * 2040.*2040),2)+ "% of the array"
-        backbone->Log, " No repair will be attempted since > 1% bad."
-		backbone->set_keyword, 'HISTORY', 'Found '+strc(count)+' bad pixels, which is >1% of the array ', ext_num=0
+        backbone->Log, " No repair will be attempted since > 3% bad."
+		backbone->set_keyword, 'HISTORY', 'Found '+strc(count)+' bad pixels, which is >3% of the array ', ext_num=0
 		backbone->set_keyword, 'HISTORY', '   No repairs will be attempted. ', ext_num=0
         return, OK  
 
@@ -280,8 +281,7 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 
 	end
 	'3D': begin
-		message, "Not Implemented"
-		stop
+		return, error("Bad pixel interpolation method= 3D is Not Implemented Yet")
 		;Let's say you have a bad pixel right at the middle of a spectrum. Instead of
 		;taking the 2 vertical pixel neighbors, you take instead the values along the
 		;spectrum and use also the information of surrounding spectra to help with the

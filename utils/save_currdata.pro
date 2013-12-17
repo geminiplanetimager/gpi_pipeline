@@ -208,11 +208,18 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 			sxdelpar, *DataSet.HeadersExt[i], 'NAXIS3'
 			mwrfits, *DataSet.currFrame, c_File, *DataSet.HeadersExt[i],/silent
 		endif else begin
-			mwrfits, float(*DataSet.currFrame), c_File, *DataSet.HeadersExt[i],/silent
+			; There are no cases in which we need to save data as double rather
+			; than single precision floats; astronomical S/N simply doesn't
+			; support it. So save some disk space here if possible. 
+			; Note: don't just cast everything to float automatically since we
+			; want to preserve the ability to write BYTE or INT types as well.
+			if size(*DataSet.currFrame,/TNAME) eq 'DOUBLE' then *DataSet.currFrame = float(*DataSet.currFrame)
+
+			mwrfits, *DataSet.currFrame, c_File, *DataSet.HeadersExt[i],/silent
 		endelse
 
 		if ptr_valid(dataset.currDQ) then mwrfits, byte(*dataset.currDQ), c_File, *DataSet.HeadersDQ[i], /silent
-		if ptr_valid(dataset.currUncert) then mwrfits, byte(*dataset.currUncert), c_File, *DataSet.HeadersUncert[i], /silent
+		if ptr_valid(dataset.currUncert) then mwrfits, float(*dataset.currUncert), c_File, *DataSet.HeadersUncert[i], /silent
 
       	DataSet.OutputFilenames[i] = c_File  
 	endelse

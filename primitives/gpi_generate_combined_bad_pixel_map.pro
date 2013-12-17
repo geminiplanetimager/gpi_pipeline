@@ -59,7 +59,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	types = ['hot pixels', 'cold pixels', 'pixels with no linear behavior']
 	required = [1, 1, 0]
 	ignore_cooldowns = [0,1,1]
-	bpmasks = fltarr(2048,2048, n_elements(bptypes))
+	bpmasks = fltarr(2048,2048, n_elements(bptypes)+1)
 
 	for i=0L,n_elements(bptypes)-1 do begin
 
@@ -94,18 +94,30 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		; Jan 13
 		;if bptypes[i] eq 'coldbadpix' then (*data.image)[*, 2025:2032] = 0
 
-		bpmasks[*,*,i] = *data.image
+		bpmasks[*,*,i] = (*data.image ne 0) * 2^i   
 
 		backbone->Log, "From file "+c_file+", have "+strc(fix(total(*data.image)))+" "+types[i]
-		backbone->set_keyword, 'HISTORY', functionname+":   Mask has "+strc(total(*data.image))+" "+types[i],ext_num=0
+		backbone->set_keyword, 'HISTORY', functionname+":   Mask has "+strc(total(*data.image))+" "+types[i]
 
 	endfor 
 
+	backbone->set_keyword, 'HISTORY', functionname+": Values in this file are as follows "
+	for i=0L,n_elements(bptypes)-1 do begin
+		backbone->set_keyword, 'HISTORY', functionname+":     Bit "+strc(i)+" set = "+types[i]
+	endfor
 
-	badpixcomb = total(bpmasks,3) gt 0
+	; ensure H2RG ref pixels are masked out
+	backbone->set_keyword, 'HISTORY', functionname+":     Bit 4 set = H2RG reference pixels"
+	bpmasks[0:3, *, 3] = 2^4
+	bpmasks[2044:2047, *, 3] = 2^4
+	bpmasks[*,0:3, 3] = 2^4
+	bpmasks[*,2044:2047, 3] = 2^4
+
+	badpixcomb = total(bpmasks,3) 
 	totbadpix = fix(total(badpixcomb))
 
 	*dataset.currframe=byte(badpixcomb)
+	ptr_free, dataset.currdq, dataset.currUncert  ; Does not make sense for a bad pixel map itself to have DQ or ERR extensions.
 
   	thisModuleIndex = Backbone->GetCurrentModuleIndex()
 	suffix = '-badpix'
