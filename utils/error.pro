@@ -16,8 +16,17 @@
 
 FUNCTION error, mess, error_status, alert=alert
 
-   COMMON APP_CONSTANTS
+   COMMON APP_CONSTANTS, $
+        OK, NOT_OK, ERR_UNKNOWN, GOTO_NEXT_FILE,        $        ; Indicates success
+        backbone_comm, $         ; Object pointer for main backbone (for access in subroutines & modules) 
+        loadedcalfiles, $        ; object holding loaded calibration files (as pointers)
+        DEBUG                    ; is DEBUG mode enabled?
 
+	if n_elements(ok) eq 0 then begin
+		OK = 0
+		NOT_OK = -1
+	endif
+ 
 ;   mess(0) = '!!!   ' + mess(0)
    m = size(mess,/N_ELEMENTS)
    if keyword_set(alert) then print, "***************************"
