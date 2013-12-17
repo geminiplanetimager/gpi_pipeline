@@ -1032,8 +1032,11 @@ pro parsergui::event,ev
                 (*self.recipes_table)[*] = ''
             endelse
                   
-            widget_control,   self.table_recipes_id,  set_value=(*self.recipes_table)[*,*], SET_TABLE_SELECT =[-1,-1,-1,-1] ; no selection
-            widget_control,   self.table_recipes_id, SET_TABLE_VIEW=[0,0]
+            widget_control,   self.table_recipes_id,  set_value=(*self.recipes_table)[*,*] 
+			; no - don't set the selection to zero and reset the view, keep
+			; those the same if possible. 
+			;, SET_TABLE_SELECT =[-1,-1,-1,-1] ; no selection
+            ;widget_control,   self.table_recipes_id, SET_TABLE_VIEW=[0,0]
 
         endif
     end
