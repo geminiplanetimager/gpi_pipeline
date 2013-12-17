@@ -307,6 +307,9 @@ end
 ; gpi_recipe_editor::refresh_arguments_table
 ;    Update the list of parameters/arguments for the current primitive of the
 ;    current Recipe. 
+;    
+;    Incidentally this also toggles the state of the 'Choose Calibration
+;    File...' button.
 ;
 ;	arguments:
 ;		primitive_index		which primitive's arguments to display in the table?
@@ -334,6 +337,15 @@ pro gpi_recipe_editor::refresh_arguments_table, primitive_index
 
     widget_control,   self.tableArgs_id, set_value= arg_table_text 
     widget_control,   self.tableArgs_id, set_table_view= [0,0]
+
+
+	has_calibration_file = total(strmatch(arg_info.names, 'CalibrationFile')) gt 0
+	if has_calibration_file then begin
+		widget_control, self.button_calfile_id, sensitive=1
+	endif else begin
+		widget_control, self.button_calfile_id, sensitive=0
+	endelse
+
 end
 
 ;+--------------------------------------------------------------------------------
@@ -438,6 +450,29 @@ PRO  gpi_recipe_editor::Scan_Templates
     self.template_types = ptr_new(type_order)
 
     print, "----- Above templates added to catalog ----- "
+	msg = "List of "+strc(n_elements(*self.templates))+" available templates reloaded"
+	if self.textinfo_id ne 0 then widget_control,self.textinfo_id,set_value=msg
+	message,/info, msg
+end
+
+
+;+-------------------------------------------------------------------------------
+; gpi_recipe_editor::Rescan_Primitives_List
+;	Reload the list of available primitives
+;-
+
+PRO  gpi_recipe_editor::Rescan_Primitives_List
+    compile_opt DEFINT32, STRICTARR
+
+	msg = "Reloading list of available primitives and arguments..."
+	widget_control,self.textinfo_id,set_value=msg
+    message,/info, msg
+    ptr_free, self.PrimitiveInfo
+	self->load_configParser
+
+	msg = "Loaded "+strc(n_elements(*self.primitiveinfo))+" available primitives."
+	message,/info, msg
+	widget_control,self.textinfo_id,set_value=msg
 
 end
 
@@ -468,7 +503,7 @@ pro gpi_recipe_editor::changetype, type_num, notemplate=notemplate, force_update
 	    widget_control, self.template_name_id, set_value= ((*self.templates)[wm]).name
 	endelse
 
-    self->update_available_primitives, self.reductiontype; , 1
+    self->update_available_primitives, self.reductiontype
 
     self->change_current_template, self.reductiontype, 0, notemplate=notemplate
 
@@ -483,33 +518,8 @@ pro gpi_recipe_editor::removefile, file
 
 	self.drf->remove_datafile, file
 	self->refresh_filenames_display ; update the filenames display
+    self->update_available_primitives, self.reductiontype ; why do we do this after removing a file?
 
-;    index =     (*storage.splitptr).selindex
-;    file =      (*storage.splitptr).filename
-;    printfile = (*storage.splitptr).printname
-;    datefile =  (*storage.splitptr).datefile
-;
-;    ; shift filelist
-;    nlist = n_elements((*storage.splitptr).filename)
-;    file[index:nlist-2] = file[index+1:nlist-1]
-;    file[nlist-1] = ''
-;    printfile[index:nlist-2] = printfile[index+1:nlist-1]
-;    printfile[nlist-1] = ''
-;
-;    widget_control,storage.fname,set_value=printfile
-;    (*storage.splitptr).filename = file
-;    (*storage.splitptr).printname = printfile
-;    (*storage.splitptr).datefile = datefile
-;    (*storage.splitptr).findex = (*storage.splitptr).findex - 1
-;    (*storage.splitptr).selindex = (*storage.splitptr).selindex - 1
-;
-;    if ((*storage.splitptr).findex lt 0) then $
-;        (*storage.splitptr).findex = 0
-;    if ((*storage.splitptr).selindex lt 0) then $
-;        (*storage.splitptr).selindex = 0
-;    
-;    self->log,'Item removed.'
-;  
 end
 
 ;+-----------------------------------------
@@ -517,7 +527,6 @@ end
 ;    Add a file to the queue
 ;-
 pro gpi_recipe_editor::queue, filename; , storage=storage
-
 
     if ~file_test(filename) then begin
     	widget_control,self.top_base,get_uvalue=storage  
@@ -588,10 +597,11 @@ pro gpi_recipe_editor::event,ev
               'REMOVEALL': textinfo='Click to remove all files from the input list'
               'Remove primitive': textinfo='Remove the selected module from the execution list'
               'Add primitive': textinfo='Add the selected module from "Available Primitives" into the execution list'
+              'Choose Calibration File...': textinfo='Toggle Auto/Manual calibration file selection, and select specific file if Manual.'
               "Save Recipe as...": textinfo='Save Recipe to a filename of your choosing'
               "Drop": textinfo="Queue & execute the last saved Recipe"
               'Save&Drop': textinfo="Save the file, then queue it"
-              'Quit Recipe Editor': textinfo="Close and exit this program"
+              'Close Recipe Editor': textinfo="Close and exit this program"
               "Move primitive up": textinfo='Move the currently-selected module one position earlier in the execution list'
               "Move primitive down": textinfo='Move the currently-selected module one position later in the execution list'
               else:
@@ -660,73 +670,6 @@ pro gpi_recipe_editor::event,ev
 				indselected=selection[1]
 
 				self->refresh_arguments_table, indselected
-
-
-;				current_args = self.drf->get_primitive_args( indselected )
-;				n_args = (self.drf->get_summary()).nsteps
-;				wm = where( strmatch( strupcase(current_args.names),  'CALIBRATIONFILE'), mct)
-;				if gpi_get_setting('enable_editor_debug', default=0,/bool,/silent) then $
-;					if mct gt 0 then print, 'has calibration file '+ current_args.values[wm]
-;			return
-;				;, calibrationfile='tmp'
-;
-;               ;;if click on FindCalibration File mode
-;               if (selection[0] eq 1) && (selection[2] eq 1) && (nsteps gt 0)  && (ev.sel_bottom ne -1) then begin
-;
-;				   self.drf->set_primitive_args,  indselected, calibrationfile='Manual'
-;                    if (*self.currModSelec)[1,selection[1]] eq 'Manual' then begin
-;                       (*self.currModSelec)[1,selection[1]]='Auto'
-;                       resolvedcalibfile='AUTOMATIC'
-;                       (*self.currModSelec)[2,selection[1]]=resolvedcalibfile
-;                        indcal=where((*self.currModSelecParamTab)[*,0] eq 'CalibrationFile',cf)
-;                        indcalib=where(((*self.PrimitiveInfo).argname)[[*self.indarg]] eq 'CalibrationFile', ccf)
-;                        argtab=((*self.PrimitiveInfo).argdefault)
-;                        argtab[(*self.indarg)[indcalib]]=resolvedcalibfile
-;                        ((*self.PrimitiveInfo).argdefault)=argtab
-;                        (*self.currModSelecParamTab)[indcal,1]=resolvedcalibfile
-;                    endif else begin
-;                    if (*self.currModSelec)[1,selection[1]] eq 'Auto' then begin
-;                       (*self.currModSelec)[1,selection[1]]='Manual'
-;                       (*self.currModSelec)[2,selection[1]]='Click here to select a calibration file'
-;                       resolvedcalibfile=''
-;                        indcal=where((*self.currModSelecParamTab)[*,0] eq 'CalibrationFile',cf)
-;                        indcalib=where(((*self.PrimitiveInfo).argname)[[*self.indarg]] eq 'CalibrationFile', ccf)
-;                        argtab=((*self.PrimitiveInfo).argdefault)
-;                        argtab[(*self.indarg)[indcalib]]=resolvedcalibfile
-;                        ((*self.PrimitiveInfo).argdefault)=argtab
-;                        (*self.currModSelecParamTab)[indcal,1]=resolvedcalibfile
-;                       
-;                    endif    
-;                    endelse                
-;                  widget_control,   self.RecipePrimitivesTable_id,  set_value=(*self.currModSelec)[0:2,*]
-;                  widget_control,   self.tableArgs_id,  set_value=(*self.currModSelecParamTab)
-;               endif
-;               
-;               ;;if click on calib file, open a dialogpickfile
-;               if (selection[0] eq 2) && (selection[2] eq 2) && (n_elements((*self.currModSelecParamTab)) gt 0) then begin
-;                 indcal=where((*self.currModSelecParamTab)[*,0] eq 'CalibrationFile',cf)
-;                 if cf eq 1 then begin                     
-;                     ;extractparam,  float((*self.currModSelec)[4,selection[1]])
-;                  if *self.indarg ne [-1] then begin
-;                     indcalib=where(((*self.PrimitiveInfo).argname)[[*self.indarg]] eq 'CalibrationFile', ccf)
-;                     if (ccf ne 0)  then begin 
-;                        extfile=((*self.PrimitiveInfo).argtype)[[(*self.indarg)[indcalib]]]
-;                        resolvedcalibfile = DIALOG_PICKFILE(TITLE='Select Calibration File of type: '+extfile , PATH=self.inputcaldir,/MUST_EXIST,FILTER = '*'+extfile+'*.*')
-;						if resolvedcalibfile ne '' then begin ; if user cancels we get a null string back, in which case do nothing.
-;							argtab=((*self.PrimitiveInfo).argdefault)
-;							argtab[(*self.indarg)[indcalib]]=resolvedcalibfile
-;							((*self.PrimitiveInfo).argdefault)=argtab
-;							(*self.currModSelecParamTab)[indcal,1]=resolvedcalibfile
-;							;((*self.PrimitiveInfo).argdefault)[[(*self.indarg)[indcalib]]]=resolvedcalibfile
-;							(*self.currModSelec)[2,selection[1]]=resolvedcalibfile
-;							(*self.currModSelec)[1,selection[1]] = 'Manual'
-;						endif
-;                     endif
-;                  endif
-;                  widget_control,   self.RecipePrimitivesTable_id,  set_value=(*self.currModSelec)[0:2,*]
-;                  widget_control,   self.tableArgs_id,  set_value=(*self.currModSelecParamTab)
-;                 endif
-;               endif               
         ENDIF ; end of left click
     	IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_CONTEXT') THEN BEGIN  ;RIGHT CLICK
            self->RemovePrimitive
@@ -736,10 +679,8 @@ pro gpi_recipe_editor::event,ev
       IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_TABLE_CH') THEN BEGIN 
         selected_cell = WIDGET_INFO(self.tableArgs_id, /TABLE_SELECT)
 
-		;n_args = (self.drf->get_summary()).nsteps
 		priminfo = self.drf->get_primitive_args(self.selected_primitive_index)
 		n_args = n_elements(priminfo.names)
-		;n_args = (size(*self.currModSelecParamTab))[1]
 	
 		priminfo = self.drf->get_primitive_args(self.selected_primitive_index)
 		n_args=N_ELEMENTS(priminfo.names)
@@ -775,7 +716,7 @@ pro gpi_recipe_editor::event,ev
 		  ; Special case: it is acceptable to enter an INT type into an
 		  ; argument expecting a FLOAT, because of course the set of
 		  ; integers is a subset of the set of floats. 
-		  ; FIXME shouldn't we also allow numeric types as a subset of STRING?
+		  ; And of course we also allow numeric types as a subset of STRING
 		if (strcmp(typeName,required_type,/fold))  $
 		  or (strlowcase(required_type) eq 'float' and strlowcase(typename) eq 'int')  $
 		  or (strlowcase(required_type) eq 'enum' and strlowcase(typename) eq 'string')  $
@@ -840,9 +781,9 @@ pro gpi_recipe_editor::event,ev
 		self.last_used_input_dir = file_dirname(result[0]) ; for use next time we open files
 
 
-                self->log,strtrim(n_elements(result),2)+' files added.'
-                widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
- 
+		self->log,strtrim(n_elements(result),2)+' files added.'
+		widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
+
   end
 
   'WILDCARD' : begin
@@ -864,21 +805,21 @@ pro gpi_recipe_editor::event,ev
 
 		self.drf->add_datafiles, result
 		self->refresh_filenames_display ; update the filenames display
-                widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
+		widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
 
     end
     'REMOVE' : begin
-		    widget_control,self.top_base,get_uvalue=storage  
-			selected_index = widget_info(storage.fname,/list_select) ; 
-			if selected_index eq -1 then begin
-				self->Log, 'You have to click to select a file before you can remove anything.'
-				return ; nothing is selected so do nothing
-			endif
-			filelist = self.drf->get_datafiles()
+		widget_control,self.top_base,get_uvalue=storage  
+		selected_index = widget_info(storage.fname,/list_select) ; 
+		if selected_index eq -1 then begin
+			self->Log, 'You have to click to select a file before you can remove anything.'
+			return ; nothing is selected so do nothing
+		endif
+		filelist = self.drf->get_datafiles()
 
-			if selected_index gt n_elements(filelist)-1 then selected_index = n_elements(filelist)-1
-			self->removefile, filelist[selected_index]
-                        widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
+		if selected_index gt n_elements(filelist)-1 then selected_index = n_elements(filelist)-1
+		self->removefile, filelist[selected_index]
+		widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
     end
     'REMOVEALL' : begin
         if confirm(group=ev.top,message='Remove all filenames from the list?',$
@@ -945,13 +886,15 @@ pro gpi_recipe_editor::event,ev
         if newDRF ne '' then self->open, newDRF,  /template
     end
 
-    'Quit Recipe Editor'    : begin
+    'Close Recipe Editor'    : begin
         if confirm(group=ev.top,message='Are you sure you want to close the Recipe Editor?',$
             label0='Cancel',label1='Close') then obj_destroy, self
     end
 	'Add primitive': self->AddPrimitive
 	'Remove primitive': self->RemovePrimitive
-    'Rescan Templates...':	self->scan_templates
+	'Choose Calibration File': self->ChooseCalibrationFile
+    'Rescan Primitives List':	self->rescan_primitives_list
+    'Rescan Templates':	self->scan_templates
 	'Basic View':			self->set_view_mode, 1
 	'Normal View':			self->set_view_mode, 2
 	'Advanced View':		self->set_view_mode, 3 
@@ -992,8 +935,8 @@ pro gpi_recipe_editor::event,ev
        end 
  
     'About': begin
-              tmpstr=gpi_drp_about_message()
-              ret=dialog_message(tmpstr,/information,/center,dialog_parent=ev.top)
+		tmpstr=gpi_drp_about_message()
+		ret=dialog_message(tmpstr,/information,/center,dialog_parent=ev.top)
     end
 	'FNAME': begin
 		; user has clicked on filename display text widget
@@ -1053,34 +996,6 @@ PRO gpi_recipe_editor::addPrimitive
 	indselected=selection[1]
 	if indselected eq -1 then return ; nothing selected
 
-;	; Figure out where to insert the new module into the list, based
-;	; on comparing the 'order' parameters.
-;	order=((*self.PrimitiveInfo).order)[(*self.indmodtot2avail)[(*self.curr_mod_indsort)[indselected]]]
-;	if n_elements(*self.order) eq 0 then begin   
-;		insertorder = 0
-;	endif else begin  
-;			  if n_elements(*self.order) eq 1 then begin
-;				  if float(order) gt float(*self.order) then insertorder =1 else insertorder=0
-;			  endif else begin
-;					insertorder = VALUE_LOCATE(float((*self.order)[sort(float(*self.order))]), float(order) ) +1
-;			  endelse
-;	endelse   
-;
-;	if self.num_primitives eq 0 then begin
-;		  (*self.currModSelec)=([(*self.curr_mod_avai)[indselected],'','',order,strc(indselected)])  
-;	endif else begin
-;           case insertorder of
-;              0:  (*self.currModSelec)=([[[(*self.curr_mod_avai)[indselected],'','',order,strc(indselected)]],[(*self.currModSelec)]])
-;              self.num_primitives: (*self.currModSelec)=([[(*self.currModSelec)],[[(*self.curr_mod_avai)[indselected],'','',order,strc(indselected)]]])
-;              else: begin
-;                 if  ((self.num_primitives) le (size(*self.currModSelec))[2]) AND ((size(*self.currModSelec))[0] gt 1) then $
-;                    (*self.currModSelec)=([[(*self.currModSelec)[*,0:insertorder-1]],[[(*self.curr_mod_avai)[indselected],'','',order,strc(indselected)]],[(*self.currModSelec)[*,insertorder:self.num_primitives-1]]])
-;              end
-;           endcase
-; 
-;		;print, (size(*self.currModSelec))
-;	endelse
-
 	self->Log, "Inserting primitive '"+(*self.curr_mod_avai)[indselected]+"'" ; into position "+strc(insertorder)
 
 	self.drf->add_primitive, (*self.curr_mod_avai)[indselected], index=index, status=status
@@ -1096,54 +1011,55 @@ PRO gpi_recipe_editor::addPrimitive
 	widget_control,   self.RecipePrimitivesTable_id,   set_table_view=tableview ; restore coordinates of top left view corner
 
 	self->refresh_arguments_table, index
+ 
+end
 
-;	self.num_primitives+=1
-;	(*self.order)=(*self.currModSelec)[3,*]
-;	;does this module need calibration file?
-;	self->extractparam, indselected
-;	*self.currModSelecParamTab=strarr(n_elements(*self.indarg),3)
-;	if *self.indarg ne [-1] then begin
-;		indcalib=where(((*self.PrimitiveInfo).argname)[[*self.indarg]] eq 'CalibrationFile', ccf)
-;		if ccf ne 0 then (*self.currModSelec)[2,insertorder]=((*self.PrimitiveInfo).argdefault)[[(*self.indarg)[indcalib]]]
-;		if ccf ne 0 then begin
-;			if strmatch((*self.currModSelec)[2,insertorder], 'AUTOMATIC') then $
-;				(*self.currModSelec)[1,insertorder]='Auto' else $
-;				(*self.currModSelec)[1,insertorder]='Manual'
-;		 endif
-;			
-;		  (*self.currModSelecParamTab)[*,0]=((*self.PrimitiveInfo).argname)[[*self.indarg]]
-;		  (*self.currModSelecParamTab)[*,1]=((*self.PrimitiveInfo).argdefault)[[*self.indarg]]
-;		  (*self.currModSelecParamTab)[*,2]=((*self.PrimitiveInfo).argdesc)[[*self.indarg]]
-;		endif
-;	  
-;		;;Automatic addition of Accumulate Images for combination (level II) modules.
-;		;;modules with order GT 2. ? 
-;		greatestorder= float((*self.currModSelec)[3,self.num_primitives-1])
-;		if greatestorder gt 4. then begin
-;		;;'Accumulate Images' already present? 
-;		isaccu=where((*self.currModSelec)[0,*] eq 'Accumulate Images',cac) 
-;		if cac eq 0 then begin ;Accumulate Image needed 
-;			self->log,'Automatic addition of "Accumulate Images" due to the addition of a level-2 module'
-;			widget_control, (self.tableAvailable_id), get_value=gettableavaila
-;			indselected=where(gettableavaila eq 'Accumulate Images')
-;			if n_elements(*self.order) eq 1 then begin
-;				if float(order) gt float(*self.order) then insertorder =1 else insertorder=0
-;			endif else begin
-;			  insertorder = VALUE_LOCATE(float((*self.order)[sort(float(*self.order))]), float(order) ) 
-;			endelse
-;			if insertorder eq 0 then (*self.currModSelec)=([[[(*self.curr_mod_avai)[indselected],'','',order,strc(indselected)]],[(*self.currModSelec)]])
-;			if insertorder eq self.num_primitives then (*self.currModSelec)=([[(*self.currModSelec)],[[(*self.curr_mod_avai)[indselected],'','',order,strc(indselected)]]])
-;			if (insertorder ne 0) AND (insertorder ne self.num_primitives) then $
-;				(*self.currModSelec)=([[(*self.currModSelec)[*,0:insertorder-1]],[[(*self.curr_mod_avai)[indselected],'','',order,strc(indselected)]],[(*self.currModSelec)[*,insertorder:self.num_primitives-1]]])
-;			self.num_primitives+=1
-;			(*self.order)=(*self.currModSelec)[3,*]                        
-;		endif
+
+;+--------------------------------------
+; gpi_recipe_editor::chooseCalibrationFile
+;	Select a calibration file for the current primitive, if appropriate. 
+;-
+
+PRO gpi_recipe_editor::chooseCalibrationFile
+
+;	indselected=selection[1]
+;	if indselected eq -1 then return ; nothing selected
+;
+;	self->Log, "Inserting primitive '"+(*self.curr_mod_avai)[indselected]+"'" ; into position "+strc(insertorder)
+;
+;	self.drf->add_primitive, (*self.curr_mod_avai)[indselected], index=index, status=status
+;	if status eq -1 then begin
+;		self->Log, 'Failure to insert primitive'
+;		return
 ;	endif
-;	  
-;	  
-;	widget_control,   self.RecipePrimitivesTable_id,  set_value=(*self.currModSelec)[0:2,*], SET_TABLE_SELECT =[-1,insertorder,-1,insertorder]
-;	widget_control,   self.RecipePrimitivesTable_id, SET_TABLE_VIEW=[0,0]
-;	widget_control,   self.tableArgs_id,  set_value=(*self.currModSelecParamTab)
+
+	primitive_index=self.selected_primitive_index 
+	arg_info = self.drf->get_primitive_args(primitive_index)
+	wcalfile = where(strupcase(arg_info.names) eq "CALIBRATIONFILE", mct)
+	if mct ne 1 then return ; something has gone wrong
+
+	current_value = arg_info.values[wcalfile]
+
+	if current_value eq 'AUTOMATIC' then begin
+		; toggle from automatic to manual
+        resolvedcalibfile = DIALOG_PICKFILE(TITLE='Select Calibration File for that primitive: ' , PATH=gpi_get_directory('GPI_CALIBRATIONS_DIR') ,/MUST_EXIST,FILTER = '*.fits')
+		if resolvedcalibfile ne '' then begin ; if user cancels we get a null string back, in which case do nothing.
+			newcalfile = resolvedcalibfile
+			message,/info, 'Toggled from automatic to manual calibration file. Press again to return to automatic mode.'
+		endif else begin
+			message,/info, 'User cancelled selecting new calibration file'
+			return
+		endelse 
+	endif else begin
+		; toggle from manual to automatic
+		newcalfile = 'AUTOMATIC'
+		message,/info, 'Toggled from manual to automatic calibration file. Press again to return to manual mode.'
+	endelse
+	self.drf->set_primitive_args, self.selected_primitive_index, CalibrationFile=newcalfile
+
+
+	self->refresh_primitives_table
+	self->refresh_arguments_table, index
  
 end
 
@@ -1476,14 +1392,16 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
                   {cw_pdmenu_s, 0, 'Save Recipe as...'}, $
                   {cw_pdmenu_s, 4, 'Open Recipe as Template...'}, $
                   {cw_pdmenu_s, 0, 'Create Recipe Template and Save as...'}, $
-                  {cw_pdmenu_s, 6, 'Quit Recipe Editor'}, $
+                  {cw_pdmenu_s, 6, 'Close Recipe Editor'}, $
                   {cw_pdmenu_s, 1, 'Edit'}, $ 
                   {cw_pdmenu_s, 0, 'Add primitive'}, $
                   {cw_pdmenu_s, 0, 'Remove primitive'}, $
                   {cw_pdmenu_s, 4, 'Move primitive up'}, $
-                  {cw_pdmenu_s, 2, 'Move primitive down'}, $
+                  {cw_pdmenu_s, 0, 'Move primitive down'}, $
+                  {cw_pdmenu_s, 6, 'Choose Calibration File...'}, $
                   {cw_pdmenu_s, 1, 'Options'}, $
-                  {cw_pdmenu_s, 0, 'Rescan Templates...'}, $
+                  {cw_pdmenu_s, 0, 'Rescan Primitives List'}, $
+                  {cw_pdmenu_s, 0, 'Rescan Templates'}, $
                   {cw_pdmenu_s, 12, 'Basic View'}, $
                   {cw_pdmenu_s, 8, 'Normal View'}, $
                   {cw_pdmenu_s, 8, 'Advanced View'}, $
@@ -1619,17 +1537,19 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
 	button2=widget_button(top_baseexec,value="Save Recipe as...",uvalue="Save Recipe as...", /tracking_events)
 	button2b=widget_button(top_baseexec,value="Queue last saved Recipe",uvalue="Queue", /tracking_events)
 	button2c=widget_button(top_baseexec,value="Save Recipe and Queue",uvalue="Save&Queue", /tracking_events)
-	spacer = widget_label(top_baseexec, value=' ', xsize=250)
+	spacer = widget_label(top_baseexec, value=' ', xsize=150)
 
-	button3=widget_button(top_baseexec,value="Add primitive",uvalue="Add primitive", /tracking_events);, $
-	button3=widget_button(top_baseexec,value="Move primitive up",uvalue="Move primitive up", /tracking_events);, $
-	button3=widget_button(top_baseexec,value="Move primitive down",uvalue="Move primitive down", /tracking_events);, $
-	button3=widget_button(top_baseexec,value="Remove primitive",uvalue="Remove primitive", /tracking_events);, $
+	button3=widget_button(top_baseexec,value="Add primitive",uvalue="Add primitive", /tracking_events)
+	button3=widget_button(top_baseexec,value="Move primitive up",uvalue="Move primitive up", /tracking_events)
+	button3=widget_button(top_baseexec,value="Move primitive down",uvalue="Move primitive down", /tracking_events)
+	button3=widget_button(top_baseexec,value="Remove primitive",uvalue="Remove primitive", /tracking_events)
+	spacer = widget_label(top_baseexec, value=' ', xsize=15)
+	self.button_calfile_id=widget_button(top_baseexec,value="Choose Calibration File...",uvalue="Choose Calibration File", /tracking_events)
 	       
         bot_baseexec=widget_base(top_base,/BASE_ALIGN_CENTER,row=1, frame=DEBUG_SHOWFRAMES)
 	self.textinfo_id=widget_label(bot_baseexec,uvalue="textinfo",xsize=900,ysize=10,value='  ')
-        spacer = widget_label(bot_baseexec, value=' ', xsize=100)
-	button3=widget_button(bot_baseexec,value="Close Recipe Editor",uvalue="Quit Recipe Editor", /tracking_events, resource_name='red_button')
+    spacer = widget_label(bot_baseexec, value=' ', xsize=126)
+	button3=widget_button(bot_baseexec,value="Close Recipe Editor",uvalue="Close Recipe Editor", /tracking_events, resource_name='red_button')
 
 	;filename array and index
 	;-----------------------------------------
@@ -1713,6 +1633,7 @@ pro gpi_recipe_editor__define
               tableArgs_id: 0L,$				; widget ID for paramters/arguments table
               reduction_type_id: 0L,$			; widget ID for reduction type dropdown
               template_name_id: 0L,$			; widget ID for template name dropdown
+              button_calfile_id: 0L,$			; widget ID for Choose Calibration File button
               widgets_for_modes: ptr_new(), $	; widget IDs for basic/normal/advanced modes. see set_view_mode.
 			  selected_primitive_index: 0L, $	; index of current primitive whose arguments are shown in the args table
               showhidden: 0, $					; should primitives marked 'hidden' be displayed?
