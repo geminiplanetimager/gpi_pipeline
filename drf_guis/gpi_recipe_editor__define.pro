@@ -778,10 +778,12 @@ pro gpi_recipe_editor::event,ev
 		priminfo = self.drf->get_primitive_args(self.selected_primitive_index)
 		n_args = n_elements(priminfo.names)
 		;n_args = (size(*self.currModSelecParamTab))[1]
-		if selected_cell[1] gt n_args -1 then return ; user has tried to select an empty cell
+	
+		priminfo = self.drf->get_primitive_args(self.selected_primitive_index)
+		n_args=N_ELEMENTS(priminfo.names)
 		if selected_cell[0] ne 1 then return ; user has tried to edit something other than the Value field
-
-		WIDGET_CONTROL, self.tableArgs_id, GET_VALUE=selection_value,USE_TABLE_SELECT= selected_cell
+		if selected_cell[1] gt n_args -1 then return ; user has tried to select an empty cell
+			WIDGET_CONTROL, self.tableArgs_id, GET_VALUE=selection_value,USE_TABLE_SELECT= selected_cell
 
 		; figure out what type, range, etc is allowed for this primitive argument
 		argname=  priminfo.names[selected_cell[1]]
@@ -815,10 +817,12 @@ pro gpi_recipe_editor::event,ev
 		if (strcmp(typeName,required_type,/fold))  $
 		  or (strlowcase(required_type) eq 'float' and strlowcase(typename) eq 'int')  $
 		  or (strlowcase(required_type) eq 'enum' and strlowcase(typename) eq 'string')  $
+			or (strlowcase(required_type) eq 'string' and strlowcase(typename) eq 'float')  $
+			or (strlowcase(required_type) eq 'string' and strlowcase(typename) eq 'int')  $
 		  then $
 		  type_ok=1 $
 		else type_ok=0
-
+stop
 		if ~type_ok then begin
 			errormessage = ["Sorry, you tried to enter a value for "+argname+", but it had the wrong type ("+strupcase(typename)+").", "Please enter a value of type "+strupcase(required_type)+". The value was NOT updated; please try again."]
 			self->log,errormessage[0]+"  "+errormessage[1] ; merge 2 lines into 1
