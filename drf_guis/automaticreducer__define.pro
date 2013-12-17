@@ -215,7 +215,7 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 		'OPEN':templatename='Quicklook Automatic Undispersed Extraction'
 		endcase
 	endif else begin
-		ind=widget_info(self.seqid,/DROPLIST_SELECT)
+		ind=widget_info(self.template_id,/DROPLIST_SELECT)
 		self.user_template=((*self.templates).name)[ind]
 		templatename = self.user_template
 	endelse
@@ -249,8 +249,8 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 	; generate a nice descriptive filename
 	first_file_basename = (strsplit(file_basename(filenames[0]),'.',/extract))[0]
 
-	drf->save, 'auto_'+first_file_basename+'_'+drf->get_datestr()+'.waiting.xml',/autodir
-	drf->queue
+	drf->save, 'auto_'+first_file_basename+'_'+drf->get_datestr()+'.waiting.xml',/autodir, comment='Created by the Autoreducer GUI'
+	drf->queue, comment='Created by the Autoreducer GUI'
 
 	obj_destroy, drf
 
@@ -386,12 +386,12 @@ pro automaticreducer::event, ev
 	
 		end
 		'default_recipe' : begin
-			widget_control, self.seqid, sensitive=0
+			widget_control, self.template_id, sensitive=0
 			self.user_template = ''
 		end
 		'select_recipe' : begin
-			widget_control, self.seqid, sensitive=1
-        	ind=widget_info(self.seqid,/DROPLIST_SELECT)
+			widget_control, self.template_id, sensitive=1
+        	ind=widget_info(self.template_id,/DROPLIST_SELECT)
 			self.user_template=((*self.templates).name)[ind]
 		end
 		else: begin
@@ -414,7 +414,7 @@ pro automaticreducer::event, ev
   	'WIDGET_KILL_REQUEST': self->confirm_close
   	'WIDGET_DROPLIST': begin 
 		if uname eq 'select_template' then begin
-        	ind=widget_info(self.seqid,/DROPLIST_SELECT)
+        	ind=widget_info(self.template_id,/DROPLIST_SELECT)
 			;print, self.templates[ind]
 			self.user_template= (*self.templates)[ind].name
 		endif
@@ -529,7 +529,7 @@ function automaticreducer::init, groupleader, _extra=_extra
 	; Initialization code for automatic processing GUI
 
 	self.name='GPI Automatic Reducer'
-	self.watch_directory=self->get_input_dir()
+	self.watch_directory=self->get_default_input_dir()
     self.view_in_gpitv = 1
     self.ignore_indiv_reads = 1
 
@@ -619,7 +619,7 @@ function automaticreducer::init, groupleader, _extra=_extra
 	widget_control, self.b_default_rec_id, /set_button 
 
 	base_dir = widget_base(self.top_base, /row)
-	self.seqid = WIDGET_DROPLIST(base_dir , title='Select template:', frame=0, Value=(*self.templates).name, $
+	self.template_id = WIDGET_DROPLIST(base_dir , title='Select template:', frame=0, Value=(*self.templates).name, $
 		uvalue='select_template', uname='select_template', resource_name='XmDroplistButton', sensitive=0)
 
 
@@ -721,6 +721,7 @@ stateF={  automaticreducer, $
     listfile_id:0L,$;wid id for list of fits file
 	b_default_rec_id :0L,$			; widget ID for default recipe button
 	b_specific_rec_id :0L,$			; widget ID for specific chosen recipe button
+	template_id:0L,$				; widget ID for template select dropdown
 	flex_base_id:0L,$				; widget ID for flexure widgets base
 	label_dx_id:0L,$				; widget ID for flexure delta X label
 	label_dy_id:0L,$				; widget ID for flexure delta Y label

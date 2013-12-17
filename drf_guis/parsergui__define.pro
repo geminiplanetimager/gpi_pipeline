@@ -30,13 +30,10 @@
 ;
 ;    self.nbModuleSelec        number of modules in current DRF list
 ;    self.currModSelec        list of modules in current DRF list
-;    self.order                list of PIPELINE ORDER values for those modules
-;
 ;    self.curr_mod_indsort    indices into curr_mod_avai in alphabetical order?
 ;                            in other words, matching the displayed order in the
 ;                            Avail Table
 ;
-;    self.indmodtot2avail    indices for
 ;
 ;
 ;
@@ -61,7 +58,7 @@ function  parsergui::init, groupleader, parse_contents_of=parse_contents_of, _ex
 	self.xname='parsergui'
 	self.name = 'GPI Data Parser'
 	if self.debug then message,/info, 'Parser init'
-	drfgui_retval = self->drfgui::init(groupleader, _extra=_extra)
+	drfgui_retval = self->gpi_recipe_editor::init(groupleader, _extra=_extra)
 
 	if keyword_set(parse_contents_of) then message,"Not yet implemented"
 	return, drfgui_retval
@@ -74,11 +71,21 @@ end
 pro parsergui::init_data, _extra=_extra
 
 	if self.debug then message,/info, 'Parser init data'
-	self->drfgui::init_data ; inherited from DRFGUI class
+	;self->gpi_recipe_editor::init_data ; inherited from DRFGUI class
+
 
 	self.outputdir= "AUTOMATIC" ; implies to use $GPI_REDUCED_DATA_DIR or a subdirectory depending on value of gpi_get_setting('organize_reduced_data_by_dates',/bool)
 	self.recipes_table=      ptr_new(/ALLOCATE_HEAP)
-	self.drf_summary=       ptr_new(/ALLOCATE_HEAP)
+
+	if gpi_get_setting('organize_recipes_by_dates',/bool) then begin
+		self.drfpath = gpi_get_directory('RECIPE_OUTPUT_DIR') + path_sep() + gpi_datestr(/current)
+		self->Log,"Outputting recipes based on date to "+self.drfpath
+	endif else begin
+		self.drfpath = gpi_get_directory('RECIPE_OUTPUT_DIR') 
+		self->Log, "Outputting recipes to current working directory: "+self.drfpath
+	endelse
+
+
 
 end
 
@@ -242,7 +249,7 @@ pro parsergui::parse_current_files
 			valid = gpi_validate_file(file[i])
 		endfor
     endelse
-    (*self.currModSelec)=strarr(5)
+    ;(*self.currModSelec)=strarr(5)
     (*self.recipes_table)=strarr(10)
 
     for i=0,nfiles-1 do pfile[i] = file_basename(file[i]) 
@@ -262,7 +269,9 @@ pro parsergui::parse_current_files
             ;;we want Xenon&Argon considered as the same 'lamp' object for Y,K1,K2bands (for H&J, better to do separately to keep only meas. from Xenon)
             if (~strmatch(finfo[jj].filter,'[HJ]')) && (strmatch(finfo[jj].object,'Xenon') || strmatch(finfo[jj].object,'Argon')) then $
                     finfo[jj].object='Lamp'
-            pfile[jj] = pfile[jj]+"     "+finfo[jj].obsmode+" "+finfo[jj].dispersr +" "+finfo[jj].obstype+" "+string(finfo[jj].itime,format='(F5.1)')+"  "+finfo[jj].object
+            pfile[jj] = finfo[jj].summary
+			;pfile[jj]+"     "+string(finfo[jj].obsmode,format='(A-10)')+" "+string(finfo[jj].dispersr,format='(A-10)') +" "+string(finfo[jj].obstype, format='(A10)')+$
+				;" "+string(finfo[jj].itime,format='(F5.1)')+"  "+string(finfo[jj].object,format='(A15)')+"       "+finfo[jj].datalab
         endfor
 		wnz = where(pfile ne '')
         widget_control,storage.fname,set_value=pfile[wnz] ; update displayed filename information - filenames plus parsed keywords
@@ -333,12 +342,12 @@ pro parsergui::parse_current_files
                 uniqsortedobstype = uniqvals(strlowcase((finfo.obstype)[indffilter]))
 
                 ;add  wav solution if not present and if flat-field should be reduced as wav sol
-                void=where(strmatch(uniqsortedobstype,'*arc*',/fold),cwv)
-                void=where(strmatch(uniqsortedobstype,'flat*',/fold),cflat)
-                if ( cwv eq 0) && (cflat eq 1) && (self.flatreduc eq 1) then begin
-                    indfobstypeflat =  where(strmatch((finfo.obstype)[indffilter],'flat*',/fold)) 
-                    uniqsortedobstype = [uniqsortedobstype ,'wavecal']
-                endif
+                ;void=where(strmatch(uniqsortedobstype,'*arc*',/fold),cwv)
+                ;void=where(strmatch(uniqsortedobstype,'flat*',/fold),cflat)
+                ;if ( cwv eq 0) && (cflat eq 1) && (self.flatreduc eq 1) then begin
+                    ;indfobstypeflat =  where(strmatch((finfo.obstype)[indffilter],'flat*',/fold)) 
+                    ;uniqsortedobstype = [uniqsortedobstype ,'wavecal']
+                ;endif
                    
                 nbobstype=n_elements(uniqsortedobstype)
                     
@@ -381,8 +390,8 @@ pro parsergui::parse_current_files
                                         current.object = uniqobjects[fobj]
                                         ;these following 2 lines for adding Y-band flat-field in wav.solution measurement
                                         currobstype=current.obstype
-                                        if (self.flatreduc eq 1)  && (current.filter eq 'Y') &&$
-                                        (current.obstype eq 'Wavecal')  then currobstype='[WF][al][va][et]*'
+                                        ;if (self.flatreduc eq 1)  && (current.filter eq 'Y') &&$
+                                        ;(current.obstype eq 'Wavecal')  then currobstype='[WF][al][va][et]*'
                           
                                         indfobject = where(finfo.filter eq current.filter and $
                                                     ;finfo.obstype eq current.obstype and $
@@ -597,7 +606,6 @@ end
 pro parsergui::create_recipe_from_template, templatename, fitsfiles, current,  index=index
 
 	; load the DRF, save with new filenames
-    ;self->loaddrf, templatename ,  /nodata
 
     if keyword_set(templatename) then self.LoadedRecipeFile=templatename
     if self.LoadedRecipeFile eq '' then return
@@ -623,21 +631,21 @@ pro parsergui::create_recipe_from_template, templatename, fitsfiles, current,  i
 	; set the data files in that recipe to the requested ones
 	drf->set_datafiles, fitsfiles 
 
-	;drf->set_outputdir, autodir=(self.outputdir eq 'AUTOMATIC'), dir=self.outputdir
 	drf->set_outputdir, self.outputdir
 
 
 	; Generate output file name
-        recipe=drf->get_summary() 
-		first_file=strsplit(fitsfiles[0],'S.',/extract) ; split on letter S or period
-        last_file=strsplit(fitsfiles[size(fitsfiles,/n_elements)-1],'S.',/extract)
-        prefixname=string(self.num_recipes_in_table+1, format="(I03)")
+	recipe=drf->get_summary() 
+	first_file=strsplit(fitsfiles[0],'S.',/extract) ; split on letter S or period
+	last_file=strsplit(fitsfiles[size(fitsfiles,/n_elements)-1],'S.',/extract)
+	prefixname=string(self.num_recipes_in_table+1, format="(I03)")
 
 	if n_elements(first_file) gt 2 then begin
 		; normal Gemini style filename
         outputfilename='S'+first_file[1]+'S'+first_file[2]+'-'+last_file[2]+'_'+recipe.shortname+'_drf.waiting.xml'
 	endif else begin
-		; somethinh else? e.g. temporary workaround for 
+		; something else? e.g. temporary workaround for engineering or other
+		; data with nonstandard filenames
         outputfilename=file_basename(first_file[0])+'-'+file_basename(last_file[0])+'_'+recipe.shortname+'_drf.waiting.xml'
 	endelse
 
@@ -646,13 +654,12 @@ pro parsergui::create_recipe_from_template, templatename, fitsfiles, current,  i
 	outputfilename = self.drfpath + path_sep() + outputfilename
 	message,/info, 'Writing recipe file to :' + outputfilename
 
-	drf->save, outputfilename
+	drf->save, outputfilename, comment=" Created by the Data Parser GUI"
 
 	if widget_info(self.autoqueue_id ,/button_set)  then begin
-		outputfilename2 = self.queuedir + path_sep() + outputfilename
 		message,/info, 'Automatically Queueing recipes is enabled.'
-		message,/info, ' Therefore also writing file to :' + outputfilename2
-		drf->save, outputfilename2
+		drf->queue , queued_filename=queued_filename, comment=" Created by the Data Parser GUI"
+		message,/info, ' Therefore also wrote file to :' + queued_filename
 	endif
 
 	self->add_recipe_to_table, outputfilename, drf, current, index=index
@@ -743,9 +750,9 @@ pro parsergui::add_recipe_to_table, filename, drf, current, index=index
 
     self.num_recipes_in_table+=1
 
-    widget_control, self.tableSelected, ysize=((size(*self.recipes_table))[2] > 20 )
-    widget_control, self.tableSelected, set_value=(*self.recipes_table)[0:10,*]
-    widget_control, self.tableSelected, background_color=rebin(*self.table_BACKground_colors,3,2*11,/sample)    
+    widget_control, self.table_recipes_id, ysize=((size(*self.recipes_table))[2] > 20 )
+    widget_control, self.table_recipes_id, set_value=(*self.recipes_table)[0:10,*]
+    widget_control, self.table_recipes_id, background_color=rebin(*self.table_BACKground_colors,3,2*11,/sample)    
 
 end
 
@@ -801,10 +808,10 @@ pro parsergui::event,ev
               'QUIT': textinfo='Click to close this window.'
               else:
               endcase
-              widget_control,self.textinfoid,set_value=textinfo
+              widget_control,self.textinfo_id,set_value=textinfo
           ;widget_control, event.ID, SET_VALUE='Press to Quit'   
         endif else begin 
-              widget_control,self.textinfoid,set_value=''
+              widget_control,self.textinfo_id,set_value=''
           ;widget_control, event.id, set_value='what does this button do?'   
         endelse 
         return
@@ -824,7 +831,7 @@ pro parsergui::event,ev
 
     'tableselec':begin      
             IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_TABLE_CELL_SEL') && (ev.sel_top ne -1) THEN BEGIN  ;LEFT CLICK
-                selection = WIDGET_INFO((self.tableSelected), /TABLE_SELECT) 
+                selection = WIDGET_INFO((self.table_recipes_id), /TABLE_SELECT) 
                 ;;uptade arguments tab
                 if n_elements((*self.recipes_table)) eq 0 then return
                 self.num_recipes_in_table=n_elements((*self.recipes_table)[0,*])
@@ -840,9 +847,9 @@ pro parsergui::event,ev
             ENDIF 
     end      
     'ADDFILE' : self->ask_add_files
-    'flatreduction':begin
-         self.flatreduc=widget_info(self.calibflatid,/DROPLIST_SELECT)
-    end
+    ;'flatreduction':begin
+         ;self.flatreduc=widget_info(self.calibflatid,/DROPLIST_SELECT)
+    ;end
     'WILDCARD' : begin
         index = (*storage.splitptr).selindex
         cindex = (*storage.splitptr).findex
@@ -1005,8 +1012,8 @@ pro parsergui::event,ev
         endif
     end
     'Delete': begin
-        selection = WIDGET_INFO((self.tableSelected), /TABLE_SELECT) 
-        indselected=selection[1]
+        selection = WIDGET_INFO((self.table_recipes_id), /TABLE_SELECT) 
+        indselected=selection[1] ; FIXME allow multiple selections here?
         if indselected lt 0 or indselected ge self.num_recipes_in_table then return ; nothing selected
         self.selection=(*self.recipes_table)[0,indselected]
 
@@ -1019,16 +1026,14 @@ pro parsergui::event,ev
                 indices = indgen(self.num_recipes_in_table)
                 new_indices = indices[where(indices ne indselected)]
                 (*self.recipes_table) = (*self.recipes_table)[*, new_indices]
-                (*self.order)=(*self.recipes_table)[3,*]
                 self.num_recipes_in_table-=1
             endif else begin
                 self.num_recipes_in_table=0
                 (*self.recipes_table)[*] = ''
-                (*self.order)=0
             endelse
                   
-            widget_control,   self.tableSelected,  set_value=(*self.recipes_table)[*,*], SET_TABLE_SELECT =[-1,-1,-1,-1] ; no selection
-            widget_control,   self.tableSelected, SET_TABLE_VIEW=[0,0]
+            widget_control,   self.table_recipes_id,  set_value=(*self.recipes_table)[*,*], SET_TABLE_SELECT =[-1,-1,-1,-1] ; no selection
+            widget_control,   self.table_recipes_id, SET_TABLE_VIEW=[0,0]
 
         endif
     end
@@ -1039,7 +1044,7 @@ pro parsergui::event,ev
 
 
     'QueueAll'  : begin
-                self->Log, "Adding all DRFs to queue in "+self.queuedir
+                self->Log, "Adding all DRFs to queue in "+gpi_get_directory('GPI_DRP_QUEUE_DIR')
                 for ii=0,self.num_recipes_in_table-1 do begin
                     if (*self.recipes_table)[0,ii] ne '' then begin
                           self->queue, (*self.recipes_table)[0,ii]
@@ -1062,7 +1067,7 @@ pro parsergui::event,ev
             ;label0='Cancel',label1='Close', title='Confirm close') then obj_destroy, self
     ;end
     'direct':begin
-        if widget_info(self.autoqueue_id ,/button_set)  then chosenpath=self.queuedir else chosenpath=self.drfpath
+        if widget_info(self.autoqueue_id ,/button_set)  then chosenpath=gpi_get_directory('GPI_DRP_QUEUE_DIR') else chosenpath=self.drfpath
         self->Log,'All DRFs will be created in '+chosenpath
     end
       'about': begin
@@ -1096,7 +1101,7 @@ end
 ; Ask the user what new files to add, then add them.
 pro parsergui::ask_add_files
 	;-- Ask the user to select more input files:
-	if self.last_used_input_dir eq '' then self.last_used_input_dir = self->get_input_dir()
+	if self.last_used_input_dir eq '' then self.last_used_input_dir = self->get_default_input_dir()
 
 	if keyword_set(gpi_get_setting('at_gemini', default=0,/silent)) then begin
 		filespec = 'S20'+gpi_datestr(/current)+'*.fits'
@@ -1165,7 +1170,7 @@ function parsergui::init_widgets,  _extra=_Extra
         
        end
        'Windows'   :begin
-		   bitmap=self.dirpro+path_sep()+'gpi.bmp'
+		   bitmap=gpi_get_directory('GPI_DRP_DIR')+path_sep()+'gpi.bmp'
        end
 
     ENDCASE
@@ -1197,10 +1202,6 @@ function parsergui::init_widgets,  _extra=_Extra
 
 
 
-    ;file_menu = WIDGET_BUTTON(bar, VALUE='File', /MENU) 
-    ;file_bttn2=WIDGET_BUTTON(file_menu, VALUE='Quit Parser', UVALUE='QUIT')
-
-
     ;create file selector
     ;-----------------------------------------
     DEBUG_SHOWFRAMES=0
@@ -1228,8 +1229,8 @@ function parsergui::init_widgets,  _extra=_Extra
         
     top_baseident=widget_base(parserbase,/BASE_ALIGN_LEFT,/row, frame=DEBUG_SHOWFRAMES)
     ; file name list widget
-    fname=widget_list(top_baseident,xsize=106,scr_xsize=580, ysize=nlines_fname,$
-            xoffset=10,yoffset=150,uvalue="FNAME", /TRACKING_EVENTS,resource_name='XmText')
+    fname=widget_list(top_baseident,xsize=106,scr_xsize=780, ysize=nlines_fname,$
+            xoffset=10,yoffset=150,uvalue="FNAME", /TRACKING_EVENTS,resource_name='XmText',/multiple)
 
     ; add 5 pixel space between the filename list and controls
     top_baseborder=widget_base(top_baseident,xsize=5,units=0, frame=DEBUG_SHOWFRAMES)
@@ -1255,11 +1256,11 @@ function parsergui::init_widgets,  _extra=_Extra
 ;                        XOFFSET=174 ,SCR_XSIZE=75 ,SCR_YSIZE=23  $
 ;                        ,/ALIGN_CENTER ,VALUE='Change...',uvalue='logdir') 
 ;                        
-    calibflattab=['Flat-field extraction','Flat-field & Wav. solution extraction']
+    ;calibflattab=['Flat-field extraction','Flat-field & Wav. solution extraction']
     ;the following line commented as it will not be used (uncomment line in post_init if you absolutely want it)
    ; self.calibflatid = WIDGET_DROPLIST( top_baseidentseq, title='Reduction of flat-fields:  ', frame=0, Value=calibflattab, uvalue='flatreduction')
         ;one nice logo 
-	button_image = READ_BMP(self.dirpro+path_sep()+'gpi.bmp', /RGB) 
+	button_image = READ_BMP(gpi_get_directory('GPI_DRP_DIR')+path_sep()+'gpi.bmp', /RGB) 
 	button_image = TRANSPOSE(button_image, [1,2,0]) 
 	button = WIDGET_BUTTON(top_baseident, VALUE=button_image,  $
       SCR_XSIZE=100 ,SCR_YSIZE=95, sensitive=1 ,uvalue='about')                  
@@ -1272,7 +1273,7 @@ function parsergui::init_widgets,  _extra=_Extra
 	;col_labels = ['Recipe File','Recipe Name','Recipe Type','IFSFILT','OBSTYPE','DISPERSR','OCCULTER','OBSCLASS','ITIME','OBJECT', '# FITS']
 	col_labels = ['Recipe File','Recipe Name','Recipe Type','IFSFILT','OBSTYPE','DISPERSR','OBSMODE', 'OBSCLASS','ITIME','OBJECT', '# FITS']
 	xsize=n_elements(col_labels)
-	self.tableSelected = WIDGET_TABLE(parserbase, $; VALUE=data, $ ;/COLUMN_MAJOR, $ 
+	self.table_recipes_id = WIDGET_TABLE(parserbase, $; VALUE=data, $ ;/COLUMN_MAJOR, $ 
 		COLUMN_LABELS=col_labels,/resizeable_columns, $
 		xsize=xsize,ysize=20,uvalue='tableselec',value=(*self.recipes_table), /TRACKING_EVENTS,$
 		/NO_ROW_HEADERS, /SCROLL,y_SCROLL_SIZE =nlines_modules,scr_xsize=table_xsize, $
@@ -1303,7 +1304,7 @@ function parsergui::init_widgets,  _extra=_Extra
     space = widget_label(top_baseexec,uvalue=" ",xsize=100,value='  ')
     button3=widget_button(top_baseexec,value="Close Data Parser GUI",uvalue="QUIT", /tracking_events, resource_name='red_button')
 
-    self.textinfoid=widget_label(parserbase,uvalue="textinfo",xsize=900,value='  ')
+    self.textinfo_id=widget_label(parserbase,uvalue="textinfo",xsize=900,value='  ')
     ;-----------------------------------------
     maxfilen=gpi_get_setting('parsergui_max_files',/int, default=1000,/silent) 
     filename=strarr(maxfilen)
@@ -1360,19 +1361,22 @@ PRO parsergui__define
 
     state = {  parsergui,                 $
               typetab:strarr(5),$
-              loadedinputdir:'',$
-              calibflatid:0L,$
-              flatreduc:0,$
-              autoqueue_id:0L,$
-              selectype:0,$
-              currtype:0,$
-              currseq:0,$
-              num_recipes_in_table:0,$
-              selection: '', $
-			  DEBUG:0, $
+              ;loadedinputdir:'',$
+              ;calibflatid:0L,$
+              ;flatreduc:0,$
+              autoqueue_id:0L,$			; widget ID for auto queue button
+              ;selectype:0,$
+              ;currtype:0,$
+              ;currseq:0,$
+			  table_recipes_id: 0, $	; widget ID for recipes table
+              num_recipes_in_table:0,$	; # of recipes listed in the table
+              selection: '', $			; current selection in recipes table
+			  DEBUG:0, $				; set by pipeline setting enable_parser_debug
+              sorttab:strarr(3),$      ; table for sort options 
+              sortfileid :0L,$		   ; widget ID for file list sort options 
 			  current_drf: ptr_new(), $
               recipes_table: ptr_new(), $
-           INHERITS drfgui}
+           INHERITS gpi_recipe_editor}
 
 
 end

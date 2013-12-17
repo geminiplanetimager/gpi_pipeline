@@ -912,8 +912,9 @@ PRO gpiPipelineBackbone::OpenLog
 	if dir_ok eq NOT_OK then return
 
 
+	gpi_get_user_info, user, computer
 	if gpi_get_setting('username_in_log_filename',default=0) then begin
-		logfile = logdir +'gpi_drp_'+self.log_date+"_"+getenv('USER')+".log"
+		logfile = logdir +'gpi_drp_'+self.log_date+"_"+user+".log"
 	endif else begin
 		logfile = logdir +'gpi_drp_'+self.log_date+".log"
 	endelse
@@ -933,7 +934,7 @@ PRO gpiPipelineBackbone::OpenLog
 		  PRINTF, self.LOG_GENERAL, '--------------------------------------------------------------'
 		  PRINTF, self.LOG_GENERAL, '   GPI Data Reduction Pipeline, version '+gpi_pipeline_version(/svn)
 		  PRINTF, self.LOG_GENERAL, '   Started On ' + SYSTIME(0)
-		  PRINTF, self.LOG_GENERAL, '   User: '+getenv('USER')+ "      Hostname: "+getenv('HOST')
+		  PRINTF, self.LOG_GENERAL, '   User: '+user+ "      Hostname: "+computer
 		  PRINTF, self.LOG_GENERAL, ''
 		  print, ""
 		  print, " Opened log file for writing: "+logFile

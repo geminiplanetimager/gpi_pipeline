@@ -188,26 +188,35 @@ function drfgui::get_obs_keywords, filename
 				ASTROMTC: strc(  gpi_get_keyword(head, ext_head,  'ASTROMTC', count=ct0)), $
 				OBSCLASS: strc(  gpi_get_keyword(head, ext_head,  'OBSCLASS', count=ct1)), $
 				obstype:  strc(  gpi_get_keyword(head, ext_head,  'OBSTYPE',  count=ct2)), $
-				obsmode:  strc(  gpi_get_keyword(head, ext_head,  'OBSMODE',  count=ct2)), $
+				obsmode:  strc(  gpi_get_keyword(head, ext_head,  'OBSMODE',  count=ctobsmode)), $
 				OBSID:    strc(  gpi_get_keyword(head, ext_head,  'OBSID',    count=ct3)), $
 				filter:   strc(gpi_simplify_keyword_value(strc(   gpi_get_keyword(head, ext_head,  'IFSFILT',   count=ct4)))), $
 				dispersr: strc(gpi_simplify_keyword_value(gpi_get_keyword(head, ext_head,  'DISPERSR', count=ct5))), $
 				OCCULTER: strc(gpi_simplify_keyword_value(gpi_get_keyword(head, ext_head,  'OCCULTER', count=ct6))), $
 				LYOTMASK: strc(  gpi_get_keyword(head, ext_head,  'LYOTMASK',     count=ct7)), $
 				APODIZER: strc(  gpi_get_keyword(head, ext_head,  'APODIZER',     count=ct8)), $
+				DATALAB:  strc(  gpi_get_keyword(head, ext_head,  'DATALAB',     count=ct11)), $
 				ITIME:    float( gpi_get_keyword(head, ext_head,  'ITIME',    count=ct9)), $
 				OBJECT:   string(  gpi_get_keyword(head, ext_head,  'OBJECT',   count=ct10)), $
+				summary: '',$
 				valid: 0}
-	vec=[ct0,ct1,ct2,ct3,ct4,ct5,ct6,ct7,ct8,ct9, ct10]
+	vec=[ct0,ct1,ct2,ct3,ct4,ct5,ct6,ct7,ct8,ct9, ct10,ct11, ctobsmode]
 	if total(vec) lt n_elements(vec) then begin
 		self.missingkeyw=1 
 		;give some info on missing keyw:
-		keytab=['ASTROMTC','OBSCLASS','OBSTYPE','OBSID', 'IFSFILT','DISPERSR','OCCULTER','LYOTMASK','APODIZER', 'ITIME', 'OBJECT','OBSMODE']
+		keytab=['ASTROMTC','OBSCLASS','OBSTYPE','OBSID', 'IFSFILT','DISPERSR','OCCULTER','LYOTMASK','APODIZER', 'ITIME', 'OBJECT','DATALAB', 'OBSMODE']
 		indzero=where(vec eq 0, cc)
 		;print, "Invalid/missing keywords for file "+filename
 		logmsg = 'Missing keyword(s): '+strjoin(keytab[indzero]," ")+" for "+filename
 		if cc gt 0 then self->Log, logmsg
-		message,/info, logmsg
+		;message,/info, logmsg
+
+		if ct1 eq 0 then obsstruct.obsclass = 'no OBSCLASS'
+		if ct2 eq 0 then obsstruct.obstype = 'no OBSTYPE'
+		if ct3 eq 0 then obsstruct.obsid = 'no OBSID'
+		if ctobsmode eq 0 then obsstruct.obsmode = 'no OBSMODE'
+		if ct10 eq 0 then obsstruct.object = 'no OBJECT'
+		if ct11 eq 0 then obsstruct.datalab = 'no DATALAB'
 
 	endif else begin
 		self.missingkeyw=0 ; added by Marshall for cleanup & consistency
@@ -215,6 +224,11 @@ function drfgui::get_obs_keywords, filename
 	endelse
 
 	if obsstruct.dispersr eq 'PRISM' then obsstruct.dispersr='Spectral'	 ; preferred display nomenclature is as Spectral/Wollaston. Both are prisms!
+	if obsstruct.object eq 'GCALflat' then obsstruct.object+= " "+gpi_get_keyword(head, ext_head,  'GCALLAMP')
+
+    obsstruct.summary = file_basename(filename)+"     "+string(obsstruct.obsmode,format='(A-10)')+" "+string(obsstruct.dispersr,format='(A-10)') +" "+string(obsstruct.obstype, format='(A10)')+$
+				" "+string(obsstruct.itime,format='(F5.1)')+"  "+string(obsstruct.object,format='(A15)')+"       "+obsstruct.datalab
+ 
 	
 	return, obsstruct
 
@@ -2078,7 +2092,7 @@ function drfgui::init_widgets, _extra=_Extra, session=session
 	
 	lab = widget_label(top_basemoduleavailable, value="Primitive Description:")
 	self.descr = WIDGET_TEXT(top_basemoduleavailable, $
-		xsize=58,scr_xsize=400, ysize=3,/scroll, $; nlines_args,$
+		xsize=79,scr_xsize=700, ysize=3,/scroll, $; nlines_args,$
 		value=(*self.curr_mod_avai)[0],units=0 ,/wrap, uval='mod_desc',/tracking_events)
 
 	; Create the status log window 

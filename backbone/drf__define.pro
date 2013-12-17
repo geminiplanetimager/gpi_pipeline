@@ -111,25 +111,34 @@ pro drf::add_datafiles, filenames_to_add, validate=validate, status=status
 end
 
 ;-------------
-FUNCTION drf::get_datafiles, absolute=absolute, status=status
+FUNCTION drf::get_datafiles, absolute=absolute, status=status, nfiles=nfiles
 	; obtain the list of files in a recipe
 	;
 	; KEYWORDS:
 	;   /absolute		return absolute paths. Default is to use GPI env vars
-	
+
+	; default is assume we have nothing until proven otherwise
+	tmpfiles = ['']
+	nfiles=0
+	status=-1 ; NOT_OK
+
 	if ptr_valid(self.datafilenames) then begin
 		tmpfiles= *self.datafilenames 
 
-		; enforce absolute paths if requested
-		if keyword_set(absolute) then for i=0,n_elements(tmpfiles)-1 do tmpfiles[i] = gpi_expand_path(tmpfiles[i]) $
-			else for i=0,n_elements(tmpfiles)-1 do tmpfiles[i] = gpi_shorten_path(tmpfiles[i]) 
+		; ignore any blank strings here
+		wnotblank = where(strc(tmpfiles) ne '', ctnotblank)
 
-		status=0 ; OK
-	endif else begin
-		tmpfiles = ['']
-		status=-1 ; NOT_OK
-	endelse
+		if ctnotblank gt 0 then begin
+			tmpfiles = tmpfiles[wnotblank]
+			; enforce absolute paths if requested
+			if keyword_set(absolute) then for i=0,n_elements(tmpfiles)-1 do tmpfiles[i] = gpi_expand_path(tmpfiles[i]) $
+				else for i=0,n_elements(tmpfiles)-1 do tmpfiles[i] = gpi_shorten_path(tmpfiles[i]) 
+			nfiles=n_elements(tmpfiles)
+			status=0 ; OK
 
+		endif 
+
+	endif 
 		
 	return, tmpfiles
 
@@ -677,20 +686,26 @@ end
 
 ;--------------------------------------------------------------------------------
 
-pro drf::save, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silent=silent, status=status, $
-               outputfilename=outputfile, template=template
-  ;; write out to disk!
-  ;;
-  ;; KEYWORDS:
-  ;; 	/absolutepaths		write DRFs using absolute paths in their text, not
-  ;; 						environment variables for relative paths
-  ;; 	/autodir			Automatically decide the best output directory to
-  ;; 						save **this recipe file** to. This is distinct from
-  ;;						the "automatic" option for the recipe file's actual
-  ;;						internal output directory, which sets the output
-  ;;						directory for pipeline processed FITS files. 
-  ;;   /template			Save as a template, i.e. not including any FITS
-  ;;						filenames
+pro drf::save, outputfile0, autodir=autodir,silent=silent, status=status, $
+               outputfilename=outputfile, _extra=_extra
+  ; write out to disk!
+  ;
+  ; KEYWORDS:
+  ;     /autodir        Automatically decide the best output directory to
+  ;                     save **this recipe file** to. This is distinct from
+  ;                     the "automatic" option for the recipe file's actual
+  ;                     internal output directory, which sets the output
+  ;                     directory for pipeline processed FITS files. 
+  ;
+  ; KEYWORDS PROVIDED BY drf::tostring VIA _EXTRA:
+  ;     /absolutepaths  write DRFs using absolute paths in their text, not
+  ;                     environment variables for relative paths
+  ;     /template       Save as a template, i.e. not including any FITS
+  ;                     filenames
+  ;     comment='...'   Provide a string comment text that will be 
+  ;                     included near the top of the XML file.
+
+
   OK = 0
   NOT_OK = -1
   
@@ -722,7 +737,7 @@ pro drf::save, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silent=s
   if ~(keyword_set(silent)) then self->log,'Writing recipe to '+gpi_shorten_path(outputfile)
   
   OpenW, lun, outputfile, /Get_Lun
-  PrintF, lun, self->tostring(absolutepaths=absolutepaths, template=template)
+  PrintF, lun, self->tostring( _extra=_extra)
   Free_Lun, lun
   
   self.last_saved_filename = outputfile
@@ -733,7 +748,7 @@ pro drf::save, outputfile0, absolutepaths=absolutepaths,autodir=autodir,silent=s
 end
 
 ;-------------
-PRO drf::queue, filename=filename, queued_filename=queued_filename, status=status
+PRO drf::queue, filename=filename, queued_filename=queued_filename, status=status, _extra=_extra
 	; save a DRF into the queue
 
 	OK = 0
@@ -750,7 +765,7 @@ PRO drf::queue, filename=filename, queued_filename=queued_filename, status=statu
 
 	prev_outputfile = self.last_saved_filename ; save value before this gets overwritten in save
 
-	self->save, queued_filename,/silent
+	self->save, queued_filename,/silent, _extra=_extra
 
 	self.last_saved_filename= prev_outputfile ; restore previous value
 
@@ -760,8 +775,16 @@ end
 
 ;-------------
 
-function drf::tostring, absolutepaths=absolutepaths, template=template
-  ;; Return a DRF formatted as an XML string
+function drf::tostring, absolutepaths=absolutepaths, template=template, comment=comment
+  ; Return a DRF formatted as an XML string
+  ;
+  ; KEYWORDS:
+  ;    /absolutepaths		Write absolute file paths instead of using
+  ;							environment variables. 
+  ;	   /template			Save for use as a template, i.e. don't include
+  ;							file names for input FITS files
+  ;	   comment='...'		Provide a string comment text that will be 
+  ;							included near the top of the XML file.
 
   if ~(keyword_set(absolutepaths ))then begin
      outputdir=gpi_shorten_path(self.outputdir) 
@@ -770,16 +793,16 @@ function drf::tostring, absolutepaths=absolutepaths, template=template
   endelse  
         
   ;; Are all the input files in the same directory?
-  filenames = self->get_datafiles()
-  dirnames = strarr(n_elements(filenames))
-  for i=0,n_elements(filenames)-1 do dirnames[i] = file_dirname(filenames[i])
+  filenames = self->get_datafiles(nfiles=nfiles)
+  dirnames = strarr(nfiles)
+  for i=0,nfiles-1 do dirnames[i] = file_dirname(filenames[i])
   uniqdirs = uniqvals(dirnames)
   
   if n_elements(uniqdirs) eq 1 then begin
      ;; all files are from a common input directory! So pull that out to the
      ;; inputdir parameter
      inputdir = uniqdirs[0]
-     for i=0,n_elements(filenames)-1 do filenames[i] = file_basename(filenames[i])
+     for i=0,nfiles-1 do filenames[i] = file_basename(filenames[i])
      
      if keyword_set(absolutepaths) then inputdir=gpi_expand_path(inputdir) else inputdir=gpi_shorten_path(inputdir)
   endif else begin
@@ -787,24 +810,31 @@ function drf::tostring, absolutepaths=absolutepaths, template=template
      ;; So leave the paths on the individual filenames.
      inputdir = ''
      
-     for i=0,n_elements(filenames)-1 do $
+     for i=0,nfiles-1 do $
         if keyword_set(absolutepaths) then filenames[i]=gpi_expand_path(filenames[i]) else filenames[i]=gpi_shorten_path(filenames[i])   
   endelse
  
   if (!D.NAME eq 'WIN') then newline = string([13B, 10B]) else newline = string(10B)
   
+  gpi_get_user_info, user, computer
+  timestring = string(systime(/julian,/utc),format = '(C(CYI4,"-",CMOI2.2,"-"CDI2.2,"T",CHI2.2, ":", CMI2.2, ":", CSI2.2," UTC"))')
+
+
   outputstring = ''
   outputstring +='<?xml version="1.0" encoding="UTF-8"?>'+newline 
   outputstring +='<recipe Name="'+self.name+'" ReductionType="'+self.reductiontype+'" ShortName="'+self.ShortName+'">'+newline
+  outputstring +='<!-- recipe written by '+user+' on '+computer+' at '+timestring+ ' -->'+newline
+  if keyword_set(comment) then outputstring +='<!-- '+comment+ ' -->'+newline
   outputstring +='<dataset '
   if inputdir ne '' then outputstring+= 'InputDir="'+inputdir+'" ' ; only write an inputdir parameter if it's non-null!
   outputstring +='OutputDir="'+outputdir+'">'+newline 
 
-  if ~(keyword_set(template)) then $ ; don't write out FITS if we're saving as a template
-     if ptr_valid(self.datafilenames) then $
-        FOR j=0,N_Elements(*self.datafilenames)-1 DO BEGIN
-     outputstring +='   <fits FileName="' + filenames[j] + '" />'+newline
-  ENDFOR
+  if ~(keyword_set(template)) then begin  ; don't write out FITS if we're saving as a template
+    if nfiles gt 0  then $
+    FOR j=0,nfiles-1 DO BEGIN
+		 outputstring +='   <fits FileName="' + filenames[j] + '" />'+newline
+	ENDFOR
+  endif
   outputstring +='</dataset>'+newline
   
   drf_primitive_names = (*self.primitives).name 
