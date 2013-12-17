@@ -457,11 +457,11 @@ end
 
 
 ;+-------------------------------------------------------------------------------
-; gpi_recipe_editor::Rescan_Primitives_List
+; gpi_recipe_editor::Reload_Primitives_List
 ;	Reload the list of available primitives
 ;-
 
-PRO  gpi_recipe_editor::Rescan_Primitives_List
+PRO  gpi_recipe_editor::Reload_Primitives_List
     compile_opt DEFINT32, STRICTARR
 
 	msg = "Reloading list of available primitives and arguments..."
@@ -470,9 +470,11 @@ PRO  gpi_recipe_editor::Rescan_Primitives_List
     ptr_free, self.PrimitiveInfo
 	self->load_configParser
 
-	msg = "Loaded "+strc(n_elements(*self.primitiveinfo))+" available primitives."
+	msg = "Loaded "+strc(n_elements((*self.primitiveinfo).names))+" available primitives."
 	message,/info, msg
 	widget_control,self.textinfo_id,set_value=msg
+
+    self->update_available_primitives, self.reductiontype
 
 end
 
@@ -893,8 +895,8 @@ pro gpi_recipe_editor::event,ev
 	'Add primitive': self->AddPrimitive
 	'Remove primitive': self->RemovePrimitive
 	'Choose Calibration File': self->ChooseCalibrationFile
-    'Rescan Primitives List':	self->rescan_primitives_list
-    'Rescan Templates':	self->scan_templates
+    'Reload Available Primitives':	self->rescan_primitives_list
+    'Reload Templates':	self->scan_templates
 	'Basic View':			self->set_view_mode, 1
 	'Normal View':			self->set_view_mode, 2
 	'Advanced View':		self->set_view_mode, 3 
@@ -920,7 +922,7 @@ pro gpi_recipe_editor::event,ev
     end
 	'Show default Primitives': begin
 		self.showhidden = 0
-    	self->update_available_primitives, self.reductiontype, 1
+    	self->update_available_primitives, self.reductiontype
 	end
 
 	'Show default + hidden Primitives': begin
@@ -1400,8 +1402,8 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
                   {cw_pdmenu_s, 0, 'Move primitive down'}, $
                   {cw_pdmenu_s, 6, 'Choose Calibration File...'}, $
                   {cw_pdmenu_s, 1, 'Options'}, $
-                  {cw_pdmenu_s, 0, 'Rescan Primitives List'}, $
-                  {cw_pdmenu_s, 0, 'Rescan Templates'}, $
+                  {cw_pdmenu_s, 0, 'Reload Available Primitives'}, $
+                  {cw_pdmenu_s, 0, 'Reload Templates'}, $
                   {cw_pdmenu_s, 12, 'Basic View'}, $
                   {cw_pdmenu_s, 8, 'Normal View'}, $
                   {cw_pdmenu_s, 8, 'Advanced View'}, $
@@ -1473,9 +1475,9 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
 	;self.resolvetypeseq_id = Widget_Button(base_radio, UNAME='RESOLVETYPESEQBUTTON' ,/ALIGN_LEFT ,VALUE='Resolve type/seq. when adding file(s)',UVALUE='autoresolvetypeseq')
 
 	rowbase_template = widget_base(top_baseidentseq,row=1)
-	self.reduction_type_id = WIDGET_DROPLIST( rowbase_template, title='Reduction type:    ', frame=0, Value=*self.template_types,uvalue='reduction_type_dropdown',resource_name='XmDroplistButton')
+	self.reduction_type_id = WIDGET_DROPLIST( rowbase_template, title= 'Reduction type:  ', frame=0, Value=*self.template_types,uvalue='reduction_type_dropdown',resource_name='XmDroplistButton')
 	rowbase_template2 = widget_base(top_baseidentseq,row=1)
-    self.template_name_id  = WIDGET_DROPLIST( rowbase_template2, title='Recipe Template:', frame=0, Value=['Simple Data-cube extraction','Calibrated Data-cube extraction','Calibrated Data-cube extraction, ADI reduction'],uvalue='template_name_dropdown',resource_name='XmDroplistButton')
+    self.template_name_id  = WIDGET_DROPLIST( rowbase_template2, title='Recipe Template: ', frame=0, Value=['Simple Data-cube extraction','Calibrated Data-cube extraction','Calibrated Data-cube extraction, ADI reduction'],uvalue='template_name_dropdown',resource_name='XmDroplistButton')
 
 	;one nice logo 
 	button_image = READ_BMP(gpi_get_directory('GPI_DRP_DIR')+path_sep()+'gpi.bmp', /RGB) 
