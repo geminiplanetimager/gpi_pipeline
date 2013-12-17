@@ -3937,7 +3937,10 @@ pro GPItv::change_image_units, new_requested_units, silent=silent
            conversion_factor  = (*self.state).itime
         endif else begin
            ;; here, we deal with the nontrivial conversions that require flux calibration
-           message,'Nontrivial units conversions need to be reimplemented more carefully... - not supported yet!'
+           self->message,['Nontrivial units conversions need to be reimplemented more carefully... ', $
+						  'Not sure how to convert from "'+(*self.state).current_units+'" to "'+new_requested_units+'". Not supported yet!'] ;,/window 
+					  ;Ignoring Retain Current Stretch.',/window
+		   return
            
            ;;first, scale from current units to 'ph/s/nm/m^2'
            case (*self.state).current_units of
