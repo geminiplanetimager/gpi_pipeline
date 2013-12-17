@@ -822,7 +822,7 @@ pro gpi_recipe_editor::event,ev
 		  then $
 		  type_ok=1 $
 		else type_ok=0
-stop
+
 		if ~type_ok then begin
 			errormessage = ["Sorry, you tried to enter a value for "+argname+", but it had the wrong type ("+strupcase(typename)+").", "Please enter a value of type "+strupcase(required_type)+". The value was NOT updated; please try again."]
 			self->log,errormessage[0]+"  "+errormessage[1] ; merge 2 lines into 1
