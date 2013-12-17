@@ -11369,8 +11369,13 @@ pro GPItv::getautowavecal
 
 	bestfile = caldb->get_best_cal_from_header( calfiletype, hd, exthd )
 
-	self->message, ["Retrieved "+calfiletype+" file from Calibration DB: "+bestfile, "Now select 'Plot Wavecal Grid' to display it."],/window
-	(*self.state).wcfilename = bestfile
+	if strc(bestfile) eq '-1' then begin
+		self->message, ['ERROR: No available appropriate calibration files for this data!','', 'The calibration database does not contain a wavecal or polcal file','that matches this image in IFSFILT and DISPERSR keywords. Cannot load data to plot.'],/window,msgtype='error'
+		(*self.state).wcfilename=''
+	endif else begin
+		self->message, ["Retrieved "+calfiletype+" file from Calibration DB: "+bestfile, "Now select 'Plot Wavecal Grid' to display it."],/window
+		(*self.state).wcfilename = bestfile
+	endelse
 
 
 end
