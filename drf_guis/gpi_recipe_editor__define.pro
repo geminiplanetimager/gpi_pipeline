@@ -341,9 +341,14 @@ pro gpi_recipe_editor::refresh_arguments_table, primitive_index
 
 	has_calibration_file = total(strmatch(arg_info.names, 'CalibrationFile')) gt 0
 	if has_calibration_file then begin
-		widget_control, self.button_calfile_id, sensitive=1
+		wcalfile = where(strupcase(arg_info.names) eq "CALIBRATIONFILE", mct)
+		current_value = arg_info.values[wcalfile]
+		label = (current_value eq 'AUTOMATIC') ? 'Choose Calibration File...' : 'Automatic Calibration File'
+
+
+		widget_control, self.button_calfile_id, sensitive=1, set_value=label
 	endif else begin
-		widget_control, self.button_calfile_id, sensitive=0
+		widget_control, self.button_calfile_id, sensitive=0, set_value='Choose Calibration File...'
 	endelse
 
 end
