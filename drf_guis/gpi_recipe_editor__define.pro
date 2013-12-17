@@ -32,8 +32,6 @@
 ;                            in other words, matching the displayed order in the
 ;                            Avail Table
 ;
-;    self.indmodtot2avail    indices for
-;
 ;--------------------------------------------------------------------------------
 ;
 ; author : 2009-09-14 J.Maire created
@@ -54,71 +52,6 @@ compile_opt DEFINT32, STRICTARR
 ;
 ;
 
-;-----------------------------------------
-; Verify a keyword is present? 
-; Given a list of filenames and keywords,
-; Check that values are present for all of them.
-;
-;
-; Parameters:
-; 	file	input filename
-; 	cindex	?
-; 	keyw	List of keywords to test
-; 	requiredvalue	test this value FIXME make this a list or range?
-; 	storage	?
-; 	/needalertdialog 	flag to display dialog if keyword not found
-;
-;
-function gpi_recipe_editor::validkeyword, file, cindex, keyw, requiredvalue,storage,needalertdialog=needalertdialog
-    common GPI_DRP_VALIDKEYWORD, last_filename, last_pri_header, last_ext_header
-
-	if ~(keyword_set(last_filename)) then last_filename=""
-    value=strarr(cindex)
-    matchedvalue=intarr(cindex)
-    ok=1
-	for i=0, cindex-1 do begin
-		;fits_info, file[i],/silent, N_ext 
-	    ;catch, Error_status
-	    if strmatch(!ERROR_STATE.MSG, '*Unit: 101*'+file[i]) then wait,1
-
-		if file[i] eq last_filename then begin
-			print, "Revalidating same file. Using last file read header"
-			pri_header = last_pri_header
-			ext_header = last_ext_header
-		endif else begin
-			print, "Reading from disk: "+file[i]
-			file_data = gpi_load_fits(file[i],/nodata,/silent)
-			pri_header = *file_data.pri_header
-			ext_header = *file_data.ext_header
-		endelse
-
-		value[i] = gpi_get_keyword(pri_header, ext_header, keyw,count=cc)
-
-		if cc eq 0 then begin
-			self->log,'Absent '+keyw+' keyword for data: '+file[i]
-			stop
-			ok=0
-		endif
-		if cc eq 1 then begin
-			matchedvalue=stregex(value[i],requiredvalue,/boolean,/fold_case)
-			if matchedvalue ne 1 then begin 
-			  self->log,'Invalid '+keyw+' keyword for data: '+file[i]
-			  self->log,keyw+' keyword found: '+value[i]
-			  if keyword_set(needalertdialog) then void=dialog_message('Invalid '+keyw+' keyword for data: '+file[i]+' keyword found: '+value[i])
-			  ok=0
-			endif
-		endif
-
-		last_filename = file[i]	
-		last_pri_header = temporary(pri_header)
-		last_ext_header = temporary(ext_header)
-
-	endfor  
- 
-      
-  return, ok
-end
-
 ;+--------------------------------------------------------------------------------
 ; gpi_recipe_editor::get_obs_keywords
 ;     determine the relevant keywords to find out the observation mode of a file. 
@@ -138,34 +71,57 @@ function gpi_recipe_editor::get_obs_keywords, filename
 	ptr_free, fits_data.pri_header, fits_data.ext_header
 
 	obsstruct = {gpi_obs, $
+				FILENAME: filename,$
 				ASTROMTC: strc(  gpi_get_keyword(head, ext_head,  'ASTROMTC', count=ct0)), $
 				OBSCLASS: strc(  gpi_get_keyword(head, ext_head,  'OBSCLASS', count=ct1)), $
 				obstype:  strc(  gpi_get_keyword(head, ext_head,  'OBSTYPE',  count=ct2)), $
+				obsmode:  strc(  gpi_get_keyword(head, ext_head,  'OBSMODE',  count=ctobsmode)), $
 				OBSID:    strc(  gpi_get_keyword(head, ext_head,  'OBSID',    count=ct3)), $
 				filter:   strc(gpi_simplify_keyword_value(strc(   gpi_get_keyword(head, ext_head,  'IFSFILT',   count=ct4)))), $
 				dispersr: strc(gpi_simplify_keyword_value(gpi_get_keyword(head, ext_head,  'DISPERSR', count=ct5))), $
 				OCCULTER: strc(gpi_simplify_keyword_value(gpi_get_keyword(head, ext_head,  'OCCULTER', count=ct6))), $
 				LYOTMASK: strc(  gpi_get_keyword(head, ext_head,  'LYOTMASK',     count=ct7)), $
 				APODIZER: strc(  gpi_get_keyword(head, ext_head,  'APODIZER',     count=ct8)), $
+				DATALAB:  strc(  gpi_get_keyword(head, ext_head,  'DATALAB',     count=ct11)), $
 				ITIME:    float( gpi_get_keyword(head, ext_head,  'ITIME',    count=ct9)), $
-				INSTRUME: strc(  gpi_get_keyword(head, ext_head,  'INSTRUME',    count=ct11)), $
-				OBJECT:   strc(  gpi_get_keyword(head, ext_head,  'OBJECT',   count=ct10)), $
+				COADDS:   fix( gpi_get_keyword(head, ext_head,  'COADDS',    count=ctcoadd)), $
+				OBJECT:   string(  gpi_get_keyword(head, ext_head,  'OBJECT',   count=ct10)), $
+				summary: '',$
 				valid: 0}
-	vec=[ct0,ct1,ct2,ct3,ct4,ct5,ct6,ct7,ct8,ct9, ct10, ct11]
-	if total(vec) lt n_elements(vec) then begin
-		;self.missingkeyw=1 
-		;give some info on missing keyw:
-		keytab=['ASTROMTC','OBSCLASS','OBSTYPE','OBSID', 'IFSFILT','DISPERSR','OCCULTER','LYOTMASK','APODIZER', 'ITIME', 'OBJECT', 'INSTRUME']
-		indzero=where(vec eq 0, cc)
-		print, "Invalid/missing keywords for file "+filename
-		if cc gt 0 then self->Log, 'Missing keyword(s): '+strjoin(keytab[indzero]," ")
 
-		stop
+	; some are OK to be missing without making it impossible to parse
+	if ct11 eq 0 then obsstruct.datalab = 'no DATALAB'
+	if ct10 eq 0 then obsstruct.object = 'no OBJECT'
+	if ct3 eq 0 then obsstruct.obsid = 'no OBSID'
+
+	; some we need to have in order to be able to parse.
+	vec=[ct0,ct1,ct2,ct4,ct5,ct6,ct7,ct8,ct9,  ctobsmode]
+	if total(vec) lt n_elements(vec) then begin
+		obsstruct.valid=0
+		;give some info on missing keyw:
+		keytab=['ASTROMTC','OBSCLASS','OBSTYPE', 'IFSFILT','DISPERSR','OCCULTER','LYOTMASK','APODIZER', 'ITIME',  'OBSMODE']
+		indzero=where(vec eq 0, cc)
+		;print, "Invalid/missing keywords for file "+filename
+		logmsg = 'Missing keyword(s): '+strjoin(keytab[indzero]," ")+" for "+filename
+		if cc gt 0 then self->Log, logmsg
+		;message,/info, logmsg
+
+		if ct1 eq 0 then obsstruct.obsclass = 'no OBSCLASS'
+		if ct2 eq 0 then obsstruct.obstype = 'no OBSTYPE'
+		if ctobsmode eq 0 then obsstruct.obsmode = 'no OBSMODE'
+
 	endif else begin
-		;self.missingkeyw=0 ; added by Marshall for cleanup & consistency
 		obsstruct.valid=1
 	endelse
 
+	if obsstruct.dispersr eq 'PRISM' then obsstruct.dispersr='Spectral'	 ; preferred display nomenclature is as Spectral/Wollaston. Both are prisms!
+	if obsstruct.object eq 'GCALflat' then obsstruct.object+= " "+gpi_get_keyword(head, ext_head,  'GCALLAMP')
+
+	if obsstruct.coadds eq 1 then coaddstr = "     " else coaddstr = "*"+string(obsstruct.coadds,format='(I-4)')
+    obsstruct.summary = file_basename(filename)+"     "+string(obsstruct.obsmode,format='(A-10)')+" "+string(obsstruct.dispersr,format='(A-10)') +" "+string(obsstruct.obstype, format='(A-10)')+$
+				" "+string(obsstruct.itime,format='(F5.1)')+coaddstr+"  "+string(obsstruct.object,format='(A-15)')+"       "+obsstruct.datalab
+ 
+	
 	return, obsstruct
 
 end
@@ -387,7 +343,13 @@ end
 ;-
 pro gpi_recipe_editor::refresh_filenames_display, new_selected=new_selected  
     widget_control,self.top_base,get_uvalue=storage  
-    widget_control,storage.fname,set_value= self.drf->get_datafiles()
+	filenames = self.drf->get_datafiles(nfiles=nfiles)
+	if nfiles gt 0 then begin
+		descriptions = strarr(n_elements(filenames))
+		for i=0,n_elements(filenames)-1 do descriptions[i] = (self->get_obs_keywords(filenames[i])).summary
+	endif else descriptions=['']
+
+    widget_control,storage.fname,set_value= descriptions
 
 end
 
@@ -1249,9 +1211,9 @@ pro gpi_recipe_editor::save, template=template, nopickfile=nopickfile
      if templatesflag then begin
         outputfilename = self.loadedRecipeFile ;to check
      endif else begin     
-        caldat,systime(/julian),month,day,year, hour,minute,second
-        datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
-        hourstr = string(hour,minute,second,format='(i2.2,i2.2,i2.2)') 
+        ;caldat,systime(/julian),month,day,year, hour,minute,second
+        ;datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
+        ;hourstr = string(hour,minute,second,format='(i2.2,i2.2,i2.2)') 
         
         ;;get rid of any leading paths on the first and last files
         first_file = file_basename(gpi_expand_path(files[0]))
@@ -1295,7 +1257,8 @@ pro gpi_recipe_editor::save, template=template, nopickfile=nopickfile
   
   self.drffilename = file_basename(output_recipe_filename)
   self->log,'Now writing Recipe to '+self.drfpath+path_sep()+self.drffilename 
-  self.drf->save, self.drfpath+path_sep()+self.drffilename, outputfilename=outputfilename, template=template
+  self.drf->save, self.drfpath+path_sep()+self.drffilename, outputfilename=outputfilename, template=template, $
+	  comment="created with the Recipe Editor GUI"
   
   self->update_title_bar, outputfilename
   
@@ -1489,9 +1452,9 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
            'unix': begin 
               if curr_sc[0] gt 1300 then $
                  top_base=widget_base(title=title, group_leader=groupleader,/BASE_ALIGN_LEFT,/column,$
-                                      MBAR=bar,/tlb_size_events, /tlb_kill_request_events, resource_name='GPI_DRP_gpi_recipe_editor') $
+                                      MBAR=bar,/tlb_size_events, /tlb_kill_request_events, resource_name='GPI_DRP_RecipeEditor') $
               else top_base=widget_base(title=title, group_leader=groupleader,/BASE_ALIGN_LEFT,/column,$
-                                        MBAR=bar,/tlb_size_events, /tlb_kill_request_events, resource_name='GPI_DRP_gpi_recipe_editor',$
+                                        MBAR=bar,/tlb_size_events, /tlb_kill_request_events, resource_name='GPI_DRP_RecipeEditor',$
                                         /scroll,x_scroll_size=curr_sc[0]-50,y_scroll_size=curr_sc[1]-100)
            end
            'Windows'   :begin
@@ -1566,8 +1529,8 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
 		
 	top_baseident=widget_base(top_base,/BASE_ALIGN_LEFT,/row, frame=DEBUG_SHOWFRAMES)
 	; file name list widget
-	fname=widget_list(top_baseident,xsize=106,scr_xsize=580, ysize=nlines_fname,$
-			xoffset=10,yoffset=150,uvalue="FNAME", /TRACKING_EVENTS,resource_name='XmText')
+	fname=widget_list(top_baseident,xsize=106,scr_xsize=680, ysize=nlines_fname,$
+			xoffset=10,yoffset=150,uvalue="FNAME", /TRACKING_EVENTS,resource_name='XmText',/multiple)
 
 	; add 5 pixel space between the filename list and controls
 	top_baseident_spacer=widget_base(top_baseident,xsize=5,units=0, frame=DEBUG_SHOWFRAMES)
@@ -1752,7 +1715,7 @@ pro gpi_recipe_editor__define
               template_name_id: 0L,$			; widget ID for template name dropdown
               widgets_for_modes: ptr_new(), $	; widget IDs for basic/normal/advanced modes. see set_view_mode.
 			  selected_primitive_index: 0L, $	; index of current primitive whose arguments are shown in the args table
-              showhidden: 0, $
+              showhidden: 0, $					; should primitives marked 'hidden' be displayed?
               reductiontypes: ['SpectralScience','PolarimetricScience','Calibration','Testing'], $
               table_background_colors: ptr_new(), $	; ptr to RGB triplets for table cell colors
               nlines_modules: 0, $                  ; how many lines to display modules on screen? (used in resize)
