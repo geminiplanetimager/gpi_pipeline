@@ -5,5 +5,5 @@
 </dataset>
 <module name="Destripe for Darks Only" Save="0" gpitv="0" before_and_after='0' remove_microphonics='yes' display='1' /> 
 <module name="Accumulate Images" Method="InMemory" />
-<module name="Combine 2D dark images" Method="Median" Save="1" gpitv="1" />
+<module name="Combine 2D dark images" Method="SIGMACLIP" Sigma_Cut="3.0" Save="1" gpitv="1" />
 </DRF>

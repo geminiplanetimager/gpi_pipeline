@@ -222,6 +222,7 @@ pro parsergui::parse_current_files
 			;print, "time 2, file "+strc(ff)+": ", systime(/seconds) - t0
 			if self.debug then message,/info, 'Verifying keywords for file '+file[ff]
 			if self.debug then message,/info, '  This code needs to be made more efficient...'
+              widget_control,self.textinfo_id,set_value='Verifying keywords for file '+file[ff]
 
             valid[ff]=gpi_validate_file( file[ff] ) 
         endfor  
@@ -253,25 +254,21 @@ pro parsergui::parse_current_files
     (*self.recipes_table)=strarr(10)
 
     for i=0,nfiles-1 do pfile[i] = file_basename(file[i]) 
-    widget_control,storage.fname,set_value=pfile ; update displayed filename information - temporary, just show filename
+    widget_control,storage.fname,set_value=pfile ; update displayed filename information - temporary, just show filenames
 
     if nfiles gt 0 then begin ;assure that data are selected
-	self->Log,'Now reading in keywords for all files...'
-
+		self->Log,'Now reading in keywords for all files...'
 
         self.num_recipes_in_table=0
-        ;; RESOLVE FILTER(S) AND OBSTYPE(S)
         tmp = self->get_obs_keywords(file[0])
         finfo = replicate(tmp,nfiles)
 
         for jj=0,nfiles-1 do begin
             finfo[jj] = self->get_obs_keywords(file[jj])
             ;;we want Xenon&Argon considered as the same 'lamp' object for Y,K1,K2bands (for H&J, better to do separately to keep only meas. from Xenon)
-            if (~strmatch(finfo[jj].filter,'[HJ]')) && (strmatch(finfo[jj].object,'Xenon') || strmatch(finfo[jj].object,'Argon')) then $
-                    finfo[jj].object='Lamp'
+            ;if (~strmatch(finfo[jj].filter,'[HJ]')) && (strmatch(finfo[jj].object,'Xenon') || strmatch(finfo[jj].object,'Argon')) then $
+                    ;finfo[jj].object='Lamp'
             pfile[jj] = finfo[jj].summary
-			;pfile[jj]+"     "+string(finfo[jj].obsmode,format='(A-10)')+" "+string(finfo[jj].dispersr,format='(A-10)') +" "+string(finfo[jj].obstype, format='(A10)')+$
-				;" "+string(finfo[jj].itime,format='(F5.1)')+"  "+string(finfo[jj].object,format='(A15)')+"       "+finfo[jj].datalab
         endfor
 		wnz = where(pfile ne '')
         widget_control,storage.fname,set_value=pfile[wnz] ; update displayed filename information - filenames plus parsed keywords
@@ -692,14 +689,14 @@ pro parsergui::clone_recipe_and_swap_template, existing_recipe_index, newtemplat
 
 	if keyword_set(lastfileonly) then existingdrffiles = existingdrffiles[n_elements(existingdrffiles)-1]
 	; copy over the descriptive info settings from the prior recipe
-	existing_metadata= {filter: (*self.currDRFSelec)[3,existing_recipe_index], $
-						obstype:(*self.currDRFSelec)[4,existing_recipe_index], $
-						dispersr: (*self.currDRFSelec)[5,existing_recipe_index], $
-						obsmode: (*self.currDRFSelec)[6,existing_recipe_index], $ 
-						lyotmask: (*self.currDRFSelec)[7,existing_recipe_index], $ 
-						obsclass: (*self.currDRFSelec)[8,existing_recipe_index], $
-						itime:(*self.currDRFSelec)[9,existing_recipe_index], $
-						object:(*self.currDRFSelec)[10,existing_recipe_index]}
+	existing_metadata= {filter: (*self.recipes_table)[3,existing_recipe_index], $
+						obstype:(*self.recipes_table)[4,existing_recipe_index], $
+						dispersr: (*self.recipes_table)[5,existing_recipe_index], $
+						obsmode: (*self.recipes_table)[6,existing_recipe_index], $ 
+						lyotmask: (*self.recipes_table)[7,existing_recipe_index], $ 
+						obsclass: (*self.recipes_table)[8,existing_recipe_index], $
+						itime:(*self.recipes_table)[9,existing_recipe_index], $
+						object:(*self.recipes_table)[10,existing_recipe_index]}
 
 	newtemplatefilename = self->lookup_template_filename(newtemplatename)
 	self->create_recipe_from_template, newtemplatefilename, existingdrffiles, existing_metadata,  index=insert_index
@@ -1312,31 +1309,20 @@ function parsergui::init_widgets,  _extra=_Extra
     maxfilen=gpi_get_setting('parsergui_max_files',/int, default=1000,/silent) 
     filename=strarr(maxfilen)
     printname=strarr(maxfilen)
-    ;printfname=strarr(maxfilen)
     datefile=lonarr(maxfilen)
     findex=0
     selindex=0
-    splitptr=ptr_new({filename:filename,printname:printname,$
-      findex:findex,selindex:selindex,datefile:datefile, maxfilen:maxfilen})
+    splitptr=ptr_new({filename:filename,$ ; array for FITS filenames loaded
+		printname:printname,$	; array for printname
+		findex:findex,$			; current index to write filename
+		selindex:selindex,$		; 
+		datefile:datefile, $	; date of each FITS file (for sort-by-date)
+		maxfilen:maxfilen})		; max allowed number of files
 
-    ;make and store data storage
-    ;-----------------------------------------
-    ; info        : widget ID for information text box
-    ; fname        : widget ID for filename text box
-    ; rb        : widget ID for merge selector
-    ; splitptr  ; structure (pointer)
-    ;   filename  : array for filename
-    ;   printname : array for printname
-    ;   findex    : current index to write filename
-    ;   selindex  : index for selected file
-    ; group,proj    : group and project name(given parameter)
-    ;-----------------------------------------
-    group=''
-    proj=''
-    storage={info:info,fname:fname,$
-        splitptr:splitptr,$
-        group:group,proj:proj, $
-        self:self}
+    storage={info:info,$	; widget ID for information text box
+		fname:fname,$		; widget ID for filename text box
+        splitptr:splitptr,$	; structure (pointer)
+        self:self}			; Object handle to self (for access from widgets)
     widget_control,parserbase,set_uvalue=storage,/no_copy
 
     self->log, "This GUI helps you to parse a set of FITS data files to generate useful reduction recipes."
@@ -1349,11 +1335,20 @@ end
 ;-----------------------
 ; parsergui::post_init
 ;    nothing needed here - null routine to override the parent class' routine
-;
 ;-
 pro parsergui::post_init, _extra=_extra
 	; pass
 end
+;-----------------------
+; parsergui::log
+;-
+pro parsergui::log, logtext
+	if self.textinfo_id ne 0 then $
+	widget_control, self.textinfo_id, set_value = logtext
+    self->gpi_gui_base::log, logtext
+
+end
+
 
 ;+-----------------------
 ; parsergui__define
@@ -1363,22 +1358,14 @@ PRO parsergui__define
 
 
     state = {  parsergui,                 $
-              typetab:strarr(5),$
-              ;loadedinputdir:'',$
-              ;calibflatid:0L,$
-              ;flatreduc:0,$
               autoqueue_id:0L,$			; widget ID for auto queue button
-              ;selectype:0,$
-              ;currtype:0,$
-              ;currseq:0,$
 			  table_recipes_id: 0, $	; widget ID for recipes table
+              sortfileid :0L,$		    ; widget ID for file list sort options 
               num_recipes_in_table:0,$	; # of recipes listed in the table
               selection: '', $			; current selection in recipes table
-			  DEBUG:0, $				; set by pipeline setting enable_parser_debug
-              sorttab:strarr(3),$      ; table for sort options 
-              sortfileid :0L,$		   ; widget ID for file list sort options 
-			  current_drf: ptr_new(), $
-              recipes_table: ptr_new(), $
+              recipes_table: ptr_new(), $   ; pointer to resizeable string array, the data for the recipes table
+			  DEBUG:0, $				; debug flag, set by pipeline setting enable_parser_debug
+              sorttab:strarr(3),$       ; table for sort options 
            INHERITS gpi_recipe_editor}
 
 

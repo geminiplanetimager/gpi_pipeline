@@ -93,13 +93,14 @@ function gpi_recipe_editor::get_obs_keywords, filename
 	if ct11 eq 0 then obsstruct.datalab = 'no DATALAB'
 	if ct10 eq 0 then obsstruct.object = 'no OBJECT'
 	if ct3 eq 0 then obsstruct.obsid = 'no OBSID'
+	if ct0 eq 0 then obsstruct.astromtc= 'F'
 
 	; some we need to have in order to be able to parse.
-	vec=[ct0,ct1,ct2,ct4,ct5,ct6,ct7,ct8,ct9,  ctobsmode]
+	vec=[ct1,ct2,ct4,ct5,ct6,ct7,ct8,ct9,  ctobsmode]
 	if total(vec) lt n_elements(vec) then begin
 		obsstruct.valid=0
 		;give some info on missing keyw:
-		keytab=['ASTROMTC','OBSCLASS','OBSTYPE', 'IFSFILT','DISPERSR','OCCULTER','LYOTMASK','APODIZER', 'ITIME',  'OBSMODE']
+		keytab=['OBSCLASS','OBSTYPE', 'IFSFILT','DISPERSR','OCCULTER','LYOTMASK','APODIZER', 'ITIME',  'OBSMODE']
 		indzero=where(vec eq 0, cc)
 		;print, "Invalid/missing keywords for file "+filename
 		logmsg = 'Missing keyword(s): '+strjoin(keytab[indzero]," ")+" for "+filename
