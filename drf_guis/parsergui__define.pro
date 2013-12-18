@@ -1121,6 +1121,33 @@ pro parsergui::ask_add_files
 
 end
 
+;+-----------------------------------------
+; parsergui::queue
+;    Add a file to the queue 
+;    (from a filename, assuming that file already exists on disk.)
+;-
+pro parsergui::queue, filename
+
+    if ~file_test(filename) then begin
+    	widget_control,self.top_base,get_uvalue=storage  
+      	self->log,"File "+filename+" does not exist!"
+      	return
+    endif 
+
+    ; Make sure the filename ends with '.waiting.xml'
+    if strpos(filename,".waiting.xml") eq -1 then begin
+        newfilename = file_basename(filename,".xml")+".waiting.xml"
+    endif else begin
+        newfilename = file_basename(filename)
+    endelse
+
+	newfn = gpi_get_directory('GPI_DRP_QUEUE_DIR')+path_sep()+newfilename
+    FILE_COPY, filename, newfn,/overwrite
+    self->log,'Queued '+newfilename+" to "+newfn
+
+end
+
+
 ;+------------------------------------------------
 ; parsergui::cleanup
 ;    Free pointers, clean up memory, and exit.
