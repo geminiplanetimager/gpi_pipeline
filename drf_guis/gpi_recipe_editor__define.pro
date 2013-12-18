@@ -1029,17 +1029,6 @@ end
 
 PRO gpi_recipe_editor::chooseCalibrationFile
 
-;	indselected=selection[1]
-;	if indselected eq -1 then return ; nothing selected
-;
-;	self->Log, "Inserting primitive '"+(*self.curr_mod_avai)[indselected]+"'" ; into position "+strc(insertorder)
-;
-;	self.drf->add_primitive, (*self.curr_mod_avai)[indselected], index=index, status=status
-;	if status eq -1 then begin
-;		self->Log, 'Failure to insert primitive'
-;		return
-;	endif
-
 	primitive_index=self.selected_primitive_index 
 	arg_info = self.drf->get_primitive_args(primitive_index)
 	wcalfile = where(strupcase(arg_info.names) eq "CALIBRATIONFILE", mct)
@@ -1049,7 +1038,10 @@ PRO gpi_recipe_editor::chooseCalibrationFile
 
 	if current_value eq 'AUTOMATIC' then begin
 		; toggle from automatic to manual
-        resolvedcalibfile = DIALOG_PICKFILE(TITLE='Select Calibration File for that primitive: ' , PATH=gpi_get_directory('GPI_CALIBRATIONS_DIR') ,/MUST_EXIST,FILTER = '*.fits')
+		; what type of cal file do we want? 
+		desired_cal_type = arg_info.calfiletypes[wcalfile]
+		if desired_cal_type ne '' then filespec = '*'+desired_cal_type+'*.fits' else filespec = '*.fits'
+        resolvedcalibfile = DIALOG_PICKFILE(TITLE='Select Calibration File for that primitive: ' , PATH=gpi_get_directory('GPI_CALIBRATIONS_DIR') ,/MUST_EXIST,FILTER = filespec)
 		if resolvedcalibfile ne '' then begin ; if user cancels we get a null string back, in which case do nothing.
 			newcalfile = resolvedcalibfile
 			message,/info, 'Toggled from automatic to manual calibration file. Press again to return to automatic mode.'

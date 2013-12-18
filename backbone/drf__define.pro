@@ -571,18 +571,19 @@ FUNCTION drf::get_primitive_args, modnum, count=count,verbose=verbose, status=st
 	;
 	OK = 0
 	NOT_OK = -1
+	placeholder = {names: '', values:'', defaults:'', ranges: '', descriptions: '', types:'', calfiletypes:''}
 
 	if n_elements(modnum) eq 0 then begin
 		message,/info, 'You must provide a primitive index when calling get_primitive_args'
 		status=NOT_OK
-		return, {names: '', values:'', defaults:'', ranges: '', descriptions: '', types:''}
+		return, placeholder
 	endif
 
 	nprims = n_elements(*self.primitives)
 	if (modnum lt 0) or (modnum gt nprims-1) then begin
 		message, /info, 'Invalid primitive index outside of 0 to '+strc(nprims-1)
 		status=NOT_OK
-		return, {names: '', values:'', defaults:'', ranges: '', descriptions: '', types:''}
+		return, placeholder
 	endif
 
     
@@ -594,7 +595,7 @@ FUNCTION drf::get_primitive_args, modnum, count=count,verbose=verbose, status=st
 		message,/info, 'Unknown primitive: '+((*self.primitives).name)[modnum] +" is not in the primitives config file."
 		count=-1
 		status=NOT_OK
-		return, {names: '', values:'', defaults:'', ranges: '', descriptions: '', types:''}
+		return, placeholder
 	endif
 	module_argument_indices = where(   ((*self.ConfigDRS).argmodnum) eq module_number[0]+1, count)
 
@@ -603,11 +604,12 @@ FUNCTION drf::get_primitive_args, modnum, count=count,verbose=verbose, status=st
 	status=OK
 	if count eq 0 then return, ''
 	
-	module_argument_names=((*self.ConfigDRS).argname)[module_argument_indices]
-	module_argument_defaults=((*self.ConfigDRS).argdefault)[module_argument_indices]
-	module_argument_ranges=((*self.ConfigDRS).argrange)[module_argument_indices]
-	module_argument_descs=((*self.ConfigDRS).argdesc)[module_argument_indices]
-	module_argument_types=((*self.ConfigDRS).argtype)[module_argument_indices]
+	module_argument_names=			((*self.ConfigDRS).argname)[module_argument_indices]
+	module_argument_defaults=		((*self.ConfigDRS).argdefault)[module_argument_indices]
+	module_argument_ranges=			((*self.ConfigDRS).argrange)[module_argument_indices]
+	module_argument_descs=			((*self.ConfigDRS).argdesc)[module_argument_indices]
+	module_argument_types=			((*self.ConfigDRS).argtype)[module_argument_indices]
+	module_argument_calfiletypes=	((*self.ConfigDRS).argcalfiletype)[module_argument_indices]
 
 		if keyword_set(verbose) then print,  "ARGS: ", module_argument_names
 		if keyword_set(verbose) then print,  "DEFS: ", module_argument_defaults
@@ -626,7 +628,8 @@ FUNCTION drf::get_primitive_args, modnum, count=count,verbose=verbose, status=st
 		if module_argument_values[i] eq '' then module_argument_values[i] = module_argument_defaults[i]
 	endfor
 
-	return, {names: module_argument_names, values:module_argument_values, defaults:module_argument_defaults, ranges: module_argument_ranges, descriptions: module_argument_descs, types:module_argument_types}
+	return, {names: module_argument_names, values:module_argument_values, defaults:module_argument_defaults, ranges: module_argument_ranges, $
+			descriptions: module_argument_descs, types:module_argument_types, calfiletypes:module_argument_calfiletypes}
 end
 
 ;

@@ -583,7 +583,7 @@ PRO gpidrfparser::startelement, URI, Local, qName, AttNames, AttValues
 						Self.ReductionType = AttValues[i]
 					end
 					'NAME':			    Self.DRFName = AttValues[i]
-                                        'SHORTNAME':             Self.ShortName = AttValues[i]
+                    'SHORTNAME':             Self.ShortName = AttValues[i]
 					ELSE:
 				ENDCASE
 			END
@@ -594,7 +594,7 @@ PRO gpidrfparser::startelement, URI, Local, qName, AttNames, AttValues
 				CASE strupcase(AttNames[i]) OF			; variable fields.
 					'REDUCTIONTYPE':   	Self.ReductionType = AttValues[i]
 					'NAME':			    Self.DRFName = AttValues[i]
-                                        'SHORTNAME':             Self.ShortName = AttValues[i]
+                    'SHORTNAME':             Self.ShortName = AttValues[i]
 					ELSE:
 				ENDCASE
 			END
@@ -803,12 +803,12 @@ end
 PRO gpidrfparser__define
 
 	void = {gpiDRFParser, INHERITS IDLffXMLSAX, $
-			ReductionType:'', $  ; Type of reduction recipe 
-			DRFName: '', $   ; a descriptive name for the DRF. Used by Template DRFs.
-                        ShortName: '', $ ; a short name to be used in recipe filenames
+			ReductionType:'', $		; Type of reduction recipe 
+			DRFName: '', $			; a descriptive name for the DRF. Used by Template DRFs.
+            ShortName: '', $		; a short name to be used in recipe filenames
 			most_recent_filename: '', $ ; remember this for get_summary
-			no_log: 0, $     ; flag for not logging actions if ran in some other mode
-			silent: 0, $	 ; suppress printed output?
+			no_log: 0, $			; flag for not logging actions if ran in some other mode
+			silent: 0, $			; suppress printed output?
 			Data:PTR_NEW(), $
 			Modules:PTR_NEW(), $
 			backbone: obj_new() }

@@ -141,7 +141,7 @@ END
 PRO gpidrsconfigparser::NewModule, AttNames, AttValues
 
 	;Name IDLFunc Comment Order Type Sequence
-moduleName ='' & moduleFunctio='' & moduleComment='' & moduleOrder='' & moduleType='' & moduleSequence=''
+moduleName ='' & moduleFunctio='' & moduleComment='' & moduleOrder='' & moduleType='' & moduleSequence='' 
 	FOR i = 0, N_ELEMENTS(AttNames) - 1 DO BEGIN	; Place attribute values into
 	
 		CASE AttNames[i] OF			                    ; variable fields.
@@ -158,12 +158,11 @@ moduleName ='' & moduleFunctio='' & moduleComment='' & moduleOrder='' & moduleTy
 
 	if self.verbose then print, "FOUND PRIMITIVE: ", modulefunction, modulename
 
-	IF N_ELEMENTS(*Self.Modules) EQ 0 THEN $
-		*Self.Modules = {name: moduleName, idlfunc: moduleFunction, comment: modulecomment, order: moduleorder, reductiontype: moduletype, sequence: modulesequence} $
-	ELSE *Self.Modules = [*Self.Modules, {name: moduleName, idlfunc: moduleFunction, comment: modulecomment, order: moduleorder, type: moduletype, sequence: modulesequence}]
-		;*Self.Modules = [moduleName, moduleFunction, Self.PipelineLabel] $
-	;ELSE *Self.Modules = [[*Self.Modules], [moduleName, moduleFunction, Self.PipelineLabel]]
+	newmodule =  {name: moduleName, idlfunc: moduleFunction, comment: modulecomment, order: moduleorder, reductiontype: moduletype, sequence: modulesequence}
 
+	IF N_ELEMENTS(*Self.Modules) EQ 0 THEN begin
+		*Self.Modules =  newmodule
+	endif ELSE *Self.Modules = [*Self.Modules, newmodule]
 
 END
 
@@ -171,7 +170,7 @@ END
 PRO gpidrsconfigparser::NewArgument, AttNames, AttValues
 
 
-      argName ='' & argtype='' & argrange='' & argdefault=''& argdesc=''
+      argName ='' & argtype='' & argrange='' & argdefault=''& argdesc='' & argCalFileType=''
   FOR i = 0, N_ELEMENTS(AttNames) - 1 DO BEGIN  ; Place attribute values into
 
     CASE AttNames[i] OF                         ; variable fields.
@@ -179,17 +178,17 @@ PRO gpidrsconfigparser::NewArgument, AttNames, AttValues
       	'Type': argtype = AttValues[i]
       	'Range': argrange = AttValues[i]
       	'Default': argdefault = AttValues[i]
+        'CalFileType': argcalfiletype = AttValues[i]
        	'Desc': argdesc = AttValues[i]
       ELSE:
     ENDCASE
   END
 
 
-  IF N_ELEMENTS(*Self.Arguments) EQ 0 THEN $
-    *Self.Arguments = {modnum: self.modulenum, name: argName, type: argtype, range: argrange, default: argdefault, desc: argdesc} $
-  ELSE   *Self.Arguments = [*Self.Arguments, {modnum: self.modulenum, name: argName, type: argtype, range: argrange, default: argdefault, desc: argdesc}]
-    ;*Self.Modules = [moduleName, moduleFunction, Self.PipelineLabel] $
-  ;ELSE *Self.Modules = [[*Self.Modules], [moduleName, moduleFunction, Self.PipelineLabel]]
+  newarg = {modnum: self.modulenum, name: argName, type: argtype, range: argrange, default: argdefault, desc: argdesc, calfiletype: argcalfiletype} 
+  IF N_ELEMENTS(*Self.Arguments) EQ 0 THEN begin
+    *Self.Arguments = newarg
+  endif ELSE   *Self.Arguments = [*Self.Arguments, newarg] 
 
 
 END
@@ -295,6 +294,7 @@ return, {  names : (*self.modules).name, $
     argname : (*self.Arguments).name, $
     argtype : (*self.Arguments).type, $
     argrange : (*self.Arguments).range, $
+    argcalfiletype: (*self.Arguments).calfiletype, $
     argdesc : (*self.Arguments).desc, $
     argdefault : (*self.Arguments).default} 
 

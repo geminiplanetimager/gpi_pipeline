@@ -20,9 +20,7 @@ pro structModule__define
             IDLCommand:'', $
             Skip:0, $
             Save:0, $
-            SaveOnErr:0, $
             OutputDir:'', $
-            CalibrationFile:'', $
-            LabDataFile:''}
+            CalibrationFile:''}
 
 end
