@@ -142,7 +142,7 @@ functionname='coldpixels_from_flat' ; brevity is the soul of wit...
 
 
 	atv, [[[allfilts]],[[refpattern]],[[allfilts/refpattern]],[[maskcoldpix]]],/bl
-	stop
+	;stop
 
 
     ;backbone->Log, 'Estimated read noise='+sigfig(rdnoise,4)+'cts  from stddev across '+strc(nfiles)+' darks.', depth=3

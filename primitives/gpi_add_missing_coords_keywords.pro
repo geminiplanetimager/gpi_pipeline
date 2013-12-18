@@ -9,7 +9,7 @@
 ; OUTPUTS: The FITS file is modified in memory to add the specified keyword and
 ; value. The file on disk is NOT changed. 
 ;
-; PIPELINE ARGUMENT: Name="ConfigurationFile" Type="string" Default="${GPI_DRP_CONFIG_DIR}object_coordinates.txt" Desc="File containing names, RA, Dec for targets."
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type="string" Default="${GPI_DRP_CONFIG_DIR}object_coordinates.txt" Desc="File containing names, RA, Dec for targets."
 ; PIPELINE ARGUMENT: Name="OBJECT" Default="NO CHANGE" Desc="Enter value here to override the OBJECT keyword of a given file"
 ; PIPELINE COMMENT: Add missing RA, DEC, PAR_ANG keywords based on a lookup table of objects or SIMBAD.
 ; PIPELINE ORDER: 0.1

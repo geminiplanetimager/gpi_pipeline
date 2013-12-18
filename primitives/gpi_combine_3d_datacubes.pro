@@ -4,15 +4,14 @@
 ;
 ;  Multiple 3D cubes can be combined into one, using either a Mean or a Median. 
 ;
-;  TODO: more advanced combination methods. sigma-clipped mean should be
-;  implemented, etc.
+;  TODO: more advanced combination methods. Improved sigma-clipped mean implementation
 ;
 ; INPUTS: 3d datacubes
 ; OUTPUTS: a single combined datacube
 ;
 ; PIPELINE COMMENT: Combine 3D datacubes via mean or median. 
-; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="MEAN|MEDIAN|MEANCLIP|MINIMUM"  Default="MEDIAN" Desc="How to combine images: median, mean, or mean with outlier rejection?"
-; PIPELINE ARGUMENT: Name="sig_clip" Type="int" Range="0,10" Default="3" Desc="Clipping value to be used with MEANCLIP in sigma (stddev)"
+; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="MEAN|MEDIAN|SIGMACLIP|MINIMUM"  Default="MEDIAN" Desc="How to combine images: median, mean, or mean with outlier rejection?"
+; PIPELINE ARGUMENT: Name="sig_clip" Type="int" Range="0,10" Default="3" Desc="Clipping value to be used with SIGMACLIP in sigma (stddev)"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.5
@@ -33,7 +32,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 @__start_primitive
 
 	if tag_exist( Modules[thisModuleIndex], "method") then method=Modules[thisModuleIndex].method else method='median'
-        if tag_exist( Modules[thisModuleIndex], "sig_clip") then sig_clip=Modules[thisModuleIndex].sig_clip else sig_clip=3.0
+	if method eq '' then method='median'
+    if tag_exist( Modules[thisModuleIndex], "sig_clip") then sig_clip=Modules[thisModuleIndex].sig_clip else sig_clip=3.0
         
 	nfiles=dataset.validframecount
 
@@ -62,7 +62,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		'MEAN': begin
 			combined_im=total(imtab,/DOUBLE,4) /((size(imtab))[4])
 		end
-		'MEANCLIP': begin
+		'SIGMACLIP': begin
                                 ; this is rather dirty but functional
                     ; first calculate median
                    combined_im=median(imtab,/DOUBLE,DIMENSION=4)

@@ -6,7 +6,7 @@
 ; OUTPUTS: The FITS file is modified in memory to add the specified keyword and
 ; value. The file on disk is NOT changed. 
 ;
-; PIPELINE ARGUMENT: Name="value" Default="DISP_PRISM_G6262" Desc="Enter value of the keyword to add."
+; PIPELINE ARGUMENT: Name="value" Default="DISP_PRISM_G6262" Desc="Enter value of the keyword to add." Type="string" Range="DISP_WOLLASTON_G6261|DISP_PRISM_G6262|DISP_OPEN_G6263"
 ; PIPELINE COMMENT: Add missing DISPERSR keyword
 ; PIPELINE ORDER: 0.1
 ; PIPELINE NEWTYPE: Calibration,Testing
