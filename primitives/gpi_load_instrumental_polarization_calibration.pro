@@ -6,7 +6,7 @@
 ; OUTPUTS:  
 ;
 ; PIPELINE COMMENT: Load a calibration file for the instrumental polarization.
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="instpol" Default="AUTOMATIC" Desc="Filename of the desired instrumental polarization file to be read" 
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type='String' CalFileType="instpol" Default="AUTOMATIC" Desc="Filename of the desired instrumental polarization file to be read" 
 ; PIPELINE ORDER: 0.52
 ; PIPELINE NEWTYPE: PolarimetricScience,Calibration
 ;
@@ -15,6 +15,7 @@
 ;   2010-10-19 JM: split HISTORY keyword if necessary
 ;   2011-07-30 MP: Updated for multi-extension FITS
 ;   2013-07-16 MP: Renamed for consistency
+;   2013-12-16 MP: CalibrationFile argument syntax update. 
 ;-  
 
 function gpi_load_instrumental_polarization_calibration, DataSet, Modules, Backbone

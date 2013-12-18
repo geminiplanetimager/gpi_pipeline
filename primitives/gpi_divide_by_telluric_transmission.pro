@@ -10,7 +10,7 @@
 ; OUTPUTS:  datacube with slice at the same wavelength
 ;
 ; PIPELINE COMMENT: Divides a spectral data-cube by a telluric transmission calibration file.
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="-tellucal" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type='String' CalFileType="telluric" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.5
@@ -24,6 +24,7 @@
 ;   2011-08-01 MP: Update for multi-extension FITS files
 ;   2012-10-10 MP: Minor code cleanup; remove deprecated suffix= parameter
 ;   2013-07-17 MP: Rename for consistency
+;   2013-12-16 MP: CalibrationFile argument syntax update. 
 ;-
 
 function gpi_divide_by_telluric_transmission, DataSet, Modules, Backbone

@@ -8,7 +8,7 @@
 ; OUTPUTS: none; wavecal is loaded into memory
 ;
 ; PIPELINE COMMENT: Reads a wavelength calibration file from disk. This primitive is required for any data-cube extraction.
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="wavcal" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type='String' CalFileType="wavecal" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
 ; PIPELINE ORDER: 0.5
 ; PIPELINE NEWTYPE: SpectralScience,Calibration
 ;
@@ -25,6 +25,7 @@
 ;   2013-07-10 MP: Documentation update and code cleanup
 ;   2013-07-16 MP: Rename file for consistency
 ;   2013-12-02 JM: get ELEVATIO and INPORT for later flexure correction
+;   2013-12-16 MP: CalibrationFile argument syntax update. 
 ;-
 
 function gpi_load_wavelength_calibration, DataSet, Modules, Backbone

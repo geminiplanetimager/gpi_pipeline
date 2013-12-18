@@ -39,7 +39,7 @@
 ; INPUTS: 2D image, ideally post dark subtraction and destriping
 ; OUTPUTS: 2D image with bad pixels marked or cleaned up. 
 ;
-; PIPELINE ARGUMENT: Name="CalibrationFile" type="filename" default="AUTOMATIC" Desc="Filename of the desired bad pixel file to be read"
+; PIPELINE ARGUMENT: Name="CalibrationFile" type="string" CalFileType='badpix' default="AUTOMATIC" Desc="Filename of the desired bad pixel file to be read"
 ; PIPELINE ARGUMENT: Name="method" Type="string" Range="[n4n|vertical|all8]" Default="vertical" Desc='Repair bad bix interpolating all 8 neighboring pixels, or just the 2 vertical ones, or just flag as NaN (n4n)?'
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="1" Desc="1-500: choose gpitv session for displaying output, 0: no display "
@@ -65,6 +65,7 @@
 ;	2013-07-12 MP: Rename file for consistency
 ;	2013-12-16 MP: Update to allow bad pixel map files to have values other than
 ;					1, with any nonzero value being interpreted as bad. 
+;   2013-12-16 MP: CalibrationFile argument syntax update. 
 ;-
 function gpi_interpolate_bad_pixels_in_2d_frame, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history

@@ -19,12 +19,11 @@
 ; ALGORITHM TODO: Deal with uncertainty and pixel mask frames too.
 ;
 ; PIPELINE COMMENT: Subtract a dark frame. 
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="filename" Default="AUTOMATIC" Desc="Name of dark file to subtract"
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type="string" CalFileType="dark" Default="AUTOMATIC" Desc="Name of dark file to subtract"
 ; PIPELINE ARGUMENT: Name="RequireExactMatch" Type="int" Range="[0,1]" Default="0" Desc="Must dark calibration file exactly match in integration time, or is scaling from a different exposure time allowed?"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 1.1
-; PIPELINE TYPE: ALL
 ; PIPELINE NEWTYPE: ALL
 ;
 ; HISTORY:
@@ -38,6 +37,7 @@
 ;   2012-12-13 MP: Remove "Sky" from primitve discription since it's inaccurate
 ;   2013-07-11 MP: rename 'applydarkcorrection' -> 'subtract_dark_background' for consistency
 ;	2013-10-03 MP: Add RequireExactMatch option, enable scaling for non-matching exptimes
+;   2013-12-16 MP: CalibrationFile argument syntax update. 
 ;
 ;-
 function gpi_subtract_dark_background, DataSet, Modules, Backbone

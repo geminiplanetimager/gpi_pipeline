@@ -14,17 +14,18 @@
 ;
 ; PIPELINE COMMENT: Extract a 3D datacube from a 2D image. Spatial integration (3 pixels) along the dispersion axis
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="mlenspsf" Default="AUTOMATIC" Desc="Filename of the mlens-PSF calibration file to be read"
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type="String" CalFileType="mlenspsf" Default="AUTOMATIC" Desc="Filename of the mlens-PSF calibration file to be read"
 ; PIPELINE ARGUMENT: Name="ReuseOutput" Type="int" Range="[0,1]" Default="0" Desc="1: keep output for following primitives, 0: don't keep"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.0
-; PIPELINE TYPE: ALL-SPEC
+; PIPELINE NEWTYPE: SpectralScience, Calibration
 ;
 ; HISTORY:
 ; 	Originally by Jerome Maire 2007-11
 ;   2012-02-01 JM: adapted to vertical dispersion
 ;   2012-02-15 JM: adapted as a pipeline module
 ;   2013-08-07 ds: idl2 compiler compatible 
+;   2013-12-16 MP: CalibrationFile argument syntax update. 
 ;-
 function gpi_extractcube_mlenspsf, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history

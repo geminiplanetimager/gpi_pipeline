@@ -43,21 +43,17 @@
 ; OUTPUTS: 2D image corrected persistence of previous non-saturated images
 ;
 ; PIPELINE COMMENT: Determines/Removes persistence of previous images
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="persis" Default="AUTOMATIC" Desc="Filename of the persistence_parameter file to be read"
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type="String" CalFileType="persis" Default="AUTOMATIC" Desc="Filename of the persistence_parameter file to be read"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display " 
 ; PIPELINE ORDER: 1.2
 ; PIPELINE NEWTYPE: ALL
-; PIPELINE TYPE: ALL
-; PIPELINE SEQUENCE: 3-
 ;
 ; HISTORY:
 ;
-;       Wed May 22 15:11:10 2013, LAB <LAB@localhost.localdomain>
-;
-;		
+;   Wed May 22 15:11:10 2013, LAB <LAB@localhost.localdomain>
 ;   2013-05-14 PI: Started
-
+;   2013-12-16 MP: CalibrationFile argument syntax update. 
 ;-
 function gpi_remove_persistence_from_previous_images, DataSet, Modules, Backbone
 primitive_version= '$Id$'  ; get version from subversion to store in header history

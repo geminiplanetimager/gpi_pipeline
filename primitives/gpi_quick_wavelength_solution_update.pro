@@ -25,18 +25,15 @@
 ; PIPELINE ARGUMENT: Name="boxsizex" Type="Int" Range="[0,15]" Default="7" Desc="x dimension of a lenslet cutout"
 ; PIPELINE ARGUMENT: Name="boxsizey" Type="Int" Range="[0,50]" Default="24" Desc="y dimension of a lenslet cutout"
 ; PIPELINE ARGUMENT: Name="whichpsf" Type="Int" Range="[0,1]" Default="0" Desc="Type of psf 0;gaussian, 1;microlens"
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="wavcal" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type='String' CalFileType="wavecal" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitvim_dispgrid" Type="int" Range="[0,500]" Default="15" Desc="1-500: choose gpitv session for displaying image output and wavcal grid overplotted, 0: no display "
-; 
-; where in the order of the primitives should this go by default?
 ; PIPELINE ORDER: 1.7
-;
-; pick one of the following options for the primitive type:
 ; PIPELINE NEWTYPE: Calibration
 ;
 ; HISTORY:
-;    2013-09-19 SW: 2-dimensionsal wavelength solution 
+;	2013-09-19 SW: 2-dimensionsal wavelength solution 
+;   2013-12-16 MP: CalibrationFile argument syntax update. 
 ;-  
 
 function gpi_quick_wavelength_solution_update, DataSet, Modules, Backbone
@@ -227,6 +224,8 @@ for i = istart,iend,spacing do begin
 
         endfor
 
+
+		catch,/cancel
 	backbone->Log, " Performed spectral fit for "+strc(counter)+" lenslets total."
 	; now we compare the properties derived for the subset of lenslets we just fit, 
 	; versus the existing properties of the prior wavecal

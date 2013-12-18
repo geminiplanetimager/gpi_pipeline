@@ -8,7 +8,7 @@
 ; OUTPUTS: none
 ;
 ; PIPELINE COMMENT: Reads a pol spot calibration file from disk. This primitive is required for any polarimetry data-cube extraction.
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="polcal" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type="String" CalFileType="polcal" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
 ; PIPELINE ORDER: 0.51
 ; PIPELINE NEWTYPE: PolarimetricScience,Calibration
 ;
@@ -20,6 +20,7 @@
 ;                   update_shifts_for_flexure.pro and commented out here.
 ;   2013-07-10 MP:  Documentation update and code cleanup. 
 ;   2013-07-17 MP:  Rename for consistency
+;   2013-12-16 MP:  CalibrationFile argument syntax update. 
 ;-
 
 function gpi_load_polarimetry_spot_calibration, DataSet, Modules, Backbone
