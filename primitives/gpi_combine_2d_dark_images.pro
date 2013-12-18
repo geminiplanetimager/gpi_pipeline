@@ -4,27 +4,27 @@
 ;
 ;  Several dark frames are combined to produce a master dark file, which
 ;  is saved to the calibration database. This combination can be done using
-;  either a mean or median algorithm. 
+;  either a mean or median algorithm, or a mean with outlier 
+;  rejection (sigma clipping) 
 ;
 ;  Also, based on the variance between the various dark frames, the 
 ;  read noise is estimated, and a list of hot pixels is derived.
 ;  The read noise and number of significantly hot pixels are written
 ;  as keywords to the FITS header for use in trending analyses. 
+;  CAUTION FIXME: this code does not take into account coadds properly 
+;  and thus is underestimating the actual read noise per frame. 
 ;
-;
-;  TODO: more advanced combination methods. Mean, sigclip, etc.
 ;
 ; INPUTS:  several dark frames
 ; OUTPUTS: master dark frame, saved as a calibration file
 ;
 ; PIPELINE COMMENT: Combine 2D dark images into a master file via mean or median. 
-; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="MEAN|MEDIAN|MEANCLIP"  Default="MEDIAN" Desc="How to combine images: median, mean, or mean with outlier rejection?[MEAN|MEDIAN]"
+; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="MEAN|MEDIAN|SIGMACLIP"  Default="SIGMACLIP" Desc="How to combine images: median, mean, or mean with outlier rejection?[MEAN|MEDIAN|SIGMACLIP]"
+; PIPELINE ARGUMENT: Name="Sigma_cut" Type="float" Range="[1,100]" Default="3" Desc="If Method=SIGMACLIP, then data points more than this many standard deviations away from the median value of a given pixel will be discarded. "
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.01
-; PIPELINE TYPE: CAL-SPEC
 ; PIPELINE NEWTYPE: Calibration
-; PIPELINE SEQUENCE: 22-
 
 ; HISTORY:
 ; 	 Jerome Maire 2008-10
@@ -35,12 +35,15 @@
 ;   2010-03-08 JM: ISCALIB flag for Calib DB
 ;   2011-07-30 MP: Updated for multi-extension FITS
 ;   2013-07-12 MP: Rename for consistency
+;	2013-12-15 MP: Implemented SIGMACLIP, doc header updates. 
 ;-
 function gpi_combine_2d_dark_images, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 	if tag_exist( Modules[thisModuleIndex], "method") then method=Modules[thisModuleIndex].method else method='median'
+	if tag_exist( Modules[thisModuleIndex], "sigma_cut") then sigma_cut=Modules[thisModuleIndex].sigma_cut else sigma_cut=3.0
+
 
 	nfiles=dataset.validframecount
 
@@ -78,8 +81,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		'MEAN': begin
 			combined_im=total(imtab,/DOUBLE,3) /((size(imtab))[3])
 		end
-		'MEANCLIP': begin
-			return, error('FAILURE ('+functionName+"): Method MEANCLIP not implemented yet - bug someone to program it!")
+		'SIGMACLIP': begin
+			combined_im = gpi_sigma_clip_image_stack( imtab, sigma=sigma_cut,/parallelize)
 		end
 		else: begin
 			return, error('FAILURE ('+functionName+"): Invalid combination method '"+method+"' in call to Combine 2D Dark Frames.")
