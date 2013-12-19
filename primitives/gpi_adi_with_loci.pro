@@ -87,7 +87,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
   nlist=strarr(nfiles)
 
 
-  prefix=strmid(tmp,strpos(tmp,path_sep(), /REVERSE_SEARCH)+1,strpos(tmp,'-', /REVERSE_SEARCH)-strpos(tmp,path_sep(), /REVERSE_SEARCH))
+  prefix=strmid(tmp,strpos(tmp,path_sep(), /REVERSE_SEARCH)+1,strpos(tmp,'_', /REVERSE_SEARCH)-strpos(tmp,path_sep(), /REVERSE_SEARCH))
 
   for ii=0,nfiles-1 do begin
 	  tmp=dataset.outputFileNames[ii]
@@ -472,7 +472,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
 
       ;rotation pour ramener sur la premiere image
       print,' rotation...'
-      theta=-(paall[n]-paall[0])
+      theta=(paall[n]-paall[0])
       
       ;if n ne 0 then im=gpi_adi_rotat(im,theta,missing=!values.f_nan,hdr=h)
             x0=double(backbone->get_keyword('PSFCENTX',count=ccx,/silent)) ;float(SXPAR( *(dataset.headers[n]), 'PSFCENTX',count=ccx))
