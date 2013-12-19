@@ -80,7 +80,8 @@ if numfile  eq ((dataset.validframecount)-1) then begin
   subsuffix='-loci'
 
   listfilenames=strarr(nfiles)
-  for i=0, nfiles-1 do listfilenames[i]=*((dataset.frames)[i])
+  for i=0, nfiles-1 do listfilenames[i]=dataset.filenames[i]
+
   tmp=dataset.outputFileNames[0]
   tmpdir=gpi_expand_path(Modules[thisModuleIndex].OutputDir+path_sep())  ;strmid(tmp,0,strpos(tmp,path_sep(), /REVERSE_SEARCH)+1)
 
