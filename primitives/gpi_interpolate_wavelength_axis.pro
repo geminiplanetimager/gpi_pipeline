@@ -27,7 +27,7 @@
 function gpi_interpolate_wavelength_axis, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
-	suffix='-spdc'
+	suffix='_spdc'
 
 	;get the datacube from the dataset.currframe
 	cubef3D=*(dataset.currframe[0])
