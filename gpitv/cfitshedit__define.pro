@@ -627,13 +627,13 @@ pro CFitsHedit::EditHeader, base_id, filename=filename, header=header, extheader
 
   ; put all accessible info in uval
   uval={self: self, $
-	    base_id:base_id, $
-  		cfitshedit_ptr: ptr_new(self), $
+        base_id:base_id, $
+        cfitshedit_ptr: ptr_new(self), $
         im_ptr:im_ptr, $
         hd_ptr:hd_ptr, $
         reserved_ptr:ptr_new(), $
         newpath:'', $
-		title_base: title_base, $
+        title_base: title_base, $
         filename:'', $
         savefilename:'', $
         modified:0, $
@@ -652,7 +652,7 @@ pro CFitsHedit::EditHeader, base_id, filename=filename, header=header, extheader
   ; realize gui and set uval
   widget_control, base, /realize, set_uval=uval
 
-	; set padding around list widget
+  ; set padding around list widget
   geom = widget_info(uval.wids.list, /geom)
   geom2 = widget_info(base, /geom)
   uval.wids.padding = [geom2.xsize-geom.scr_xsize, geom2.ysize- geom.scr_ysize]
@@ -694,6 +694,9 @@ pro CFitsHedit::OpenFile, filename=filename, header=hd, ext=extension
 
 ;; get uval struct
 widget_control, self.cfitshedit_id, get_uval=uval
+
+;;check for previously selected values (only for previously existing headers)
+if ptr_valid(uval.hd_ptr) then prev_selected = uval.curname
 
 if ~(keyword_set(filename)) and ~(keyword_set(hd)) then begin
     ;; OSIRIS QL code - get info from the CIMWin   - MDP mods 2008-10-13
@@ -793,7 +796,10 @@ uval.hd_ptr=ptr_new(hd)
 uval.im_ptr=ptr_new(im)
 uval.reserved_ptr=ptr_new(reserved_elements)
 uval.num_reserved=n_elements(reserved_elements)
-uval.selected=0
+if n_elements(prev_selected) ne 0 then begin
+   ind = where(strcmp(hd,prev_selected,8,/fold_case),ct)
+   if ct eq 1 then uval.selected = ind[0] else uval.selected = 0
+endif else uval.selected = 0
 uval.fileopen=1
 uval.modified=0
 

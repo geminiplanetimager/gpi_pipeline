@@ -1584,7 +1584,7 @@ case event_name of
    'Contrast': self->contrast
    'Photometry': self->apphot
    '': self->apphot
-   'View FITS Header...': self->headinfo
+   'View FITS Header...': self->headinfo,/show
    'Change FITS extension...': self->switchextension
    'Print Filename': print, (*self.state).imagename
    'Statistics': self->showstats
@@ -8163,56 +8163,53 @@ end
 
 ;---------------------------------------------------------------------
 
-pro GPItv::headinfo
-	; View a FITS header
+pro GPItv::headinfo,show=show
+  ;; View a FITS header
+  ;; /show - If window exists, bring to front
 
+  ;; If there's no header, exit this routine.
+  if (not(ptr_valid((*self.state).head_ptr))) then begin
+     self->message, 'No header information available for this image!', $
+                    msgtype = 'error', /window
+     return
+  endif
 
-	; If there's no header, exit this routine.
-	if (not(ptr_valid((*self.state).head_ptr))) then begin
-		self->message, 'No header information available for this image!', $
-		  msgtype = 'error', /window
-		return
-	endif
+  ;; Are we going to try to view a file on disk, or one in memory? 
+  is_file_on_disk = 0
+  if keyword_set((*self.state).imagename) then if file_test((*self.state).imagename) then is_file_on_disk=1
 
-
-	; Are we going to try to view a file on disk, or one in memory? 
-	is_file_on_disk = 0
-	if keyword_set((*self.state).imagename) then if file_test((*self.state).imagename) then is_file_on_disk=1
-
-
-	; MDP addition - updated/improved FITS header viewer from OSIRIS QL
-	;
-	; MDP update 2012: If we are viewing an actual file on disk, invoke the header
-	; viewer with that filename rather than just passing the header. This lets the 
-	; header viewer examine the file for multiple extensions and thus view them.
-
-        ; MP quick hack debug: avoid the reopening bit
-
-	if not obj_valid((*self.state).subwindow_headerviewer) then begin
-		; Create a new FITS header viewer window and load the data into it
-		(*self.state).subwindow_headerviewer= obj_new('cfitshedit')
-		cfh = (*self.state).subwindow_headerviewer
-
-		if (*self.state).multisess GT 0 then title_base = "GPItv #"+strc((*self.state).multisess) else title_base = 'GPItv '
-		title = title_base+" FITS Header Viewer"
-
-		if is_file_on_disk then begin
-			filename=(*self.state).imagename
-			delvarx,header
-		endif else begin
-			header = *((*self.state).head_ptr)
-			delvarx, filename
-		endelse
-		cfh->ViewHeader, (*self.state).base_id, filename=filename, header=header, title=title
-		;cfh->ViewHeader, (*self.state).base_id, filename=(*self.state).imagename, title=title else 
-		;cfh->ViewHeader, header=*((*self.state).head_ptr), title=title 
-	endif else begin
-		; re-use the existing window. 
-		cfh = (*self.state).subwindow_headerviewer
-                widget_control,cfh.cfitshedit_id,/show
-		if is_file_on_disk then cfh->OpenFile, filename=(*self.state).imagename  else cfh->OpenFile, header=*((*self.state).head_ptr)
-	endelse 
-
+  ;; MDP addition - updated/improved FITS header viewer from OSIRIS QL
+  ;;
+  ;; MDP update 2012: If we are viewing an actual file on disk, invoke the header
+  ;; viewer with that filename rather than just passing the header. This lets the 
+  ;; header viewer examine the file for multiple extensions and thus view them.
+  
+  ;; MP quick hack debug: avoid the reopening bit
+  if not obj_valid((*self.state).subwindow_headerviewer) then begin
+     ;; Create a new FITS header viewer window and load the data into it
+     (*self.state).subwindow_headerviewer= obj_new('cfitshedit')
+     cfh = (*self.state).subwindow_headerviewer
+     
+     if (*self.state).multisess GT 0 then title_base = "GPItv #"+strc((*self.state).multisess) else title_base = 'GPItv '
+     title = title_base+" FITS Header Viewer"
+     
+     if is_file_on_disk then begin
+        filename=(*self.state).imagename
+        delvarx,header
+     endif else begin
+        header = *((*self.state).head_ptr)
+        delvarx, filename
+     endelse
+     cfh->ViewHeader, (*self.state).base_id, filename=filename, header=header, title=title
+     ;;cfh->ViewHeader, (*self.state).base_id, filename=(*self.state).imagename, title=title else 
+     ;;cfh->ViewHeader, header=*((*self.state).head_ptr), title=title 
+  endif else begin
+     ;; re-use the existing window. 
+     cfh = (*self.state).subwindow_headerviewer
+     if keyword_set(show) then widget_control,cfh.cfitshedit_id,/show
+     if is_file_on_disk then cfh->OpenFile, filename=(*self.state).imagename  else cfh->OpenFile, header=*((*self.state).head_ptr)
+  endelse 
+  
 end
 
 ;--------------------------------------------------------------------------------------------
