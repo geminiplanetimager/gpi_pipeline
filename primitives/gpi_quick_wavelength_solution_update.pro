@@ -74,6 +74,13 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
 
 
 	c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'wavecal',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
+	
+				; put into header
+	      backbone->set_keyword, "HISTORY", functionname+": get wav. calibration file",ext_num=0
+        backbone->set_keyword, "HISTORY", functionname+": "+c_File,ext_num=0
+
+        backbone->set_keyword, "DRPWVCLF", c_File, "DRP wavelength calibration file used.", ext_num=0
+				
 
         ;open the reference wavecal file. Save into common block variable.
         refwlcal = gpi_readfits(c_File,header=Header)
@@ -234,10 +241,14 @@ for i = istart,iend,spacing do begin
 	xdiffs = (newwavecal[*,*,0])[wg] - (refwlcal[*,*,0])[wg]
 	ydiffs = (newwavecal[*,*,1])[wg] - (refwlcal[*,*,1])[wg]
 
-	mnx = mean(xdiffs,/nan)
-	mny = mean(ydiffs,/nan)
-	sdx = stddev(xdiffs,/nan)
-	sdy = stddev(ydiffs,/nan)
+;	mnx = mean(xdiffs,/nan)
+;	mny = mean(ydiffs,/nan)
+;	sdx = stddev(xdiffs[xsubs],/nan)
+;	sdy = stddev(ydiffs[ysubs],/nan)
+
+; replacing with clipped values
+	meanclip,xdiffs,mnx,sdx,clipsig=2,subs=xsubs
+	meanclip,ydiffs,mny,sdy,clipsig=2,subs=ysubs
 
 
 	backbone->Log, "Mean shifts (X,Y) of this file vs. old wavecal: "+printcoo(mnx, mny)+" pixels,   +- "+printcoo(sdx,sdy)+" pixels 1 sigma"
@@ -248,17 +259,17 @@ for i = istart,iend,spacing do begin
 		if n_elements(uniqvals(xdiffs)) gt 1 then begin
 			plothist, xdiffs, bin=0.01, title="X pos offset [current-old]", xtitle="Detector pixels", $
 				ytitle='# of tested lenslets'
-			ver, mnx,/line
+			;ver, mnx,/line
+			oplot,[mnx,mnx],[0,counter],color=100
 		endif
 
 		if n_elements(uniqvals(ydiffs)) gt 1 then begin
 			plothist, ydiffs, bin=0.01, title="Y pos offset [current-old]", xtitle="Detector pixels", $
 				ytitle='# of tested lenslets'
-			ver, mny,/line
-                     endif
+			oplot,[mny,mny],[0,counter],color=100
+    endif
                 !p.multi=0
-        endif 
-
+  endif 
 
 	shiftedwavecal = refwlcal
 	shiftedwavecal[*,*,0] += mnx
