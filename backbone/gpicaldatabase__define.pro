@@ -460,6 +460,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
                     ['shifts', 'Flexure shift Cal File', 'typeonly'], $
                     ['micro', 'Micro Model', 'typeonly'], $
                     ['persis', 'Persistence Parameters', 'typeonly'], $
+										['background_cube', 'Thermal/Sky Background Cube', 'FiltPrism'], $
                    ['', '', '']]
 	; reformat the above into a struct array.
 	aa = {type_struct, name: 'dark', description:'Dark', match_on:"itimeReadmode"}
