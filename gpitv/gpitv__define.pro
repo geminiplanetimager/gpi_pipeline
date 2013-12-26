@@ -112,27 +112,27 @@ self.satspots.contrprof = ptr_new(/alloc) ;contour profile (will be Z x 3 pointe
 self.satspots.asec = ptr_new(/alloc)      ;arrays of ang sep vals (will be Z x 1 pointer array)
 
 state = {                   $
-        version: '2.0', $            ; version # of this release
-        head_ptr: ptr_new(), $       ; pointer to image header (PHDU if multi-extension)
-        exthead_ptr: ptr_new(), $    ; pointer to extension header for currently loaded extension
-        astr_ptr: ptr_new(), $       ; pointer to astrometry info structure
-        main_image_astr_backup: ptr_new(), $       ; pointer to astrometry info structure as originally read from disk
-        astr_from: 'None',$          ; is astrometry from PHDU or Extension HDU? (or not loaded)
-        wcstype: 'none', $           ; coord info type (none/angle/lambda)
-        equinox: 'J2000', $          ; equinox of coord system
-        display_coord_sys: 'RA--', $ ; coord system displayed
-        display_equinox: 'J2000', $  ; equinox of displayed coords
-        display_base60: 1B, $        ; Display RA,dec in base 60?
-        imagename: '', $             ; image file name
-        imagename_id: 0L, $          ; window id of image file name
-        collapse: 0L,$               ; id of current collapse mode
-        CWV_lmin: 0., $         ;minimum wavelength (common wav vect)
-        CWV_lmax: 0., $         ;maximum wavelength (common wav vect)
-        CWV_NLam: 0L, $         ;# of spectral channels(common wav vect)
-        CWV_ptr: ptr_new(), $   ; pointer to common wav vec
-        bitdepth: 8, $          ; 8 or 24 bit color mode?
-        user_decomposed: 1, $   ; User's setting of device,/decomposed (outside ATV)
-        ;;screen_xsize: 1000, $   ; horizontal size of screen ; this does not appear to be used anywhere... - MP
+        version: '2.0', $                  ; version # of this release
+        head_ptr: ptr_new(), $             ; pointer to image header (PHDU if multi-extension)
+        exthead_ptr: ptr_new(), $          ; pointer to extension header 
+                                           ; for currently loaded extension
+        astr_ptr: ptr_new(), $             ; pointer to astrometry info structure
+        main_image_astr_backup: ptr_new(), $ ; pointer to astrometry info structure as originally read from disk
+        astr_from: 'None',$                ; is astrometry from PHDU or Extension HDU? (or not loaded)
+        wcstype: 'none', $                 ; coord info type (none/angle/lambda)
+        equinox: 'J2000', $                ; equinox of coord system
+        display_coord_sys: 'RA--', $       ; coord system displayed
+        display_equinox: 'J2000', $        ; equinox of displayed coords
+        display_base60: 1B, $              ; Display RA,dec in base 60?
+        imagename: '', $                   ; image file name
+        imagename_id: 0L, $                ; window id of image file name
+        collapse: 0L,$                     ; id of current collapse mode
+        CWV_lmin: 0., $                    ; minimum wavelength (common wav vect)
+        CWV_lmax: 0., $                    ; maximum wavelength (common wav vect)
+        CWV_NLam: 0L, $                    ; # of spectral channels(common wav vect)
+        CWV_ptr: ptr_new(), $              ; pointer to common wav vec
+        bitdepth: 8, $                     ; 8 or 24 bit color mode?
+        user_decomposed: 1, $              ; User's setting of device,/decomposed (outside ATV)
         screen_ysize: 1000, $              ; vertical size of screen
         base_id: 0L, $                     ; id of top-level base
         base_min_size: [312L, 300L], $     ; min size for top-level base
@@ -160,28 +160,28 @@ state = {                   $
         coadds:0.0,$                       ; coadds
         current_units:'',$                 ; current unit of data displayed (i.e. BUNIT)
         current_unit_scaling: ptr_new(),$  ; multiplicative scaling factor for the current unit
-        intrinsic_units:'',$               ; unit for the actual pixel values in the file itself, and hence also
-		$							       ; the main_image_backup stack
+        intrinsic_units:'',$               ; unit for the actual pixel values in the file itself, 
+                                           ; and hence also the main_image_backup stack
         unitslist:ptr_new(/alloc), $       ; tab of available units
         units_droplist_id:'',$             ; id of units droplist
         flux_calib_convfac:fltarr(100),$   ; flux calibration conversion factor from the image's intrinsic units to ph/s/nm/m^2
-        min_text_id: 0L,  $         ; id of min= widget
-        max_text_id: 0L, $          ; id of max= widget
-        menu_ids: lonarr(150), $    ; list of top menu items
-        menu_labels: strarr(150), $ ; list of top menu items
-        colorbar_base_id: 0L, $     ; id of colorbar base widget
-        colorbar_widget_id: 0L, $   ; widget id of colorbar draw widget
-        colorbar_window_id: 0L, $   ; window id of colorbar
-        colorbar_height: 12L, $     ; height of colorbar in pixels
-        ncolors: 0B, $              ; image colors (!d.table_size - 9)
-        box_color: 2, $             ; color for pan box and zoom x
-        brightness: 0.5, $          ; initial brightness setting
-        contrast: 0.5, $            ; initial contrast setting
-        keyboard_text_id: 0L, $     ; id of keyboard input widget
-        image_min: 0.0, $           ; min(*self.images.main_image)
-        image_max: 0.0, $           ; max(*self.images.main_image)
-        minIma_id:0L,$				; widget id for displaying image_min
-        maxIma_id:0L,$				; widget id for displaying image_max
+        min_text_id: 0L,  $                ; id of min= widget
+        max_text_id: 0L, $                 ; id of max= widget
+        menu_ids: lonarr(150), $           ; list of top menu items
+        menu_labels: strarr(150), $        ; list of top menu items
+        colorbar_base_id: 0L, $            ; id of colorbar base widget
+        colorbar_widget_id: 0L, $          ; widget id of colorbar draw widget
+        colorbar_window_id: 0L, $          ; window id of colorbar
+        colorbar_height: 12L, $            ; height of colorbar in pixels
+        ncolors: 0B, $                     ; image colors (!d.table_size - 9)
+        box_color: 2, $                    ; color for pan box and zoom x
+        brightness: 0.5, $                 ; initial brightness setting
+        contrast: 0.5, $                   ; initial contrast setting
+        keyboard_text_id: 0L, $            ; id of keyboard input widget
+        image_min: 0.0, $                  ; min(*self.images.main_image)
+        image_max: 0.0, $                  ; max(*self.images.main_image)
+        minIma_id:0L,$                     ; widget id for displaying image_min
+        maxIma_id:0L,$                     ; widget id for displaying image_max
         min_value: 0.0, $                  ; min data value mapped to colors
         max_value: 0.0, $                  ; max data value mapped to colors
         draw_window_size: [520L, 512L], $  ; size of main draw window
@@ -190,24 +190,25 @@ state = {                   $
         pan_scale: 0.0, $                  ; magnification of pan image
         image_size: [0L,0L,0L], $          ; [0:1] gives size of *self.images.main_image
                                            ; [0:2] gives size of *self.images.main_image_stack
-        prev_image_2d: 1,$      ; Boolean - whether previous image was 2D
-        collapse_button: 0L,$   ; id of collapse button
-        cur_image_num: 0L, $    ; gives current image number in
-                                ; *self.images.main_image_stack
+        prev_image_size: [0L,0L,0L], $     ; dimensions of previous image
+        prev_image_2d: 1,$                 ; Boolean - whether previous image was 2D
+        collapse_button: 0L,$              ; id of collapse button
+        cur_image_num: 0L, $               ; gives current image number in
+                                           ; *self.images.main_image_stack
         curimnum_base_id0: 0L, $           ; id of cur_image_num base widget
         curimnum_base_id: 0L, $            ; id of cur_image_num base widget
         curimnum_text_id: 0L, $            ; id of cur_image_num textbox widget
         curimnum_textLamb_id: 0L, $        ; id of cur_image_num textbox widget
         curimnum_lambLabel_id: 0L, $       ; id of cur_image_num textbox widget
         curimnum_slidebar_id: 0L, $        ; id of cur_image_num slider widget
-        cube_mode: 	'', $                  ; 0 = unknown, 1 = wave, 2 = pol
+        cube_mode: 	'', $              ; 0 = unknown, 1 = wave, 2 = pol
         scale_mode_droplist_id: 0L, $      ; id of scale droplist widget
         curimnum_minmaxmode: 'Constant', $ ; mode for determining min/max
                                            ; of display when changing curimnum
-        invert_colormap: 0L, $  ; 0=normal, 1=inverted
-        coord: [0L, 0L],  $     ; cursor position in image coords
-        plot_coord: [0L, 0L], $ ; cursor position when a plot
-                                ; is initiated
+        invert_colormap: 0L, $             ; 0=normal, 1=inverted
+        coord: [0L, 0L],  $                ; cursor position in image coords
+        plot_coord: [0L, 0L], $            ; cursor position when a plot
+                                           ; is initiated
         vector_coord1: [0L, 0L], $         ; 1st cursor position in vector plot
         vector_coord2: [0L, 0L], $         ; 2nd cursor position in vector plot
         vector_pixmap_id: 0L, $            ; id for vector pixmap
@@ -386,10 +387,10 @@ state = {                   $
         statzoom_widget_id: 0L, $           ; widget id for stat zoom window
         statzoom_window_id: 0L, $           ; window id for stat zoom window
         showstatzoom_id: 0L, $              ; widget id for show/hide button
-        histplot_base_id: 0L, $                ; base widget for image stats
+        histplot_base_id: 0L, $             ; base widget for image stats
         histplot_widget_id: 0L, $           ; widget id for histogram plot
         histplot_window_id: 0L, $           ; window id for histogram plot
-		pan_pixmap: 0L, $                   ; window id of pan pixmap
+        pan_pixmap: 0L, $                   ; window id of pan pixmap
         current_dir: '', $                  ; current readfits directory
         output_dir: '', $                   ; write directory
         graphicsdevice: '', $               ; screen device
@@ -2824,7 +2825,7 @@ pro GPItv::event, event
         self->getstats
         self->set_minmax
         self->displayall
-        self->update_child_windows
+        self->update_child_windows,/update
      end
 
      'curimnum_text':begin      ; text entry in 'Image #=' box
@@ -3528,7 +3529,7 @@ pro GPItv::invert, ichange, nodisplay=nodisplay
 	;Redisplay inverted image with current zoom, update pan, and refresh image
 	if ~(keyword_set(nodisplay)) then begin 
 	   self->displayall
-	   self->update_child_windows
+	   self->update_child_windows,/update
 	endif 
 
 	self->resetwindow
@@ -3833,7 +3834,7 @@ pro GPItv::rotate, desired_angle, get_angle=get_angle, nodisplay=nodisplay
 	;Redisplay inverted image with current zoom, update pan, and refresh image
 	if ~(keyword_set(nodisplay)) then begin 
 	   self->displayall
-	   self->update_child_windows
+	   self->update_child_windows,/update
 	endif 
 
 	self->resetwindow
@@ -4047,7 +4048,7 @@ pro GPItv::change_image_units, new_requested_units, silent=silent
 	;self->autoscale
 	self->set_minmax
 	self->displayall
-	self->update_child_windows
+	self->update_child_windows,/update
 	self->resetwindow
 
 end
@@ -4397,7 +4398,7 @@ pro GPItv::changeimage,imagenum,next=next,previous=previous, nocheck=nocheck,$
     ;;when called from setup_new_image, no need to do this, as it'll be
     ;;called again at the end of that routine.
     if not keyword_set(nochildupdate) then $
-      self->update_child_windows,/noheader ; update plots but no need to refresh header window
+      self->update_child_windows,/noheader,/update ; update plots but no need to refresh header window
 
 end
 
@@ -5226,9 +5227,12 @@ if ((*self.state).min_value GE (*self.state).max_value) then begin
     (*self.state).max_value = (*self.state).max_value + 1
 endif
 
+;; as the comment above says, this has nothing to do with statistics.
+;; Reall doesn't belong here at all.  Leaving in case taking it
+;; out breaks something.
 ; zero the current display position on the center of the image,
-(*self.state).coord = round((*self.state).image_size[0:1] / 2.)
-self->getoffset
+; (*self.state).coord = round((*self.state).image_size[0:1] / 2.)
+; self->getoffset
 
 ; Clear all plot annotations
 if (not(keyword_set(noerase))) then self->erase, /norefresh
@@ -5550,7 +5554,8 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   endif
   
   ;; set the main image and update gui appropriately
-  thirddimchange = 0 ;;track whether we're switching between a 2&3d image
+  thirddimchange = 0            ;track whether we're switching between a 2&3d image
+  (*self.state).prev_image_size = (*self.state).image_size ;back up image size
   case (size(*self.images.main_image))[0] of
      2: begin                   ; 2D image   
         (*self.state).image_size = [(size(*self.images.main_image_stack))[1:2], 1]
@@ -5614,13 +5619,18 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
      end  
   endcase ;;dimensionality of main image 
 
-  ;;clean up anything left from previous image
-  ;;remove any existing satellite spots, and allocate proper size for
-  ;;contrast profile pointers - has to be done before calling collapsecube
+  ;; if image dimensionality has changed from previously loaded one,
+  ;; set cursor coords to center
+  tmp = where((*self.state).prev_image_size ne (*self.state).image_size,coordupdate)
+  if coordupdate ne 0 then (*self.state).coord = round((*self.state).image_size[0:1] / 2.)
+
+  ;; clean up anything left from previous image
+  ;; remove any existing satellite spots, and allocate proper size for
+  ;; contrast profile pointers - has to be done before calling collapsecube
   ptr_free,self.satspots.cens
   self.satspots.cens = ptr_new(/allocate_heap)
 
-  ;;kill everything associated with contrprofile
+  ;; kill everything associated with contrprofile
   heap_free,self.satspots.asec
   heap_free,self.satspots.contrprof
   self.satspots.contrprof = ptr_new(/alloc) ;contour profile (will be Z x 3 pointer array with first dimension being stdev,median,mean)
@@ -5632,15 +5642,14 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   ptr_free,self.images.klip_image
   self.images.klip_image = ptr_new(/allocate_heap)
 
-
-  ; remove any existing CWV_ptrs
+  ;; remove any existing CWV_ptrs
   if (ptr_valid((*self.state).CWV_ptr)) then ptr_free, (*self.state).CWV_ptr
 
-  ;  set image header
+  ;; set image header
   self->setheader, header, _extra=_extra
   self->setheadinfo
   
-  ; figure out padding
+  ;; figure out padding
   widget_control, (*self.state).base_id, tlb_get_size=tmp_event
   (*self.state).base_pad = tmp_event - (*self.state).draw_window_size
 
@@ -5650,26 +5659,26 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   if n_elements(minimum) GT 0 then (*self.state).min_value = minimum
   if n_elements(maximum) GT 0 then (*self.state).max_value = maximum
 
-  ;;make sure user inputs were sane
+  ;; make sure user inputs were sane
   if (*self.state).min_value GE (*self.state).max_value then begin
      (*self.state).min_value = (*self.state).max_value - 1.
   endif
   
-  ;;apply any requested scaling
+  ;; apply any requested scaling
   if (keyword_set(linear)) then self->setscaling, 'linear'
   if (keyword_set(log))    then self->setscaling, 'log'
   if (keyword_set(histeq)) then self->setscaling, 'histeq'
   if (keyword_set(asinh))  then self->setscaling, 'asinh'
   if (keyword_set(sqrt))   then self->setscaling, 'square root'
   
-  ;;reset zoom and centering if not retaining current view or if this
-  ;;is the first image
+  ;; reset zoom and centering if not retaining current view or if this
+  ;; is the first image
   if ~(*self.state).retain_current_view || (*self.state).isfirstimage || thirddimchange then begin
      (*self.state).zoom_level =  0
      (*self.state).zoom_factor = 1.0
      
-     ;;need to generate a scaled image and pan image before calling
-     ;;autozoom (which calls self->refresh)
+     ;; need to generate a scaled image and pan image before calling
+     ;; autozoom (which calls self->refresh)
      if (*self.state).isfirstimage || thirddimchange then begin
         self->scaleimage
         self->makepan
@@ -5689,22 +5698,19 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
 
   endif
 
-  ; if retaining view, apply previous inversion to the new image
+  ;; if retaining view, apply previous inversion to the new image
   if (*self.state).retain_current_view &&  ((*self.state).invert_image ne 'none') then begin
-	  prior_invert = (*self.state).invert_image
-	  (*self.state).invert_image = 'none'
-	  self->invert, prior_invert, /nodisplay
+     prior_invert = (*self.state).invert_image
+     (*self.state).invert_image = 'none'
+     self->invert, prior_invert, /nodisplay
   endif
-
-  ; if retaining view, apply previous rotation to the new image
+  
+  ;; if retaining view, apply previous rotation to the new image
   if (*self.state).retain_current_view &&  ( (*self.state).rot_angle  ne 0) then begin
-	  prior_rotation = (*self.state).rot_angle
-	  (*self.state).rot_angle = 0.0
-	  self->rotate, prior_rotation, /nodisplay
+     prior_rotation = (*self.state).rot_angle
+     (*self.state).rot_angle = 0.0
+     self->rotate, prior_rotation, /nodisplay
   endif
-
-
-
 
   self->recenter, align=(*self.state).retain_current_view ; must call recenter whether keeping alignment or not, to update some state vars
 
@@ -5724,7 +5730,7 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   endif
 
   ;; update all children
-  self->update_child_windows
+  self->update_child_windows,update = (coordupdate eq 0)
 
   ;;if you got here, you're no longer on the first image
   if ~strcmp(imname,"NO IMAGE LOADED   ") then (*self.state).isfirstimage = 0
@@ -8030,7 +8036,7 @@ if ~keyword_set(noresize) then self->resize ; MDP addition 2008-10-20
 end
 ;----------------------------------------------------------------------
 
-pro GPItv::update_child_windows, noheader=noheader
+pro GPItv::update_child_windows, noheader=noheader,update=update
   ;; refresh all available child windows if they are present
   ;; This is useful after e.g. reloading a new image from disk
 
@@ -8038,7 +8044,7 @@ pro GPItv::update_child_windows, noheader=noheader
   if xregistered(self.xname+'_anguprof', /noshow) then self->anguprof_refresh
   if xregistered(self.xname+'_contrprof',/noshow) then self->contrprof_refresh
   if xregistered(self.xname+'_pixtable', /noshow) then self->pixtable_update
-  if xregistered(self.xname+'_lineplot', /noshow) then self->lineplot_update
+  if xregistered(self.xname+'_lineplot', /noshow) then self->lineplot_update,update=update
   if xregistered(self.xname+'_stats', /noshow) then self->stats_refresh
   
   if xregistered(self.xname+'_sdi', /noshow) then self->sdi
@@ -13560,49 +13566,49 @@ end
 
 ;--------------------------------------------------------------------
 
-pro GPItv::lineplot_update
+pro GPItv::lineplot_update,update=update
 
   ;;upate whatever lineplot may be up
-
+  
   case ((*self.state).plot_type) of
      'centerplot': begin
-        self->centerplot
+        self->centerplot,update=update
      end
      
      'rowplot': begin
-        self->rowplot
+        self->rowplot,update=update
      end
-
+     
      'colplot': begin
-        self->colplot
+        self->colplot,update=update
      end
 
      'gaussrowplot': begin
-        self->gaussrowplot
+        self->gaussrowplot,update=update
      end
 
      'gausscolplot': begin
-        self->gausscolplot
+        self->gausscolplot,update=update
      end
 
      'vectorplot': begin
-        self->vectorplot
+        self->vectorplot,update=update
      end
 
      'histplot': begin
-        self->histplot
+        self->histplot,update=update
      end
 
      'surfplot': begin
-        self->surfplot
+        self->surfplot,update=update
      end
 
      'contourplot': begin
-        self->contourplot
+        self->contourplot,update=update
      end
 
      'slice3dplot': begin
-        self->slice3dplot
+        self->slice3dplot,update=update
      end
      
      else:
@@ -17716,7 +17722,7 @@ self->recenter
 self->autoscale
 self->set_minmax
 self->displayall
-self->update_child_windows
+self->update_child_windows,/update
 self->resetwindow
 
 
