@@ -163,7 +163,7 @@ pro dirviewer::event, ev
         return
     end
 	'WIDGET_BUTTON':begin
-	   	if uname eq 'view_in_gpitv' then self->view_in_gpitv
+	   	;if uname eq 'view_in_gpitv' then self->view_in_gpitv
 	   	if uname eq 'refresh' then begin
             self->refresh
             self->highlight_selected
@@ -1191,7 +1191,7 @@ FUNCTION dirviewer::init, $
   button = cw_bgroup(buttonBase, " ", label_left='Auto load new files?', /nonexclusive, uvalue="auto_load_new", uname='auto_load_new', set=self.auto_load_new)
   button = cw_bgroup(buttonBase, " ", label_left='Sort by time?', /nonexclusive, uvalue="time_sort", uname='time_sort', set=self.time_sort)
   ;button = cw_bgroup(buttonBase, " ", label_left='Fixed scale?', /nonexclusive, uvalue="fix_scales", uname='fix_scales', set=self.fix_scales)
-  button = Widget_Button(buttonBase2, Value='View in GPItv', uname='view_in_gpitv',/tracking_events)
+  ;button = Widget_Button(buttonBase2, Value='View in GPItv', uname='view_in_gpitv',/tracking_events)
   button = Widget_Button(buttonBase2, Value='Refresh', uname='refresh',/tracking_events)
   button = Widget_Button(buttonBase2, Value='Close', uname='Close',/tracking_events)
 
