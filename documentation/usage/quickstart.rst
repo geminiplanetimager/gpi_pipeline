@@ -211,7 +211,7 @@ Because a snapshot of the Argon arclamp was taken at the same telescope position
 
 This primitive will use every 20th lenslet in the frame to calculate the net shift from the desired wavelength calibration. One must be careful to ensure the proper wavelength calibration is grabbed from the database (check the output in the pipeline xterm). If the wrong one is selected, then you can manually choose the correct one (S20131210S0055_H_wavecal.fits) using the Choose Calibration File button. A new wavecal (S20131210S0055_H_wavecal.fits) will then be added to the database, which is merely the old wavecal with new x-y spectral positions.
 
-If you now repeat the reduction of the science data from above, the new wavecal will be captured and the datacube will appear as follows.
+If you now repeat the reduction of the science data from above, the new wavecal will be captured and the datacube will appear as follows. Remember to set the "Update spots shifts for Flexure" correction to 'none'
 
 .. image:: data_cube.png
         :scale: 50%
