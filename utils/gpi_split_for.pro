@@ -167,8 +167,7 @@ endif else begin
             endfor
         endif
 
-
-        spawn, 'pwd', pwd
+				cd,current=pwd
         fluffx123123pwd=pwd
 ;now we pass variables and run the batch files
         for i=0, n_elements(obridge)-1 do begin
