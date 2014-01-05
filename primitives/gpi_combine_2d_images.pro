@@ -11,7 +11,8 @@
 ; OUTPUTS: a single combined 2D image
 ;
 ; PIPELINE COMMENT: Combine 2D images such as darks into a master file via mean or median. 
-; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="MEAN|MEDIAN|MEANCLIP"  Default="MEDIAN" Desc="How to combine images: median, mean, or mean with outlier rejection?"
+; PIPELINE ARGUMENT: Name="Method" Type="string" Range="MEAN|MEDIAN|SIGMACLIP"  Default="SIGMACLIP" Desc="How to combine images: median, mean, or mean with outlier rejection?[MEAN|MEDIAN|SIGMACLIP]"
+; PIPELINE ARGUMENT: Name="Sigma_cut" Type="float" Range="[1,100]" Default="3" Desc="If Method=SIGMACLIP, then data points more than this many standard deviations away from the median value of a given pixel will be discarded. "
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 1.5
@@ -27,6 +28,7 @@
 ;   2012-10-10 MP: Minor code cleanup
 ;   2013-07-10 MP: Minor documentation cleanup
 ;   2013-07-12 MP: file rename for consistency
+;   2014-01-02 MP: Copied SIGMACLIP implementation from gpi_combine_2d_dark_images
 ;
 ;-
 function gpi_combine_2D_images, DataSet, Modules, Backbone
@@ -71,8 +73,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		'MEAN': begin
 			combined_im=total(imtab,/DOUBLE,3) /((size(imtab))[3])
 		end
-		'MEANCLIP': begin
-			message, 'Method MEANCLIP not implemented yet - bug someone to program it!'
+		'SIGMACLIP': begin
+			combined_im = gpi_sigma_clip_image_stack( imtab, sigma=sigma_cut,/parallelize)
 		end
 		else: begin
 			message,"Invalid combination method '"+method+"' in call to Combine 2D Frames."
