@@ -78,7 +78,7 @@
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="-1" Desc="-1 = No display; 0 = New (unused) window else = Window number to display diagonostics in."
 ; PIPELINE ARGUMENT: Name="remove_microphonics" Type="int" Range="[0,2]" Default="0" Desc='Remove microphonics noise based on a precomputed fixed model.0: not applied. 1: applied. 2: the algoritm is applied only if the measured noise is greater than micro_threshold'
 ; PIPELINE ARGUMENT: Name="method_microphonics" Type="int" Range="[1,3]" Default="0" Desc='Method applied for microphonics 1: model projection. 2: all to zero 3: gaussian fit'
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="micro" Default="AUTOMATIC" Desc="Filename of the desired microphonics model file to be read"
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type="string" CalFileType="micro" Default="AUTOMATIC" Desc="Filename of the desired microphonics model file to be read"
 ; PIPELINE ARGUMENT: Name="Plot_micro_peaks" Type="string" Range="[yes|no]" Default="no" Desc="Plot in 3d the peaks corresponding to the microphonics"
 ; PIPELINE ARGUMENT: Name="save_microphonics" Type="string" Range="[yes|no]" Default="no" Desc='If remove_microphonics = 1 or (auto and micro_threshold overpassed), save the removed microphonics'
 ; PIPELINE ARGUMENT: Name="micro_threshold" Type="float" Range="[0.0,1.0]" Default="0.01" Desc='If remove_microphonics = 2, set the threshold. This value is sum(abs(fft(image))*abs(fft(noise_model)))/sqrt(sum(image^2))'
@@ -98,6 +98,7 @@
 ;   2013-03-12 MP: Code cleanup, some speed enhancements by vectorization
 ;   2013-05-28 JBR: Primitive copy pasted from the destripe_mask_spectra.pro primitive. Microphonics noise enhancement. Microphonics algorithm now applied before the destriping.
 ;   2013-12-04 PI: Removed high_limit- now does masking based on readnoise levels 
+;	2013-12-30 MP: CalibrationFile argument syntax update.
 ;-
 function gpi_destripe_science_image, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -113,17 +114,17 @@ if strcompress(backbone->get_keyword('OBSTYPE'),/remove_all) eq 'FLAT' or $
    return, ok
 endif
 
- if tag_exist( Modules[thisModuleIndex], "method") then method=(Modules[thisModuleIndex].method) else method=''
- if tag_exist( Modules[thisModuleIndex], "abort_fraction") then abort_fraction=float(Modules[thisModuleIndex].abort_fraction) else abort_fraction=0.9
- if tag_exist( Modules[thisModuleIndex], "Chan_offset_correction") then chan_offset_correction=float(Modules[thisModuleIndex].chan_offset_correction) else chan_offset_correction=0.0
- if tag_exist( Modules[thisModuleIndex], "fraction") then fraction=float(Modules[thisModuleIndex].fraction) else fraction=0.7
- if tag_exist( Modules[thisModuleIndex], "Save") then save=float(Modules[thisModuleIndex].Save) else Save=0
- if tag_exist( Modules[thisModuleIndex], "Save_stripes") then save_stripes=float(Modules[thisModuleIndex].Save_stripes) else Save_stripes=0 
- if tag_exist( Modules[thisModuleIndex], "method_microphonics") then method_microphonics=uint(Modules[thisModuleIndex].method_microphonics) else method_microphonics=1
- if tag_exist( Modules[thisModuleIndex], "remove_microphonics") then remove_microphonics=uint(Modules[thisModuleIndex].remove_microphonics) else remove_microphonics=0
- if tag_exist( Modules[thisModuleIndex], "Plot_micro_peaks") then Plot_micro_peaks=string(Modules[thisModuleIndex].Plot_micro_peaks) else Plot_micro_peaks='no'
- if tag_exist( Modules[thisModuleIndex], "save_microphonics") then save_microphonics=Modules[thisModuleIndex].save_microphonics else save_microphonics='no'
- if tag_exist( Modules[thisModuleIndex], "display") then display=fix(Modules[thisModuleIndex].display) else display=-1
+if tag_exist( Modules[thisModuleIndex], "method") then method=(Modules[thisModuleIndex].method) else method=''
+if tag_exist( Modules[thisModuleIndex], "abort_fraction") then abort_fraction=float(Modules[thisModuleIndex].abort_fraction) else abort_fraction=0.9
+if tag_exist( Modules[thisModuleIndex], "Chan_offset_correction") then chan_offset_correction=float(Modules[thisModuleIndex].chan_offset_correction) else chan_offset_correction=0.0
+if tag_exist( Modules[thisModuleIndex], "fraction") then fraction=float(Modules[thisModuleIndex].fraction) else fraction=0.7
+if tag_exist( Modules[thisModuleIndex], "Save") then save=float(Modules[thisModuleIndex].Save) else Save=0
+if tag_exist( Modules[thisModuleIndex], "Save_stripes") then save_stripes=float(Modules[thisModuleIndex].Save_stripes) else Save_stripes=0 
+if tag_exist( Modules[thisModuleIndex], "method_microphonics") then method_microphonics=uint(Modules[thisModuleIndex].method_microphonics) else method_microphonics=1
+if tag_exist( Modules[thisModuleIndex], "remove_microphonics") then remove_microphonics=uint(Modules[thisModuleIndex].remove_microphonics) else remove_microphonics=0
+if tag_exist( Modules[thisModuleIndex], "Plot_micro_peaks") then Plot_micro_peaks=string(Modules[thisModuleIndex].Plot_micro_peaks) else Plot_micro_peaks='no'
+if tag_exist( Modules[thisModuleIndex], "save_microphonics") then save_microphonics=Modules[thisModuleIndex].save_microphonics else save_microphonics='no'
+if tag_exist( Modules[thisModuleIndex], "display") then display=fix(Modules[thisModuleIndex].display) else display=-1
 gpitvsess = fix(Modules[thisModuleIndex].gpitv)
  
  ;get the 2D detector image
@@ -167,145 +168,150 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
  backbone->set_keyword, "HISTORY", "   (This does not work on flat fields!)"
 
  if strlowcase(method) eq 'threshhold' then begin
-
-  for r=0L,sz[2]-1 do begin ; loop over rows
-      row=image[*,r] - min(image[*,r]) +1 ; MAKES EVERYTHING POSITIVE
-      med = median(row)
-      ; want to mask X percent of the pixels
-      frac=fraction
-      dz=0.01
-      ; determine pixels to mask (this is embarassingly dirty)
-      sorted_ind=reverse(sort(row)) ; high to low
-      for i=0, floor((sz[2]-1)*frac)-1 do mask[sorted_ind[i],r]=1
-  endfor 
-        
-    ; now expand the mask by 1 pixel in all directions to grab things close to
-    ; the edges of the spectra. 1 pixel was chosen based on visual examination of
-    ; how well the final mask works, and is also plausible based on the existence
-    ; of interpixel capacitance that affects adjacent pixels at a ~few percent
-    ; level. 
-
-  ;kernel = [[0,1,0],[1,1,1],[0,1,0]]  ; This appears to work pretty well based on visual examination of the masked region
-  ;mask = dilate(mask, kernel)
-
-  backbone->Log, "Identified "+strc(total(~mask))+" pixels for use as background pixels"
-
+  
+    for r=0L,sz[2]-1 do begin ; loop over rows
+        row=image[*,r] - min(image[*,r]) +1 ; MAKES EVERYTHING POSITIVE
+        med = median(row)
+        ; want to mask X percent of the pixels
+        frac=fraction
+        dz=0.01
+        ; determine pixels to mask (this is embarassingly dirty)
+        sorted_ind=reverse(sort(row)) ; high to low
+        for i=0, floor((sz[2]-1)*frac)-1 do mask[sorted_ind[i],r]=1
+    endfor 
+          
+      ; now expand the mask by 1 pixel in all directions to grab things close to
+      ; the edges of the spectra. 1 pixel was chosen based on visual examination of
+      ; how well the final mask works, and is also plausible based on the existence
+      ; of interpixel capacitance that affects adjacent pixels at a ~few percent
+      ; level. 
+  
+    ;kernel = [[0,1,0],[1,1,1],[0,1,0]]  ; This appears to work pretty well based on visual examination of the masked region
+    ;mask = dilate(mask, kernel)
+  
+    backbone->Log, "Identified "+strc(total(~mask))+" pixels for use as background pixels"
+  
  endif else begin ;======= use calibration file to determine the regions to use. =====
     
-  mode = gpi_simplify_keyword_value(backbone->get_keyword('DISPERSR', count=c))
-  filter= gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=c))
-  case strupcase(strc(mode)) of
+	mode = gpi_simplify_keyword_value(backbone->get_keyword('DISPERSR', count=c))
+	filter= gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=c))
+	case strupcase(strc(mode)) of
     'PRISM':  begin
-      ; Assume wavecal already loaded by readwavcal primitive
+		; Assume wavecal already loaded by readwavcal primitive
 			; add error handling
-      if keyword_set(wavcal) eq 0 then return, error('FAILURE ('+functionName+'): Must load wavelength calibration to perform destriping')
+		if keyword_set(wavcal) eq 0 then return, error('FAILURE ('+functionName+'): Must load wavelength calibration to perform destriping')
 			; Extrapolate wavecal an additional 2 lenslets, to let us mask out
-      ; the edge spectra that are half on/half off the detector.
-      wavecal2 = gpi_wavecal_extrapolate_edges(wavcal)
+		; the edge spectra that are half on/half off the detector.
+		wavecal2 = gpi_wavecal_extrapolate_edges(wavcal)
         
-            ; The following code is lifted directly from extractcube.
-            sdpx = calc_sdpx(wavecal2, filter, xmini, CommonWavVect)
-            if (sdpx < 0) then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
-            tilt=wavecal2[*,*,4]
-
+        ; The following code is lifted directly from extractcube.
+        sdpx = calc_sdpx(wavecal2, filter, xmini, CommonWavVect)
+        if (sdpx < 0) then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
+        tilt=wavecal2[*,*,4]
 		          
-				; when building the mask, it should be based upon whether or not the bleeding from the ajacent pixels is higher than the readnoise of a raw dark frame, divided by the sqrt of the reads. So the readnoise is 8 electrons.
- nreads = gpi_simplify_keyword_value(backbone->get_keyword('GROUPS0', count=c))
- ncoadds = gpi_simplify_keyword_value(backbone->get_keyword('COADDS0', count=c))
-if ncoadds[0] eq -1 or nreads[0] eq -1 then begin
-   message,/info, "Either COADDS0 or GROUPS0 keywords not in header, Assuming CDS mode and zero coadds"
-	nreads=2
-	ncoadds=1
-endif
- readnoise=8.0/(sqrt(nreads-1))/sqrt(float(ncoadds))
+		; when building the mask, it should be based upon whether or not the bleeding from the ajacent pixels is higher than the readnoise of a raw dark frame, divided by the sqrt of the reads. So the readnoise is 8 electrons.
+	 nreads = gpi_simplify_keyword_value(backbone->get_keyword('GROUPS0', count=c))
+	 ncoadds = gpi_simplify_keyword_value(backbone->get_keyword('COADDS0', count=c))
+	if ncoadds[0] eq -1 or nreads[0] eq -1 then begin
+		message,/info, "Either COADDS0 or GROUPS0 keywords not in header, Assuming CDS mode and zero coadds"
+		nreads=2
+		ncoadds=1
+	endif
+	readnoise=8.0/(sqrt(nreads-1))/sqrt(float(ncoadds))
 
-; so if the tail is greater than the readnoise, it should be dropped.
-; this requires a model for the tail.
-; lets just assume its gaussian, FWHM = 1.6, so the 2nd pixel from the peak has about 317 times less flux
-; so if the peak/317 is greater than readnoise then this is the high_limit - assuming the spectrum is perfectly centered
+	; so if the tail is greater than the readnoise, it should be dropped.
+	; this requires a model for the tail.
+	; lets just assume its gaussian, FWHM = 1.6, so the 2nd pixel from the peak has about 317 times less flux
+	; so if the peak/317 is greater than readnoise then this is the high_limit - assuming the spectrum is perfectly centered
 
-; /2 is because there is contamination from the left and right side!
-high_limit=readnoise*317.0/2 ; this is the optimal case assuming the spectrum is perfectly centered on a pixel
-high_limit=readnoise*17.8/2 ; this is the case wehre it is exactly in the middle of two pixels
-; the 3rd pixel over has 60000 times less flux
-very_high_limit=readnoise*60000.0/2 ; this is the optimal case assuming the spectrum is perfectly centered on a pixel
-very_high_limit=readnoise*5620.0 ; ; this is the case wehre it is exactly in the middle of two pixelsi
-;very_high_limit=readnoise*620.0/2
+	; /2 is because there is contamination from the left and right side!
+	high_limit=readnoise*317.0/2 ; this is the optimal case assuming the spectrum is perfectly centered on a pixel
+	high_limit=readnoise*17.8/2 ; this is the case wehre it is exactly in the middle of two pixels
+	; the 3rd pixel over has 60000 times less flux
+	very_high_limit=readnoise*60000.0/2 ; this is the optimal case assuming the spectrum is perfectly centered on a pixel
+	very_high_limit=readnoise*5620.0 ; ; this is the case wehre it is exactly in the middle of two pixels
+	;very_high_limit=readnoise*620.0/2
 
-; this is dependent upon where the peak falls in the pixel
+	; this is dependent upon where the peak falls in the pixel
 
-			 ; must also mask edges where no wavcal is present
-      mask[0:8,*]=1
-      mask[2040:2047,*]=1
-            for i=0,sdpx-1 do begin  ;through spaxels
-                ;get the locations on the image where intensities will be extracted:
-                x3=xmini-i
-                y3=round(wavecal2[*,*,1]+(wavecal2[*,*,0]-x3)*tan(tilt[*,*]))    
-                ; Normally we extract intensities on a 3x1 box;
-                ; instead of extracting pixels, mask out those pixels.
-                dy=1
-                mask[y3,x3] = 1
-                mask[y3+dy,x3] = 1
-                mask[y3-dy,x3] = 1
-                high_ind=where(image[y3,x3] gt high_limit $
-                              and finite(image[x3,y3] eq 1),complement=low_ind)
-        ; mask a 5x1 box for pixels passing
-        ; the high limit
-        dy_arr=[-2,2] & dx_arr=[-1,1]
-        if high_ind[0] ne -1 then begin 			
-					for yy=0, N_ELEMENTS(dy_arr)-1 do begin
-						for xx=0, N_ELEMENTS(dx_arr)-1 do begin
-           		mask[y3[high_ind]+dy_arr[yy],x3[high_ind]+dx_arr[xx]] = 1
-           	endfor
-					endfor
-        endif
-        ; limit where cross-talk dominates
-        ; entire spectrum.
-        very_high_ind=where(image[y3,x3] gt very_high_limit $
-                 and finite(image[x3,y3] eq 1))
-        ; mask a 7x1 box for pixels passing
-        ; the high limit
-        dy_arr=[-3,3] & dx_arr=[-2,2]
-        if very_high_ind[0] ne -1 then begin
-					for yy=0, N_ELEMENTS(dy_arr)-1 do begin
-						for xx=0, N_ELEMENTS(dx_arr)-1 do begin
-           		mask[y3[very_high_ind]+dy_arr[yy],x3[very_high_ind]+dx_arr[xx]] = 1
-           	endfor
-					endfor
-				endif
-      endfor
+	; must also mask edges where no wavcal is present
+	mask[0:8,*]=1
+	 mask[2040:2047,*]=1
+				for i=0,sdpx-1 do begin  ;through spaxels
+					;get the locations on the image where intensities will be extracted:
+					x3=xmini-i
+					y3=round(wavecal2[*,*,1]+(wavecal2[*,*,0]-x3)*tan(tilt[*,*]))    
+					; Normally we extract intensities on a 3x1 box;
+					; instead of extracting pixels, mask out those pixels.
+					dy=1
+					mask[y3,x3] = 1
+					mask[y3+dy,x3] = 1
+					mask[y3-dy,x3] = 1
+					high_ind=where(image[y3,x3] gt high_limit $
+								  and finite(image[x3,y3] eq 1),complement=low_ind)
+			; mask a 5x1 box for pixels passing
+			; the high limit
+			dy_arr=[-2,2] & dx_arr=[-1,1]
+			if high_ind[0] ne -1 then begin 			
+						for yy=0, N_ELEMENTS(dy_arr)-1 do begin
+							for xx=0, N_ELEMENTS(dx_arr)-1 do begin
+					mask[y3[high_ind]+dy_arr[yy],x3[high_ind]+dx_arr[xx]] = 1
+				endfor
+						endfor
+			endif
+			; limit where cross-talk dominates
+			; entire spectrum.
+			very_high_ind=where(image[y3,x3] gt very_high_limit $
+					 and finite(image[x3,y3] eq 1))
+			; mask a 7x1 box for pixels passing
+			; the high limit
+			dy_arr=[-3,3] & dx_arr=[-2,2]
+			if very_high_ind[0] ne -1 then begin
+						for yy=0, N_ELEMENTS(dy_arr)-1 do begin
+							for xx=0, N_ELEMENTS(dx_arr)-1 do begin
+					mask[y3[very_high_ind]+dy_arr[yy],x3[very_high_ind]+dx_arr[xx]] = 1
+				endfor
+						endfor
+					endif
+		  endfor
 
-    end
-    'WOLLASTON':    begin
-        ; Assume pol cal info already loaded by readpolcal primitive 
-        polspot_coords = polcal.coords
-        polspot_pixvals = polcal.pixvals
-        
-        sz = size(polspot_coords)
-        nx = sz[1+2]
-        ny = sz[2+2]
-        
-        for pol=0,1 do begin
-        for ix=0L,nx-1 do begin
-          for iy=0L,ny-1 do begin
-          ;if ~ptr_valid(polcoords[ix, iy,pol]) then continue
-          wg = where(finite(polspot_pixvals[*,ix,iy,pol]) and polspot_pixvals[*,ix,iy,pol] gt 0, gct)
-          if gct eq 0 then continue
+		end
+		'WOLLASTON':    begin
+			; Assume pol cal info already loaded by readpolcal primitive 
+			polspot_coords = polcal.coords
+			polspot_pixvals = polcal.pixvals
+			
+			sz = size(polspot_coords)
+			nx = sz[1+2]
+			ny = sz[2+2]
+			
+			for pol=0,1 do begin
+			for ix=0L,nx-1 do begin
+			  for iy=0L,ny-1 do begin
+			  ;if ~ptr_valid(polcoords[ix, iy,pol]) then continue
+			  wg = where(finite(polspot_pixvals[*,ix,iy,pol]) and polspot_pixvals[*,ix,iy,pol] gt 0, gct)
+			  if gct eq 0 then continue
 
-          spotx = polspot_coords[0,wg,ix,iy,pol]
-          spoty = polspot_coords[1,wg,ix,iy,pol]
-          
-          mask[spotx,spoty]= 1
-           
-          endfor 
-        endfor 
-        endfor 
-    end
-    'OPEN':    begin
-           backbone->set_keyword, "HISTORY", "NO DESTRIPING PERFORMED, not implemented for Undispersed mode"
-                   message,/info, "NO DESTRIPING PERFORMED, not implemented for Undispersed mode"
-                   return,ok
-    end
+			  spotx = polspot_coords[0,wg,ix,iy,pol]
+			  spoty = polspot_coords[1,wg,ix,iy,pol]
+			  
+			  mask[spotx,spoty]= 1
+			   
+			  endfor 
+			endfor 
+			endfor 
+
+			; Quick and dirty hack: mask out entire middle part around the
+			; PSF core since there will be more substantial bleeding of light
+			; out into the PSF wings there
+			mask[700:1400, 700:1400] = 1
+
+		end
+		'OPEN':    begin
+			   backbone->set_keyword, "HISTORY", "NO DESTRIPING PERFORMED, not implemented for Undispersed mode"
+					   message,/info, "NO DESTRIPING PERFORMED, not implemented for Undispersed mode"
+					   return,ok
+		end
         endcase
 
     endelse
@@ -544,6 +550,7 @@ very_high_limit=readnoise*5620.0 ; ; this is the case wehre it is exactly in the
   ;                                  script but rather exit nicely
 
   if total(finite(medpart))/(2048.0*64) le abort_fraction then begin
+	  stop
      backbone->set_keyword, "HISTORY", "NOT Destriped, masked pixels in the noise model greater than abort_fraction "
      logstr = 'NOT Destriped, percentage of valid pixels to derive noise model '+strcompress(string(total(finite(medpart))/(2048.0*64)),/remove_all)+' below the abort_fraction '+strcompress(string(abort_fraction),/remove_all)+' in destripe_science_image'
      backbone->set_keyword, "HISTORY", logstr,ext_num=0
