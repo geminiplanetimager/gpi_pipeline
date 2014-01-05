@@ -901,7 +901,7 @@ pro gpi_recipe_editor::event,ev
 	'Add primitive': self->AddPrimitive
 	'Remove primitive': self->RemovePrimitive
 	'Choose Calibration File': self->ChooseCalibrationFile
-    'Reload Available Primitives':	self->rescan_primitives_list
+    'Reload Available Primitives':	self->reload_primitives_list
     'Reload Templates':	self->scan_templates
 	'Basic View':			self->set_view_mode, 1
 	'Normal View':			self->set_view_mode, 2
