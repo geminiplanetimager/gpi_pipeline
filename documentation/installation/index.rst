@@ -13,6 +13,9 @@ This chapter describes how to install the GPI data pipeline and configure it. Th
 
 If you already have IDL, the quickest route is to :ref:`download the latest source ZIP file <installing-from-zips>`, unzip it into your ``$IDL_PATH``, and :ref:`configure your path settings <configuring>`.
 
+If you encounter problems, please see the :ref:`Frequently Asked Questions <faq>` first.
+
+
 Contents
 =============
 
