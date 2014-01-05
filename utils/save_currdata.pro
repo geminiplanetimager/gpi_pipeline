@@ -57,7 +57,6 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
     if keyword_set(level2) then i=level2-1 else i=numfile ;; Huh?  Used in some of the ADI/LOCI infrastructure? Cryptic, needs explanatory comment please.
 
 	;=== Generate output filename, starting from the input one.
-	;    Also determine output directory
 	filenm=fxpar(*(DataSet.HeadersPHU[i]),'DATAFILE',count=cdf)
     if (cdf eq 0) or (strc(filenm) eq 'NONE') or (strc(filenm) eq '')  then begin 
 		; if DATAFILE keyword not present or not valid, then 
@@ -86,11 +85,11 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	; Verify output dir is valid
 	s_OutputDir = gpi_expand_path(s_OutputDir) 
 	if strc(s_OutputDir) eq "" then begin
-		return, error('FAILURE: supplied output directory is a blank string.')
+		return, error('FAILURE ('+functionName+'): supplied output directory is a blank string.')
 	endif
 
 	dir_ok = gpi_check_dir_exists(s_Outputdir)
-	if dir_ok eq NOT_OK then return, NOT_OK
+	if dir_ok eq NOT_OK then return, error('FAILURE ('+functionName+'): Nonexistent or unwriteable output directory') 
 
 	; ensure we have a directory separator, if it's not there already
 	if strmid(s_OutputDir, strlen(s_OutputDir)-1,1) ne path_sep() then s_OutputDir+= path_sep()
@@ -132,16 +131,18 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 				endif else begin
 					backbone_comm->Log, 'Output Filename: '+c_File
 					backbone_comm->Log, 'File already exists, and prompt_user_for_overwrite is set. However, GUI is not currently available.'
-					return, error( " Won't overwrite automatically but cannot prompt user for a new filename!")
+					return, error( 'FAILURE ('+functionName+"): File overwrite handling is set to 'ask user' but cannot prompt user for a new filename since GUI is disabled.")
 				endelse
 
 				if keyword_set(confirm(message=['The file '+c_File+' already exists on disk. ','',  'Are you sure you want to overwrite this file?'], $
 						label0='Change Filename',label1='Overwrite', title="Confirm Overwrite File", group_leader=status_top_widget)) then begin
 							; user has chosen to overwrite
+							backbone_comm->Log, 'The user confirmed overwriting the existing file on disk of that same filename.'
 							break
 				endif else begin
 					c_File = dialog_pickfile(/write, default_extension='fits', file=c_File, filter='*.fits', $
 						path=s_OutputDir, title='Select New Filename' )
+					backbone_comm->Log, 'The user requested a new filename:'+c_File
 				endelse
 
 			endwhile
@@ -156,7 +157,7 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 			backbone_comm->Log, 'Appended _'+strc(counter)+" to output filename to avoid overwriting."
 		endif else begin
 			backbone_comm->Log, 'Invalid setting for file_overwrite_handling. Must be one of [overwrite, ask_user, append_number]'
-			return, error('Invalid setting for file_overwrite_handling. Must be one of [overwrite, ask_user, append_number]')
+			return, error('FAILURE ('+functionName+'): Invalid setting for file_overwrite_handling. Must be one of [overwrite, ask_user, append_number]')
 		endelse
 
 	endif	
