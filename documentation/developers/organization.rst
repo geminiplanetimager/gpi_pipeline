@@ -18,6 +18,8 @@ comments in the source code directly.
 Internals: (mostly in pipeline/backbone directory)
 --------------------------------------------------
 
+The following are all object classes, so see e.g. ``launcher__define.pro`` for the source code for the "launcher" object.
+
 gpipipelinebackbone
 	The main object class of the pipeline! Loops forever waiting for 
         recipe files and processes them one at a time when they arrive. 
@@ -36,13 +38,13 @@ gpidrsconfigparser
         file (that is, the list of all available primitives). 
 
 gpicaldatabase
-	The calibration database class. Maintains an index of available 
+	:ref:`calibdb` class. Maintains an index of available 
         calibration files and has tools for looking up the best one for a given task. 
 
 launcher 
         This class provides the bidirectional communication flow between the two IDL sessions.
-        This class can be both an internal and a GUI, depending on how it's invoked:
-        In one IDL session, it is started directly to creates and runs the Launcher window with buttons to 
+        *This class can be both an internal and a GUI, depending on how it's invoked.*
+        In one IDL session, it is started directly to create and run the Launcher window that provides buttons to 
         start the other programs. Another copy of it gets loaded inside 
         gpipipelinebackbone, where it provides the inter-process communication pipeline that 
         lets the backbone talk to the Launcher window running in the other IDL session. 
@@ -52,34 +54,34 @@ GUIs:
 ----------
 
 launcher
-	See description above. 
+	See description above.
 
 gpistatusconsole
-	Status console for the backbone. This is the one GUI that runsa
+	:ref:`status_console` window object definition.  This is the one GUI that runs
         in the same IDL session with the backbone itself, allowing direct control of it. 
 
 gpi_gui_base
-        (not used directly, just a base class for the other windows to derive from)
+        *Not used directly, just a base class from which the other windows are derived. Provides common infrastructure*
 
 automaticreducer
-	:ref:`autoreducer` class
+	:ref:`autoreducer` window object definition
 
-drfgui
-	:ref:`recipe_editor` window
+gpi_recipe_editor
+	:ref:`recipe_editor` window object definition
 
 parsergui
-	:ref:`data_parser` window
+	:ref:`data_parser` window object definition
 
 queueview
-	Queue Viewer window. 
+	:ref:`queue_viewer` window object definition
 
 
 
 
-Function Call Hierarchy
-===================================
+Function Call Hierarchy when Running Recipes
+===============================================
 
-The main loop of the pipeline occurs inside the gpipipelinebackbone::run_queue method.
+The main loop of the pipeline occurs inside the ``gpipipelinebackbone::run_queue`` method.
 
 
 The call hierarchy inside gpipipelinebackbone is something like the following. Each indentation indicates being one level deeper in the call stack or inside a loop Each of these methods is part of gpipipelinebackbone.

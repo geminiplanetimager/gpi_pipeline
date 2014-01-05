@@ -30,7 +30,7 @@ The vast majority of internal information in GPItv is stored in a top level stat
 
 The state structure is initialized in ``GPItv::initcommon`` and contains all of the default (and user set) values used by GPItv's subfunctions along with pointers to subwindows and child GUIs.
 
-To aid in debugging, it is possible to dump the top level state structure by hitting ctrl+d with the main GPItv window in focus.  The state structure is written to the MAIN level variable state, overwriting any previous data stored there.  This is accomplished by issuing the command::
+To aid in debugging, it is possible to dump the top level state structure by hitting ctrl+d with the main GPItv window in focus.  The state structure is written to the MAIN level variable ``state``, overwriting any previous data stored there.  This is accomplished by issuing the command::
 
         (scope_varfetch('state',  level=1, /enter)) = *self.state
     
@@ -40,7 +40,7 @@ Two additional top level structures, ``images`` and ``satspots`` are used for im
 
 Image Storage
 ========================
-All image data is stored in the top level structure images, with pointers to various data values.  These are:
+All image data is stored in the top level structure ``images``, with pointers to various data values.  These are:
 
 ``images.main_image``
         The image currently being displayed in its native units (unscaled)
@@ -173,10 +173,10 @@ the modes and so still needs more work.
 Message Output
 =================
 
-All user messaging should be done via ``GPItv::message`` (i.e., self->message
+All user messaging should be done via ``GPItv::message`` (i.e., ``self->message``
 internally).  This function takes in a message string and two optional
 parameters: ``msgtype`` and ``window``.  ``msgtype`` can be "information", "warning", or
-"error" and defaults to information if not set.  If ``/window`` is flagged, the
+"error" and defaults to "information" if not set.  If ``/window`` is set, the
 message will appear in a dialog box, otherwise it will be printed to the
 command line.  Use of this function allows user control over the number of
 messages printed by giving the option of suppressing information and/or warning

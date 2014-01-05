@@ -139,7 +139,7 @@ Occasionally, a primitive will have a sufficiently long execution time that it m
 
 The status console object can be retrieved from within the primitive scope as: ::
 
-    statuswindow = backbone->getstatusconsole())
+    statuswindow = backbone->getstatusconsole()
 
 You can then update the FITS File Completion status bar from within the primitive's main loop as: ::
 
