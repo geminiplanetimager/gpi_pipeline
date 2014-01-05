@@ -412,7 +412,7 @@ end
 ;    See http://docs.planetimager.org/pipeline/developers/caldb.html#caldb-devel
 ;-
 function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, itime=itime, $
-	verbose=verbose, ignore_cooldown_cycles=ignore_cooldown_cycles
+	verbose=verbose, ignore_cooldown_cycles=ignore_cooldown_cycles, status=status
 	; 
 	; Keywords
 	; verbose : print more display
@@ -442,6 +442,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 					['dark_exact', 'Dark', 'itimeReadmode'],  $ ;  dark with exact match required
                     ['wavecal', 'Wavelength Solution Cal File', 'FiltPrism'], $
                     ['flat', 'Flat Field', 'FiltPrism'], $
+                    ['lensletflat', 'Lenslet Flat Field', 'FiltPrism'], $
                                 ;['flat', 'Flat field', 'FiltPrism'], $
                     ['badpix', 'Bad Pixel Map', 'typeonly'], $
                     ['hotbadpix', 'Hot Pixel Map', 'typeonly'], $
@@ -591,20 +592,20 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 		;
 	end
 	'ApproxItimeReadmode': begin
-	    imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
-	   		((calfiles_table.readoutmode) eq readoutmode ) and $
-	   		(calfiles_table.itime) eq itime,cc)
-		errdesc = 'with same ITIME and Detector Readout Mode'
-		; NOTE: we are no longer going to hand back approximate matches, since
-		; that would involve rescaling in darks that we do not do. Instead, you
-		; must always have the appropriate ITIME darks. 
-
+	 ;   imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
+	 ;  		((calfiles_table.readoutmode) eq readoutmode ) and $
+	 ;  		(calfiles_table.itime) eq itime,cc)
+	 ;	errdesc = 'with same ITIME and Detector Readout Mode'
+	 ;	; NOTE: we are no longer going to hand back approximate matches, since
+	 ;	; that would involve rescaling in darks that we do not do. Instead, you
+	 ;	; must always have the appropriate ITIME darks. 
+     ;
 		max_allowed_rescale = 3.0	
 	
 		; FIXME if no exact match found for itime, fall back to closest in time match
 		; which has approximately the right time within the allowed rescaling
 		; factor
-		if cc eq 0 then begin
+		;if cc eq 0 then begin
 			self->Log, "No exact match found for ITIME, thus looking for closest approximate match instead",depth=3
 		   	imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
 				( (calfiles_table.itime gt itime/max_allowed_rescale) or (calfiles_table.itime lt itime*max_allowed_rescale)) , cc)
@@ -618,7 +619,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	        self->Log, " Found "+strc(cc)+" approx matches with ITIME within a factor of "+sigfig(max_allowed_rescale,3)+" of ITIME="+strc(itime)
 
 
-		endif
+		;endif
 	end
 	'FiltPrism': begin
 		 imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
