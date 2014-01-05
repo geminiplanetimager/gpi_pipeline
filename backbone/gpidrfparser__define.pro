@@ -387,17 +387,17 @@ pro gpidrfparser::load_data_to_pipeline, backbone=backbone, status=status
 		; pass the updates back up to the backbone
 		;Backbone.ReductionType = Self.ReductionType
 		Backbone.Data = Self.Data
-		Backbone.Modules = Self.Modules
+		Backbone.primitives = Self.Modules
 
 		; Ugly hack / workaround - implement 'AUTOMATIC' output dir support here.
-		if tag_exist( (*backbone.modules)[0], 'outputdir') then $
-		if (*backbone.modules)[0].outputdir  eq 'AUTOMATIC' then begin
+		if tag_exist( (*backbone.primitives)[0], 'outputdir') then $
+		if (*backbone.primitives)[0].outputdir  eq 'AUTOMATIC' then begin
 			if gpi_get_setting('organize_reduced_data_by_dates',/bool,default=1) then begin
 				outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')+path_sep()+self->get_datestr()
 			endif else begin
 				outputdir = gpi_get_directory('GPI_REDUCED_DATA_DIR')
 			endelse
-			(*backbone.modules).outputdir = outputdir
+			(*backbone.primitives).outputdir = outputdir
 			
 		endif
 

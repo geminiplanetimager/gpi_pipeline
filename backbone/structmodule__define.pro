@@ -20,7 +20,8 @@ pro structModule__define
             IDLCommand:'', $
             Skip:0, $
             Save:0, $
-            OutputDir:'', $
-            CalibrationFile:''}
+            OutputDir:'', $			; For historical reasons this is replicated for each module/primitive but in practice will always have the same value for all primitives in a recipe
+            CalibrationFile:'',$
+			CalFileType: ''}
 
 end

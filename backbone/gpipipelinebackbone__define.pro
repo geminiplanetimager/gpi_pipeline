@@ -2,16 +2,10 @@
 ; Procedure gpiPipelineBackbone__define
 ;
 ; DESCRIPTION:
-;     DRP Backbone object definition module.
+;     DRP Backbone: the main object that oversees and conducts pipeline execution
 ;
-; ARGUMENTS:
-;    None.
-;
-; KEYWORDS:
-;    None.
-;
-; Modified:
-;         2009-02-01    Split from OSIRIS' drpBackbone__define and heavily trimmed
+;  Modified:
+;    2009-02-01    Split from OSIRIS' drpBackbone__define and heavily trimmed
 ;                     by Marshall Perrin
 ;    2009-08 minor changes in Reduce function - JM 
 ;    2009-10-05 added ReduceOnLine function - JM
@@ -67,7 +61,7 @@ FUNCTION gpipipelinebackbone::Init,  session=session, verbose=verbose, nogui=nog
     COMMON APP_CONSTANTS, $
         ;LOG_GENERAL,  $       	 ; File unit number of the general log file
         OK, NOT_OK, ERR_UNKNOWN, GOTO_NEXT_FILE,        $        ; Indicates success
-        backbone_comm, $         ; Object pointer for main backbone (for access in subroutines & modules) 
+        backbone_comm, $         ; Object pointer for main backbone (for access in subroutines & primitives) 
         loadedcalfiles, $        ; object holding loaded calibration files (as pointers)
         DEBUG                    ; is DEBUG mode enabled?
     
@@ -109,7 +103,7 @@ FUNCTION gpipipelinebackbone::Init,  session=session, verbose=verbose, nogui=nog
 
         Self.Parser = OBJ_NEW('gpiDRFParser', backbone=self) ; Init DRF parser
 
-        ; Read in the XML Config File with the module name translations.
+        ; Read in the XML Config File with the primitive name translations.
         Self.ConfigParser = OBJ_NEW('gpiDRSConfigParser',/verbose)
         if file_test(config_file) then  Self.ConfigParser -> ParseFile, config_file
 
@@ -195,7 +189,7 @@ PRO gpiPipelineBackbone::Cleanup
 
 	self->free_dataset_pointers
     PTR_FREE, Self.Data
-    PTR_FREE, Self.Modules
+    PTR_FREE, Self.Primitives
 
     if keyword_set(self.LOG_GENERAL) then begin
         CLOSE, self.LOG_GENERAL
@@ -221,7 +215,7 @@ PRO gpipipelinebackbone::DefineStructs
     ;   both filenames and data.
     void = {structDataSet}
 
-    ; Module (Primitive)
+    ; Primitive (formerly "module" in the OSIRIS pipeline)
     void = {structModule}
 
     ; Queue for DRF XML files on disk
@@ -525,7 +519,7 @@ function gpiPipelineBackbone::Run_One_Recipe, CurrentRecipe
 			!error_state.msg =  "ERROR in parsing the Recipe file "+CurrentRecipe.name
 		endif else begin
 	        self.Parser -> load_data_to_pipeline, backbone=self, status=status
-			; this updates the self.Data and self.modules structure
+			; this updates the self.Data and self.primitives structure
 			; arrays in accordance with what is stated in the recipe
 
 			if status ne OK then begin
@@ -633,7 +627,8 @@ FUNCTION gpiPipelineBackbone::Reduce
     if ~(keyword_set(self.nogui)) then self->SetupStatusConsole
 
     ;#############################################################
-    ; Iterate over the datasets in the 'Data' array and run the sequence of modules for each dataset.
+    ; Iterate over the datasets in the 'Data' array and run the sequence of
+	; primitives for each dataset.
     ;
     ; MDP note: The OSIRIS pipeline, on which this was based, had a vague notion
     ; of being able to operate on multiple datasets, each of which contained
@@ -667,15 +662,15 @@ FUNCTION gpiPipelineBackbone::Reduce
 
         suffix=''
 
-        ;-- Iterate over the modules in the 'Modules' array and run each.
+        ;-- Iterate over the primitives and run each.
         status = OK
-        tmp = where((*self.modules).skip eq 0,totmodstorun) ;;figure out exactly how many modules are going to get executed
-        FOR indexModules = 0, N_ELEMENTS(*self.Modules)-1 DO BEGIN
-           ;; Continue if the current module's skip field equals 0 and no previous module
-           ;; has failed (Result = 1).
-           IF ((*self.Modules)[indexModules].Skip EQ 0) AND (status EQ OK) THEN BEGIN
-              if obj_valid(self.statuswindow) then self.statuswindow->Update, *self.Modules, indexModules, (*self.data).validframecount, IndexFrame,   ' Working...'
-              status = Self -> RunModule(*self.Modules, indexModules)              
+        tmp = where((*self.primitives).skip eq 0,totmodstorun) ;;figure out exactly how many primitives are going to get executed
+        FOR indexPrimitives = 0, N_ELEMENTS(*self.Primitives)-1 DO BEGIN
+           ;; Continue if the current primitive's skip field equals 0 and no
+		   ;; previous primitive has failed (Result = 1).
+           IF ((*self.Primitives)[indexPrimitives].Skip EQ 0) AND (status EQ OK) THEN BEGIN
+              if obj_valid(self.statuswindow) then self.statuswindow->Update, *self.Primitives, indexPrimitives, (*self.data).validframecount, IndexFrame,   ' Working...'
+              status = Self -> RunModule(*self.Primitives, indexPrimitives)              
            ENDIF
            if obj_valid(self.statuswindow) then begin
               self.statuswindow->checkevents
@@ -703,7 +698,7 @@ FUNCTION gpiPipelineBackbone::Reduce
         if debug ge 1 then print, "########### end of file "+strc(indexframe+1)+" ################"
     ENDFOR
     if (*self.Data).validframecount eq 0 then begin    
-      if obj_valid(self.statuswindow) then self.statuswindow->Update, *self.Modules,N_ELEMENTS(*self.Modules)-1, (*self.data).validframecount, 1,' No file processed.'
+      if obj_valid(self.statuswindow) then self.statuswindow->Update, *self.Primitives,N_ELEMENTS(*self.Primitives)-1, (*self.data).validframecount, 1,' No file processed.'
       self->log, 'No file processed. ' 
       status=OK
     endif
@@ -715,7 +710,7 @@ FUNCTION gpiPipelineBackbone::Reduce
     PRINT, CMSYSTIME(/ext)
     PRINT, ''
     if obj_valid(self.statuswindow) and ((*self.data).validframecount gt 0) then $
-	    self.statuswindow->Update, *self.Modules,indexModules, (*self.data).validframecount, IndexFrame,' Done.'
+	    self.statuswindow->Update, *self.Primitives,indexPrimitives, (*self.data).validframecount, IndexFrame,' Done.'
 
 
     RETURN, status
@@ -822,30 +817,30 @@ end
 ;+ -----------------------------------------------------------
 ; gpiPipelineBackbone::RunModule
 ;
-;    Run one single module / primitive for the current dataset. 
+;    Run one single primitive (module) for the current dataset. 
 ;-
 
-FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
+FUNCTION gpiPipelineBackbone::RunModule, Primitives, ModNum
 
     COMMON APP_CONSTANTS
     common PIP
 
-    if debug ge 2 then message,/info, " Now running primitive "+Modules[ModNum].Name+', '+ Modules[ModNum].IDLCommand
-    self->Log, "Running primitive "+string(Modules[ModNum].Name, format='(A30)')+"  for frame "+strc(numfile), depth=2,/flush
+    if debug ge 2 then message,/info, " Now running primitive "+Primitives[ModNum].Name+', '+ Primitives[ModNum].IDLCommand
+    self->Log, "Running primitive "+string(Primitives[ModNum].Name, format='(A30)')+"  for frame "+strc(numfile), depth=2,/flush
     ; Execute the call sequence and pass the return value to DRP_EVALUATE
 
-    ; Add the currently executing module number to the Backbone structure
-    self.CurrentlyExecutingModuleNumber = ModNum
+    ; Add the currently executing primitive number to the Backbone structure
+    self.CurrentlyExecutingPrimitiveNumber = ModNum
 
-    ; if we use call_function to run the module, then the IDL code will STOP at the location
-    ; of any error, instead of returning here... This is way better for
+    ; since we use call_function to run the primitive, then the IDL code will STOP at the location
+    ; of any error, instead of returning here... This is desirable for
     ; debugging. On the other hand, for production use, we don't want it to stop
-	; so instead use a catch block so that it will 
+	; the program on errors, so use a catch block so that it will 
     ; gracefully handle any failures without stopping overall pipeline execution.
 
     ; Users can switch between these two modes using the 'enable_primitive_debug' pipeline configuration setting
 
-    if self.verbose then  self->Log,"        idl command: "+Modules[ModNum].IDLCommand
+    if self.verbose then  self->Log,"        idl command: "+Primitives[ModNum].IDLCommand
     if gpi_get_setting('enable_primitive_debug',default=0,/silent) then begin
         call_function_error=0 ; don't use catch when debugging, stop on errors
     endif else begin
@@ -853,20 +848,20 @@ FUNCTION gpiPipelineBackbone::RunModule, Modules, ModNum
     endelse
 
 	if call_function_error eq 0 then begin
-		status = call_function( Modules[ModNum].IDLCommand, *self.data, Modules, self ) 
+		status = call_function( Primitives[ModNum].IDLCommand, *self.data, Primitives, self ) 
 	endif else begin
-		self->Log, "  ERROR in calling primitive '"+Modules[ModNum].Name+"'. Check primitive name and arguments?"
-		self->Log,"        idl command attempted: "+Modules[ModNum].IDLCommand
+		self->Log, "  ERROR in calling primitive '"+Primitives[ModNum].Name+"'. Check primitive name and arguments? Or set enable_primitive_debug to stop IDL at a breakpoint."
+		self->Log,"        idl command attempted: "+Primitives[ModNum].IDLCommand
 
 		status=NOT_OK
 	endelse
 
-    IF status EQ NOT_OK THEN BEGIN            ;  The module failed
-        self->Log, 'Primitive failed: ' + Modules[ModNum].Name
-    ENDIF ELSE BEGIN                ;  The module succeeded
-        self->Log, 'Primitive completed: ' + Modules[ModNum].Name, DEPTH = 3
+    IF status EQ NOT_OK THEN BEGIN            ;  The primitive failed
+        self->Log, 'Primitive failed: ' + Primitives[ModNum].Name
+    ENDIF ELSE BEGIN                ;  The primitive succeeded
+        self->Log, 'Primitive completed: ' + Primitives[ModNum].Name, DEPTH = 3
     ENDELSE
-    self.CurrentlyExecutingModuleNumber = -1
+    self.CurrentlyExecutingPrimitiveNumber = -1
 
     RETURN, status
 
@@ -1139,14 +1134,18 @@ end
 
 ;+-----------------------------------------------------------
 ; gpiPipelineBackbone::getCurrentModuleIndex
-;    accessor function for current module number.
-;    This gets called a lot by the various modules
-;    so they can index into the modules structure for keyword arguments.
+;    accessor function for current primitive number.
+;    This gets called a lot by the various primitives
+;    so they can index into the primitives structure for keyword arguments.
 ;-
 
 function gpiPipelineBackbone::getCurrentModuleIndex
-    return, self.CurrentlyExecutingModuleNumber
+    return, self.CurrentlyExecutingPrimitiveNumber
 end
+function gpiPipelineBackbone::getCurrentPrimitiveIndex
+    return, self.CurrentlyExecutingPrimitiveNumber
+end
+;
 ;+-----------------------------------------------------------
 ; gpiPipelineBackbone::getgpicaldb
 ;    accessor function for calibrations DB object.
@@ -1251,13 +1250,13 @@ PRO gpiPipelineBackbone__define
             Parser:OBJ_NEW(), $
             ConfigParser:OBJ_NEW(), $
             Data:PTR_NEW(), $
-            Modules:PTR_NEW(), $
+            Primitives:PTR_NEW(), $
             statuswindow: obj_new(), $
             launcher: obj_new(), $
             gpicaldb: obj_new(), $
 			LOG_GENERAL: 0L, $   ; LUN (file handle) to the pipeline log file
             ;ReductionType:'', $
-            CurrentlyExecutingModuleNumber:0, $
+            CurrentlyExecutingPrimitiveNumber:0, $
             TempFileNumber: 0, $ ; Used for passing multiple files to multiple gpitv sessions. See self->gpitv pro above
 			last_saved_filename: '', $ ; remember the last filename saved
             generallogfilename: '', $
