@@ -1,5 +1,5 @@
 ;+
-; NAME:  gpi_sanity_check_wavecal
+; NAME:  gpi_wavecal_sanity_check
 ;	Utility function to do some basic quality tests on a wavecal.
 ;
 ;	Passing these checks is probably a necessary but far from
@@ -35,7 +35,7 @@
 ;-
 
 
-function gpi_sanity_check_wavecal, filename_or_cal_data, silent=silent, $
+function gpi_wavecal_sanity_check, filename_or_cal_data, silent=silent, $
 	noplots=noplots,all=all, threshold=threshold, charsize=charsize, errmsg=errmsg, $
 	repair=repair,forcerepair=forcerepair, stop=stop
 
@@ -118,7 +118,7 @@ function gpi_sanity_check_wavecal, filename_or_cal_data, silent=silent, $
 
 
 	if ~(keyword_set(noplots)) then begin
-		!y.omargin = [0,5]
+		!y.omargin = [0,7]
 		!p.multi=[0,2,3]
 
 
