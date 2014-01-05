@@ -47,7 +47,7 @@ function gpi_wavecal_sanity_check, filename_or_cal_data, silent=silent, $
 		files = file_search('*wavecal.fits')
 		results= bytarr(n_elements(files))
 	    for i=0L,n_elements(files)-1 do begin
-			results[i] = gpi_sanity_check_wavecal(files[i])
+			results[i] = gpi_wavecal_sanity_check(files[i])
 			if ~(keyword_set(noplots)) then stop ; let the user see each plot
 		endfor
 		return, results
@@ -197,7 +197,7 @@ function gpi_wavecal_sanity_check, filename_or_cal_data, silent=silent, $
 	
 		priheader = headfits(filename,/silent)
 		
-		sxaddpar,priheader, 'HISTORY', 'gpi_sanity_check_wavecal: trying to repair/interpolate bad wavecal fits'
+		sxaddpar,priheader, 'HISTORY', 'gpi_wavecal_sanity_check: trying to repair/interpolate bad wavecal fits'
 
 		outfn = strepex(filename, '.fits', '_repaired.fits')
 

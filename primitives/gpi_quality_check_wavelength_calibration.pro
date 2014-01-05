@@ -32,7 +32,7 @@ primitive_version= '$Id: gpi_combine_wavelength_calibrations.pro 1715 2013-07-17
 		noplots=0
 	endif else noplots=1
 
-	check_ok = gpi_sanity_check_wavecal(*dataset.currframe, noplots=noplots)
+	check_ok = gpi_wavecal_sanity_check(*dataset.currframe, noplots=noplots)
 
 	if keyword_set(check_ok) then begin
 		  backbone->set_keyword, 'HISTORY',  functionname+": Wavelength calibration passed basic statistical quality check" 
