@@ -28,7 +28,7 @@ organize_reduced_data_by_dates          0,1                             1       
                                                                                         $GPI_DRP_OUTPUT_DIR? Such directories will be created if needed. 
 organize_recipes_by_dates               0,1                             1               Should saved DRFs be output in directories organized by data under 
                                                                                         $GPI_DRP_OUTPUT_DIR? Such directories will be created if needed. 
-prompt_user_for_outputdir_creation      0,1                             1               If set to zero, whenever you need to create a directory to save some requested 
+prompt_user_for_outputdir_creation      0,1                             0               If set to zero, whenever you need to create a directory to save some requested 
                                                                                         filename (e.g. for storing output files or DRFs), just go ahead and do so without 
                                                                                         asking the user about it. If set, ask the user first before creating the directory.
 apodizer_spec                           <string>                        See at right.   Full path to apodizer_spec file.  Defaults to "$GPI_DRP_CONFIG_DIR/apodizer_spec.txt"
@@ -47,7 +47,6 @@ strict_validation                       0,1                              1      
                                                                                         a GPI file is ignored. If turned off (0), will attempt to preprocess files to 
                                                                                         fix missing keyword headers etc during I&T so the data can be processed anyway.
 parsergui_auto_queue                    0,1                              0              Should the Parser GUI automatically add to the queue the DRFs that it produces?
-autogui_auto_queue                      0,1                              Unused?        Should the Auto Reducer GUI automatically add to the queue the DRFs that it produces?
 prompt_user_for_questionable_data       0,1                              Unused?        if set, when the pipeline encounters a "questionable" (aborted/lousy seeing/otherwise 
                                                                                         flagged as bad DQ) frame, it should ask the user whether to process that file or not. 
                                                                                         If this is not set, the pipeline will silently discard the file.
@@ -63,7 +62,7 @@ force_rescan_caldb_on_startup           0,1                              0      
                                                                                         pipeline starts. Potentially takes a long time, but will ensure you make use of all
                                                                                         available calibration files if someone has e.g. copied or moved files into that directory 
                                                                                         manually outside of the pipeline itself. 
-username_in_log_filenames               0,1                             0               Should the username of the user running the pipeline be included in log filenames, as well
+username_in_log_filename               0,1                             0               Should the username of the user running the pipeline be included in log filename, as well
                                                                                         as the date? This is useful on shared installations on multiuser machines so that different
                                                                                         users' log files don't overwrite one another.
 ======================================  ==============================  =============   ==============================================================================================
@@ -104,7 +103,7 @@ change any of the following very often.
 ======================================  ==============================  =============   ==============================================================================================
 Setting Name                            Possible Values                 Default Value   Meaning
 ======================================  ==============================  =============   ==============================================================================================
-max_files_per_recipe                       <integer>                    200             Maximum number of input FITS files allowed in a single data reduction recipe. 
+max_files_per_recipe                       <integer>                    1000            Maximum number of input FITS files allowed in a single data reduction recipe. 
                                                                                         This is used to allocate some internal arrays. Default is 200, but can be made 
                                                                                         arbitrarily larger if needed, memory permitting.
 parsergui_max_files                       <integer>                     1000            Maximum number of files that can be loaded in the data parser at one time.

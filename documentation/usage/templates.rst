@@ -1,3 +1,4 @@
+.. _templates:
 
 Recipe Templates
 ==================
@@ -15,9 +16,12 @@ For convenience, template recipes are divided into several different reduction t
 * :ref:`Calibration <calibration_templates>`
 * :ref:`Testing <testing_templates>`
 
-These different types just provide a convenient way of restricting which subset of
+These different types simply provide a convenient way of restricting which subset of
 templates are displayed on screen to choose from, based on the recipes that are 
-most likely to be of use for the data at hand. [#footnote1]_
+most likely to be of use for the data at hand. [#footnote1]_ Also, when editing a given recipe, the list of available primitives 
+is optionally filtered to only display primitives appropriate for the current type of recipe. This is mostly just a convenience to keep 
+spectral and polarimetry primitives from cluttering the interface unnecessarily when not in use. 
+
 
 
 .. _spectralscience_templates:
@@ -78,5 +82,5 @@ the pipeline itself. There are several recipes of this type. Don't try to use th
 
 .. [#footnote1] But that said, there is nothing stopping you from choosing to apply a 
                 Calibration type template to your science data, or vice versa, if 
-                for some reason you wish to do so.
+                for some reason you wish to do so.  
 

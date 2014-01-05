@@ -1,5 +1,7 @@
 .. _frequently-asked-questions:
 
+.. _faq:
+
 
 Frequently Asked Questions
 =============================
@@ -42,13 +44,28 @@ For bash shells - ``export IDL_PATH="+/home/labuser1/GPI/pipeline/${IDL_PATH}"``
 
 If the which command is not defined, this means that the pipeline and external directories have not been added to the $IDL_PATH. Verify that the modifications to the $IDL_PATH in the environment variable configuration scripts (e.g. setenv_GPI_sample.csh or setenv_GPI_sample.bash) is correct.
 
+I get an "X windows protocol error" repeatedly. What's up?
+--------------------------------------------------------------
+
+On some Mac OS and Linux computers, you may have display issues with the default IDL display configurations.  This will generate a repeated message in your IDL session saying something like: ::
+
+    % X windows protocol error: BadMatch (invalid parameter attributes).
+
+In order to correct this, you can execute the following commands in the IDL session:
+
+.. code-block:: idl 
+
+    IDL> device, decompose=0
+    IDL> device, retain=2
+
+If you want these commands to be executed in all IDL sessions automatically, you can add them to your IDL startup file (this is an IDL script that is run on startup of any new IDL session).  The startup file is identified by the environment variable ``$IDL_STARTUP`` (see :ref:`envvars`).
 
 Common pipeline errors
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Variable is undefined: STR_SEP.
 --------------------------------
-For users having IDL 8.2+, the str_sep.pro program is now an obsolete command. Although no pipeline source code calls this function, it is still used in other external dependencies. For the time being, users should add the idl/lib/obsolete folder to their $IDL_PATH to remedy this issue. This can be done in the last line of hte configuration scripts (e.g setenv_GPI_custom.csh or setenv_GPI_custom.bash - as discussed :ref:`here <configuring>`)
+For users having IDL 8.2+, the str_sep.pro program is now an obsolete command. Although no pipeline source code calls this function, it is still used in other external dependencies. For the time being, users should add the `idl/lib/obsolete` folder to their `$IDL_PATH` to remedy this issue. This can be done in the last line of the configuration scripts (e.g `setenv_GPI_custom.csh` or `setenv_GPI_custom.bash` - as discussed :ref:`here <configuring>`)
 
 Mac OSX Time machine issues
 --------------------------------
@@ -57,3 +74,43 @@ Mac OSX Lion and Mountain Lion users running IDL 8.2 have been known to see the 
 ``2011-07-21 12:12:39.649 idl[11368:1603] This process is attempting to exclude an item from Time Machine by path without administrator privileges. This is not supported.``
 
 Although a nuisance, this error should have no affect on pipeline operation. Possible workarounds exist; details can be found `here <http://www.exelisvis.com/Support/HelpArticlesDetail/TabId/219/ArtMID/900/ArticleID/5251/5251.aspx>`_
+
+
+GPItv
+^^^^^^^^^
+
+
+Blinking images doesn't work properly
+--------------------------------------
+
+On some X windows systems (Mac OS and Linux), the tvrd() function used to implement 
+image blinking doesn't work properly. See this 
+`article from Exelis <http://www.exelisvis.com/docs/TVRD.html#dg_routines_3604229493_888970>`_ 
+describing the problem. 
+
+The fix is simple: make sure that you set 
+
+.. code-block:: idl 
+
+    device, retain=2
+
+in your `.idlstartup` file. 
+
+
+
+Less common issues
+^^^^^^^^^^^^^^^^^^^
+
+
+I'm trying to reduce data from multiple different days in one recipe, and the output directory is behaving unexpectedly. What's going on?
+-------------------------------------------------------------------------------------------------------------------------------------------
+
+
+The output directory for a recipe is set once when the recipe is loaded in, not individually for each file. Thus all output files from a 
+recipe should be output to the same directory. (The one exception to this is of course reduced calibration files which are always written to the
+calibration database directory.)
+
+If the output directory is set to 'AUTOMATIC' and ``organize_reduced_data_by_dates`` is set to 1 (true), then the output directory is determined based on
+the YYMMDD date string for the first FITS file in that recipe. 
+
+
