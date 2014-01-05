@@ -129,7 +129,7 @@ END
 ;
 ; DESCRIPTION:
 ; 	This procedure adds a new module to the array of modules retreived
-;	from the conifig file (Self.Modules). This is a 3 column module
+;	from the config file (Self.Modules). This is a 3 column module
 ;	containing the name, IDL function name and pipeline type of
 ;	each module.
 ;
@@ -140,8 +140,8 @@ END
 ;-----------------------------------------------------------------------------------------------------
 PRO gpidrsconfigparser::NewModule, AttNames, AttValues
 
-	;Name IDLFunc Comment Order Type Sequence
-moduleName ='' & moduleFunctio='' & moduleComment='' & moduleOrder='' & moduleType='' & moduleSequence='' 
+	;Name IDLFunc Comment Order Type 
+moduleName ='' & moduleFunctio='' & moduleComment='' & moduleOrder='' & moduleType='' 
 	FOR i = 0, N_ELEMENTS(AttNames) - 1 DO BEGIN	; Place attribute values into
 	
 		CASE AttNames[i] OF			                    ; variable fields.
@@ -151,14 +151,13 @@ moduleName ='' & moduleFunctio='' & moduleComment='' & moduleOrder='' & moduleTy
          	'Order': moduleOrder = AttValues[i]
          	'ReductionType': moduleType = AttValues[i]
          	'Type': moduleType = AttValues[i]
-			'Sequence': moduleSequence = AttValues[i]
       	ELSE:
 		ENDCASE
 	END
 
 	if self.verbose then print, "FOUND PRIMITIVE: ", modulefunction, modulename
 
-	newmodule =  {name: moduleName, idlfunc: moduleFunction, comment: modulecomment, order: moduleorder, reductiontype: moduletype, sequence: modulesequence}
+	newmodule =  {name: moduleName, idlfunc: moduleFunction, comment: modulecomment, order: moduleorder, reductiontype: moduletype}
 
 	IF N_ELEMENTS(*Self.Modules) EQ 0 THEN begin
 		*Self.Modules =  newmodule
@@ -166,6 +165,18 @@ moduleName ='' & moduleFunctio='' & moduleComment='' & moduleOrder='' & moduleTy
 
 END
 
+;-----------------------------------------------------------------------------------------------------
+; Procedure NewArgument
+;
+; DESCRIPTION:
+; 	This procedure adds a new argument to the array of arguments retreived
+;	from the config file for the current module.
+;
+; ARGUMENTS:
+;	AttNames	The names of the attributes
+;	Attvalues	The values of the attributes
+;
+;-----------------------------------------------------------------------------------------------------
 
 PRO gpidrsconfigparser::NewArgument, AttNames, AttValues
 
@@ -233,53 +244,7 @@ function gpidrsconfigparser::getidlcommand, description, matched=count
 	endif else return, (*self.modules)[wm[0]].idlfunc
 end 
 
-
-;-----------------------------------------------------------------------------------------------------
-; Procedure getIDLFunctions
-;
-; DESCRIPTION:
-; 	This procedure receives a reference to a backbone object,
-;	with a Modules array and assigns the appropriate IDL function
-;	to each module in the array.
-;
-; ARGUMENTS:
-;	Backbone	The backbone object to be updated
-;
-; KEYWORDS:
-;	Inherited from parent class.  See documentation.
-;-----------------------------------------------------------------------------------------------------
-PRO gpidrsconfigParser::getidlfunctions, Backbone
-
-
-	;names = (*self.modules).name
-	;idlfuncs = (*self.modules).idlfunc
-	;stop
-
-	FOR i = 0, N_ELEMENTS(*Backbone.Modules)-1 DO BEGIN
-		FOR j = 0, N_ELEMENTS(*Self.Modules)-1 DO BEGIN
-			IF ((*Self.Modules)[j].name EQ (*Backbone.Modules)[i].Name) THEN $
-				(*Backbone.Modules)[i].CallSequence = (*Self.Modules)[j].idlfunc
-		ENDFOR
-		If (*Backbone.Modules)[i].CallSequence EQ '' THEN $
-			MESSAGE, 'No IDL function is specified in the ' + $
-			'configuration file for module: ' + (*Backbone.Modules)[i].Name
-	ENDFOR
-
-
-;	FOR i = 0, N_ELEMENTS(*Backbone.Modules)-1 DO BEGIN
-;		FOR j = 0, N_ELEMENTS(*Self.Modules)/3-1 DO BEGIN
-;			IF (*Self.Modules)[0, j] EQ (*Backbone.Modules)[i].Name AND $
-;			   (*Self.Modules)[2, j] EQ Backbone.ReductionType THEN $
-;				(*Backbone.Modules)[i].CallSequence = (*Self.Modules)[1,j]
-;		ENDFOR
-;		If (*Backbone.Modules)[i].CallSequence EQ '' THEN $
-;			MESSAGE, 'No IDL function is specified in the ' + $
-;			'configuration file for module: ' + (*Backbone.Modules)[i].Name
-;	ENDFOR
-;
-
-END
-
+	
 ;-----------------------------------------------------------------------------------------------------
 function gpidrsconfigParser::getidlfunc
 
@@ -289,7 +254,6 @@ return, {  names : (*self.modules).name, $
     comment : (*self.modules).comment, $
     order : (*self.modules).order, $
     reductiontype : (*self.modules).reductiontype, $
-    sequence : (*self.modules).sequence, $
     argmodnum : (*self.Arguments).modnum, $
     argname : (*self.Arguments).name, $
     argtype : (*self.Arguments).type, $
@@ -300,46 +264,6 @@ return, {  names : (*self.modules).name, $
 
 END
 
-;-----------------------------------------------------------------------------------------------------
-; Procedure getParameters
-;
-; DESCRIPTION:
-; 	This procedure receives a reference to a backbone object
-;	and transfers the configuration parameter information to
-;	the backbone ParmList.
-;
-; ARGUMENTS:
-;	Backbone	The backbone object to be updated
-;
-; KEYWORDS:
-;	Inherited from parent class.  See documentation.
-;-----------------------------------------------------------------------------------------------------
-;PRO gpidrsconfigparser::getparameters, Backbone
-	;Backbone.ParmList = Self.Parms
-;END
-;
-;
-;PRO gpidrsconfigParser::printinfo
-;
-;	COMMON PARAMS
-;
-;
-;	;drpIOLock
-;	OPENW, unit, "temp.tmp", /get_lun
-;	FOR j = 0, N_ELEMENTS(*Self.Modules)/3-1 DO BEGIN
-;		if self.verbose then PRINTF, unit, (*Self.Modules)[0, j] , "  ", (*Self.Modules)[1, j], "  ", (*Self.Modules)[2,j]
-;	ENDFOR
-;
-;	FOR j = 0, 31 DO BEGIN
-;		PRINTF, unit, PARAMETERS[j, 0] , "  ", PARAMETERS[j, 1]
-;	ENDFOR
-;	FLUSH, unit
-;	CLOSE, unit
-;	FREE_LUN, unit
-;	;drpIOUnlock
-;
-;
-;END
 
 
 ;-----------------------------------------------------------------------------------------------------
