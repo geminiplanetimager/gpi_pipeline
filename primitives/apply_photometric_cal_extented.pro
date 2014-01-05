@@ -8,13 +8,11 @@
 ;
 ; PIPELINE COMMENT: Apply photometric calibration of extented object 
 ; PIPELINE ARGUMENT: Name="FinalUnits" Type="int" Range="[0,10]" Default="1" Desc="0:Counts, 1:Counts/s, 2:ph/s/nm/m^2, 3:Jy, 4:W/m^2/um, 5:ergs/s/cm^2/A, 6:ergs/s/cm^2/Hz"
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type="Fluxconv" Default="AUTOMATIC" Desc="Filename of the desired flux calibration file to be read"
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type="string" CalFileType="Fluxconv" Default="AUTOMATIC" Desc="Filename of the desired flux calibration file to be read"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.51
-; PIPELINE TYPE: ALL-SPEC
 ; PIPELINE NEWTYPE: SpectralScience
-; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:
 ; 	Originally by Jerome Maire 2009-12
@@ -22,6 +20,7 @@
 ;   JM 2010-08 : routine optimized with simulated test data
 ;   2010-10-19 JM: split HISTORY keyword if necessary
 ;   2010-11-16 JM: save conversion factor in Calibration DataBase for eventual future use (with extended object)
+;	2013-12-30 MP: CalibrationFile argument syntax update.
 ;- 
 
 function apply_photometric_cal_extented, DataSet, Modules, Backbone
