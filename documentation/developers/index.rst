@@ -35,6 +35,7 @@ Contents
    documentation.rst
    releases_and_versioning.rst
    recipe_xml_devel.rst
+   primitives_config_xml_devel.rst
    credits.rst
 
 
