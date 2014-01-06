@@ -353,7 +353,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	;endif else begin
 	  polstack[0,0,i*2] = accumulate_getimage(dataset,i,hdr0,hdrext=hdrext)
 	;endelse	
-		wpangle[i] = float(sxpar(hdr0, "WPANGLE"))-float(Modules[thisModuleIndex].HWPOffset) ;Include the known offset
+		wpangle[i] =-(float(sxpar(hdr0, "WPANGLE"))-float(Modules[thisModuleIndex].HWPOffset)) ;Include the known offset
 		parang = sxpar(hdr0, "PAR_ANG") ; we want the original, not rotated or de-rotated
 										; since that's what set's how the
 										; polarizations relate to the sky
@@ -368,7 +368,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		;include_sky=uint(Modules[thisModuleIndex].IncludeSkyRotation)
     include_sky=1
 		  
-    if include_sky eq 1 then skyrotation_mueller =  mueller_rot(parang) else skyrotation_mueller=identity(4)
+    if include_sky eq 1 then skyrotation_mueller =  mueller_rot(parang*!dtor) else skyrotation_mueller=identity(4) ;In radians!
 		
 		
 		if (include_mueller eq 1) then begin ;Either include the system mueller matrix or not. Depending on the keyword
@@ -379,8 +379,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     total_mueller_horiz = woll_mueller_horiz ## wp_mueller ## skyrotation_mueller 
     endelse
 
-		M[*,2*i] = total_mueller_vert[*,0]
-		M[*,2*i+1] = total_mueller_horiz[*,0]
+;		M[*,2*i] = total_mueller_vert[*,0]
+;		M[*,2*i+1] = total_mueller_horiz[*,0]
+		
+		M[*,2*i+1] = total_mueller_vert[*,0]
+    M[*,2*i] = total_mueller_horiz[*,0]
 
 
 		sumdiffstack[0,0,i*2] = polstack[*,*,i*2] + polstack[*,*,i*2+1]
