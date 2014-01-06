@@ -213,7 +213,7 @@ This primitive will use every 20th lenslet in the frame to calculate the net shi
 
 If you now repeat the reduction of the science data from above, the new wavecal will be captured and the datacube will appear as follows. Remember to set the "Update spots shifts for Flexure" correction to 'none'
 
-.. image:: data_cube.png
+.. image:: data-cube.png
         :scale: 50%
         :align: center
 
