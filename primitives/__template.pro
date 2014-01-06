@@ -32,14 +32,14 @@ compile_opt defint32, strictarr, logical_predicate
 primitive_version= '$Id$' ; get version from subversion to store in header history
 
 calfiletype=''   ; set this to some non-null value e.g. 'dark' if you want to load a cal file.
-suffix='' 		 ; set this to the desired output filename suffix
-
 
 ; the following line sources a block of code common to all primitives
 ; It loads some common blocks, records the primitive version in the header for
 ; history, then if calfiletype is not blank it queries the calibration database
 ; for that file, and does error checking on the returned filename.
 @__start_primitive
+suffix='' 		 ; set this to the desired output filename suffix
+
 
 	; put your code here
 	;
