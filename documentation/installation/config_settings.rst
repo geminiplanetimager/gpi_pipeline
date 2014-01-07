@@ -62,7 +62,7 @@ force_rescan_caldb_on_startup           0,1                              0      
                                                                                         pipeline starts. Potentially takes a long time, but will ensure you make use of all
                                                                                         available calibration files if someone has e.g. copied or moved files into that directory 
                                                                                         manually outside of the pipeline itself. 
-username_in_log_filename               0,1                             0               Should the username of the user running the pipeline be included in log filename, as well
+username_in_log_filename                0,1                             0               Should the username of the user running the pipeline be included in log filename, as well
                                                                                         as the date? This is useful on shared installations on multiuser machines so that different
                                                                                         users' log files don't overwrite one another.
 ======================================  ==============================  =============   ==============================================================================================

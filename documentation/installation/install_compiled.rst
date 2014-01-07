@@ -22,7 +22,7 @@ The distribution ZIP files for the GPI pipeline come in two flavors:
 
  * A platform-independent ZIP file containing only the compiled pipeline code itself. To use this file, you must
    download and install the IDL runtime virtual machine yourself. It may be obtained from `Excelis <http://www.exelisvis.com/ProductsServices/IDL.aspx>`_.
- * Platform specific ZIP files that contain the compiled pipeline code along with the IDL runtime virtual machine for a given operating system.
+ * Platform specific ZIP files that contain the compiled pipeline code *plus* the IDL runtime virtual machine for a given operating system.
    These contain everything you will need to start the GPI pipeline on that OS.
 
 

@@ -40,7 +40,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'GPI Data Pipeline'
-copyright = u'2008-2013, Marshall Perrin, Jerome Maire & the GPI Data Analysis Team'
+copyright = u'2008-2014, Marshall Perrin, Jerome Maire & the GPI Data Analysis Team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -48,7 +48,7 @@ copyright = u'2008-2013, Marshall Perrin, Jerome Maire & the GPI Data Analysis T
 #
 # The short X.Y version.
 #import gpidata
-version = '0.9.2'
+version = '0.9.4'
 # The full version, including alpha/beta/rc tags.
 release = version+''
 

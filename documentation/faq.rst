@@ -12,7 +12,7 @@ Installation
 When running `gpi-pipeline` it says, "gpi-pipeline: Command not found"
 ------------------------------------------------------------------------
 This indicates that the pipeline/scripts directory has not been added to the $PATH. There could be several possible reasons for this:
-1. The script that sets your environment variables (e.g. setenv_GPI_sample.csh or setenv_GPI_sample.bash) has not been sourced. These are generally sourced from the .tcshrc or .bash_profile scripts located in the home directory. Details can be found :ref:`Here<config-sourcing>`. Remember to open a new terminal after modifying any shell scripts to ensure they are properly loaded.
+1. The script that sets your environment variables (e.g. setenv_GPI_sample.csh or setenv_GPI_sample.bash) has not been sourced. These are generally sourced from the .tcshrc or .bash_profile scripts located in the home directory. Details can be found :ref:`Here<envvars>`. Remember to open a new terminal after modifying any shell scripts to ensure they are properly loaded.
 2. The shell script (e.g. setenv_GPI_sample.csh or setenv_GPI_sample.bash) has an error in the line that modifies the ``$PATH``. Check to make sure the pipeline/scripts directory is properly inserted. The users can check if the directory is in the path by typing `echo $PATH` from a shell prompt. We recommend you copy and paste in the pipeline/scripts output to make sure the directory exists. Remember that paths are case sensitive.
 
 

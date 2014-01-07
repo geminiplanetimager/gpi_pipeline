@@ -14,25 +14,25 @@ The GPI Data Analysis Team
 Pipeline architecture design, initial algorithms development, core structure, GUI frameworks, and many primitives by **Jerome Maire** and **Marshall Perrin**.  
 
 **Patrick Ingraham** developed and improved many of the primitives, led major aspects of IFS calibration and testing, and extensively contributed to this documentation.
-**Dmitry Savransky** made major contributions to GPItv and several pipeline primitives. 
-**Christian Marois** contributed to improving SDI algorithms and contrast measurement code. 
+**Dmitry Savransky** made major contributions to GPItv, pipeline back end infrastructure, and developed several pipeline primitives. 
+**Jean-Baptiste "JB" Ruffio** vanquished many bugs, greatly enhanced the destriping and microphonics removal primitives, and wrote the original "Quick Start" section of the documentation.
 **Max Millar-Blanchaer** improved the polarization mode primitives, and with **Sloane Wiktorowicz** calibrated the instrumental polarization.
-**Jean-Baptiste "JB" Ruffio** vanquished many bugs, greatly enhanced the destriping and microphonics removal primitives, and wrote the "Quick Start" section of the documentation.
-**Naru Sarakuni** juggled data taking and data analysis in support of instrument and pipeline testing.
-**Quinn Konopacky** developed the distortion correction primitive.
-**Schuyler Wolff** evaluated several aspects of instrument calibrations, tested new methods of wavelength calibration, and contributed significantly to this documentation.
+**Schuyler Wolff** evaluated several aspects of instrument calibrations, tested developed improved methods of wavelength calibration, and contributed significantly to this documentation.
+**Naru Sarakuni** extensively supported integration and test and contributed improvements to GPItv.
+**Christian Marois** contributed to improving SDI algorithms and contrast measurement code. 
+**Quinn Konopacky** developed the distortion correction primitive along with Jerome.
 **Alexandra Greenbaum** is leading development of nonredundant aperture masking interferometry algorithms applied to GPI, and also contributed to this documentation.
 **Jeff Chilcote** provided guidance on detector operations and calibrations. 
 **Steven Beckwith** analyzed detector testing data to assess optimal readout modes. 
 **Tyler Barker** implemented the KLIP algorithm, under guidance from Dmitry.
-**Franck Marchis** oversees the computer infrastructure at the SETI Institute hosting software repositories and documentation.
+**Franck Marchis** oversees the computer infrastructure at the SETI Institute hosting software repositories and documentation, and supervised visiting student JB.
 
 
 **Rene Doyon** was PI of the DRP subsystem for the GPI project, and provided top-level guidance in overall pipeline design. 
 **James Graham** developed the core algorithm concepts for the polarization reduction, which were subsequently implemented by Marshall and enhanced by Max. 
 **Bruce Macintosh** maintained overall coherence of the GPI project wavefront. 
 
-From Gemini, **Stephen Goodsell** kept the show on track. **Carlos Quiroz** and **Fredrik Rantakyro** supported 
+From Gemini, **Stephen Goodsell** kept the project on track. **Carlos Quiroz** and **Fredrik Rantakyro** supported 
 the Gemini Data System, including establishment of interfaces and extensive implementation and testing.
 **Kathleen Labrie** provided valuable input from Gemini's perspective during software reviews. 
 
