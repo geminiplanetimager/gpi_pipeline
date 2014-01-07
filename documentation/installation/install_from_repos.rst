@@ -36,7 +36,7 @@ many of these external routines in your own IDL library, in which case you can
 delete the excess copies from this directory if you so desire. Two folders (pipeline and external) will be created in the directory from which you performed the command. 
 
 .. warning::
-    All code has been tested extensively with the external program versions in the repository.  Error-free operation is not guaranteed for other versions of these libraries. The usual caveats about name collisions between different versions of IDL routines apply.   If you have old versions of e.g. the Goddard IDL library functions in your $IDL_PATH, you may encounter difficulties. We suggest placing the data pipeline code first in your $IDL_PATH.
+    All code has been tested using the versions of external program in the repository.  Error-free operation is not guaranteed for other versions of these libraries. The usual caveats about name collisions between different versions of IDL routines apply.   If you have old versions of e.g. the Goddard IDL library functions in your ``$IDL_PATH``, you may encounter difficulties. We suggest placing the data pipeline code first in your ``$IDL_PATH``.
 
 
 .. admonition:: Mac OS and Linux
@@ -45,8 +45,10 @@ delete the excess copies from this directory if you so desire. Two folders (pipe
 
     .. image:: icon_linux2.png
   
-  On Mac OS and Linux, you will likely want to add the ``pipeline\scripts`` subdirectory
-  to your shell's ``$PATH``. For users having IDL 8.2+, the str_sep.pro program is now an obsolete command. Although no pipeline source code calls this function, it is still used in other external dependencies. For the time being, users should add the ``idl/lib/obsolete folder to their`` ``$IDL_PATH`` to remedy this issue.
+  On Mac OS and Linux, you will likely want to add the ``pipeline/scripts`` subdirectory
+  to your shell's ``$PATH``. 
+  
+For users having IDL 8.2+, the str_sep.pro program is now an obsolete command. Although no pipeline source code calls this function, it is still used in other external dependencies. For the time being, users should add the ``idl/lib/obsolete folder to their`` ``$IDL_PATH`` to remedy this issue.
 
 
 Proceed now to :ref:`configuring`.

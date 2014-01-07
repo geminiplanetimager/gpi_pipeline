@@ -33,14 +33,14 @@ Unzip this file in a directory that is a part of your ``$IDL_PATH`` (To determin
 
     .. image:: icon_linux2.png
   
-  On Mac OS and Linux, you will likely want to add the ``pipeline\scripts`` subdirectory
+  On Mac OS and Linux, you will likely want to add the ``pipeline/scripts`` subdirectory
   to your shell's ``$PATH``. How you do this depends upon your chosen shell (sh, csh, tcsh, bash etc). This is addressed in the :ref:`configuring` section. 
 
 
 .. warning::
    The usual caveats about name collisions between different versions of IDL routines apply.
-   If you have old versions of e.g. the Goddard IDL library functions in your $IDL_PATH, 
-   you may encounter difficulties. We suggest placing the data pipeline code first in your $IDL_PATH. More information can be found in the :ref:`frequently-asked-questions` section. 
+   If you have old versions of e.g. the Goddard IDL library functions in your ``$IDL_PATH``, 
+   you may encounter difficulties. We suggest placing the data pipeline code first in your ``$IDL_PATH``. More information can be found in the :ref:`frequently-asked-questions` section. 
    
 
 Proceed now to :ref:`configuring`.
