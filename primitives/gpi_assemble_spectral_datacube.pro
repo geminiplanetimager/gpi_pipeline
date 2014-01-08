@@ -65,6 +65,8 @@ function gpi_assemble_spectral_datacube, DataSet, Modules, Backbone
 
   cubef3D=dblarr(nlens,nlens,sdpx) ;create the datacube
 
+  if keyword_set(debug) then mask = det*0 ; create a mask of which pixels were used in the extraction.
+
   for i=0,sdpx-1 do begin       ; iterate over length of longest spectrum in pixels     
      ;;through spaxels
      cubef=dblarr(nlens,nlens) 
@@ -79,6 +81,12 @@ function gpi_assemble_spectral_datacube, DataSet, Modules, Backbone
      
      ;;extract intensities on a 3x1 box:
      cubef=det[X3,Y3]+det[X3+1,Y3]+det[X3-1,Y3]
+
+	 if keyword_set(debug) then begin
+		 mask[X3-1, Y3] = 1 
+		 mask[X3, Y3] = 1 
+		 mask[X3+1, Y3] = 1 
+	endif
      
      ;;declare as NaN mlens not on the detector (or on the reference pixel area, i.e. 4 pixels on each side):
      bordy=where(~finite(y3) OR (Round(y3) LT 4.0) OR (Round(y3) GT 2043.0),cc)
@@ -90,6 +98,9 @@ function gpi_assemble_spectral_datacube, DataSet, Modules, Backbone
      
      cubef3D[*,*,i]=cubef
   endfor
+
+
+	;if keyword_set(debug) then stop
 
   ;; Update FITS header with RA and Dec WCS information
   ;; the spectral axis WCS will be added in interpol_spec_oncommwavvect

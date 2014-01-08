@@ -10,58 +10,50 @@ Release Guide: Versions, Version Tracking, etc
         This page is not likely to be of much use to anyone other than members of the GPI team.
 
 
-Repository organization
-----------------------------
-
-is a bit nonstandard. We've got a bunch of related trunk directories, for historical reasons, and one release directory for release tags.
-We're trying to keep things pretty simple and not branch the code significantly, for the most part... 
-
-
 
 Creating a New Release Version
 -------------------------------
 
+.. warning::
+  
+   The following needs to be updated now that there's a "public" branch separate from the trunk.
+
+
 The first step is to tag the released version in subversion. 
-
-In the Release directory in your local copy::
-
-        svn mkdir 0.x.y
-        svn commit -m "Creating directory for release version 0.x.y"
-
 Then copy the relevant trunk directories into that release directory::
 
         setenv VER 0.x.y
-        svn copy https://repos.seti.org/gpi/pipeline https://repos.seti.org/gpi/Releases/${VER}/pipeline -m "Release copy of pipeline version ${VER}"
-        svn copy https://repos.seti.org/gpi/gpitv https://repos.seti.org/gpi/Releases/${VER}/gpitv -m "Release copy of pipeline/gpitv version ${VER}"
-        svn copy https://repos.seti.org/gpi/external https://repos.seti.org/gpi/Releases/${VER}/external -m "Release copy of pipeline/external version ${VER}"
-        svn copy https://repos.seti.org/gpi/documentation https://repos.seti.org/gpi/Releases/${VER}/documentation -m "Release copy of pipeline documentation version ${VER}"
+        svn copy https://repos.seti.org/gpi/pipeline/branches/public https://repos.seti.org/gpi/pipeline/tags/${VER} -m "Release copy of pipeline version ${VER}"
+        svn copy https://repos.seti.org/gpi/external/trunk https://repos.seti.org/gpi/external/tags/${VER} -m "Release copy of pipeline external dependencies version ${VER}"
 
 
 This does the update on the *server* only. To update your local copy of the release directory, and make a release source code zip file::
         
-        cd 0.x.y
-        svn update
-        cd ..
-        rsync -av 0.x.y/ gpi_pipeline_0.x.y     # note that the / at the end of 0.x.y is important here...
-        zip -r gpi_pipeline_0.x.y_source.zip gpi_pipeline_0.x.y
-        
+        svn checkout https://repos.seti.org/gpi/pipeline/branches/public public_pipeline
+        (Here you may make any desired changes to the public branch such as removing files which are still under development and not yet ready to release)
+              
 
 To create the compiled executables ('sav files' in IDL speak), run the ``gpi_compiler`` routine in IDL, and when prompted enter the desired output directory.
-Before starting IDL, you may wish to make sure that your IDL `$IDL_PATH` is free of any of your personal routines or other IDL code, so you can be sure you're compiling 
-the versions in the pipeline directory::
+Before starting IDL, you may wish to make sure that your IDL ``$IDL_PATH`` is free of any of your personal routines or other IDL code, so you can be sure you're compiling 
+the versions in the pipeline directory. You should also make sure that your ``$IDL_PATH`` is pointing toward the public directory::
 
-        shell ~ > setenv IDL_PATH "+/home/username/gpi_software:+/Applications/itt/idl/idl81/lib"
+        shell ~ > setenv IDL_PATH "+/home/username/public_pipeline:+/Applications/itt/idl/idl81/lib"
         IDL> gpi_compiler
         Enter name of the directory where to create executables:  ~/tmp/gpi
         [very long series of informative messages during compilation]
         % GPI_COMPILER: Compilation done.
-        % GPI_COMPILER:    Output is in ~/tmp/gpi/pipeline-0.9.0
+        % GPI_COMPILER: The ZIP files ready for distribution are:
+        % GPI_COMPILER:       ~/tmp//gpi_pipeline_0.9.3_r2345M_runtime_macosx.zip
+        % GPI_COMPILER:       ~/tmp//gpi_pipeline_0.9.3_r2345M_compiled.zip
+        % GPI_COMPILER:       ~/tmp//gpi_pipeline_0.9.3_r2345M_source.zip
 
 
-If you are compiling on Mac or Linux, gpi_compiler will automatically zip up the output into two zip files:
+
+If you are compiling on Mac or Linux, gpi_compiler will automatically zip up the output into three zip files:
 
  * a platform independent one containing just the save files
  * and an OS dependent one that contains also the IDL runtime virtual machine
+ * and a matching source code ZIP file as well. 
 
 
 .. note::

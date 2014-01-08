@@ -39,6 +39,9 @@
 ; 2013-08-05 MP: Add HTML documentation to the compilation.
 ; 2013-08-05 ds: Added /svnonly option
 ; 2013-08-05 MP: Updated to accomodate relocated gpitv (which simplifies this)
+; 2014-01-07 MP: Updated to catch up with the svn reorganization in September
+;				 2013 and the creation of a public branch.
+;
 ;-
 
 ;----------------------------------------------
@@ -227,8 +230,8 @@ CATCH,/CANCEL
 if ~(keyword_set(nodocs)) then begin
 
 	if ~(keyword_set(docdir)) then begin
-		; assumes the documentation lives in a subdirectory next to the pipeline.
-		docdir = file_dirname(gpi_get_directory('GPI_DRP_DIR'))+path_sep()+"documentation"
+		; the documentation lives in a subdirectory of the pipeline.
+		docdir = gpi_get_directory('GPI_DRP_DIR')+path_sep()+"documentation"
 	endif
 
 	if ~ file_test(docdir+path_sep()+"index.rst") then begin
@@ -352,10 +355,10 @@ if ~(keyword_set(nodocs)) then file_copy, doc_out_path, output_dir, /overwrite,/
 ;; Create a copy of the source including dependencies
 output_source_dir = output_dir+"_source"
 file_mkdir, output_source_dir
-file_copy, gpi_get_directory('GPI_DRP_DIR'), output_source_dir, /overwrite,/recursive
+file_copy, gpi_get_directory('GPI_DRP_DIR'), output_source_dir+"/pipeline", /overwrite,/recursive
 file_copy, gpi_get_directory('GPI_DRP_DIR')+"/../external", output_source_dir, /overwrite,/recursive
 ;file_copy, gpi_get_directory('GPI_DRP_DIR')+"/../gpitv", output_source_dir, /overwrite,/recursive
-file_copy, gpi_get_directory('GPI_DRP_DIR')+"/../documentation", output_source_dir, /overwrite,/recursive
+;file_copy, gpi_get_directory('GPI_DRP_DIR')+"/../documentation", output_source_dir, /overwrite,/recursive
 
 
 message,/info, ""

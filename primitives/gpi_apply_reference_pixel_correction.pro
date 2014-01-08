@@ -4,18 +4,40 @@
 ; PIPELINE PRIMITIVE DESCRIPTION: Apply Reference Pixel Correction
 ;
 ; 	Correct for fluctuations in the bias/dark level using the rows of 
-; 	reference pixels in the H2RG detectors. 
+; 	reference pixels in the H2RG detectors.
+;
+;   Note that *vertical* reference pixel subtraction to fix offsets between
+;   the 32 readout channels is done in real time during the readout process by
+;   the IFS Detector Server software. The Detector Server does not currently
+;   apply any horizontal reference pixel subtraction, so we need to do that in
+;   the pipeline. See the HRPSTYPE and VRPSTYPE FITS keywords in the SCI
+;   extension headers. 
+;
+;	Also note that if you use one of the specialized Destriping primitives,
+;	you do not also need to use this one as well. 
+;
+;
 ;   Algorithm choices include: 
 ;    1) simple_channels		in this case, just use the median of each
 ;    					    vertical channel to remove offsets between 
-;    					    the channels
+;    					    the channels. (deprecated, now done by the IFS
+;    					    detector server in real time during readout)
 ;    2) simple_horizontal	take the median of the 8 ref pix for each row,
 ;    						and subtract that from each row. 
-;    3) interpolating		in this case, use James Larkin's interpolation
+;    3) smoothed_horizontal	Like the above, but smoothed by N pixels vertically
+;							for better S/N. N is adjustable using the smoothing_size
+;							parameter. Empirically values < 20 or 30 seem to be
+;							not enough smoothing, so the read noise fluctuations
+;							give spurious biases to the ref pix model. 
+;    3) interpolated		In this case, use James Larkin's interpolation
 ;    						algorithm to remove linear variation with time 
-;    						in the horizontal direction
+;    						in the horizontal direction. This gives the highest
+;    						spatial frequency correction but is more affected
+;    						by read noise.
 ;
 ; 	See discussion in section 3.1 of Rauscher et al. 2008 Prof SPIE 7021 p 63.
+;
+;   
 ;
 ; INPUTS: 2D image file
 ;
@@ -26,8 +48,9 @@
 ; PIPELINE COMMENT: Subtract channel bias levels and bias drift stripes using H2RG reference pixels.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display " 
+; PIPELINE ARGUMENT: Name="smoothing_size" Type="int" Range="[0,500]" Default="31" Desc="Smoothing kernel size for smoothed_horizontal method.  " 
 ; PIPELINE ARGUMENT: Name="before_and_after" Type="int" Range="[0,1]" Default="0" Desc="Show the before-and-after images for the user to see?"
-; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="SIMPLE_CHANNELS|INTERPOLATED"  Default="INTERPOLATED" Desc="Algorithm for reference pixel subtraction."
+; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="SIMPLE_CHANNELS|SIMPLE_HORIZONTAL|SMOOTHED_HORIZONTAL|INTERPOLATED"  Default="INTERPOLATED" Desc="Algorithm for reference pixel subtraction."
 ; PIPELINE ORDER: 1.25
 ; PIPELINE NEWTYPE: ALL
 ;
@@ -39,14 +62,16 @@
 ;   2012-07-27 MP: Added Method parameter, James Larkin's improved algorithm
 ;   2012-10-14 MP: debugging and code cleanup.
 ;   2013-07-17 MP: Rename for consistency
+;   2013-12-03 MP: Some docs updates and added SMOOTHED_HORIZONTAL algorithm and smoothing_size parameter
 ;-
 function gpi_apply_reference_pixel_correction, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
  	if tag_exist( Modules[thisModuleIndex], "before_and_after") then before_and_after=fix(Modules[thisModuleIndex].before_and_after) else before_and_after=0
+ 	if tag_exist( Modules[thisModuleIndex], "smoothing_size") then smoothing_size=fix(Modules[thisModuleIndex].smoothing_size) else smoothing_size=31
 
-	im =  *(dataset.currframe[0])
+	im =  *dataset.currframe
 
 	sz = size(im)
 
@@ -99,6 +124,24 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		href[0:3,*]=im[0:3,*]
 		href[4:7,*]=im[2044:2047,*]
 		mref[*]=median(href,dimension=1)
+
+		model = rebin(transpose(mref),2048,2048)
+		im -= model
+		
+	end
+	'SMOOTHED_HORIZONTAL': begin
+		backbone->set_keyword, "HISTORY", " REFPIX-HORIZONTAL: subtracting ref pixels from smoothed row medians"
+		backbone->set_keyword, "HISTORY", " REFPIX-HORIZONTAL:    Smoothing size = "+strc(smoothing_size)
+		backbone->set_keyword, "DRPHREF", "Smoothed", 'Horizontal reference pixel subtraction method'
+		; The first part here is an exact copy of simple_horizontal
+		href=fltarr(8,2048)	; For each row, the median horizontal reference
+		mref=fltarr(2048)
+		href[0:3,*]=im[0:3,*]
+		href[4:7,*]=im[2044:2047,*]
+		mref[*]=median(href,dimension=1)
+
+		; now we just smooth by a few pixels vertically
+		mref = smooth(mref, 9, /edge_truncate)
 
 		model = rebin(transpose(mref),2048,2048)
 		im -= model
@@ -160,26 +203,28 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	endcase
 
 
-
-	;TODO record the relevant numbers in the FITS headers!
-
-	backbone->set_keyword, "HISTORY", " REFPIX-VERTICAL: subtracting ref pix moving median for each row"
-
-    row_meds = median(median([im[0:3, *], im[2044:2047,*]], dim=1),3)
-
-    ref = rebin(transpose(row_meds), 2048,2048)
-
-    imout = im - ref
-
+; This part of the code is now redundant and can be dropped.
+;	;TODO record the relevant numbers in the FITS headers!
+;
+;	backbone->set_keyword, "HISTORY", " REFPIX-VERTICAL: subtracting ref pix moving median for each row"
+;
+;    row_meds = median(median([im[0:3, *], im[2044:2047,*]], dim=1),3)
+;
+;    ref = rebin(transpose(row_meds), 2048,2048)
+;
+;    imout = im - ref
+;
 
 	;before_and_after=1
 	if keyword_set(before_and_after) then begin
-		atv, [[[*(dataset.currframe[0])]], [[im]],[[ref]],[[imout]]],/bl, names=['Input image','Ref Pixel Results', 'Subtracted', 'output']
+		diff = *dataset.currframe - im
+		atv, [[[*dataset.currframe]], [[diff]],[[im]]],/bl, names=['Input image','Ref Pixel Model', 'Subtracted' ]
+
+		;;atv, [[[*dataset.currframe]], [[im]],[[ref]],[[imout]]],/bl, names=['Input image','Ref Pixel Results', 'Subtracted', 'output']
 		stop
 	endif
 
-	*(dataset.currframe[0]) = imout
-	;*(dataset.headers[numfile]) = hdr
+	*dataset.currframe = im
 
 suffix = 'refpixcorr'
 @__end_primitive

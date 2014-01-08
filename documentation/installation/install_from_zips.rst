@@ -16,12 +16,14 @@ pipeline development.
 .. comments
     ## DO NOT EDIT THIS LINE ## Marker for automated editing of this file by gpi_release.py
 
-**Version 0.9.2** (2013 Sept 5):
- * `gpi_pipeline_0.9.2_r1926_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.2_r1926_source.zip>`_ -  GPI pipeline source code, including all dependencies
+**Version 0.9.4** (2014 Jan 7):
+ * `gpi_pipeline_0.9.4_r2345M_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.4_r2345M_source.zip>`_ -  GPI pipeline source code (available for reference)
 
-
-**Version 0.9.1** (2013 July 18):
- * `gpi_pipeline_0.9.1_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.1_source.zip>`_ -  GPI pipeline source code, including all dependencies
+.. comment
+    **Version 0.9.2** (2013 Sept 5):
+     * `gpi_pipeline_0.9.2_r1926_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.2_r1926_source.zip>`_ -  GPI pipeline source code, including all dependencies
+    **Version 0.9.1** (2013 July 18):
+     * `gpi_pipeline_0.9.1_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.1_source.zip>`_ -  GPI pipeline source code, including all dependencies
 
 
 
