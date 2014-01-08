@@ -41,6 +41,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     im0 = accumulate_getimage(dataset, 0, hdr0, hdrext=hdrext0)
 
 	sz = [0, sxpar(hdrext0,'NAXIS1'), sxpar(hdrext0,'NAXIS2'), sxpar(hdrext0,'NAXIS3')]
+	if sz[3] eq 0 then return, error('FAILURE ('+functionName+'): Input not a datacube, check that the input is a datacube and that Accumulate Images has been run prior to this primitive. ') 
+
 	; create an array of the same type as the input file:
 	imtab = make_array(sz[1], sz[2], sz[3], nfiles, type=size(im0,/type))
 
