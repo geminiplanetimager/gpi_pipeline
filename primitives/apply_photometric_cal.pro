@@ -1,6 +1,9 @@
 ;+
 ; NAME: apply_photometric_cal
-; PIPELINE PRIMITIVE DESCRIPTION: Calibrate Photometric Flux
+; PIPELINE PRIMITIVE DESCRIPTION: Calibrate Photometric Flux - deprecated
+;
+; *DEPRECATED* for 
+; Users should now use Calibrate Photometric Flux (gpi_calibrate_photometric_flux.pro)
 ;
 ; INPUTS: data-cube
 ;
@@ -13,8 +16,8 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.51
-; PIPELINE TYPE: ALL-SPEC
-; PIPELINE NEWTYPE: SpectralScience
+; PIPELINE TYPE: ALL-SPEC HIDDEN
+; PIPELINE NEWTYPE: HIDDEN
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:
@@ -119,6 +122,7 @@ if ~finite(gridfac) then return, error('FAILURE ('+functionName+'): Could not ma
     nbphot_juststar=pip_nbphot_trans_lowres([*(dataset.headersPHU)[numfile],*(dataset.headersExt)[numfile]],lambda)
 
    magni=double(backbone->get_keyword( 'HMAG'))
+
    spect=strcompress(backbone->get_keyword( 'SPECTYPE'),/rem)
         Dtel=gpi_get_constant('primary_diam',default=7.7701d0)
     Obscentral=gpi_get_constant('secondary_diam',default=1.02375d0)
