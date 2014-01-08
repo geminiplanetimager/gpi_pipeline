@@ -31,9 +31,9 @@
 ; PIPELINE COMMENT: Extract one spectrum from a datacube somewhere in the FOV specified by the user.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
-; PIPELINE ARGUMENT: Name="extraction_radius" Type="float" Range="[0,1000]" Default="5." Desc="Aperture radius at middle wavelength (in spaxels i.e. mlens) to extract photometry for each wavelength. "
+; PIPELINE ARGUMENT: Name="extraction_radius" Type="float" Range="[0,1000]" Default="3." Desc="Aperture radius at middle wavelength (in spaxels i.e. mlens) to extract photometry for each wavelength. "
 ; PIPELINE ARGUMENT: Name="inner_sky_radius" Type="float" Range="[1,100]" Default="10." Desc="Inner aperture radius at middle wavelength (in spaxels i.e. mlens) to extract sky for each wavelength. "
-; PIPELINE ARGUMENT: Name="outer_sky_radius" Type="float" Range="[1,100]" Default="20." Desc="Outer aperture radius at middle wavelength (in spaxels i.e. mlens) to extract sky for each wavelength. "
+; PIPELINE ARGUMENT: Name="outer_sky_radius" Type="float" Range="[1,100]" Default="15." Desc="Outer aperture radius at middle wavelength (in spaxels i.e. mlens) to extract sky for each wavelength. "
 ; PIPELINE ARGUMENT: Name="c_ap_scaling" Type="int" Range="[0,1]" Default="1" Desc="Perform aperture scaling with wavelength?"
 ; PIPELINE ARGUMENT: Name="calib_cube_name" Type="string" Default="" Desc="Leave blank to use satellites of this cube, or enter a file to use those satellites"
 ; PIPELINE ARGUMENT: Name="calib_model_spectrum" Type="string" Default="" Desc="Leave blank to use satellites of this cube, or enter a file to use with the spectrum for the satellites"
@@ -68,9 +68,16 @@ primitive_version= '$Id: extract_one_spectrum.pro 2202 2013-12-04 00:34:59Z mair
 	if tag_exist( Modules[thisModuleIndex], "calib_spectrum") then calib_spectrum=string(Modules[thisModuleIndex].calib_spectrum) else calib_spectrum=''
 	if tag_exist( Modules[thisModuleIndex], "extraction_radius") then extraction_radius=float(Modules[thisModuleIndex].extraction_radius) else extraction_radius=3
 	if tag_exist( Modules[thisModuleIndex], "inner_sky_radius") then inner_sky_radius=float(Modules[thisModuleIndex].inner_sky_radius) else inner_sky_radius=10
-	if tag_exist( Modules[thisModuleIndex], "outer_sky_radius") then outer_sky_radius=float(Modules[thisModuleIndex].outer_sky_radius) else outer_sky_radius=20
+	if tag_exist( Modules[thisModuleIndex], "outer_sky_radius") then outer_sky_radius=float(Modules[thisModuleIndex].outer_sky_radius) else outer_sky_radius=15
 	if tag_exist( Modules[thisModuleIndex], "c_ap_scaling") then c_ap_scaling=float(Modules[thisModuleIndex].c_ap_scaling) else c_ap_scaling=1
 	if tag_exist( Modules[thisModuleIndex], "FinalUnits") then FinalUnits=long(Modules[thisModuleIndex].FinalUnits) else FinalUnits=5
+
+
+; Warn the user about a stupid issue that results in gpitv not displaying the output if it is not saved.
+if gpitv ne 0 and save eq 0 then begin 
+return, error('FAILURE ('+functionName+'): A silly bug makes it such that in order to view the file in GPItv it must be saved. Set save equal to 1, or GPItv equal to 0 in order to run this primitive')
+
+endif
 
 band = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=cc))
 cwv=get_cwv(band)
