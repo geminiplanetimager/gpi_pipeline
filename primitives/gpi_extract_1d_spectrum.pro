@@ -32,7 +32,7 @@
 ; PIPELINE ARGUMENT: Name="c_ap_scaling" Type="int" Range="[0,1]" Default="1" Desc="Perform aperture scaling with wavelength?"
 ; PIPELINE ARGUMENT: Name="no_centroid_override" Type="int" Range="[0,1]" Default="0" Desc="Do not centroid on extraction source?"
 ; PIPELINE ARGUMENT: Name="display" Type="int" Range="[-1,100]" Default="17" Desc="-1 = No display; 0 = New (unused) window; else = Window number to display diagnostic plot."
-; PIPELINE ARGUMENT: Name="save_ps_plot" Type="int" Range="[0,1]" Default="1" Desc="Save PostScript of plot?"
+; PIPELINE ARGUMENT: Name="save_ps_plot" Type="int" Range="[0,1]" Default="0" Desc="Save PostScript of plot?"
 ; PIPELINE ORDER: 2.52
 ; PIPELINE TYPE: ALL-SPEC
 ; PIPELINE NEWTYPE: SpectralScience
@@ -146,8 +146,8 @@ if display ne -1 then begin
 	phot_comp_err_total=phot_comp*sqrt((cal_percent_err/100.)^2+(phot_comp_err/phot_comp)^2)
 	ploterror,lambda,phot_comp, phot_comp_err_total,ytitle='flux ['+units+']',xtitle='wavelength (um)',position=[0.16,0.11,0.97,0.97],xr=[min(lambda)-0.01,max(lambda)+0.01],xs=1
 
-;tmp=readfits('~/bp_test.fits')
-;oploterror,tmp[0,*],tmp[1,*],tmp[2,*],errcolor=2,color=2
+tmp=readfits('~/bp_test.fits')
+oploterror,tmp[0,*],tmp[1,*],tmp[2,*],errcolor=2,color=2
 endif
 
 if save_ps_plot eq 1 then begin
