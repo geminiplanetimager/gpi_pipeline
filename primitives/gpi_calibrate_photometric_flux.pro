@@ -1,6 +1,6 @@
 ;+
-; NAME: gpi_apply_photometric_calibration
-; PIPELINE PRIMITIVE DESCRIPTION: Apply spectrophotometric calibration
+; NAME: gpi_calibrate_photometric_flux
+; PIPELINE PRIMITIVE DESCRIPTION: Calibrate Photometric Flux 
 ;
 ;	This primitive applies a spectrophotometric calibrations to the datacube that is determined either from the satellite spots of the supplied cube, the satellite spots of a user-indicated cube, or any user-supplied spectral response function (e.g. derived from an open loop image of a standard star). 
 ;
@@ -54,7 +54,7 @@
 ;   2013-08-07 ds: idl2 compiler compatible 
 ;- 
 
-function gpi_apply_photometric_calibration, DataSet, Modules, Backbone
+function gpi_calibrate_photometric_flux, DataSet, Modules, Backbone
 primitive_version= '$Id: extract_one_spectrum.pro 2202 2013-12-04 00:34:59Z maire $' ; get version from subversion to store in header history
 
   @__start_primitive
@@ -71,6 +71,10 @@ primitive_version= '$Id: extract_one_spectrum.pro 2202 2013-12-04 00:34:59Z mair
 	if tag_exist( Modules[thisModuleIndex], "outer_sky_radius") then outer_sky_radius=float(Modules[thisModuleIndex].outer_sky_radius) else outer_sky_radius=15
 	if tag_exist( Modules[thisModuleIndex], "c_ap_scaling") then c_ap_scaling=float(Modules[thisModuleIndex].c_ap_scaling) else c_ap_scaling=1
 	if tag_exist( Modules[thisModuleIndex], "FinalUnits") then FinalUnits=long(Modules[thisModuleIndex].FinalUnits) else FinalUnits=5
+	if tag_exist( Modules[thisModuleIndex], "gpitv") then gpitv=long(Modules[thisModuleIndex].gpitv) else gpitv=5
+	if tag_exist( Modules[thisModuleIndex], "save") then save=long(Modules[thisModuleIndex].save) else save=0
+
+
 
 
 ; Warn the user about a stupid issue that results in gpitv not displaying the output if it is not saved.
