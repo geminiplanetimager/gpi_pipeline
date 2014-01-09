@@ -44,9 +44,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
      val="value"+strc(i+1)
      indkey=where(strmatch(tag, keyw, /fold))
      keyword=Modules[thisModuleIndex].(indkey)
-     indval=where(strmatch(tag, val, /fold))
+		 indval=where(strmatch(tag, val, /fold))
      value=Modules[thisModuleIndex].(indval)
-     
+		;ignore if nothing is present
+     if strc(keyword) eq '' or strc(value) eq '' then continue
 
 ;    if numext eq 0 then begin
 ;      hdr= *(dataset.headers)[numfile] 
@@ -59,11 +60,15 @@ void=backbone->get_keyword(keyword, count=cc) ;sxpar( hdr,keyword, count=cc)
         if overwrite eq 1. then begin 
            if tag_exist( Modules[thisModuleIndex], keyw) && tag_exist( Modules[thisModuleIndex], val) then $
            backbone->set_keyword,keyword, value
+					 backbone->Log, functionname+":  Overwrote the header keyword "+string(keyword)+' with a value of '+string(value)
+
+	
            ;FXADDPAR, hdr, keyword, value
         endif
      endif else begin
             if tag_exist( Modules[thisModuleIndex], keyw) && tag_exist( Modules[thisModuleIndex], val) then $
             backbone->set_keyword,keyword, value
+						backbone->Log, functionname+":  Added the header keyword "+string(keyword)+' with a value of '+string(value)
            ;FXADDPAR, hdr, keyword, value
      endelse 
      
