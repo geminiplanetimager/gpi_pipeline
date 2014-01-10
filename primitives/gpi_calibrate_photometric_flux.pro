@@ -219,7 +219,7 @@ if ct eq 0 then return, error('FAILURE ('+functionName+'): SATSWARN undefined.  
 	stddev_sat_flux[s]*=mean_sat_flux[s]
 	endfor
 
-if 1 eq 1 then begin
+if 0 eq 1 then begin
 device,decomposed=0
 loadcolors
 ploterror, lambda, mean_sat_flux,stddev_sat_flux, xr=[min(lambda),max(lambda)],/xs,xtitle='wavelength', ytitle='sat spot intensity (ADU)',charsize=1.5
@@ -236,8 +236,16 @@ endif
 ; calibrated spectrum=spectrum/reference_spectrum * converted_model_reference_spectrum
 unitslist = ['Counts', 'Counts/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A','ergs/s/cm^2/Hz']
 
+; check if the user supplied a magnitude for the band that can be used instead of the HMAG in the header
+;test=sxpar(*(dataset.headersPHU[numfile]),"MAGNITUD",count=ct)
+;if ct[0] ne 0 then begin
+;	star_mag=test[0]
+;	backbone->Log,functionname+":  Using user specified magnitude value instead of "+strc(star_mag)+" instead of the default HMAG keyword"
+;endif
+
 ; should actually put in the data from the calibration cube!
 ; aso have to pass a variable with the calib_model_spectrum
+
 converted_model_spectrum = gpi_photometric_calibration_calculation(lambda,*(dataset.headersPHU[numfile]),*(dataset.headersExt[numfile]),units=FinalUnits,ref_model_spectrum=calib_model_spectrum,ref_star_magnitude=star_mag, ref_filter_type=ref_filter_type, ref_SpType=SpType)
 
 if converted_model_spectrum[0] eq -1 then return, error('FAILURE ('+functionName+'): Could not perform photometric calibration, incorrect keywords and/or input to the gpi_photometric_calibration_calculation function ') 
@@ -291,30 +299,8 @@ unitslist = ['Counts', 'Counts/s','ph/s/nm/m2', 'Jy', 'W/m2/um','ergs/s/cm2/A','
 ;	write the contained flux ratio to the header
 		backbone->set_keyword, 'EFLUXRAT',  contained_flux_ratio ,"flux ratio in photom aper", ext_num=0
 
-;*(dataset.currframe[0])=calibrated_cube
-at_the_end:
+*(dataset.currframe[0])=calibrated_cube
 @__end_primitive 
-
-
-
-;     thisModuleIndex = Backbone->GetCurrentModuleIndex()
-;     if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
-;        if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0
-;        wav_spec=[[lambda],[p1d],[phot_comp]] 
-;;		    sxaddpar, hdr, "SPECCENX", Modules[thisModuleIndex].xcenter, "x-locations in pixel on datacube where extraction has been made"
-;;        sxaddpar, hdr, "SPECCENY", Modules[thisModuleIndex].ycenter, 'y-locations in pixel on datacube where extraction has been made'
-;        backbone->set_keyword,"SPECCENX", Modules[thisModuleIndex].xcenter, "x-locations in pixel on datacube where extraction has been made",ext_num=1
-;        backbone->set_keyword,"SPECCENY", Modules[thisModuleIndex].ycenter, 'y-locations in pixel on datacube where extraction has been made',ext_num=1
-;        b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix ,savedata=wav_spec, display=display) ;saveheader=hdr,
-;        if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
-;     endif else begin
-;        if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
-                                ;gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=*(dataset.headers)[numfile]
-;           Backbone_comm->gpitv, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv)
-;     endelse
-
- 
-
 
 
 end
