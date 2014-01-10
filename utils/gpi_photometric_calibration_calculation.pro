@@ -198,11 +198,11 @@ unitslist = ['Counts', 'Counts/s','ph/s/nm/m2', 'Jy', 'W/m2/um','ergs/s/cm2/A','
 				exposuretime=double(sxpar(ext_header, 'ITIME'))
 				
 				; go from ergs/s/cm^2/A to Counts/s
-				conv_fact=surfa ; from ergs/s/cm^2/A to ergs/s/A
+				conv_fact=(surfa)*(100.0)^2.0 ; from ergs/s/cm^2/A to ergs/s/A with 100cm2/m2 conversion.
 				conv_fact*=exposuretime ; from ergs/s/A to ergs/A
 				conv_fact*=abs(lambda[1]-lambda[0])*1e4 ;  from ergs/A to ergs
-				conv_fact*=(lambda/(h*c)) ; ergs to photons
-				conv_fact*=gaindetector ; electons/photons
+				conv_fact*=(lambda/(h*c)) ; ergs to photons (or electrons)
+				conv_fact*=gaindetector ; electons to ADU
 				
 				; must account for instrument transmission
 				; lets just pretend it is the filter profile and 4%
@@ -221,16 +221,15 @@ unitslist = ['Counts', 'Counts/s','ph/s/nm/m2', 'Jy', 'W/m2/um','ergs/s/cm2/A','
 			   c=2.99792458d14                     ; um / s
    			 Dtel=gpi_get_constant('primary_diam',default=7.7701d0)
          Obscentral=gpi_get_constant('secondary_diam',default=1.02375d0)
-				 SURFA=!PI*(Dtel^2.)/4.-!PI*((Obscentral)^2.)/4.
+				 SURFA=!PI*(Dtel^2.)/4.-!PI*((Obscentral)^2.)/4. ; in m2
    	   	gaindetector=double(sxpar(ext_header, 'SYSGAIN'))
 				exposuretime=double(sxpar(ext_header, 'ITIME'))
 				
 				; go from ergs/s/cm^2/A to Counts/s
-				conv_fact=surfa ; from ergs/s/cm^2/A to ergs/s/A
-				conv_fact*=exposuretime ; from ergs/s/A to ergs/A
-				conv_fact*=abs(lambda[1]-lambda[0])*1e4 ;  from ergs/A to ergs
-				conv_fact*=(lambda/(h*c)) ; ergs to photons
-				conv_fact*=gaindetector ; electons/photons
+				conv_fact=(surfa)*(100.0)^2.0 ; from ergs/s/cm^2/A to ergs/s/A with 100cm2/m2 conversion
+				conv_fact*=abs(lambda[1]-lambda[0])*1e4 ;  from ergs/s/A to ergs/s
+				conv_fact*=(lambda/(h*c)) ; ergs/s to photons/s (or electrons)	
+				conv_fact*=gaindetector ; electons/s to ADU/s
 				
 				; must account for instrument transmission
 				; lets just pretend it is the filter profile and 4%
