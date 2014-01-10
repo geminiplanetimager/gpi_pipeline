@@ -72,10 +72,9 @@ contained_flux_ratio = (backbone->get_keyword('EFLUXRAT',count=count,ext_num=0))
 if count eq 0 then begin
 	backbone->Log,functionname+":  This is not a calibrated cube, assuming all flux is contained in the extraction aperture"
 	backbone->Log,functionname+":   Using user-specified extraction and sky annuli. Override being set to 1"
-
 	contained_flux_ratio=1.0
 	override=1.0
-
+	; set error to zero
 	cal_percent_err=fltarr(N_ELEMENTS(lambda))
 endif else begin
 ; pull extraction_radius and c_ap_scaling from header
@@ -146,8 +145,12 @@ if display ne -1 then begin
 	phot_comp_err_total=phot_comp*sqrt((cal_percent_err/100.)^2+(phot_comp_err/phot_comp)^2)
 	ploterror,lambda,phot_comp, phot_comp_err_total,ytitle='flux ['+units+']',xtitle='wavelength (um)',position=[0.16,0.11,0.97,0.97],xr=[min(lambda)-0.01,max(lambda)+0.01],xs=1
 
-tmp=readfits('~/bp_test.fits')
-oploterror,tmp[0,*],tmp[1,*],tmp[2,*],errcolor=2,color=2
+;	if file_test('~/bp_test.fits') then begin
+;		loadcolors
+;		tmp=readfits('~/bp_test.fits')
+;		oploterror,tmp[0,*],tmp[1,*],tmp[2,*],errcolor=2,color=2
+;	endif
+
 endif
 
 if save_ps_plot eq 1 then begin
