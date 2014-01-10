@@ -22,27 +22,36 @@ function gpi_photometric_calibration_calculation, lambda, pri_header, ext_header
 
 ; pipeline data is in ADU/coadd
 
-; goal of this is to do spectrum * model_spectrum/reference_spectrum
+; goal of this is to do spectrum * model_spectrum/reference_spectrum/
 
 ; but this program is more clever, and returns only the model spectrum, so the user does the  spectrum/model_spectrum, unless the ref_spectrum and spectrum keywords are used.
 
-; check to determine the model spectrum
-; first determine if a reference model is defined
-
 ; did the user supply a spectrum?
 if keyword_set(ref_model_spectrum) eq 1 then user_supplied_spectrum_flag=1 else user_supplied_spectrum_flag=0
+; did the user supply a magnitude
+if keyword_set(ref_star_magnitude) eq 1 then begin
+	user_supplied_magnitude_flag=1
+;	ref_star_magnitude=float(star_mag)
+endif else user_supplied_magnitude_flag=0
 
+
+; load the keywords out of the header - if needed
+; if the user supplies a spectrum then this isnt necessary
 if user_supplied_spectrum_flag eq 0 then begin
-		; check that the magnitude and spectral type are defined?
-		if keyword_set(ref_SpType) eq 0 or keyword_set(ref_star_magnitude) then begin
+		; check that the magnitude is defined?
+		if keyword_set(ref_SpType) eq 0 or user_supplied_magnitude_flag eq 0 then begin
+		
+	; check that the spectral type is defined
+		ref_spType= gpi_get_keyword( pri_header, ext_header,'SPECTYPE',count=dd)
+		if dd eq 0 then return, error('FAILURE (gpi_photometric_calibration_calculation): Reference Spectral type (SPECTYPE) is not defined in the header nor keywords')  
+
 		; is it in the header?
-			 ref_star_magnitude= gpi_get_keyword( pri_header, ext_header,'HMAG',count=cc)
-		   ref_spType= gpi_get_keyword( pri_header, ext_header,'SPECTYPE',count=dd)
-				if cc eq 0 or dd eq 0 then return, error('FAILURE (gpi_photometric_calibration_calculation): Reference Spectral type and/or magnitude is not defined in the header nor keywords')  
-		endif
-endif else begin
-message,/info, "  Model of the reference spectrum is defined, ignoring any defined spectral type and magnitude defined in the keywords and/or headers"
-endelse
+	 	if user_supplied_magnitude_flag eq 0 then ref_star_magnitude=float(gpi_get_keyword( pri_header, ext_header,'HMAG',count=cc))
+		if cc eq 0 and user_supplied_magnitude_flag eq 0 then return, error('FAILURE (gpi_photometric_calibration_calculation): H-band magnitude value (HMAG) is not defined in the header nor keywords')  
+	endif else begin
+	message,/info, "(gpi_photometric_calibration_calculation):  Model of the reference spectrum is defined, ignoring any defined spectral type and magnitude defined in the keywords and/or headers"
+	endelse
+endif
 
 ; check that an output unit is specified
 if keyword_set(units) eq 0 then return, error('FAILURE (gpi_photometric_calibration_calculation): Output units not specified. ') 
@@ -54,8 +63,7 @@ if keyword_set(units) eq 0 then return, error('FAILURE (gpi_photometric_calibrat
 if user_supplied_spectrum_flag eq 1 then begin
 	if file_test(ref_model_spectrum) eq 1 then return, error ('FAILURE (gpi_photometric_calibration_calculation): The file '+strc(ref_model_spectrum)+', specified by the user is not found')
 
-		message,/info,'Loading user-specified spectrum '+ref_model_spectrum
-
+		message,/info,'(gpi_photometric_calibration_calculation):  Loading user-specified spectrum '+ref_model_spectrum
 		readcol,ref_model_spectrum,model_wavelengths,model_flux,format=('F,F')
 endif
 
@@ -80,25 +88,26 @@ if keyword_set(ref_model_spectrum) eq 0 then begin
 
 	;error handling if something failed
 	if i eq N_ELEMENTS(pickles_fnames) then begin
-		message,/info,"No pickles spectrum was found for the given spectral type "+strc(ref_spType)
+		message,/info,"(gpi_photometric_calibration_calculation):  No pickles spectrum was found for the given spectral type "+strc(ref_spType)
 		dir=gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'pickles'+path_sep()+'AA_README'
-		message,/info,'Check the AA_README file in '+strc(dir)+' lines 114-193 for the available spectral types'
+		message,/info,'(gpi_photometric_calibration_calculation):  Check the AA_README file in '+strc(dir)+' lines 114-193 for the available spectral types'
 		return, error('FAILURE (gpi_photometric_calibration_calculation): No pickles spectrum was found for the given spectral type '+strc(ref_spType))
 	endif
 endif ; if ref_model_spectrum eq 0
 
+
 ; BIN THE SPECTRUM - THIS SHOULD BE DONE AS A FUNCTION OF DETECTOR POSITION and use the mlens psfs!
 ; pull the filter out of the header
-filter=gpi_simplify_keyword_value(sxpar(pri_header,'IFSFILT'))
+	filter=strc(gpi_simplify_keyword_value(sxpar(pri_header,'IFSFILT')))
 	width=lambda[n_elements(lambda)-1]-lambda[0]
-	case strcompress(filter,/REMOVE_ALL) of
+	case filter of
  	 'Y':specresolution=35.
  	 'J':specresolution=75;37.
  	 'H':specresolution=45;45.
  	 'K1':specresolution=65;65.
  	 'K2':specresolution=75.
 	endcase
- 
+
 	dlam=((min(lambda)+max(lambda))/2.)/specresolution
 	fwhmloc = VALUE_LOCATE(model_wavelengths/1e4, [(lambda[0]),(lambda[0]+dlam)])
 	fwhm=float(fwhmloc[1]-fwhmloc[0])
@@ -110,12 +119,54 @@ filter=gpi_simplify_keyword_value(sxpar(pri_header,'IFSFILT'))
 
 ; only do a magnitude correction if it is a pickles spectrum
 	if user_supplied_spectrum_flag eq 0 then begin
-		; determine the magnitude correction between the filters - TO BE DONE
-		dmag=0.0
+		; determine the magnitude correction between the filters		
+	
+		; read the header keyword FILTTYPE to determine the proper RSR to grab
+		if keyword_set(ref_filter_type) eq 1 then FILTTYPE=ref_filter_type else FILTTYPE=sxpar(pri_header,'FILTTYPE',count=count)
+		if count[0] eq 0 then begin
+			 FILTTYPE='2mass' ; makes it a gpi filter type
+			message,/info,'(gpi_photometric_calibration_calculation):  No FILTTYPE keyword supplied, assuming specified magnitude is for the 2mass filter set'
+		endif
+
+		; check for 2mass writing synonyms
+		if strc(strlowcase(FILTTYPE)) eq '2mass' or strc(strlowcase(FILTTYPE)) eq '2m' then FILTTYPE='2mass'
+
+		CASE strc(strlowcase(FILTTYPE)) OF
+			'2mass': begin 
+								; first determine the band, then load in the RSR curve
+								directory=gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'filters/2mass_filters/'
+								case filter of
+									 	 'J': readcol, directory+'2m_J_band_RSR.dat' , filt_wave0, filt_prof0
+									 	 'H': readcol, directory+'2m_H_band_RSR.dat', filt_wave0, filt_prof0
+									 	 'K1': readcol, directory+'2m_K1_band_RSR.dat', filt_wave0, filt_prof0
+									 	 'K2': readcol, directory+'2m_K2_band_RSR.dat', filt_wave0, filt_prof0
+									else: 	return, error('FAILURE (gpi_photometric_calibration_calculation):  No 2mass filter for the given filter')
+								endcase
+							end 
+			'gpi': begin
+							message,/info,'(gpi_photometric_calibration_calculation):  GPI filter magnitude specified. No delta magnitude correction applied'
+							dmag=0.0
+						 end
+			else: return, error('FAILURE (gpi_photometric_calibration_calculation):  No matching filter type found for '+strc(FILTTYPE)+', options are currently: GPI, 2Mass, 2M or not defined')
+		endcase
+
+	; now determine the magnitude offset
+		if keyword_set(filt_wave0) eq 1 and keyword_set(filt_prof0) eq 1 then begin
+			; load in the GPI filter profile - SHOULD BE TRANSMISSION PROFILE - ASSUMING FILTER ONLY
+			GPI_filt_prof=mrdfits(gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'filters/GPI-filter-'+filter+'.fits',1,/silent)
+			; must normalize the gpi_filt
+			gpi_filt_prof.transmission/=max(gpi_filt_prof.transmission)
+			; interpolate the model to the filter wavelengths.
+			model_gpi_flux=interpol(gpi_model_flux0,model_wavelengths/1e4,gpi_filt_prof.wavelength)
+			model_other_flux=interpol(gpi_model_flux0,model_wavelengths/1e4, filt_wave0)
+			; interpolate both to the 
+			dmag=-2.5*alog10(int_tabulated(gpi_filt_prof.wavelength,model_gpi_flux*gpi_filt_prof.transmission)/int_tabulated(filt_wave0,model_other_flux*filt_prof0)	); ourmag-2Mmag=dm
+			message,/info,'(gpi_photometric_calibration_calculation):  Applied a magnitude offset of  '+strc(dmag)+' to account for the different relative response curves'
+		endif
 		; compensate for the magnitude difference
 		gpi_model_flux*=10.0^(-(ref_star_magnitude+dmag)/2.5)
 	endif
-	
+
 ; correct for the satellite to star flux ratio if desired
 	if keyword_set(no_satellite_correction) eq 0 then begin
 		apodizer=sxpar(pri_header,'APODIZER')
@@ -190,6 +241,8 @@ unitslist = ['Counts', 'Counts/s','ph/s/nm/m2', 'Jy', 'W/m2/um','ergs/s/cm2/A','
 				conv_fact*=transmission
         end
       2: begin ;'ph/s/nm/m^2'
+				 h=6.626068d-27                      ; erg * s
+			   c=2.99792458d14                     ; um / s
 				conv_fact=(lambda/(h*c)) ; ergs/s/cm2/A to photons/s/cm2/A
 				conv_fact*=10.0; photons/s/cm2/A to photons/s/cm2/nm
 				conv_fact*=(100.0^2.0) ; photons/s/cm2/nm to photons/s/m2/nm
