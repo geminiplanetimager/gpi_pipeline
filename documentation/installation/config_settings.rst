@@ -89,6 +89,7 @@ gpitv_auto_handedness                   0,1                              1      
 gpitv_showfullpaths                     0,1                              0              Toggle to show the full path to files in the gpitv titlebar.
 gpitv_noinfo                            0,1                              0              Toggle suppression of informational messages.
 gpitv_nowarn                            0,1                              0              Toggle suppression of warning messages.
+gpitv_startup_dir                       path                             None           Set the initial input/output directory for new GPItv instances.  If unset, GPItv defaults to your current working directory.
 ======================================  ==============================  =============   ====================================================================================
 
 
