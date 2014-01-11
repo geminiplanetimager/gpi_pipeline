@@ -520,7 +520,8 @@ state = {                   $
         filetype: '' $                      ; type of file currently loaded
         }
 
-cd, curr=curr
+curr = gpi_expand_path(gpi_get_setting('gpitv_startup_dir',/silent))
+if ~file_test(curr,/dir) then cd, curr=curr
 state.current_dir=curr
 state.output_dir = curr
 
