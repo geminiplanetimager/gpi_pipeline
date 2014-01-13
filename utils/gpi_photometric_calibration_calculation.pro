@@ -138,8 +138,8 @@ endif ; if ref_model_spectrum eq 0
 								case filter of
 									 	 'J': readcol, directory+'2m_J_band_RSR.dat' , filt_wave0, filt_prof0
 									 	 'H': readcol, directory+'2m_H_band_RSR.dat', filt_wave0, filt_prof0
-									 	 'K1': readcol, directory+'2m_K1_band_RSR.dat', filt_wave0, filt_prof0
-									 	 'K2': readcol, directory+'2m_K2_band_RSR.dat', filt_wave0, filt_prof0
+									 	 'K1': readcol, directory+'2m_Ks_band_RSR.dat', filt_wave0, filt_prof0
+									 	 'K2': readcol, directory+'2m_Ks_band_RSR.dat', filt_wave0, filt_prof0
 									else: 	return, error('FAILURE (gpi_photometric_calibration_calculation):  No 2mass filter for the given filter')
 								endcase
 							end 
@@ -225,7 +225,7 @@ unitslist = ['Counts', 'Counts/s','ph/s/nm/m2', 'Jy', 'W/m2/um','ergs/s/cm2/A','
    	   	gaindetector=double(sxpar(ext_header, 'SYSGAIN'))
 				exposuretime=double(sxpar(ext_header, 'ITIME'))
 				
-				; go from ergs/s/cm^2/A to Counts/s
+				; go from ergs/s/cm^2/A to Counts/s by *multiplying* by conv_fact
 				conv_fact=(surfa)*(100.0)^2.0 ; from ergs/s/cm^2/A to ergs/s/A with 100cm2/m2 conversion
 				conv_fact*=abs(lambda[1]-lambda[0])*1e4 ;  from ergs/s/A to ergs/s
 				conv_fact*=(lambda/(h*c)) ; ergs/s to photons/s (or electrons)	
