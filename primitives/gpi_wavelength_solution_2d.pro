@@ -23,7 +23,8 @@
 ; PIPELINE ARGUMENT: Name="parallel" Type="Int" Range="[0,1]" Default="0" Desc="Option for Parallelization,  0: none, 1: parallel"
 ; PIPELINE ARGUMENT: Name="numsplit" Type="Int" Range="[0,100]" Default="0" Desc="Number of cores for parallelization. Set to 0 for autoselect."
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="Save_model_image" Type="int" Range="[0,1]" Default="1" Desc="1: save 2d detector model fit image to disk, 0: don't save"
+; PIPELINE ARGUMENT: Name="Save_model_image" Type="int" Range="[0,1]" Default="1" Desc="1: save 2d detector model fit image to disk, 0:don't save"
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type="wavcal" Default="AUTOMATIC" Desc="Filename of the desired reference wavelength calibration file to be read"
 ; PIPELINE ARGUMENT: Name="Save_model_params" Type="int" Range="[0,1]" Default="1" Desc="1: save model nuisance parameters to disk, 0: don't save"
 ;
 ; where in the order of the primitives should this go by default?
@@ -42,7 +43,7 @@ compile_opt defint32, strictarr, logical_predicate
 
 ; don't edit the following line, it will be automatically updated by subversion:
 primitive_version= '$Id$' ; get version from subversion to store in header history
-
+calfiletype = 'wavecal'
 ; the following line sources a block of code common to all primitives
 ; It loads some common blocks, records the primitive version in the header for
 ; history, then if calfiletype is not blank it queries the calibration database
@@ -71,15 +72,15 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         
 
 	;READ IN REFERENCE WAVELENGTH CALIBRATION
-	c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'wavecal',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
+;	c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'wavecal',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
 
 	backbone->set_keyword, 'HISTORY','Reference Wavecal used as a starting point for fit: '
 	backbone->set_keyword, 'HISTORY', c_File
 	backbone->set_keyword, 'REFWVCLF', 'Prior reference cal used as a starting point'
 
 	;open the reference wavecal file. Save into common block variable.
-	;refwlcal = gpi_readfits(c_File,header=Header)
-        refwlcal=mrdfits('/Users/schuylerwolff/gpi/data/Reduced/calibrations/S20131211S0049_K1_wavecal.fits',1,HEADER)
+	refwlcal = gpi_readfits(c_File,header=Header)
+        ;refwlcal=mrdfits('/Users/schuylerwolff/gpi/data/Reduced/calibrations/S20131211S0049_K1_wavecal.fits',1,HEADER)
 	wlcalsize=size(refwlcal,/dimensions)
 	print,wlcalsize
 	nlens = wlcalsize[0]
@@ -88,7 +89,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	newwavecal=dblarr(wlcalsize) + !values.f_nan
 	
 
-	valid = gpi_sanity_check_wavecal(c_File, errmsg=errmsg,/noplot)
+;	valid = gpi_sanity_check_wavecal(c_File, errmsg=errmsg,/noplot)
 	;if ~(keyword_set(valid)) then begin
 	;	return, error("The chosen starting reference wavecal, "+c_File+", does not pass the qualty check. Cannot be used to generate a new wavecal. Remove it from your calibration DB and rescan before trying again. ")
 
@@ -411,73 +412,73 @@ endelse
 
 
 
-;OPTIONAL: SAVE THE DETECTOR MODEL IMAGE
-if keyword_set(save_model_image) then begin
+;; ;OPTIONAL: SAVE THE DETECTOR MODEL IMAGE
+;; if keyword_set(save_model_image) then begin
 
-	; Generate 2D backgrounds, smoothed from above 
-	wg = where(finite(modelbackgrounds))
-	bkgx = (modelparams[*,*,1])[wg]
-	bkgy = (modelparams[*,*,0])[wg]
-	triangulate, bkgx, bkgy, triangles, b
-	smoothed_background =griddata(bkgx, bkgy, modelbackgrounds[wg], xout=findgen(2048), yout=findgen(2048),/grid, /nearest, triangles=triangles)
-	smoothed_background = filter_image(smoothed_background,fwhm=30)
+;; 	Generate 2D backgrounds, smoothed from above 
+;; 	wg = where(finite(modelbackgrounds))
+;; 	bkgx = (modelparams[*,*,1])[wg]
+;; 	bkgy = (modelparams[*,*,0])[wg]
+;; 	triangulate, bkgx, bkgy, triangles, b
+;; 	smoothed_background =griddata(bkgx, bkgy, modelbackgrounds[wg], xout=findgen(2048), yout=findgen(2048),/grid, /nearest, triangles=triangles)
+;; 	smoothed_background = filter_image(smoothed_background,fwhm=30)
 
-	;smoothed_background = trigrid(  bkgx, bkgy, modelbackgrounds[wg], tr, xout=indgen(2048), yout=indgen(2048) )
-	smoothed_background[*,0:3] = 0
-	smoothed_background[0:3,*] = 0
-	smoothed_background[2044:2047,*] = 0
-	smoothed_background[*,2044:2047] = 0
+;; 	smoothed_background = trigrid(  bkgx, bkgy, modelbackgrounds[wg], tr, xout=indgen(2048), yout=indgen(2048) )
+;; 	smoothed_background[*,0:3] = 0
+;; 	smoothed_background[0:3,*] = 0
+;; 	smoothed_background[2044:2047,*] = 0
+;; 	smoothed_background[*,2044:2047] = 0
 
-	lensletmodel -= smoothed_background
-
-
-
-	pheader_copy = *dataset.headersPHU[numfile]
-	eheader_copy = *dataset.headersExt[numfile]
-	sxaddpar, pheader_copy, 'FILETYPE','Detector Model Synthesized during Wavecal Fit'
-	sxaddpar, pheader_copy, 'ISCALIB','NO','Not a reduced calibration file, just an ancillary product.'
-	sxaddpar, pheader_copy, 'HISTORY','Created as a byproduct of wavelength calibration 2D fit.'
-	sxaddpar, pheader_copy, 'HISTORY','   Slice 1:  Synthetic Detector Model Image (result of fit)'
-	sxaddpar, pheader_copy, 'HISTORY','   Slice 2:  Actual Detector Image (target of fit)'
-	sxaddpar, pheader_copy, 'HISTORY','   Slice 3:  Difference Actual-Model'
-	sxaddpar, eheader_copy, 'NAXIS',3
-	sxaddpar, eheader_copy, 'NAXIS3',3,after='NAXIS2'
+;; 	lensletmodel -= smoothed_background
 
 
-	modelstack = [[[lensletmodel]],[[image]],[[image-lensletmodel]]]
 
-	wavecalimage=save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, "_model",display=0, savedata=modelstack, $
-		saveheader=eheader_copy, savePHU=pheader_copy ,output_filename=output_filename)
-	backbone->Log, "Saved 2D detector model to "+output_filename
-
-endif
-
-if keyword_set(save_model_params) then begin
-	pheader_copy = *dataset.headersPHU[numfile]
-	eheader_copy = *dataset.headersExt[numfile]
-
-	psf_labels = ['Gaussian PSFs','Empirical Microlens ePSFs']
-	sxaddpar, pheader_copy, 'FILETYPE','Detector Model Parameters from Wavecal Fit'
-	sxaddpar, pheader_copy, 'ISCALIB','NO','Not a reduced calibration file, just an ancillary product.'
-	sxaddpar, pheader_copy, 'HISTORY','  '
-	sxaddpar, pheader_copy, 'HISTORY','Wavecal Fit using PSFs = '+psf_labels[whichpsf]
-	sxaddpar, pheader_copy, 'HISTORY','  '
-	sxaddpar, pheader_copy, 'HISTORY','Created as a byproduct of wavelength calibration 2D fit.'
-	sxaddpar, pheader_copy, 'HISTORY','   Slice 1:  X coord at ref wavelength'
-	sxaddpar, pheader_copy, 'HISTORY','   Slice 2:  Y coord at ref wavelength'
-	sxaddpar, pheader_copy, 'HISTORY','   Slice 3:  Dispersion'
-	sxaddpar, pheader_copy, 'HISTORY','   Slice 4:  Rotation'
-	sxaddpar, pheader_copy, 'HISTORY','   Slice 5-N: see doc header of gpi_wavecal_wrapper '
-	sxaddpar, pheader_copy, 'HISTORY','  '
-	sxaddpar, eheader_copy, 'NAXIS',3
-	sxaddpar, eheader_copy, 'NAXIS3',3,after='NAXIS2'
-
-	stat=save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, "_modelparams",display=0, savedata=model_params, $
-		saveheader=eheader_copy, savePHU=pheader_copy ,output_filename=output_filename)
-	backbone->Log, "Saved 2D detector model parameters to "+output_filename
+;; 	pheader_copy = *dataset.headersPHU[numfile]
+;; 	eheader_copy = *dataset.headersExt[numfile]
+;; 	sxaddpar, pheader_copy, 'FILETYPE','Detector Model Synthesized during Wavecal Fit'
+;; 	sxaddpar, pheader_copy, 'ISCALIB','NO','Not a reduced calibration file, just an ancillary product.'
+;; 	sxaddpar, pheader_copy, 'HISTORY','Created as a byproduct of wavelength calibration 2D fit.'
+;; 	sxaddpar, pheader_copy, 'HISTORY','   Slice 1:  Synthetic Detector Model Image (result of fit)'
+;; 	sxaddpar, pheader_copy, 'HISTORY','   Slice 2:  Actual Detector Image (target of fit)'
+;; 	sxaddpar, pheader_copy, 'HISTORY','   Slice 3:  Difference Actual-Model'
+;; 	sxaddpar, eheader_copy, 'NAXIS',3
+;; 	sxaddpar, eheader_copy, 'NAXIS3',3,after='NAXIS2'
 
 
-endif
+;; 	modelstack = [[[lensletmodel]],[[image]],[[image-lensletmodel]]]
+
+;; 	wavecalimage=save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, "_model",display=0, savedata=modelstack, $
+;; 		saveheader=eheader_copy, savePHU=pheader_copy ,output_filename=output_filename)
+;; 	backbone->Log, "Saved 2D detector model to "+output_filename
+
+;; endif
+
+;; if keyword_set(save_model_params) then begin
+;; 	pheader_copy = *dataset.headersPHU[numfile]
+;; 	eheader_copy = *dataset.headersExt[numfile]
+
+;; 	psf_labels = ['Gaussian PSFs','Empirical Microlens ePSFs']
+;; 	sxaddpar, pheader_copy, 'FILETYPE','Detector Model Parameters from Wavecal Fit'
+;; 	sxaddpar, pheader_copy, 'ISCALIB','NO','Not a reduced calibration file, just an ancillary product.'
+;; 	sxaddpar, pheader_copy, 'HISTORY','  '
+;; 	sxaddpar, pheader_copy, 'HISTORY','Wavecal Fit using PSFs = '+psf_labels[whichpsf]
+;; 	sxaddpar, pheader_copy, 'HISTORY','  '
+;; 	sxaddpar, pheader_copy, 'HISTORY','Created as a byproduct of wavelength calibration 2D fit.'
+;; 	sxaddpar, pheader_copy, 'HISTORY','   Slice 1:  X coord at ref wavelength'
+;; 	sxaddpar, pheader_copy, 'HISTORY','   Slice 2:  Y coord at ref wavelength'
+;; 	sxaddpar, pheader_copy, 'HISTORY','   Slice 3:  Dispersion'
+;; 	sxaddpar, pheader_copy, 'HISTORY','   Slice 4:  Rotation'
+;; 	sxaddpar, pheader_copy, 'HISTORY','   Slice 5-N: see doc header of gpi_wavecal_wrapper '
+;; 	sxaddpar, pheader_copy, 'HISTORY','  '
+;; 	sxaddpar, eheader_copy, 'NAXIS',3
+;; 	sxaddpar, eheader_copy, 'NAXIS3',3,after='NAXIS2'
+
+;; 	stat=save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, "_modelparams",display=0, savedata=model_params, $
+;; 		saveheader=eheader_copy, savePHU=pheader_copy ,output_filename=output_filename)
+;; 	backbone->Log, "Saved 2D detector model parameters to "+output_filename
+
+
+;; endif
 
 ; Edit the header of the original raw data products to include the information
 ; about the new wavelength calibration. 
