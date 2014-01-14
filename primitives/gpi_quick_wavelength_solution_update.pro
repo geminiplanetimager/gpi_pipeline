@@ -272,6 +272,8 @@ for i = istart,iend,spacing do begin
   endif 
 
 	shiftedwavecal = refwlcal
+;        shiftedwavecal[*,*,0]=newwavecal[*,*,0]
+;        shiftedwavecal[*,*,1]=newwavecal[*,*,1]
 	shiftedwavecal[*,*,0] += mnx
 	shiftedwavecal[*,*,1] += mny
 ; Edit the header of the original raw data products 

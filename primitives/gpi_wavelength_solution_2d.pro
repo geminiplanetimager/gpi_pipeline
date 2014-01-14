@@ -78,7 +78,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	backbone->set_keyword, 'REFWVCLF', 'Prior reference cal used as a starting point'
 
 	;open the reference wavecal file. Save into common block variable.
-	refwlcal = gpi_readfits(c_File,header=Header)
+	;refwlcal = gpi_readfits(c_File,header=Header)
+        refwlcal=mrdfits('/Users/schuylerwolff/gpi/data/Reduced/calibrations/S20131211S0049_K1_wavecal.fits',1,HEADER)
 	wlcalsize=size(refwlcal,/dimensions)
 	print,wlcalsize
 	nlens = wlcalsize[0]
@@ -88,10 +89,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	
 
 	valid = gpi_sanity_check_wavecal(c_File, errmsg=errmsg,/noplot)
-	if ~(keyword_set(valid)) then begin
-		return, error("The chosen starting reference wavecal, "+c_File+", does not pass the qualty check. Cannot be used to generate a new wavecal. Remove it from your calibration DB and rescan before trying again. ")
+	;if ~(keyword_set(valid)) then begin
+	;	return, error("The chosen starting reference wavecal, "+c_File+", does not pass the qualty check. Cannot be used to generate a new wavecal. Remove it from your calibration DB and rescan before trying again. ")
 
-	endif
+	;endif
 
 
 	;READ IN BAD PIXEL MAP
@@ -397,7 +398,7 @@ endif else begin
             endfor
 
 			backbone->Log,"Column "+strc(i)+"/"+strc(iend-istart+1)+". Have now fit " +strc(lensletcount)+"/"+strc(n_valid_lenslets)+" lenslets"
-			if keyword_set(debug) and (lensletcount gt 0) and (i mod debug eq 0) then stop
+;			if keyword_set(debug) and (lensletcount gt 0) and (i mod debug eq 0) then stop
 
 
          endfor
@@ -406,7 +407,7 @@ endelse
 
 
 
-if keyword_set(debug) or keyword_set(debuglenslet) then stop
+;if keyword_set(debug) or keyword_set(debuglenslet) then stop
 
 
 
