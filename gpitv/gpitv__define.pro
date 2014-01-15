@@ -4456,7 +4456,7 @@ widget_control, /hourglass
 if (n_elements(*self.images.main_image) LT 5.e5) then begin
     med = median((*self.images.main_image),/DOUBLE)
     sz=size((*self.images.main_image))
-    sig = stddev((*self.images.main_image)[sz[1]/2-sz[1]/5:sz[1]/2+sz[1]/5,sz[2]/2-sz[2]/5:sz[2]/2+sz[2]/5],/NAN) ;limit area of stddev to remove edge effects occuring when flat-fielding
+    sig = stddev((double((*self.images.main_image)))[sz[1]/2-sz[1]/5:sz[1]/2+sz[1]/5,sz[2]/2-sz[2]/5:sz[2]/2+sz[2]/5],/NAN) ;limit area of stddev to remove edge effects occuring when flat-fielding
 endif else begin   ; resample big images before taking median, to save memory
     boxsize = 10
     rx = (*self.state).image_size[0] mod boxsize
@@ -5450,11 +5450,13 @@ pro GPItv::readfits, fitsfilename=fitsfilename, imname=imname, _extra=_extra
   if ((size(head))[0] eq 0) || (n_elements(strcompress(head, /remove_all)) LT 2) then begin
      self->message, 'File  '+fitsfile+' does not appear to be a valid FITS image!', $
                     window = window, msgtype = 'error'
+
      return
   endif
   if (!ERR EQ -1) then begin
      self->message, $
         'Selected file '+fitsfile+' does not appear to be a valid FITS image!', $
+
         msgtype = 'error', window = window
      return
   endif
@@ -5475,8 +5477,10 @@ pro GPItv::readfits, fitsfilename=fitsfilename, imname=imname, _extra=_extra
   
   ;; Make sure it's not a 1-d spectrum
   if (numext EQ 0 AND naxis LT 2) then begin
+
      self->message, 'Selected file '+fitsfile+' is not a 2-d or 3-d FITS image!', $
                     window = window, msgtype = 'error'
+
      return
   endif
   
@@ -5613,9 +5617,11 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
 
      else: begin
         ;; Catch-all case for non 2-d or 3-d images - alert the user
+stop
         self->message, 'Selected file is not a 2-D or 3-D FITS image!', $
                        msgtype = 'error', window = window
         *self.images.main_image = fltarr(512, 512)
+stop
         return
      end  
   endcase ;;dimensionality of main image 
@@ -5826,8 +5832,7 @@ pro GPItv::update_sat_spots,locs0=locs0
   ;; get instrument transmission (and resolution)
   ;; corrections for lyot, PPM, and filter transmission
   pupil_mask_string=gpi_simplify_keyword_value(sxpar(header,'APODIZER'))	
-  lyot_mask_string=sxpar(header,'LYOTMASK')
-  
+  lyot_mask_string=sxpar(header,'LYOTMASK') 
   transmission=calc_transmission(filter, pupil_mask_string, lyot_mask_string, resolution=resolution, without_filter=1)
   
   if transmission[0] eq -1 then begin
@@ -5844,7 +5849,6 @@ pro GPItv::update_sat_spots,locs0=locs0
 	; calculate the width of a wavelength slice 
 	dlambda=cube_waves[1]-cube_waves[0]
 	zero_vega*=dlambda ; now in ph/slice
-  
   ;; load filters for integration	
   filt_prof0=mrdfits( gpi_get_directory('GPI_DRP_CONFIG')+'/filters/GPI-filter-'+filter+'.fits',1,/silent)
   filt_prof=interpol(filt_prof0.transmission,filt_prof0.wavelength,cube_waves)
@@ -18575,6 +18579,7 @@ if (not keyword_set(symsize)) then symsize=1.
 
 ;;get plot ranges, if none given
 if (not keyword_set(xrange)) then begin
+
    if not keyword_set(data) then asec = *(*self.satspots.asec)[inds[0]] else $
       asec = data.asec
    if (*self.state).contr_xunit eq 1 then $
