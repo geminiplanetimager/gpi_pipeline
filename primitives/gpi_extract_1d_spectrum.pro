@@ -4,19 +4,31 @@
 ;
 ;	This primitive extracts a spectrum from a data cube. It is meant to be used on datacubes that have been calibrated by gpi_apply_photometric_calibration, but this is not required.
 ;
-;; INPUTS: 
-; 1: datacube that requires calibration (loaded as the Input FITS file)
-; AND
-; 2a: datacube or to be used to determine the calibration (with or without a accompanying model spectrum of the star)
-; OR
-; 2b: a 2D spectrum (in ADU per COADD, where the COADD corresponds to input #1). The file format must be three columns, the first being wavelength in microns, the second being the flux in erg/s/cm2/A, the third being the uncertainty
+; The extraction radius is pulled out of the header such that is uses the same as what was used to calibrate the cube. If they keyword is not found, then the extraction_radius keyword is used. The extraction_radius keyword will also be used if the override keyword is set to 1. Note that this is very dangerous and will introduce systematics into the data. 
 ;
-; if neither 2a nor 2b or defined, the satellites of the input file are used.
+; The centroiding is performed by fitting a gaussian to the region of interest. A line is then fit to the centroids and used. In this fit, the first and last 4 data points are excluded due to low transmission. The errors for each centroid are determined by taking the largest of the offsets between the subtraction of adjacent centroids (e.g. yerr[j]=0.1>abs(yarr0[j]-yarr0[j+1])>abs(yarr0[j]-yarr0[j-1]) )
 ;
+; All photometry is done in ADU/coadd. This is performed by converting the cube to ADU/coadd then converting back to whatever units the cube was input with
+;
+;
+;
+;; INPUTS: Datacube of which a source needs extracting, xcenter and ycenter keywords
 ;
 ; KEYWORDS:
-;	/Save	Set to 1 to save the spectrum to a disk file (.fits). 
 ;
+; Save: Set to 1 to save the spectrum to a disk file (.fits). 
+; xcenter: x-location of extraction (in pixels)
+; ycenter: y-location of extraction (in pixels)
+; inner_sky_radius: inner radius used in defining sky subtraction annulus 
+; outer_sky_radius: outer radius used in defining sky subtraction annulus 
+;	override: allows input of a new extraction radius, and the use/non-use of c_ap_scaling
+;	extraction_radius: Radius used to define annulus for source extraction. This keyword is only active if the override keyword is set, or if the CEXTR_AP keyword, set by the Calibrate Photometric Flux primitive (gpi_calibrate_photometric_flux.pro) is not present in the header
+; c_ap_scaling: keyword that activates the scaling of the apertures with wavelength. This keyword is only active if the override keyword is set, or if the C_AP_SC keyword, set by the Calibrate Photometric Flux primitive (gpi_calibrate_photometric_flux.pro) is not present in the header
+; display: window used to display the extracted spectrum plot
+; save_ps_plot: saves a postscript version of the plot if desired
+; write_ascii_file: writes as ascii output of the spectra - no header info included
+;
+;	/Save	;
 ; GEM/GPI KEYWORDS:FILTER,IFSUNIT
 ; DRP KEYWORDS: CUNIT,DATAFILE,SPECCENX,SPECCENY
 ; OUTPUTS:  
@@ -33,6 +45,7 @@
 ; PIPELINE ARGUMENT: Name="no_centroid_override" Type="int" Range="[0,1]" Default="0" Desc="Do not centroid on extraction source?"
 ; PIPELINE ARGUMENT: Name="display" Type="int" Range="[-1,100]" Default="17" Desc="-1 = No display; 0 = New (unused) window; else = Window number to display diagnostic plot."
 ; PIPELINE ARGUMENT: Name="save_ps_plot" Type="int" Range="[0,1]" Default="0" Desc="Save PostScript of plot?"
+; PIPELINE ARGUMENT: Name="write_ascii_file" Type="int" Range="[0,1]" Default="0" Desc="Save ascii file of spectrum (.dat)?"
 ; PIPELINE ORDER: 2.52
 ; PIPELINE TYPE: ALL-SPEC
 ; PIPELINE NEWTYPE: SpectralScience
@@ -45,7 +58,7 @@
 
 function gpi_extract_1d_spectrum, DataSet, Modules, Backbone
 
-primitive_version= '$Id: extract_one_spectrum.pro 2202 2013-12-04 00:34:59Z maire $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 thisModuleIndex = Backbone->GetCurrentModuleIndex()
@@ -54,7 +67,7 @@ if tag_exist( Modules[thisModuleIndex], "xcenter") then xcenter=float(Modules[th
 if tag_exist( Modules[thisModuleIndex], "ycenter") then ycenter=float(Modules[thisModuleIndex].ycenter) else ycenter=-1
 if tag_exist( Modules[thisModuleIndex], "display") then display=float(Modules[thisModuleIndex].display) else display=17
 if tag_exist( Modules[thisModuleIndex], "save_ps_plot") then save_ps_plot=float(Modules[thisModuleIndex].save_ps_plot) else save_ps_plot=0
-
+if tag_exist( Modules[thisModuleIndex], "write_ascii_file") then write_ascii_file=float(Modules[thisModuleIndex].write_ascii_file) else write_ascii_file=0
 if tag_exist( Modules[thisModuleIndex], "override") then override=float(Modules[thisModuleIndex].override) else override=0
 if tag_exist( Modules[thisModuleIndex], "inner_sky_radius") then inner_sky_radius=float(Modules[thisModuleIndex].inner_sky_radius) else inner_sky_radius=10
 if tag_exist( Modules[thisModuleIndex], "outer_sky_radius") then outer_sky_radius=float(Modules[thisModuleIndex].outer_sky_radius) else outer_sky_radius=20
@@ -72,6 +85,7 @@ contained_flux_ratio = (backbone->get_keyword('EFLUXRAT',count=count,ext_num=0))
 if count eq 0 then begin
 	backbone->Log,functionname+":  This is not a calibrated cube, assuming all flux is contained in the extraction aperture"
 	backbone->Log,functionname+":   Using user-specified extraction and sky annuli. Override being set to 1"
+	fscale=fltarr(N_ELEMENTS(lambda))+1
 	contained_flux_ratio=1.0
 	override=1.0
 	; set error to zero
@@ -83,6 +97,9 @@ endif else begin
 ; also pull cal_percent_err
 	cal_percent_err=fltarr(N_ELEMENTS(lambda))
 	for l=0, N_ELEMENTS(lambda)-1 do cal_percent_err[l]=(backbone->get_keyword('CERR_'+strc(l),count=count,ext_num=1))
+; pull flux scaling from headers
+fscale_arr=fltarr(N_ELEMENTS(lambda))
+	for l=0, N_ELEMENTS(lambda)-1 do fscale_arr[l]=(backbone->get_keyword('FSCALE'+strc(l),count=count,ext_num=1))
 endelse
 
 if override eq 1 then begin
@@ -95,7 +112,7 @@ endif
 ; #############################
 ; now extract the source
 ; #############################
-    source_cube=*(dataset.currframe[0])
+    source_cube=*(dataset.currframe[numfile])
 
      badpix = [0,0] & phpadu=1     
 
@@ -108,49 +125,138 @@ endif
 			endelse
 
      ;;do the photometry of the companion
-     x0=xcenter & y0=ycenter & hh=3.
+     x0=xcenter & y0=ycenter & hh=5.
      phot_comp=fltarr(N_ELEMENTS(lambda)) 
 		 phot_comp_err=fltarr(N_ELEMENTS(lambda))
-		
-     for i=0,CommonWavVect[2]-1 do begin
-				if keyword_set(no_centroid_override) eq 0 then begin
-        	cent=centroid(source_cube[x0-hh:x0+hh,y0-hh:y0+hh,i])
-         	x=x0+cent[0]-hh
-         	y=y0+cent[1]-hh
-				endif else begin
-					x=x0 & y=y0
-				endelse
+		xarr0=fltarr(N_ELEMENTS(lambda))
+		yarr0=fltarr(N_ELEMENTS(lambda))
+		xerr=fltarr(N_ELEMENTS(lambda))
+		yerr=fltarr(N_ELEMENTS(lambda))
+
+		; first do centroiding
+		if keyword_set(no_centroid_override) eq 0 then begin	
+				refpix = hh*2+1  ;search window size
+				;;create pure 2d gaussian
+				generate_grids, fx, fy, refpix, /whole
+				fr = sqrt(fx^2 + fy^2)
+				ref = exp(-0.5*fr^2)
 				
+		for i=0,CommonWavVect[2]-1 do begin
+			; centroid from the source
+					;stamp1=source_cube[x0-hh:x0+hh,y0-hh:y0+hh,i]
+        	;cent=centroid(stamp1)
+         	;x=x0+cent[0]-hh
+         	;y=y0+cent[1]-hh
+					
+					;cent=centroid(translate(source_cube[x0-hh:x0+hh,y0-hh:y0+hh,i],x0-x,y0-y))
+					;x2=x0+cent[0]-hh
+         	;y2=y0+cent[1]-hh
+									
+							stamp2 = source_cube[x0-hh:x0+hh,y0-hh:y0+hh,i]/fscale_arr[i]
+			  fourier_coreg,stamp2,ref,shft,/findshift
+				x3=x0-shft[0] & y3=y0-shft[1]
+				;print,x,y,x2,y2,x3,y3
+				x=x3 & y=y3
+				xarr0[i]=x & yarr0[i]=y
+				if finite(xarr0[i]+yarr0[i]) eq 0 then begin
+					phot_comp[i]=!values.f_nan & phot_comp_err[i]=!values.f_nan
+					;print,'infinite shifts encountered'
+				continue
+				endif
+					;can also centroid from the star - this code only here for if someone wants to implement it.
+			;tmp = sxpar(*calib_cube_struct.ext_header,"SATSMASK",count=ct)
+			;if ct eq 0 then return, error('FAILURE ('+functionName+'): SATSMASK undefined.  Use "Measure satellite spot locations" before this one.')
+			;goodcode = hex2bin(tmp,(size(calib_cube,/dim))[2])
+			;good = long(where(goodcode eq 1))
+			;cens = fltarr(2,4,(size(calib_cube,/dim))[2])
+			;for s=0,n_elements(good) - 1 do begin 
+			;   for j = 0,3 do begin 
+			;      tmp = fltarr(2) + !values.f_nan 
+;      reads,backbone->get_keyword('SATS'+strtrim(long(good[s]),2)+'_'+strtrim(j,2),ext_num=1),tmp,format='(F7," ",F7)'
+			;			reads,sxpar(*calib_cube_struct.ext_header,'SATS'+strtrim(long(good[s]),2)+'_'+strtrim(j,2)),tmp,format='(F7," ",F7)'
+			;      cens[*,j,good[s]] = tmp 
+			;   endfor 
+			;endfor
+
+			;tmp=*self.satspots[*].cens
+			;cents=fltarr(2,N_ELEMENTS(tmp[0,0,*]))
+			;for p=0, N_ELEMENTS(tmp[0,0,*]) -1 do begin
+   		;	for q=0, 1 do cents[q,p]=mean(tmp[q,*,p])
+			;endfor
+	
+		endfor ; end centroiding loop
+	;determine error from the data
+	for j=1,N_ELEMENTS(lambda)-2 do	xerr[j]=0.1>abs(xarr0[j]-xarr0[j+1])>abs(xarr0[j]-xarr0[j-1])
+	for j=1,N_ELEMENTS(lambda)-2 do	yerr[j]=0.1>abs(yarr0[j]-yarr0[j+1])>abs(yarr0[j]-yarr0[j-1])
+	delvarx,ax,bx,ay,by
+	; make sure all are finite and ignore first and last 3 points in the cube since hte SNR is crap
+	ind = where(finite(xarr0+yarr0) ne 0 and xerr ne 0 and yerr ne 0 and (lambda gt lambda[3] and lambda lt lambda[N_ELEMENTS(lambda)-4]))
+	fitexy,lambda[ind],xarr0[ind],Ax,Bx,X_sig=1e-3,y_sig=xerr[ind]
+	fitexy,lambda[ind],yarr0[ind],Ay,By,X_sig=1e-3,y_sig=yerr[ind]
+	xarr=lambda*Bx+Ax
+	yarr=lambda*By+Ay
+
+	;window,23
+	;plot,lambda,xarr0,yr=[min(xarr,/nan),max(xarr,/nan)]
+	;oplot, lambda,xarr
+
+		endif else begin
+		; just hard set to the define centroid
+			xarr[*]=x0 & yarr[*]=y0	
+		endelse
+
+; start photometry
+     for i=0,CommonWavVect[2]-1 do begin
+					if finite(xarr[i]+yarr[i]) eq 0 then continue	
 				aperrad = aperrad0*lambda[i]
 				skyrad  = skyrad0*lambda[i]
-		
-				aper, source_cube[*,*,i], [x], [y], flux, errflux, sky, skyerr, phpadu, aperrad, $
-              skyrad, badpix, /flux, /silent,/nan,/exact
-; the 0.6 is the correction used for a 3 pixel aperture, at the moment, it is the only info we have 
-        phot_comp[i]=(flux[0])*(0.6/contained_flux_ratio)
+				trans_cube=translate(source_cube[*,*,i]/fscale_arr[i],x0-xarr[i],y0-yarr[i])
+				;aper, trans_cube , [x0], [y0], flux, errflux, sky, skyerr, phpadu, aperrad, $
+        ;      skyrad, badpix, /flux, /silent,/nan,/exact
+				;aper, source_cube[*,*,i], [x], [y], flux, errflux, sky, skyerr, phpadu, aperrad, $
+        ;      skyrad, badpix, /flux, /silent,/nan,/exact
 
+				; the 0.6 is the correction used for a 3 pixel aperture, at the moment, it is the only info we have 
+        ;phot_comp[i]=(flux[0])*(0.6/contained_flux_ratio)
+			
 				; do an error approximation - the error is useless from aper unless in photons and even then it adds photon noise that won,t be correct.
-				tmp=source_cube[*,*,i]
-				ind=get_xyaind(281,281,x,y,skyrad[0],skyrad[1])
-				if ind[0] eq -1 then begin
-					phot_comp_err[i]=!values_f.nan
+				;get size of aperture in pixels - this is not really exact...
+				src_ind=get_xycind(281,281,x0,y0,aperrad)
+				bkg_ind=get_xyaind(281,281,x0,y0,skyrad[0],skyrad[1]-skyrad[0])
+				if bkg_ind[0] eq -1 or total(finite(trans_cube[bkg_ind])) eq 0 or total(finite(trans_cube[src_ind])) eq 0 then begin
+					phot_comp[i]=!values.f_nan
+					phot_comp_err[i]=!values.f_nan
 					continue
 				endif
-				phot_comp_err[i]=sqrt((!pi*(aperrad)^2)*(robust_sigma(tmp[ind])^2))*(0.6/contained_flux_ratio)
+				; fit plane to bkg
+				weights=0
+				finite_bkg_ind=bkg_ind[where(finite(trans_cube[bkg_ind]) eq 1)]
+				; fits and subtracts a plane to get proper error estimation
+				coef = PLANEFIT( finite_bkg_ind mod 281 ,finite_bkg_ind / 281,trans_cube[finite_bkg_ind],weights, yfit )		
+				
+				phot_comp[i]=total(trans_cube[src_ind])-(N_ELEMENTS(src_ind)*median(trans_cube[finite_bkg_ind]))*(0.6/contained_flux_ratio)
+				;phot_comp_err[i]=sqrt((!pi*(aperrad)^2)*(robust_sigma(tmp[ind])^2))*(0.6/contained_flux_ratio)
+				phot_comp_err[i]=sqrt(float(N_ELEMENTS(src_ind))*(stddev(trans_cube[finite_bkg_ind]-yfit,/nan)^2))*(0.6/contained_flux_ratio)
 		endfor
+; now convert back to desired units
+for l=0, N_ELEMENTS(lambda)-1 do phot_comp[l]*=fscale_arr[l]
+for l=0, N_ELEMENTS(lambda)-1 do phot_comp_err[l]*=fscale_arr[l]
+
 
 if display ne -1 then begin
   if display eq 0 then window,/free else select_window, display
 	units=(backbone->get_keyword('BUNIT'))
 	phot_comp_err_total=phot_comp*sqrt((cal_percent_err/100.)^2+(phot_comp_err/phot_comp)^2)
 	ploterror,lambda,phot_comp, phot_comp_err_total,ytitle='flux ['+units+']',xtitle='wavelength (um)',position=[0.16,0.11,0.97,0.97],xr=[min(lambda)-0.01,max(lambda)+0.01],xs=1
-
+;stop
 ;	if file_test('~/bp_test.fits') then begin
 ;		loadcolors
 ;		tmp=readfits('~/bp_test.fits')
 ;		oploterror,tmp[0,*],tmp[1,*],tmp[2,*],errcolor=2,color=2
 ;	endif
 
+;	bb=planck(lambda*1e4,18800)
+;	oplot, lambda,bb*(median(phot_comp)/median(bb)),linestyle=2
 endif
 
 if save_ps_plot eq 1 then begin
@@ -170,14 +276,29 @@ if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Sa
 	backbone->set_keyword, 'xcenter', xcenter, 'x-pixel in datacube where extraction has been made', ext_num=0
 	backbone->set_keyword, 'ycenter', ycenter,"x-pixel in datacube where extraction has been made", ext_num=0
 
-	suffix='-spectrum-x'+strc(xcenter)+'-y'+strc(ycenter)
-  wav_spec=[[lambda],[phot_comp],[phot_comp_err_total]] 
-	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix ,savedata=wav_spec) ;saveheader=hdr,
-  if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
+	suffix='-spectrum-x'+strc(round(xcenter))+'-y'+strc(round(ycenter))
+  wav_spec=[[lambda],[phot_comp],[phot_comp_err_total]]
+	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix ,savedata=wav_spec,display=0) ;saveheader=hdr,
+  if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save .fits dataset.')
+
+	; write ascii file?
+		
+	if write_ascii_file eq 1 then begin
+		  openw,funit,Modules[thisModuleIndex].OutputDir+path_sep()+strmid(dataset.filenames[0],0,strlen(dataset.filenames[0])-5)+suffix+'.dat',/get_lun
+			for i=0, N_ELEMENTS(lambda)-1 do begin		
+			if i eq 0 then printf,funit,'# wavelength [um] flux ['+units+'] flux_err ['+units+']'
+		      printf,funit,lambda[i],phot_comp[i],phot_comp_err_total[i], format='(A,A,A)'
+			endfor
+    
+  free_lun,funit
+	close,funit
+	endif
+
 endif
 
 display=0 ; ensure no gpitv is invoked to display
-
+gpitv=0
+if tag_exist( Modules[thisModuleIndex], "Save") eq 1 then Modules[thisModuleIndex].Save=0
  @__end_primitive 
 
 end

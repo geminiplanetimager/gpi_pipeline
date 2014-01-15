@@ -55,7 +55,7 @@
 ;- 
 
 function gpi_calibrate_photometric_flux, DataSet, Modules, Backbone
-primitive_version= '$Id: extract_one_spectrum.pro 2202 2013-12-04 00:34:59Z maire $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 
   @__start_primitive
  suffix='-phot'
@@ -219,15 +219,17 @@ if ct eq 0 then return, error('FAILURE ('+functionName+'): SATSWARN undefined.  
 	stddev_sat_flux[s]*=mean_sat_flux[s]
 	endfor
 
-if 0 eq 1 then begin
+if 1 eq 1 then begin
+window,19
 device,decomposed=0
-loadcolors
-ploterror, lambda, mean_sat_flux,stddev_sat_flux, xr=[min(lambda),max(lambda)],/xs,xtitle='wavelength', ytitle='sat spot intensity (ADU)',charsize=1.5
-oplot, lambda,(sat1flux/norm1)*mean_norm, color=2,linestyle=2
-oplot, lambda,sat2flux/norm2*mean_norm, color=3,linestyle=3
-oplot, lambda,sat3flux/norm3*mean_norm, color=4,linestyle=4
-oplot, lambda,sat4flux/norm4*mean_norm, color=5,linestyle=5
-pi_legend,['median(even)','UL sat','LL sat','UR sat','LR sat'],color=[0,2,3,4,5],linestyle=[0,2,3,4,5],textcolor=1,box=0,/top,/right
+;loadcolors
+ploterror, lambda, mean_sat_flux,stddev_sat_flux, xr=[min(lambda),max(lambda)],/xs,xtitle='wavelength', ytitle='sat spot intensity (ADU)',charsize=1.5,background=255,color=0,thick=2
+oplot, lambda,(sat1flux/norm1)*mean_norm, color=255/5*1,linestyle=2,thick=2
+oplot, lambda,sat2flux/norm2*mean_norm, color=255/5*2,linestyle=3,thick=2
+oplot, lambda,sat3flux/norm3*mean_norm, color=255/5*3,linestyle=4,thick=2
+oplot, lambda,sat4flux/norm4*mean_norm, color=255/5*4,linestyle=5,thick=2
+pi_legend,['median(even)','UL sat','LL sat','UR sat','LR sat'],color=[0,255/5*1,255/5*2,255/5*3,255/5*4],linestyle=[0,2,3,4,5],textcolor=1,box=0,/top,/right
+;stop
 endif
 
 
@@ -299,7 +301,8 @@ unitslist = ['Counts', 'Counts/s','ph/s/nm/m2', 'Jy', 'W/m2/um','ergs/s/cm2/A','
 ;	write the contained flux ratio to the header
 		backbone->set_keyword, 'EFLUXRAT',  contained_flux_ratio ,"flux ratio in photom aper", ext_num=0
 
-*(dataset.currframe[0])=calibrated_cube
+*(dataset.currframe[numfile])=calibrated_cube
+
 @__end_primitive 
 
 
