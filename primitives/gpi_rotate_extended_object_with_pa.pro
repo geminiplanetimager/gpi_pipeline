@@ -4,6 +4,8 @@
 ;
 ; PIPELINE PRIMITIVE DESCRIPTION: Rotate extended object
 ;
+; Note that this primitive must be run AFTER accumulate images.
+; This program simply does a derotation of a series of images to align to the first image in the stack
 ;
 ; KEYWORDS:
 ; GEM/GPI KEYWORDS:PAR_ANG
@@ -31,6 +33,12 @@ Function gpi_rotate_extended_object_with_PA, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 subsuffix='-rot'
 @__start_primitive
+
+     ; Load the first file so we can figure out their size, etc. 
+    im0 = accumulate_getimage(dataset, 0, hdr0, hdrext=hdrext0)
+sz = [0, sxpar(hdrext0,'NAXIS1'), sxpar(hdrext0,'NAXIS2'), sxpar(hdrext0,'NAXIS3')]
+        if sz[3] eq 0 then return, error('FAILURE ('+functionName+'): Input not a datacube, check that the input is a datacube and that Accumulate Images has been run prior to this primitive. ') 
+
 
 ;;if all images have been processed into datacubes then start ADI processing...
 if numfile  eq ((dataset.validframecount)-1) then begin
