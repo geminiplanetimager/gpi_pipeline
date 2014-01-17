@@ -185,6 +185,10 @@ endif
 			;endfor
 	
 		endfor ; end centroiding loop
+
+	if total(finite(xarr0)) eq 0 or total(finite(yarr0)) eq 0 then $
+		return, error('FAILURE ('+functionName+'): entire x or y centroids are NaNs; make sure the spectral extraction position is correct') 
+
 	;determine error from the data
 	for j=1,N_ELEMENTS(lambda)-2 do	xerr[j]=0.1>abs(xarr0[j]-xarr0[j+1])>abs(xarr0[j]-xarr0[j-1])
 	for j=1,N_ELEMENTS(lambda)-2 do	yerr[j]=0.1>abs(yarr0[j]-yarr0[j+1])>abs(yarr0[j]-yarr0[j-1])
