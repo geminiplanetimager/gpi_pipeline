@@ -54,7 +54,8 @@ if user_supplied_spectrum_flag eq 0 then begin
 endif
 
 ; check that an output unit is specified
-if keyword_set(units) eq 0 then return, error('FAILURE (gpi_photometric_calibration_calculation): Output units not specified. ') 
+; this is actually pretty dumb because if you put zero then it flags! 
+if keyword_set(units) eq 0 then message,/info, 'WARNING (gpi_photometric_calibration_calculation): FinalUnits either undefined or set to zero. Assuming FinalUnits equals 0'
 
 ; ################################
 ; load in the reference spectrum
@@ -81,7 +82,7 @@ if keyword_set(ref_model_spectrum) eq 0 then begin
 			; now load the spectrum
 			pickles=mrdfits(ref_model_spectrum,1)
 			model_wavelengths=pickles.wavelength
-			model_flux=pickles.flux
+			model_flux=pickles.flux ; erg/s/cm2/A - but this is not a zero magnitude - this is whatever the magnitude difference of the star is (so if H-V=2, then its a magnitude 2 star!
 			break
 		endif
 	endfor
@@ -117,6 +118,9 @@ endif ; if ref_model_spectrum eq 0
 	; interpolate to our data
 	gpi_model_flux=interpol(gpi_model_flux0,model_wavelengths/1e4,lambda) ; model_wavelengths is still in angstroms
 
+	;plot,model_wavelengths/1e4, gpi_model_flux0
+	;oplot, model_wavelengths/1e4,reform(model_flux)
+	
 ; only do a magnitude correction if it is a pickles spectrum
 	if user_supplied_spectrum_flag eq 0 then begin
 		; determine the magnitude correction between the filters		
@@ -150,21 +154,41 @@ endif ; if ref_model_spectrum eq 0
 			else: return, error('FAILURE (gpi_photometric_calibration_calculation):  No matching filter type found for '+strc(FILTTYPE)+', options are currently: GPI, 2Mass, 2M or not defined')
 		endcase
 
-	; now determine the magnitude offset
-		if keyword_set(filt_wave0) eq 1 and keyword_set(filt_prof0) eq 1 then begin
-			; load in the GPI filter profile - SHOULD BE TRANSMISSION PROFILE - ASSUMING FILTER ONLY
+	; now determine the magnitude offsets (star color and filter)
+
+	; load in the GPI filter profile - SHOULD BE TRANSMISSION PROFILE - ASSUMING FILTER ONLY
 			GPI_filt_prof=mrdfits(gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'filters/GPI-filter-'+filter+'.fits',1,/silent)
 			; must normalize the gpi_filt
 			gpi_filt_prof.transmission/=max(gpi_filt_prof.transmission)
-			; interpolate the model to the filter wavelengths.
+				; interpolate the model to the filter wavelengths.
 			model_gpi_flux=interpol(gpi_model_flux0,model_wavelengths/1e4,gpi_filt_prof.wavelength)
-			model_other_flux=interpol(gpi_model_flux0,model_wavelengths/1e4, filt_wave0)
-			; interpolate both to the 
-			dmag=-2.5*alog10(int_tabulated(gpi_filt_prof.wavelength,model_gpi_flux*gpi_filt_prof.transmission)/int_tabulated(filt_wave0,model_other_flux*filt_prof0)	); ourmag-2Mmag=dm
+
+		if keyword_set(filt_wave0) eq 1 and keyword_set(filt_prof0) eq 1 then begin
+				; interpolate the model to the new filter wavelengths
+				model_other_flux=interpol(gpi_model_flux0,model_wavelengths/1e4, filt_wave0)
+			
+				dmag=-2.5*alog10(int_tabulated(gpi_filt_prof.wavelength,model_gpi_flux*gpi_filt_prof.transmission)/int_tabulated(filt_wave0,model_other_flux*filt_prof0)	); ourmag-2Mmag=dm
 			message,/info,'(gpi_photometric_calibration_calculation):  Applied a magnitude offset of  '+strc(dmag)+' to account for the different relative response curves'
-		endif
-		; compensate for the magnitude difference
-		gpi_model_flux*=10.0^(-(ref_star_magnitude+dmag)/2.5)
+		endif 
+		; must determine the star color correction
+		; this is necessary because a pickles model of say a k2v star, is normalized to have a zero magnitude only in V-band. So at H-band the counts levels are not for a zero magnitude star (remember that the magnitude given by 2mass etc are for vega).
+		; Here we derive that correction by integrating the two spectra over our filter bandpass (this should actually be our spectral response curves)
+		; Need a vega spectrum (http://www.stsci.edu/hst/observatory/crds/calspec.html)
+		vega=mrdfits(gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'pickles/alpha_lyr_stis_005.fits',1)
+		; convolve
+		gpi_vega_flux0 = CONVOL( reform(vega.flux), gaus , /EDGE_TRUNCATE ) 
+		; interpolate the model to the filter wavelengths.
+		model_vega_flux=interpol(gpi_vega_flux0,vega.wavelength/1e4,gpi_filt_prof.wavelength)
+
+		; determine color magnitude correction
+
+		star_color_correction=-2.5*alog10(int_tabulated(gpi_filt_prof.wavelength,model_gpi_flux*gpi_filt_prof.transmission)/int_tabulated(gpi_filt_prof.wavelength,model_vega_flux*gpi_filt_prof.transmission)	); ourmag-2Mmag=dm
+		;star_color_correction=0
+		message,/info,'(gpi_photometric_calibration_calculation):  Applied a color correction of '+strc(star_color_correction)+' magnitudes to account for the color differences between Vega and '+strc(ref_spType)
+
+		; compensate for the magnitude difference due to the filter (dmag)
+		; and the star color correction
+		gpi_model_flux*=10.0^(-(ref_star_magnitude-star_color_correction+dmag)/2.5)
 	endif
 
 ; correct for the satellite to star flux ratio if desired
@@ -176,15 +200,25 @@ endif ; if ref_model_spectrum eq 0
 
 
 	; model is still in erg/s/cm2/A
+	
 	; need to convert it to whatever the user desires
 	  
-unitslist = ['Counts', 'Counts/s','ph/s/nm/m2', 'Jy', 'W/m2/um','ergs/s/cm2/A','ergs/s/cm2/Hz']
+unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A','ergs/s/cm^2/Hz']
 
  ; let's the user define what will be the final units:
-      ;from ph/s/nm/m^2 syst. to syst chosen
+
+; this is just a hack for transmission numbers 
+	case filter of
+			'Y':  trans_val=0.06
+	 	 'J':  trans_val=0.06
+	 	 'H': trans_val=0.07
+  	 'K1':  trans_val=0.07
+	 	 'K2': trans_val=0.07
+	endcase
+
       case units of
       0: begin ;'Counts'
-				message,/info,'Converting to Counts requires a system response function that is not yet properly determined. Continuing, using an approximation based on the filter!'
+				message,/info,'Converting to ADU per coadd requires a system response function that is not yet properly determined. Continuing, using an approximation based on the filter!'
 
 				; determine conversion
 				; this correction requires a transmission function that is not yet available
@@ -209,14 +243,15 @@ unitslist = ['Counts', 'Counts/s','ph/s/nm/m2', 'Jy', 'W/m2/um','ergs/s/cm2/A','
 				filt_prof0=mrdfits('/Users/Patrick/work/GPI/gpi_pipeline/pipeline/config/filters/GPI-filter-'+strc(filter)+'.fits',1,/silent)
 				; iterpolate to lambda
 				filt_prof=interpol(filt_prof0.transmission, filt_prof0.wavelength,lambda)
-				transmission=filt_prof*0.04
-				conv_fact*=transmission
-				
+				transmission=filt_prof*trans_val  
+				conv_fact*=(transmission)^2 ; NOT SURE THIS IS CORRECT...
+
+	
 				;return, error('FAILURE (gpi_photometric_calibration_calculation): Counts unit type requires a transmission function which is not yet determined')
 
             end
       1: begin ;'Counts/s'
-  				message,/info,'Converting to Counts requires a system response function that is not yet properly determined. Continuing, using an approximation based on the filter!'
+  				message,/info,'Converting to ADU/s requires a system response function that is not yet properly determined. Continuing, using an approximation based on the filter!'
 				 h=6.626068d-27                      ; erg * s
 			   c=2.99792458d14                     ; um / s
    			 Dtel=gpi_get_constant('primary_diam',default=7.7701d0)
@@ -235,9 +270,9 @@ unitslist = ['Counts', 'Counts/s','ph/s/nm/m2', 'Jy', 'W/m2/um','ergs/s/cm2/A','
 				; lets just pretend it is the filter profile and 4%
 				filt_prof0=mrdfits('/Users/Patrick/work/GPI/gpi_pipeline/pipeline/config/filters/GPI-filter-'+strc(filter)+'.fits',1,/silent)
 				; iterpolate to lambda
-				filt_prof=interpol(filt_prof0.transmission, filt_prof0.wavelength,lambda)
-				transmission=filt_prof*0.04
-				conv_fact*=transmission
+				filt_prof=interpol(filt_prof0.transmission, filt_prof0.wavelength,lambda)	
+				transmission=filt_prof*trans_val
+				conv_fact*=(transmission)^2   ; NOT SURE THIS IS CORRECT...
         end
       2: begin ;'ph/s/nm/m^2'
 				 h=6.626068d-27                      ; erg * s
