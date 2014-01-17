@@ -38,7 +38,7 @@
 ; PIPELINE ARGUMENT: Name="calib_cube_name" Type="string" Default="" Desc="Leave blank to use satellites of this cube, or enter a file to use those satellites"
 ; PIPELINE ARGUMENT: Name="calib_model_spectrum" Type="string" Default="" Desc="Leave blank to use satellites of this cube, or enter a file to use with the spectrum for the satellites"
 ; PIPELINE ARGUMENT: Name="calib_spectrum" Type="string" Default="" Desc="Leave blank to use satellites of this cube, or enter calibrated spectrum file"
-; PIPELINE ARGUMENT: Name="FinalUnits" Type="int" Range="[0,10]" Default="1" Desc="0:Counts, 1:Counts/s, 2:ph/s/nm/m^2, 3:Jy, 4:W/m2/um, 5:ergs/s/cm2/A, 6:ergs/s/cm2/Hz"
+; PIPELINE ARGUMENT: Name="FinalUnits" Type="int" Range="[0,10]" Default="1" Desc="0: ADU per coadd, 1: ADU/s, 2: ph/s/nm/m^2, 3: Jy, 4: 'W/m^2/um, 5: ergs/s/cm^2/A, 6: ergs/s/cm^2/Hz'"
 
 ; PIPELINE ORDER: 2.51
 ; PIPELINE TYPE: ALL-SPEC
@@ -140,7 +140,7 @@ if keyword_set(calib_cube_name) eq 1 or keyword_set(calib_cube_struct) eq 1 then
 			endelse
 		endelse
 	endif
-calib_cube=*calib_cube_struct.image
+calib_cube=*calib_cube_struct.image ; ADU/coadd
 
 ;grab satspots 
 tmp = sxpar(*calib_cube_struct.ext_header,"SATSMASK",count=ct)
@@ -219,7 +219,7 @@ if ct eq 0 then return, error('FAILURE ('+functionName+'): SATSWARN undefined.  
 	stddev_sat_flux[s]*=mean_sat_flux[s]
 	endfor
 
-if 1 eq 1 then begin
+if 0 eq 1 then begin
 window,19
 device,decomposed=0
 ;loadcolors
@@ -236,7 +236,8 @@ endif
 
 ; this is meant to determine what you need to multiply by in order to calibrate your spectrum
 ; calibrated spectrum=spectrum/reference_spectrum * converted_model_reference_spectrum
-unitslist = ['Counts', 'Counts/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A','ergs/s/cm^2/Hz']
+unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A','ergs/s/cm^2/Hz']
+
 
 ; check if the user supplied a magnitude for the band that can be used instead of the HMAG in the header
 ;test=sxpar(*(dataset.headersPHU[numfile]),"MAGNITUD",count=ct)
@@ -254,8 +255,8 @@ if converted_model_spectrum[0] eq -1 then return, error('FAILURE ('+functionName
 
 ; now correct the spectrum
 calibrated_cube=fltarr(281,281,N_ELEMENTS(lambda))
-cube=*(dataset.currframe[0])
-conv_fact= 1.0/mean_sat_flux * converted_model_spectrum 
+cube=*(dataset.currframe[0]) ; in ADU/coadd normally , but not always!!
+conv_fact= 1.0/mean_sat_flux * converted_model_spectrum ; mean sat flux is also in ADU/coadd
 for l=0, N_ELEMENTS(lambda)-1 do calibrated_cube[*,*,l]=cube[*,*,l] * conv_fact[l]
 calibrated_cube_err=stddev_sat_flux * conv_fact
 
@@ -267,7 +268,7 @@ endif ; if keyword_set(calib_cube_name)
 
 ; now we should write the cube
 ;*(dataset.currframe[0])=calibrated_cube
-unitslist = ['Counts', 'Counts/s','ph/s/nm/m2', 'Jy', 'W/m2/um','ergs/s/cm2/A','ergs/s/cm2/Hz']
+unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A','ergs/s/cm^2/Hz']
   	if keyword_set(calib_spectrum) then begin
 			backbone->set_keyword,'HISTORY',functionname+ 'WARNING- this has not been thoroughly tested and is extremely dangerous to use. Systematics can be easily introduced!'
 			backbone->set_keyword, 'CUNIT', "User_specified", "Data units", ext_num=1
