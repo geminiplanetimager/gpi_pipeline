@@ -68,11 +68,10 @@ function gpi_wavecal_sanity_check, filename_or_cal_data, silent=silent, $
 		;prihdr = headfits(filename,ext=0,/silent)
 		data = readfits(filename, ext=1, exthdr,/silent)
 	endif else begin
-		; username supplied an array
+		; begin supplied an array
 		loaded_from = 'array'
 		data = filename_or_cal_data 
 		filename = 'The supplied wavecal datacube '
-
 	endelse
 
 
@@ -192,7 +191,7 @@ function gpi_wavecal_sanity_check, filename_or_cal_data, silent=silent, $
 
 		;data[reform(inds[0,*]), reform(inds[1,*]), *] = !values.f_nan
 
-		atv, [[[xdiff, xdiff2]], [[ydiff, ydiff2]]],/bl
+		;atv, [[[xdiff, xdiff2]], [[ydiff, ydiff2]]],/bl
 		stop
 	
 		priheader = headfits(filename,/silent)

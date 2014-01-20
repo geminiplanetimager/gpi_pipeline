@@ -23,6 +23,7 @@
 ;   2013-03-13 MP: Vectorized for efficiency. 
 ;   2013-08-29 MP: Updated documentation
 ;-
+
 function change_wavcal_lambdaref, wavcal, lambdaout
 
 szw=size(wavcal)

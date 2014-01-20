@@ -72,8 +72,9 @@ start_params[8]=total(lensletarray);-min(lensletarray)*size(lensletarray,/n_elem
 ;print,'flux scaling',start_params[7]
 
 ;Provide starting guesses for the gaussian parameters (sigmax,sigmay,rotation)
-start_params[4:6] = [1.5, 1.5, 0]
-
+if xdim LT 211 then start_params[4:6] = [1.5, 1.5, 0]
+if (xdim GE 211) AND (xdim LT 235) then start_params[4:6] = [1.9, 1.9, 0]
+if xdim GE 235 then start_params[4:6] = [2.3, 2.3, 0]
 
 ;Compute a weighted error array to be passed to mp2dfitfunct
 ERR = sqrt(lensletarray ) ; FIXME this needs to be updated to take into account gain, read noise, etc.
