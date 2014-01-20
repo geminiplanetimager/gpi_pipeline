@@ -72,13 +72,13 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
 
 ;READ IN REFERENCE WAVELENGTH CALIBRATION
 
-
-	c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'wavecal',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
+;Uncommenting next line will override the users ability to manually
+;choose a wavecal.
+;	c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'wavecal',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
 	
-				; put into header
-	      backbone->set_keyword, "HISTORY", functionname+": get wav. calibration file",ext_num=0
+	; put into header
+	backbone->set_keyword, "HISTORY", functionname+": get wav. calibration file",ext_num=0
         backbone->set_keyword, "HISTORY", functionname+": "+c_File,ext_num=0
-
         backbone->set_keyword, "DRPWVCLF", c_File, "DRP wavelength calibration file used.", ext_num=0
 				
 
