@@ -164,9 +164,9 @@ if numfile  eq ((dataset.validframecount)-1) then begin
             y0=float(SXPAR( *(dataset.headersExt[n]), 'PSFCENTY',count=ccy))
             ;hdr=*(dataset.headers[n]) ;JM 2010-03-19
             if ((ccx eq 0) || (ccy eq 0) || ~finite(x0) || ~finite(y0))  then begin           
-              if n ne 0 then im1=gpi_adi_rotat(im1,theta,missing=!values.f_nan,hdr=*(dataset.headersExt[n])) ;(do not rotate first image)
+              if n ne 0 then im1=gpi_adi_rotat(im1,-theta,missing=!values.f_nan,hdr=*(dataset.headersExt[n])) ;(do not rotate first image)
             endif else begin
-              if n ne 0 then im1=gpi_adi_rotat(im1,theta,x0,y0,missing=!values.f_nan,hdr=*(dataset.headersExt[n])) ;(do not rotate first image)
+              if n ne 0 then im1=gpi_adi_rotat(im1,-theta,x0,y0,missing=!values.f_nan,hdr=*(dataset.headersExt[n])) ;(do not rotate first image)
             endelse  
              *(dataset.headersExt[n])=hdr
           im[*,*,il]=im1
@@ -184,7 +184,8 @@ if numfile  eq ((dataset.validframecount)-1) then begin
       ' degrees has been applied.',ext_num=1,indexFrame=n
        backbone->set_keyword,'ADIROTAT',strc(theta,format='(f7.2)'),"Applied ADI FOV derotation [degrees]",ext_num=1,indexFrame=n
        
-      *(dataset.currframe[0])=im
+     ; *(dataset.currframe)=im
+			*(dataset.frames[n])=im
       ;*(dataset.headers[numfile])=header
       thisModuleIndex = Backbone->GetCurrentModuleIndex()
 

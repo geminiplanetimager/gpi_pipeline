@@ -22,9 +22,9 @@
 ;
 ; ALGORITHM TODO: Deal with uncertainty and pixel mask frames too.
 ;
-; INPUTS: 2D image file
+; INPUTS: 3D image file
 ;
-; OUTPUTS: 2D image file, unchanged if YJH, background subtracted if K1 or K2.
+; OUTPUTS: 3D image file, unchanged if YJH, background subtracted if K1 or K2.
 ;
 ;
 ; PIPELINE COMMENT: Subtract a thermal/sky cube 
@@ -48,9 +48,6 @@ function gpi_subtract_thermal_sky_background_cube_if_k_band, DataSet, Modules, B
 current_filt = backbone->get_keyword('IFSFILT',/simplify)
 if (current_filt ne 'K1') and (current_filt ne 'K2') then return, 0 ; indicates OK to proceed .
 	; can't use common block vars here since we're above the common block import...
-
-
-
 
 ; Now, go on to the regular behavior in the case of K band. 
 primitive_version= '$Id$' ; get version from subversion to store in header history
