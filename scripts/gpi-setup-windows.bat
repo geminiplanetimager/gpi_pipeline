@@ -39,6 +39,7 @@ if not %ERRORLEVEL%==0 (
 	)
 )
 
+::find directory where this file resides, guess where the pipeline and external dirs are
 set "scriptDir=%~dp0"
 for %%A in ("%~dp0\..") do set "pipelineDir=%%~fA"
 for %%A in ("%pipelineDir%\..") do set "baseDir=%%~fA"
@@ -69,6 +70,7 @@ echo GPI External Libraries directory will be %externDir%
 echo GPI Data directory will be %dataDir%
 echo.
 
+::Set the variables to specify GPI directories
 setx GPI_DATA_ROOT %dataDir%
 setx GPI_DRP_DIR %pipelineDir%
 setx GPI_DRP_QUEUE_DIR %%GPI_DATA_ROOT%%\queue
@@ -106,6 +108,7 @@ if not exist %dataDir%\Detector (
 	md %dataDir%\Detector
 )
 
+::Configure IDL_PATH
 echo.
 echo.
 echo Configuring IDL path variables..
@@ -115,7 +118,7 @@ if not defined IDL_PATH (
 ) else (
 	:: Search IDL Path and see if it is necessary to add GPI paths to IDL path
 	:: IDL_Path may have special characters that Windows doesn't like so we need to
-	:: use delayed expansion to the parser from getting confused
+	:: use delayed expansion so the parser doesn't getting confused
 	setlocal EnableDelayedExpansion
 	::set ""="
 	set "newIDLPATH=!IDL_PATH!"
@@ -146,15 +149,19 @@ goto:eof
 :: If not, asks user to change to value of the variable
 :restartPrompt
 call set /p "userBool=For %1, is %%%1%%% the correct path (Y/N)? "
+::pick only the first char to determine yes or no
 set "userBool=%userBool:~0,1%"
 call:UpCase userBool
 if "%userBool%"=="Y" (
+	::user says it is fine, return
 	goto:eof
 )
 if "%userBool%"=="N" (
+	::user manually sets the variable
 	set /p "%~1=Please enter the correct path for %1 (absolute paths please): "
 	goto:restartPrompt
 ) else (
+	::invalid command
 	echo Please choose Yes or No
 	echo.
 	goto:restartPrompt
