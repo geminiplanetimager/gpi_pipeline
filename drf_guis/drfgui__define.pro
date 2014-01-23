@@ -198,13 +198,14 @@ function drfgui::get_obs_keywords, filename
 				DATALAB:  strc(  gpi_get_keyword(head, ext_head,  'DATALAB',     count=ct11)), $
 				ITIME:    float( gpi_get_keyword(head, ext_head,  'ITIME',    count=ct9)), $
 				OBJECT:   string(  gpi_get_keyword(head, ext_head,  'OBJECT',   count=ct10)), $
+				ELEVATIO: float(  gpi_get_keyword(head, ext_head,  'ELEVATIO',   count=ct12)), $
 				summary: '',$
 				valid: 0}
-	vec=[ct0,ct1,ct2,ct3,ct4,ct5,ct6,ct7,ct8,ct9, ct10,ct11, ctobsmode]
+	vec=[ct0,ct1,ct2,ct3,ct4,ct5,ct6,ct7,ct8,ct9, ct10,ct11,ct12, ctobsmode]
 	if total(vec) lt n_elements(vec) then begin
 		self.missingkeyw=1 
 		;give some info on missing keyw:
-		keytab=['ASTROMTC','OBSCLASS','OBSTYPE','OBSID', 'IFSFILT','DISPERSR','OCCULTER','LYOTMASK','APODIZER', 'ITIME', 'OBJECT','DATALAB', 'OBSMODE']
+		keytab=['ASTROMTC','OBSCLASS','OBSTYPE','OBSID', 'IFSFILT','DISPERSR','OCCULTER','LYOTMASK','APODIZER', 'ITIME', 'OBJECT','DATALAB', 'ELEVATIO', 'OBSMODE']
 		indzero=where(vec eq 0, cc)
 		;print, "Invalid/missing keywords for file "+filename
 		logmsg = 'Missing keyword(s): '+strjoin(keytab[indzero]," ")+" for "+filename
@@ -217,6 +218,7 @@ function drfgui::get_obs_keywords, filename
 		if ctobsmode eq 0 then obsstruct.obsmode = 'no OBSMODE'
 		if ct10 eq 0 then obsstruct.object = 'no OBJECT'
 		if ct11 eq 0 then obsstruct.datalab = 'no DATALAB'
+                if ct12 eq 0 then obsstruct.elevatio = 'no ELEVATIO'
 
 	endif else begin
 		self.missingkeyw=0 ; added by Marshall for cleanup & consistency
@@ -227,7 +229,7 @@ function drfgui::get_obs_keywords, filename
 	if obsstruct.object eq 'GCALflat' then obsstruct.object+= " "+gpi_get_keyword(head, ext_head,  'GCALLAMP')
 
     obsstruct.summary = file_basename(filename)+"     "+string(obsstruct.obsmode,format='(A-10)')+" "+string(obsstruct.dispersr,format='(A-10)') +" "+string(obsstruct.obstype, format='(A10)')+$
-				" "+string(obsstruct.itime,format='(F5.1)')+"  "+string(obsstruct.object,format='(A15)')+"       "+obsstruct.datalab
+				" "+string(obsstruct.itime,format='(F5.1)')+"  "+string(obsstruct.object,format='(A15)')+"       "+obsstruct.datalab+"  "+string(obsstruct.elevatio,format='(F5.5)')
  
 	
 	return, obsstruct

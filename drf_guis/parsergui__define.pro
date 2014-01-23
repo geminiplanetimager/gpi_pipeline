@@ -245,9 +245,12 @@ pro parsergui::parse_current_files
 		endelse
       
     endif else begin ;if data are test data don't remove them but inform a bit
-        for ff=0, nfiles-1 do begin
+
+		nfiles = n_elements(file) ;edited by SGW 
+
+                for ff=0, nfiles-1 do begin
 			if self.debug then message,/info, 'Checking for valid headers: '+file[ff]
-			valid = gpi_validate_file(file[i])
+			valid = gpi_validate_file(file[ff]) ;Changed index from i to ff, SGW
 		endfor
     endelse
     ;(*self.currModSelec)=strarr(5)
@@ -324,6 +327,7 @@ pro parsergui::parse_current_files
             uniqobsclass = uniqvals(finfo.obsclass, /sort)
             uniqitimes = uniqvals(finfo.itime, /sort)
             uniqobjects = uniqvals(finfo.object, /sort)
+            ;uniqelevation = uniqvals(finfo.elevatio, /sort)
 
             nbfilter=n_elements(uniqfilter)
             message,/info, "Now adding "+strc(n_elements(finfo))+" files. "
@@ -377,7 +381,7 @@ pro parsergui::parse_current_files
                             
                             for fobs=0,n_elements(uniqobsclass)-1 do begin
                                 current.obsclass=uniqobsclass[fobs]
-                                
+ 
                                 for fitime=0,n_elements(uniqitimes)-1 do begin
 
                                     current.itime = uniqitimes[fitime]    ; in seconds, now
@@ -400,8 +404,8 @@ pro parsergui::parse_current_files
                                                     finfo.object eq current.object, cobj)
                                                     
 										if self.debug then begin
-											message,/info, 'Now testing the following parameters: ('+strc(cobj)+' files match) '
-											help, current,/str
+											message,/info, 'Now testing the following parameters: ('+strc(cobj)+' files help) '
+											match, current,/str
 										endif
 
                       
@@ -414,6 +418,7 @@ pro parsergui::parse_current_files
 
 										current.obsmode = finfo[indfobject[0]].obsmode
 										current.lyotmask= finfo[indfobject[0]].lyotmask
+                                                             
                                         ;identify which templates to use
                                         print,  current.obstype ; uniqsortedobstype[indsortseq[fc]]
                                         self->Log, "Found sequence of OBSTYPE="+current.obstype+", OBSMODE="+current.obsmode+", DISPERSR="+current.dispersr+", IFSFILT="+current.filter+ " with "+strc(cobj)+" files targeting "+current.object
@@ -424,9 +429,14 @@ pro parsergui::parse_current_files
                                         end
                                         'ARC': begin 
                                             if  current.dispersr eq 'WOLLASTON' then begin 
-												templatename='Create Polarized Flat-field'
-                                            endif else begin                                                          
-												templatename='Wavelength Solution'
+							templatename='Create Polarized Flat-field'
+                                            endif else begin 
+                                               objelevation = finfo[indfobject[0]].elevatio
+                                                     if (objelevation lt 91.0) AND (objelevation gt 89.0) then begin 
+							templatename='Wavelength Solution 2D'
+                                                     endif else begin
+                                                        templatename='Quick Wavelength Solution'
+                                                     endelse
                                             endelse                     
                                         end
                                         'FLAT': begin

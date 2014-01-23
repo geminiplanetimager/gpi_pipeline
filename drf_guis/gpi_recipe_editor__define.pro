@@ -86,6 +86,7 @@ function gpi_recipe_editor::get_obs_keywords, filename
 				ITIME:    float( gpi_get_keyword(head, ext_head,  'ITIME',    count=ct9)), $
 				COADDS:   fix( gpi_get_keyword(head, ext_head,  'COADDS',    count=ctcoadd)), $
 				OBJECT:   string(  gpi_get_keyword(head, ext_head,  'OBJECT',   count=ct10)), $
+      				ELEVATIO: float(  gpi_get_keyword(head, ext_head,  'ELEVATIO',   count=ct12)), $
 				summary: '',$
 				valid: 0}
 
@@ -94,13 +95,14 @@ function gpi_recipe_editor::get_obs_keywords, filename
 	if ct10 eq 0 then obsstruct.object = 'no OBJECT'
 	if ct3 eq 0 then obsstruct.obsid = 'no OBSID'
 	if ct0 eq 0 then obsstruct.astromtc= 'F'
+        if ct12 eq 0 then obsstruct.elevatio = 'no elevation'
 
 	; some we need to have in order to be able to parse.
-	vec=[ct1,ct2,ct4,ct5,ct6,ct7,ct8,ct9,  ctobsmode]
+	vec=[ct1,ct2,ct4,ct5,ct6,ct7,ct8,ct9,ct12,  ctobsmode]
 	if total(vec) lt n_elements(vec) then begin
 		obsstruct.valid=0
 		;give some info on missing keyw:
-		keytab=['OBSCLASS','OBSTYPE', 'IFSFILT','DISPERSR','OCCULTER','LYOTMASK','APODIZER', 'ITIME',  'OBSMODE']
+		keytab=['OBSCLASS','OBSTYPE', 'IFSFILT','DISPERSR','OCCULTER','LYOTMASK','APODIZER', 'ITIME', 'ELEVATIO', 'OBSMODE']
 		indzero=where(vec eq 0, cc)
 		;print, "Invalid/missing keywords for file "+filename
 		logmsg = 'Missing keyword(s): '+strjoin(keytab[indzero]," ")+" for "+filename
@@ -120,7 +122,7 @@ function gpi_recipe_editor::get_obs_keywords, filename
 
 	if obsstruct.coadds eq 1 then coaddstr = "     " else coaddstr = "*"+string(obsstruct.coadds,format='(I-4)')
     obsstruct.summary = file_basename(filename)+"     "+string(obsstruct.obsmode,format='(A-10)')+" "+string(obsstruct.dispersr,format='(A-10)') +" "+string(obsstruct.obstype, format='(A-10)')+$
-				" "+string(obsstruct.itime,format='(F5.1)')+coaddstr+"  "+string(obsstruct.object,format='(A-15)')+"       "+obsstruct.datalab
+				" "+string(obsstruct.itime,format='(F5.1)')+coaddstr+"  "+string(obsstruct.object,format='(A-15)')+"       "+obsstruct.datalab+" "+string(obsstruct.elevatio,format='(F3.5)')
  
 	
 	return, obsstruct
