@@ -1,4 +1,4 @@
-#!/bin/csh 
+#!/bin/csh
 #
 # Stand alone script to launch GPI DRP IDL programs.
 # Launches two xterms for the two IDL sessions.
@@ -13,8 +13,6 @@
 if ! $?GPI_DRP_DIR then 
    set GPI_DRP_DIR=`idl -e "print, gpi_get_directory('GPI_DRP_DIR')"`
 endif
-
-
 
 # Colors and sizes of xterms are purely cosmetic, change the below as you desire.
 
