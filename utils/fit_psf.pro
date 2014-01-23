@@ -57,7 +57,7 @@
 ;   Originally by Jean-Baptiste Ruffio 2013-06
 ;- 
 function fit_PSF, pixel_array, FIRST_GUESS = first_guess, $
-                  X0 = x0, Y0 = y0, $
+                  X0 = x0, Y0 = y0, mask=mask, $
                   ;PSF, x_vector_psf, y_vector_psf, $
                   ptr_obj_psf,$
                   FIT_PARAMETERS = fit_parameters,$
@@ -165,7 +165,13 @@ if (where(finite(psf)))[0] ne -1 then begin
   ;                1D/Z     - Poisson weighting (counting statistics)
   ;                1D       - Unweighted
     ;TODO: pick a weight but take care to infinite values
-    my_weights = 1.0
+    my_weights = mask
+; we want to follow the format of Anderson et al.
+; he uses a radial weighting scheme combined with a poisson distribution
+; he can do this because he is looking for astrometry not intensity
+
+;stop
+
   ;  my_weights = double(pixel_array[*,*,i_slice]
   ;  my_weights = 1D/pixel_array[*,*,i_slice]
   ;  weights_not_finite = where(~finite(my_weights))
