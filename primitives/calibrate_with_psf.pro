@@ -87,10 +87,10 @@ function calibrate_with_PSF, DataSet, Modules, Backbone
                                 ; raw data stamps
         if nfiles ge 2 then begin
 					time0=systime(1,/seconds)
-           spaxels = get_spaxels(my_first_mode, dataset.frames[0:(nfiles-1)], dataset.wavcals[0:(nfiles-1)], width_PSF, /STAMPS_MODE) 
+           spaxels = get_spaxels2(my_first_mode, dataset.frames[0:(nfiles-1)], dataset.wavcals[0:(nfiles-1)], width_PSF, /STAMPS_MODE) 
   				time_cut=systime(1,/seconds)-time0
 			 endif else $
-           spaxels = get_spaxels(my_first_mode, image, wavcal, width_PSF, /STAMPS_MODE)
+           spaxels = get_spaxels2(my_first_mode, image, wavcal, width_PSF, /STAMPS_MODE)
      end
      'WOLLASTON': begin
         width_PSF = 7
@@ -111,15 +111,13 @@ function calibrate_with_PSF, DataSet, Modules, Backbone
 ;          masks: ptr_masks}
      end
   endcase
-;  stop
-;  stop
   
   common psf_lookup_table, com_psf, com_x_grid_PSF, com_y_grid_PSF, com_triangles, com_boundary
                                 ;diff_image = readfits("/Users/jruffio/Desktop/diff_image6.fits")
   diff_image = fltarr(2048,2048)
   new_image = fltarr(2048,2048)
   
-  n_neighbors = 3               ; number on each side - so 4 gives a 9x9 box - 3 gives a 7x7 box
+  n_neighbors = 6               ; number on each side - so 4 gives a 9x9 box - 3 gives a 7x7 box
 ;  n_neighbors_flex = 3          ; for the flexure shift determination - not currently used
 
   values_tmp = *(spaxels.values[(where(ptr_valid(spaxels.values)))[0]])
@@ -143,11 +141,14 @@ function calibrate_with_PSF, DataSet, Modules, Backbone
 ; start the iterations
   it_max=1
   it_flex_max = 2
-  if nfiles eq 1 then it_flex_max=1
+  if nfiles eq 1 then begin 
+     it_flex_max=1
+     it_max=2
+  endif
 ; make an array to look at the stddev as a function of iterations
 
   if flat_field eq 1 then flat_field_arr=fltarr(2048,2048,nfiles)
-  
+
 debug=1
   if debug eq 1 then begin
  ; create a series of arrays to evaluate the fits for each iteration
@@ -168,8 +169,8 @@ debug=1
   jmin_test = 0 & jmax_test=280
 ; imin_test = 145 & imax_test = 155
 ; jmin_test = 145 & jmax_test = 155
- imin_test = 166-20 & imax_test = 177+20
- jmin_test = 166-20 & jmax_test = 177+20
+; imin_test = 166-20 & imax_test = 177+20
+; jmin_test = 166-20 & jmax_test = 177+20
   ; code check range
 ; imin_test = 148 & imax_test = 152
 ; jmin_test = 148 & jmax_test = 152
@@ -177,6 +178,7 @@ debug=1
   xind=166 & yind=177
   pp_neighbors=8
 
+spaxels0=spaxels
 
 time1=systime(1,/seconds)
   for it_flex=0,it_flex_max-1 do begin
@@ -622,7 +624,8 @@ tmpy=(spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,it_elev])[not
 
         
      endfor                     ; ends loop over it_elev to apply flexure correction (line 670)
-endif
+  endif ; if statement to see if there is more than 1 file - 
+
      ;//////STOP HERE if you want to play with the pixel phase plots or the centroid coordinates in the different images.
      ;stop,'just before end of flexure correction' ; this is where JB_TEST.sav is created
      
@@ -647,6 +650,8 @@ endif
 ;                                                flat_field_arr
 ; but might have overlap as some pixels will have been used twice
         flat_field_arr2=fltarr(2048,2048,nfiles)
+        lowfreq_flat1=fltarr(281,281,nfiles)
+        lowfreq_flat2=fltarr(281,281,nfiles)
         for it_elev=0, nfiles-1 do begin
            for k=0,kmax do for i=0,281-1 do for j=0,281-1 do begin
                                 ; find values are are not masked.
@@ -654,6 +659,8 @@ endif
               value_to_consider = where(*spaxels.masks[i,j,k,it_elev] eq 1)
               if value_to_consider[0] ne -1 then begin
                  flat_field_arr2[ (*spaxels.xcoords[i,j,k,it_elev])[value_to_consider], (*spaxels.ycoords[i,j,k, it_elev])[value_to_consider], replicate(it_elev,N_ELEMENTS(value_to_consider)) ] = ((*spaxels.values[i,j,k,it_elev])[value_to_consider] - (spaxels.sky_values[i,j,k,it_elev]) )/((*fitted_spaxels.values[i,j,k,it_elev]))[value_to_consider]
+                 lowfreq_flat1[i,j,k,it_elev]=total((*fitted_spaxels.values[i,j,k,it_elev])[value_to_consider])
+                 lowfreq_flat2[i,j,k,it_elev]=total((*spaxels.values[i,j,k,it_elev])[value_to_consider])
               endif      
            endfor
         endfor
@@ -665,19 +672,23 @@ if ind[0] ne -1 then flat_field_arr[ind]=!values.f_nan
         weights=fltarr(2048,2048,nfiles)
         for n=0,nfiles-1 do weights[*,*,n]=(*(dataset.frames[n]))
         
-        final_flat2=total(weights*flat_field_arr2,3)/total(weights,3)
+        if nfiles eq 1 then $
+           final_flat2=flat_field_arr2 $
+           else final_flat2=total(weights*flat_field_arr2,3)/total(weights,3) 
            writefits, "flat_field_arr.fits",flat_field_arr
 
 ; for lenslet 135,135 
 ;tvdl, subarr(final_flat2,100,[953,978]),0,2
-;  for lenslet 166,177 
+loadct,0
 window,23,retain=2
 tvdl, subarr(final_flat2,100,[1442,1244]),0.9,1.1
+;  for lenslet 166,177 
 window,24,retain=2
 image=*(dataset.currframe[0])
 tvdl, subarr(image,100,[1442,1244]),/log
 
-endif
+endif ; end flat field creation
+
         
 ; ####################
 ; create flexure plots
@@ -714,14 +725,14 @@ window,2,retain=2,title='weighted % residual'
 tmp=(weighted_diff_intensity_arr/weighted_intensity_arr)
 plothist,tmp[*,*,*,*,*,0],xhist,yhist,/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5
 plothist,tmp[*,*,*,*,*,0],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,yr=[0,max(yhist)*1.5],ys=1
-plothist,tmp[*,*,*,*,*,1],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,/noerase,linestyle=2,yr=[0,max(yhist)*1.5],ys=1,color=155
+if nfiles ne 1 then plothist,tmp[*,*,*,*,*,1],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,/noerase,linestyle=2,yr=[0,max(yhist)*1.5],ys=1,color=155
 
 window,1,retain=2,title='non-weighted % residual'
 tmp2=(diff_intensity_arr/intensity_arr)
 
 plothist,tmp2[*,*,*,*,*,0],xhist,yhist,/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5
 plothist,tmp2[*,*,*,*,*,0],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,yr=[0,max(yhist)*1.5],ys=1
-plothist,tmp2[*,*,*,*,*,1],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,/noerase,linestyle=2,yr=[0,max(yhist)*1.5],ys=1,color=155
+if nfiles ne 1 then plothist,tmp2[*,*,*,*,*,1],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,/noerase,linestyle=2,yr=[0,max(yhist)*1.5],ys=1,color=155
 
 
 
