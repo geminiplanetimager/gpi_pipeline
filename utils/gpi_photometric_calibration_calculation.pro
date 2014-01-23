@@ -129,7 +129,7 @@ endif ; if ref_model_spectrum eq 0
 		if keyword_set(ref_filter_type) eq 1 then FILTTYPE=ref_filter_type else FILTTYPE=sxpar(pri_header,'FILTTYPE',count=count)
 		if count[0] eq 0 then begin
 			 FILTTYPE='2mass' ; makes it a gpi filter type
-			message,/info,'(gpi_photometric_calibration_calculation):  No FILTTYPE keyword supplied, assuming specified magnitude is for the 2mass filter set'
+			message,/info,'(gpi_photometric_calibration_calculation):  No FILTTYPE keyword supplied, assuming specified magnitude is a 2mass magnitude'
 		endif
 
 		; check for 2mass writing synonyms
