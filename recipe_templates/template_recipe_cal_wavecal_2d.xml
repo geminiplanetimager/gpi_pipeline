@@ -7,6 +7,7 @@
 <primitive name="Subtract Dark Background" CalibrationFile="AUTOMATIC" RequireExactMatch="0" Save="           0" gpitv="0" />
 <primitive name="Subtract Thermal/Sky Background if K band" CalibrationFile="AUTOMATIC" Save="           0" gpitv="10" />
 <primitive name="Interpolate bad pixels in 2D frame" CalibrationFile="AUTOMATIC" method="vertical" Save="           0" gpitv="0" before_and_after="0" />
-<primitive name="Parallel 2D Wavelength Solution" display="0" boxsizex="7" boxsizey="24" whichpsf="0" numsplit="4" />
+<primitive name="Accumulate Images" Method="InMemory" />
+<primitive name="2D Wavelength Solution" display="0" whichpsf="0" parallel="1" numsplit="0" boxsizex="7" boxsizey="24" Save="1" Save_model_image="1" CalibrationFile="AUTOMATIC" Save_model_params="1"  />
 </recipe>
 

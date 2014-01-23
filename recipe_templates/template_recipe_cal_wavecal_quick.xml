@@ -9,5 +9,5 @@
 <primitive name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0"  gpitv="0" />
 <primitive name="Subtract Thermal/Sky Background if K band" CalibrationFile="AUTOMATIC" Save="0"  gpitv="10" />
 <primitive name="Interpolate bad pixels in 2D frame" method="vertical"  Save="1" gpitv="0" CalibrationFile="AUTOMATIC" />
-<primitive name="Quick Wavelength Solution Update" spacing="20" CalibrationFile="AUTOMATIC" Save="1"  gpitvim_dispgrid="10" />
+<primitive name="Quick Wavelength Solution Update" Display="-1" spacing="20" boxsizex="7" boxsizey="24" whichpsf="0" CalibrationFile="AUTOMATIC" Save="           1" gpitvim_dispgrid="10" />
 </DRF>
