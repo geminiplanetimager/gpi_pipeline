@@ -241,8 +241,10 @@ PSF_nx_samples = PSF_nx_pix*PSF_samples_per_xpix + 1
 PSF_ny_samples = PSF_ny_pix*PSF_samples_per_ypix + 1
 PSF_x_step = 1.0/float(PSF_samples_per_xpix)
 PSF_y_step = 1.0/float(PSF_samples_per_ypix)
+; want the mean centered at 0,0 ?
 PSF_x_sampling = (findgen(PSF_nx_samples) - floor(PSF_nx_samples/2))* PSF_x_step - (mean(x_centroids,/nan)/(nx_pix-1) - 0.5)*PSF_nx_samples*PSF_x_step
 PSF_y_sampling = (findgen(PSF_ny_samples) - floor(PSF_ny_samples/2))* PSF_y_step - (mean(y_centroids,/nan)/(ny_pix-1) - 0.5)*PSF_ny_samples*PSF_y_step
+
 
 x_grid_PSF = rebin(PSF_x_sampling,PSF_nx_samples,PSF_ny_samples)
 y_grid_PSF = rebin(reform(PSF_y_sampling,1,PSF_ny_samples),PSF_nx_samples,PSF_ny_samples)
@@ -261,12 +263,12 @@ if where_coords_NOT_too_big[0] ne -1 then begin
   
   
   if keyword_set(PLOT_SAMPLES) then begin
-    window, 0
-    plot,all_x_coords,all_y_coords ,psym=3,$
-                  TITLE = "PSF sampling (green = psf grid, white = samples)", $
-                  XTITLE = "x axis (in pixel)", $
-                  YTITLE = "y axis (in pixel)", yr=[-1,1],xr=[-1,1]
-    oplot, reform(x_grid_PSF, n_elements(x_grid_PSF)),reform(y_grid_PSF, n_elements(y_grid_PSF)),psym=1,color=155
+    ;window, 10,retain=2
+    ;plot,all_x_coords,all_y_coords ,psym=3,$
+    ;              TITLE = "PSF sampling (green = psf grid, white = samples)", $
+    ;              XTITLE = "x axis (in pixel)", $
+    ;              YTITLE = "y axis (in pixel)", yr=[-1,1],xr=[-1,1]
+    ;oplot, reform(x_grid_PSF, n_elements(x_grid_PSF)),reform(y_grid_PSF, n_elements(y_grid_PSF)),psym=1,color=155
     ;stop
   endif
   
@@ -291,11 +293,11 @@ xshift=0.0 & yshift=0.0
 ;val_loc_y_coords = value_locate(PSF_y_sampling+yshift, all_y_coords + PSF_y_step/2.)
 
 time0=systime(1)
-	for l=0, 10 do begin
+	for l=0, 1 do begin
 ; this finds all the samplings for a given psf coordinate
 ; takes very little time
-val_loc_x_coords = value_locate(PSF_x_sampling-xshift, all_x_coords) 
-val_loc_y_coords = value_locate(PSF_y_sampling-yshift, all_y_coords)
+val_loc_x_coords = value_locate(PSF_x_sampling, all_x_coords-xshift) 
+val_loc_y_coords = value_locate(PSF_y_sampling, all_y_coords-yshift)
 	  for i = 0,PSF_nx_samples-1 do begin
 			; the indices_for_current_point variable is determined in the following manner simply for speed reasons.
 			possible_ind= where((val_loc_x_coords eq i or val_loc_x_coords eq i+1))
@@ -320,29 +322,30 @@ val_loc_y_coords = value_locate(PSF_y_sampling-yshift, all_y_coords)
 				; the next line is the slowest - this is the original method
 				;indices_for_current_point = where((val_loc_x_coords ge i and val_loc_x_coords le i+1) and (val_loc_y_coords ge j and val_loc_y_coords le j+1) )
 
-			  if indices_for_current_point[0] ne -1 then begin
-        matching_values = all_pix_values[indices_for_current_point]
-					; make sure no nan's are present
-					bad=where(finite(matching_values) eq 0, complement=good)
-					if good[0] eq -1 then begin
+                                if indices_for_current_point[0] ne -1 then begin
+                                   matching_values = all_pix_values[indices_for_current_point]
+                                ; make sure no nan's are present
+                                   bad=where(finite(matching_values) eq 0, complement=good)
+                                   if good[0] eq -1 then begin
 						 error_flag += 1
-             PSF[i,j] = !values.f_nan
-						continue
-					endif
-    	    if n_elements(matching_values[good]) ge 3 then begin
-      				; calculate residual.
-							resid= matching_values - PSF[i,j]
-						;stop,[i,j]
-							meanclip, resid, curr_mean, curr_sigma, clipsig=2.5, subs=subs;,/verbose   
-					;curr_sigma = robust_sigma(matching_values) ; WAY SLOWER
-            	PSF[i,j] += curr_mean ; median is too slow
-            	how_well_sampled[i,j] = N_ELEMENTS(temporary(subs))
-          endif else begin
-            error_flag += 1
-            PSF[i,j] = !values.f_nan
-						continue
-          			endelse
-        endif else begin
+                                                 PSF[i,j] = !values.f_nan
+                                                 continue
+                                              endif
+                                   if n_elements(matching_values[good]) ge 13 then begin
+                                ; calculate residual.
+if finite(total(matching_values[good])) eq 0 or finite(psf[i,j]) eq 0 then stop
+                                      resid= matching_values - PSF[i,j]
+                                ;stop,[i,j]
+                                      meanclip, resid, curr_mean, curr_sigma, clipsig=2.5, subs=subs ;,/verbose   
+                                ;curr_sigma = robust_sigma(matching_values) ; WAY SLOWER
+                                      PSF[i,j] += curr_mean ; median is too slow
+                                      how_well_sampled[i,j] = N_ELEMENTS(temporary(subs))
+                                   endif else begin
+                                      error_flag += 1
+                                      PSF[i,j] = !values.f_nan
+                                      continue
+                                   endelse
+                                endif else begin
             error_flag += 1
             PSF[i,j] = !values.f_nan
         		continue		
@@ -354,6 +357,7 @@ val_loc_y_coords = value_locate(PSF_y_sampling-yshift, all_y_coords)
 ;tvdl,psf
 
 psf2 = CONVOL( psf, kernel , /EDGE_TRUNCATE, /NAN, /NORMALIZE )
+psf2=psf
 ind=where(finite(psf) eq 0)
 if ind[0] ne -1 then psf2[ind]=0.0;!values.f_nan
 ; normalize so that the psf is the same total
@@ -379,9 +383,17 @@ yshift = (new_y_centroid-y_centroid0);*psf_y_step
 ; force x to be zero for a moment
 ;if l eq 9 then print,l,xshift,yshift
 if finite(xshift+yshift) eq 0 then stop, 'shifts are not a number ?!? - get_psf2 line 360'
-;stop,l,xshift,yshift
-psf=temporary(psf2) 
 
+;stop,l,xshift,yshift
+
+;psf2[ind]=!values.f_nan
+;loadct,0
+;print,l,xshift,yshift
+;if l eq 0 then window,2,retain=2
+;tvdl,psf2
+;wait,1
+;stop
+psf=temporary(psf2) 
 	endfor ; iterative loop
 ;print, time0-systime(1)
 
@@ -585,10 +597,10 @@ psf=temporary(psf2)
     end
   endcase
   
-  
+; NOT SURE WE SHOULD BE DOING THIS!  
   ;Finally... We shift the coordinates...
-  PSF_x_sampling -= x_centroid
-  PSF_y_sampling -= y_centroid
+ ; PSF_x_sampling -= x_centroid
+ ; PSF_y_sampling -= y_centroid
   
   if (centroid_mode eq "MAX" or centroid_mode eq "EDGE") and (n_elements(where(finite(PSF) eq 1)) ge 7) then begin
       ;For the keywords:
