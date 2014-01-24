@@ -1,4 +1,4 @@
-function gpi_photometric_calibration_calculation, lambda, pri_header, ext_header, units=units,ref_star_magnitude=star_mag, ref_filter_type=ref_filter_type, ref_SpType=SpType, ref_model_spectrum=ref_model_spectrum, spectrum=spectrum,ref_spectrum=ref_spectrum,  output_spectrum=output_spectrum, no_satellite_correction=no_satellite_correction
+function gpi_photometric_calibration_calculation, lambda, pri_header, ext_header, units=units,ref_star_magnitude=star_mag, ref_filter_type=ref_filter_type, ref_SpType=SpType, ref_model_spectrum=ref_model_spectrum, spectrum=spectrum,ref_spectrum=ref_spectrum,  output_spectrum=output_spectrum, no_satellite_correction=no_satellite_correction,logarr=logarr
 
 ;########
 ; INPUTS
@@ -30,10 +30,12 @@ function gpi_photometric_calibration_calculation, lambda, pri_header, ext_header
 if keyword_set(ref_model_spectrum) eq 1 then user_supplied_spectrum_flag=1 else user_supplied_spectrum_flag=0
 ; did the user supply a magnitude
 if keyword_set(ref_star_magnitude) eq 1 then begin
-	user_supplied_magnitude_flag=1
-;	ref_star_magnitude=float(star_mag)
-endif else user_supplied_magnitude_flag=0
+		user_supplied_magnitude_flag=1
+	;	ref_star_magnitude=float(star_mag)
+	endif else user_supplied_magnitude_flag=0
 
+; start a string array of log messages - this is due to some stupid bug where the program will cause bus errors or segmentation faults if message statements are used inside this function. 
+logarr='Results of gpi_photometric_calibration_calculation.pro'
 
 ; load the keywords out of the header - if needed
 ; if the user supplies a spectrum then this isnt necessary
@@ -49,7 +51,7 @@ if user_supplied_spectrum_flag eq 0 then begin
 	 	if user_supplied_magnitude_flag eq 0 then ref_star_magnitude=float(gpi_get_keyword( pri_header, ext_header,'HMAG',count=cc))
 		if cc eq 0 and user_supplied_magnitude_flag eq 0 then return, error('FAILURE (gpi_photometric_calibration_calculation): H-band magnitude value (HMAG) is not defined in the header nor keywords')  
 	endif else begin
-	message,/info, "(gpi_photometric_calibration_calculation):  Model of the reference spectrum is defined, ignoring any defined spectral type and magnitude defined in the keywords and/or headers"
+logarr=[logarr, "(gpi_photometric_calibration_calculation):  Model of the reference spectrum is defined, ignoring any defined spectral type and magnitude defined in the keywords and/or headers"]
 	endelse
 endif
 
@@ -64,7 +66,7 @@ if keyword_set(units) eq 0 then message,/info, 'WARNING (gpi_photometric_calibra
 if user_supplied_spectrum_flag eq 1 then begin
 	if file_test(ref_model_spectrum) eq 1 then return, error ('FAILURE (gpi_photometric_calibration_calculation): The file '+strc(ref_model_spectrum)+', specified by the user is not found')
 
-		message,/info,'(gpi_photometric_calibration_calculation):  Loading user-specified spectrum '+ref_model_spectrum
+		logarr=[logarr, '(gpi_photometric_calibration_calculation):  Loading user-specified spectrum '+ref_model_spectrum]
 		readcol,ref_model_spectrum,model_wavelengths,model_flux,format=('F,F')
 endif
 
@@ -89,9 +91,9 @@ if keyword_set(ref_model_spectrum) eq 0 then begin
 
 	;error handling if something failed
 	if i eq N_ELEMENTS(pickles_fnames) then begin
-		message,/info,"(gpi_photometric_calibration_calculation):  No pickles spectrum was found for the given spectral type "+strc(ref_spType)
+		logarr=[logarr, "(gpi_photometric_calibration_calculation):  No pickles spectrum was found for the given spectral type "+strc(ref_spType)]
 		dir=gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'pickles'+path_sep()+'AA_README'
-		message,/info,'(gpi_photometric_calibration_calculation):  Check the AA_README file in '+strc(dir)+' lines 114-193 for the available spectral types'
+		logarr=[logarr, '(gpi_photometric_calibration_calculation):  Check the AA_README file in '+strc(dir)+' lines 114-193 for the available spectral types']
 		return, error('FAILURE (gpi_photometric_calibration_calculation): No pickles spectrum was found for the given spectral type '+strc(ref_spType))
 	endif
 endif ; if ref_model_spectrum eq 0
@@ -126,10 +128,10 @@ endif ; if ref_model_spectrum eq 0
 		; determine the magnitude correction between the filters		
 	
 		; read the header keyword FILTTYPE to determine the proper RSR to grab
-		if keyword_set(ref_filter_type) eq 1 then FILTTYPE=ref_filter_type else FILTTYPE=sxpar(pri_header,'FILTTYPE',count=count)
-		if count[0] eq 0 then begin
+		if keyword_set(ref_filter_type) eq 1 then FILTTYPE=ref_filter_type else FILTTYPE=sxpar(pri_header,'FILTTYPE',count=cc)
+		if cc eq 0 then begin
 			 FILTTYPE='2mass' ; makes it a gpi filter type
-			message,/info,'(gpi_photometric_calibration_calculation):  No FILTTYPE keyword supplied, assuming specified magnitude is a 2mass magnitude'
+			logarr=[logarr, '(gpi_photometric_calibration_calculation):  No FILTTYPE keyword supplied, assuming specified magnitude is a 2mass magnitude']
 		endif
 
 		; check for 2mass writing synonyms
@@ -148,7 +150,7 @@ endif ; if ref_model_spectrum eq 0
 								endcase
 							end 
 			'gpi': begin
-							message,/info,'(gpi_photometric_calibration_calculation):  GPI filter magnitude specified. No delta magnitude correction applied'
+							logarr=[logarr, '(gpi_photometric_calibration_calculation):  GPI filter magnitude specified. No delta magnitude correction applied']
 							dmag=0.0
 						 end
 			else: return, error('FAILURE (gpi_photometric_calibration_calculation):  No matching filter type found for '+strc(FILTTYPE)+', options are currently: GPI, 2Mass, 2M or not defined')
@@ -168,7 +170,7 @@ endif ; if ref_model_spectrum eq 0
 				model_other_flux=interpol(gpi_model_flux0,model_wavelengths/1e4, filt_wave0)
 			
 				dmag=-2.5*alog10(int_tabulated(gpi_filt_prof.wavelength,model_gpi_flux*gpi_filt_prof.transmission)/int_tabulated(filt_wave0,model_other_flux*filt_prof0)	); ourmag-2Mmag=dm
-			message,/info,'(gpi_photometric_calibration_calculation):  Applied a magnitude offset of  '+strc(dmag)+' to account for the different relative response curves'
+			logarr=[logarr, '(gpi_photometric_calibration_calculation):  Applied a magnitude offset of  '+strc(dmag)+' to account for the different relative response curves']
 		endif 
 		; must determine the star color correction
 		; this is necessary because a pickles model of say a k2v star, is normalized to have a zero magnitude only in V-band. So at H-band the counts levels are not for a zero magnitude star (remember that the magnitude given by 2mass etc are for vega).
@@ -184,7 +186,7 @@ endif ; if ref_model_spectrum eq 0
 
 		star_color_correction=-2.5*alog10(int_tabulated(gpi_filt_prof.wavelength,model_gpi_flux*gpi_filt_prof.transmission)/int_tabulated(gpi_filt_prof.wavelength,model_vega_flux*gpi_filt_prof.transmission)	); ourmag-2Mmag=dm
 		;star_color_correction=0
-		message,/info,'(gpi_photometric_calibration_calculation):  Applied a color correction of '+strc(star_color_correction)+' magnitudes to account for the color differences between Vega and '+strc(ref_spType)
+		logarr=[logarr, '(gpi_photometric_calibration_calculation):  Applied a color correction of '+strc(star_color_correction)+' magnitudes to account for the color differences between Vega and '+strc(ref_spType)]
 
 		; compensate for the magnitude difference due to the filter (dmag)
 		; and the star color correction
