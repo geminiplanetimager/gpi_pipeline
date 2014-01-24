@@ -223,12 +223,12 @@ if 0 eq 1 then begin
 window,19
 device,decomposed=0
 ;loadcolors
-ploterror, lambda, mean_sat_flux,stddev_sat_flux, xr=[min(lambda),max(lambda)],/xs,xtitle='wavelength', ytitle='sat spot intensity (ADU)',charsize=1.5,background=255,color=0,thick=2
-oplot, lambda,(sat1flux/norm1)*mean_norm, color=255/5*1,linestyle=2,thick=2
-oplot, lambda,sat2flux/norm2*mean_norm, color=255/5*2,linestyle=3,thick=2
-oplot, lambda,sat3flux/norm3*mean_norm, color=255/5*3,linestyle=4,thick=2
-oplot, lambda,sat4flux/norm4*mean_norm, color=255/5*4,linestyle=5,thick=2
-pi_legend,['median(even)','UL sat','LL sat','UR sat','LR sat'],color=[0,255/5*1,255/5*2,255/5*3,255/5*4],linestyle=[0,2,3,4,5],textcolor=1,box=0,/top,/right
+ploterror, lambda, mean_sat_flux,stddev_sat_flux, xr=[min(lambda),max(lambda)],/xs,xtitle='wavelength', ytitle='sat spot intensity (ADU)',charsize=1.5,background=cgcolor('white'),color=cgcolor('black'),thick=2
+oplot, lambda,(sat1flux/norm1)*mean_norm, color=cgcolor('blue'),linestyle=2,thick=2
+oplot, lambda,sat2flux/norm2*mean_norm, color=cgcolor('teal'),linestyle=3,thick=2
+oplot, lambda,sat3flux/norm3*mean_norm, color=cgcolor('red'),linestyle=4,thick=2
+oplot, lambda,sat4flux/norm4*mean_norm, color=cgcolor('green'),linestyle=5,thick=2
+pi_legend,['median(even)','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/right,textcolor=cgcolor('black')
 ;stop
 endif
 
@@ -249,7 +249,9 @@ unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm
 ; should actually put in the data from the calibration cube!
 ; aso have to pass a variable with the calib_model_spectrum
 
-converted_model_spectrum = gpi_photometric_calibration_calculation(lambda,*(dataset.headersPHU[numfile]),*(dataset.headersExt[numfile]),units=FinalUnits,ref_model_spectrum=calib_model_spectrum,ref_star_magnitude=star_mag, ref_filter_type=ref_filter_type, ref_SpType=SpType)
+converted_model_spectrum = gpi_photometric_calibration_calculation(lambda,*(dataset.headersPHU[numfile]),*(dataset.headersExt[numfile]),units=FinalUnits,ref_model_spectrum=calib_model_spectrum,ref_star_magnitude=star_mag, ref_filter_type=ref_filter_type, ref_SpType=SpType,logarr=logarr)
+; now print out the log - this is due to some stupid bug that causes bus errors/segementation faults using the message,/info program
+for zz=0,N_ELEMENTS(logarr)-1 do backbone->Log,logarr[zz] 
 
 if converted_model_spectrum[0] eq -1 then return, error('FAILURE ('+functionName+'): Could not perform photometric calibration, incorrect keywords and/or input to the gpi_photometric_calibration_calculation function ') 
 
@@ -267,7 +269,6 @@ endif ; if keyword_set(calib_cube_name)
 
 
 ; now we should write the cube
-;*(dataset.currframe[0])=calibrated_cube
 unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A','ergs/s/cm^2/Hz']
   	if keyword_set(calib_spectrum) then begin
 			backbone->set_keyword,'HISTORY',functionname+ 'WARNING- this has not been thoroughly tested and is extremely dangerous to use. Systematics can be easily introduced!'
@@ -290,6 +291,13 @@ unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm
 		backbone->set_keyword, 'CEXTR_AP', extraction_radius,"Calib. extr aper at "+strc(lambda[N_ELEMENTS(lambda)/2])+"um", ext_num=0
 		backbone->set_keyword, 'CISKY_AP', inner_sky_radius,"Calib. inner sky rad at "+strc(lambda[N_ELEMENTS(lambda)/2])+"um", ext_num=0
 		backbone->set_keyword, 'COSKY_AP', outer_sky_radius,"Calib. outer sky rad at "+strc(lambda[N_ELEMENTS(lambda)/2])+"um", ext_num=0
+if keyword_set(norm1) then norm_stddev=stddev([norm1,norm2,norm3,norm4]) else norm_stddev=0.0
+if ~keyword_set(mean_norm) then mean_norm=1.0
+
+		backbone->set_keyword, 'SATNSTD', norm_stddev ,"Satellite normalization standard deviation", ext_num=1
+		backbone->set_keyword, 'SATSNORM', mean_norm ,"Satellite normalization standard deviation", ext_num=1
+
+
 		; put the sat responses into different variable names for ease of header writing
 		cal_percent_err=(stddev_sat_flux/mean_sat_flux)*100
 
@@ -298,6 +306,7 @@ unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm
  	; must write calibration percent error (sat flux and sat error) in the header for proper error handling in spectral extraction
 		for l=0, N_ELEMENTS(lambda)-1 do backbone->set_keyword, 'FSCALE'+strc(l), conv_fact[l],"scale to convert counts to "+strc(unitslist[FinalUnits]), ext_num=1
 		for l=0, N_ELEMENTS(lambda)-1 do backbone->set_keyword, 'CERR_'+strc(l), cal_percent_err[l],"Cal percent error for slice "+strc(l), ext_num=1
+; must write stddev of satellite spot normalizations - to give proper error bar on the absolute flux calibration normalization
 
 ;	write the contained flux ratio to the header
 		backbone->set_keyword, 'EFLUXRAT',  contained_flux_ratio ,"flux ratio in photom aper", ext_num=0
