@@ -334,9 +334,13 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		print, "using port = "+port
 		sxaddhist, functionname+": using instr pol for port ="+port, hdr0
 	;system_mueller = DST_instr_pol(/mueller, port=port)
+	
+	;Good for on-sky data
   	woll_mueller_vert = mueller_linpol_rot(0)
 	woll_mueller_horiz= mueller_linpol_rot(90)
-;    woll_mueller_vert = mueller_linpol_rot(90)
+	
+	;Good for lab data
+;    woll_mueller_vert = mueller_linpol_rot(90) 
 ;   woll_mueller_horiz= mueller_linpol_rot(0)
     
     ;Getting Filter Information
@@ -353,7 +357,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	;endif else begin
 	  polstack[0,0,i*2] = accumulate_getimage(dataset,i,hdr0,hdrext=hdrext)
 	;endelse	
-		wpangle[i] =-(float(sxpar(hdr0, "WPANGLE"))-float(Modules[thisModuleIndex].HWPOffset)) ;Include the known offset
+		wpangle[i] =float(sxpar(hdr0, "WPANGLE"))-float(Modules[thisModuleIndex].HWPOffset) ;Include the known offset
 		parang = sxpar(hdr0, "PAR_ANG") ; we want the original, not rotated or de-rotated
 										; since that's what set's how the
 										; polarizations relate to the sky
@@ -438,7 +442,6 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		endelse
 	endfor 
 	endfor 
-
 
 	; should we do the fit to the two polarized images, or to the sum and diff
 	; images?
@@ -593,7 +596,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   print, "U = "+string(umean)
   print, "V = "+string(vmean)
   print, "P = "+string(100*sqrt(qmean^2+umean^2))+"    percent linear polarization"
-  print, "PA = "+string(atan(qmean,umean)/!dtor)+" Mean PA across the field"
+  print, "PA = "+string(atan(umean/qmean)/!dtor/2)+" Mean PA across the field"
   print, string(100*sqrt(qmean^2+umean^2+vmean^2))+"     percent polarization"
   print, "------------------------------"
   
