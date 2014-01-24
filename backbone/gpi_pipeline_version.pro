@@ -29,11 +29,12 @@
 ;	2013-06-17      Release 0.9.1 at end of GPI Acceptance Testing
 ;	2013-09-03		Release 0.9.2 for GPI integration at Gemini South
 ;	2013-11-12		Release 0.9.3 for GPI first light observing run.
+;	2014-01-07		Release 0.9.4 for AAS Meeting 
 ;-
 
 function gpi_pipeline_version, svn=svn
 
-version = '0.9.3'
+version = '0.9.4'
 
 if keyword_set(svn) then begin
 	; append svn version ID also
