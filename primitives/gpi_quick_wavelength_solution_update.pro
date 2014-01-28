@@ -238,8 +238,8 @@ for i = istart,iend,spacing do begin
 	; versus the existing properties of the prior wavecal
 	wg = where((newwavecal[*,*,0] ne 0) and finite(newwavecal[*,*,0]))
 	
-	xdiffs = (newwavecal[*,*,0])[wg] - (refwlcal[*,*,0])[wg]
-	ydiffs = (newwavecal[*,*,1])[wg] - (refwlcal[*,*,1])[wg]
+	ydiffs = (newwavecal[*,*,0])[wg] - (refwlcal[*,*,0])[wg]
+	xdiffs = (newwavecal[*,*,1])[wg] - (refwlcal[*,*,1])[wg]
 
 ;	mnx = mean(xdiffs,/nan)
 ;	mny = mean(ydiffs,/nan)
@@ -274,8 +274,8 @@ for i = istart,iend,spacing do begin
 	shiftedwavecal = refwlcal
 ;        shiftedwavecal[*,*,0]=newwavecal[*,*,0]
 ;        shiftedwavecal[*,*,1]=newwavecal[*,*,1]
-	shiftedwavecal[*,*,0] += mnx
-	shiftedwavecal[*,*,1] += mny
+	shiftedwavecal[*,*,0] += mny
+	shiftedwavecal[*,*,1] += mnx
 ; Edit the header of the original raw data products 
 ; to include the information about the new wavelength
 ; calibration. Taken from the gpi_measure_wavelength_calibration.pro

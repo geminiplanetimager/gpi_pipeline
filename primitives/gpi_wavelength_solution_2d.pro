@@ -75,9 +75,9 @@ calfiletype = 'wavecal'
 	;READ IN REFERENCE WAVELENGTH CALIBRATION
 ;	c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'wavecal',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
 
-	backbone->set_keyword, 'HISTORY','Reference Wavecal used as a starting point for fit: '
-	backbone->set_keyword, 'HISTORY', c_File
-	backbone->set_keyword, 'REFWVCLF', 'Prior reference cal used as a starting point'
+	backbone->set_keyword, 'HISTORY','Reference Wavecal used as a starting point for fit: ',ext_num=0
+	backbone->set_keyword, 'HISTORY', c_File,ext_num=0
+	backbone->set_keyword, 'REFWVCLF', c_File, 'Prior reference cal used as a starting point',ext_num=0
 
 	;open the reference wavecal file. Save into common block variable.
 	refwlcal = gpi_readfits(c_File,header=Header)
@@ -221,7 +221,7 @@ if keyword_set(parallel) then begin
 	'    lensletmodel[startx:stopx, starty:stopy] += modelimage',$
 	'    lensletcount+=1',$
  	'endfor',$
-	'backbone->Log,"Have now fit "+strc(lensletcount)+"/"+strc(n_valid_lenslets)+ " lenslets in process "+strc(which_bridge)']
+	'print,"Have now fit "+strc(lensletcount)+"/"+strc(n_valid_lenslets)+ " lenslets in process "+strc(which_bridge)']
 
 	backbone->Log,"Parallel process execution complete.", depth=3,/flush
 
@@ -418,7 +418,7 @@ if keyword_set(save_model_image) then begin
 	smoothed_background =griddata(bkgx, bkgy, modelbackgrounds[wg], xout=findgen(2048), yout=findgen(2048),/grid, /nearest, triangles=triangles)
 	smoothed_background = filter_image(smoothed_background,fwhm=30)
 
-	smoothed_background = trigrid(  bkgx, bkgy, modelbackgrounds[wg], tr, xout=indgen(2048), yout=indgen(2048) )
+	smoothed_background = trigrid(  bkgx, bkgy, modelbackgrounds[wg],triangles, xout=indgen(2048), yout=indgen(2048) )
 	smoothed_background[*,0:3] = 0
 	smoothed_background[0:3,*] = 0
 	smoothed_background[2044:2047,*] = 0
