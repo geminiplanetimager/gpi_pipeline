@@ -24,6 +24,8 @@
 ; PIPELINE ARGUMENT: Name="spacing" Type="Int" Range="[0,20]" Default="10" Desc="Test every Nth lenslet for this value of N."
 ; PIPELINE ARGUMENT: Name="boxsizex" Type="Int" Range="[0,15]" Default="7" Desc="x dimension of a lenslet cutout"
 ; PIPELINE ARGUMENT: Name="boxsizey" Type="Int" Range="[0,50]" Default="24" Desc="y dimension of a lenslet cutout"
+; PIPELINE ARGUMENT: Name="xoffset" Type="Float" Range="[-10,10]" Default="0" Desc="x offset guess from prior wavecal."
+; PIPELINE ARGUMENT: Name="yoffset" Type="Float" Range="[-20,20]" Default="0" Desc="y offset guess from prior wavecal."
 ; PIPELINE ARGUMENT: Name="whichpsf" Type="Int" Range="[0,1]" Default="0" Desc="Type of psf 0;gaussian, 1;microlens"
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type='String' CalFileType="wavecal" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
@@ -59,6 +61,8 @@ calfiletype='wavecal'
  	if tag_exist( Modules[thisModuleIndex], "spacing") then spacing=uint(Modules[thisModuleIndex].spacing) else spacing=10
  	if tag_exist( Modules[thisModuleIndex], "boxsizex") then boxsizex=uint(Modules[thisModuleIndex].boxsizex) else boxsizex=7
  	if tag_exist( Modules[thisModuleIndex], "boxsizey") then boxsizey=uint(Modules[thisModuleIndex].boxsizey) else boxsizey=24
+ 	if tag_exist( Modules[thisModuleIndex], "xoffset") then xoffset=float(Modules[thisModuleIndex].xoffset) else xoffset=0
+ 	if tag_exist( Modules[thisModuleIndex], "yoffset") then yoffset=float(Modules[thisModuleIndex].yoffset) else yoffset=0
  	if tag_exist( Modules[thisModuleIndex], "whichpsf") then whichpsf=uint(Modules[thisModuleIndex].whichpsf) else whichpsf=0
 
 ;Define common block to be used in wrapper.pro and ngauss.pro
@@ -147,8 +151,8 @@ numiterations = float(iend-istart)*(iend-istart)/(spacing^2)
 
 for i = istart,iend,spacing do begin
 	for j = jstart,jend,spacing do begin
-           xo=refwlcal[i,j,1]
-           yo=refwlcal[i,j,0]
+           xo=refwlcal[i,j,1]+xoffset
+           yo=refwlcal[i,j,0]+yoffset
            startx=floor(xo-boxsizex/2.0)
            starty=round(yo)-20
            stopx = startx+boxsizex
@@ -238,8 +242,8 @@ for i = istart,iend,spacing do begin
 	; versus the existing properties of the prior wavecal
 	wg = where((newwavecal[*,*,0] ne 0) and finite(newwavecal[*,*,0]))
 	
-	ydiffs = (newwavecal[*,*,0])[wg] - (refwlcal[*,*,0])[wg]
-	xdiffs = (newwavecal[*,*,1])[wg] - (refwlcal[*,*,1])[wg]
+	ydiffs = (newwavecal[*,*,0])[wg] - (refwlcal[*,*,0]+yoffset)[wg]
+	xdiffs = (newwavecal[*,*,1])[wg] - (refwlcal[*,*,1]+xoffset)[wg]
 
 ;	mnx = mean(xdiffs,/nan)
 ;	mny = mean(ydiffs,/nan)
