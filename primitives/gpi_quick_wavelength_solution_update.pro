@@ -152,10 +152,10 @@ numiterations = float(iend-istart)*(iend-istart)/(spacing^2)
 
 for i = istart,iend,spacing do begin
 	for j = jstart,jend,spacing do begin
-           xo=refwlcal[i,j,1]+xoffset
-           yo=refwlcal[i,j,0]+yoffset
-           startx=floor(xo-boxsizex/2.0)
-           starty=round(yo)-20
+           xo=refwlcal[i,j,1]
+           yo=refwlcal[i,j,0]
+           startx=floor(xo-boxsizex/2.0)+xoffset
+           starty=round(yo)-20+yoffset
            stopx = startx+boxsizex
            stopy = starty+boxsizey
 
@@ -243,8 +243,8 @@ for i = istart,iend,spacing do begin
 	; versus the existing properties of the prior wavecal
 	wg = where((newwavecal[*,*,0] ne 0) and finite(newwavecal[*,*,0]))
 	
-	ydiffs = (newwavecal[*,*,0])[wg] - (refwlcal[*,*,0]+yoffset)[wg]
-	xdiffs = (newwavecal[*,*,1])[wg] - (refwlcal[*,*,1]+xoffset)[wg]
+	ydiffs = (newwavecal[*,*,0])[wg] - (refwlcal[*,*,0])[wg]
+	xdiffs = (newwavecal[*,*,1])[wg] - (refwlcal[*,*,1])[wg]
 
         ind=where(xdiffs ne 0 and ydiffs ne 0)
         ydiffs=ydiffs[ind]
