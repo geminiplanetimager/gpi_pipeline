@@ -149,6 +149,7 @@ statuswindow = backbone->getstatusconsole()
 
 numiterations = float(iend-istart)*(iend-istart)/(spacing^2)
 
+
 for i = istart,iend,spacing do begin
 	for j = jstart,jend,spacing do begin
            xo=refwlcal[i,j,1]+xoffset
@@ -245,6 +246,11 @@ for i = istart,iend,spacing do begin
 	ydiffs = (newwavecal[*,*,0])[wg] - (refwlcal[*,*,0]+yoffset)[wg]
 	xdiffs = (newwavecal[*,*,1])[wg] - (refwlcal[*,*,1]+xoffset)[wg]
 
+        ind=where(xdiffs ne 0 and ydiffs ne 0)
+        ydiffs=ydiffs[ind]
+        xdiffs=xdiffs[ind]
+
+
 ;	mnx = mean(xdiffs,/nan)
 ;	mny = mean(ydiffs,/nan)
 ;	sdx = stddev(xdiffs[xsubs],/nan)
@@ -255,7 +261,8 @@ for i = istart,iend,spacing do begin
 	meanclip,ydiffs,mny,sdy,clipsig=2,subs=ysubs
 
 
-	backbone->Log, "Mean shifts (X,Y) of this file vs. old wavecal: "+printcoo(mnx, mny)+" pixels,   +- "+printcoo(sdx,sdy)+" pixels 1 sigma"
+	backbone->Log, "Mean shifts (X,Y) of this file vs. old wavecal: "+printcoo(mnx, mny, format='(f20.3)')+" pixels,   +- "+printcoo(sdx,sdy,format='(f20.3)')+" pixels 1 sigma"
+        if ((sdx GE 1.0) OR (sdy GE 1.0)) then backbone->Log, "WARNING: Errors in the pixel shifts are more than a pixel."
 
 	if display ne -1 then begin
 		if display eq 0 then window,/free else select_window, display
