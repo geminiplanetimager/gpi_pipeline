@@ -24,11 +24,12 @@
 ; PIPELINE ARGUMENT: Name="spacing" Type="Int" Range="[0,20]" Default="10" Desc="Test every Nth lenslet for this value of N."
 ; PIPELINE ARGUMENT: Name="boxsizex" Type="Int" Range="[0,15]" Default="7" Desc="x dimension of a lenslet cutout"
 ; PIPELINE ARGUMENT: Name="boxsizey" Type="Int" Range="[0,50]" Default="24" Desc="y dimension of a lenslet cutout"
-; PIPELINE ARGUMENT: Name="xoffset" Type="Float" Range="[-10,10]" Default="0" Desc="x offset guess from prior wavecal."
-; PIPELINE ARGUMENT: Name="yoffset" Type="Float" Range="[-20,20]" Default="0" Desc="y offset guess from prior wavecal."
+; PIPELINE ARGUMENT: Name="xoffset" Type="Int" Range="[-10,10]" Default="0" Desc="x offset guess from prior wavecal."
+; PIPELINE ARGUMENT: Name="yoffset" Type="Int" Range="[-20,20]" Default="0" Desc="y offset guess from prior wavecal."
 ; PIPELINE ARGUMENT: Name="whichpsf" Type="Int" Range="[0,1]" Default="0" Desc="Type of psf 0;gaussian, 1;microlens"
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type='String' CalFileType="wavecal" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
+; PIPELINE ARGUMENT: Name="AutoOffset" Type="int" Range="[0,1]" Default="0" Desc="Automatically determine x/yoffset values 0;NO, 1;YES"
 ; PIPELINE ARGUMENT: Name="gpitvim_dispgrid" Type="int" Range="[0,500]" Default="15" Desc="1-500: choose gpitv session for displaying image output and wavcal grid overplotted, 0: no display "
 ; PIPELINE ORDER: 1.7
 ; PIPELINE NEWTYPE: Calibration
@@ -64,6 +65,8 @@ calfiletype='wavecal'
  	if tag_exist( Modules[thisModuleIndex], "xoffset") then xoffset=float(Modules[thisModuleIndex].xoffset) else xoffset=0
  	if tag_exist( Modules[thisModuleIndex], "yoffset") then yoffset=float(Modules[thisModuleIndex].yoffset) else yoffset=0
  	if tag_exist( Modules[thisModuleIndex], "whichpsf") then whichpsf=uint(Modules[thisModuleIndex].whichpsf) else whichpsf=0
+ 	if tag_exist( Modules[thisModuleIndex], "AutoOffset") then AutoOffset=uint(Modules[thisModuleIndex].AutoOffset) else AutoOffset=0
+
 
 ;Define common block to be used in wrapper.pro and ngauss.pro
 common ngausscommon, numgauss, wl, flux, lambdao,my_psf
@@ -138,6 +141,50 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
         yinterp=dblarr(78961)
         q=0L
 
+
+
+        if AutoOffset EQ 1 then begin
+          
+           startparmssize=9+numgauss
+           ngausspars=dblarr(startparmssize)
+
+           xindex=140
+           yindex=140
+           xo=refwlcal[xindex,yindex,1]
+           yo=refwlcal[xindex,yindex,0]
+           startx=floor(xo-boxsizex/2.0)
+           starty=round(yo)-20
+           stopx = startx+boxsizex
+           stopy = starty+boxsizey
+
+           rawarray=image[startx:stopx, starty:stopy] 
+
+           lambdao=refwlcal[xindex,yindex,2]
+
+           ngausspars[0]=xo-startx
+           ngausspars[1]=yo-starty
+           ngausspars[2]=refwlcal[xindex,yindex,3]
+           ngausspars[3]=refwlcal[xindex,yindex,4]
+           ngausspars[4:6]=[1.9,1.9,0]
+           ngausspars[7]=20
+           ngausspars[8]=total(rawarray)
+           for z=0,numgauss-1 do begin
+              ngausspars[9+z]=flux[z]
+           endfor
+
+           x=indgen(boxsizex)
+           y=indgen(boxsizey)
+
+           simarray=ngauss(x,y,ngausspars)
+
+           corrmat_analyze, CORREL_IMAGES(rawarray,simarray,xshift=3,yshift=3),xoffset_auto,yoffset_auto,/print
+
+           backbone->Log, "Applying a prelimiinary shift of (X,Y) = ("+strc(xoffset_auto)+", "+strc(yoffset_auto)+")"
+
+        endif
+
+
+
 istart=0
 iend=280
 jstart=0
@@ -154,8 +201,14 @@ for i = istart,iend,spacing do begin
 	for j = jstart,jend,spacing do begin
            xo=refwlcal[i,j,1]
            yo=refwlcal[i,j,0]
-           startx=floor(xo-boxsizex/2.0)+xoffset
-           starty=round(yo)-20+yoffset
+
+           if AutoOffset EQ 1 then begin
+              startx=floor(xo-boxsizex/2.0)+xoffset_auto
+              starty=round(yo)-20+yoffset_auto
+           endif else begin
+              startx=floor(xo-boxsizex/2.0)+xoffset
+              starty=round(yo)-20+yoffset
+           endelse 
            stopx = startx+boxsizex
            stopy = starty+boxsizey
 
