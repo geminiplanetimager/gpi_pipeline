@@ -43,7 +43,7 @@ function gpi_adi_with_loci, DataSet, Modules, Backbone
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
-   
+
 if tag_exist( Modules[thisModuleIndex], "coeff_type") eq 1 then coeff_type=long(Modules[thisModuleIndex].coeff_type) else coeff_type=0
 
 ;;if all images have been processed into datacubes then start ADI processing...
@@ -423,20 +423,20 @@ if numfile  eq ((dataset.validframecount)-1) then begin
                 c=0.
               ;----------------------------
 							endif else begin
-								return, error('FAILURE ('+functionName+'): Could not use only positive coefficients, code not yet implemented. Set use_pos_neg_coeff_flag equal to 1') 
+							;	return, error('FAILURE ('+functionName+'): Could not use only positive coefficients, code not yet implemented. Set use_pos_neg_coeff_flag equal to 1') 
               ;----------------------------
               ;POSITIVE COEFFICIENTS
-             ; svect=size(a)
-             ; dim=svect[1]
-             ; dim2=dim
-             ; c=fltarr(dim)
-             ; if n_elements(a) ne 1 then begin
-             ;  indx=fltarr(dim+1)
-             ;  w=fltarr(dim)
-             ;  mode=1
-             ;  rnorm=1
-             ;  nnls,a,dim,dim2,b,c,rnorm,w,indx,mode
-             ; endif
+              svect=size(a)
+              dim=svect[1]
+              dim2=dim
+              c=fltarr(dim)
+              if n_elements(a) ne 1 then begin
+               indx=fltarr(dim+1)
+               w=fltarr(dim)
+               mode=1
+               rnorm=1
+               nnls,a,dim,dim2,b,c,rnorm,w,indx,mode
+              endif
               ;----------------------------
 							endelse
 
