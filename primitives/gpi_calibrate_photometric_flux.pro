@@ -193,7 +193,7 @@ if ct eq 0 then return, error('FAILURE ('+functionName+'): SATSWARN undefined.  
      ;;calculate a median satellite spectrum
      mean_sat_flux[s]=median([sat1flux[s], sat2flux[s], sat3flux[s], sat4flux[s]],/even) ; counts/slice
 		 stddev_sat_flux[s]=robust_sigma([sat1flux[s], sat2flux[s], sat3flux[s], sat4flux[s]]) ; counts/slice
-			if stddev_sat_flux[s] eq -1 then stddev_sat_flux[s]=stddev([sat1flux[s], sat2flux[s], sat3flux[s], sat4flux[s]])
+		if stddev_sat_flux[s] eq -1 then stddev_sat_flux[s]=stddev([sat1flux[s], sat2flux[s], sat3flux[s], sat4flux[s]])
 		
 		; Must approximate a ratio between the flux in the aperture, and the flux outside the aperture.
 		; The truth is that we really don't have a good idea of how it changes radially. What we do know is that it is about 
@@ -211,15 +211,14 @@ if ct eq 0 then return, error('FAILURE ('+functionName+'): SATSWARN undefined.  
 	mean_norm=mean([norm1,norm2,norm3,norm4])
 
 	for s=0,n_elements(cens[0,0,*])-1 do begin
-  mean_sat_flux[s]=median([sat1flux[s]/norm1, sat2flux[s]/norm2, sat3flux[s]/norm3, sat4flux[s]/norm4],/even)*mean_norm ; counts/slice
-	; now look at scaling the values to remove net flux offsets
-	 stddev_sat_flux[s]=robust_sigma([sat1flux[s]/norm1, sat2flux[s]/norm2, sat3flux[s]/norm3, sat4flux[s]/norm4]) ; counts/slice
+ 	; now look at scaling the values to remove net flux offsets
+		stddev_sat_flux[s]=robust_sigma([sat1flux[s]/norm1, sat2flux[s]/norm2, sat3flux[s]/norm3, sat4flux[s]/norm4]) ; counts/slice
 		if stddev_sat_flux[s] eq -1 then stddev_sat_flux[s]=stddev([sat1flux[s]/norm1, sat2flux[s]/norm2, sat3flux[s]/norm3, sat4flux[s]/norm4])
-
-	stddev_sat_flux[s]*=mean_sat_flux[s]
+		mean_sat_flux[s]=median([sat1flux[s]/norm1, sat2flux[s]/norm2, sat3flux[s]/norm3, sat4flux[s]/norm4],/even)*mean_norm ; counts/slice
+		stddev_sat_flux[s]*=(mean_norm)
 	endfor
 
-if 0 eq 1 then begin
+if 1 eq 1 then begin
 window,19
 device,decomposed=0
 ;loadcolors
@@ -229,7 +228,6 @@ oplot, lambda,sat2flux/norm2*mean_norm, color=cgcolor('teal'),linestyle=3,thick=
 oplot, lambda,sat3flux/norm3*mean_norm, color=cgcolor('red'),linestyle=4,thick=2
 oplot, lambda,sat4flux/norm4*mean_norm, color=cgcolor('green'),linestyle=5,thick=2
 pi_legend,['median(even)','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/right,textcolor=cgcolor('black')
-;stop
 endif
 
 
@@ -310,7 +308,8 @@ if ~keyword_set(mean_norm) then mean_norm=1.0
 
 ;	write the contained flux ratio to the header
 		backbone->set_keyword, 'EFLUXRAT',  contained_flux_ratio ,"flux ratio in photom aper", ext_num=0
-
+;calibrated_cube[*,*,0:2]=0.0
+;calibrated_cube[*,*,34:36]=0
 *(dataset.currframe[numfile])=calibrated_cube
 
 @__end_primitive 

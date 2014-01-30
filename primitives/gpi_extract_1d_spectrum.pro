@@ -125,7 +125,8 @@ endif
 			endelse
 
      ;;do the photometry of the companion
-     x0=xcenter & y0=ycenter & hh=5.
+		; we actually want the peak in the center of a pixel, so centers must be half integers
+     x0=floor(xcenter)+0.5 & y0=floor(ycenter)+0.5 & hh=5.
      phot_comp=fltarr(N_ELEMENTS(lambda)) 
 		 phot_comp_err=fltarr(N_ELEMENTS(lambda))
 		xarr0=fltarr(N_ELEMENTS(lambda))
