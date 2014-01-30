@@ -214,7 +214,7 @@ endif
 					if finite(xarr[i]+yarr[i]) eq 0 then continue	
 				aperrad = aperrad0*lambda[i]
 				skyrad  = skyrad0*lambda[i]
-				trans_cube=translate(source_cube[*,*,i]/fscale_arr[i],x0-xarr[i],y0-yarr[i])
+				trans_cube_slice=translate(source_cube[*,*,i]/fscale_arr[i],x0-xarr[i],y0-yarr[i])
 				;aper, trans_cube , [x0], [y0], flux, errflux, sky, skyerr, phpadu, aperrad, $
         ;      skyrad, badpix, /flux, /silent,/nan,/exact
 				;aper, source_cube[*,*,i], [x], [y], flux, errflux, sky, skyerr, phpadu, aperrad, $
@@ -223,24 +223,35 @@ endif
 				; the 0.6 is the correction used for a 3 pixel aperture, at the moment, it is the only info we have 
         ;phot_comp[i]=(flux[0])*(0.6/contained_flux_ratio)
 			
-				; do an error approximation - the error is useless from aper unless in photons and even then it adds photon noise that won,t be correct.
+				; do an error approximation - the error is useless from aper unless in photons and
+				; even then it adds photon noise that won,t be correct.
 				;get size of aperture in pixels - this is not really exact...
 				src_ind=get_xycind(281,281,x0,y0,aperrad)
 				bkg_ind=get_xyaind(281,281,x0,y0,skyrad[0],skyrad[1]-skyrad[0])
-				if bkg_ind[0] eq -1 or total(finite(trans_cube[bkg_ind])) eq 0 or total(finite(trans_cube[src_ind])) eq 0 then begin
+				if bkg_ind[0] eq -1 or total(finite(trans_cube_slice[bkg_ind])) eq 0 or total(finite(trans_cube_slice[src_ind])) eq 0 then begin
 					phot_comp[i]=!values.f_nan
 					phot_comp_err[i]=!values.f_nan
 					continue
 				endif
 				; fit plane to bkg
 				weights=0
-				finite_bkg_ind=bkg_ind[where(finite(trans_cube[bkg_ind]) eq 1)]
+				finite_bkg_ind=bkg_ind[where(finite(trans_cube_slice[bkg_ind]) eq 1)]
 				; fits and subtracts a plane to get proper error estimation
-				coef = PLANEFIT( finite_bkg_ind mod 281 ,finite_bkg_ind / 281,trans_cube[finite_bkg_ind],weights, yfit )		
-				
-				phot_comp[i]=total(trans_cube[src_ind])-(N_ELEMENTS(src_ind)*median(trans_cube[finite_bkg_ind]))*(0.6/contained_flux_ratio)
+				coef = PLANEFIT( finite_bkg_ind mod 281 ,finite_bkg_ind / 281,trans_cube_slice[finite_bkg_ind],weights, yfit )
+				xinds=src_ind mod 281 & yinds=src_ind / 281	
+				src_bkg_plane=coef[0]+coef[1]*xinds+coef[2]*yinds	
+
+				;phot_comp[i]=total(trans_cube[src_ind])-(N_ELEMENTS(src_ind)*median(trans_cube[finite_bkg_ind]))*(0.6/contained_flux_ratio)
+				phot_comp[i]=total(trans_cube_slice[src_ind]-src_bkg_plane)
 				;phot_comp_err[i]=sqrt((!pi*(aperrad)^2)*(robust_sigma(tmp[ind])^2))*(0.6/contained_flux_ratio)
-				phot_comp_err[i]=sqrt(float(N_ELEMENTS(src_ind))*(stddev(trans_cube[finite_bkg_ind]-yfit,/nan)^2))*(0.6/contained_flux_ratio)
+				bkg_stddev=stddev(trans_cube_slice[finite_bkg_ind]-yfit,/nan)
+				phot_comp_err[i]=sqrt(float(N_ELEMENTS(src_ind))*(bkg_stddev)^2)
+
+				; now normalize for missing flux ratio in aperture used in gpi_calibrate_photometric flux
+				; this just cancels out if the extraction aperture is unchanged, which it should be!  
+				phot_comp[i]*=(0.6/contained_flux_ratio)
+				phot_comp_err[i]*=(0.6/contained_flux_ratio)
+;if i eq 36 then stop
 		endfor
 ; now convert back to desired units
 for l=0, N_ELEMENTS(lambda)-1 do phot_comp[l]*=fscale_arr[l]
@@ -250,9 +261,11 @@ for l=0, N_ELEMENTS(lambda)-1 do phot_comp_err[l]*=fscale_arr[l]
 if display ne -1 then begin
   if display eq 0 then window,/free else select_window, display
 	units=(backbone->get_keyword('BUNIT'))
+loadcolors
 	phot_comp_err_total=phot_comp*sqrt((cal_percent_err/100.)^2+(phot_comp_err/phot_comp)^2)
-	ploterror,lambda,phot_comp, phot_comp_err_total,ytitle='flux ['+units+']',xtitle='wavelength (um)',position=[0.16,0.11,0.97,0.97],xr=[min(lambda)-0.01,max(lambda)+0.01],xs=1
-;stop
+	ploterror,lambda,phot_comp, phot_comp_err_total,ytitle='flux ['+units+']',xtitle='wavelength (um)',position=[0.16,0.11,0.97,0.97],xr=[min(lambda)-0.01,max(lambda)+0.01],xs=1,color=cgcolor('black'),background=cgcolor('white')
+
+
 ;	if file_test('~/bp_test.fits') then begin
 ;		loadcolors
 ;		tmp=readfits('~/bp_test.fits')
@@ -260,17 +273,52 @@ if display ne -1 then begin
 ;	endif
 
 ;	bb=planck(lambda*1e4,18800)
-;	oplot, lambda,bb*(median(phot_comp)/median(bb)),linestyle=2
+;	oplot, lambda,bb*(median(phot_comp)/median(bb)),linestyle=2,color=cgcolor('black')
+
+
+; So the 2mass data + the zerlo point gives a flux of 3.556e-19 W/cm2/umat 1.662 um  which is 3.56E-16 erg/cm2/s/A
+; the errorbar is complicated - the zero point has a 2% error, the datapoint has a 1.5% error (abouts)
+;sats_stddev=(backbone->get_keyword('SATNSTD')) & sats_norm=(backbone->get_keyword('SATSNORM'))
+;	oploterror, [1.662,1.662],[3.56E-16,3.56E-16],[3.56E-16,3.56E-16]*0.02,psym=2,color=cgcolor('blue')
+
+
+;	oploterror, [1.785,1.785],[7.56E-16,7.56E-16],[3.56E-16,3.56E-16]*sats_stddev/sats_norm,psym=3,color=cgcolor('blue')
+;	legend,['GPI data','Normalized 18800 K blackbody', 'HD 8049b Photometric Flux estimate'],textcolor=cgcolor('black'),linestyle=[0,2,0],psym=[0,0,2],/right,/top,color=[cgcolor('black'),cgcolor('black'),cgcolor('blue')],box=0
+
+;	XYOUTS, 1.69 , 7.56E-16, 'GPI Flux Normalization Unc.',color=cgcolor('black')
+	
+
 endif
 
 if save_ps_plot eq 1 then begin
 mydevice=!d.name
-	filename=strmid(dataset.filenames[0],0,strlen(dataset.filenames[0])-5)+'-spectrum-x'+strc(xcenter)+'-y'+strc(ycenter)+'.ps'
+	filename=strmid(dataset.filenames[0],0,strlen(dataset.filenames[0])-5)+'-spectrum-x'+strc(round(xcenter))+'-y'+strc(round(ycenter))+'.ps'
 	openps,Modules[thisModuleIndex].OutputDir+path_sep()+filename, xsize=6, ysize=4,/inches
 	units=(backbone->get_keyword('BUNIT'))
 	phot_comp_err_total=phot_comp*sqrt((cal_percent_err/100.)^2+(phot_comp_err/phot_comp)^2)
-	ploterror,lambda,phot_comp, phot_comp_err_total,ytitle='flux ['+units+']',xtitle='wavelength (um)',position=[0.16,0.11,0.97,0.97],xr=[min(lambda)-0.01,max(lambda)+0.01],xs=1
-	closeps
+	ploterror,lambda,phot_comp, phot_comp_err_total,ytitle='flux ['+units+']',xtitle='wavelength (um)',position=[0.16,0.11,0.97,0.97],xr=[min(lambda)-0.01,max(lambda)+0.01],xs=1,yr=[2e-16,7e-16],/ys
+;	closeps
+
+	bb=planck(lambda*1e4,18800)
+	oplot, lambda,bb*(median(phot_comp[5:30])/median(bb[5:30])),linestyle=2,color=cgcolor('black')
+
+
+; So the 2mass data + the zerlo point gives a flux of 3.556e-19 W/cm2/umat 1.662 um  which is 3.56E-16 erg/cm2/s/A
+; the errorbar is complicated - the zero point has a 2% error, the datapoint has a 1.5% error (abouts)
+sats_stddev=(backbone->get_keyword('SATNSTD')) & sats_norm=(backbone->get_keyword('SATSNORM'))
+;	oploterror, [1.662,1.662],[3.56E-16,3.56E-16],[3.56E-16,3.56E-16]*0.02,psym=2,color=cgcolor('blue')
+
+
+	oploterror, [1.77,1.77],[7.56E-16,7.56E-16],[3.56E-16,3.56E-16]*sats_stddev/sats_norm,psym=3,color=cgcolor('blue')
+;	legend,['GPI data','Normalized 18800 K blackbody', 'HD 8049b Photometric Flux estimate'],textcolor=cgcolor('black'),linestyle=[0,2,0],psym=[0,0,2],/right,/top,color=[cgcolor('black'),cgcolor('black'),cgcolor('blue')],box=0
+;	XYOUTS, 1.69-0.12 , 7.56E-16, 'GPI Flux Normalization Uncertainty',color=cgcolor('black')
+	legend,['GPI data','Normalized 18800 K blackbody'],textcolor=cgcolor('black'),linestyle=[0,2],psym=[0,0],/right,/top,color=[cgcolor('black'),cgcolor('black')],box=0
+
+
+	
+closeps
+
+
 set_plot,mydevice
 endif
 
