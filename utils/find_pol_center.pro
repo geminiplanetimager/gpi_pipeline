@@ -1,4 +1,4 @@
-function find_pol_center, img0, x0, y0, xrad, yrad, maskrad=maskrad, highpass=highpass
+function find_pol_center, img0, x0, y0, xrad, yrad, maskrad=maskrad, highpass=highpass, statuswindow=statuswindow
 ;+
 ; NAME:
 ;        find_pol_center
@@ -16,7 +16,7 @@ function find_pol_center, img0, x0, y0, xrad, yrad, maskrad=maskrad, highpass=hi
 ;        center = find_pol_center(img, 148, 147, 5, 5, [maskrad=maskrad, /highpass])
 ; 
 ; INPUT/OUTPUT:
-;        img0 - 2D image
+;        img0 - 2D or 3D image
 ;        x0,y0 - inital guess for the center of the occulted star
 ;        xrad,yrad - x and y search radius that defines the rectangular
 ;                    box to search in. The algorithm runs slowly so
@@ -26,6 +26,8 @@ function find_pol_center, img0, x0, y0, xrad, yrad, maskrad=maskrad, highpass=hi
 ; OPTIONAL INPUT:
 ;        maskrad - the radius of the mask of the center of the psf
 ;                   (default is 50 pixels)
+;        highpass - set to run a highpass filter before locating spots
+;        statuswindow - pointer to status window to update gui progressbar
 ; DEPENDENCIES:
 ; filter_image.pro
 ;
@@ -35,6 +37,9 @@ function find_pol_center, img0, x0, y0, xrad, yrad, maskrad=maskrad, highpass=hi
 
 ;make copy of image, I think
 img = img0
+
+;collapse polarization dimension if not already
+if (size(img))[0] eq 3 then img = total(img, 3)
 
 ;remove NANs
 badind = where(~FINITE(img),cc)
@@ -86,6 +91,8 @@ for i=0,xsearchlen-1 do begin
     ;tvscl, sino, 0.3, 0.3, /NORMAL
 		;write the signal to our output map
 		searchspace[i,j] = signal
+		if keyword_set(statuswindow) then $
+		statuswindow->set_percent, -1, 100.0/(xsearchlen*ysearchlen+1.),/append
 	endfor
 endfor
 
@@ -105,6 +112,10 @@ index = array_indices(finersearch, index)
 ;convert back to pixel coordiantes
 xcent = float(index[0])/10. - xrad + x0
 ycent = float(index[1])/10. - yrad + y0
+
+if keyword_set(statuswindow) then $
+	statuswindow->set_percent, -1, 100.0
+
 
 return, [xcent,ycent]
 end
