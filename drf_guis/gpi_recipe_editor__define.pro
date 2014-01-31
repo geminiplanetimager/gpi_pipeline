@@ -1194,11 +1194,11 @@ pro gpi_recipe_editor::open, filename, template=template, silent=silent, log=log
 
     if ~(keyword_set(filename)) then return
 
-	filename = gpi_expand_path(filename)
+    filename = gpi_expand_path(filename)
     if ~file_test(filename) then begin
-		self->Log, "Requested Recipe file does not exist: "+filename
-		return
-	endif
+       self->Log, "Requested Recipe file does not exist: "+filename
+       return
+    endif
 
     self.loadedRecipeFile = filename
 
@@ -1211,46 +1211,50 @@ pro gpi_recipe_editor::open, filename, template=template, silent=silent, log=log
     drf_summary = self.drf->get_summary()
     drf_contents = self.drf->get_contents()
     drf_module_names = self.drf->list_primitives() 
-
-    ; if requested, load the filenames in that DRF
-    ; (for Template use, don't load the data)
+    
+    ;; if requested, load the filenames in that DRF
+    ;; (for Template use, don't load the data)
     if keyword_set(template) then  begin
-		self.drf->clear_datafiles
-		self->update_title_bar, 'Template from '+file_basename(filename) ; don't update title bar if this is a template
-	endif else begin
-		datafiles = self.drf->get_datafiles(/absolute)
-		self.last_used_input_dir = file_dirname(datafiles[0])
-		self->update_title_bar, filename ; don't update title bar if this is a template
-	endelse
-
+       self.drf->clear_datafiles
+       self->update_title_bar, 'Template from '+file_basename(filename) ; don't update title bar if this is a template
+    endif else begin
+       datafiles = self.drf->get_datafiles(/absolute)
+       self.last_used_input_dir = file_dirname(datafiles[0])
+       self->update_title_bar, filename ; don't update title bar if this is a template
+    endelse
 	
-    ;if necessary, update reduction type to match whatever is in that DRF (and update available modules list too)
+    ;;if necessary, update reduction type to match whatever is in that DRF (and update available modules list too)
     if self.reductiontype ne drf_summary.reductiontype then begin
-        selectype=where(strmatch(*self.template_types, strc(drf_summary.reductiontype),/fold_case), matchct)
-        if matchct ne 1 then message,"ERROR: no match for "+self.reductiontype
-        if self.reduction_type_id ne 0 then  widget_control, self.reduction_type_id, SET_DROPLIST_SELECT=selectype
-        self->changetype, selectype[0], /notemplate
+       selectype=where(strmatch(*self.template_types, strc(drf_summary.reductiontype),/fold_case), matchct)
+       if matchct ne 1 then message,"ERROR: no match for "+self.reductiontype
+       if self.reduction_type_id ne 0 then  widget_control, self.reduction_type_id, SET_DROPLIST_SELECT=selectype
+       self->changetype, selectype[0], /notemplate
     endif
     
-	if ~(keyword_set(template)) then self->refresh_filenames_display ; update the filenames display
-	self->refresh_primitives_table 
-	self->refresh_arguments_table
-
+    if ~(keyword_set(template)) then begin
+       self->refresh_filenames_display ; update the filenames display
+       self.drffilename = file_basename(self.loadedRecipeFile)
+       self.drfpath = file_dirname(self.loadedRecipeFile,/mark_directory)
+       self.customdrffilename = 1      ; use this filename
+    end
+    self->refresh_primitives_table 
+    self->refresh_arguments_table
+    
     widget_control,   self.outputdir_id, set_value=self.drf->get_outputdir()
     widget_control,   self.RecipePrimitivesTable_id,   SET_TABLE_VIEW=[0,0] ; set cursor to upper left corner
-
-	self->log,'Recipe:'+self.loadedRecipeFile+' has been succesfully loaded.'
+    
+    self->log,'Recipe:'+self.loadedRecipeFile+' has been succesfully loaded.'
 
 end
 ;+------------------------------------------------
 ;  gpi_recipe_editor::update_title_bar
 pro gpi_recipe_editor::update_title_bar, filename
-	if ~(keyword_set(filename)) then filename=self.loadedrecipefile
-
-	;update title bar of window:
-	title  = "Recipe Editor"
-	if keyword_set(self.session) then title += " #"+strc(self.session)
-	widget_control, self.top_base, tlb_set_title=title+": "+filename
+  if ~(keyword_set(filename)) then filename=self.loadedrecipefile
+  
+  ;;update title bar of window:
+  title  = "Recipe Editor"
+  if keyword_set(self.session) then title += " #"+strc(self.session)
+  widget_control, self.top_base, tlb_set_title=title+": "+filename
 end
 
 ;+------------------------------------------------
