@@ -1014,6 +1014,11 @@ PRO gpi_recipe_editor::addPrimitive
 		return
 	endif
 
+  ;;if table is too small, double it in size
+  tmp = widget_info(self.RecipePrimitivesTable_id,/row_heights)
+  if index ge n_elements(tmp) then begin
+     widget_control,  self.RecipePrimitivesTable_id, ysize = index*2, background_color=rebin(*self.table_BACKground_colors,3,2*3,/sample) 
+  endif
 
 	tableview = widget_info(self.RecipePrimitivesTable_id,/table_view) ; coordinates of top left view corner, because setting selection trashes this
 	self->refresh_primitives_table
