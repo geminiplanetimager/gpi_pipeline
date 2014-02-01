@@ -17,7 +17,7 @@
 ; PIPELINE NEWTYPE: Calibration, PolarimetricScience
 ;
 ; HISTORY:
-; 	2014-01-31 JW: Created. Accurary is a couple tenths of a pixel.
+; 	2014-01-31 JW: Created. Accurary is subpixel - hopefully.
 ;- 
 
 function gpi_locate_image_center_polarimetry, DataSet, Modules, Backbone

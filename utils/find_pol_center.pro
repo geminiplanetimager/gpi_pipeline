@@ -73,26 +73,31 @@ searchspace = dindgen(ysearchlen, xsearchlen) * 0
 ;try all points in the search box to see how well sat spots align
 for i=0,xsearchlen-1 do begin
 	for j=0,ysearchlen-1 do begin
-		;print, i,j, xoffset-xrange[i], yoffset-yrange[j]
 		;shift so that the search point is in the center of the image
 		shifted = shift(img, xoffset-xrange[i], yoffset-yrange[j])
-    ;TVSCL, shifted, 0.00, 0.0, /NORMAL
+
 		;radon transform
 		sino = radon(shifted, rho=rho, ntheta=720)
+
 		;look at only how the radon xform looks in the center
 		rho0 = where(rho eq 0)
+
 		;we expect pairs of sat spots to be 90 degrees apart so 
 		;fold the sinogram in the angular coordinate so that points
 		;90 degrees apart will add together
-		sinodim = size(sino,/dim)
-		sino = sino[0:sinodim[0]/2-1,*] + sino[sinodim[0]/2:*,*]
+		;don't know if this actually works...
+		;sinodim = size(sino,/dim)
+		;sino = sino[0:sinodim[0]/2-1,*] + sino[sinodim[0]/2:*,*]
+
+		;add up the signal
 		signal = total(sino[*,rho0]^2)
-		;sino[*,rho0] = 0
-    ;tvscl, sino, 0.3, 0.3, /NORMAL
+
 		;write the signal to our output map
 		searchspace[i,j] = signal
+
+		;update status window if GUI display
 		if keyword_set(statuswindow) then $
-		statuswindow->set_percent, -1, 100.0/(xsearchlen*ysearchlen+1.),/append
+			statuswindow->set_percent, -1, 100.0/(xsearchlen*ysearchlen+1.),/append
 	endfor
 endfor
 
@@ -106,16 +111,12 @@ finersearch = interpolate(searchspace, xfine, yfine, cubic=-0.5, /grid)
 maxval = max(finersearch, index)
 index = array_indices(finersearch, index)
 
-;XYOUTS, 0.05, 0.70, 'RADON', /NORMAL
-;TVSCL, finersearch, 0.05, 0.70, /NORMAL
-
 ;convert back to pixel coordiantes
 xcent = float(index[0])/10. - xrad + x0
 ycent = float(index[1])/10. - yrad + y0
 
 if keyword_set(statuswindow) then $
 	statuswindow->set_percent, -1, 100.0
-
 
 return, [xcent,ycent]
 end
