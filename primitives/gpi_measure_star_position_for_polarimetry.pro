@@ -1,6 +1,6 @@
 ;+
-; NAME: gpi_locate_image_center_polarimetry.pro
-; PIPELINE PRIMITIVE DESCRIPTION: Locate Image Center Polarimetry
+; NAME: gpi_measure_star_position_for_polarimetry.pro
+; PIPELINE PRIMITIVE DESCRIPTION: Measure Star Position for Polarimetry
 ;
 ;  Finds the location of the occulted star (i.e. image center); saves center to FITS keywords.
 ;
@@ -20,7 +20,7 @@
 ; 	2014-01-31 JW: Created. Accurary is subpixel - hopefully.
 ;- 
 
-function gpi_locate_image_center_polarimetry, DataSet, Modules, Backbone
+function gpi_measure_star_position_for_polarimetry, DataSet, Modules, Backbone
 ; enforce modern IDL compiler options:
 compile_opt defint32, strictarr, logical_predicate
 
