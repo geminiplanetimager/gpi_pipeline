@@ -117,6 +117,9 @@ function gpi_rotate_north_up, DataSet, Modules, Backbone
   hrot2, cube[*,*,0], astr_header, nearest , astr_header, -d_PAR_ANG, $
          -1, -1, 2,  interp=0,  missing=!values.f_nan
   
+  ;Add the rotation angle to the header for future use
+  sxaddpar, astr_header, 'ROTANG', -d_PAR_ANG, 'The rotation from Rotate North Up primitive'
+  
   case rot_method of
      'FFT': begin
         padsize=289
