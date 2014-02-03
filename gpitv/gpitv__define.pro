@@ -3231,9 +3231,8 @@ pro GPItv::collapsecube
      end
 
      'High Pass Filter':begin
-        widget_control,(*self.state).curimnum_base_id,map=1
+        ; image updating now goes on inside the function
         self->high_pass_filter
-        *self.images.main_image=(*self.images.main_image_stack)[*,*,(*self.state).cur_image_num]
      end  
 
      'Run KLIP':begin
@@ -8012,7 +8011,7 @@ if naxis eq 3 then begin
             self->message, msgtype = 'information', "Configuring GPItv for STOKES MODE"
             widget_control, (*self.state).curimnum_lambLabel_id, set_value="Polariz.="
             
-            modelist = ['Show Cube Slices', 'Collapse by Mean', 'Collapse by Median']
+            modelist = ['Show Cube Slices', 'Collapse by Mean', 'Collapse by Median', 'High Pass Filter']
             ;; do we have a 2-Slice pol stack, or a 4-slice cube?
             ;; set up to overplot polarization vectors
             naxis3 = gpi_get_keyword(h, e, "NAXIS3")
@@ -17958,38 +17957,54 @@ end
 pro GPItv::high_pass_filter, status=status
 ;;; routine to remove low frequency structure from cubes
 ;;; PI - 2013-07-24
+;;; JW - 2014-02-03 Added capability to do stacked images and 2d cubes
 
 widget_control, /hourglass
 
-if n_elements((*self.state).image_size) eq 3 then begin
+if (n_elements((*self.state).image_size) eq 3) or (n_elements((*self.state).image_size) eq 2) then begin
 
 	medboxsize = (*self.state).high_pass_size
-     
-	im=*self.images.main_image_stack
-	for s=0,N_ELEMENTS(im[0,0,*])-1 do im[*,*,s]=im[*,*,s]-filter_image(im[*,*,s],median=medboxsize)
+  
+	; visibility of the cube slice widget is a proxy for whether we are 
+	; looking at a cube slice or a combined image (e.g. averaged, medianed)   
+	visibility = widget_info((*self.state).curimnum_base_id,/map)
+	
+	; if the widget is visible, we are looking slices so we should filter all
+	; of the slices for consistency
+	if visibility eq 1 then begin
+		im=*self.images.main_image_stack
+		for s=0,N_ELEMENTS(im[0,0,*])-1 do im[*,*,s]=im[*,*,s]-filter_image(im[*,*,s],median=medboxsize)
 
-	; sigmas of sat spot are 1.39 and 1.46 in H 
-	npix=5
-	psf=psf_gaussian(npixel=npix,FWHM=(2.355*1.43))
+		; sigmas of sat spot are 1.39 and 1.46 in H 
+		;npix=5
+		;psf=psf_gaussian(npixel=npix,FWHM=(2.355*1.43))
+		;
+		;iden_kernel=fltarr(npix,npix)
+		;iden_kernel[npix/2,npix/2]=1
+		;kernel=iden_kernel-psf
+		;kernel=psf
+		; normalize such that the total is equal to 1
+		;kernel/=total(kernel)
+		;   for s=0,N_ELEMENTS(im[0,0,*])-1 do im[*,*,s]=convol(im[*,*,s],kernel)
+	
+		*self.images.main_image_stack=im
+    *self.images.main_image=(*self.images.main_image_stack)[*,*,(*self.state).cur_image_num]
+	endif else begin
+		; we are looking at a collapsed image of some sort so save time by not
+		; filtering all the slices, just the current combined image
+		im = *self.images.main_image
+		im -= filter_image(im, median=medboxsize)
+		*self.images.main_image = im
+	endelse
 
-	iden_kernel=fltarr(npix,npix)
-	iden_kernel[npix/2,npix/2]=1
-	;kernel=iden_kernel-psf
-	kernel=psf
-	; normalize such that the total is equal to 1
-	kernel/=total(kernel)
-	;   for s=0,N_ELEMENTS(im[0,0,*])-1 do im[*,*,s]=convol(im[*,*,s],kernel)
-
-
-   *self.images.main_image_stack=im
-   ((*self.state).high_pass_mode) = 1 
-   self->getstats
-   self->displayall
+	((*self.state).high_pass_mode) = 1 
+	self->getstats
+	self->displayall
    
-   status=1
+	status=1
 endif else begin
-   self->message, msgtype='error', "High pass filter currently only works with 3D datacubes"
-   status=0
+	self->message, msgtype='error', "High pass filter only works with 2D or 3D datacubes"
+	status=0
 endelse
 
 end
