@@ -84,6 +84,8 @@ function calibrate_with_PSF, DataSet, Modules, Backbone
         sub_pix_res_x = 5
         sub_pix_res_y = 5
         cent_mode = "BARYCENTER"
+				; if we are doing narrowband filter stuff, we want the centroid to be at the maximum
+				if filter_wavelength ne -1 then cent_mode="MAX"
                                 ; raw data stamps
         if nfiles ge 2 then begin
 					time0=systime(1,/seconds)
@@ -98,7 +100,7 @@ function calibrate_with_PSF, DataSet, Modules, Backbone
                                 ;sub_pixel resolution of the PSF
         sub_pix_res_x = 4
         sub_pix_res_y = 4
-        cent_mode = "EDGE"
+        cent_mode = "MAX"
                                 ; raw data stamps
 		        spaxels = get_spaxels(my_first_mode, image, polcal, width_PSF, /STAMPS_MODE)
 ;  return: {values: ptr_values,$
@@ -118,10 +120,14 @@ function calibrate_with_PSF, DataSet, Modules, Backbone
   new_image = fltarr(2048,2048)
   
   n_neighbors = 6               ; number on each side - so 4 gives a 9x9 box - 3 gives a 7x7 box
-;  n_neighbors_flex = 3          ; for the flexure shift determination - not currently used
+; set up a lenslet jump to improve speed - normally the step would be 2*n_neighbors+1
+; so this makes it (2*n_neighbors+1)*loop_jump
 
-  values_tmp = *(spaxels.values[(where(ptr_valid(spaxels.values)))[0]])
-  nx_pix = (size(values_tmp))[1]
+	loop_jump=2                  ; the multiple of lenslets to jump
+
+;  n_neighbors_flex = 3          ; for the flexure shift determination - not currently used
+  values_tmp = *(spaxels.values[(where(ptr_valid(spaxels.values)))[0]]) ; determine a box size
+  nx_pix = (size(values_tmp))[1] 
   ny_pix = (size(values_tmp))[2]
   if (size(spaxels.values))[0] eq 4 then n_diff_elev = (size(spaxels.values))[4] else n_diff_elev = 1
   PSF_template = {values: fltarr(nx_pix*sub_pix_res_x+1,ny_pix*sub_pix_res_y+1), $
@@ -169,16 +175,16 @@ debug=1
   jmin_test = 0 & jmax_test=280
 ; imin_test = 145 & imax_test = 155
 ; jmin_test = 145 & jmax_test = 155
+
 ; imin_test = 166-20 & imax_test = 177+20
 ; jmin_test = 166-20 & jmax_test = 177+20
   ; code check range
 ; imin_test = 148 & imax_test = 152
 ; jmin_test = 148 & jmax_test = 152
 
+; the following is for pixel phase plotting only - it has no effect on any results
   xind=166 & yind=177
   pp_neighbors=8
-
-spaxels0=spaxels
 
 time1=systime(1,/seconds)
   for it_flex=0,it_flex_max-1 do begin
@@ -374,23 +380,23 @@ time_it_elev3 = systime(1,/seconds)
 
 					;print, 'time to cut arrays', time_cut
 
-					print, '% of time to do get_psf', (time_ij5-time_ij4)/(time_ij6-time_ij0)
-					print, '% of time to do fit_psf', (time_ij6-time_ij5)/(time_ij6-time_ij0)
-					print, 'total time=',time_ij6-time_ij0
-
+					;print, '% of time to do get_psf', (time_ij5-time_ij4)/(time_ij6-time_ij0)
+					;print, '% of time to do fit_psf', (time_ij6-time_ij5)/(time_ij6-time_ij0)
+					;print, 'total time=',time_ij6-time_ij0
+;stop
 
 					; now we need to step in the number of neighbours
-					j+=(2*n_neighbors)
+					j+=((2*n_neighbors)*loop_jump)
 
 
               endfor       ; end loop over j lenslets (columns?)
-						i+=(2*n_neighbors)
+						i+=((2*n_neighbors)*loop_jump)
            endfor ; end loop over i lenslsets (rows?)
         endfor ; end loop over spots (1 for spectra, 2 for polarization)
         
         print, 'Iteration complete in '+strc((systime(1)-time0)/60.)+' minutes'
                                 ; put the fitted values into the originals before re-iterating
-;stop,'just about to modify centroids'
+stop,'just about to modify centroids'
         spaxels.xcentroids = fitted_spaxels.xcentroids
         spaxels.ycentroids = fitted_spaxels.ycentroids
         spaxels.intensities= fitted_spaxels.intensities
@@ -633,7 +639,7 @@ tmpy=(spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,it_elev])[not
 
   
      print, 'Run complete in '+strc((systime(1)-time0)/60.)+' minutes'
-     
+    stop 
      writefits, "diff_image.fits",diff_intensity_arr
      writefits, "intensity_arr.fits",intensity_arr
      writefits, "stddev_arr.fits",stddev_arr
