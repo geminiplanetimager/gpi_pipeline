@@ -9037,7 +9037,7 @@ self->setwindow, (*self.state).draw_window_id
 
 widget_control, /hourglass
 
-arrows, *((*self.state).head_ptr), $
+arrows, *((*self.state).exthead_ptr), $
   (*(self.pdata.plot_ptr[iplot])).x, $
   (*(self.pdata.plot_ptr[iplot])).y, $
   thick = (*(self.pdata.plot_ptr[iplot])).thick, $
@@ -14317,8 +14317,26 @@ if n_elements(good) eq 1 then return
         y0 = min(y,max=y1,/NaN)
     	x_step=(x1-x0)/(sz[1]-1.0)   ; Convert to float. Integer math
     	y_step=(y1-y0)/(sz[2]-1.0)   ; could result in divide by 0
-    	theta = 0.5 * atan(u,q)+thetaoffset*!dtor
-    	maxmag = .50
+    	
+   ;To compensate for the use of the Rotate North Up Primitive
+   if ptr_valid((*self.state).exthead_ptr) then begin ;If the header exists
+   hdr = *((*self.state).exthead_ptr) 
+   rot_ang = sxpar(hdr, 'ROTANG') ;If this keyword isn't set sxpar just returns 0, which is acceptable. 
+   getrot, hdr, npa, cdelt, /silent
+   d_PAR_ANG = - rot_ang
+   endif else begin 
+   d_PAR_ANG = 0
+   cdelt = [1,1] ;If there's no header create a dummy cdelt whose first element is positive 
+   endelse
+ 
+   ;print, "Rotating pol vectors by angle of: "+string(-d_PAR_ANG) ; To match with north rotation
+  
+   if cdelt[0] gt 0 then sgn = 1 else sgn = -1 ; To check for flip between RH and LH coordinate systems
+   
+   theta = sgn * 0.5 * atan(u/q)+thetaoffset*!dtor+d_par_ang*!dtor
+   ;theta = 0.5 * atan(u/q)+thetaoffset*!dtor
+   ;stop
+   maxmag = .50
 
     ; remember position angle is defined starting at NORTH so
     ; the usual positions of sin and cosine are swapped.
