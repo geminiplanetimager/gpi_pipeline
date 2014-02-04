@@ -75,7 +75,7 @@ start_params[8]=total(lensletarray);-min(lensletarray)*size(lensletarray,/n_elem
 start_params[6]=0
 
 ;Provide starting guesses for the gaussian parameters (sigmax,sigmay)
-if lambdao GT 1.12 then begin
+if lambdao GT 1.2 then begin
    if xdim LT 211 then start_params[4:5] = [1.5, 1.5]
    if (xdim GE 211) AND (xdim LT 223) then start_params[4:5] = [1.7, 1.7]
    if (xdim GE 223) AND (xdim LT 235) then start_params[4:5] = [1.9, 1.9]
