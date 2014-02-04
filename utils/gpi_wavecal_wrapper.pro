@@ -75,11 +75,16 @@ start_params[8]=total(lensletarray);-min(lensletarray)*size(lensletarray,/n_elem
 start_params[6]=0
 
 ;Provide starting guesses for the gaussian parameters (sigmax,sigmay)
-if xdim LT 211 then start_params[4:5] = [1.5, 1.5]
-if (xdim GE 211) AND (xdim LT 223) then start_params[4:5] = [1.7, 1.7]
-if (xdim GE 223) AND (xdim LT 235) then start_params[4:5] = [1.9, 1.9]
-if (xdim GE 235) AND (xdim LT 245) then start_params[4:5] = [2.1, 2.1]
-if xdim GE 245 then start_params[4:5] = [2.3, 2.3]
+if lambdao GT 1.12 then begin
+   if xdim LT 211 then start_params[4:5] = [1.5, 1.5]
+   if (xdim GE 211) AND (xdim LT 223) then start_params[4:5] = [1.7, 1.7]
+   if (xdim GE 223) AND (xdim LT 235) then start_params[4:5] = [1.9, 1.9]
+   if (xdim GE 235) AND (xdim LT 245) then start_params[4:5] = [2.1, 2.1]
+   if xdim GE 245 then start_params[4:5] = [2.3, 2.3]
+endif else begin
+   start_params[4:5] = [1.5, 1.5]
+endelse
+
 
 ;Compute a weighted error array to be passed to mp2dfitfunct
 ERR = sqrt(lensletarray ) ; FIXME this needs to be updated to take into account gain, read noise, etc.
