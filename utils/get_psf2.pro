@@ -213,8 +213,8 @@ PSF_y_step = 1.0/float(PSF_samples_per_ypix)
 ;PSF_y_sampling = (findgen(PSF_ny_samples) - floor(PSF_ny_samples/2))* PSF_y_step - (mean(y_centroids,/nan)/(ny_pix-1) - 0.5)*PSF_ny_samples*PSF_y_step ; original - but doesnt have a 0,0 pt
 
 ; so we want a grid where the centroid is centered at 0,0 - but we still need a 0,0 point
-PSF_x_sampling = (findgen(PSF_nx_samples) - floor(PSF_nx_samples/2))* PSF_x_step - round(mean(x_centroids,/nan)/(nx_pix-1))*PSF_nx_samples*PSF_x_step
-PSF_y_sampling = (findgen(PSF_ny_samples) - floor(PSF_ny_samples/2))* PSF_y_step - round(mean(y_centroids,/nan)/(ny_pix-1)-0.5)*PSF_ny_samples*PSF_y_step
+PSF_x_sampling = (findgen(PSF_nx_samples) - floor(PSF_nx_samples/2))* PSF_x_step - round(median(x_centroids)/(nx_pix-1))*PSF_nx_samples*PSF_x_step
+PSF_y_sampling = (findgen(PSF_ny_samples) - floor(PSF_ny_samples/2))* PSF_y_step - round(median(y_centroids)/(ny_pix-1)-0.5)*PSF_ny_samples*PSF_y_step
 ; 
 ; set up the sampling in y
 ; creates symmetrical grid the length of the box with zero at center
@@ -232,11 +232,20 @@ psf_x_sampling+=(xoffset*psf_x_step) ; apply offset to grid - but the size of a 
 
 
 ; verify there is a zero,zero point
-; this is just a bug catching line - can one day be commented out.
+; this is just a bug catching line - can one day be commented out?
+; if you hit this, that means that the calculated centroid is outside the stamp
+; if this happens, the spaxel should be ignored. 
+
 testy=where(psf_y_sampling eq 0)
 testx=where(psf_x_sampling eq 0)
-if testy[0] eq -1 or testx[0] eq -1 then stop, 'No 0,0 point in psf_y_sampling or psf_x_sampling!'
+if testy[0] eq -1 or testx[0] eq -1 then begin
+print,' (get_psf2) - WARNING! No 0,0 point in psf_y_sampling or psf_x_sampling!'
+print, ' either a bad flexure offset or bad wavecal positioning'
+print, 'you should never actually arrive here :('
+stop
+; if this flags, then the entire run is useless.
 
+endif
 ;create coordinate grids
 x_grid_PSF = rebin(PSF_x_sampling,PSF_nx_samples,PSF_ny_samples)
 y_grid_PSF = rebin(reform(PSF_y_sampling,1,PSF_ny_samples),PSF_nx_samples,PSF_ny_samples)
@@ -280,7 +289,9 @@ if where_coords_NOT_too_big[0] eq -1 then stop, 'line 219'
   ;  ; this is the kernel to do the smoothing
   ;  ; it is a quartic kernel - this was found to be the best for the
   ;  ; WFPC2 data, not necessarily ideal for GPI - but we'll start with it!
-  ;  
+  ;
+; this is in the anderson paper, but i think it is wrong since it is not rotationally
+; symmetric. the LHS and RHS 0.078368 should be negative  
   ;  kernel= [ [ 0.041632, -0.080816, -0.078368, -0.081816,  0.041632], $
   ;  					[-0.080816, -0.019592,  0.200816, -0.019592, -0.080816], $
   ;  					[ 0.078368,  0.200816,  0.441632,  0.200816,  0.078368], $
