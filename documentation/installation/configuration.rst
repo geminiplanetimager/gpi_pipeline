@@ -27,11 +27,56 @@ information. This can roughly be divided into three sections:
     edit its settings if you wish to change any of the defaults, but this is not
     required. 
 
+.. _envvars:
+
 Installing the pipeline for the first time requires several paths to be defined via
 environment variables. Only three paths are explicitly required to be set; the
 rest have default settings that should work for the majority of users (but may
 be changed if desired).  
 
+Automated Setup
+-----------------------------------
+For most users, the automated setup should be sufficient and there should be no need to configure things manually.
+
+These installation scripts will guide you through the setup process and will automatically configure most of the settings for you. It does require you to verify/change three filepaths to ensure they point to the correct directory. 
+
+All installation scripts are located in the pipeline/scripts directory.
+
+.. admonition:: Mac OS and Linux
+
+    .. image:: icon_mac2.png
+
+    .. image:: icon_linux2.png
+  
+ On Mac OS and Linux, open up a terminal and go to the ``pipeline/scripts`` directory. Then you will want  to run the file ``gpi-setup-nix`` by typing in the follow command into the terminal:
+
+ > bash gpi-setup-nix
+
+ Follow the instructions given by the installation script. You will need to restart your terminal application for the installation to take into effect.
+
+ If everything went well, proceed to the next section, :ref:`config-envvars`.
+
+ If the automated setup did not work properly, you may need to install the pipeline manually: :ref:`config-manual`.
+
+.. admonition:: Windows
+
+    .. image:: icon_windows2.png
+
+ For Windows Vista and newer, open up the ``pipeline/scripts`` directory and double click on ``gpi-setup-windows.bat`` to start the installation script. 
+
+ For Windows XP users, the automated installation script will work with the following changes:
+ * `Download Support Tools <http://www.microsoft.com/en-us/download/details.aspx?id=18546>'_ to install ``setx``. 
+ * Edit ``gpi-setup-windows.bat``, uncomment the two lines under windows XP fix by deleting the ``::`` in front, and commenting out the lines following that use the ``where`` command and ``ERRORLEVEL`` variable by placing ``::`` in front of them.
+ Alternatively, Windows XP and older users can configure the pipeline manually: :ref:`config-manual`.
+
+ Follow the instructions given by the installation script. If everything went well, proceed to the next section, :ref:`config-envvars`.
+
+ If the automated setup did not work properly, you may need to install the pipeline manually: :ref:`config-manual`.
+
+.. _config-manual:
+
+How to Set Environment Variables Manually
+-----------------------------------
 The pipeline includes helpful example scripts to ease the setup process, located in the ``scripts`` subdirectory of the
 pipeline installation. Most users will simply want to take the example script for their selected shell and modify it for their local directory paths.
 
@@ -40,14 +85,7 @@ pipeline installation. Most users will simply want to take the example script fo
  * ``setenv_gpi_windows.pro``: Example setup IDL procedure for use on Windows.
 
 
-The following sections walk the user through the pipeline configuration.
-
-
-.. _envvars:
-
-How to Set Environment Variables
------------------------------------
-
+The following sections walk the user through the manual pipeline configuration.
 
 If you already know how to set environment variables on your computer, skip to :ref:`config-envvars`.
 

@@ -50,8 +50,14 @@ Starting from source code (either from the repository or zip files)
 
     .. image:: ../shared_images/icon_windows2.png
  
+  On Windows, there is a batch script in the ``pipeline/scripts`` directory called ``gpi-pipeline-windows.bat``. Double click it to start the GPI pipeline. 
 
-  On Windows: Start an IDL session. Run 
+ For convinience, you can create a shortcut of ``gpi-pipeline-windows.bat`` by right clicking on the file on selecting the option to create a shortcut. You can then place this on your desktop, start menu, or start screen to launch the pipeline from where is convenient for you. 
+
+.. note::
+  Alternatively, on any OS you can use the following to start up the pipeline manually:
+
+  Start an IDL session. Run 
 
      ::
 
@@ -63,8 +69,6 @@ Starting from source code (either from the repository or zip files)
 
        IDL> gpi_launch_guis
 
-.. note::
-    You can use this method (manually starting two IDL sessions) on any OS.  
 
 
 Starting compiled code with the IDL Virtual Machine
