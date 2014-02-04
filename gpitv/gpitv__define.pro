@@ -14296,18 +14296,96 @@ color = (*(self.pdata.plot_ptr[iplot])).options.color
 thetaoffset = (*(self.pdata.plot_ptr[iplot])).options.thetaoffset
 ;print,"thetaoffset: ",thetaoffset
 
+
 qo = (*(self.pdata.plot_ptr[iplot])).q
 uo = (*(self.pdata.plot_ptr[iplot])).u
+
+;The inversion and rotation have basically been copied from gpitv::refresh_image_invert_rotate
+; is X flip needed? 
+if strpos((*self.state).invert_image, 'x') ge 0 then begin
+ self->message, 'inverting in x'
+    ;if ptr_valid((*self.state).exthead_ptr)  then begin ; transformation with astrometry header updates
+     ; hreverse2, theta,  hdr , theta,  hdr , 1, /silent
+    ;endif else begin                ; simple transformations without astrometry headers to worry about
+    qo = reverse(qo)
+    uo = reverse(uo)
+      ;theta = -theta
+    ;endelse
+  endif
+  
+; is Y flip needed? 
+if strpos((*self.state).invert_image, 'y') ge 0 then begin
+    self->message, 'inverting in y'
+    ;if ptr_valid((*self.state).exthead_ptr)  then begin ; transformation with astrometry header updates
+    ;  hreverse2, theta,  hdr , theta,  hdr , 2, /silent
+    ;endif else begin                ; simple transformations without astrometry headers to worry about
+    qo = reverse(qo,2)
+    uo = reverse(uo,2)
+    ;endelse
+endif
+
+;Image Rotation?
+if (*self.state).rot_angle ne 0 then begin
+    desired_angle = (*self.state).rot_angle  ; for back compatibility with prior implementation
+    
+    ;; Are we rotating by some multiple of 90 degrees? If so, we can do so
+    ;; exactly.
+    if (desired_angle/90. eq fix(desired_angle/90)) then begin
+       
+       desired_angle = desired_angle mod 360
+       if desired_angle lt 0 then desired_angle +=360
+       rchange = strc(fix(desired_angle)) ; how much do we need to change the image to get the new rotation?
+
+       case rchange of
+        '0':  rot_dir=0           ;; do nothing
+        '90': rot_dir=1
+        '180': rot_dir=2
+        '270': rot_dir=3
+       endcase
+
+        ;; no astrometry, just do the rotate
+        qo = rotate(qo, rot_dir)
+        uo = rotate(uo, rot_dir)
+       
+    endif else begin
+        ;Arbitrary Rotation Angle
+        interpolated_qo= rot(qo, (-1)*desired_angle,  cubic=-0.5, missing=!values.f_nan)
+        nearest_qo = rot(qo, (-1)*desired_angle,  interp =0,  missing=!values.f_nan)
+        wnan = where(~finite(interpolated_qo), nanct)
+        if nanct gt 0 then interpolated_qo[wnan] = nearest_qo[wnan]
+        qo = interpolated_qo
+        
+        interpolated_uo= rot(uo, (-1)*desired_angle,  cubic=-0.5, missing=!values.f_nan)
+        nearest_uo = rot(uo, (-1)*desired_angle,  interp =0,  missing=!values.f_nan)
+        wnan = where(~finite(interpolated_uo), nanct)
+        if nanct gt 0 then interpolated_uo[wnan] = nearest_uo[wnan]
+        uo = interpolated_uo
+    endelse
+endif
+
+;ORIGINAL
+;if resample eq 1 then begin
+;    q = (*(self.pdata.plot_ptr[iplot])).q
+;    u = (*(self.pdata.plot_ptr[iplot])).u
+;endif else begin
+;    sz = size((*(self.pdata.plot_ptr[iplot])).q)
+;    q = congrid((*(self.pdata.plot_ptr[iplot])).q,sz[1]/resample,sz[2]/resample,/int)
+;    if arg_present(xo) then x = congrid(xo,sz[1]/resample)
+;    u = congrid((*(self.pdata.plot_ptr[iplot])).u,sz[1]/resample,sz[2]/resample,/int)
+;    if arg_present(xo) then y = congrid(yo,sz[2]/resample)
+;endelse
+;UPDATED FOR INVERSION 
 if resample eq 1 then begin
-    q = (*(self.pdata.plot_ptr[iplot])).q
-    u = (*(self.pdata.plot_ptr[iplot])).u
+    q = qo
+    u = uo
 endif else begin
-    sz = size((*(self.pdata.plot_ptr[iplot])).q)
-    q = congrid((*(self.pdata.plot_ptr[iplot])).q,sz[1]/resample,sz[2]/resample,/int)
+    sz = size(qo)
+    q = congrid(qo,sz[1]/resample,sz[2]/resample,/int)
     if arg_present(xo) then x = congrid(xo,sz[1]/resample)
-    u = congrid((*(self.pdata.plot_ptr[iplot])).u,sz[1]/resample,sz[2]/resample,/int)
+    u = congrid(uo,sz[1]/resample,sz[2]/resample,/int)
     if arg_present(xo) then y = congrid(yo,sz[2]/resample)
 endelse
+
 sz = size(q)
 x = (findgen(sz[1]))*resample
 y = (findgen(sz[2]))*resample
@@ -14361,10 +14439,19 @@ if n_elements(good) eq 1 then return
   
    if cdelt[0] gt 0 then sgn = 1 else sgn = -1 ; To check for flip between RH and LH coordinate systems
    
-   theta = sgn * 0.5 * atan(u/q)+thetaoffset*!dtor+d_par_ang*!dtor
+   theta = sgn * 0.5 * atan(u/q)+thetaoffset*!dtor+d_par_ang*!dtor+(*self.state).rot_angle*!dtor
    ;theta = 0.5 * atan(u/q)+thetaoffset*!dtor
-   ;stop
+
+   ;self->Message, "PA Offset from GPItv:"+string(thetaoffset)
+   ;self->Message, "Image Rotation from GPItv:"+string((*self.state).rot_angle)
+   ;self->Message, "Image Rotation Angle:"+string(d_par_ang)
+;  
    maxmag = .50
+   
+   ;Check for image inversion: 
+   ;
+
+   
 
     ; remember position angle is defined starting at NORTH so
     ; the usual positions of sin and cosine are swapped.
