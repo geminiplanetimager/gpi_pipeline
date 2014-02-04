@@ -13,6 +13,299 @@
 ;building 21 room C120
 ;dinsick@fourier.gsfc.nasa.gov
 ;(301)286-5114
+pro solve_triangular, a,indx, zz, nsetp
+
+for l = 1,nsetp do begin
+  ip = nsetp+1-l
+  if (l  NE  1) then zz(1:ip) = zz(1:ip) - a(jj,1:ip)*zz(ip+1)
+  jj = indx(ip)
+  zz(ip) = zz(ip) / a(jj,ip)
+endfor
+
+end
+
+pro g1, a,b,cterm, sterm, sig
+;     COMPUTE ORTHOGONAL ROTATION MATRIX..
+;
+;     COMPUTE.. MATRIX   (C, S) SO THAT (C, S)(A) = (SQRT(A**2+B**2))
+;                        (-S,C)         (-S,C)(B)   (   0          )
+;     COMPUTE SIG = SQRT(A**2+B**2)
+;        SIG IS COMPUTED LAST TO ALLOW FOR THE POSSIBILITY THAT
+;        SIG MAY BE IN THE SAME LOCATION AS A OR B .
+;     ------------------------------------------------------------------
+
+one = 1.00
+zero = 0.0
+;     ------------------------------------------------------------------
+
+if (ABS(a) GT ABS(b)) then begin
+  xr = b / a
+  yr = SQRT(one + xr^2)
+  if a LT 0 then signb = -1
+  if a GT 0 then signb = 1
+  cterm = ABS(one/yr) * signb
+  sterm = cterm * xr
+  sig = ABS(a) * yr
+  RETURN
+endif
+if (b NE zero) then begin
+  xr = a / b
+  yr = SQRT(one + xr^2)
+  if b LT 0 then signb = -1
+  if b GT 0 then signb = 1
+  sterm = ABS(one/yr) * signb
+  cterm = sterm * xr
+  sig = ABS(b) * yr
+  RETURN
+endif
+
+;!      SIG = ZERO
+cterm = zero
+sterm = one
+RETURN
+END ;SUBROUTINE g1
+
+
+;used by NNLS
+pro h12,mode, lpivot, l1, m, u, up, c, ice, icv, ncv
+;  CONSTRUCTION AND/OR APPLICATION OF A SINGLE
+;  HOUSEHOLDER TRANSFORMATION..     Q = I + U*(U**T)/B
+;     ------------------------------------------------------------------
+;                     Subroutine Arguments
+;
+;     MODE   = 1 OR 2   Selects Algorithm H1 to construct and apply a
+;            Householder transformation, or Algorithm H2 to apply a
+;            previously constructed transformation.
+;     LPIVOT IS THE INDEX OF THE PIVOT ELEMENT.
+;     L1,M   IF L1  <=  M   THE TRANSFORMATION WILL BE CONSTRUCTED TO
+;            ZERO ELEMENTS INDEXED FROM L1 THROUGH M.   IF L1 GT. M
+;            THE SUBROUTINE DOES AN IDENTITY TRANSFORMATION.
+;     U(),IUE,UP    On entry with MODE = 1, U() contains the pivot
+;            vector.  IUE is the storage increment between elements.
+;            On exit when MODE = 1, U() and UP contain quantities
+;            defining the vector U of the Householder transformation.
+;            on entry with MODE = 2, U() and UP should contain
+;            quantities previously computed with MODE = 1.  These will
+;            not be modified during the entry with MODE = 2.
+;     C()    ON ENTRY with MODE = 1 or 2, C() CONTAINS A MATRIX WHICH
+;            WILL BE REGARDED AS A SET OF VECTORS TO WHICH THE
+;            HOUSEHOLDER TRANSFORMATION IS TO BE APPLIED.
+;            ON EXIT C() CONTAINS THE SET OF TRANSFORMED VECTORS.
+;     ICE    STORAGE INCREMENT BETWEEN ELEMENTS OF VECTORS IN C().
+;     ICV    STORAGE INCREMENT BETWEEN VECTORS IN C().
+;     NCV    NUMBER OF VECTORS IN C() TO BE TRANSFORMED. IF NCV  <=  0
+;            NO OPERATIONS WILL BE DONE ON C().
+;     ------------------------------------------------------------------
+
+one = 1.0
+u_idim = 100
+
+if (0 GE lpivot OR lpivot GE l1 OR l1 GT m) then RETURN
+cl = ABS(u(lpivot))
+
+if (mode NE 2) then begin
+;                            ****** CONSTRUCT THE TRANSFORMATION. ******
+
+
+  
+  for j = l1, m do begin
+    if cl LT ABS(u(j)) then cl=ABS(u(j))  
+  endfor
+
+  if (cl LE 0) then RETURN
+
+  clinv = one / cl
+  sm = (u(lpivot)*clinv)^ 2 ;+ SUM( (u(l1:m)*clinv)^2 )
+  for j = l1, m do begin
+    d_i_i1= u[j] * clinv;
+    sm = sm + d_i_i1 * d_i_i1
+  endfor
+
+  cl = cl * SQRT(sm)
+
+  if (u(lpivot) GT 0) then begin
+    cl = -cl
+
+  endif
+  up = u(lpivot) - cl
+  u(lpivot) = cl
+
+endif else if (cl LE 0) then RETURN
+
+
+;            ****** APPLY THE TRANSFORMATION  I+U*(U**T)/B  TO C. ******
+
+
+IF (ncv LE 0) then RETURN
+
+b = up * u(lpivot)
+
+;                       B  MUST BE NONPOSITIVE HERE.  IF B = 0., RETURN.
+
+if (b LT 0) then begin
+
+  b = one / b
+  i2 = 1 - icv + ice * (lpivot-1)
+  incr = ice * (l1-lpivot)
+  for j = 1, ncv do begin
+    i2 = i2 + icv
+    i3 = i2 + incr
+    i4 = i3
+    sm = c(i2) * up
+    for i = l1, m do begin
+      sm = sm + c(i3) * u(i)
+      i3 = i3 + ice
+    endfor
+  
+    if (sm NE 0) then begin
+      sm = sm * b
+      c(i2) = c(i2) + sm * up
+      for i = l1, m do begin
+        c(i4) = c(i4) + sm * u(i)
+        i4 = i4 + ice
+      endfor
+    endif
+      
+ 
+  endfor ;! j = 1, ncv
+endif
+RETURN
+END ;SUBROUTINE h12
+
+;--Business_of_Ferrets_449_000
+;Content-Type: TEXT/plain; name="newtest.pro"; charset=us-ascii; x-unix-mode=0666
+;Content-Description: newtest.pro
+;Content-MD5: HNuW4poR1+ijic4PWoh8hA==
+
+; NAME: newtest.pro
+;
+; CALLING SEQUENCE:
+;	IDL> newtest
+;
+; PURPOSE:
+; 	Fit a mixture of exponentials by NNLS.
+;
+; INPUTS: 
+;
+;       m=	The number of rows 
+; 	n= 	The number of colums
+;	t0=	Time constant 
+;  	a(m,n)= Puts values in the the m by n matrix
+;  	b(m)=   Puts values into b() vector (random values)
+;	x(n)=   On entry b need not be initialized will return x
+;  	w(n)=   An n-array of working space
+;	ai(m,n)=An m by n array of random numbers. ai(i,j) = 1 where i = j
+;  	indx()= An n integer working array of length at least n
+;      
+; OUTPUTS:
+;	a=	On exit, a() contains the product matrix, q*b, where q is an
+;	        m x m orthogonal matrix generated implicity by this subroutine
+;	b=	On exit b() contains q*b
+;	x=	On exit x() will contain the solution vector;  all x's >= 0 are printed
+;	t0 =	The time constraint is printed all with it's corresponding x value that is >= 0
+;  	rnorm=  On exit rnorm contains the Euclidean norm of the residual vector
+;	w=	On exit w() will contain the dual solution vector   
+;    		w will satisfy w(i) = 0. For all i in set p
+; 		and w(i) <=0. For all i in set z
+;       indx=   On exit the contents of this array define the sets p and z as follows..
+;              	indx(1) thru indx(nsetp) = set p
+;              	indx(iz1) thru indx(iz2) = set z
+;              	iz1 = nsetp +1 = npp1
+;              	iz2 = n
+;  	mode=   This is a success-failure flag with the following meanings
+;          	1   The solutions has been computed successfully
+;          	2   The dimensions of the problem are bad
+;              	    either m <= 0 or n<= 0
+;          	3   Iteration count exceeded.  More than 3*n iterations
+;
+; HISTORY:
+;       Created by Dr. Edward Schmahl and Jay Dinsick as another test case for NNLS
+;       Coded by Jay Dinsick, dinsick@fourier.gsfc.nasa.gov
+;
+
+
+pro newtest
+
+;IDL does column, row when accessing 2 dim arrays
+;most languages do row, column.  i.e. C, Fortran
+
+;declaring and initializing variables to be passed to the NNLS routine
+
+
+restore, 'a_vis.sav'
+m = SIZE(a(0,*), /N_Elements)
+n = SIZE(vis(*), /N_Elements)
+print,'a(*,0) = ',SIZE(a(*,0), /N_Elements)
+print,'a(0,*) = ',SIZE(a(0,*), /N_Elements)
+print,'vis = ', SIZE(vis(*), /N_Elements)
+x = dblarr(n)
+b = dblarr(m)
+t0=dblarr(m)
+mode=0
+w = dblarr(n)
+indx = intarr(n)
+rnorm =0.00
+ai = dblarr(n,m)
+b = randomu(seed,m)
+
+;calculates the time constant
+t0(0) = 2.0
+t0(1) = t0(0) * SQRT(2.0)
+for i = 2, m-1 do begin
+  t0[i] = 2.0 * t0[i-2]
+endfor
+
+; Calculate the X-matrix, avoiding underflow
+
+;makes ai a 100 x 100 array of random numbers between 0 and .5
+;ai = .5*randomu(seed,n,m)
+
+for j = 0, n-1 do begin
+  for i = 0, m-1 do begin
+    if j EQ i then ai[j,i] = 1
+  endfor
+endfor
+
+;inverts the matrix ai
+;a = INVERT(ai) 
+
+;matrix multiplication of ai and b
+;x = a##vis
+x0 = x
+window, 0
+;plot, x, title = 'x before running nnls'
+
+;! Now call NNLS to do the fitting.
+Tinit = systime(1)
+print, 'Calling NNLS...'
+nnls, a, m, n, vis, x, rnorm, w, indx, mode
+print, 'NNLS Runtime:  ', systime(1) - Tinit, ' Seconds'
+
+plot, x, title ='x after nnls '
+;plot, x-x0, title ='x_after-x_before (nnls)'
+
+CASE mode OF
+1: begin
+    for i = 0, m-1 do begin
+         if (b(i) GT 0) then begin
+        print, ' Time constant: ', t0(i), '  Fitted amplitude = ', x(i), Format = '(a,F25.5,a, F10.5)'
+      endif
+   endfor
+    print, ''
+    print,' Array INDX =', indx, Format = '(a,19i3)'
+    print, ''
+    print,' Alternate solution:', w, Format ='(a/ (" ", 10f10.5))'
+    print,''
+    print,' rnorm = ', rnorm, Format = '(a,F9.4)'
+ end
+2:  print, 'Error in input argument 2 or 3'
+3:  print,'Failed to converge'
+
+endcase
+
+stop
+end 
+
 
 ;============================================================================
 ; PROJECT:
@@ -458,297 +751,5 @@ RETURN
 
 end
 
-pro solve_triangular, a,indx, zz, nsetp
-
-for l = 1,nsetp do begin
-  ip = nsetp+1-l
-  if (l  NE  1) then zz(1:ip) = zz(1:ip) - a(jj,1:ip)*zz(ip+1)
-  jj = indx(ip)
-  zz(ip) = zz(ip) / a(jj,ip)
-endfor
-
-end
-
-pro g1, a,b,cterm, sterm, sig
-;     COMPUTE ORTHOGONAL ROTATION MATRIX..
-;
-;     COMPUTE.. MATRIX   (C, S) SO THAT (C, S)(A) = (SQRT(A**2+B**2))
-;                        (-S,C)         (-S,C)(B)   (   0          )
-;     COMPUTE SIG = SQRT(A**2+B**2)
-;        SIG IS COMPUTED LAST TO ALLOW FOR THE POSSIBILITY THAT
-;        SIG MAY BE IN THE SAME LOCATION AS A OR B .
-;     ------------------------------------------------------------------
-
-one = 1.00
-zero = 0.0
-;     ------------------------------------------------------------------
-
-if (ABS(a) GT ABS(b)) then begin
-  xr = b / a
-  yr = SQRT(one + xr^2)
-  if a LT 0 then signb = -1
-  if a GT 0 then signb = 1
-  cterm = ABS(one/yr) * signb
-  sterm = cterm * xr
-  sig = ABS(a) * yr
-  RETURN
-endif
-if (b NE zero) then begin
-  xr = a / b
-  yr = SQRT(one + xr^2)
-  if b LT 0 then signb = -1
-  if b GT 0 then signb = 1
-  sterm = ABS(one/yr) * signb
-  cterm = sterm * xr
-  sig = ABS(b) * yr
-  RETURN
-endif
-
-;!      SIG = ZERO
-cterm = zero
-sterm = one
-RETURN
-END ;SUBROUTINE g1
-
-
-;used by NNLS
-pro h12,mode, lpivot, l1, m, u, up, c, ice, icv, ncv
-;  CONSTRUCTION AND/OR APPLICATION OF A SINGLE
-;  HOUSEHOLDER TRANSFORMATION..     Q = I + U*(U**T)/B
-;     ------------------------------------------------------------------
-;                     Subroutine Arguments
-;
-;     MODE   = 1 OR 2   Selects Algorithm H1 to construct and apply a
-;            Householder transformation, or Algorithm H2 to apply a
-;            previously constructed transformation.
-;     LPIVOT IS THE INDEX OF THE PIVOT ELEMENT.
-;     L1,M   IF L1  <=  M   THE TRANSFORMATION WILL BE CONSTRUCTED TO
-;            ZERO ELEMENTS INDEXED FROM L1 THROUGH M.   IF L1 GT. M
-;            THE SUBROUTINE DOES AN IDENTITY TRANSFORMATION.
-;     U(),IUE,UP    On entry with MODE = 1, U() contains the pivot
-;            vector.  IUE is the storage increment between elements.
-;            On exit when MODE = 1, U() and UP contain quantities
-;            defining the vector U of the Householder transformation.
-;            on entry with MODE = 2, U() and UP should contain
-;            quantities previously computed with MODE = 1.  These will
-;            not be modified during the entry with MODE = 2.
-;     C()    ON ENTRY with MODE = 1 or 2, C() CONTAINS A MATRIX WHICH
-;            WILL BE REGARDED AS A SET OF VECTORS TO WHICH THE
-;            HOUSEHOLDER TRANSFORMATION IS TO BE APPLIED.
-;            ON EXIT C() CONTAINS THE SET OF TRANSFORMED VECTORS.
-;     ICE    STORAGE INCREMENT BETWEEN ELEMENTS OF VECTORS IN C().
-;     ICV    STORAGE INCREMENT BETWEEN VECTORS IN C().
-;     NCV    NUMBER OF VECTORS IN C() TO BE TRANSFORMED. IF NCV  <=  0
-;            NO OPERATIONS WILL BE DONE ON C().
-;     ------------------------------------------------------------------
-
-one = 1.0
-u_idim = 100
-
-if (0 GE lpivot OR lpivot GE l1 OR l1 GT m) then RETURN
-cl = ABS(u(lpivot))
-
-if (mode NE 2) then begin
-;                            ****** CONSTRUCT THE TRANSFORMATION. ******
-
-
-  
-  for j = l1, m do begin
-    if cl LT ABS(u(j)) then cl=ABS(u(j))  
-  endfor
-
-  if (cl LE 0) then RETURN
-
-  clinv = one / cl
-  sm = (u(lpivot)*clinv)^ 2 ;+ SUM( (u(l1:m)*clinv)^2 )
-  for j = l1, m do begin
-    d_i_i1= u[j] * clinv;
-    sm = sm + d_i_i1 * d_i_i1
-  endfor
-
-  cl = cl * SQRT(sm)
-
-  if (u(lpivot) GT 0) then begin
-    cl = -cl
-
-  endif
-  up = u(lpivot) - cl
-  u(lpivot) = cl
-
-endif else if (cl LE 0) then RETURN
-
-
-;            ****** APPLY THE TRANSFORMATION  I+U*(U**T)/B  TO C. ******
-
-
-IF (ncv LE 0) then RETURN
-
-b = up * u(lpivot)
-
-;                       B  MUST BE NONPOSITIVE HERE.  IF B = 0., RETURN.
-
-if (b LT 0) then begin
-
-  b = one / b
-  i2 = 1 - icv + ice * (lpivot-1)
-  incr = ice * (l1-lpivot)
-  for j = 1, ncv do begin
-    i2 = i2 + icv
-    i3 = i2 + incr
-    i4 = i3
-    sm = c(i2) * up
-    for i = l1, m do begin
-      sm = sm + c(i3) * u(i)
-      i3 = i3 + ice
-    endfor
-  
-    if (sm NE 0) then begin
-      sm = sm * b
-      c(i2) = c(i2) + sm * up
-      for i = l1, m do begin
-        c(i4) = c(i4) + sm * u(i)
-        i4 = i4 + ice
-      endfor
-    endif
-      
- 
-  endfor ;! j = 1, ncv
-endif
-RETURN
-END ;SUBROUTINE h12
-
-;--Business_of_Ferrets_449_000
-;Content-Type: TEXT/plain; name="newtest.pro"; charset=us-ascii; x-unix-mode=0666
-;Content-Description: newtest.pro
-;Content-MD5: HNuW4poR1+ijic4PWoh8hA==
-
-; NAME: newtest.pro
-;
-; CALLING SEQUENCE:
-;	IDL> newtest
-;
-; PURPOSE:
-; 	Fit a mixture of exponentials by NNLS.
-;
-; INPUTS: 
-;
-;       m=	The number of rows 
-; 	n= 	The number of colums
-;	t0=	Time constant 
-;  	a(m,n)= Puts values in the the m by n matrix
-;  	b(m)=   Puts values into b() vector (random values)
-;	x(n)=   On entry b need not be initialized will return x
-;  	w(n)=   An n-array of working space
-;	ai(m,n)=An m by n array of random numbers. ai(i,j) = 1 where i = j
-;  	indx()= An n integer working array of length at least n
-;      
-; OUTPUTS:
-;	a=	On exit, a() contains the product matrix, q*b, where q is an
-;	        m x m orthogonal matrix generated implicity by this subroutine
-;	b=	On exit b() contains q*b
-;	x=	On exit x() will contain the solution vector;  all x's >= 0 are printed
-;	t0 =	The time constraint is printed all with it's corresponding x value that is >= 0
-;  	rnorm=  On exit rnorm contains the Euclidean norm of the residual vector
-;	w=	On exit w() will contain the dual solution vector   
-;    		w will satisfy w(i) = 0. For all i in set p
-; 		and w(i) <=0. For all i in set z
-;       indx=   On exit the contents of this array define the sets p and z as follows..
-;              	indx(1) thru indx(nsetp) = set p
-;              	indx(iz1) thru indx(iz2) = set z
-;              	iz1 = nsetp +1 = npp1
-;              	iz2 = n
-;  	mode=   This is a success-failure flag with the following meanings
-;          	1   The solutions has been computed successfully
-;          	2   The dimensions of the problem are bad
-;              	    either m <= 0 or n<= 0
-;          	3   Iteration count exceeded.  More than 3*n iterations
-;
-; HISTORY:
-;       Created by Dr. Edward Schmahl and Jay Dinsick as another test case for NNLS
-;       Coded by Jay Dinsick, dinsick@fourier.gsfc.nasa.gov
-;
-
-
-pro newtest
-
-;IDL does column, row when accessing 2 dim arrays
-;most languages do row, column.  i.e. C, Fortran
-
-;declaring and initializing variables to be passed to the NNLS routine
-
-
-restore, 'a_vis.sav'
-m = SIZE(a(0,*), /N_Elements)
-n = SIZE(vis(*), /N_Elements)
-print,'a(*,0) = ',SIZE(a(*,0), /N_Elements)
-print,'a(0,*) = ',SIZE(a(0,*), /N_Elements)
-print,'vis = ', SIZE(vis(*), /N_Elements)
-x = dblarr(n)
-b = dblarr(m)
-t0=dblarr(m)
-mode=0
-w = dblarr(n)
-indx = intarr(n)
-rnorm =0.00
-ai = dblarr(n,m)
-b = randomu(seed,m)
-
-;calculates the time constant
-t0(0) = 2.0
-t0(1) = t0(0) * SQRT(2.0)
-for i = 2, m-1 do begin
-  t0[i] = 2.0 * t0[i-2]
-endfor
-
-; Calculate the X-matrix, avoiding underflow
-
-;makes ai a 100 x 100 array of random numbers between 0 and .5
-;ai = .5*randomu(seed,n,m)
-
-for j = 0, n-1 do begin
-  for i = 0, m-1 do begin
-    if j EQ i then ai[j,i] = 1
-  endfor
-endfor
-
-;inverts the matrix ai
-;a = INVERT(ai) 
-
-;matrix multiplication of ai and b
-;x = a##vis
-x0 = x
-window, 0
-;plot, x, title = 'x before running nnls'
-
-;! Now call NNLS to do the fitting.
-Tinit = systime(1)
-print, 'Calling NNLS...'
-nnls, a, m, n, vis, x, rnorm, w, indx, mode
-print, 'NNLS Runtime:  ', systime(1) - Tinit, ' Seconds'
-
-plot, x, title ='x after nnls '
-;plot, x-x0, title ='x_after-x_before (nnls)'
-
-CASE mode OF
-1: begin
-    for i = 0, m-1 do begin
-         if (b(i) GT 0) then begin
-        print, ' Time constant: ', t0(i), '  Fitted amplitude = ', x(i), Format = '(a,F25.5,a, F10.5)'
-      endif
-   endfor
-    print, ''
-    print,' Array INDX =', indx, Format = '(a,19i3)'
-    print, ''
-    print,' Alternate solution:', w, Format ='(a/ (" ", 10f10.5))'
-    print,''
-    print,' rnorm = ', rnorm, Format = '(a,F9.4)'
- end
-2:  print, 'Error in input argument 2 or 3'
-3:  print,'Failed to converge'
-
-endcase
-
-stop
-end 
 
 
