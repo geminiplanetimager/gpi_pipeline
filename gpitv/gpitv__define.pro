@@ -3247,6 +3247,12 @@ pro GPItv::collapsecube
         *self.images.main_image=(*self.images.main_image_stack)[*,*,1] - (*self.images.main_image_stack)[*,*,0]
         if bpct gt 0 then (*self.images.main_image)[wn] = !values.f_nan
      end
+     'Total Intensity': begin
+        ;; 2-slice sum for a Polarization Pair
+        widget_control,(*self.state).curimnum_base_id,map=0
+        *self.images.main_image=(*self.images.main_image_stack)[*,*,1] + (*self.images.main_image_stack)[*,*,0]
+        if bpct gt 0 then (*self.images.main_image)[wn] = !values.f_nan
+     end
      
      'Linear Pol. Intensity': begin
         widget_control,(*self.state).curimnum_base_id,map=0
@@ -8015,7 +8021,7 @@ if naxis eq 3 then begin
             ;; do we have a 2-Slice pol stack, or a 4-slice cube?
             ;; set up to overplot polarization vectors
             naxis3 = gpi_get_keyword(h, e, "NAXIS3")
-            if naxis3 eq 2 then modelist=[modelist, 'Difference of Polarizations'] $
+            if naxis3 eq 2 then modelist=[modelist, 'Total Intensity', 'Difference of Polarizations'] $
             else modelist=[modelist, 'Linear Pol. Intensity', 'Linear Pol. Fraction']
             
             widget_control, (*self.state).collapse_button, set_value = modelist
