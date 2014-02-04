@@ -93,8 +93,7 @@ case my_type of
       if (width mod 2) eq 1 then width_odd = 1 else if (width mod 2) eq 0 then width_odd = 0 else return, error('width is not valid number')
 
       wavcal = *(ptr_calibrations[0])
-      sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect)
-
+      sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect) ; get the length of the spectrum (sdpx)
       ptr_values = ptrarr(nlens,nlens,1,n_diff_elev)
       ptr_xcoords = ptrarr(nlens,nlens,1,n_diff_elev)
       ptr_ycoords = ptrarr(nlens,nlens,1,n_diff_elev)
@@ -121,42 +120,48 @@ case my_type of
 ;/////////////////////////////////////////////////////////////////////////
 ;/////// Iteration over the different elevations
       for it_elev = 0,n_diff_elev-1 do begin
-        wavcal = *(ptr_calibrations[it_elev])
-	image = *(ptr_images[it_elev])
+				image = *(ptr_images[it_elev])
 
-      ;get length of spectrum
+		  ;get length of spectrum
       ;maybe sdpx should be variable. the length of the spectra is not constant over the detector
       ;TODO: filter is a variable of the common PIP I think but sometimes it is not defined. I don't know where the definition occurs. Should check that.
       ;PROBLEM with sdpx, too small sometimes!!
-      sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect)
-;      sdpx = 10+calc_sdpx(wavcal, filter, xmini, CommonWavVect)
-;      xmini+=10
-;      xmini-=5
+
+			; need an spdx that is large enough for the entire field and that stays constant
+			; using the first spdx for the reference.
+			
+				wavcal = *(ptr_calibrations[it_elev])
+				wavcal0 = *(ptr_calibrations[0])
+
+       sdpx0 = calc_sdpx(wavcal0, filter, xmini, CommonWavVect)
+			 sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect)
+
       if (sdpx < 0) then return, error('FAILURE Wavelength solution is bogus! All values are NaN.')
       
       
       ;Get the coordinates of the pixels
-      xcoords_cal = fltarr(sdpx,nlens,nlens)
-      ycoords_cal = fltarr(sdpx,nlens,nlens)
-      for i=0,sdpx-1 do begin
+      xcoords_cal = fltarr(sdpx0,nlens,nlens)
+      ycoords_cal = fltarr(sdpx0,nlens,nlens)
+      for i=0,sdpx0-1 do begin
         ycoords_cal[i,*,*] = reform(xmini - i ,1,nlens,nlens)
         xcoords_cal[i,*,*] = reform(wavcal[*,*,1]+(wavcal[*,*,0]-ycoords_cal[i,*,*])*tan(wavcal[*,*,4]),1,nlens,nlens)
+;stop
       endfor
       if width_odd then begin ; width is odd
-        xcoords[0:sdpx-1,*,*] = xcoords_cal
-        ycoords[0:sdpx-1,*,*] = ycoords_cal
+        xcoords[0:sdpx0-1,*,*] = xcoords_cal
+        ycoords[0:sdpx0-1,*,*] = ycoords_cal
         for w=1,floor(width/2) do begin
-          ycoords[(2*w-1)*sdpx:(2*w)*sdpx-1,*,*] = ycoords_cal
-          ycoords[(2*w)*sdpx:(2*w+1)*sdpx-1,*,*] = ycoords_cal
-          xcoords[(2*w-1)*sdpx:(2*w)*sdpx-1,*,*] = round(xcoords_cal + w)
-          xcoords[(2*w)*sdpx:(2*w+1)*sdpx-1,*,*] = round(xcoords_cal - w)
+          ycoords[(2*w-1)*sdpx0:(2*w)*sdpx0-1,*,*] = ycoords_cal
+          ycoords[(2*w)*sdpx0:(2*w+1)*sdpx0-1,*,*] = ycoords_cal
+          xcoords[(2*w-1)*sdpx0:(2*w)*sdpx0-1,*,*] = round(xcoords_cal + w)
+          xcoords[(2*w)*sdpx0:(2*w+1)*sdpx0-1,*,*] = round(xcoords_cal - w)
         endfor
       endif else begin;width is even
         for w=1,floor(width/2) do begin
-          ycoords[(2*w-2)*sdpx:(2*w-1)*sdpx-1,*,*] = ycoords_cal
-          ycoords[(2*w-1)*sdpx:(2*w)*sdpx-1,*,*] = ycoords_cal
-          xcoords[(2*w-2)*sdpx:(2*w-1)*sdpx-1,*,*] = round(xcoords_cal + w - 0.5)
-          xcoords[(2*w-1)*sdpx:(2*w)*sdpx-1,*,*] = round(xcoords_cal - w + 0.5)
+          ycoords[(2*w-2)*sdpx0:(2*w-1)*sdpx0-1,*,*] = ycoords_cal
+          ycoords[(2*w-1)*sdpx0:(2*w)*sdpx0-1,*,*] = ycoords_cal
+          xcoords[(2*w-2)*sdpx0:(2*w-1)*sdpx0-1,*,*] = round(xcoords_cal + w - 0.5)
+          xcoords[(2*w-1)*sdpx0:(2*w)*sdpx0-1,*,*] = round(xcoords_cal - w + 0.5)
         endfor
       endelse
       coords_not_good = where( ~finite(xcoords) or ~finite(ycoords) or (ycoords LE 4.0) OR (ycoords GE 2043.0) OR (xcoords LE 4.0) OR (xcoords GE 2043.0), COMPLEMENT = where_good)
@@ -201,6 +206,7 @@ case my_type of
        
         for i=0,nlens-1 do begin
           for j=0,nlens-1 do begin
+						if finite(wavcal[i,j,4]) eq 0 then continue
             if wavcal[i,j,4] ge 0.0 then begin
               mask_image[xcoords[where(finite(xcoords[*,i,j])),i,j],ycoords[where(finite(ycoords[*,i,j])),i,j]] = 1
               xlim = round(wavcal[i,j,1]+(wavcal[i,j,0]-xmini[i,j])*tan(wavcal[i,j,4]) - float((width-1))/2.)
@@ -216,15 +222,10 @@ case my_type of
               xcoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = xcoords_image[xmin:xmax,ymin:ymax]
               ycoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = ycoords_image[xmin:xmax,ymin:ymax]
               
-;              useless = gauss2dfit(image[xmin:xmax,ymin:ymax], coefs, /tilt )
-;;              xcentroids[i,j] = coefs[4] + xmin
-;;              ycentroids[i,j] = coefs[5] + ymin
-;                gcntrd,image,coefs[4] + xmin,coefs[5] + ymin,xcen,ycen,1.5,/SILENT
-;                xcentroids[i,j] = xcen
-;                ycentroids[i,j] = ycen
-              
               mask_image[xcoords[where(finite(xcoords[*,i,j])),i,j],ycoords[where(finite(ycoords[*,i,j])),i,j]] = 0
-            endif else if wavcal[i,j,4] lt 0.0 then begin
+							 ;endif else if wavcal[i,j,4] lt 0.0 then begin
+						endif else begin 
+							; so this is when wavcal[i,j,4] lt 0.0
               mask_image[xcoords[where(finite(xcoords[*,i,j])),i,j],ycoords[where(finite(ycoords[*,i,j])),i,j]] = 1
         
               xlim = round(wavcal[i,j,1]+(wavcal[i,j,0]-xmini[i,j])*tan(wavcal[i,j,4]) + float((width-1))/2.)
@@ -239,16 +240,27 @@ case my_type of
               masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = mask_image[xmin:xmax,ymin:ymax]
               xcoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = xcoords_image[xmin:xmax,ymin:ymax]
               ycoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = ycoords_image[xmin:xmax,ymin:ymax]
-              
-;              useless = gauss2dfit(image[xmin:xmax,ymin:ymax], coefs, /tilt )
-;;              xcentroids[i,j] = coefs[4] + xmin
-;;              ycentroids[i,j] = coefs[5] + ymin
-;                gcntrd,image,coefs[4] + xmin,coefs[5] + ymin,xcen,ycen,1.5,/SILENT
-;                xcentroids[i,j] = xcen
-;                ycentroids[i,j] = ycen
-              
+                           
               mask_image[xcoords[where(finite(xcoords[*,i,j])),i,j],ycoords[where(finite(ycoords[*,i,j])),i,j]] = 0
-            endif
+            endelse
+						; now calculate the centroids - this just does a center of mass calculation
+							tmpx=xcentroids[i,j,0,it_elev]
+							tmpy=ycentroids[i,j,0,it_elev]
+							xcentroids[i,j,0,it_elev]= total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
+																								xcoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
+																								masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])/$ 
+																								total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
+																											masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])
+							ycentroids[i,j,0,it_elev]= total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
+																								ycoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
+																								masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])/$ 
+																								total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
+																											masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])
+							; the following just flags if the offset is too large?
+							if tmpx-xcentroids[i,j,0,it_elev] ge 1.1*tmpx then stop ; PI: Have never seen this flag
+							if tmpy-ycentroids[i,j,0,it_elev] ge 1.1*tmpy then stop ; PI: Have never seen this flag
+
+
           endfor
         endfor
       endif
@@ -284,7 +296,7 @@ case my_type of
 
       ;just to be sure we delete the useless variables
       delvarx, values,xcoords,ycoords,masks
-  end
+  end ; PRISM case
   'WOLLASTON': begin
       ;load the pol solution
       polspot_coords = polcal.coords
@@ -296,6 +308,9 @@ case my_type of
 	  dim = (size(image))[1]
 
 	  n_diff_elev = 1 ; multiple elevations not yet implemented...
+; Actually, I think you can just uncomment the following and it should work - but this is untested
+;		  n_diff_elev = n_elements(ptr_images)           ;number of different elevation = number of slices in the cube.
+
       ptr_values = ptrarr(nlens,nlens,2,n_diff_elev)
       ptr_xcoords = ptrarr(nlens,nlens,2,n_diff_elev)
       ptr_ycoords = ptrarr(nlens,nlens,2,n_diff_elev)
