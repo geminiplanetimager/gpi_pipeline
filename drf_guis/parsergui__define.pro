@@ -429,14 +429,14 @@ pro parsergui::parse_current_files
                                         end
                                         'ARC': begin 
                                             if  current.dispersr eq 'WOLLASTON' then begin 
-							templatename='Create Polarized Flat-field'
+												templatename='Create Polarized Flat-field'
                                             endif else begin 
-                                               objelevation = finfo[indfobject[0]].elevatio
-                                                     if (objelevation lt 91.0) AND (objelevation gt 89.0) then begin 
-							templatename='Wavelength Solution 2D'
-                                                     endif else begin
-                                                        templatename='Quick Wavelength Solution'
-                                                     endelse
+												objelevation = finfo[indfobject[0]].elevatio
+                                                if (objelevation lt 91.0) AND (objelevation gt 89.0) then begin 
+													templatename='Wavelength Solution 2D'
+                                                endif else begin
+                                                    templatename='Quick Wavelength Solution'
+                                                endelse
                                             endelse                     
                                         end
                                         'FLAT': begin
