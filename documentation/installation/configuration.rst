@@ -54,7 +54,7 @@ All installation scripts are located in the pipeline/scripts directory.
 
  Follow the instructions given by the installation script. You will need to restart your terminal application for the installation to take into effect.
 
- If everything went well, proceed to the next section, :ref:`config-envvars`.
+ If everything went well, you can proceed to starting up the pipeline: :ref:`first-startup`.
 
  If the automated setup did not work properly, you may need to install the pipeline manually: :ref:`config-manual`.
 
@@ -69,7 +69,7 @@ All installation scripts are located in the pipeline/scripts directory.
  * Edit ``gpi-setup-windows.bat``, uncomment the two lines under windows XP fix by deleting the ``::`` in front, and commenting out the lines following that use the ``where`` command and ``ERRORLEVEL`` variable by placing ``::`` in front of them.
  Alternatively, Windows XP and older users can configure the pipeline manually: :ref:`config-manual`.
 
- Follow the instructions given by the installation script. If everything went well, proceed to the next section, :ref:`config-envvars`.
+ Follow the instructions given by the installation script. If everything went well, you can proceed to starting up the pipeline: :ref:`first-startup`.
 
  If the automated setup did not work properly, you may need to install the pipeline manually: :ref:`config-manual`.
 
@@ -191,7 +191,7 @@ The following are paths are **optional** to define as environment variables. If 
 Variable                  Contains                                   Default Value if Not Set Explicitly
 ======================  =======================================  ===========================================================
 GPI_DRP_DIR             Root dir of pipeline software             Determined automatically, location of
-                                                                  the IDL pipeline code. Contains 
+                                                                   the IDL pipeline code. Contains 
                                                                   subdirectories: backbone, config, 
                                                                   gpitv etc
 GPI_DRP_CONFIG_DIR      Path to directory containing pipeline    ``$GPI_DRP_DIR/config``
