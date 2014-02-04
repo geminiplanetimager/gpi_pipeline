@@ -50,9 +50,9 @@ Starting from source code (either from the repository or zip files)
 
     .. image:: ../shared_images/icon_windows2.png
  
-  On Windows, there is a batch script in the ``pipeline/scripts`` directory called ``gpi-pipeline-windows.bat``. Double click it to start the GPI pipeline. 
+ On Windows, there is a batch script in the ``pipeline/scripts`` directory called ``gpi-pipeline-windows.bat``. Double click it to start the GPI pipeline. 
 
- For convinience, you can create a shortcut of ``gpi-pipeline-windows.bat`` by right clicking on the file on selecting the option to create a shortcut. You can then place this on your desktop, start menu, or start screen to launch the pipeline from where is convenient for you. 
+ For convenience, you can create a shortcut of ``gpi-pipeline-windows.bat`` by right clicking on the file and selecting the option to create a shortcut. You can then place this on your desktop, start menu, or start screen to launch the pipeline from where it is convenient for you. 
 
 .. note::
   Alternatively, on any OS you can use the following to start up the pipeline manually:
