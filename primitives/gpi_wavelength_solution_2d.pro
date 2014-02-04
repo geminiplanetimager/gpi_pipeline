@@ -268,7 +268,7 @@ endif else begin
 
 	lensletcount= 0
 
-	debug=5 ; set this to 1 to enable a breakpoint after each row.
+	;debug=5 ; set this to 1 to enable a breakpoint after each row.
 	;debugall=1
 	;debuglenslet = [39,138]  ; set this to debug the fit of one specific pixel only
 	;debuglenslet = [39,148]  ; set this to debug the fit of one specific pixel only
@@ -501,6 +501,8 @@ backbone->set_keyword, "HISTORY", " ",ext_num=0;,/blank
 
 suffix='wavecal'
 *dataset.currframe = newwavecal
+
+*dataset.currdq = finite(newwavecal[*,*,0])
 
 ;wavecalimage=save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, "_"+filter+"_"+suffix,display=0, savedata=newwavecal,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile] ,output_filename=output_filename)
 
