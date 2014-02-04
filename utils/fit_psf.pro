@@ -165,7 +165,20 @@ if (where(finite(psf)))[0] ne -1 then begin
   ;                1D/Z     - Poisson weighting (counting statistics)
   ;                1D       - Unweighted
     ;TODO: pick a weight but take care to infinite values
-    my_weights = mask
+
+; THIS BIT HERE IS ONLY TO MAKE IT SUCH THAT IF NO MASK IS SUPPLIED
+; the program will not crash
+; Once polarimetry mode is setup in get_spaxels2.pro to do masks as well
+; this should be deleted!
+
+if keyword_set(mask) then my_weights = mask else begin
+	; mask must be the same size as the stamp
+	sz=size(x_grid)
+	mask=fltarr(sz[1],sz[2])+1
+	print,'(fit_psf.pro) - WARNING, No mask supplied - this is only ok if working with polarimetry data'
+	my_weights=mask
+endelse
+
 ; we want to follow the format of Anderson et al.
 ; he uses a radial weighting scheme combined with a poisson distribution
 ; he can do this because he is looking for astrometry not intensity

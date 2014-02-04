@@ -228,8 +228,9 @@ case my_type of
               mask_image[xcoords[where(finite(xcoords[*,i,j])),i,j],ycoords[where(finite(ycoords[*,i,j])),i,j]] = 0
 
 							; now calculate the centroids
-tmpx=xcentroids[i,j,0,it_elev]
-tmpy=ycentroids[i,j,0,it_elev]
+tmpx=xcentroids[i,j,0,it_elev] ; PI: no idea why this error checking is here 
+tmpy=ycentroids[i,j,0,it_elev] ; PI: no idea why this error checking is here 
+
 							xcentroids[i,j,0,it_elev]= total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
 																								xcoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
 																								masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])/$ 
@@ -241,8 +242,8 @@ tmpy=ycentroids[i,j,0,it_elev]
 																								total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
 																											masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])
 
-if tmpx-xcentroids[i,j,0,it_elev] ge 1.1*tmpx then stop
-if tmpy-ycentroids[i,j,0,it_elev] ge 1.1*tmpy then stop
+if tmpx-xcentroids[i,j,0,it_elev] ge 1.1*tmpx then stop ; PI: Have never seen this flag
+if tmpy-ycentroids[i,j,0,it_elev] ge 1.1*tmpy then stop ; PI: Have never seen this flag
 
 
             endif else if wavcal[i,j,4] lt 0.0 then begin
@@ -276,8 +277,8 @@ if tmpy-ycentroids[i,j,0,it_elev] ge 1.1*tmpy then stop
 																								total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
 																											masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])
 
-if tmpx-xcentroids[i,j,0,it_elev] ge 1.1*tmpx then stop
-if tmpy-ycentroids[i,j,0,it_elev] ge 1.1*tmpy then stop
+if tmpx-xcentroids[i,j,0,it_elev] ge 1.1*tmpx then stop ; PI: Have never seen this flag
+if tmpy-ycentroids[i,j,0,it_elev] ge 1.1*tmpy then stop ; PI: Have never seen this flag
 
 
             endif
