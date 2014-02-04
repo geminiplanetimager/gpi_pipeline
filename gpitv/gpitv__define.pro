@@ -3744,6 +3744,8 @@ pro gpitv::refresh_image_invert_rotate
 		   ;copy_of_head = *((*self.state).head_ptr)
 		   ;self->setheader, copy_of_head,  extensionhead=astr_header
 	   endelse
+		 ; update astr_ptr for GPItv 
+		 extast, astr_header, (*(*self.state).astr_ptr), noparams
 	endif
 
 
