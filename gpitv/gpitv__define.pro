@@ -3871,13 +3871,34 @@ pro GPItv::change_image_units, new_requested_units, silent=silent
                                 ;nim = n_elements(*(*self.state).CWV_ptr)
   if n_elements((*self.state).image_size) eq 3 then nim = ((*self.state).image_size)[2] else nim = 1
 
+    if ((*self.state).current_units eq 'Contrast') and new_requested_units eq (*self.state).intrinsic_units then begin
+        conversion_factor = 1./((1./(*self.state).gridfac)*mean((*self.satspots.satflux)[*, (*self.state).cur_image_num ]))
+      (*self.state).max_value /= conversion_factor
+      (*self.state).min_value /= conversion_factor
+    endif  
+     if ((*self.state).current_units eq 'Contrast') and new_requested_units ne (*self.state).intrinsic_units then begin
+             self->message,[ $
+              'Not sure how to convert from "'+(*self.state).current_units+'" to "'+new_requested_units+'". Not supported yet!',$
+              'Please convert from "'+(*self.state).current_units+'" to "'+(*self.state).intrinsic_units] ;,/window 
+            ;Ignoring Retain Current Stretch.',/window
+       return
+     endif
+          if (new_requested_units eq 'Contrast') and (*self.state).current_units ne (*self.state).intrinsic_units then begin
+             self->message,[ $
+              'Not sure how to convert from "'+(*self.state).current_units+'" to "'+new_requested_units+'". Not supported yet!',$
+              'Please convert from "'+(*self.state).intrinsic_units+'" to "'+new_requested_units] ;,/window 
+            ;Ignoring Retain Current Stretch.',/window
+       return
+     endif
+  
   ;;if you're going from contrast, restore intrinsic units
   if ((*self.state).current_units eq 'Contrast') then begin
      *self.images.main_image_stack = *self.images.main_image_backup
      (*self.state).current_units = (*self.state).intrinsic_units
 
   endif 
-  
+
+    
   ;;no need to do anything if requested is same as current
   if (*self.state).current_units ne new_requested_units then begin
 
