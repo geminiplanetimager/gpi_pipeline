@@ -8,8 +8,8 @@
 ; OUTPUTS: Some stuffs...
 ;
 ; PIPELINE COMMENT: Create a few calibrations files based on the determination of a high resolution PSF.
-; PIPELINE ARGUMENT: Name="filter_wavelength" Type="float" Range="[0.8,2.5]" Default="-1.0" Desc="Narrowband filter wavelength"
-; PIPELINE ARGUMENT: Name="flat_field" Type="int" Range="[0,1]" Default="-1.0" Desc="Is this a flat field"
+; PIPELINE ARGUMENT: Name="filter_wavelength" Type="string" Range="" Default="" Desc="Narrowband filter wavelength"
+; PIPELINE ARGUMENT: Name="flat_field" Type="int" Range="[0,1]" Default="0" Desc="Is this a flat field"
 ; PIPELINE ARGUMENT: Name="flat_filename" Type="string" Default="" Desc="Name of flat field"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
@@ -33,7 +33,7 @@ function gpi_create_highres_microlens_psf_model, DataSet, Modules, Backbone
   if tag_exist( Modules[thisModuleIndex], "flat_field") then flat_field=float(Modules[thisModuleIndex].flat_field) else flat_field=0
   if tag_exist( Modules[thisModuleIndex], "flat_filename") then flat_filename=string(Modules[thisModuleIndex].flat_filename) else flat_filename=""
   
-  if filter_wavelength eq -1 and flat_field eq 0 then return, error(' No narrowband filter wavelength specified. Please specify a wavelength and re-add to queue')
+  if filter_wavelength eq '' and flat_field eq 0 then return, error(' No narrowband filter wavelength specified. Please specify a wavelength and re-add to queue')
   
                                 ;Check that all the images 
                                 ;  - have the same type (spectra PRISM or polarization WOLLASTON). It should be more precise in the future, for instance taking into account the lamp (Ar/Xe/narrow band etc...) to let the algo decide on his own what to do.
@@ -62,6 +62,8 @@ function gpi_create_highres_microlens_psf_model, DataSet, Modules, Backbone
      
 	 ; MP: I don't understand this part - why has JB hard coded a specific flat
 	 ; field here? FIXME
+	; PI: This was me doing testing - never had a chance to clean up before you started workingà
+	; on it so i had to commit with stuff like this still in it (although not used)
      if keyword_set(flat_filename) eq 1 then begin
         stop
         flat_filename="/home/LAB/gpi/data/Reduced/130703/flat_field_arr_130702S0043.fits"
@@ -98,10 +100,10 @@ function gpi_create_highres_microlens_psf_model, DataSet, Modules, Backbone
         if nfiles ge 2 then begin
 			time0=systime(1,/seconds)
 			;spaxels = get_spaxels(my_first_mode, dataset.frames[0:(nfiles-1)], dataset.wavcals[0:(nfiles-1)], width_PSF, /STAMPS_MODE) 
-            spaxels = get_spaxels2(my_first_mode, dataset.frames[0:(nfiles-1)], dataset.wavcals[0:(nfiles-1)], width_PSF, /STAMPS_MODE) 
+            spaxels = get_spaxels(my_first_mode, dataset.frames[0:(nfiles-1)], dataset.wavcals[0:(nfiles-1)], width_PSF, /STAMPS_MODE) 
   			time_cut=systime(1,/seconds)-time0
 		endif else $
-           spaxels = get_spaxels2(my_first_mode, image, wavcal, width_PSF, /STAMPS_MODE)
+           spaxels = get_spaxels(my_first_mode, image, polcal, width_PSF, /STAMPS_MODE)
      end
      'WOLLASTON': begin
         width_PSF = 7			; size of stamp?
@@ -124,7 +126,6 @@ function gpi_create_highres_microlens_psf_model, DataSet, Modules, Backbone
   n_neighbors = 6               ; number on each side - so 4 gives a 9x9 box - 3 gives a 7x7 box
   ; set up a lenslet jump to improve speed - normally the step would be 2*n_neighbors+1
   ; so this makes it (2*n_neighbors+1)*loop_jump
-
 	loop_jump=2                  ; the multiple of lenslets to jump
 
   ;  n_neighbors_flex = 3          ; for the flexure shift determination - not currently used
@@ -148,11 +149,17 @@ function gpi_create_highres_microlens_psf_model, DataSet, Modules, Backbone
   
   time0=systime(1) 
 ; start the iterations
-  it_max=1						; what is this? -MP  Appears to be some # of iterations?
+; the following (it_flex_max) declares the number of iterations
+; over the flexure loop - so the RHS of figure 8 in the Anderson paper
+; this should probably be moved into a recipe keyword.
+
   it_flex_max = 2				; what is this? -MP  # of iterations for flexure? Not clear what is being iterated over.
+
+; can't have multiple iterations if just one file - this should be a recipe failure
+
   if nfiles eq 1 then begin 
      it_flex_max=1
-     it_max=2
+ ;    it_max=2
   endif
 ; make an array to look at the stddev as a function of iterations
 
@@ -163,11 +170,11 @@ debug=1
 	; create a series of arrays to evaluate the fits for each iteration
                                 ; want to watch how the weighted
                                 ; STDDEV decreases with iterations etc
-     stddev_arr=			fltarr(281,281,n_per_lenslet,nfiles,it_max,it_flex_max)
-     intensity_arr=			fltarr(281,281,n_per_lenslet,nfiles,it_max,it_flex_max)
-	 weighted_intensity_arr=fltarr(281,281,n_per_lenslet,nfiles,it_max,it_flex_max)
-     diff_intensity_arr=    fltarr(281,281,n_per_lenslet,nfiles,it_max,it_flex_max)
-     weighted_diff_intensity_arr=fltarr(281,281,n_per_lenslet,nfiles,it_max,it_flex_max)
+    stddev_arr=fltarr(281,281,n_per_lenslet,nfiles,it_flex_max)
+    intensity_arr=fltarr(281,281,n_per_lenslet,nfiles,it_flex_max)
+	 	weighted_intensity_arr=fltarr(281,281,n_per_lenslet,nfiles,it_flex_max)
+    diff_intensity_arr=fltarr(281,281,n_per_lenslet,nfiles,it_flex_max)
+    weighted_diff_intensity_arr=fltarr(281,281,n_per_lenslet,nfiles,it_flex_max)
   endif
 
 ; ########################
@@ -180,8 +187,8 @@ debug=1
 ; imin_test = 145 & imax_test = 155
 ; jmin_test = 145 & jmax_test = 155
 
-; imin_test = 166-20 & imax_test = 177+20
-; jmin_test = 166-20 & jmax_test = 177+20
+ imin_test = 166-20 & imax_test = 177+20
+ jmin_test = 166-20 & jmax_test = 177+20
   ; code check range
 ; imin_test = 148 & imax_test = 152
 ; jmin_test = 148 & jmax_test = 152
@@ -190,14 +197,13 @@ debug=1
   xind=166 & yind=177
   pp_neighbors=8
 
-
-
   time1=systime(1,/seconds)
-  for it_flex=0,it_flex_max-1 do begin
+	; the following is the iteration over the flexure position fixes
+	; so the right/outer loop in fig 8
+
+  for it_flex=0,it_flex_max-1 do begin 
      backbone->Log, 'starting iteration '+strc(it_flex+1)+' of '+strc(it_flex_max)+' for flexure'
-     ; make an array to look at the stddev as a function of iterations
-     
-     for it = 0, it_max-1 do begin
+ 
 		time_it0=systime(1,/seconds)
         for k=0,n_per_lenslet-1 do begin ; MP: loop over # of spots per lenslet - only >1 for polarimetry
 
@@ -284,10 +290,9 @@ debug=1
 								; check to make sure pointer is valid
 								if ptr_valid(spaxels.values[pi,pj,k,it_elev]) eq 0 then continue
 								first_guess_parameters = [spaxels.xcentroids[pi,pj,k,it_elev], spaxels.ycentroids[pi,pj,k,it_elev], spaxels.intensities[pi,pj,k,it_elev]]
-
 								ptr_fitted_PSF = fit_PSF( *spaxels.values[pi,pj,k,it_elev] - spaxels.sky_values[pi,pj,k,it_elev], $
 														 FIRST_GUESS = (first_guess_parameters),$
-														 ;mask=*spaxels.masks[pi,pj,k,it_elev],$
+														 mask=*spaxels.masks[pi,pj,k,it_elev],$
 														 ptr_current_PSF,$
 														 X0 = (*spaxels.xcoords[pi,pj,k,it_elev])[0,0], $
 														 Y0 = (*spaxels.ycoords[pi,pj,k,it_elev])[0,0], $
@@ -308,7 +313,6 @@ debug=1
 						endfor          ; end loop over pi
 						time_it_elev2 = systime(1,/seconds)
 					
-
 						;; #########################################                       
 						;; FROM HERE TO THE ENDFOR IS JUST DEBUGGING
 						;; #########################################
@@ -321,7 +325,7 @@ debug=1
                          new_image[ (*spaxels.xcoords[i,j,k,it_elev])[value_to_consider], (*spaxels.ycoords[i,j,k,it_elev])[value_to_consider] ] += ((*fitted_spaxels.values[i,j,k,it_elev])*(*spaxels.masks[i,j,k,it_elev]))[value_to_consider]
                      
                               ; calculate the stddev
-                          stddev_arr=fltarr(281,281,n_per_lenslet,nfiles,it_max,it_flex_max)
+                          stddev_arr=fltarr(281,281,n_per_lenslet,nfiles,it_flex_max)
 
                            ; interested in the weighted stddev
                            ; weight by intensity
@@ -343,11 +347,11 @@ debug=1
                         diff=(*spaxels.values[i,j,k,it_elev])[value_to_consider] - (spaxels.sky_values[i,j,k,it_elev])[value_to_consider]-((*fitted_spaxels.values[i,j,k,it_elev])*(*spaxels.masks[i,j,k,it_elev]))[value_to_consider]
                         model=(*fitted_spaxels.values[i,j,k,it_elev])*mask
                         w_mean=total(abs(diff)*weights,/nan)/total(weights,/nan)/total(mask,/nan)
-                        weighted_intensity_arr[i,j,k,it_elev,it,it_flex]=total(intensity*weights,/nan)/total(weights,/nan)
-												intensity_arr[i,j,k,it_elev,it,it_flex]=total(intensity,/nan)
-                        stddev_arr[i,j,k,it_elev,it,it_flex]= total(weights*(diff-w_mean)^2.0,/nan)/total(weights,/nan)
-                        weighted_diff_intensity_arr[i,j,k,it_elev,it,it_flex]=total(abs(weights*diff),/nan)/total(weights)
-												diff_intensity_arr[i,j,k,it_elev,it,it_flex]=total(abs(diff),/nan)
+                        weighted_intensity_arr[i,j,k,it_elev,it_flex]=total(intensity*weights,/nan)/total(weights,/nan)
+												intensity_arr[i,j,k,it_elev,it_flex]=total(intensity,/nan)
+                        stddev_arr[i,j,k,it_elev,it_flex]= total(weights*(diff-w_mean)^2.0,/nan)/total(weights,/nan)
+                        weighted_diff_intensity_arr[i,j,k,it_elev,it_flex]=total(abs(weights*diff),/nan)/total(weights)
+												diff_intensity_arr[i,j,k,it_elev,it_flex]=total(abs(diff),/nan)
 
                         if i eq 125 and j eq 125 and it_elev eq 0 then begin;and it_flex eq it_flex_max-1 then begin
                                ;loadct,0
@@ -393,9 +397,8 @@ debug=1
 					; now we need to step in the number of neighbours
 					j+=((2*n_neighbors)*loop_jump)
 
-
               endfor       ; end loop over j lenslets (columns?)
-			i+=((2*n_neighbors)*loop_jump)
+					i+=((2*n_neighbors)*loop_jump)
            endfor ; end loop over i lenslsets (rows?)
         endfor ; end loop over # of spots per lenslet  (1 for spectra, 2 for polarization)
         
@@ -405,12 +408,9 @@ debug=1
         spaxels.xcentroids = fitted_spaxels.xcentroids
         spaxels.ycentroids = fitted_spaxels.ycentroids
         spaxels.intensities= fitted_spaxels.intensities
-        
-     endfor                     ; end loop over internal iterations
-
-
-
-     
+   
+ ; NOW MOVING INTO THE TRANSFORMATION PART OF THE CODE 
+    
      ;set the first file as the reference image/elevation.
      ;All the transformations to go from one elevation to another are computed from that image or to that image.
      not_null_ptrs = where(finite(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,0]), n_not_null_ptrs) ; select only the lenslets for which we have a calibration.
@@ -421,7 +421,7 @@ debug=1
      xcen_ref = (spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,0])[not_null_ptrs] 
      ycen_ref = (spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,0])[not_null_ptrs]
      
-     degree_of_the_polynomial_fit = 1 ; degree of the polynomial surface used for the flexure correction
+     degree_of_the_polynomial_fit = 2 ; degree of the polynomial surface used for the flexure correction
      ;declare the arrays which will contain the coefficients of the polynomial surface for every single image (ie elevation)
      ;The third dimension indicated which file to consider
      xtransf_ref_to_im = fltarr(degree_of_the_polynomial_fit+1,degree_of_the_polynomial_fit+1,nfiles) ;How to get the x coordinates of the centroids of the reference image into the current image (cf 3rd dimension index to select the image). 
@@ -499,7 +499,9 @@ debug=1
         xcen_ref_arr[*,it_elev] = xcen_in_ref
         ycen_ref_arr[*,it_elev] = ycen_in_ref
 
+; ###################
 ; plot pixel phase
+; ###################
 ; only want the values from the neighbours
         if 1 eq 1 then begin
            pp_xcen = reform((spaxels.xcentroids[xind-pp_neighbors:xind+pp_neighbors,yind-pp_neighbors:yind+pp_neighbors,*,it_elev]), n_per_lenslet*(2*pp_neighbors+1.0)^2)
@@ -579,7 +581,10 @@ window,4,retain=2,xsize=600,ysize=400
 plot, ypp2, yresid, psym = 3,xr=[-0.5,0.5],yr=[-0.2,0.2],/xs,/ys,xtitle='Y-pixel phase',ytitle='residuals (y-ybar)'
 
 
-;stop,"about to apply flexure correction to centroids"
+; END PIXEL PHASE PLOTTING
+; ###########################
+
+stop,"about to apply flexure correction to centroids"
 
 ; calculate the mean position of each mlens psf - but use a rejection
 ; must calculate the means for pp_mean_xcen_ref
@@ -605,15 +610,16 @@ endfor
      x_id = not_null_ptrs mod 281
      y_id = not_null_ptrs / 281
      z_id = not_null_ptrs / (281L*281L)
+
 ; determine indices of arrays to replace
 		 ind_arr = array_indices(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,0],not_null_ptrs)
 
 ;xcen_ref = (spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,0])[not_null_ptrs] 
 
      if nfiles ne 1 then begin
-     for it_elev = 0,nfiles-1 do begin
-tmpx=(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,it_elev])[not_null_ptrs] 
-tmpy=(spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,it_elev])[not_null_ptrs] 
+     	for it_elev = 0,nfiles-1 do begin ; loop over each flexure position
+				tmpx=(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,it_elev])[not_null_ptrs] 
+				tmpy=(spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,it_elev])[not_null_ptrs] 
 
         mean_xcen_ref_in_im = fltarr(n_elements(xcen_ref))
         for i=0,degree_of_the_polynomial_fit do for j= 0,degree_of_the_polynomial_fit do mean_xcen_ref_in_im += xtransf_ref_to_im[i,j,it_elev]*mean_xcen_ref^j * mean_ycen_ref^i
@@ -655,7 +661,6 @@ tmpy=(spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,it_elev])[not
 ; #######################
 ; BUILD THE FLAT FIELD
 ; ######################
-                          ; calculate flat field - only on last iteration
      if flat_field eq 1 then begin
                                 ; because we cannot extract arrays
                                 ; from arrays of pointers, we have to
@@ -737,16 +742,16 @@ for it_elev=0,nfiles-1 do yflex_trans_arr2d[*,*,it_elev]-=yy
 ; evalute performance increase
 window,2,retain=2,title='weighted % residual'
 tmp=(weighted_diff_intensity_arr/weighted_intensity_arr)
-plothist,tmp[*,*,*,*,*,0],xhist,yhist,/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5
-plothist,tmp[*,*,*,*,*,0],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,yr=[0,max(yhist)*1.5],ys=1
-if nfiles ne 1 then plothist,tmp[*,*,*,*,*,1],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,/noerase,linestyle=2,yr=[0,max(yhist)*1.5],ys=1,color=155
+plothist,tmp[*,*,*,*,0],xhist,yhist,/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5
+plothist,tmp[*,*,*,*,0],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,yr=[0,max(yhist)*1.5],ys=1
+if nfiles ne 1 then plothist,tmp[*,*,*,*,1],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,/noerase,linestyle=2,yr=[0,max(yhist)*1.5],ys=1,color=155
 
 window,1,retain=2,title='non-weighted % residual'
 tmp2=(diff_intensity_arr/intensity_arr)
 
-plothist,tmp2[*,*,*,*,*,0],xhist,yhist,/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5
-plothist,tmp2[*,*,*,*,*,0],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,yr=[0,max(yhist)*1.5],ys=1
-if nfiles ne 1 then plothist,tmp2[*,*,*,*,*,1],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,/noerase,linestyle=2,yr=[0,max(yhist)*1.5],ys=1,color=155
+plothist,tmp2[*,*,*,*,0],xhist,yhist,/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5
+plothist,tmp2[*,*,*,*,0],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,yr=[0,max(yhist)*1.5],ys=1
+if nfiles ne 1 then plothist,tmp2[*,*,*,*,1],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,/noerase,linestyle=2,yr=[0,max(yhist)*1.5],ys=1,color=155
 
 
 
