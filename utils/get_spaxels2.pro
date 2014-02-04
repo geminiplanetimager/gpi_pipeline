@@ -109,13 +109,13 @@ case my_type of
       sky_values = fltarr(nlens,nlens,1,n_diff_elev) ;will stay zero because I don't know if how we could get the sky value with the spetra (they are too close)
       masks = !values.f_nan ;this is set only if stamps_mode is activated
 
-        nx = floor( max(abs(sdpx*tan(wavcal[*,*,4])),/NAN) ) + width
-        ny = sdpx
+      nx = floor( max(abs(sdpx*tan(wavcal[*,*,4])),/NAN) ) + width
+      ny = sdpx
         
-        values_stamps = fltarr(nx,ny,nlens,nlens,1) + !values.f_nan ; the one before last dimension should be npol, and the last dimension is used for different flexures. But not implemented yet.
-        masks_stamps = bytarr(nx,ny,nlens,nlens,1) + !values.f_nan
-        xcoords_stamps = fltarr(nx,ny,nlens,nlens,1) + !values.f_nan
-        ycoords_stamps = fltarr(nx,ny,nlens,nlens,1) + !values.f_nan
+      values_stamps = fltarr(nx,ny,nlens,nlens,1) + !values.f_nan ; the one before last dimension should be npol, and the last dimension is used for different flexures. But not implemented yet.
+      masks_stamps = bytarr(nx,ny,nlens,nlens,1) + !values.f_nan
+      xcoords_stamps = fltarr(nx,ny,nlens,nlens,1) + !values.f_nan
+      ycoords_stamps = fltarr(nx,ny,nlens,nlens,1) + !values.f_nan
 
 ;/////////////////////////////////////////////////////////////////////////
 ;/////// Iteration over the different elevations

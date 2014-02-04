@@ -1,7 +1,7 @@
 ;+
 ; NAME: get_spaxels
 ; 
-; DESCRIPTION: Extract for both spetral or pol mode the spots or the spectra corresponding to each lenslet and store them in a struct.
+; DESCRIPTION: Extract for both spectral or pol mode the spots or the spectra corresponding to each lenslet and store them in a struct.
 ; 
 ; IMPORTANT TODO: WOLLASTON mode not available right now. Needs to return pointers. Should be back soon.
 ; 
@@ -110,13 +110,13 @@ case my_type of
       sky_values = fltarr(nlens,nlens,1,n_diff_elev) ;will stay zero because I don't know if how we could get the sky value with the spetra (they are too close)
       masks = !values.f_nan ;this is set only if stamps_mode is activated
 
-        nx = floor( max(abs(sdpx*tan(wavcal[*,*,4])),/NAN) ) + width
-        ny = sdpx
+      nx = floor( max(abs(sdpx*tan(wavcal[*,*,4])),/NAN) ) + width
+      ny = sdpx
         
-        values_stamps = fltarr(nx,ny,nlens,nlens,1) + !values.f_nan ; the one before last dimension should be npol, and the last dimension is used for different flexures. But not implemented yet.
-        masks_stamps = bytarr(nx,ny,nlens,nlens,1) + !values.f_nan
-        xcoords_stamps = fltarr(nx,ny,nlens,nlens,1) + !values.f_nan
-        ycoords_stamps = fltarr(nx,ny,nlens,nlens,1) + !values.f_nan
+      values_stamps = fltarr(nx,ny,nlens,nlens,1) + !values.f_nan ; the one before last dimension should be npol, and the last dimension is used for different flexures. But not implemented yet.
+      masks_stamps = bytarr(nx,ny,nlens,nlens,1) + !values.f_nan
+      xcoords_stamps = fltarr(nx,ny,nlens,nlens,1) + !values.f_nan
+      ycoords_stamps = fltarr(nx,ny,nlens,nlens,1) + !values.f_nan
 
 ;/////////////////////////////////////////////////////////////////////////
 ;/////// Iteration over the different elevations
@@ -293,6 +293,13 @@ case my_type of
         return, error('FAILURE Failed to load polarimetry calibration data prior to calling this primitive.') 
       endif
       nlens=(size(polspot_coords))[3]
+	  dim = (size(image))[1]
+
+	  n_diff_elev = 1 ; multiple elevations not yet implemented...
+      ptr_values = ptrarr(nlens,nlens,2,n_diff_elev)
+      ptr_xcoords = ptrarr(nlens,nlens,2,n_diff_elev)
+      ptr_ycoords = ptrarr(nlens,nlens,2,n_diff_elev)
+      ptr_masks = ptrarr(nlens,nlens,2,n_diff_elev)
       
       values = fltarr(width,width,nlens,nlens,2,1) + !values.f_nan; the one before last dimension should be npol, and the last dimension is used for different flexures. But not implemented yet.
       xcoords = fltarr(width,width,nlens,nlens,2,1) + !values.f_nan
@@ -328,15 +335,21 @@ case my_type of
               
               if spot_valid then begin
                 
+				; Cut out the individual stamps and their coordinates and store
+				; them.
                 values[*,*,i,j,npol] = image[round(xcen_cal_pix-half_width):round(xcen_cal_pix+half_width),round(ycen_cal_pix-half_width):round(ycen_cal_pix+half_width)]
                 xcoords[*,*,i,j,npol] = xcoords_image[round(xcen_cal_pix-half_width):round(xcen_cal_pix+half_width),round(ycen_cal_pix-half_width):round(ycen_cal_pix+half_width)]
                 ycoords[*,*,i,j,npol] = ycoords_image[round(xcen_cal_pix-half_width):round(xcen_cal_pix+half_width),round(ycen_cal_pix-half_width):round(ycen_cal_pix+half_width)]
 
-                tmp_mask = bytarr(width,width)
-                tmp_mask[where( sqrt((xcoords[*,*,i,j,npol]-xcen_cal)^2+(ycoords[*,*,i,j,npol]-ycen_cal)^2) le float(width)/2. )] = 1
-                masks[*,*,i,j,npol] = temporary(tmp_mask)
+				; The following is wrong - it's assuming we can use circular
+				; masks of fixed radius to capture the regions where there is
+				; light for each lenslet PSF, and that is simply not the case. 
+				; Let's use the entire lenslet PSF for each. - MP
+                ;tmp_mask = bytarr(width,width)
+                ;tmp_mask[where( sqrt((xcoords[*,*,i,j,npol]-xcen_cal)^2+(ycoords[*,*,i,j,npol]-ycen_cal)^2) le float(width)/2. )] = 1
+                masks[*,*,i,j,npol] =  1; temporary(tmp_mask)
                 
-                if keyword_set(stamps_mode) eq 0 then begin
+                if ~keyword_set(stamps_mode) then begin
                   values[where(masks ne 1)] = !values.f_nan
                   xcoords[where(masks ne 1)] = !values.f_nan
                   ycoords[where(masks ne 1)] = !values.f_nan
@@ -349,7 +362,12 @@ case my_type of
                 
                 
                 ;!!!!!!!!!!!!!!!!TO CHANGE TO MAX AFTER DEBUGGING
-                width_spot = mean(polspot_position[3:4,i,j,npol],/nan)
+                ;width_spot = mean(polspot_position[3:4,i,j,npol],/nan)
+				; MP: The above line here does not work in some cases, where the
+				; fitting done in the pol spot calibration for some reason was
+				; off for this lenslet. It seems more robust to use a median
+				; from a small local region:
+				width_spot = median(polspot_position[3:4,i-2:i+2,j-2:j+2,npol])
                 
                 ;get the coordinates of the pixels close to the current one
                 all_x_coords_neighboors = reform(polspot_coords[0,*,max([0,(i-1)]):min([(nlens-1),(i+1)]),max([0,(j-1)]):min([(nlens-1),(j+1)]),*])
@@ -378,7 +396,10 @@ case my_type of
       ;          ;We have some problems with nans that are in the aperture and prevent aper to compute the spot flux so we will set them a value that will not change a lot the sky.
       ;          ;So all Nans that are closer than 3.*width_spot to the current spot are set to a value very close to the sky
       ;          ;This pixels will be restored right after
-                nans_too_close = where(abs(all_x_coords_neighboors[valid_neighbors[*]] - xcen_cal) lt 3.*width_spot AND abs(all_y_coords_neighboors[valid_neighbors[*]] - ycen_cal) lt 3.*width_spot AND ~finite(image[all_x_coords_neighboors[valid_neighbors[*]],all_y_coords_neighboors[valid_neighbors[*]]]) )
+                nans_too_close = where(abs(all_x_coords_neighboors[valid_neighbors[*]] - xcen_cal) lt 3.*width_spot AND $
+									   abs(all_y_coords_neighboors[valid_neighbors[*]] - ycen_cal) lt 3.*width_spot AND $
+									   ~finite(image[all_x_coords_neighboors[valid_neighbors[*]],all_y_coords_neighboors[valid_neighbors[*]]]) )
+
                 if nans_too_close[0] ne -1 then begin
                   image[all_x_coords_neighboors[valid_neighbors[nans_too_close]],$
                         all_y_coords_neighboors[valid_neighbors[nans_too_close]]] = median(image[max([0,(xcen_cal-5*width_spot)]):min([2047,(xcen_cal+5*width_spot)]),$
@@ -393,6 +414,7 @@ case my_type of
       ;          APER, image, xcen_cal, ycen_cal, flux, errap, sky, skyerr, 1.0, 1.5*width_spot, [3.0*width_spot,5*width_spot], /FLUX, /NAN, /SILENT
                 intensities[i,j,npol] = flux
                 sky_values[i,j,npol] = sky
+				if sky eq 0 then stop
                 ;/////////////////////////
                 
                 ;/////////////////////////
@@ -406,6 +428,16 @@ case my_type of
                 
                 ;restore the masked pixels
                 image[all_x_coords_neighboors[valid_neighbors],all_y_coords_neighboors[valid_neighbors]] = save_neighbors_flux
+
+				; Convert everything into pointer arrays for compatibility with what the
+				; spectral mode code is now doing... I don't know why JB wrote it this way
+				; but I will stick with it. -MP
+
+				it_elev=0 ; multiple elevations not yet implemented
+				ptr_values[i,j,npol,it_elev] = ptr_new(values[*,*,i,j, npol])
+				ptr_xcoords[i,j,npol,it_elev] = ptr_new(xcoords[*,*,i,j, npol])
+				ptr_ycoords[i,j,npol,it_elev] = ptr_new(ycoords[*,*,i,j, npol])
+				ptr_masks[i,j,npol,it_elev] = ptr_new(masks[*,*,i,j, npol])
                 
               endif
               
@@ -414,8 +446,17 @@ case my_type of
         endfor
       ;///////////////////////////////////
       
-      
+	if keyword_set(stop) then begin
+		; allow for interative examination:
+		values2 = reform(values, 7,7,281L*281*2)
+		medians = meds(values2)
+		wf= where(finite(medians))
+		atv, values2[*,*,wf],/bl  
+		stop    
+	end
+
   end
+
 endcase
 
 
