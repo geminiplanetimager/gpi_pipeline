@@ -140,7 +140,7 @@ if [ "$SHELL" == "/bin/csh" ] || [ "$SHELL" == "/bin/tcsh" ]
 then	
 	#write GPI environment file
 	printf "\n\nWriting GPI Settings to $GPIENV\n\n"
-	printf "# Set up environment variables for the GPI IFS Software\n# csh Version\n# Source this file from your .bashrc file\n\n" > "$GPIENV" #erase any previous incarnation
+	printf "# Set up environment variables for the GPI IFS Software\n# csh Version\n# Source this file from your .cshrc file\n\n" > "$GPIENV" #erase any previous incarnation
 	printf "#----- Required paths -----------------\n# GPI_DATA_ROOT is a helper path only.\n# If desired you can set all paths independently\n# NOTE: do not put your queue and reduced directories on VOSpace\n" >> "$GPIENV"
 	printf "setenv GPI_DATA_ROOT \"$DATADIR\"\n" >> "$GPIENV"
 	printf "setenv GPI_DRP_QUEUE_DIR \"\${GPI_DATA_ROOT}/queue\"\n" >> "$GPIENV"
@@ -148,7 +148,7 @@ then
 	printf "setenv GPI_REDUCED_DATA_DIR \"\${GPI_DATA_ROOT}/Reduced\"\n" >> "$GPIENV"
 	printf "\n#----- \$PATH and \$IDL_PATH Configuration ---------------\n" >> "$GPIENV"
 	printf "setenv PATH \"\${PATH}:$SCRIPTDIR\"\n" >> "$GPIENV"
-	printf "setenv IDL_PATH \"IDL_PATH_APPEND\"\n" >> "$GPIENV"
+	printf "setenv IDL_PATH \"$IDL_PATH_APPEND\"\n" >> "$GPIENV"
 	#source into cshrc file if necessary
 	if !(grep -Fxq "source \"$GPIENV\"" "$HOME/.cshrc")
 	then
