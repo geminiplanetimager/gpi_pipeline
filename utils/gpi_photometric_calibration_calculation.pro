@@ -1,31 +1,43 @@
 function gpi_photometric_calibration_calculation, lambda, pri_header, ext_header, units=units,ref_star_magnitude=star_mag, ref_filter_type=ref_filter_type, ref_SpType=SpType, ref_model_spectrum=ref_model_spectrum, spectrum=spectrum,ref_spectrum=ref_spectrum,  output_spectrum=output_spectrum, no_satellite_correction=no_satellite_correction,logarr=logarr
-
+;+
+; NAME: gpi_photometric_calibration_calculation
+;
+; PURPOSE:
+;	 As the name implies, does a photometric calibration calculation.
+;
+;    pipeline data is in ADU/coadd
+;
+;    goal of this is to do spectrum * model_spectrum/reference_spectrum/
+;
+;    but this program is more clever, and returns only the model spectrum, so the
+;    user does the  spectrum/model_spectrum, unless the ref_spectrum and spectrum
+;    keywords are used.
 ;########
 ; INPUTS
-
-; lambda - wavelength array in microns
-; primary header - gpi primary header
-; secondary header - gpi secondary header
-; units = choice of units 1:'Counts' 2:'Counts/s' 3:'ph/s/nm/m^2' 4: 'Jy' 5: 'W/m^2/um' 6:'ergs/s/cm^2/A' 7:'ergs/s/cm^2/Hz'
-; ref_star_magnitude: magnitude of reference star for the filter wavelengths given by lambda
-; ref_filter_type: will do the conversion of magnitudes if this is specified. 1: MKO 2: 2Mass
-; ref_SpType: spectral type of reference - used to pick the pickles model
-; ref_model_spectrum: optional input of the model reference spectrum, if specified then no pickles spectrum is used. Assumes the units are in ergs/s/cm^2/A. If this keyword is set, ref_spType and ref_star_magnitude is ignored
-; spectrum : Optional keyword - the spectrum of the companion - if set, then the calibrated spectrum will be returned in the output_spectrum keyword
-; ref_spectrum : Optional keyword - the reference spectrum that corresponds to the model spectrum (normally the satellite spot spectrum) - if set, then the calibrated spectrum will be returned in the output_spectrum keyword
-; no_satellite_correction: flag that should be set if the ref_spectrum is NOT a satellite spectrum. This will make it such that the correction factor between the satellite flux and the central star flux is not applied
+;    lambda - wavelength array in microns
+;    primary header - gpi primary header
+;    secondary header - gpi secondary header
+;    units = choice of units 1:'Counts' 2:'Counts/s' 3:'ph/s/nm/m^2' 4: 'Jy' 5: 'W/m^2/um' 6:'ergs/s/cm^2/A' 7:'ergs/s/cm^2/Hz'
+;    ref_star_magnitude: magnitude of reference star for the filter wavelengths given by lambda
+;    ref_filter_type: will do the conversion of magnitudes if this is specified. 1: MKO 2: 2Mass
+;    ref_SpType: spectral type of reference - used to pick the pickles model
+;    ref_model_spectrum: optional input of the model reference spectrum, if specified then no pickles spectrum is used. Assumes the units are in ergs/s/cm^2/A. If this keyword is set, ref_spType and ref_star_magnitude is ignored
+;    spectrum : Optional keyword - the spectrum of the companion - if set, then the calibrated spectrum will be returned in the output_spectrum keyword
+;    ref_spectrum : Optional keyword - the reference spectrum that corresponds to the model spectrum (normally the satellite spot spectrum) - if set, then the calibrated spectrum will be returned in the output_spectrum keyword
+;    no_satellite_correction: flag that should be set if the ref_spectrum is NOT a satellite spectrum. This will make it such that the correction factor between the satellite flux and the central star flux is not applied
 ; ########
 ; OUTPUTS
+;
+;    output of function is the converted_model_spectrum, so the user does spectrum/reference_spectrum * converted_model_spectrum.
+;    output_spectrum - the returned calibrated spectrum if the spectrum and ref_spectrum keywords are set
+;
+;
+; HISTORY:
+;	2014-01		by Patrick Ingraham
+;-
 
-; output of function is the converted_model_spectrum, so the user does spectrum/reference_spectrum * converted_model_spectrum.
-; output_spectrum - the returned calibrated spectrum if the spectrum and ref_spectrum keywords are set
 
-; pipeline data is in ADU/coadd
-
-; goal of this is to do spectrum * model_spectrum/reference_spectrum/
-
-; but this program is more clever, and returns only the model spectrum, so the user does the  spectrum/model_spectrum, unless the ref_spectrum and spectrum keywords are used.
-
+;
 ; did the user supply a spectrum?
 if keyword_set(ref_model_spectrum) eq 1 then user_supplied_spectrum_flag=1 else user_supplied_spectrum_flag=0
 ; did the user supply a magnitude

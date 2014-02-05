@@ -1,3 +1,5 @@
+; by Jerome Maire
+;
 function get_xyaind,dimx,dimy,xct,yct,rt,drt
 
 ;pour obtenir les indices d'un anneau centre sur xct,yct

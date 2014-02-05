@@ -1,14 +1,20 @@
 ;+
-;  **********   DRP compiler   **************
-; Here are the commands that will compile the DRP code 
-; and produce executables.
+; NAME: gpi_compiler
+;
+;
+;  **********   GPI DRP compiler   **************
+;
+; This utility function will compile the DRP code 
+; and produce executables for use with the IDL Runtime.
 ;
 ;   This is not meant to be used be end-users of the pipeline;
 ;   it is a tool for GPI instrument team and Gemini staff who are
 ;   making public releases of the pipeline.
 ;
-; Execute gpi_compiler command directly within the IDL command line. 
-; Set execoutputdir to define where the executables will be produced.
+;   Execute gpi_compiler command directly within the IDL command line.
+;   Example:
+;   IDL>   gpi_compiler, '~/my_output_dir/'
+;
 ;
 ; INPUTS 
 ; compile_dir		Path to output files
@@ -17,10 +23,8 @@
 ; drpdirectory=	Set this to override GPI_DRP_DIR path
 ; /stop			Set this to 1 to stop on compile errors
 ; /nodocs		Don't try to compile the Sphinx HTML docs to include.
-; docdir=		Path to Sphinx documentation, in case it is not in the
-;				default location in /documentation
-;				along side /pipeline.
-; /svnonly              Only compile files that are in the SVN
+; /svnonly      Only compile files that are in the SVN, and check that
+;				there are not any local modifications. 
 ;
 ;
 ; HISTORY:
@@ -41,6 +45,7 @@
 ; 2013-08-05 MP: Updated to accomodate relocated gpitv (which simplifies this)
 ; 2014-01-07 MP: Updated to catch up with the svn reorganization in September
 ;				 2013 and the creation of a public branch.
+; 2014-02-04 MP: Removed deprecated docdir option
 ;
 ;-
 
@@ -68,7 +73,7 @@ end
 
 ;----------------------------------------------
 
-pro gpi_compiler, compile_dir, drpdirectory=drpdirectory, docdir=docdir, svnonly=svnonly
+pro gpi_compiler, compile_dir, drpdirectory=drpdirectory, svnonly=svnonly
 
 	compile_opt defint32, strictarr, logical_predicate
 
@@ -229,10 +234,8 @@ CATCH,/CANCEL
 ; the user can disable/skip this by setting /nodocs if they don't have sphinx.
 if ~(keyword_set(nodocs)) then begin
 
-	if ~(keyword_set(docdir)) then begin
-		; the documentation lives in a subdirectory of the pipeline.
-		docdir = gpi_get_directory('GPI_DRP_DIR')+path_sep()+"documentation"
-	endif
+	; the documentation lives in a subdirectory of the pipeline.
+	docdir = gpi_get_directory('GPI_DRP_DIR')+path_sep()+"documentation"
 
 	if ~ file_test(docdir+path_sep()+"index.rst") then begin
 		message, "Cannot find Sphinx documentation root. Please set docdir to the path to the Sphinx documentation, or set /nodocs to skip compiling the docs."

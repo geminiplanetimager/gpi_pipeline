@@ -1,7 +1,10 @@
 function get_cwv,filter,spectralchannels=spectralchannels
 ;+
-; NAME: get_cwv
-;  get lambda_min,lambda_max and # spectral channel in final datacube
+; NAME: get_cwv  (Get Common Wavelength Vector)
+;
+; PURPOSE:
+;  Given a filter name in {Y, J, H, K1, K1} for GPI, 
+;  return lambda_min,lambda_max and # spectral channel in final datacube
 ;
 ; INPUTS: filter
 ;

@@ -1,4 +1,10 @@
 ;+
+; NAME: gpi_split_for
+;
+;  This is a modified-for-GPI version of split_for.pro by
+;  Rob Silva at UCSC. See GPI section at end of this doc header.
+;
+;
 ;PURPOSE
 ;	to split a for loop into N object parallel processes
 ;SYNTAX
@@ -55,7 +61,10 @@
 ;Written by R. da Silva, UCSC, 9-17-10
 ;Updated by R. da Silva, UCSC, 3-14-11 == fixed some bugs
 ;
-;2013-12-10 by M. Perrin:
+;
+;GPI:
+;
+; 2013-12-10 by M. Perrin:
 ; Some customizations for GPI data pipeline:
 ;	 1) Ability to have arbitrary numbers of threads including
 ;	    more than the number of hardware cores (this is useful

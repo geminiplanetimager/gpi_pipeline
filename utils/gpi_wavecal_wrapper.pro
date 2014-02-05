@@ -1,5 +1,9 @@
 ;+
-; Temporary Function designed to loop over the lenslets and calculate
+; NAME: gpi_wavecal_wrapper
+; 
+; Helper function for 2D model-fitting wavecal algorithm
+;
+; Function designed to loop over the lenslets and calculate
 ; the 2D wavelength solution. Uses function mpfit2dfun and calls 
 ; ngauss.pro which defines a 2d spread of gaussians defined by the filter
 ; band combination wl and flux guesses found in a text file.
@@ -24,6 +28,9 @@
 ;    res[7]:	Constant background offset across the image
 ;    res[8]:    Total flux in lenslet array in counts
 ;    res[9:n]:	Relative flux ratios of the individual spectral lines
+;
+;HISTORY: 
+;  2013  by Schuyler Wolff
 ;
 ;+
 
