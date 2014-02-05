@@ -1,4 +1,34 @@
 pro closeps
+;+
+; NAME:
+;      closeps
+; PURPOSE:
+;      use it to end the postscript writing
+;
+; EXPLANATION:
+;       
+;
+; Calling SEQUENCE:
+;      
+;
+; INPUT/OUTPUT:
+;
+
+; OPTIONAL OUTPUT:
+;       
+;
+; EXAMPLE:
+;
+;
+; DEPENDENCIES:
+;
+;
+; NOTES: 
+;      
+;             
+; REVISION HISTORY
+;       Written  before 2008, Mathilde beaulieu/Jean-Francois Lavigne/David Lafreniere/Jerome Maire. 
+;-
 
 device,/close
 ;set_plot,'x'

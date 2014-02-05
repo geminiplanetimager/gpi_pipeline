@@ -1,10 +1,40 @@
 function myaper,im,xc,yc,r,mask,imask,nan=nan
-
+;+
+; NAME:
+;      myaper
+; PURPOSE:
+;       Do simple aperture photometry, simple alternative to aper 
+;
+; EXPLANATION:
+;       Using a mask 
+;
+; Calling SEQUENCE:
+;      
+;
+; INPUT/OUTPUT:
+;
 ;im: image, 2-d array
 ;xc, yc: center of aperture
 ;r: radius of aperture 
 ;mask: mask corresponding to aperture, centered on round(xc,yc)
 ;imask: indices of mask pixels, expressed wrt im
+; OPTIONAL OUTPUT:
+;       
+;
+; EXAMPLE:
+;
+;
+; DEPENDENCIES:
+; pixwt.pro
+;
+; NOTES: 
+;      
+;             
+; REVISION HISTORY
+;       Written  before 2008, Mathilde beaulieu/Jean-Francois Lavigne/David Lafreniere/Jerome Maire. 
+;-
+
+
 
 if (r lt 0.) then return,-1
 if (r eq 0.) then return,im[round(xc),round(yc)]

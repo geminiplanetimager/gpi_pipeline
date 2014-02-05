@@ -1,4 +1,34 @@
 function mkpupil,dim,rpup,cobs=cobs
+;+
+; NAME:
+;      mkpupil
+; PURPOSE:
+;     create a pupil mask
+;
+; EXPLANATION:
+;       
+;
+; Calling SEQUENCE:
+;      
+;
+; INPUT/OUTPUT:
+;
+
+; OPTIONAL OUTPUT:
+;       
+;
+; EXAMPLE:
+;
+;
+; DEPENDENCIES:
+;
+;
+; NOTES: 
+;      
+;             
+; REVISION HISTORY
+;       Written  before 2008, Mathilde beaulieu/Jean-Francois Lavigne/David Lafreniere/Jerome Maire. 
+;-
 
 xc=dim/2 & yc=dim/2
 rpup=float(rpup)
