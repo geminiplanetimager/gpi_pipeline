@@ -3544,6 +3544,7 @@ end
 ;----------------------------------------------------------
 
 pro gpitv::refresh_image_invert_rotate
+;+
 ; This is a unified routine to apply image transformations such as rotation and
 ; inversion. These are noncommutative operations and so we have to specify a 
 ; specific order of operations, which is hereby defined to be
@@ -3554,14 +3555,15 @@ pro gpitv::refresh_image_invert_rotate
 ; doing only the minimal transformation, but the old "more efficient"
 ; way inherited from atv wasn't an unambiguous repeatable transformation
 ; that could be retained when switching between images in a non-buggy fashion.
+;-
 
 
 	;----------  Setup for rotation and inversion --------
-   ;; first, grab the backup image and restore it, along with its 
-   ;; astrometry header
-   *self.images.main_image_stack = *self.images.main_image_backup
-   *self.images.main_image = (*self.images.main_image_stack)[*, *, (*self.state).cur_image_num]
-   *(*self.state).astr_ptr = *(*self.state).main_image_astr_backup
+	;; first, grab the backup image and restore it, along with its 
+    ;; astrometry header
+    *self.images.main_image_stack = *self.images.main_image_backup
+    *self.images.main_image = (*self.images.main_image_stack)[*, *, (*self.state).cur_image_num]
+    *(*self.state).astr_ptr = *(*self.state).main_image_astr_backup
 
 	has_astr = ptr_valid( (*self.state).astr_ptr )
 	if has_astr then begin
@@ -3583,8 +3585,7 @@ pro gpitv::refresh_image_invert_rotate
 	; is X flip needed? 
 	if strpos((*self.state).invert_image, 'x') ge 0 then begin
 		self->message, 'inverting in x'
-		;if ptr_valid((*self.state).head_ptr) then begin ; transformation with astrometry header updates
-		if has_astr then begin
+		if has_astr then begin ; transformation with astrometry header updates
 			hreverse2, *self.images.main_image,  astr_header , *self.images.main_image,  astr_header , 1, /silent
 		endif else begin								; simple transformations without astrometry headers to worry about
 			*self.images.main_image = reverse(*self.images.main_image)
@@ -3625,7 +3626,6 @@ pro gpitv::refresh_image_invert_rotate
 		   desired_angle = desired_angle mod 360
 		   if desired_angle lt 0 then desired_angle +=360
 		   rchange = strc(fix(desired_angle)) ; how much do we need to change the image to get the new rotation?
-		   ;self->Message, 'Rotating exactly to '+strc(desired_angle)+", which is "+rchange+" deg relative to current orientation"
 		   self->message, 'Rotating exactly to '+rchange
 
 		   case rchange of
@@ -3735,14 +3735,9 @@ pro gpitv::refresh_image_invert_rotate
 	   if (*self.state).astr_from eq 'PHDU' then begin
 		   ; stick modified header back into the PHDU slot.
 			*((*self.state).head_ptr) = astr_header	
-		   ;if ptr_valid( (*self.state).exthead_ptr ) then extensionheader = *((*self.state).exthead_ptr)
-		  ;self->setheader, astr_header, extensionhead=extensionheader
 	   endif else begin
 		   ; stick modified header back into the extension HDU slot
 		   *((*self.state).exthead_ptr) = astr_header
-		   ; have to make copy first of the PHDU header, or else the ptr_free in setheader clobbers itself.
-		   ;copy_of_head = *((*self.state).head_ptr)
-		   ;self->setheader, copy_of_head,  extensionhead=astr_header
 	   endelse
 		 ; update astr_ptr for GPItv 
 		 extast, astr_header, (*(*self.state).astr_ptr), noparams
@@ -3799,8 +3794,6 @@ pro GPItv::rotate, desired_angle, get_angle=get_angle, nodisplay=nodisplay
 ; Rotation code reworked by MP to provide absolute rotations such that you can
 ; undo the rotation if you want by setting it back to 0.
 ;
-; This only works if you avoid interpolating - but one should not in general
-; need arbitrary rotations for gpitv
 ;
 ; If /get_angle set, create widget to enter rotation angle
 ;
@@ -3808,6 +3801,12 @@ pro GPItv::rotate, desired_angle, get_angle=get_angle, nodisplay=nodisplay
 ;	desired_angle		Desired rotation counterclockwise, from the unrotated
 ;						image's starting orientation (i.e. this is absolute
 ;						not relative rotation.)
+;
+;	/get_angle			Open a dialog box and ask the user what angle to rotate
+;	/nodisplay			Don't refresh all displays after rotating. This is
+;						useful if ::rotate is called in the middle of a series
+;						of chained transformations, so you only update the
+;						displays once at the end. 
 ;
 ;-
 
@@ -3834,12 +3833,12 @@ pro GPItv::rotate, desired_angle, get_angle=get_angle, nodisplay=nodisplay
 
 	widget_control, /hourglass
 
-	self->refresh_image_invert_rotate 
+	self->refresh_image_invert_rotate ; Do the actual rotation
 
 	; update the menu checkboxes
 	self->update_menustate_rotate_invert
 
-	;Redisplay inverted image with current zoom, update pan, and refresh image
+	;Redisplay the rotated image with current zoom, update pan, and refresh image
 	if ~(keyword_set(nodisplay)) then begin 
 	   self->displayall
 	   self->update_child_windows,/update
