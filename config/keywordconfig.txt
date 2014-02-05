@@ -128,7 +128,7 @@ TIME-END	PHU
 TIME-OBS	PHU
 UTEND	PHU
 READTIME    Extension
-AVPARANG    Extension
+AVPARANG    Extension 
 EXPSTART    Extension
 EXPEND  Extension
 MJD-AVG     PHU
