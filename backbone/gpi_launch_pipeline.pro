@@ -38,6 +38,10 @@ PRO gpi_launch_pipeline, noinit=noinit, $
 	noexit=noexit, rescanDB=rescanDB, flushqueue=flushqueue, verbose=verbose,$
 	ignoreconflict=ignoreconflict, single=single, nogui=nogui
 
+        currdir = gpi_expand_path(gpi_get_setting('gpi_startup_dir',/silent))
+        cd, currdir
+
+
 	if ~gpi_validate_paths() then begin
 		obj = obj_new('gpi_showpaths') ; will pause here until dialog closed...
         obj_destroy, obj

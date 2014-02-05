@@ -13,5 +13,7 @@
 ;-
 
 PRO gpi_launch_guis, _extra=_extra
+        currdir = gpi_expand_path(gpi_get_setting('gpi_startup_dir',/silent))
+        cd, currdir
 	o = obj_new('launcher', _extra=_extra)
 end

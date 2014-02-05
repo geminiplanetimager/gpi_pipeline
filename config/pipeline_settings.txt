@@ -14,6 +14,7 @@ organize_raw_data_by_dates	1
 organize_reduced_data_by_dates  1
 organize_recipes_by_dates	1
 # apodizer_spec		$GPI_DRP_CONFIG_DIR/apodizer_spec.txt
+gpi_startup_dir		${GPI_DATA_ROOT}
 
 ## Pipeline behavior
 # strict_validation	1
@@ -37,7 +38,7 @@ organize_recipes_by_dates	1
 ## Debug and development 
 # max_files_per_recipe	1000
 # parsergui_max_files     1000
-# enable_primitive_debug  0
+# enable_primitive_debug  1
 # enable_parser_debug     0
 # enable_gpitv_debug	0
 # drp_queue_poll_freq	1.0
