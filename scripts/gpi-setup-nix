@@ -96,10 +96,10 @@ then
 	echo "Making directory: $DATADIR/Reduced/recipes"
 	mkdir "$DATADIR/Reduced/recipes"
 fi
-if [ ! -d "$DATADIR/Detector" ]
+if [ ! -d "$DATADIR/Raw" ]
 then
-	echo "Making directory: $DATADIR/Detector"
-	mkdir "$DATADIR/Detector"
+	echo "Making directory: $DATADIR/Raw"
+	mkdir "$DATADIR/Raw"
 fi
 
 #append to IDL_PATH varabile if it exists, otherwise create the IDL PATH variable
@@ -122,7 +122,7 @@ then
 	printf "#----- Required paths -----------------\n# GPI_DATA_ROOT is a helper path only.\n# If desired you can set all paths independently\n# NOTE: do not put your queue and reduced directories on VOSpace\n" >> "$GPIENV"
 	printf "export GPI_DATA_ROOT=\"$DATADIR\"\n" >> "$GPIENV"
 	printf "export GPI_DRP_QUEUE_DIR=\"\${GPI_DATA_ROOT}/queue\"\n" >> "$GPIENV"
-	printf "export GPI_RAW_DATA_DIR=\"\${GPI_DATA_ROOT}/Detector\"\n" >> "$GPIENV"
+	printf "export GPI_RAW_DATA_DIR=\"\${GPI_DATA_ROOT}/Raw\"\n" >> "$GPIENV"
 	printf "export GPI_REDUCED_DATA_DIR=\"\${GPI_DATA_ROOT}/Reduced\"\n" >> "$GPIENV"
 	printf "\n#----- \$PATH and \$IDL_PATH Configuration ---------------\n" >> "$GPIENV"
 	printf "export PATH=\"\${PATH}:$SCRIPTDIR\"\n" >> "$GPIENV"
@@ -144,7 +144,7 @@ then
 	printf "#----- Required paths -----------------\n# GPI_DATA_ROOT is a helper path only.\n# If desired you can set all paths independently\n# NOTE: do not put your queue and reduced directories on VOSpace\n" >> "$GPIENV"
 	printf "setenv GPI_DATA_ROOT \"$DATADIR\"\n" >> "$GPIENV"
 	printf "setenv GPI_DRP_QUEUE_DIR \"\${GPI_DATA_ROOT}/queue\"\n" >> "$GPIENV"
-	printf "setenv GPI_RAW_DATA_DIR \"\${GPI_DATA_ROOT}/Detector\"\n" >> "$GPIENV"
+	printf "setenv GPI_RAW_DATA_DIR \"\${GPI_DATA_ROOT}/Raw\"\n" >> "$GPIENV"
 	printf "setenv GPI_REDUCED_DATA_DIR \"\${GPI_DATA_ROOT}/Reduced\"\n" >> "$GPIENV"
 	printf "\n#----- \$PATH and \$IDL_PATH Configuration ---------------\n" >> "$GPIENV"
 	printf "setenv PATH \"\${PATH}:$SCRIPTDIR\"\n" >> "$GPIENV"

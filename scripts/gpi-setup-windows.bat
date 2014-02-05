@@ -74,7 +74,7 @@ echo.
 setx GPI_DATA_ROOT %dataDir%
 setx GPI_DRP_DIR %pipelineDir%
 setx GPI_DRP_QUEUE_DIR %%GPI_DATA_ROOT%%\queue
-setx GPI_RAW_DATA_DIR %%GPI_DATA_ROOT%%\Detector
+setx GPI_RAW_DATA_DIR %%GPI_DATA_ROOT%%\Raw
 setx GPI_REDUCED_DATA_DIR %%GPI_DATA_ROOT%%\Reduced
 
 echo "Setting up folders in your GPI Data Directory"
@@ -103,9 +103,9 @@ if not exist %dataDir%/Reduced/recipes (
 	echo Making directory: %dataDir%/Reduced/recipes
 	md %dataDir%/Reduced/recipes
 )
-if not exist %dataDir%\Detector (
-	echo Making directory: %dataDir%\Detector
-	md %dataDir%\Detector
+if not exist %dataDir%\Raw (
+	echo Making directory: %dataDir%\Raw
+	md %dataDir%\Raw
 )
 
 ::Configure IDL_PATH
