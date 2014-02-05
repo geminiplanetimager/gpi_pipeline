@@ -42,6 +42,7 @@ Contents
    ifs/index.rst
    developers/index.rst
    faq.rst
+   license.rst
 
 
 Indices and tables
