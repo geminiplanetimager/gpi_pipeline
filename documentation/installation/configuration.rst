@@ -27,7 +27,6 @@ information. This can roughly be divided into three sections:
     edit its settings if you wish to change any of the defaults, but this is not
     required. 
 
-.. _envvars:
 
 Installing the pipeline for the first time requires several paths to be defined via
 environment variables. Only three paths are explicitly required to be set; the
@@ -48,7 +47,7 @@ All installation scripts are located in the pipeline/scripts directory.
 
     .. image:: icon_linux2.png
   
- On Mac OS and Linux, open up a terminal and go to the ``pipeline/scripts`` directory. Then you will want to run the bash script ``gpi-setup-nix`` with the following command:
+ On Mac OS and Linux, open up a terminal and go to the ``pipeline/scripts`` directory. Then you will want to run the bash script ``gpi-setup-nix`` with the following command::
 
  > bash gpi-setup-nix
 
@@ -74,7 +73,7 @@ All installation scripts are located in the pipeline/scripts directory.
 .. _config-manual:
 
 How to Set Environment Variables Manually
------------------------------------
+-----------------------------------------------
 The pipeline includes helpful example scripts to ease the setup process, located in the ``scripts`` subdirectory of the
 pipeline installation. Most users will simply want to take the example script for their selected shell and modify it for their local directory paths.
 
@@ -189,7 +188,7 @@ The following are paths are **optional** to define as environment variables. If 
 Variable                  Contains                                   Default Value if Not Set Explicitly
 ======================  =======================================  ===========================================================
 GPI_DRP_DIR             Root dir of pipeline software             Determined automatically, location of
-                                                                   the IDL pipeline code. Contains 
+                                                                  the IDL pipeline code. Contains 
                                                                   subdirectories: backbone, config, 
                                                                   gpitv etc
 GPI_DRP_CONFIG_DIR      Path to directory containing pipeline    ``$GPI_DRP_DIR/config``

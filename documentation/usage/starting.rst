@@ -208,32 +208,31 @@ The IDL session running the pipeline should immediately begin to look for new re
 window will be displayed on screen (see below). On startup, the pipeline will
 display status text that looks like::
   
-  *****************************************************
-  *                                                   *
-  *          GPI DATA REDUCTION PIPELINE              *
-  *                                                   *
-  *                   VERSION 0.9.1                   *
-  *                                                   *
-  *                                                   *
-  *         By the GPI Data Analysis Team             *
-  *      Perrin, Maire, Ingraham, Marois et al.       *
-  *                                                   *
-  *      For documentation & full credits, see        *
-  *      http://docs.planetimager.org/pipeline/       *
-  *                                                   *
-  *                                                   *
-  *****************************************************
-                                                     
-  % Compiled module: BIN_DATE.
-  16:10:11   Backbone Initialized
-  % Compiled module: GPIDRFPARSER__DEFINE.
-  % Loaded DLM: XML.
-  % Compiled module: GPIDRSCONFIGPARSER__DEFINE.
-  FOUND MODULE: accumulate_images  Accumulate Images
+  % Compiled module: [Lots of startup messages]
   [...]
-    
-  Now polling and waiting for Recipe files in /Users/mperrin/GPI/queue/
-    
+  01:26:22.484  Now polling and waiting for Recipe files in /Users/mperrin/data/GPI/queue/
+
+     *****************************************************
+     *                                                   *
+     *          GPI DATA REDUCTION PIPELINE              *
+     *                                                   *
+     *             VERSION 1.0                           *
+     *                                                   *
+     *         By the GPI Data Analysis Team             *
+     *                                                   *
+     *   Perrin, Maire, Ingraham, Savransky, Doyon,      *
+     *   Marois, Chilcote, Draper, Fitzgerald, Greenbaum *
+     *   Konopacky, Marchis, Millar-Blanchaer, Pueyo,    *
+     *   Ruffio, Sadakuni, Wang, Wolff, & Wiktorowicz    *
+     *                                                   *
+     *      For documentation & full credits, see        *
+     *      http://docs.planetimager.org/pipeline/       *
+     *                                                   *
+     *****************************************************
+
+
+   Now polling for Recipe files in /Users/mperrin/data/GPI/queue/ at 1 Hz
+
   
 If you see the "Now polling" line at the bottom, then the pipeline has launched
 successfully.
