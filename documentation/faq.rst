@@ -11,16 +11,26 @@ Installation
 
 When running `gpi-pipeline` it says, "gpi-pipeline: Command not found"
 ------------------------------------------------------------------------
-This indicates that the pipeline/scripts directory has not been added to the $PATH. There could be several possible reasons for this:
-1. The script that sets your environment variables (e.g. setenv_GPI_sample.csh or setenv_GPI_sample.bash) has not been sourced. These are generally sourced from the .tcshrc or .bash_profile scripts located in the home directory. Details can be found :ref:`here<configuring>`. Remember to open a new terminal after modifying any shell scripts to ensure they are properly loaded.
-2. The shell script (e.g. setenv_GPI_sample.csh or setenv_GPI_sample.bash) has an error in the line that modifies the ``$PATH``. Check to make sure the pipeline/scripts directory is properly inserted. The users can check if the directory is in the path by typing `echo $PATH` from a shell prompt. We recommend you copy and paste in the pipeline/scripts output to make sure the directory exists. Remember that paths are case sensitive.
+This indicates that the ``pipeline/scripts`` directory has not been added to the ``$PATH``. There are a couple possible reasons for this:
+
+1. The script that sets your environment variables (e.g. ``~/.gpienv`` file ) has not been sourced. This should generally be sourced
+   from your ``.tcshrc`` or ``.bash_profile`` script located in the home directory.
+   Details can be found :ref:`here<configuring>`. Remember to open a new
+   terminal after modifying any shell scripts to ensure they are properly
+   loaded.
+2. The shell script (e.g. ``~/.gpienv`` file) has
+   an error in the line that modifies the ``$PATH``. Check to make sure the
+   pipeline/scripts directory is properly inserted. The users can check if the
+   directory is in the path by typing ``echo $PATH`` from a shell prompt. We
+   recommend you copy and paste in the pipeline/scripts output to make sure the
+   directory exists. Remember that paths are case sensitive.
 
 
 When trying to start the pipeline, I get the error "xterm: Can't execvp idl: No such file or directory"
 ----------------------------------------------------------------------------------------------------------
 This cryptic message means that you are trying to start the gpi-pipeline script without having the idl executable
 in your path. Perhaps you have it aliased instead, but that's not detected by the gpi-pipeline starter script. 
-You can either (1) change your $PATH to include the directory with idl, (2) put a symlink pointing to idl in some
+You can either (1) change your ``$PATH`` to include the directory with idl, (2) put a symlink pointing to idl in some
 directory already in your path, or (3) edit your local copy of the gpi-pipeline script to explicitly set the full
 path to the idl executable.
 
