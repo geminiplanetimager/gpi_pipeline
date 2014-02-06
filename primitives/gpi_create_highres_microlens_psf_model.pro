@@ -29,7 +29,7 @@ function gpi_create_highres_microlens_psf_model, DataSet, Modules, Backbone
   ; his attempt to read through and understand the details of JB's code...
 
 
-  if tag_exist( Modules[thisModuleIndex], "filter_wavelength") then filter_wavelength=float(Modules[thisModuleIndex].filter_wavelength) else filter_wavelength=-1
+  if tag_exist( Modules[thisModuleIndex], "filter_wavelength") then filter_wavelength=string(Modules[thisModuleIndex].filter_wavelength) else filter_wavelength=''
   if tag_exist( Modules[thisModuleIndex], "flat_field") then flat_field=float(Modules[thisModuleIndex].flat_field) else flat_field=0
   if tag_exist( Modules[thisModuleIndex], "flat_filename") then flat_filename=string(Modules[thisModuleIndex].flat_filename) else flat_filename=""
   
@@ -330,7 +330,9 @@ debug=1
                            ; interested in the weighted stddev
                            ; weight by intensity
                         mask0=(*spaxels.masks[i,j,k,it_elev])
-                        mask0[where(mask0 eq 0)]=!values.f_nan
+												;make mask eq 0 values nan's
+												ind= where(mask0 eq 0)
+												if ind[0] ne -1 then mask0[where(mask0 eq 0)]=!values.f_nan
                         mask=(*spaxels.masks[i,j,k,it_elev])[value_to_consider]
                         sz=size(mask0)
 
@@ -444,8 +446,8 @@ debug=1
      xcen_ref_arr=fltarr(N_ELEMENTS(xcen_ref),nfiles)
      ycen_ref_arr=fltarr(N_ELEMENTS(ycen_ref),nfiles)
 
-     pp_xcen_ref_arr=fltarr((2*pp_neighbors+1.0)^2, nfiles)
-     pp_ycen_ref_arr=fltarr((2*pp_neighbors+1.0)^2, nfiles)
+     pp_xcen_ref_arr=fltarr(n_per_lenslet*(2*pp_neighbors+1.0)^2, nfiles)
+     pp_ycen_ref_arr=fltarr(n_per_lenslet*(2*pp_neighbors+1.0)^2, nfiles)
 
      for it_elev = 0,nfiles-1 do begin
  
@@ -508,12 +510,12 @@ debug=1
            pp_ycen = reform((spaxels.ycentroids[xind-pp_neighbors:xind+pp_neighbors,yind-pp_neighbors:yind+pp_neighbors,*,it_elev]), n_per_lenslet*(2*pp_neighbors+1.0)^2)
            ; bring into reference
            ; first x
-           pp_xcen_in_ref = fltarr(n_elements(pp_xcen))
+           pp_xcen_in_ref = fltarr(n_elements(pp_xcen)*n_per_lenslet)
            for i=0,degree_of_the_polynomial_fit do $
               for j= 0,degree_of_the_polynomial_fit do $
                  pp_xcen_in_ref += xtransf_im_to_ref[i,j,it_elev]*pp_xcen^j * pp_ycen^i
            ;now y
-           pp_ycen_in_ref = fltarr(n_elements(pp_ycen))
+           pp_ycen_in_ref = fltarr(n_elements(pp_ycen)*n_per_lenslet)
            for i=0,degree_of_the_polynomial_fit do $
               for j= 0,degree_of_the_polynomial_fit do $
                  pp_ycen_in_ref += ytransf_im_to_ref[i,j,it_elev]*pp_xcen^j * pp_ycen^i
@@ -712,6 +714,8 @@ endif ; end flat field creation
 ; ####################
 ; create flexure plots
 ; ####################
+
+if it_elev gt 1 then begin
 ; stored in xtransf_im_to_ref
 xx=(fltarr(2048)+1)##findgen(2048)
 xx1d=reform(xx,2048*2048)
@@ -753,26 +757,9 @@ plothist,tmp2[*,*,*,*,0],xhist,yhist,/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5
 plothist,tmp2[*,*,*,*,0],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,yr=[0,max(yhist)*1.5],ys=1
 if nfiles ne 1 then plothist,tmp2[*,*,*,*,1],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,/noerase,linestyle=2,yr=[0,max(yhist)*1.5],ys=1,color=155
 
-
+endif
 
 stop
-;  writefits, "/home/LAB/Desktop/diff_image7.fits",diff_image
-;  writefits, "/home/LAB/Desktop/new_image.fits",new_image
-;  writefits, "/users/jruffio/Desktop/diff_image7.fits",diff_image
-;  writefits, "/users/jruffio/Desktop/new_image.fits",new_image
-                                ;evaluate_psf(spaxels.xcoords[*,*,i,j,k], spaxels.ycoords[*,*,i,j,k], [current_x_centroid,current_y_centroid,current_intensity])
-;  fiterr = fltarr(5,5,2)
-;  fiterr = fltarr(5,5,1)
-;  for k = 0,1 do for i=171,175 do for j=171,175 do fiterr[i-171,j-171,k] = total(spaxels.values[*,*,i,j,k])
-;  for k = 0,1 do for i=171,175 do for j=171,175 do fiterr[i-171,j-171,k] = total(abs(spaxels.values[*,*,i,j,k] - fitted_values[*,*,i,j,k]))/total(spaxels.values[*,*,i,j,k])
-;  for k = 0,0 do for i=171,175 do for j=171,175 do fiterr[i-171,j-171,k] = total(abs(spaxels.values[*,*,i,j,k] - fitted_values[*,*,i,j,k]))/total(spaxels.values[*,*,i,j,k])
-;  spaxels.values[*,*,171,171,0]
-;  fitted_values[*,*,171,171,0]
-;  stddev((*spaxels.values[171,171,0]-*fitted_spaxels.values[171,171,0])[where((*spaxels.masks[171,171,0]) eq 1)])
-;fit_error_flag[171:175,171:175,0]
-;fitted_spaxels.xcentroids[171:175,171:175,0]
-;spaxels.masks[*,*,175,175,0]
-;  stop
 
   valid_psfs = where(ptr_valid(PSFs), n_valid_psfs)
   
@@ -803,7 +790,7 @@ stop
   my_file_name = s_OutputDir + strmid(filenm,0,extloc)+ '-'+filter+'-'+'Spaxels'+'.fits'
   save, spaxels, filename=my_file_name
   
-  my_file_name = s_OutputDir + strmid(filenm,0,extloc)+ '-'+filter+'-'+'Fitted_s paxels'+'.fits'
+  my_file_name = s_OutputDir + strmid(filenm,0,extloc)+ '-'+filter+'-'+'Fitted_spaxels'+'.fits'
   save, fitted_spaxels, filename=my_file_name
 
  ; cant save these files as fits since they're not pointers 
