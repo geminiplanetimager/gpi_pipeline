@@ -34,6 +34,7 @@ gpi_startup_dir		${GPI_DATA_ROOT}
 # gpitv_showfullpaths		0
 # gpitv_noinfo		0
 # gpitv_nowarn			0
+# gpitv_startup_dir  ${GPI_REDUCED_DATA_DIR}
 
 ## Debug and development 
 # max_files_per_recipe	1000
