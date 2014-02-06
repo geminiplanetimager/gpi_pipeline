@@ -550,7 +550,6 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
   ;                                  script but rather exit nicely
 
   if total(finite(medpart))/(2048.0*64) le abort_fraction then begin
-	  stop
      backbone->set_keyword, "HISTORY", "NOT Destriped, masked pixels in the noise model greater than abort_fraction "
      logstr = 'NOT Destriped, percentage of valid pixels to derive noise model '+strcompress(string(total(finite(medpart))/(2048.0*64)),/remove_all)+' below the abort_fraction '+strcompress(string(abort_fraction),/remove_all)+' in destripe_science_image'
      backbone->set_keyword, "HISTORY", logstr,ext_num=0
