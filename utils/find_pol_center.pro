@@ -68,7 +68,7 @@ xsearchlen = 2*xrad+1
 ysearchlen = 2*yrad+1
 xrange = indgen(xsearchlen) - xrad
 yrange = indgen(ysearchlen) - yrad
-searchspace = dindgen(ysearchlen, xsearchlen) * 0
+searchspace = dindgen(xsearchlen, ysearchlen) * 0
 
 ;try all points in the search box to see how well sat spots align
 for i=0,xsearchlen-1 do begin
@@ -101,9 +101,12 @@ for i=0,xsearchlen-1 do begin
 	endfor
 endfor
 
+;how much precision do you want the interpolatoin to try
+precision = 1000.
+
 ;interpolate map to get subpixel accuracy 
-xfine = (findgen(xsearchlen*10) / 10.)
-yfine = (findgen(ysearchlen*10) / 10.)
+xfine = (findgen(xsearchlen*precision) / precision)
+yfine = (findgen(ysearchlen*precision) / precision)
 
 finersearch = interpolate(searchspace, xfine, yfine, cubic=-0.5, /grid)
 
@@ -112,8 +115,8 @@ maxval = max(finersearch, index)
 index = array_indices(finersearch, index)
 
 ;convert back to pixel coordiantes
-xcent = float(index[0])/10. - xrad + x0
-ycent = float(index[1])/10. - yrad + y0
+xcent = float(index[0])/precision - xrad + x0
+ycent = float(index[1])/precision - yrad + y0
 
 if keyword_set(statuswindow) then $
 	statuswindow->set_percent, -1, 100.0
