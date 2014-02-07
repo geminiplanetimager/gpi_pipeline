@@ -190,32 +190,91 @@ if ct eq 0 then return, error('FAILURE ('+functionName+'): SATSWARN undefined.  
      sat3flux[s]=flux
      aper, calib_cube[*,*,s],cens[0,3,s],cens[1,3,s],flux,eflux,sky,skyerr,phpadu,aperrad,sat_skyrad,[0,0],/flux,/exact,/nan,/silent
      sat4flux[s]=flux
-     ;;calculate a median satellite spectrum
-     mean_sat_flux[s]=median([sat1flux[s], sat2flux[s], sat3flux[s], sat4flux[s]],/even) ; counts/slice
-		 stddev_sat_flux[s]=robust_sigma([sat1flux[s], sat2flux[s], sat3flux[s], sat4flux[s]]) ; counts/slice
-		if stddev_sat_flux[s] eq -1 then stddev_sat_flux[s]=stddev([sat1flux[s], sat2flux[s], sat3flux[s], sat4flux[s]])
-		
-		; Must approximate a ratio between the flux in the aperture, and the flux outside the aperture.
-		; The truth is that we really don't have a good idea of how it changes radially. What we do know is that it is about 
-		; 0.6 for a 3 pixel radius and about 1.0 for a 10 pixel radius (at 1.6um)
+  endfor
 
-; this is super dangerous because it depends on the PSF (so the seeing and the correction)
-			contained_flux_ratio=0.6
-			mean_sat_flux/=contained_flux_ratio
-			stddev_sat_flux[s]/=contained_flux_ratio
-	  endfor
+; new photometry loop
+; declare the arrays
+satflux_arr=fltarr(4,N_ELEMENTS(lambda))
+satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
+
+; loop over satellites
+
+  for s=0, N_ELEMENTS(reform(cens[0,*,0]))-1 do begin
+		xarr0=cens[0,s,*] ; get x-coords of satellites
+		yarr0=cens[1,s,*] ; get y-coords of satellites
+		; fit a line to the centroids 
+			;determine error from the data
+		xerr=fltarr(N_ELEMENTS(lambda))
+		yerr=fltarr(N_ELEMENTS(lambda))
+		for j=1,N_ELEMENTS(lambda)-2 do	xerr[j]=0.1>abs(xarr0[j]-xarr0[j+1])>abs(xarr0[j]-xarr0[j-1])
+		for j=1,N_ELEMENTS(lambda)-2 do	yerr[j]=0.1>abs(yarr0[j]-yarr0[j+1])>abs(yarr0[j]-yarr0[j-1])
+		delvarx,ax,bx,ay,by ; delete variables so they're not used as suggestions
+		; make sure all are finite and ignore first and last 3 points in the cube since hte SNR is crap
+		ind = where(finite(xarr0+yarr0) ne 0 and xerr ne 0 and yerr ne 0 and (lambda gt lambda[3] and lambda lt lambda[N_ELEMENTS(lambda)-4]))
+		fitexy,lambda[ind],xarr0[ind],Ax,Bx,X_sig=1e-3,y_sig=xerr[ind]
+		fitexy,lambda[ind],yarr0[ind],Ay,By,X_sig=1e-3,y_sig=yerr[ind]
+		xarr=lambda*Bx+Ax
+		yarr=lambda*By+Ay
+
+		; pick a centroid - not sure the best way to do this- must be a place that fits well
+		useless=min(abs(xarr0-xarr)+abs(yarr0-yarr),/nan,cent_ind)
+		; centroid must be at a half pixel
+		x0=floor(xarr[cent_ind])+0.5
+		y0=floor(yarr[cent_ind])+0.5
+		
+		; loop over the wavelength
+		for l=0, N_ELEMENTS(lambda)-1 do begin
+				aperrad = aperrad0*lambda[l]
+			 	skyrad = sat_skyrad0*lambda[l]
+
+			; do the photometry
+				trans_cube_slice=translate(calib_cube[*,*,l],x0-xarr[l],y0-yarr[l])
+
+			; do an error approximation - the error is useless from aper unless in photons and
+				; even then it adds photon noise that won,t be correct.
+				;get size of aperture in pixels - this is not really exact...
+				src_ind=get_xycind(281,281,x0,y0,aperrad)
+				bkg_ind=get_xyaind(281,281,x0,y0,skyrad[0],skyrad[1]-skyrad[0])
+				if bkg_ind[0] eq -1 or total(finite(trans_cube_slice[bkg_ind])) eq 0 or total(finite(trans_cube_slice[src_ind])) eq 0 then begin
+					phot_comp[l]=!values.f_nan
+					phot_comp_err[l]=!values.f_nan
+					continue
+				endif
+				; fit plane to bkg
+				weights=0
+				finite_bkg_ind=bkg_ind[where(finite(trans_cube_slice[bkg_ind]) eq 1)]
+				; fits and subtracts a plane to get proper error estimation
+				coef = PLANEFIT( finite_bkg_ind mod 281 ,finite_bkg_ind / 281,trans_cube_slice[finite_bkg_ind],weights, yfit )
+				xinds=src_ind mod 281 & yinds=src_ind / 281	
+				src_bkg_plane=coef[0]+coef[1]*xinds+coef[2]*yinds	
+				; peform background subtraction
+				satflux_arr[s,l]=total(trans_cube_slice[src_ind]-src_bkg_plane)
+				bkg_stddev=stddev(trans_cube_slice[finite_bkg_ind]-yfit,/nan)
+				satflux_err_arr[s,l]=sqrt(float(N_ELEMENTS(src_ind))*(bkg_stddev)^2)
+		endfor ; end loop over photometry of wavelength slices
+
+	endfor ; end loop over satellites
+; now put back into old array stucture
+sat1flux=satflux_arr[0,*]
+sat2flux=satflux_arr[1,*]
+sat3flux=satflux_arr[2,*]
+sat4flux=satflux_arr[3,*]
+
+; determine the normalization of the satellites. This is currently a little crude but works ok
 	norm1=median(sat1flux[5:N_ELEMENTS(lambda)-5]) ; do not use the low throughput regions of the filter bands
 	norm2=median(sat2flux[5:N_ELEMENTS(lambda)-5])
 	norm3=median(sat3flux[5:N_ELEMENTS(lambda)-5])
 	norm4=median(sat4flux[5:N_ELEMENTS(lambda)-5])
 	mean_norm=mean([norm1,norm2,norm3,norm4])
 
-	for s=0,n_elements(cens[0,0,*])-1 do begin
+	for l=0,n_elements(lambda)-1 do begin
  	; now look at scaling the values to remove net flux offsets
-		stddev_sat_flux[s]=robust_sigma([sat1flux[s]/norm1, sat2flux[s]/norm2, sat3flux[s]/norm3, sat4flux[s]/norm4]) ; counts/slice
-		if stddev_sat_flux[s] eq -1 then stddev_sat_flux[s]=stddev([sat1flux[s]/norm1, sat2flux[s]/norm2, sat3flux[s]/norm3, sat4flux[s]/norm4])
-		mean_sat_flux[s]=median([sat1flux[s]/norm1, sat2flux[s]/norm2, sat3flux[s]/norm3, sat4flux[s]/norm4],/even)*mean_norm ; counts/slice
-		stddev_sat_flux[s]*=(mean_norm)
+		stddev_sat_flux[l]=robust_sigma([sat1flux[l]/norm1, sat2flux[l]/norm2, sat3flux[l]/norm3, sat4flux[l]/norm4]) ; counts/slice
+		; however, the stddev cannot be smaller than the mean noise of the 4 spots - this never actually happens....
+		photom_noise=sqrt(total(satflux_err_arr[*,l]^2))
+		if stddev_sat_flux[l] eq -1 then stddev_sat_flux[l]=(stddev([sat1flux[l]/norm1, sat2flux[l]/norm2, sat3flux[l]/norm3, sat4flux[l]/norm4]))>(photom_noise/mean_norm)
+		mean_sat_flux[l]=median([sat1flux[l]/norm1, sat2flux[l]/norm2, sat3flux[l]/norm3, sat4flux[l]/norm4],/even)*mean_norm ; counts/slice
+		stddev_sat_flux[l]*=(mean_norm)
 	endfor
 
 if 1 eq 1 then begin
@@ -230,7 +289,15 @@ oplot, lambda,sat4flux/norm4*mean_norm, color=cgcolor('green'),linestyle=5,thick
 pi_legend,['median(even)','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/right,textcolor=cgcolor('black')
 endif
 
+	
+	; Must approximate a ratio between the flux in the aperture, and the flux outside the aperture.
+	; The truth is that we really don't have a good idea of how it changes radially. What we do know is that it is about 
+	; 0.6 for a 3 pixel radius and about 1.0 for a 10 pixel radius (at 1.6um)
 
+	; this is super dangerous because it depends on the PSF (so the seeing and the correction)
+	contained_flux_ratio=0.6
+	mean_sat_flux/=contained_flux_ratio ; so this gives the total flux for a given satellite
+	stddev_sat_flux/=contained_flux_ratio ; and the total error for a given satellite
 
 ; this is meant to determine what you need to multiply by in order to calibrate your spectrum
 ; calibrated spectrum=spectrum/reference_spectrum * converted_model_reference_spectrum
