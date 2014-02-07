@@ -331,12 +331,12 @@ primitive_version= '$Id: gpi_combine_polarization_sequence.pro 2407 2014-01-24 0
 	;system_mueller = DST_instr_pol(/mueller, port=port)
 	
 	;Good for on-sky data
-  	woll_mueller_vert = mueller_linpol_rot(0)
-	woll_mueller_horiz= mueller_linpol_rot(90)
+  ;	woll_mueller_vert = mueller_linpol_rot(0)
+	; woll_mueller_horiz= mueller_linpol_rot(90)
 	
 	;Good for lab data
-;    woll_mueller_vert = mueller_linpol_rot(90) 
-;   woll_mueller_horiz= mueller_linpol_rot(0)
+   woll_mueller_vert = mueller_linpol_rot(90) 
+   woll_mueller_horiz= mueller_linpol_rot(0)
     
     ;Getting Filter Information
     filter=gpi_simplify_keyword_value(sxpar(hdr0,"IFSFILT"))
@@ -349,7 +349,7 @@ primitive_version= '$Id: gpi_combine_polarization_sequence.pro 2407 2014-01-24 0
 	for i=0L,nfiles-1 do begin
 		polstack[0,0,i*2] = accumulate_getimage(dataset,i,hdr0,hdrext=hdrext)
 
-		wpangle[i] =float(sxpar(hdr0, "WPANGLE"))-float(Modules[thisModuleIndex].HWPOffset) ;Include the known offset
+		wpangle[i] =-(float(sxpar(hdr0, "WPANGLE"))-float(Modules[thisModuleIndex].HWPOffset)) ;Include the known offset
 		parang = sxpar(hdr0, "PAR_ANG") ; we want the original, not rotated or de-rotated
 										; since that's what set's how the
 										; polarizations relate to the sky
@@ -407,7 +407,7 @@ primitive_version= '$Id: gpi_combine_polarization_sequence.pro 2407 2014-01-24 0
 	; We can now iterate over each position in the FOV and compute the derived
 	; Stokes vector at that position.
 
-
+  
 	;--------- Experimental development code here
 
 	; ignoring rotation - partially hard coded for HR 4796A - 
