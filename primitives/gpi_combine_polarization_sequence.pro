@@ -184,7 +184,6 @@ function DST_instr_pol, polcube, mueller=mueller, port=port, pband=pband
 
 ;The instrumental mueller matrices 
 
-
 ; Where is GPI mounted? 
 if ~(keyword_set(port)) then port="side"
 case port of 
@@ -336,12 +335,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	;system_mueller = DST_instr_pol(/mueller, port=port)
 	
 	;Good for on-sky data
-  	woll_mueller_vert = mueller_linpol_rot(0)
-	woll_mueller_horiz= mueller_linpol_rot(90)
+  ; woll_mueller_vert = mueller_linpol_rot(0)
+	; woll_mueller_horiz= mueller_linpol_rot(90)
 	
 	;Good for lab data
-;    woll_mueller_vert = mueller_linpol_rot(90) 
-;   woll_mueller_horiz= mueller_linpol_rot(0)
+    woll_mueller_vert = mueller_linpol_rot(90) 
+    woll_mueller_horiz= mueller_linpol_rot(0)
     
     ;Getting Filter Information
     filter=strsplit(sxpar(hdr0,"IFSFILT"), '_',/extract)
@@ -349,7 +348,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     tabband=[['Y'],['J'],['H'],['K1'],['K2']]
     if where(strcmp(tabband, pband) eq 1) lt 0 then return, error('FAILURE ('+functioname+'): IFSFILT keyword invalid. No HWP mueller matrix for that filter')
     
-    system_mueller = DST_instr_pol(/mueller, pband=pband, port=port)
+    include_mueller=uint(Modules[thisModuleIndex].IncludeSystemMueller)
+    if (include_mueller eq 1) then system_mueller = DST_instr_pol(/mueller, pband=pband, port=port)
 
 	for i=0L,nfiles-1 do begin
 	;if numext eq 0 then begin
@@ -357,7 +357,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	;endif else begin
 	  polstack[0,0,i*2] = accumulate_getimage(dataset,i,hdr0,hdrext=hdrext)
 	;endelse	
-		wpangle[i] =float(sxpar(hdr0, "WPANGLE"))-float(Modules[thisModuleIndex].HWPOffset) ;Include the known offset
+		wpangle[i] =-(float(sxpar(hdr0, "WPANGLE"))-float(Modules[thisModuleIndex].HWPOffset)) ;Include the known offset
 		parang = sxpar(hdr0, "PAR_ANG") ; we want the original, not rotated or de-rotated
 										; since that's what set's how the
 										; polarizations relate to the sky
@@ -366,21 +366,21 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
  
 		wp_mueller = DST_waveplate(angle=wpangle[i], pband=pband, /mueller,/silent, /degrees)
 		
-		include_mueller=uint(Modules[thisModuleIndex].IncludeSystemMueller)
-		
 		; FIXME: Sky rotation!!
 		;include_sky=uint(Modules[thisModuleIndex].IncludeSkyRotation)
     include_sky=1
 		  
-    if include_sky eq 1 then skyrotation_mueller =  mueller_rot(parang*!dtor) else skyrotation_mueller=identity(4) ;In radians!
-		
-		
+    if include_sky eq 1 then skyrotation_mueller =  mueller_rot((parang)*!dtor) else skyrotation_mueller=identity(4) ;In radians!	
+
+    sign_flip=[[1,0,0,0],[0,1,0,0],[0,0,-1,0],[0,0,0,-1]]
+    ;sign_flip=identity(4)
+    
 		if (include_mueller eq 1) then begin ;Either include the system mueller matrix or not. Depending on the keyword
-    total_mueller_vert = woll_mueller_vert ## wp_mueller ## system_mueller ## skyrotation_mueller
-    total_mueller_horiz = woll_mueller_horiz ## wp_mueller ## system_mueller ## skyrotation_mueller
+    total_mueller_vert = woll_mueller_vert ##  sign_flip ## wp_mueller ## system_mueller ## skyrotation_mueller 
+    total_mueller_horiz = woll_mueller_horiz ## sign_flip## wp_mueller ## system_mueller ## skyrotation_mueller
     endif else begin
-    total_mueller_vert = woll_mueller_vert ## wp_mueller ## skyrotation_mueller 
-    total_mueller_horiz = woll_mueller_horiz ## wp_mueller ## skyrotation_mueller 
+    total_mueller_vert = woll_mueller_vert ## sign_flip ## wp_mueller ## skyrotation_mueller
+    total_mueller_horiz = woll_mueller_horiz ## sign_flip ## wp_mueller ## skyrotation_mueller
     endelse
 
 ;		M[*,2*i] = total_mueller_vert[*,0]
@@ -572,7 +572,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	backbone->set_keyword, 'DRPNFILE', nfiles, "# of files combined to produce this output file"
 
-	*(dataset.currframe)=Stokes
+	*(dataset.currframe)= Stokes
 	;*(dataset.headers[numfile]) = hdr
 	suffix = "-stokesdc"
   
