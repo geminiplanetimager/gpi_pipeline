@@ -14296,8 +14296,11 @@ thetaoffset = (*(self.pdata.plot_ptr[iplot])).options.thetaoffset
 ;print,"thetaoffset: ",thetaoffset
 
 
-qo = (*(self.pdata.plot_ptr[iplot])).q
-uo = (*(self.pdata.plot_ptr[iplot])).u
+;qo = (*(self.pdata.plot_ptr[iplot])).q
+;uo = (*(self.pdata.plot_ptr[iplot])).u
+
+qo = (*self.images.main_image_backup)[*,*,1]/(*self.images.main_image_backup)[*,*,0]
+uo = (*self.images.main_image_backup)[*,*,2]/(*self.images.main_image_backup)[*,*,0]
 
 ;The inversion and rotation have basically been copied from gpitv::refresh_image_invert_rotate
 ; is X flip needed? 
@@ -14330,7 +14333,6 @@ if (*self.state).rot_angle ne 0 then begin
     ;; Are we rotating by some multiple of 90 degrees? If so, we can do so
     ;; exactly.
     if (desired_angle/90. eq fix(desired_angle/90)) then begin
-       
        desired_angle = desired_angle mod 360
        if desired_angle lt 0 then desired_angle +=360
        rchange = strc(fix(desired_angle)) ; how much do we need to change the image to get the new rotation?
@@ -14436,14 +14438,16 @@ if n_elements(good) eq 1 then return
  
    ;print, "Rotating pol vectors by angle of: "+string(-d_PAR_ANG) ; To match with north rotation
   
-   if cdelt[0] gt 0 then sgn = 1 else sgn = -1 ; To check for flip between RH and LH coordinate systems
+   if cdelt[0] gt 0 then sgn = -1 else sgn = 1 ; To check for flip between RH and LH coordinate systems
    
-   theta = sgn * 0.5 * atan(u/q)+thetaoffset*!dtor+d_par_ang*!dtor+(*self.state).rot_angle*!dtor
+   theta =  sgn* 0.5 * atan(u/q)+sgn*d_par_ang*!dtor+(thetaoffset+npa)*!dtor
    ;theta = 0.5 * atan(u/q)+thetaoffset*!dtor
-
-   ;self->Message, "PA Offset from GPItv:"+string(thetaoffset)
-   ;self->Message, "Image Rotation from GPItv:"+string((*self.state).rot_angle)
-   ;self->Message, "Image Rotation Angle:"+string(d_par_ang)
+   self->Message, "Mean theta "+string(mean(theta,/nan)/!dtor)
+   self->Message, "Sign"+string(sgn)
+   self->Message, "npa"+string(npa)
+   self->Message, "PA Offset from GPItv:"+string(thetaoffset)
+   self->Message, "Image Rotation from GPItv:"+string((*self.state).rot_angle)
+   self->Message, "Image Rotation Angle:"+string(d_par_ang)
 ;  
    maxmag = .50
    
@@ -14454,8 +14458,8 @@ if n_elements(good) eq 1 then return
 
     ; remember position angle is defined starting at NORTH so
     ; the usual positions of sin and cosine are swapped.
-    deltax = -lengthscale * mag * sin(theta)/2
-    deltay = lengthscale * mag * cos(theta)/2
+    deltax = -lengthscale  *mag * sin(theta)/2
+    deltay = lengthscale  *mag * cos(theta)/2
     x_b0=x0-x_step
     x_b1=x1+x_step
     y_b0=y0-y_step
