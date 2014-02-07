@@ -14442,13 +14442,13 @@ if n_elements(good) eq 1 then return
    
    theta =  sgn* 0.5 * atan(u/q)+sgn*d_par_ang*!dtor+(thetaoffset+npa)*!dtor
    ;theta = 0.5 * atan(u/q)+thetaoffset*!dtor
-   self->Message, "Mean theta "+string(mean(theta,/nan)/!dtor)
-   self->Message, "Sign"+string(sgn)
-   self->Message, "npa"+string(npa)
-   self->Message, "PA Offset from GPItv:"+string(thetaoffset)
-   self->Message, "Image Rotation from GPItv:"+string((*self.state).rot_angle)
-   self->Message, "Image Rotation Angle:"+string(d_par_ang)
-;  
+;   self->Message, "Mean theta "+string(mean(theta,/nan)/!dtor)
+;   self->Message, "Sign"+string(sgn)
+;   self->Message, "npa"+string(npa)
+;   self->Message, "PA Offset from GPItv:"+string(thetaoffset)
+;   self->Message, "Image Rotation from GPItv:"+string((*self.state).rot_angle)
+;   self->Message, "Image Rotation Angle:"+string(d_par_ang)
+;;  
    maxmag = .50
    
    ;Check for image inversion: 
