@@ -120,7 +120,7 @@ function update_shifts_for_flexure_auto_optimize, det, wavcal, filter, coarse=co
         end
         mask_traces[0,0,ix,iy] = (mask_trace ne 0) ; ignore multiple pixels set high
 
-        xcors[ix,iy] = total(mask_trace*det)
+        xcors[ix,iy] = total(mask_trace*det,/nan)
     endfor
     endfor
 
