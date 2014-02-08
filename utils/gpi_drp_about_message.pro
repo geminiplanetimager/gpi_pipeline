@@ -12,23 +12,20 @@ function gpi_drp_about_message
     ver=strc(gpi_pipeline_version(/svn))
     tmpstr=['GPI Data Reduction Pipeline Version: '+ver, $
               '', $
-              ;'Copyright _,_ by the University of Montreal ' + $
-              ; '(UdeM), Canada', $
+              'Copyright 2008-2014, by the GPI Team ', $
+			  'Released under a BSD 3-clause license', $
               '', $
               '--------- Development: ---------', $
               '', $
-              '  Marshall Perrin   (mperrin@stsci.edu)', $
-              '  Jerome Maire      (maire@utoronto.ca)', $
-			  '  Patrick Ingraham  (patricki@stanford.edu)', $
-			  '  Dmitry Savransky  (savransky1@llnl.gov), ', $ 
-			  '  Rene Doyon        (doyon@astro.umontreal.ca),', $ 
-			  '', $
-			  '  with contributions from: ',$
+              '    Marshall Perrin, Jerome Maire   ', $
+			  '    Patrick Ingraham, Dmitry Savransky  ', $
+			  '    Rene Doyon,        ', $ 
+			  '', $  
 			  '    Jeff Chilcote, Zack Draper, Michael Fitzgerald,', $
 			  '    Alex Greenbaum, Quinn Konopacky, Franck Marchis,', $
 			  '    Christian Marois, Max Millar-Blanchaer, Laurent Pueyo, ', $
-			  '    Jean-Baptiste Ruffio, Naru Sadakuni, Schuyler Wolff',$
-			  '    Sloane Wiktorowicz',$
+			  '    Jean-Baptiste Ruffio, Naru Sadakuni, Jason Wang, ', $
+			  '    Schuyler Wolff, Sloane Wiktorowicz',$
               '', $
               '-------- Acknowledgements: --------', $
               '', $
@@ -46,7 +43,7 @@ function gpi_drp_about_message
               ' ', $
               '------------------------------', $
               ' ', $
-              'The project web site is:         http://planetimager.org/', $
+              'The pipeline web site is:         http://docs.planetimager.org/pipeline', $
 			  '', $
 			  'See pipeline issue tracker at:   http://rm.planetimage.org', $
 			  '                                 (contact Perrin for an account) ', $
