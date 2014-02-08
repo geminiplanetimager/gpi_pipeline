@@ -38,7 +38,7 @@ pro gpipipelinebackbone::aboutmessage
     print, "     *   Perrin, Maire, Ingraham, Savransky, Doyon,      *"
     print, "     *   Marois, Chilcote, Draper, Fitzgerald, Greenbaum *"
     print, "     *   Konopacky, Marchis, Millar-Blanchaer, Pueyo,    *"
-    print, "     *   Ruffio, Sadakuni, Wolff, & Wiktorowicz          *"
+    print, "     *   Ruffio, Sadakuni, Wang, Wolff, & Wiktorowicz    *"
     print, "     *                                                   *"
     print, "     *      For documentation & full credits, see        *"
     print, "     *      http://docs.planetimager.org/pipeline/       *"
