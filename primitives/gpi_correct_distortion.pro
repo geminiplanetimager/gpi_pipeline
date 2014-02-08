@@ -67,7 +67,7 @@ calfiletype='distor'
     
     
 
-suffix+='-distorcorr'
+suffix+='_distorcorr'
 
 @__end_primitive
 
