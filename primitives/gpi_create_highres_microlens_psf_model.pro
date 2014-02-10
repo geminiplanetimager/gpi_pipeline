@@ -74,7 +74,7 @@ function gpi_create_highres_microlens_psf_model, DataSet, Modules, Backbone
 				if filter_wavelength ne -1 then cent_mode="MAX"
         ; Create raw data stamps
 			    time0=systime(1,/seconds)
-          spaxels = get_spaxels(disperser, dataset.frames[0:(nfiles-1)], dataset.wavcals[0:(nfiles-1)], width_PSF, /STAMPS_MODE) 
+          spaxels = gpi_highres_microlens_psf_extract_microspectra_stamps(disperser, dataset.frames[0:(nfiles-1)], dataset.wavcals[0:(nfiles-1)], width_PSF, /STAMPS_MODE) 
   				time_cut=systime(1,/seconds)-time0
      end
      'WOLLASTON': begin
@@ -84,25 +84,27 @@ function gpi_create_highres_microlens_psf_model, DataSet, Modules, Backbone
         sub_pix_res_y = 4   ; sub_pixel resolution of the highres ePSF
         cent_mode = "MAX"
         ; Create raw data stamps
-				spaxels = get_spaxels(disperser, image, polcal, width_PSF, /STAMPS_MODE)
+				spaxels = gpi_highres_microlens_psf_extract_microspectra_stamps(disperser, image, polcal, width_PSF, /STAMPS_MODE)
      end
   endcase
 
   common psf_lookup_table, com_psf, com_x_grid_PSF, com_y_grid_PSF, com_triangles, com_boundary
 
-  diff_image = fltarr(2048,2048)	; MP: difference image, output at end of calculation?
-  new_image = fltarr(2048,2048)		; MP: new (model?) image, output at end of calculation?
+  diff_image = fltarr(2048,2048)	; MP: difference image, output at end of calculation? PI: Yes
+  model_image = fltarr(2048,2048)		; new modeled image - output at end of calculation
   
   n_neighbors = 6               ; number on each side - so 4 gives a 9x9 box - 3 gives a 7x7 box
   ; set up a lenslet jump to improve speed - normally the step would be 2*n_neighbors+1
   ; so this makes it (2*n_neighbors+1)*loop_jump
-	loop_jump=2                  ; the multiple of lenslets to jump
+	loop_jump=1                  ; the multiple of lenslets to jump
 
   ;  n_neighbors_flex = 3          ; for the flexure shift determination - not currently used
 
+; determine the cutout size- this is not always the same as width_PSF
+; and the y-axis size is determined by the calibration file
   values_tmp = *(spaxels.values[(where(ptr_valid(spaxels.values)))[0]]) ; determine a box size
-  nx_pix = (size(values_tmp))[1]	; MP: this should be just width_PSF from above?
-  ny_pix = (size(values_tmp))[2]	; MP: ditto
+  nx_pix = (size(values_tmp))[1]	
+  ny_pix = (size(values_tmp))[2]
 
   if (size(spaxels.values))[0] eq 4 then n_diff_elev = (size(spaxels.values))[4] else n_diff_elev = 1
   ; Create data structure for storing high-res PSF:
@@ -231,7 +233,8 @@ debug=1
   	                time_ij4 = systime(1,/seconds)
 										print, "Get and fit PSF: Fitting [line,column] ["+strc(i+1)+','+strc(j+1)+"] of 281 and spot "+strc(k+1)+" of "+strc(n_per_lenslet)
 	
-                    ptr_current_PSF = get_PSF2( temporary(current_stamps), $
+                    ptr_current_PSF = gpi_highres_microlens_psf_create_highres_psf($
+																							 temporary(current_stamps), $
                                                temporary(current_xcen - current_x0), $
                                                temporary(current_ycen - current_y0), $
                                                temporary(current_flux), $
@@ -259,7 +262,8 @@ debug=1
 								; check to make sure pointer is valid
 								if ptr_valid(spaxels.values[pi,pj,k,f]) eq 0 then continue
 								first_guess_parameters = [spaxels.xcentroids[pi,pj,k,f], spaxels.ycentroids[pi,pj,k,f], spaxels.intensities[pi,pj,k,f]]
-								ptr_fitted_PSF = fit_PSF( *spaxels.values[pi,pj,k,f] - spaxels.sky_values[pi,pj,k,f], $
+								ptr_fitted_PSF = gpi_highres_microlens_psf_fit_detector_psf($
+														 *spaxels.values[pi,pj,k,f] - spaxels.sky_values[pi,pj,k,f], $
 														 FIRST_GUESS = (first_guess_parameters),$
 														 mask=*spaxels.masks[pi,pj,k,f],$
 														 ptr_current_PSF,$
@@ -290,8 +294,8 @@ debug=1
 						value_to_consider = where(*spaxels.masks[i,j,k,f] eq 1)
 						if value_to_consider[0] ne -1 then begin
                         diff_image[ (*spaxels.xcoords[i,j,k,f])[value_to_consider], (*spaxels.ycoords[i,j,k,f])[value_to_consider] ] = (*spaxels.values[i,j,k,f])[value_to_consider] - (spaxels.sky_values[i,j,k,f])[value_to_consider]-((*fitted_spaxels.values[i,j,k,f])*(*spaxels.masks[i,j,k,f]))[value_to_consider]
-;                               ; what is new image?
-                         new_image[ (*spaxels.xcoords[i,j,k,f])[value_to_consider], (*spaxels.ycoords[i,j,k,f])[value_to_consider] ] += ((*fitted_spaxels.values[i,j,k,f])*(*spaxels.masks[i,j,k,f]))[value_to_consider]
+;                               ;  Create a modeled image - using the fitted PSFs
+                         model_image[ (*spaxels.xcoords[i,j,k,f])[value_to_consider], (*spaxels.ycoords[i,j,k,f])[value_to_consider] ] += ((*fitted_spaxels.values[i,j,k,f])*(*spaxels.masks[i,j,k,f]))[value_to_consider]
                      
                               ; calculate the stddev
                           stddev_arr=fltarr(281,281,n_per_lenslet,nfiles,it_flex_max)
