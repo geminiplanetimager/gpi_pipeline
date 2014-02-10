@@ -1,5 +1,6 @@
 # filenames included here will not be included in public release branches
 
+utils/gpi_highres_microlens_psf_get_local_highres_psf.pro
 utils/gpi_highres_microlens_plot_pixel_phase.pro			
 utils/gpi_highres_microlens_psf_fit_detector_psf.pro
 utils/gpi_highres_microlens_psf_create_highres_psf.pro
