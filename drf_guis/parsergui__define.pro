@@ -1166,7 +1166,7 @@ pro parsergui::cleanup
 
     ptr_free, self.recipes_table
 
-    self->drfgui::cleanup ; will destroy all widgets
+    self->gpi_recipe_editor::cleanup ; will destroy all widgets
 end
 
 

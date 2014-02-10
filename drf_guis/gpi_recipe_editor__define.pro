@@ -1526,7 +1526,7 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
 
 
 	top_basemoduleselected=widget_base(top_basemodule,/BASE_ALIGN_LEFT,/column)
-	lab = widget_label(top_basemoduleselected, value="Define your recipe with available primitives:")
+	lab = widget_label(top_basemoduleselected, value="This recipe contains the following primitives:")
 	self.RecipePrimitivesTable_id = WIDGET_TABLE(top_basemoduleselected, $; VALUE=data, $ ;/COLUMN_MAJOR, $ 
 			COLUMN_LABELS=['Primitive Name','Calib. File Method','Resolved Filename'],/resizeable_columns, $
 			xsize=3,ysize=20,uvalue='RecipePrimitivesTable_id',value=(*self.currModSelec), /TRACKING_EVENTS,$
