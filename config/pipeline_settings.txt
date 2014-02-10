@@ -14,7 +14,7 @@ organize_raw_data_by_dates	1
 organize_reduced_data_by_dates  1
 organize_recipes_by_dates	1
 # apodizer_spec		$GPI_DRP_CONFIG_DIR/apodizer_spec.txt
-gpi_startup_dir		${GPI_DATA_ROOT}
+# gpi_startup_dir		${GPI_RAW_DATA_DIR}
 
 ## Pipeline behavior
 # strict_validation	1
@@ -24,6 +24,7 @@ gpi_startup_dir		${GPI_DATA_ROOT}
 # force_rescan_config_on_startup	0
 # force_rescan_caldb_on_startup		0
 # username_in_log_filename	0
+# caldb_restricts_by_cooldown	0
 
 ## GPItv settings
 # gpitv_default_scale	log

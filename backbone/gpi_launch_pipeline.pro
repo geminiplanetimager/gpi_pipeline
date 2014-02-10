@@ -39,7 +39,7 @@ PRO gpi_launch_pipeline, noinit=noinit, $
 	ignoreconflict=ignoreconflict, single=single, nogui=nogui
 
         currdir = gpi_expand_path(gpi_get_setting('gpi_startup_dir',/silent))
-        cd, currdir
+		if strc(currdir) ne "ERROR" then cd, gpi_expand_path(currdir)
 
 
 	if ~gpi_validate_paths() then begin
