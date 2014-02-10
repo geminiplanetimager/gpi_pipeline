@@ -9,18 +9,23 @@ to exit, closing all other windows.
 
 
 .. image:: GPI-launcher.png
+        :width: 348 px
         :scale: 50%
         :align: center
  
 The main usage of this window is pretty self-explanatory: press one of the buttons to 
 open the Data Parser, Recipe Editor, and so on. 
 
+If desired, you can launch many copies of GPItv by pressing that button multiple times. The other
+tools are limited to one instance running at a time. 
+
+
 The 'Setup' menu contains a few commands which are mostly useful for pipeline debugging and
-error recovery, and you can probably ignore:
+error recovery, and most users will rarely if ever need:
  *  You can view the values of all directory paths used for the 
     data pipeline, and see whether each is set from an environment variable or the default value is used. 
  *  There are several commands for clearing and resetting the message queue and shared memory used to
-    communicate between the two IDL sessions. These are mostly left over from development and debugging in earlier
+    communicate between the two IDL sessions. These are left from development and debugging in earlier
     versions of the pipeline, and essentially no one should need to worry about these any more.
 
 

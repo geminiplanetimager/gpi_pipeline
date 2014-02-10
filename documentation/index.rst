@@ -13,8 +13,9 @@ astrometry and spectrophotometry of detected sources.
 
 **Software and documentation by:** Marshall Perrin (STScI), Jérôme Maire
 (University of Toronto), Patrick Ingraham
-(Stanford), Dmitry Savransky (Cornell), JB Ruffio (SETI, ISAE), Max Millar-Blanchaer (Toronto), Schuyler Wolff (JHU), 
-Naru Sadakuni (UCSC and Gemini), Christian Marois (NRC) and
+(Stanford), Dmitry Savransky (Cornell), Max Millar-Blanchaer (Toronto), 
+JB Ruffio (SETI, ISAE), Naru Sadakuni (UCSC and Gemini), Jason Wang (Berkeley), Schuyler Wolff (JHU), 
+Christian Marois (NRC) and
 other members of the GPI Data Analysis Team.  Please see the
 :ref:`development credits <sw-credits>` for a complete list of contributors, and the :ref:`release notes <release-notes>` for further details.
 
@@ -24,10 +25,18 @@ other members of the GPI Data Analysis Team.  Please see the
  * Perrin et al. 'Gemini Planet Imager Observational Calibrations I: Overview of the GPI data analysis pipeline', 2014 (in preparation, for SPIE meeting)
 
 **Getting Help**: The main channel for support of this software is the `Gemini Data Reduction Forum <http://drforum.gemini.edu>`_. Please post questions there
-and mark them with the tag `gpi`. Members of the GPI data analysis team monitor that forum to help support the Gemini community in using GPI. 
-
+and mark them with the tag `gpi`. Members of the GPI data analysis team monitor that forum to help support the Gemini community in using GPI.  Contributions of improvements
+to the software or this documentation are very much welcomed.
 
 You may wish to see :ref:`what's new <release-notes>` in the latest version or jump to the :ref:`quick start tutorial <usage-quickstart>`.
+
+.. caution:: 
+   This software comes with no warranty nor guarantee of correctness. It represents the GPI
+   instrument team's best effort at calibrating and reducing GPI data, but is necessarily a
+   work in progress and incomplete. Integral field spectroscopy, polarimetry, and high contrast
+   PSF subtraction are complicated, and GPI is a new instrument we are still getting to know
+   on sky.  Use your own scientific judgement when analyzing and publishing data from GPI. 
+
 
 
 Contents

@@ -31,7 +31,8 @@ The Launcher is a little menu window that acts as the starting point for launchi
 In this getting started tutorial, we will mostly use **GPItv** and the **Recipe Editor** tools.
 
 .. image:: GPI-launcher.png
-        :scale: 50%
+        :width: 348px
+        :scale: 50 %
         :align: center
         
 The Status Console
