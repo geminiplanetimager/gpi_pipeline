@@ -20,15 +20,13 @@ This version includes a variety of enhancements and bugfixes specifically target
   * Improved handling of missing keywords and associated logging. (Ingraham)
   * Added 2MASS filter corrections to photometric calibration and flux calculation. (Ingraham)
   * Bug fixes and improvements in spectral extraction primitive. (Ingraham)
-  * Updated the 2d wavelength solution primitive to accept a user defined reference wavecal file. (Wolff)
+  * Updated the 2d wavelength solution primitive to accept a user defined reference wavecal file. Improved efficiency of 2D wavelength solution code. (Wolff)
   * Added star color magnitude correction to photometric calibration. (Ingraham)
-  * Improved efficiency of 2D wavelength solution. (Wolff)
   * Bug fixes in thermal background subtraction for K band. (Ingraham)
-  * Numerous bug fixes in all polarization mode primitives. (Millar-Blanchaer)
+  * Numerous bug fixes in polarization mode primitives. (Millar-Blanchaer)
   * Updates to LOCI ADI. (Ingraham, Marois)
   * Updated the quick wavelength solution primitive to accept estimated offsets in both the x and y directions and to shift the lenslet boxes via cross correlation to account for large flexure shifts. (Wolff)
-  * Added wavecal quality check to wavecal recipe. (Perrin)
-  * Added the Quality Check Wavelength Calibration primitive to the 2D wavelength solution recipe. (Wolff)
+  * Added the Quality Check Wavelength Calibration primitive to the 2D wavelength solution and wuick wavelength solution recipes. (Wolff, Perrin)
 
 
 * Pipeline infrastructure:
@@ -42,7 +40,7 @@ This version includes a variety of enhancements and bugfixes specifically target
   * Fixed handling of non-GPI environment variables. (Savransky)
 
 
-* Recipe Editor, Data Parser, Autoreducer GUIS: 
+* Recipe Editor, Data Parser, Autoreducer GUIs: 
 
   * Updated gpicaldatabase to ensure that thermal cubes are not mistaken for thermal 2d images. (Ingraham)
   * Improved Data Parser handling of wavelength calibration data. (Wolff)
@@ -60,13 +58,13 @@ This version includes a variety of enhancements and bugfixes specifically target
   * Added high-pass filter for polarization mode. (Wang)
   * Added 'Total Intensity' cube collapse option for polarization pair files. (Perrin)
   * Fixed rotation of pointing data along with image. (Wang)
-  * Fixed toggling between contrast and native units. (Marie)
+  * Fixed toggling between contrast and native units. (Maire)
     
 * Documentation 
 
   * Added the AA_README file that gives the pickles indices. (Ingraham)
   * Added documentation for automated install scripts. (Wang)
-  * Added Known Issues page. (Perrin)
+  * Added Known Issues page, more screen shots, general documentation tuneup for V1.0. (Perrin)
   * Added summary of software licenses. (Perrin)
 
 * Miscellaneous bug fixes and minor tasks:
