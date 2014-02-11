@@ -32,7 +32,7 @@
 ;-
 
 
-pro make_primitives_config, sortbyorder=sortbyorder
+pro gpi_make_primitives_config, sortbyorder=sortbyorder
 
 	;Scan through the various IDL *.pro files looking for magic strings
 	;    which mark the description and argument strings to use in the GUI.
@@ -52,7 +52,7 @@ pro make_primitives_config, sortbyorder=sortbyorder
 	primitivescomment=strarr(cc)
 	primitivesorder=strarr(cc)
 	primitivestype=strarr(cc)
-	primitivessequence=strarr(cc)
+	;primitivessequence=strarr(cc)
 	;primitives={modnum:0, arg:''}
 	argument=ptr_new(/ALLOCATE_HEAP)
 	;IF N_ELEMENTS(*Self.Modules) EQ 0 THEN $
@@ -78,12 +78,18 @@ pro make_primitives_config, sortbyorder=sortbyorder
 			primitivesorder[i]=STRMID(var1, l+11)
 		endif 
 		;if stregex(var1,'TYPE:',/fold_case,length=l) ne -1  then begin
-		if stregex(var1,'NEWTYPE:',/fold_case,length=l) ne -1  then begin
+		; This is back compatibility for the old terminology, can probably
+		; be removed
+		if (stregex(var1,'NEWTYPE:',/fold_case,length=l) ne -1) then begin
 			primitivestype[i]=STRMID(var1, l+11)
 		endif 
-		if stregex(var1,'SEQUENCE:',/fold_case,length=l) ne -1  then begin
-			primitivessequence[i]=STRMID(var1, l+11)
+		if (stregex(var1,'CATEGORY:',/fold_case,length=l)) ne -1  then begin
+			primitivestype[i]=STRMID(var1, l+11)
 		endif 
+	
+		;if stregex(var1,'SEQUENCE:',/fold_case,length=l) ne -1  then begin
+			;primitivessequence[i]=STRMID(var1, l+11)
+		;endif 
 		if stregex(var1,'ARGUMENT:',/fold_case,length=l) ne -1  then begin
 			IF N_ELEMENTS(*argument) EQ 0 THEN $
 				*argument = {modnum: i, arg: STRMID(var1, l+11)} $
@@ -131,7 +137,7 @@ pro make_primitives_config, sortbyorder=sortbyorder
       argnum=where((*argument).modnum eq i,cm)
       if cm eq 0 then endline='" />' else endline='" >'
       PrintF, lun, ' <Primitive Name="'+primitivesdescrip[i]+'" IDLFunc="'+primitivespro[i]+'" Comment="'+primitivescomment[i]+$
-      '" Order="'+primitivesorder[i]+'" Type="'+primitivestype[i]+'" Sequence="'+primitivessequence[i]+endline
+      '" Order="'+primitivesorder[i]+'" Type="'+primitivestype[i]+ endline
       for j=1,cm do begin
         PrintF, lun, '     <Argument '+((*argument).arg)[argnum[j-1]]+' />'
       endfor

@@ -46,6 +46,7 @@
 ; 2014-01-07 MP: Updated to catch up with the svn reorganization in September
 ;				 2013 and the creation of a public branch.
 ; 2014-02-04 MP: Removed deprecated docdir option
+; 2014-02-06 MP: Debugged /nodocs option
 ;
 ;-
 
@@ -73,19 +74,35 @@ end
 
 ;----------------------------------------------
 
-pro gpi_compiler, compile_dir, drpdirectory=drpdirectory, svnonly=svnonly
+pro gpi_compiler, compile_dir, drpdirectory=drpdirectory, svnonly=svnonly, nodocs=nodocs
 
 	compile_opt defint32, strictarr, logical_predicate
 
+
+
+
+	print, ""
+	print, "Requirements for compiling GPI pipeline: "
+	print, "   1) Working copies of pipeline and external"
+	print, "   2) Sphinx plus numpydoc and several other extensions "
+	print, "      (unless /nodocs is set) "
+	print, ""
+
+
 	if N_params() EQ 0 then begin ;Prompt for directory of produced executables?
   		compile_dir = ' ' 
-        read,'Enter name of the directory where to create executables: ',compile_dir    
+        read,'Enter desired output directory to save executables in: ',compile_dir    
   	endif
-	checkdir, compile_dir
+
+	result = gpi_check_dir_exists( compile_dir)
+	if result eq -1 then begin
+		print, "ERROR: Desired output directory does not exist."
+		return
+	endif
 
 
 ;======== Ensure the primitives config file is up to date for inclusion in the distribution files
-make_primitives_config
+gpi_make_primitives_config
 
 
 ;======== Compile all routines found inside the GPI_DRP_DIR =======

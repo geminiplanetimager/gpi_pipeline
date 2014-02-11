@@ -1186,7 +1186,7 @@ pro gpiPipelineBackbone::rescan_Config
 	if not lmgr(/runtime) then begin
 		self->log, "Rescanning for new primitives, and regenerating primitives config file."
 		self.statuswindow->update, [{name:'Rescanning primitives headers and regenerating config file'}], 0, 2, 1, ""
-		make_primitives_config 
+		gpi_make_primitives_config 
 		self->log, "Generated new primitives config file OK."
 	endif
 	; rescan primitives configuration file
