@@ -2,16 +2,17 @@
 ; NAME: gpi_rotate_north_up
 ; PIPELINE PRIMITIVE DESCRIPTION: Rotate North Up
 ;
-;    Rotate so that North is Up.
+;    Rotate so that North is Up, and east is to the left. 
+;    If necessary this will flip handedness as well as rotate
+;    to get the right parity in the output image.
 ;
 ;
-; INPUTS: detector image
-; common needed: filter, wavcal, tilt, (nlens)
+; INPUTS: Datacube in either spectral or polarimetric mode
+; OUTPUTS: Rotated datacube with north up.
 ;
 ; KEYWORDS:
 ; GEM/GPI KEYWORDS:RA,DEC,PAR_ANG
 ; DRP KEYWORDS: CDELT1,CDELT2,CRPIX1,CRPIX2,CRVAL1,CRVAL2,NAXIS1,NAXIS2,PC1_1,PC1_2,PC2_1,PC2_2
-; OUTPUTS:
 ;
 ; PIPELINE COMMENT: Rotate datacubes so that north is up. 
 ; PIPELINE ARGUMENT: Name="Rot_Method" Type="string" Range="CUBIC|FFT" Default="CUBIC" Desc='Method to compute the rotation'
@@ -21,7 +22,7 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 3.9
-; PIPELINE NEWTYPE: SpectralScience,PolarimetricScience
+; PIPELINE CATEGORY: SpectralScience,PolarimetricScience
 ;
 ; HISTORY:
 ;   2009-04-22 MDP: Created, based on DST's cubeextract_polarized. 
@@ -99,7 +100,9 @@ function gpi_rotate_north_up, DataSet, Modules, Backbone
   if res eq -1 then return, error("No valid WCS present.")
 
   getrot, astr_header, npa, cdelt, /silent
-  ;;reverse handedness as needed
+
+  ;;====== Optional Parity Flip =====
+  ;;reverse handedness if needed to get east CCW of north
   if cdelt[0] gt 0 then begin
      hreverse2, cube[*,*,0],  astr_header , tmp,  astr_header , 1, /silent
      for i=0,nslice-1 do cube[*,*,i] = reverse(reform(cube[*,*,i],sz[1],sz[2]))

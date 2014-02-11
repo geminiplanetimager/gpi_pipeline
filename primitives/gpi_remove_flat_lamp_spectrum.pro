@@ -21,7 +21,7 @@
 ; PIPELINE ARGUMENT: Name="method" Type="string" Range="polyfit|linfit|blackbody|none" Default="blackbody" Desc="Method to use for removing lamp spectrum"
 
 ; PIPELINE ORDER: 2.25
-; PIPELINE NEWTYPE: Calibration
+; PIPELINE CATEGORY: Calibration
 ;
 ; HISTORY:
 ; 	2009-06-20 JM: created

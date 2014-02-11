@@ -38,7 +38,7 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 1.99
 ; PIPELINE TYPE: ALL
-; PIPELINE NEWTYPE: SpectralScience, Calibration, PolarimetricScience
+; PIPELINE CATEGORY: SpectralScience, Calibration, PolarimetricScience
 ;
 ; HISTORY:
 ;   2013-03-08 MP: Started based on extractcube, initial attempts at automated

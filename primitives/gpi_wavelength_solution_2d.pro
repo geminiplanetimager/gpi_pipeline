@@ -37,7 +37,7 @@
 ;
 ; PIPELINE ORDER: 1.7
 ;
-; PIPELINE NEWTYPE: Calibration
+; PIPELINE CATEGORY: Calibration
 ;
 ; HISTORY:
 ;    2013-09-19 SW: 2-dimensionsal wavelength solution 

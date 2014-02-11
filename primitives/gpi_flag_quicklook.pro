@@ -11,7 +11,7 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: Save output to disk, 0: Don't save"
 ; PIPELINE COMMENT: Flag a given reduction output as 'quicklook' quality rather than science grade.
 ; PIPELINE ORDER: 0.1
-; PIPELINE NEWTYPE: ALL
+; PIPELINE CATEGORY: ALL
 ;
 ; HISTORY:
 ;    Marshall Perrin 2013-10-29  Started based on gpi_add_missingkeyword

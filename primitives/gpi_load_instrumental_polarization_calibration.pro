@@ -9,7 +9,7 @@
 ; PIPELINE COMMENT: Load a calibration file for the instrumental polarization.
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type='String' CalFileType="instpol" Default="AUTOMATIC" Desc="Filename of the desired instrumental polarization file to be read" 
 ; PIPELINE ORDER: 0.52
-; PIPELINE NEWTYPE: PolarimetricScience,Calibration
+; PIPELINE CATEGORY: PolarimetricScience,Calibration
 ;
 ; HISTORY:
 ; 	2010-05-22 MDP: started

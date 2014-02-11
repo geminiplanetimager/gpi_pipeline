@@ -16,7 +16,7 @@
 ; PIPELINE COMMENT: Measure GPI distortion from grid pattern
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ORDER: 2.44
-; PIPELINE NEWTYPE: Calibration HIDDEN
+; PIPELINE CATEGORY: Calibration HIDDEN
 ;
 ; HISTORY:
 ; 	Originally by Jerome Maire 2009-12
