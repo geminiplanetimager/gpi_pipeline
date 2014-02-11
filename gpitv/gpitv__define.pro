@@ -11421,7 +11421,11 @@ end
 
 pro GPItv::wavecalgridlabel
 ; Front-end widget for wavecal labels
-
+if (*self.state).wcfilename eq '' then begin
+    self->message, 'You must select a wavecal file before you can overplot the wavelength solution grid.', $
+      msgtype = 'error', /window
+  return
+endif
 
 ; Check for applied shifts to account for flexure
 shiftx = sxpar( *((*self.state).head_ptr), 'SPOT_DX', count=ct)
@@ -11429,48 +11433,73 @@ if ct eq 0 then shiftx=0
 shifty = sxpar( *((*self.state).head_ptr), 'SPOT_DY', count=ct)
 if ct eq 0 then shifty=0
 
+; estimate the appropriate shifts from the wavecal and the flexure model
 
-formdesc = ['0, droplist, black|red|green|blue|cyan|magenta|yellow|white,label_left=Grid Color:, set_value=1 ', $
-            '0, droplist, black|red|green|blue|cyan|magenta|yellow|white,label_left=Tilt Color:, set_value=2 ', $
-            '0, droplist, no|yes,label_left=mlens coord labels:, set_value=0 ', $
-            '0, droplist, black|red|green|blue|cyan|magenta|yellow|white,label_left=Label Color:, set_value=7 ', $
-            '0, float, '+string(shiftx)+', label_left=Spot Shift X: ', $
-            '0, float, '+string(shifty)+', label_left=Spot Shift Y: ', $
-            '0, float, 1.0, label_left=Charsize: ', $
-            '0, integer, 1, label_left=Charthick: ', $
-            '1, base, , row', $
-            '0, button, Cancel, quit', $
-            '0, button, DrawGrid, quit']
+;catch, recommend_shifts
+recommend_shifts=0
+if recommend_shifts eq 0 then begin
+	; Try to read in all the necessary info and call the flexure model
+	caldb = obj_new('gpicaldatabase')
+	shiftsfile = caldb->get_best_cal_from_header( 'shifts', *((*self.state).head_ptr),  *((*self.state).exthead_ptr) )
+	elevation = sxpar(*((*self.state).head_ptr), 'ELEVATIO')
+	wchd = headfits((*self.state).wcfilename)
+	wc_elevation = sxpar(wchd, 'ELEVATIO')
+    lookuptable = gpi_readfits(shiftsFile)
+	recommended_shifts = gpi_flexure_model( lookuptable, elevation, wavecal_elevation=wc_elevation)
+endif else begin
+	recommended_shifts = [0.0, 0.0]
+endelse
+;catch, /cancel
+
+
+	; need to get a flexure table from the calibration DB
+
+
+; Query the user for desired wavecal display options
+
+formdesc = ['0, droplist, black|red|green|blue|cyan|magenta|yellow|white,label_left=Grid Color:   , set_value=1 ', $ ; tag0
+            '0, droplist, black|red|green|blue|cyan|magenta|yellow|white,label_left=Tilt Color:   , set_value=2 ', $ ; tag1
+			'0, label, Recommended spot shifts from flexure model:,left ',$	; tag2
+			'0, label,     (delta X\, delta Y) = ('+sigfig(recommended_shifts[0],3)+'\, '+sigfig(recommended_shifts[1],3)+' ) , center',$	; tag3
+            '0, float, '+string(shiftx)+', label_left=Spot Shift X: ', $ ; tag4
+            '0, float, '+string(shifty)+', label_left=Spot Shift Y: ', $ ; tag5
+            '0, droplist, no|yes,label_left=Include mlens coord labels:, set_value=0 ', $ ; tag6
+            '0, droplist, black|red|green|blue|cyan|magenta|yellow|white,label_left=Label Color:       , set_value=7 ', $ ; tag7
+            '0, float, 1.0, label_left=Charsize: ', $ ; tag8
+            '0, integer, 1, label_left=Charthick: ', $ ; tag9
+            '1, base, , row', $	; tag10
+            '0, button, Cancel, quit', $ ; tag11
+            '0, button, DrawGrid, quit'] ; tag12
 
 if (*self.state).multisess GT 0 then title_base = "GPItv #"+strc((*self.state).multisess) else title_base = 'GPItv '
-gridform=cw_form(formdesc, /column, title = title_base+' wavecal Grid')
+gridform=cw_form(formdesc, /column, title = title_base+' Plot Wavecal Grid Options ')
 
 gridcolor = gridform.tag0
 wcslabelcolor = gridform.tag1
 
-if (gridform.tag10 eq 1) then begin
-;; switch red and black indices
-;  case gridform.tag0 of
-;    0: gridcolor = 1
-;    1: gridcolor = 0
-;    else: gridcolor = gridform.tag0
-;  endcase
-;
-;  case gridform.tag1 of
-;    0: wcslabelcolor = 1
-;    1: wcslabelcolor = 0
-;    else: wcslabelcolor = gridform.tag1
-;  endcase
+if (gridform.tag12 eq 1) then begin
+	;; switch red and black indices
+	;  case gridform.tag0 of
+	;    0: gridcolor = 1
+	;    1: gridcolor = 0
+	;    else: gridcolor = gridform.tag0
+	;  endcase
+	;
+	;  case gridform.tag1 of
+	;    0: wcslabelcolor = 1
+	;    1: wcslabelcolor = 0
+	;    else: wcslabelcolor = gridform.tag1
+	;  endcase
 
-shiftx = gridform.tag4
-shifty = gridform.tag5
+	shiftx = gridform.tag4
+	shifty = gridform.tag5
 
-print, "Shifts", shiftx, shifty
-sxaddpar,  *((*self.state).head_ptr), 'SPOT_DX', shiftx
-sxaddpar,  *((*self.state).head_ptr), 'SPOT_DY', shifty
+	print, "Shifts", shiftx, shifty
+	sxaddpar,  *((*self.state).head_ptr), 'SPOT_DX', shiftx
+	sxaddpar,  *((*self.state).head_ptr), 'SPOT_DY', shifty
 
-self->wavecalgrid, gridcolor=gridform.tag0, tiltcolor=gridform.tag1, labeldisp=gridform.tag2, $
-  labelcolor=gridform.tag3, charsize=gridform.tag4, charthick=gridform.tag5
+	self->wavecalgrid, gridcolor=gridform.tag0, tiltcolor=gridform.tag1, labeldisp=gridform.tag6, $
+	  labelcolor=gridform.tag7, charsize=gridform.tag8, charthick=gridform.tag9
 
 endif
 
