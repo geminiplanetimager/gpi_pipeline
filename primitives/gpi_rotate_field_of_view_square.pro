@@ -6,13 +6,12 @@
 ;    field of view is roughly square with the pixel coordinate axes.
 ;
 ;
-; INPUTS: detector image
-; common needed: filter, wavcal, tilt, (nlens)
+; INPUTS: datacube
+; OUTPUTS: Rotated datacube
 ;
 ; KEYWORDS:
 ; GEM/GPI KEYWORDS:RA,DEC,PAR_ANG
 ; DRP KEYWORDS: CDELT1,CDELT2,CRPIX1,CRPIX2,CRVAL1,CRVAL2,NAXIS1,NAXIS2,PC1_1,PC1_2,PC2_1,PC2_2
-; OUTPUTS:
 ;
 ; PIPELINE COMMENT: Rotate datacubes so that the field of view is squarely aligned with the image axes. 
 ; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="CUBIC|FFT" Default="CUBIC"
@@ -21,9 +20,7 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 3.9
-; PIPELINE TYPE: ASTR/POL
-; PIPELINE NEWTYPE: SpectralScience,PolarimetricScience
-; PIPELINE SEQUENCE: 11-
+; PIPELINE CATEGORY: SpectralScience,PolarimetricScience
 ;
 ; HISTORY:
 ;   2012-04-10 MDP: Created, based on rotate_north_up.pro
@@ -138,7 +135,7 @@ function gpi_rotate_field_of_view_square, DataSet, Modules, Backbone
   endif 
 
   *(dataset.currframe[0])=cube
-  suffix += '-fovsquare'
+  suffix += '_rot'
   
 @__end_primitive
 

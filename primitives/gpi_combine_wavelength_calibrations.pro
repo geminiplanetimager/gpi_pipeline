@@ -5,19 +5,23 @@
 ; gpi_combine_wavcal_all is a simple median combination of wav. cal. files obtained with flat and arc images.
 ;  TO DO: exclude some mlens from the median in case of  wavcal 
 ;
-; INPUTS: 3D wavcal 
+;  This is **mostly deprecated**: in general it is recommended to combine
+;  all 2D images for a given arc lamp and then derive one wavelength solution
+;  from those, rather than deriving multiple wavecals and then combining them.
+;  On the other hand if you want to merge wavecals from two different lamps then
+;  you can indeed use this.
+;
+; INPUTS: Multiple 3D wavcal cubes
 ;
 ; GEM/GPI KEYWORDS:DATE-OBS,FILTER,IFSFILT,TIME-OBS
 ; DRP KEYWORDS: DATAFILE
-; OUTPUTS:
+; OUTPUTS: One merged 3D wavecal cube
 
 ; PIPELINE COMMENT: Performs simple median combination of wavelength calibrations from flat and/or arc lamps
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.2
-; PIPELINE TYPE: CAL-SPEC
-; PIPELINE NEWTYPE: Calibration
-; PIPELINE SEQUENCE: 23-
+; PIPELINE CATEGORY: Calibration
 ;
 ; HISTORY:
 ;    Jerome Maire 2009-08-10

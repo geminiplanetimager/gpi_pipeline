@@ -1,4 +1,3 @@
-
 ;+
 ; NAME: gpi_shift_2d_image
 ; PIPELINE PRIMITIVE DESCRIPTION: Shift 2D Image
@@ -15,9 +14,6 @@
 ;
 ; INPUTS: Any 2D image
 ; OUTPUTS: 2D image shifted by (dx, dy). 
-;
-; OUTPUTS: 
-; 	2D image corrected
 ;
 ; ALGORITHM TODO: Deal with uncertainty and pixel mask frames too.
 ;

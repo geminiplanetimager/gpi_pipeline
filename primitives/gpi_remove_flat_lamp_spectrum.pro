@@ -1,15 +1,19 @@
 ;+
 ; NAME: gpi_remove_flat_lamp_spectrum
 ; PIPELINE PRIMITIVE DESCRIPTION: Remove Flat Lamp spectrum
-;                                 Rescale flat-field (keep large scale variations)
+;
+;           Rescale flat-field (keep large scale variations)
+;
+;           **CAUTION needs additional improvement **
 ;
 ;
-; INPUTS: data-cube
+; INPUTS: Flat field data-cube
+; OUTPUTS:  Flat datacube normalized to remove lamp spectrum
+;
 ;
 ;
 ; GEM/GPI KEYWORDS:
 ; DRP KEYWORDS: FILETYPE, ISCALIB
-; OUTPUTS:  datacube with slice at the same wavelength
 ;
 ; PIPELINE COMMENT: Fit the lamp spectrum and remove it (for delivering flat field cubes)
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"

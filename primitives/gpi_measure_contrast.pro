@@ -2,11 +2,13 @@
 ; NAME: gpi_Measure_Contrast
 ; PIPELINE PRIMITIVE DESCRIPTION: Measure Contrast
 ;
+;	Measure, display on screen, and optionally save the contrast. 
+;
 ;   TODO - should we revise this to call the same contrast measurement backend
 ;   as GPItv? 
 ;
-; OUTPUTS: 
-; 	Contrast datacube, plot of contrast curve
+; INPUTS: Spectral mode datacube
+; OUTPUTS: 	Contrast datacube, plot of contrast curve
 ;
 ;
 ; PIPELINE COMMENT: Measure the contrast. Save as PNG or FITS table.
@@ -24,8 +26,7 @@
 ; PIPELINE ARGUMENT: Name="contr_yaxis_min" Type="float" Range="[0.,1.]" Default="0.00000001" Desc="Y axis minimum"
 ; PIPELINE ARGUMENT: Name="contr_yaxis_max" Type="float" Range="[0.,1.]" Default="1." Desc="Y axis maximum"
 ; PIPELINE ORDER: 2.7
-; PIPELINE NEWTYPE: SpectralScience,PolarimetricScience
-; PIPELINE TYPE: ALL
+; PIPELINE CATEGORY: SpectralScience,PolarimetricScience
 ;
 ; HISTORY:
 ; 	initial version imported GPItv (with definition of contrast corrected) - JM

@@ -2,7 +2,7 @@
 ; NAME: gpi_display_raw_image_with_gpitv
 ; PIPELINE PRIMITIVE DESCRIPTION: Display raw image with GPItv
 ;
-; 		Display in GPITV the current raw image, before any processing
+; 	Display in GPITV the current raw image, before any processing
 ;
 ;
 ; KEYWORDS:
@@ -15,15 +15,14 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="1" Desc="1-500: choose gpitv session for displaying output, 0 for no display "
 ; PIPELINE COMMENT: Display, with GPItv, raw data to be processed  
 ; PIPELINE ORDER: 0.01
-; PIPELINE NEWTYPE: ALL, HIDDEN
-; PIPELINE TYPE: ALL HIDDEN
+; PIPELINE CATEGORY: ALL, HIDDEN
 ;
 ;
 ; HISTORY:
 ; 	Originally by Jerome Maire 2007-11
 ;   2008-04-02 JM: spatial summation window centered on pixel and interpolation on the zem. comm. wav. vector
-;	  2008-06-06 JM: adapted to pipeline inputs
-;	  2009-04-15 MDP: Documentation updated
+;	2008-06-06 JM: adapted to pipeline inputs
+;	2009-04-15 MDP: Documentation updated
 ;   2009-09-17 JM: added DRF parameters
 ;   2013-07-12 MP: Rename for consistency
 ;-

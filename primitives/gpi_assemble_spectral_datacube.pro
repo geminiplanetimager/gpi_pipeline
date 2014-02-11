@@ -14,7 +14,7 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.0
-; PIPELINE NEWTYPE: SpectralScience, Calibration
+; PIPELINE CATEGORY: SpectralScience, Calibration
 ;
 ; HISTORY:
 ; 	Originally by Jerome Maire 2007-11
@@ -65,6 +65,8 @@ function gpi_assemble_spectral_datacube, DataSet, Modules, Backbone
 
   cubef3D=dblarr(nlens,nlens,sdpx) ;create the datacube
 
+  if keyword_set(debug) then mask = det*0 ; create a mask of which pixels were used in the extraction.
+
   for i=0,sdpx-1 do begin       ; iterate over length of longest spectrum in pixels     
      ;;through spaxels
      cubef=dblarr(nlens,nlens) 
@@ -79,6 +81,12 @@ function gpi_assemble_spectral_datacube, DataSet, Modules, Backbone
      
      ;;extract intensities on a 3x1 box:
      cubef=det[X3,Y3]+det[X3+1,Y3]+det[X3-1,Y3]
+
+	 if keyword_set(debug) then begin
+		 mask[X3-1, Y3] = 1 
+		 mask[X3, Y3] = 1 
+		 mask[X3+1, Y3] = 1 
+	endif
      
      ;;declare as NaN mlens not on the detector (or on the reference pixel area, i.e. 4 pixels on each side):
      bordy=where(~finite(y3) OR (Round(y3) LT 4.0) OR (Round(y3) GT 2043.0),cc)

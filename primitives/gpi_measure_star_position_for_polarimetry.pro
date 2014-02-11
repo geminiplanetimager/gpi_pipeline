@@ -3,6 +3,15 @@
 ; PIPELINE PRIMITIVE DESCRIPTION: Measure Star Position for Polarimetry
 ;
 ;  Finds the location of the occulted star (i.e. image center); saves center to FITS keywords.
+;  The algorithm used is a version of the radon transform, used to find where
+;  all the broadband extended speckles intersect in the image. 
+;
+;  The inferred star location is saved to PSFCENTX, PSFCENY keywords in the
+;  header
+;
+;
+; INPUTS: Polarimetric mode datacube
+; OUTPUTS: Polarimetric mode datacube with star location recorded in header
 ;
 ; PIPELINE COMMENT: Finds the location of the occulted star in polarimetry mode, and save the results to the FITS keyword headers.
 ; PIPELINE ARGUMENT: Name="x0" Type="int" Range="[0,300]" Default="147" Desc="initial guess for image center x-coordinate"
@@ -14,7 +23,7 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ;
 ; PIPELINE ORDER: 2.445
-; PIPELINE NEWTYPE: Calibration, PolarimetricScience
+; PIPELINE CATEGORY: Calibration, PolarimetricScience
 ;
 ; HISTORY:
 ; 	2014-01-31 JW: Created. Accurary is subpixel - hopefully.
@@ -25,7 +34,7 @@ function gpi_measure_star_position_for_polarimetry, DataSet, Modules, Backbone
 compile_opt defint32, strictarr, logical_predicate
 
 ; don't edit the following line, it will be automatically updated by subversion:
-primitive_version= '$Id: __template.pro 2340 2014-01-06 16:52:56Z ingraham $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 
 calfiletype=''   ; set this to some non-null value e.g. 'dark' if you want to load a cal file.
 

@@ -2,25 +2,26 @@
 ; NAME: gpi_measure_distortion
 ; PIPELINE PRIMITIVE DESCRIPTION: Measure GPI distortion from grid pattern
 ;
+;	CAUTION - NOT IMPLEMENTED
 ;
-; INPUTS: data-cube
+;	the distortion in lab was analyzed with other non-pipeline tools by Quinn,
+;	and the result is just hard coded here to output it in the GPI pipeline
+;	format.
+;
+; INPUTS: Not used
+; OUTPUTS: Distortion correction coefficients file (values are currently hard-coded)
 ;
 ;
-; KEYWORDS:
-;	
-;
-; OUTPUTS:  
 ;
 ; PIPELINE COMMENT: Measure GPI distortion from grid pattern
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ORDER: 2.44
-; PIPELINE TYPE: ALL-SPEC
-; PIPELINE NEWTYPE: Calibration
-; PIPELINE SEQUENCE: 
+; PIPELINE NEWTYPE: Calibration HIDDEN
 ;
 ; HISTORY:
 ; 	Originally by Jerome Maire 2009-12
 ;       Switched sxaddpar to backbone->set_keyword 01.31.2012 Dmitry Savransky
+;   2013  Added hard-coded measurement of the distortion made by Quinn   JM
 ;- 
 
 function gpi_measure_distortion, DataSet, Modules, Backbone

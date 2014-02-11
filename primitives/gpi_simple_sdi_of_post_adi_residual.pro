@@ -2,28 +2,12 @@
 ; NAME: gpi_simple_sdi_of_post_adi_residual
 ; PIPELINE PRIMITIVE DESCRIPTION: Simple SDI of post ADI residual
 ;
-;         This recipe rescales and subtracts 2 frames in different user-defined 
-;         bandwidths. This recipe is used for speckle suppression using the 
-;         Marois et al (2000) algorithm.
+;   This recipe rescales and subtracts 2 frames in different user-defined 
+;   bandwidths. This recipe is used for speckle suppression using the 
+;   Marois et al (2000) algorithm.
 ;
-;        This routine does NOT update the data structures in memory. You **MUST**
-;        set the keyword SAVE=1 or else the output is silently discarded.
-;
-; INPUTS: 
-;     input datacube 
-;     wavelength solution from common block
-;
-; KEYWORDS:
-;     L1Min=        Wavelength range 1, minimum wavelength [in microns]
-;     L1Max=        Wavelength range 1, maximum wavelength [in microns]
-;     L2Min=        Wavelength range 2, minimum wavelength [in microns]
-;     L2Max=        Wavelength range 2, maximum wavelength [in microns]
-;     k=            Multiplicative coefficient for multiplying the image for
-;                 Wavelength Range *2*. Default value is k=1. 
-;
-;     /Save        Set to 1 to save the output file to disk
-;
-; OUTPUTS:
+;   This routine does NOT update the data structures in memory. You **MUST**
+;   set the keyword SAVE=1 or else the output is silently discarded.
 ;
 ; ALGORITHM:
 ;    Given the user's specified wavelength ranges, extract the 3D datacube slices
@@ -34,6 +18,11 @@
 ;       diffImage = I1scaled - k* I2
 ;    Then hopefully output the image somewhere if SAVE=1 is set. 
 ;
+; INPUTS:  Datacube of ADI residuals
+;
+; OUTPUTS: Datacube with simple 2-wavelength SDI subtraction
+;
+;
 ; PIPELINE COMMENT: Apply SSDI to create a 2D subtracted image from a cube. Given the user's specified wavelength ranges, extract the 3D datacube slices for each of those wavelength ranges. Collapse these down into 2D images by simply averaging the values at each lenslet (ignoring NANs).  Rescale Image1, then compute  diffImage = I1scaled - k* I2
 ; PIPELINE ARGUMENT: Name="L1Min" Type="float" Range="[0.9,2.5]" Default="1.55" Desc="Wavelength range 1, minimum wavelength [in microns]"
 ; PIPELINE ARGUMENT: Name="L1Max" Type="float" Range="[0.9,2.5]" Default="1.57" Desc="Wavelength range 1, maximum wavelength [in microns]"
@@ -43,7 +32,7 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="5" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.3
-; PIPELINE NEWTYPE: SpectralScience
+; PIPELINE CATEGORY: SpectralScience
 ;
 ;
 ; HISTORY:

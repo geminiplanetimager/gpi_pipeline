@@ -2,8 +2,11 @@
 ; NAME: gpi_measure_wavelength_calibration
 ; PIPELINE PRIMITIVE DESCRIPTION: Measure Wavelength Calibration 
 ;
-;	gpi_extract_wavcal detects positions of spectra in the image with narrow
+;	This primitive positions of spectra in the image with narrow
 ;	band lamp image.
+;
+;	** DEPRECATED** This is the older 'first generation' wavelength
+;	calibration algorith, which is no longer recommended
 ;
 ; ALGORITHM:
 ;	gpi_extract_wavcal starts by detecting the central peak of the image.
@@ -56,9 +59,7 @@
 ; PIPELINE ARGUMENT: Name="tests" Type="int" Range="[0,3]" Default="0" Desc="1 for extensive tests "
 ; PIPELINE ARGUMENT: Name="testsDST" Type="int" Range="[0,3]" Default="0" Desc="1 for DST tests "
 ; PIPELINE COMMENT: Derive wavelength calibration from an arc lamp or flat-field image.
-; PIPELINE TYPE: CAL-SPEC
-; PIPELINE NEWTYPE: Calibration
-; PIPELINE SEQUENCE: 
+; PIPELINE CATEGORY: Calibration
 ; HISTORY:      
 ; 	 Jerome Maire 2008-10
 ;	  JM: nlens, w (initial guess), P (initial guess), cenx (or centrXpos), ceny (or centrYpos) as parameters
@@ -455,7 +456,7 @@ if cnan ne 0 then begin
     specpos[*,*,1]=specpostemp
 endif
 
-suffix = '-wavecal'
+suffix = 'wavecal'
 ;fname=strmid(filename,0,STRLEN(filename)-6)+suffix+'.fits'
 ;fname = file_basename(filename,remove_suffix)='.fits')+"-"+bandeobs+"-"+suffix+'.fits'
 
@@ -512,18 +513,21 @@ writefits, strmid(output_filename, 0,strlen(output_filename)-5)+'testdis2'+'.fit
 
 
     if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
-      if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
-      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, bandeobs+"-"+suffix, display=display,savedata=specpos,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile] ,output_filename=output_filename)
-      if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
-      if tag_exist( Modules[thisModuleIndex], "gpitvim_dispgrid") && ( fix(Modules[thisModuleIndex].gpitvim_dispgrid) ne 0 ) then $
-           if strcmp(obstype,'flat',4,/fold) then im=im0
+		; Save the wavecal and optionally display it in gpitv
+		if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
+		b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, bandeobs+"_"+suffix, display=display, $
+			savedata=specpos, saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile], output_filename=output_filename)
+		if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
+
+		if tag_exist( Modules[thisModuleIndex], "gpitvim_dispgrid") && ( fix(Modules[thisModuleIndex].gpitvim_dispgrid) ne 0 ) then begin
+           if strcmp(obstype,'flat',4,/fold) then im=im0 ; if we took a spatial derivative of a flat to fit it, undo that step
           
-      backbone_comm->gpitv, double(im), session=fix(Modules[thisModuleIndex].gpitvim_dispgrid), header=*(dataset.headersPHU)[numfile], dispwavecalgrid=output_filename, imname='Wavecal grid for '+  dataset.filenames[numfile]  ;Modules[thisModuleIndex].name
-           ;gpitvms, double(im), ses=fix(Modules[thisModuleIndex].gpitvim_dispgrid),head=h,opt='dispwavcalgrid='+output_filename
+			backbone_comm->gpitv, double(im), session=fix(Modules[thisModuleIndex].gpitvim_dispgrid), header=*(dataset.headersPHU)[numfile], dispwavecalgrid=output_filename, imname='Wavecal grid for '+  dataset.filenames[numfile]  ;Modules[thisModuleIndex].name
+		endif
     endif else begin
-      if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
-          backbone_comm->gpitv, double(*DataSet.currFrame), session=fix(Modules[thisModuleIndex].gpitv), header=*(dataset.headersPHU)[numfile], imname='Pipeline result from '+ Modules[thisModuleIndex].name,dispwavecalgrid=output_filename
-          ;gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=h
+		; Display just the wavecal in gpitv
+		if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
+			backbone_comm->gpitv, double(*DataSet.currFrame), session=fix(Modules[thisModuleIndex].gpitv), header=*(dataset.headersPHU)[numfile], imname='Pipeline result from '+ Modules[thisModuleIndex].name,dispwavecalgrid=output_filename
     endelse
 
 return, ok

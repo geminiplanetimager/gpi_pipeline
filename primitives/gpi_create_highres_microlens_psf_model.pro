@@ -4,8 +4,8 @@
 ; 
 ; This primitive is based on the determination of a high resolution PSF for each lenslet. It uses an adapted none iterative algorithm from the paper of Jay Anderson and Ivan R. King 2000.
 ; 
-; INPUTS:  Whatever of the same type
-; OUTPUTS: Some stuffs...
+; INPUTS:  Multiple 2D images with appropriate illumination
+; OUTPUTS: High resolution microlens PSF empirical model
 ;
 ; PIPELINE COMMENT: Create a few calibrations files based on the determination of a high resolution PSF.
 ; PIPELINE ARGUMENT: Name="filter_wavelength" Type="string" Range="" Default="" Desc="Narrowband filter wavelength"

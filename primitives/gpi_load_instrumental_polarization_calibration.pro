@@ -3,7 +3,8 @@
 ; PIPELINE PRIMITIVE DESCRIPTION:  Load Instrumental Polarization Calibration
 ;
 ;
-; OUTPUTS:  
+; INPUT: not used
+; OUTPUTS:  Instrumental polarization calibration is loaded into memory
 ;
 ; PIPELINE COMMENT: Load a calibration file for the instrumental polarization.
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type='String' CalFileType="instpol" Default="AUTOMATIC" Desc="Filename of the desired instrumental polarization file to be read" 

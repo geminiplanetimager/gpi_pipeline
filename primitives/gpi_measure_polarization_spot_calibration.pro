@@ -20,6 +20,7 @@
 ;
 ;
 ; INPUTS: 2D image from flat field  in polarization mode
+; OUTPUTS: Measured polarization spot locations calibration file
 ;
 ; PIPELINE ORDER: 1.8
 ; PIPELINE ARGUMENT: Name="nlens" Type="int" Range="[0,400]" Default="281" Desc="side length of  the  lenslet array "
@@ -32,10 +33,10 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1"
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[0,1]" Default="1"
 ; PIPELINE COMMENT: Derive polarization calibration files from a flat field image.
-; PIPELINE NEWTYPE: Calibration
+; PIPELINE CATEGORY: Calibration
 ;
 ; HISTORY:
-;     2009-06-17: Started, based on gpi_extract_wavcal - Marshall Perrin 
+;   2009-06-17: Started, based on gpi_extract_wavcal - Marshall Perrin 
 ;   2009-09-17 JM: added DRF parameters
 ;   2013-01-28 MMB: added some keywords to pass to find_pol_positions_quadrant
 ;   2013-07-11 MDP: Documentation cleanup.

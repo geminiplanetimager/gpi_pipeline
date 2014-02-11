@@ -2,23 +2,28 @@
 ; NAME: gpi_quality_check_wavelength_calibration
 ; PIPELINE PRIMITIVE DESCRIPTION: Quality Check Wavelength Calibration
 ;
-; INPUTS: 3D wavcal 
+;	Quality check wavelength calibration:
+;	 Looks for unexpected statistical anomalies or offsets in the 
+;	 wavelength calibration, as implemented in the utility 
+;	 function `gpi_wavecal_sanity_check`
 ;
-
+; INPUTS: 3D wavecal 
+; OUTPUTS: if wavecal fails quality check, then recipe is failed
+;
+;
 ; PIPELINE COMMENT: Performs a basic quality check on a wavecal based on the statistical distribution of measured inter-lenslet spacings. 
 ; PIPELINE ARGUMENT: Name="error_action" Type="string" Range="[Fail|Ask_user]" Default="Ask_user" Desc="If the quality check fails, should the recipe immediately fail or should I alert the user and ask what they want to do?"
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="-1" Desc="-1 = No display; 0 = New (unused) window; else = Window number to display diagnostic plot."
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ORDER: 4.5
-; PIPELINE TYPE: CAL-SPEC
-; PIPELINE NEWTYPE: Calibration
+; PIPELINE CATEGORY: Calibration
 ;
 ; HISTORY:
 ;   2013-11-28 MP: Created.
 ;-
 
 function gpi_quality_check_wavelength_calibration,  DataSet, Modules, Backbone
-primitive_version= '$Id: gpi_combine_wavelength_calibrations.pro 1715 2013-07-17 18:56:52Z mperrin $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 	if tag_exist( Modules[thisModuleIndex], "display") then display=fix(Modules[thisModuleIndex].display) else display=-1

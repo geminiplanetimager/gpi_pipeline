@@ -9,7 +9,7 @@
 ; PIPELINE ARGUMENT: Name="value" Default="DISP_PRISM_G6262" Desc="Enter value of the keyword to add." Type="string" Range="DISP_WOLLASTON_G6261|DISP_PRISM_G6262|DISP_OPEN_G6263"
 ; PIPELINE COMMENT: Add missing DISPERSR keyword
 ; PIPELINE ORDER: 0.1
-; PIPELINE NEWTYPE: Calibration,Testing
+; PIPELINE CATEGORY: Calibration,Testing
 ;
 ; HISTORY:
 ;    Jerome Maire 2009-09-13
@@ -19,7 +19,7 @@
 
 function gpi_add_dispersr_if_missing,  DataSet, Modules, Backbone
 
-primitive_version= '$Id: gpi_add_missingkeyword.pro 2026 2013-10-29 22:44:50Z mperrin $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 	val = backbone->get_keyword("DISPERSR", count=ct)

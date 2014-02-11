@@ -5,20 +5,15 @@
 ;     Median all ADI datacubes
 ;
 ;
-; INPUTS: data-cube
-; common needed:
+; INPUTS: Many datacubes with ADI subtraction residuals
+; OUTPUTS: Median combined residual datacube
 ;
-; KEYWORDS:
-; OUTPUTS:
-;  INPUTS:
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="10" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE COMMENT: Median combine all residual datacubes after an ADI (or LOCI) speckle suppression.
 ; PIPELINE ORDER: 4.5
-; PIPELINE NEWTYPE: SpectralScience
+; PIPELINE CATEGORY: SpectralScience
 ;
-; EXAMPLE: 
-;  <module name="gpi_medianADI"  Save="1" gpitv="1" />
 ; HISTORY:
 ;    Jerome Maire :- multiwavelength 2008-08
 ;    JM: adapted for GPI-pip
@@ -33,9 +28,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 ;;if all ADI residuals have been processed into datacubes then start median ADI processing...
 if numfile  eq ((dataset.validframecount)-1) then begin
-  ;thisModuleIndex = drpModuleIndexFromCallSequence(Modules, functionName) ;module# to get data proc options from user choice
-  thisModuleIndex = Backbone->GetCurrentModuleIndex()
-  dimcub=(size(*(dataset.currframe[0])))
+  dimcub=(size(*dataset.currframe))
   
   ;get the list of ADI residuals
   flist=strarr((dataset.validframecount))
@@ -64,37 +57,22 @@ endif else begin
               ;update_progressbar2ADI,Modules,thisModuleIndex,CommonWavVect[2], il ,'working...' 
             endfor
 endelse
-  ;create header ;todo:change according with accumulate_images
-  ;fits_info, dataset.outputFileNames[0], n_ext=n_ext
-  ;header=headfits(dataset.outputFileNames[0],/silent)
+
   for ii=0, ((dataset.validframecount)-1) do $
    backbone->set_keyword,'HISTORY','Med. combin. of '+dataset.outputFileNames[ii],ext_num=0
-  ;sxaddparlarge,header,'HISTORY','Med. combin. of '+dataset.outputFileNames[ii]
   
-   ;*(dataset.headers[numfile])=header
    ; put the datacube in the dataset.currframe output structure:
-    *(dataset.currframe[0])=immed
+    *dataset.currframe=immed
 
     
   ;create filename for median ADI datacube
-  suffix=suffix+'-resadi'
- ; filenm=Modules[thisModuleIndex].OutputDir+path_sep()+strmid(fname,0,STRLEN(fname)-2)+suffix+'.fits'
+  suffix=suffix+'_resadi'
 
 
 
   ;save median ADI datacube
-thisModuleIndex = Backbone->GetCurrentModuleIndex()
 
 @__end_primitive
-;    if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
-;      if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
-;      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display)
-;      if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
-;    endif else begin
-;      if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
-;          gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv), head=header
-;    endelse
-
     
  
 endif

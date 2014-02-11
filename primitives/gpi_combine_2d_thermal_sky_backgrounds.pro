@@ -15,8 +15,8 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 1.51
-; PIPELINE NEWTYPE: Calibration
-
+; PIPELINE CATEGORY: Calibration
+;
 ; HISTORY:
 ;   2012-12-13 MP: Forked from combine2dframes
 ;   2013-07-10 MP: Minor documentation cleanup

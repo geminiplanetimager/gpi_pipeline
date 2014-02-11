@@ -2,52 +2,52 @@
 ; NAME: gpi_remove_persistence_from_previous_images
 ; PIPELINE PRIMITIVE DESCRIPTION: Remove Persistence from Previous Images
 ;
-; The removal of persistence from previous non-saturated images
-; incorporates a model developed for Hubble Space Telescopes Wide
-; Field Camera 3 (WFC3,
-; www.stsci.edu/hst/wfc3/ins_performance/persistence). 
-; Persistence is proportional to the intensity of the illuminating
-; source, and is observed to fade exponentially with time. The 
-; parameters of the mathematical model for the persistence, found
-; in the pipeline's configuration directory were determined
-; during integration and test at UCSC.
+;   The removal of persistence from previous non-saturated images
+;   incorporates a model developed for Hubble Space Telescopes Wide
+;   Field Camera 3 (WFC3,
+;   www.stsci.edu/hst/wfc3/ins_performance/persistence). 
+;   Persistence is proportional to the intensity of the illuminating
+;   source, and is observed to fade exponentially with time. The 
+;   parameters of the mathematical model for the persistence, found
+;   in the pipeline's configuration directory were determined
+;   during integration and test at UCSC.
 ;
-; This primitive searches for all files in the raw data directory
-; taken within 600 seconds (10 min) of the beginning of the exposure
-; of interest. It then calculates the persistence from each image,
-; using the maximum of the stack, and subtracts it from the
-; frame. Note that if the detector is exposed to light, but no
-; exposures are being taken, persistence will still build up on the
-; detector that cannot be subtracted.  
+;   This primitive searches for all files in the raw data directory
+;   taken within 600 seconds (10 min) of the beginning of the exposure
+;   of interest. It then calculates the persistence from each image,
+;   using the maximum of the stack, and subtracts it from the
+;   frame. Note that if the detector is exposed to light, but no
+;   exposures are being taken, persistence will still build up on the
+;   detector that cannot be subtracted.  
 ;
-; Ideally, this program should be run after the destriping algorithm
-; as readnoise does not induce persistence. However, due to limitation
-; that a pipeline primitive cannot call another primitive, this has
-; not been implemented. Future developement will involve moving the
-; destriping algorithm into a idl function, and then calling the
-; function from the destriping primitive. This will enable the ability
-; for this primitive to destripe the previous images. The user should
-; note that the destriping is at a level that is low enough to not
-; leave a significant persistence, so this detail will not
-; significantly affect science data.
+;   Ideally, this program should be run after the destriping algorithm
+;   as readnoise does not induce persistence. However, due to limitation
+;   that a pipeline primitive cannot call another primitive, this has
+;   not been implemented. Future developement will involve moving the
+;   destriping algorithm into a idl function, and then calling the
+;   function from the destriping primitive. This will enable the ability
+;   for this primitive to destripe the previous images. The user should
+;   note that the destriping is at a level that is low enough to not
+;   leave a significant persistence, so this detail will not
+;   significantly affect science data.
 ;
-; At this time, the persistence is removed at the ~75% level due to
-; inaccuracies in the model caused by an insufficient time sampling of
-; the initial falloff and readnoise. A new dataset will be taken prior to shipping,
-; and new model parameters will be derived prior to commissioning.
+;   At this time, the persistence is removed at the ~75% level due to
+;   inaccuracies in the model caused by an insufficient time sampling of
+;   the initial falloff and readnoise. A new dataset will be taken prior to shipping,
+;   and new model parameters will be derived prior to commissioning.
 ;
 ; INPUTS: Raw or destriped 2D image
+; OUTPUTS: 2D image corrected for persistence of previous non-saturated images
 ;
 ; Requires the persistence_model_parameters.fits calibration file.
 ;
-; OUTPUTS: 2D image corrected persistence of previous non-saturated images
 ;
 ; PIPELINE COMMENT: Determines/Removes persistence of previous images
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="String" CalFileType="persis" Default="AUTOMATIC" Desc="Filename of the persistence_parameter file to be read"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display " 
 ; PIPELINE ORDER: 1.2
-; PIPELINE NEWTYPE: ALL
+; PIPELINE CATEGORY: ALL
 ;
 ; HISTORY:
 ;

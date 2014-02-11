@@ -2,7 +2,7 @@
 ; NAME: gpi_calibrate_astrometry_from_binary_orbit_catalog
 ; PIPELINE PRIMITIVE DESCRIPTION: Calibrate astrometry from binary (using 6th orbit catalog)
 ;
-; INPUTS: data-cube
+; INPUTS: spectral mode datacube, observing a reference binary
 ;
 ; OUTPUTS:  plate scale & orientation, saved as calibration file
 ;
@@ -13,7 +13,7 @@
 ; PIPELINE COMMENT: Calculate astrometry from unocculted binaries; Calculate Separation and PA at date DATEOBS using the sixth orbit catalog.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ORDER: 2.61
-; PIPELINE NEWTYPE: Calibration
+; PIPELINE CATEGORY: Calibration
 ;
 ; HISTORY:
 ; 	Originally by Jerome Maire 2009-12

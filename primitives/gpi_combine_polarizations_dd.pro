@@ -2,12 +2,17 @@
 ; NAME: gpi_combine_polarization_dd
 ; PIPELINE PRIMITIVE DESCRIPTION: Combine Polarization Sequence via Double Difference
 ; 
-;	Combine a sequence of polarized images via the SVD method. 
+;	Combine a sequence of polarized images via the SVD method, after first
+;	performing double differencing to remove systematics between the e- and
+;	o-rays. 
 ;
 ;	See James Graham's SVD algorithm document, or this algorithm may be hard to
 ;	follow.  This is not your father's imaging polarimeter any more!
 ;
-; INPUTS:
+; INPUTS: Multiple polarization pair datacubes
+;
+; OUTPUTS: a single Stokes datacube
+;
 ; 	This routine assumes that it can read in a series of files on disk which were written by
 ; 	the previous stage of processing. 
 ;
@@ -15,7 +20,6 @@
 ; 
 ; GEM/GPI KEYWORDS:EXPTIME,ISS_PORT,PAR_ANG,WPANGLE
 ; DRP KEYWORDS:CDELT3,CRPIX3,CRVAL3,CTYPE3,CUNIT3,DATAFILE,NAXISi,PC3_3
-; ALGORITHM:
 ;
 ;
 ; PIPELINE ARGUMENT: Name="HWPoffset" Type="float" Range="[-360.,360.]" Default="-29.14" Desc="The internal offset of the HWP. If unknown set to 0"
@@ -23,11 +27,9 @@
 ; PIPELINE ARGUMENT: Name="IncludeSkyRotation" Type="int" Range="[0,1]" Default="1" Desc="1: Include, 0: Don't"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="10" Desc="1-500: choose gpitv session for displaying output, 0: no display "
-
+;
 ; PIPELINE ORDER: 4.4
-; PIPELINE TYPE: ASTR/POL
-; PIPELINE NEWTYPE: PolarimetricScience,Calibration
-; PIPELINE SEQUENCE: 11-
+; PIPELINE CATEGORY: PolarimetricScience,Calibration
 ;
 ;
 ; HISTORY:
@@ -284,7 +286,7 @@ end
 
 function gpi_combine_polarizations_dd, DataSet, Modules, Backbone
 
-primitive_version= '$Id: gpi_combine_polarization_sequence.pro 2407 2014-01-24 05:28:51Z Max $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 	if tag_exist( Modules[thisModuleIndex], "includesystemmueller") then IncludeSystemMueller=(Modules[thisModuleIndex].IncludeSystemMueller) else IncludeSystemMueller=1

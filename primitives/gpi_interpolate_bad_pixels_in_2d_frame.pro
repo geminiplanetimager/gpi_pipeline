@@ -48,7 +48,7 @@
 ;
 ; PIPELINE COMMENT:  Repair bad pixels by interpolating between their neighbors. Can optionally just flag as NaNs or else interpolate.
 ; PIPELINE ORDER: 1.4 
-; PIPELINE NEWTYPE: SpectralScience, PolarimetricScience, Calibration
+; PIPELINE CATEGORY: SpectralScience, PolarimetricScience, Calibration
 ;
 ;
 ; HISTORY:

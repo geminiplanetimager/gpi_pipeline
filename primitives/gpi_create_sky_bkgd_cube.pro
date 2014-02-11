@@ -12,13 +12,13 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.01
-; PIPELINE NEWTYPE: Calibration
-
+; PIPELINE CATEGORY: Calibration
+;
 ; HISTORY:
 ;   2013-12-23 PI: Created Primitive
 ;-
 function gpi_create_sky_bkgd_cube, DataSet, Modules, Backbone
-primitive_version= '$Id: gpi_combine_2d_dark_images.pro 2301 2013-12-18 00:03:48Z mperrin $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 	if tag_exist( Modules[thisModuleIndex], "smooth_box_size") then smooth_box_size=Modules[thisModuleIndex].smooth_box_size $

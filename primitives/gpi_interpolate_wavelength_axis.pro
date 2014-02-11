@@ -2,17 +2,21 @@
 ; NAME: gpi_interpolate_wavelength_axis
 ; PIPELINE PRIMITIVE DESCRIPTION: Interpolate Wavelength Axis
 ;
-;		interpolate datacube to have each slice at the same wavelength
-;		add wavelength keywords to the FITS header
+;		Interpolate datacube to have each slice at the same wavelength.
+;		This is a necessary step of creating datacubes in spectral mode
+;		and should always be used right after Assemble Spectral Datacube.
 ;
-; OUTPUTS:  datacube with slices at the same regular wavelength sampling
+;		Also adds wavelength keywords to the FITS header.
+;
+; INPUTS:  A raw irregularly-sampled spectral datacube 
+; OUTPUTS: Spectral datacube with slices at a regular wavelength sampling
 ;
 ; PIPELINE COMMENT: Interpolate spectral datacube onto regular wavelength sampling.
 ; PIPELINE ARGUMENT: Name="Spectralchannels" Type="int" Range="[0,100]" Default="37" Desc="Choose how many spectral channels for output datacube"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.3
-; PIPELINE NEWTYPE: SpectralScience,Calibration
+; PIPELINE CATEGORY: SpectralScience,Calibration
 ;
 ; HISTORY:
 ; 	Originally by Jerome Maire 2008-06

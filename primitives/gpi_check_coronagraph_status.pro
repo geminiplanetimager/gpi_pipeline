@@ -2,10 +2,24 @@
 ; NAME: gpi_check_coronagraph_status
 ; PIPELINE PRIMITIVE DESCRIPTION:Check for closed-loop coronagraphic image
 ;
+;	This primitive checks that the input file is in fact a coronagraphic image.
+;	It is intended to be used in quicklook recipes that may encounter all sorts
+;	of different data. 
+;
+;	Any following primitives will only be executed if the
+;	image is in fact coronagraphic data. This is useful so the quicklook 
+;	recipe can include satellite spots or contrast measurement primitives, 
+;	which would generally cause the recipe to fail if they receive any
+;	unocculted data. With this primitive added in the recipe before those
+;	steps, they will just be skipped without producing any error messages. 
+;
+; INPUT: Any GPI FITS file
+; OUTPUT: No change in that file; subsequent recipe processing steps are only executed if coronagraphic data is found. 
+;
 ; PIPELINE COMMENT:  Check whether file represents a closed-loop  coronagraphic image.
 ; PIPELINE ARGUMENT: Name="err_on_false" Type="int"  Range="[0,1]" Default="0" Desc=" If false, 0: continue to next image; 1: Throw error"
 ; PIPELINE ORDER: 2.41
-; PIPELINE NEWTYPE: Calibration,SpectralScience,PolarimetricScience
+; PIPELINE CATEGORY: Calibration,SpectralScience,PolarimetricScience
 ;
 ; HISTORY:
 ;   2013-08-02 ds - initial version

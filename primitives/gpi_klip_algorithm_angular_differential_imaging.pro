@@ -1,29 +1,21 @@
 ;+
-; NAME: gpi_klip_algorithm_spectral_differential_imaging
+; NAME: gpi_klip_algorithm_angular_differential_imaging
 ; PIPELINE PRIMITIVE DESCRIPTION: KLIP algorithm Angular Differential Imaging
 ;
-;             This algorithm reduces noise in a datacube using the
-;             KLIP algorithm
-; 
-; INPUTS:
-;       input datacube
-;       wavelength solution from common block
-;
-; KEYWORDS:
-;
-; GEM/GPI KEYWORDS:
-;
-; DRP KEYWORDS:
-;
-; OUTPUTS: 
-;       A reduced datacube with reduced noise
+;   This algorithm reduces PSF speckles in a datacube using the
+;   KLIP algorithm and Angular Differential Imaging.
 ;
 ; ALGORITHM:
+;       Star location must have been previously measured using satellite spots.
 ;       Measure annuli out from the center of the cube and create a
 ;       reference set for each annuli of each slice. Apply KLIP to the
 ;       reference set and project the target slice onto the KL
 ;       transform vector. Subtract the projected image from the
 ;       original and repeat for all slices 
+; 
+; INPUTS: Multiple spectral datacubes
+; OUTPUTS: A reduced datacube with reduced PSF speckle halo
+;
 ;
 ; PIPELINE COMMENT: Reduce speckle noise using the KLIP algorithm with ADI data
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
@@ -32,7 +24,7 @@
 ; PIPELINE ARGUMENT: Name="prop" Type="float" Range="[0.8,1.0]" Default=".99999" Desc="Proportion of eigenvalues used to truncate KL transform vectors"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="5" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.2
-; PIPELINE NEWTYPE: SpectralScience
+; PIPELINE CATEGORY: SpectralScience
 ;
 ; HISTORY:
 ;        2013-10-21 - ds

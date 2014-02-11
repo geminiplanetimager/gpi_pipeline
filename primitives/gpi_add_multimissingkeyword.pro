@@ -11,7 +11,7 @@
 ; PIPELINE ARGUMENT: Name="value2" Type=""  Default="Xenon" Desc="Enter value of the keyword to add."
 ; PIPELINE COMMENT: Add any missing keyword. (use this function several times in the DRF if you need to add more than one keyword)
 ; PIPELINE ORDER: 0.1
-; PIPELINE NEWTYPE: Testing
+; PIPELINE CATEGORY: Testing
 ;
 ; HISTORY:
 ;    Jerome Maire 2009-09-13

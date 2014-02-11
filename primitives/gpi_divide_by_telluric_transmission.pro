@@ -2,12 +2,11 @@
 ; NAME: gpi_divide_by_telluric_transmission
 ; PIPELINE PRIMITIVE DESCRIPTION: Divide by Telluric Transmission
 ;
+;	Corrects for telluric transmission based on a telluric calibrator
+;	target reduced and provied as the CalibrationFile.
+;
 ; INPUTS: data-cube
-;
-; KEYWORDS:
-;	/Save	set to 1 to save the output image to a disk file. 
-;
-; OUTPUTS:  datacube with slice at the same wavelength
+; OUTPUTS:  datacube calibrated for telluric absorption
 ;
 ; PIPELINE COMMENT: Divides a spectral data-cube by a telluric transmission calibration file.
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type='String' CalFileType="telluric" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"

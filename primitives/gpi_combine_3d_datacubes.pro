@@ -15,8 +15,8 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.5
-; PIPELINE NEWTYPE: ALL
-
+; PIPELINE CATEGORY: ALL
+;
 ; HISTORY:
 ; 	 Jerome Maire 2008-10
 ;   2009-09-17 JM: added DRF parameters

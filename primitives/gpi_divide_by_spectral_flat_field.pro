@@ -2,15 +2,17 @@
 ; NAME: gpi_divide_by_spectral_flat_field
 ; PIPELINE PRIMITIVE DESCRIPTION: Divide by Spectral Flat Field
 ;
-; INPUTS: data-cube
+;   ** Needs additional work, will not produce high qualty results yet **
 ;
+; INPUTS: data-cube
+; OUTPUTS: Flat fielded datacube
 ;
 ; PIPELINE COMMENT: Divides a spectral data-cube by a flat field data-cube.
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="string" CalFileType="specflat" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.2
-; PIPELINE NEWTYPE: SpectralScience,Calibration
+; PIPELINE CATEGORY: SpectralScience,Calibration
 ;
 ; HISTORY:
 ;   2009-08-27: JM created

@@ -19,7 +19,7 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE COMMENT: Add GPI and Gemini missing keywords. 
 ; PIPELINE ORDER: 0.1
-; PIPELINE NEWTYPE: Testing
+; PIPELINE CATEGORY: Testing
 ;
 ; HISTORY:
 ;    Jerome Maire 2010-02

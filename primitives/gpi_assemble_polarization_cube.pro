@@ -22,17 +22,17 @@
 ;        -Combine these into a weighted average, weighted by the S/N per pixel
 ;
 ;
-; INPUTS: detector image
+; INPUTS: detector image in polarimetry mode
 ; common needed: filter, wavcal, tilt, (nlens)
 ;
-; OUTPUTS:
+; OUTPUTS: Polarization pair datacube
 ;
 ; PIPELINE COMMENT: Extract 2 perpendicular polarizations from a 2D image.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ARGUMENT: Name="Method" Type="String" Range="BOX|PSF" Default="BOX" Desc="Method for pol cube reconstruction, simple box or optimal PSF"
 ; PIPELINE ORDER: 2.0
-; PIPELINE NEWTYPE: PolarimetricScience, Calibration
+; PIPELINE CATEGORY: PolarimetricScience, Calibration
 ;
 ; HISTORY:
 ;   2009-04-22 MDP: Created, based on DST's cubeextract_polarized. 

@@ -2,21 +2,11 @@
 ; NAME: gpi_klip_algorithm_spectral_differential_imaging
 ; PIPELINE PRIMITIVE DESCRIPTION: KLIP algorithm Spectral Differential Imaging
 ;
-;             This algorithm reduces noise in a datacube using the
-;             KLIP algorithm
+;   This algorithm reduces PSF speckles in a datacube using the
+;   KLIP algorithm and Spectral Differential Imaging.
 ; 
-; INPUTS:
-;       input datacube
-;       wavelength solution from common block
-;
-; KEYWORDS:
-;
-; GEM/GPI KEYWORDS:
-;
-; DRP KEYWORDS:
-;
-; OUTPUTS: 
-;       A reduced datacube with reduced noise
+; INPUTS: Spectral datacube
+; OUTPUTS:  Spectral datacube after SDI PSF subtraction
 ;
 ; ALGORITHM:
 ;       Measure annuli out from the center of the cube and create a
@@ -35,7 +25,7 @@
 ; PIPELINE ARGUMENT: Name="signal" Type="int" Range="[0,1]" Default="0" Desc="1: calculate signal to noise ration, 0: don't calculate"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="5" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.8
-; PIPELINE NEWTYPE: SpectralScience
+; PIPELINE CATEGORY: SpectralScience
 ;
 ; HISTORY:
 ;        Written 2013. Tyler Barker

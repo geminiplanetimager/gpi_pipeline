@@ -2,22 +2,37 @@
 ; NAME: quick_wavelength_solution_update.pro
 ; PIPELINE PRIMITIVE DESCRIPTION: Quick Wavelength Solution Update
 ;
-;   This Wavelength Solution generator simulates an arclamp spectrum
-;   for each lenslet and uses mpfit2dfunc to fit the relevant
-;   wavelength solution variables (ie. xo, yo, lambdao, dispersion,
-;   tilt). A wavelength solution file is output along with a
-;   simulated detector image. 
+;   This is a modified version of the 2D wavelength solution
+;   algorithm, which fits a small subset of lenslets (set by
+;   the 'spacing' argument) to very quickly provide an estimated
+;   wavelength solution, based on some prior wavelength solution.
 ;
+;   This differs from the full wavelength solution in that:
+;
+;    1) Only a subset of lenslets are fit
+;    2) The mean shifts in X and Y are derived from those fits
+;    3) The output wavelength solution is created by taking
+;       the input wavelength solution and applying those shifts.
+;       (i.e. only the overall shift of the wavecal is updated;
+;       the individual dispersions and tilts of each lenslet's
+;       spectrum are not changed).
+;  
+;   This algorithm is both computationally faster than and 
+;   tolerant of lower S/N data than the full wavelength solution
+;   algorithm. This is because it is in essence only trying to measure
+;   2 parameters, the average shifts in X and Y, rather than the
+;   ~ 150,000 parameters measured and saved for the full wavelength
+;   calibration algorithm.
+;   
 ; INPUTS: An Xe/Ar lamp detector image
+; OUTPUT: A new wavelength calibration file, created by shifting a prior wavecal to align with the arc lamp image. (and optionally a simulated arc lamp image as well)
 ;
 ; KEYWORDS:
 ; GEM/GPI KEYWORDS:FILTER,IFSFILT,GCALLAMP
 ; DRP KEYWORDS: FILETYPE,HISTORY,ISCALIB
 ;
-; OUTPUTS: A wavelength solution cube (and a simulated Xe/Ar lamp
-; detector image; to come)
 ;
-; PIPELINE COMMENT: Given an existing wavecal and a new Xe lamp image, this primitive updates the wavecal roughly based on the X,Y positions measured for a subset of the Xe spectra. 
+; PIPELINE COMMENT: Given an existing wavecal and a new Xe lamp image, this primitive updates the wavecal based on the X,Y positions measured for a subset of the Xe spectra. 
 ;
 ;
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="-1" Desc="-1 = No display; 0 = New (unused) window; else = Window number to display each lenslet in comparison to the detector lenslet in."
@@ -32,7 +47,7 @@
 ; PIPELINE ARGUMENT: Name="AutoOffset" Type="int" Range="[0,1]" Default="0" Desc="Automatically determine x/yoffset values 0;NO, 1;YES"
 ; PIPELINE ARGUMENT: Name="gpitvim_dispgrid" Type="int" Range="[0,500]" Default="15" Desc="1-500: choose gpitv session for displaying image output and wavcal grid overplotted, 0: no display "
 ; PIPELINE ORDER: 1.7
-; PIPELINE NEWTYPE: Calibration
+; PIPELINE CATEGORY: Calibration
 ;
 ; HISTORY:
 ;	2013-09-19 SW: 2-dimensionsal wavelength solution 

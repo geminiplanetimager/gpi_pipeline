@@ -3,6 +3,9 @@
 ; PIPELINE PRIMITIVE DESCRIPTION: Measure satellite spot locations 
 ;
 ;  Measures the locations of the satellite spots; saves to FITS keywords.
+;  The sat spots locations are saved to SATS1_1, SATS1_2, and so on.
+;  The inferred location of the star is saved to PSFCENTX and PSFCENTY
+;  (this is the mean location of all the locations at each wavelength)
 ;
 ; PIPELINE COMMENT: Measure the locations of the satellite spots in the datacube, and save the results to the FITS keyword headers.
 ; PIPELINE ARGUMENT: Name="refine_fits" Type="int" Range="[0,1]" Default="1" Desc="0: Use wavelength scaling only; 1: Fit each slice"
@@ -20,7 +23,7 @@
 ; PIPELINE ARGUMENT: Name="x4" Type="int" Range="[0,300]" Default="0" Desc="approx x-location of bottom right spot on reference slice of the datacube in pixels (not considered if CalibrationFile is defined)"
 ; PIPELINE ARGUMENT: Name="y4" Type="int" Range="[0,300]" Default="0" Desc="approx y-location of bottom right spot on reference slice of the datacube in pixels (not considered if CalibrationFile is defined)"
 ; PIPELINE ORDER: 2.44
-; PIPELINE NEWTYPE: Calibration,SpectralScience
+; PIPELINE CATEGORY: Calibration,SpectralScience
 ;
 ; HISTORY:
 ; 	Originally by Jerome Maire 2009-12

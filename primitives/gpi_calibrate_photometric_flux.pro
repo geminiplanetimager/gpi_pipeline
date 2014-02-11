@@ -2,7 +2,10 @@
 ; NAME: gpi_calibrate_photometric_flux
 ; PIPELINE PRIMITIVE DESCRIPTION: Calibrate Photometric Flux 
 ;
-;	This primitive applies a spectrophotometric calibrations to the datacube that is determined either from the satellite spots of the supplied cube, the satellite spots of a user-indicated cube, or any user-supplied spectral response function (e.g. derived from an open loop image of a standard star). 
+;	This primitive applies a spectrophotometric calibrations to the datacube that is determined either 
+;	from the satellite spots of the supplied cube, the satellite spots of a
+;	user-indicated cube, or any user-supplied spectral response function (e.g. derived 
+;	from an open loop image of a standard star). 
 ;
 ; The user may also specify the extraction and sky radii used in performing the aperture photometry.
 ;
@@ -10,23 +13,20 @@
 ;	
 ;
 ; INPUTS: 
-; 1: datacube that requires calibration (loaded as an Input FITS file)
-; AND
-; 2a: datacube or to be used to determine the calibration (with or without a accompanying model spectrum of the star)
-; OR
-; 2b: a 2D spectrum (in ADU per COADD, where the COADD corresponds to input #1). The file format must be three columns, the first being wavelength in microns, the second being the flux in erg/s/cm2/A, the third being the uncertainty
+;	1: datacube that requires calibration (loaded as an Input FITS file)
+;	AND
+;	2a: datacube or to be used to determine the calibration (with or without a accompanying model spectrum of the star)
+;	OR
+;	2b: a 2D spectrum (in ADU per COADD, where the COADD corresponds to input #1). The file format must be three columns, the first being wavelength in microns, the second being the flux in erg/s/cm2/A, the third being the uncertainty
 ;
 ; if neither 2a nor 2b or defined, the satellites of the input file are used.
 ;
 ; calib_cube_name and calib_model_spectrum require the entire directory+filename unless they are in the output directory
 ; calib_spectrum requires the full filename
 ;
-; KEYWORDS:
-;	/Save	Set to 1 to save the output datacube to a disk file 
 ;
 ; GEM/GPI KEYWORDS:FILTER,IFSUNIT
 ; DRP KEYWORDS: CUNIT,DATAFILE
-; OUTPUTS:  
 ;
 ; PIPELINE COMMENT: Extract one spectrum from a datacube somewhere in the FOV specified by the user.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
@@ -41,18 +41,15 @@
 ; PIPELINE ARGUMENT: Name="FinalUnits" Type="int" Range="[0,10]" Default="1" Desc="0: ADU per coadd, 1: ADU/s, 2: ph/s/nm/m^2, 3: Jy, 4: 'W/m^2/um, 5: ergs/s/cm^2/A, 6: ergs/s/cm^2/Hz'"
 
 ; PIPELINE ORDER: 2.51
-; PIPELINE TYPE: ALL-SPEC
-; PIPELINE NEWTYPE: SpectralScience
-; PIPELINE SEQUENCE: 
+; PIPELINE CATEGORY: SpectralScience
 ;
 ; HISTORY:
-;		2014-01-07 PI: Created Module - big overhaul from the original apply_photometric_calibration 	
 ;
 ;   JM 2010-03 : created module.
-;   2012-10-17 MP: Removed deprecated suffix keyword. FIXME this needs major
-;   cleanup!
+;   2012-10-17 MP: Removed deprecated suffix keyword. needs major cleanup!
 ;   2013-08-07 ds: idl2 compiler compatible 
-;- 
+;	2014-01-07 PI: Created new gpi_calibrate_photometric_flux - big overhaul from the original apply_photometric_calibration 	
+;-
 
 function gpi_calibrate_photometric_flux, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history

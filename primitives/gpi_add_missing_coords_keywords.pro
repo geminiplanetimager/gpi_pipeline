@@ -13,7 +13,7 @@
 ; PIPELINE ARGUMENT: Name="OBJECT" Default="NO CHANGE" Desc="Enter value here to override the OBJECT keyword of a given file"
 ; PIPELINE COMMENT: Add missing RA, DEC, PAR_ANG keywords based on a lookup table of objects or SIMBAD.
 ; PIPELINE ORDER: 0.1
-; PIPELINE NEWTYPE: Calibration,Testing
+; PIPELINE CATEGORY: Calibration,Testing
 ;
 ; HISTORY:
 ; 2013-11-13 Written by Marshall Perrin
@@ -22,7 +22,7 @@
 
 function gpi_add_missing_coords_keywords,  DataSet, Modules, Backbone
 
-primitive_version= '$Id: gpi_add_missingkeyword.pro 2026 2013-10-29 22:44:50Z mperrin $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 	common drp_object_locations, names, ras, decs

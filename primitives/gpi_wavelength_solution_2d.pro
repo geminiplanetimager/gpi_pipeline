@@ -2,20 +2,28 @@
 ; NAME: gpi_wavelength_solution_2d.pro
 ; PIPELINE PRIMITIVE DESCRIPTION: 2D Wavelength Solution
 ;
-;   This Wavelength Solution generator simulates an arclamp spectrum
+;	This is the main wavelength calibration generation primitive.
+;
+;   This Wavelength Solution generator models an arclamp spectrum
 ;   for each lenslet and uses mpfit2dfunc to fit the relevant
 ;   wavelength solution variables (ie. xo, yo, lambdao, dispersion,
 ;   tilt). A wavelength solution file is output along with a
 ;   simulated detector image. 
 ;
+;	A previous wavelength calibration file is used to supply the
+;	initial guess for the fitting process, which is then updated
+;	by this primitive.
+;
+;	This is fairly computationally intensive and requires
+;	relatively high S/N data. See Quick Wavelength Solution if
+;	you need faster results (albeit more limited and requiring you
+;	already have a reference wavecal)
+;
 ; INPUTS: An Xe/Ar lamp detector image
 ;
-; OUTPUTS: A wavelength solution cube (and a simulated Xe/Ar lamp
-; detector image; to come)
+; OUTPUTS: A wavelength solution cube (and a simulated Xe/Ar lamp detector image; to come)
 ;
-; PIPELINE COMMENT: This primitive uses an existing wavelength solution file 
-; to construct a new wavelength solution file by simulating the detector image 
-; and performing a least squares fit.
+; PIPELINE COMMENT: This primitive uses an existing wavelength solution file to construct a new wavelength solution file by simulating the detector image and performing a least squares fit.
 ;
 ;
 ; PIPELINE ARGUMENT: Name="display" Type="Int" Range="[0,1]" Default="0" Desc="Whether or not to plot each lenslet spectrum model in comparison to the detector measured spectrum: 1;display, 0;no display"
@@ -27,10 +35,8 @@
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="wavcal" Default="AUTOMATIC" Desc="Filename of the desired reference wavelength calibration file to be read"
 ; PIPELINE ARGUMENT: Name="Save_model_params" Type="int" Range="[0,1]" Default="0" Desc="1: save model nuisance parameters to disk, 0: don't save"
 ;
-; where in the order of the primitives should this go by default?
 ; PIPELINE ORDER: 1.7
 ;
-; pick one of the following options for the primitive type:
 ; PIPELINE NEWTYPE: Calibration
 ;
 ; HISTORY:

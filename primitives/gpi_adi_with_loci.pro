@@ -1,25 +1,18 @@
 ;+
 ; NAME: gpi_adi_with_loci
 ; PIPELINE PRIMITIVE DESCRIPTION: ADI with LOCI
-; 		ADI algo based on Lafreniere et al 2007.
+; 		ADI algorithm based on Lafreniere et al. 2007.
 ;
 ;
 ; Code currently only offers the use of positive and negative coefficients.
 ;
 ;
-; INPUTS: data-cube
-; common needed:
+; INPUTS: data-cube 
 ;
 ; KEYWORDS:
 ; GEM/GPI KEYWORDS:COADDS,CRFOLLOW,DEC,EXPTIME,HA,PAR_ANG
 ; DRP KEYWORDS: HISTORY,PSFCENTX,PSFCENTY
-; OUTPUTS:
-;  INPUTS:
-;          nfwhm: number of fwhm to calculate the minimal distance for reference calculation
-;          save: save results (datacubes with reference subtracted and then rotated )
-;          gpitv: display result in gpitv session # (gpitv="0" means no display)
-; EXAMPLE: 
-;  <module name="gpi_adi_Loci_multiwav" nfwhm="1.5" Save="1" gpitv="1" />
+;
 ;
 ; PIPELINE COMMENT: Implements the LOCI ADI algorithm (Lafreniere et al. 2007)
 ; PIPELINE ARGUMENT: Name="nfwhm" Type="float" Range="[0,20]" Default="1.5" Desc="number of FWHM to calculate the minimal distance for reference calculation"
@@ -27,7 +20,7 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="10" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.11
-; PIPELINE NEWTYPE: SpectralScience
+; PIPELINE CATEGORY: SpectralScience
 ;
 ; HISTORY:
 ; 	 Jerome Maire :- multiwavelength 2008-08

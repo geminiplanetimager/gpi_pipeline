@@ -2,17 +2,10 @@
 ; NAME: gpi_speckle_alignment
 ; PIPELINE PRIMITIVE DESCRIPTION: Speckle alignment 
 ;
-; 		This recipe rescales datacube slices with respect to a chosen reference slice. 
+; 	This recipe rescales datacube slices with respect to a chosen reference slice. 
 ;
-; INPUTS: 
-; 	input datacube 
-; 	wavelength solution from common block
-;
-; KEYWORDS:
-;
-;
-; DRP KEYWORDS: 
-; OUTPUTS:
+; INPUTS:  Spectral datacube
+; OUTPUTS: Resampled and rescaled spectral datacube
 ;
 ; ALGORITHM:
 ;	Given the user's specified wavelength ranges, extract the 3D datacube slices
@@ -25,14 +18,14 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="5" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.61
-; PIPELINE NEWTYPE: SpectralScience
+; PIPELINE CATEGORY: SpectralScience
 ;
 ;
 ; HISTORY:
 ; 	2012-02 JM
-;       07.30.2012 - offladed backend to speckle_align - ds
-;       05.10.2012 - updates to match other primitives and to reflect
-;                    changes to backend by Tyler Barker
+;   07.30.2012 - offladed backend to speckle_align - ds
+;   05.10.2012 - updates to match other primitives and to reflect
+;                changes to backend by Tyler Barker
 ;-
 
 Function  gpi_speckle_alignment, DataSet, Modules, Backbone

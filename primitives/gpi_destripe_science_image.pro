@@ -3,8 +3,8 @@
 ; PIPELINE PRIMITIVE DESCRIPTION: Destripe science image
 ;
 ;  
-;  Subtract horizontal striping from the background of a 2d
-;  raw IFS image by masking spectra and using the remaining regions to obtain a
+;  Subtract horizontal striping from the background of a 2d raw IFS image
+;  by masking spectra and using the remaining regions to obtain a
 ;  sampling of the striping. 
 ;
 ;  The masking can be performed by using the wavelength calibration to mask the
@@ -15,13 +15,14 @@
 ;  field. If called on such data, it will print a warning message and return
 ;  without modifying the data array.
 ;  
-; Summary of the primitive:
-; The principle of the primitive is to build models of the different source of noise you want to treat and then subtract them to the real image at the end.
-; 1/ mask computation
-; 2/ Channels offset model based on im = image => chan_offset
-; 3/ Microphonics computation based on im = image - chan_offset => microphonics_model
-; 4/ Destriping model based on im = image - chan_offset - microphonics_model => stripes
-; 5/ Output: imout = image - chan_offset - microphonics_model - stripes
+;  Summary of the primitive:
+;  The principle idea is to build models of the different source of noise 
+;  you want to treat and then subtract them from the real image at the end.
+;   1/ mask computation
+;   2/ Channels offset model based on im = image => chan_offset
+;   3/ Microphonics computation based on im = image - chan_offset => microphonics_model
+;   4/ Destriping model based on im = image - chan_offset - microphonics_model => stripes
+;   5/ Output: imout = image - chan_offset - microphonics_model - stripes
 ;
 ; Destriping Algorithm Details:
 ;    Generate a mask of where the spectra are located, based on the
@@ -40,7 +41,9 @@
 ; OPTIONAL/EXPERIMENTAL: 
 ;  The microphonics noise attenuation can be activitated by setting the parameter remove_microphonics to 1 or 2.
 ;  The microphonics from the image can be saved in a file using the parameter save_microphonics.
-;  If Plot_micro_peaks equal 'yes', then it will open 3 plot windows with the peaks aera of the microphonics in Fourier space (Before microphonics subtraction, the microphonics to be removed and the final result). Used for debugging purposes.
+;  If Plot_micro_peaks equal 'yes', then it will open 3 plot windows with the peaks aera of the 
+;  microphonics in Fourier space (Before microphonics subtraction, the
+;  microphonics to be removed and the final result). Used for debugging purposes.
 ;  
 ;  If remove_microphonics = 1:
 ;    The algorithm is always applied.
@@ -48,14 +51,18 @@
 ;  If remove_microphonics = 2:
 ;    The algorithm is applied only of the quantity of noise is greater than the micro_threshold parameter.
 ;    A default empirical value of 0.01 has been set based on the experience of the author of the algorithm. 
-;    The quantity of microphonics noise is measured with the ratio of the dot_product and the norm of the image: dot_product/sqrt(sum(abs(fft(image))^2)).
-;    With dot_product = sum(abs(fft(image))*abs(fft(noise_model))) which correspond to the projection of the image on the microphonics noise model in the absolute Fourier space.
+;    The quantity of microphonics noise is measured with the ratio of the dot_product and the norm of the 
+;    image: dot_product/sqrt(sum(abs(fft(image))^2)).
+;    With dot_product = sum(abs(fft(image))*abs(fft(noise_model))) which
+;    correspond to the projection of the image on the microphonics noise model in the absolute Fourier space.
 ;  
 ;  There are 3 implemented methods right now depending on the value of the parameter method_microphonics.
 ;  
 ;  If method_microphonics = 1:
-;    The microphonics noise removal is based on a fixed precomputed model. This model is the normalized absolute value of the Fourier coefficients.
-;    The filtering consist of diminishing the intensity of the frequencies corresponding to the noise in the image proportionaly to the dot product of the image witht the noise model.
+;    The microphonics noise removal is based on a fixed precomputed model. This model is the 
+;    normalized absolute value of the Fourier coefficients.
+;    The filtering consist of diminishing the intensity of the frequencies corresponding to the 
+;    noise in the image proportionaly to the dot product of the image witht the noise model.
 ;    The phase remains unchanged.
 ;    The filtered coefficients in Fourier space become (1-dot_product*(Amplitude_noise_model/Amplitude_image)).
 ;    With dot_product = sum(abs(fft(image))*abs(fft(noise_model))) which correspond to the projection of the image on the microphonics noise model in the absolute Fourier space.
@@ -86,7 +93,7 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="1" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE COMMENT:  Subtract detector striping using measurements between the microspectra
 ; PIPELINE ORDER: 1.35
-; PIPELINE NEWTYPE: SpectralScience,Calibration, PolarimetricScience
+; PIPELINE CATEGORY: SpectralScience,Calibration, PolarimetricScience
 ;
 ;
 ; HISTORY:

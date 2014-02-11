@@ -2,22 +2,17 @@
 ; NAME: gpi_normalize_polarimetry_flat_field
 ; PIPELINE PRIMITIVE DESCRIPTION: Normalize polarimetry flat field
 ;
-; INPUTS: data-cube
-;
-; KEYWORDS:
-;	/Save	set to 1 to save the output image to a disk file. 
+; INPUTS: polarimetry data-cube with flat lamp
+; OUTPUTS:  Normalized polarimetry mode flat field
 ;
 ; GEM/GPI KEYWORDS:
 ; DRP KEYWORDS:NAXES,NAXISi,FILETYPE,ISCALIB
-; OUTPUTS:  datacube with slice at the same wavelength
 ;
 ; PIPELINE COMMENT: Normalize a polarimetry-mode flat field to unity.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 3.1992
-; PIPELINE TYPE: ALL/POL
-; PIPELINE NEWTYPE: Calibration
-; PIPELINE SEQUENCE: 31-
+; PIPELINE CATEGORY: Calibration
 ;
 ; HISTORY:
 ; 	2009-06-20: JM created

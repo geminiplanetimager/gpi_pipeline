@@ -2,17 +2,29 @@
 ; NAME: gpi_extract_1d_spectrum
 ; PIPELINE PRIMITIVE DESCRIPTION: Extract 1D spectrum from a datacube
 ;
-;	This primitive extracts a spectrum from a data cube. It is meant to be used on datacubes that have been calibrated by gpi_apply_photometric_calibration, but this is not required.
+; This primitive extracts a spectrum from a data cube. It is meant to be used 
+; on datacubes that have been calibrated by gpi_apply_photometric_calibration, 
+; but this is not required.
 ;
-; The extraction radius is pulled out of the header such that is uses the same as what was used to calibrate the cube. If they keyword is not found, then the extraction_radius keyword is used. The extraction_radius keyword will also be used if the override keyword is set to 1. Note that this is very dangerous and will introduce systematics into the data. 
+; The extraction radius is pulled out of the header such that is uses the 
+; same as what was used to calibrate the cube. If they keyword is not found, 
+; then the extraction_radius keyword is used. The extraction_radius keyword will 
+; also be used if the override keyword is set to 1. Note that this is NOT
+; recommended and will introduce systematics into the data. 
 ;
-; The centroiding is performed by fitting a gaussian to the region of interest. A line is then fit to the centroids and used. In this fit, the first and last 4 data points are excluded due to low transmission. The errors for each centroid are determined by taking the largest of the offsets between the subtraction of adjacent centroids (e.g. yerr[j]=0.1>abs(yarr0[j]-yarr0[j+1])>abs(yarr0[j]-yarr0[j-1]) )
+; The centroiding is performed by fitting a gaussian to the region of interest. 
+; A line is then fit to the centroids and used. In this fit, the first and last 
+; 4 data points are excluded due to low transmission. The errors for each centroid 
+; are determined by taking the largest of the offsets between the subtraction of adjacent 
+; centroids (e.g. yerr[j]=0.1>abs(yarr0[j]-yarr0[j+1])>abs(yarr0[j]-yarr0[j-1]) )
 ;
-; All photometry is done in ADU/coadd. This is performed by converting the cube to ADU/coadd then converting back to whatever units the cube was input with
+; All photometry is done in ADU/coadd. This is performed by converting the cube to 
+; ADU/coadd then converting back to whatever units the cube was input with.
 ;
 ;
 ;
-;; INPUTS: Datacube of which a source needs extracting, xcenter and ycenter keywords
+; INPUTS: Datacube containing a source that needs extracting, located by the xcenter and ycenter arguments
+; OUTPUTS: 1D spectrum
 ;
 ; KEYWORDS:
 ;
@@ -28,28 +40,24 @@
 ; save_ps_plot: saves a postscript version of the plot if desired
 ; write_ascii_file: writes as ascii output of the spectra - no header info included
 ;
-;	/Save	;
 ; GEM/GPI KEYWORDS:FILTER,IFSUNIT
 ; DRP KEYWORDS: CUNIT,DATAFILE,SPECCENX,SPECCENY
-; OUTPUTS:  
 ;
 ; PIPELINE COMMENT: Extract one spectrum from a datacube somewhere in the FOV specified by the user.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="xcenter" Type="float" Range="[-1,280]" Default="-1" Desc="x-locations in pixel on datacube where extraction will be made"
-; PIPELINE ARGUMENT: Name="ycenter" Type="float" Range="[-1,280]" Default="-1" Desc="y-locations in pixel on datacube where extraction will be made"
+; PIPELINE ARGUMENT: Name="xcenter" Type="float" Range="[-1,280]" Default="-1" Desc="x-location in pixels on datacube where extraction will be made"
+; PIPELINE ARGUMENT: Name="ycenter" Type="float" Range="[-1,280]" Default="-1" Desc="y-location in pixels on datacube where extraction will be made"
 ; PIPELINE ARGUMENT: Name="inner_sky_radius" Type="float" Range="[1,100]" Default="10." Desc="Inner aperture radius at middle wavelength slice (in spaxels i.e. mlens) to extract sky"
 ; PIPELINE ARGUMENT: Name="outer_sky_radius" Type="float" Range="[1,100]" Default="20." Desc="Outer aperture radius at middle wavelength slice (in spaxels i.e. mlens) to extract sky"
 ; PIPELINE ARGUMENT: Name="override" Type="int" Range="[0,1]" Default="0" Desc="Override apertures/scaling from spectrophotometric calibration?"
-; PIPELINE ARGUMENT: Name="extraction_radius" Type="float" Range="[0,1000]" Default="5." Desc="Aperture radius at middle wavelength (in spaxels i.e. mlens) to extract photometry for each wavelength"
+; PIPELINE ARGUMENT: Name="extraction_radius" Type="float" Range="[0,1000]" Default="5." Desc="Aperture radius at middle wavelength (in spaxels i.e. mlens) to extract photometry for each wavelength. (only active if Override is set)"
 ; PIPELINE ARGUMENT: Name="c_ap_scaling" Type="int" Range="[0,1]" Default="1" Desc="Perform aperture scaling with wavelength?"
 ; PIPELINE ARGUMENT: Name="no_centroid_override" Type="int" Range="[0,1]" Default="0" Desc="Do not centroid on extraction source?"
 ; PIPELINE ARGUMENT: Name="display" Type="int" Range="[-1,100]" Default="17" Desc="-1 = No display; 0 = New (unused) window; else = Window number to display diagnostic plot."
 ; PIPELINE ARGUMENT: Name="save_ps_plot" Type="int" Range="[0,1]" Default="0" Desc="Save PostScript of plot?"
 ; PIPELINE ARGUMENT: Name="write_ascii_file" Type="int" Range="[0,1]" Default="0" Desc="Save ascii file of spectrum (.dat)?"
 ; PIPELINE ORDER: 2.52
-; PIPELINE TYPE: ALL-SPEC
-; PIPELINE NEWTYPE: SpectralScience
-; PIPELINE SEQUENCE: 
+; PIPELINE CATEGORY: SpectralScience
 ;
 ; HISTORY:
 ; 	
@@ -98,7 +106,7 @@ endif else begin
 	cal_percent_err=fltarr(N_ELEMENTS(lambda))
 	for l=0, N_ELEMENTS(lambda)-1 do cal_percent_err[l]=(backbone->get_keyword('CERR_'+strc(l),count=count,ext_num=1))
 ; pull flux scaling from headers
-fscale_arr=fltarr(N_ELEMENTS(lambda))
+	fscale_arr=fltarr(N_ELEMENTS(lambda))
 	for l=0, N_ELEMENTS(lambda)-1 do fscale_arr[l]=(backbone->get_keyword('FSCALE'+strc(l),count=count,ext_num=1))
 endelse
 
@@ -114,38 +122,38 @@ endif
 ; #############################
     source_cube=*(dataset.currframe[numfile])
 
-     badpix = [0,0] & phpadu=1     
+    badpix = [0,0] & phpadu=1     
 
-			if c_ap_scaling eq 1 then begin
-  			aperrad0=extraction_radius/lambda[N_ELEMENTS(lambda)/2]  
-				skyrad0 =[inner_sky_radius, outer_sky_radius]/lambda[N_ELEMENTS(lambda)/2]
-			endif else begin
-				aperrad0=extraction_radius/lambda 
-				skyrad0 =[inner_sky_radius, outer_sky_radius]/lambda
-			endelse
+	if c_ap_scaling eq 1 then begin
+	aperrad0=extraction_radius/lambda[N_ELEMENTS(lambda)/2]  
+		skyrad0 =[inner_sky_radius, outer_sky_radius]/lambda[N_ELEMENTS(lambda)/2]
+	endif else begin
+		aperrad0=extraction_radius/lambda 
+		skyrad0 =[inner_sky_radius, outer_sky_radius]/lambda
+	endelse
 
-     ;;do the photometry of the companion
-		; we actually want the peak in the center of a pixel, so centers must be half integers
-     x0=floor(xcenter)+0.5 & y0=floor(ycenter)+0.5 & hh=5.
-     phot_comp=fltarr(N_ELEMENTS(lambda)) 
-		 phot_comp_err=fltarr(N_ELEMENTS(lambda))
-		xarr0=fltarr(N_ELEMENTS(lambda))
-		yarr0=fltarr(N_ELEMENTS(lambda))
-		xerr=fltarr(N_ELEMENTS(lambda))
-		yerr=fltarr(N_ELEMENTS(lambda))
+    ;;do the photometry of the companion
+	; we actually want the peak in the center of a pixel, so centers must be half integers
+    x0=floor(xcenter)+0.5 & y0=floor(ycenter)+0.5 & hh=5.
+    phot_comp=fltarr(N_ELEMENTS(lambda)) 
+	phot_comp_err=fltarr(N_ELEMENTS(lambda))
+	arr0=fltarr(N_ELEMENTS(lambda))
+	arr0=fltarr(N_ELEMENTS(lambda))
+	xerr=fltarr(N_ELEMENTS(lambda))
+	yerr=fltarr(N_ELEMENTS(lambda))
 
-		; first do centroiding
-		if keyword_set(no_centroid_override) eq 0 then begin	
-				refpix = hh*2+1  ;search window size
-				;;create pure 2d gaussian
-				generate_grids, fx, fy, refpix, /whole
-				fr = sqrt(fx^2 + fy^2)
-				ref = exp(-0.5*fr^2)
-				
+	; first do centroiding
+	if keyword_set(no_centroid_override) eq 0 then begin	
+		refpix = hh*2+1  ;search window size
+		;;create pure 2d gaussian
+		generate_grids, fx, fy, refpix, /whole
+		fr = sqrt(fx^2 + fy^2)
+		ref = exp(-0.5*fr^2)
+		
 		for i=0,CommonWavVect[2]-1 do begin
 				; centroid on the companion
 				stamp2 = source_cube[x0-hh:x0+hh,y0-hh:y0+hh,i]/fscale_arr[i]
-			  fourier_coreg,stamp2,ref,shft,/findshift
+				fourier_coreg,stamp2,ref,shft,/findshift
 				x3=x0-shft[0] & y3=y0-shft[1]
 				;print,x,y,x2,y2,x3,y3
 				x=x3 & y=y3
@@ -295,7 +303,7 @@ if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Sa
 	backbone->set_keyword, 'ycenter', ycenter,"x-pixel in datacube where extraction has been made", ext_num=0
 
 	suffix='-spectrum-x'+strc(round(xcenter))+'-y'+strc(round(ycenter))
-  wav_spec=[[lambda],[phot_comp],[phot_comp_err_total]]
+    wav_spec=[[lambda],[phot_comp],[phot_comp_err_total]]
 	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix ,savedata=wav_spec,display=0) ;saveheader=hdr,
   if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save .fits dataset.')
 

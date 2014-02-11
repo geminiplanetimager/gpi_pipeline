@@ -25,7 +25,7 @@
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="1" Desc="-1 = No display; 0 = New (unused) window else = Window number to display diagnostic plot in."
 ; PIPELINE ARGUMENT: Name="saveplots" Type="string" Range="[yes|no]" Default="no" Desc='Save diagnostic plots to PS files after running? [yes|no]'
 ; PIPELINE COMMENT: Derive shifts vs elevation lookup table.
-; PIPELINE NEWTYPE: Calibration
+; PIPELINE CATEGORY: Calibration
 ; PIPELINE ORDER: 4.2
 ; HISTORY:      
 ;      Jerome Maire 2013-02

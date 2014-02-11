@@ -33,7 +33,7 @@
 ; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-extu" Desc="Enter output suffix"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.0
-; PIPELINE NEWTYPE: Calibration
+; PIPELINE CATEGORY: Calibration
 ;
 ; HISTORY:
 ;   Originally by James Larkin as extu.pro

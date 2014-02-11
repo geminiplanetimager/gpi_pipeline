@@ -4,7 +4,8 @@
 ;
 ;  Subtract thermal background emission in the datacube, for K band data only
 ;
-; This is identical to the gpi_subtact_thermal_sky_if_k_band primtive except the subtraction is done in cube space instead of detector space. It also uses sky cubes rather than the 2d sky images. 
+;  This is identical to the gpi_subtact_thermal_sky_if_k_band primtive except the subtraction 
+;  is done in cube space instead of detector space. It also uses sky cubes rather than the 2d sky images. 
 ;
 ;	** special note: ** 
 ;	
@@ -33,7 +34,7 @@
 ; PIPELINE ARGUMENT: Name="Override_scaling" Type="float" Range="[0,10]" Default="1.0" Desc="Set to value other than 1 to manually adjust the background image flux scaling to better match the science data"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.35
-; PIPELINE NEWTYPE: ALL
+; PIPELINE CATEGORY: ALL
 ;
 ; HISTORY:
 ;   2013-12-23 PI: Initial implementation
