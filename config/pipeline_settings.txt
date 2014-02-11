@@ -14,6 +14,7 @@ organize_raw_data_by_dates	1
 organize_reduced_data_by_dates  1
 organize_recipes_by_dates	1
 # apodizer_spec		$GPI_DRP_CONFIG_DIR/apodizer_spec.txt
+# gpi_startup_dir		${GPI_RAW_DATA_DIR}
 
 ## Pipeline behavior
 # strict_validation	1
@@ -23,6 +24,7 @@ organize_recipes_by_dates	1
 # force_rescan_config_on_startup	0
 # force_rescan_caldb_on_startup		0
 # username_in_log_filename	0
+# caldb_restricts_by_cooldown	0
 
 ## GPItv settings
 # gpitv_default_scale	log
@@ -33,11 +35,12 @@ organize_recipes_by_dates	1
 # gpitv_showfullpaths		0
 # gpitv_noinfo		0
 # gpitv_nowarn			0
+# gpitv_startup_dir  ${GPI_REDUCED_DATA_DIR}
 
 ## Debug and development 
 # max_files_per_recipe	1000
 # parsergui_max_files     1000
-# enable_primitive_debug  0
+# enable_primitive_debug  1
 # enable_parser_debug     0
 # enable_gpitv_debug	0
 # drp_queue_poll_freq	1.0

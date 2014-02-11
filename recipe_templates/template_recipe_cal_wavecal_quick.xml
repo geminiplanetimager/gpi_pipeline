@@ -4,7 +4,7 @@
    <fits filename=""/>
 </dataset>
 <primitive name="Flag Quicklook" Save="0" />
-<primitive name="Add DISPERSR keyword if missing" value="DISP_PRISM_G6262" />
+<primitive name="Add DISPERSR keyword if missing" Value="DISP_PRISM_G6262" />
 <primitive name="Apply Reference Pixel Correction" before_and_after="0" Method="INTERPOLATED" Save="0" gpitv="0" />
 <primitive name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0"  gpitv="0" />
 <primitive name="Subtract Thermal/Sky Background if K band" CalibrationFile="AUTOMATIC" Save="0"  gpitv="10" />

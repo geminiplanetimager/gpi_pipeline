@@ -2,12 +2,12 @@
 ; NAME: gpi_create_bad_pixel_map_from_list
 ; PIPELINE PRIMITIVE DESCRIPTION: Create Bad Pixel Map from text list of pixels
 ;
-;	This is kind of an oddball. This routine takes an ASCII text file containing a list of 
+;	This is kind of an oddball, atypical primitive. This routine takes an ASCII text file containing a list of 
 ;	pixels, formatted as two columns of X and Y values, and converts it into a GPI 
 ;	calibration file format. The input FITS file is pretty much ignored entirely except
 ;	inasmuch as it provides a header to lift some keywords from easily.
 ;
-;	This is mostly an engineering routine, should not need to be used routinely.
+;	This is mostly an engineering routine, and should not need to be used routinely.
 ;
 ;
 ; PIPELINE COMMENT: Generate FITS bad pixel map from an ASCII text list of pixel coords X, Y
@@ -16,7 +16,7 @@
 ; PIPELINE ARGUMENT: Name="bptype" Type="string" Range="hotbadpix|coldbadpix|nonlinearbadpix" Default="coldbadpix" Desc="Type of bad pixel mask to write"
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="string" Default="AUTOMATIC" Desc="Input ASCII pixel list file"
 ; PIPELINE ORDER: 4.01
-; PIPELINE NEWTYPE: Testing
+; PIPELINE CATEGORY: Testing
 ;
 ; HISTORY:
 ;   2012-11-19 MP: New routine

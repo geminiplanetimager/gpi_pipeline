@@ -5,7 +5,7 @@
 ;
 ; HISTORY:
 ;    2012-10-10 MP: Major fork and rework, from setenvir__define.pro
-;
+;	 Maire and Perrin
 ;-
 
 

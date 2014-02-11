@@ -2,20 +2,26 @@
 ; NAME: gpi_create_lenslet_flat_field
 ; PIPELINE PRIMITIVE DESCRIPTION: Create Lenslet Flat Field
 ;
-; INPUTS: data-cube
+;	Creates a simple derived flat field for non-uniform transmission in the
+;	lenslets.
+;
+;	WARNING: experimental code, probably not yet ready for prime time.
+;
+; INPUTS: Flat lamp data
+; OUTPUTS: 2D lenslet flat field file
 ;
 ; PIPELINE COMMENT: Create a 2D flat field for wavelength-independent lenslet throughput variations.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 3.1992
-; PIPELINE NEWTYPE: Calibration
+; PIPELINE CATEGORY: Calibration
 ;
 ; HISTORY:
 ;    2014-01-02 MP: Created 
 ;-
 
 function gpi_create_lenslet_flat_field, DataSet, Modules, Backbone
-primitive_version= '$Id: gpi_create_lenslet_flat_field.pro 1710 2013-07-16 19:35:19Z mperrin $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 

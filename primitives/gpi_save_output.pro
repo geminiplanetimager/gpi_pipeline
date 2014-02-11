@@ -2,9 +2,9 @@
 ; NAME: gpi_save_output
 ; PIPELINE PRIMITIVE DESCRIPTION: Save Output
 ;
-;	Save the current dataset to disk. Note that you can often do this
-;	from another module by setting the 'save=1' option; this is a 
-;	redundant way to specify that. 
+;	Save the current file to disk. Note that you can often do this
+;	from another primitive by setting the 'save=1' option; this is an
+;	optional, redundant way to specify that. 
 ;
 ;	Note that this uses whatever the currently defined suffix is, though you can
 ;	also override that here.  This is the one and only routine that should be
@@ -12,14 +12,15 @@
 ;
 ;  TODO: change output filename too, optionally? 
 ;
-; OUTPUTS:  datacube with slice at the same wavelength
+; INPUTS: Any 
+; OUTPUTS:  The input is written to disk as a FITS file
 ;
 ; PIPELINE COMMENT: Save output to disk as a FITS file. Note that you can often do this from another module by setting the 'save=1' option; this is a redundant way to specify that. 
 ; PIPELINE ARGUMENT: Name='suffix' Type='string' default='default' Desc="choose the suffix"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 10.0
-; PIPELINE NEWTYPE: ALL
+; PIPELINE CATEGORY: ALL
 ;
 ; HISTORY:
 ;	2009-07-21 Created by MDP. 

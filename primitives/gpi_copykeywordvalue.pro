@@ -1,7 +1,7 @@
 ;+
 ; NAME: gpi_copykeywordvalue
-; PIPELINE PRIMITIVE DESCRIPTION: Copy keyword value to an other keyword.
-; Useful for test data,...
+; PIPELINE PRIMITIVE DESCRIPTION: Copy keyword values to another keyword.
+; Useful for test data. Should not often be needed for science data.
 ;
 ; OUTPUTS:
 ; PIPELINE ARGUMENT: Name="overwrite" Type="int"  Default="0" Desc="0:do not overwrite already existent keyword; 1:overwrite"
@@ -16,7 +16,7 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE COMMENT: Copy keyword values to other keywords. 
 ; PIPELINE ORDER: 0.12
-; PIPELINE NEWTYPE: Testing
+; PIPELINE CATEGORY: Testing
 ;
 ; HISTORY:
 ;    Jerome Maire 2010-03

@@ -48,6 +48,7 @@ This allows quick and easy browsing, sorting, and selecting of the files there, 
 filtering by instrument configuration and date. 
 
 .. image:: fig_caldb_viewer.png
+        :width: 994 px
         :scale: 50%
         :align: center
 
@@ -62,6 +63,7 @@ one of the predefined recipe templates to those files. The steps in the recipe c
 it's just for applying templates to selected files.
 
 .. image:: fig_simple_rec_ed.png
+        :width: 650 px
         :scale: 50%
         :align: center
 

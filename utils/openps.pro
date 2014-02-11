@@ -1,6 +1,38 @@
 pro openps,filename,color=color,xsize=xsize,ysize=ysize,inches=inches,$
            xoffset=xoffset,yoffset=yoffset,letter=letter,landscape=landscape,$
            bits=bits
+;+
+; NAME:
+;      openps
+; PURPOSE:
+;      use it to do postscript plot
+;
+; EXPLANATION:
+;       
+;
+; Calling SEQUENCE:
+;      
+;
+; INPUT/OUTPUT:
+;
+
+; OPTIONAL OUTPUT:
+;       
+;
+; EXAMPLE:
+;
+;
+; DEPENDENCIES:
+;
+;
+; NOTES: 
+;      
+;             
+; REVISION HISTORY
+;       Written  before 2008, Mathilde beaulieu/Jean-Francois Lavigne/David Lafreniere/Jerome Maire. 
+;-
+
+;
 
 if ~keyword_set(xoffset) then xoffset=0.5
 if ~keyword_set(yoffset) then yoffset=0.5

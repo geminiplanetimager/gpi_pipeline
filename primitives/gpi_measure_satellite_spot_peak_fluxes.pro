@@ -1,17 +1,18 @@
 ;+
 ; NAME: gpi_measure_satellite_spot_peak_fluxes
 ; PIPELINE PRIMITIVE DESCRIPTION: Measure satellite spot peak fluxes
+; 
+;   Measure the fluxes of the satellite spots. 
+;   You must run 'Measure Satellite Spot Locations' before you can use this
+;   one.
+;
+;	Spot fluxes are measured and then saved to SATF1_1, SATF1_2 etc keywords
+;	in the header.
+;
+; INPUTS: spectral datacube with spot locations in the header
+; OUTPUTS:  datacube with measured spot fluxes
 ;
 ;
-; INPUTS: data-cube, spot locations
-;
-;
-; KEYWORDS:
-;	
-; GEM/GPI KEYWORDS:
-; DRP KEYWORDS: 
-;
-; OUTPUTS:  
 ;
 ; PIPELINE COMMENT: Calculate peak fluxes of satellite spots in datacubes 
 ; PIPELINE ARGUMENT: Name="gauss_fit" Type="int" Range="[0,1]" Default="1" Desc="0: Extract maximum pixel; 1: Correlate with Gaussian to find peak"
@@ -19,7 +20,7 @@
 ; PIPELINE ARGUMENT: Name="ap_rad" Type="int" Range="[1,50]" Default="7" Desc="Radius of aperture used for finding peaks."
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ORDER: 2.45
-; PIPELINE NEWTYPE: Calibration,SpectralScience
+; PIPELINE CATEGORY: Calibration,SpectralScience
 ;
 ; HISTORY:
 ; 	Written 09-18-2012 savransky1@llnl.gov

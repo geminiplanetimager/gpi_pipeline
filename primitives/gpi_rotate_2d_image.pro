@@ -1,7 +1,9 @@
 ;+
 ; NAME: gpi_rotate_2d_image
 ; PIPELINE PRIMITIVE DESCRIPTION: Rotate 2D image 
-;	Rotate a 2D image by some multiple of 90 degrees. Not particularly useful.
+;
+;	Rotate a 2D image by some multiple of 90 degrees. 
+;	Not particularly useful that often.
 ;
 ; OUTPUTS: 
 ;     2D image rotated
@@ -13,11 +15,11 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 1.9
-; PIPELINE NEWTYPE: Testing
+; PIPELINE CATEGORY: Testing
 ;
 ; HISTORY:
 ;     Originally by Jerome Maire 2010-02-12
-;     2012-10-15 MP: Don't change suffi x of file - this is just a rotation,
+;     2012-10-15 MP: Don't change suffix of file - this is just a rotation,
 ;						doesn't really change the type of file.
 ;-
 function gpi_rotate_2d_image, DataSet, Modules, Backbone
@@ -25,7 +27,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 @__start_primitive
  
     rot_dir=uint(Modules[thisModuleIndex].Direction)
-    *(dataset.currframe[0]) = rotate(*(dataset.currframe[0]),rot_dir)
+    *(dataset.currframe) = rotate(*(dataset.currframe),rot_dir)
 	backbone->set_keyword,'HISTORY', functionname+": Rotating image, direction="+strc(rot_dir),ext_num=0
 
 

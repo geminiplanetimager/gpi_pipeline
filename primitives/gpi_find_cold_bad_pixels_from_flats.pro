@@ -18,16 +18,15 @@
 ; cold pixels. 
 ;
 ;
-; KEYWORDS:
-; DRP KEYWORDS: FILETYPE,ISCALIB
-; OUTPUTS:
+; INPUTS: Flat field images, preferably in multiple filters
+; OUTPUTS: Map of cold bad pixels
 ;
 ; PIPELINE COMMENT: Find cold pixels from a stack of flat images using all different filters
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.01
-; PIPELINE NEWTYPE: Calibration
-
+; PIPELINE CATEGORY: Calibration
+;
 ;
 ; HISTORY:
 ;  2013-03-08 MP: Implemented in pipeline based on algorithm from Christian

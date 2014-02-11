@@ -2,22 +2,32 @@
 ; NAME: gpi_pad_wavelength_calibration_edges
 ; PIPELINE PRIMITIVE DESCRIPTION: Pad Wavelength Calibration Edges
 ;
-; INPUTS: 3D wavcal 
+;	This primitive extrapolates from the lenslets near the edge of the
+;	detector to provide estimated wavelength solutions for the 'fractional'
+;	lenslets, whose spectra only fall partially on the detector. 
+;
+;	Note that these fractional spectra are not generally going to be
+;	useful for scientific analyses, but for some datacube processing
+;	tasks such as destriping it can be helpful to have wavelength
+;	solutions that cover these lenslets. 
+;
+;
+; INPUTS: 3D wavecal 
+; OUTPUTS: 3D wavecal with extrapolated edges
 ;
 ;
 ; PIPELINE COMMENT:  pads the outer edges of the wavecal via extrapolation to cover lenslets whose spectra only partially fall on the detector field of view.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: Save output to disk, 0: Don't save"
 ; PIPELINE ARGUMENT: Name="gpitvim_dispgrid" Type="int" Range="[0,500]" Default="15" Desc="1-500: choose gpitv session for displaying image output and wavcal grid overplotted, 0: no display "
 ; PIPELINE ORDER: 4.6
-; PIPELINE TYPE: CAL-SPEC
-; PIPELINE NEWTYPE: Calibration
+; PIPELINE CATEGORY: Calibration
 ;
 ; HISTORY:
 ;   2013-11-28 MP: Created.
 ;-
 
 function gpi_pad_wavelength_calibration_edges,  DataSet, Modules, Backbone
-primitive_version= '$Id: gpi_combine_wavelength_calibrations.pro 1715 2013-07-17 18:56:52Z mperrin $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 

@@ -1,14 +1,16 @@
 ;+
 ; NAME: gpi_meas_satspot_dev
 ; PIPELINE PRIMITIVE DESCRIPTION: Plot the satellite spot locations vs. the expected location from wavelength scaling
+;	This is a quality check routine that verifies the expected wavelength
+;	scaling of the datacube, based on how the satellite spots locations 
+;	vary with wavelength.
 ;
-; INPUTS: 
+; INPUTS: Spectral mode datacube
 ;
 ; KEYWORDS:
 ; 	
 ;
-; OUTPUTS: 
-; 	Plot of results.
+; OUTPUTS: Plot of results.
 ;
 ; 
 ;
@@ -17,8 +19,7 @@
 ; PIPELINE ARGUMENT: Name="SaveData" Type="string" Default="" Desc="Save data to filename (blank for no save)"
 ; PIPELINE ARGUMENT: Name="SavePNG" Type="string" Default="" Desc="Save plot to filename as PNG(blank for no save)"
 ; PIPELINE ORDER: 2.7
-; PIPELINE NEWTYPE: SpectralScience,PolarimetricScience
-; PIPELINE TYPE: ALL
+; PIPELINE CATEGORY: SpectralScience
 ;
 ; HISTORY:
 ; 	written 12/11/2012 - ds
@@ -112,7 +113,7 @@ if datasave ne '' then begin
    out[*,3] = legsscaled
 
    mkhdr,hdr,out
-   sxaddpar,hdr,'COMMENT','Cols. are: wavelength (um), measured dist, least squares fit, 
+   sxaddpar,hdr,'COMMENT','Cols. are: wavelength (um), measured dist, least squares fit, '
    sxaddpar,hdr,'COMMENT','and scaled from central wavelength.'
    
    writefits,datasave,out,hdr

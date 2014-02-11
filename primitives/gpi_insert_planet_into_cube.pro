@@ -2,11 +2,26 @@
 ; NAME: gpi_insert_planet_into_cube
 ; PIPELINE PRIMITIVE DESCRIPTION: Insert Planet into datacube
 ;
-; This primitive allows users to input artificial planets, based on the solar metalicity, hybrid cloud model, hot/cold formation scenario models of Spiegel and Burrows (2012) into reduced datacubes. The planet PSF is represented by an average of the four satellite spots. The models span the ages of 1 to 1000 Myr, and masses of 1-15 Jupiter masses. If a user specifies parameters that do not represent an exact model the nearest model in age, then mass, is used. Currently, the intensity of the planets is determined assuming an instrument throughput of 18.6%, combined with a 7.9 meter primary mirror with a 1m secondary. The user also has the option to scale the image to represent a star of a user-defined magnitude. This provides the ability to simulate multiple observing scenarios.
 ;
-; The stellar and planet properties are written to the headers. Should the user wish to not include the planet information, it can be bypassed by de-activating the write_header_info keyword.
-; 
-; At the moment there is no way to determine only the star parameters and not insert a planet. To do this, the user should just put the planet distance to a large number and separation to a small number.
+; This primitive allows users to input artificial planets, based on the solar
+; metalicity, hybrid cloud model, hot/cold formation scenario models of Spiegel
+; and Burrows (2012) into reduced datacubes. The planet PSF is represented by an
+; average of the four satellite spots. The models span the ages of 1 to 1000
+; Myr, and masses of 1-15 Jupiter masses. If a user specifies parameters that do
+; not represent an exact model the nearest model in age, then mass, is used.
+; Currently, the intensity of the planets is determined assuming an instrument
+; throughput of 18.6%, combined with a 7.9 meter primary mirror with a 1m
+; secondary. The user also has the option to scale the image to represent a star
+; of a user-defined magnitude. This provides the ability to simulate multiple
+; observing scenarios.
+;
+; The stellar and planet properties are written to the headers. Should the user
+; wish to not include the planet information, it can be bypassed by
+; de-activating the write_header_info keyword.
+;
+; At the moment there is no way to determine only the star parameters and not
+; insert a planet. To do this, the user should just put the planet distance to a
+; large number and separation to a small number.
 ;
 ; INPUTS: A fully reduced datacube prior to any speckle manipulation. A planet's distance, separation, position angle, mass, age, and formation scenario (hot/cold start). 
 ;
@@ -17,7 +32,6 @@
 ; PIPELINE ARGUMENT: Name="Age" Type="int" Range="[1,1000]"  Default="10" Desc="Age of planet in Myr"
 ; PIPELINE ARGUMENT: Name="Mass" Type="int" Range="[1,15]"  Default="10" Desc="Mass of planet in Jupiter masses"
 ; PIPELINE ARGUMENT: Name="model_type" Type="string" Range="[hot,cold]"  Default="hot" Desc="Hot or Cold Start formation scenario"
-
 ; PIPELINE ARGUMENT: Name="position_angle" Type="float" Range="[0,360]"  Default="45.0" Desc="Position angle of the planet in degrees East of North"
 ; PIPELINE ARGUMENT: Name="Separation" Type="float" Range="[0,1800]"  Default="500" Desc="Separation in milli-arcseconds"
 ; PIPELINE ARGUMENT: Name="Star_Mag" Type="float" Range="[-1,8]"  Default="-1" Desc="Stellar Magnitude in H band, -1 estimates stellar magnitude from satellite spots"
@@ -27,8 +41,7 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; 
 ; PIPELINE ORDER: 5.0
-;
-; PIPELINE NEWTYPE: SpectralScience
+; PIPELINE CATEGORY: SpectralScience
 ;
 ; HISTORY:
 ;    2013-07-30 PI: Created Primitive

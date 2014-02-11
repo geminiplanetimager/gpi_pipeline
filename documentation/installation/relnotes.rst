@@ -6,13 +6,83 @@ Release Notes
 
 You may wish to skip ahead to  :ref:`configuring`.
 
+Version 1.0.0
+=========================================
+Released 2014 Feb 14
+
+The current stable version of the pipeline is 1.0.0, released along with the full GPI first light data release. 
+
+This version includes a variety of enhancements and bugfixes specifically targeted at the first light data.
+  
+* Enhancements/Additions to primitives and recipes: 
+  
+  * Added ability to locate the central star in polarimetry mode. (Wang)
+  * Improved handling of missing keywords and associated logging. (Ingraham)
+  * Added 2MASS filter corrections to photometric calibration and flux calculation. (Ingraham)
+  * Bug fixes and improvements in spectral extraction primitive. (Ingraham)
+  * Updated the 2d wavelength solution primitive to accept a user defined reference wavecal file. Improved efficiency of 2D wavelength solution code. (Wolff)
+  * Added star color magnitude correction to photometric calibration. (Ingraham)
+  * Bug fixes in thermal background subtraction for K band. (Ingraham)
+  * Numerous bug fixes in polarization mode primitives. (Millar-Blanchaer)
+  * Updates to LOCI ADI. (Ingraham, Marois)
+  * Updated the quick wavelength solution primitive to accept estimated offsets in both the x and y directions and to shift the lenslet boxes via cross correlation to account for large flexure shifts. (Wolff)
+  * Added the Quality Check Wavelength Calibration primitive to the 2D wavelength solution and wuick wavelength solution recipes. (Wolff, Perrin)
+
+
+* Pipeline infrastructure:
+
+  * Added Vega spectral data. (Ingraham)
+  * Updated apodizer transmissions. (Wang)
+  * Created a gpi-pipeline launcher for Windows to be consistent with Mac/Unix systems. (Wang)
+  * Automated installation scripts for all operating systems. (Wang)
+  * Added throughputs (including telluric transmission) from first light data. (Maire)
+  * Added utility functions for atmospheric differential refraction. (Perrin)
+  * Fixed handling of non-GPI environment variables. (Savransky)
+
+
+* Recipe Editor, Data Parser, Autoreducer GUIs: 
+
+  * Updated gpicaldatabase to ensure that thermal cubes are not mistaken for thermal 2d images. (Ingraham)
+  * Improved Data Parser handling of wavelength calibration data. (Wolff)
+  * Improved logic for selecting appropriate Dark files. (Perrin)
+  * Loaded recipes now automatically set the filename in the Recipe Editor. (Savransky)
+  * Removed maximum number of primitives limit in Recipe Editor. (Savransky)
+  * Improved working directory handling. (Wolff)
+
+
+* GPItv enhancements and bug fixes:
+
+  * Added gpitv_startup_dir as user configurable setting. (Savransky)
+  * Bug fixes in GPItv autoscaling. (Ingraham)
+  * Fixed rotation of polarization vectors. (Millar-Blanchaer, Wang)
+  * Added high-pass filter for polarization mode. (Wang)
+  * Added 'Total Intensity' cube collapse option for polarization pair files. (Perrin)
+  * Fixed rotation of pointing data along with image. (Wang)
+  * Fixed toggling between contrast and native units. (Maire)
+    
+* Documentation 
+
+  * Added the AA_README file that gives the pickles indices. (Ingraham)
+  * Added documentation for automated install scripts. (Wang)
+  * Added Known Issues page, more screen shots, general documentation tuneup for V1.0. (Perrin)
+  * Added summary of software licenses. (Perrin)
+
+* Miscellaneous bug fixes and minor tasks:
+
+  * Many minor bugs fixes. (Ingraham, Maire, Millar-Blanchaer, Perrin, Savransky, Wang, Wolff)
+  * Cleanup and re-organization of pipeline dependencies. (Perrin, Ingraham, Marie, Savransky)
+  * Cleanup of headers in utils and pipeline_deps. (Maire, Perrin, Savransky, Ingraham). 
+
+
+
+
 
 Version 0.9.4
 =========================================
 Released 2014 Jan 7
 
-The current stable version of the pipeline is 0.9.4, released at the January 2014 AAS meeting. This is the
-first version of the pipeline advertised to the wider community. Hello!  
+This version was released at the January 2014 AAS meeting. This was the
+first version of the pipeline advertised to the wider community.  
 
 This version includes extensive enhancements and lessons learned during and after GPI first light in November 2013. 
 

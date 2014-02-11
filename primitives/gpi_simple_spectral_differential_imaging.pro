@@ -2,10 +2,12 @@
 ; NAME: gpi_simple_spectral_differential_imaging
 ; PIPELINE PRIMITIVE DESCRIPTION: Simple Spectral Differential Imaging 
 ;
-;         This recipe rescales and subtracts 2 frames in different user-defined bandwidths. This recipe is used for speckle suppression using the Marois et al (2000) algorithm.
+;   This recipe rescales and subtracts 2 frames in different user-defined 
+;   bandwidths. This recipe is used for speckle suppression using the 
+;   Marois et al (2000) algorithm.
 ;
-;        This routine does NOT update the data structures in memory. You **MUST**
-;        set the keyword SAVE=1 or else the output is silently discarded.
+;   This routine does NOT update the data structures in memory. You **MUST**
+;   set the keyword SAVE=1 or else the output is silently discarded.
 ;
 ; INPUTS: 
 ;     input datacube 
@@ -43,7 +45,7 @@
 ; PIPELINE ARGUMENT: Name="ReuseOutput" Type="int" Range="[0,1]" Default="1" Desc="1: keep output for following primitives, 0: don't keep"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="5" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.61
-; PIPELINE NEWTYPE: SpectralScience
+; PIPELINE CATEGORY: SpectralScience
 ;
 ;
 ; HISTORY:

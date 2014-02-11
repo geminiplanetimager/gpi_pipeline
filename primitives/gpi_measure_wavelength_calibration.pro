@@ -2,8 +2,11 @@
 ; NAME: gpi_measure_wavelength_calibration
 ; PIPELINE PRIMITIVE DESCRIPTION: Measure Wavelength Calibration 
 ;
-;	gpi_extract_wavcal detects positions of spectra in the image with narrow
+;	This primitive positions of spectra in the image with narrow
 ;	band lamp image.
+;
+;	** DEPRECATED** This is the older 'first generation' wavelength
+;	calibration algorith, which is no longer recommended
 ;
 ; ALGORITHM:
 ;	gpi_extract_wavcal starts by detecting the central peak of the image.
@@ -56,9 +59,7 @@
 ; PIPELINE ARGUMENT: Name="tests" Type="int" Range="[0,3]" Default="0" Desc="1 for extensive tests "
 ; PIPELINE ARGUMENT: Name="testsDST" Type="int" Range="[0,3]" Default="0" Desc="1 for DST tests "
 ; PIPELINE COMMENT: Derive wavelength calibration from an arc lamp or flat-field image.
-; PIPELINE TYPE: CAL-SPEC
-; PIPELINE NEWTYPE: Calibration
-; PIPELINE SEQUENCE: 
+; PIPELINE CATEGORY: Calibration
 ; HISTORY:      
 ; 	 Jerome Maire 2008-10
 ;	  JM: nlens, w (initial guess), P (initial guess), cenx (or centrXpos), ceny (or centrYpos) as parameters

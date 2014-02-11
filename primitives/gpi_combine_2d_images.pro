@@ -2,12 +2,11 @@
 ; NAME: gpi_combine_2D_images
 ; PIPELINE PRIMITIVE DESCRIPTION: Combine 2D images
 ;
-;  Multiple 2D images can be combined into one using either a Mean or a Median. 
+;  Multiple 2D images can be combined into one using either a mean, 
+;  a sigma-clipped mean,  or a median. 
 ;
-;  TODO: more advanced combination methods. sigma-clipped mean should be
-;  implemented, etc.
 ;
-; INPUTS: 2D images
+; INPUTS: Multiple 2D images
 ; OUTPUTS: a single combined 2D image
 ;
 ; PIPELINE COMMENT: Combine 2D images such as darks into a master file via mean or median. 
@@ -16,8 +15,8 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 1.5
-; PIPELINE NEWTYPE: ALL
-
+; PIPELINE CATEGORY: ALL
+;
 ; HISTORY:
 ; 	 Jerome Maire 2008-10
 ;   2009-09-17 JM: added DRF parameters

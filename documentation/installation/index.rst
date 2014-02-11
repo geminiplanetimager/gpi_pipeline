@@ -8,12 +8,13 @@
 GPI Data Pipeline Installation & Configuration 
 ##################################################
 
-This chapter describes how to install the GPI data pipeline and configure it. The installation of the pipeline is dependent upon your operating system. In the instructions defined below, special directions corresponding to your operating system are indicated by the Windows, Macintosh (Apple), and Linux/Unix (Penguin) icons.
+This chapter describes how to install the GPI data pipeline and configure it. Some details of pipeline installation depend upon your operating system. In the following pages, 
+OS-specific directions are indicated by the Windows, Macintosh (Apple), and Linux/Unix (Penguin) icons.
  
 
 If you already have IDL, the quickest route is to :ref:`download the latest source ZIP file <installing-from-zips>`, unzip it into your ``$IDL_PATH``, and :ref:`configure your path settings <configuring>`.
 
-If you encounter problems, please see the :ref:`Frequently Asked Questions <faq>` first.
+If you encounter problems, please see the :ref:`Frequently Asked Questions <faq>`, and then consult the `Gemini Data Reduction Forum <http://drforum.gemini.edu>`_.
 
 
 Contents
@@ -36,6 +37,7 @@ Contents
    install_from_repos.rst
    install_compiled.rst
    relnotes.rst
+   known_issues.rst
    configuration.rst
    startup.rst
    config_settings.rst

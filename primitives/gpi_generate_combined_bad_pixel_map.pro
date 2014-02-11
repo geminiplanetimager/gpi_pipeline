@@ -18,16 +18,13 @@
 ; already present in the calibration DB. The nonlinear pixels map is optional.
 ;
 ; INPUTS: bad pixel maps 
-; GEM/GPI KEYWORDS:
-; DRP KEYWORDS: FILETYPE,ISCALIB
+; OUTPUTS: Combined bad pixel map
 ;
-; OUTPUTS:
-; PIPELINE ORDER: 4.02
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE COMMENT: This routine combines various sub-types of bad pixel mask (hot, cold,  anomalous nonlinear pixels) to generate a master bad pixel list.
-; PIPELINE NEWTYPE: Calibration
-; PIPELINE SEQUENCE: 
+; PIPELINE ORDER: 4.02
+; PIPELINE CATEGORY: Calibration
 ;
 ; HISTORY:
 ;    Jerome Maire 2009-08-10

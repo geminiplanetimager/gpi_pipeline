@@ -86,6 +86,7 @@ function gpi_recipe_editor::get_obs_keywords, filename
 				ITIME:    float( gpi_get_keyword(head, ext_head,  'ITIME',    count=ct9)), $
 				COADDS:   fix( gpi_get_keyword(head, ext_head,  'COADDS',    count=ctcoadd)), $
 				OBJECT:   string(  gpi_get_keyword(head, ext_head,  'OBJECT',   count=ct10)), $
+      				ELEVATIO: float(  gpi_get_keyword(head, ext_head,  'ELEVATIO',   count=ct12)), $
 				summary: '',$
 				valid: 0}
 
@@ -94,13 +95,14 @@ function gpi_recipe_editor::get_obs_keywords, filename
 	if ct10 eq 0 then obsstruct.object = 'no OBJECT'
 	if ct3 eq 0 then obsstruct.obsid = 'no OBSID'
 	if ct0 eq 0 then obsstruct.astromtc= 'F'
+        if ct12 eq 0 then obsstruct.elevatio = 'no elevation'
 
 	; some we need to have in order to be able to parse.
-	vec=[ct1,ct2,ct4,ct5,ct6,ct7,ct8,ct9,  ctobsmode]
+	vec=[ct1,ct2,ct4,ct5,ct6,ct7,ct8,ct9,ct12,  ctobsmode]
 	if total(vec) lt n_elements(vec) then begin
 		obsstruct.valid=0
 		;give some info on missing keyw:
-		keytab=['OBSCLASS','OBSTYPE', 'IFSFILT','DISPERSR','OCCULTER','LYOTMASK','APODIZER', 'ITIME',  'OBSMODE']
+		keytab=['OBSCLASS','OBSTYPE', 'IFSFILT','DISPERSR','OCCULTER','LYOTMASK','APODIZER', 'ITIME', 'ELEVATIO', 'OBSMODE']
 		indzero=where(vec eq 0, cc)
 		;print, "Invalid/missing keywords for file "+filename
 		logmsg = 'Missing keyword(s): '+strjoin(keytab[indzero]," ")+" for "+filename
@@ -120,7 +122,7 @@ function gpi_recipe_editor::get_obs_keywords, filename
 
 	if obsstruct.coadds eq 1 then coaddstr = "     " else coaddstr = "*"+string(obsstruct.coadds,format='(I-4)')
     obsstruct.summary = file_basename(filename)+"     "+string(obsstruct.obsmode,format='(A-10)')+" "+string(obsstruct.dispersr,format='(A-10)') +" "+string(obsstruct.obstype, format='(A-10)')+$
-				" "+string(obsstruct.itime,format='(F5.1)')+coaddstr+"  "+string(obsstruct.object,format='(A-15)')+"       "+obsstruct.datalab
+				" "+string(obsstruct.itime,format='(F5.1)')+coaddstr+"  "+string(obsstruct.object,format='(A-15)')+"       "+obsstruct.datalab+" "+string(obsstruct.elevatio,format='(F3.5)')
  
 	
 	return, obsstruct
@@ -1012,6 +1014,11 @@ PRO gpi_recipe_editor::addPrimitive
 		return
 	endif
 
+  ;;if table is too small, double it in size
+  tmp = widget_info(self.RecipePrimitivesTable_id,/row_heights)
+  if index ge n_elements(tmp) then begin
+     widget_control,  self.RecipePrimitivesTable_id, ysize = index*2, background_color=rebin(*self.table_BACKground_colors,3,2*3,/sample) 
+  endif
 
 	tableview = widget_info(self.RecipePrimitivesTable_id,/table_view) ; coordinates of top left view corner, because setting selection trashes this
 	self->refresh_primitives_table
@@ -1192,11 +1199,11 @@ pro gpi_recipe_editor::open, filename, template=template, silent=silent, log=log
 
     if ~(keyword_set(filename)) then return
 
-	filename = gpi_expand_path(filename)
+    filename = gpi_expand_path(filename)
     if ~file_test(filename) then begin
-		self->Log, "Requested Recipe file does not exist: "+filename
-		return
-	endif
+       self->Log, "Requested Recipe file does not exist: "+filename
+       return
+    endif
 
     self.loadedRecipeFile = filename
 
@@ -1209,46 +1216,50 @@ pro gpi_recipe_editor::open, filename, template=template, silent=silent, log=log
     drf_summary = self.drf->get_summary()
     drf_contents = self.drf->get_contents()
     drf_module_names = self.drf->list_primitives() 
-
-    ; if requested, load the filenames in that DRF
-    ; (for Template use, don't load the data)
+    
+    ;; if requested, load the filenames in that DRF
+    ;; (for Template use, don't load the data)
     if keyword_set(template) then  begin
-		self.drf->clear_datafiles
-		self->update_title_bar, 'Template from '+file_basename(filename) ; don't update title bar if this is a template
-	endif else begin
-		datafiles = self.drf->get_datafiles(/absolute)
-		self.last_used_input_dir = file_dirname(datafiles[0])
-		self->update_title_bar, filename ; don't update title bar if this is a template
-	endelse
-
+       self.drf->clear_datafiles
+       self->update_title_bar, 'Template from '+file_basename(filename) ; don't update title bar if this is a template
+    endif else begin
+       datafiles = self.drf->get_datafiles(/absolute)
+       self.last_used_input_dir = file_dirname(datafiles[0])
+       self->update_title_bar, filename ; don't update title bar if this is a template
+    endelse
 	
-    ;if necessary, update reduction type to match whatever is in that DRF (and update available modules list too)
+    ;;if necessary, update reduction type to match whatever is in that DRF (and update available modules list too)
     if self.reductiontype ne drf_summary.reductiontype then begin
-        selectype=where(strmatch(*self.template_types, strc(drf_summary.reductiontype),/fold_case), matchct)
-        if matchct ne 1 then message,"ERROR: no match for "+self.reductiontype
-        if self.reduction_type_id ne 0 then  widget_control, self.reduction_type_id, SET_DROPLIST_SELECT=selectype
-        self->changetype, selectype[0], /notemplate
+       selectype=where(strmatch(*self.template_types, strc(drf_summary.reductiontype),/fold_case), matchct)
+       if matchct ne 1 then message,"ERROR: no match for "+self.reductiontype
+       if self.reduction_type_id ne 0 then  widget_control, self.reduction_type_id, SET_DROPLIST_SELECT=selectype
+       self->changetype, selectype[0], /notemplate
     endif
     
-	if ~(keyword_set(template)) then self->refresh_filenames_display ; update the filenames display
-	self->refresh_primitives_table 
-	self->refresh_arguments_table
-
+    if ~(keyword_set(template)) then begin
+       self->refresh_filenames_display ; update the filenames display
+       self.drffilename = file_basename(self.loadedRecipeFile)
+       self.drfpath = file_dirname(self.loadedRecipeFile,/mark_directory)
+       self.customdrffilename = 1      ; use this filename
+    end
+    self->refresh_primitives_table 
+    self->refresh_arguments_table
+    
     widget_control,   self.outputdir_id, set_value=self.drf->get_outputdir()
     widget_control,   self.RecipePrimitivesTable_id,   SET_TABLE_VIEW=[0,0] ; set cursor to upper left corner
-
-	self->log,'Recipe:'+self.loadedRecipeFile+' has been succesfully loaded.'
+    
+    self->log,'Recipe:'+self.loadedRecipeFile+' has been succesfully loaded.'
 
 end
 ;+------------------------------------------------
 ;  gpi_recipe_editor::update_title_bar
 pro gpi_recipe_editor::update_title_bar, filename
-	if ~(keyword_set(filename)) then filename=self.loadedrecipefile
-
-	;update title bar of window:
-	title  = "Recipe Editor"
-	if keyword_set(self.session) then title += " #"+strc(self.session)
-	widget_control, self.top_base, tlb_set_title=title+": "+filename
+  if ~(keyword_set(filename)) then filename=self.loadedrecipefile
+  
+  ;;update title bar of window:
+  title  = "Recipe Editor"
+  if keyword_set(self.session) then title += " #"+strc(self.session)
+  widget_control, self.top_base, tlb_set_title=title+": "+filename
 end
 
 ;+------------------------------------------------
@@ -1473,9 +1484,9 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
 	;self.resolvetypeseq_id = Widget_Button(base_radio, UNAME='RESOLVETYPESEQBUTTON' ,/ALIGN_LEFT ,VALUE='Resolve type/seq. when adding file(s)',UVALUE='autoresolvetypeseq')
 
 	rowbase_template = widget_base(top_baseidentseq,row=1)
-	self.reduction_type_id = WIDGET_DROPLIST( rowbase_template, title= 'Reduction type:  ', frame=0, Value=*self.template_types,uvalue='reduction_type_dropdown',resource_name='XmDroplistButton')
+	self.reduction_type_id = WIDGET_DROPLIST( rowbase_template, title= 'Reduction category: ', frame=0, Value=*self.template_types,uvalue='reduction_type_dropdown',resource_name='XmDroplistButton')
 	rowbase_template2 = widget_base(top_baseidentseq,row=1)
-    self.template_name_id  = WIDGET_DROPLIST( rowbase_template2, title='Recipe Template: ', frame=0, Value=['Simple Data-cube extraction','Calibrated Data-cube extraction','Calibrated Data-cube extraction, ADI reduction'],uvalue='template_name_dropdown',resource_name='XmDroplistButton')
+    self.template_name_id  = WIDGET_DROPLIST( rowbase_template2, title='Recipe Template:    ', frame=0, Value=['Simple Data-cube extraction','Calibrated Data-cube extraction','Calibrated Data-cube extraction, ADI reduction'],uvalue='template_name_dropdown',resource_name='XmDroplistButton')
 
 	;one nice logo 
 	button_image = READ_BMP(gpi_get_directory('GPI_DRP_DIR')+path_sep()+'gpi.bmp', /RGB) 
@@ -1515,7 +1526,7 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
 
 
 	top_basemoduleselected=widget_base(top_basemodule,/BASE_ALIGN_LEFT,/column)
-	lab = widget_label(top_basemoduleselected, value="Define your recipe with available primitives:")
+	lab = widget_label(top_basemoduleselected, value="This recipe contains the following primitives:")
 	self.RecipePrimitivesTable_id = WIDGET_TABLE(top_basemoduleselected, $; VALUE=data, $ ;/COLUMN_MAJOR, $ 
 			COLUMN_LABELS=['Primitive Name','Calib. File Method','Resolved Filename'],/resizeable_columns, $
 			xsize=3,ysize=20,uvalue='RecipePrimitivesTable_id',value=(*self.currModSelec), /TRACKING_EVENTS,$

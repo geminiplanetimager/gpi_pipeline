@@ -9,6 +9,11 @@ function calc_transmission, filter, pupil_mask_string, lyot_mask_string, without
 ; if the without_filter keyword is set, it returns the transmission WITHOUT accounting for the filter transmission!
 ; Otherwise, it assumes the transmission for a given filter is that of the central wavelength of that filter
 ; (found in the pipeline/config/pipeline_constants.txt file)
+;
+;
+; HISTORY:
+;	2013-08	Written by Patrick Ingraham
+;	2013-12 Values updated, added HL coronagraph
 
 compile_opt defint32, strictarr, logical_predicate
 
@@ -34,17 +39,18 @@ compile_opt defint32, strictarr, logical_predicate
 	end
 	endcase
 	transmission*=lyot_correction
-	
+	; the following are from the APOTRANS keyword in the design files
+	H_apod=0.45748713691723997
 	case pupil_mask_string of
-	'CLEAR': apod_correction=(1.0/0.45) ; actually a tad oversized - but accounted for by Lyot/telescope
-	'CLEARGP': apod_correction=(1.0/0.45) ; has a secondary - but any calculation of flux should already account for this
-	'NRM': apod_correction=(0.06198/0.45) ; From anand document - LenoxSTScI_delivery_APOD_NRM10withTHRUPUT.xlsx
-	'Y': apod_correction=(0.45/0.45)
-	'J': apod_correction=(0.45/0.45)
-	'H': apod_correction=(0.45/0.45)
-	'HL': apod_correction=(0.379/0.45) ; spec value from the design fits files
-	'K1':  apod_correction=(0.405/0.45)
-	'K2':  apod_correction=(0.36/0.45)
+	'CLEAR': apod_correction=(1.0/H_apod) ; actually a tad oversized - but accounted for by Lyot/telescope
+	'CLEARGP': apod_correction=(1.0/H_apod) ; has a secondary - but any calculation of flux should already account for this
+	'NRM': apod_correction=(0.06198/H_apod) ; From anand document - LenoxSTScI_delivery_APOD_NRM10withTHRUPUT.xlsx
+	'Y': apod_correction=(0.45815443993446436/H_apod)
+	'J': apod_correction=(0.4581317021546708/H_apod)
+	'H': apod_correction=(0.45748713691723997/H_apod)
+	'HL': apod_correction=(0.37491455814403063/H_apod) ; spec value from the design fits files
+	'K1':  apod_correction=(0.44997912954577096/H_apod)
+	'K2':  apod_correction=(0.49097326326034696/H_apod)
 ;	else: return, error('FAILURE (calc_transmission): No throughput defined for the given Apodizer')
 	else: begin 
 		message,'No throughput defined for the given Apodizer stop '+pupil_mask_string,/continue

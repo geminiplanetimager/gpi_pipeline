@@ -2,34 +2,52 @@
 ; NAME: quick_wavelength_solution_update.pro
 ; PIPELINE PRIMITIVE DESCRIPTION: Quick Wavelength Solution Update
 ;
-;   This Wavelength Solution generator simulates an arclamp spectrum
-;   for each lenslet and uses mpfit2dfunc to fit the relevant
-;   wavelength solution variables (ie. xo, yo, lambdao, dispersion,
-;   tilt). A wavelength solution file is output along with a
-;   simulated detector image. 
+;   This is a modified version of the 2D wavelength solution
+;   algorithm, which fits a small subset of lenslets (set by
+;   the 'spacing' argument) to very quickly provide an estimated
+;   wavelength solution, based on some prior wavelength solution.
 ;
+;   This differs from the full wavelength solution in that:
+;
+;    1) Only a subset of lenslets are fit
+;    2) The mean shifts in X and Y are derived from those fits
+;    3) The output wavelength solution is created by taking
+;       the input wavelength solution and applying those shifts.
+;       (i.e. only the overall shift of the wavecal is updated;
+;       the individual dispersions and tilts of each lenslet's
+;       spectrum are not changed).
+;  
+;   This algorithm is both computationally faster than and 
+;   tolerant of lower S/N data than the full wavelength solution
+;   algorithm. This is because it is in essence only trying to measure
+;   2 parameters, the average shifts in X and Y, rather than the
+;   ~ 150,000 parameters measured and saved for the full wavelength
+;   calibration algorithm.
+;   
 ; INPUTS: An Xe/Ar lamp detector image
+; OUTPUT: A new wavelength calibration file, created by shifting a prior wavecal to align with the arc lamp image. (and optionally a simulated arc lamp image as well)
 ;
 ; KEYWORDS:
 ; GEM/GPI KEYWORDS:FILTER,IFSFILT,GCALLAMP
 ; DRP KEYWORDS: FILETYPE,HISTORY,ISCALIB
 ;
-; OUTPUTS: A wavelength solution cube (and a simulated Xe/Ar lamp
-; detector image; to come)
 ;
-; PIPELINE COMMENT: Given an existing wavecal and a new Xe lamp image, this primitive updates the wavecal roughly based on the X,Y positions measured for a subset of the Xe spectra. 
+; PIPELINE COMMENT: Given an existing wavecal and a new Xe lamp image, this primitive updates the wavecal based on the X,Y positions measured for a subset of the Xe spectra. 
 ;
 ;
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="-1" Desc="-1 = No display; 0 = New (unused) window; else = Window number to display each lenslet in comparison to the detector lenslet in."
 ; PIPELINE ARGUMENT: Name="spacing" Type="Int" Range="[0,20]" Default="10" Desc="Test every Nth lenslet for this value of N."
 ; PIPELINE ARGUMENT: Name="boxsizex" Type="Int" Range="[0,15]" Default="7" Desc="x dimension of a lenslet cutout"
 ; PIPELINE ARGUMENT: Name="boxsizey" Type="Int" Range="[0,50]" Default="24" Desc="y dimension of a lenslet cutout"
+; PIPELINE ARGUMENT: Name="xoffset" Type="Int" Range="[-10,10]" Default="0" Desc="x offset guess from prior wavecal."
+; PIPELINE ARGUMENT: Name="yoffset" Type="Int" Range="[-20,20]" Default="0" Desc="y offset guess from prior wavecal."
 ; PIPELINE ARGUMENT: Name="whichpsf" Type="Int" Range="[0,1]" Default="0" Desc="Type of psf 0;gaussian, 1;microlens"
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type='String' CalFileType="wavecal" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
+; PIPELINE ARGUMENT: Name="AutoOffset" Type="int" Range="[0,1]" Default="0" Desc="Automatically determine x/yoffset values 0;NO, 1;YES"
 ; PIPELINE ARGUMENT: Name="gpitvim_dispgrid" Type="int" Range="[0,500]" Default="15" Desc="1-500: choose gpitv session for displaying image output and wavcal grid overplotted, 0: no display "
 ; PIPELINE ORDER: 1.7
-; PIPELINE NEWTYPE: Calibration
+; PIPELINE CATEGORY: Calibration
 ;
 ; HISTORY:
 ;	2013-09-19 SW: 2-dimensionsal wavelength solution 
@@ -59,7 +77,11 @@ calfiletype='wavecal'
  	if tag_exist( Modules[thisModuleIndex], "spacing") then spacing=uint(Modules[thisModuleIndex].spacing) else spacing=10
  	if tag_exist( Modules[thisModuleIndex], "boxsizex") then boxsizex=uint(Modules[thisModuleIndex].boxsizex) else boxsizex=7
  	if tag_exist( Modules[thisModuleIndex], "boxsizey") then boxsizey=uint(Modules[thisModuleIndex].boxsizey) else boxsizey=24
+ 	if tag_exist( Modules[thisModuleIndex], "xoffset") then xoffset=float(Modules[thisModuleIndex].xoffset) else xoffset=0
+ 	if tag_exist( Modules[thisModuleIndex], "yoffset") then yoffset=float(Modules[thisModuleIndex].yoffset) else yoffset=0
  	if tag_exist( Modules[thisModuleIndex], "whichpsf") then whichpsf=uint(Modules[thisModuleIndex].whichpsf) else whichpsf=0
+ 	if tag_exist( Modules[thisModuleIndex], "AutoOffset") then AutoOffset=uint(Modules[thisModuleIndex].AutoOffset) else AutoOffset=0
+
 
 ;Define common block to be used in wrapper.pro and ngauss.pro
 common ngausscommon, numgauss, wl, flux, lambdao,my_psf
@@ -72,13 +94,13 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
 
 ;READ IN REFERENCE WAVELENGTH CALIBRATION
 
-
-	c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'wavecal',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
+;Uncommenting next line will override the users ability to manually
+;choose a wavecal.
+;	c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'wavecal',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
 	
-				; put into header
-	      backbone->set_keyword, "HISTORY", functionname+": get wav. calibration file",ext_num=0
+	; put into header
+	backbone->set_keyword, "HISTORY", functionname+": get wav. calibration file",ext_num=0
         backbone->set_keyword, "HISTORY", functionname+": "+c_File,ext_num=0
-
         backbone->set_keyword, "DRPWVCLF", c_File, "DRP wavelength calibration file used.", ext_num=0
 				
 
@@ -134,6 +156,50 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
         yinterp=dblarr(78961)
         q=0L
 
+
+
+        if AutoOffset EQ 1 then begin
+          
+           startparmssize=9+numgauss
+           ngausspars=dblarr(startparmssize)
+
+           xindex=140
+           yindex=140
+           xo=refwlcal[xindex,yindex,1]
+           yo=refwlcal[xindex,yindex,0]
+           startx=floor(xo-boxsizex/2.0)
+           starty=round(yo)-20
+           stopx = startx+boxsizex
+           stopy = starty+boxsizey
+
+           rawarray=image[startx:stopx, starty:stopy] 
+
+           lambdao=refwlcal[xindex,yindex,2]
+
+           ngausspars[0]=xo-startx
+           ngausspars[1]=yo-starty
+           ngausspars[2]=refwlcal[xindex,yindex,3]
+           ngausspars[3]=refwlcal[xindex,yindex,4]
+           ngausspars[4:6]=[1.9,1.9,0]
+           ngausspars[7]=20
+           ngausspars[8]=total(rawarray)
+           for z=0,numgauss-1 do begin
+              ngausspars[9+z]=flux[z]
+           endfor
+
+           x=indgen(boxsizex)
+           y=indgen(boxsizey)
+
+           simarray=ngauss(x,y,ngausspars)
+
+           corrmat_analyze, CORREL_IMAGES(rawarray,simarray,xshift=3,yshift=3),xoffset_auto,yoffset_auto,/print
+
+           backbone->Log, "Applying a prelimiinary shift of (X,Y) = ("+strc(xoffset_auto)+", "+strc(yoffset_auto)+")"
+
+        endif
+
+
+
 istart=0
 iend=280
 jstart=0
@@ -145,12 +211,19 @@ statuswindow = backbone->getstatusconsole()
 
 numiterations = float(iend-istart)*(iend-istart)/(spacing^2)
 
+
 for i = istart,iend,spacing do begin
 	for j = jstart,jend,spacing do begin
            xo=refwlcal[i,j,1]
            yo=refwlcal[i,j,0]
-           startx=floor(xo-boxsizex/2.0)
-           starty=round(yo)-20
+
+           if AutoOffset EQ 1 then begin
+              startx=floor(xo-boxsizex/2.0)+xoffset_auto
+              starty=round(yo)-20+yoffset_auto
+           endif else begin
+              startx=floor(xo-boxsizex/2.0)+xoffset
+              starty=round(yo)-20+yoffset
+           endelse 
            stopx = startx+boxsizex
            stopy = starty+boxsizey
 
@@ -238,8 +311,13 @@ for i = istart,iend,spacing do begin
 	; versus the existing properties of the prior wavecal
 	wg = where((newwavecal[*,*,0] ne 0) and finite(newwavecal[*,*,0]))
 	
-	xdiffs = (newwavecal[*,*,0])[wg] - (refwlcal[*,*,0])[wg]
-	ydiffs = (newwavecal[*,*,1])[wg] - (refwlcal[*,*,1])[wg]
+	ydiffs = (newwavecal[*,*,0])[wg] - (refwlcal[*,*,0])[wg]
+	xdiffs = (newwavecal[*,*,1])[wg] - (refwlcal[*,*,1])[wg]
+
+        ind=where(xdiffs ne 0 and ydiffs ne 0)
+        ydiffs=ydiffs[ind]
+        xdiffs=xdiffs[ind]
+
 
 ;	mnx = mean(xdiffs,/nan)
 ;	mny = mean(ydiffs,/nan)
@@ -251,7 +329,8 @@ for i = istart,iend,spacing do begin
 	meanclip,ydiffs,mny,sdy,clipsig=2,subs=ysubs
 
 
-	backbone->Log, "Mean shifts (X,Y) of this file vs. old wavecal: "+printcoo(mnx, mny)+" pixels,   +- "+printcoo(sdx,sdy)+" pixels 1 sigma"
+	backbone->Log, "Mean shifts (X,Y) of this file vs. old wavecal: "+printcoo(mnx, mny, format='(f20.3)')+" pixels,   +- "+printcoo(sdx,sdy,format='(f20.3)')+" pixels 1 sigma"
+        if ((sdx GE 1.0) OR (sdy GE 1.0)) then backbone->Log, "WARNING: Errors in the pixel shifts are more than a pixel."
 
 	if display ne -1 then begin
 		if display eq 0 then window,/free else select_window, display
@@ -272,8 +351,10 @@ for i = istart,iend,spacing do begin
   endif 
 
 	shiftedwavecal = refwlcal
-	shiftedwavecal[*,*,0] += mnx
-	shiftedwavecal[*,*,1] += mny
+;        shiftedwavecal[*,*,0]=newwavecal[*,*,0]
+;        shiftedwavecal[*,*,1]=newwavecal[*,*,1]
+	shiftedwavecal[*,*,0] += mny
+	shiftedwavecal[*,*,1] += mnx
 ; Edit the header of the original raw data products 
 ; to include the information about the new wavelength
 ; calibration. Taken from the gpi_measure_wavelength_calibration.pro

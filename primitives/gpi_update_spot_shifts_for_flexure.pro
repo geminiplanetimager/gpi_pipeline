@@ -38,7 +38,7 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 1.99
 ; PIPELINE TYPE: ALL
-; PIPELINE NEWTYPE: SpectralScience, Calibration, PolarimetricScience
+; PIPELINE CATEGORY: SpectralScience, Calibration, PolarimetricScience
 ;
 ; HISTORY:
 ;   2013-03-08 MP: Started based on extractcube, initial attempts at automated
@@ -120,7 +120,7 @@ function update_shifts_for_flexure_auto_optimize, det, wavcal, filter, coarse=co
         end
         mask_traces[0,0,ix,iy] = (mask_trace ne 0) ; ignore multiple pixels set high
 
-        xcors[ix,iy] = total(mask_trace*det)
+        xcors[ix,iy] = total(mask_trace*det,/nan)
     endfor
     endfor
 
@@ -214,116 +214,73 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         calfiletype = 'shifts'
 
         c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /ignore_cooldown_cycles)
-	if ( ~ file_test ( string(c_file) ) ) then begin
-		return, error ('error in call ('+strtrim(functionname)+'): calibration file  ' +  strtrim(string(c_file),2) + ' not found.' )
-	endif
-
-        c_file = gpi_expand_path(c_file)
-
-        lookuptable = gpi_readfits(c_File,header=Header)
-
-
-    
-		xtable=lookuptable[*,1]
-		ytable=lookuptable[*,2]
-		elevtable=lookuptable[*,0]
-		;if ct ge 1 then begin
-		elevsortedind=sort(elevtable)
-		sortedelev=elevtable[elevsortedind]
-		sortedxshift=xtable[elevsortedind]
-		sortedyshift=ytable[elevsortedind]
-		  
-		;;polynomial fit
-		shiftpolyx = POLY_FIT( sortedelev, sortedxshift, 2)
-		shiftpolyy = POLY_FIT( sortedelev, sortedyshift, 2)
-		my_shiftx=shiftpolyx[0]+shiftpolyx[1]*my_elevation+(my_elevation^2)*shiftpolyx[2]
-		my_shifty=shiftpolyy[0]+shiftpolyy[1]*my_elevation+(my_elevation^2)*shiftpolyy[2]
-
-    ;;now calculate shifts of the current wavelength solution
-    wc_elevation= backbone->get_keyword('WVELEV', count=ct)
-    if ct eq 0  then begin
-    return, error ('error in call ('+strtrim(functionname)+'): Wavelength solution elevation not found.' )
-  endif
-    
-    wcshiftx=shiftpolyx[0]+shiftpolyx[1]*wc_elevation+(wc_elevation^2)*shiftpolyx[2]
-    wcshifty=shiftpolyy[0]+shiftpolyy[1]*wc_elevation+(wc_elevation^2)*shiftpolyy[2]
-    
-    ;;now calculate the absolute shifts independent of the reference 
-      shiftx= wcshiftx - my_shiftx
-      shifty= wcshifty - my_shifty 
-		if display ne -1 then begin
-                   if display eq 0 then window,/free else select_window, display
-			!p.multi=[0,2,1]
-			elevs = findgen(90)
-			plot, sortedelev, sortedxshift, xtitle='Elevation [deg]', ytitle='X shift from Flexure [pixel]', xrange=[-10,100], yrange=[-0.9, 0.1], psym=1, charsize=1.5
-			oplot, elevs, poly(elevs, shiftpolyx), /line
-			oplot, [my_elevation], [shiftx], psym=2, color=fsc_color('yellow'), symsize=2
-			oplot, [my_elevation,my_elevation],[-1,1], color=fsc_color("blue"), linestyle=2
-			oplot, [wc_elevation,wc_elevation],[-1,1], color=fsc_color("red"), linestyle=2
-
-			plot, sortedelev, sortedyshift, xtitle='Elevation [deg]', ytitle='Y shift from Flexure [pixel]', xrange=[-10,100], yrange=[-0.9, 0.1], psym=1, charsize=1.5
-			oplot, elevs, poly(elevs, shiftpolyy), /line
-			oplot, [my_elevation], [shifty], psym=2, color=fsc_color('yellow'), symsize=2
-			oplot, [my_elevation,my_elevation],[-0.6,1], color=fsc_color("blue"), linestyle=2
-      oplot, [wc_elevation,wc_elevation],[-0.6,1], color=fsc_color("red"), linestyle=2
-
-			legend,/bottom,/right, ['Shifts in lookup table','Model','Applied shift','Data Elevation','Calibration Elevation'], color=[!p.color, !p.color, fsc_color('yellow'), fsc_color('blue'), fsc_color('red')], line=[0,1,1,2,2], psym=[1,0,2,0,0], charsize=1.5
-			xyouts, 0.5, 0.96, /normal, "Flexure Shift Model for "+backbone->get_keyword('DATAFILE'), charsize=1.8, alignment=0.5
-                        !p.multi = 0
+		if ( ~ file_test ( string(c_file) ) ) then begin
+			return, error ('error in call ('+strtrim(functionname)+'): calibration file  ' +  strtrim(string(c_file),2) + ' not found.' )
 		endif
 
+		c_file = gpi_expand_path(c_file)
 
+		lookuptable = gpi_readfits(c_File,header=Header)
+
+
+		;;now calculate shifts of the current wavelength solution
+		wc_elevation= backbone->get_keyword('WVELEV', count=ct)
+		if ct eq 0  then begin
+			return, error ('error in call ('+strtrim(functionname)+'): Wavelength solution elevation not found.' )
+		endif
+		
+
+		shifts = gpi_flexure_model(lookuptable, my_elevation, wavecal_elevation=wc_elevation, display=display)
+		shiftx = shifts[0]
+		shifty = shifts[1]
+
+	 
 		backbone->set_keyword, 'SPOT_DX', shiftx, ' Applied lenslet PSF X shift for flexure'
 		backbone->set_keyword, 'SPOT_DY', shifty, ' Applied lenslet PSF Y shift for flexure'
 
-
-;                  fshiftx=shiftpolyx[0]+shiftpolyx[1]*findgen(90)+(findgen(90)^2)*shiftpolyx[2]
-;                  fshifty=shiftpolyy[0]+shiftpolyy[1]*findgen(90)+(findgen(90)^2)*shiftpolyy[2]
-;                  
-;            psFilename = "Z:\"+"flex_xfit.ps"    
-;          openps, psFilename
-;          plot, elevtable,xtable, xtitle='Elevation [deg]', ytitle='Shift [pixel]',psym=-1
-;          oplot, findgen(90),fshiftx,linestyle=2
-;          closeps
-;                    psFilename = "Z:\"+"flex_yfit.ps"    
-;          openps, psFilename
-;          plot, elevtable,ytable, xtitle='Elevation [deg]', ytitle='Shift [pixel]',psym=-1
-;          oplot, findgen(90),fshifty,linestyle=2
-;          closeps
-                  
-;                  indeq= where(sortedelev eq my_elevation,ceq)
-;                  if ceq gt 0 then begin
-;                      shiftx=mean(sortedxshift[indeq])
-;                      shifty=mean(sortedyshift[indeq])
-;                  endif else begin
-;                      indlt= where(sortedelev lt my_elevation,clt)
-;                  indgt= where(sortedelev gt my_elevation,cgt)
-;                  if (clt gt 0) && (cgt gt 0) then begin
-;                      shiftx=mean(sortedxshift[indlt[n_elements(indlt)-1]])
-;                      shifty=mean(sortedyshift[indgt[0]])                      
-;                  endif 
-;                  if (clt eq 0)then begin
-;                      shiftx=mean(sortedxshift[0])
-;                      shifty=mean(sortedyshift[0])                      
-;                  endif 
-;                  if (cgt eq 0)then begin
-;                      shiftx=mean(sortedxshift[n_elements(sortedxshift)-1])
-;                      shifty=mean(sortedyshift[n_elements(sortedyshift)-1])                      
-;                  endif 
-;                  endelse
-                  
-                  ;shiftx = INTERPOL(xtable, elevtable, my_elevation) 
-                  ;shifty = INTERPOL(ytable, elevtable, my_elevation)
-                 ;    endif else begin
-                  ;      backbone->Log, "No ELEVATIO keyword found in image. No shifting applied."
-                  ;      shiftx = 0.
-                  ;      shifty = 0.
-                  ;   endelse
-                 ; endif else begin
-                  ;backbone->Log, "Shift reference files are different. No shifting applied."
-                  ;shiftx = 0.
-                  ;shifty = 0.
-         ;endelse   
+   
+;		elevtable=lookuptable[*,0]
+;		xtable=lookuptable[*,1]
+;		ytable=lookuptable[*,2]
+;		;if ct ge 1 then begin
+;		elevsortedind=sort(elevtable)
+;		sortedelev=elevtable[elevsortedind]
+;		sortedxshift=xtable[elevsortedind]
+;		sortedyshift=ytable[elevsortedind]
+;		  
+;		;;polynomial fit
+;		shiftpolyx = POLY_FIT( sortedelev, sortedxshift, 2)
+;		shiftpolyy = POLY_FIT( sortedelev, sortedyshift, 2)
+;		my_shiftx=shiftpolyx[0]+shiftpolyx[1]*my_elevation+(my_elevation^2)*shiftpolyx[2]
+;		my_shifty=shiftpolyy[0]+shiftpolyy[1]*my_elevation+(my_elevation^2)*shiftpolyy[2]
+;
+;    wcshiftx=shiftpolyx[0]+shiftpolyx[1]*wc_elevation+(wc_elevation^2)*shiftpolyx[2]
+;    wcshifty=shiftpolyy[0]+shiftpolyy[1]*wc_elevation+(wc_elevation^2)*shiftpolyy[2]
+;    
+;    ;;now calculate the absolute shifts independent of the reference 
+;      shiftx= wcshiftx - my_shiftx
+;      shifty= wcshifty - my_shifty 
+;		if display ne -1 then begin
+;                   if display eq 0 then window,/free else select_window, display
+;			!p.multi=[0,2,1]
+;			elevs = findgen(90)
+;			plot, sortedelev, sortedxshift, xtitle='Elevation [deg]', ytitle='X shift from Flexure [pixel]', xrange=[-10,100], yrange=[-0.9, 0.1], psym=1, charsize=1.5
+;			oplot, elevs, poly(elevs, shiftpolyx), /line
+;			oplot, [my_elevation], [shiftx], psym=2, color=fsc_color('yellow'), symsize=2
+;			oplot, [my_elevation,my_elevation],[-1,1], color=fsc_color("blue"), linestyle=2
+;			oplot, [wc_elevation,wc_elevation],[-1,1], color=fsc_color("red"), linestyle=2
+;
+;			plot, sortedelev, sortedyshift, xtitle='Elevation [deg]', ytitle='Y shift from Flexure [pixel]', xrange=[-10,100], yrange=[-0.9, 0.1], psym=1, charsize=1.5
+;			oplot, elevs, poly(elevs, shiftpolyy), /line
+;			oplot, [my_elevation], [shifty], psym=2, color=fsc_color('yellow'), symsize=2
+;			oplot, [my_elevation,my_elevation],[-0.6,1], color=fsc_color("blue"), linestyle=2
+;      oplot, [wc_elevation,wc_elevation],[-0.6,1], color=fsc_color("red"), linestyle=2
+;
+;			legend,/bottom,/right, ['Shifts in lookup table','Model','Applied shift','Data Elevation','Calibration Elevation'], color=[!p.color, !p.color, fsc_color('yellow'), fsc_color('blue'), fsc_color('red')], line=[0,1,1,2,2], psym=[1,0,2,0,0], charsize=1.5
+;			xyouts, 0.5, 0.96, /normal, "Flexure Shift Model for "+backbone->get_keyword('DATAFILE'), charsize=1.8, alignment=0.5
+;                        !p.multi = 0
+;		endif
+;
    
     end
     'auto': begin

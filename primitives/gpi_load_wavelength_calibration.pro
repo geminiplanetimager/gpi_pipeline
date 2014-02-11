@@ -5,12 +5,13 @@
 ; 	Reads a wavelength calibration file from disk.
 ; 	The wavelength calibration is stored using pointers into the common block.
 ;
+; INPUTS: none
 ; OUTPUTS: none; wavecal is loaded into memory
 ;
 ; PIPELINE COMMENT: Reads a wavelength calibration file from disk. This primitive is required for any data-cube extraction.
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type='String' CalFileType="wavecal" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
 ; PIPELINE ORDER: 0.5
-; PIPELINE NEWTYPE: SpectralScience,Calibration
+; PIPELINE CATEGORY: SpectralScience,Calibration
 ;
 ; HISTORY:
 ; 	Originally by Jerome Maire 2008-07

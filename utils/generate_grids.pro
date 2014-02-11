@@ -1,15 +1,26 @@
-;; CVS header information for IDL files
-;; $Revision: 1.1.1.1 $
-;; $Author: LAB $
-;; $Date: 2011/10/19 16:28:55 $
-
-;; this is a helper since I am always making these stupid 
-;; x and y-indices grids!!!!!
-
-
 pro generate_grids, xgrid, ygrid, n, scale=sfac, $
                     double=doubleflag, whole=wholeflag, $
                     freqshift=fflag
+;+
+; NAME: generate_grids
+;
+; PURPOSE: 
+;	Generate x and y grids of evenly spaced numbers
+;
+; INPUTS:
+;	n       Size of grid
+;       scale   scale grid values by this factor (step size)
+;
+; KEYWORD:
+; 	/double  Create double arrays
+;       /whole   Only allow whole number steps
+;       /freqshift  Frequency domain grid (shift by n/2)
+; OUTPUTS:
+;	returns the value stored in the file
+;
+; HISTORY:
+;       Original implementation by Lisa Poyneer.
+;-
 
 if keyword_set(fflag) then begin
     xgrid = make_array(n,n,double=doubleflag)

@@ -2,18 +2,20 @@
 ; NAME: gpi_divide_by_polarized_flat_field
 ; PIPELINE PRIMITIVE DESCRIPTION: Divide by Polarized Flat Field
 ;
+;   ** Needs additional work, will not produce high qualty results yet **
+;
 ; INPUTS: data-cube
 ;
 ; GEM/GPI KEYWORDS:
 ; DRP KEYWORDS: HISTORY
-; OUTPUTS:  datacube with slice flat-fielded
+; OUTPUTS:  datacube with slices flat-fielded
 ;
 ; PIPELINE COMMENT: Divides a 2-slice polarimetry file by a flat field.
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="String" CalFileType="polflat" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 3.5
-; PIPELINE NEWTYPE: PolarimetricScience, Calibration
+; PIPELINE CATEGORY: PolarimetricScience, Calibration
 ;
 ;
 ; HISTORY:

@@ -1,3 +1,4 @@
+; by Jerome Maire
 function findcommonbasename, list
 
 

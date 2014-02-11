@@ -68,11 +68,10 @@ function gpi_wavecal_sanity_check, filename_or_cal_data, silent=silent, $
 		;prihdr = headfits(filename,ext=0,/silent)
 		data = readfits(filename, ext=1, exthdr,/silent)
 	endif else begin
-		; username supplied an array
+		; begin supplied an array
 		loaded_from = 'array'
 		data = filename_or_cal_data 
 		filename = 'The supplied wavecal datacube '
-
 	endelse
 
 
@@ -93,6 +92,8 @@ function gpi_wavecal_sanity_check, filename_or_cal_data, silent=silent, $
 	wg = where(finite(xdiff) and finite(ydiff))
 	pct_wide_x = total( abs(xdiff[wg]-mean(xdiff[wg]) ) gt 2 ) / n_elements(wg)
 	pct_wide_y = total( abs(ydiff[wg]-mean(ydiff[wg]) ) gt 2 ) / n_elements(wg)
+        pct_wide_w = total( abs(dispdiff[wg]-mean(dispdiff[wg]) ) gt 0.002 ) / n_elements(wg)
+        pct_wide_t = total( abs(thetadiff[wg]-mean(thetadiff[wg]) ) gt 0.1 ) / n_elements(wg)
 
 
 	; Check for a case of all xdiffs being the same. This is both indicative of
@@ -109,17 +110,16 @@ function gpi_wavecal_sanity_check, filename_or_cal_data, silent=silent, $
 
 	if ~(keyword_set(threshold)) then threshold=0.2
 	; Fail
-	if pct_wide_x*100 gt threshold or pct_wide_y*100 gt threshold then begin
-		errmsg = filename+" looks invalid. Too many X and Y offsets between adjacent lenslets are outside expected values."
+	if pct_wide_x*100 gt threshold or pct_wide_y*100 gt threshold or pct_wide_w*100 gt threshold or pct_wide_t*100 gt threshold then begin
+		errmsg = filename+" looks invalid. Too many X and Y offsets, theta and dispersion values between adjacent lenslets are outside expected values."
 		if ~(keyword_set(silent)) then message,/info, errmsg
 		valid = 0
 	endif else valid = 1
 
 
-
 	if ~(keyword_set(noplots)) then begin
 		!y.omargin = [0,7]
-		!p.multi=[0,2,3]
+		!p.multi=[0,2,4]
 
 
 		plothist, xdiff[wg],bin=0.01,/ylog,title='Adjacent lenslet X diffs',$
@@ -136,6 +136,20 @@ function gpi_wavecal_sanity_check, filename_or_cal_data, silent=silent, $
 		ver, mean(ydiff[wg],/nan),/line
 		ver, mean(ydiff[wg],/nan)+2,/line, color=cgcolor('yellow')
 		ver, mean(ydiff[wg],/nan)-2,/line, color=cgcolor('yellow')
+
+		plothist, dispdiff[wg],bin=0.00001,/ylog,title='Adjacent lenslet Disp. diffs',$
+			xtitle=sigfig(pct_wide_w*100,3)+"% outside mean +-0.002", charsize=charsize,$
+			xrange = [mean(dispdiff[wg])-0.004, mean(dispdiff[wg])+0.004]
+		ver, mean(dispdiff[wg],/nan),/line
+		ver, mean(dispdiff[wg],/nan)+0.002,/line, color=cgcolor('yellow')
+		ver, mean(dispdiff[wg],/nan)-0.002,/line, color=cgcolor('yellow')
+
+		plothist, thetadiff[wg],bin=0.0001,/ylog,title='Adjacent lenslet Theta diffs',$
+			xtitle=sigfig(pct_wide_t*100,3)+"% outside mean +-0.1", charsize=charsize,$
+			xrange = [mean(thetadiff[wg])-0.2, mean(thetadiff[wg])+0.2]
+		ver, mean(thetadiff[wg],/nan),/line
+		ver, mean(thetadiff[wg],/nan)+0.1,/line, color=cgcolor('yellow')
+		ver, mean(thetadiff[wg],/nan)-0.1,/line, color=cgcolor('yellow')
 
 		loadct,0
 		;sig = stddev(xdiff-mean(xdiff[wg]),/nan)
@@ -192,7 +206,7 @@ function gpi_wavecal_sanity_check, filename_or_cal_data, silent=silent, $
 
 		;data[reform(inds[0,*]), reform(inds[1,*]), *] = !values.f_nan
 
-		atv, [[[xdiff, xdiff2]], [[ydiff, ydiff2]]],/bl
+		;atv, [[[xdiff, xdiff2]], [[ydiff, ydiff2]]],/bl
 		stop
 	
 		priheader = headfits(filename,/silent)

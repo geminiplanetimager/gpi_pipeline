@@ -1,3 +1,6 @@
+; Decrease spectral res
+; by Jerome Maire
+
 function decrease_spec_res, lambda, nphot,spotloc
 common PIP
 ;repDST=getenv('GPI_IFS_DIR')+path_sep()+'dst'+path_sep()

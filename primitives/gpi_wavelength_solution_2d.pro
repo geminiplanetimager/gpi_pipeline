@@ -1,36 +1,43 @@
 ;+
-; NAME: wavelength_solution_2d.pro
+; NAME: gpi_wavelength_solution_2d.pro
 ; PIPELINE PRIMITIVE DESCRIPTION: 2D Wavelength Solution
 ;
-;   This Wavelength Solution generator simulates an arclamp spectrum
+;	This is the main wavelength calibration generation primitive.
+;
+;   This Wavelength Solution generator models an arclamp spectrum
 ;   for each lenslet and uses mpfit2dfunc to fit the relevant
 ;   wavelength solution variables (ie. xo, yo, lambdao, dispersion,
 ;   tilt). A wavelength solution file is output along with a
 ;   simulated detector image. 
 ;
+;	A previous wavelength calibration file is used to supply the
+;	initial guess for the fitting process, which is then updated
+;	by this primitive.
+;
+;	This is fairly computationally intensive and requires
+;	relatively high S/N data. See Quick Wavelength Solution if
+;	you need faster results (albeit more limited and requiring you
+;	already have a reference wavecal)
+;
 ; INPUTS: An Xe/Ar lamp detector image
 ;
-; OUTPUTS: A wavelength solution cube (and a simulated Xe/Ar lamp
-; detector image; to come)
+; OUTPUTS: A wavelength solution cube (and a simulated Xe/Ar lamp detector image; to come)
 ;
-; PIPELINE COMMENT: This primitive uses an existing wavelength solution file 
-; to construct a new wavelength solution file by simulating the detector image 
-; and performing a least squares fit.
-
-
+; PIPELINE COMMENT: This primitive uses an existing wavelength solution file to construct a new wavelength solution file by simulating the detector image and performing a least squares fit.
+;
+;
 ; PIPELINE ARGUMENT: Name="display" Type="Int" Range="[0,1]" Default="0" Desc="Whether or not to plot each lenslet spectrum model in comparison to the detector measured spectrum: 1;display, 0;no display"
 ; PIPELINE ARGUMENT: Name="whichpsf" Type="Int" Range="[0,1]" Default="0" Desc="Type of lenslet PSF model, 0: gaussian, 1: microlens"
 ; PIPELINE ARGUMENT: Name="parallel" Type="Int" Range="[0,1]" Default="0" Desc="Option for Parallelization,  0: none, 1: parallel"
 ; PIPELINE ARGUMENT: Name="numsplit" Type="Int" Range="[0,100]" Default="0" Desc="Number of cores for parallelization. Set to 0 for autoselect."
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="Save_model_image" Type="int" Range="[0,1]" Default="1" Desc="1: save 2d detector model fit image to disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="Save_model_params" Type="int" Range="[0,1]" Default="1" Desc="1: save model nuisance parameters to disk, 0: don't save"
+; PIPELINE ARGUMENT: Name="Save_model_image" Type="int" Range="[0,1]" Default="0" Desc="1: save 2d detector model fit image to disk, 0:don't save"
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type="wavcal" Default="AUTOMATIC" Desc="Filename of the desired reference wavelength calibration file to be read"
+; PIPELINE ARGUMENT: Name="Save_model_params" Type="int" Range="[0,1]" Default="0" Desc="1: save model nuisance parameters to disk, 0: don't save"
 ;
-; where in the order of the primitives should this go by default?
 ; PIPELINE ORDER: 1.7
 ;
-; pick one of the following options for the primitive type:
-; PIPELINE NEWTYPE: Calibration
+; PIPELINE CATEGORY: Calibration
 ;
 ; HISTORY:
 ;    2013-09-19 SW: 2-dimensionsal wavelength solution 
@@ -42,7 +49,7 @@ compile_opt defint32, strictarr, logical_predicate
 
 ; don't edit the following line, it will be automatically updated by subversion:
 primitive_version= '$Id$' ; get version from subversion to store in header history
-
+calfiletype = 'wavecal'
 ; the following line sources a block of code common to all primitives
 ; It loads some common blocks, records the primitive version in the header for
 ; history, then if calfiletype is not blank it queries the calibration database
@@ -58,8 +65,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   	if tag_exist( Modules[thisModuleIndex], "parallel") then parallel=uint(Modules[thisModuleIndex].parallel) else parallel=1
  	if tag_exist( Modules[thisModuleIndex], "numsplit") then numsplit=fix(Modules[thisModuleIndex].numsplit) else numsplit=!CPU.TPOOL_NTHREADS*2
 	if numsplit lt 1 then numsplit=!CPU.TPOOL_NTHREADS*2
-  	if tag_exist( Modules[thisModuleIndex], "save_model_image") then save_model_image=uint(Modules[thisModuleIndex].parallel) else save_model_image=0
-  	if tag_exist( Modules[thisModuleIndex], "save_model_params") then save_model_params=uint(Modules[thisModuleIndex].parallel) else save_model_params=0
+  	if tag_exist( Modules[thisModuleIndex], "Save") then Save=uint(Modules[thisModuleIndex].Save) else Save=0
+  	if tag_exist( Modules[thisModuleIndex], "Save_model_image") then Save_model_image=uint(Modules[thisModuleIndex].Save_model_image) else Save_model_image=0
+  	if tag_exist( Modules[thisModuleIndex], "Save_model_params") then Save_model_params=uint(Modules[thisModuleIndex].Save_model_params) else Save_model_params=0
 
 
 	if whichpsf eq 1 then return, error("Microlens PSF model not yet supported in this version of the code.")
@@ -67,32 +75,31 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 ;Load in the image. Primitive assumes a dark,flat,badpixel,flexure, and microphonics corrected lamp image. 
 
-    image=*dataset.currframe
+        image=*dataset.currframe
         
 
 	;READ IN REFERENCE WAVELENGTH CALIBRATION
-	c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'wavecal',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
+;	c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'wavecal',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
 
-	backbone->set_keyword, 'HISTORY','Reference Wavecal used as a starting point for fit: '
-	backbone->set_keyword, 'HISTORY', c_File
-	backbone->set_keyword, 'REFWVCLF', 'Prior reference cal used as a starting point'
+	backbone->set_keyword, 'HISTORY','Reference Wavecal used as a starting point for fit: ',ext_num=0
+	backbone->set_keyword, 'HISTORY', c_File,ext_num=0
+	backbone->set_keyword, 'REFWVCLF', c_File, 'Prior reference cal used as a starting point',ext_num=0
 
 	;open the reference wavecal file. Save into common block variable.
 	refwlcal = gpi_readfits(c_File,header=Header)
+;Use the next line to manually select a wavecal by hand until that
+;software bug is fixed.
+        ;refwlcal=mrdfits('/Users/schuylerwolff/gpi/data/Reduced/calibrations/wavecals/S20130315S0059-J--wavecal.fits',1,HEADER)
 	wlcalsize=size(refwlcal,/dimensions)
-	print,wlcalsize
+	
 	nlens = wlcalsize[0]
 	n_valid_lenslets = long(total(finite(refwlcal[*,*,0])))
 
 	newwavecal=dblarr(wlcalsize) + !values.f_nan
 	
-
-	valid = gpi_sanity_check_wavecal(c_File, errmsg=errmsg,/noplot)
-	if ~(keyword_set(valid)) then begin
-		return, error("The chosen starting reference wavecal, "+c_File+", does not pass the qualty check. Cannot be used to generate a new wavecal. Remove it from your calibration DB and rescan before trying again. ")
-
-	endif
-
+        print,wlcalsize
+	valid = gpi_wavecal_sanity_check(c_File, errmsg=errmsg,/noplot)
+	if ~(keyword_set(valid)) then return, error("The chosen starting reference wavecal, "+c_File+", does not pass the qualty check. Cannot be used to generate a new wavecal. Remove it from your calibration DB and rescan before trying again. ")
 
 	;READ IN BAD PIXEL MAP
 	; assume this is already present in the DQ extension.
@@ -106,7 +113,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	lamp = backbone->get_keyword('GCALLAMP', count=ct1)
 	filternm = backbone->get_keyword('IFSFILT', count=ct2)
-    filter = gpi_simplify_keyword_value(filternm)
+        filter = gpi_simplify_keyword_value(filternm)
 
         
 	if ct1 EQ 0 then return, error( "Missing GCALLAMP header keyword.")
@@ -150,11 +157,19 @@ if keyword_set(parallel) then begin
 	count=0 ; count of lenslet columns fit
 	lensletcount = 0 ; count of individual lenslets fit
 
-
 	; must create these after reading # of emission lines
 	sizeres = 9+nmgauss[0]
     if ~(keyword_set(modelparams)) then modelparams=fltarr( (size(refwlcal))[1],(size(refwlcal))[2],sizeres )+!values.f_nan
     if ~(keyword_set(modelbackgrounds)) then modelbackgrounds = fltarr( (size(refwlcal))[1],(size(refwlcal))[2] ) + !values.f_nan
+
+
+	waveinfo = get_cwv(filter)
+	lambda_min  = waveinfo.commonwavvect[0]
+	lambda_max  = waveinfo.commonwavvect[1]
+	locations_lambda_min = (change_wavcal_lambdaref( refwlcal, lambda_min) )[*,*,0:1]
+	locations_lambda_max = (change_wavcal_lambdaref( refwlcal, lambda_max) )[*,*,0:1]
+	n_valid_lenslets = long(total(finite(refwlcal[*,jstart:jend,0])))
+	boxpad=2
 
 	;Parallelize the top level for loop
 
@@ -164,32 +179,25 @@ if keyword_set(parallel) then begin
 
 	 gpi_split_for, istart,iend, nsplit=numsplit,$ 
 		 varnames=['jstart','jend','refwlcal','image','im_uncert','badpix','newwavecal',$
-		           'q','wlcalsize','xinterp','yinterp','wla','fluxa','nmgauss','count','lensletmodel','lensletcount','modelparams','modelbackgrounds'], $
-		 outvar=['newwavecal','count','lensletmodel','modelparams','modelbackgrounds'], commands=[$
-	'common ngausscommon, numgauss, wl, flux, lambdao,my_psf',$
+		           'q','wlcalsize','xinterp','yinterp','wla','fluxa','nmgauss','count','lensletmodel','lensletcount',$
+                           'modelparams','modelbackgrounds','locations_lambda_min','locations_lambda_max','n_valid_lenslets','boxpad'], $
+		 outvar=['newwavecal','count','lensletcount','lensletmodel','modelparams','modelbackgrounds'], commands=[$
+	'common ngausscommon, numgauss, wl, flux, lambdao, my_psf' ,$
 	'numgauss=nmgauss[0]',$
 	'wl=wla',$
 	'flux=fluxa',$
 	'count=count+1',$
-	'waveinfo = get_cwv("'+filter+'")',$
-	'lambda_min  = waveinfo.commonwavvect[0]',$
-	'lambda_max  = waveinfo.commonwavvect[1]',$
-	'locations_lambda_min = (change_wavcal_lambdaref( refwlcal, lambda_min) )[*,*,0:1]',$
-	'locations_lambda_max = (change_wavcal_lambdaref( refwlcal, lambda_max) )[*,*,0:1]',$
-	'n_valid_lenslets = long(total(finite(refwlcal[*,jstart:jend,0])))' ,$
-	'boxpad=2',$
-	;'print,"Fitting "+strc(n_valid_lenslets)+ " lenslets in process "+strc(which_bridge)',$
 	'for j = jstart,jend do begin',$
 	'	 startx = floor(min([locations_lambda_min[i,j,1], locations_lambda_max[i,j,1]]) - boxpad) > 4',$
 	'	 starty = floor(min([locations_lambda_min[i,j,0], locations_lambda_max[i,j,0]]) - boxpad) > 4',$
 	'	 stopx = ceil(max([locations_lambda_min[i,j,1], locations_lambda_max[i,j,1]]) + boxpad) < 2043',$
 	'	 stopy = ceil(max([locations_lambda_min[i,j,0], locations_lambda_max[i,j,0]]) + boxpad) < 2043',$
-    '    if total(~finite(refwlcal[i,j,*])) gt 0 then begin',$
+        '    if total(~finite(refwlcal[i,j,*])) gt 0 then begin',$
 	'        newwavecal[i,j,*]=!values.f_nan' ,$
 	'        continue' ,$
 	'    endif' ,$
 	'    if (stopx lt 4) || (stopy lt 4) || (startx gt 2040) || (starty gt 2040) then continue',$
-	'	 if (startx lt 4) || (starty lt 4) || (stopx gt 2040) || (stopy gt 2040) then continue',$
+	'    if (startx lt 4) || (starty lt 4) || (stopx gt 2040) || (stopy gt 2040) then continue',$
 	'    lensletarray=image[startx:stopx, starty:stopy]',$
 	'    lensletarray_uncert=image[startx:stopx, starty:stopy]',$
 	'    badpixmap=badpix[startx:stopx, starty:stopy]',$
@@ -212,12 +220,11 @@ if keyword_set(parallel) then begin
 	'    newwavecal[i,j,2]=refwlcal[i,j,2]',$
 	'    newwavecal[i,j,3]=res[2]',$
 	'    newwavecal[i,j,4]=res[3]',$
-    '	 modelparams[i,j,*] = res',$
-    '	 modelbackgrounds[i,j] = modelbackground',$
+        '    modelparams[i,j,*] = res',$
+        '    modelbackgrounds[i,j] = modelbackground',$
 	'    modelparams[i,j,1] = res[0]+startx',$
 	'    modelparams[i,j,0] = res[1]+starty',$
 	'    lensletmodel[startx:stopx, starty:stopy] += modelimage',$
-	;'    lensletmodel_counts[startx:stopx, starty:stopy] += 1 ',$
 	'    lensletcount+=1',$
  	'endfor',$
 	'print,"Have now fit "+strc(lensletcount)+"/"+strc(n_valid_lenslets)+ " lenslets in process "+strc(which_bridge)']
@@ -278,7 +285,7 @@ endif else begin
 	boxpad=2
 
 	for i = istart,iend do begin
-      for j = jstart,jend do begin
+        for j = jstart,jend do begin
 
 			if keyword_set(debuglenslet) then begin
 				if (i ne debuglenslet[0]) or (j ne debuglenslet[1]) then continue
@@ -293,10 +300,6 @@ endif else begin
 			stopy = ceil(max([locations_lambda_min[i,j,0], locations_lambda_max[i,j,0]]) + boxpad)
 
 
-;;            ;statusline,
-;;           ; backbone->Log, "Lenslet index in datacube:   i="+strc(i)+", j="+strc(j)
-;;           ; backbone->Log, "Initial guess from prior wavecal:   x0="+xo+"y0="+yo
-         
             if total(~finite(refwlcal[i,j,*])) gt 0 then begin
                 newwavecal[i,j,*]=!values.f_nan
                 continue
@@ -385,7 +388,7 @@ endif else begin
 
 
                    lensletmodel[startx:stopx, starty:stopy] += modelimage
-                   lensletmodel_counts[startx:stopx, starty:stopy] += 1
+                   ;lensletmodel_counts[startx:stopx, starty:stopy] += 1
 
 ;; ;                if display EQ 1  then begin
 ;; ;				  !p.multi= [0,2,1]
@@ -397,7 +400,7 @@ endif else begin
             endfor
 
 			backbone->Log,"Column "+strc(i)+"/"+strc(iend-istart+1)+". Have now fit " +strc(lensletcount)+"/"+strc(n_valid_lenslets)+" lenslets"
-			if keyword_set(debug) and (lensletcount gt 0) and (i mod debug eq 0) then stop
+;			if keyword_set(debug) and (lensletcount gt 0) and (i mod debug eq 0) then stop
 
 
          endfor
@@ -406,14 +409,14 @@ endelse
 
 
 
-if keyword_set(debug) or keyword_set(debuglenslet) then stop
+;if keyword_set(debug) or keyword_set(debuglenslet) then stop
 
 
 
 ;OPTIONAL: SAVE THE DETECTOR MODEL IMAGE
 if keyword_set(save_model_image) then begin
 
-	; Generate 2D backgrounds, smoothed from above 
+	;Generate 2D backgrounds, smoothed from above 
 	wg = where(finite(modelbackgrounds))
 	bkgx = (modelparams[*,*,1])[wg]
 	bkgy = (modelparams[*,*,0])[wg]
@@ -421,7 +424,7 @@ if keyword_set(save_model_image) then begin
 	smoothed_background =griddata(bkgx, bkgy, modelbackgrounds[wg], xout=findgen(2048), yout=findgen(2048),/grid, /nearest, triangles=triangles)
 	smoothed_background = filter_image(smoothed_background,fwhm=30)
 
-	;smoothed_background = trigrid(  bkgx, bkgy, modelbackgrounds[wg], tr, xout=indgen(2048), yout=indgen(2048) )
+	smoothed_background = trigrid(  bkgx, bkgy, modelbackgrounds[wg],triangles, xout=indgen(2048), yout=indgen(2048) )
 	smoothed_background[*,0:3] = 0
 	smoothed_background[0:3,*] = 0
 	smoothed_background[2044:2047,*] = 0

@@ -1,4 +1,3 @@
-
 ;+
 ; NAME: gpi_shift_2d_image
 ; PIPELINE PRIMITIVE DESCRIPTION: Shift 2D Image
@@ -16,9 +15,6 @@
 ; INPUTS: Any 2D image
 ; OUTPUTS: 2D image shifted by (dx, dy). 
 ;
-; OUTPUTS: 
-; 	2D image corrected
-;
 ; ALGORITHM TODO: Deal with uncertainty and pixel mask frames too.
 ;
 ; PIPELINE COMMENT: Shift 2D image, by integer or fractional pixel amounts.  Doesn't shift ref pixels. 
@@ -27,7 +23,7 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 1.9
-; PIPELINE NEWTYPE: Testing,Calibration
+; PIPELINE CATEGORY: Testing,Calibration
 ;
 ; HISTORY:
 ;   2012-12-18 MP: New primitive.

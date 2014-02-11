@@ -38,19 +38,30 @@ function gpi_get_directory, dirname,expand_path=expand_path,method=method
 
   if n_elements(expand_path) eq 0 then expand_path=1
   
-  ;; First, convert the directory name requested to a canonical variable name,
-  ;; which will always start with GPI_ and end with _DIR
-  dirname=strupcase(dirname)
-  varname = strupcase(dirname)
-  if ~(strmid(varname,0,4) eq 'GPI_') then varname="GPI_"+varname
-  if ~(strmid(varname, strlen(varname)-4,4) eq '_DIR') then varname=varname+"_DIR"
-
-
-  ;; Highest precedence: environment variables. This will override
+  ;; Highest precedence: general environment variables. This will override
   ;; anything else.
+  result = getenv(dirname)
+  if result ne "" then begin
+    method = 'environment variable'
+    if keyword_set(expand_path) then result=gpi_expand_path(result)
+    return, result
+  endif
+  
+  ;; second priority: GPI protected environment vars
+  ;; Check input against list of known canonical variable name,
+  ;; which will always start with GPI_ and end with _DIR and be all caps
+  varname = strupcase(dirname)
+  if (strmid(varname,0,4) eq 'GPI_') then varname = strmid(varname,4)
+  if (strmid(varname, strlen(varname)-4,4) eq '_DIR') then varname = strmid(varname,0,strlen(varname)-4)
+  gpienvvars = ['RAW_DATA','REDUCED_DATA','DRP_QUEUE','DRP','DRP_CONFIG',$
+                'DRP_TEMPLATES','DRP_LOG','CALIBRATIONS','RECIPE_OUTPUT',$
+                'DST','IFS','DRF_OUTPUT']
+  tmp = where(gpienvvars eq varname, ct)
+  if ct eq 1 then varname="GPI_"+varname+"_DIR" else varname = strupcase(dirname)
+
   result = getenv(varname)
   if result ne "" then begin
-     method = 'environment variable'
+     method = 'GPI environment variable'
      if keyword_set(expand_path) then result=gpi_expand_path(result)
      return, result
   endif

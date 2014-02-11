@@ -46,7 +46,7 @@
 ;
 ; PIPELINE COMMENT:  Subtract 2D background based on the regions in between the spectra
 ; PIPELINE ORDER: 1.12 
-; PIPELINE NEWTYPE: Testing
+; PIPELINE CATEGORY: Testing
 ;
 ;
 ; HISTORY:

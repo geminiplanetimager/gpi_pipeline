@@ -1,7 +1,9 @@
 ;+
+; NAME: ngauss
 ;
 ;   Function describing the simultaneous 2D Gaussian fit of an entire 
-;   lenslet spectrum. Produces a derivative to be used with mpfitfunc. 
+;   lenslet spectrum by multiple (n) Gaussians. 
+;   Produces an output image to be used with mpfitfunc. 
 ;
 ;   Input:
 ;    start_params[0]-xo (x position)

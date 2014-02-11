@@ -23,7 +23,7 @@
 ; DRP KEYWORDS: FILETYPE,ISCALIB
 ; OUTPUTS:
 ;
-; PIPELINE ORDER: 1.8
+; PIPELINE COMMENT: Derive polarization calibration files from a flat field image.
 ; PIPELINE ARGUMENT: Name="nlens" Type="int" Range="[0,400]" Default="281" Desc="side length of  the  lenslet array "
 ; PIPELINE ARGUMENT: Name="centrXpos" Type="int" Range="[0,2048]" Default="969" Desc="Initial approximate x-position [pixel] of central peak at 1.5microns"
 ; PIPELINE ARGUMENT: Name="centrYpos" Type="int" Range="[0,2048]" Default="1000" Desc="Initial approximate y-position [pixel] of central peak at 1.5microns"
@@ -31,11 +31,11 @@
 ; PIPELINE ARGUMENT: Name="P" Type="float" Range="[-7.,7.]" Default="2.18" Desc="Micro-pupil pattern"
 ; PIPELINE ARGUMENT: Name="maxpos" Type="float" Range="[-7.,7.]" Default="2.5" Desc="Allowed maximum location fluctuation (in pixel) between adjacent mlens"
 ; PIPELINE ARGUMENT: Name="FitWidth" Type="float" Range="[-10.,10.]" Default="3" Desc="Size of box around a spot used to find center"
-
+;
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1"
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[0,1]" Default="1"
-; PIPELINE COMMENT: Derive polarization calibration files from a flat field image.
-; PIPELINE NEWTYPE: Testing
+; PIPELINE ORDER: 1.8
+; PIPELINE CATEGORY: Testing
 ;
 ; HISTORY:
 ;   2009-06-17: Started, based on gpi_extract_wavcal - Marshall Perrin 

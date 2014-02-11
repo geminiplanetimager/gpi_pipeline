@@ -15,8 +15,8 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.5
-; PIPELINE NEWTYPE: ALL
-
+; PIPELINE CATEGORY: ALL
+;
 ; HISTORY:
 ; 	 Jerome Maire 2008-10
 ;   2009-09-17 JM: added DRF parameters
@@ -41,6 +41,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     im0 = accumulate_getimage(dataset, 0, hdr0, hdrext=hdrext0)
 
 	sz = [0, sxpar(hdrext0,'NAXIS1'), sxpar(hdrext0,'NAXIS2'), sxpar(hdrext0,'NAXIS3')]
+	if sz[3] eq 0 then return, error('FAILURE ('+functionName+'): Input not a datacube, check that the input is a datacube and that Accumulate Images has been run prior to this primitive. ') 
+
 	; create an array of the same type as the input file:
 	imtab = make_array(sz[1], sz[2], sz[3], nfiles, type=size(im0,/type))
 

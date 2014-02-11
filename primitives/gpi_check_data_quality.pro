@@ -28,7 +28,7 @@
 ; PIPELINE ARGUMENT: Name="r0" Type="float" Range="[0,2]" Default="0.08" Desc="critical r0 [m] at lambda=0.5microns"
 ; PIPELINE ARGUMENT: Name="rmserr" Type="float" Range="[0,1000]" Default="10." Desc="Critical rms wavefront error in microns. "
 ; PIPELINE ORDER: 0.9
-; PIPELINE NEWTYPE: ALL
+; PIPELINE CATEGORY: ALL
 ;
 ; HISTORY:
 ;   JM 2010-10 : created

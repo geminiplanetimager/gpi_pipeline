@@ -1,6 +1,8 @@
 ;+
 ; NAME:  gpi_open_help
 ;
+;	Open a web browser to the GPI data pipeline help pages.
+;
 ; INPUTS:
 ;	path		Path name for HTML file to open, relative to
 ;				documentation root

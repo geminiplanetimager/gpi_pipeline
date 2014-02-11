@@ -1,6 +1,9 @@
 ;+
 ; NAME:  gpi_load_and_preprocess_fits_file
 ;
+;  **DEPRECATED, DO NOT USE**
+;  Intended for use only with early lab testing data.
+;
 ;
 ;	This loads an arbitrary GPI file from any point in time during I&T, and 
 ;	performs the necessary header manipulations to turn it into a

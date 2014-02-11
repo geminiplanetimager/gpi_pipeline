@@ -4,9 +4,14 @@ pro forprint2, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, $
       SUBSET = subset, NoCOMMENT=Nocomment,STDOUT=stdout, WIDTH=width
 ;+
 ; NAME:
-;       FORPRINT
+;       FORPRINT2
 ; PURPOSE:
 ;       Print a set of vectors by looping over each index value.
+;
+;       This is a customized version of the Goddard IDL astro library's
+;       forprint.pro, modified for GPI to allow use in compiled IDL
+;       runtime executables. See GPI notes section at the end of this
+;       doc header. 
 ;
 ; EXPLANATION:
 ;       If W and F are equal length vectors, then the statement

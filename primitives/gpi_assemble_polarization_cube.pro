@@ -22,19 +22,17 @@
 ;        -Combine these into a weighted average, weighted by the S/N per pixel
 ;
 ;
-; INPUTS: detector image
+; INPUTS: detector image in polarimetry mode
 ; common needed: filter, wavcal, tilt, (nlens)
 ;
-; GEM/GPI KEYWORDS:DEC,DISPERSR,PRISM,FILTER,FILTER2,PAR_ANG,RA,WPANGLE
-; DRP KEYWORDS:CDELT3,CRPIX3,CRVAL3,CTYPE3,CUNIT3,FILETYPE,HISTORY, WCSAXES
-; OUTPUTS:
+; OUTPUTS: Polarization pair datacube
 ;
 ; PIPELINE COMMENT: Extract 2 perpendicular polarizations from a 2D image.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ARGUMENT: Name="Method" Type="String" Range="BOX|PSF" Default="BOX" Desc="Method for pol cube reconstruction, simple box or optimal PSF"
 ; PIPELINE ORDER: 2.0
-; PIPELINE NEWTYPE: PolarimetricScience, Calibration
+; PIPELINE CATEGORY: PolarimetricScience, Calibration
 ;
 ; HISTORY:
 ;   2009-04-22 MDP: Created, based on DST's cubeextract_polarized. 
@@ -46,7 +44,8 @@
 ;   2013-01-02 MP: Updated output file orientation to be consistent with
 ;				   spectral mode and raw data. 
 ;	2013-07-17 MP: Renamed for consistency
-;   2013-11-30 MDP: Clear DQ and Uncert pointers
+;   2013-11-30 MP: Clear DQ and Uncert pointers
+;   2014-02-03 MP: Code and docs cleanup
 ;-
 
 function gpi_assemble_polarization_cube, DataSet, Modules, Backbone
@@ -55,16 +54,17 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 @__start_primitive
 
 
-	if tag_exist( Modules[thisModuleIndex], "method") then method=(Modules[thisModuleIndex].method) else method='BOX'
+	if tag_exist( Modules[thisModuleIndex], "method") then method=strupcase(Modules[thisModuleIndex].method) else method='BOX'
 	if method eq '' then method='BOX'
-	method = strupcase(method)
-
 	if method ne 'BOX' and method ne 'PSF' then return, error("Not a valid method argument name: "+method)
 
-	input=*(dataset.currframe[0])
 
-    ; Validate the input data
-    filt = gpi_simplify_keyword_value(strc(backbone->get_keyword( "IFSFILT")))
+	input=*dataset.currframe
+	indq=*dataset.currDQ
+
+    ;filt = gpi_simplify_keyword_value(strc(backbone->get_keyword( "IFSFILT")))
+
+    ; Verify this is in fact polarization mode data
     mode= strc(backbone->get_keyword( "DISPERSR", count=ct))
     mode = strlowcase(mode)
     if ~strmatch(mode,"*wollaston*",/fold) then begin
@@ -72,8 +72,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		return, not_ok
 	endif
 
-    ; polarization spot locations come from the calibration file, loaded already
-	; in readpolcal
+    ; polarization spot locations come from the calibration file, 
+	; which must have been loaded already in readpolcal
+	
+	if ~(keyword_set(polcal.coords)) then return, error("You muse use Load Polarization Calibration before Assemble Polarization Cube")
+	
     
     polspot_coords=polcal.coords
     polspot_pixvals=polcal.pixvals
@@ -83,87 +86,81 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     ny = sz[2+2]
 
     polcube = fltarr(nx, ny, 2)+!values.f_nan
-    polcube2 = fltarr(nx, ny, 2)+!values.f_nan
     wpangle =  strc(backbone->get_keyword( "WPANGLE"))
 	backbone->Log, "WP angle is "+strc(wpangle), depth=2
 
-	mask=1
-    if keyword_set(mask) then mask = input*0
-	mask2 = input*0
+	mask = input*0		; Mask array for which pixels are used when assembling the cube
+	residual = input	; residual for observed-model difference when assembling the cube 
 
     ;  Extract the data to a datacube
     for pol=0,1 do begin
     for ix=0L,nx-1 do begin
     for iy=0L,ny-1 do begin
-		;if ix eq 121 and iy eq 127 then stop
-        ;if ~ptr_valid(polcoords[ix, iy,pol]) then continue
         wg = where(finite(polspot_pixvals[*,ix,iy,pol]) and polspot_pixvals[*,ix,iy,pol] gt 0, gct)
         if gct eq 0 then continue
 
-        spotx = polspot_coords[0,wg,ix,iy,pol]
-        spoty = polspot_coords[1,wg,ix,iy,pol]
-        pixvals= polspot_pixvals[wg,ix,iy,pol] ; the 'spot PSF' for that spot
-        pixvals /= total(pixvals)
+        spotx = polspot_coords[0,wg,ix,iy,pol] ; X coord of spot center
+        spoty = polspot_coords[1,wg,ix,iy,pol] ; Y coord of spot center
 
-        ; need to swap X and Y here to match output from DST.
-        ;  - MDP 2008-05-09
-        ;polcube[iy, ix, pol] = total(input[iii])
-        ;polcube[iy, ix, pol] = total(input[spotx,spoty])
-		; swap not desired any more - need to match orientation convention in
-		; spectral mode. -MDP 2013-01-02
 		case method of
-		'PSF': polcube[ix, iy, pol] = total(input[spotx,spoty])
+		'PSF': begin
+			; Extract using a fixed saved PSF from the calibration data.
+			; WARNING does not get updated with flexure properly. 
+			; FIXME replace all of this with high res microlens PSF code!
+			pixvals= polspot_pixvals[wg,ix,iy,pol] ; the 'spot PSF' for that spot
+			pixvals /= total(pixvals)
+
+			polcube[ix, iy, pol] = total(input[spotx,spoty])
+			if keyword_set(mask) then mask[spotx, spoty]=pol+1
+		end
 		'BOX': begin
-			cenx = polcal.spotpos[0,ix,iy,pol]
-			ceny =  polcal.spotpos[1,ix,iy,pol]
+			; Extract using a 5 pixel box
+			cenx = round(polcal.spotpos[0,ix,iy,pol])
+			ceny =  round(polcal.spotpos[1,ix,iy,pol])
 			boxsize=2
 			polcube[ix, iy, pol] = total(input[ cenx-boxsize:cenx+boxsize, ceny-boxsize:ceny+boxsize]  )
-			mask2[cenx-boxsize:cenx+boxsize, ceny-boxsize:ceny+boxsize] += pol+1
+			mask[cenx-boxsize:cenx+boxsize, ceny-boxsize:ceny+boxsize] += pol+1
+			residual[cenx-boxsize:cenx+boxsize, ceny-boxsize:ceny+boxsize]=0
 		end
 		endcase
-
-
-        ; No - the following does NOT make things better. This is the wrong way
-        ; to normalize things here. 
-        ;polcube2[iy, ix, pol] = total(input[spotx,spoty]*pixvals) 
-
-        if keyword_set(mask) then mask[spotx, spoty]=pol+1
-		;mask2[ polcal.spotpos[0,ix,iy,pol],  polcal.spotpos[1,ix,iy,pol]] = pol+1
+		
+		; Example for putting in a breakpoint here to examine why some
+		; particular lenslet is going wrong: 
+		;if ix eq 130 and iy eq 148 and pol eq 1 then stop
 
     endfor 
     endfor 
-	;atv, [[[input]],[[mask]],[[mask2]]],/bl
-	;stop
     endfor 
 
 
-    ;; Update FITS header with RA and Dec WCS information 
-    ;; As long as it's not a TEL_SIM image
-    
+    ;; Update FITS header 
+	
+	;; Update WCS with RA and Dec information As long as it's not a TEL_SIM image
     sz = size(polcube)    
     if ~strcmp(string(backbone->get_keyword('OBJECT')), 'TEL_SIM') then gpi_update_wcs_basic,backbone,imsize=sz[1:2]
 
     backbone->set_keyword, 'COMMENT', "  For specification of Stokes WCS axis, see ",ext_num=1
     backbone->set_keyword, 'COMMENT', "  Greisen & Calabretta 2002 A&A 395, 1061, section 5.4",ext_num=1
    
-    backbone->set_keyword, "NAXIS", sz[0], /saveComment
-    backbone->set_keyword, "NAXIS1", sz[1], /saveComment, after='NAXIS'
-    backbone->set_keyword, "NAXIS2", sz[2], /saveComment, after='NAXIS1'
-    backbone->set_keyword, "NAXIS3", sz[3], /saveComment, after='NAXIS2'
+    backbone->set_keyword, "NAXIS",    sz[0], /saveComment
+    backbone->set_keyword, "NAXIS1",   sz[1], /saveComment, after='NAXIS'
+    backbone->set_keyword, "NAXIS2",   sz[2], /saveComment, after='NAXIS1'
+    backbone->set_keyword, "NAXIS3",   sz[3], /saveComment, after='NAXIS2'
 
     backbone->set_keyword, "FILETYPE", "Stokes Cube", "What kind of IFS file is this?"
-    backbone->set_keyword, "WCSAXES", 3, "Number of axes in WCS system"
-    backbone->set_keyword, "CTYPE3", "STOKES",     "Polarization"
-    backbone->set_keyword, "CUNIT3", "N/A",       "Polarizations"
-    backbone->set_keyword, "CRVAL3", -6, " Stokes axis: image 0 is Y parallel, 1 is X parallel "
+    backbone->set_keyword, "WCSAXES",  3, "Number of axes in WCS system"
+    backbone->set_keyword, "CTYPE3",   "STOKES",     "Polarization"
+    backbone->set_keyword, "CUNIT3",   "N/A",       "Polarizations"
+    backbone->set_keyword, "CRVAL3",   -6, " Stokes axis: image 0 is Y parallel, 1 is X parallel "
 
     backbone->set_keyword, "CRPIX3", 1.,         "Reference pixel location" ;;ds - was 0, but should be 1, right?
-    backbone->set_keyword, "CD3_3",  1, "Stokes axis: image 0 is Y parallel, 1 is X parallel"
-    ;backbone->set_keyword, "CDELT3", 1, "Stokes axis: image 0 is Y parallel, 1 is X parallel"
+    backbone->set_keyword, "CD3_3",  1, "Stokes axis: images 0 and 1 give orthogonal polarizations." ; 
 
+	;; Save output data.
     suffix='-podc'
-    *(dataset.currframe)=polcube
-	ptr_free, dataset.currDQ  ; right now we're not creating a DQ cube
+    *dataset.currframe=polcube
+
+	ptr_free, dataset.currDQ  ; right now we're not creating a DQ cube for pol mode
 	ptr_free, dataset.currUncert  ; right now we're not creating an uncert cube
 
  

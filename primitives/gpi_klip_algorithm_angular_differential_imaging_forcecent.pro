@@ -1,22 +1,19 @@
 ;+
-; NAME: gpi_klip_algorithm_spectral_differential_imaging_forcecent
-; PIPELINE PRIMITIVE DESCRIPTION: KLIP algorithm Angular Differential Imaging With Centered Forced
+; NAME: gpi_klip_algorithm_angular_differential_imaging_forcecent
+; PIPELINE PRIMITIVE DESCRIPTION: KLIP algorithm Angular Differential Imaging With Center Forced
 ;
-;             This algorithm reduces noise in a datacube using the
-;             KLIP algorithm
-; 
-; INPUTS:
-;       input datacube
-;       wavelength solution from common block
+;   This algorithm reduces noise in a datacube using the
+;   KLIP algorithm and Angular Differential Imaging.
+;   This is the same as the 'KLIP algorithm Angular Differential Imaging'
+;   primitive, except the location of the star can be entered manually. 
+;   This can be useful for data with low S/N where the satellite
+;   spots are not found automatically. 
 ;
-; KEYWORDS:
+;   Used during first light run, may not be that generally applicable
+;   now that automatic satellite spot finding is much more robust.
 ;
-; GEM/GPI KEYWORDS:
-;
-; DRP KEYWORDS:
-;
-; OUTPUTS: 
-;       A reduced datacube with reduced noise
+; INPUTS: Multiple spectral datacubes
+; OUTPUTS: A reduced datacube with reduced PSF speckle halo
 ;
 ; ALGORITHM:
 ;       Measure annuli out from the center of the cube and create a
@@ -34,14 +31,14 @@
 ; PIPELINE ARGUMENT: Name="prop" Type="float" Range="[0.8,1.0]" Default=".99999" Desc="Proportion of eigenvalues used to truncate KL transform vectors"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="5" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.2
-; PIPELINE NEWTYPE: SpectralScience
+; PIPELINE CATEGORY: SpectralScience
 ;
 ; HISTORY:
-;        2013-10-21 - ds
+;        2013-11-16- ds  Developed on the fly during first light run
 ;-
 
 function gpi_klip_algorithm_angular_differential_imaging_forcecent, DataSet, Modules, Backbone
-  primitive_version= '$Id: gpi_klip_algorithm_angular_differential_imaging_forcecent.pro 2076 2013-11-09 04:25:41Z mperrin $' ; get version from subversion to store in header history
+  primitive_version= '$Id$' ; get version from subversion to store in header history
   @__start_primitive
 
   if numfile ne ((dataset.validframecount)-1) then return, OK

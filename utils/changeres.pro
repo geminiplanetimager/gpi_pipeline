@@ -1,3 +1,6 @@
+; Adjust spectral resolution
+;
+; by Jerome Maire
 function changeres, spec, lambint,lambda,nonorm=nonorm
 
 

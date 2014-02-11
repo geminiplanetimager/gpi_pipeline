@@ -2,21 +2,48 @@
 ; NAME: gpi_subtract_dark_background
 ; PIPELINE PRIMITIVE DESCRIPTION: Subtract Dark Background
 ;
-;    Look up from the calibration database what the best dark file of
-;    the correct time is, and subtract it. 
+;	 Subtract background from an image using a dark file. 
 ;
-;    If no dark file of the correct time is found:
-;		If the RequireExactMatch setting is 1, then 
-; 		don't do any subtraction at all, just return the input data. 
-;		Otherwise, find an available dark calibration that is
-;		within a factor of 3 in exposure time, scale that, then
-;		subtract it.
+;	 If CalibrationFile=AUTOMATIC, the best available dark is
+;	 obtained from the calibration database. 
+;    "Best dark" generally means a dark file that has the most similar
+;    integration time and is closest in date & time of observation 
+;    to the data in question.  
+;
+;    Specifically, in the Calibration Database code for darks, 
+;    the algorithm first looks for dark files which are between
+;    0.3 and 3x of the desired integration time. It takes all such
+;    darks which are on the closest date of observation to the 
+;    science data, and from those finds the one that is closest in
+;    integration time to the science data. 
+;
+;    This dark is read in, rescaled by the appropriate ratio of
+;    integration times, and then subtracted from the data. 
+;
+;
+;
+;	 Empirically, rescaling darks by too large a factor does not 
+;	 result in very high quality subtractions, due to various nonlinear
+;	 behaviors such as saturation of hot pixels and the so-called 
+;	 'reset anomaly' effect which biases the readout background level.
+;	 Hence we impose a limit for scaling the dark integration time 
+;	 up or down, semi-arbitrarily chosen to be 3x because it seems to
+;	 work reasonably well.  The standard set of darks planned to be 
+;	 taken routinely at Gemini should ensure that there are always available
+;	 darks within this range. 
+;
+;	 If you desire different behavior, simply set the CalibrationFile manually
+;	 of course.
+;    
+;
+;	 Note: If the RequireExactMatch setting is 1, then only dark files
+;		exactly matching in integration time will be used. If there is no
+;		such file, the data is returned without any subtraction.
 ;
 ; INPUTS: raw 2D image file
 ;
-; OUTPUTS: 2D image corrected for dark current
+; OUTPUTS: 2D image corrected for dark current 
 ;
-; ALGORITHM TODO: Deal with uncertainty and pixel mask frames too.
 ;
 ; PIPELINE COMMENT: Subtract a dark frame. 
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="string" CalFileType="dark" Default="AUTOMATIC" Desc="Name of dark file to subtract"
@@ -24,7 +51,7 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 1.1
-; PIPELINE NEWTYPE: ALL
+; PIPELINE CATEGORY: ALL
 ;
 ; HISTORY:
 ; 	Originally by Jerome Maire 2008-06

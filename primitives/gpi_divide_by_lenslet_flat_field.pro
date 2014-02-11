@@ -2,7 +2,8 @@
 ; NAME: gpi_divide_by_lenslet_flat_field
 ; PIPELINE PRIMITIVE DESCRIPTION: Divide by Lenslet Flat Field
 ;
-; INPUTS: data-cube
+; INPUTS: Spectral or polarization datacube
+; OUTPUTS: Each slice of the input datacube is divided by the lenslet flat.
 ;
 ;
 ; PIPELINE COMMENT: Divides a spectral data-cube by a flat field data-cube.
@@ -10,14 +11,14 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.2
-; PIPELINE NEWTYPE: SpectralScience,Calibration
+; PIPELINE CATEGORY: SpectralScience,PolarimetricScience,Calibration
 ;
 ; HISTORY:
 ;   2014-01-02 MP: New primitive
 ;-
 
 function gpi_divide_by_lenslet_flat_field, DataSet, Modules, Backbone
-primitive_version= '$Id: gpi_divide_by_lenslet_flat_field.pro 1963 2013-10-03 14:36:27Z mperrin $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 calfiletype = 'lensletflat'
 @__start_primitive
   

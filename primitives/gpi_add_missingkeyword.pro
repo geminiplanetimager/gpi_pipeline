@@ -11,7 +11,7 @@
 ; PIPELINE ARGUMENT: Name="valuetype" Type="string" Default="string" Desc="Enter keyword type."
 ; PIPELINE COMMENT: Add any missing keyword. (use this function several times in the DRF if you need to add more than one keyword)
 ; PIPELINE ORDER: 0.1
-; PIPELINE NEWTYPE: Calibration,Testing
+; PIPELINE CATEGORY: Calibration,Testing
 ;
 ; HISTORY:
 ;    Jerome Maire 2009-09-13

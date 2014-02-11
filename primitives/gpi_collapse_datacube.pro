@@ -5,7 +5,7 @@
 ;  TODO: more advanced collapse methods. 
 ;
 ; INPUTS: any datacube
-; OUTPUTS: image containing collapsed datacube
+; OUTPUTS: image containing that datacube collapsed to 2D
 ;
 ; GEM/GPI KEYWORDS:
 ; DRP KEYWORDS: CDELT3, CRPIX3,CRVAL3,CTYPE3,NAXIS3
@@ -16,9 +16,7 @@
 ; PIPELINE ARGUMENT: Name="ReuseOutput" Type="int" Range="[0,1]" Default="1" Desc="1: keep output for following primitives, 0: don't keep"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.6
-; PIPELINE TYPE: ALL-SPEC
-; PIPELINE NEWTYPE: ALL
-; PIPELINE SEQUENCE: 
+; PIPELINE CATEGORY: ALL
 
 ; HISTORY:
 ;  2010-04-23 JM created

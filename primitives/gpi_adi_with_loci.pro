@@ -1,29 +1,26 @@
 ;+
 ; NAME: gpi_adi_with_loci
 ; PIPELINE PRIMITIVE DESCRIPTION: ADI with LOCI
-; 		ADI algo based on Lafreniere et al 2007.
+; 		ADI algorithm based on Lafreniere et al. 2007.
 ;
 ;
-; INPUTS: data-cube
-; common needed:
+; Code currently only offers the use of positive and negative coefficients.
+;
+;
+; INPUTS: data-cube 
 ;
 ; KEYWORDS:
 ; GEM/GPI KEYWORDS:COADDS,CRFOLLOW,DEC,EXPTIME,HA,PAR_ANG
 ; DRP KEYWORDS: HISTORY,PSFCENTX,PSFCENTY
-; OUTPUTS:
-;  INPUTS:
-;          nfwhm: number of fwhm to calculate the minimal distance for reference calculation
-;          save: save results (datacubes with reference subtracted and then rotated )
-;          gpitv: display result in gpitv session # (gpitv="0" means no display)
-; EXAMPLE: 
-;  <module name="gpi_adi_Loci_multiwav" nfwhm="1.5" Save="1" gpitv="1" />
+;
 ;
 ; PIPELINE COMMENT: Implements the LOCI ADI algorithm (Lafreniere et al. 2007)
 ; PIPELINE ARGUMENT: Name="nfwhm" Type="float" Range="[0,20]" Default="1.5" Desc="number of FWHM to calculate the minimal distance for reference calculation"
+; PIPELINE ARGUMENT: Name="coeff_type" Type="int" Range="[0,1]" Default="0" Desc="0: positive and negative 1: positive only Coefficients in LOCI algorithm"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="10" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.11
-; PIPELINE NEWTYPE: SpectralScience
+; PIPELINE CATEGORY: SpectralScience
 ;
 ; HISTORY:
 ; 	 Jerome Maire :- multiwavelength 2008-08
@@ -35,11 +32,12 @@
 ;   2013-08-07 ds: idl2 compiler compatible, added start_primitive
 ;-
 
-Function gpi_adi_with_loci, DataSet, Modules, Backbone
+function gpi_adi_with_loci, DataSet, Modules, Backbone
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
-   
+
+if tag_exist( Modules[thisModuleIndex], "coeff_type") eq 1 then coeff_type=long(Modules[thisModuleIndex].coeff_type) else coeff_type=0
 
 ;;if all images have been processed into datacubes then start ADI processing...
 if numfile  eq ((dataset.validframecount)-1) then begin
@@ -409,12 +407,31 @@ if numfile  eq ((dataset.validframecount)-1) then begin
                 a=(aa[indim,*])[*,indim]
                 ;vector b of the linear system to resolve ;vecteur b du systeme lineaire a resoudre
                 b=aa[indim,n]
-
+							if coeff_type eq 0 then begin
+              ;----------------------------
+              ;POSITIVE/NEGATIVE COEFFICIENTS
                 ;resolve the system ;resoud le systeme
                 if n_elements(a) ne 1 then $
                 c=invert(a,/double)#b else $
                 c=0.
-
+              ;----------------------------
+							endif else begin
+							;	return, error('FAILURE ('+functionName+'): Could not use only positive coefficients, code not yet implemented. Set use_pos_neg_coeff_flag equal to 1') 
+              ;----------------------------
+              ;POSITIVE COEFFICIENTS
+              svect=size(a)
+              dim=svect[1]
+              dim2=dim
+              c=fltarr(dim)
+              if n_elements(a) ne 1 then begin
+               indx=fltarr(dim+1)
+               w=fltarr(dim)
+               mode=1
+               rnorm=1
+               nnls,a,dim,dim2,b,c,rnorm,w,indx,mode
+              endif
+              ;----------------------------
+							endelse
 
                 ;construct the reference ;construit la reference
                 ref=dblarr(n_elements(isub))
@@ -507,14 +524,15 @@ if numfile  eq ((dataset.validframecount)-1) then begin
    ; update_progressbar,Modules,thisModuleIndex,n_elements(lambda), il ,'working...',/adi    
   endfor; wav
 
-  suffix=suffix+'-loci'
+; dirty suffix hack that is currently necessary since the suffix seems to get changed here for some reason...
+  suffix0=suffix+'-loci'
   imt=dblarr(dimcub,dimcub,n_elements(lambda))
   for n=0,nfiles-1 do begin
     for il=0,n_elements(lambda)-1 do begin
-      imt[*,*,il]=readfits(tmpdir+prefix+nbr2txt(nlist[n],4)+suffix+strcompress(string(il),/REMOVE_ALL)+'.fits',/SILENT,exten=n_ext, header)
-      file_delete, tmpdir+prefix+nbr2txt(nlist[n],4)+suffix+strcompress(string(il),/REMOVE_ALL)+'.fits'
+      imt[*,*,il]=readfits(tmpdir+prefix+nbr2txt(nlist[n],4)+suffix0+strcompress(string(il),/REMOVE_ALL)+'.fits',/SILENT,exten=n_ext, header)
+      file_delete, tmpdir+prefix+nbr2txt(nlist[n],4)+suffix0+strcompress(string(il),/REMOVE_ALL)+'.fits'
     endfor
-      
+suffix=suffix0 
       *(dataset.currframe[0])=imt
     ;  *(dataset.headers[n])=header
 ;    if ( Modules[thisModuleIndex].Save eq 1 ) then begin

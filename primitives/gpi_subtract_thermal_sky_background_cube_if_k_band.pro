@@ -4,7 +4,8 @@
 ;
 ;  Subtract thermal background emission in the datacube, for K band data only
 ;
-; This is identical to the gpi_subtact_thermal_sky_cube_if_k_band primtive except the subtraction is done in cube space instead of detector space.
+;  This is identical to the gpi_subtact_thermal_sky_if_k_band primtive except the subtraction 
+;  is done in cube space instead of detector space. It also uses sky cubes rather than the 2d sky images. 
 ;
 ;	** special note: ** 
 ;	
@@ -22,9 +23,9 @@
 ;
 ; ALGORITHM TODO: Deal with uncertainty and pixel mask frames too.
 ;
-; INPUTS: 2D image file
+; INPUTS: 3D image file
 ;
-; OUTPUTS: 2D image file, unchanged if YJH, background subtracted if K1 or K2.
+; OUTPUTS: 3D image file, unchanged if YJH, background subtracted if K1 or K2.
 ;
 ;
 ; PIPELINE COMMENT: Subtract a thermal/sky cube 
@@ -33,7 +34,7 @@
 ; PIPELINE ARGUMENT: Name="Override_scaling" Type="float" Range="[0,10]" Default="1.0" Desc="Set to value other than 1 to manually adjust the background image flux scaling to better match the science data"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.35
-; PIPELINE NEWTYPE: ALL
+; PIPELINE CATEGORY: ALL
 ;
 ; HISTORY:
 ;   2013-12-23 PI: Initial implementation
@@ -49,15 +50,13 @@ current_filt = backbone->get_keyword('IFSFILT',/simplify)
 if (current_filt ne 'K1') and (current_filt ne 'K2') then return, 0 ; indicates OK to proceed .
 	; can't use common block vars here since we're above the common block import...
 
-
-
-
 ; Now, go on to the regular behavior in the case of K band. 
-primitive_version= '$Id: gpi_subtract_thermal_sky_background_if_k_band.pro 2302 2013-12-18 00:39:44Z mperrin $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 calfiletype = 'background_cube'
 @__start_primitive
 
-
+	if tag_exist( Modules[thisModuleIndex], "gpitv") then gpitv=long(Modules[thisModuleIndex].gpitv) else gpitv=0
+	if tag_exist( Modules[thisModuleIndex], "save") then save=long(Modules[thisModuleIndex].save) else save=0
 	if tag_exist( Modules[thisModuleIndex], "override_scaling") then override_scaling= float(Modules[thisModuleIndex].override_scaling) else override_scaling=1.0
 
 	background_data = gpi_readfits(c_File, header=bkgndhdr)
@@ -69,7 +68,7 @@ calfiletype = 'background_cube'
         scaled_background = background_data * itime * override_scaling ; (2.0/3.0)
 
 ; now subtract it from the cube
-cube = *(dataset.currframe[0])
+cube = *(dataset.currframe)
 
 band = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
 cwv = get_cwv(band,spectralchannels=(size(cube,/dim))[2])
@@ -79,10 +78,14 @@ lambda = cwv.lambda
 
 	;atv, [[[ *dataset.currframe]],[[scaled_background]],[[*dataset.currframe-scaled_background]]],/bl 
 
-	*(dataset.currframe) -= scaled_background
-	backbone->set_keyword,'HISTORY',functionname+": thermal background subtracted using "+strc(string(itime,format='(F7.2)'))+ " s * file=",ext_num=0
+	*(dataset.currframe) = cube
+	backbone->set_keyword,'HISTORY',functionname+": thermal background subtracted using "+strc(string(itime,format='(F7.2)'))+ " s * file="+strc(c_File),ext_num=0
 	backbone->set_keyword,'HISTORY',functionname+": "+c_File,ext_num=0
 	backbone->set_keyword,'DRPBKGND',c_File,ext_num=0
+
+	logstr = functionname+":  thermal background subtracted using an integration time of "+strc(string(itime,format='(F7.2)'))+ " s * file="+strc(c_File)
+	backbone->Log,logstr
+
   
   	suffix = 'bkgnd_cube_sub'
 @__end_primitive 

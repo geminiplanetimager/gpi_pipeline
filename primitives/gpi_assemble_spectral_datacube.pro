@@ -14,7 +14,7 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.0
-; PIPELINE NEWTYPE: SpectralScience, Calibration
+; PIPELINE CATEGORY: SpectralScience, Calibration
 ;
 ; HISTORY:
 ; 	Originally by Jerome Maire 2007-11

@@ -1,5 +1,9 @@
 ;+
-; Temporary Function designed to loop over the lenslets and calculate
+; NAME: gpi_wavecal_wrapper
+; 
+; Helper function for 2D model-fitting wavecal algorithm
+;
+; Function designed to loop over the lenslets and calculate
 ; the 2D wavelength solution. Uses function mpfit2dfun and calls 
 ; ngauss.pro which defines a 2d spread of gaussians defined by the filter
 ; band combination wl and flux guesses found in a text file.
@@ -24,6 +28,9 @@
 ;    res[7]:	Constant background offset across the image
 ;    res[8]:    Total flux in lenslet array in counts
 ;    res[9:n]:	Relative flux ratios of the individual spectral lines
+;
+;HISTORY: 
+;  2013  by Schuyler Wolff
 ;
 ;+
 
@@ -71,8 +78,19 @@ y=indgen(ydimension)
 start_params[8]=total(lensletarray);-min(lensletarray)*size(lensletarray,/n_elements)
 ;print,'flux scaling',start_params[7]
 
-;Provide starting guesses for the gaussian parameters (sigmax,sigmay,rotation)
-start_params[4:6] = [1.5, 1.5, 0]
+;Initially guess zero rotation for gaussian
+start_params[6]=0
+
+;Provide starting guesses for the gaussian parameters (sigmax,sigmay)
+if lambdao GT 1.2 then begin
+   if xdim LT 211 then start_params[4:5] = [1.5, 1.5]
+   if (xdim GE 211) AND (xdim LT 223) then start_params[4:5] = [1.7, 1.7]
+   if (xdim GE 223) AND (xdim LT 235) then start_params[4:5] = [1.9, 1.9]
+   if (xdim GE 235) AND (xdim LT 245) then start_params[4:5] = [2.1, 2.1]
+   if xdim GE 245 then start_params[4:5] = [2.3, 2.3]
+endif else begin
+   start_params[4:5] = [1.5, 1.5]
+endelse
 
 
 ;Compute a weighted error array to be passed to mp2dfitfunct

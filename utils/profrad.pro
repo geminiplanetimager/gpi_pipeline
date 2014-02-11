@@ -1,18 +1,59 @@
 pro profrad,imt,res,med4q=med4q,p2d=p2d,p1d=p1d,rayon=rayon
-
-;Calcule un profil radial median.
+;+
+; NAME:
+;      profrad.pro
+; PURPOSE:
+; Calcule un profil radial median.
+; Calculate a median radial prrofile
+;      
+;
+; EXPLANATION:
+; By default, calculate a 1d radial profile giving the median value of pixels
+;  located in a given distance from the center of the image. The distance is given by res.
+; It uses cubic spline interpolation to calculate the profile at given radius.
+;
 ;Par defaut, calcule un profil radial 1d qui consiste en la mediane
 ;des valeurs de tous les pixels situes dans un interval de distance du
 ;centre de l'image. Cet interval de distance est determine par
 ;res. Utilise ensuite un spline cubique pour extrapoler le profil a la
 ;distance de chacun des pixels pour construire le profil 2D.
+;       
 ;
+; Calling SEQUENCE:
+;      
+;
+; INPUT/OUTPUT:
+;
+; res: resolution (in pixels) of the 1d radial profile, optional
+;      Default value is 1 
 ;res: resolution (en pixels) du profil radial 1d, optionnel, la valeur
 ;     par defaut est 1.
+;
+; OPTIONAL OUTPUT:
 ;p2d: profil 2d
 ;p1d: profil 1d
+;rayon: radius corresponding to p1d
 ;rayon: rayon correspondant a p1d
+;/med4q: calculate the 2d profil by taking the median over the 4 quadrants
 ;/med4q: calcule le profil 2d en prenant la mediane sur les 4 quadrants
+;       
+;
+; EXAMPLE:
+;
+;
+; DEPENDENCIES:
+;
+;
+; NOTES: 
+;      
+;             
+; REVISION HISTORY
+;       Written  before 2008, Mathilde beaulieu/Jean-Francois Lavigne/David Lafreniere/Jerome Maire. 
+;-
+
+
+
+
 
 s=size(imt) & dimx=s[1] & dimy=s[2]
 im=double(imt)

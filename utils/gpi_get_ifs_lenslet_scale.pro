@@ -12,7 +12,7 @@ function gpi_get_ifs_lenslet_scale,h,res=res
 ;     ifs_lenslet_scale = gpi_get_ifs_lenslet_scale(h,res)
 ;
 ; INPUT/OUTPUT
-;     H - Header containing WCS infor (sci extension header)
+;     H - Header containing WCS info (sci extension header)
 ;     ifs_lenslet_scale - The scale in arcseconds
 ;
 ; OPTIONAL INPUT/OUTPUT KEYWORDS:

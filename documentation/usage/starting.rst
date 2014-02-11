@@ -50,8 +50,14 @@ Starting from source code (either from the repository or zip files)
 
     .. image:: ../shared_images/icon_windows2.png
  
+ On Windows, there is a batch script in the ``pipeline/scripts`` directory called ``gpi-pipeline-windows.bat``. Double click it to start the GPI pipeline. 
 
-  On Windows: Start an IDL session. Run 
+ For convenience, you can create a shortcut of ``gpi-pipeline-windows.bat`` by right clicking on the file and selecting the option to create a shortcut. You can then place this on your desktop, start menu, or start screen to launch the pipeline from where it is convenient for you. 
+
+.. note::
+  Alternatively, on any OS you can use the following to start up the pipeline manually:
+
+  Start an IDL session. Run 
 
      ::
 
@@ -63,8 +69,6 @@ Starting from source code (either from the repository or zip files)
 
        IDL> gpi_launch_guis
 
-.. note::
-    You can use this method (manually starting two IDL sessions) on any OS.  
 
 
 Starting compiled code with the IDL Virtual Machine
@@ -204,32 +208,31 @@ The IDL session running the pipeline should immediately begin to look for new re
 window will be displayed on screen (see below). On startup, the pipeline will
 display status text that looks like::
   
-  *****************************************************
-  *                                                   *
-  *          GPI DATA REDUCTION PIPELINE              *
-  *                                                   *
-  *                   VERSION 0.9.1                   *
-  *                                                   *
-  *                                                   *
-  *         By the GPI Data Analysis Team             *
-  *      Perrin, Maire, Ingraham, Marois et al.       *
-  *                                                   *
-  *      For documentation & full credits, see        *
-  *      http://docs.planetimager.org/pipeline/       *
-  *                                                   *
-  *                                                   *
-  *****************************************************
-                                                     
-  % Compiled module: BIN_DATE.
-  16:10:11   Backbone Initialized
-  % Compiled module: GPIDRFPARSER__DEFINE.
-  % Loaded DLM: XML.
-  % Compiled module: GPIDRSCONFIGPARSER__DEFINE.
-  FOUND MODULE: accumulate_images  Accumulate Images
+  % Compiled module: [Lots of startup messages]
   [...]
-    
-  Now polling and waiting for Recipe files in /Users/mperrin/GPI/queue/
-    
+  01:26:22.484  Now polling and waiting for Recipe files in /Users/mperrin/data/GPI/queue/
+
+     *****************************************************
+     *                                                   *
+     *          GPI DATA REDUCTION PIPELINE              *
+     *                                                   *
+     *             VERSION 1.0                           *
+     *                                                   *
+     *         By the GPI Data Analysis Team             *
+     *                                                   *
+     *   Perrin, Maire, Ingraham, Savransky, Doyon,      *
+     *   Marois, Chilcote, Draper, Fitzgerald, Greenbaum *
+     *   Konopacky, Marchis, Millar-Blanchaer, Pueyo,    *
+     *   Ruffio, Sadakuni, Wang, Wolff, & Wiktorowicz    *
+     *                                                   *
+     *      For documentation & full credits, see        *
+     *      http://docs.planetimager.org/pipeline/       *
+     *                                                   *
+     *****************************************************
+
+
+   Now polling for Recipe files in /Users/mperrin/data/GPI/queue/ at 1 Hz
+
   
 If you see the "Now polling" line at the bottom, then the pipeline has launched
 successfully.
@@ -265,3 +268,34 @@ The ``gpi_launch_guis`` commands starts the GUI Launcher window:
 These are described in detail in the :ref:`user-intro`.
 
 
+.. _logging:
+
+Logging
+===========
+
+To ensure scientific reproducibility and aid in comparisons of results, the GPI data pipeline carefully logs its actions. 
+
+**Log files:**
+The GPI data pipeline writes a log of all activities to text files in the ``$GPI_DRP_LOG_DIR`` directory. 
+A new file is created for each date, with filenames following the format ``gpi_drp_YYMMDD.log`` where ``YYMMDD`` gives the current year, month, and date 
+numbers in standard Gemini fashion.  Log messages are also viewable on screen in the Status Console GUI, and printed to the console in the Pipeline IDL session.
+
+
+**FITS header history:** Provenance information is also written to FITS headers of all output files, in several forms. 
+
+ 1.  A copy of the entire reduction recipe used to reduce a given file is pasted into the header, in a block of COMMENT lines. This block
+     also includes comments giving the values of any environment variables used in that recipe. If an output file from one recipe is then used as 
+     input to a subsequent recipe, then both recipes will be recorded in the headers cumulatively.
+ 2.  HISTORY lines in the FITS headers record actions as each recipe is processed, including which primitives are run and what the results are
+     of various calculations. For each Primitive used in the recipe, a HISTORY line
+     states the specific revision id of that primitive.  HISTORY keywords also record the date and time of reduction, the 
+     computer hostname, and the username of the pipeline user. 
+ 3.  Some values of particular interest such as the names of calibration files used to reduce a given data set are also written as
+     additional header keywords. For instance the keyword DRPWVCLF (DRP Wavecal File) records the name of the wavelength calibration file
+     used when reducing a given observation.  
+     
+Of particular note, the keyword ``QUIKLOOK = T`` indicates that a given file
+is the result of a "quicklook" quality reduction, typically in real time at the
+telescope. These may not have made use of optimal calibration files, are not
+likely to be as good as more careful re-analyses, and should
+generally not be used directly for publications.

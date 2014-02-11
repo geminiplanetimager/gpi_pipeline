@@ -5,9 +5,15 @@
 		EXTENSION=EXTENSION0, NSLICE=NSLICE
 ;+
 ; NAME: 
-;	FXREAD
+;	FXREAD3D
+;
 ; Purpose     : 
 ;	Read basic FITS files.
+;
+;       This is a customized version of the Goddard IDL astro library's
+;       fxread.pro, modified for GPI to allow use with 3D dat cubes. 
+;       See GPI notes section at the end of this doc header. 
+;
 ; Explanation : 
 ;	Read an image array from a disk FITS file.  Optionally allows the
 ;	user to read in only a subarray and/or every Nth pixel.

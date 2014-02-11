@@ -38,7 +38,7 @@ pro gpipipelinebackbone::aboutmessage
     print, "     *   Perrin, Maire, Ingraham, Savransky, Doyon,      *"
     print, "     *   Marois, Chilcote, Draper, Fitzgerald, Greenbaum *"
     print, "     *   Konopacky, Marchis, Millar-Blanchaer, Pueyo,    *"
-    print, "     *   Ruffio, Sadakuni, Wolff, & Wiktorowicz          *"
+    print, "     *   Ruffio, Sadakuni, Wang, Wolff, & Wiktorowicz    *"
     print, "     *                                                   *"
     print, "     *      For documentation & full credits, see        *"
     print, "     *      http://docs.planetimager.org/pipeline/       *"
@@ -1186,7 +1186,7 @@ pro gpiPipelineBackbone::rescan_Config
 	if not lmgr(/runtime) then begin
 		self->log, "Rescanning for new primitives, and regenerating primitives config file."
 		self.statuswindow->update, [{name:'Rescanning primitives headers and regenerating config file'}], 0, 2, 1, ""
-		make_primitives_config 
+		gpi_make_primitives_config 
 		self->log, "Generated new primitives config file OK."
 	endif
 	; rescan primitives configuration file

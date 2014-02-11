@@ -1,3 +1,8 @@
+; Calculate centroid spots
+;
+; Author: Jerome Maire
+
+
 function calc_centroid_spots,  x,y,image, maxaper, centroidaper,gauss=gauss
 ;define first sat. box
   x1=0>x- maxaper

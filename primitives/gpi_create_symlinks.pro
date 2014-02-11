@@ -3,11 +3,14 @@
 ; PIPELINE PRIMITIVE DESCRIPTION: Create Symbolic Links
 ;
 ;     This primitive creates symbolic links for files either input to or output
-;     from the pipeline.
+;     from the pipeline. This is an engineering routine for possible use at 
+;     Gemini to provide a more user-friendly alternative to the 'dataflow'
+;     directory containing tens of thousands of files, without increasing
+;     disk space requirements by copying everything.
 ;
-; INPUTS: Some datacube
+; INPUTS: Ignored - see the 'filetolink' argument instead.
 ;
-; OUTPUTS: That datacube multiplied by a constant.
+; OUTPUTS: Creates a symbolic link on disk. Input file is unchanged.
 ;
 ; PIPELINE COMMENT: Create symbolic links on the file system for files either input to or output from the data pipeline.
 ; PIPELINE ARGUMENT: Name="filetolink" Type="string" Default="INPUT_FILE" Desc="File to create a link for. Either 'INPUT_FILE', 'LAST_OUTPUT_FILE', or the specific filename of some existing disk file"
@@ -16,8 +19,7 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; 
 ; PIPELINE ORDER: 5.0
-;
-; PIPELINE NEWTYPE: Testing
+; PIPELINE CATEGORY: Testing
 ;
 ; HISTORY:
 ;    2013-10-07 MP: Started based on template

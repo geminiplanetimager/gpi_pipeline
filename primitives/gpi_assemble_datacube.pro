@@ -14,13 +14,11 @@
 ;
 ; KEYWORDS:
 ; GEM/GPI KEYWORDS:FILTER2
-; DRP KEYWORDS:   
-; OUTPUTS:
 ;
 ; PIPELINE COMMENT: Extract a 3D datacube from a 2D image (Calls assemble spectral or polarimetric cube automatically depending on input data format)
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0"
 ; PIPELINE ORDER: 2.0
-; PIPELINE NEWTYPE: Testing
+; PIPELINE CATEGORY: Testing
 ;
 ; HISTORY:
 ;   2009-04-22 MDP: Created

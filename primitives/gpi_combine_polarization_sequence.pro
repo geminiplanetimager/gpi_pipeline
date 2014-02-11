@@ -25,9 +25,7 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="10" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 
 ; PIPELINE ORDER: 4.4
-; PIPELINE TYPE: ASTR/POL
-; PIPELINE NEWTYPE: PolarimetricScience,Calibration
-; PIPELINE SEQUENCE: 11-
+; PIPELINE CATEGORY: PolarimetricScience,Calibration
 ;
 ;
 ; HISTORY:
@@ -184,7 +182,6 @@ function DST_instr_pol, polcube, mueller=mueller, port=port, pband=pband
 
 ;The instrumental mueller matrices 
 
-
 ; Where is GPI mounted? 
 if ~(keyword_set(port)) then port="side"
 case port of 
@@ -334,10 +331,14 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		print, "using port = "+port
 		sxaddhist, functionname+": using instr pol for port ="+port, hdr0
 	;system_mueller = DST_instr_pol(/mueller, port=port)
-  	woll_mueller_vert = mueller_linpol_rot(0)
-	woll_mueller_horiz= mueller_linpol_rot(90)
-;    woll_mueller_vert = mueller_linpol_rot(90)
-;   woll_mueller_horiz= mueller_linpol_rot(0)
+	
+	;Good for on-sky data
+  ; woll_mueller_vert = mueller_linpol_rot(0)
+	; woll_mueller_horiz= mueller_linpol_rot(90)
+	
+	;Good for lab data
+    woll_mueller_vert = mueller_linpol_rot(90) 
+    woll_mueller_horiz= mueller_linpol_rot(0)
     
     ;Getting Filter Information
     filter=strsplit(sxpar(hdr0,"IFSFILT"), '_',/extract)
@@ -345,7 +346,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     tabband=[['Y'],['J'],['H'],['K1'],['K2']]
     if where(strcmp(tabband, pband) eq 1) lt 0 then return, error('FAILURE ('+functioname+'): IFSFILT keyword invalid. No HWP mueller matrix for that filter')
     
-    system_mueller = DST_instr_pol(/mueller, pband=pband, port=port)
+    include_mueller=uint(Modules[thisModuleIndex].IncludeSystemMueller)
+    if (include_mueller eq 1) then system_mueller = DST_instr_pol(/mueller, pband=pband, port=port)
 
 	for i=0L,nfiles-1 do begin
 	;if numext eq 0 then begin
@@ -362,21 +364,20 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
  
 		wp_mueller = DST_waveplate(angle=wpangle[i], pband=pband, /mueller,/silent, /degrees)
 		
-		include_mueller=uint(Modules[thisModuleIndex].IncludeSystemMueller)
-		
 		; FIXME: Sky rotation!!
-		;include_sky=uint(Modules[thisModuleIndex].IncludeSkyRotation)
-    include_sky=1
+		include_sky=uint(Modules[thisModuleIndex].IncludeSkyRotation)
+    ;include_sky=1
 		  
-    if include_sky eq 1 then skyrotation_mueller =  mueller_rot(parang*!dtor) else skyrotation_mueller=identity(4) ;In radians!
-		
-		
+    if include_sky eq 1 then skyrotation_mueller =  mueller_rot((parang+90+18.5)*!dtor) else skyrotation_mueller=identity(4) ;In radians!	
+ 
+    sign_flip=[[1,0,0,0],[0,1,0,0],[0,0,-1,0],[0,0,0,-1]]
+    
 		if (include_mueller eq 1) then begin ;Either include the system mueller matrix or not. Depending on the keyword
-    total_mueller_vert = woll_mueller_vert ## wp_mueller ## system_mueller ## skyrotation_mueller
-    total_mueller_horiz = woll_mueller_horiz ## wp_mueller ## system_mueller ## skyrotation_mueller
+    total_mueller_vert = woll_mueller_vert ##  sign_flip ## wp_mueller ## system_mueller ## skyrotation_mueller 
+    total_mueller_horiz = woll_mueller_horiz ## sign_flip## wp_mueller ## system_mueller ## skyrotation_mueller
     endif else begin
-    total_mueller_vert = woll_mueller_vert ## wp_mueller ## skyrotation_mueller 
-    total_mueller_horiz = woll_mueller_horiz ## wp_mueller ## skyrotation_mueller 
+    total_mueller_vert = woll_mueller_vert ## sign_flip ## wp_mueller ## skyrotation_mueller
+    total_mueller_horiz = woll_mueller_horiz ## sign_flip ## wp_mueller ## skyrotation_mueller
     endelse
 
 ;		M[*,2*i] = total_mueller_vert[*,0]
@@ -482,7 +483,6 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	endfor 
 	endfor 
 
-
 	; should we do the fit to the two polarized images, or to the sum and diff
 	; images?
 	; there does not appear to be much difference between the two methods, 
@@ -509,10 +509,6 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	sz = size(minim)
 	for ix=0L,sz[1]-1 do for iy=0L,sz[1]-1 do minim[ix,iy] = min(polstack2[ix,iy,*],/nan)
 	;atv, [[[minim]],[[stokes]],[[p]]],/bl, names = ["Mininum I", "I", "Q", "U", "V", "P"]
-
-
-
-
 
 	if tag_exist( Modules[thisModuleIndex], "display") then display=keyword_set(Modules[thisModuleIndex].display) else display=0 
 	if keyword_set(display) then begin
@@ -612,7 +608,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	backbone->set_keyword, 'DRPNFILE', nfiles, "# of files combined to produce this output file"
 
-	*(dataset.currframe)=Stokes
+	*(dataset.currframe)= Stokes
 	;*(dataset.headers[numfile]) = hdr
 	suffix = "-stokesdc"
   
@@ -636,7 +632,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   print, "U = "+string(umean)
   print, "V = "+string(vmean)
   print, "P = "+string(100*sqrt(qmean^2+umean^2))+"    percent linear polarization"
-  print, "PA = "+string(atan(qmean,umean)/!dtor)+" Mean PA across the field"
+  print, "PA = "+string(atan(umean/qmean)/!dtor/2)+" Mean PA across the field"
   print, string(100*sqrt(qmean^2+umean^2+vmean^2))+"     percent polarization"
   print, "------------------------------"
   

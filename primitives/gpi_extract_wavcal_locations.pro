@@ -2,6 +2,9 @@
 ; NAME: gpi_extract_wavcal_locations
 ; PIPELINE PRIMITIVE DESCRIPTION: Measure locations of Emission Lines
 ;
+;	**DEPRECATED** Prior version of wavecal algorithm, not
+;	recommended for general use.
+;
 ;	gpi_extract_wavcal detects positions of spectra in the image with narrow
 ;	band lamp image.
 ;
@@ -34,7 +37,7 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying wavcal file, 0: no display "
 ; PIPELINE ARGUMENT: Name="tests" Type="int" Range="[0,3]" Default="0" Desc="1 for extensive tests "
 ; PIPELINE COMMENT: Derive wavelength calibration from an arc lamp or flat-field image.
-; PIPELINE NEWTYPE: Calibration
+; PIPELINE CATEGORY: Testing
 ; PIPELINE ORDER: 1.73
 ; HISTORY:      
 ; 	 Jerome Maire 2008-10

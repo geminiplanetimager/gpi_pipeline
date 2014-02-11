@@ -5,12 +5,13 @@
 ;   Reads a polarimetry spot calibration file from disk.
 ;   The spot calibration is stored using pointers into the common block.
 ;
-; OUTPUTS: none
+; INPUTS: Not used directly
+; OUTPUTS: none; polarimetry spot cal file is loaded into memory
 ;
 ; PIPELINE COMMENT: Reads a pol spot calibration file from disk. This primitive is required for any polarimetry data-cube extraction.
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="String" CalFileType="polcal" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
 ; PIPELINE ORDER: 0.51
-; PIPELINE NEWTYPE: PolarimetricScience,Calibration
+; PIPELINE CATEGORY: PolarimetricScience,Calibration
 ;
 ; HISTORY:
 ;   2013-01-28 MMB: Adapted to pol extraction (based on readwavcal.pro)

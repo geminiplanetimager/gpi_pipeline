@@ -5,11 +5,12 @@
 ;	Searches for statistical outlier bad pixels in a cube and replace them
 ;	by interpolating between their neighbors. 
 ;
+;  CAUTION:
 ;	Heuristic and not guaranteed or tested in any way; this is more a 
 ;	convenience function than a rigorous statistcally justified repair tool
 ;
 ; INPUTS: Cube in either spectral or polarization mode
-; OUTPUTS: Cube with bad pixels potentially cleaned up. 
+; OUTPUTS: Cube with bad pixels potentially found and cleaned up. 
 ;
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="1" Desc="1-500: choose gpitv session for displaying output, 0: no display "
@@ -17,8 +18,7 @@
 ;
 ; PIPELINE COMMENT:  Repair bad pixels by interpolating between their neighbors. 
 ; PIPELINE ORDER: 2.5
-; PIPELINE TYPE: ALL HIDDEN
-; PIPELINE NEWTYPE: SpectralScience, PolarimetricScience, Calibration
+; PIPELINE CATEGORY: SpectralScience, PolarimetricScience, Calibration
 ;
 ;
 ; HISTORY:
@@ -27,7 +27,7 @@
 ;	now? 
 ;-
 function gpi_interpolate_bad_pixels_in_cube, DataSet, Modules, Backbone
-primitive_version= '$Id: gpi_interpolate_bad_pixels_in_2d_frame.pro 2194 2013-12-03 03:49:09Z mperrin $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 

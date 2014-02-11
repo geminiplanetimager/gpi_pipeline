@@ -52,7 +52,7 @@
 ; PIPELINE ARGUMENT: Name="before_and_after" Type="int" Range="[0,1]" Default="0" Desc="Show the before-and-after images for the user to see?"
 ; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="SIMPLE_CHANNELS|SIMPLE_HORIZONTAL|SMOOTHED_HORIZONTAL|INTERPOLATED"  Default="INTERPOLATED" Desc="Algorithm for reference pixel subtraction."
 ; PIPELINE ORDER: 1.25
-; PIPELINE NEWTYPE: ALL
+; PIPELINE CATEGORY: ALL
 ;
 ; HISTORY:
 ; 	Originally by Jerome Maire 2008-06

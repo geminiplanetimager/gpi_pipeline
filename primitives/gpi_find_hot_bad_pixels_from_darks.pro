@@ -2,7 +2,8 @@
 ; NAME: gpi_find_hot_bad_pixels_from_darks
 ; PIPELINE PRIMITIVE DESCRIPTION: Find Hot Bad Pixels from Darks
 ;
-; This is a variant of combinedarkframes that instead writes out a
+; This is a variant of combinedarkframes that (instead of combining darks) 
+; analyzes them to find hot pixels and then writes out a
 ; mask showing where the various hot pixels are. 
 ;
 ;
@@ -11,20 +12,17 @@
 ;	(a) dark count rate must be > 1 e-/second for that pixel
 ;	(b) that must be measured with >5 sigma confidence above the estimated
 ;	    read noise of the frames. 
+; The first criterion can be adjusted using the hot_bad_thresh argument.
 ;
-;
-; KEYWORDS:
-; DRP KEYWORDS: FILETYPE,ISCALIB
-; OUTPUTS:
+; INPUTS: Multiple dark images
+; OUTPUTS:	Map of hot bad pixels
 ;
 ; PIPELINE COMMENT: Find hot pixels from a stack of dark images (best with deep integration darks)
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="hot_bad_thresh" Type="float" Range="[0,100.]"  Default="1.0" Desc="Threshhold to consider a hot pixel bad, in electrons/second."
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.01
-; PIPELINE TYPE: CAL-SPEC
-; PIPELINE NEWTYPE: Calibration
-; PIPELINE SEQUENCE: 22-
+; PIPELINE CATEGORY: Calibration
 
 ;
 ; HISTORY:

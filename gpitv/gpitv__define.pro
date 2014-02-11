@@ -520,7 +520,8 @@ state = {                   $
         filetype: '' $                      ; type of file currently loaded
         }
 
-cd, curr=curr
+curr = gpi_expand_path(gpi_get_setting('gpitv_startup_dir',/silent))
+if ~file_test(curr,/dir) then cd, curr=curr
 state.current_dir=curr
 state.output_dir = curr
 
@@ -3230,9 +3231,8 @@ pro GPItv::collapsecube
      end
 
      'High Pass Filter':begin
-        widget_control,(*self.state).curimnum_base_id,map=1
+        ; image updating now goes on inside the function
         self->high_pass_filter
-        *self.images.main_image=(*self.images.main_image_stack)[*,*,(*self.state).cur_image_num]
      end  
 
      'Run KLIP':begin
@@ -3245,6 +3245,12 @@ pro GPItv::collapsecube
         ;; 2-slice difference for a Polarization Pair
         widget_control,(*self.state).curimnum_base_id,map=0
         *self.images.main_image=(*self.images.main_image_stack)[*,*,1] - (*self.images.main_image_stack)[*,*,0]
+        if bpct gt 0 then (*self.images.main_image)[wn] = !values.f_nan
+     end
+     'Total Intensity': begin
+        ;; 2-slice sum for a Polarization Pair
+        widget_control,(*self.state).curimnum_base_id,map=0
+        *self.images.main_image=(*self.images.main_image_stack)[*,*,1] + (*self.images.main_image_stack)[*,*,0]
         if bpct gt 0 then (*self.images.main_image)[wn] = !values.f_nan
      end
      
@@ -3538,6 +3544,7 @@ end
 ;----------------------------------------------------------
 
 pro gpitv::refresh_image_invert_rotate
+;+
 ; This is a unified routine to apply image transformations such as rotation and
 ; inversion. These are noncommutative operations and so we have to specify a 
 ; specific order of operations, which is hereby defined to be
@@ -3548,14 +3555,15 @@ pro gpitv::refresh_image_invert_rotate
 ; doing only the minimal transformation, but the old "more efficient"
 ; way inherited from atv wasn't an unambiguous repeatable transformation
 ; that could be retained when switching between images in a non-buggy fashion.
+;-
 
 
 	;----------  Setup for rotation and inversion --------
-   ;; first, grab the backup image and restore it, along with its 
-   ;; astrometry header
-   *self.images.main_image_stack = *self.images.main_image_backup
-   *self.images.main_image = (*self.images.main_image_stack)[*, *, (*self.state).cur_image_num]
-   *(*self.state).astr_ptr = *(*self.state).main_image_astr_backup
+	;; first, grab the backup image and restore it, along with its 
+    ;; astrometry header
+    *self.images.main_image_stack = *self.images.main_image_backup
+    *self.images.main_image = (*self.images.main_image_stack)[*, *, (*self.state).cur_image_num]
+    *(*self.state).astr_ptr = *(*self.state).main_image_astr_backup
 
 	has_astr = ptr_valid( (*self.state).astr_ptr )
 	if has_astr then begin
@@ -3577,8 +3585,7 @@ pro gpitv::refresh_image_invert_rotate
 	; is X flip needed? 
 	if strpos((*self.state).invert_image, 'x') ge 0 then begin
 		self->message, 'inverting in x'
-		;if ptr_valid((*self.state).head_ptr) then begin ; transformation with astrometry header updates
-		if has_astr then begin
+		if has_astr then begin ; transformation with astrometry header updates
 			hreverse2, *self.images.main_image,  astr_header , *self.images.main_image,  astr_header , 1, /silent
 		endif else begin								; simple transformations without astrometry headers to worry about
 			*self.images.main_image = reverse(*self.images.main_image)
@@ -3619,7 +3626,6 @@ pro gpitv::refresh_image_invert_rotate
 		   desired_angle = desired_angle mod 360
 		   if desired_angle lt 0 then desired_angle +=360
 		   rchange = strc(fix(desired_angle)) ; how much do we need to change the image to get the new rotation?
-		   ;self->Message, 'Rotating exactly to '+strc(desired_angle)+", which is "+rchange+" deg relative to current orientation"
 		   self->message, 'Rotating exactly to '+rchange
 
 		   case rchange of
@@ -3729,15 +3735,12 @@ pro gpitv::refresh_image_invert_rotate
 	   if (*self.state).astr_from eq 'PHDU' then begin
 		   ; stick modified header back into the PHDU slot.
 			*((*self.state).head_ptr) = astr_header	
-		   ;if ptr_valid( (*self.state).exthead_ptr ) then extensionheader = *((*self.state).exthead_ptr)
-		  ;self->setheader, astr_header, extensionhead=extensionheader
 	   endif else begin
 		   ; stick modified header back into the extension HDU slot
 		   *((*self.state).exthead_ptr) = astr_header
-		   ; have to make copy first of the PHDU header, or else the ptr_free in setheader clobbers itself.
-		   ;copy_of_head = *((*self.state).head_ptr)
-		   ;self->setheader, copy_of_head,  extensionhead=astr_header
 	   endelse
+		 ; update astr_ptr for GPItv 
+		 extast, astr_header, (*(*self.state).astr_ptr), noparams
 	endif
 
 
@@ -3791,8 +3794,6 @@ pro GPItv::rotate, desired_angle, get_angle=get_angle, nodisplay=nodisplay
 ; Rotation code reworked by MP to provide absolute rotations such that you can
 ; undo the rotation if you want by setting it back to 0.
 ;
-; This only works if you avoid interpolating - but one should not in general
-; need arbitrary rotations for gpitv
 ;
 ; If /get_angle set, create widget to enter rotation angle
 ;
@@ -3800,6 +3801,12 @@ pro GPItv::rotate, desired_angle, get_angle=get_angle, nodisplay=nodisplay
 ;	desired_angle		Desired rotation counterclockwise, from the unrotated
 ;						image's starting orientation (i.e. this is absolute
 ;						not relative rotation.)
+;
+;	/get_angle			Open a dialog box and ask the user what angle to rotate
+;	/nodisplay			Don't refresh all displays after rotating. This is
+;						useful if ::rotate is called in the middle of a series
+;						of chained transformations, so you only update the
+;						displays once at the end. 
 ;
 ;-
 
@@ -3826,12 +3833,12 @@ pro GPItv::rotate, desired_angle, get_angle=get_angle, nodisplay=nodisplay
 
 	widget_control, /hourglass
 
-	self->refresh_image_invert_rotate 
+	self->refresh_image_invert_rotate ; Do the actual rotation
 
 	; update the menu checkboxes
 	self->update_menustate_rotate_invert
 
-	;Redisplay inverted image with current zoom, update pan, and refresh image
+	;Redisplay the rotated image with current zoom, update pan, and refresh image
 	if ~(keyword_set(nodisplay)) then begin 
 	   self->displayall
 	   self->update_child_windows,/update
@@ -3863,13 +3870,34 @@ pro GPItv::change_image_units, new_requested_units, silent=silent
                                 ;nim = n_elements(*(*self.state).CWV_ptr)
   if n_elements((*self.state).image_size) eq 3 then nim = ((*self.state).image_size)[2] else nim = 1
 
+    if ((*self.state).current_units eq 'Contrast') and new_requested_units eq (*self.state).intrinsic_units then begin
+        conversion_factor = 1./((1./(*self.state).gridfac)*mean((*self.satspots.satflux)[*, (*self.state).cur_image_num ]))
+      (*self.state).max_value /= conversion_factor
+      (*self.state).min_value /= conversion_factor
+    endif  
+     if ((*self.state).current_units eq 'Contrast') and new_requested_units ne (*self.state).intrinsic_units then begin
+             self->message,[ $
+              'Not sure how to convert from "'+(*self.state).current_units+'" to "'+new_requested_units+'". Not supported yet!',$
+              'Please convert from "'+(*self.state).current_units+'" to "'+(*self.state).intrinsic_units] ;,/window 
+            ;Ignoring Retain Current Stretch.',/window
+       return
+     endif
+          if (new_requested_units eq 'Contrast') and (*self.state).current_units ne (*self.state).intrinsic_units then begin
+             self->message,[ $
+              'Not sure how to convert from "'+(*self.state).current_units+'" to "'+new_requested_units+'". Not supported yet!',$
+              'Please convert from "'+(*self.state).intrinsic_units+'" to "'+new_requested_units] ;,/window 
+            ;Ignoring Retain Current Stretch.',/window
+       return
+     endif
+  
   ;;if you're going from contrast, restore intrinsic units
   if ((*self.state).current_units eq 'Contrast') then begin
      *self.images.main_image_stack = *self.images.main_image_backup
      (*self.state).current_units = (*self.state).intrinsic_units
 
   endif 
-  
+
+    
   ;;no need to do anything if requested is same as current
   if (*self.state).current_units ne new_requested_units then begin
 
@@ -4455,7 +4483,7 @@ widget_control, /hourglass
 if (n_elements(*self.images.main_image) LT 5.e5) then begin
     med = median((*self.images.main_image),/DOUBLE)
     sz=size((*self.images.main_image))
-    sig = stddev((*self.images.main_image)[sz[1]/2-sz[1]/5:sz[1]/2+sz[1]/5,sz[2]/2-sz[2]/5:sz[2]/2+sz[2]/5],/NAN) ;limit area of stddev to remove edge effects occuring when flat-fielding
+    sig = stddev((double((*self.images.main_image)))[sz[1]/2-sz[1]/5:sz[1]/2+sz[1]/5,sz[2]/2-sz[2]/5:sz[2]/2+sz[2]/5],/NAN) ;limit area of stddev to remove edge effects occuring when flat-fielding
 endif else begin   ; resample big images before taking median, to save memory
     boxsize = 10
     rx = (*self.state).image_size[0] mod boxsize
@@ -5449,11 +5477,13 @@ pro GPItv::readfits, fitsfilename=fitsfilename, imname=imname, _extra=_extra
   if ((size(head))[0] eq 0) || (n_elements(strcompress(head, /remove_all)) LT 2) then begin
      self->message, 'File  '+fitsfile+' does not appear to be a valid FITS image!', $
                     window = window, msgtype = 'error'
+
      return
   endif
   if (!ERR EQ -1) then begin
      self->message, $
         'Selected file '+fitsfile+' does not appear to be a valid FITS image!', $
+
         msgtype = 'error', window = window
      return
   endif
@@ -5474,8 +5504,10 @@ pro GPItv::readfits, fitsfilename=fitsfilename, imname=imname, _extra=_extra
   
   ;; Make sure it's not a 1-d spectrum
   if (numext EQ 0 AND naxis LT 2) then begin
+
      self->message, 'Selected file '+fitsfile+' is not a 2-d or 3-d FITS image!', $
                     window = window, msgtype = 'error'
+
      return
   endif
   
@@ -5612,9 +5644,11 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
 
      else: begin
         ;; Catch-all case for non 2-d or 3-d images - alert the user
+stop
         self->message, 'Selected file is not a 2-D or 3-D FITS image!', $
                        msgtype = 'error', window = window
         *self.images.main_image = fltarr(512, 512)
+stop
         return
      end  
   endcase ;;dimensionality of main image 
@@ -5825,8 +5859,7 @@ pro GPItv::update_sat_spots,locs0=locs0
   ;; get instrument transmission (and resolution)
   ;; corrections for lyot, PPM, and filter transmission
   pupil_mask_string=gpi_simplify_keyword_value(sxpar(header,'APODIZER'))	
-  lyot_mask_string=sxpar(header,'LYOTMASK')
-  
+  lyot_mask_string=sxpar(header,'LYOTMASK') 
   transmission=calc_transmission(filter, pupil_mask_string, lyot_mask_string, resolution=resolution, without_filter=1)
   
   if transmission[0] eq -1 then begin
@@ -5843,7 +5876,6 @@ pro GPItv::update_sat_spots,locs0=locs0
 	; calculate the width of a wavelength slice 
 	dlambda=cube_waves[1]-cube_waves[0]
 	zero_vega*=dlambda ; now in ph/slice
-  
   ;; load filters for integration	
   filt_prof0=mrdfits( gpi_get_directory('GPI_DRP_CONFIG')+'/filters/GPI-filter-'+filter+'.fits',1,/silent)
   filt_prof=interpol(filt_prof0.transmission,filt_prof0.wavelength,cube_waves)
@@ -8007,11 +8039,11 @@ if naxis eq 3 then begin
             self->message, msgtype = 'information', "Configuring GPItv for STOKES MODE"
             widget_control, (*self.state).curimnum_lambLabel_id, set_value="Polariz.="
             
-            modelist = ['Show Cube Slices', 'Collapse by Mean', 'Collapse by Median']
+            modelist = ['Show Cube Slices', 'Collapse by Mean', 'Collapse by Median', 'High Pass Filter']
             ;; do we have a 2-Slice pol stack, or a 4-slice cube?
             ;; set up to overplot polarization vectors
             naxis3 = gpi_get_keyword(h, e, "NAXIS3")
-            if naxis3 eq 2 then modelist=[modelist, 'Difference of Polarizations'] $
+            if naxis3 eq 2 then modelist=[modelist, 'Total Intensity', 'Difference of Polarizations'] $
             else modelist=[modelist, 'Linear Pol. Intensity', 'Linear Pol. Fraction']
             
             widget_control, (*self.state).collapse_button, set_value = modelist
@@ -9032,7 +9064,7 @@ self->setwindow, (*self.state).draw_window_id
 
 widget_control, /hourglass
 
-arrows, *((*self.state).head_ptr), $
+arrows, *((*self.state).exthead_ptr), $
   (*(self.pdata.plot_ptr[iplot])).x, $
   (*(self.pdata.plot_ptr[iplot])).y, $
   thick = (*(self.pdata.plot_ptr[iplot])).thick, $
@@ -11389,7 +11421,11 @@ end
 
 pro GPItv::wavecalgridlabel
 ; Front-end widget for wavecal labels
-
+if (*self.state).wcfilename eq '' then begin
+    self->message, 'You must select a wavecal file before you can overplot the wavelength solution grid.', $
+      msgtype = 'error', /window
+  return
+endif
 
 ; Check for applied shifts to account for flexure
 shiftx = sxpar( *((*self.state).head_ptr), 'SPOT_DX', count=ct)
@@ -11397,48 +11433,73 @@ if ct eq 0 then shiftx=0
 shifty = sxpar( *((*self.state).head_ptr), 'SPOT_DY', count=ct)
 if ct eq 0 then shifty=0
 
+; estimate the appropriate shifts from the wavecal and the flexure model
 
-formdesc = ['0, droplist, black|red|green|blue|cyan|magenta|yellow|white,label_left=Grid Color:, set_value=1 ', $
-            '0, droplist, black|red|green|blue|cyan|magenta|yellow|white,label_left=Tilt Color:, set_value=2 ', $
-            '0, droplist, no|yes,label_left=mlens coord labels:, set_value=0 ', $
-            '0, droplist, black|red|green|blue|cyan|magenta|yellow|white,label_left=Label Color:, set_value=7 ', $
-            '0, float, '+string(shiftx)+', label_left=Spot Shift X: ', $
-            '0, float, '+string(shifty)+', label_left=Spot Shift Y: ', $
-            '0, float, 1.0, label_left=Charsize: ', $
-            '0, integer, 1, label_left=Charthick: ', $
-            '1, base, , row', $
-            '0, button, Cancel, quit', $
-            '0, button, DrawGrid, quit']
+;catch, recommend_shifts
+recommend_shifts=0
+if recommend_shifts eq 0 then begin
+	; Try to read in all the necessary info and call the flexure model
+	caldb = obj_new('gpicaldatabase')
+	shiftsfile = caldb->get_best_cal_from_header( 'shifts', *((*self.state).head_ptr),  *((*self.state).exthead_ptr) )
+	elevation = sxpar(*((*self.state).head_ptr), 'ELEVATIO')
+	wchd = headfits((*self.state).wcfilename)
+	wc_elevation = sxpar(wchd, 'ELEVATIO')
+    lookuptable = gpi_readfits(shiftsFile)
+	recommended_shifts = gpi_flexure_model( lookuptable, elevation, wavecal_elevation=wc_elevation)
+endif else begin
+	recommended_shifts = [0.0, 0.0]
+endelse
+;catch, /cancel
+
+
+	; need to get a flexure table from the calibration DB
+
+
+; Query the user for desired wavecal display options
+
+formdesc = ['0, droplist, black|red|green|blue|cyan|magenta|yellow|white,label_left=Grid Color:   , set_value=1 ', $ ; tag0
+            '0, droplist, black|red|green|blue|cyan|magenta|yellow|white,label_left=Tilt Color:   , set_value=2 ', $ ; tag1
+			'0, label, Recommended spot shifts from flexure model:,left ',$	; tag2
+			'0, label,     (delta X\, delta Y) = ('+sigfig(recommended_shifts[0],3)+'\, '+sigfig(recommended_shifts[1],3)+' ) , center',$	; tag3
+            '0, float, '+string(shiftx)+', label_left=Spot Shift X: ', $ ; tag4
+            '0, float, '+string(shifty)+', label_left=Spot Shift Y: ', $ ; tag5
+            '0, droplist, no|yes,label_left=Include mlens coord labels:, set_value=0 ', $ ; tag6
+            '0, droplist, black|red|green|blue|cyan|magenta|yellow|white,label_left=Label Color:       , set_value=7 ', $ ; tag7
+            '0, float, 1.0, label_left=Charsize: ', $ ; tag8
+            '0, integer, 1, label_left=Charthick: ', $ ; tag9
+            '1, base, , row', $	; tag10
+            '0, button, Cancel, quit', $ ; tag11
+            '0, button, DrawGrid, quit'] ; tag12
 
 if (*self.state).multisess GT 0 then title_base = "GPItv #"+strc((*self.state).multisess) else title_base = 'GPItv '
-gridform=cw_form(formdesc, /column, title = title_base+' wavecal Grid')
+gridform=cw_form(formdesc, /column, title = title_base+' Plot Wavecal Grid Options ')
 
 gridcolor = gridform.tag0
 wcslabelcolor = gridform.tag1
 
-if (gridform.tag10 eq 1) then begin
-;; switch red and black indices
-;  case gridform.tag0 of
-;    0: gridcolor = 1
-;    1: gridcolor = 0
-;    else: gridcolor = gridform.tag0
-;  endcase
-;
-;  case gridform.tag1 of
-;    0: wcslabelcolor = 1
-;    1: wcslabelcolor = 0
-;    else: wcslabelcolor = gridform.tag1
-;  endcase
+if (gridform.tag12 eq 1) then begin
+	;; switch red and black indices
+	;  case gridform.tag0 of
+	;    0: gridcolor = 1
+	;    1: gridcolor = 0
+	;    else: gridcolor = gridform.tag0
+	;  endcase
+	;
+	;  case gridform.tag1 of
+	;    0: wcslabelcolor = 1
+	;    1: wcslabelcolor = 0
+	;    else: wcslabelcolor = gridform.tag1
+	;  endcase
 
-shiftx = gridform.tag4
-shifty = gridform.tag5
+	shiftx = gridform.tag4
+	shifty = gridform.tag5
 
-print, "Shifts", shiftx, shifty
-sxaddpar,  *((*self.state).head_ptr), 'SPOT_DX', shiftx
-sxaddpar,  *((*self.state).head_ptr), 'SPOT_DY', shifty
+	print, "Shifts", shiftx, shifty
+	sxaddpar,  *((*self.state).head_ptr), 'SPOT_DX', shiftx
+	sxaddpar,  *((*self.state).head_ptr), 'SPOT_DY', shifty
 
-self->wavecalgrid, gridcolor=gridform.tag0, tiltcolor=gridform.tag1, labeldisp=gridform.tag2, $
-  labelcolor=gridform.tag3, charsize=gridform.tag4, charthick=gridform.tag5
+	self->wavecalgrid, gridcolor=gridform.tag0, tiltcolor=gridform.tag1, labeldisp=gridform.tag6, $
+	  labelcolor=gridform.tag7, charsize=gridform.tag8, charthick=gridform.tag9
 
 endif
 
@@ -14263,18 +14324,98 @@ color = (*(self.pdata.plot_ptr[iplot])).options.color
 thetaoffset = (*(self.pdata.plot_ptr[iplot])).options.thetaoffset
 ;print,"thetaoffset: ",thetaoffset
 
-qo = (*(self.pdata.plot_ptr[iplot])).q
-uo = (*(self.pdata.plot_ptr[iplot])).u
+
+;qo = (*(self.pdata.plot_ptr[iplot])).q
+;uo = (*(self.pdata.plot_ptr[iplot])).u
+
+qo = (*self.images.main_image_backup)[*,*,1]/(*self.images.main_image_backup)[*,*,0]
+uo = (*self.images.main_image_backup)[*,*,2]/(*self.images.main_image_backup)[*,*,0]
+
+;The inversion and rotation have basically been copied from gpitv::refresh_image_invert_rotate
+; is X flip needed? 
+if strpos((*self.state).invert_image, 'x') ge 0 then begin
+ self->message, 'inverting in x'
+    ;if ptr_valid((*self.state).exthead_ptr)  then begin ; transformation with astrometry header updates
+     ; hreverse2, theta,  hdr , theta,  hdr , 1, /silent
+    ;endif else begin                ; simple transformations without astrometry headers to worry about
+    qo = reverse(qo)
+    uo = reverse(uo)
+      ;theta = -theta
+    ;endelse
+  endif
+  
+; is Y flip needed? 
+if strpos((*self.state).invert_image, 'y') ge 0 then begin
+    self->message, 'inverting in y'
+    ;if ptr_valid((*self.state).exthead_ptr)  then begin ; transformation with astrometry header updates
+    ;  hreverse2, theta,  hdr , theta,  hdr , 2, /silent
+    ;endif else begin                ; simple transformations without astrometry headers to worry about
+    qo = reverse(qo,2)
+    uo = reverse(uo,2)
+    ;endelse
+endif
+
+;Image Rotation?
+if (*self.state).rot_angle ne 0 then begin
+    desired_angle = (*self.state).rot_angle  ; for back compatibility with prior implementation
+    
+    ;; Are we rotating by some multiple of 90 degrees? If so, we can do so
+    ;; exactly.
+    if (desired_angle/90. eq fix(desired_angle/90)) then begin
+       desired_angle = desired_angle mod 360
+       if desired_angle lt 0 then desired_angle +=360
+       rchange = strc(fix(desired_angle)) ; how much do we need to change the image to get the new rotation?
+
+       case rchange of
+        '0':  rot_dir=0           ;; do nothing
+        '90': rot_dir=1
+        '180': rot_dir=2
+        '270': rot_dir=3
+       endcase
+
+        ;; no astrometry, just do the rotate
+        qo = rotate(qo, rot_dir)
+        uo = rotate(uo, rot_dir)
+       
+    endif else begin
+        ;Arbitrary Rotation Angle
+        interpolated_qo= rot(qo, (-1)*desired_angle,  cubic=-0.5, missing=!values.f_nan)
+        nearest_qo = rot(qo, (-1)*desired_angle,  interp =0,  missing=!values.f_nan)
+        wnan = where(~finite(interpolated_qo), nanct)
+        if nanct gt 0 then interpolated_qo[wnan] = nearest_qo[wnan]
+        qo = interpolated_qo
+        
+        interpolated_uo= rot(uo, (-1)*desired_angle,  cubic=-0.5, missing=!values.f_nan)
+        nearest_uo = rot(uo, (-1)*desired_angle,  interp =0,  missing=!values.f_nan)
+        wnan = where(~finite(interpolated_uo), nanct)
+        if nanct gt 0 then interpolated_uo[wnan] = nearest_uo[wnan]
+        uo = interpolated_uo
+    endelse
+endif
+
+;ORIGINAL
+;if resample eq 1 then begin
+;    q = (*(self.pdata.plot_ptr[iplot])).q
+;    u = (*(self.pdata.plot_ptr[iplot])).u
+;endif else begin
+;    sz = size((*(self.pdata.plot_ptr[iplot])).q)
+;    q = congrid((*(self.pdata.plot_ptr[iplot])).q,sz[1]/resample,sz[2]/resample,/int)
+;    if arg_present(xo) then x = congrid(xo,sz[1]/resample)
+;    u = congrid((*(self.pdata.plot_ptr[iplot])).u,sz[1]/resample,sz[2]/resample,/int)
+;    if arg_present(xo) then y = congrid(yo,sz[2]/resample)
+;endelse
+;UPDATED FOR INVERSION 
 if resample eq 1 then begin
-    q = (*(self.pdata.plot_ptr[iplot])).q
-    u = (*(self.pdata.plot_ptr[iplot])).u
+    q = qo
+    u = uo
 endif else begin
-    sz = size((*(self.pdata.plot_ptr[iplot])).q)
-    q = congrid((*(self.pdata.plot_ptr[iplot])).q,sz[1]/resample,sz[2]/resample,/int)
+    sz = size(qo)
+    q = congrid(qo,sz[1]/resample,sz[2]/resample,/int)
     if arg_present(xo) then x = congrid(xo,sz[1]/resample)
-    u = congrid((*(self.pdata.plot_ptr[iplot])).u,sz[1]/resample,sz[2]/resample,/int)
+    u = congrid(uo,sz[1]/resample,sz[2]/resample,/int)
     if arg_present(xo) then y = congrid(yo,sz[2]/resample)
 endelse
+
 sz = size(q)
 x = (findgen(sz[1]))*resample
 y = (findgen(sz[2]))*resample
@@ -14312,13 +14453,42 @@ if n_elements(good) eq 1 then return
         y0 = min(y,max=y1,/NaN)
     	x_step=(x1-x0)/(sz[1]-1.0)   ; Convert to float. Integer math
     	y_step=(y1-y0)/(sz[2]-1.0)   ; could result in divide by 0
-    	theta = 0.5 * atan(u,q)+thetaoffset*!dtor
-    	maxmag = .50
+    	
+   ;To compensate for the use of the Rotate North Up Primitive
+   if ptr_valid((*self.state).exthead_ptr) then begin ;If the header exists
+   hdr = *((*self.state).exthead_ptr) 
+   rot_ang = sxpar(hdr, 'ROTANG') ;If this keyword isn't set sxpar just returns 0, which is acceptable. 
+   getrot, hdr, npa, cdelt, /silent
+   d_PAR_ANG = - rot_ang
+   endif else begin 
+   d_PAR_ANG = 0
+   cdelt = [1,1] ;If there's no header create a dummy cdelt whose first element is positive 
+   endelse
+ 
+   ;print, "Rotating pol vectors by angle of: "+string(-d_PAR_ANG) ; To match with north rotation
+  
+   if cdelt[0] gt 0 then sgn = -1 else sgn = 1 ; To check for flip between RH and LH coordinate systems
+   
+   theta =  sgn* 0.5 * atan(u/q)+sgn*d_par_ang*!dtor+(thetaoffset+npa)*!dtor
+   ;theta = 0.5 * atan(u/q)+thetaoffset*!dtor
+;   self->Message, "Mean theta "+string(mean(theta,/nan)/!dtor)
+;   self->Message, "Sign"+string(sgn)
+;   self->Message, "npa"+string(npa)
+;   self->Message, "PA Offset from GPItv:"+string(thetaoffset)
+;   self->Message, "Image Rotation from GPItv:"+string((*self.state).rot_angle)
+;   self->Message, "Image Rotation Angle:"+string(d_par_ang)
+;;  
+   maxmag = .50
+   
+   ;Check for image inversion: 
+   ;
+
+   
 
     ; remember position angle is defined starting at NORTH so
     ; the usual positions of sin and cosine are swapped.
-    deltax = -lengthscale * mag * sin(theta)/2
-    deltay = lengthscale * mag * cos(theta)/2
+    deltax = -lengthscale  *mag * sin(theta)/2
+    deltay = lengthscale  *mag * cos(theta)/2
     x_b0=x0-x_step
     x_b1=x1+x_step
     y_b0=y0-y_step
@@ -17935,38 +18105,54 @@ end
 pro GPItv::high_pass_filter, status=status
 ;;; routine to remove low frequency structure from cubes
 ;;; PI - 2013-07-24
+;;; JW - 2014-02-03 Added capability to do stacked images and 2d cubes
 
 widget_control, /hourglass
 
-if n_elements((*self.state).image_size) eq 3 then begin
+if (n_elements((*self.state).image_size) eq 3) or (n_elements((*self.state).image_size) eq 2) then begin
 
 	medboxsize = (*self.state).high_pass_size
-     
-	im=*self.images.main_image_stack
-	for s=0,N_ELEMENTS(im[0,0,*])-1 do im[*,*,s]=im[*,*,s]-filter_image(im[*,*,s],median=medboxsize)
+  
+	; visibility of the cube slice widget is a proxy for whether we are 
+	; looking at a cube slice or a combined image (e.g. averaged, medianed)   
+	visibility = widget_info((*self.state).curimnum_base_id,/map)
+	
+	; if the widget is visible, we are looking slices so we should filter all
+	; of the slices for consistency
+	if visibility eq 1 then begin
+		im=*self.images.main_image_stack
+		for s=0,N_ELEMENTS(im[0,0,*])-1 do im[*,*,s]=im[*,*,s]-filter_image(im[*,*,s],median=medboxsize)
 
-	; sigmas of sat spot are 1.39 and 1.46 in H 
-	npix=5
-	psf=psf_gaussian(npixel=npix,FWHM=(2.355*1.43))
+		; sigmas of sat spot are 1.39 and 1.46 in H 
+		;npix=5
+		;psf=psf_gaussian(npixel=npix,FWHM=(2.355*1.43))
+		;
+		;iden_kernel=fltarr(npix,npix)
+		;iden_kernel[npix/2,npix/2]=1
+		;kernel=iden_kernel-psf
+		;kernel=psf
+		; normalize such that the total is equal to 1
+		;kernel/=total(kernel)
+		;   for s=0,N_ELEMENTS(im[0,0,*])-1 do im[*,*,s]=convol(im[*,*,s],kernel)
+	
+		*self.images.main_image_stack=im
+    *self.images.main_image=(*self.images.main_image_stack)[*,*,(*self.state).cur_image_num]
+	endif else begin
+		; we are looking at a collapsed image of some sort so save time by not
+		; filtering all the slices, just the current combined image
+		im = *self.images.main_image
+		im -= filter_image(im, median=medboxsize)
+		*self.images.main_image = im
+	endelse
 
-	iden_kernel=fltarr(npix,npix)
-	iden_kernel[npix/2,npix/2]=1
-	;kernel=iden_kernel-psf
-	kernel=psf
-	; normalize such that the total is equal to 1
-	kernel/=total(kernel)
-	;   for s=0,N_ELEMENTS(im[0,0,*])-1 do im[*,*,s]=convol(im[*,*,s],kernel)
-
-
-   *self.images.main_image_stack=im
-   ((*self.state).high_pass_mode) = 1 
-   self->getstats
-   self->displayall
+	((*self.state).high_pass_mode) = 1 
+	self->getstats
+	self->displayall
    
-   status=1
+	status=1
 endif else begin
-   self->message, msgtype='error', "High pass filter currently only works with 3D datacubes"
-   status=0
+	self->message, msgtype='error', "High pass filter only works with 2D or 3D datacubes"
+	status=0
 endelse
 
 end
@@ -18574,6 +18760,7 @@ if (not keyword_set(symsize)) then symsize=1.
 
 ;;get plot ranges, if none given
 if (not keyword_set(xrange)) then begin
+
    if not keyword_set(data) then asec = *(*self.satspots.asec)[inds[0]] else $
       asec = data.asec
    if (*self.state).contr_xunit eq 1 then $

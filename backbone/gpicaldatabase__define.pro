@@ -592,23 +592,12 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 		;
 	end
 	'ApproxItimeReadmode': begin
-	 ;   imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
-	 ;  		((calfiles_table.readoutmode) eq readoutmode ) and $
-	 ;  		(calfiles_table.itime) eq itime,cc)
-	 ;	errdesc = 'with same ITIME and Detector Readout Mode'
-	 ;	; NOTE: we are no longer going to hand back approximate matches, since
-	 ;	; that would involve rescaling in darks that we do not do. Instead, you
-	 ;	; must always have the appropriate ITIME darks. 
-     ;
 		max_allowed_rescale = 3.0	
 	
-		; FIXME if no exact match found for itime, fall back to closest in time match
-		; which has approximately the right time within the allowed rescaling
-		; factor
-		;if cc eq 0 then begin
-			self->Log, "No exact match found for ITIME, thus looking for closest approximate match instead",depth=3
+		; For darks, we allow some limited scaling up and down of exposure times
+			self->Log, "Looking for approximate match on ITIME within a factor of "+sigfig(max_allowed_rescale,2),depth=3
 		   	imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
-				( (calfiles_table.itime gt itime/max_allowed_rescale) or (calfiles_table.itime lt itime*max_allowed_rescale)) , cc)
+				( (calfiles_table.itime gt itime/max_allowed_rescale) AND (calfiles_table.itime lt itime*max_allowed_rescale)) , cc)
 			errdesc = 'with approximatedly same ITIME and Detector Readout Mode'
 			;deltatimes = calfiles_table[imatches_typeonly].itime - itime
 
@@ -616,13 +605,12 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 			;imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
 				            ;(calfiles_table.itime) eq calfiles_table[wmin[0]].itime,cc)
 
-	        self->Log, " Found "+strc(cc)+" approx matches with ITIME within a factor of "+sigfig(max_allowed_rescale,3)+" of ITIME="+strc(itime)
-
+	        self->Log, " Found "+strc(cc)+" approx matches with ITIME within a factor of "+sigfig(max_allowed_rescale,2)+" of ITIME="+strc(itime),depth=3
 
 		;endif
 	end
 	'FiltPrism': begin
-		 imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
+		 imatches= where( strmatch(calfiles_table.type, types[itype].description,/fold) and $
 	   		((calfiles_table.filter) eq filter ) and $
 	   		((calfiles_table.prism) eq prism) ,cc)
 		 errdesc = 'with same DISPERSR and FILTER'
@@ -640,11 +628,11 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 		void=error('ERROR: --No matching cal files '+errdesc+' as requested in DB--')
 		return, NOT_OK
 	endif
-	if keyword_set(verbose) then self->Log, "Found "+strc(cc)+" possible cal files for "+type+"; selecting best based on closest date."
+	if keyword_set(verbose) then self->Log, "Found "+strc(cc)+" possible cal files for "+type+"; selecting best based on closest date.",depth=3
 
 	; Find the single closest in time calibration file.
 	timediff=min(abs( (calfiles_table.JD)[imatches] - date ),minind)
-	if keyword_set(verbose) then self->Log, "Closest date offset is "+strc(timediff)
+	if keyword_set(verbose) then self->Log, "Closest date offset is "+strc(timediff),depth=3
 
 
 	; If we are matching a wavecal, always return the closest in time without
@@ -671,36 +659,47 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	if datecount eq 1 then begin
 		; only one plausible calibration file within 1 day. Just use that file.
   		ibest = imatches[minind]
-		if keyword_set(verbose) then self->Log, ' There is only 1 possible cal file on that date. Selecting it.'
+		if keyword_set(verbose) then self->Log, ' There is only 1 possible cal file on that date. Selecting it.',depth=3
   	endif else begin
-		; multiple plausible files found within 1 day. Use the highest exposure
+		; multiple plausible files found within 1 day. In most cases, use the highest exposure
 		; time. If there are several with identical exposure time, use the 
-		; closest in time.
+		; closest in time. However, if we're matching darks, we should instead
+		; try to match the closest available exposure time. 
 		
-		if keyword_set(verbose) then self->Log, ' There are '+strc(datecount)+' possible cal files at that date +- 12 hrs.'
+		if keyword_set(verbose) then self->Log, ' There are '+strc(datecount)+' possible cal files at that date +- 12 hrs.',depth=3
 		itimes =  ((calfiles_table[imatches])[within1day]).itime
-		maxitime = max(itimes, maxitimeind)
-		wmaxitime = where(itimes eq maxitime, maxct)
-		if maxct eq 1 then begin ; use the highest exposure time
-			ibest = (imatches[within1day])[maxitimeind]
-			if keyword_set(verbose) then self->Log, ' Selected the file with the greatest total integration time. '
-		endif else begin
-			; If there are several with identical exposure time, use the
-			; very closest in time.
 
-			imaxitime = (imatches[within1day])[wmaxitime]
-			maxitime_jds = (calfiles_table.JD)[imaxitime]
-			closest_at_maxitime = min( maxitime_jds - date, iclosest)
-			ibest = imaxitime[iclosest]
-			if keyword_set(verbose) then self->Log, ' Found '+strc(maxct)+' files with same max itime. Chose closest in time. '
-			
+
+		if strlowcase(type) eq 'dark' then begin
+			closest_itime_diff = min( abs(itimes-itime), iclosest)
+			closest_itime = itimes[iclosest]
+			ibest = (imatches[within1day])[iclosest]
+	        self->Log, " Closest darks are "+sigfig(timediff, 2)+" days away from the science data. Best match has ITIME="+sigfig(closest_itime, 3)+" s.",depth=3
+		endif else begin
+
+			maxitime = max(itimes, maxitimeind)
+			wmaxitime = where(itimes eq maxitime, maxct)
+			if maxct eq 1 then begin ; use the highest exposure time
+				ibest = (imatches[within1day])[maxitimeind]
+				if keyword_set(verbose) then self->Log, ' Selected the file with the greatest total integration time. ',depth=3
+			endif else begin
+				; If there are several with identical exposure time, use the
+				; very closest in time.
+
+				imaxitime = (imatches[within1day])[wmaxitime]
+				maxitime_jds = (calfiles_table.JD)[imaxitime]
+				closest_at_maxitime = min( maxitime_jds - date, iclosest)
+				ibest = imaxitime[iclosest]
+				if keyword_set(verbose) then self->Log, ' Found '+strc(maxct)+' files with same max itime. Chose closest in time. ',depth=3
+				
+			endelse
 		endelse
 
 	endelse
 
 	
     bestcalib=(calfiles_table.PATH)[ibest]+path_sep()+(calfiles_table.FILENAME)[ibest]
-	print, bestcalib
+
     self->Log, "Returning best cal file= "+bestcalib,depth=3
 	
 	return, bestcalib
