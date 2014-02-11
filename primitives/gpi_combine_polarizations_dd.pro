@@ -366,7 +366,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		;include_sky=uint(Modules[thisModuleIndex].IncludeSkyRotation)
 		;include_sky=1
 			  
-		if includeSkyRotation eq 1 then skyrotation_mueller =  mueller_rot(parang*!dtor) else skyrotation_mueller=identity(4) ;In radians!
+		if includeSkyRotation eq 1 then skyrotation_mueller =  mueller_rot((parang+90+18.5)*!dtor) else skyrotation_mueller=identity(4) ;In radians!
 			
 		
 		if (includeSystemMueller eq 1) then begin ;Either include the system mueller matrix or not. Depending on the keyword
