@@ -5,8 +5,8 @@
 ; 
 ; IMPORTANT: The common psf_lookup_table, com_psf, com_x_grid_PSF, com_y_grid_PSF, com_triangles, com_boundary needs to be declared prior to the call of this function. If not, copy paste it in your code.
 ; 
-; Use MPFIT2DFUN to perform a least square fit using the function EVALUATE_PSF with parameters x_centroid, y_centroid and intensity.
-; Evaluate_psf uses the common psf_lookup_table that is defined by the procedure gpi_highres_microlens_psf_initialize_psf_interpolation.
+; Use MPFIT2DFUN to perform a least square fit using the function gpi_highres_microlens_psf_evaluate_detector_psf with parameters x_centroid, y_centroid and intensity.
+; gpi_highres_microlens_psf_evaluate_detector_psf uses the common psf_lookup_table that is defined by the procedure gpi_highres_microlens_psf_initialize_psf_interpolation.
 ; gpi_highres_microlens_psf_initialize_psf_interpolation interpolates the PSF defined by the inputs (PSF, x_grid_PSF, y_grid_PSF) with a spline curve a store the result in the common.
 ; Then gpi_highres_microlens_psf_evaluate_detector_psf use the lookup table in the common to evaluate the PSF using a linear interpolation of lookup table.
 ; At the end you get a linear interpolation of a spline interpolation of your PSF.
