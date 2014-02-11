@@ -1484,9 +1484,9 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
 	;self.resolvetypeseq_id = Widget_Button(base_radio, UNAME='RESOLVETYPESEQBUTTON' ,/ALIGN_LEFT ,VALUE='Resolve type/seq. when adding file(s)',UVALUE='autoresolvetypeseq')
 
 	rowbase_template = widget_base(top_baseidentseq,row=1)
-	self.reduction_type_id = WIDGET_DROPLIST( rowbase_template, title= 'Reduction type:  ', frame=0, Value=*self.template_types,uvalue='reduction_type_dropdown',resource_name='XmDroplistButton')
+	self.reduction_type_id = WIDGET_DROPLIST( rowbase_template, title= 'Reduction category: ', frame=0, Value=*self.template_types,uvalue='reduction_type_dropdown',resource_name='XmDroplistButton')
 	rowbase_template2 = widget_base(top_baseidentseq,row=1)
-    self.template_name_id  = WIDGET_DROPLIST( rowbase_template2, title='Recipe Template: ', frame=0, Value=['Simple Data-cube extraction','Calibrated Data-cube extraction','Calibrated Data-cube extraction, ADI reduction'],uvalue='template_name_dropdown',resource_name='XmDroplistButton')
+    self.template_name_id  = WIDGET_DROPLIST( rowbase_template2, title='Recipe Template:    ', frame=0, Value=['Simple Data-cube extraction','Calibrated Data-cube extraction','Calibrated Data-cube extraction, ADI reduction'],uvalue='template_name_dropdown',resource_name='XmDroplistButton')
 
 	;one nice logo 
 	button_image = READ_BMP(gpi_get_directory('GPI_DRP_DIR')+path_sep()+'gpi.bmp', /RGB) 
