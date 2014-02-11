@@ -365,13 +365,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		wp_mueller = DST_waveplate(angle=wpangle[i], pband=pband, /mueller,/silent, /degrees)
 		
 		; FIXME: Sky rotation!!
-		;include_sky=uint(Modules[thisModuleIndex].IncludeSkyRotation)
-    include_sky=1
+		include_sky=uint(Modules[thisModuleIndex].IncludeSkyRotation)
+    ;include_sky=1
 		  
-    if include_sky eq 1 then skyrotation_mueller =  mueller_rot((parang)*!dtor) else skyrotation_mueller=identity(4) ;In radians!	
-
+    if include_sky eq 1 then skyrotation_mueller =  mueller_rot((parang+90+18.5)*!dtor) else skyrotation_mueller=identity(4) ;In radians!	
+ 
     sign_flip=[[1,0,0,0],[0,1,0,0],[0,0,-1,0],[0,0,0,-1]]
-    ;sign_flip=identity(4)
     
 		if (include_mueller eq 1) then begin ;Either include the system mueller matrix or not. Depending on the keyword
     total_mueller_vert = woll_mueller_vert ##  sign_flip ## wp_mueller ## system_mueller ## skyrotation_mueller 
@@ -467,10 +466,6 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	sz = size(minim)
 	for ix=0L,sz[1]-1 do for iy=0L,sz[1]-1 do minim[ix,iy] = min(polstack2[ix,iy,*],/nan)
 	;atv, [[[minim]],[[stokes]],[[p]]],/bl, names = ["Mininum I", "I", "Q", "U", "V", "P"]
-
-
-
-
 
 	if tag_exist( Modules[thisModuleIndex], "display") then display=keyword_set(Modules[thisModuleIndex].display) else display=0 
 	if keyword_set(display) then begin
