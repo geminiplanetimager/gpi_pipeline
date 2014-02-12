@@ -93,7 +93,7 @@ function gpi_create_highres_microlens_psf_model, DataSet, Modules, Backbone
   diff_image = fltarr(2048,2048)	; MP: difference image, output at end of calculation? PI: Yes
   model_image = fltarr(2048,2048)		; new modeled image - output at end of calculation
   
-  n_neighbors = 6               ; number on each side - so 4 gives a 9x9 box - 3 gives a 7x7 box
+  n_neighbors = 4               ; number on each side - so 4 gives a 9x9 box - 3 gives a 7x7 box
   ; set up a lenslet jump to improve speed - normally the step would be 2*n_neighbors+1
   ; so this makes it (2*n_neighbors+1)*loop_jump
 	loop_jump=1                  ; the multiple of lenslets to jump
@@ -158,8 +158,8 @@ debug=1
 ; imin_test = 145 & imax_test = 155
 ; jmin_test = 145 & jmax_test = 155
 
- imin_test = 166-20 & imax_test = 177+20
- jmin_test = 166-20 & jmax_test = 177+20
+; imin_test = 166-20 & imax_test = 177+20
+; jmin_test = 166-20 & jmax_test = 177+20
   ; code check range
 ; imin_test = 148 & imax_test = 152
 ; jmin_test = 148 & jmax_test = 152
@@ -338,15 +338,15 @@ debug=1
                             
                                window,3,retain=3,xsize=300,ysize=300,title='orig & model- '+strc(i)+', '+strc(j)
                                fit=((*fitted_spaxels.values[i,j,k,f])*(*spaxels.masks[i,j,k,f]))
-                               tvdl,[orig,fit],min(orig,/nan),max(orig,/nan)
+                               ;tvdl,[orig,fit],min(orig,/nan),max(orig,/nan)
                                window,2,retain=2,xsize=300,ysize=300,title='percentage residuals- '+strc(i)+', '+strc(j)
                                sky=mask*(spaxels.sky_values[i,j,k,f])
                                mask[where(mask eq 0)]=!values.f_nan
-																tvdl,mask*(orig-sky-fit)/fit,-0.1,0.1
+                               ;tvdl,mask*(orig-sky-fit)/fit,-0.1,0.1
                                
-																print, 'mean and weighted mean',  total(abs(mask*diff),/nan)/total(orig*mask,/nan), w_mean
-																
-															 stop
+                               print, 'mean and weighted mean',  total(abs(mask*diff),/nan)/total(orig*mask,/nan), w_mean
+                               
+                               ;stop
                             endif ; display if
 						endif     ; check for no dead values
 						;; ####################            
@@ -379,7 +379,7 @@ debug=1
         
         print, 'Iteration complete in '+strc((systime(1)-time0)/60.)+' minutes'
         ; put the fitted values into the originals before re-iterating
-		stop,'just about to modify centroids'
+;		stop,'just about to modify centroids'
         spaxels.xcentroids = fitted_spaxels.xcentroids
         spaxels.ycentroids = fitted_spaxels.ycentroids
         spaxels.intensities= fitted_spaxels.intensities
@@ -482,7 +482,7 @@ debug=1
 
     endfor   ; ends loop over different elevations
 
-stop,"about to apply flexure correction to centroids"
+;stop,"about to apply flexure correction to centroids"
 
 ; calculate the mean position of each mlens psf - but use a rejection
 mean_xcen_ref=fltarr(N_ELEMENTS(xcen_ref))
@@ -594,11 +594,11 @@ if ind[0] ne -1 then flat_field_arr[ind]=!values.f_nan
 ;tvdl, subarr(final_flat2,100,[953,978]),0,2
 loadct,0
 window,23,retain=2
-tvdl, subarr(final_flat2,100,[1442,1244]),0.9,1.1
+;tvdl, subarr(final_flat2,100,[1442,1244]),0.9,1.1
 ;  for lenslet 166,177 
 window,24,retain=2
 image=*(dataset.currframe[0])
-tvdl, subarr(image,100,[1442,1244]),/log
+;tvdl, subarr(image,100,[1442,1244]),/log
 
 endif ; end flat field creation
 
@@ -673,16 +673,16 @@ stop
   extloc = strpos(base_filename,'.', /reverse_search)
   
   nrw_filt=strmid(strcompress(string(filter_wavelength),/rem),0,5)
-  my_file_name = s_OutputDir + strmid(filenm,0,extloc)+ '-'+filter+'-'+nrw_filt+'um-PSFs'+'.fits'
+  my_file_name=gpi_get_directory('GPI_REDUCED_DATA_DIR')+'highres-'+nrw_filt+'-psf_structure.fits'
   mwrfits,to_save_psfs, my_file_name,*(dataset.headersExt[numfile]), /create
   
 ;  psfs_from_file = read_psfs(my_file_name, [281,281,1])
  
   
-  my_file_name = s_OutputDir + strmid(filenm,0,extloc)+ '-'+filter+'-'+'Spaxels'+'.fits'
+  my_file_name = gpi_get_directory('GPI_REDUCED_DATA_DIR')+'highres-'+nrw_filt+'-psf-spaxels.fits'
   save, spaxels, filename=my_file_name
   
-  my_file_name = s_OutputDir + strmid(filenm,0,extloc)+ '-'+filter+'-'+'Fitted_spaxels'+'.fits'
+  my_file_name = gpi_get_directory('GPI_REDUCED_DATA_DIR')+'highres-'+nrw_filt+'-fitted_spaxels.fits'
   save, fitted_spaxels, filename=my_file_name
 
  ; cant save these files as fits since they're not pointers 
@@ -697,7 +697,7 @@ stop
 ;  tvdl, one_psf
   
                                 ;---- store the output into the backbone datastruct
-  suffix = '-'+filter+'-'+'PSF_residuals'
+  suffix = '-'+filter+'-'+nrw_filt+'PSFs'
   *(dataset.currframe)=diff_image
   dataset.validframecount=1
   backbone->set_keyword, "FILETYPE", "PSF residuals", /savecomment
