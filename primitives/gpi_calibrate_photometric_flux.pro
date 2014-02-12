@@ -282,7 +282,7 @@ oplot, lambda,(sat1flux/norm1)*mean_norm, color=cgcolor('blue'),linestyle=2,thic
 oplot, lambda,sat2flux/norm2*mean_norm, color=cgcolor('teal'),linestyle=3,thick=2
 oplot, lambda,sat3flux/norm3*mean_norm, color=cgcolor('red'),linestyle=4,thick=2
 oplot, lambda,sat4flux/norm4*mean_norm, color=cgcolor('green'),linestyle=5,thick=2
-pi_legend,['median(even)','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/right,textcolor=cgcolor('black')
+legend,['median(even)','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/right,textcolor=cgcolor('black')
 endif
 
 	
