@@ -27,7 +27,7 @@ function calc_avparang,HAstart,HAend,dec,lat=lat,degree=degree
 ;                      decimal degrees.
 ;      DEC - the declination of the source in decimal degrees
 ;
-;      LATITUDE - The geoditic latitude of the telescope in decimal degrees
+;      LATITUDE - The geodetic latitude of the telescope in decimal degrees
 ;
 ; KEYWORD PARAMETERS:
 ;      /DEGREE - If set, then the HA values have been input in degrees

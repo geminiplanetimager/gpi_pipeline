@@ -1,3 +1,5 @@
+; by Jerome maybe? 
+
 function get_cind,dimx,dimy,r
 
 compile_opt defint32, strictarr, logical_predicate

@@ -11,6 +11,7 @@
 ; HISTORY : 27.2.2004, created
 ;
 ; AUTHOR : Christof Iserlohe (iserlohe@ph1.uni-koeln.de)
+;		   From the Keck OSIRIS data pipeline.
 ;
 ;-----------------------------------------------------------------------
 

@@ -9,6 +9,7 @@
 ; KEYWORDS:
 ; 	display			IDL window number to display a plot into. Leave blank or
 ; 					set to -1 for no plot. 
+; 	/verbose		Print informative text
 ;
 ; OUTPUTS:
 ;

@@ -6,11 +6,11 @@
 ;
 ;	The user setting file is entirely optional. If it doesn't exist, then
 ;	settings are just read from the system configuration. 
-;	The user setting file is ~/.gpi_drp_config on Linux or Mac, TBD on Windows.
-;	The system configuration is 
+;	The user setting file is ~/.gpi_drp_config on Linux or Mac,
+;	$HOME\gpi_pipeline_settings.txt on Windows.
+;	The system configuration is  config/pipeline_settings.txt
 ;
-;	The contents of either file is just a tab-delimited name=value mapping. Replace this by 
-;	something more sophisticated if needed? 
+;	The contents of either file is just a tab-delimited name=value mapping. 
 ;
 ; KEYWORDS:
 ;   /expand_path		Apply environment variable path expansion to the result
@@ -21,7 +21,7 @@
 ;
 ; KEYWORD:
 ; 	/int			Cast result to integer before returning
-;       /double                 Cast result to double before returning
+;   /double         Cast result to double before returning
 ; 	/bool			Cast result to boolean (byte) before returning
 ;
 ; 	/rescan			Reload the input files from disk instead of using cached
@@ -66,7 +66,7 @@ function gpi_get_setting, settingname, expand_path=expand_path, integer=int, boo
 ;  endif
 
 
-global_settings_file = gpi_get_directory("GPI_DRP_CONFIG_DIR")+path_sep()+"pipeline_settings.txt"
+	global_settings_file = gpi_get_directory("GPI_DRP_CONFIG_DIR")+path_sep()+"pipeline_settings.txt"
 
 
 

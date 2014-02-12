@@ -1,9 +1,13 @@
 ;+
-; NAME:  
+; NAME:  gpi_compare_wavecals
 ;
 ; INPUTS:
+;	file1, file2	Names of 2 wavecal FITS files
 ; KEYWORDS:
+;	charsize		character size for labeling plots
 ; OUTPUTS:
+;
+;	Plots comparing the properties of the two wavecals are displayed on screen.
 ;
 ; HISTORY:
 ;	Began 013-12-03 11:05:04 by Marshall Perrin 

@@ -12,14 +12,13 @@ function gpi_drp_about_message
     ver=strc(gpi_pipeline_version(/svn))
     tmpstr=['GPI Data Reduction Pipeline Version: '+ver, $
               '', $
-              'Copyright 2008-2014, by the GPI Team ', $
+              'Copyright 2008-2014, by the GPI Team & AURA', $
 			  'Released under a BSD 3-clause license', $
               '', $
               '--------- Development: ---------', $
               '', $
               '    Marshall Perrin, Jerome Maire   ', $
-			  '    Patrick Ingraham, Dmitry Savransky  ', $
-			  '    Rene Doyon,        ', $ 
+			  '    Patrick Ingraham, Dmitry Savransky, Rene Doyon,  ', $ 
 			  '', $  
 			  '    Jeff Chilcote, Zack Draper, Michael Fitzgerald,', $
 			  '    Alex Greenbaum, Quinn Konopacky, Franck Marchis,', $
@@ -30,16 +29,14 @@ function gpi_drp_about_message
               '-------- Acknowledgements: --------', $
               '', $
               '  Bruce Macintosh, Stephen Goodsell, Kathleen Labrie,',$
-		  	  '    and all other Gemini and GPI team members', $
-              '    who have helped to improve the GPI DRP', $
+		  	  '    and all other Gemini and GPI team members who have ', $
+              '    helped to improve the GPI DRP', $
               '  ', $
 			  '  Some code derived from OSIRIS pipeline by:', $
-			  '    James Larkin, Michael McElwain', $
-			  '    Jason Weiss, Shelley Wright', $
-			  '    & Marshall Perrin', $
+			  '    James Larkin, Michael McElwain, Jason Weiss', $
+			  '    Shelley Wright, & Marshall Perrin', $
               ' ', $
-			  '  GPItv display tool derived from ATV by', $
-              '    Aaron Barth et al.', $
+			  '  GPItv display tool derived from ATV by Aaron Barth et al.', $
               ' ', $
               '------------------------------', $
               ' ', $

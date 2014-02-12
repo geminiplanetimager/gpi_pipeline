@@ -1,6 +1,7 @@
 function eanomaly,manomaly,eccentricity
 
 ;compute the eccentric anomaly given the mean anomaly and eccentricity
+; by Jerome Maire
 
 ;twopi=4.d0*acos(0.d0)
 twopi=6.283185307179586232d0
