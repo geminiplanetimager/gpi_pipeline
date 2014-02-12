@@ -137,8 +137,8 @@ endif
     x0=floor(xcenter)+0.5 & y0=floor(ycenter)+0.5 & hh=5.
     phot_comp=fltarr(N_ELEMENTS(lambda)) 
 	phot_comp_err=fltarr(N_ELEMENTS(lambda))
-	arr0=fltarr(N_ELEMENTS(lambda))
-	arr0=fltarr(N_ELEMENTS(lambda))
+	xarr0=fltarr(N_ELEMENTS(lambda))
+	yarr0=fltarr(N_ELEMENTS(lambda))
 	xerr=fltarr(N_ELEMENTS(lambda))
 	yerr=fltarr(N_ELEMENTS(lambda))
 
@@ -257,7 +257,6 @@ for l=0, N_ELEMENTS(lambda)-1 do phot_comp_err[l]*=fscale_arr[l]
 if display ne -1 then begin
   if display eq 0 then window,/free else select_window, display
 	units=(backbone->get_keyword('BUNIT'))
-loadcolors
 	phot_comp_err_total=phot_comp*sqrt((cal_percent_err/100.)^2+(phot_comp_err/phot_comp)^2)
 	ploterror,lambda,phot_comp, phot_comp_err_total,ytitle='flux ['+units+']',xtitle='wavelength (um)',position=[0.16,0.11,0.97,0.97],xr=[min(lambda)-0.01,max(lambda)+0.01],xs=1,color=cgcolor('black'),background=cgcolor('white')
 
@@ -270,27 +269,8 @@ mydevice=!d.name
 	units=(backbone->get_keyword('BUNIT'))
 	phot_comp_err_total=phot_comp*sqrt((cal_percent_err/100.)^2+(phot_comp_err/phot_comp)^2)
 yr=[min(phot_comp[3:N_ELEMENTS(lambda)-4],/nan)*0.9,max(phot_comp[3:N_ELEMENTS(lambda)-4],/nan)*1.1]
-	ploterror,lambda,phot_comp, phot_comp_err_total,ytitle='flux ['+units+']',xtitle='wavelength (um)',position=[0.16,0.11,0.97,0.97],xr=[min(lambda)-0.01,max(lambda)+0.01],xs=1,yr=yr
+	ploterror,lambda,phot_comp, phot_comp_err_total,ytitle='flux ['+units+']',xtitle='wavelength (um)',position=[0.16,0.11,0.97,0.97],xr=[min(lambda)-0.01,max(lambda)+0.01],xs=1,yr=yr,color=cgcolor('black'),background=cgcolor('white')
 
-
-
-;	bb=planck(lambda*1e4,18800)
-;	oplot, lambda,bb*(median(phot_comp[5:30])/median(bb[5:30])),linestyle=2,color=cgcolor('black')
-; load sinfoni spectrum
-;zurlo_spec=zurlo_spectrum(lambda,resolution=60) ; 65 for K1 75 for K2
-
-;	oplot,lambda, zurlo_spec*(median(phot_comp[5:30])/median(zurlo_spec[5:30])),color=cgcolor('black'),linestyle=1
-; So the 2mass data + the zerlo point gives a flux of 3.556e-19 W/cm2/umat 1.662 um  which is 3.56E-16 erg/cm2/s/A
-; the errorbar is complicated - the zero point has a 2% error, the datapoint has a 1.5% error (abouts)
-;sats_stddev=(backbone->get_keyword('SATNSTD')) & sats_norm=(backbone->get_keyword('SATSNORM'))
-;	oploterror, [1.662,1.662],[3.56E-16,3.56E-16],[3.56E-16,3.56E-16]*0.02,psym=2,color=cgcolor('blue')
-
-
-;	oploterror, [1.77,1.77],[7.56E-16,7.56E-16],[3.56E-16,3.56E-16]*sats_stddev/sats_norm,psym=3,color=cgcolor('blue')
-;	legend,['GPI data','A. Zurlo SINFONI spectrum','Normalized 18800 K blackbody', 'HD 8049b Photometric Flux estimate'],textcolor=cgcolor('black'),linestyle=[0,1,2,0],psym=[0,0,0,2],/right,/top,color=[cgcolor('black'),cgcolor('black'),cgcolor('black'),cgcolor('blue')],box=0
-;	XYOUTS, 1.69-0.12 , 7.56E-16, 'GPI Flux Normalization Uncertainty',color=cgcolor('black')
-;	legend,['GPI data','A. Zurlo SINFONI spectrum','Normalized 18800 K blackbody'],textcolor=cgcolor('black'),linestyle=[0,1,2],psym=[0,0,0],/right,/top,color=[cgcolor('black'),cgcolor('black'),cgcolor('black')],box=0
-	
 closeps
 
 set_plot,mydevice

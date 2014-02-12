@@ -289,11 +289,11 @@ if where_coords_NOT_too_big[0] eq -1 then stop, 'line 219'
   ;
 ; this is in the anderson paper, but i think it is wrong since it is not rotationally
 ; symmetric. the LHS and RHS 0.078368 should be negative  
-  ;  kernel= [ [ 0.041632, -0.080816, -0.078368, -0.081816,  0.041632], $
-  ;  					[-0.080816, -0.019592,  0.200816, -0.019592, -0.080816], $
-  ;  					[ 0.078368,  0.200816,  0.441632,  0.200816,  0.078368], $
-  ;  					[-0.080816, -0.019592,  0.200816, -0.019592, -0.080816], $
-  ;  					[ 0.041632, -0.080816, -0.078368, -0.081816,  0.041632]  ]
+;  kernel= [ [ 0.041632, -0.080816, -0.078368, -0.081816,  0.041632], $
+;  					[-0.080816, -0.019592,  0.200816, -0.019592, -0.080816], $
+;  					[-0.078368,  0.200816,  0.441632,  0.200816, -0.078368], $
+;  					[-0.080816, -0.019592,  0.200816, -0.019592, -0.080816], $
+;   					[ 0.041632, -0.080816, -0.078368, -0.081816,  0.041632]  ]
   
 tmp=[1,4,6,4,1] ; gaussian
 tmp=[1,2,1] ; gaussian - best at the moment...
@@ -495,12 +495,12 @@ for l=0, loop_iterations-1 do begin
 	if finite(xshift+yshift) eq 0 then stop, 'shifts are not a number ?!? - get_psf2 line 360'
 
 	; display the smoothed psf
-	;loadct,1
+	loadct,1
 	;print,l,xshift,yshift,sqrt((xshift)^2+(yshift)^2)
-	;if l eq 0 then window,2,retain=2
-	; tvdl, (psf2),/log,0.001,0.35,box=28
-	;wait,1
-	;stop
+	if l eq 0 then window,2,retain=2
+	 ;tvdl, abs(psf2-psf)/psf,0.001,0.5,box=28
+	wait,1
+	stop
 	;if l eq loop_iterations-2 then stop,'about to break psf smoothing loop'
 
 	; now make the new psf the smoothed psf
