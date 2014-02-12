@@ -1,10 +1,13 @@
 ;+
 ; NAME: change_wavcal_lambdaref
-; PIPELINE FUNCTION DESCRIPTION: change the wavcal datacube 
-;    according to the new lambdaout
+; DESCRIPTION: for a wavecal datacube, change the reference wavelength.
 ;
 ;	I.e. if you have an H band wavelength calibration but instead you want a K1
-;	wavecal, you should 
+;	wavecal, you can use this to get the K1 spectral positions as predicted from
+;	the H wavecal. 
+;
+;	CAUTION: This assumes a linear dispersion model which is not
+;	quite correct
 ;
 ; INPUTS:
 ;	wavcal		A datacube containing a wavelength calibration, i.e. a data cube

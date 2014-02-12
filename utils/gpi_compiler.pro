@@ -373,10 +373,18 @@ if ~(keyword_set(nodocs)) then file_copy, doc_out_path, output_dir, /overwrite,/
 
 
 ;; Create a copy of the source including dependencies
+message,/info, ''
+message,/info, 'Creating a source ZIP file'
 output_source_dir = output_dir+"_source"
 file_mkdir, output_source_dir
 file_copy, gpi_get_directory('GPI_DRP_DIR'), output_source_dir+"/pipeline", /overwrite,/recursive
-file_copy, gpi_get_directory('GPI_DRP_DIR')+"/../external", output_source_dir, /overwrite,/recursive
+message,/info, '    including pipeline code from '+gpi_get_directory('GPI_DRP_DIR')
+
+findpro, 'nchoosek', dirlist=externdirs ; find a file we expect to be in our external directory.
+externdir = externdirs[0]
+message,/info, '    including external code from '+externdir
+
+file_copy, externdir, output_source_dir+"/external", /overwrite,/recursive
 ;file_copy, gpi_get_directory('GPI_DRP_DIR')+"/../gpitv", output_source_dir, /overwrite,/recursive
 ;file_copy, gpi_get_directory('GPI_DRP_DIR')+"/../documentation", output_source_dir, /overwrite,/recursive
 

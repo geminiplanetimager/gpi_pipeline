@@ -1,19 +1,28 @@
 function calc_transmission, filter, pupil_mask_string, lyot_mask_string, without_filter=without_filter, resolution=resolution
-; this determines the transmission of the instrument for a given setup
-; it also outputs the default resolution of a spectrum for a given band
-
-; the nominal transmission of 14.2% is the transmission at 1.55um and
-; assumes the H-band PPM, the 080m12_04 Lyot and the H-band filter.
-; this transmission value was measured for the ATP testing (REQ-FPR-0210)
-
-; if the without_filter keyword is set, it returns the transmission WITHOUT accounting for the filter transmission!
-; Otherwise, it assumes the transmission for a given filter is that of the central wavelength of that filter
-; (found in the pipeline/config/pipeline_constants.txt file)
+; NAME: calc_transmission
 ;
+; DESCRIPTION:
+;	this determines the transmission of the instrument for a given setup
+;	it also outputs the default resolution of a spectrum for a given band
+;
+;	the nominal transmission of 14.2% is the transmission at 1.55um and
+;	assumes the H-band PPM, the 080m12_04 Lyot and the H-band filter.
+;	this transmission value was measured for the ATP testing (REQ-FPR-0210)
+;
+;	if the without_filter keyword is set, it returns the transmission WITHOUT accounting for the filter transmission!
+;	Otherwise, it assumes the transmission for a given filter is that of the central wavelength of that filter
+;	(found in the pipeline/config/pipeline_constants.txt file)
+;
+; INPUTS:
+;   filter	name of IFSfilter
+;   pupil_mask_string, lyot_mask_string		name of selected items in those wheels
+;   /without_filter
+;   resolution=
 ;
 ; HISTORY:
 ;	2013-08	Written by Patrick Ingraham
 ;	2013-12 Values updated, added HL coronagraph
+;-
 
 compile_opt defint32, strictarr, logical_predicate
 
