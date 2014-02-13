@@ -47,12 +47,12 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="xcenter" Type="float" Range="[-1,280]" Default="-1" Desc="x-location in pixels on datacube where extraction will be made"
 ; PIPELINE ARGUMENT: Name="ycenter" Type="float" Range="[-1,280]" Default="-1" Desc="y-location in pixels on datacube where extraction will be made"
+; PIPELINE ARGUMENT: Name="no_centroid_override" Type="int" Range="[0,1]" Default="0" Desc="Do not centroid on extraction source?"
 ; PIPELINE ARGUMENT: Name="inner_sky_radius" Type="float" Range="[1,100]" Default="10." Desc="Inner aperture radius at middle wavelength slice (in spaxels i.e. mlens) to extract sky"
 ; PIPELINE ARGUMENT: Name="outer_sky_radius" Type="float" Range="[1,100]" Default="20." Desc="Outer aperture radius at middle wavelength slice (in spaxels i.e. mlens) to extract sky"
 ; PIPELINE ARGUMENT: Name="override" Type="int" Range="[0,1]" Default="0" Desc="Override apertures/scaling from spectrophotometric calibration?"
 ; PIPELINE ARGUMENT: Name="extraction_radius" Type="float" Range="[0,1000]" Default="5." Desc="Aperture radius at middle wavelength (in spaxels i.e. mlens) to extract photometry for each wavelength. (only active if Override is set)"
 ; PIPELINE ARGUMENT: Name="c_ap_scaling" Type="int" Range="[0,1]" Default="1" Desc="Perform aperture scaling with wavelength?"
-; PIPELINE ARGUMENT: Name="no_centroid_override" Type="int" Range="[0,1]" Default="0" Desc="Do not centroid on extraction source?"
 ; PIPELINE ARGUMENT: Name="display" Type="int" Range="[-1,100]" Default="17" Desc="-1 = No display; 0 = New (unused) window; else = Window number to display diagnostic plot."
 ; PIPELINE ARGUMENT: Name="save_ps_plot" Type="int" Range="[0,1]" Default="0" Desc="Save PostScript of plot?"
 ; PIPELINE ARGUMENT: Name="write_ascii_file" Type="int" Range="[0,1]" Default="0" Desc="Save ascii file of spectrum (.dat)?"
@@ -73,6 +73,7 @@ thisModuleIndex = Backbone->GetCurrentModuleIndex()
 
 if tag_exist( Modules[thisModuleIndex], "xcenter") then xcenter=float(Modules[thisModuleIndex].xcenter) else xcenter=-1
 if tag_exist( Modules[thisModuleIndex], "ycenter") then ycenter=float(Modules[thisModuleIndex].ycenter) else ycenter=-1
+if tag_exist( Modules[thisModuleIndex], "no_centroid_override") then no_centroid_override=float(Modules[thisModuleIndex].no_centroid_override) else no_centroid_override=0
 if tag_exist( Modules[thisModuleIndex], "display") then display=float(Modules[thisModuleIndex].display) else display=17
 if tag_exist( Modules[thisModuleIndex], "save_ps_plot") then save_ps_plot=float(Modules[thisModuleIndex].save_ps_plot) else save_ps_plot=0
 if tag_exist( Modules[thisModuleIndex], "write_ascii_file") then write_ascii_file=float(Modules[thisModuleIndex].write_ascii_file) else write_ascii_file=0
@@ -134,8 +135,8 @@ endif
 
     ;;do the photometry of the companion
 	; we actually want the peak in the center of a pixel, so centers must be half integers
-    x0=floor(xcenter)+0.5 & y0=floor(ycenter)+0.5 & hh=5.
-    phot_comp=fltarr(N_ELEMENTS(lambda)) 
+  x0=floor(xcenter)+0.5 & y0=floor(ycenter)+0.5 & hh=5.
+  phot_comp=fltarr(N_ELEMENTS(lambda)) 
 	phot_comp_err=fltarr(N_ELEMENTS(lambda))
 	xarr0=fltarr(N_ELEMENTS(lambda))
 	yarr0=fltarr(N_ELEMENTS(lambda))
@@ -186,6 +187,7 @@ endif
 	
 		endfor ; end centroiding loop
 
+; throw and error if there is a centroiding issue
 	if total(finite(xarr0)) eq 0 or total(finite(yarr0)) eq 0 then $
 		return, error('FAILURE ('+functionName+'): entire x or y centroids are NaNs; make sure the spectral extraction position is correct') 
 
@@ -200,14 +202,19 @@ endif
 	xarr=lambda*Bx+Ax
 	yarr=lambda*By+Ay
 
-	;window,23
-	;plot,lambda,xarr0,yr=[min(xarr,/nan),max(xarr,/nan)]
-	;oplot, lambda,xarr
-
-		endif else begin
+;	window,23,title='xcentroid vs extracted position relative to xcenter',xsize=700,ysize=400
+;	plot,lambda,xarr0-xcenter,yr=[min(xarr-xcenter,/nan),max(xarr-xcenter,/nan)],background=cgcolor('white'),color=cgcolor('black'),xtitle='wavelength',ytitle='[x,y] centroid minus [x,y] center',charsize=1.5,thick=2
+;	oplot, lambda,xarr-xcenter,linestyle=2,color=cgcolor('black'),thick=2
+;	window,24,title='ycentroid vs extracted position relative to ycenter',xsize=700,ysize=400
+;	plot,lambda,yarr0-ycenter,color=cgcolor('black'),yr=[0.9*min(yarr-ycenter,/nan),1.1*max(yarr-ycenter,/nan)],background=cgcolor('white'),xtitle='wavelength',ytitle='[x,y] centroid minus [x,y] center',charsize=1.5,thick=2
+;	oplot,lambda,yarr-ycenter,color=cgcolor('black'),linestyle=2,thick=2
+	
+	endif else begin
 		; just hard set to the define centroid
-			xarr[*]=x0 & yarr[*]=y0	
-		endelse
+		; but it still must be centered on a half pixel
+		xarr=replicate(xcenter,N_ELEMENTS(lambda))
+		yarr=replicate(ycenter,N_ELEMENTS(lambda))	
+	endelse
 
 ; start photometry
      for i=0,CommonWavVect[2]-1 do begin
@@ -255,7 +262,7 @@ for l=0, N_ELEMENTS(lambda)-1 do phot_comp_err[l]*=fscale_arr[l]
 
 
 if display ne -1 then begin
-  if display eq 0 then window,/free else select_window, display
+  if display eq 0 then window,/free,xsize=700,ysize=400 else select_window, display,xsize=700,ysize=400
 	units=(backbone->get_keyword('BUNIT'))
 	phot_comp_err_total=phot_comp*sqrt((cal_percent_err/100.)^2+(phot_comp_err/phot_comp)^2)
 	ploterror,lambda,phot_comp, phot_comp_err_total,ytitle='flux ['+units+']',xtitle='wavelength (um)',position=[0.16,0.11,0.97,0.97],xr=[min(lambda)-0.01,max(lambda)+0.01],xs=1,color=cgcolor('black'),background=cgcolor('white')
