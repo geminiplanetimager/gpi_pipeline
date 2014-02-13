@@ -1,7 +1,7 @@
 function get_sat_fluxes,im0,band=band,good=good,cens=cens,warns=warns,$
                         gaussfit=gaussfit,refinefits=refinefits,totflux=totflux,$
                         winap=winap,gaussap=gaussap,locs=locs,indx=indx,$
-                        usecens=usecens,satmag=satmag,highpass=highpass
+                        usecens=usecens,satmag=satmag,highpass=highpass,constrain=constrain
 ;+
 ; NAME:
 ;       get_sat_fluxes
@@ -35,6 +35,7 @@ function get_sat_fluxes,im0,band=band,good=good,cens=cens,warns=warns,$
 ;                  satspot locations.  good must also be passed
 ;                  in. Skips finding sat spots alltogether.
 ;       /highpass - Pass highpass setting to find_sat_spots
+;       /constrain - Pass /constrain to find_sat_spots
 ;      
 ;       res - 4xl array of satellite spot max fluxes (where l is the
 ;             number of slices in im0)
@@ -92,7 +93,7 @@ if keyword_set(usecens) then begin
       message,'If /usecens is set, you must provide properly sized cens and good array.'
       return, -1
    endif
-endif else cens = find_sat_spots_all(im0,band=band,good=good,refinefits=refinefits,winap=winap,locs=locs,indx=indx,highpass=highpass)
+endif else cens = find_sat_spots_all(im0,band=band,good=good,refinefits=refinefits,winap=winap,locs=locs,indx=indx,highpass=highpass,constrain=constrain)
 
 if n_elements(cens) eq 1 then return, -1
 
