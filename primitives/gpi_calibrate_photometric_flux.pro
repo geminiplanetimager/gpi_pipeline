@@ -275,7 +275,7 @@ sat4flux=satflux_arr[3,*]
 	endfor
 
 if 1 eq 1 then begin
-window,19
+window,19,xsize=700,ysize=400
 device,decomposed=0
 ploterror, lambda, mean_sat_flux,stddev_sat_flux, xr=[min(lambda),max(lambda)],/xs,xtitle='wavelength', ytitle='sat spot intensity (ADU)',charsize=1.5,background=cgcolor('white'),color=cgcolor('black'),thick=2
 oplot, lambda,(sat1flux/norm1)*mean_norm, color=cgcolor('blue'),linestyle=2,thick=2
@@ -352,13 +352,21 @@ unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm
 		backbone->set_keyword, 'CEXTR_AP', extraction_radius,"Calib. extr aper at "+strc(lambda[N_ELEMENTS(lambda)/2])+"um", ext_num=0
 		backbone->set_keyword, 'CISKY_AP', inner_sky_radius,"Calib. inner sky rad at "+strc(lambda[N_ELEMENTS(lambda)/2])+"um", ext_num=0
 		backbone->set_keyword, 'COSKY_AP', outer_sky_radius,"Calib. outer sky rad at "+strc(lambda[N_ELEMENTS(lambda)/2])+"um", ext_num=0
-if keyword_set(norm1) then norm_stddev=stddev([norm1,norm2,norm3,norm4]) else norm_stddev=0.0
-if ~keyword_set(mean_norm) then mean_norm=1.0
+		if keyword_set(norm1) then norm_stddev=stddev([norm1,norm2,norm3,norm4]) else norm_stddev=0.0
+		if ~keyword_set(mean_norm) then mean_norm=1.0
 
 		backbone->set_keyword, 'SATNSTD', norm_stddev ,"Satellite normalization standard deviation", ext_num=1
 		backbone->set_keyword, 'SATSNORM', mean_norm ,"Satellite normalization standard deviation", ext_num=1
 
-
+; put the PSF center keywords back in if they don't already exist
+		PSFCENTX=(backbone->get_keyword('PSFCENTX',count=ct0,ext_num=1,/silent))
+		PSFCENTY=(backbone->get_keyword('PSFCENTY',count=ct1,ext_num=1,/silent))
+		if ct0[0] eq 0 or ct1[0] eq 0 then begin
+			psfcentx= sxpar(*calib_cube_struct.ext_header,"PSFCENTX",count=ct)	
+			if ct[0] ne -1 then backbone->set_keyword,"PSFCENTX", psfcentx, 'X-Locations of PSF center', ext_num=1
+			psfcenty= sxpar(*calib_cube_struct.ext_header,"PSFCENTY",count=ct)	
+			if ct[0] ne -1 then backbone->set_keyword,"PSFCENTY", psfcenty, 'Y-Locations of PSF center', ext_num=1
+		endif
 		; put the sat responses into different variable names for ease of header writing
 		cal_percent_err=(stddev_sat_flux/mean_sat_flux)*100
 
