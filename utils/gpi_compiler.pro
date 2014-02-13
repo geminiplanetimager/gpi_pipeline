@@ -359,7 +359,12 @@ if !version.os_family eq 'unix' then begin
 	; Special case: copy the 'gpi-pipeline-compiled version of the startup script,
 	; but drop the '-compiled' extension while doing so
 	file_copy, directory+path_sep()+'scripts'+path_sep()+'gpi-pipeline-compiled', output_dir+path_sep()+'scripts'+path_sep()+"gpi-pipeline",/overwrite   
-endif
+	file_copy, directory+path_sep()+'scripts'+path_sep()+'gpi-setup-nix', output_dir+path_sep()+'scripts'+path_sep()+"gpi-setup-nix",/overwrite   
+endif else begin
+	;For windows also need to grab some scripts
+	file_copy, directory+path_sep()+'scripts'+path_sep()+'gpi-pipeline-compiled-windows.bat', output_dir+path_sep()+'scripts'+path_sep()+"gpi-pipeline-windows.bat",/overwrite   
+	file_copy, directory+path_sep()+'scripts'+path_sep()+'gpi-setup-windows.bat', output_dir+path_sep()+'scripts'+path_sep()+"gpi-setup-windows.bat",/overwrite   
+endelse
 
 file_copy, directory+path_sep()+'gpi.bmp',output_dir+path_sep(),/overwrite
 
