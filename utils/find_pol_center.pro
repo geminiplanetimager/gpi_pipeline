@@ -77,7 +77,9 @@ for i=0,xsearchlen-1 do begin
 		shifted = shift(img, xoffset-xrange[i], yoffset-yrange[j])
 
 		;radon transform
-		sino = radon(shifted, rho=rho, ntheta=720)
+		;we only care about radon xform slice for rho=0 (i.e. the center)
+		;so we'll make the drho stepsize huge
+		sino = radon(shifted, rho=rho, ntheta=720, drho=dims[0])
 
 		;look at only how the radon xform looks in the center
 		rho0 = where(rho eq 0)
