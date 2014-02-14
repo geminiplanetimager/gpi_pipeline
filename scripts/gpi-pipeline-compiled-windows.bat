@@ -3,9 +3,9 @@
 ::
 :: Color is purely cosmetic to attempt to match *nix termnal colors
 
-start cmd /c "color 3e && %GPI_DRP_DIR%/executables/gpi_launch_guis.exe"
+start cmd /c "color 3e && start /D%GPI_DRP_DIR%\executables %GPI_DRP_DIR%\executables\gpi_launch_guis.exe"
 
 :: Pause for a second just like the other script
 timeout/t 1
 
-start cmd /c "color 1e && %GPI_DRP_DIR%/executables/gpi_launch_pipeline.exe"
+start cmd /c "color 1e && start /D%GPI_DRP_DIR%\executables %GPI_DRP_DIR%\executables\gpi_launch_pipeline.exe"
