@@ -45,3 +45,8 @@ The standard processing of Thermal/Sky background images involves 3 processing s
 Similar to dark frames, thermal frames will also exhibit striping and microphonics, but because there is structure throughout the entire image, the standard destriping algorithms (:ref:`Aggressive destripe assuming there is no signal in the image. (for darks only) <Aggressivedestripeassumingthereisnosignalintheimage.(fordarksonly)>` and :ref:`Destripe science frame <Destripescienceframe>`) cannot be applied (see section :doc:`destriping_and_microphonics` for details). The consequence of this is that the detector noise in Thermal/Sky backgrounds will be significantly higher than science frames. 
 
 As noted above, the current routine does not perform the sky-subtraction in cube space. A consequence of this is that sky subtractions performed at significantly different elevations will not apply the correct calibration. 
+
+
+Relevant GPI team members
+------------------------------------
+Rob de Rosa, Abhi Rajan, Marshall Perrin

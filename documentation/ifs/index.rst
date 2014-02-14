@@ -38,11 +38,14 @@ Contents
    detector.rst
    fieldofview.rst
    filters.rst
+   satellitespots.rst
+   photometry.rst
    polarimetry.rst
-   pupilcam.rst
    dataformats.rst
    steps/index.rst
 
+.. comment
+   pupilcam.rst
 
 
 .. comment

@@ -54,3 +54,7 @@ What to Watch Out For
 
 
 Similar to dark frames, flat field frames will also exhibit striping and microphonics, but because there is structure throughout the entire image, the standard destriping algorithms (:ref:`Aggressive destripe assuming there is no signal in the image. (for darks only) <Aggressivedestripeassumingthereisnosignalintheimage.(fordarksonly)>` and :ref:`Destripe science frame <Destripescienceframe>`) cannot be applied (see section :doc:`destriping_and_microphonics` for details). The consequence of this is that the detector noise in flat-fields will be significantly higher than science frames. However, because of the large signal-to-noise in the images, the detector induced noise is expected to be negligible.
+
+Relevant GPI team members
+------------------------------------
+Patrick Ingraham, Marshall Perrin

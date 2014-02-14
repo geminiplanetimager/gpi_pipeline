@@ -23,10 +23,11 @@ Creating Calibrations:
 
 Take a series of arc lamp exposures (multiple exposures to increase S/N). Reduce these using the 'Wavelength Solution' recipe. This will create a references datacube that provides the starting x and y positions, the wavelength at those positions, the wavelength dispersion, and the tilt angle for each lenslet spectrum. This data cube may then be used to extract full spectral data cubes from science data.
 
-Due to numerous close emission lines in Argon lamp data that are blended at GPI's resolution and therefore cannot be identified and discriminated, the Xenon lamp is recommended for all GPI wavelength calibrations. The Argon lamp can optionally be used in Y band for acceptable solutions, but is not recommended in other filters.
+The Xenon arc lamp spectrum has more cleanly separated emission lines, but with our updated algorithms we now believe the pipeline can derive good wavelength calibrations from either
+Xe or Ar. The GCAL Ar lamp is 3-10x brighter depending on wavelength so the integration times are favorable. In general, Gemini instrument scientists will ensure proper calibration data are taken for wavecals.  
 
 .. note::
-        This recipe is somewhat computationally intensive, and will take 10-20 minutes to run on typical machines. 
+        This recipe is computationally intensive, and will take tens of minutes to run on typical machines. 
 
 Things to Watch Out For
 -------------------------
@@ -57,4 +58,6 @@ A successful determination of the calibration will show a clean grid of centroid
 If you do experience a failed wavelength calibration, first check to make sure the correct dark and badpixel mask were used. If so, then one may modify the *maxpos* and *maxtilt* parameters. One may also change the interpolation type of the bad-pixel interpolation. In extreme cases, the bad pixel could be added to the mask manually, although this has never been necessary.
 
 
-
+Relevant GPI team members
+------------------------------------
+Schuyler Wolff, Zack Draper, Marshall Perrin

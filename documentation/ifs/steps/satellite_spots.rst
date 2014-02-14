@@ -10,3 +10,7 @@ Pipeline Processing:
 
 Creating Calibrations:
 -----------------------
+
+Relevant GPI team members
+------------------------------------
+Patrick Ingraham, Dmitry Savransky

@@ -109,4 +109,8 @@ saved into the calibration directory.
 The Data Parser will produce a recipe for this if either the Hot Pixel or Cold Pixel recipes mentioned above are produced. 
 
 
+Relevant GPI team members
+------------------------------------
+Marshall Perrin, Patrick Ingraham, Jeff Chilcote
+
 

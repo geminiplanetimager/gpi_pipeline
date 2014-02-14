@@ -36,3 +36,6 @@ Things to watch out for:
 
 This primitive must not be run on flexure-corrected data as the persistence is derived from the previous image and will not change with elevation. As mentioned above, images that have been saturated will not be properly corrected and large residuals will result.
 
+Relevant GPI team members
+------------------------------------
+Patrick Ingraham, Marshall Perrin

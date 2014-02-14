@@ -10,3 +10,11 @@ Pipeline Processing:
 
 Creating Calibrations:
 -----------------------
+
+
+
+Relevant GPI team members
+------------------------------------
+Patrick Ingraham, Christian Marois
+
+

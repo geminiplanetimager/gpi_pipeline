@@ -6,6 +6,7 @@ Observed Effect and Relevant Physics:
 ---------------------------------------
 
 Beyond the standard Gaussian readnoise, the GPI detector is subject to 3 types of noise, each of which are referred to here as *horizontal striping*, *vertical striping*, and *microphonic noise*. All three of these patterns are easily identifiable in a standard 1.5 second dark frame, shown in figure below.
+Each of the noise types are caused by different physical phenomena. 
 
 .. figure:: raw_dark_mod.png
         :width: 350pt
@@ -15,7 +16,8 @@ Beyond the standard Gaussian readnoise, the GPI detector is subject to 3 types o
 
 	The red circles indicate sections of the detector heavily affected by the microphonic noise. The purple dashed lines indicate regions of horizontal detector striping and the green dashed lines indicate example of the vertical striping.
 
-Each of the noise types are caused by different physical phenomena. The horizontal striping is due to noise in the readout electronics, likely the SIDECAR ASIC. During the early days of the integration and test of the IFS, the level of the noise was ~8x higher than it is today. This was determined to be an issue with the grounding of the detector. Although the striping appears to be broad stripes across the entire detector, it is actually intricate patterns that are present in every detector channel. It is this repetition that is used in deriving it's correction. The complexities of the patterns can be seen in the extracted noise pattern shown below. 
+
+**Horizontal striping:** The horizontal striping is due to noise in the readout electronics, specifically the SIDECAR ASIC. During the early days of the integration and test of the IFS, the level of the noise was ~8x higher than it is today. This was determined to be an issue with the grounding of the detector. Although the striping appears to be broad stripes across the entire detector, the stripes are in fact repeated in every detector channel (alternating in direction due to the H2RG readout pattern). This repetition across channels is used in deriving the correction as a median across channels.
 
 .. figure:: horizontal_striping_correction.png
         :width: 350pt
@@ -25,11 +27,14 @@ Each of the noise types are caused by different physical phenomena. The horizont
 
 	The horizontal stripe correction derived for the image shown in the previous figure. The microphonics and detector channel offset correction is not shown.
 
-The vertical striping is caused by bias offsets of each of the 32 individual detector channels. This can be roughly modeled as a constant for the entire 64x2048 pixel channel, which is how the pipeline primitive derives its current correction. Like the horizontal striping, the pattern appears random between adjacent images, but long sequences show that the noise does possess a correlated component and that systematics are present in both cases. Due to the changing nature of this noise, a noise model must be derived for each individual image.
+**Vertical striping:** The vertical striping is caused by bias offsets of each of the 32 individual detector channels. This can be roughly modeled as a constant for the entire 64x2048 pixel channel, which is how the pipeline primitive derives its current correction. Like the horizontal striping, the pattern appears random between adjacent images, but long sequences show that the noise does possess a correlated component and that systematics are present in both cases. Due to the changing nature of this noise, a noise model must be derived for each individual image.
 
-The microphonic noise is induced by vibrations from the Cryo-cooler motors. As the two motors move in and out of phase on a ~7 minute timescale, the pattern is observed to oscillate in intensity. The repeatability of the pattern and its affect at only certain frequencies allows for it to be filtered in Fourier space, so long as there is not a large amount of structure in the image (e.g. flat fields and arc-lamp images).
+**Microphonics:** The microphonic noise is induced by vibrations from the Cryo-cooler motors. As the two motors move in and out of phase on a ~7 minute timescale, the pattern is observed to oscillate in intensity. The repeatability of the pattern and its affect at only certain frequencies allows for it to be filtered in Fourier space, so long as there is not a large amount of structure in the image (e.g. flat fields and arc-lamp images).
 
-See below different examples of images in Fourier space (Note: the lowest frequencies are in the bottom right, the negative values are not shown). The blue circle enlightens the aera where the microphonics noise frequencies seems to be localized.
+.. note::
+    With the CCRs now synchronized as of Jan 2014, they should no longer beat and microphonics noise should be minimized hopefully.  Also note that microphonics noise decrease with 1/sqrt(nreads) so for any moderately long exposure image (> 30 seconds) this effect is small.
+
+See below different examples of microphonics in Fourier space (Note: the lowest frequencies are in the bottom right, the negative values are not shown). The blue circle indicated the area in Fourier space where the microphonics noise frequencies seems to be localized (see lower right panel in particular). The upper right panel shows how the spatial frequencies present in a science frame are well separated from the microphonics frequencies. However the spatial frequencies of flat and arc lamp images (with microspectra filling the whole array) do not permit clean separation from any microphonics present.
 
 .. figure:: microphonicsFourierSapce.png
     :width: 500pt
@@ -39,11 +44,11 @@ See below different examples of images in Fourier space (Note: the lowest freque
 Using the Destriping Algorithms in GPI Data Reduction
 ------------------------------------------------------
 
-The striping noise affects every image taken with the detector. The effectiveness of the pipelines ability to remove the striping is dependent upon the observation type. The ability to correct the striping is inversely proportional to the spatial distribution of light in the image. For example, a dark frame has no light in the image, therefore the entire detector can be used in deriving the striping correction. This is done using the pipeline primitive :ref:`Aggressive destripe assuming there is no signal in the image. (for darks only) <Aggressivedestripeassumingthereisnosignalintheimage.(fordarksonly)>`. 
+The effectiveness of the pipeline to remove the striping is dependent upon the observation type. The ability to correct the striping is inversely proportional to the spatial distribution of light in the image. For example, a dark frame has no light in the image, therefore the entire detector can be used in deriving the striping correction. This is done using the pipeline primitive :ref:`Destripe for darks only <destripefordarksonly>`. 
 
 In the case of science data (e.g. coronagraphic data), all of the microspectra are masked, leaving only the space between to derive the correction. This is done in the primitive :ref:`Destripe science frame <Destripescienceframe>`. There are selectable options for also removing microphonics and channel offsets as well as the basic horizontal striping.
 
-For frames exhibiting large amounts of spatial structure (e.g. flats, arclamp images) then the amount of masking is too large, and the detector striping cannot be derived from the image itself. However, a partial correction can be applied by capitalizing on the four reference pixels on either side of the detector (note that reference pixels are photo-insensitive but exhibit the same readnoise). This is performed using the primitive :ref:`Apply Reference Pixel Correction <ApplyReferencePixelCorrection>`. This primitive is safe to use in all cases should the other methods fail.
+For frames exhibiting large amounts of flux filling the entire field of view (e.g. flats, arclamp images) then the amount of masking is too large, and the detector striping cannot be derived from the image itself. However, a partial correction can be applied by capitalizing on the four reference pixels on either side of the detector (note that reference pixels are photo-insensitive but exhibit the same readnoise). This is performed using the primitive :ref:`Apply Reference Pixel Correction <ApplyReferencePixelCorrection>`. This primitive is safe to use in all cases should the other methods fail.
 
 * :ref:`Destripe science frame <Destripescienceframe>`:
 	Different methods are available for Microphonics removal:
@@ -79,4 +84,6 @@ Things to watch out for:
 The primary concern of the destriping algorithm is the possibility of it inserting systematic features into images due to a large amount of structure in the image that increases the region that is masked and therefore decreases the amount of detector available to derive the correction. For typical coronagraphic observations this is not a concern, but with extended objects this may become a concern. Because we have no data with spatially resolved objects, the destriping algorithms will be re-evaluated once on sky.
 
 
-
+Relevant GPI team members
+------------------------------------
+Patrick Ingraham, J.B. Ruffio, Marshall Perrin
