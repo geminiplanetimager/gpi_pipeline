@@ -442,7 +442,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 					['dark_exact', 'Dark', 'itimeReadmode'],  $ ;  dark with exact match required
                     ['wavecal', 'Wavelength Solution Cal File', 'FiltPrism'], $
                     ['flat', 'Flat Field', 'FiltPrism'], $
-                    ['lensletflat', 'Lenslet Flat Field', 'FiltPrism'], $
+                    ['lensletflat', 'Lenslet Flat Field', 'PrismOnly'], $ ; was filtprism
                                 ;['flat', 'Flat field', 'FiltPrism'], $
                     ['badpix', 'Bad Pixel Map', 'typeonly'], $
                     ['hotbadpix', 'Hot Pixel Map', 'typeonly'], $
@@ -451,7 +451,8 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
                     ['plate', 'Plate scale & orientation', 'typeonly'], $
                     ['spotloc', 'Spot Location Measurement', 'FiltOnly'], $
                     ['Gridratio', 'Grid Ratio', 'FiltOnly'], $
-                    ['mlenspsf', 'mlens psf', 'FiltPrism'], $
+			;mlenspsf should have second for pol mode too?
+                    ['mlenspsf', 'High-res Microlens PSFs', 'FiltPrism'], $
                     ['Fluxconv', 'Fluxconv', 'FiltPrism'], $
                     ['telluric', 'Telluric Transmission', 'FiltPrism'], $
                     ['polcal', 'Polarimetry Spots Cal File', 'FiltPrism'], $
@@ -620,6 +621,12 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
         ((calfiles_table.filter) eq filter )  ,cc)
      	errdesc = 'with same FILTER'
   	end
+	'PrismOnly': begin
+     	imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
+	   		((calfiles_table.prism) eq prism) ,cc)
+     	errdesc = 'with same PRISM'
+  	end
+	
 	endcase
 
     

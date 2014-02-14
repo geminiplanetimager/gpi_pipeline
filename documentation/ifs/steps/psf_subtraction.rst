@@ -10,3 +10,7 @@ Pipeline Processing:
 
 Creating Calibrations:
 -----------------------
+
+Relevant GPI team members
+------------------------------------
+Christian Marois, Dmitry Savransky, Laurent Pueyo

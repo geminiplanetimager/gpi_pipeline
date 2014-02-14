@@ -341,6 +341,7 @@ state = {                   $
         contr_plotmult: 0, $                ; plot contrasts for single slice/all slices
         contr_autocent: 1, $                ; 0=manual, 1=auto, find sat centers 
         contr_highpassspots: 1, $           ; pass /highpass
+        contr_constspots: 0, $              ; pass /constrain
         contr_plotouter: 0, $               ; plot contrasts for region outside of dark hole
         contr_yunit:0, $                    ; 0 = sigma, 1 = median, 2 = mean
         contr_xunit:0, $                    ; 0 = as, 1 = l/D
@@ -5792,6 +5793,7 @@ pro GPItv::update_sat_spots,locs0=locs0
      ;;operating on the orig image.
      sats = get_sat_fluxes(*self.images.main_image_backup,band=(*self.state).obsfilt,$
                            good=good,cens=cens,warns=warns,highpass=(*self.state).contr_highpassspots,$
+                           constrain = (*self.state).contr_constspots,$
                            winap=(*self.state).contrwinap,gaussap=(*self.state).contrap,$
                            indx=(*self.state).cur_image_num,locs=locs0,gaussfit=1,refinefits=1)
      if n_elements(sats) eq 1 and sats[0] eq -1 then begin
@@ -19110,9 +19112,9 @@ pro GPItv::contrast_settings
   plotouter = strcompress('0, button, Dark Hole Only|All Image, exclusive,' + $  ;7
                          'label_left = Plot Contrast In:, set_value =' + $
                          string( (*self.state).contr_plotouter))
-  autocent = strcompress('0, button, Auto Locate Sat Spots|Use Highpass Filter,' + $ ;8
+  autocent = strcompress('0, button, Auto Locate Sat Spots|Use Highpass Filter|Constrain Spot Locs,' + $ ;8
                          ' set_value = ' + $
-                         '['+strtrim((*self.state).contr_autocent,2)+'\,'+strtrim((*self.state).contr_highpassspots,2)+']')
+                         '['+strtrim((*self.state).contr_autocent,2)+'\,'+strtrim((*self.state).contr_highpassspots,2)+'\,'+strtrim((*self.state).contr_constspots,2)+']')
   yunits = strcompress('0, button, Sigma|Median|Mean, exclusive,' + $ ;9
                          'label_left = Contrast Y units:, set_value =' + $
                          string( (*self.state).contr_yunit))
@@ -19140,6 +19142,7 @@ pro GPItv::contrast_settings
   (*self.state).contr_plotouter = textform.tag7
   (*self.state).contr_autocent = (textform.tag8)[0]
   (*self.state).contr_highpassspots = (textform.tag8)[1]
+  (*self.state).contr_constspots = (textform.tag8)[2]
   (*self.state).contr_yunit = textform.tag9
   (*self.state).contr_xunit = textform.tag10
 

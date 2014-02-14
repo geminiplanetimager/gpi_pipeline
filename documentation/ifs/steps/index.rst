@@ -16,6 +16,10 @@ In many cases, the Data Parser will automatically generate a good set of recipes
 This page takes the alternate approach, of describing what you need to know in order to perform the process yourself, understand how it all works, etc. 
 
 
+.. caution::
+        This documentation is still incomplete and a work in progress!
+
+
 .. toctree::
    :maxdepth: 1
 
@@ -26,6 +30,7 @@ This page takes the alternate approach, of describing what you need to know in o
    nonlinearity.rst
    persistence.rst
    flat_fielding_detector.rst
+   flat_fielding_lenslets.rst
    wavelength_calibration.rst
    datacube_extraction.rst
    satellite_spots.rst
@@ -33,3 +38,9 @@ This page takes the alternate approach, of describing what you need to know in o
    photometric_calib.rst
    psf_subtraction.rst
    companion_spectra.rst
+
+If you're interested in GPI polarimetry, then you should also consult
+
+ * :ref:`polspotcal`
+ * :ref:`instr_pol`
+ * :ref:`pol_sequences`

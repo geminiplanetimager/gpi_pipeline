@@ -1,6 +1,8 @@
 
-Photometric Calibration
-==================================
+.. _polspotcal:
+
+Polarimetric Spot Location Calibration
+=========================================
 
 Observed Effect and Relevant Physics:
 ---------------------------------------
@@ -26,3 +28,7 @@ Typically the same exact set of input data are used for 'Calibrate Polarization 
 
 .. note::
         This recipe is somewhat computationally intensive, and will take 10-20 minutes to run on typical machines. 
+
+Relevant GPI team members
+------------------------------------
+Max Millar-Blanchaer, Marshall Perrin

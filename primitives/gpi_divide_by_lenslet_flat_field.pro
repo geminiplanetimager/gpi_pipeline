@@ -47,12 +47,17 @@ calfiletype = 'lensletflat'
 	for i=0L,sz[3]-1 do (*dataset.currframe)[*,*,i] /= lensletflat
 
 
-
-	if cc gt 0 then (*dataset.currframe)[wnan]=!VALUES.F_NAN 
+	; let's not propagate NaNs here - this will more gracefully handle slight
+	; variations in the edge lenslets as the FOV shifts between filters
+	; (and this enables using a gray wavelength-indep correction file too)
+	;if cc gt 0 then (*dataset.currframe)[wnan]=!VALUES.F_NAN 
 	if cz gt 0 then (*dataset.currframe)[wzero]=!VALUES.F_NAN
 
 
 	;atv, [*dataset.currframe,data0],/bl
+	;atv, [[[(*dataset.currframe)[*,*,5]]],[[data0[*,*,5]]],[[lensletflat]]],/bl
+	;atv, [[[total(*dataset.currframe, 3)]],[[total(data0,3)]],[[lensletflat]]],/bl
+	;atv, [total((*dataset.currframe)[*,*,5:30], 3),total(data0[*,*,5:30],3),lensletflat*median(total((*dataset.currframe)[*,*,5:30], 3))],/bl
 	;stop
   
 @__end_primitive

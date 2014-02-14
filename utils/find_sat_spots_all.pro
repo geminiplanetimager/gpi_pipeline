@@ -1,5 +1,6 @@
 function find_sat_spots_all,im0,band=band,indx=indx,good=good,$
-                        refinefits=refinefits,winap=winap,locs=locs,highpass=highpass
+                            refinefits=refinefits,winap=winap,locs=locs,$
+                            highpass=highpass,constrain=constrain
 ;+
 ; NAME:
 ;       find_sat_spots_all
@@ -11,7 +12,7 @@ function find_sat_spots_all,im0,band=band,indx=indx,good=good,$
 ;       slices (where they can be found)
 ;
 ; Calling SEQUENCE:
-;       res = find_sat_spots_all(im0,[band=band,good=good,cens=cens,warns=warns,/refinefits])
+;       res = find_sat_spots_all(im0,[band=band,good=good,cens=cens,warns=warns,/refinefits,/highpass,/constrain])
 ;
 ; INPUT/OUTPUT:
 ;       im0 - 3D image (must be consistent with a cube produced by the
@@ -27,7 +28,10 @@ function find_sat_spots_all,im0,band=band,indx=indx,good=good,$
 ;      
 ;       cens - 2x4xl array of sat spot center pixel locations
 ;
-;       highpass - High pass filter image used for initial sat spot finding
+;       /highpass - High pass filter image used for initial sat spot
+;                   finding
+;       /constrain - Apply constraints on box sizes based on
+;                    wavelength and apodizer
 ;
 ; OPTIONAL OUTPUT:
 ;       good - Indices of the slices where sat spots could be found
@@ -42,6 +46,8 @@ function find_sat_spots_all,im0,band=band,indx=indx,good=good,$
 ;             
 ; REVISION HISTORY
 ;       Written  09/18/2012.  savransky1@llnl.gov 
+;       11/13 - Added highpass option - ds
+;       2/13/14 - Added /constrain option - ds
 ;-
 
 ;;check input
@@ -63,10 +69,16 @@ cwv = get_cwv(band,spectralchannels=sz[2])
 lambda = cwv.lambda
 scl = lambda[indx]/lambda
 
+if keyword_set(constrain) then begin
+   bands = ['Y','J','H','K1','K2'];
+   cvals = [49,56,53,57,57];
+   cval = cvals(where(bands eq band))*lambda[indx]
+endif else cval = 0
+
 ;;grab reference slice and find spots
 s0 = im[*,*,indx]
 if strcmp(band,'Y',/fold_case) then s0 *= hanning(sz[0],sz[1],alpha=0.01)
-cens0 = find_sat_spots(s0, winap=winap,locs=locs,highpass=highpass)
+cens0 = find_sat_spots(s0, winap=winap,locs=locs,highpass=highpass,constrain=cval)
 badcens = where(~finite(cens0),ct)
 if n_elements(cens0) eq 1 || ct ne 0 then return, -1
 

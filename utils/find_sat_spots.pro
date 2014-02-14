@@ -1,4 +1,4 @@
-function find_sat_spots,s0,leg=leg,locs=locs0, winap = winap, highpass=highpass
+function find_sat_spots,s0,leg=leg,locs=locs0, winap = winap, highpass=highpass,constrain=constrain
 ;+
 ; NAME:
 ;       find_sat_spots
@@ -105,15 +105,23 @@ if not keyword_set(locs0) then begin
             dists = sqrt(total(((locs[*,combs[j,*]])[*,combs3[*,0]] - (locs[*,combs[j,*]])[*,combs3[*,1]])^2d,1))
             dists = dists[sort(dists)]
             ;;in this case,we're looking for 2 equal distances, and 1 distance sqrt(2) larger
-            ;;we'll be more forgiving here as we have fewer points to average
-            if (abs(dists[1]-dists[0]) le 2d) && (abs(dists[2]/mean(dists[0:1]) - sqrt(2d)) lt 5e-2) then $
-               if n_elements(tricombs) eq 0 then tricombs = combs[j,*] else tricombs = [tricombs, combs[j,*]] 
+            ;;we'll be more forgiving here as we have fewer points to average. 
+            if (abs(dists[1]-dists[0]) le 2d) && (abs(dists[2]/mean(dists[0:1]) - sqrt(2d)) lt 5e-2) then begin
+               doadd = 1
+               ;;if user supplied a constraint on leg length, we'll check that
+               if keyword_set(constrain) then begin
+                  if abs(dists[0] - constrain) gt 10 then doadd = 0
+               endif 
+               if doadd then $
+                  if n_elements(tricombs) eq 0 then tricombs = combs[j,*] else tricombs = [tricombs, combs[j,*]] 
+            endif 
          endfor
       endif
 
       ;;set up next iteration
       out[msk[*,0]+inds[0],msk[*,1]+inds[1]] = min(out)   
-      val = max(out,ind)   
+      val = max(out,ind) 
+      print,val
       counter += 1 
    endwhile
 
