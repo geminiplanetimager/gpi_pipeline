@@ -110,7 +110,7 @@ if not keyword_set(locs0) then begin
                doadd = 1
                ;;if user supplied a constraint on leg length, we'll check that
                if keyword_set(constrain) then begin
-                  if abs(dists[0] - constrain) gt 7 then doadd = 0
+                  if abs(dists[0] - constrain) gt 10 then doadd = 0
                endif 
                if doadd then $
                   if n_elements(tricombs) eq 0 then tricombs = combs[j,*] else tricombs = [tricombs, combs[j,*]] 
@@ -120,7 +120,8 @@ if not keyword_set(locs0) then begin
 
       ;;set up next iteration
       out[msk[*,0]+inds[0],msk[*,1]+inds[1]] = min(out)   
-      val = max(out,ind)   
+      val = max(out,ind) 
+      print,val
       counter += 1 
    endwhile
 
