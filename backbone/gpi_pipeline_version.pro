@@ -13,10 +13,14 @@
 ;
 ;
 ; HISTORY:
-; 	Began 2010-05-22 11:56:33 by Marshall Perrin 
-;
-;	0.6:
-;	0.65: 		most of 2010 development? not really updated.
+;   < 0.5:			Early development circa 2007-2008a
+;					GPI data simulator tool (DST) by Maire and Perrin
+;					Initial development of gpitv and stand-alone primitives by Maire
+;	2008-06			Release	0.5 for GPI CDR
+;	2010-05-26		Release 0.6 for GPI team science meeting
+;					First implementation of backbone and other infrastructure by Perrin
+;					and recipe editor GUI by Maire
+;	0.65:			most of 2010 development? Version # not often updated.
 ;
 ;	2011-08-01:		version 0.70
 ;			 		multi-extension FITS format adopted for consistency with Gemini.
@@ -31,11 +35,12 @@
 ;	2013-11-12		Release 0.9.3 for GPI first light observing run.
 ;	2014-01-07		Release 0.9.4 for AAS Meeting 
 ;	2014-02-11		Release candidate 1.0rc1
+;	2014-02-14		Milestone: Release version 1.0!
 ;-
 
 function gpi_pipeline_version, svn=svn
 
-version = '1.0rc1'
+version = '1.0'
 
 if keyword_set(svn) then begin
 	; append svn version ID also
