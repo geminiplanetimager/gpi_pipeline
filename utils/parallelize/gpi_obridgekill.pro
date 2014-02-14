@@ -1,7 +1,7 @@
 ;+
 ; NAME: gpi_obridgekill.pro
 ; 
-; The following are code dependencies for gpi_obridgeabort
+; Kill bridges
 ;
 ; INPUTS: Array of bridges
 ; 	

@@ -1,7 +1,7 @@
 ;+
-; NAME: gpi_obridgekill.pro
+; NAME: gpi_obridgestartup.pro
 ; 
-; The following are code dependencies for gpi_obridgeabort
+; The following are code dependencies for gpi_obridgestartup
 ;
 ; INPUTS: nbproc =  # of processors to initialize
 ; 	
