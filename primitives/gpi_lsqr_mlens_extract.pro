@@ -137,7 +137,7 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 	para=cwv.CommonWavVect
 
 	; start bridges from utils function
-	oBridge=obridgestartup(nbproc=np)
+	oBridge=gpi_obridgestartup(nbproc=np)
 	
 	for j=0,np-1 do begin
 		oBridge[j]->Setvar,'img',img
