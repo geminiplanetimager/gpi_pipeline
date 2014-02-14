@@ -167,6 +167,31 @@ pro parsergui::addfile, filenames
 
 end
 
+;+-----------------------------------------
+; parsergui::removefile
+;
+;     This removed a list of files to the current list
+;
+;     Add one or more new file(a) to the Input FITS files list, validate them
+;     and check keywords, and then apply the parsing rules to generate recipes.
+;
+;-
+pro parsergui::removefile, filenames
+
+
+    widget_control,self.top_base,get_uvalue=storage  
+    index = (*storage.splitptr).selindex
+    cindex = (*storage.splitptr).findex
+    file = (*storage.splitptr).filename
+    pfile = (*storage.splitptr).printname
+    datefile = (*storage.splitptr).datefile
+
+	t0 = systime(/seconds)
+
+    self->Log, "Removing files from data parser needs to be implemented"
+
+	stop
+end
 
 
 ;+-----------------------------------------
@@ -902,7 +927,7 @@ pro parsergui::event,ev
         (*storage.splitptr).selindex = ev.index
     end
     'REMOVE' : begin
-        self->removefile, storage, file
+        self->removefile, file
     end
     'REMOVEALL' : begin
         if confirm(group=ev.top,message='Remove all items from the list?',$
