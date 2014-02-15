@@ -87,12 +87,12 @@ if (Q12_ind ne -1 and Q22_ind ne -1) then begin
 	; so now we must determine the shifts and put Q11_ind_psf on the same grid
 	; note that no interpolation is ever necessary since they all have the same
 	; grid spacing
-	Q12_ind_psf=(*high_res_psfs[Q12_ind mod 281,Q12_ind / 281]).values
+	Q12_ind_psf0=(*high_res_psfs[Q12_ind mod 281,Q12_ind / 281]).values
 	Q12_xzeroind=where((*high_res_psfs[Q12_ind mod 281,Q12_ind / 281]).xcoords eq 0)
 	Q12_yzeroind=where((*high_res_psfs[Q12_ind mod 281,Q12_ind / 281]).ycoords eq 0)
 	dx=Q12_xzeroind-master_xzeroind
 	dy=Q12_yzeroind-master_yzeroind
-	Q12_ind_psf=translate(Q12_ind_psf,-dx,-dy,missing=!values.f_nan)
+	Q12_ind_psf=translate(Q12_ind_psf0,-dx,-dy,missing=!values.f_nan)
 
 	; these are just weighted means
 	Rx2=( (xgrid[Q22_ind]-0.0)/(xgrid[Q22_ind]-xgrid[Q12_ind]) )*Q12_ind_psf + $
@@ -202,7 +202,7 @@ if keyword_set(rx1) eq 0 and keyword_set(rx2) eq 0 then begin
 	endif else R2y=0
 
 	if (Q11_ind ne -1 and Q12_ind ne -1) then begin
-		Q11_ind_psf=(*high_res_psfs[Q11_ind mod 281,Q11_ind / 281]).values
+		Q11_ind_psf0=(*high_res_psfs[Q11_ind mod 281,Q11_ind / 281]).values
 			; if the master didnt get set above, use these instead!
 		if keyword_set(master_xzeroind) eq 0 then master_xzeroind=where((*high_res_psfs[Q11_ind mod 281,Q11_ind / 281]).xcoords eq 0)
 		if keyword_set(master_yzeroind) eq 0 then master_yzeroind=where((*high_res_psfs[Q11_ind mod 281,Q11_ind / 281]).ycoords eq 0)
