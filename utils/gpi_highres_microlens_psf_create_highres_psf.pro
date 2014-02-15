@@ -265,7 +265,7 @@ if where_coords_NOT_too_big[0] eq -1 then stop, 'line 219'
   
   
   ;if keyword_set(PLOT_SAMPLES) then begin
-  ; select_window, 10
+  ;  select_window, 10
   ;  plot,all_x_coords,all_y_coords ,psym=3,$
   ;                TITLE = "PSF sampling (green = psf grid, white = samples)", $
   ;                XTITLE = "x axis (in pixel)", $
@@ -295,7 +295,7 @@ if where_coords_NOT_too_big[0] eq -1 then stop, 'line 219'
 ;  					[-0.080816, -0.019592,  0.200816, -0.019592, -0.080816], $
 ;   					[ 0.041632, -0.080816, -0.078368, -0.081816,  0.041632]  ]
   
-tmp=[1,4,6,4,1] ; gaussian
+;tmp=[1,4,6,4,1] ; gaussian
 tmp=[1,2,1] ; gaussian - best at the moment...
 
 kernel= (tmp)##reform((transpose(tmp))) 
@@ -401,7 +401,9 @@ for l=0, loop_iterations-1 do begin
 	psf0=psf
 	; so psf holds the pre-smoothed psf
 	; psf2 is the smoothed psf
-	psf2 = CONVOL( psf, kernel )
+	psf2 = CONVOL( psf, kernel,/nan )
+        ; must replace the nans that were in the array with nans
+        ; otherwise a weird smoothing happens which is bad
 	ind = where(finite(psf) eq 0) ; just original nans
 	ind2=where(finite(psf2) eq 0); values surrounding edge of original
 	; make it such that the nans are the same
@@ -415,8 +417,8 @@ for l=0, loop_iterations-1 do begin
 	; normalize so that the psf is the same total as the convolved psf
 	psf2*=total(psf,/nan)/total(psf2,/nan)
 
-	;window, 2, xsize=200, ysize=500
-	;tvdl,psf2;,min(psf,/nan),max(psf,/nan)
+;	window, 2, xsize=200, ysize=500
+;	tvdl,psf2;,min(psf,/nan),max(psf,/nan)
 
 	; the smoothing might have shifted the CofM of the epsf, to compensate
 	; we shift all the samplings to match the original
@@ -459,11 +461,11 @@ for l=0, loop_iterations-1 do begin
 				if finite(dy) eq 0 then dy=0
 				
 				;print, 'dx,dy' ,dx,dy
-				xshift-=(dx*0.2)
-				yshift-=(dy*0.2)
+				xshift-=(dx*psf_x_step)
+				yshift-=(dy*psf_y_step)
 				; we want this loop to break if the offsets are really small
 				; so we'll designate 'small' as 1/10th of the sampling step size
-				if abs((dx*0.2)) lt (PSF_x_step/10.) and abs((dy*0.2)) lt (PSF_y_step/10.) then l=loop_iterations-1
+				if abs((dx*psf_x_step)) lt (PSF_x_step/10.) and abs((dy*psf_y_step)) lt (PSF_y_step/10.) then l=loop_iterations-1
 			endif
 		end ; end the peak centroid case
 		"BARYCENTER": begin
@@ -495,14 +497,21 @@ for l=0, loop_iterations-1 do begin
 	if finite(xshift+yshift) eq 0 then stop, 'shifts are not a number ?!? - get_psf2 line 360'
 
 	; display the smoothed psf
-	loadct,1
+	;loadct,1
 	;print,l,xshift,yshift,sqrt((xshift)^2+(yshift)^2)
-	if l eq 0 then window,2,retain=2
+	;if l eq 0 then window,2,retain=2
 	 ;tvdl, abs(psf2-psf)/psf,0.001,0.5,box=28
-	wait,1
-	stop
+	;wait,1
+	;stop
 	;if l eq loop_iterations-2 then stop,'about to break psf smoothing loop'
 
+                                ; now put the nans to zeros to prevent propagation
+                                ; if there is not enough points
+                                ; they'll just get set to nan again
+                                ; if there are enough points then
+         ; theyll become part of the highres psf
+        ind=where(finite(psf2) eq 0)
+        if ind[0] ne -1 then psf2[where(finite(psf2) eq 0)]=0
 	; now make the new psf the smoothed psf
 	psf=temporary(psf2) 
 
