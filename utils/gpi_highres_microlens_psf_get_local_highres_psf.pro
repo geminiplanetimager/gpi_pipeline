@@ -235,9 +235,9 @@ if keyword_set(rx1) eq 0 and keyword_set(rx2) eq 0 then begin
 	
 		; now check to see if any nans were added
 		new_bad=where(finite(r1y) eq 0 and finite(Q11_ind_psf) eq 1)
-		if new_bad[0] ne -1 then r1y[ind]=Q11_ind_psf[ind]
-		new_bad=where(finite(r1y) eq 0 and finite(Q21_ind_psf) eq 1)
-		if new_bad[0] ne -1 then r1y[ind]=Q21_ind_psf[ind]
+		if new_bad[0] ne -1 then r1y[new_bad]=Q11_ind_psf[new_bad]
+		new_bad=where(finite(r1y) eq 0 and finite(Q12_ind_psf) eq 1)
+		if new_bad[0] ne -1 then r1y[new_bad]=Q12_ind_psf[new_bad]
 
 	
 	endif else R1y=0
