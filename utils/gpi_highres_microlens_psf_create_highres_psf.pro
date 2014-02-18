@@ -265,12 +265,12 @@ if where_coords_NOT_too_big[0] eq -1 then stop, 'line 219'
   
   
   ;if keyword_set(PLOT_SAMPLES) then begin
-  ;  select_window, 10
-  ;  plot,all_x_coords,all_y_coords ,psym=3,$
-  ;                TITLE = "PSF sampling (green = psf grid, white = samples)", $
-  ;                XTITLE = "x axis (in pixel)", $
-  ;                YTITLE = "y axis (in pixel)", yr=[-1,1],xr=[-1,1]
-  ;  oplot, reform(x_grid_PSF, n_elements(x_grid_PSF)),reform(y_grid_PSF, n_elements(y_grid_PSF)),psym=1,color=cgcolor('green')
+;    select_window, 10,retain=2,xsize=550,ysize=500
+;    plot,all_x_coords,all_y_coords ,psym=3,$
+;                  TITLE = "PSF sampling (green = psf grid, white = samples)", $
+;                  XTITLE = "x axis (in pixel)", $
+;                  YTITLE = "y axis (in pixel)", yr=[-1,1],xr=[-1,1]
+;    oplot, reform(x_grid_PSF, n_elements(x_grid_PSF)),reform(y_grid_PSF, n_elements(y_grid_PSF)),psym=1,color=cgcolor('green')
   ;  ;stop
   ;endif
 
@@ -285,21 +285,35 @@ if where_coords_NOT_too_big[0] eq -1 then stop, 'line 219'
 
   ;  ; this is the kernel to do the smoothing
   ;  ; it is a quartic kernel - this was found to be the best for the
-  ;  ; WFPC2 data, not necessarily ideal for GPI - but we'll start with it!
-  ;
-; this is in the anderson paper, but i think it is wrong since it is not rotationally
-; symmetric. the LHS and RHS 0.078368 should be negative  
+  ;  ; WFPC2 data, not necessarily ideal for GPI 
+; anderson kernel
 ;  kernel= [ [ 0.041632, -0.080816, -0.078368, -0.081816,  0.041632], $
-;  					[-0.080816, -0.019592,  0.200816, -0.019592, -0.080816], $
-;  					[-0.078368,  0.200816,  0.441632,  0.200816, -0.078368], $
-;  					[-0.080816, -0.019592,  0.200816, -0.019592, -0.080816], $
-;   					[ 0.041632, -0.080816, -0.078368, -0.081816,  0.041632]  ]
-  
-;tmp=[1,4,6,4,1] ; gaussian
-tmp=[1,2,1] ; gaussian - best at the moment...
+;            [-0.080816, -0.019592,  0.200816, -0.019592, -0.080816], $
+;            [-0.078368,  0.200816,  0.441632,  0.200816, -0.078368], $
+;            [-0.080816, -0.019592,  0.200816, -0.019592, -0.080816], $
+;            [ 0.041632, -0.080816, -0.078368, -0.081816,  0.041632]  ]
 
-kernel= (tmp)##reform((transpose(tmp))) 
-kernel/=total(kernel) ; normalize the kernel
+  
+; after looking at different kernels, the moffat kernel was determined
+; to be the best (using only 1 psf)
+
+  
+;tmp=[1,4,6,4,1] ; gaussian - ; just blurs ver a large region
+;tmp=[1,2,1] ; gaussian - ; blurs over a small region
+;kernel= (tmp)##reform((transpose(tmp))) 
+;kernel/=total(kernel) ; normalize the kernel
+
+n=3
+r=distarr(n,n)
+; norm is about the FWHM of a psf
+norm=3.0
+r/=norm
+
+signs= [ [-1.0, 1.0, -1.0], $
+         [ 1.0, 1.0,  1.0], $
+         [-1.0, 1.0, -1.0]]
+
+kernel=1.0/((abs(r)+1.0)^9)*signs
 
 ; these are the shifts of the psf samplings so that the high-res psf
 ; is properly centered. We start with zero, but this will be changed 
@@ -313,98 +327,98 @@ time0=systime(1)  ; this is just for timing
 ; converge to a certain value
 loop_iterations=10
 for l=0, loop_iterations-1 do begin
-	  ; this finds all the samplings for a given psf coordinate
-	  ; takes very little time
-	  val_loc_x_coords = value_locate(PSF_x_sampling, all_x_coords-xshift) 
-	  val_loc_y_coords = value_locate(PSF_y_sampling, all_y_coords-yshift)
-	  ; loop over x samples
-	  for i = 0,PSF_nx_samples-1 do begin
-			; the indices_for_current_point variable is determined in the following manner simply for speed reasons.
-			; this is not the most logical way to do it!
-
-			; this is the original method - it is VERY slow
-			;indices_for_current_point = where((val_loc_x_coords ge i and val_loc_x_coords le i+1) and (val_loc_y_coords ge j and val_loc_y_coords le j+1) )
-
-			possible_ind= where((val_loc_x_coords eq i or val_loc_x_coords eq i+1))
-			if possible_ind[0] eq -1 then begin
-				error_flag += 1
-				PSF[i,*] = !values.f_nan
-				continue
-			endif
-			tmp_val_loc_y_coords=val_loc_y_coords[possible_ind]
-			; loop over y-samples
-			for j = 0,PSF_ny_samples-1 do begin
-
-				tmp=where((tmp_val_loc_y_coords eq j or tmp_val_loc_y_coords eq j+1))
-				if tmp[0] eq -1 then begin
-					error_flag += 1
-					PSF[i,j] = !values.f_nan
-					continue
-				endif
-				indices_for_current_point=temporary(possible_ind[temporary(tmp)])
-
-				if indices_for_current_point[0] ne -1 then begin
-					matching_values = all_pix_values[indices_for_current_point]
-					; make sure no nan's are present
-					bad=where(finite(matching_values) eq 0, complement=good)
-					if good[0] eq -1 then begin
-						error_flag += 1
-						PSF[i,j] = !values.f_nan
-						continue
-					endif
-					; make sure there are at least 13 samplings per psf datapoint 
-					; I think the 13 is rather random...
-					; what is actually quite important is that the sampling
-					; is equally on all sides of the center
-					; if you have 10 points all on one side then your
-					; 'average' is very biased.       
-					 if n_elements(matching_values[good]) ge 13 then begin
-						; calculate residual.
-						; note that sometimes funny things happen where with the new shifts new samplings of the psf are possible that previously were not, so new pieces of the psf array appear and disappear. this is why this stupid little median hack is here. It only really affects the edges
-						if finite(total(matching_values[good])) eq 0 or finite(psf[i,j]) eq 0 then begin
-								resid= matching_values - median(psf[(i-1)>0:(i+1)<(PSF_nx_samples-1),(j-1)>0:(j+1)<(PSF_ny_samples-1)]) 
-						endif else begin
-							  resid= matching_values - PSF[i,j]
-						endelse
-						;stop,[i,j]
-						; find rejected mean for the psf datapoint
-						delvarx,subs
-						badind=where(finite(resid) eq 0)
-						if badind[0] ne -1 then begin
-							;	print,'badind flag'
-							continue
-						endif 
-						meanclip, resid, curr_mean, curr_sigma, clipsig=2.5, subs=subs ;,/verbose   
-						;curr_sigma = robust_sigma(matching_values) ; WAY SLOWER
-									; median is very slow too!
-						; adjust the high-res psf accordingly
-						 PSF[i,j] += curr_mean 
-									; just a record of how well sampled this point is
-						how_well_sampled[i,j] = N_ELEMENTS(temporary(subs)) 
-					endif else begin ; there are not at least 13 samplings for this PSF datapoint
-						error_flag += 1
-						PSF[i,j] = !values.f_nan
-						continue
-					endelse
-				endif else begin  ; there no samplings for this PSF dta point
-					error_flag += 1
-					PSF[i,j] = !values.f_nan
-					continue		
-				endelse
-			endfor ; end loop over y samples to determine the point on the PSF
-		endfor	; end loop over x samples to determine the point on the PSF
-
-
-	; now we smooth by a kernel
-	;window,1,xsize=200,ysize=500
-	;tvdl,psf
+                                ; this finds all the samplings for a given psf coordinate
+                                ; takes very little time
+   val_loc_x_coords = value_locate(PSF_x_sampling, all_x_coords-xshift) 
+   val_loc_y_coords = value_locate(PSF_y_sampling, all_y_coords-yshift)
+                                ; loop over x samples
+   for i = 0,PSF_nx_samples-1 do begin
+                                ; the indices_for_current_point variable is determined in the following manner simply for speed reasons.
+                                ; this is not the most logical way to do it!
+      
+                                ; this is the original method - it is VERY slow
+                                ;indices_for_current_point = where((val_loc_x_coords ge i and val_loc_x_coords le i+1) and (val_loc_y_coords ge j and val_loc_y_coords le j+1) )
+      
+      possible_ind= where((val_loc_x_coords eq i or val_loc_x_coords eq i+1))
+      if possible_ind[0] eq -1 then begin
+         error_flag += 1
+         PSF[i,*] = !values.f_nan
+         continue
+      endif
+      tmp_val_loc_y_coords=val_loc_y_coords[possible_ind]
+                                ; loop over y-samples
+      for j = 0,PSF_ny_samples-1 do begin
+         
+         tmp=where((tmp_val_loc_y_coords eq j or tmp_val_loc_y_coords eq j+1))
+         if tmp[0] eq -1 then begin
+            error_flag += 1
+            PSF[i,j] = !values.f_nan
+            continue
+         endif
+         indices_for_current_point=temporary(possible_ind[temporary(tmp)])
+         
+         if indices_for_current_point[0] ne -1 then begin
+            matching_values = all_pix_values[indices_for_current_point]
+                                ; make sure no nan's are present
+            bad=where(finite(matching_values) eq 0, complement=good)
+            if good[0] eq -1 then begin
+               error_flag += 1
+               PSF[i,j] = !values.f_nan
+               continue
+            endif
+                                ; make sure there are at least 13 samplings per psf datapoint 
+                                ; I think the 13 is rather random...
+                                ; what is actually quite important is that the sampling
+                                ; is equally on all sides of the center
+                                ; if you have 10 points all on one side then your
+                                ; 'average' is very biased.       
+            if n_elements(matching_values[good]) ge 13 then begin
+                                ; calculate residual.
+                                ; note that sometimes funny things happen where with the new shifts new samplings of the psf are possible that previously were not, so new pieces of the psf array appear and disappear. this is why this stupid little median hack is here. It only really affects the edges
+               if finite(total(matching_values[good])) eq 0 or finite(psf[i,j]) eq 0 then begin
+                  resid= matching_values - median(psf[(i-1)>0:(i+1)<(PSF_nx_samples-1),(j-1)>0:(j+1)<(PSF_ny_samples-1)]) 
+               endif else begin
+                  resid= matching_values - PSF[i,j]
+               endelse
+                                ;stop,[i,j]
+                                ; find rejected mean for the psf datapoint
+               delvarx,subs
+               badind=where(finite(resid) eq 0)
+               if badind[0] ne -1 then begin
+                                ;	print,'badind flag'
+                  continue
+               endif 
+               meanclip, resid, curr_mean, curr_sigma, clipsig=2.5, subs=subs ;,/verbose   
+                                ;curr_sigma = robust_sigma(matching_values) ; WAY SLOWER
+                                ; median is very slow too!
+                                ; adjust the high-res psf accordingly
+               PSF[i,j] += curr_mean 
+                                ; just a record of how well sampled this point is
+               how_well_sampled[i,j] = N_ELEMENTS(temporary(subs)) 
+            endif else begin    ; there are not at least 13 samplings for this PSF datapoint
+               error_flag += 1
+               PSF[i,j] = !values.f_nan
+               continue
+            endelse
+         endif else begin       ; there no samplings for this PSF dta point
+            error_flag += 1
+            PSF[i,j] = !values.f_nan
+            continue		
+         endelse
+      endfor                    ; end loop over y samples to determine the point on the PSF
+   endfor                       ; end loop over x samples to determine the point on the PSF
+   
+   
+                                ; now we smooth by a kernel
+;	window,1,xsize=200,ysize=500,retain=200
+;	tvdl,psf
 	psf0=psf
 	; so psf holds the pre-smoothed psf
 	; psf2 is the smoothed psf
 	psf2 = CONVOL( psf, kernel,/nan )
         ; must replace the nans that were in the array with nans
         ; otherwise a weird smoothing happens which is bad
-	ind = where(finite(psf) eq 0) ; just original nans
+	ind = where(finite(psf) eq 0,complement=gind) ; just original nans
 	ind2=where(finite(psf2) eq 0); values surrounding edge of original
 	; make it such that the nans are the same
 	psf2[ind]=!values.f_nan
@@ -415,11 +429,11 @@ for l=0, loop_iterations-1 do begin
 	psf2[ind2]=psf[ind2]
 
 	; normalize so that the psf is the same total as the convolved psf
-	psf2*=total(psf,/nan)/total(psf2,/nan)
+	psf2*=total(psf[gind],/nan)/total(psf2[gind],/nan)
 
-;	window, 2, xsize=200, ysize=500
+;	window, 2, xsize=200, ysize=500,retain=2
 ;	tvdl,psf2;,min(psf,/nan),max(psf,/nan)
-
+;stop
 	; the smoothing might have shifted the CofM of the epsf, to compensate
 	; we shift all the samplings to match the original
 
