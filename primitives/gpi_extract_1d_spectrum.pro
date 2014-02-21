@@ -217,6 +217,17 @@ endif
 	endelse
 
 ; start photometry
+ygrid=findgen(281)##(fltarr(281)+1)
+xgrid=transpose(ygrid)
+; but want the grids centered on 
+PSFCENTX=(backbone->get_keyword('PSFCENTX',count=count,ext_num=1))
+PSFCENTY=(backbone->get_keyword('PSFCENTY',count=count,ext_num=1))
+ygrid-=psfcenty
+xgrid-=psfcentx
+;create radial and angular arrays
+rad_arr=sqrt(xgrid^2+ygrid^2)
+ang_arr=asin(ygrid/rad_arr)
+
      for i=0,CommonWavVect[2]-1 do begin
 					if finite(xarr[i]+yarr[i]) eq 0 then continue	
 				aperrad = aperrad0*lambda[i]
@@ -231,7 +242,28 @@ endif
 				; even then it adds photon noise that won,t be correct.
 				;get size of aperture in pixels - this is not really exact...
 				src_ind=get_xycind(281,281,x0,y0,aperrad)
-				bkg_ind=get_xyaind(281,281,x0,y0,skyrad[0],skyrad[1]-skyrad[0])
+				;bkg_ind=get_xyaind(281,281,x0,y0,skyrad[0],skyrad[1]-skyrad[0])
+
+				; lets look at fitting an annulus instead
+				; first find the planet/star separation
+				sep=sqrt((x0-psfcentx)^2+(y0-psfcenty)^2)
+				dr= skyrad[0]
+				ang=asin((y0-psfcenty)/sep) ; positive in Q1 and Q2
+				dang=skyrad[1]/sep
+			; ugh, there must be a better way to do this
+			; find pixels in a given angular annulus	
+				bkg_ind0=where( ang_arr gt (ang-dang) and ang_arr lt (ang+dang) and $
+				rad_arr gt sep-dr and rad_arr lt sep+dr and xgrid/abs(xgrid) eq (x0-psfcentx)/abs((x0-psfcentx)))
+				mask_ind=	get_xyaind(281,281,x0,y0,skyrad[0],skyrad[1])
+				match, bkg_ind0,mask_ind,suba,subb,count=count
+				bkg_ind=bkg_ind0[suba]
+
+				if i eq 0 then begin
+					bkg_ind_slice0=bkg_ind			
+					bkg_ind_arr=fltarr(N_ELEMENTS(lambda),N_ELEMENTS(bkg_ind_slice0))
+				endif
+				bkg_ind_arr[i,*]=trans_cube_slice[bkg_ind_slice0]
+
 				if bkg_ind[0] eq -1 or total(finite(trans_cube_slice[bkg_ind])) eq 0 or total(finite(trans_cube_slice[src_ind])) eq 0 then begin
 					phot_comp[i]=!values.f_nan
 					phot_comp_err[i]=!values.f_nan
@@ -260,12 +292,17 @@ endif
 for l=0, N_ELEMENTS(lambda)-1 do phot_comp[l]*=fscale_arr[l]
 for l=0, N_ELEMENTS(lambda)-1 do phot_comp_err[l]*=fscale_arr[l]
 
+; we want to correlate wrt to which wavelength?
+;correl_arr=fltarr(N_ELEMENTS(lambda))
+;for l=0, N_ELEMENTS(lambda)-1 do correl_arr[l]=CORRELATE(bkg_ind_arr[22,*], bkg_ind_arr[l,*], /COVARIANCE)
+;stop
+
 
 if display ne -1 then begin
   if display eq 0 then window,/free,xsize=700,ysize=400 else select_window, display,xsize=700,ysize=400
 	units=(backbone->get_keyword('BUNIT'))
 	phot_comp_err_total=phot_comp*sqrt((cal_percent_err/100.)^2+(phot_comp_err/phot_comp)^2)
-	ploterror,lambda,phot_comp, phot_comp_err_total,ytitle='flux ['+units+']',xtitle='wavelength (um)',position=[0.16,0.11,0.97,0.97],xr=[min(lambda)-0.01,max(lambda)+0.01],xs=1,color=cgcolor('black'),background=cgcolor('white')
+	ploterror,lambda,phot_comp, phot_comp_err_total,ytitle='flux ['+units+']',xtitle='wavelength (um)',position=[0.16,0.11,0.97,0.97],xr=[min(lambda)-0.01,max(lambda)+0.01],xs=1,color=cgcolor('black'),background=cgcolor('white'),yr=[min(phot_comp[3:N_ELEMENTS(lambda)-4],/nan)*0.9,max(phot_comp[3:N_ELEMENTS(lambda)-4],/nan)*1.1];,yr=[6,18]*1e-17,/ys;
 
 endif
 
