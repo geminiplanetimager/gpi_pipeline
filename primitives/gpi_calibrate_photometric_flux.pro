@@ -218,7 +218,28 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 		; centroid must be at a half pixel
 		x0=floor(xarr[cent_ind])+0.5
 		y0=floor(yarr[cent_ind])+0.5
-		
+		;window,1
+		;plot, lambda[ind],xarr0[ind],yr=[min(xarr0[ind],/nan),max(xarr0[ind],/nan)]
+		;oplot, lambda,xarr
+		;window,2
+		;plot, lambda[ind],yarr0[ind],yr=[min(yarr0[ind],/nan),max(yarr0[ind],/nan)]
+		;oplot, lambda,yarr
+		;stop
+		;wdelete,1
+		;wdelete,2
+
+
+		; start photometry
+		ygrid=findgen(281)##(fltarr(281)+1)
+		xgrid=transpose(ygrid)
+	
+		psfcentx= sxpar(*calib_cube_struct.ext_header,"PSFCENTX",count=ct)	
+		psfcenty= sxpar(*calib_cube_struct.ext_header,"PSFCENTY",count=ct)	
+		ygrid-=psfcenty
+		xgrid-=psfcentx
+		;create radial and angular arrays
+		rad_arr=sqrt(xgrid^2+ygrid^2)
+		ang_arr=asin(ygrid/rad_arr)
 		; loop over the wavelength
 		for l=0, N_ELEMENTS(lambda)-1 do begin
 				aperrad = aperrad0*lambda[l]
@@ -232,6 +253,23 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 				;get size of aperture in pixels - this is not really exact...
 				src_ind=get_xycind(281,281,x0,y0,aperrad)
 				bkg_ind=get_xyaind(281,281,x0,y0,skyrad[0],skyrad[1]-skyrad[0])
+
+			; look at fitting around an annulus instead
+				; first find the planet/star separation
+				sep=sqrt((x0-psfcentx)^2+(y0-psfcenty)^2)
+				dr= skyrad[0]
+				ang=asin((y0-psfcenty)/sep) ; positive in Q1 and Q2
+				ang2=acos((x0-psfcentx)/sep)  ; postive in Q1 and Q4
+				dang=skyrad[1]/sep
+			; ugh, there must be a better way to do this
+			; find pixels in a given angular annulus	
+				bkg_ind0=where( ang_arr gt (ang-dang) and ang_arr lt (ang+dang) and $
+				rad_arr gt sep-dr and rad_arr lt sep+dr and xgrid/abs(xgrid) eq (x0-psfcentx)/abs((x0-psfcentx)))
+				mask_ind=	get_xyaind(281,281,x0,y0,skyrad[0],skyrad[1])
+				match, bkg_ind0,mask_ind,suba,subb,count=count
+				bkg_ind=bkg_ind0[suba]
+
+
 				if bkg_ind[0] eq -1 or total(finite(trans_cube_slice[bkg_ind])) eq 0 or total(finite(trans_cube_slice[src_ind])) eq 0 then begin
 					phot_comp[l]=!values.f_nan
 					phot_comp_err[l]=!values.f_nan
@@ -244,6 +282,9 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 				coef = PLANEFIT( finite_bkg_ind mod 281 ,finite_bkg_ind / 281,trans_cube_slice[finite_bkg_ind],weights, yfit )
 				xinds=src_ind mod 281 & yinds=src_ind / 281	
 				src_bkg_plane=coef[0]+coef[1]*xinds+coef[2]*yinds	
+
+;				if l eq 27 then stop,cens[0,s,l]
+
 				; peform background subtraction
 				satflux_arr[s,l]=total(trans_cube_slice[src_ind]-src_bkg_plane)
 				bkg_stddev=stddev(trans_cube_slice[finite_bkg_ind]-yfit,/nan)
@@ -258,10 +299,12 @@ sat3flux=satflux_arr[2,*]
 sat4flux=satflux_arr[3,*]
 
 ; determine the normalization of the satellites. This is currently a little crude but works ok
-	norm1=median(sat1flux[5:N_ELEMENTS(lambda)-5]) ; do not use the low throughput regions of the filter bands
-	norm2=median(sat2flux[5:N_ELEMENTS(lambda)-5])
-	norm3=median(sat3flux[5:N_ELEMENTS(lambda)-5])
-	norm4=median(sat4flux[5:N_ELEMENTS(lambda)-5])
+
+	norm1=total(sat1flux[5:N_ELEMENTS(lambda)-5],/nan) 
+	norm2=total(sat2flux[5:N_ELEMENTS(lambda)-5],/nan) 
+	norm3=total(sat3flux[5:N_ELEMENTS(lambda)-5],/nan) 
+	norm4=total(sat4flux[5:N_ELEMENTS(lambda)-5],/nan) 
+
 	mean_norm=mean([norm1,norm2,norm3,norm4])
 
 	for l=0,n_elements(lambda)-1 do begin
