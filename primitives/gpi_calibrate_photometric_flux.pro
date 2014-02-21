@@ -7,7 +7,7 @@
 ;	user-indicated cube, or any user-supplied spectral response function (e.g. derived 
 ;	from an open loop image of a standard star). 
 ;
-; The user may also specify the extraction and sky radii used in performing the aperture photometry.
+; The user may also specify the extraction and sky radii used in performing the aperture photometry. Note that the 'annuli' only represent the radial size of the extraction. The background is extracted by fitting a plane an annulus surrounding the central star at the same radius as the planet. The width of the annulus is equal to the inner_sky_radius, the outer annulus describes the distance from the companion to the edges of the annulus that should be considered when fitting the plane
 ;
 ; WARNING: the user-supplied spectral response function is not yet implemented.
 ;	
@@ -317,17 +317,40 @@ sat4flux=satflux_arr[3,*]
 		stddev_sat_flux[l]*=(mean_norm)
 	endfor
 
-if 1 eq 1 then begin
+; the following is for satellite spot evaluation
+if 0 eq 1 then begin
 window,19,xsize=700,ysize=400
 device,decomposed=0
-ploterror, lambda, mean_sat_flux,stddev_sat_flux, xr=[min(lambda),max(lambda)],/xs,xtitle='wavelength', ytitle='sat spot intensity (ADU)',charsize=1.5,background=cgcolor('white'),color=cgcolor('black'),thick=2
+dlambda=lambda[1]-lambda[0]
+ploterror, lambda, mean_sat_flux,stddev_sat_flux, xr=[min(lambda)-dlambda,max(lambda)+dlambda],/xs,xtitle='wavelength', ytitle='sat spot intensity (ADU)',charsize=1.5,background=cgcolor('white'),color=cgcolor('black'),thick=2
 oplot, lambda,(sat1flux/norm1)*mean_norm, color=cgcolor('blue'),linestyle=2,thick=2
 oplot, lambda,sat2flux/norm2*mean_norm, color=cgcolor('teal'),linestyle=3,thick=2
 oplot, lambda,sat3flux/norm3*mean_norm, color=cgcolor('red'),linestyle=4,thick=2
 oplot, lambda,sat4flux/norm4*mean_norm, color=cgcolor('green'),linestyle=5,thick=2
 legend,['median(even)','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/right,textcolor=cgcolor('black')
-endif
 
+window,20,xsize=700,ysize=400
+device,decomposed=0
+ploterror, lambda, mean_sat_flux/mean_sat_flux,stddev_sat_flux/mean_sat_flux, xr=[min(lambda)-dlambda,max(lambda)+dlambda],/xs,xtitle='wavelength', ytitle='sat spot intensity (ADU)',charsize=1.5,background=cgcolor('white'),color=cgcolor('black'),thick=2
+oplot, lambda,(sat1flux/norm1)*mean_norm/mean_sat_flux, color=cgcolor('blue'),linestyle=2,thick=2
+oplot, lambda,sat2flux/norm2*mean_norm/mean_sat_flux, color=cgcolor('teal'),linestyle=3,thick=2
+oplot, lambda,sat3flux/norm3*mean_norm/mean_sat_flux, color=cgcolor('red'),linestyle=4,thick=2
+oplot, lambda,sat4flux/norm4*mean_norm/mean_sat_flux, color=cgcolor('green'),linestyle=5,thick=2
+legend,['median(even)','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/right,textcolor=cgcolor('black')
+
+window,21,xsize=700,ysize=400
+device,decomposed=0
+ploterror, lambda, mean_sat_flux/mean_sat_flux,stddev_sat_flux/mean_sat_flux, xr=[min(lambda)-dlambda,max(lambda)+dlambda],xs=1,xtitle='wavelength', ytitle='sat spot intensity (ADU)',charsize=1.5,background=cgcolor('white'),color=cgcolor('black'),thick=2,errthick=2
+oploterror, lambda,(sat1flux/norm1)*mean_norm/mean_sat_flux, satflux_err_arr[0,*]/sat1flux, color=cgcolor('blue'),linestyle=2,thick=2
+oploterror, lambda,sat2flux/norm2*mean_norm/mean_sat_flux, satflux_err_arr[1,*]/sat2flux, color=cgcolor('teal'),linestyle=3,thick=2
+oploterror, lambda,sat3flux/norm3*mean_norm/mean_sat_flux, satflux_err_arr[2,*]/sat3flux, color=cgcolor('red'),linestyle=4,thick=2
+oploterror, lambda,sat4flux/norm4*mean_norm/mean_sat_flux, satflux_err_arr[3,*]/sat4flux, color=cgcolor('green'),linestyle=5,thick=2
+
+legend,['median(even)','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/left,textcolor=cgcolor('black')
+
+
+
+endif
 	
 	; Must approximate a ratio between the flux in the aperture, and the flux outside the aperture.
 	; The truth is that we really don't have a good idea of how it changes radially. What we do know is that it is about 
