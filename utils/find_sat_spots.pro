@@ -121,7 +121,6 @@ if not keyword_set(locs0) then begin
       ;;set up next iteration
       out[msk[*,0]+inds[0],msk[*,1]+inds[1]] = min(out)   
       val = max(out,ind) 
-      print,val
       counter += 1 
    endwhile
 
