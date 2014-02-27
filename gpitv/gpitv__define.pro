@@ -11437,12 +11437,14 @@ if ct eq 0 then shifty=0
 
 ; estimate the appropriate shifts from the wavecal and the flexure model
 
-;catch, recommend_shifts
 recommend_shifts=0
-if recommend_shifts eq 0 then begin
+caldb = obj_new('gpicaldatabase')
+shiftsfile = caldb->get_best_cal_from_header( 'shifts', *((*self.state).head_ptr),  *((*self.state).exthead_ptr) )
+; determine if shiftsfile is a string - if it is then it found a valid file
+; if it returned an interger (-1) then it found nothing
+sz=size(shiftsfile,/type)
+if sz[0] eq 7 then begin
 	; Try to read in all the necessary info and call the flexure model
-	caldb = obj_new('gpicaldatabase')
-	shiftsfile = caldb->get_best_cal_from_header( 'shifts', *((*self.state).head_ptr),  *((*self.state).exthead_ptr) )
 	elevation = sxpar(*((*self.state).head_ptr), 'ELEVATIO')
 	wchd = headfits((*self.state).wcfilename)
 	wc_elevation = sxpar(wchd, 'ELEVATIO')
@@ -11451,11 +11453,6 @@ if recommend_shifts eq 0 then begin
 endif else begin
 	recommended_shifts = [0.0, 0.0]
 endelse
-;catch, /cancel
-
-
-	; need to get a flexure table from the calibration DB
-
 
 ; Query the user for desired wavecal display options
 
