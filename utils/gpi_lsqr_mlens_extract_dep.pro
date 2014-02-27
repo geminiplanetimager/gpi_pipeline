@@ -99,25 +99,6 @@ if (keyword_set(resid)) then return,sub_img-fspec
 end
 
 ;--------------------------------------------------
-; Get a binned PSF from high-res model
-
-function get_jbp_psf,myPSFs_array,pix_x,pix_y,lens_x,lens_y,int,xsize,ysize,x_grid,y_grid
-
-	my_eval_psf = fltarr(xsize,ysize)
-	ptr = gpi_highres_microlens_psf_get_local_highres_psf(myPSFs_array,[lens_x,lens_y,0])
-	if ptr_valid(myPSFs_array[lens_x,lens_y]) then my_psf = *myPSFs_array[lens_x,lens_y]
-
-	common psf_lookup_table, com_psf, com_x_grid_PSF, com_y_grid_PSF, com_triangles, com_boundary
-	gpi_highres_microlens_psf_initialize_psf_interpolation, my_psf.values, my_psf.xcoords, my_psf.ycoords
-
-	my_eval_psf = gpi_highres_microlens_psf_evaluate_detector_psf(x_grid,y_grid, [pix_x, pix_y, int])
-
-;stop
-return,my_eval_psf
-
-end
-
-;--------------------------------------------------
 ; Find amplifier to use for microphonics estimate.
 
 function amp_micphn,inp
@@ -190,6 +171,7 @@ end
 ; Extract spectra individual spectra
 
 function spec_ext_amoeba,P,best=best
+	;t3=systime(/seconds)
 
 	common img_spec_ext_common,com_struc
 
@@ -218,6 +200,7 @@ function spec_ext_amoeba,P,best=best
 	del_lam=P[2]
 
 	;print,del_x,del_theta
+	;t3=systime(/seconds)
 	spec_spix = [0,0,0,0,0]
 	for i=0L,n_elements(lens_x)-1 do begin
 		for j=0L,n_elements(lens_y)-1 do begin
@@ -237,55 +220,66 @@ function spec_ext_amoeba,P,best=best
 	spec_spix = spec_spix[*,1:*]
 
 	;clean for positions within sub_img
-	spec_spix2 = spec_spix[*,where(spec_spix[0,*] gt x_sub1-2 and spec_spix[0,*] lt x_sub2+2)]
-	spec_spix3 = spec_spix2[*,where(spec_spix2[1,*] gt y_sub1-2 and spec_spix2[1,*] lt y_sub2+2)]
+	buff = 0
+	spec_spix2 = spec_spix[*,where(spec_spix[0,*] gt x_sub1-buff and spec_spix[0,*] lt x_sub2+buff)]
+	spec_spix3 = spec_spix2[*,where(spec_spix2[1,*] gt y_sub1-buff and spec_spix2[1,*] lt y_sub2+buff)]
+
+	;t4=systime(/seconds)
+	;print,t4-t3,'psf_pos_amoeba'
 
 ;get psf reference images
 
 	s=size(spec_spix3)
 
-	tstimage=blank
 	psfcube=[[blank2]]
-
-	j=0
-	buff_psf=[0]
-	spectra=[0,0,0]
+	tstimage=blank2
+	spectra=[0,0,0,0,0]
 
 	x_grid = rebin(findgen(xsize)+x_sub1,xsize,ysize)
 	y_grid = rebin(reform(findgen(ysize)+y_sub1,1,ysize),xsize,ysize)
 
-	for k=0L,s[2]-1 do begin
+	lens_x = long(lens_x[0])
+	lens_y = long(lens_y[0])
 
-		pos_sub = [[spec_spix3[0,k]-x_sub1+10],[spec_spix3[1,k]-y_sub1+10]]
+	;read in high-res of central microlens PSF for and use on whole sub_img
+	ptr = gpi_highres_microlens_psf_get_local_highres_psf(PSFs_array,[lens_x,lens_y,0])
+	if ptr_valid(PSFs_array[lens_x,lens_y]) then psf = *PSFs_array[lens_x,lens_y]
 	
-		r1 = get_jbp_psf(PSFs_array,spec_spix3[0,k],spec_spix3[1,k],spec_spix3[2,k],spec_spix3[3,k],1,xsize,ysize,x_grid,y_grid)
-		;psf = get_gaus_psf()
+	common psf_lookup_table, com_psf, com_x_grid_PSF, com_y_grid_PSF, com_triangles, com_boundary
+	gpi_highres_microlens_psf_initialize_psf_interpolation, psf.values, psf.xcoords, psf.ycoords
 
-		;psf = pdnshift(psf,(pos_sub[0] mod 1)-del_x,pos_sub[1] mod 1)
-		;r1=blank
-		;r1[(floor(pos_sub[0])-5):(floor(pos_sub[0])+5),(floor(pos_sub[1])-5):(floor(pos_sub[1])+5)]=psf
+	;t3=systime(/seconds)
+	for k=0L,s[2]-1 do begin
+		;bin and position within sub image
+		r1 = gpi_highres_microlens_psf_evaluate_detector_psf(x_grid,y_grid, [spec_spix3[0,k], spec_spix3[1,k], 1])
 
-		;trim off buffer
-		;r1=r1[10:(xsize+9),10:(ysize+9)]
+		tstimage=tstimage+r1
+		psfcube = [[[psfcube]],[[r1]]]
+		spectra = [[spectra],[[spec_spix3[2,k],spec_spix3[3,k],spec_spix3[4,k],spec_spix3[0,k],spec_spix3[1,k]]]]
 
-		;if ref psf is in buffer, image is zero, remove for lsqr algo stability
-		if total(r1) ne 0 then begin
-			psfcube = [[[psfcube]],[[r1]]]
-			spectra = [[spectra],[[spec_spix3[2,k],spec_spix3[3,k],spec_spix3[4,k]]]]
-			j=j+1
-			tstimage=tstimage+r1
-		endif else begin
-			buff_psf = [buff_psf,k]
-		endelse
-		;if k eq 0 then stop
 	endfor
+	;t4=systime(/seconds)
+	;print,t4-t3,'jbp_psf_amoeba'
 
 	psfcube=psfcube[*,*,1:*]
 	spectra=spectra[*,1:*]
 
-	if (micphn) then r_cube = [[[micphncube]],[[psfcube]]] else r_cube = psfcube
+	if (micphn eq 1) then r_cube = [[[micphncube]],[[psfcube]]] else r_cube = psfcube
 
+	;t4=systime(/seconds)
+	;print,t4-t3,'pre lsqr amoeba'
 	resid = stddev(gpi_spec_lsqr(sub_img,r_cube,/resid))
+	;t5=systime(/seconds)
+	;print,t5-t4,'post lsqr amoeba'
+
+	;check centering of wavecal and reference PSFs
+	;window,0		
+	;imdisp,sub_img,/axis
+	;plots,[spec_spix3[0,*]-x_sub1],[spec_spix3[1,*]-y_sub1],psym=2
+	;window,1
+	;imdisp,tstimage,/axis
+	;plots,[spec_spix3[0,*]-x_sub1],[spec_spix3[1,*]-y_sub1],psym=2
+	;stop
 
 if (keyword_set(best)) then return,{r_cube:r_cube,spectra:spectra} else return,resid
 
@@ -296,16 +290,18 @@ end
 
 pro img_spec_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,wavecal,spec,spec_img,mic_img,del_lam_best,del_x_best,del_theta_best,x_off,y_off,wcal_off,para,resid=resid,micphn=micphn,iter=iter
 
+	;t1=systime(/seconds)
+
 	;tuning knobs
 
 	xsize=16			;spectra sub image size
-	ysize=38			; extracted for lsqr
+	ysize=34			; extracted for lsqr
 
 	steps=2			;PSF seperation in pixel units (lambda / D)
 
 	n_modes=8			;(number of fourier modes - 1) used for microphonics 
 
-	if (micphn) then n_modes=n_modes else n_modes=0
+	if (micphn eq 1) then n_modes=n_modes else n_modes=0
 
 	blank = fltarr(xsize+20,ysize+20)
 	blank2 = fltarr(xsize,ysize)
@@ -320,19 +316,20 @@ pro img_spec_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,wavecal,spec,spec_i
 	y_sub1 = y_med-ceil(ysize/2)+1
 	y_sub2 = y_med+ceil(ysize/2)
 
-	imsz=size(img)
-	if x_sub2 gt imsz[1]-1 or y_sub2 gt imsz[2]-1 or x_sub1 lt 0 or y_sub1 lt 0 then begin
+	imsz=size(img,/dimensions)
+	if x_sub2 lt imsz[0]-1 && y_sub2 lt imsz[1]-1 && x_sub1 gt 0 && y_sub1 gt 0 && x_sub1 lt x_sub2 && y_sub1 lt y_sub2 then begin
+		sub_img=img[x_sub1:x_sub2,y_sub1:y_sub2]
+		;print,'sub image'
+	endif else begin
 		spec=[-1,-1]
 		spec_img=blank2
 		mic_img=blank2
 		wcal_off=[0,0,0,0,0]
 		return
-	endif
-
-	sub_img=img[x_sub1:x_sub2,y_sub1:y_sub2]
+	endelse
 	
 	micphncube=[[blank2]]
-	if (micphn) then begin
+	if (micphn eq 1) then begin
 	;get microphonics striping
 
 		microbox = amp_micphn([x_med,y_med])
@@ -408,9 +405,11 @@ pro img_spec_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,wavecal,spec,spec_i
 		y_off:y_off}
 	
 ;AMOEBA calling lsqr
-
-	if (iter) then begin
+	;t3=systime(/seconds)
+	if (iter eq 1) then begin
 		R=AMOEBA(0.01,FUNCTION_NAME='spec_ext_AMOEBA',P0=[del_x_best,del_theta_best,del_lam_best],SCALE=[2,(3*!dtor),2],NCALLS=ncalls,NMAX=100,FUNCTION_VALUE=resid_arr)
+		;t4=systime(/seconds)
+		;print,t4-t3,'Amoeba'
 		if n_elements(R) eq 1 then begin
 			print,'AMOEBA failed to converge',x_lens_cen,y_lens_cen
 			spec=[-1,-1]
@@ -428,14 +427,18 @@ pro img_spec_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,wavecal,spec,spec_i
 		fit_bests=spec_ext_amoeba([del_x_best,del_theta_best,del_lam_best],/best)
 		resid_arr=[1]
 	endelse
+	;t4=systime(/seconds)
+	;print,t4-t3,'amoeba'
 
-	psfpos_cen = get_psf_pos(x_lens_cen,y_lens_cen,wavecal,para[0],para[1],steps,del_lam_best,del_x_best,del_theta_best,x_off,y_off)
+	;t3=systime(/seconds)
+
+	;psfpos_cen = get_psf_pos(x_lens_cen,y_lens_cen,wavecal,para[0],para[1],steps,del_lam_best,del_x_best,del_theta_best,x_off,y_off)
 	r_cube_best=fit_bests.r_cube
 	spectra=fit_bests.spectra
 
 	spec = gpi_spec_lsqr(sub_img,r_cube_best,/spec)
 
-	if (micphn) then specline = spec[n_modes-1:*] else specline = spec
+	if (micphn eq 1) then specline = spec[n_modes-1:*] else specline = spec
 	idt = where(spectra[0,*] eq x_lens_cen and spectra[1,*] eq y_lens_cen)
 
 	if n_elements(idt) eq 1 then begin
@@ -450,7 +453,7 @@ pro img_spec_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,wavecal,spec,spec_i
 
 	spectrum = specline[idt]
 
-	if (resid) then begin
+	if (resid eq 1) then begin
 		spec_img_s = blank2
 		
 		psfcube2 = r_cube_best[*,*,idt+n_modes]
@@ -458,11 +461,11 @@ pro img_spec_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,wavecal,spec,spec_i
 		for m=0,(rs[3]-1) do begin
 			spec_img_s = spec_img_s + psfcube2[*,*,m]*spectrum[m]
 		endfor
-		bfimg=fltarr(imsz[1],imsz[2])
+		bfimg=fltarr(imsz[0],imsz[1])
 		bfimg[x_sub1:x_sub2,y_sub1:y_sub2]=spec_img_s
 		spec_img=bfimg
 
-		if (micphn) then begin
+		if (micphn eq 1) then begin
 			mic_img_s = blank2
 			mic_spec = spec[0:n_modes-1]
 			for m=0,n_modes-1 do begin
@@ -478,6 +481,10 @@ pro img_spec_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,wavecal,spec,spec_i
 	endif else begin
 		chi_sqr = 0
 	endelse
+
+	;t4=systime(/seconds)
+	;print,t4-t3,'post amoeba'
+
 ;print,n_elements(psfpos_cen[2,*]),n_elements(transpose(spectrum))
 	if n_elements(spectra[2,idt]) ne n_elements(spectrum) then begin
 		print,'Spectra flx and lambda misaligned',x_lens_cen,y_lens_cen,n_elements(psfpos_cen[2,*]),n_elements(transpose(spectrum))
@@ -501,7 +508,12 @@ wcal_off=[resid_arr[0],del_x_best,del_theta_best,del_lam_best,chi_sqr]
 ;full_resid[z*xsize:(z+1)*xsize-1,0:ysize-1]=sub_img-spec_img_s
 ;window,0
 ;imdisp,full_resid
+;print,spec
 ;stop
+
+;t2=systime(/seconds)
+;print,t2-t1,'full'
+
 end
 
 ;--------------------------------------------------
@@ -525,8 +537,10 @@ pro img_ext_para,cut1,cut2,z,img,wcal_off_cube,spec_cube,mic_cube,gpi_cube,gpi_l
 	
 	print,"resid:"+string(resid)+"  micphn:"+string(micphn)+"  iter:"+string(iter)
 	for i=long(cut1),long(cut2) do begin
+		;t1=systime(/seconds)
 		x=lens[0,i]
 		y=lens[1,i]
+		;print,x,y,i
 		img_spec_ext_amoeba,x,y,img,mlens,wavcal,spec,spec_img,mic_img,del_lam_best,del_x_best,del_theta_best,x_off,y_off,wcal_off,para,resid=resid,micphn=micphn,iter=iter
 
 		img_spec_ext_amoeba,x,y,img,mlens,wavcal,spec2,spec_img2,mic_img2,del_lam_best+0.5,del_x_best,del_theta_best,x_off,y_off,wcal_off2,para,resid=resid,micphn=micphn,iter=0
@@ -538,24 +552,27 @@ pro img_ext_para,cut1,cut2,z,img,wcal_off_cube,spec_cube,mic_cube,gpi_cube,gpi_l
 			lens_spec = interpol(spec_l[srt],spec_f[srt],gpi_lambda)
 			gpi_cube[x,y,*] = lens_spec
 			
-			if (resid) then begin
+			if (resid eq 1) then begin
 				spec_cube=spec_cube+spec_img
 				wcal_off_cube[x,y,0:4] = wcal_off[0:4]
-				if (micphn) then mic_cube=stitch_images(mic_cube,(mic_img+mic_img2)/2)
+				if (micphn eq 1) then mic_cube=stitch_images(mic_cube,(mic_img+mic_img2)/2)
 			endif
 		endif
+		;t2=systime(/seconds)
+		;print,t2-t1,'full'
+		;print,transpose([[gpi_lambda],[lens_spec]])
 	endfor
 
 	; save outputs into scratch space to recover
 	dir = gpi_get_directory('GPI_REDUCED_DATA_DIR')
 	;print,dir
-	if (resid) then begin
+	if (resid eq 1) then begin
 		exe_tst = execute(strcompress('spec_cube_'+string(z)+'=spec_cube',/remove_all))
 		exe_tst = execute(strcompress('save,spec_cube_'+string(z)+',filename="'+dir+'/spec_cube_'+string(z)+'.sav"',/remove_all))
 		exe_tst = execute(strcompress('mic_cube_'+string(z)+'=mic_cube',/remove_all))
 		exe_tst = execute(strcompress('save,mic_cube_'+string(z)+',filename="'+dir+'/mic_cube_'+string(z)+'.sav"',/remove_all))
 	endif
-	if (iter) then begin
+	if (iter eq 1) then begin
 		exe_tst = execute(strcompress('wcal_off_cube_'+string(z)+'=wcal_off_cube',/remove_all))
 		exe_tst = execute(strcompress('save,wcal_off_cube_'+string(z)+',filename="'+dir+'/wcal_off_cube_'+string(z)+'.sav"',/remove_all))
 	endif
