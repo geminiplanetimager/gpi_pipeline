@@ -306,6 +306,10 @@ pro parsergui::parse_current_files
 			self->Log, "Some files are lacking valid required FITS keywords: "
 			self->Log, strjoin(file[winvalid], ", ")
 			self->Log, "These will be ignored in all further parsing steps."
+			if wvalid[0] eq -1 then begin
+        ret=dialog_message("ERROR: All files rejected",/error,/center,dialog_parent=self.top_base)
+				return
+			endif
 			finfo = finfo[wvalid]
 		endif
 
@@ -430,7 +434,7 @@ pro parsergui::parse_current_files
                                                     
 										if self.debug then begin
 											message,/info, 'Now testing the following parameters: ('+strc(cobj)+' files help) '
-											match, current,/str
+										;	match, current,/str
 										endif
 
                       
