@@ -81,9 +81,6 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 
 	;stop idl session
 	if tag_exist( Modules[thisModuleIndex], "stopidl") then stopidl=long(Modules[thisModuleIndex].stopidl) else stopidl=0
-
-	; get wavecal filename
-	wlcal_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'wavecal',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose)
 	
 	; get mlens PSF filename
 	mlens_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'mlenspsf',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose)
@@ -94,10 +91,12 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 
   	nlens=(size(wavcal))[1]       ;pixel sidelength of final datacube (spatial dimensions) 	
 
-	calimg = gpi_readfits(wlcal_file,header=Header)	
-	id = where_xyz(finite(calimg[*,*,0]),XIND=xarr,YIND=yarr)
+	id = where_xyz(finite(wavcal[*,*,0]),XIND=xarr,YIND=yarr)
 	nlens_tot = n_elements(xarr)
 	lens = [transpose(xarr),transpose(yarr)]
+
+	;randomly sort lenslet list to equalize job time.
+	lens=lens[*,sort(randomu(seed,n_elements(lens)/2))]
 	
   	;;error handle if readwavcal or not used before
   	if (nlens eq 0)  then $
@@ -171,6 +170,7 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 		
 	endfor
 
+	  ;delay node startups to load high-res PSF
 	waittime=10
 	  ;check status if finish kill bridges
 	backbone->Log, 'Waiting for jobs to complete...'
@@ -190,12 +190,14 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
   	endwhile
   	backbone->Log, 'Job status:'+string(status)
 
+	;gpi_obridgekill,oBridge
+
 	dir = gpi_get_directory('GPI_REDUCED_DATA_DIR')
 	;recover from scratch since shared memory doesnt work yet
 	for n=0,np-1 do begin
 		exe_tst = execute(strcompress('restore,"'+dir+'gpi_cube_'+string(n)+'.sav"',/remove_all))
 		exe_tst = execute(strcompress('gpi_cube=gpi_cube+gpi_cube_'+string(n),/remove_all))
-		;exe_tst = execute('file_delete,"'+dir+'gpi_cube_'+strcompress(string(n)+'.sav"',/remove_all))
+		exe_tst = execute('file_delete,"'+dir+'gpi_cube_'+strcompress(string(n)+'.sav"',/remove_all))
 		if (resid eq 1) then begin
 			exe_tst = execute(strcompress('restore,"'+dir+'spec_cube_'+string(n)+'.sav"',/remove_all))
 			exe_tst = execute(strcompress('spec_cube=spec_cube+spec_cube_'+string(n),/remove_all))
