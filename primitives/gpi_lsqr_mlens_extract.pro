@@ -150,15 +150,15 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 		cut1 = floor((nlens_tot/np)*j)
 		cut2 = floor((nlens_tot/np)*(j+1))-1
 
-		oBridge[j]->Execute, "shmmap,'spec_cube',type=4"+","+string(szim[1])+","+string(szim[2])+",/sysv"
-		oBridge[j]->Execute, "shmmap,'wcal_off_cube',type=4"+","+string(nlens)+","+string(nlens)+",7,/sysv"
-		oBridge[j]->Execute, "shmmap,'mic_cube',type=4"+","+string(szim[1])+","+string(szim[2])+",/sysv"
-		oBridge[j]->Execute, "shmmap,'gpi_cube',type=4"+","+string(nlens)+","+string(nlens)+",37,/sysv"
+		;oBridge[j]->Execute, "shmmap,'spec_cube',type=4"+","+string(szim[1])+","+string(szim[2])+",/sysv"
+		;oBridge[j]->Execute, "shmmap,'wcal_off_cube',type=4"+","+string(nlens)+","+string(nlens)+",7,/sysv"
+		;oBridge[j]->Execute, "shmmap,'mic_cube',type=4"+","+string(szim[1])+","+string(szim[2])+",/sysv"
+		;oBridge[j]->Execute, "shmmap,'gpi_cube',type=4"+","+string(nlens)+","+string(nlens)+",37,/sysv"
 
-		oBridge[j]->Execute, "spec_cube=shmvar('spec_cube')"
-		oBridge[j]->Execute, "wcal_off_cube=shmvar('wcal_off_cube')"
-		oBridge[j]->Execute, "mic_cube=shmvar('mic_cube')"
-		oBridge[j]->Execute, "gpi_cube=shmvar('gpi_cube')"
+		;oBridge[j]->Execute, "spec_cube=shmvar('spec_cube')"
+		;oBridge[j]->Execute, "wcal_off_cube=shmvar('wcal_off_cube')"
+		;oBridge[j]->Execute, "mic_cube=shmvar('mic_cube')"
+		;oBridge[j]->Execute, "gpi_cube=shmvar('gpi_cube')"
 
 		oBridge[j]->Execute, strcompress('wait,'+string(5),/remove_all)
 		oBridge[j]->Execute, "print,'loading PSFs'"
