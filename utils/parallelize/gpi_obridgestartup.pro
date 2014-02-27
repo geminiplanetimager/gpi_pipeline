@@ -14,7 +14,7 @@
 ;    Began 2014-01-13 by Christian Marois
 ;-  
 
-function obridgestartup,nbproc=nbproc
+function gpi_obridgestartup,nbproc=nbproc
 
 pathwork=gpi_get_directory('DRP_LOG')
 pathcode=getenv('IDL_PATH')

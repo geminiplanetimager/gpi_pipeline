@@ -14,7 +14,7 @@
 ;    Began 2014-01-13 by Christian Marois
 ;-  
 
-pro obridgeabort,oBridge
+pro gpi_obridgeabort,oBridge
 
 sproc=size(oBridge)
 nbproc=sproc[1]
