@@ -609,6 +609,8 @@ FUNCTION gpiPipelineBackbone::Reduce
 		lambda0, $
 		filename, $
 		wavcal, $
+		mlens_file,$		; microlens psf calibration variables
+		mlens,$			;
 		polcal, $
 		tilt, $
 		badpixmap, $
