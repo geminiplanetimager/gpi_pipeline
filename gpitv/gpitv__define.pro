@@ -5801,7 +5801,24 @@ pro GPItv::update_sat_spots,locs0=locs0
                                        'Check that it is a coronagraphic image with an occulted target.']
         return
      endif
-  endif 
+  endif else begin
+    ;;edge case where sat spot locations are in the header but
+    ;;sat spot fluxes aren't. Use locations to measure fluxes
+    if n_elements(sats) eq 0 then begin
+      ;;always use the backup main image so that you know you're
+      ;;operating on the orig image.
+      sats = get_sat_fluxes(*self.images.main_image_backup,band=(*self.state).obsfilt,$
+                           good=good,cens=cens,warns=warns,highpass=(*self.state).contr_highpassspots,$
+                           constrain = (*self.state).contr_constspots,$
+                           winap=(*self.state).contrwinap,gaussap=(*self.state).contrap,$
+                           indx=(*self.state).cur_image_num,locs=locs0,gaussfit=1,refinefits=1,/usecens)
+      if n_elements(sats) eq 1 and sats[0] eq -1 then begin
+        self->message,msgtype='error',['Failed to locate satellite spots in this image.',$
+                                       'Check that it is a coronagraphic image with an occulted target.']
+        return
+      endif
+		endif
+	endelse
   
   ;;Added by Naru 130709: Measuring sat spot total fluxes and
   ;;calculated central star brightness in magnitudes
