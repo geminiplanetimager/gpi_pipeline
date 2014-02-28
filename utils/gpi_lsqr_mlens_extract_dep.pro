@@ -308,7 +308,7 @@ pro img_spec_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,wavecal,spec,spec_i
 
 ;get psf positions from wave cal
 
-	psfpos_cen = get_psf_pos(x_lens_cen,y_lens_cen,wavecal,para[0],para[1],steps,0,0,0,x_off,y_off)
+	psfpos_cen = get_psf_pos(x_lens_cen,y_lens_cen,wavecal,para[0],para[1],steps,0,0,0,y_off,x_off)
 	x_med = floor(mean(psfpos_cen[0,*]))
 	y_med = floor(mean(psfpos_cen[1,*]))
 	x_sub1 = x_med-ceil(xsize/2)+1
@@ -432,7 +432,6 @@ pro img_spec_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,wavecal,spec,spec_i
 
 	;t3=systime(/seconds)
 
-	;psfpos_cen = get_psf_pos(x_lens_cen,y_lens_cen,wavecal,para[0],para[1],steps,del_lam_best,del_x_best,del_theta_best,x_off,y_off)
 	r_cube_best=fit_bests.r_cube
 	spectra=fit_bests.spectra
 
@@ -553,10 +552,10 @@ pro img_ext_para,cut1,cut2,z,img,wcal_off_cube,spec_cube,mic_cube,gpi_cube,gpi_l
 			gpi_cube[x,y,*] = lens_spec
 			
 			if (resid eq 1) then begin
-				spec_cube=spec_cube+spec_img
-				wcal_off_cube[x,y,0:4] = wcal_off[0:4]
+				spec_cube=spec_cube+(spec_img+spec_img2)/2
 				if (micphn eq 1) then mic_cube=stitch_images(mic_cube,(mic_img+mic_img2)/2)
 			endif
+			wcal_off_cube[x,y,0:4] = wcal_off[0:4]
 		endif
 		;t2=systime(/seconds)
 		;print,t2-t1,'full'
