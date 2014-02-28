@@ -83,7 +83,8 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 	if tag_exist( Modules[thisModuleIndex], "stopidl") then stopidl=long(Modules[thisModuleIndex].stopidl) else stopidl=0
 	
 	; get mlens PSF filename
-	mlens_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'mlenspsf',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose)
+	if ((size(mlens_file))[1] eq 0) then $
+		return, error('FAILURE ('+functionName+'): Failed to load microlens PSF data prior to calling this primitive.') 
 
 	;define the common wavelength vector with the IFSFILT keyword:
   	filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
@@ -144,6 +145,8 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 		oBridge[j]->Setvar,'para',para
 		oBridge[j]->Setvar,'spec_cube',spec_cube
 		oBridge[j]->Setvar,'mic_cube',mic_cube
+		oBridge[j]->Setvar,'gpi_cube',gpi_cube
+		oBridge[j]->Setvar,'wcal_off_cube',wcal_off_cube
 		oBridge[j]->Setvar,'wavcal',wavcal
 		oBridge[j]->Setvar,'lens',lens
 
@@ -201,23 +204,24 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 		if (resid eq 1) then begin
 			exe_tst = execute(strcompress('restore,"'+dir+'spec_cube_'+string(n)+'.sav"',/remove_all))
 			exe_tst = execute(strcompress('spec_cube=spec_cube+spec_cube_'+string(n),/remove_all))
-			;exe_tst = execute('file_delete,"'+dir+'spec_cube_'+strcompress(string(n)+'.sav"',/remove_all))
+			exe_tst = execute('file_delete,"'+dir+'spec_cube_'+strcompress(string(n)+'.sav"',/remove_all))
 			exe_tst = execute(strcompress('restore,"'+dir+'mic_cube_'+string(n)+'.sav"',/remove_all))
 			exe_tst = execute(strcompress('mic_cube=mic_cube+mic_cube_'+string(n),/remove_all))
-			;exe_tst = execute('file_delete,"'+dir+'mic_cube_'+strcompress(string(n)+'.sav"',/remove_all))
+			exe_tst = execute('file_delete,"'+dir+'mic_cube_'+strcompress(string(n)+'.sav"',/remove_all))
 		endif
 		if (iter eq 1) then begin
 			exe_tst = execute(strcompress('restore,"'+dir+'wcal_off_cube_'+string(n)+'.sav"',/remove_all))
 			exe_tst = execute(strcompress('wcal_off_cube=wcal_off_cube+wcal_off_cube_'+string(n),/remove_all))
-			;exe_tst = execute('file_delete,"'+dir+'wcal_off_cube_'+strcompress(string(n)+'.sav"',/remove_all))
+			exe_tst = execute('file_delete,"'+dir+'wcal_off_cube_'+strcompress(string(n)+'.sav"',/remove_all))
 		endif
 	endfor
 
 	;Save residual
 	if (resid eq 1) then begin
 		residual=img-spec_cube
-		if (micphn) then residual=residual-mic_cube
+		if (micphn eq 1) then residual=residual-mic_cube
 		b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, 'residual', SaveData=residual, SaveHead=Header)
+		;b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, 'spec_cube', SaveData=spec_cube, SaveHead=Header)
 	endif	
 
 	;Save wcal offsets

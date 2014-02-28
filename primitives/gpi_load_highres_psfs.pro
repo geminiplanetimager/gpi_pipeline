@@ -9,7 +9,7 @@
 ; OUTPUTS: none; mlens psf is loaded into memory
 ;
 ; PIPELINE COMMENT: Reads a high-res PSF file from disk. This primitive is required for PSF cube extraction.
-; PIPELINE ARGUMENT: Name="CalibrationFile" Type='String' CalFileType="psf" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
+; PIPELINE ARGUMENT: Name="CalibrationFile" Type='String' CalFileType="mlenspsf" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
 ; PIPELINE ORDER: 0.5
 ; PIPELINE CATEGORY: SpectralScience,Calibration
 ;
