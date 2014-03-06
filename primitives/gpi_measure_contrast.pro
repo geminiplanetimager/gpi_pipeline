@@ -212,7 +212,7 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
          ;;if this is a directory, then you want to save to it with the
          ;;default naming convention
          if file_test(pngsave,/dir) then begin
-            nm = DataSet.filenames[numfile]
+            nm = gpi_expand_path(DataSet.filenames[numfile])
             strps = strpos(nm,path_sep(),/reverse_search)
             strpe = strpos(nm,'.fits',/reverse_search)
             nm = strmid(nm,strps+1,strpe-strps-1)
@@ -254,8 +254,8 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
       ;;if this is a directory, then you want to save to it with the
       ;;default naming convention
       if file_test(radialsave,/dir) then begin
-         nm = DataSet.filenames[numfile]
-         strps = strpos(nm,'/',/reverse_search)
+         nm = gpi_expand_path(DataSet.filenames[numfile])
+         strps = strpos(nm,path_sep(),/reverse_search)
          strpe = strpos(nm,'.fits',/reverse_search)
          nm = strmid(nm,strps+1,strpe-strps-1)
          nm = gpi_expand_path(radialsave+path_sep()+nm+'_contrast_profile.fits')
