@@ -8,7 +8,7 @@
 # 12/30/13 - Created (jasonwang)
 
 #Check to make sure IDL is in the path first. Make the user set up IDL before running this.
-command -v idl >/dev/null && printf "\nIDL Found In \$PATH\n" || { printf "\nERROR: IDL is not in \$PATH. Please make sure IDL is installed and not aliased. The pipeline will not work without IDL in the \$PATH\n"; exit 1; }
+command -v idl >/dev/null && printf "\nIDL Found In \$PATH\n" || { printf "\nERROR: IDL is not in \$PATH. Please make sure IDL is installed and not aliased. If you must keep IDL aliased, please check that you can run IDL from an xterm window and then comment out this line by placing a # in front of it before continuing setup.\n\n"; exit 1; }
 
 #Function for verifying filepaths are correct. Will only update filepath if user supplies a different one.
 #Requires one input, the name of the envrionment variable that you want to check.
