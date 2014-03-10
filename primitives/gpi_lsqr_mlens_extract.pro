@@ -17,6 +17,7 @@
 ; PIPELINE ARGUMENT: Name="resid" Type="int" Default="1" Range="[0,1]" Desc="Save residual detector image?"
 ; PIPELINE ARGUMENT: Name="micphn" Type="int" Default="0" Range="[0,1]" Desc="Solve for microphonics?"
 ; PIPELINE ARGUMENT: Name="iter" Type="int" Default="0" Range="[0,1]" Desc="Run iterative solver of wavecal?"
+; PIPELINE ARGUMENT: Name="badpix" Type="float" Default="0" Range="[0,1]" Desc="Weight by bad pixel map?"
 ; PIPELINE ARGUMENT: Name="del_x_best" Type="float" Default="0" Range="[-5,5]" Desc="Best initial guess for flexure perpandicular to dispersion shift (pixels)"
 ; PIPELINE ARGUMENT: Name="del_theta_best" Type="float" Default="0" Range="[-5,5]" Desc="Best initial guess for rotation angle shift (degrees)"
 ; PIPELINE ARGUMENT: Name="del_lam_best" Type="float" Default="0" Range="[-5,5]" Desc="Best initial guess for flexure parrallel to dispersion shift (pixels)"
@@ -81,6 +82,19 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 
 	;stop idl session
 	if tag_exist( Modules[thisModuleIndex], "stopidl") then stopidl=long(Modules[thisModuleIndex].stopidl) else stopidl=0
+
+	;run badpixel suppresion
+	if tag_exist(Modules[thisModuleIndex],"badpix") then $
+		badpix=float(Modules[thisModuleIndex].badpix) else badpix=0
+
+	if (badpix eq 1) then begin
+		badpix_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header('badpix',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile])
+		if ((size(badpix_file))[1] eq 0) then $
+			return, error('FAILURE ('+functionName+'): Failed to find badpixel map, set to 0 or make badpixel map prior.') 
+		badpix = gpi_READFITS(badpix_file)
+		ones = bytarr(2048,2048)+1
+		badpix=ones-badpix
+	endif
 	
 	; get mlens PSF filename
 	if ((size(mlens_file))[1] eq 0) then $
@@ -100,7 +114,7 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 	lens=lens[*,sort(randomu(seed,n_elements(lens)/2))]
 	
   	;;error handle if readwavcal or not used before
-  	if (nlens eq 0)  then $
+  	if (nlens eq 0) then $
 		return, error('FAILURE ('+functionName+'): Failed to load wavelength calibration data prior to calling this primitive.') 
 
 	; get 2d detector image put into shared memory
@@ -149,6 +163,7 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 		oBridge[j]->Setvar,'wcal_off_cube',wcal_off_cube
 		oBridge[j]->Setvar,'wavcal',wavcal
 		oBridge[j]->Setvar,'lens',lens
+		oBridge[j]->Setvar,'badpix',badpix
 
 		cut1 = floor((nlens_tot/np)*j)
 		cut2 = floor((nlens_tot/np)*(j+1))-1
@@ -166,7 +181,7 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 		oBridge[j]->Execute, strcompress('wait,'+string(5),/remove_all)
 		oBridge[j]->Execute, "print,'loading PSFs'"
 		oBridge[j]->Execute, ".r "+gpi_get_directory('GPI_DRP_DIR')+"/utils/gpi_lsqr_mlens_extract_dep.pro"
-		process=strcompress('img_ext_para,'+string(cut1)+','+string(cut2)+','+string(j)+',img,wcal_off_cube,spec_cube,mic_cube,gpi_cube,gpi_lambda,para,wavcal,"'+mlens_file+'",'+'del_x_best='+string(del_x_best)+','+'del_theta_best='+string(del_theta_best)+','+'del_lam_best='+string(del_lam_best)+','+'x_off='+string(xsft)+','+'y_off='+string(ysft)+',lens=lens'+keywords,/remove_all)
+		process=strcompress('img_ext_para,'+string(cut1)+','+string(cut2)+','+string(j)+',img,wcal_off_cube,spec_cube,mic_cube,gpi_cube,gpi_lambda,para,wavcal,"'+mlens_file+'",'+'del_x_best='+string(del_x_best)+','+'del_theta_best='+string(del_theta_best)+','+'del_lam_best='+string(del_lam_best)+','+'x_off='+string(xsft)+','+'y_off='+string(ysft)+',lens=lens,badpix=badpix'+keywords,/remove_all)
 
 		oBridge[j]->Execute, "print,'"+process+"'"
 		oBridge[j]->Execute, process, /nowait
