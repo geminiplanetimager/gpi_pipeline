@@ -55,7 +55,9 @@ pro twod_img_corr,img_a,img_b,range,sub_pix,xsft,ysft,corr,cm=cm
 		ysft=(yind*sub_pix)-range
 	endelse
 
-	
+	xsft=xsft[0]
+	ysft=ysft[0]	
+
 	;stop
 end
 
@@ -66,7 +68,7 @@ function gpi_spec_lsqr,sub_img,r_cube,resid=resid,spec=spec
 
 	sc = size(r_cube)
 
-;value vector
+;correlation vector
 	v=fltarr(sc[3])
 	
 	for i=0,sc[3]-1 do begin	
@@ -82,8 +84,13 @@ function gpi_spec_lsqr,sub_img,r_cube,resid=resid,spec=spec
 	endfor
 	iC=invert(C,/DOUBLE)
 	;iC=svd_invert(C,1e-7)
+	;stop
+	;val=fltarr(sc[3])
+	;idx=fltarr(sc[3])
+	;w=fltarr(sc[3])
+	;nnls, C, sc[3], sc[3], v, val, rnorm, w, idx, mode
 
-;generate value vector and image solution
+;generate correlation vector and image solution
 	tspec=[0]
 	fspec=fltarr(sc[1],sc[2])
 	for i=0,sc[3]-1 do begin
@@ -92,6 +99,7 @@ function gpi_spec_lsqr,sub_img,r_cube,resid=resid,spec=spec
 		fspec=fspec+r_cube[*,*,i]*val
 	endfor
 	tspec=tspec[1:*]
+	;tspec=val
 
 ;exit with either value vector or residual image
 if (keyword_set(spec)) then return,tspec
@@ -132,8 +140,8 @@ end
 
 function get_psf_pos,x_lens,y_lens,wavecal,lam_min,lam_max,r_step,del_lam,del_x,del_theta,x_off,y_off
 
-	y0 = wavecal[x_lens,y_lens,0]+y_off
-	x0 = wavecal[x_lens,y_lens,1]+x_off
+	y0 = wavecal[x_lens,y_lens,0]+y_off[0]
+	x0 = wavecal[x_lens,y_lens,1]+x_off[0]
 	lam0 = wavecal[x_lens,y_lens,2]
 	w3 = wavecal[x_lens,y_lens,3]
 	theta = wavecal[x_lens,y_lens,4]
@@ -194,6 +202,7 @@ function spec_ext_amoeba,P,best=best
 	micphn=com_struc.micphn
 	x_off=com_struc.x_off
 	y_off=com_struc.y_off
+	badpix=com_struc.badpix
 
 	del_x=P[0]
 	del_theta=P[1]
@@ -266,9 +275,20 @@ function spec_ext_amoeba,P,best=best
 
 	if (micphn eq 1) then r_cube = [[[micphncube]],[[psfcube]]] else r_cube = psfcube
 
+	s=size(r_cube,/dimensions)
+	sbp = size(badpix)
+	if (sbp[0] ne 0) then begin
+		sub_badpix = badpix[x_sub1:x_sub2,y_sub1:y_sub2]
+		for i=0,s[2]-1 do begin
+			r_cube[*,*,i]=r_cube[*,*,i]*sub_badpix
+		endfor
+	endif
+
 	;t4=systime(/seconds)
 	;print,t4-t3,'pre lsqr amoeba'
+
 	resid = stddev(gpi_spec_lsqr(sub_img,r_cube,/resid))
+
 	;t5=systime(/seconds)
 	;print,t5-t4,'post lsqr amoeba'
 
@@ -277,7 +297,7 @@ function spec_ext_amoeba,P,best=best
 	;imdisp,sub_img,/axis
 	;plots,[spec_spix3[0,*]-x_sub1],[spec_spix3[1,*]-y_sub1],psym=2
 	;window,1
-	;imdisp,tstimage,/axis
+	;imdisp,tstimage*sub_badpix,/axis
 	;plots,[spec_spix3[0,*]-x_sub1],[spec_spix3[1,*]-y_sub1],psym=2
 	;stop
 
@@ -288,7 +308,7 @@ end
 ;--------------------------------------------------
 ; Prep subsection of detector image for spectra extraction.
 
-pro img_spec_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,wavecal,spec,spec_img,mic_img,del_lam_best,del_x_best,del_theta_best,x_off,y_off,wcal_off,para,resid=resid,micphn=micphn,iter=iter
+pro img_spec_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,wavecal,spec,spec_img,mic_img,del_lam_best,del_x_best,del_theta_best,x_off,y_off,wcal_off,para,badpix,resid=resid,micphn=micphn,iter=iter
 
 	;t1=systime(/seconds)
 
@@ -308,7 +328,7 @@ pro img_spec_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,wavecal,spec,spec_i
 
 ;get psf positions from wave cal
 
-	psfpos_cen = get_psf_pos(x_lens_cen,y_lens_cen,wavecal,para[0],para[1],steps,0,0,0,y_off,x_off)
+	psfpos_cen = get_psf_pos(x_lens_cen,y_lens_cen,wavecal,para[0],para[1],steps,0,0,0,x_off,y_off)
 	x_med = floor(mean(psfpos_cen[0,*]))
 	y_med = floor(mean(psfpos_cen[1,*]))
 	x_sub1 = x_med-ceil(xsize/2)+1
@@ -402,7 +422,8 @@ pro img_spec_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,wavecal,spec,spec_i
 		sub_img:sub_img,$
 		micphn:micphn,$
 		x_off:x_off,$
-		y_off:y_off}
+		y_off:y_off,$
+		badpix:badpix}
 	
 ;AMOEBA calling lsqr
 	;t3=systime(/seconds)
@@ -518,7 +539,7 @@ end
 ;--------------------------------------------------
 ; Parrallel child process to extract all lenslets known from wavecal and save residual
 
-pro img_ext_para,cut1,cut2,z,img,wcal_off_cube,spec_cube,mic_cube,gpi_cube,gpi_lambda,para,wavcal,mlens_file,resid=resid,micphn=micphn,iter=iter,del_x_best=del_x_best,del_theta_best=del_theta_best,del_lam_best=del_lam_best,x_off=x_off,y_off=y_off,lens=lens
+pro img_ext_para,cut1,cut2,z,img,wcal_off_cube,spec_cube,mic_cube,gpi_cube,gpi_lambda,para,wavcal,mlens_file,resid=resid,micphn=micphn,iter=iter,del_x_best=del_x_best,del_theta_best=del_theta_best,del_lam_best=del_lam_best,x_off=x_off,y_off=y_off,lens=lens,badpix=badpix
 
 	t_start=systime(/seconds)
 
@@ -539,16 +560,18 @@ pro img_ext_para,cut1,cut2,z,img,wcal_off_cube,spec_cube,mic_cube,gpi_cube,gpi_l
 		;t1=systime(/seconds)
 		x=lens[0,i]
 		y=lens[1,i]
-		;print,x,y,i
-		img_spec_ext_amoeba,x,y,img,mlens,wavcal,spec,spec_img,mic_img,del_lam_best,del_x_best,del_theta_best,x_off,y_off,wcal_off,para,resid=resid,micphn=micphn,iter=iter
+		print,x,y,i
+		img_spec_ext_amoeba,x,y,img,mlens,wavcal,spec,spec_img,mic_img,del_lam_best,del_x_best,del_theta_best,x_off,y_off,wcal_off,para,badpix,resid=resid,micphn=micphn,iter=iter
 
-		img_spec_ext_amoeba,x,y,img,mlens,wavcal,spec2,spec_img2,mic_img2,del_lam_best+0.5,del_x_best,del_theta_best,x_off,y_off,wcal_off2,para,resid=resid,micphn=micphn,iter=0
+		img_spec_ext_amoeba,x,y,img,mlens,wavcal,spec2,spec_img2,mic_img2,del_lam_best+0.5,del_x_best,del_theta_best,x_off,y_off,wcal_off2,para,badpix,resid=resid,micphn=micphn,iter=0
+	;img_spec_ext_amoeba,x,y,img,mlens,wavcal,spec2,spec_img2,mic_img2,del_lam_best-0.33,del_x_best,del_theta_best,x_off,y_off,wcal_off2,para,badpix,resid=resid,micphn=micphn,iter=0
 
 		if (spec[0] ne -1 and spec2[0] ne -1) then begin
 			spec_l = transpose([[spec[1,*]],[spec2[1,*]]])
 			spec_f = transpose([[spec[0,*]],[spec2[0,*]]])
 			srt = sort(spec_l)
 			lens_spec = interpol(spec_l[srt],spec_f[srt],gpi_lambda)
+			;lens_spec = SPL_INTERP(spec_l[srt], spec_f[srt], lens_spec, gpi_lambda)
 			gpi_cube[x,y,*] = lens_spec
 			
 			if (resid eq 1) then begin
