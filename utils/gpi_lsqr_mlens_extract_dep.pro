@@ -161,7 +161,7 @@ function get_psf_pos,x_lens,y_lens,wavecal,lam_min,lam_max,r_step,del_lam,del_x,
 
 	r=[x_min,y_min]
 
-	steps=floor((abs(r_min)+abs(r_max))/r_step)
+	steps=floor(abs(r_min-r_max)/r_step)
 
 	for i=1L,steps do begin
 		r=[[r],[[(r_min+r_step*i)*sin(2*!pi-theta)+x0,(r_min+r_step*i)*cos(2*!pi-theta)+y0]]]
@@ -170,7 +170,7 @@ function get_psf_pos,x_lens,y_lens,wavecal,lam_min,lam_max,r_step,del_lam,del_x,
 	sign = -(r[1,*]-y0)/abs(r[1,*]-y0) 
 
 	l=sign*sqrt((r[0,*]-x0[0])^2+(r[1,*]-y0[0])^2)*w3+lam0
-
+;stop
 return,[r,l]
 
 end
