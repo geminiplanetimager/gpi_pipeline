@@ -14485,7 +14485,8 @@ if n_elements(good) eq 1 then return
   
    if cdelt[0] gt 0 then sgn = -1 else sgn = 1 ; To check for flip between RH and LH coordinate systems
    
-   theta =  sgn* 0.5 * atan(u/q)+sgn*d_par_ang*!dtor+(thetaoffset+npa)*!dtor
+   theta =  sgn* 0.5 * atan(u,q)+npa*!dtor+thetaoffset*!dtor
+   
    ;theta = 0.5 * atan(u/q)+thetaoffset*!dtor
 ;   self->Message, "Mean theta "+string(mean(theta,/nan)/!dtor)
 ;   self->Message, "Sign"+string(sgn)
@@ -14493,13 +14494,13 @@ if n_elements(good) eq 1 then return
 ;   self->Message, "PA Offset from GPItv:"+string(thetaoffset)
 ;   self->Message, "Image Rotation from GPItv:"+string((*self.state).rot_angle)
 ;   self->Message, "Image Rotation Angle:"+string(d_par_ang)
-;;  
+;   
+;  
+
    maxmag = .50
    
    ;Check for image inversion: 
    ;
-
-   
 
     ; remember position angle is defined starting at NORTH so
     ; the usual positions of sin and cosine are swapped.
