@@ -368,8 +368,14 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		include_sky=uint(Modules[thisModuleIndex].IncludeSkyRotation)
     ;include_sky=1
 		  
-    if include_sky eq 1 then skyrotation_mueller =  mueller_rot((parang+90+18.5)*!dtor) else skyrotation_mueller=identity(4) ;In radians!	
- 
+    if include_sky eq 1 then skyrotation_mueller =  mueller_rot((parang+90-18.5)*!dtor) else skyrotation_mueller=identity(4)
+    
+;    object=sxpar(hdr0, 'OBJECT') 
+;    if strcmp(strcompress(object), 'Zenith ') eq 1 and include_sky eq 1 then begin ;If we aren't tracking then don't trust the parallactic angle. 
+;      skyrotation_mueller =  mueller_rot((90-18.5)*!dtor)
+;      print, 'Ignoring the parallactic angles'
+;    endif	
+    
     sign_flip=[[1,0,0,0],[0,1,0,0],[0,0,-1,0],[0,0,0,-1]]
     
 		if (include_mueller eq 1) then begin ;Either include the system mueller matrix or not. Depending on the keyword
@@ -589,7 +595,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   print, "U = "+string(umean)
   print, "V = "+string(vmean)
   print, "P = "+string(100*sqrt(qmean^2+umean^2))+"    percent linear polarization"
-  print, "PA = "+string(atan(umean/qmean)/!dtor/2)+" Mean PA across the field"
+  print, "PA = "+string(atan(umean,qmean)/!dtor/2)+" Mean PA across the field"
   print, string(100*sqrt(qmean^2+umean^2+vmean^2))+"     percent polarization"
   print, "------------------------------"
   
