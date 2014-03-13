@@ -31,6 +31,7 @@
 ; PIPELINE ARGUMENT: Name="parallel" Type="Int" Range="[0,1]" Default="0" Desc="Option for Parallelization,  0: none, 1: parallel"
 ; PIPELINE ARGUMENT: Name="numsplit" Type="Int" Range="[0,100]" Default="0" Desc="Number of cores for parallelization. Set to 0 for autoselect."
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
+; PIPELINE ARGUMENT: Name="Smooth" Type="int" Range="[0,1]" Default="1" Desc="1: Smooth over poorly fit lenslets in final datacube; 0:NO, 1:YES"
 ; PIPELINE ARGUMENT: Name="Save_model_image" Type="int" Range="[0,1]" Default="0" Desc="1: save 2d detector model fit image to disk, 0:don't save"
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="wavcal" Default="AUTOMATIC" Desc="Filename of the desired reference wavelength calibration file to be read"
 ; PIPELINE ARGUMENT: Name="Save_model_params" Type="int" Range="[0,1]" Default="0" Desc="1: save model nuisance parameters to disk, 0: don't save"
@@ -66,11 +67,9 @@ calfiletype = 'wavecal'
  	if tag_exist( Modules[thisModuleIndex], "numsplit") then numsplit=fix(Modules[thisModuleIndex].numsplit) else numsplit=!CPU.TPOOL_NTHREADS*2
 	if numsplit lt 1 then numsplit=!CPU.TPOOL_NTHREADS*2
   	if tag_exist( Modules[thisModuleIndex], "Save") then Save=uint(Modules[thisModuleIndex].Save) else Save=0
+  	if tag_exist( Modules[thisModuleIndex], "Smooth") then Smooth=uint(Modules[thisModuleIndex].Smooth) else Smooth=0
   	if tag_exist( Modules[thisModuleIndex], "Save_model_image") then Save_model_image=uint(Modules[thisModuleIndex].Save_model_image) else Save_model_image=0
   	if tag_exist( Modules[thisModuleIndex], "Save_model_params") then Save_model_params=uint(Modules[thisModuleIndex].Save_model_params) else Save_model_params=0
-
-
-	if whichpsf eq 1 then return, error("Microlens PSF model not yet supported in this version of the code.")
 
 
 ;Load in the image. Primitive assumes a dark,flat,badpixel,flexure, and microphonics corrected lamp image. 
@@ -87,6 +86,8 @@ calfiletype = 'wavecal'
 
 	;open the reference wavecal file. Save into common block variable.
 	refwlcal = gpi_readfits(c_File,header=Header)
+
+
 ;Use the next line to manually select a wavecal by hand until that
 ;software bug is fixed.
         ;refwlcal=mrdfits('/Users/schuylerwolff/gpi/data/Reduced/calibrations/wavecals/S20130315S0059-J--wavecal.fits',1,HEADER)
@@ -95,7 +96,7 @@ calfiletype = 'wavecal'
 	nlens = wlcalsize[0]
 	n_valid_lenslets = long(total(finite(refwlcal[*,*,0])))
 
-	newwavecal=dblarr(wlcalsize) + !values.f_nan
+	newwavecal=dblarr(wlcalsize) 
 	
         print,wlcalsize
 	valid = gpi_wavecal_sanity_check(c_File, errmsg=errmsg,/noplot)
@@ -105,10 +106,18 @@ calfiletype = 'wavecal'
 	; assume this is already present in the DQ extension.
 	badpix=*dataset.currdq GT 0
 
-    ; Load in the microlens psf array. NOT YET SUPPORTED
-	;open the appropriate micrlens psf file and assign it to the 
-	;variable my_psf. Pass this through to the wrapper function.
-	;myPSFs_array = read_PSFs(psffn, [281,281,1])
+        if keyword_set(Smooth) then begin
+
+           smoothedw=median(refwlcal[*,*,3],5)
+           smoothedt=median(refwlcal[*,*,4],5)
+           smoothedw[where(refwlcal[*,*,0] EQ !values.f_nan )] = !values.f_nan
+           smoothedt[where(refwlcal[*,*,0] EQ !values.f_nan )] = !values.f_nan
+           refwlcal[*,*,3]=smoothedw
+           refwlcal[*,*,4]=smoothedt
+
+        endif
+
+
 
 
 	lamp = backbone->get_keyword('GCALLAMP', count=ct1)
@@ -124,6 +133,18 @@ calfiletype = 'wavecal'
         ;backbone->Log, gpi_get_directory('GPI_DRP_CONFIG_DIR')
         datafn = gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+filter+lamp+'.dat'
  
+
+	if whichpsf eq 1 then begin
+
+           psffn = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'High-res Microlens PSFs',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
+
+           ;open the appropriate micrlens psf file and assign it to the variable myPSFs_array.
+           myPSFs_array = gpi_highres_microlens_psf_read_highres_psf_structure(psffn, [281,281,1])
+
+        endif
+
+         
+
 
         ;Create an array to serve as the simulated detector image
         lensletmodel=dblarr(size(image,/dimensions))
@@ -180,7 +201,7 @@ if keyword_set(parallel) then begin
 	 gpi_split_for, istart,iend, nsplit=numsplit,$ 
 		 varnames=['jstart','jend','refwlcal','image','im_uncert','badpix','newwavecal',$
 		           'q','wlcalsize','xinterp','yinterp','wla','fluxa','nmgauss','count','lensletmodel','lensletcount',$
-                           'modelparams','modelbackgrounds','locations_lambda_min','locations_lambda_max','n_valid_lenslets','boxpad'], $
+                           'modelparams','modelbackgrounds','locations_lambda_min','locations_lambda_max','n_valid_lenslets','boxpad','myPSFs_array], $
 		 outvar=['newwavecal','count','lensletcount','lensletmodel','modelparams','modelbackgrounds'], commands=[$
 	'common ngausscommon, numgauss, wl, flux, lambdao, my_psf' ,$
 	'numgauss=nmgauss[0]',$
@@ -201,6 +222,10 @@ if keyword_set(parallel) then begin
 	'    lensletarray=image[startx:stopx, starty:stopy]',$
 	'    lensletarray_uncert=image[startx:stopx, starty:stopy]',$
 	'    badpixmap=badpix[startx:stopx, starty:stopy]',$
+        '    if whichpsf EQ 1 then begin',$
+        '       ptr = gpi_highres_microlens_psf_get_local_highres_psf(myPSFs_array,[i,j,0])',$
+        '       if ptr_valid(myPSFs_array[i,j]) then my_psf = *myPSFs_array[i,j]',$
+        '    endif',$
 	'    catch,error_status',$
 	'    if error_status NE 0 then begin',$
 	'       catch,/cancel',$
@@ -316,17 +341,13 @@ endif else begin
 
 
  
-;;            ;Choose the correct microlens psf for this lenslet 
-;;            ;NOT YET SUPPORTED
-;;            ; If the psf exists for this
-;;            ; combination of i and j, then assign
-;;            ; the psf to my_psf variable
-;;            ;if ptr_valid(myPSFs_array[i,j]) then begin
-;;            ;   my_psf = *myPSFs_array[i,j]
-;;            ;   print, 'the PSF was valid'
-;;            ;endif else begin
-;;            ;   print, 'the PSF did not work for some reason'
-;;            ;endelse
+            if whichpsf EQ 1 then begin
+               ptr = gpi_highres_microlens_psf_get_local_highres_psf(myPSFs_array,[i,j,0])
+               if ptr_valid(myPSFs_array[i,j]) then begin
+                  my_psf = *myPSFs_array[i,j]
+                  print,'psf was valid
+               endif else print, 'ERROR: PSF was not valid'
+            endif
 
             ;catch,error_status
 			error_status=0
@@ -349,8 +370,17 @@ endif else begin
  		  endif
 
 		  ; Now do an actual fit for one lenslet's spectrum! 
- 		  res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",$
-			  modelimage=modelimage, modelbackground=modelbackground, debug=keyword_set(debuglenslet) or keyword_set(debugall))  
+                  case whichpsf of
+                     0: begin
+                        res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",$
+			  modelimage=modelimage, modelbackground=modelbackground, debug=keyword_set(debuglenslet) or keyword_set(debugall))
+                     end
+                     1: begin
+                        res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"nmicrolens",$
+			  modelimage=modelimage, modelbackground=modelbackground, debug=keyword_set(debuglenslet) or keyword_set(debugall))
+                     end
+                  endcase
+
 
 		  lensletcount +=1
 
@@ -503,7 +533,16 @@ backbone->set_keyword, "HISTORY", "    Slice 5:  tilts of spectra [radians]",ext
 backbone->set_keyword, "HISTORY", " ",ext_num=0;,/blank
 
 
+;if keyword_set(Smooth) then begin
+
+;   newwavecal[*,*,3]=median(newwavecal[*,*,3],5)
+;   newwavecal[*,*,4]=median(newwavecal[*,*,4],5)
+
+;endif
+
+
 ;SAVE THE NEW WAVELENGTH CALIBRATION:
+
 
 suffix='wavecal'
 *dataset.currframe = newwavecal
