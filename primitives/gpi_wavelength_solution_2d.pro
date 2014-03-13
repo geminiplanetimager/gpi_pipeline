@@ -136,7 +136,7 @@ calfiletype = 'wavecal'
 
 	if whichpsf eq 1 then begin
 
-           psffn = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'High-res Microlens PSFs',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
+           psffn = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'mlenspsf',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
 
            ;open the appropriate micrlens psf file and assign it to the variable myPSFs_array.
            myPSFs_array = gpi_highres_microlens_psf_read_highres_psf_structure(psffn, [281,281,1])
@@ -201,7 +201,7 @@ if keyword_set(parallel) then begin
 	 gpi_split_for, istart,iend, nsplit=numsplit,$ 
 		 varnames=['jstart','jend','refwlcal','image','im_uncert','badpix','newwavecal',$
 		           'q','wlcalsize','xinterp','yinterp','wla','fluxa','nmgauss','count','lensletmodel','lensletcount',$
-                           'modelparams','modelbackgrounds','locations_lambda_min','locations_lambda_max','n_valid_lenslets','boxpad','myPSFs_array], $
+                           'modelparams','modelbackgrounds','locations_lambda_min','locations_lambda_max','n_valid_lenslets','boxpad','myPSFs_array'], $
 		 outvar=['newwavecal','count','lensletcount','lensletmodel','modelparams','modelbackgrounds'], commands=[$
 	'common ngausscommon, numgauss, wl, flux, lambdao, my_psf' ,$
 	'numgauss=nmgauss[0]',$
