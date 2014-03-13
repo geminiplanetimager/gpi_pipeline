@@ -42,6 +42,7 @@ common ngausscommon, numgauss, wl, flux, lambdao, my_psf
 
 nflux=size(flux,/dimensions)
 
+
 ;Pull the values for this lenslet from the reference wavelength calibration
 xo=refwlcal[xdim,ydim,1]
 yo=refwlcal[xdim,ydim,0]
@@ -80,7 +81,9 @@ start_params[8]=total(lensletarray);-min(lensletarray)*size(lensletarray,/n_elem
 
 ;Initially guess zero rotation for gaussian
 start_params[6]=0
-if whichpsf EQ 'nmicrolens' then start_params[6].fixed=1
+
+if whichpsf EQ 'nmicrolens' then parinfo[6].fixed=1
+
 
 ;Provide starting guesses for the gaussian parameters (sigmax,sigmay)
 if whichpsf EQ 'ngauss' then begin
