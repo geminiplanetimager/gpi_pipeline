@@ -147,6 +147,14 @@ pro automaticreducer::handle_new_files, new_filenames ;, nowait=nowait
 			message,/info, ' Received an empty string as a filename; ignoring it.'
 			continue
 		endif
+
+		header = headfits(new_filenames[i])
+		if strc(sxpar(header, 'INSTRUME')) ne 'GPI' then begin
+			message,/info, ' Not a GPI file so it will be ignored: '+new_filenames[i]
+			self->Log, "   Ignored since not a GPI file: "+new_filenames[i]
+			continue
+		endif
+
 		finfo = file_info(new_filenames[i])
 		if (finfo.size ne 20998080) and (finfo.size ne 21000960) and (finfo.size ne 16790400) then begin
 			message,/info, "File size is not an expected value: "+strc(finfo.size)+" bytes. Waiting 0.5 s for file write to complete?"
