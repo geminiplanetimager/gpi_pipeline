@@ -80,8 +80,10 @@ start_params[8]=total(lensletarray);-min(lensletarray)*size(lensletarray,/n_elem
 
 ;Initially guess zero rotation for gaussian
 start_params[6]=0
+if whichpsf EQ 'nmicrolens' then start_params[6].fixed=1
 
 ;Provide starting guesses for the gaussian parameters (sigmax,sigmay)
+if whichpsf EQ 'ngauss' then begin
 if lambdao GT 1.2 then begin
    if xdim LT 211 then start_params[4:5] = [1.5, 1.5]
    if (xdim GE 211) AND (xdim LT 223) then start_params[4:5] = [1.7, 1.7]
@@ -91,6 +93,8 @@ if lambdao GT 1.2 then begin
 endif else begin
    start_params[4:5] = [1.5, 1.5]
 endelse
+endif
+
 
 
 ;Compute a weighted error array to be passed to mp2dfitfunct
@@ -133,6 +137,7 @@ parinfo[3].limits[0]=theta-deltatheta
 parinfo[3].limited[1]=1
 parinfo[3].limits[1]=theta+deltatheta
 
+if whichpsf EQ 'ngauss' then begin
 if lambdao lt 1.1 then max_fwhm= 4 else max_fwhm=2
 
 ; X FWHM
@@ -145,15 +150,17 @@ parinfo[5].limited[0]=1
 parinfo[5].limits[0]=0.4
 parinfo[5].limited[1]=1
 parinfo[5].limits[1]=max_fwhm
-; Flux Scaling
- ;parinfo[7].limited(0)=1
- ;parinfo[7].limits(0)=0.0001*start_params[7]
- ;parinfo[7].limited(1)=1
- ;parinfo[7].limits(1)=start_params[7]
+
+endif else begin
+parinfo[4].fixed=1
+parinfo[5].fixed=1
+endelse
 
 ; Constant background offset must be positive?
 parinfo[7].limited[0]=1
 parinfo[7].limits[0]=0.0
+
+ 
 
 ;wprior=refwlcal[xdim,ydim,3]
 ;wstart=0.999*w
