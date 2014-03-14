@@ -6,5 +6,5 @@
 <module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
 <module name="Load High-Res PSFs" CalibrationFile="AUTOMATIC" />
 <module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0"  gpitv="0" />
-<module name="Assemble Spectral Datacube (Lsqr, microlens psf)" Save="0" gpitv="0" />
+<module name="Flexure 2D x correlation with wavecal model" Save="0" gpitv="0" />
 </DRF>
