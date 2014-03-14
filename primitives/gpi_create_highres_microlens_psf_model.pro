@@ -23,7 +23,11 @@
 function gpi_create_highres_microlens_psf_model, DataSet, Modules, Backbone
   primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
-  
+
+;device,decomposed=0
+;restore,'microlens_kernel_testing.sav'
+;goto, kernel_testing  
+
   ;========  First section: Checking of inputs and initialization of variables depending on observing mode ==========
   ; Note: in the below, comments prefaced by "MP:" are added by Marshall during
   ; his attempt to read through and understand the details of JB's code...
@@ -65,26 +69,26 @@ function gpi_create_highres_microlens_psf_model, DataSet, Modules, Backbone
   backbone->Log, "Cutting out postage stamps around each lenslet PSF"
   case disperser of
      'PRISM': begin
-        width_PSF = 4				; size of stamp? 
-				n_per_lenslet = 1		; there is only 1 PSF per lenslet in spectral mode                
+        width_PSF = 4                             ; size of stamp? 
+        n_per_lenslet = 1                         ; there is only 1 PSF per lenslet in spectral mode                
         sub_pix_res_x = 5		;sub_pixel resolution of the highres ePSF
         sub_pix_res_y = 5		;sub_pixel resolution of the highres ePSF
         cent_mode = "BARYCENTER"
 				; if we are working with narrowband filter data, we want the centroid to be at the maximum
-				if filter_wavelength ne -1 then cent_mode="MAX"
-        ; Create raw data stamps
-			    time0=systime(1,/seconds)
-          spaxels = gpi_highres_microlens_psf_extract_microspectra_stamps(disperser, dataset.frames[0:(nfiles-1)], dataset.wavcals[0:(nfiles-1)], width_PSF, /STAMPS_MODE) 
-  				time_cut=systime(1,/seconds)-time0
+        if filter_wavelength ne -1 then cent_mode="MAX"
+                                ; Create raw data stamps
+        time0=systime(1,/seconds)
+        spaxels = gpi_highres_microlens_psf_extract_microspectra_stamps(disperser, dataset.frames[0:(nfiles-1)], dataset.wavcals[0:(nfiles-1)], width_PSF, /STAMPS_MODE) 
+        time_cut=systime(1,/seconds)-time0
      end
      'WOLLASTON': begin
-        width_PSF = 7				; size of stamp?
-				n_per_lenslet =2		; there are 2 PSFs per lenslet in polarimetry mode.
-        sub_pix_res_x = 4		; sub_pixel resolution of the highres ePSF
-        sub_pix_res_y = 4   ; sub_pixel resolution of the highres ePSF
+        width_PSF = 7                            ; size of stamp?
+        n_per_lenslet =2                         ; there are 2 PSFs per lenslet in polarimetry mode.
+        sub_pix_res_x = 4                        ; sub_pixel resolution of the highres ePSF
+        sub_pix_res_y = 4                        ; sub_pixel resolution of the highres ePSF
         cent_mode = "MAX"
-        ; Create raw data stamps
-				spaxels = gpi_highres_microlens_psf_extract_microspectra_stamps(disperser, image, polcal, width_PSF, /STAMPS_MODE)
+                                ; Create raw data stamps
+        spaxels = gpi_highres_microlens_psf_extract_microspectra_stamps(disperser, image, polcal, width_PSF, /STAMPS_MODE)
      end
   endcase
 
@@ -93,7 +97,7 @@ function gpi_create_highres_microlens_psf_model, DataSet, Modules, Backbone
   diff_image = fltarr(2048,2048)	; MP: difference image, output at end of calculation? PI: Yes
   model_image = fltarr(2048,2048)		; new modeled image - output at end of calculation
   
-  n_neighbors = 4               ; number on each side - so 4 gives a 9x9 box - 3 gives a 7x7 box
+  n_neighbors = 3               ; number on each side - so 4 gives a 9x9 box - 3 gives a 7x7 box
   ; set up a lenslet jump to improve speed - normally the step would be 2*n_neighbors+1
   ; so this makes it (2*n_neighbors+1)*loop_jump
 	loop_jump=1                  ; the multiple of lenslets to jump
@@ -124,9 +128,9 @@ function gpi_create_highres_microlens_psf_model, DataSet, Modules, Backbone
 ; the following (it_flex_max) declares the number of iterations
 ; over the flexure loop - so the RHS of figure 8 in the Anderson paper
 ; this should probably be moved into a recipe keyword.
-
-  it_flex_max = 2				; what is this? -MP  # of iterations for flexure? Not clear what is being iterated over.
-
+;stop
+  it_flex_max = 4				; what is this? -MP  # of iterations for flexure? Not clear what is being iterated over.
+   degree_of_the_polynomial_fit = 2 ; degree of the polynomial surface used for the flexure correction
 ; can't have multiple iterations if just one file - this should be a recipe failure
 
   if nfiles eq 1 then begin 
@@ -158,12 +162,12 @@ debug=1
 ; imin_test = 145 & imax_test = 155
 ; jmin_test = 145 & jmax_test = 155
 
-; imin_test = 166-20 & imax_test = 177+20
-; jmin_test = 166-20 & jmax_test = 177+20
+; imin_test = 166-30 & imax_test = 177+30
+; jmin_test = 166-30 & jmax_test = 177+30
   ; code check range
-; imin_test = 148 & imax_test = 152
-; jmin_test = 148 & jmax_test = 152
-
+; imin_test = 81 & imax_test = 89
+; jmin_test = 87 & jmax_test = 89
+; want 82,88
 ; the following is for pixel phase plotting only - it has no effect on any results
   pp_xind=166 & pp_yind=177
   pp_neighbors=8
@@ -172,7 +176,15 @@ debug=1
 	; the following is the iteration over the flexure position fixes
 	; so the right/outer loop in fig 8
 
-  for it_flex=0,it_flex_max-1 do begin 
+kernel_testing: 
+;it_flex_max=2
+
+  for it_flex=0,it_flex_max-1 do begin
+
+;if it_flex eq 1 then stop
+; so now create a .save file that we can just load here then continue
+; save,/all,filename='microlens_kernel_testing.sav'
+
      backbone->Log, 'starting iteration '+strc(it_flex+1)+' of '+strc(it_flex_max)+' for flexure'
  
 		time_it0=systime(1,/seconds)
@@ -232,7 +244,7 @@ debug=1
                                
   	                time_ij4 = systime(1,/seconds)
 										print, "Get and fit PSF: Fitting [line,column] ["+strc(i+1)+','+strc(j+1)+"] of 281 and spot "+strc(k+1)+" of "+strc(n_per_lenslet)
-	
+
                     ptr_current_PSF = gpi_highres_microlens_psf_create_highres_psf($
 																							 temporary(current_stamps), $
                                                temporary(current_xcen - current_x0), $
@@ -274,8 +286,7 @@ debug=1
 													;                              /anti_stuck, $
 														 ERROR_FLAG = my_other_error_flag, no_error_checking=1) ;
 									
-								time_f1 = systime(1,/seconds)
-									
+								time_f1 = systime(1,/seconds)									
 													; only store high-res psf in the place for which it was determined 
 								if pi eq i and pj eq j then PSFs[i,j,k] = (ptr_current_PSF)
 								fitted_spaxels.values[pi,pj,k,f] =temporary(ptr_fitted_PSF)
@@ -398,7 +409,7 @@ debug=1
      xcen_ref = (spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,0])[not_null_ptrs] 
      ycen_ref = (spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,0])[not_null_ptrs]
      
-     degree_of_the_polynomial_fit = 2 ; degree of the polynomial surface used for the flexure correction
+  
      ;declare the arrays which will contain the coefficients of the polynomial surface for every single image (ie elevation)
      ;The third dimension indicated which file to consider
      xtransf_ref_to_im = fltarr(degree_of_the_polynomial_fit+1,degree_of_the_polynomial_fit+1,nfiles) ;How to get the x coordinates of the centroids of the reference image into the current image (cf 3rd dimension index to select the image). 
@@ -510,28 +521,28 @@ endfor
 
 ;xcen_ref = (spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,0])[not_null_ptrs] 
 
-     if nfiles ne 1 then begin
-     	for f = 0,nfiles-1 do begin ; loop over each flexure position
-				tmpx=(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,f])[not_null_ptrs] 
-				tmpy=(spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,f])[not_null_ptrs] 
-
+  if nfiles ne 1 then begin
+     for f = 0,nfiles-1 do begin ; loop over each flexure position
+        tmpx=(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,f])[not_null_ptrs] 
+        tmpy=(spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,f])[not_null_ptrs] 
+        
         mean_xcen_ref_in_im = fltarr(n_elements(xcen_ref))
         for i=0,degree_of_the_polynomial_fit do for j= 0,degree_of_the_polynomial_fit do mean_xcen_ref_in_im += xtransf_ref_to_im[i,j,f]*mean_xcen_ref^j * mean_ycen_ref^i
-
+        
         mean_ycen_ref_in_im = fltarr(n_elements(ycen_ref))
         for i=0,degree_of_the_polynomial_fit do for j= 0,degree_of_the_polynomial_fit do mean_ycen_ref_in_im += ytransf_ref_to_im[i,j,f]*mean_xcen_ref^j * mean_ycen_ref^i
-
-       	if (size(ind_arr))[0] gt 2 then begin
-					for zx=0L,N_ELEMENTS(ind_arr[0,*])-1 do begin
-						spaxels.xcentroids[ind_arr[0,zx]+imin_test,ind_arr[1,zx]+jmin_test,ind_arr[2,zx],f] = mean_xcen_ref_in_im[zx]
-	      		spaxels.ycentroids[ind_arr[0]+imin_test,ind_arr[1]+jmin_test,ind_arr[2],f] = mean_ycen_ref_in_im[zx]
-					endfor
-	 				endif else begin
-						for zx=0L,N_ELEMENTS(ind_arr[0,*])-1 do begin
-							spaxels.xcentroids[ind_arr[0,zx]+imin_test,ind_arr[1,zx]+jmin_test,*,f] = mean_xcen_ref_in_im[zx]
-	      			spaxels.ycentroids[ind_arr[0,zx]+imin_test,ind_arr[1,zx]+jmin_test,*,f] = mean_ycen_ref_in_im[zx]
-						endfor
-					endelse
+        
+        if (size(ind_arr))[0] gt 2 then begin
+           for zx=0L,N_ELEMENTS(ind_arr[0,*])-1 do begin
+              spaxels.xcentroids[ind_arr[0,zx]+imin_test,ind_arr[1,zx]+jmin_test,ind_arr[2,zx],f] = mean_xcen_ref_in_im[zx]
+              spaxels.ycentroids[ind_arr[0]+imin_test,ind_arr[1]+jmin_test,ind_arr[2],f] = mean_ycen_ref_in_im[zx]
+           endfor
+        endif else begin
+           for zx=0L,N_ELEMENTS(ind_arr[0,*])-1 do begin
+              spaxels.xcentroids[ind_arr[0,zx]+imin_test,ind_arr[1,zx]+jmin_test,*,f] = mean_xcen_ref_in_im[zx]
+              spaxels.ycentroids[ind_arr[0,zx]+imin_test,ind_arr[1,zx]+jmin_test,*,f] = mean_ycen_ref_in_im[zx]
+           endfor
+        endelse
 ;stop,'in application of flexure correction'
 ;				spaxels.xcentroids[x_id,y_id,z_id,lonarr(n_elements(x_id))+f] = mean_xcen_ref_in_im
 ;        spaxels.ycentroids[x_id,y_id,z_id,lonarr(n_elements(x_id))+f] = mean_ycen_ref_in_im
@@ -546,12 +557,11 @@ endfor
   endfor ; end of flexure correction loop (over it_flex)
 
   
-     print, 'Run complete in '+strc((systime(1)-time0)/60.)+' minutes'
-    stop 
-     writefits, "diff_image.fits",diff_intensity_arr
-     writefits, "intensity_arr.fits",intensity_arr
-     writefits, "stddev_arr.fits",stddev_arr
-
+     print, 'Run complete in '+strc((systime(1)-time0)/60.)+' minutes' 
+;     writefits, "diff_image.fits",diff_intensity_arr
+;     writefits, "intensity_arr.fits",intensity_arr
+;     writefits, "stddev_arr.fits",stddev_arr
+;stop
 ; #######################
 ; BUILD THE FLAT FIELD
 ; ######################
@@ -651,8 +661,6 @@ if nfiles ne 1 then plothist,tmp2[*,*,*,*,1],/nan,bin=0.01,xr=[0,0.15],xs=1,char
 
 endif
 
-stop
-
   valid_psfs = where(ptr_valid(PSFs), n_valid_psfs)
   
   to_save_psfs = replicate(*PSFs[valid_psfs[0]],n_valid_psfs)
@@ -674,16 +682,57 @@ stop
   
   nrw_filt=strmid(strcompress(string(filter_wavelength),/rem),0,5)
   my_file_name=gpi_get_directory('GPI_REDUCED_DATA_DIR')+'highres-'+nrw_filt+'-psf_structure.fits'
-  mwrfits,to_save_psfs, my_file_name,*(dataset.headersExt[numfile]), /create
-  
-;  psfs_from_file = read_psfs(my_file_name, [281,281,1])
+  pri_header=*dataset.headersphu[0]
+  sxaddpar,pri_header,'ISCALIB','YES'
+  sxaddpar,pri_header,'FILETYPE','High-res Microlens PSFs'
+  sxaddpar,pri_header,'NRW_wave','1.15'
  
-  
+  mwrfits,to_save_psfs, my_file_name, /create
+  ; now add values to the primary header that do not interfere
+psf_header=headfits(my_file_name,exten=0)
+comment_arr=strarr(N_ELEMENTS(pri_header))
+;extract comments from primary header
+for h=0,N_ELEMENTS(pri_header)-1 do begin 
+   tmp=sxpar(pri_header,strmid(pri_header[h],0,8),comment=comment) 
+   comment_arr[h]=comment 
+endfor
+
+; put into new header if it doesnt already exist 
+for h=0,N_ELEMENTS(pri_header)-1 do begin
+   ; check for value in structure psf header
+   value=sxpar(psf_header,strmid(pri_header[h],0,8),count=ct)
+   if ct eq 0 then sxaddpar,psf_header,strmid(pri_header[h],0,8),value,comment_arr[h]
+endfor
+; now actually update the header
+modfits,my_file_name,0,psf_header,exten_no=0
+
+; now do this for the second extension
+psf_ext_header=headfits(my_file_name,exten=1)
+ext_header=*dataset.headersext[0]
+comment_arr=strarr(N_ELEMENTS(ext_header))
+;extract comments from primary header
+for h=0,N_ELEMENTS(ext_header)-1 do begin 
+   tmp=sxpar(ext_header,strmid(ext_header[h],0,8),comment=comment) 
+   comment_arr[h]=comment 
+endfor
+
+; put into new ext header if it doesnt already exist 
+for h=0,N_ELEMENTS(ext_header)-1 do begin
+   ; check for value in structure psf header
+   value=sxpar(psf_ext_header,strmid(ext_header[h],0,8),count=ct)
+   if ct eq 0 then sxaddpar,psf_ext_header,strmid(ext_header[h],0,8),value,comment_arr[h]
+endfor
+; now actually modify the file
+modfits,my_file_name,0,psf_ext_header,exten_no=1
+
+stop
+;  psfs_from_file = read_psfs(my_file_name, [281,281,1])
+   
   my_file_name = gpi_get_directory('GPI_REDUCED_DATA_DIR')+'highres-'+nrw_filt+'-psf-spaxels.fits'
-  save, spaxels, filename=my_file_name
+;  save, spaxels, filename=my_file_name
   
   my_file_name = gpi_get_directory('GPI_REDUCED_DATA_DIR')+'highres-'+nrw_filt+'-fitted_spaxels.fits'
-  save, fitted_spaxels, filename=my_file_name
+;  save, fitted_spaxels, filename=my_file_name
 
  ; cant save these files as fits since they're not pointers 
 ;  mwrfits,spaxels, my_file_name,*(dataset.headersExt[numfile])
