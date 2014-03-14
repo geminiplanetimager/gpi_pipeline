@@ -134,6 +134,9 @@ calfiletype = 'wavecal'
         datafn = gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+filter+lamp+'.dat'
  
 
+         common highrespsfstructure, myPSFs_array
+
+
 	if whichpsf eq 1 then begin
 
            psffn = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'mlenspsf',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
@@ -143,7 +146,6 @@ calfiletype = 'wavecal'
 
         endif
 
-         common highrespsfstructure, myPSFs_array
 
 
         ;Create an array to serve as the simulated detector image
