@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<DRF ReductionType="SpectralScience" name='Microlens PSF Lsqr Datacube extraction' ShortName="mpsf_lsqr_xcorr_calibratedcube">
+<DRF ReductionType="SpectralScience" name='Microlens PSF Flexure offset from Wavecal' ShortName="mpsf_lsqr_xcorr_calibratedcube">
 <dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
    <fits filename=""/>
 </dataset>
