@@ -237,8 +237,16 @@ if keyword_set(parallel) then begin
 	'       q++',$
 	'       continue',$
 	'    endif',$
-	'    res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss", $',$              
-	'            modelimage=modelimage, modelbackground=modelbackground)  ',$
+        '    case whichpsf of',$
+        '        0: begin',$
+        '             res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",$',$
+	'             modelimage=modelimage, modelbackground=modelbackground)',$
+        '        end',$
+        '        1: begin',$
+        '             res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"nmicrolens",$',$
+	'             modelimage=modelimage, modelbackground=modelbackground)',$
+        '        end',$
+        '    endcase',$
 	'    sizeres=size(res,/dimensions)',$
 	'    newwavecal[i,j,1]=res[0]+startx',$
 	'    newwavecal[i,j,0]=res[1]+starty',$
