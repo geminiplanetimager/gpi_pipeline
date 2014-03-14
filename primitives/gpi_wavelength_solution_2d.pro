@@ -143,7 +143,7 @@ calfiletype = 'wavecal'
 
         endif
 
-         
+         common highrespsfstructure, myPSFs_array
 
 
         ;Create an array to serve as the simulated detector image
@@ -201,9 +201,9 @@ if keyword_set(parallel) then begin
 	 gpi_split_for, istart,iend, nsplit=numsplit,$ 
 		 varnames=['jstart','jend','refwlcal','image','im_uncert','badpix','newwavecal',$
 		           'q','wlcalsize','xinterp','yinterp','wla','fluxa','nmgauss','count','lensletmodel','lensletcount',$
-                           'modelparams','modelbackgrounds','locations_lambda_min','locations_lambda_max','n_valid_lenslets','boxpad','myPSFs_array','whichpsf'], $
+                           'modelparams','modelbackgrounds','locations_lambda_min','locations_lambda_max','n_valid_lenslets','boxpad','whichpsf'], $
 		 outvar=['newwavecal','count','lensletcount','lensletmodel','modelparams','modelbackgrounds'], commands=[$
-	'common ngausscommon, numgauss, wl, flux, lambdao, my_psf' ,$
+	'common ngausscommon, numgauss, wl, flux, lambdao, my_psf',$
 	'numgauss=nmgauss[0]',$
 	'wl=wla',$
 	'flux=fluxa',$
@@ -222,10 +222,6 @@ if keyword_set(parallel) then begin
 	'    lensletarray=image[startx:stopx, starty:stopy]',$
 	'    lensletarray_uncert=image[startx:stopx, starty:stopy]',$
 	'    badpixmap=badpix[startx:stopx, starty:stopy]',$
-        '    if whichpsf EQ 1 then begin',$
-        '       ptr = gpi_highres_microlens_psf_get_local_highres_psf(myPSFs_array,[i,j,0])',$
-        '       if ptr_valid(myPSFs_array[i,j]) then my_psf = *myPSFs_array[i,j]',$
-        '    endif',$
 	'    catch,error_status',$
 	'    if error_status NE 0 then begin',$
 	'       catch,/cancel',$
@@ -287,7 +283,7 @@ if keyword_set(parallel) then begin
 endif else begin
 
 	;Define common block to be used in wrapper.pro and ngauss.pro
-	common ngausscommon, numgauss, wl, flux, lambdao,my_psf
+	common ngausscommon, numgauss, wl, flux, lambdao, my_psf
 
 	; Read in the emission line information
 	readcol, datafn,wl,flux,skipline=1,format='F,F'
@@ -349,13 +345,13 @@ endif else begin
 
 
  
-            if whichpsf EQ 1 then begin
-               ptr = gpi_highres_microlens_psf_get_local_highres_psf(myPSFs_array,[i,j,0])
-               if ptr_valid(myPSFs_array[i,j]) then begin
-                  my_psf = *myPSFs_array[i,j]
-                  print,'psf was valid
-               endif else print, 'ERROR: PSF was not valid'
-            endif
+            ;if whichpsf EQ 1 then begin
+            ;   ptr = gpi_highres_microlens_psf_get_local_highres_psf(myPSFs_array,[i,j,0])
+            ;   if ptr_valid(myPSFs_array[i,j]) then begin
+            ;      my_psf = *myPSFs_array[i,j]
+            ;      print,'psf was valid
+            ;   endif else print, 'ERROR: PSF was not valid'
+            ;endif
 
             ;catch,error_status
 			error_status=0
