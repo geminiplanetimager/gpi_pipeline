@@ -39,9 +39,18 @@ FUNCTION gpi_wavecal_wrapper, xdim,ydim,refwlcal,lensletarray,badpixels,wlcalsiz
 	modelimage=modelimage, modelmask=modelmask, modelbackground=modelbackground
 
 common ngausscommon, numgauss, wl, flux, lambdao, my_psf
+common highrespsfstructure, myPSFs_array
 
 nflux=size(flux,/dimensions)
 
+;read in my_psf
+if whichpsf EQ 1 then begin
+       ptr = gpi_highres_microlens_psf_get_local_highres_psf(myPSFs_array,[xdim,ydim,0])
+       if ptr_valid(myPSFs_array[xdim,ydim]) then begin
+          my_psf = *myPSFs_array[xdim,ydim]
+          print,'psf was valid'
+       endif else print, 'ERROR: PSF was not valid'
+endif
 
 ;Pull the values for this lenslet from the reference wavelength calibration
 xo=refwlcal[xdim,ydim,1]
