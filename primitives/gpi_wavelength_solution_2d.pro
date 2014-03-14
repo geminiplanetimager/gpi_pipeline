@@ -201,7 +201,7 @@ if keyword_set(parallel) then begin
 	 gpi_split_for, istart,iend, nsplit=numsplit,$ 
 		 varnames=['jstart','jend','refwlcal','image','im_uncert','badpix','newwavecal',$
 		           'q','wlcalsize','xinterp','yinterp','wla','fluxa','nmgauss','count','lensletmodel','lensletcount',$
-                           'modelparams','modelbackgrounds','locations_lambda_min','locations_lambda_max','n_valid_lenslets','boxpad','myPSFs_array'], $
+                           'modelparams','modelbackgrounds','locations_lambda_min','locations_lambda_max','n_valid_lenslets','boxpad','myPSFs_array','whichpsf'], $
 		 outvar=['newwavecal','count','lensletcount','lensletmodel','modelparams','modelbackgrounds'], commands=[$
 	'common ngausscommon, numgauss, wl, flux, lambdao, my_psf' ,$
 	'numgauss=nmgauss[0]',$
