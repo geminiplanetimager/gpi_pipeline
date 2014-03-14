@@ -287,6 +287,8 @@ suffix='' 		 ; set this to the desired output filename suffix
 
 		xsft_sav=xsft
 
+		if (n lt 2) then ysft=0
+		n=n+1
 	endwhile
 
 	backbone->set_keyword,'HISTORY',functionname+ " Flexure determined by 2D xcorrelation with wavecal"
