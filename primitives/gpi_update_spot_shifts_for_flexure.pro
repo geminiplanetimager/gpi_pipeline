@@ -169,6 +169,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     'WOLLASTON':    begin
         polspot_coords = polcal.coords
         polspot_pixvals = polcal.pixvals
+        polspot_spotpos = polcal.spotpos
         
         if ((size(polspot_coords))[0] eq 0) || (dim eq 0)  then begin
           return, error('FAILURE ('+functionName+'): Failed to load polarimetry calibration data prior to calling this primitive.') 
@@ -401,7 +402,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
        ;  Now we actually apply the shifts to the wavelength solution
        polspot_coords[0,*,*,*,*]+=shiftx
        polspot_coords[1,*,*,*,*]+=shifty
+       polspot_spotpos[0,*,*,*]+=shiftx
+       polspot_spotpos[1,*,*,*]+=shifty
+       
        polcal.coords = polspot_coords
+       polcal.spotpos = polspot_spotpos
     end
   endcase
      
