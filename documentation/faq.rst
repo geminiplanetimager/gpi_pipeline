@@ -124,3 +124,7 @@ If the output directory is set to 'AUTOMATIC' and ``organize_reduced_data_by_dat
 the YYMMDD date string for the first FITS file in that recipe. 
 
 
+GPITV is crashing on startup, and/or colors are behaving weirdly.
+---------------------------------------------------------------------
+
+GPItv requires a 24-bit (millions of colors) display. Check if your X11 or other graphics system settings are for some reason set to 8-bit (256 color) mode. If so, you should change them to 24 bit color before running the GPI pipeline. 
