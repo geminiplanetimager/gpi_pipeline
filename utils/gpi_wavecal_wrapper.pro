@@ -35,7 +35,7 @@
 ;+
 
 FUNCTION gpi_wavecal_wrapper, xdim,ydim,refwlcal,lensletarray,badpixels,wlcalsize,startx,starty,whichpsf,$
-	image_uncert=image_uncert, debug=debug, $
+	image_uncert=image_uncert, debug=debug, psffn=psffn, count=count,jcount=jcount,$
 	modelimage=modelimage, modelmask=modelmask, modelbackground=modelbackground
 
 common ngausscommon, numgauss, wl, flux, lambdao, my_psf
@@ -45,10 +45,14 @@ nflux=size(flux,/dimensions)
 
 ;read in my_psf
 if whichpsf EQ 'nmicrolens' then begin
+;print,count,xdim,ydim
+   if (count EQ 1 AND jcount EQ 1) then begin
+       myPSFs_array = gpi_highres_microlens_psf_read_highres_psf_structure(psffn, [281,281,1])
+    endif
        ptr = gpi_highres_microlens_psf_get_local_highres_psf(myPSFs_array,[xdim,ydim,0])
        if ptr_valid(myPSFs_array[xdim,ydim]) then begin
           my_psf = *myPSFs_array[xdim,ydim]
-          print,'psf was valid'
+;          print,'psf was valid'
        endif else print, 'ERROR: PSF was not valid'
 endif
 
@@ -195,7 +199,7 @@ parinfo[7].limits[0]=0.0
 
 	if status lt 0 then print, "ERROR: ", errmsg
  
-	loww=k
+;	loww=k
 
 	; Return other helpful stuff to the calling routine:
 	if arg_present(modelimage) then begin
