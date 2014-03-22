@@ -7896,7 +7896,12 @@ val=gpi_get_keyword(h, e, 'OBSTYPE',count=cc,/silent)
 val = strmid(val, 0, max_display_len)
 ;; special case for arc lamps: append the GCAL lamp name
 if strc(val) eq 'ARC' then val='ARC - '+strc(gpi_get_keyword(h, e,'GCALLAMP'))
-if strc(val) eq 'FLAT' then val='FLAT - '+strc(gpi_get_keyword(h, e,'GCALLAMP'))+ ","+strc(strmid(gpi_get_keyword(h, e,'GCALFILT'),0,3))
+if strc(val) eq 'FLAT' then begin
+	gcallamp = gpi_get_keyword(h, e,'GCALLAMP')
+	val='FLAT - '+strc(gpi_get_keyword(h, e,'GCALLAMP'))+ ","+strc(strmid(gpi_get_keyword(h, e,'GCALFILT'),0,3))
+	; special case the 'closed' IRlamp we use for GCAL backgrounds
+	if gcallamp eq 'IRhigh' then if gpi_get_keyword(h, e,'GCALSHUT') eq 'CLOSED' then val='FLAT- CLOSED'
+endif
 
 if cc gt 0 then begin
 	val = strmid(val,0,12)
