@@ -118,8 +118,6 @@ calfiletype = 'wavecal'
         endif
 
 
-
-
 	lamp = backbone->get_keyword('GCALLAMP', count=ct1)
 	filternm = backbone->get_keyword('IFSFILT', count=ct2)
         filter = gpi_simplify_keyword_value(filternm)
@@ -134,15 +132,12 @@ calfiletype = 'wavecal'
         datafn = gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+filter+lamp+'.dat'
  
 
-         common highrespsfstructure, myPSFs_array
-
-
 	if whichpsf eq 1 then begin
 
            psffn = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'mlenspsf',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
 
            ;open the appropriate micrlens psf file and assign it to the variable myPSFs_array.
-           myPSFs_array = gpi_highres_microlens_psf_read_highres_psf_structure(psffn, [281,281,1])
+           ;myPSFs_array = gpi_highres_microlens_psf_read_highres_psf_structure(psffn, [281,281,1])
 
         endif
 
@@ -161,8 +156,8 @@ calfiletype = 'wavecal'
         q=0L
 
 
-istart=0
-iend=nlens-1
+istart=240
+iend=280
 jstart=0
 jend=nlens-1
 
@@ -176,7 +171,7 @@ if keyword_set(parallel) then begin
 	backbone->set_keyword, 'HISTORY',"Parallelizing over "+strc(numsplit)+" IDL processes", depth=3,/flush
 	readcol, datafn,wla,fluxa,skipline=1,format='F,F'
 	readcol,datafn,nmgauss,numline=1,format='I'
-	 
+
 	count=0 ; count of lenslet columns fit
 	lensletcount = 0 ; count of individual lenslets fit
 
@@ -201,7 +196,7 @@ if keyword_set(parallel) then begin
 	; the comments. 
 
 	 gpi_split_for, istart,iend, nsplit=numsplit,$ 
-		 varnames=['jstart','jend','refwlcal','image','im_uncert','badpix','newwavecal',$
+		 varnames=['jstart','jend','refwlcal','image','im_uncert','badpix','newwavecal','psffn',$
 		           'q','wlcalsize','xinterp','yinterp','wla','fluxa','nmgauss','count','lensletmodel','lensletcount',$
                            'modelparams','modelbackgrounds','locations_lambda_min','locations_lambda_max','n_valid_lenslets','boxpad','whichpsf'], $
 		 outvar=['newwavecal','count','lensletcount','lensletmodel','modelparams','modelbackgrounds'], commands=[$
@@ -210,6 +205,7 @@ if keyword_set(parallel) then begin
 	'wl=wla',$
 	'flux=fluxa',$
 	'count=count+1',$
+        'jcount=0',$
 	'for j = jstart,jend do begin',$
 	'	 startx = floor(min([locations_lambda_min[i,j,1], locations_lambda_max[i,j,1]]) - boxpad) > 4',$
 	'	 starty = floor(min([locations_lambda_min[i,j,0], locations_lambda_max[i,j,0]]) - boxpad) > 4',$
@@ -219,6 +215,7 @@ if keyword_set(parallel) then begin
 	'        newwavecal[i,j,*]=!values.f_nan' ,$
 	'        continue' ,$
 	'    endif' ,$
+        '    jcount+=1',$
 	'    if (stopx lt 4) || (stopy lt 4) || (startx gt 2040) || (starty gt 2040) then continue',$
 	'    if (startx lt 4) || (starty lt 4) || (stopx gt 2040) || (stopy gt 2040) then continue',$
 	'    lensletarray=image[startx:stopx, starty:stopy]',$
@@ -237,12 +234,10 @@ if keyword_set(parallel) then begin
 	'    endif',$
         '    case whichpsf of',$
         '        0: begin',$
-        '             res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",$',$
-	'             modelimage=modelimage, modelbackground=modelbackground)',$
+        '             res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",modelimage=modelimage, modelbackground=modelbackground,count=count,jcount=jcount,psffn=psffn)',$
         '        end',$
         '        1: begin',$
-        '             res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"nmicrolens",$',$
-	'             modelimage=modelimage, modelbackground=modelbackground)',$
+        '             res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"nmicrolens",modelimage=modelimage, modelbackground=modelbackground,count=count,jcount=jcount,psffn=psffn)',$
         '        end',$
         '    endcase',$
 	'    sizeres=size(res,/dimensions)',$
@@ -314,6 +309,7 @@ endif else begin
 
 
 	boxpad=2
+        jcount=0
 
 	for i = istart,iend do begin
         for j = jstart,jend do begin
@@ -335,7 +331,7 @@ endif else begin
                 newwavecal[i,j,*]=!values.f_nan
                 continue
             endif
-
+            jcount+=1
 
 			if (startx lt 4) || (starty lt 4) || (stopx gt 2040) || (stopy gt 2040) then continue ; don't try to fit anything outside the valid region
 			if (stopx lt 4) || (stopy lt 4) || (startx gt 2040) || (starty gt 2040) then continue ; don't try to fit anything way outside the valid region
@@ -379,11 +375,11 @@ endif else begin
                   case whichpsf of
                      0: begin
                         res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",$
-			  modelimage=modelimage, modelbackground=modelbackground, debug=keyword_set(debuglenslet) or keyword_set(debugall))
+			  modelimage=modelimage, modelbackground=modelbackground, debug=keyword_set(debuglenslet) or keyword_set(debugall),jcount=jcount,psffn=psffn)
                      end
                      1: begin
                         res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"nmicrolens",$
-			  modelimage=modelimage, modelbackground=modelbackground, debug=keyword_set(debuglenslet) or keyword_set(debugall))
+			  modelimage=modelimage, modelbackground=modelbackground, debug=keyword_set(debuglenslet) or keyword_set(debugall),jcount=jcount,psffn=psffn)
                      end
                   endcase
 
@@ -460,7 +456,7 @@ if keyword_set(save_model_image) then begin
 	smoothed_background =griddata(bkgx, bkgy, modelbackgrounds[wg], xout=findgen(2048), yout=findgen(2048),/grid, /nearest, triangles=triangles)
 	smoothed_background = filter_image(smoothed_background,fwhm=30)
 
-	smoothed_background = trigrid(  bkgx, bkgy, modelbackgrounds[wg],triangles, xout=indgen(2048), yout=indgen(2048) )
+	smoothed_background = trigrid(  bkgx, bkgy, modelbackgrounds[wg], triangles, xout=indgen(2048), yout=indgen(2048) )
 	smoothed_background[*,0:3] = 0
 	smoothed_background[0:3,*] = 0
 	smoothed_background[2044:2047,*] = 0
