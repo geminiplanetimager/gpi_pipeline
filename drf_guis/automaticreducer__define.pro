@@ -217,11 +217,11 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 			if obsclass eq 'ARC' then begin
 				templatename='Quick Wavelength Solution'
 			endif else begin
-                                if gcalfilt eq 'ND4-5' then begin
-                                   return
-                                endif else begin
-                                   templatename='Quicklook Automatic Datacube Extraction'
-                                endelse
+				if gcalfilt eq 'ND4-5' then begin
+				   return ; this is a "cleanup" frame for persistence decay. There is no need to make a datacube
+				endif else begin
+				   templatename='Quicklook Automatic Datacube Extraction'
+				endelse
 			endelse
 		end
 		'WOLLASTON': begin

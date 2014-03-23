@@ -423,6 +423,7 @@ pro parsergui::parse_current_files
                                    ;    print,'TEST:', current.gcalfilt,n_elements(uniqgcalfilt)
                                     
                                     for fobj=0,n_elements(uniqobjects)-1 do begin
+										continue_after_case = 0 ; reset if this was set before.
                                         current.object = uniqobjects[fobj]
                                         ;these following 2 lines for adding Y-band flat-field in wav.solution measurement
                                         currobstype=current.obstype
@@ -490,8 +491,9 @@ pro parsergui::parse_current_files
                                                 ; passes
                                                
                                                ;gcalfilter = finfo[indfobject[0]].gcalfilt
-                                                if gcalfilter EQ 'ND4-5' then begin
-                                                   templatename='Add set of missing keywords'
+                                               if gcalfilter EQ 'ND4-5' then begin
+												   self->Log, "    Those data have GCALFILT=ND4-5, which indicates they are throwaway exposures for persistence decay. Ignoring them."
+                                                   continue_after_case=1
                                                endif else begin
 												templatename1 = self->lookup_template_filename("Calibrate Polarization Spots Locations")
 												templatename2 = self->lookup_template_filename('Create Polarized Flat-field')
@@ -506,9 +508,10 @@ pro parsergui::parse_current_files
                                           
                                                ;gcalfilter = finfo[indfobject[0]].gcalfilt
                                                 if gcalfilter EQ 'ND4-5' then begin            
-                                                   templatename='Add set of missing keywords'
+                                                   continue_after_case=1
+												   self->Log, "    Those data have GCALFILT=ND4-5, which indicates they are throwaway exposures for persistence decay. Ignoring them."
                                                endif else begin
-						   templatename='Flat-field Extraction'
+                                                   templatename='Flat-field Extraction'
                                              endelse
 
 
@@ -555,7 +558,9 @@ pro parsergui::parse_current_files
                                         end
                                         endcase
 
-                                        if keyword_set(continue_after_case) then continue
+                                        if keyword_set(continue_after_case) then begin
+											continue
+										endif
 
 										; Now create the actual DRF based on a
 										; template:
