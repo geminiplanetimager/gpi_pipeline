@@ -357,6 +357,7 @@ pro parsergui::parse_current_files
             uniqitimes = uniqvals(finfo.itime, /sort)
             uniqobjects = uniqvals(finfo.object, /sort)
             ;uniqelevation = uniqvals(finfo.elevatio, /sort)
+            uniqgcalfilt = uniqvals(finfo.gcalfilt,/sort)
 
             nbfilter=n_elements(uniqfilter)
             message,/info, "Now adding "+strc(n_elements(finfo))+" files. "
@@ -414,7 +415,12 @@ pro parsergui::parse_current_files
                                 for fitime=0,n_elements(uniqitimes)-1 do begin
 
                                     current.itime = uniqitimes[fitime]    ; in seconds, now
-                                    ;current.exptime = uniqitimes[fitime] ; in seconds
+                                ;current.exptime =
+                                ;uniqitimes[fitime] ; in seconds
+                                    
+                                   ;for ffilt=0,n_elements(uniqgcalfilt)-1 do begin
+                                   ;    current.gcalfilt=uniqgcalfilt[ffilt]
+                                   ;    print,'TEST:', current.gcalfilt,n_elements(uniqgcalfilt)
                                     
                                     for fobj=0,n_elements(uniqobjects)-1 do begin
                                         current.object = uniqobjects[fobj]
@@ -425,7 +431,7 @@ pro parsergui::parse_current_files
                           
                                         indfobject = where(finfo.filter eq current.filter and $
                                                     ;finfo.obstype eq current.obstype and $
-                                                    strmatch(finfo.obstype, currobstype,/fold) and $                                                    
+                                                    strmatch(finfo.obstype, currobstype,/fold) and $  
                                                     strmatch(finfo.dispersr,current.dispersr+"*",/fold) and $
                                                     strmatch(finfo.occulter,current.occulter+"*",/fold) and $
                                                     finfo.obsclass eq current.obsclass and $
@@ -475,18 +481,30 @@ pro parsergui::parse_current_files
                                                 ; extraction files and flat
                                                 ; fields from these data, in two
                                                 ; passes
-
-
+                                               
+                                               gcalfilter = finfo[indfobject[0]].gcalfilt
+                                                if gcalfilter EQ 'ND4-5' then begin
+                                                   continue_after_case=1
+                                               endif else begin
 												templatename1 = self->lookup_template_filename("Calibrate Polarization Spots Locations")
 												templatename2 = self->lookup_template_filename('Create Polarized Flat-field')
                                                 self->create_recipe_from_template, templatename1, file_filt_obst_disp_occ_obs_itime_object, current 
                                                 self->create_recipe_from_template, templatename2, file_filt_obst_disp_occ_obs_itime_object, current 
-
+                                             endelse
 
                                                 ;continue        aaargh can't continue inside a case. stupid IDL
                                                 continue_after_case=1
                                             endif else begin              
-												templatename='Flat-field Extraction'
+                                               
+                                          
+                                               gcalfilter = finfo[indfobject[0]].gcalfilt
+                                                if gcalfilter EQ 'ND4-5' then begin            
+                                                   continue_after_case=1
+                                               endif else begin
+						   templatename='Flat-field Extraction'
+                                             endelse
+
+
                                             endelse                             
                                         end
                                         'OBJECT': begin

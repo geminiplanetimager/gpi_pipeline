@@ -224,7 +224,14 @@ pro automaticreducer::reduce_one, filenames, wait=wait
                                 endelse
 			endelse
 		end
-		'WOLLASTON': templatename='Quicklook Automatic Polarimetry Extraction'
+		'WOLLASTON': begin
+                   if gcalfilt eq 'ND4-5' then begin
+                                   return
+                   endif else begin
+                      templatename='Quicklook Automatic Polarimetry Extraction'
+                   endelse
+                end
+
 		'OPEN':templatename='Quicklook Automatic Undispersed Extraction'
 		endcase
 	endif else begin
