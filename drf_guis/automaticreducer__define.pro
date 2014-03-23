@@ -188,8 +188,9 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 
 		info = gpi_load_fits(filenames[0], /nodata)
 		prism = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'DISPERSR', count=dispct) ))
-		obsclass = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'OBSCLASS', count=obsclassct) ))
+		obsclass = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'OBSTYPE', count=obsclassct) ))
 		gcallamp = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'GCALLAMP', count=gcallampct) ))
+                gcalfilt = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'GCALFILT', count=gcalfiltct) ))
 
 		if (dispct eq 0) or (strc(prism) eq '') then begin
 			message,/info, 'Missing or blank DISPERSR keyword! '
@@ -213,10 +214,14 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 
 		case prism of
 		'PRISM': begin
-			if obsclass eq 'ARC' and gcallamp eq 'XE' then begin
+			if obsclass eq 'ARC' then begin
 				templatename='Quick Wavelength Solution'
 			endif else begin
-				templatename='Quicklook Automatic Datacube Extraction'
+                                if gcalfilt eq 'ND4-5' then begin
+                                   return
+                                endif else begin
+                                   templatename='Quicklook Automatic Datacube Extraction'
+                                endelse
 			endelse
 		end
 		'WOLLASTON': templatename='Quicklook Automatic Polarimetry Extraction'
