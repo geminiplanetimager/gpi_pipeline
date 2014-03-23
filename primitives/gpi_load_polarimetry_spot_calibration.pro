@@ -22,6 +22,9 @@
 ;   2013-07-10 MP:  Documentation update and code cleanup. 
 ;   2013-07-17 MP:  Rename for consistency
 ;   2013-12-16 MP:  CalibrationFile argument syntax update. 
+;   2014-03-21 MP:  Remove 'efficient' code for avoiding reloading, since
+;					this doesn't play well with flexure updates that shift
+;					the calibrations all around.
 ;-
 
 function gpi_load_polarimetry_spot_calibration, DataSet, Modules, Backbone
@@ -30,29 +33,34 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 calfiletype = 'polcal'
 @__start_primitive
 
-  need_to_load=1
-	; Check common block for already loaded calibration information
-    if keyword_set(polcal) then if tag_exist(polcal, 'filename') then if polcal.filename eq c_file then begin
-        backbone->Log, "Requested pol cal file is already loaded, no need to load again.", depth=3
-        backbone->Log, c_File
-        need_to_load=0
-    endif
+  ;need_to_load=1
 
+  ; Lesson learned: we can't avoid reloading the wavecal each time, because we
+  ; may end up shifting it due to flexure. So  this is a false economy
+  
+;	; Check common block for already loaded calibration information
+;    if keyword_set(polcal) then if tag_exist(polcal, 'filename') then if polcal.filename eq c_file then begin
+;        backbone->Log, "Requested pol cal file is already loaded, no need to load again.", depth=3
+;        backbone->Log, c_File
+;        need_to_load=0
+;    endif
+;
+;
 
+    ;if need_to_load then begin
 
-    if need_to_load then begin
+	fits_info, c_file, n_ext=numext, /silent
+	Backbone->Log, "Loading polarimetry spot peak fit data",depth=3
+	polspot_spotpos = readfits(c_File, header,ext=numext-2,/silent)
+	Backbone->Log, "Loading polarimetry spot pixel coordinate table",depth=3
+	polspot_coords = readfits(c_File, ext=numext-1,/silent)
+	Backbone->Log, "Loading polarimetry spot pixel value table",depth=3
 
-        fits_info, c_file, n_ext=numext, /silent
-        Backbone->Log, "Loading polarimetry spot peak fit data",depth=3
-        polspot_spotpos = readfits(c_File, header,ext=numext-2,/silent)
-        Backbone->Log, "Loading polarimetry spot pixel coordinate table",depth=3
-        polspot_coords = readfits(c_File, ext=numext-1,/silent)
-        Backbone->Log, "Loading polarimetry spot pixel value table",depth=3
+	polspot_pixvals = readfits(c_File, ext=numext,/silent)
+	
+	polcal={spotpos:polspot_spotpos, coords:polspot_coords, pixvals:polspot_pixvals, filename:c_File}
 
-        polspot_pixvals = readfits(c_File, ext=numext,/silent)
-        
-        polcal={spotpos:polspot_spotpos, coords:polspot_coords, pixvals:polspot_pixvals, filename:c_File}
-    endif
+    ;endif
 
     backbone->set_keyword, "HISTORY", functionname+": Read calibration file",ext_num=0
     backbone->set_keyword, "HISTORY", functionname+": "+c_File,ext_num=0
