@@ -34,6 +34,11 @@ You can either (1) change your ``$PATH`` to include the directory with idl, (2) 
 directory already in your path, or (3) edit your local copy of the gpi-pipeline script to explicitly set the full
 path to the idl executable.
 
+If you are using the compiled IDL runtime version of the pipeline, note that a copy of the IDL runtime is included in
+the 'idl81/bin/' directory included with the pipeline. 
+
+
+
 Why did the pipeline stop and return to a prompt in the middle of my reduction?
 ----------------------------------------------------------------------------------
 This is most likely an IDL_PATH issue. See 'How do I diagnose an IDL_PATH error?'
@@ -68,7 +73,14 @@ In order to correct this, you can execute the following commands in the IDL sess
     IDL> device, decompose=0
     IDL> device, retain=2
 
-If you want these commands to be executed in all IDL sessions automatically, you can add them to your IDL startup file (this is an IDL script that is run on startup of any new IDL session).  The startup file is identified by the environment variable ``$IDL_STARTUP`` (see :ref:`envvars`).
+If you want these commands to be executed in all IDL sessions automatically, you can add them to your IDL startup file (this is an IDL script that is run on startup of any new IDL session).  The startup file is identified by the environment variable ``$IDL_STARTUP`` (see :ref:`config-envvars`).
+
+
+On a Mac, I tried to start the compiled pipeline by double clicking the .sav files, but I got a cryptic error about not being able to find a pipeline config file
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+On Mac OS, unfortunately if you define environment variables in your shell config files, those only apply to Terminal and X11 sessions. If you try to start something from the Finder
+your environment variables won't be defined in the child process. The fix is to start the pipeline from the command line in a shell (Terminal or xterm), for instance by using the ``gpi-pipeline`` script that is provided. Don't try to start it just by double clicking from Finder. 
+
 
 Common pipeline errors
 ^^^^^^^^^^^^^^^^^^^^^^^^^

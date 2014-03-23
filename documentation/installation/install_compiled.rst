@@ -28,6 +28,7 @@ The distribution ZIP files for the GPI pipeline come in two flavors:
 
 .. comment 
     ## DO NOT EDIT THIS LINE ## Marker for automated editing of this file by gpi_release.py
+
 **Version 1.0.0** (2014 Feb 14): 
  * `gpi_pipeline_1.0_compiled.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.0_compiled.zip>`_ -  GPI pipeline compiled code only
  * `gpi_pipeline_1.0_runtime_macosx.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.0_runtime_macosx.zip>`_ - GPI pipeline compiled code plus IDL runtime for Mac OS X

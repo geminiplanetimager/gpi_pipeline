@@ -91,7 +91,7 @@ If you are compiling on Mac or Linux, gpi_compiler will automatically zip up the
 
 Upload the resulting zip files to the desired download locations.
 Update the documentation source to have the proper ZIP file locations, if needed, and recompile using Sphinx.
-Email Franck to update the official documentation on `http://docs.planetimager.org/pipeline`_
+Email Franck to update the official documentation on http://docs.planetimager.org/pipeline/
 
 Switching to a given release on subversion
 -----------------------------------------------

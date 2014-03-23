@@ -24,36 +24,39 @@ coronagraphic IFS spectroscopic observations of a bright star obtained as the
 sky rotates. A Recipe to reduce that observation sequence could consist of the following
 steps, each associated with specific primitives:
 
-* For each image of an observation:
+* For each exposure of an observation sequence:
 
-  * Remove detector artifacts: 
+  * Remove detector artifacts. 
 
    * :ref:`Subtract Dark Background <SubtractDarkBackground>`
    * :ref:`Destripe science frame <Destripescienceframe>`
    * :ref:`Interpolate bad pixels in 2D frame <Interpolatebadpixelsin2Dframe>`
 
-  * Assemble a 3D spectral datacube:
+  * Assemble a 3D spectral datacube.
 
    * :ref:`Load Wavelength Calibration <LoadWavelengthCalibration>`
    * :ref:`Update Spot Shifts for Flexure <UpdateSpotShiftsforFlexure>`
    * :ref:`Assemble Spectral Datacube <AssembleSpectralDatacube>`
    * :ref:`Interpolate Wavelength Axis <InterpolateWavelengthAxis>`
 
-  * Apply astrometric calibration
+  * Apply astrometric calibration.
 
    * :ref:`Update World Coordinates <UpdateWorldCoordinates>`
 
   * Derive calibrations based on satellite spots
+
    * :ref:`Measure satellite spot locations <Measuresatellitespotlocations>`
    * :ref:`Measure satellite spot peak fluxes <Measuresatellitespotpeakfluxes>`
    * :ref:`Calibrate Photometric Flux <CalibratePhotometricFlux>`
 
+  * End of for loop over each exposure  (:ref:`Accumulate Images <AccumulateImages>`)
 
-* End of for loop  (:ref:`Accumulate Images <AccumulateImages>`)
-* Perform PSF subtraction of all images with an ADI algorithm (:ref:`ADI with LOCI <ADIwithLOCI>`)
-* Apply spectral difference (:ref:`Simple SSDI of median ADI residual <SimpleSSDIofmedianADIresidual>`) 
-* Combine the results from ADI (:ref:`Median ADI data-cubes <MedianADIdata-cubes>`
-* Save the result
+* For all the images at once: 
+
+  * Perform PSF subtraction of all images with an ADI algorithm (:ref:`ADI with LOCI <ADIwithLOCI>`)
+  * Apply spectral difference (:ref:`Simple SSDI of median ADI residual <SimpleSSDIofmedianADIresidual>`) 
+  * Combine the results from ADI (:ref:`Median ADI data-cubes <MedianADIdata-cubes>`
+  * Save the result
 
 Predefined lists of steps (:ref:`templates`) exist for standard GPI
 reduction tasks. These recipes can be selected and applied to data
@@ -93,11 +96,11 @@ manually, simply copy it into the queue directory with a filename ending in ``".
 Primitive classes and the special action "Accumulate Images"
 ----------------------------------------------------------------
 
-Primitives in the pipeline are loosely divided into two classes:
+Primitives in the pipeline are loosely divided into two levels:
 
- * steps which should be performed upon each input file individually (for instance
+ * "Level 1" steps that should be performed upon each input file individually (for instance
    background subtraction), and 
- * steps which are done to an entire set of files at once (for instance, combination via ADI). 
+ * "Level 2" steps that are done to an entire set of files at once (for instance, combination via ADI). 
    
 The dividing line between these two levels of action is set by a
 special primitive called :ref:`Accumulate Images <AccumulateImages>`.  

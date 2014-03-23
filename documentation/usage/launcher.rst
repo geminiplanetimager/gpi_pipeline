@@ -1,4 +1,4 @@
-.. _launcher::
+.. _launcher:
 
 The Launcher
 ===================
@@ -22,6 +22,7 @@ tools are limited to one instance running at a time.
 
 The 'Setup' menu contains a few commands which are mostly useful for pipeline debugging and
 error recovery, and most users will rarely if ever need:
+
  *  You can view the values of all directory paths used for the 
     data pipeline, and see whether each is set from an environment variable or the default value is used. 
  *  There are several commands for clearing and resetting the message queue and shared memory used to
