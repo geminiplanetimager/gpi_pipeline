@@ -357,7 +357,7 @@ pro parsergui::parse_current_files
             uniqitimes = uniqvals(finfo.itime, /sort)
             uniqobjects = uniqvals(finfo.object, /sort)
             ;uniqelevation = uniqvals(finfo.elevatio, /sort)
-            uniqgcalfilt = uniqvals(finfo.gcalfilt,/sort)
+;            uniqgcalfilt = uniqvals(finfo.gcalfilt,/sort)
 
             nbfilter=n_elements(uniqfilter)
             message,/info, "Now adding "+strc(n_elements(finfo))+" files. "
@@ -401,7 +401,7 @@ pro parsergui::parse_current_files
                 for fc=0,nbobstype-1 do begin
                     ;get files corresponding to one filt and one obstype
                     current.obstype = uniqsortedobstype[indsortseq[fc]]
-                    
+
                     ;categorize by PRISM
                     for fd=0,n_elements(uniqprisms)-1 do begin
                         current.dispersr = uniqprisms[fd]
@@ -475,6 +475,13 @@ pro parsergui::parse_current_files
                                             endelse                     
                                         end
                                         'FLAT': begin
+
+                                           	fits_data = gpi_load_fits(finfo[indfobject[0]].filename,/nodata,/silent)
+                                                head = *fits_data.pri_header
+                                                ext_head = *fits_data.ext_header
+                                                ptr_free, fits_data.pri_header, fits_data.ext_header
+                                                gcalfilter =  strc(  gpi_get_keyword(head, ext_head,  'GCALFILT',   count=ct13))
+
                                             if  current.dispersr eq 'WOLLASTON' then begin 
                                                 ; handle polarization flats
                                                 ; differently: compute **both**
@@ -482,9 +489,9 @@ pro parsergui::parse_current_files
                                                 ; fields from these data, in two
                                                 ; passes
                                                
-                                               gcalfilter = finfo[indfobject[0]].gcalfilt
+                                               ;gcalfilter = finfo[indfobject[0]].gcalfilt
                                                 if gcalfilter EQ 'ND4-5' then begin
-                                                   continue_after_case=1
+                                                   templatename='Add set of missing keywords'
                                                endif else begin
 												templatename1 = self->lookup_template_filename("Calibrate Polarization Spots Locations")
 												templatename2 = self->lookup_template_filename('Create Polarized Flat-field')
@@ -497,9 +504,9 @@ pro parsergui::parse_current_files
                                             endif else begin              
                                                
                                           
-                                               gcalfilter = finfo[indfobject[0]].gcalfilt
+                                               ;gcalfilter = finfo[indfobject[0]].gcalfilt
                                                 if gcalfilter EQ 'ND4-5' then begin            
-                                                   continue_after_case=1
+                                                   templatename='Add set of missing keywords'
                                                endif else begin
 						   templatename='Flat-field Extraction'
                                              endelse
@@ -508,11 +515,11 @@ pro parsergui::parse_current_files
                                             endelse                             
                                         end
                                         'OBJECT': begin
-											case strupcase(current.dispersr) of 
-											'WOLLASTON': begin 
-												templatename='Basic Polarization Sequence'
-                                            end 
-											'SPECTRAL': begin 
+                                           case strupcase(current.dispersr) of 
+						'WOLLASTON': begin 
+							templatename='Basic Polarization Sequence'
+                                                     end 
+                                                'SPECTRAL': begin 
                                                 if  current.occulter eq 'SCIENCE'  then begin ;'Science fold' means no occulter
                                                     ;if binaries:
                                                     if strmatch(current.obsclass, 'AstromSTD',/fold) then begin
