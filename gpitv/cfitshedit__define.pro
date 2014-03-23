@@ -502,7 +502,8 @@ pro cfitshedit_cleanup, tlb
 	; http://www.idlcoyote.com/tip_examples/owindow.pro
 	
 	Widget_Control, tlb, Get_UValue=uval, /No_Copy
-    ptr_free,uval.reserved_ptr,uval.hd_ptr, uval.im_ptr, uval.cfitshedit_ptr
+        ptr_free,uval.reserved_ptr,uval.hd_ptr, uval.im_ptr, uval.cfitshedit_ptr
+        heap_free,uval.wids.hdus
 	if obj_valid(uval.self) then obj_destroy, uval.self
 	heap_gc
 
@@ -548,28 +549,15 @@ pro CFitsHedit::EditHeader, base_id, filename=filename, header=header, extheader
   ; print_button=widget_button(file_base, value="Print")
   quit_button=widget_button(file_base, value="Close")
 
-
-	; Check if there are multiple HDUs, and if so, set up buttons to switch
-	; between them
-	if keyword_set(filename) then if  file_test(filename) then begin
-		fits_info, filename, n_ext = numext, extname=extnames, /silent
-		if (numext EQ 0) then begin
-			label_text = widget_label(file_base, value='This FITS file contains only one header in the Primary HDU')
-		endif else begin
-			hdu_buttons = ptrarr(numext+1)
-			label_text = widget_label(file_base, value='View header for:')
-			phdu_button=widget_button(file_base, value="Primary HDU", uvalue=0)
-			hdu_buttons[0] = ptr_new(phdu_button)
-			for i=1L,numext do begin
-
-				hdu_button = widget_button(file_base, value="Ext "+strc(i)+": "+strtrim(extnames[i],2), uvalue=i)
-				hdu_buttons[i] = ptr_new(hdu_button)
-			endfor 
-		endelse
-
-
-
-	endif
+  ;; set up buttons for multiple HDUs - openfile will take care of
+  ;;                                    which ones are active
+  hdu_buttons = ptrarr(5)
+  label_text = widget_label(file_base, value='View header for:')
+  hdu_buttons[0] = ptr_new(widget_button(file_base, value="Primary HDU", uvalue=0))
+  for i=1L,4L do begin
+     hdu_button = widget_button(file_base, value="Ext "+strc(i), uvalue=i)
+     hdu_buttons[i] = ptr_new(hdu_button)
+  endfor 
 
   ; field to display filename
   if ~(keyword_set(readonly)) then filename_field=widget_text(base) else filename_field=0l
@@ -588,7 +576,7 @@ pro CFitsHedit::EditHeader, base_id, filename=filename, header=header, extheader
   line_comment_field=cw_field(line_edit_bottom_base, title="COMMENT:", value="", xs=50)
   ; set button to update line in list
   tmp_base = widget_base(line_edit_bottom_base, map=~(keyword_set(readonly)),/base_align_center, row=1); ~(keyword_set(readonly)) )
-	line_set_button=widget_button(tmp_base, value="SET" )
+  line_set_button=widget_button(tmp_base, value="SET" )
   find_keyword_field=cw_field(line_edit_bottom_base, title="FIND KEYWORD:", value="", xs=8)
   find_button=widget_button(line_edit_bottom_base, value="FIND")
 
@@ -620,6 +608,7 @@ pro CFitsHedit::EditHeader, base_id, filename=filename, header=header, extheader
         save:save_button, $
         saveas:saveas_button, $
         quit:quit_button, $
+        hdus:hdu_buttons, $
         filename:filename_field, $
 		padding: [0.0,0.0], $
         list:header_list}
@@ -647,7 +636,8 @@ pro CFitsHedit::EditHeader, base_id, filename=filename, header=header, extheader
         curname:'', $
         curvalue:'', $
         curcomment:'', $
-        curdatatype:0}
+        curdatatype:0, $
+        extension:0 }
 
   ; realize gui and set uval
   widget_control, base, /realize, set_uval=uval
@@ -672,7 +662,7 @@ pro CFitsHedit::EditHeader, base_id, filename=filename, header=header, extheader
   xmanager, 'cfitshedit_quit_button', quit_button, /no_bloc, /just_reg
   for i=0L,n_elements(hdu_buttons)-1 do begin
 	xmanager, 'cfitshedit_switchhdu_button', *(hdu_buttons[i]), /no_bloc, /just_reg
-	ptr_free, hdu_buttons[i]
+	;ptr_free, hdu_buttons[i]
   endfor 
 
 	;if keyword_set(base_id) then begin
@@ -683,9 +673,9 @@ pro CFitsHedit::EditHeader, base_id, filename=filename, header=header, extheader
   		;widget_control, base_id, set_uval=cimwin_uval
 	;endif
 
-	self.cfitshedit_id=base
-	; open the header to the image file displayed in the cimwin
-	self->OpenFile, filename=filename, header=header
+  self.cfitshedit_id=base
+  ;; open the header to the image file displayed in the cimwin
+  self->OpenFile, filename=filename, header=header
 
 end
 
@@ -696,7 +686,10 @@ pro CFitsHedit::OpenFile, filename=filename, header=hd, ext=extension
 widget_control, self.cfitshedit_id, get_uval=uval
 
 ;;check for previously selected values (only for previously existing headers)
-if ptr_valid(uval.hd_ptr) then prev_selected = uval.curname
+if ptr_valid(uval.hd_ptr) then begin
+   prev_selected = uval.curname
+   prev_extension = uval.extension
+endif 
 
 if ~(keyword_set(filename)) and ~(keyword_set(hd)) then begin
     ;; OSIRIS QL code - get info from the CIMWin   - MDP mods 2008-10-13
@@ -714,11 +707,29 @@ if ~(keyword_set(filename)) and ~(keyword_set(hd)) then begin
     uval.filename=ImObj->GetPathFilename()
     hd=*(ImObj->GetHeader())
 endif else if keyword_set(filename) then begin
-    if ~file_test(filename) then message, "File "+filename+" does not exist!"
-    hd = headfits(filename, ext=extension)
-    uval.filename=filename
+   if ~file_test(filename) then message, "File "+filename+" does not exist!"
+   ;;determine which extension to load
+   if (n_elements(prev_extension)) ne 0  && (n_elements(extension) eq 0) then begin
+      fits_info, filename, n_ext = numext, /silent
+      if prev_extension le numext then extension = prev_extension
+   endif
+   hd = headfits(filename, ext=extension)
+   uval.filename=filename    
 endif else uval.filename=''
 if ~(keyword_set(hd)) then message, "FITS header not loaded!!"
+if n_elements(extension) gt 0 then uval.extension = extension
+
+;;figure out which hdu buttons to activate
+if keyword_set(filename) then begin
+   fits_info, filename, n_ext = numext, extname=extnames, /silent
+endif else numext = 0
+;;update hud buttons as necessary
+for i=1L,n_elements(uval.wids.hdus)-1 do begin
+   if i gt numext then widget_control,*uval.wids.hdus[i],sensitive=0 else begin
+      nm = "Ext "+strc(i)+": "+strtrim(extnames[i],2)
+      widget_control,*uval.wids.hdus[i],sensitive=1,set_value=nm,scr_xsize=strlen(nm)*9
+   endelse
+endfor 
 
 ;; get number of keywords in header
 num_keywords=n_elements(hd)
