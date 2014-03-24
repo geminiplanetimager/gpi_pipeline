@@ -108,18 +108,23 @@
 ;   2013-05-28 JBR: Primitive copy pasted from the destripe_mask_spectra.pro primitive. Microphonics noise enhancement. Microphonics algorithm now applied before the destriping.
 ;   2013-12-04 PI: Removed high_limit- now does masking based on readnoise levels 
 ;	2013-12-30 MP: CalibrationFile argument syntax update.
+;	2014-02-25 MP: flats in polarization mode are OK to destripe
 ;-
 function gpi_destripe_science_image, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 
 @__start_primitive
 
-; check to see if the frame is a flat or ARC
-if strcompress(backbone->get_keyword('OBSTYPE'),/remove_all) eq 'FLAT' or $
-   strcompress(backbone->get_keyword('OBSTYPE'),/remove_all) eq 'ARC' then begin
-   logstr = 'This is a flat or arc observation - no destriping will be performed!'
-   backbone->set_keyword, "HISTORY", logstr,ext_num=0
-   message,/info, "This is a flat or arc observation - no destriping will be performed!"
+; check to see if the frame is a flat or ARC.
+; In spectral mode, flats and arcs have too few clear detector pixels for this
+; algorithm to work robustly. 
+; In polarization mode, the smaller spots leave more clear area so this is OK. 
+if ((strcompress(backbone->get_keyword('OBSTYPE'),/remove_all) eq 'FLAT' or $
+   strcompress(backbone->get_keyword('OBSTYPE'),/remove_all) eq 'ARC') and $
+   (backbone->get_keyword('DISPERSR',/simplify) eq 'PRISM')) then begin
+   logstr = 'This is a flat or arc observation in spectral mode - no destriping will be performed!'
+   backbone->set_keyword, "HISTORY", logstr
+   backbone->Log, "This is a flat or arc observation - no destriping will be performed!"
    return, ok
 endif
 
@@ -128,11 +133,11 @@ gain = backbone->get_keyword('SYSGAIN') ; gives e-/DN
 
 if tag_exist( Modules[thisModuleIndex], "method") then method=(Modules[thisModuleIndex].method) else method=''
 if tag_exist( Modules[thisModuleIndex], "abort_fraction") then abort_fraction=float(Modules[thisModuleIndex].abort_fraction) else abort_fraction=0.9
-if tag_exist( Modules[thisModuleIndex], "Chan_offset_correction") then chan_offset_correction=float(Modules[thisModuleIndex].chan_offset_correction) else chan_offset_correction=0.0
+if tag_exist( Modules[thisModuleIndex], "Chan_offset_correction") then chan_offset_correction=uint(Modules[thisModuleIndex].chan_offset_correction) else chan_offset_correction=0.0
 if tag_exist( Modules[thisModuleIndex], "fraction") then fraction=float(Modules[thisModuleIndex].fraction) else fraction=0.7
 if tag_exist( Modules[thisModuleIndex], "readnoise_floor") then readnoise_floor=float(Modules[thisModuleIndex].readnoise_floor) else readnoise_floor=0.0
-if tag_exist( Modules[thisModuleIndex], "Save") then save=float(Modules[thisModuleIndex].Save) else Save=0
-if tag_exist( Modules[thisModuleIndex], "Save_stripes") then save_stripes=float(Modules[thisModuleIndex].Save_stripes) else Save_stripes=0 
+if tag_exist( Modules[thisModuleIndex], "Save") then save=uint(Modules[thisModuleIndex].Save) else Save=0
+if tag_exist( Modules[thisModuleIndex], "Save_stripes") then save_stripes=uint(Modules[thisModuleIndex].Save_stripes) else Save_stripes=0 
 if tag_exist( Modules[thisModuleIndex], "method_microphonics") then method_microphonics=uint(Modules[thisModuleIndex].method_microphonics) else method_microphonics=1
 if tag_exist( Modules[thisModuleIndex], "remove_microphonics") then remove_microphonics=uint(Modules[thisModuleIndex].remove_microphonics) else remove_microphonics=0
 if tag_exist( Modules[thisModuleIndex], "Plot_micro_peaks") then Plot_micro_peaks=string(Modules[thisModuleIndex].Plot_micro_peaks) else Plot_micro_peaks='no'
@@ -180,7 +185,7 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
  if keyword_set(badpixmap) then mask[where(badpixmap eq 1)]=1
 
  backbone->set_keyword, "HISTORY", "Destriping, using spectral masking + median across channels"
- backbone->set_keyword, "HISTORY", "   (This does not work on flat fields!)"
+ backbone->set_keyword, "HISTORY", "   (This does not work on flat fields in spectral mode!)"
 
  if strlowcase(method) eq 'threshhold' then begin
   
@@ -573,8 +578,8 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
   if total(finite(medpart))/(2048.0*64) le abort_fraction then begin
      backbone->set_keyword, "HISTORY", "NOT Destriped, masked pixels in the noise model greater than abort_fraction "
      logstr = 'NOT Destriped, percentage of valid pixels to derive noise model '+strcompress(string(total(finite(medpart))/(2048.0*64)),/remove_all)+' below the abort_fraction '+strcompress(string(abort_fraction),/remove_all)+' in destripe_science_image'
-     backbone->set_keyword, "HISTORY", logstr,ext_num=0
-     message,/info, logstr
+     backbone->set_keyword, "HISTORY", logstr
+     backbone->Log, logstr
 
      return, ok
   endif
@@ -625,8 +630,8 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
   if nan_check[0] ne -1 then begin
      backbone->set_keyword, "HISTORY", "NOT Destriped, failed in Subtract_background_2d - NaN found in mask"
      logstr = 'Destripe failed in Subtract_background_2d - NaN found in output image - so no destripe performed'
-     backbone->set_keyword, "HISTORY", logstr,ext_num=0
-     message,/info, 'Destripe failed in Subtract_background_2d - NaN found in mask - so no destripe performed'
+     backbone->set_keyword, "HISTORY", logstr
+     backbone->Log, logstr
      imout=image
   endif
 
@@ -684,8 +689,8 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
   if nan_check[0] ne -1 then begin
      backbone->set_keyword, "HISTORY", "NOT Destriped, failed in Subtract_background_2d - NaN found in mask"
      logstr = 'Destripe failed in Subtract_background_2d - NaN found in output image - so no destripe performed'
-     backbone->set_keyword, "HISTORY", logstr,ext_num=0
-     message,/info, 'Destripe failed in Subtract_background_2d - NaN found in mask - so no destripe performed'
+     backbone->set_keyword, "HISTORY", logstr
+	 backbone->Log, logstr
      imout=image
   endif
 
@@ -693,7 +698,7 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 
 
   if display ne -1 then begin
-     if display eq 0 then window,/free else select_window, display
+    if display eq 0 then window,/free else select_window, display
     loadct, 0
     erase
 
@@ -708,7 +713,6 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
       xyouts, 0.5, 0.95, /normal, "Stripe & Microphonics Noise Removal for "+strc( dataset.filenames[numfile]), charsize=2, alignment=0.5
     endif else begin
       ; display for just destriping
-      if numfile eq 0 then window,0
       !p.multi=[0,3,1]
       mean_offset = mean(image) - mean(imout)
       imdisp, image-mean_offset, /axis, range=[-10,30], title='Input Data', charsize=2
@@ -719,22 +723,22 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
     !P.MULTI = 0
   endif
 
+
   ; and now output
   *(dataset.currframe[0]) = imout
-	logstr="Subtracted 2D image background estimated from pixels between spectra"
+  logstr="Subtracted 2D image background estimated from pixels between spectra"
+  backbone->set_keyword, "HISTORY", logstr
   backbone->Log, logstr
-
-  backbone->set_keyword, "HISTORY", logstr,ext_num=0
   suffix='-bgsub2d'
 
-  if tag_exist( Modules[thisModuleIndex], "Save_Stripes") && ( Modules[thisModuleIndex].Save_stripes eq 1 ) then b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, '-stripes', display=gpitvsess,savedata=full_noise_model,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile])
+  if keyword_set(save_stripes) then b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, 'stripes', display=gpitvsess,savedata=full_noise_model,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile])
   
   logstr = 'Robust sigma of unmasked pixels BEFORE destriping: '+strc(robust_sigma(image[where(~mask)]))
-  backbone->set_keyword, "HISTORY", logstr,ext_num=0
+  backbone->set_keyword, "HISTORY", logstr
   backbone->Log, logstr
 
   logstr = 'Robust sigma of unmasked pixels AFTER destriping: '+strc(robust_sigma(imout[where(~mask)]))
-  backbone->set_keyword, "HISTORY", logstr,ext_num=0
+  backbone->set_keyword, "HISTORY", logstr
   backbone->Log, logstr
 
 
