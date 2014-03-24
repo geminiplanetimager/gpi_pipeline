@@ -277,7 +277,9 @@ pro dirviewer::event, ev
 
 			Widget_Control, self.top_base, Get_UValue=info
 			;Widget_Control, ev.id, Get_UValue=theFilter
-			*info.filter = ev.value
+			;*info.filter = ev.value
+
+			*info.filter = strc(strsplit(ev.value,',',/extract))
 			;print, 'file_pattern', *info.filter
 			Widget_Control, self.top_base, set_UValue=info
 			self->Refresh
@@ -633,6 +635,10 @@ pro dirviewer::refresh
 	dir = (*self.state).directory;+path_sep()
 
 	FOR j=0, N_Elements(*info.filter)-1 DO BEGIN
+		;print, (*info.filter)[j]
+		
+		myfilter = (*info.filter)[j]
+		if strc(myfilter) eq '' then continue
 
 		; do it this way to get just the filenames w/out paths:
 		cd, dir, current=current_dir
@@ -896,11 +902,15 @@ PRO dirviewer::Update,file,fileInfo,r,g,b,previewsize,image,info, directory=dire
 
 	scaled_image = self->scaleimage( image[*,*,0] )
 	loadct,0,/silent
-	cgImage, scaled_image, /Keep_Aspect, /NoInterpolation
 
+	catch, image_display_error ; this catch is to handle cases of foolish users trying to load non-FITS files or FITS non-images.
+	if image_display_error eq 0 then begin
+		cgImage, scaled_image, /Keep_Aspect, /NoInterpolation
 
-	;if keyword_set(self.live_view) then 
-	self->view_in_gpitv
+		;if keyword_set(self.live_view) then 
+		self->view_in_gpitv
+	endif
+	catch,/cancel
 
 end
 
@@ -1080,6 +1090,7 @@ FUNCTION dirviewer::init, $
 
   at_gemini = keyword_set(gpi_get_setting('at_gemini', /bool,default=0,/silent))
   if keyword_set(at_gemini) then default_filter = ['S20'+gpi_datestr(/current)+"*.fits"] else default_filter=['*.fits']
+	  ; default_filter=['*.fits, *.fits.gz']
   IF N_Elements(filter) EQ 0 THEN filter = default_filter
 
   only2D = Keyword_Set(only2d)
