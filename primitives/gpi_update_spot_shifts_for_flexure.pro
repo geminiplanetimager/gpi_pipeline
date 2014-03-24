@@ -36,7 +36,7 @@
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="-1" Desc="-1 = No display; 0 = New (unused) window; else = Window number to display diagnostic plot."
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
-; PIPELINE ORDER: 1.99
+; PIPELINE ORDER: 1.34
 ; PIPELINE TYPE: ALL
 ; PIPELINE CATEGORY: SpectralScience, Calibration, PolarimetricScience
 ;
@@ -413,7 +413,6 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     logmsg = "Applied shifts of "+strc(shiftx)+", "+strc(shifty)+" based on method="+method
     backbone->Log, logmsg, depth=3
     backbone->set_keyword, "HISTORY", "  "+logmsg
-
 
 
 ;--- for this one, we don't call the usual __end_primitive common code
