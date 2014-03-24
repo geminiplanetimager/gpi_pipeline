@@ -63,5 +63,9 @@ Function gpi_accumulate_images, DataSet, Modules, Backbone
 	endcase
 
 
-if numfile  eq (dataset.validframecount-1) then return, OK else return, GOTO_NEXT_FILE
+if numfile  eq (dataset.validframecount-1) then begin
+	backbone->set_reduction_level, 2 ; we are now moving on to the second level of reduction
+	return, OK 
+endif else return, GOTO_NEXT_FILE
+
 end
