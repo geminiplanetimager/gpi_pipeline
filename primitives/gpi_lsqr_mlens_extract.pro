@@ -110,6 +110,15 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 	nlens_tot = n_elements(xarr)
 	lens = [transpose(xarr),transpose(yarr)]
 
+	;lenslets found to cause unknown crashes (CPU driven to max percent) with offsets
+	lens_exclude=[[98,15],[94,13],[96,14]]
+	for i=0,2 do begin
+		id1 = where(lens[0,*] eq lens_exclude[0,i] and lens[1,*] eq lens_exclude[1,i])
+		id = where(~histogram(id1, min=0, max=nlens_tot-1))
+		lens=lens[*,id]
+	endfor
+	nlens_tot=nlens_tot-4
+
 	;randomly sort lenslet list to equalize job time.
 	lens=lens[*,sort(randomu(seed,n_elements(lens)/2))]
 	
@@ -149,7 +158,7 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 	cwv=get_cwv(filter)	
 	gpi_lambda=cwv.lambda	
 	para=cwv.CommonWavVect
-
+	stop
 	; start bridges from utils function
 	oBridge=gpi_obridgestartup(nbproc=np)
 	
@@ -208,7 +217,7 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
   	endwhile
   	backbone->Log, 'Job status:'+string(status)
 
-	;gpi_obridgekill,oBridge
+	gpi_obridgekill,oBridge
 
 	dir = gpi_get_directory('GPI_REDUCED_DATA_DIR')
 	;recover from scratch since shared memory doesnt work yet
