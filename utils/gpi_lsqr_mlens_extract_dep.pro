@@ -14,6 +14,46 @@
 ;    Began 2014-01-13 by Zachary Draper
 ;-  
 
+function combine_dith_spec,spec,spec2,spec3
+	
+	f1=[spec[1,*],spec[1,*],spec[1,*]]
+	f2=[spec2[1,*],spec2[1,*],spec2[1,*]]
+	f3=[spec3[1,*],spec3[1,*],spec3[1,*]]
+
+	f1=reform(f1,[n_elements(f1),1])
+	f2=reform(f2,[n_elements(f2),1])
+	f3=reform(f3,[n_elements(f3),1])
+
+	f2=[0,0,f2]
+	f1=[0,f1,0]
+	f3=[f3,0,0]
+
+	l=[spec3[0,*],spec[0,*],spec2[0,*]]
+	num=n_elements(l)
+	l=reform(l,[num,1])
+	diff=l[0]-l[1]
+	l=[l[0]+diff,l,l[num-1]-diff]
+
+	f=(f1+f2+f3)/3
+	f[0]=f[0]*3
+	f[1]=f[1]*2
+	f[num]=f[num]*2
+	f[num+1]=f[num+1]*3
+
+return,[[l],[f]]
+end
+
+function combine_spec,spec,spec2,spec3
+	
+	f=[[spec[1,*]],[spec2[1,*]],[spec3[1,*]]]
+
+	l=[[spec[0,*]],[spec2[0,*]],[spec3[0,*]]]
+
+	ids=sort(l)
+
+return,[[l[ids]],[f[ids]]]
+end
+
 ;--------------------------------------------------
 ; X-correlation for two images
 pro twod_img_corr,img_a,img_b,range,sub_pix,xsft,ysft,corr,cm=cm
@@ -46,8 +86,8 @@ pro twod_img_corr,img_a,img_b,range,sub_pix,xsft,ysft,corr,cm=cm
    		totalm = total(corr)
    		xcm = total(total(corr,2)*indgen(s[0]))/totalm
    		ycm = total(total(corr,1)*indgen(s[1]))/totalm        
-		xsft=(xcm*sub_pix)-range
-		ysft=(ycm*sub_pix)-range
+		xsft=(xcm*resolution)-range
+		ysft=(ycm*resolution)-range
 	endif else begin 
 		;maximal value
 		id = where_xyz(max(corr) eq corr,xind=xind,yind=yind)
@@ -70,7 +110,11 @@ function gpi_spec_lsqr,sub_img,r_cube,resid=resid,spec=spec
 
 ;correlation vector
 	v=fltarr(sc[3])
-	
+
+	for i=0,sc[3]-1 do begin
+		r_cube[*,*,i]=r_cube[*,*,i]/total(r_cube[*,*,i])
+	endfor
+
 	for i=0,sc[3]-1 do begin	
 		v[i]=total(sub_img*r_cube[*,*,i])
 	endfor
@@ -176,37 +220,9 @@ return,[r,l]
 end
 
 ;--------------------------------------------------
-; Extract spectra individual spectra
+; Generate PSF cube
 
-function spec_ext_amoeba,P,best=best
-	;t3=systime(/seconds)
-
-	common img_spec_ext_common,com_struc
-
-	wavecal=com_struc.wavecal
-	para=com_struc.para
-	steps=com_struc.steps
-	lens_x=com_struc.lens_x
-	lens_y=com_struc.lens_y
-	blank=com_struc.blank
-	x_sub1=com_struc.x_sub1
-	x_sub2=com_struc.x_sub2
-	y_sub1=com_struc.y_sub1
-	y_sub2=com_struc.y_sub2
-	PSFs_array=com_struc.PSFs_array
-	xsize=com_struc.xsize
-	ysize=com_struc.ysize
-	blank2=com_struc.blank2
-	micphncube=com_struc.micphncube
-	sub_img=com_struc.sub_img
-	micphn=com_struc.micphn
-	x_off=com_struc.x_off
-	y_off=com_struc.y_off
-	badpix=com_struc.badpix
-
-	del_x=P[0]
-	del_theta=P[1]
-	del_lam=P[2]
+pro mk_psf_cube,psfcube,spectra,wavecal,para,steps,lens_x,lens_y,blank,x_sub1,x_sub2,y_sub1,y_sub2,PSFs_array,xsize,ysize,blank2,x_off,y_off,del_lam,del_x,del_theta
 
 	;print,del_x,del_theta
 	;t3=systime(/seconds)
@@ -272,17 +288,77 @@ function spec_ext_amoeba,P,best=best
 
 	psfcube=psfcube[*,*,1:*]
 	spectra=spectra[*,1:*]
+end
 
-	if (micphn eq 1) then r_cube = [[[micphncube]],[[psfcube]]] else r_cube = psfcube
+;--------------------------------------------------
+; Extract spectra individual spectra
+
+function spec_ext_amoeba,P,best=best
+	;t3=systime(/seconds)
+
+	common img_spec_ext_common,com_struc
+
+	wavecal=com_struc.wavecal
+	para=com_struc.para
+	steps=com_struc.steps
+	lens_x=com_struc.lens_x
+	lens_y=com_struc.lens_y
+	blank=com_struc.blank
+	x_sub1=com_struc.x_sub1
+	x_sub2=com_struc.x_sub2
+	y_sub1=com_struc.y_sub1
+	y_sub2=com_struc.y_sub2
+	PSFs_array=com_struc.PSFs_array
+	xsize=com_struc.xsize
+	ysize=com_struc.ysize
+	blank2=com_struc.blank2
+	micphncube=com_struc.micphncube
+	sub_img=com_struc.sub_img
+	micphn=com_struc.micphn
+	x_off=com_struc.x_off
+	y_off=com_struc.y_off
+	badpix=com_struc.badpix
+
+	del_x=P[0]
+	del_theta=P[1]
+	del_lam=P[2]
+	mk_psf_cube,psfcube,spectra,wavecal,para,steps,lens_x,lens_y,blank,x_sub1,x_sub2,y_sub1,y_sub2,PSFs_array,xsize,ysize,blank2,x_off,y_off,del_lam,del_x,del_theta
+
+	if (micphn eq 1) then begin
+		r_cube = [[[micphncube]],[[psfcube]]] 
+		ms=size(micphncube,/dimensions)
+	endif else begin 
+		r_cube = psfcube
+		ms=[0,0,0]
+	endelse
 
 	s=size(r_cube,/dimensions)
+	
 	sbp = size(badpix)
+	ids=[-1]
+	w=[0]
 	if (sbp[0] ne 0) then begin
 		sub_badpix = badpix[x_sub1:x_sub2,y_sub1:y_sub2]
 		for i=0,s[2]-1 do begin
 			r_cube[*,*,i]=r_cube[*,*,i]*sub_badpix
+			if (total(r_cube[*,*,i]) lt 0.9) then begin
+				ids = [[ids],[i]]
+			endif
+			w=[w,total(r_cube[*,*,i])]
 		endfor
 	endif
+	w=w[1:*]
+
+	id = where(~histogram(ids, min=0, max=s[2]-1))
+
+	spec = gpi_spec_lsqr(sub_img,r_cube,/spec)
+	spec = spec/w
+
+	r_cube = r_cube[*,*,id]
+	spectra = spectra[*,id]
+	spec=spec[id]
+
+	;stop
 
 	;t4=systime(/seconds)
 	;print,t4-t3,'pre lsqr amoeba'
@@ -301,7 +377,7 @@ function spec_ext_amoeba,P,best=best
 	;plots,[spec_spix3[0,*]-x_sub1],[spec_spix3[1,*]-y_sub1],psym=2
 	;stop
 
-if (keyword_set(best)) then return,{r_cube:r_cube,spectra:spectra} else return,resid
+if (keyword_set(best)) then return,{r_cube:r_cube,spectra:spectra,spec:spec} else return,resid
 
 end
 
@@ -455,8 +531,7 @@ pro img_spec_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,wavecal,spec,spec_i
 
 	r_cube_best=fit_bests.r_cube
 	spectra=fit_bests.spectra
-
-	spec = gpi_spec_lsqr(sub_img,r_cube_best,/spec)
+	spec=fit_bests.spec
 
 	if (micphn eq 1) then specline = spec[n_modes-1:*] else specline = spec
 	idt = where(spectra[0,*] eq x_lens_cen and spectra[1,*] eq y_lens_cen)
@@ -561,16 +636,24 @@ pro img_ext_para,cut1,cut2,z,img,wcal_off_cube,spec_cube,mic_cube,gpi_cube,gpi_l
 		x=lens[0,i]
 		y=lens[1,i]
 		print,x,y,i
-		img_spec_ext_amoeba,x,y,img,mlens,wavcal,spec,spec_img,mic_img,del_lam_best,del_x_best,del_theta_best,x_off,y_off,wcal_off,para,badpix,resid=resid,micphn=micphn,iter=iter
 
-		img_spec_ext_amoeba,x,y,img,mlens,wavcal,spec2,spec_img2,mic_img2,del_lam_best+0.5,del_x_best,del_theta_best,x_off,y_off,wcal_off2,para,badpix,resid=resid,micphn=micphn,iter=0
-	;img_spec_ext_amoeba,x,y,img,mlens,wavcal,spec2,spec_img2,mic_img2,del_lam_best-0.33,del_x_best,del_theta_best,x_off,y_off,wcal_off2,para,badpix,resid=resid,micphn=micphn,iter=0
+img_spec_ext_amoeba,x,y,img,mlens,wavcal,spec,spec_img,mic_img,del_lam_best,del_x_best,del_theta_best,x_off,y_off,wcal_off,para,badpix,resid=resid,micphn=micphn,iter=iter
+		
+img_spec_ext_amoeba,x,y,img,mlens,wavcal,spec2,spec_img2,mic_img2,del_lam_best+0.66,del_x_best,del_theta_best,x_off,y_off,wcal_off2,para,badpix,resid=resid,micphn=micphn,iter=0
+
+img_spec_ext_amoeba,x,y,img,mlens,wavcal,spec3,spec_img2,mic_img2,del_lam_best-0.66,del_x_best,del_theta_best,x_off,y_off,wcal_off2,para,badpix,resid=resid,micphn=micphn,iter=0
 
 		if (spec[0] ne -1 and spec2[0] ne -1) then begin
-			spec_l = transpose([[spec[1,*]],[spec2[1,*]]])
-			spec_f = transpose([[spec[0,*]],[spec2[0,*]]])
-			srt = sort(spec_l)
-			lens_spec = interpol(spec_l[srt],spec_f[srt],gpi_lambda)
+			;hr_spec=combine_dith_spec(spec,spec2,spec3)
+			hr_spec=combine_spec(spec,spec2,spec3)
+			lens_spec = interpol(hr_spec[*,1],hr_spec[*,0],gpi_lambda,/spline)
+			;stop
+			;window,2
+			;plot,gpi_lambda,lens_spec
+			;oplot,spec[0,*],spec[1,*],psym=5
+			;oplot,spec2[0,*],spec2[1,*],psym=5
+			;oplot,spec3[0,*],spec3[1,*],psym=5
+			;stop
 			;lens_spec = SPL_INTERP(spec_l[srt], spec_f[srt], lens_spec, gpi_lambda)
 			gpi_cube[x,y,*] = lens_spec
 			
