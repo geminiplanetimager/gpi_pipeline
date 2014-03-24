@@ -408,11 +408,13 @@ state = {                   $
         polarim_display: 1, $               ; overplot polarimetry vectors?
         polarim_plotindex: 0,$              ; Which plot structure is the polarimetry?
         polarim_present: 0, $               ; Do we have polarimetry data?
+        polarim_display_id: 0L, $           ; widget ID of polarimetry display flag
+		polarim_fractional_id: 0L, $		; widget ID of polarimetry fraction/intensity droplist
         polarim_lowth_id: 0L, $             ; widget ID of polarimetry low thresh
         polarim_highth_id: 0L, $            ; widget ID of polarimetry high thresh
-        polarim_mag_id: 0L, $               ; widget ID of polarimetry high thresh
-        polarim_offset_id: 0L, $            ; widget ID of polarimetry high thresh
-        polarim_display_id: 0L, $           ; widget ID of polarimetry display flag
+        polarim_mag_id: 0L, $               ; widget ID of polarimetry magnif.
+        polarim_offset_id: 0L, $            ; widget ID of polarimetry PA offset
+        polarim_binning_id: 0L, $           ; widget ID of polarimetry binning 
         aborted_id: 0L, $                   ; widget ID for 'ABORTED'
         dateobs_id: 0L, $                   ; widget id for'DATE-OBS'
         timeobs_id: 0L, $                   ; widget id for 'TIME-OBS')
@@ -7074,11 +7076,12 @@ CASE event.tag OF
         ;;if lowct gt 0 then tmp[wlow] = 0
         ;; FIXME this does not appear to be working right??
 
+		if ptr_valid((*self.state).cwv_ptr) then lambdas=*(*self.state).cwv_ptr
         ;;do the writing here
         ifs_cube_movie,tmp,outname=filename,/prescaled,$
                        r = r1, g = g1, b = b1,$
                        fps=(*self.state).moviefps,$
-                       lambdas = *(*self.state).cwv_ptr, $
+                       lambdas = lambdas, $
                        mpeg=long(strcmp((*self.state).movieformat,'MPEG')),$
                        png=long(strcmp((*self.state).movieformat,'PNG'))
 
@@ -14252,7 +14255,7 @@ end
 
 ;--------------------------------------------------------------------------------
 pro GPItv::pol, q, u, magnification=magnification, noxmcheck=noxmcheck,$
-	polmask=polmask, norefresh=norefresh, $
+	polmask=polmask, binning=binning, norefresh=norefresh, fractional=fractional, $
 	_extra = options
 
 
@@ -14292,8 +14295,14 @@ if (self.pdata.nplot LT self.pdata.maxplot) then begin
 
 
    if not(keyword_set(magnification)) then magnification=10.
-	magnification = float(magnification)
+   if ~(keyword_set(binning)) then binning = 3.
+   if ~(keyword_set(fractional)) then fractional=0
+   binning = float(binning)
+   magnification = float(magnification)
+   fractional = uint(fractional)
    options = create_struct(options, 'magnification', magnification)
+   options = create_struct(options, 'binning', binning)
+   options = create_struct(options, 'fractional', fractional)
 
 
    pstruct = {type: 'polarization',   $     ; points
@@ -14321,187 +14330,169 @@ end
 
 ;---------------------------------------------------------------------
 pro GPItv::plot1pol, iplot
-; a version of polvect.pro modified for GPItv.
-;
-; This overprints polarization vectors onto the image.
+	; a version of polvect.pro modified for GPItv.
+	;
+	; This overprints polarization vectors onto the image.
 
 
-if (*self.state).polarim_display eq 0 then return
+	if (*self.state).polarim_display eq 0 then return
 
-self->setwindow, (*self.state).draw_window_id
+	self->setwindow, (*self.state).draw_window_id
 
-widget_control, /hourglass
+	widget_control, /hourglass
 
-resample =  6 <  8/(*self.state).zoom_factor > 1
-lengthscale=4 <  4./(*self.state).zoom_factor > 1
-lengthscale = 1.0*lengthscale*(*(self.pdata.plot_ptr[iplot])).options.magnification
-minmag = (*(self.pdata.plot_ptr[iplot])).options.minval
-;print,"zoom: ",(*self.state).zoom_factor
-;print,"resample: ",resample
-;print,"minmag: ",minmag
-;print,"lengthscale: ",lengthscale
+	polplotoptions = (*(self.pdata.plot_ptr[iplot])).options
 
-if not(keyword_set(resample)) then resample=1 ; for use later to simplify the code...
-color = (*(self.pdata.plot_ptr[iplot])).options.color
-thetaoffset = (*(self.pdata.plot_ptr[iplot])).options.thetaoffset
-;print,"thetaoffset: ",thetaoffset
+	resample =  6 <  8/(*self.state).zoom_factor > 1
+	lengthscale=4 <  4./(*self.state).zoom_factor > 1
+	;if not(keyword_set(resample)) then resample=1 ; for use later to simplify the code...
 
+	lengthscale = float(lengthscale)*polplotoptions.magnification
+	minmag =		polplotoptions.minval
+	color =			polplotoptions.color
+	thetaoffset =	polplotoptions.thetaoffset
+	binning =		polplotoptions.binning > 1
+	resample *= binning
 
-;qo = (*(self.pdata.plot_ptr[iplot])).q
-;uo = (*(self.pdata.plot_ptr[iplot])).u
+	qo = (*self.images.main_image_backup)[*,*,1];/(*self.images.main_image_backup)[*,*,0]
+	uo = (*self.images.main_image_backup)[*,*,2];/(*self.images.main_image_backup)[*,*,0]
 
-qo = (*self.images.main_image_backup)[*,*,1]/(*self.images.main_image_backup)[*,*,0]
-uo = (*self.images.main_image_backup)[*,*,2]/(*self.images.main_image_backup)[*,*,0]
+	if keyword_set(polplotoptions.fractional) then begin
+		qo /=(*self.images.main_image_backup)[*,*,0]
+		uo /=(*self.images.main_image_backup)[*,*,0]
+	endif
 
-;The inversion and rotation have basically been copied from gpitv::refresh_image_invert_rotate
-; is X flip needed? 
-if strpos((*self.state).invert_image, 'x') ge 0 then begin
- self->message, 'inverting in x'
-    ;if ptr_valid((*self.state).exthead_ptr)  then begin ; transformation with astrometry header updates
-     ; hreverse2, theta,  hdr , theta,  hdr , 1, /silent
-    ;endif else begin                ; simple transformations without astrometry headers to worry about
-    qo = reverse(qo)
-    uo = reverse(uo)
-      ;theta = -theta
-    ;endelse
-  endif
-  
-; is Y flip needed? 
-if strpos((*self.state).invert_image, 'y') ge 0 then begin
-    self->message, 'inverting in y'
-    ;if ptr_valid((*self.state).exthead_ptr)  then begin ; transformation with astrometry header updates
-    ;  hreverse2, theta,  hdr , theta,  hdr , 2, /silent
-    ;endif else begin                ; simple transformations without astrometry headers to worry about
-    qo = reverse(qo,2)
-    uo = reverse(uo,2)
-    ;endelse
-endif
+	;The inversion and rotation have basically been copied from gpitv::refresh_image_invert_rotate
+	; is X flip needed? 
+	if strpos((*self.state).invert_image, 'x') ge 0 then begin
+		qo = reverse(qo)
+		uo = reverse(uo)
+	endif
+	  
+	; is Y flip needed? 
+	if strpos((*self.state).invert_image, 'y') ge 0 then begin
+		self->message, 'inverting in y'
+		qo = reverse(qo,2)
+		uo = reverse(uo,2)
+	endif
 
-;Image Rotation?
-if (*self.state).rot_angle ne 0 then begin
-    desired_angle = (*self.state).rot_angle  ; for back compatibility with prior implementation
-    
-    ;; Are we rotating by some multiple of 90 degrees? If so, we can do so
-    ;; exactly.
-    if (desired_angle/90. eq fix(desired_angle/90)) then begin
-       desired_angle = desired_angle mod 360
-       if desired_angle lt 0 then desired_angle +=360
-       rchange = strc(fix(desired_angle)) ; how much do we need to change the image to get the new rotation?
+	;Image Rotation?
+	if (*self.state).rot_angle ne 0 then begin
+		desired_angle = (*self.state).rot_angle  ; for back compatibility with prior implementation
+		
+		;; Are we rotating by some multiple of 90 degrees? If so, we can do so
+		;; exactly.
+		if (desired_angle/90. eq fix(desired_angle/90)) then begin
+		   desired_angle = desired_angle mod 360
+		   if desired_angle lt 0 then desired_angle +=360
+		   rchange = strc(fix(desired_angle)) ; how much do we need to change the image to get the new rotation?
 
-       case rchange of
-        '0':  rot_dir=0           ;; do nothing
-        '90': rot_dir=1
-        '180': rot_dir=2
-        '270': rot_dir=3
-       endcase
+		   case rchange of
+			'0':  rot_dir=0           ;; do nothing
+			'90': rot_dir=1
+			'180': rot_dir=2
+			'270': rot_dir=3
+		   endcase
 
-        ;; no astrometry, just do the rotate
-        qo = rotate(qo, rot_dir)
-        uo = rotate(uo, rot_dir)
-       
-    endif else begin
-        ;Arbitrary Rotation Angle
-        interpolated_qo= rot(qo, (-1)*desired_angle,  cubic=-0.5, missing=!values.f_nan)
-        nearest_qo = rot(qo, (-1)*desired_angle,  interp =0,  missing=!values.f_nan)
-        wnan = where(~finite(interpolated_qo), nanct)
-        if nanct gt 0 then interpolated_qo[wnan] = nearest_qo[wnan]
-        qo = interpolated_qo
-        
-        interpolated_uo= rot(uo, (-1)*desired_angle,  cubic=-0.5, missing=!values.f_nan)
-        nearest_uo = rot(uo, (-1)*desired_angle,  interp =0,  missing=!values.f_nan)
-        wnan = where(~finite(interpolated_uo), nanct)
-        if nanct gt 0 then interpolated_uo[wnan] = nearest_uo[wnan]
-        uo = interpolated_uo
-    endelse
-endif
+			;; no astrometry, just do the rotate
+			qo = rotate(qo, rot_dir)
+			uo = rotate(uo, rot_dir)
+		   
+		endif else begin
+			;Arbitrary Rotation Angle
+			interpolated_qo= rot(qo, (-1)*desired_angle,  cubic=-0.5, missing=!values.f_nan)
+			nearest_qo = rot(qo, (-1)*desired_angle,  interp =0,  missing=!values.f_nan)
+			wnan = where(~finite(interpolated_qo), nanct)
+			if nanct gt 0 then interpolated_qo[wnan] = nearest_qo[wnan]
+			qo = interpolated_qo
+			
+			interpolated_uo= rot(uo, (-1)*desired_angle,  cubic=-0.5, missing=!values.f_nan)
+			nearest_uo = rot(uo, (-1)*desired_angle,  interp =0,  missing=!values.f_nan)
+			wnan = where(~finite(interpolated_uo), nanct)
+			if nanct gt 0 then interpolated_uo[wnan] = nearest_uo[wnan]
+			uo = interpolated_uo
+		endelse
+	endif
 
-;ORIGINAL
-;if resample eq 1 then begin
-;    q = (*(self.pdata.plot_ptr[iplot])).q
-;    u = (*(self.pdata.plot_ptr[iplot])).u
-;endif else begin
-;    sz = size((*(self.pdata.plot_ptr[iplot])).q)
-;    q = congrid((*(self.pdata.plot_ptr[iplot])).q,sz[1]/resample,sz[2]/resample,/int)
-;    if arg_present(xo) then x = congrid(xo,sz[1]/resample)
-;    u = congrid((*(self.pdata.plot_ptr[iplot])).u,sz[1]/resample,sz[2]/resample,/int)
-;    if arg_present(xo) then y = congrid(yo,sz[2]/resample)
-;endelse
-;UPDATED FOR INVERSION 
-if resample eq 1 then begin
-    q = qo
-    u = uo
-endif else begin
-    sz = size(qo)
-    q = congrid(qo,sz[1]/resample,sz[2]/resample,/int)
-    if arg_present(xo) then x = congrid(xo,sz[1]/resample)
-    u = congrid(uo,sz[1]/resample,sz[2]/resample,/int)
-    if arg_present(xo) then y = congrid(yo,sz[2]/resample)
-endelse
+	;ORIGINAL
+	;if resample eq 1 then begin
+	;    q = (*(self.pdata.plot_ptr[iplot])).q
+	;    u = (*(self.pdata.plot_ptr[iplot])).u
+	;endif else begin
+	;    sz = size((*(self.pdata.plot_ptr[iplot])).q)
+	;    q = congrid((*(self.pdata.plot_ptr[iplot])).q,sz[1]/resample,sz[2]/resample,/int)
+	;    if arg_present(xo) then x = congrid(xo,sz[1]/resample)
+	;    u = congrid((*(self.pdata.plot_ptr[iplot])).u,sz[1]/resample,sz[2]/resample,/int)
+	;    if arg_present(xo) then y = congrid(yo,sz[2]/resample)
+	;endelse
+	;UPDATED FOR INVERSION 
+	print, 'Pol resample: ', resample
+	if resample eq 1 then begin
+		q = qo
+		u = uo
+	endif else begin
+		sz = size(qo)
+		q = congrid(qo,sz[1]/resample,sz[2]/resample,/int)
+		if arg_present(xo) then x = congrid(xo,sz[1]/resample)
+		u = congrid(uo,sz[1]/resample,sz[2]/resample,/int)
+		if arg_present(xo) then y = congrid(yo,sz[2]/resample)
+	endelse
 
-sz = size(q)
-x = (findgen(sz[1]))*resample
-y = (findgen(sz[2]))*resample
-mag = sqrt(u^2.+q^2.)             ;magnitude.
-nbad = 0                        ;# of missing points
-        ;if n_elements(missing) gt 0 then begin
-                ;good = where(mag lt missing)
-                ;if keyword_set(dots) then bad = where(mag ge missing, nbad)
-        ;endif else begin
-                szmag = size(mag)
+	sz = size(q)
+	x = (findgen(sz[1]))*resample
+	y = (findgen(sz[2]))*resample
+	mag = sqrt(u^2.+q^2.)             ;magnitude.
+	nbad = 0                        ;# of missing points
+	szmag = size(mag)
 
 
 
-c = where(tag_names((*(self.pdata.plot_ptr[iplot])).options) EQ 'POLMASK', polmaskpresent)
+	c = where(tag_names(polplotoptions) EQ 'POLMASK', polmaskpresent)
 
-	; try rescaling?
-;	mag = mag-minmag
-;	minmag=0
+		; try rescaling?
+	;	mag = mag-minmag
+	;	minmag=0
 
-	if polmaskpresent ne 0 then begin
-		maskresize = congrid( (*(self.pdata.plot_ptr[iplot])).options.polmask, sz[1],sz[2])
-		good = where (maskresize ne 0)
-	endif else good  =where (mag gt (*self.state).polarim_lowthresh and mag lt (*self.state).polarim_highthresh)
+		if polmaskpresent ne 0 then begin
+			maskresize = congrid( (*(self.pdata.plot_ptr[iplot])).options.polmask, sz[1],sz[2])
+			good = where (maskresize ne 0)
+		endif else good  =where (mag gt (*self.state).polarim_lowthresh and mag lt (*self.state).polarim_highthresh)
 
-if n_elements(good) eq 1 then return
-        ;if n_elements(missing) gt 0 then begin
-                ;good = where(mag lt missing)
-                ;if keyword_set(dots) then bad = where(mag ge missing, nbad)
-        ;endif else begin
+		;stop
+	if n_elements(good) eq 1 then return
 
 
-        ugood = u[good]
-        qgood = q[good]
-        x0 = min(x,max=x1,/NaN)                     ;get scaling
-        y0 = min(y,max=y1,/NaN)
-    	x_step=(x1-x0)/(sz[1]-1.0)   ; Convert to float. Integer math
-    	y_step=(y1-y0)/(sz[2]-1.0)   ; could result in divide by 0
+	ugood = u[good]
+	qgood = q[good]
+	x0 = min(x,max=x1,/NaN)                     ;get scaling
+	y0 = min(y,max=y1,/NaN)
+	x_step=(x1-x0)/(sz[1]-1.0)   ; Convert to float. Integer math
+	y_step=(y1-y0)/(sz[2]-1.0)   ; could result in divide by 0
     	
-   ;To compensate for the use of the Rotate North Up Primitive
-   if ptr_valid((*self.state).exthead_ptr) then begin ;If the header exists
-   hdr = *((*self.state).exthead_ptr) 
-   rot_ang = sxpar(hdr, 'ROTANG') ;If this keyword isn't set sxpar just returns 0, which is acceptable. 
-   getrot, hdr, npa, cdelt, /silent
-   d_PAR_ANG = - rot_ang
-   endif else begin 
-   d_PAR_ANG = 0
-   cdelt = [1,1] ;If there's no header create a dummy cdelt whose first element is positive 
-   endelse
- 
-   ;print, "Rotating pol vectors by angle of: "+string(-d_PAR_ANG) ; To match with north rotation
-  
-   if cdelt[0] gt 0 then sgn = -1 else sgn = 1 ; To check for flip between RH and LH coordinate systems
-   
-   theta =  sgn* 0.5 * atan(u,q)+npa*!dtor+thetaoffset*!dtor
-   
-   ;theta = 0.5 * atan(u/q)+thetaoffset*!dtor
-;   self->Message, "Mean theta "+string(mean(theta,/nan)/!dtor)
-;   self->Message, "Sign"+string(sgn)
-;   self->Message, "npa"+string(npa)
-;   self->Message, "PA Offset from GPItv:"+string(thetaoffset)
-;   self->Message, "Image Rotation from GPItv:"+string((*self.state).rot_angle)
-;   self->Message, "Image Rotation Angle:"+string(d_par_ang)
-;   
-;  
+	;To compensate for the use of the Rotate North Up Primitive
+	if ptr_valid((*self.state).exthead_ptr) then begin ;If the header exists
+		hdr = *((*self.state).exthead_ptr) 
+		rot_ang = sxpar(hdr, 'ROTANG') ;If this keyword isn't set sxpar just returns 0, which is acceptable. 
+		getrot, hdr, npa, cdelt, /silent
+		d_PAR_ANG = - rot_ang
+	endif else begin 
+		d_PAR_ANG = 0
+		cdelt = [1,1] ;If there's no header create a dummy cdelt whose first element is positive 
+	endelse
+
+	;print, "Rotating pol vectors by angle of: "+string(-d_PAR_ANG) ; To match with north rotation
+
+	if cdelt[0] gt 0 then sgn = -1 else sgn = 1 ; To check for flip between RH and LH coordinate systems
+
+	theta =  sgn* 0.5 * atan(u,q)+npa*!dtor+thetaoffset*!dtor
+
+	;theta = 0.5 * atan(u/q)+thetaoffset*!dtor
+	;   self->Message, "Mean theta "+string(mean(theta,/nan)/!dtor)
+	;   self->Message, "Sign"+string(sgn)
+	;   self->Message, "npa"+string(npa)
+	;   self->Message, "PA Offset from GPItv:"+string(thetaoffset)
+	;   self->Message, "Image Rotation from GPItv:"+string((*self.state).rot_angle)
+	;   self->Message, "Image Rotation Angle:"+string(d_par_ang)
 
    maxmag = .50
    
@@ -14577,6 +14568,11 @@ pro GPItv::polarim_event, event
 	    'polarim_highth': (*self.state).polarim_highthresh = float(event.value)
 	    'polarim_lowth': (*self.state).polarim_lowthresh = float(event.value)
 	    'magnification': (*(self.pdata.plot_ptr[self.pdata.nplot])).options.magnification = event.value
+	    'binning': (*(self.pdata.plot_ptr[self.pdata.nplot])).options.binning = event.value
+	    'fractional': begin
+			(*(self.pdata.plot_ptr[self.pdata.nplot])).options.binning = event.index
+			print, "Set fractional to ", event.index
+		end
 	    'polarim_offset': (*(self.pdata.plot_ptr[self.pdata.nplot])).options.thetaoffset = event.value
 	    'Refresh': dorefresh=1
 	    'polarim_done': widget_control, event.top, /destroy
@@ -14668,6 +14664,12 @@ if (not (xregistered(self.xname+'_polarim'))) then begin
 	widget_control, b_yes, /set_button
 
 
+	(*self.state).polarim_fractional_id = $
+		widget_droplist(polarim_data_base1a, $
+			frame=0, $
+			title='Using ', uvalue='fractional',$
+			value=['Pol. Intensity', 'Pol. Fraction'])
+
 	; and now create the option settings
     (*self.state).polarim_lowth_id = $
       cw_field(polarim_data_base1a, $
@@ -14697,6 +14699,16 @@ if (not (xregistered(self.xname+'_polarim'))) then begin
                value = (*(self.pdata.plot_ptr[self.pdata.nplot])).options.magnification, $
                xsize = 10)
 
+    (*self.state).polarim_mag_id = $
+      cw_field(polarim_data_base1a, $
+               /float, $
+               /return_events, $
+               title = 'Binning:', $
+               uvalue = 'binning', $
+               value = (*(self.pdata.plot_ptr[self.pdata.nplot])).options.binning, $
+               xsize = 10)
+
+
     (*self.state).polarim_offset_id = $
       cw_field(polarim_data_base1a, $
                /float, $
@@ -14717,9 +14729,6 @@ if (not (xregistered(self.xname+'_polarim'))) then begin
                     uvalue = 'polarim_done')
 
     widget_control, polarim_base, /realize
-
-    ;widget_control, photzoom_widget_id, get_value=tmp_value
-    ;(*self.state).photzoom_window_id = tmp_value
 
     xmanager, self.xname+'_polarim', polarim_base, /no_block
 	widget_control, polarim_base, set_uvalue = {object:self, method: 'polarim_event'}
