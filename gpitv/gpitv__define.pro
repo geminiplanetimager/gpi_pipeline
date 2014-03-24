@@ -345,6 +345,7 @@ state = {                   $
         contr_plotouter: 0, $               ; plot contrasts for region outside of dark hole
         contr_yunit:0, $                    ; 0 = sigma, 1 = median, 2 = mean
         contr_xunit:0, $                    ; 0 = as, 1 = l/D
+        contr_prof_filetype:0, $            ; 0 = fits, 1 = txt
         lambplot_widget_id: 0L, $           ; id of radial profile widget
         lambplot_window_id: 0L, $           ; id of radial profile window
         showlambplot_id: 0L, $              ;
@@ -19114,44 +19115,47 @@ pro GPItv::contrast_settings
   plotline = strcompress('0, button, Linear|Log, exclusive,' + $      ;1
                          'label_left = Select Plot Scale: , set_value =' + $
                          string( (*self.state).contr_yaxis_type))
-  yrange = strcompress('0, button, Manual|Auto, exclusive,' + $       ;2
+  yrange = strcompress('1, button, Manual|Auto, exclusive,' + $       ;2
                          'label_left = Y Range:, set_value =' + $
                          string( (*self.state).contr_yaxis_mode))
   yminline= strcompress('0, float,'+string((*self.state).contr_yaxis_min) + $  ;3
                         ',label_left = Y axis minimum:,' + $
                         'width = 12')
-  ymaxline = strcompress('0, float,'+string((*self.state).contr_yaxis_max) + $  ;4
+  ymaxline = strcompress('2, float,'+string((*self.state).contr_yaxis_max) + $  ;4
                          ',label_left = Y axis maximum:,' + $
                          'width = 12')
   fontline = strcompress('0, float,'+string((*self.state).contr_font_size) + $  ;5
                          ',label_left = Font size:,' + $
                          'width = 12')
-  plotmult = strcompress('0, button, Current|All, exclusive,' + $              ;6
+  plotmult = strcompress('1, button, Current|All, exclusive,' + $              ;6
                          'label_left = Select Image Slice: , set_value =' + $
                          string( (*self.state).contr_plotmult))
-  plotouter = strcompress('0, button, Dark Hole Only|All Image, exclusive,' + $  ;7
+  plotouter = strcompress('2, button, Dark Hole Only|All Image, exclusive,' + $  ;7
                          'label_left = Plot Contrast In:, set_value =' + $
                          string( (*self.state).contr_plotouter))
   autocent = strcompress('0, button, Auto Locate Sat Spots|Use Highpass Filter|Constrain Spot Locs,' + $ ;8
                          ' set_value = ' + $
                          '['+strtrim((*self.state).contr_autocent,2)+'\,'+strtrim((*self.state).contr_highpassspots,2)+'\,'+strtrim((*self.state).contr_constspots,2)+']')
-  yunits = strcompress('0, button, Sigma|Median|Mean, exclusive,' + $ ;9
-                         'label_left = Contrast Y units:, set_value =' + $
-                         string( (*self.state).contr_yunit))
-  xunits = strcompress('0, button, Arcseconds|l/D, exclusive,' + $ ;10
-                         'label_left = Contrast X units:, set_value =' + $
-                         string( (*self.state).contr_xunit))
+  yunits = strcompress('1, button, Sigma|Median|Mean, exclusive,' + $ ;9
+                       'label_left = Contrast Y units:, set_value =' + $
+                       string( (*self.state).contr_yunit))
+  xunits = strcompress('2, button, Arcseconds|l/D, exclusive,' + $ ;10
+                       'label_left = Contrast X units:, set_value =' + $
+                       string( (*self.state).contr_xunit))
+  ftype = strcompress('0, button, FITS|TXT, exclusive,' + $ ;11
+                       'label_left = Profile Filetype:, set_value =' + $
+                       string( (*self.state).contr_prof_filetype))
 
   formdesc = ['0, label, Select options for contrast plot display', $
               plotline, yrange, yminline, ymaxline, fontline,$
-              plotmult, plotouter,autocent, yunits, xunits,$
+              plotmult, plotouter,autocent, yunits, xunits, ftype,$
               '0, button, Apply Settings, quit', $
               '0, button, Cancel, quit']
 
   textform = cw_form(formdesc, /column, $
                      title = 'GPItv Contrast Plot settings')
 
-  if (textform.tag12 EQ 1) then return ; cancelled (tag# = # of inputs above+2)
+  if (textform.tag13 EQ 1) then return ; cancelled (tag# = # of inputs above+2)
 
   (*self.state).contr_yaxis_type = textform.tag1
   (*self.state).contr_yaxis_mode = textform.tag2
@@ -19165,6 +19169,7 @@ pro GPItv::contrast_settings
   (*self.state).contr_constspots = (textform.tag8)[2]
   (*self.state).contr_yunit = textform.tag9
   (*self.state).contr_xunit = textform.tag10
+  (*self.state).contr_prof_filetype = textform.tag11
 
   if not xregistered(self.xname+'_contrprof',/noshow) then return
 
@@ -19418,8 +19423,9 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
 
   ;;save radial contrast as fits
   if (keyword_set(radialsav)) then begin
-     contr_outfile = dialog_pickfile(filter='*.fits', $
-                                     file=nm+'-contrast_profile.fits', get_path = tmp_dir, $
+     ftype = (['fits','txt'])[(*self.state).contr_prof_filetype]
+     contr_outfile = dialog_pickfile(filter='*.'+ftype, $
+                                     file=nm+'-contrast_profile.'+ftype, get_path = tmp_dir, $
                                      path=(*self.state).current_dir,$
                                      title='Please Select File to save contrast radial profile')
      
@@ -19440,13 +19446,22 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
            (*(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit])[*,0]
      endif else out = [[asec],[outval[*,0]]]
 
-     mkhdr,hdr,out
-     sxaddpar,hdr,'SLICES',slices,'Cube slices used.'
-     sxaddpar,hdr,'YUNITS',(['Std Dev','Median','Mean'])[(*self.state).contr_yunit],'Contrast units'
-     sxaddpar,hdr,'WINAP',(*self.state).contrwinap,'Search window size'
-     sxaddpar,hdr,'GAUSSAP',(*self.state).contrap,'Gaussian window size'
-
-     writefits,contr_outfile,out,hdr
+     case (*self.state).contr_prof_filetype of
+           0: begin
+              mkhdr,hdr,out
+              sxaddpar,hdr,'SLICES',slices,'Cube slices used.'
+              sxaddpar,hdr,'YUNITS',(['Std Dev','Median','Mean'])[(*self.state).contr_yunit],'Contrast units'
+              sxaddpar,hdr,'WINAP',(*self.state).contrwinap,'Search window size'
+              sxaddpar,hdr,'GAUSSAP',(*self.state).contrap,'Gaussian window size'
+              
+              writefits,contr_outfile,out,hdr
+           end
+           1: begin
+              openw,lun,contr_outfile,/get_lun
+              printf,lun,transpose(out),format='('+strtrim((size(out,/dim))[1],2)+'(F))'
+              free_lun,lun
+           end 
+        endcase
   endif 
 
   self->resetwindow
