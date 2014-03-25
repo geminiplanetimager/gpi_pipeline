@@ -1074,7 +1074,7 @@ FUNCTION dirviewer::init, $
   ; may not be strictly increasing alphabetically if we're toggling between
   ; Engineering and Science readouts
   self.time_sort= gpi_get_setting('at_gemini', default=0,/silent)
-  self.auto_refresh=gpi_get_setting('at_gemini', default=0,/silent)
+  self.auto_refresh=0 ; gpi_get_setting('at_gemini', default=0,/silent)
   self.auto_load_new=0
   self.check_period=5
   
