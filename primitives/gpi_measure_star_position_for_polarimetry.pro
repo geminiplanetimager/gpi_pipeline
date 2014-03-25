@@ -43,7 +43,9 @@ calfiletype=''   ; set this to some non-null value e.g. 'dark' if you want to lo
 ; history, then if calfiletype is not blank it queries the calibration database
 ; for that file, and does error checking on the returned filename.
 @__start_primitive
-suffix='' 		 ; set this to the desired output filename suffix
+;suffix='' 		 ; set this to the desired output filename suffix
+				 ; This primitive should not change the existing suffix, it
+				 ; just updates the headers slightly.
 
 
 cube = *dataset.currframe
@@ -76,4 +78,5 @@ backbone->set_keyword,"PSFCENTY", cent[1], 'Y-Location of PSF center', ext_num=1
 
 @__end_primitive
 
+stop
 end
