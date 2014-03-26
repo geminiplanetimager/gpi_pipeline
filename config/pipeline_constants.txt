@@ -44,4 +44,9 @@ cen_wave_H  1.6473029
 cen_wave_K1  2.0425281
 cen_wave_K2  2.2515272
 
-
+# size of coronagraph focal plane masks, in arcseconds
+fpm_diam_y = 0.156
+fpm_diam_j = 0.184
+fpm_diam_h = 0.246
+fpm_diam_k1 = 0.306
+fpm_diam_k2 = 0.306
