@@ -691,9 +691,9 @@ top_menu_desc = [ $
 ; This line commented out to remove "WCS Grid" menu option.
 ; Can be re-instated if "WCS Grid" required but will need modification.
                 {cw_pdmenu_s, 0, 'WCS Grid'}, $
-                {cw_pdmenu_s, 4, 'Select Wavecal File'}, $
-                {cw_pdmenu_s, 0, 'Get Wavecal from CalDB'}, $
-                {cw_pdmenu_s, 0, 'Plot Wavecal Grid'}, $
+                {cw_pdmenu_s, 4, 'Select Wavecal/Polcal File'}, $
+                {cw_pdmenu_s, 0, 'Get Wavecal/Polcal from CalDB'}, $
+                {cw_pdmenu_s, 0, 'Plot Wavecal/Polcal Grid'}, $
                 {cw_pdmenu_s, 4, 'EraseLast'}, $
                 {cw_pdmenu_s, 0, 'EraseAll'}, $
                 {cw_pdmenu_s, 4, 'Load Regions'}, $
@@ -1478,15 +1478,9 @@ case event_name of
    'Polarimetry': self->polarim
    'Draw Region': self->regionlabel
    'WCS Grid': self->wcsgridlabel
-   'Select Wavecal File':begin
-	  fitsfile = DIALOG_PICKFILE( TITLE='Select Wavecal File ', FILTER = '*wavecal*.fits', FILE='*.fits',/MUST_EXIST,$
-			path=gpi_get_directory('GPI_CALIBRATIONS_DIR'))
-     if (fitsfile EQ '') then return ; 'cancel' button returns empty string
-      (*self.state).wcfilename= fitsfile
-      self->message, msgtype = 'information',  "Wavelength Cal file set to "+(*self.state).wcfilename 
-   end
-   'Get Wavecal from CalDB': self->getautowavecal
-   'Plot Wavecal Grid': self->wavecalgridlabel
+   'Select Wavecal/Polcal File': self->selectwavecal
+   'Get Wavecal/Polcal from CalDB': self->getautowavecal
+   'Plot Wavecal/Polcal Grid': self->wavecalgridlabel
    'EraseLast': self->erase, 1
    'EraseAll': begin
       self->erase
@@ -5648,11 +5642,9 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
 
      else: begin
         ;; Catch-all case for non 2-d or 3-d images - alert the user
-stop
         self->message, 'Selected file is not a 2-D or 3-D FITS image!', $
                        msgtype = 'error', window = window
         *self.images.main_image = fltarr(512, 512)
-stop
         return
      end  
   endcase ;;dimensionality of main image 
@@ -5682,6 +5674,10 @@ stop
 
   ;; remove any existing CWV_ptrs
   if (ptr_valid((*self.state).CWV_ptr)) then ptr_free, (*self.state).CWV_ptr
+
+
+  ;; discard any previously loaded polcal or wavecal file for overplotting. 
+  (*self.state).wcfilename=''
 
   ;; set image header
   self->setheader, header, _extra=_extra
@@ -10821,6 +10817,12 @@ end
 ;----------------------------------------------------------------------
 pro GPItv::plot1wavecalgrid,iplot
 
+if (*self.state).wcfilename eq "" then begin
+   self->message, msgtype = 'error', "You must select a wavelength/polarization calibration file first before you can plot!"
+   return
+endif
+
+
 
 gridcolor = (*(self.pdata.plot_ptr[iplot])).options.gridcolor
 tiltcolor = (*(self.pdata.plot_ptr[iplot])).options.tiltcolor
@@ -10828,11 +10830,6 @@ labeldisp = (*(self.pdata.plot_ptr[iplot])).options.labeldisp
 labelcolor = (*(self.pdata.plot_ptr[iplot])).options.labelcolor
 charsize = (*(self.pdata.plot_ptr[iplot])).options.charsize
 charthick = (*(self.pdata.plot_ptr[iplot])).options.charthick
-
-if (*self.state).wcfilename eq "" then begin
-   self->message, msgtype = 'error', "You must select a wavelength/polarization calibration file first before you can plot!"
-   return
-endif
 
 self->setwindow, (*self.state).draw_window_id
 
@@ -11401,19 +11398,59 @@ self->wcsgrid, gridcolor=gridcolor, wcslabelcolor=wcslabelcolor, $
 endif
 
 end
+;---------------------------------------------------------------------
+pro GPItv::selectwavecal
+	; Let the user manually select a wavelength calibration (or polarization
+	; calibration) file
 
+	hd = *((*self.state).head_ptr)	
+	if ptr_valid((*self.state).exthead_ptr) then exthd = *((*self.state).exthead_ptr) else exthd = ['', 'END']
+
+	inst = gpi_get_keyword(hd, exthd, 'INSTRUME',count=cc)
+	if strc(inst) ne 'GPI' then begin
+		self->message, "The current file does not appear to be a GPI IFS 2D image",msgtype='error', /window
+		return
+	endif
+
+	if (size(*self.images.main_image_stack))[0] ne 2 then begin
+		self->message, "The current file does not appear to be a GPI IFS 2D image",msgtype='error', /window
+		return
+	endif
+
+	disperser = gpi_get_keyword(hd, exthd, 'DISPERSR',count=cc)
+	if strmatch(disperser, '*PRISM*',/fold) then begin
+		calfiletype = 'Wavecal'
+		filter='*wavecal*.fits'
+	endif else if strmatch(disperser, '*WOLL*',/fold) then begin
+		calfiletype = 'Polcal' 
+		filter='*polcal*.fits'
+	endif else begin
+		self->message, "The current file does not appear to have a valid DISPERSR keyword",msgtype='error', /window
+		return
+	endelse
+
+
+
+	 fitsfile = DIALOG_PICKFILE( TITLE='Select '+calfiletype+'File ', FILTER = filter, FILE='*.fits',/MUST_EXIST,$
+			path=gpi_get_directory('GPI_CALIBRATIONS_DIR'))
+     if (fitsfile EQ '') then return ; 'cancel' button returns empty string
+
+     (*self.state).wcfilename= fitsfile
+	 self->message, [calfiletype+" file set to "+(*self.state).wcfilename, "Now select 'Plot Wavecal/Polcal Grid' to display it."],/window
+
+end
+	
 ;---------------------------------------------------------------------
 pro GPItv::getautowavecal
 	; load automatic best wavelength calibration (or polarizatoin calibration)
 	; file from the GPI Calibration DB
 	
 
-
 	hd = *((*self.state).head_ptr)	
-	exthd = *((*self.state).exthead_ptr)
+	if ptr_valid((*self.state).exthead_ptr) then exthd = *((*self.state).exthead_ptr) else exthd = ['', 'END']
 
 	inst = gpi_get_keyword(hd, exthd, 'INSTRUME',count=cc)
-	if inst ne 'GPI' then begin
+	if strc(inst) ne 'GPI' then begin
 		self->message, "The current file does not appear to be a GPI IFS 2D image",msgtype='error', /window
 		return
 	endif
@@ -11439,7 +11476,7 @@ pro GPItv::getautowavecal
 		self->message, ['ERROR: No available appropriate calibration files for this data!','', 'The calibration database does not contain a wavecal or polcal file','that matches this image in IFSFILT and DISPERSR keywords. Cannot load data to plot.'],/window,msgtype='error'
 		(*self.state).wcfilename=''
 	endif else begin
-		self->message, ["Retrieved "+calfiletype+" file from Calibration DB: "+bestfile, "Now select 'Plot Wavecal Grid' to display it."],/window
+		self->message, ["Retrieved "+calfiletype+" file from Calibration DB: "+bestfile, "Now select 'Plot Wavecal/Polcal Grid' to display it."],/window
 		(*self.state).wcfilename = bestfile
 	endelse
 
@@ -11450,8 +11487,7 @@ end
 pro GPItv::wavecalgridlabel
 ; Front-end widget for wavecal labels
 if (*self.state).wcfilename eq '' then begin
-    self->message, 'You must select a wavecal file before you can overplot the wavelength solution grid.', $
-      msgtype = 'error', /window
+   self->message, msgtype = 'error', "You must select a wavelength/polarization calibration file first before you can overplot the solution!",/window
   return
 endif
 
@@ -14794,8 +14830,8 @@ h = ['GPItv HELP',$
 'Labels->Polarimetry:          Label polarimetry slices',$
 'Labels->Draw Region:          Brings up a dialog box for overplotting regions',$
 'Labels->WCS Grid:             Draws a WCS grid on current image',$
-'Labels->Select Wavecal File:  Brings up a dialog box to select wavelength calibration file',$
-'Labels->Get Wavecal from CalDB: Automatically selects wavelength calibration from available ones',$
+'Labels->Select Wavecal/Polcal File:  Brings up a dialog box to select wavelength calibration file',$
+'Labels->Get Wavecal/Polcal from CalDB: Automatically selects wavelength calibration from available ones',$
 'Labels->Plot Wavecal Grid:    Display wavelength calibration (only meaningful for raw data images)',$
 'Labels->EraseLast:            Erases the most recent plot label',$
 'Labels->EraseAll:             Erases all plot labels',$
