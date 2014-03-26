@@ -224,7 +224,10 @@ PRO gpicaldatabase::rescan_directory
 	; the following code will follow through one layer of symlinks, for any symlinks 
 	; found in the caldir. It won't recursively follow any additional symlinks.
 	; That's probably good enough for >99% of use cases.
-	symlinks = file_search(self.caldir, '*', /test_symlink, count=count_symlinks)
+	
+if strmatch(!VERSION.OS_FAMILY , 'Windows',/fold) then count_symlinks = 0 $;not sure why not working under Wnidows
+else 	symlinks = file_search(self.caldir, '*', /test_symlink, count=count_symlinks)
+
 	if count_symlinks gt 0 then begin
 		for j=0L,count_symlinks-1 do begin
 			files = [files,file_search(symlinks[j],"*.fits")]
