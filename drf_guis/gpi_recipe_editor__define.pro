@@ -718,6 +718,7 @@ pro gpi_recipe_editor::event,ev
 			  5:typeName ='FLOAT'
 			  7:typeName ='STRING'
 			  12:typeName ='INT'
+				else:typeName ='INVALID'
 			endcase    
 		endelse
 
