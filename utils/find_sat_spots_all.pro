@@ -92,9 +92,7 @@ for j=0,sz[2]-1 do if j ne indx then $
    cens[*,*,j] = cv_coord(from_polar=[cens0p[0,*],cens0p[1,*]/scl[j]],/to_rect) + c0
 
 ;;refine, if asked
-if keyword_set(refinefits) then $
-   for j=0,sz[2]-1 do if j ne indx then $
-      cens[*,*,j] = find_sat_spots(im[*,*,j],locs=cens[*,*,j])
+if keyword_set(refinefits) then for j=0,sz[2]-1 do cens[*,*,j] = find_sat_spots(im[*,*,j],locs=cens[*,*,j],highpass=highpass)
 
 ;;get rid of slices where satellites can't be found
 bad = where(cens ne cens, badct)

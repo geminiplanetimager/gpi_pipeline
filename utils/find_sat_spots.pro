@@ -55,11 +55,17 @@ generate_grids, fx, fy, refpix, /whole
 fr = sqrt(fx^2 + fy^2)
 ref = exp(-0.5*fr^2)
 
+; run the highpass filter if desired
+   s0i = s0  
+if keyword_set(highpass) then begin
+   if highpass eq 1 then s0i -= filter_image(s0i,median=9) $
+	else s0i -= filter_image(s0i,median=highpass)	
+endif
+
+
 ;;if not given initial centers, need to hunt for them
 if not keyword_set(locs0) then begin
-   s0i = s0
-   if keyword_set(highpass) then s0i -= filter_image(s0i,median=9)
-
+   
    ;;fourier coregister with gaussian to smooth image
    fourier_coreg,s0i,ref,out,/wind
 
@@ -140,7 +146,7 @@ endelse
 cens = dblarr(2,4)
 for i=0,3 do begin 
    ;;correlate
-   subimage = s0[locs[0,i]-hh:locs[0,i]+hh,locs[1,i]-hh:locs[1,i]+hh]
+   subimage = s0i[locs[0,i]-hh:locs[0,i]+hh,locs[1,i]-hh:locs[1,i]+hh]
    fourier_coreg,subimage,ref,shft,/findshift
    cens[*,i] = locs[*,i] - shft
 endfor
