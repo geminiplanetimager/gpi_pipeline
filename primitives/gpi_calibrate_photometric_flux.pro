@@ -88,7 +88,7 @@ lambda=cwv.lambda
 ; if nothing is supplied, then we use the cube itself.
 if strc(calib_spectrum) eq '' and strc(calib_cube_name) eq '' then begin
 	backbone->Log,functionname+":  calib_spectrum nor calib_cube_name specified, using the sat spots in the supplied cube"+string(calib_cube_name)+" to generate calibration"
-	calib_cube_struct={image:dataset.currframe[numfile],pri_header:dataset.headersphu[numfile],ext_header:dataset.headersext[numfile]}
+	calib_cube_struct={image:dataset.currframe[0],pri_header:dataset.headersphu[numfile],ext_header:dataset.headersext[numfile]}
 endif
 
 ; first have to determine if a calibration spectrum is supplied
@@ -131,7 +131,7 @@ if keyword_set(calib_cube_name) eq 1 or keyword_set(calib_cube_struct) eq 1 then
 				backbone->Log,logstr
 				calib_cube_struct=gpi_load_fits(Modules[thisModuleIndex].OutputDir+path_sep()+calib_cube_name)
 			endif else begin ; no? - then fail
-				logstr = functionname+':  User specified cube name does not exist; check filename and directory. Aborting sequence'
+				logstr = functionname+':  User specified cube name '+strc(calib_cube_name)+'  does not exist; check filename and directory. Aborting sequence'
 				backbone->Log,logstr
 				return, not_ok
 			endelse
@@ -219,10 +219,10 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 		x0=floor(xarr[cent_ind])+0.5
 		y0=floor(yarr[cent_ind])+0.5
 		;window,1
-		;plot, lambda[ind],xarr0[ind],yr=[min(xarr0[ind],/nan),max(xarr0[ind],/nan)]
+		;plot, lambda[ind],xarr0[ind],yr=[min(xarr0[ind],/nan),max(xarr0[ind],/nan)],title='xposition of sat spot '+strc(s)
 		;oplot, lambda,xarr
 		;window,2
-		;plot, lambda[ind],yarr0[ind],yr=[min(yarr0[ind],/nan),max(yarr0[ind],/nan)]
+		;plot, lambda[ind],yarr0[ind],yr=[min(yarr0[ind],/nan),max(yarr0[ind],/nan)],title='yposition of sat spot '+strc(s)
 		;oplot, lambda,yarr
 		;stop
 		;wdelete,1
@@ -257,15 +257,15 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 			; look at fitting around an annulus instead
 				; first find the planet/star separation
 				sep=sqrt((x0-psfcentx)^2+(y0-psfcenty)^2)
-				dr= skyrad[0]
+				dr= ceil(aperrad*2)+1
 				ang=asin((y0-psfcenty)/sep) ; positive in Q1 and Q2
 				ang2=acos((x0-psfcentx)/sep)  ; postive in Q1 and Q4
-				dang=skyrad[1]/sep
+				dang=ceil(skyrad[1]/sep)
 			; ugh, there must be a better way to do this
 			; find pixels in a given angular annulus	
 				bkg_ind0=where( ang_arr gt (ang-dang) and ang_arr lt (ang+dang) and $
 				rad_arr gt sep-dr and rad_arr lt sep+dr and xgrid/abs(xgrid) eq (x0-psfcentx)/abs((x0-psfcentx)))
-				mask_ind=	get_xyaind(281,281,x0,y0,skyrad[0],skyrad[1])
+				mask_ind=get_xyaind(281,281,x0,y0,skyrad[0],skyrad[1])
 				match, bkg_ind0,mask_ind,suba,subb,count=count
 				bkg_ind=bkg_ind0[suba]
 
@@ -287,8 +287,52 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 
 				; peform background subtraction
 				satflux_arr[s,l]=total(trans_cube_slice[src_ind]-src_bkg_plane)
-				bkg_stddev=stddev(trans_cube_slice[finite_bkg_ind]-yfit,/nan)
-				satflux_err_arr[s,l]=sqrt(float(N_ELEMENTS(src_ind))*(bkg_stddev)^2)
+							
+; now do the error bar - this is dirty and must be cleaned up.. 
+; must convolve the bkg by the source annulus, then 
+bkg=fltarr(281,281) & mask=fltarr(281,281)+1
+bkg[finite_bkg_ind]=trans_cube_slice[finite_bkg_ind]-yfit
+bkg_bad=where(bkg eq 0)
+bkg[bkg_bad]=!values.f_nan & mask[bkg_bad]=!values.f_nan
+kernel0=fltarr(281,281)
+kernel0[src_ind]=1
+kernel=subarr(kernel0,ceil(aperrad*2)+2,[x0,y0])
+bkg_conv=convol(bkg,kernel,/nan)
+mask2=convol(mask,kernel,/nan)
+good_ind=where(mask2 eq N_ELEMENTS(src_ind))
+satflux_err_arr[s,l]=stddev(bkg_conv[good_ind],/nan,/double)
+if finite(satflux_err_arr[s,l]) eq 0 then stop
+
+				; examine the fit
+				if 0 eq 1 and l eq 15 then begin
+					yfit2d=fltarr(281,281)
+					yfit2d[*,*]=!values.f_nan
+					yfit2d[finite_bkg_ind]=yfit
+					yfit2d[src_ind]=src_bkg_plane
+					tmask=fltarr(281,281)
+					tmask[*,*]=!values.f_nan
+					tmask[good_ind]=1 & tmask[src_ind]=1
+					rmax=max(trans_cube_slice[good_ind],/nan)
+					rmin=min(trans_cube_slice[good_ind],/nan)
+					sz=skyrad[1]*2*3;(ceil(aperrad*2)+2)*40 
+					sz=300
+					loadct,1
+					window,0, xsize=sz*4,ysize=sz,title='background region/fit/residuals/error',xpos=0,ypos=400
+					tvdl, subarr(trans_cube_slice*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),rmin,rmax,position=0
+					tvdl, subarr(yfit2d*tmask,          ceil(skyrad[1]+1)*2,[x0,y0]),rmin,rmax,position=1
+					tvdl, subarr((trans_cube_slice-yfit2d)*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=2
+					mask[src_ind]=!values.f_nan
+					tvdl, subarr(bkg_conv*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=3
+
+					stop
+
+				endif
+
+
+
+				; OLD AND WRONG
+;				bkg_stddev=stddev(trans_cube_slice[finite_bkg_ind]-yfit,/nan)
+;				satflux_err_arr[s,l]=sqrt(float(N_ELEMENTS(src_ind))*(bkg_stddev)^2)
 		endfor ; end loop over photometry of wavelength slices
 
 	endfor ; end loop over satellites
@@ -313,7 +357,7 @@ sat4flux=satflux_arr[3,*]
 		; however, the stddev cannot be smaller than the mean noise of the 4 spots - this never actually happens....
 		photom_noise=sqrt(total(satflux_err_arr[*,l]^2))
 		if stddev_sat_flux[l] eq -1 then stddev_sat_flux[l]=(stddev([sat1flux[l]/norm1, sat2flux[l]/norm2, sat3flux[l]/norm3, sat4flux[l]/norm4]))>(photom_noise/mean_norm)
-		mean_sat_flux[l]=median([sat1flux[l]/norm1, sat2flux[l]/norm2, sat3flux[l]/norm3, sat4flux[l]/norm4],/even)*mean_norm ; counts/slice
+		mean_sat_flux[l]=mean([sat1flux[l]/norm1, sat2flux[l]/norm2, sat3flux[l]/norm3, sat4flux[l]/norm4])*mean_norm ; counts/slice
 		stddev_sat_flux[l]*=(mean_norm)
 	endfor
 
@@ -327,7 +371,7 @@ oplot, lambda,(sat1flux/norm1)*mean_norm, color=cgcolor('blue'),linestyle=2,thic
 oplot, lambda,sat2flux/norm2*mean_norm, color=cgcolor('teal'),linestyle=3,thick=2
 oplot, lambda,sat3flux/norm3*mean_norm, color=cgcolor('red'),linestyle=4,thick=2
 oplot, lambda,sat4flux/norm4*mean_norm, color=cgcolor('green'),linestyle=5,thick=2
-legend,['median(even)','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/right,textcolor=cgcolor('black')
+legend,['mean','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/right,textcolor=cgcolor('black')
 
 window,20,xsize=700,ysize=400
 device,decomposed=0
@@ -336,7 +380,7 @@ oplot, lambda,(sat1flux/norm1)*mean_norm/mean_sat_flux, color=cgcolor('blue'),li
 oplot, lambda,sat2flux/norm2*mean_norm/mean_sat_flux, color=cgcolor('teal'),linestyle=3,thick=2
 oplot, lambda,sat3flux/norm3*mean_norm/mean_sat_flux, color=cgcolor('red'),linestyle=4,thick=2
 oplot, lambda,sat4flux/norm4*mean_norm/mean_sat_flux, color=cgcolor('green'),linestyle=5,thick=2
-legend,['median(even)','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/right,textcolor=cgcolor('black')
+legend,['mean','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/right,textcolor=cgcolor('black')
 
 window,21,xsize=700,ysize=400
 device,decomposed=0
@@ -346,7 +390,7 @@ oploterror, lambda,sat2flux/norm2*mean_norm/mean_sat_flux, satflux_err_arr[1,*]/
 oploterror, lambda,sat3flux/norm3*mean_norm/mean_sat_flux, satflux_err_arr[2,*]/sat3flux, color=cgcolor('red'),linestyle=4,thick=2
 oploterror, lambda,sat4flux/norm4*mean_norm/mean_sat_flux, satflux_err_arr[3,*]/sat4flux, color=cgcolor('green'),linestyle=5,thick=2
 
-legend,['median(even)','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/left,textcolor=cgcolor('black')
+legend,['mean','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/left,textcolor=cgcolor('black')
 
 
 
@@ -447,7 +491,8 @@ unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm
 		backbone->set_keyword, 'EFLUXRAT',  contained_flux_ratio ,"flux ratio in photom aper", ext_num=0
 ;calibrated_cube[*,*,0:2]=0.0
 ;calibrated_cube[*,*,34:36]=0
-*(dataset.currframe[numfile])=calibrated_cube
+;*(dataset.currframe[numfile])=calibrated_cube  ; orig
+*(dataset.currframe[0])=calibrated_cube  ; orig
 
 @__end_primitive 
 

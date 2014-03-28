@@ -121,7 +121,7 @@ endif
 ; #############################
 ; now extract the source
 ; #############################
-    source_cube=*(dataset.currframe[numfile])
+    source_cube=*(dataset.currframe[0])
 
     badpix = [0,0] & phpadu=1     
 
@@ -192,8 +192,8 @@ endif
 		return, error('FAILURE ('+functionName+'): entire x or y centroids are NaNs; make sure the spectral extraction position is correct') 
 
 	;determine error from the data
-	for j=1,N_ELEMENTS(lambda)-2 do	xerr[j]=0.1>abs(xarr0[j]-xarr0[j+1])>abs(xarr0[j]-xarr0[j-1])
-	for j=1,N_ELEMENTS(lambda)-2 do	yerr[j]=0.1>abs(yarr0[j]-yarr0[j+1])>abs(yarr0[j]-yarr0[j-1])
+	for j=1,N_ELEMENTS(lambda)-2 do xerr[j]=0.1>abs(xarr0[j]-xarr0[j+1])>abs(xarr0[j]-xarr0[j-1])
+	for j=1,N_ELEMENTS(lambda)-2 do yerr[j]=0.1>abs(yarr0[j]-yarr0[j+1])>abs(yarr0[j]-yarr0[j-1])
 	delvarx,ax,bx,ay,by
 	; make sure all are finite and ignore first and last 3 points in the cube since hte SNR is crap
 	ind = where(finite(xarr0+yarr0) ne 0 and xerr ne 0 and yerr ne 0 and (lambda gt lambda[3] and lambda lt lambda[N_ELEMENTS(lambda)-4]))
@@ -201,14 +201,14 @@ endif
 	fitexy,lambda[ind],yarr0[ind],Ay,By,X_sig=1e-3,y_sig=yerr[ind]
 	xarr=lambda*Bx+Ax
 	yarr=lambda*By+Ay
-
-;	window,23,title='xcentroid vs extracted position relative to xcenter',xsize=700,ysize=400
-;	plot,lambda,xarr0-xcenter,yr=[min(xarr-xcenter,/nan),max(xarr-xcenter,/nan)],background=cgcolor('white'),color=cgcolor('black'),xtitle='wavelength',ytitle='[x,y] centroid minus [x,y] center',charsize=1.5,thick=2
-;	oplot, lambda,xarr-xcenter,linestyle=2,color=cgcolor('black'),thick=2
-;	window,24,title='ycentroid vs extracted position relative to ycenter',xsize=700,ysize=400
-;	plot,lambda,yarr0-ycenter,color=cgcolor('black'),yr=[0.9*min(yarr-ycenter,/nan),1.1*max(yarr-ycenter,/nan)],background=cgcolor('white'),xtitle='wavelength',ytitle='[x,y] centroid minus [x,y] center',charsize=1.5,thick=2
-;	oplot,lambda,yarr-ycenter,color=cgcolor('black'),linestyle=2,thick=2
-	
+	if 0 eq 1 then begin
+		window,23,title='xcentroid vs extracted position relative to xcenter',xsize=700,ysize=400
+		plot,lambda,xarr0-xcenter,yr=[min(xarr-xcenter,/nan),max(xarr-xcenter,/nan)],background=cgcolor('white'),color=cgcolor('black'),xtitle='wavelength',ytitle='[x,y] centroid minus [x,y] center',charsize=1.5,thick=2
+		oplot, lambda,xarr-xcenter,linestyle=2,color=cgcolor('black'),thick=2
+		window,24,title='ycentroid vs extracted position relative to ycenter',xsize=700,ysize=400
+		plot,lambda,yarr0-ycenter,color=cgcolor('black'),yr=[0.9*min(yarr-ycenter,/nan),1.1*max(yarr-ycenter,/nan)],background=cgcolor('white'),xtitle='wavelength',ytitle='[x,y] centroid minus [x,y] center',charsize=1.5,thick=2
+		oplot,lambda,yarr-ycenter,color=cgcolor('black'),linestyle=2,thick=2
+	endif ; 
 	endif else begin
 		; just hard set to the define centroid
 		; but it still must be centered on a half pixel
@@ -233,11 +233,6 @@ ang_arr=asin(ygrid/rad_arr)
 				aperrad = aperrad0*lambda[i]
 				skyrad  = skyrad0*lambda[i]
 				trans_cube_slice=translate(source_cube[*,*,i]/fscale_arr[i],x0-xarr[i],y0-yarr[i])
-				;aper, trans_cube , [x0], [y0], flux, errflux, sky, skyerr, phpadu, aperrad, $
-        ;      skyrad, badpix, /flux, /silent,/nan,/exact
-				;aper, source_cube[*,*,i], [x], [y], flux, errflux, sky, skyerr, phpadu, aperrad, $
-        ;      skyrad, badpix, /flux, /silent,/nan,/exact
-
 			; do an error approximation - the error is useless from aper unless in photons and
 				; even then it adds photon noise that won,t be correct.
 				;get size of aperture in pixels - this is not really exact...
@@ -247,14 +242,14 @@ ang_arr=asin(ygrid/rad_arr)
 				; lets look at fitting an annulus instead
 				; first find the planet/star separation
 				sep=sqrt((x0-psfcentx)^2+(y0-psfcenty)^2)
-				dr= skyrad[0]
+				dr= ceil(aperrad*2)+1
 				ang=asin((y0-psfcenty)/sep) ; positive in Q1 and Q2
-				dang=skyrad[1]/sep
+				dang=ceil(skyrad[1]/sep)
 			; ugh, there must be a better way to do this
 			; find pixels in a given angular annulus	
 				bkg_ind0=where( ang_arr gt (ang-dang) and ang_arr lt (ang+dang) and $
 				rad_arr gt sep-dr and rad_arr lt sep+dr and xgrid/abs(xgrid) eq (x0-psfcentx)/abs((x0-psfcentx)))
-				mask_ind=	get_xyaind(281,281,x0,y0,skyrad[0],skyrad[1])
+				mask_ind=get_xyaind(281,281,x0,y0,skyrad[0],skyrad[1])
 				match, bkg_ind0,mask_ind,suba,subb,count=count
 				bkg_ind=bkg_ind0[suba]
 
@@ -278,16 +273,62 @@ ang_arr=asin(ygrid/rad_arr)
 				src_bkg_plane=coef[0]+coef[1]*xinds+coef[2]*yinds	
 				; do the photometry and error calculation
 				phot_comp[i]=total(trans_cube_slice[src_ind]-src_bkg_plane)
-				bkg_stddev=stddev(trans_cube_slice[finite_bkg_ind]-yfit,/nan)
-				phot_comp_err[i]=sqrt(float(N_ELEMENTS(src_ind))*(bkg_stddev)^2)
+
+				; now do the error bar - this is dirty and must be cleaned up.. 
+				; must convolve the bkg by the source annulus, then 
+				bkg=fltarr(281,281) & mask=fltarr(281,281)+1
+				bkg[finite_bkg_ind]=trans_cube_slice[finite_bkg_ind]-yfit
+				bkg_bad=where(bkg eq 0)
+				bkg[bkg_bad]=!values.f_nan & mask[bkg_bad]=!values.f_nan
+				kernel0=fltarr(281,281)
+				kernel0[src_ind]=1
+				kernel=subarr(kernel0,ceil(aperrad*2)+2,[x0,y0])
+				bkg_conv=convol(bkg,kernel,/nan)
+				mask2=convol(mask,kernel,/nan)
+				good_ind=where(mask2 eq N_ELEMENTS(src_ind))
+				phot_comp_err[i]=stddev(bkg_conv[good_ind],/nan,/double)
+				if finite(phot_comp_err[i]) eq 0 then stop
+				
+					; examine the fit
+				if 0 eq 1 and i eq 15 then begin
+					yfit2d=fltarr(281,281)
+					yfit2d[*,*]=!values.f_nan
+					yfit2d[finite_bkg_ind]=yfit
+					yfit2d[src_ind]=src_bkg_plane
+					tmask=fltarr(281,281)
+					tmask[*,*]=!values.f_nan
+					tmask[good_ind]=1 & tmask[src_ind]=1
+					rmax=max(trans_cube_slice[good_ind],/nan)
+					rmin=min(trans_cube_slice[good_ind],/nan)
+					sz=skyrad[1]*2*3;(ceil(aperrad*2)+2)*40 
+					sz=300
+					loadct,1
+					window,0, xsize=sz*4,ysize=sz,title='background region/fit/residuals/error',xpos=0,ypos=400
+					tvdl, subarr(trans_cube_slice*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),rmin,rmax,position=0
+					tvdl, subarr(yfit2d*tmask,          ceil(skyrad[1]+1)*2,[x0,y0]),rmin,rmax,position=1
+					tvdl, subarr((trans_cube_slice-yfit2d)*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=2
+					mask[src_ind]=!values.f_nan
+					tvdl, subarr(bkg_conv*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=3
+					print,phot_comp[i],phot_comp_err[i]
+					stop
+
+				endif
+
+
+				; OLD AND WRONG
+				;bkg_stddev=stddev(trans_cube_slice[finite_bkg_ind]-yfit,/nan,/double)
+;				phot_comp_err[i]=sqrt(float(N_ELEMENTS(src_ind))*(bkg_stddev)^2)
+;tvdl,subarr(bkg_conv,9*ceil(aperrad*2+1),[x0,y0]
 
 				; now normalize for missing flux ratio in aperture used in gpi_calibrate_photometric flux
 				; this just cancels out if the extraction aperture is unchanged, which it should be! 
 				; this area of the code will be modified once we start using different apertures. 
 				phot_comp[i]/=(contained_flux_ratio)
 				phot_comp_err[i]/=(contained_flux_ratio)
-;if i eq 36 then stop
 		endfor
+;window,2,retain=2
+;ploterror,lambda,phot_comp,phot_comp_err
+;stop
 ; now convert back to desired units
 for l=0, N_ELEMENTS(lambda)-1 do phot_comp[l]*=fscale_arr[l]
 for l=0, N_ELEMENTS(lambda)-1 do phot_comp_err[l]*=fscale_arr[l]
@@ -304,6 +345,19 @@ if display ne -1 then begin
 	phot_comp_err_total=phot_comp*sqrt((cal_percent_err/100.)^2+(phot_comp_err/phot_comp)^2)
 	ploterror,lambda,phot_comp, phot_comp_err_total,ytitle='flux ['+units+']',xtitle='wavelength (um)',position=[0.16,0.11,0.97,0.97],xr=[min(lambda)-0.01,max(lambda)+0.01],xs=1,color=cgcolor('black'),background=cgcolor('white'),yr=[min(phot_comp[3:N_ELEMENTS(lambda)-4],/nan)*0.9,max(phot_comp[3:N_ELEMENTS(lambda)-4],/nan)*1.1];,yr=[6,18]*1e-17,/ys;
 
+; ######## testing
+;
+;model0=mrdfits('/Users/patrickingraham/GPI/pipeline/config/planet_models/gpi_spec_hy1s_mass_010_age_0030.fits',1)
+;;ind=where(model.wavelength_in_microns ge lambda[0] and model.wavelength_in_microns le lambda[35])
+;model=interpol(model0.GPI_hot_SPEC_IN_ERG_CM2_S_UM,model0.wavelength_in_microns,lambda)
+;
+;norm=median(phot_comp)/median(model)
+;
+;oplot,lambda,model*norm,color=cgcolor('red')
+; end testing
+
+;stop
+
 endif
 
 if save_ps_plot eq 1 then begin
@@ -313,7 +367,7 @@ mydevice=!d.name
 	units=(backbone->get_keyword('BUNIT'))
 	phot_comp_err_total=phot_comp*sqrt((cal_percent_err/100.)^2+(phot_comp_err/phot_comp)^2)
 yr=[min(phot_comp[3:N_ELEMENTS(lambda)-4],/nan)*0.9,max(phot_comp[3:N_ELEMENTS(lambda)-4],/nan)*1.1]
-	ploterror,lambda,phot_comp, phot_comp_err_total,ytitle='flux ['+units+']',xtitle='wavelength (um)',position=[0.16,0.11,0.97,0.97],xr=[min(lambda)-0.01,max(lambda)+0.01],xs=1,yr=yr,color=cgcolor('black'),background=cgcolor('white')
+	ploterror,lambda,phot_comp, phot_comp_err_total,ytitle='flux ['+units+']',xtitle='wavelength (um)',position=[0.16,0.11,0.97,0.97],xr=[min(lambda)-0.01,max(lambda)+0.01],xs=1,yr=yr,color=cgcolor('black'),background=cgcolor('white'),font=1
 
 closeps
 
