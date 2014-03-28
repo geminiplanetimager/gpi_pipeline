@@ -1,4 +1,4 @@
-function find_pol_center, img0, x0, y0, xrad, yrad, maskrad=maskrad, highpass=highpass, statuswindow=statuswindow
+function find_pol_center, img0, x0, y0, xrad, yrad, maskrad=maskrad, highpass=highpass, pixlowerbound=pixlowerbound, pixupperbound=pixupperbound, statuswindow=statuswindow
 ;+
 ; NAME:
 ;        find_pol_center
@@ -44,6 +44,18 @@ if (size(img))[0] eq 3 then img = total(img, 3)
 ;remove NANs
 badind = where(~FINITE(img),cc)
 if cc ne 0 then img[badind] = 0
+
+;set all pixels lower than the lower bound to that value
+if keyword_set(pixlowerbound) then begin
+	badind = where(img lt pixlowerbound, cc)
+	if cc ne 0 then img[badind] = pixlowerbound
+endif
+
+;set all pixels higher than the higher bound to that value
+if keyword_set(pixupperbound) then begin
+	badind = where(img gt pixupperbound, cc)
+	if cc ne 0 then img[badind] = pixupperbound
+endif
 
 ;filter image to remove background
 if keyword_set(highpass) then img -= filter_image(img,median=9)
