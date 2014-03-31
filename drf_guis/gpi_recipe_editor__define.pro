@@ -210,42 +210,42 @@ end
 pro gpi_recipe_editor::change_current_template, typestring,seqnum, notemplate=notemplate
 
 
-	; check if the current recipe has been modified
-	if obj_valid(self.drf) then begin
-		if self.drf->is_modified() then begin
-			res =  dialog_message('The currently opened recipe file has been modified. Loading a new template will discard your modifications. Are you sure you want to change templates?', $
-			title="Discard changes?", dialog_parent=self.top_base, /question) 
-			if res ne 'Yes' then return
-		endif
+  ;; check if the current recipe has been modified
+  if obj_valid(self.drf) then begin
+     if self.drf->is_modified() then begin
+        res =  dialog_message('The currently opened recipe file has been modified. Loading a new template will discard your modifications. Are you sure you want to change templates?', $
+                              title="Discard changes?", dialog_parent=self.top_base, /question) 
+        if res ne 'Yes' then return
+     endif
+     
+  endif
+  
+  ;; check that the requested reduction type is valid and retrieve its
+  ;; template filenames
+  wm = where((*self.templates).reductiontype eq typestring, mct)
+  if mct eq 0 then begin
+     message, 'Requested reduction type "'+typestring+'" is invalid/unknown. Cannot load any Recipes!',/info
+     widget_control, self.template_name_id,SET_DROPLIST_SELECT=0
+     return
+  endif
+  
+  
+  ;; Now we can switch to that template
+  if ~(keyword_set(notemplate)) then begin
+     chosen_template = wm[seqnum]
+     widget_control, self.template_name_id,SET_DROPLIST_SELECT=seqnum
+     print, "Chosen template filename:"+((*self.templates)[chosen_template]).filename
+     
+     ;; Load the new template, preserving the data files of the current recipe
+     if obj_valid(self.drf) then datafiles = self.drf->get_datafiles()
+     
+     self->open, ((*self.templates)[chosen_template]).filename,  /template
 
-	endif
-
-	; check that the requested reduction type is valid and retrieve its
-	; template filenames
-    wm = where((*self.templates).reductiontype eq typestring, mct)
-    if mct eq 0 then begin
-		message, 'Requested reduction type "'+typestring+'" is invalid/unknown. Cannot load any Recipes!',/info
-		widget_control, self.template_name_id,SET_DROPLIST_SELECT=0
-		return
-	endif
-
-
-	; Now we can switch to that template
-    if ~(keyword_set(notemplate)) then begin
-		chosen_template = wm[seqnum]
-		widget_control, self.template_name_id,SET_DROPLIST_SELECT=seqnum
-		print, "Chosen template filename:"+((*self.templates)[chosen_template]).filename
-
-		; Load the new template, preserving the data files of the current recipe
-		if obj_valid(self.drf) then datafiles = self.drf->get_datafiles()
-
-        self->open, ((*self.templates)[chosen_template]).filename,  /template
-
-		if n_elements(datafiles) gt 0 then self.drf->set_datafiles, datafiles
-		self->refresh_filenames_display
-
-    endif
-
+     if n_elements(datafiles) gt 0 then self.drf->set_datafiles, datafiles
+     self->refresh_filenames_display
+     
+  endif
+  
 end
 
 
@@ -897,6 +897,13 @@ pro gpi_recipe_editor::event,ev
         ;file = (*storage.splitptr).filename
         self->save, /nopickfile
         self->queue, self.drfpath+path_sep()+self.drffilename
+     end
+    'New Recipe':begin
+       ;clear all loaded files
+       self.drf->clear_datafiles
+       self.customdrffilename = 0
+       selecseq=widget_info(self.template_name_id,/DROPLIST_SELECT)
+       self->change_current_template, self.reductiontype, selecseq
     end
     'Open Recipe...':begin
         newDRF =  DIALOG_PICKFILE(TITLE='Select a Recipe File', filter='*.xml',/MUST_EXIST,path=self.drfpath)
@@ -1222,12 +1229,11 @@ pro gpi_recipe_editor::open, filename, template=template, silent=silent, log=log
     
     ; now parse the requested DRF.
     self->log, "Opening: "+gpi_shorten_path(self.loadedRecipeFile)
-
     self.drf = obj_new('drf', self.loadedRecipeFile, parent_object=self, /silent, /quick, as_template=keyword_set(nodata))
     drf_summary = self.drf->get_summary()
     drf_contents = self.drf->get_contents()
     drf_module_names = self.drf->list_primitives() 
-    
+
     ;; if requested, load the filenames in that DRF
     ;; (for Template use, don't load the data)
     if keyword_set(template) then  begin
@@ -1329,7 +1335,6 @@ pro gpi_recipe_editor::init_data, _extra=_Extra
 	self->scan_templates
 	self->update_available_primitives, self.reductiontypes[0] ; needed before widget creation
 
-
 	self.loadedRecipeFile = 'none' 
 
 end
@@ -1409,6 +1414,7 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
 	tmp_struct = {cw_pdmenu_s, flags:0, name:''}
 	top_menu_desc = [ $
                   {cw_pdmenu_s, 1, 'File'}, $ ; file menu;
+                  {cw_pdmenu_s, 0, 'New Recipe'}, $
                   {cw_pdmenu_s, 0, 'Open Recipe...'}, $
                   {cw_pdmenu_s, 0, 'Save Recipe'}, $
                   {cw_pdmenu_s, 0, 'Save Recipe as...'}, $
@@ -1624,13 +1630,14 @@ end
 ;    Set view mode and optionally load a recipe
 ;-
 PRO gpi_recipe_editor::post_init, drfname=drfname, _extra=_extra
-    if keyword_set(drfname) then begin
-        self->open, drfname, /log
-    end
-	self->set_view_mode, 2
-
-	if self.last_used_input_dir eq '' then self.last_used_input_dir = self->get_default_input_dir()
-
+  
+  if keyword_set(drfname) then begin
+     self->open, drfname, /log
+  end
+  self->set_view_mode, 2
+  
+  if self.last_used_input_dir eq '' then self.last_used_input_dir = self->get_default_input_dir()
+  
 end
 
 ;+-----------------------
