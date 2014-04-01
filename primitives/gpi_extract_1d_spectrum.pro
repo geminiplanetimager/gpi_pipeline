@@ -208,7 +208,8 @@ endif
 	fitexy,lambda[ind],yarr0[ind],Ay,By,X_sig=1e-3,y_sig=yerr[ind]
 	xarr=lambda*Bx+Ax
 	yarr=lambda*By+Ay
-	if 1 eq 1 then begin
+	; examine the fits?
+	if 0 eq 1 then begin
 		window,23,title='xcentroid vs extracted position relative to xcenter',xsize=700,ysize=400
 		plot,lambda,xarr0-xcenter,yr=[min(xarr-xcenter,/nan),max(xarr-xcenter,/nan)],background=cgcolor('white'),color=cgcolor('black'),xtitle='wavelength',ytitle='[x,y] centroid minus [x,y] center',charsize=1.5,thick=2
 		oplot, lambda,xarr-xcenter,linestyle=2,color=cgcolor('black'),thick=2
@@ -231,12 +232,27 @@ PSFCENTX=(backbone->get_keyword('PSFCENTX',count=count,ext_num=1))
 PSFCENTY=(backbone->get_keyword('PSFCENTY',count=count,ext_num=1))
 ygrid-=psfcenty
 xgrid-=psfcentx
-;create radial and angular arrays
-rad_arr=sqrt(xgrid^2+ygrid^2)
-ang_arr=asin(ygrid/rad_arr)
 
+; first rotate the grids such that the angle is defined to be zero
+; where the planet is
+
+; get the angle from the declared position [x0,y0]
+theta0=atan((y0-psfcenty)/(x0-psfcentx))
+
+; want to rotate away not towards
+theta=-theta0
+
+xgrid2=xgrid*cos(theta)-ygrid*sin(theta) ; rotate coord system
+ygrid2=xgrid*sin(theta)+ygrid*cos(theta)
+rad_arr=sqrt(xgrid2^2+ygrid2^2); make radius array
+ang_arr=atan(ygrid2/(xgrid2)) ; make angle array
+
+xgrid=temporary(xgrid2)
+ygrid=temporary(ygrid2)
+
+; make a polar coordinate system where the 
      for i=0,CommonWavVect[2]-1 do begin
-					if finite(xarr[i]+yarr[i]) eq 0 then continue	
+				if finite(xarr[i]+yarr[i]) eq 0 then continue	
 				aperrad = aperrad0*lambda[i]
 				skyrad  = skyrad0*lambda[i]
 				trans_cube_slice=translate(source_cube[*,*,i]/fscale_arr[i],x0-xarr[i],y0-yarr[i])
@@ -250,23 +266,25 @@ ang_arr=asin(ygrid/rad_arr)
 				; first find the planet/star separation
 				sep=sqrt((x0-psfcentx)^2+(y0-psfcenty)^2)
 				dr= ceil(aperrad*2)
-				ang=asin((y0-psfcenty)/sep) ; positive in Q1 and Q2
-				dang=ceil(skyrad[1]/sep)
-			; ugh, there must be a better way to do this
-			; find pixels in a given angular annulus	
-				bkg_ind0=where( ang_arr gt (ang-dang) and ang_arr lt (ang+dang) and $
-				rad_arr gt sep-dr and rad_arr lt sep+dr and xgrid/abs(xgrid) eq (x0-psfcentx)/abs((x0-psfcentx)))
-				mask_ind=get_xyaind(281,281,x0,y0,skyrad[0],skyrad[1])
-				; find the overlap
-				match, bkg_ind0,mask_ind,suba,subb,count=count
-				bkg_ind=bkg_ind0[suba]
+				; set to REAL ANGLE SOON
+				dang=(skyrad[1]/sep)
 
+				bkg_ind0=where( ang_arr gt ((-dang) mod !pi) and $
+					 ang_arr lt ((dang) mod !pi) and $
+				rad_arr gt sep-dr and rad_arr lt sep+dr)
+
+				; mask source region+1 pixel
+				tmp_src_ind=get_xycind(281,281,x0,y0,aperrad)
+				bkg_ind=setdifference(bkg_ind0,tmp_src_ind)
+				
+				; declare arrays when in the first iteration of loop
 				if i eq 0 then begin
 					bkg_ind_slice0=bkg_ind			
 					bkg_ind_arr=fltarr(N_ELEMENTS(lambda),N_ELEMENTS(bkg_ind_slice0))
 				endif
 				bkg_ind_arr[i,*]=trans_cube_slice[bkg_ind_slice0]
 
+				; error check to see that not all nan's are encountered
 				if bkg_ind[0] eq -1 or total(finite(trans_cube_slice[bkg_ind])) eq 0 or total(finite(trans_cube_slice[src_ind])) eq 0 then begin
 					phot_comp[i]=!values.f_nan
 					phot_comp_err[i]=!values.f_nan
@@ -276,6 +294,7 @@ ang_arr=asin(ygrid/rad_arr)
 				weights=0
 				finite_bkg_ind=bkg_ind[where(finite(trans_cube_slice[bkg_ind]) eq 1)]
 				; fits and subtracts a plane to get proper error estimation
+				; this should be done in POLAR COORDs
 				coef = PLANEFIT( finite_bkg_ind mod 281 ,finite_bkg_ind / 281,trans_cube_slice[finite_bkg_ind],weights, yfit )
 				xinds=src_ind mod 281 & yinds=src_ind / 281	
 				src_bkg_plane=coef[0]+coef[1]*xinds+coef[2]*yinds	
@@ -303,17 +322,17 @@ ang_arr=asin(ygrid/rad_arr)
 				if finite(phot_comp_err[i]) eq 0 then stop
 				
 					; examine the fit
-				if 0 eq 1 and i eq 19 then begin
+				if 1 eq 0 and i eq 31 then begin
 					yfit2d=fltarr(281,281)
 					yfit2d[*,*]=!values.f_nan
 					yfit2d[finite_bkg_ind]=yfit
 					yfit2d[src_ind]=src_bkg_plane
 					tmask=fltarr(281,281)
 					tmask[*,*]=!values.f_nan
-					tmask[good_ind]=1 ;& tmask[src_ind]=1
+					tmask[good_ind]=1 & tmask[src_ind]=1
 					rmax=max(trans_cube_slice[good_ind],/nan)
 					rmin=min(trans_cube_slice[good_ind],/nan)
-					sz=skyrad[1]*2*3;(ceil(aperrad*2)+2)*40 
+					sz=skyrad[1]*2*3 
 					sz=300
 					loadct,1
 					window,0, xsize=sz*4,ysize=sz,title='companion background region/fit/residuals/error',xpos=0,ypos=400
