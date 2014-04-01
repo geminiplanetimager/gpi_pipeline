@@ -48,6 +48,7 @@ if whichpsf EQ 'nmicrolens' then begin
 ;print,count,xdim,ydim
    if (count EQ 1 AND jcount EQ 1) then begin
        myPSFs_array = gpi_highres_microlens_psf_read_highres_psf_structure(psffn, [281,281,1])
+       print, 'Created myPSFs array.'
     endif
        ptr = gpi_highres_microlens_psf_get_local_highres_psf(myPSFs_array,[xdim,ydim,0])
        if ptr_valid(myPSFs_array[xdim,ydim]) then begin
