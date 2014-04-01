@@ -134,9 +134,9 @@ calfiletype = 'wavecal'
 
 	if whichpsf eq 1 then begin
 
-           psffn = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'mlenspsf',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
-
-           ;open the appropriate micrlens psf file and assign it to the variable myPSFs_array.
+;           psffn = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'mlenspsf',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
+           psffn = '/Users/schuylerwolff/Dropbox/GPI/GPI_Calibrations/lenslet_PSFs/140226_highres-2058um-psf_structure.fits'
+          ;open the appropriate micrlens psf file and assign it to the variable myPSFs_array.
            ;myPSFs_array = gpi_highres_microlens_psf_read_highres_psf_structure(psffn, [281,281,1])
 
         endif
@@ -156,8 +156,8 @@ calfiletype = 'wavecal'
         q=0L
 
 
-istart=240
-iend=280
+istart=0
+iend=nlens-1
 jstart=0
 jend=nlens-1
 
@@ -173,6 +173,7 @@ if keyword_set(parallel) then begin
 	readcol,datafn,nmgauss,numline=1,format='I'
 
 	count=0 ; count of lenslet columns fit
+        icount=1
 	lensletcount = 0 ; count of individual lenslets fit
 
 	; must create these after reading # of emission lines
@@ -196,7 +197,7 @@ if keyword_set(parallel) then begin
 	; the comments. 
 
 	 gpi_split_for, istart,iend, nsplit=numsplit,$ 
-		 varnames=['jstart','jend','refwlcal','image','im_uncert','badpix','newwavecal','psffn',$
+		 varnames=['jstart','jend','refwlcal','image','im_uncert','badpix','newwavecal','psffn','icount',$
 		           'q','wlcalsize','xinterp','yinterp','wla','fluxa','nmgauss','count','lensletmodel','lensletcount',$
                            'modelparams','modelbackgrounds','locations_lambda_min','locations_lambda_max','n_valid_lenslets','boxpad','whichpsf'], $
 		 outvar=['newwavecal','count','lensletcount','lensletmodel','modelparams','modelbackgrounds'], commands=[$
@@ -204,7 +205,7 @@ if keyword_set(parallel) then begin
 	'numgauss=nmgauss[0]',$
 	'wl=wla',$
 	'flux=fluxa',$
-	'count=count+1',$
+	'count+=1',$
         'jcount=0',$
 	'for j = jstart,jend do begin',$
 	'	 startx = floor(min([locations_lambda_min[i,j,1], locations_lambda_max[i,j,1]]) - boxpad) > 4',$
@@ -234,10 +235,10 @@ if keyword_set(parallel) then begin
 	'    endif',$
         '    case whichpsf of',$
         '        0: begin',$
-        '             res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",modelimage=modelimage, modelbackground=modelbackground,count=count,jcount=jcount,psffn=psffn)',$
+        '             res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",modelimage=modelimage, modelbackground=modelbackground,count=icount,jcount=jcount,psffn=psffn)',$
         '        end',$
         '        1: begin',$
-        '             res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"nmicrolens",modelimage=modelimage, modelbackground=modelbackground,count=count,jcount=jcount,psffn=psffn)',$
+        '             res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"nmicrolens",modelimage=modelimage, modelbackground=modelbackground,count=icount,jcount=jcount,psffn=psffn)',$
         '        end',$
         '    endcase',$
 	'    sizeres=size(res,/dimensions)',$
@@ -253,6 +254,7 @@ if keyword_set(parallel) then begin
 	'    lensletmodel[startx:stopx, starty:stopy] += modelimage',$
 	'    lensletcount+=1',$
  	'endfor',$
+        'if lensletcount GT 0 then icount+=1',$
 	'print,"Have now fit "+strc(lensletcount)+"/"+strc(n_valid_lenslets)+ " lenslets in process "+strc(which_bridge)']
 
 	backbone->Log,"Parallel process execution complete.", depth=3,/flush
@@ -309,7 +311,8 @@ endif else begin
 
 
 	boxpad=2
-        jcount=0
+        jcount=1
+        count=1
 
 	for i = istart,iend do begin
         for j = jstart,jend do begin
@@ -331,7 +334,6 @@ endif else begin
                 newwavecal[i,j,*]=!values.f_nan
                 continue
             endif
-            jcount+=1
 
 			if (startx lt 4) || (starty lt 4) || (stopx gt 2040) || (stopy gt 2040) then continue ; don't try to fit anything outside the valid region
 			if (stopx lt 4) || (stopy lt 4) || (startx gt 2040) || (starty gt 2040) then continue ; don't try to fit anything way outside the valid region
@@ -375,15 +377,16 @@ endif else begin
                   case whichpsf of
                      0: begin
                         res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",$
-			  modelimage=modelimage, modelbackground=modelbackground, debug=keyword_set(debuglenslet) or keyword_set(debugall),jcount=jcount,psffn=psffn)
+			  modelimage=modelimage, modelbackground=modelbackground, debug=keyword_set(debuglenslet) or keyword_set(debugall),jcount=jcount,count=count,psffn=psffn)
                      end
                      1: begin
                         res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"nmicrolens",$
-			  modelimage=modelimage, modelbackground=modelbackground, debug=keyword_set(debuglenslet) or keyword_set(debugall),jcount=jcount,psffn=psffn)
+			  modelimage=modelimage, modelbackground=modelbackground, debug=keyword_set(debuglenslet) or keyword_set(debugall),jcount=jcount,count=count,psffn=psffn)
                      end
                   endcase
 
-
+                  count+=1
+                  jcount+=1
 		  lensletcount +=1
 
 		  ;take a running average of the unused
