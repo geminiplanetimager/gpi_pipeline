@@ -184,7 +184,7 @@ FUNCTION gpi_rotate_cube,  backbone, dataset, cube0, center_method=center_method
 	;;if there are satspots, rotate them as well
 	locs = gpi_satspots_from_header(*DataSet.HeadersExt[indexFrame])
 	if n_elements(locs) gt 1 then  begin
-		 gpi_rotate_header_satspots,backbone, d_PAR_ANG ,locs,imcent = (sz[1:2]-1)/2, indexFrame=indexFrame
+		 gpi_rotate_header_satspots,backbone, d_PAR_ANG ,locs,imcent = (sz[1:2]-1)/2
 	endif 
   endif
 
