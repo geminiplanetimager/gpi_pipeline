@@ -47,6 +47,7 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="xcenter" Type="float" Range="[-1,280]" Default="-1" Desc="x-location in pixels on datacube where extraction will be made"
 ; PIPELINE ARGUMENT: Name="ycenter" Type="float" Range="[-1,280]" Default="-1" Desc="y-location in pixels on datacube where extraction will be made"
+; PIPELINE ARGUMENT: Name="highpass" Type="int" Range="[0,25]" Default="0" Desc="highpass filter box size for centroiding"
 ; PIPELINE ARGUMENT: Name="no_centroid_override" Type="int" Range="[0,1]" Default="0" Desc="Do not centroid on extraction source?"
 ; PIPELINE ARGUMENT: Name="inner_sky_radius" Type="float" Range="[1,100]" Default="10." Desc="Inner aperture radius at middle wavelength slice (in spaxels i.e. mlens) to extract sky"
 ; PIPELINE ARGUMENT: Name="outer_sky_radius" Type="float" Range="[1,100]" Default="20." Desc="Outer aperture radius at middle wavelength slice (in spaxels i.e. mlens) to extract sky"
@@ -74,6 +75,8 @@ thisModuleIndex = Backbone->GetCurrentModuleIndex()
 if tag_exist( Modules[thisModuleIndex], "xcenter") then xcenter=float(Modules[thisModuleIndex].xcenter) else xcenter=-1
 if tag_exist( Modules[thisModuleIndex], "ycenter") then ycenter=float(Modules[thisModuleIndex].ycenter) else ycenter=-1
 if tag_exist( Modules[thisModuleIndex], "no_centroid_override") then no_centroid_override=float(Modules[thisModuleIndex].no_centroid_override) else no_centroid_override=0
+if tag_exist( Modules[thisModuleIndex], "highpass") then highpass=float(Modules[thisModuleIndex].highpass) else highpass=0
+
 if tag_exist( Modules[thisModuleIndex], "display") then display=float(Modules[thisModuleIndex].display) else display=17
 if tag_exist( Modules[thisModuleIndex], "save_ps_plot") then save_ps_plot=float(Modules[thisModuleIndex].save_ps_plot) else save_ps_plot=0
 if tag_exist( Modules[thisModuleIndex], "write_ascii_file") then write_ascii_file=float(Modules[thisModuleIndex].write_ascii_file) else write_ascii_file=0
@@ -152,8 +155,12 @@ endif
 		ref = exp(-0.5*fr^2)
 		
 		for i=0,CommonWavVect[2]-1 do begin
+				
+				; highpass filter the data?
+				s0i=source_cube[*,*,i]
+				if keyword_set(highpass) eq 1 then s0i -= filter_image(s0i,median=highpass)	 
 				; centroid on the companion
-				stamp2 = source_cube[x0-hh:x0+hh,y0-hh:y0+hh,i]/fscale_arr[i]
+				stamp2 = s0i[x0-hh:x0+hh,y0-hh:y0+hh]/fscale_arr[i]
 				fourier_coreg,stamp2,ref,shft,/findshift
 				x3=x0-shft[0] & y3=y0-shft[1]
 				;print,x,y,x2,y2,x3,y3
@@ -201,7 +208,7 @@ endif
 	fitexy,lambda[ind],yarr0[ind],Ay,By,X_sig=1e-3,y_sig=yerr[ind]
 	xarr=lambda*Bx+Ax
 	yarr=lambda*By+Ay
-	if 0 eq 1 then begin
+	if 1 eq 1 then begin
 		window,23,title='xcentroid vs extracted position relative to xcenter',xsize=700,ysize=400
 		plot,lambda,xarr0-xcenter,yr=[min(xarr-xcenter,/nan),max(xarr-xcenter,/nan)],background=cgcolor('white'),color=cgcolor('black'),xtitle='wavelength',ytitle='[x,y] centroid minus [x,y] center',charsize=1.5,thick=2
 		oplot, lambda,xarr-xcenter,linestyle=2,color=cgcolor('black'),thick=2
@@ -242,7 +249,7 @@ ang_arr=asin(ygrid/rad_arr)
 				; lets look at fitting an annulus instead
 				; first find the planet/star separation
 				sep=sqrt((x0-psfcentx)^2+(y0-psfcenty)^2)
-				dr= ceil(aperrad*2)+1
+				dr= ceil(aperrad*2)
 				ang=asin((y0-psfcenty)/sep) ; positive in Q1 and Q2
 				dang=ceil(skyrad[1]/sep)
 			; ugh, there must be a better way to do this
@@ -250,6 +257,7 @@ ang_arr=asin(ygrid/rad_arr)
 				bkg_ind0=where( ang_arr gt (ang-dang) and ang_arr lt (ang+dang) and $
 				rad_arr gt sep-dr and rad_arr lt sep+dr and xgrid/abs(xgrid) eq (x0-psfcentx)/abs((x0-psfcentx)))
 				mask_ind=get_xyaind(281,281,x0,y0,skyrad[0],skyrad[1])
+				; find the overlap
 				match, bkg_ind0,mask_ind,suba,subb,count=count
 				bkg_ind=bkg_ind0[suba]
 
@@ -278,38 +286,46 @@ ang_arr=asin(ygrid/rad_arr)
 				; must convolve the bkg by the source annulus, then 
 				bkg=fltarr(281,281) & mask=fltarr(281,281)+1
 				bkg[finite_bkg_ind]=trans_cube_slice[finite_bkg_ind]-yfit
-				bkg_bad=where(bkg eq 0)
+				; mask bad regions in background
+				bkg_bad=where(bkg eq 0) ;
 				bkg[bkg_bad]=!values.f_nan & mask[bkg_bad]=!values.f_nan
+				bkg[src_ind]=!values.f_nan
 				kernel0=fltarr(281,281)
 				kernel0[src_ind]=1
 				kernel=subarr(kernel0,ceil(aperrad*2)+2,[x0,y0])
 				bkg_conv=convol(bkg,kernel,/nan)
 				mask2=convol(mask,kernel,/nan)
+				; elements where there was no vignetting of the convolution
 				good_ind=where(mask2 eq N_ELEMENTS(src_ind))
+				mask2[*,*]=!values.f_nan
+				mask2[good_ind]=1
 				phot_comp_err[i]=stddev(bkg_conv[good_ind],/nan,/double)
 				if finite(phot_comp_err[i]) eq 0 then stop
 				
 					; examine the fit
-				if 0 eq 1 and i eq 15 then begin
+				if 0 eq 1 and i eq 19 then begin
 					yfit2d=fltarr(281,281)
 					yfit2d[*,*]=!values.f_nan
 					yfit2d[finite_bkg_ind]=yfit
 					yfit2d[src_ind]=src_bkg_plane
 					tmask=fltarr(281,281)
 					tmask[*,*]=!values.f_nan
-					tmask[good_ind]=1 & tmask[src_ind]=1
+					tmask[good_ind]=1 ;& tmask[src_ind]=1
 					rmax=max(trans_cube_slice[good_ind],/nan)
 					rmin=min(trans_cube_slice[good_ind],/nan)
 					sz=skyrad[1]*2*3;(ceil(aperrad*2)+2)*40 
 					sz=300
 					loadct,1
-					window,0, xsize=sz*4,ysize=sz,title='background region/fit/residuals/error',xpos=0,ypos=400
+					window,0, xsize=sz*4,ysize=sz,title='companion background region/fit/residuals/error',xpos=0,ypos=400
 					tvdl, subarr(trans_cube_slice*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),rmin,rmax,position=0
 					tvdl, subarr(yfit2d*tmask,          ceil(skyrad[1]+1)*2,[x0,y0]),rmin,rmax,position=1
-					tvdl, subarr((trans_cube_slice-yfit2d)*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=2
-					mask[src_ind]=!values.f_nan
+					tvdl, subarr((trans_cube_slice-yfit2d)*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=2					
+					
+					tmask[src_ind]=!values.f_nan
 					tvdl, subarr(bkg_conv*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=3
 					print,phot_comp[i],phot_comp_err[i]
+					print,'SNR at slice '+strc(i)+' ('+strc(lambda[i])+' um)', phot_comp[i]/phot_comp_err[i]
+
 					stop
 
 				endif
