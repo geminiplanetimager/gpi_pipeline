@@ -256,6 +256,11 @@ ygrid=temporary(ygrid2)
 				aperrad = aperrad0*lambda[i]
 				skyrad  = skyrad0*lambda[i]
 				trans_cube_slice=translate(source_cube[*,*,i]/fscale_arr[i],x0-xarr[i],y0-yarr[i])
+
+				trans_cube_slice -= filter_image(trans_cube_slice,median=15)	
+
+
+
 			; do an error approximation - the error is useless from aper unless in photons and
 				; even then it adds photon noise that won,t be correct.
 				;get size of aperture in pixels - this is not really exact...
@@ -269,10 +274,18 @@ ygrid=temporary(ygrid2)
 				; set to REAL ANGLE SOON
 				dang=(skyrad[1]/sep)
 
-				bkg_ind0=where( ang_arr gt ((-dang) mod !pi) and $
+parity=(x0-psfcentx)/abs((x0-psfcentx))
+	bkg_ind0=where(xgrid/abs(xgrid) eq parity and  ang_arr gt ((-dang) mod !pi) and $
 					 ang_arr lt ((dang) mod !pi) and $
-				rad_arr gt sep-dr and rad_arr lt sep+dr)
+				rad_arr gt sep-dr and rad_arr lt sep+dr )
 
+				if i eq 15 then begin
+					tmp=fltarr(281,281)
+					tmp[bkg_ind0]=1
+					window,13,xsize=300,ysize=300,title='companion bkg region'
+					tvdl,tmp
+					;wait,1
+				endif
 				; mask source region+1 pixel
 				tmp_src_ind=get_xycind(281,281,x0,y0,aperrad)
 				bkg_ind=setdifference(bkg_ind0,tmp_src_ind)
@@ -297,7 +310,13 @@ ygrid=temporary(ygrid2)
 				; this should be done in POLAR COORDs
 				coef = PLANEFIT( finite_bkg_ind mod 281 ,finite_bkg_ind / 281,trans_cube_slice[finite_bkg_ind],weights, yfit )
 				xinds=src_ind mod 281 & yinds=src_ind / 281	
-				src_bkg_plane=coef[0]+coef[1]*xinds+coef[2]*yinds	
+				src_bkg_plane=coef[0]+coef[1]*xinds+coef[2]*yinds
+
+				; OVERRIDE
+				;yfit[*]=median(trans_cube_slice[finite_bkg_ind])
+				;src_bkg_plane[*]=median(trans_cube_slice[finite_bkg_ind])
+
+
 				; do the photometry and error calculation
 				phot_comp[i]=total(trans_cube_slice[src_ind]-src_bkg_plane)
 
@@ -322,7 +341,7 @@ ygrid=temporary(ygrid2)
 				if finite(phot_comp_err[i]) eq 0 then stop
 				
 					; examine the fit
-				if 1 eq 0 and i eq 31 then begin
+				if 0 eq 1 and i eq 31 then begin
 					yfit2d=fltarr(281,281)
 					yfit2d[*,*]=!values.f_nan
 					yfit2d[finite_bkg_ind]=yfit
@@ -345,7 +364,7 @@ ygrid=temporary(ygrid2)
 					print,phot_comp[i],phot_comp_err[i]
 					print,'SNR at slice '+strc(i)+' ('+strc(lambda[i])+' um)', phot_comp[i]/phot_comp_err[i]
 
-					stop
+					;stop
 
 				endif
 
@@ -361,8 +380,9 @@ ygrid=temporary(ygrid2)
 				phot_comp[i]/=(contained_flux_ratio)
 				phot_comp_err[i]/=(contained_flux_ratio)
 		endfor
-;window,2,retain=2
+;window,2,retain=2,xsize=600,ysize=400
 ;ploterror,lambda,phot_comp,phot_comp_err
+;wdelete,2
 ;stop
 ; now convert back to desired units
 for l=0, N_ELEMENTS(lambda)-1 do phot_comp[l]*=fscale_arr[l]

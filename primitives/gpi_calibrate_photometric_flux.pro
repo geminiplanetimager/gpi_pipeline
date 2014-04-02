@@ -261,6 +261,9 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 			; do the photometry
 				trans_cube_slice=translate(calib_cube[*,*,l],x0-xarr[l],y0-yarr[l])
 
+	trans_cube_slice -= filter_image(trans_cube_slice,median=15)	
+
+
 			; do an error approximation - the error is useless from aper unless in photons and
 				; even then it adds photon noise that won,t be correct.
 				;get size of aperture in pixels - this is not really exact...
@@ -275,9 +278,19 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 				; set to REAL ANGLE SOON
 				dang=(skyrad[1]/sep)
 
-				bkg_ind0=where( ang_arr gt ((-dang) mod !pi) and $
+				parity=(x0-psfcentx)/abs((x0-psfcentx))
+				bkg_ind0=where(xgrid/abs(xgrid) eq parity and  ang_arr gt ((-dang) mod !pi) and $
 					 ang_arr lt ((dang) mod !pi) and $
-				rad_arr gt sep-dr and rad_arr lt sep+dr)
+				rad_arr gt sep-dr and rad_arr lt sep+dr )
+
+				;if l eq 15 then begin
+				;	tmp=fltarr(281,281)
+				;	tmp[bkg_ind0]=1
+				;	window,13,xsize=300,ysize=300,title="satellite "+strc(s)+" background region"
+				;	tvdl,tmp
+				;	;wait,1
+				;endif
+
 
 				; mask source region+1 pixel
 				tmp_src_ind=get_xycind(281,281,x0,y0,aperrad)
@@ -301,11 +314,16 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 				finite_bkg_ind=bkg_ind[where(finite(trans_cube_slice[bkg_ind]) eq 1)]
 				; fits and subtracts a plane to get proper error estimation
 				coef = PLANEFIT( finite_bkg_ind mod 281 ,finite_bkg_ind / 281,trans_cube_slice[finite_bkg_ind],weights, yfit )
+
+			
+				; get source bkg plane
 				xinds=src_ind mod 281 & yinds=src_ind / 281	
 				src_bkg_plane=coef[0]+coef[1]*xinds+coef[2]*yinds	
 
-;				if l eq 27 then stop,cens[0,s,l]
-
+				; OVERRIDE
+				;yfit[*]=median(trans_cube_slice[finite_bkg_ind])
+				;src_bkg_plane[*]=median(trans_cube_slice[finite_bkg_ind])
+	
 				; peform background subtraction
 				satflux_arr[s,l]=total(trans_cube_slice[src_ind]-src_bkg_plane)
 							
@@ -328,14 +346,14 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 				if finite(satflux_err_arr[s,l]) eq 0 then stop
 
 				; examine the fit
-				if 0 eq 1 and l eq 15 then begin
+				if 1 eq 1 and l eq 15 then begin
 					yfit2d=fltarr(281,281)
 					yfit2d[*,*]=!values.f_nan
 					yfit2d[finite_bkg_ind]=yfit
 					yfit2d[src_ind]=src_bkg_plane
 					tmask=fltarr(281,281)
 					tmask[*,*]=!values.f_nan
-					tmask[good_ind]=1 ;& tmask[src_ind]=1
+					tmask[good_ind]=1 & tmask[src_ind]=1
 					rmax=max(trans_cube_slice[good_ind],/nan)
 					rmin=min(trans_cube_slice[good_ind],/nan)
 					sz=skyrad[1]*2*3;(ceil(aperrad*2)+2)*40 
@@ -349,7 +367,7 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 					tvdl, subarr(bkg_conv*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=3
 					print, 'SNR at slice 15 = ',strc(satflux_arr[s,l]/satflux_err_arr[s,l])
 
-					stop
+					;stop
 
 				endif
 
