@@ -2,90 +2,138 @@ function gpi_highres_microlens_plot_pixel_phase,spaxels_xcentroids,spaxels_ycent
 ; this is a routine used to plot the pixel phase when working to derive the highres_psfs
 ; must loop over the files
 
+; note that the above parameters are ONLY for the region of interest defined by pp_neighbours
+
 sz=size(spaxels_xcentroids)
 if N_ELEMENTS(sz) eq 5 then begin
 print,'gpi_highres_microlens_plot_pixel_phase does not currently work when only 1 file is supplied '
 return, -1
 endif
 nfiles=sz[4]
+
+
+; get the number of array elements we're dealing with in each image
+nelem=N_ELEMENTS(spaxels_xcentroids[*,*,*,0]) ; also equal to n_per_lenslet*(2*pp_neighbors+1.0)^2
+
 ;loop over the different elevations
 for f=0,nfiles-1 do begin
 ; only want the values from the neighbours
-       	
-           pp_xcen = reform(spaxels_xcentroids[*,*,*,f], n_per_lenslet*(2*pp_neighbors+1.0)^2)
-           pp_ycen = reform(spaxels_ycentroids[*,*,*,f], n_per_lenslet*(2*pp_neighbors+1.0)^2)
-           ; bring into reference
+
+	; get centroids at given elevation/frame and put into 1D array
+           xcen = reform(spaxels_xcentroids[*,*,*,f], nelem) 
+           ycen = reform(spaxels_ycentroids[*,*,*,f], nelem)
+           ; bring neighbour positions into reference frame
            ; first x
-           pp_xcen_in_ref = fltarr(n_elements(pp_xcen)*n_per_lenslet)
+           xcen_in_ref = fltarr(n_elements(xcen)) ; xcentroid in reference frame
            for i=0,degree_of_the_polynomial_fit do $
               for j= 0,degree_of_the_polynomial_fit do $
-                 pp_xcen_in_ref += xtransf_im_to_ref[i,j,f]*pp_xcen^j * pp_ycen^i
+                 xcen_in_ref += xtransf_im_to_ref[i,j,f]*xcen^j * ycen^i
            ;now y
-           pp_ycen_in_ref = fltarr(n_elements(pp_ycen)*n_per_lenslet)
+           ycen_in_ref = fltarr(n_elements(ycen))
            for i=0,degree_of_the_polynomial_fit do $
               for j= 0,degree_of_the_polynomial_fit do $
-                 pp_ycen_in_ref += ytransf_im_to_ref[i,j,f]*pp_xcen^j * pp_ycen^i
+                 ycen_in_ref += ytransf_im_to_ref[i,j,f]*xcen^j * ycen^i
         
+	; delare arrays - can't do this outside since the number of psfs changes etc
            ; now we want to create/calculate a mean
            if f eq 0 then begin
-						  pp_xcen_ref_arr=fltarr(n_per_lenslet*(2*pp_neighbors+1.0)^2, nfiles)
-					    pp_ycen_ref_arr=fltarr(n_per_lenslet*(2*pp_neighbors+1.0)^2, nfiles)
+		; array of centroids in reference frame
+	      xcen_ref_arr=fltarr(nelem, nfiles)
+	      ycen_ref_arr=fltarr(nelem, nfiles)
 
-              pp_xcen_ref_arr[*,f]=pp_xcen_in_ref
-              pp_ycen_ref_arr[*,f]=pp_ycen_in_ref
-              ; now create centroid arrays
-              pp_xcens_arr=pp_xcen_in_ref
-              pp_ycens_arr=pp_ycen_in_ref
+              xcen_ref_arr[*,f]=xcen_in_ref
+              ycen_ref_arr[*,f]=ycen_in_ref
+              ; now create centroid arrays in their local frame
+              xcen_arr=xcen
+              ycen_arr=ycen
            endif else begin
-              pp_xcen_ref_arr[*,f] = pp_xcen_in_ref
-              pp_ycen_ref_arr[*,f] = pp_ycen_in_ref
-              pp_xcens_arr=[pp_xcens_arr,[pp_xcen_in_ref]]
-              pp_ycens_arr=[pp_ycens_arr,[pp_ycen_in_ref]]
+		; append arrays if not the first pass
+              xcen_ref_arr[*,f] = xcen_in_ref
+              ycen_ref_arr[*,f] = ycen_in_ref
+              xcen_arr=[xcen_arr,[xcen]]
+              ycen_arr=[ycen_arr,[ycen]]
            endelse
-        ;  window, 11 ;pixel phase of the image in the reference
-;  plot, mean_xcen_ref - floor(mean_xcen_ref) ,xcen_in_ref-mean_xcen_ref, psym = 3
-
       
 endfor ; end loop over elevations
 
-;  pp_xcens_arr - these are the centroids in the reference image.
+; must calculate the mean position for each psf in it's reference frame
+mean_xcen_ref=fltarr(nelem)
+mean_ycen_ref=fltarr(nelem)
 
-; must calculate the means for pp_mean_xcen_ref
-pp_mean_xcen_ref=fltarr((2*pp_neighbors+1.0)^2)
-pp_mean_ycen_ref=fltarr((2*pp_neighbors+1.0)^2)
-
-for i=0, (2*pp_neighbors+1.0)^2-1 do begin
-	meanclip,pp_xcen_ref_arr[i,*],tmp_mean,tmp2, clipsig=2.5
-	pp_mean_xcen_ref[i]=tmp_mean
+; loop over each PSF in the reference frame and calculate it's mean position
+; we want to do this with rejection so it takes extra loops
+for i=0, nelem-1 do begin
+	meanclip,xcen_ref_arr[i,*],tmp_mean,tmp2, clipsig=2.5
+	mean_xcen_ref[i]=tmp_mean
 endfor
 
-for i=0, (2*pp_neighbors+1.0)^2-1 do begin
-	meanclip,pp_ycen_ref_arr[i,*], tmp_mean, tmp, clipsig=2.5
-	pp_mean_ycen_ref[i]=tmp_mean
+for i=0, nelem-1 do begin
+	meanclip,ycen_ref_arr[i,*], tmp_mean, tmp, clipsig=2.5
+	mean_ycen_ref[i]=tmp_mean
 endfor
 
-xresid=fltarr((2*pp_neighbors+1.0)^2*nfiles)
-xpp=fltarr((2*pp_neighbors+1.0)^2*nfiles)
-incre=(2*pp_neighbors+1.0)^2
-for i=1,nfiles-1 do xresid[incre*i:incre*(i+1)-1]=pp_xcens_arr[incre*i:incre*(i+1)-1]-pp_mean_xcen_ref
-;for i=0,nfiles-1 do xpp[incre*i:incre*(i+1)-1]=pp_mean_xcen_ref-floor(pp_mean_xcen_ref+0.5)  
-xpp2=pp_xcens_arr-floor(pp_xcens_arr+0.5)  
-;window,1,retain=2,xsize=600,ysize=400
-;plot, xpp, xresid, psym = 3,xr=[-0.5,0.5],yr=[-0.12,0.12],/xs,/ys
+; now calculate the xresiduals
+xresid=fltarr(nelem*nfiles) ; this is the x-position residual in the reference frame (y axis in fig 2 of anderson et al)
+incre=nelem
+; loop over each psf and do position-mean for all files
+for i=0,nelem-1 do xresid[nfiles*i : nfiles*(i+1)-1]=xcen_ref_arr[i,*]-mean_xcen_ref[i]
+
+; now calculate the yresiduals
+yresid=fltarr(nelem*nfiles) ; this is the y-position residual in the reference frame - not shown in paper
+incre=nelem
+for i=0,nelem-1 do yresid[nfiles*i:nfiles*(i+1)-1]=[ycen_ref_arr[i,*]-mean_ycen_ref[i]]
+
+; now calculate the x & y pixel phase (y axis in fig 2 of anderson et al)
+; this is the position of the peak relative to the center of the pixel
+; in the initial frame
+xpp=xcen_arr-(floor(xcen_arr)+0.5)
+ypp=ycen_arr-(floor(ycen_arr)+0.5)
+
+; sort in order of increasing pixel phase
+xind=sort(xpp)
+yind=sort(ypp)
+
+; now plot the equivalent of fig 2
 window,2,retain=2,xsize=600,ysize=400
-plot, xpp2, xresid, psym = 3,xr=[-0.5,0.5],yr=[-0.2,0.2],/xs,/ys,xtitle='X-pixel phase',ytitle='residuals (x-xbar)'
+plot, xpp[xind], xresid[xind], psym = 3,xr=[-0.5,0.5],yr=[-0.1,0.1],/xs,/ys,xtitle='X-pixel phase in initial frame',ytitle='residuals (x-xbar) in reference frame'
 
-yresid=fltarr((2*pp_neighbors+1.0)^2*nfiles)
-ypp=fltarr((2*pp_neighbors+1.0)^2*nfiles)
-incre=(2*pp_neighbors+1.0)^2
-for i=1,nfiles-1 do yresid[incre*i:incre*(i+1)-1]=pp_ycens_arr[incre*i:incre*(i+1)-1]-pp_mean_ycen_ref
-;for i=0,nfiles-1 do ypp[incre*i:incre*(i+1)-1]=pp_mean_ycen_ref-floor(pp_mean_ycen_ref+0.5)  
-ypp2=pp_ycens_arr-floor(pp_ycens_arr+0.5)  
-;window,3,retain=2,xsize=600,ysize=400
-;plot, ypp, yresid, psym = 3,xr=[-0.5,0.5],yr=[-0.12,0.12],/xs,/ys
+; move through the bins and calculate a median and stdev
+nbins=20
+bins=(findgen(nbins)+1)/nbins -0.5
+x_med_arr=fltarr(nbins) & x_stddev_arr=fltarr(nbins)
+for b=1,nbins-1 do begin
+		ind=where(xpp ge bins[b]-1./nbins and xpp lt bins[b]+1./nbins)
+
+	if ind[0] eq -1 then begin
+		x_med_arr[b]=!values.f_nan
+		x_stddev_arr[b]=!values.f_nan
+	endif else begin
+		x_med_arr[b]=median(xresid[ind])
+		x_stddev_arr[b]=robust_sigma(xresid[ind])
+	endelse
+endfor
+oploterror,bins,x_med_arr,x_stddev_arr
+
+
 window,4,retain=2,xsize=600,ysize=400
-plot, ypp2, yresid, psym = 3,xr=[-0.5,0.5],yr=[-0.2,0.2],/xs,/ys,xtitle='Y-pixel phase',ytitle='residuals (y-ybar)'
+plot, ypp[yind], yresid[yind], psym = 3,xr=[-0.5,0.5],yr=[-0.1,0.1],/xs,/ys,xtitle='Y-pixel phase in initial frame',ytitle='residuals (y-ybar) in reference frame'
+
+nbins=20
+bins=(findgen(nbins)+1)/nbins -0.5
+y_med_arr=fltarr(nbins) & y_stddev_arr=fltarr(nbins)
+for b=1,nbins-1 do begin
+		ind=where(xpp ge bins[b]-1./nbins and xpp lt bins[b]+1./nbins)
+
+	if ind[0] eq -1 then begin
+		y_med_arr[b]=!values.f_nan
+		y_stddev_arr[b]=!values.f_nan
+	endif else begin
+		y_med_arr[b]=median(yresid[ind])
+		y_stddev_arr[b]=robust_sigma(yresid[ind])
+	endelse
+endfor
+oploterror,bins,y_med_arr,y_stddev_arr
 
 
-return,[[xpp2,xresid],[ypp2,yresid]]
+return,[[xpp,xresid],[ypp,yresid]]
 end
