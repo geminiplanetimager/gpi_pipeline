@@ -13,7 +13,7 @@
 ;   The resulting output can be used as a flexure offset prior to flux extraction.
 ; PIPELINE ARGUMENT: Name="range" Type="float" Default="2" Range="[0,5]" Desc="Range of cross corrleation search in pixels."
 ; PIPELINE ARGUMENT: Name="resolution" Type="float" Default="0.01" Range="[0,1]" Desc="Subpixel resolution of cross correlation convergence"
-; PIPELINE ARGUMENT: Name="psf_sep" Type="float" Default="0.1" Range="[0,1]" Desc="PSF separation in pixels"
+; PIPELINE ARGUMENT: Name="psf_sep" Type="float" Default="0.01" Range="[0,1]" Desc="PSF separation in pixels"
 ; PIPELINE ARGUMENT: Name="stopidl" Type="int" Range="[0,1]" Default="1" Desc="1: stop IDL, 0: dont stop IDL"
 ; PIPELINE ARGUMENT: Name="x_spec_lens" Type="float" Default="150" Range="[0,281]" Desc="x lenslet number for spectra extraction"
 ; PIPELINE ARGUMENT: Name="y_spec_lens" Type="float" Default="150" Range="[0,281]" Desc="same for y"
@@ -54,7 +54,7 @@ suffix='' 		 ; set this to the desired output filename suffix
  	if tag_exist( Modules[thisModuleIndex], "range") then range=float(Modules[thisModuleIndex].range) else range=2.0
 	if tag_exist( Modules[thisModuleIndex], "resolution") then resolution=float(Modules[thisModuleIndex].resolution) else resolution=0.01
 
-	if tag_exist( Modules[thisModuleIndex], "psf_sep") then steps=float(Modules[thisModuleIndex].psf_sep) else steps=0.1
+	if tag_exist( Modules[thisModuleIndex], "psf_sep") then steps=float(Modules[thisModuleIndex].psf_sep) else steps=0.01
 
 	;stop idl session
 	if tag_exist( Modules[thisModuleIndex], "stopidl") then stopidl=long(Modules[thisModuleIndex].stopidl) else save=0
@@ -94,12 +94,13 @@ suffix='' 		 ; set this to the desired output filename suffix
 	
 	;free optimization knobs
 	xsize=32			;spectra sub image size
-	ysize=32			;	extracted for lsqr
+	ysize=64			;	extracted for lsqr
 
-	lens_arr=[[46,175],[178,226],[106,51],[237,107]] 	; center lens locations for sub image extraction.
+	;lens_arr=[[46,175],[178,226],[85,116],[210,170]] 	; center lens locations for sub image extraction.
+	;lens_arr=[[85,116],[210,170],[167,87],[114,190]] 
+	lens_arr=[[85,116],[210,170],[46,175],[178,226]]
 	; make a function to determine satellite spot locations for beter performance?
 
-	blank = fltarr(xsize+20,ysize+20)
 	blank2 = fltarr(xsize,ysize)
 
 	;get filter wavelength range
@@ -123,27 +124,43 @@ suffix='' 		 ; set this to the desired output filename suffix
 	xsft_sav=xsft
 	ysft=resolution
 	range_start=range
+	stddev_mem=[0]
+	y_off_mem=[0]
+	flux_mem=[0]
 
 	while (abs(ysft) gt (resolution/2)) or (abs(xsft_sav) gt (resolution/2)) do begin
-		img_spec_ext_amoeba,x_spec_lens,y_spec_lens,img,mlens,wavcal,spec1,spec_img,mic_img,del_lam_best,del_x_best,del_theta_best,x_off,y_off,wcal_off,para,badpix,resid=1,micphn=0,iter=0
-		img_spec_ext_amoeba,x_spec_lens+2,y_spec_lens+2,img,mlens,wavcal,spec2,spec_img,mic_img,del_lam_best,del_x_best,del_theta_best,x_off,y_off,wcal_off,para,badpix,resid=1,micphn=0,iter=0
-		img_spec_ext_amoeba,x_spec_lens+5,y_spec_lens-5,img,mlens,wavcal,spec3,spec_img,mic_img,del_lam_best,del_x_best,del_theta_best,x_off,y_off,wcal_off,para,badpix,resid=1,micphn=0,iter=0
-		img_spec_ext_amoeba,x_spec_lens-5,y_spec_lens+5,img,mlens,wavcal,spec4,spec_img,mic_img,del_lam_best,del_x_best,del_theta_best,x_off,y_off,wcal_off,para,badpix,resid=1,micphn=0,iter=0
 
-			spec_lam = transpose([[spec1[0,*]],[spec2[0,*]],[spec3[0,*]],[spec4[0,*]]])
-			spec_flx = transpose([[spec1[1,*]],[spec2[1,*]],[spec3[1,*]],[spec4[1,*]]])
+img_spec_ext_amoeba,lens_arr[0,0],lens_arr[1,0],img,mlens,wavcal,spec,spec_img,mic_img,del_lam_best,del_x_best,del_theta_best,x_off,y_off,wcal_off,para,badpix,resid=1,micphn=0,iter=0	
+img_spec_ext_amoeba,lens_arr[0,0],lens_arr[1,0],img,mlens,wavcal,spec2,spec_img2,mic_img2,del_lam_best+0.66,del_x_best,del_theta_best,x_off,y_off,wcal_off2,para,badpix,resid=1,micphn=0,iter=0
+img_spec_ext_amoeba,lens_arr[0,0],lens_arr[1,0],img,mlens,wavcal,spec3,spec_img2,mic_img2,del_lam_best-0.66,del_x_best,del_theta_best,x_off,y_off,wcal_off2,para,badpix,resid=1,micphn=0,iter=0
+		hr_spec=combine_spec(spec,spec2,spec3)
+		lens_spec = interpol(hr_spec[*,1],hr_spec[*,0],gpi_lambda)
 
-			r = UNIQ(spec_lam,sort(spec_lam))
-			spec_lam = spec_lam[r]
-			spec_flx = spec_flx[r]
+img_spec_ext_amoeba,lens_arr[0,1],lens_arr[1,1],img,mlens,wavcal,spec,spec_img,mic_img,del_lam_best,del_x_best,del_theta_best,x_off,y_off,wcal_off,para,badpix,resid=1,micphn=0,iter=0	
+img_spec_ext_amoeba,lens_arr[0,1],lens_arr[1,1],img,mlens,wavcal,spec2,spec_img2,mic_img2,del_lam_best+0.66,del_x_best,del_theta_best,x_off,y_off,wcal_off2,para,badpix,resid=1,micphn=0,iter=0
+img_spec_ext_amoeba,lens_arr[0,1],lens_arr[1,1],img,mlens,wavcal,spec3,spec_img2,mic_img2,del_lam_best-0.66,del_x_best,del_theta_best,x_off,y_off,wcal_off2,para,badpix,resid=1,micphn=0,iter=0
+		hr_spec=combine_spec(spec,spec2,spec3)
+		lens_spec2 = interpol(hr_spec[*,1],hr_spec[*,0],gpi_lambda)
 
-			off1=total(spec1[1,*])/total(spec2[1,*])
-			off2=total(spec1[1,*])/total(spec3[1,*])
-			off3=total(spec1[1,*])/total(spec4[1,*])
+img_spec_ext_amoeba,lens_arr[0,2],lens_arr[1,2],img,mlens,wavcal,spec,spec_img,mic_img,del_lam_best,del_x_best,del_theta_best,x_off,y_off,wcal_off,para,badpix,resid=1,micphn=0,iter=0	
+img_spec_ext_amoeba,lens_arr[0,2],lens_arr[1,2],img,mlens,wavcal,spec2,spec_img2,mic_img2,del_lam_best+0.66,del_x_best,del_theta_best,x_off,y_off,wcal_off2,para,badpix,resid=1,micphn=0,iter=0
+img_spec_ext_amoeba,lens_arr[0,2],lens_arr[1,2],img,mlens,wavcal,spec3,spec_img2,mic_img2,del_lam_best-0.66,del_x_best,del_theta_best,x_off,y_off,wcal_off2,para,badpix,resid=1,micphn=0,iter=0
+		hr_spec=combine_spec(spec,spec2,spec3)
+		lens_spec3 = interpol(hr_spec[*,1],hr_spec[*,0],gpi_lambda)		
 
-			spec2[1,*]=spec2[1,*]*off1
-			spec3[1,*]=spec3[1,*]*off2
-			spec4[1,*]=spec4[1,*]*off3
+img_spec_ext_amoeba,lens_arr[0,3],lens_arr[1,3],img,mlens,wavcal,spec,spec_img,mic_img,del_lam_best,del_x_best,del_theta_best,x_off,y_off,wcal_off,para,badpix,resid=1,micphn=0,iter=0	
+img_spec_ext_amoeba,lens_arr[0,3],lens_arr[1,3],img,mlens,wavcal,spec2,spec_img2,mic_img2,del_lam_best+0.66,del_x_best,del_theta_best,x_off,y_off,wcal_off2,para,badpix,resid=1,micphn=0,iter=0
+img_spec_ext_amoeba,lens_arr[0,3],lens_arr[1,3],img,mlens,wavcal,spec3,spec_img2,mic_img2,del_lam_best-0.66,del_x_best,del_theta_best,x_off,y_off,wcal_off2,para,badpix,resid=1,micphn=0,iter=0
+		hr_spec=combine_spec(spec,spec2,spec3)
+		lens_spec4 = interpol(hr_spec[*,1],hr_spec[*,0],gpi_lambda)
+
+			;off1=total(lens_spec)/total(lens_spec2)
+			;off2=total(lens_spec)/total(lens_spec3)
+			;off3=total(lens_spec)/total(lens_spec4)
+
+			;lens_spec2=lens_spec2*off1
+			;lens_spec3=lens_spec3*off2
+			;lens_spec4=lens_spec4*off3
 
 			;window,0
 			;plot,spec1[0,*],spec1[1,*]
@@ -151,8 +168,9 @@ suffix='' 		 ; set this to the desired output filename suffix
 			;oplot,spec3[0,*],spec3[1,*]
 			;oplot,spec4[0,*],spec4[1,*]
 
-			spec_flx=(spec1[1,*]+spec2[1,*]+spec3[1,*]+spec4[1,*])/4
-			spec_lam=(spec1[0,*]+spec2[0,*]+spec3[0,*]+spec4[0,*])/4
+			spec_flx_all=[[lens_spec],[lens_spec2],[lens_spec3],[lens_spec4]]
+
+			spec_lam = gpi_lambda
 
 			;stop
 
@@ -160,6 +178,8 @@ suffix='' 		 ; set this to the desired output filename suffix
 			sub_full = fltarr(xsize*4,ysize*1)
 
 			for z=0,3 do begin
+
+				spec_flx=spec_flx_all[*,z]
 
 				x_lens_cen=lens_arr[0,z]
 				y_lens_cen=lens_arr[1,z]
@@ -185,6 +205,11 @@ suffix='' 		 ; set this to the desired output filename suffix
 					endif
 
 					sub_img=img[x_sub1:x_sub2,y_sub1:y_sub2]
+
+					sbp = size(badpix)
+					if (sbp[0] ne 0) then begin
+						sub_img=sub_img*badpix[x_sub1:x_sub2,y_sub1:y_sub2]
+					endif
 
 				;find psf spot locations
 
@@ -221,7 +246,6 @@ suffix='' 		 ; set this to the desired output filename suffix
 
 					s=size(spec_spix3)
 
-					tstimage=blank
 					mdl_img=[[blank2]]
 					psf_offset = [0,1]
 
@@ -242,53 +266,86 @@ suffix='' 		 ; set this to the desired output filename suffix
 
 						r1 = gpi_highres_microlens_psf_evaluate_detector_psf(x_grid,y_grid, [spec_spix3[0,k], spec_spix3[1,k], 1])
 
-						;r1=blank
-						;r1[(floor(pos_sub[0])-5):(floor(pos_sub[0])+5),(floor(pos_sub[1])-5):(floor(pos_sub[1])+5)]=psf
+						lam = spec_spix3[4,k]
+						flx = interpol(spec_flx,spec_lam,lam)
+						mdl_img = mdl_img+(r1*flx[0])
 
-						;trim off buffer
-						;r1=r1[10:(xsize+9),10:(ysize+9)]
-
-						;if total(r1) ne 0 then begin
-							lam = spec_spix3[4,k]
-							flx = interpol(spec_flx,spec_lam,lam)
-							mdl_img = mdl_img+(r1*flx[0])
-							;print,flx,lam
-						;endif
-						;if k eq 0 then stop
 					endfor
 
 				;stack sub images length wise
-				mdl_full[z*xsize:(z+1)*xsize-1,0:ysize-1]=mdl_img
+				mdl_full[z*xsize:(z+1)*xsize-1,0:ysize-1]=mdl_img/total(mdl_img)
 				sub_full[z*xsize:(z+1)*xsize-1,0:ysize-1]=sub_img
 
-				;twod_img_corr,mdl_img,sub_img,range,resolution,xsft,ysft,corr
+				;twod_img_corr,sub_img,mdl_img,range,resolution,xsft,ysft,corr
 				;print,xsft,ysft
-				;stop
+
+		window,0
+		plot,spec_lam,spec_flx
+		;Ar
+		vline,1.5050
+		vline,1.6945
+		vline,1.7919
+		vline,1.7449
+
 			endfor
 
 			;mdl_full=mdl_full-median(mdl_full)
+			;non-negative model
 			ids = where_xyz(mdl_full lt 0)
 			if ids[0] ne -1 then mdl_full[ids]=0
 
 			mdl_full_save = mdl_full
-			twod_img_corr,mdl_full,sub_full,range,resolution,xsft,ysft,corr
+			twod_img_corr,sub_full,mdl_full,range,resolution/2.00,xsft,ysft,corr
+			;corr=correl_images(mdl_full,sub_full,magnification=resolution)
+			;corrmat_analyze, corr, xsft, ysft, magnification=resolution
+			;stop
+			print,xsft,ysft
 		;stop
-			x_off=x_off-xsft
+			x_off=x_off+xsft
 
-
-		;window,1
-		;imdisp,corr,/axis
 		range=min([range_start,max(abs([ysft,xsft]))])
 		range=max([range,7*resolution])
+		;range=range_start
 
-		y_off=y_off-ysft
+		ysft=ysft*2
+		y_off=y_off+ysft
 
 		print,x_off,y_off
 
 		xsft_sav=xsft
 
-		if (n lt 2) then ysft=0
+		sdev=stddev(sub_img-(total(sub_full)/total(mdl_full))*mdl_img)
+		stddev_mem=[stddev_mem,sdev]
+		y_off_mem=[y_off_mem,y_off]
+		flux_mem=[flux_mem,total(spec_flx_all)]
+		;trust large x offset first and ignore first y offset.
+		if (n lt 1) then begin 
+			ysft=0
+			xsft_sav=resolution
+			stddev_mem=[sdev]
+			y_off_mem=[y_off]
+			flux_mem=[total(spec_flx_all)]
+		endif
 		n=n+1
+
+		if (n eq 4) then begin 
+			stop
+		endif
+
+		window,1
+		imdisp,corr,/axis
+		window,2
+		imdisp,mdl_img,/axis
+		window,3
+		imdisp,sub_img-(total(sub_full)/total(mdl_full))*mdl_img
+		print,sdev
+		print,total(spec_flx_all)
+		tstimg=fltarr(2*xsize,ysize)
+		tstimg[0:xsize-1,0:ysize-1]=sub_img*(total(mdl_img)/total(sub_img))
+		tstimg[xsize:(2*xsize)-1,0:ysize-1]=mdl_img
+		imdisp,tstimg,/axis
+				
+		;stop
 	endwhile
 
 	backbone->set_keyword,'HISTORY',functionname+ " Flexure determined by 2D xcorrelation with wavecal"
