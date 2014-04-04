@@ -75,8 +75,11 @@ suffix='wplnt' 		 ; set this to the desired output filename suffix
 
 	gridfac=gpi_get_gridfac(val) ; satellite spot ratios
 
-	; pull the psf from a satellite spot - will be used as planet later
+; ################################################################################
+; Pull the psf from a satellite spot - will be used as planet later
+; ################################################################################
 	
+
 	; grab the satellite spot locations from the headers
 	;;error handle if sat spots haven't been found
 	tmp = backbone->get_keyword("SATSMASK", ext_num=1, count=ct)
@@ -84,9 +87,23 @@ suffix='wplnt' 		 ; set this to the desired output filename suffix
    		return, error('FAILURE ('+functionName+'): SATSMASK undefined.  You must run the "Measure satellite spot locations" primitive prior to this one.')
 
 	;grab frame
-	cube=*dataset.currframe 
+	cube=*dataset.currframe   ; this is in ADU 
 	image_size=size(cube)
 
+	; check to see what the units of the cube are! if they are not ADU then they must be converted!
+	; gpi_calibrate_photometric_flux sets a CUNIT keyword
+	cunit = backbone->get_keyword("CUNIT", ext_num=1, count=ct)
+	unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A','ergs/s/cm^2/Hz']
+	; if cunit is not declared, the cube has not been touched - so it should be in ADU/COADD
+	if ct NE 0 then begin 
+		; pull flux scaling from headers
+		fscale_arr=fltarr(image_size[3])
+		for l=0, image_size[3]-1 do fscale_arr[l]=(backbone->get_keyword('FSCALE'+strc(l),count=count,ext_num=1))
+		; now convert to ADU per coadd
+		for l=0, image_size[3]-1 do cube[*,*,l]/=fscale_arr[l]
+	endif
+	
+	
 	;;grab satspots 
 	goodcode = hex2bin(tmp,(size(cube,/dim))[2])
 	good = long(where(goodcode eq 1))
@@ -99,7 +116,6 @@ suffix='wplnt' 		 ; set this to the desired output filename suffix
 	   endfor 
 	endfor
 
-
 	;;set aperture
 	app =  17 ;set aperture size
 	generate_grids, fx, fy, app, /whole
@@ -108,7 +124,7 @@ suffix='wplnt' 		 ; set this to the desired output filename suffix
 	planet_psf = fltarr(app,app,image_size[3])
 	for j = 0, image_size[3]-1 do begin
 	  for i = 0,3 do begin
-	     planet_psf[*,*,j] += interpolate(cube[*,*,good[j]],fx+cens[0,i,good[j]],fy+cens[1,i,good[j]],cubic=-0.5)
+	  	planet_psf[*,*,j] += interpolate(cube[*,*,good[j]],fx+cens[0,i,good[j]],fy+cens[1,i,good[j]],cubic=-0.5)
   		psfbkg = mean([transpose(planet_psf[0,1:app-1,j]),planet_psf[1:app-1,app-1,j],transpose(planet_psf[app-1,0:app-2,j]),planet_psf[1:app-2,0,j]])
 		planet_psf[*,*,j]-=psfbkg
 		planet_psf[*,*,j]=(temporary(planet_psf[*,*,j])>0)
@@ -128,9 +144,9 @@ suffix='wplnt' 		 ; set this to the desired output filename suffix
 	for s=0,image_size[3]-1 do begin
 		aper, cube[*,*,s],cens[0,0,s],cens[1,0,s],flux,eflux,sky,skyerr,1.,3.,[10.,20.],[-10.,2*max(planet_psf,/nan)],/flux,/exact,/nan,/silent ;;using aperature radius 3 pixels
 	     	sat1flux[s]=flux
-				aper, cube[*,*,s],cens[0,1,s],cens[1,1,s],flux,eflux,sky,skyerr,1.,3.,[10.,20.],[-10.,2*max(planet_psf,/nan)],/flux,/exact,/nan,/silent
+		aper, cube[*,*,s],cens[0,1,s],cens[1,1,s],flux,eflux,sky,skyerr,1.,3.,[10.,20.],[-10.,2*max(planet_psf,/nan)],/flux,/exact,/nan,/silent
      		sat2flux[s]=flux
-  			aper, cube[*,*,s],cens[0,2,s],cens[1,2,s],flux,eflux,sky,skyerr,1.,3.,[10.,20.],[-10.,2*max(planet_psf,/nan)],/flux,/exact,/nan,/silent
+  		aper, cube[*,*,s],cens[0,2,s],cens[1,2,s],flux,eflux,sky,skyerr,1.,3.,[10.,20.],[-10.,2*max(planet_psf,/nan)],/flux,/exact,/nan,/silent
      		sat3flux[s]=flux
 	     	aper, cube[*,*,s],cens[0,3,s],cens[1,3,s],flux,eflux,sky,skyerr,1.,3.,[10.,20.],[-10.,2*max(planet_psf,/nan)],/flux,/exact,/nan,/silent
      		sat4flux[s]=flux
@@ -155,9 +171,9 @@ suffix='wplnt' 		 ; set this to the desired output filename suffix
 	zero_vega*=(lambda/(h*c)) ; ph/cm2/s/um
 
 	; diameter of Gemini South is 7.9m - with a 1m dia secondary
-  primary_diam = gpi_get_constant('primary_diam',default=7.7701d0)*100d
-  secondary_diam = gpi_get_constant('secondary_diam',default=1.02375d0)*100d
-  area=(!pi*(primary_diam/2.0)^2.0 - !pi*(secondary_diam/2.0)^2.0 ) 
+	primary_diam = gpi_get_constant('primary_diam',default=7.7701d0)*100d
+	secondary_diam = gpi_get_constant('secondary_diam',default=1.02375d0)*100d
+	area=(!pi*(primary_diam/2.0)^2.0 - !pi*(secondary_diam/2.0)^2.0 ) 
 	zero_vega*=area; ph/s/um
 
 	; get instrument transmission (and resolution)
@@ -169,10 +185,10 @@ suffix='wplnt' 		 ; set this to the desired output filename suffix
 
 	if transmission[0] eq -1 then begin
 		return, error('FAILURE ('+functionName+'): Failed to calculate transmission, planet not inserted')
-  endif
+	endif
 
 
-  ; no filter transmission included!	
+	; no filter transmission included!	
 	zero_vega*=transmission ; ph/s/um
 
 	; multiply by the integration time
@@ -182,16 +198,17 @@ suffix='wplnt' 		 ; set this to the desired output filename suffix
 	; each slice is how big in wavelength space
 	; answer returned from calc_transmission
 	dlambda=(lambda[1]-lambda[0])
-	zero_vega*=(lambda/dlambda); photons/slice
-	
+	zero_vega*=dlambda	
 	; load filters for integration	
 	filt_prof0=mrdfits( gpi_get_directory('GPI_DRP_CONFIG')+'/filters/GPI-filter-'+filter+'.fits',1,/silent)
 	filt_prof=interpol(filt_prof0.transmission,filt_prof0.wavelength,lambda)
 
 	; must not integrate over wavelength since it is per slice 
 	; no filter profile correction necessary - already in 
-	star_mag0=-2.5*alog10(total(mean_sat_flux/0.57/gridfac)$
-												/total(zero_vega*filt_prof))
+	star_mag0=-2.5*alog10(total(mean_sat_flux/0.57)$
+			/total(zero_vega*filt_prof))
+	; must account for satellite rotio
+	star_mag0+=2.5*alog10(gridfac)
 	
 	backbone->Log,"Stellar magnitude estimated to be: "+strc(string(star_mag0))
 	backbone->set_keyword,'HISTORY',functionname+ "Central star "+filter+" magnitude measured to be "+string(star_mag0)
@@ -387,9 +404,15 @@ suffix='wplnt' 		 ; set this to the desired output filename suffix
 		planet_plane2=translate(planet_plane,rpos_x+dx,rpos_y+dy,missing=0)
 		; now add the planet to the cube
 		cube[*,*,w]+=planet_plane2
+;	if w eq 15 then stop
 	endfor
- 	; put cube (with planet) back into pipeline
-	*dataset.currframe=cube
+ 	
+	; scale back to original units!
+	; now convert back to desired units
+	if keyword_set(fscale_arr) then for l=0, N_ELEMENTS(lambda)-1 do cube[*,*,l]*=fscale_arr[l]
+
+	; put cube (with planet) back into pipeline
+	*dataset.currframe[0]=cube
 	
 	; write header information
 	backbone->set_keyword,'StarMAG0',star_mag0, "Measured Central star "+filter+" magnitude"
@@ -406,7 +429,7 @@ suffix='wplnt' 		 ; set this to the desired output filename suffix
 	backbone->set_keyword,'PL_abs_mag',planet_absolute_mag, "Planet "+filter+" band absolute magnitude"
 	backbone->set_keyword,'PL_app_mag',planet_apparent_mag, "Planet "+filter+" band apparent magnitude"
 	endif	
-
+;stop
 @__end_primitive
 
 end
