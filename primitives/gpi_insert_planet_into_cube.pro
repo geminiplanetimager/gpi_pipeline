@@ -23,6 +23,11 @@
 ; insert a planet. To do this, the user should just put the planet distance to a
 ; large number and separation to a small number.
 ;
+;
+; Note that the inserted separation and position angle will be SLIGHTLY different
+; from the user specified values - the proper values can be found in the header
+;
+;
 ; INPUTS: A fully reduced datacube prior to any speckle manipulation. A planet's distance, separation, position angle, mass, age, and formation scenario (hot/cold start). 
 ;
 ; OUTPUTS: The datacube with an inserted planet.
@@ -87,13 +92,15 @@ suffix='wplnt' 		 ; set this to the desired output filename suffix
    		return, error('FAILURE ('+functionName+'): SATSMASK undefined.  You must run the "Measure satellite spot locations" primitive prior to this one.')
 
 	;grab frame
-	cube=*dataset.currframe   ; this is in ADU 
+	cube=*dataset.currframe   ; this is in ADU/coaddd UNLESS it is calibrated! 
 	image_size=size(cube)
 
 	; check to see what the units of the cube are! if they are not ADU then they must be converted!
 	; gpi_calibrate_photometric_flux sets a CUNIT keyword
 	cunit = backbone->get_keyword("CUNIT", ext_num=1, count=ct)
-	unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A','ergs/s/cm^2/Hz']
+	
+	; for reference
+	; unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A','ergs/s/cm^2/Hz']
 	; if cunit is not declared, the cube has not been touched - so it should be in ADU/COADD
 	if ct NE 0 then begin 
 		; pull flux scaling from headers
@@ -298,12 +305,15 @@ suffix='wplnt' 		 ; set this to the desired output filename suffix
 		model_spec0=struct.GPI_cold_spec_in_erg_cm2_s_um $
 		else model_spec0=struct.GPI_hot_spec_in_erg_cm2_s_um
 
+	
+
 	; get the wavelengths of the cube and interpolate
 	cwv=get_cwv(filter) 
 	lambda=cwv.lambda
 
 	; only take part the part of the model of interest
 	model_spec=interpol(model_spec0,model_wave, lambda)
+
 
 	; requires zero pt flux of vega - but in units of erg/cm2/s/um
 	zero_vega=gpi_get_constant('zero_pt_flux_'+filter)
@@ -317,35 +327,49 @@ suffix='wplnt' 		 ; set this to the desired output filename suffix
 	; now scale for distance
 	; ################################################
 
-	model_spec0=model_spec
 	model_spec*=(10.0/distance)^2.0 ; planet models normalized to 10pc
+	model_spec0=model_spec
+
 	; calculate apparent magnitude for header
 	planet_apparent_mag= planet_absolute_mag + 5.0 * (alog10(distance) - 1.0)
 
+	; below changes the model units from erg/s/cm2/A to ADU per coadd
+	; note that we do NOT want to do this is the cube is calibrated!
+
+	if ~keyword_set(cunit) then begin
+
 	; multiply planet spectrum by filter profile
 	; this isnt right... there is a filter profile in the throughput
-	model_spec*=filt_prof
+	; this should not be used if we are using the proper spectral response
+	;model_spec*=filt_prof
 
 	; planets are in erg/cm2/s/um for the resolution of our instrument
 	; must convert to photons/sec
 	model_spec*=(lambda/(h*c)) ; ph/cm2/s/um
 
 	; diameter of Gemini South is 7.9m - with a 1m dia secondary
-  primary_diam = gpi_get_constant('primary_diam',default=7.7701d0)*100d
-  secondary_diam = gpi_get_constant('secondary_diam',default=1.02375d0)*100d
-  area=(!pi*(primary_diam/2.0)^2.0 - !pi*(secondary_diam/2.0)^2.0 ) 
+	primary_diam = gpi_get_constant('primary_diam',default=7.7701d0)*100d
+	secondary_diam = gpi_get_constant('secondary_diam',default=1.02375d0)*100d
+	area=(!pi*(primary_diam/2.0)^2.0 - !pi*(secondary_diam/2.0)^2.0 ) 
 	model_spec*=area; ph/s/um
 
 	; get instrument transmission (and resolution)
 	; corrections for lyot, PPM, and filter transmission
-	transmission=calc_transmission(filter, pupil_mask, lyot_mask, /without_filter, resolution=resolution)
+	;transmission=calc_transmission(filter, pupil_mask, lyot_mask, /without_filter, resolution=resolution)
 
-	if transmission[0] eq -1 then begin
-	return, error('FAILURE ('+functionName+'): Failed to calculate transmission, planet not inserted')
-  endif
+		;if transmission[0] eq -1 then begin
+	;return, error('FAILURE ('+functionName+'): Failed to calculate transmission, planet not inserted')
+	;  endif
 
-  ; no filter transmission included in transmission - but was accounted for above!	
-	model_spec*=transmission ; ph/s/um
+        ; no filter transmission included in transmission - but was accounted for above!	
+	;model_spec*=transmission ; ph/s/um
+
+
+
+	; this should actually be the system response
+	if lyot_mask eq 'LYOT_OPEN_G6231' then mode='Direct' else mode='Coronagraphic'
+	get_spectral_response,ifsfilt=filter,mode=mode,throughput_struc=throughput_struc
+	model_spec*=throughput_struc.throughput
 
 	; multiply by the integration time
 	model_spec*=(backbone->get_keyword('ITIME')) ; ph/um
@@ -353,16 +377,36 @@ suffix='wplnt' 		 ; set this to the desired output filename suffix
 	model_spec/=(backbone->get_keyword('sysgain')) ; ADU/um
 	; each slice is how big in wavelength space
 	; resolution was calculated above
-	model_spec*=(lambda/resolution)
+	dlambda=(lambda[1]-lambda[0])
+	model_spec*=dlambda	
+
+	endif else begin
+	; if the cube is calibrated - then everything above is useless, and we can just 
+	; put the data directly into the cube from the original model
+
+	; so we want the cube in it's original units which MUST be in erg/s/cm2/A
+	; no need to scale back, just pull the original
+	cube=*dataset.currframe  
 	
-	; now scale the PSF to be the brightness of the desired spectrum
-	planet_psf0=planet_psf
-	for w=0, image_size[3]-1 do begin
-		ratio=model_spec[w]/total(planet_psf[*,*,w])
-		planet_psf[*,*,w]=ratio[0]*reform(planet_psf[*,*,w])
-	; not sure why i cant just do a X ne X then stop.... so confusing!
-		if (total(planet_psf[*,*,w]) - float(model_spec[w])) gt 0.001*model_spec[w] then stop,'error in gpi_insert_plnet_into_cube.pro, line 221ish'
-	endfor
+	; we also want the original model spectrum which has been adjusted for the distance`
+	model_spec=model_spec0
+	; the model is in erg/cm2/s/um but the cube must be in erg/s/cm2/A
+	; so there is a factor of 10000 that must be accounted for
+	model_spec/=10000.0
+
+	; now in a calibrated cube, the image has been calibrated assuming that 60% of the flux is in the extraction aperture (normally a 3 pixel radius of the center) - so if we just plunk in the planet right now, when it gets calibrated later it will not be calibrated for this bias
+	; we load this information here, but use it below when inserting the planet
+	c_ap_scaling=(backbone->get_keyword('C_AP_SC',count=count,ext_num=0))
+	extraction_radius=(backbone->get_keyword('CEXTR_AP',count=count,ext_num=0))
+	contained_flux_ratio = (backbone->get_keyword('EFLUXRAT',count=count,ext_num=0))
+		if c_ap_scaling eq 1 then begin
+			aperrad0=fltarr(N_ELEMENTS(lambda))
+			aperrad0[*]=extraction_radius/lambda[N_ELEMENTS(lambda)/2]  
+			endif else begin
+			aperrad0=extraction_radius/lambda 
+			endelse
+
+	endelse  ; CHECK TO SEE IF ITS A CALIBRATED CUBE
 
 	; ################################################
 	; now insert planet into the cube
@@ -373,13 +417,13 @@ suffix='wplnt' 		 ; set this to the desired output filename suffix
 	pixscl = gpi_get_ifs_lenslet_scale(*DataSet.HeadersExt[numfile])*1000d0 ; mas/pixel
 	; assume no rotation for a moment
 	getrot, *dataset.headersext[numfile], rot, cdelt, /silent
-	position_angle2=position_angle+90+rot+gpi_get_constant('ifs_rotation_angle', default=-24.5)
+	position_angle2=-position_angle+90+rot-gpi_get_constant('ifs_rotation', default=24.5)
 	pos_x=(separation/pixscl) * cos(position_angle2*!dtor)
 	; negative due to orientation of North
 	pos_y=(separation/pixscl) * sin(position_angle2*!dtor)
 	;print, 'pos_x,pos_y,',pos_x,pos_y
 	; now we rotate by 24.5 degrees
-	rot_ang=gpi_get_constant('ifs_rotation_angle', default=-24.5)
+	rot_ang=-gpi_get_constant('ifs_rotation', default=24.5)
 	rpos_x=pos_x*cos(rot_ang*!dtor)+pos_y*sin(rot_ang*!dtor)
 	rpos_y=-pos_x*sin(rot_ang*!dtor)+pos_y*cos(rot_ang*!dtor)
 	;print, 'rpos_x,rpos_y,',rpos_x,rpos_y
@@ -393,6 +437,15 @@ suffix='wplnt' 		 ; set this to the desired output filename suffix
 	;measure displacement from center
 	dx=xcen-image_size[1]/2
 	dy=ycen-image_size[2]/2
+
+	; center of aperture should be on the center of the planet
+	x0=image_size[1]/2+floor(rpos_x+dx)+0.5
+	y0=image_size[1]/2+floor(rpos_y+dy)+0.5
+
+	; so get the actual separation
+	separation=pixscl*sqrt((x0-xcen)^2+(y0-ycen)^2)
+	position_angle=90.0+rot-atan((y0-ycen)/(x0-xcen))/!dtor
+
 	for w=0, image_size[3]-1 do begin
 		;create a blank sheet
 		planet_plane=fltarr(image_size[1],image_size[2])
@@ -401,17 +454,27 @@ suffix='wplnt' 		 ; set this to the desired output filename suffix
 		planet_plane[image_size[1]/2-app/2,image_size[2]/2-app/2]=planet_psf[*,*,w]
 		; now translate
 		; must compensate for center of psf being displaced
-		planet_plane2=translate(planet_plane,rpos_x+dx,rpos_y+dy,missing=0)
-		; now add the planet to the cube
-		cube[*,*,w]+=planet_plane2
-;	if w eq 15 then stop
-	endfor
- 	
-	; scale back to original units!
-	; now convert back to desired units
-	if keyword_set(fscale_arr) then for l=0, N_ELEMENTS(lambda)-1 do cube[*,*,l]*=fscale_arr[l]
+		; also must place the planet at a half pixel
+		
+		planet_plane2=translate(planet_plane,floor(rpos_x+dx),floor(rpos_y+dy),missing=0)
+		
+		; must scale the planet to have the correct flux
+		; this is dependent upon the if the cube is calibrated!
 
-	; put cube (with planet) back into pipeline
+		if keyword_set(cunit) then begin
+			aperrad = aperrad0[w]*lambda[w]
+			ind=get_xycind(281,281,x0,y0,aperrad)
+			ratio=model_spec[w]/(total(planet_plane2[ind])/contained_flux_ratio)
+
+		endif else ratio=model_spec[w]/total(planet_plane2) ; non calibrated cube
+
+		planet_plane3=planet_plane2*ratio[0]
+
+		; now add the planet to the cube
+		cube[*,*,w]+=(planet_plane3)
+	endfor
+
+ 	; put cube (with planet) back into pipeline
 	*dataset.currframe[0]=cube
 	
 	; write header information
