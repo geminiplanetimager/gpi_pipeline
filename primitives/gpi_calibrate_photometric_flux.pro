@@ -167,15 +167,16 @@ if ct eq 0 then return, error('FAILURE ('+functionName+'): SATSWARN undefined.  
 	stddev_sat_flux=  fltarr(n_elements(cens[0,0,*]))
 
 	if c_ap_scaling eq 1 then begin
-  aperrad0=extraction_radius/lambda[N_ELEMENTS(lambda)/2]  
-	sat_skyrad0 =[inner_sky_radius, outer_sky_radius]/lambda[N_ELEMENTS(lambda)/2]
-		endif else begin
-	aperrad0=extraction_radius/lambda 
-	sat_skyrad0 =[inner_sky_radius, outer_sky_radius]/lambda
+		aperrad0=fltarr(N_ELEMENTS(lambda))
+  		aperrad0[*]=extraction_radius/lambda[N_ELEMENTS(lambda)/2]  
+		sat_skyrad0 =[inner_sky_radius, outer_sky_radius]/lambda[N_ELEMENTS(lambda)/2]
+	endif else begin
+		aperrad0=extraction_radius/lambda 
+		sat_skyrad0 =[inner_sky_radius, outer_sky_radius]/lambda
 	endelse
  	phpadu = 1.0 
   for s=0,n_elements(cens[0,0,*])-1 do begin
-	aperrad = aperrad0*lambda[s]
+	aperrad = aperrad0[s]*lambda[s]
  	sat_skyrad = sat_skyrad0*lambda[s]
 
      ;;using aperature radius 3 pixels
@@ -255,20 +256,21 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 
 		; loop over the wavelength
 		for l=0, N_ELEMENTS(lambda)-1 do begin
-				aperrad = aperrad0*lambda[l]
+				aperrad = aperrad0[l]*lambda[l]
 			 	skyrad = sat_skyrad0*lambda[l]
 
-			; do the photometry
+				; do the photometry
 				trans_cube_slice=translate(calib_cube[*,*,l],x0-xarr[l],y0-yarr[l])
-
-	trans_cube_slice -= filter_image(trans_cube_slice,median=15)	
+				
+				; HIGHPASS FILTER FOR TESTING ONLY
+;				trans_cube_slice -= filter_image(trans_cube_slice,median=30)	
 
 
 			; do an error approximation - the error is useless from aper unless in photons and
 				; even then it adds photon noise that won,t be correct.
 				;get size of aperture in pixels - this is not really exact...
 				src_ind=get_xycind(281,281,x0,y0,aperrad)
-				bkg_ind=get_xyaind(281,281,x0,y0,skyrad[0],skyrad[1]-skyrad[0])
+				;bkg_ind=get_xyaind(281,281,x0,y0,skyrad[0],skyrad[1]-skyrad[0])
 
 			; look at fitting around an annulus instead
 				; first find the planet/star separation
@@ -293,7 +295,7 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 
 
 				; mask source region+1 pixel
-				tmp_src_ind=get_xycind(281,281,x0,y0,aperrad)
+				tmp_src_ind=get_xycind(281,281,x0,y0,ceil(skyrad[0]))
 				bkg_ind=setdifference(bkg_ind0,tmp_src_ind)
 	
 				; declare arrays when in the first iteration of loop
@@ -321,8 +323,8 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 				src_bkg_plane=coef[0]+coef[1]*xinds+coef[2]*yinds	
 
 				; OVERRIDE
-				;yfit[*]=median(trans_cube_slice[finite_bkg_ind])
-				;src_bkg_plane[*]=median(trans_cube_slice[finite_bkg_ind])
+				yfit[*]=median(trans_cube_slice[finite_bkg_ind])
+				src_bkg_plane[*]=median(trans_cube_slice[finite_bkg_ind])
 	
 				; peform background subtraction
 				satflux_arr[s,l]=total(trans_cube_slice[src_ind]-src_bkg_plane)
@@ -346,7 +348,7 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 				if finite(satflux_err_arr[s,l]) eq 0 then stop
 
 				; examine the fit
-				if 1 eq 1 and l eq 15 then begin
+				if 0 eq 1 and l eq 15 then begin
 					yfit2d=fltarr(281,281)
 					yfit2d[*,*]=!values.f_nan
 					yfit2d[finite_bkg_ind]=yfit
@@ -471,6 +473,12 @@ if converted_model_spectrum[0] eq -1 then return, error('FAILURE ('+functionName
 ; now correct the spectrum
 calibrated_cube=fltarr(281,281,N_ELEMENTS(lambda))
 cube=*(dataset.currframe[0]) ; in ADU/coadd normally , but not always!!
+
+	; HIGHPASS FILTER FOR TESTING ONLY
+;for l=0, N_ELEMENTS(lambda)-1 do cube[*,*,l] -= filter_image(cube[*,*,l],median=15)	
+
+
+
 conv_fact= 1.0/mean_sat_flux * converted_model_spectrum ; mean sat flux is also in ADU/coadd
 for l=0, N_ELEMENTS(lambda)-1 do calibrated_cube[*,*,l]=cube[*,*,l] * conv_fact[l]
 calibrated_cube_err=stddev_sat_flux * conv_fact

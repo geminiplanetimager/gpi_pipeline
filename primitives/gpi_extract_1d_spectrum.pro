@@ -129,7 +129,8 @@ endif
     badpix = [0,0] & phpadu=1     
 
 	if c_ap_scaling eq 1 then begin
-	aperrad0=extraction_radius/lambda[N_ELEMENTS(lambda)/2]  
+		aperrad0=fltarr(N_ELEMENTS(lambda))
+		aperrad0[*]=extraction_radius/lambda[N_ELEMENTS(lambda)/2]  
 		skyrad0 =[inner_sky_radius, outer_sky_radius]/lambda[N_ELEMENTS(lambda)/2]
 	endif else begin
 		aperrad0=extraction_radius/lambda 
@@ -253,11 +254,12 @@ ygrid=temporary(ygrid2)
 ; make a polar coordinate system where the 
      for i=0,CommonWavVect[2]-1 do begin
 				if finite(xarr[i]+yarr[i]) eq 0 then continue	
-				aperrad = aperrad0*lambda[i]
+				aperrad = aperrad0[i]*lambda[i]
 				skyrad  = skyrad0*lambda[i]
 				trans_cube_slice=translate(source_cube[*,*,i]/fscale_arr[i],x0-xarr[i],y0-yarr[i])
 
-				trans_cube_slice -= filter_image(trans_cube_slice,median=15)	
+				; highpass filter FOR TESTING ONLY!
+				;trans_cube_slice -= filter_image(trans_cube_slice,median=30)	
 
 
 
@@ -265,29 +267,29 @@ ygrid=temporary(ygrid2)
 				; even then it adds photon noise that won,t be correct.
 				;get size of aperture in pixels - this is not really exact...
 				src_ind=get_xycind(281,281,x0,y0,aperrad)
-				;bkg_ind=get_xyaind(281,281,x0,y0,skyrad[0],skyrad[1]-skyrad[0])
-
-				; lets look at fitting an annulus instead
+				
+				; lets look at fitting a piece of an annulus instead
 				; first find the planet/star separation
 				sep=sqrt((x0-psfcentx)^2+(y0-psfcenty)^2)
 				dr= ceil(aperrad*2)
 				; set to REAL ANGLE SOON
 				dang=(skyrad[1]/sep)
 
-parity=(x0-psfcentx)/abs((x0-psfcentx))
-	bkg_ind0=where(xgrid/abs(xgrid) eq parity and  ang_arr gt ((-dang) mod !pi) and $
+				parity=(x0-psfcentx)/abs((x0-psfcentx))
+				bkg_ind0=where(xgrid/abs(xgrid) eq parity and  ang_arr gt ((-dang) mod !pi) and $
 					 ang_arr lt ((dang) mod !pi) and $
 				rad_arr gt sep-dr and rad_arr lt sep+dr )
 
-				if i eq 15 then begin
+				; just to check bkg region
+				if 0 eq 1 and i eq 15 then begin
 					tmp=fltarr(281,281)
 					tmp[bkg_ind0]=1
 					window,13,xsize=300,ysize=300,title='companion bkg region'
-					tvdl,tmp
+					tvdl,tmp*trans_cube_slice
 					;wait,1
 				endif
 				; mask source region+1 pixel
-				tmp_src_ind=get_xycind(281,281,x0,y0,aperrad)
+				tmp_src_ind=get_xycind(281,281,x0,y0,ceil(skyrad[0]))
 				bkg_ind=setdifference(bkg_ind0,tmp_src_ind)
 				
 				; declare arrays when in the first iteration of loop
@@ -313,9 +315,8 @@ parity=(x0-psfcentx)/abs((x0-psfcentx))
 				src_bkg_plane=coef[0]+coef[1]*xinds+coef[2]*yinds
 
 				; OVERRIDE
-				;yfit[*]=median(trans_cube_slice[finite_bkg_ind])
-				;src_bkg_plane[*]=median(trans_cube_slice[finite_bkg_ind])
-
+				yfit[*]=median(trans_cube_slice[finite_bkg_ind])
+				src_bkg_plane[*]=median(trans_cube_slice[finite_bkg_ind])
 
 				; do the photometry and error calculation
 				phot_comp[i]=total(trans_cube_slice[src_ind]-src_bkg_plane)
@@ -338,10 +339,10 @@ parity=(x0-psfcentx)/abs((x0-psfcentx))
 				mask2[*,*]=!values.f_nan
 				mask2[good_ind]=1
 				phot_comp_err[i]=stddev(bkg_conv[good_ind],/nan,/double)
-				if finite(phot_comp_err[i]) eq 0 then stop
+				if finite(phot_comp_err[i]) eq 0 then stop, 'bad extraction'
 				
 					; examine the fit
-				if 0 eq 1 and i eq 31 then begin
+				if 1 eq 1 and i eq 31 then begin
 					yfit2d=fltarr(281,281)
 					yfit2d[*,*]=!values.f_nan
 					yfit2d[finite_bkg_ind]=yfit
@@ -380,13 +381,18 @@ parity=(x0-psfcentx)/abs((x0-psfcentx))
 				phot_comp[i]/=(contained_flux_ratio)
 				phot_comp_err[i]/=(contained_flux_ratio)
 		endfor
-;window,2,retain=2,xsize=600,ysize=400
-;ploterror,lambda,phot_comp,phot_comp_err
-;wdelete,2
-;stop
+window,2,retain=2,xsize=600,ysize=400
+ploterror,lambda,phot_comp,phot_comp_err
+
 ; now convert back to desired units
 for l=0, N_ELEMENTS(lambda)-1 do phot_comp[l]*=fscale_arr[l]
 for l=0, N_ELEMENTS(lambda)-1 do phot_comp_err[l]*=fscale_arr[l]
+
+window,3,retain=2,xsize=600,ysize=400
+ploterror,lambda,phot_comp,phot_comp_err
+stop
+wdelete,2
+wdelete,3
 
 ; we want to correlate wrt to which wavelength?
 ;correl_arr=fltarr(N_ELEMENTS(lambda))
