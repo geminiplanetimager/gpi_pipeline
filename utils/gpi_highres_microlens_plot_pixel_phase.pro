@@ -1,4 +1,4 @@
-function gpi_highres_microlens_plot_pixel_phase,spaxels_xcentroids,spaxels_ycentroids,pp_neighbors,n_per_lenslet,degree_of_the_polynomial_fit,xtransf_im_to_ref,ytransf_im_to_ref
+function gpi_highres_microlens_plot_pixel_phase,spaxels_xcentroids,spaxels_ycentroids,pp_neighbors,n_per_lenslet,degree_of_the_polynomial_fit=degree_of_the_polynomial_fit,xtransf_im_to_ref=xtransf_im_to_ref,ytransf_im_to_ref=ytransf_im_to_ref
 ; this is a routine used to plot the pixel phase when working to derive the highres_psfs
 ; must loop over the files
 
@@ -16,23 +16,36 @@ nfiles=sz[4]
 nelem=N_ELEMENTS(spaxels_xcentroids[*,*,*,0]) ; also equal to n_per_lenslet*(2*pp_neighbors+1.0)^2
 
 ;loop over the different elevations
-for f=0,nfiles-1 do begin
-; only want the values from the neighbours
+	for f=0,nfiles-1 do begin
+	; only want the values from the neighbours
 
 	; get centroids at given elevation/frame and put into 1D array
            xcen = reform(spaxels_xcentroids[*,*,*,f], nelem) 
            ycen = reform(spaxels_ycentroids[*,*,*,f], nelem)
+
+		
            ; bring neighbour positions into reference frame
-           ; first x
-           xcen_in_ref = fltarr(n_elements(xcen)) ; xcentroid in reference frame
+	xcen_in_ref = fltarr(n_elements(xcen)) ; xcentroid in reference frame
+	ycen_in_ref = fltarr(n_elements(ycen))
+
+
+          	; this is the old way for polynomial fitting
+	if keyword_set(degree_of_the_polynomial_fit) eq 1 then begin
+		; first x
            for i=0,degree_of_the_polynomial_fit do $
               for j= 0,degree_of_the_polynomial_fit do $
                  xcen_in_ref += xtransf_im_to_ref[i,j,f]*xcen^j * ycen^i
            ;now y
-           ycen_in_ref = fltarr(n_elements(ycen))
            for i=0,degree_of_the_polynomial_fit do $
               for j= 0,degree_of_the_polynomial_fit do $
                  ycen_in_ref += ytransf_im_to_ref[i,j,f]*xcen^j * ycen^i
+
+	endif else begin
+	; this is the case that the xtransf_im_to_ref are just shifts
+		
+		xcen_in_ref=( (xcen+reform(xtransf_im_to_ref[*,*,f],nelem) ) )
+		ycen_in_ref=( (ycen+reform(ytransf_im_to_ref[*,*,f],nelem) ) )
+	endelse
         
 	; delare arrays - can't do this outside since the number of psfs changes etc
            ; now we want to create/calculate a mean
@@ -54,7 +67,7 @@ for f=0,nfiles-1 do begin
               ycen_arr=[ycen_arr,[ycen]]
            endelse
       
-endfor ; end loop over elevations
+	endfor ; end loop over elevations
 
 ; must calculate the mean position for each psf in it's reference frame
 mean_xcen_ref=fltarr(nelem)
@@ -116,8 +129,8 @@ oploterror,bins,x_med_arr,x_stddev_arr
 
 
 window,4,retain=2,xsize=600,ysize=400
-plot, ypp[yind], yresid[yind], psym = 3,xr=[-0.5,0.5],yr=[-0.1,0.1],/xs,/ys,xtitle='Y-pixel phase in initial frame',ytitle='residuals (y-ybar) in reference frame'
-
+plot, ypp[yind], yresid[yind], psym = 3,/xs,/ys,xtitle='Y-pixel phase in initial frame',ytitle='residuals (y-ybar) in reference frame',xr=[-0.5,0.5],yr=[-0.1,0.1]
+stop
 nbins=20
 bins=(findgen(nbins)+1)/nbins -0.5
 y_med_arr=fltarr(nbins) & y_stddev_arr=fltarr(nbins)
