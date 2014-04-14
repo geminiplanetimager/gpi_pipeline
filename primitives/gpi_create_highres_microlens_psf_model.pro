@@ -19,11 +19,15 @@
 ; HISTORY:
 ;     Originally by Jean-Baptiste Ruffio 2013-06
 ;     2014-01-23 MP: Rename and documentation update
+;     2014-04-10 PI: overhaul of highres_psf creation
+;     2014-04-10 PI: overhaul of flexure handling
 ;-
 function gpi_create_highres_microlens_psf_model, DataSet, Modules, Backbone
   primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
+
+start_time=systime(1)
 ;device,decomposed=0
 ;restore,'microlens_kernel_testing.sav'
 ;goto, kernel_testing  
@@ -31,6 +35,9 @@ function gpi_create_highres_microlens_psf_model, DataSet, Modules, Backbone
 
 ;restore,'flexure_testing.sav'
 ;goto, transform_section
+
+; restore, 'y-psf-kernel-testing.sav'
+; goto, psf_kernel_testing
 
   ;========  First section: Checking of inputs and initialization of variables depending on observing mode ==========
   ; Note: in the below, comments prefaced by "MP:" are added by Marshall during
@@ -81,9 +88,7 @@ function gpi_create_highres_microlens_psf_model, DataSet, Modules, Backbone
 				; if we are working with narrowband filter data, we want the centroid to be at the maximum
         if filter_wavelength ne -1 then cent_mode="MAX"
                                 ; Create raw data stamps
-        time0=systime(1,/seconds)
         spaxels = gpi_highres_microlens_psf_extract_microspectra_stamps(disperser, dataset.frames[0:(nfiles-1)], dataset.wavcals[0:(nfiles-1)], width_PSF, /STAMPS_MODE) 
-        time_cut=systime(1,/seconds)-time0
      end
      'WOLLASTON': begin
         width_PSF = 7                            ; size of stamp?
@@ -127,7 +132,6 @@ function gpi_create_highres_microlens_psf_model, DataSet, Modules, Backbone
   fitted_spaxels = replicate(spaxels,1)
   fit_error_flag = intarr(281, 281, n_per_lenslet)
   
-  time0=systime(1) 
 ; start the iterations
 ; the following (it_flex_max) declares the number of iterations
 ; over the flexure loop - so the RHS of figure 8 in the Anderson paper
@@ -166,8 +170,8 @@ debug=1
 ; imin_test = 145 & imax_test = 155
 ; jmin_test = 145 & jmax_test = 155
 
- imin_test = 166-40 & imax_test = 177+40
- jmin_test = 166-40 & jmax_test = 177+40
+ imin_test = 166-10 & imax_test = 177+10
+ jmin_test = 166-10 & jmax_test = 177+10
   ; code check range
 ; imin_test = 81 & imax_test = 89
 ; jmin_test = 87 & jmax_test = 89
@@ -176,7 +180,6 @@ debug=1
   pp_xind=166 & pp_yind=177
   pp_neighbors=5
 
-  time1=systime(1,/seconds)
 	; the following is the iteration over the flexure position fixes
 	; so the right/outer loop in fig 8
 
@@ -191,7 +194,6 @@ kernel_testing:
 
      backbone->Log, 'starting iteration '+strc(it_flex+1)+' of '+strc(it_flex_max)+' for flexure'
  
-		time_it0=systime(1,/seconds)
         for k=0,n_per_lenslet-1 do begin ; MP: loop over # of spots per lenslet - only >1 for polarimetry
 
            ; now loop over each lenslet
@@ -208,7 +210,6 @@ kernel_testing:
 ; Create each highres mlens PSF
 ; ##############################
 
-		time_ij0=systime(1,/seconds)
 
                      ; takes a chunk of the array to work with so you're not
                                 ; passing the entire array
@@ -226,7 +227,6 @@ kernel_testing:
                     ptrs_current_ycoords = reform(spaxels.ycoords[imin:imax,jmin:jmax,k,*],nspaxels)
                     ptrs_current_masks = reform(spaxels.masks[imin:imax,jmin:jmax,k,*],nspaxels)
                    
-		time_ij1 = systime(1,/seconds)
 		    ; find the defined pointers in the range
                     not_null_ptrs = where(ptr_valid(ptrs_current_stamps), n_not_null_ptrs) ; n_not_null_pts
                     current_stamps = fltarr(nx_pix,ny_pix,n_not_null_ptrs)
@@ -234,7 +234,6 @@ kernel_testing:
                     current_y0 = fltarr(n_not_null_ptrs)
                     current_masks = fltarr(nx_pix,ny_pix,n_not_null_ptrs)
 
-		time_ij2 = systime(1,/seconds)
 		    ; create small arrays to pass in/out of functions
                     for it_ptr = 0,n_not_null_ptrs-1 do begin
                        current_stamps[*,*,it_ptr] = *ptrs_current_stamps[not_null_ptrs[it_ptr]]
@@ -242,18 +241,17 @@ kernel_testing:
                        current_y0[it_ptr] = (*ptrs_current_ycoords[not_null_ptrs[it_ptr]])[0]
                        current_masks[*,*,it_ptr] = *ptrs_current_masks[not_null_ptrs[it_ptr]]
                     endfor
-                time_ij3 = systime(1,/seconds)
 
                     current_xcen = (spaxels.xcentroids[imin:imax,jmin:jmax,k,*])[not_null_ptrs]
                     current_ycen = (spaxels.ycentroids[imin:imax,jmin:jmax,k,*])[not_null_ptrs]
                     current_flux = (spaxels.intensities[imin:imax,jmin:jmax,k,*])[not_null_ptrs]
                     current_sky =  (spaxels.sky_values[imin:imax,jmin:jmax,k,*])[not_null_ptrs]
                     
-                               
-  	        time_ij4 = systime(1,/seconds)
-			print, "Get and fit PSF: Fitting [line,column] ["+strc(i+1)+','+strc(j+1)+"] of 281 and spot "+strc(k+1)+" of "+strc(n_per_lenslet)
+		print, "Creating PSF: [line,column] ["+strc(i+1)+','+strc(j+1)+"] of 281 and spot "+strc(k+1)+" of "+strc(n_per_lenslet)
+ 
+psf_kernel_testing:
 
-                    ptr_current_PSF = gpi_highres_microlens_psf_create_highres_psf($
+                   ptr_current_PSF = gpi_highres_microlens_psf_create_highres_psf($
 					 temporary(current_stamps), $
                                                temporary(current_xcen - current_x0), $
                                                temporary(current_ycen - current_y0), $
@@ -269,7 +267,18 @@ kernel_testing:
                                                HOW_WELL_SAMPLED = my_Sampling,$
                                                LENSLET_INDICES = [i,j,k], no_error_checking=1,$
 					   /plot_samples )
-					time_ij5 = systime(1,/seconds)
+	
+		
+			; only store high-res psf in the place for which it was determined 
+			PSFs[i,j,k] = (ptr_current_PSF)
+
+			; now we need to step in the number of neighbours
+			j+=((2*n_neighbors)*loop_jump)
+
+              endfor       ; end loop over j lenslets (columns?)
+		i+=((2*n_neighbors)*loop_jump)
+           endfor ; end loop over i lenslsets (rows?)
+
 
 ; ##############################
 ; Fit each detector mlens PSF 
@@ -278,130 +287,45 @@ kernel_testing:
 
 			; now fit the PSF to each elevation psf and each neighbour
 			for f = 0,nfiles-1 do begin
+			print, "Fitting PSFs: for file "+strc(f)
 
-				for pi=imin, imax do begin
-					for pj=jmin, jmax do begin
-					 
-						time_f0 = systime(1,/seconds)
-															
-						; check to make sure pointer is valid
-						if ptr_valid(spaxels.values[pi,pj,k,f]) eq 0 then continue
-						first_guess_parameters = [spaxels.xcentroids[pi,pj,k,f], spaxels.ycentroids[pi,pj,k,f], spaxels.intensities[pi,pj,k,f]]
-						ptr_fitted_PSF = gpi_highres_microlens_psf_fit_detector_psf($
-							 *spaxels.values[pi,pj,k,f] - spaxels.sky_values[pi,pj,k,f], $
-							 FIRST_GUESS = (first_guess_parameters),$
-							 mask=*spaxels.masks[pi,pj,k,f],$
-							 ptr_current_PSF,$
-							 X0 = (*spaxels.xcoords[pi,pj,k,f])[0,0], $
-							 Y0 = (*spaxels.ycoords[pi,pj,k,f])[0,0], $
-							 FIT_PARAMETERS = best_parameters, $
-							 /QUIET, $
-							;                              /anti_stuck, $
-							 ERROR_FLAG = my_other_error_flag, no_error_checking=1) ;
-									
-						time_f1 = systime(1,/seconds)									
-													; only store high-res psf in the place for which it was determined 
-						if pi eq i and pj eq j then PSFs[i,j,k] = (ptr_current_PSF)
-						fitted_spaxels.values[pi,pj,k,f] =temporary(ptr_fitted_PSF)
-						fitted_spaxels.xcentroids[pi,pj,k,f] = best_parameters[0]
-						fitted_spaxels.ycentroids[pi,pj,k,f] = best_parameters[1]
-						fitted_spaxels.intensities[pi,pj,k,f] = best_parameters[2]
-					endfor     ; end loop over pj
-				endfor          ; end loop over pi
-				time_f2 = systime(1,/seconds)
-					
-						;; #########################################                       
-						;; FROM HERE TO THE ENDFOR IS JUST DEBUGGING
-						;; #########################################
-						
-					
-						value_to_consider = where(*spaxels.masks[i,j,k,f] eq 1)
-						if value_to_consider[0] ne -1 then begin
-                        diff_image[ (*spaxels.xcoords[i,j,k,f])[value_to_consider], (*spaxels.ycoords[i,j,k,f])[value_to_consider] ] = (*spaxels.values[i,j,k,f])[value_to_consider] - (spaxels.sky_values[i,j,k,f])[value_to_consider]-((*fitted_spaxels.values[i,j,k,f])*(*spaxels.masks[i,j,k,f]))[value_to_consider]
-;                               ;  Create a modeled image - using the fitted PSFs
-                         model_image[ (*spaxels.xcoords[i,j,k,f])[value_to_consider], (*spaxels.ycoords[i,j,k,f])[value_to_consider] ] += ((*fitted_spaxels.values[i,j,k,f])*(*spaxels.masks[i,j,k,f]))[value_to_consider]
-                     
-                              ; calculate the stddev
-                          stddev_arr=fltarr(281,281,n_per_lenslet,nfiles,it_flex_max)
+			  ; now loop over each lenslet
+		           for i=imin_test,imax_test do begin				
+              statusline, "fitting PSF: Fitting line "+strc(i+1)+" of "+strc(imax_test)+" and spot "+strc(k+1)+" of "+strc(kmax+1)+" for iteration " +strc(it+1)+" of "+strc(it_max)
+        		      for j=jmin_test,jmax_test do begin
+				
+				; check to make sure pointer is valid
+				if ptr_valid(spaxels.values[i,j,k,f]) eq 0 then continue
+		
+				; interpolate to grab the psf for this lenslet
+				ptr_highres_psf = gpi_highres_microlens_psf_get_local_highres_psf(PSFs,[i,j,k])
 
-                           ; interested in the weighted stddev
-                           ; weight by intensity
-                        mask0=(*spaxels.masks[i,j,k,f])
-			;make mask eq 0 values nan's
-			ind= where(mask0 eq 0)
-			if ind[0] ne -1 then mask0[where(mask0 eq 0)]=!values.f_nan
-                        mask=(*spaxels.masks[i,j,k,f])[value_to_consider]
-                        sz=size(mask0)
+				first_guess_parameters = [spaxels.xcentroids[i,j,k,f], spaxels.ycentroids[i,j,k,f], spaxels.intensities[i,j,k,f]]
+				ptr_fitted_PSF = gpi_highres_microlens_psf_fit_detector_psf($
+					 *spaxels.values[i,j,k,f] - spaxels.sky_values[i,j,k,f], $
+					 FIRST_GUESS = (first_guess_parameters),$
+					 mask=*spaxels.masks[i,j,k,f],$
+					 ptr_highres_psf,$
+					 X0 = (*spaxels.xcoords[i,j,k,f])[0,0], $
+					 Y0 = (*spaxels.ycoords[i,j,k,f])[0,0], $
+					 FIT_PARAMETERS = best_parameters, $
+					 /QUIET, $
+					;                              /anti_stuck, $
+					 ERROR_FLAG = my_other_error_flag, no_error_checking=1) ;
+							
+				fitted_spaxels.values[i,j,k,f] =temporary(ptr_fitted_PSF)
+				fitted_spaxels.xcentroids[i,j,k,f] = best_parameters[0]
+				fitted_spaxels.ycentroids[i,j,k,f] = best_parameters[1]
+				fitted_spaxels.intensities[i,j,k,f] = best_parameters[2]
 
-                        weights0=reform((*spaxels.values[i,j,k,f]) - (spaxels.sky_values[i,j,k,f]),sz[1],sz[2])*mask0
-                        weights=((*spaxels.values[i,j,k,f])[value_to_consider] - (spaxels.sky_values[i,j,k,f])[value_to_consider])*mask
-                        gain=float(backbone->get_keyword('sysgain'))
-                        weights0=sqrt((*fitted_spaxels.values[i,j,k,f])*gain)/gain
-                        weights=sqrt((*fitted_spaxels.values[i,j,k,f])[value_to_consider]*gain)/gain
+; gpi_highres_debugging
 
-                        intensity0=reform((*spaxels.values[i,j,k,f]) - (spaxels.sky_values[i,j,k,f]),sz[1],sz[2])*mask0
-                        intensity=((*spaxels.values[i,j,k,f])[value_to_consider] - (spaxels.sky_values[i,j,k,f])[value_to_consider])*mask
-
-                        diff0=mask0*(reform((*spaxels.values[i,j,k,f]) - (spaxels.sky_values[i,j,k,f]),sz[1],sz[2])-(*fitted_spaxels.values[i,j,k,f]))
-                        diff=(*spaxels.values[i,j,k,f])[value_to_consider] - (spaxels.sky_values[i,j,k,f])[value_to_consider]-((*fitted_spaxels.values[i,j,k,f])*(*spaxels.masks[i,j,k,f]))[value_to_consider]
-                        model=(*fitted_spaxels.values[i,j,k,f])*mask
-                        w_mean=total(abs(diff)*weights,/nan)/total(weights,/nan)/total(mask,/nan)
-                        weighted_intensity_arr[i,j,k,f,it_flex]=total(intensity*weights,/nan)/total(weights,/nan)
-												intensity_arr[i,j,k,f,it_flex]=total(intensity,/nan)
-                        stddev_arr[i,j,k,f,it_flex]= total(weights*(diff-w_mean)^2.0,/nan)/total(weights,/nan)
-                        weighted_diff_intensity_arr[i,j,k,f,it_flex]=total(abs(weights*diff),/nan)/total(weights)
-												diff_intensity_arr[i,j,k,f,it_flex]=total(abs(diff),/nan)
-
-                        if i eq 125 and j eq 125 and f eq 0 then begin;and it_flex eq it_flex_max-1 then begin
-                               ;loadct,0
-                               ;window,1,retain=2,xsize=300,ysize=300,title='orig & fit- '+strc(i)+', '+strc(j)
-                               sz=(*spaxels.values[150,150])
-                               mask=(*spaxels.masks[i,j,k,f])
-                               orig=mask*(*spaxels.values[i,j,k,f])
-                               ;tvdl,orig,min(orig,/nan),max(orig,/nan)
-                            
-                               window,3,retain=3,xsize=300,ysize=300,title='orig & model- '+strc(i)+', '+strc(j)
-                               fit=((*fitted_spaxels.values[i,j,k,f])*(*spaxels.masks[i,j,k,f]))
-                               ;tvdl,[orig,fit],min(orig,/nan),max(orig,/nan)
-                               window,2,retain=2,xsize=300,ysize=300,title='percentage residuals- '+strc(i)+', '+strc(j)
-                               sky=mask*(spaxels.sky_values[i,j,k,f])
-                               mask[where(mask eq 0)]=!values.f_nan
-                               ;tvdl,mask*(orig-sky-fit)/fit,-0.1,0.1
-                               
-                               print, 'mean and weighted mean',  total(abs(mask*diff),/nan)/total(orig*mask,/nan), w_mean
-                               
-                               ;stop
-                            endif ; display if
-						endif     ; check for no dead values
-						;; ####################            
-						;; END OF DEBUG
-						;; ####################
-						;
-						time_f3 = systime(1,/seconds)
-
-					endfor      ; loop to fit psfs in elevation
-
-					time_ij6 = systime(1,/seconds)
-					;print, (time_ij1-time_ij0)/(time_ij6-time_ij0)
-					;print, (time_ij2-time_ij1)/(time_ij6-time_ij0)
-					;print, (time_ij3-time_ij2)/(time_ij6-time_ij0)
-					;print, (time_ij4-time_ij3)/(time_ij6-time_ij0)
-
-					;print, 'time to cut arrays', time_cut
-
-					;print, '% of time to do get_psf', (time_ij5-time_ij4)/(time_ij6-time_ij0)
-					;print, '% of time to do fit_psf', (time_ij6-time_ij5)/(time_ij6-time_ij0)
-					;print, 'total time=',time_ij6-time_ij0
-
-					; now we need to step in the number of neighbours
-					j+=((2*n_neighbors)*loop_jump)
-
+		endfor      ; loop to fit psfs in elevation
               endfor       ; end loop over j lenslets (columns?)
-					i+=((2*n_neighbors)*loop_jump)
            endfor ; end loop over i lenslsets (rows?)
+
         endfor ; end loop over # of spots per lenslet  (1 for spectra, 2 for polarization)
         
-        print, 'Iteration complete in '+strc((systime(1)-time0)/60.)+' minutes'
         ; put the fitted values into the originals before re-iterating
 ;		stop,'just about to modify centroids'
         spaxels.xcentroids = fitted_spaxels.xcentroids
@@ -568,7 +492,7 @@ stop,"about to apply flexure correction to centroids"
   endfor ; end of flexure correction loop (over it_flex)
 
   
-     print, 'Run complete in '+strc((systime(1)-time0)/60.)+' minutes' 
+     print, 'Run complete in '+strc((systime(1)-start_time)/60.)+' minutes' 
 ;     writefits, "diff_image.fits",diff_intensity_arr
 ;     writefits, "intensity_arr.fits",intensity_arr
 ;     writefits, "stddev_arr.fits",stddev_arr
