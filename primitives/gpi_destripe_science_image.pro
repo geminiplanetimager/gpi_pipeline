@@ -591,10 +591,15 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
      for i=0, 2048-1 do begin
       ind=where(finite(medpart[*,i]) eq 0)
       if ind[0] eq -1 then continue   
-      medpart[ind,i]=median(medpart[*,i])
+	med_val=median(medpart[*,i])
+	; check to see if the entire line is nan - if so, set to zero in the model
+	if finite(med_val) eq 0 then med_val=0
+      medpart[ind,i]=med_val
      endfor 
   endif        
-              
+
+; if there are entire rows that are nan, set them to zero
+ 
 
   ;----- Generate 2D model to subtract from the image
     ; Generate a model stripe image from that median, replicated for 
@@ -616,6 +621,8 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
      stripes[nan_ind]=sm_im[nan_ind]
   endif
     
+;  check to see if an entire row has nans
+
     
 ;////////////////////////////////////////////////////////////////////////////////
 ;----  Subtraction of the horizontal stripes - check for nans
@@ -628,6 +635,7 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 
   
   if nan_check[0] ne -1 then begin
+stop
      backbone->set_keyword, "HISTORY", "NOT Destriped, failed in Subtract_background_2d - NaN found in mask"
      logstr = 'Destripe failed in Subtract_background_2d - NaN found in output image - so no destripe performed'
      backbone->set_keyword, "HISTORY", logstr
