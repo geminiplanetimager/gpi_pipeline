@@ -130,7 +130,7 @@ oploterror,bins,x_med_arr,x_stddev_arr
 
 window,4,retain=2,xsize=600,ysize=400
 plot, ypp[yind], yresid[yind], psym = 3,/xs,/ys,xtitle='Y-pixel phase in initial frame',ytitle='residuals (y-ybar) in reference frame',xr=[-0.5,0.5],yr=[-0.1,0.1]
-stop
+
 nbins=20
 bins=(findgen(nbins)+1)/nbins -0.5
 y_med_arr=fltarr(nbins) & y_stddev_arr=fltarr(nbins)
