@@ -23,7 +23,6 @@ time1a=systime(/seconds)
 bad=where(valid eq 0,complement=good)
 ygrid[bad]=!values.f_nan & xgrid[bad]=!values.f_nan
 
-
 ; now offset these grids so they represent the distance to the nearest points
 xgrid-=lcoords[0] & ygrid-=lcoords[1]
 
@@ -144,7 +143,7 @@ if (Q11_ind ne -1 and Q21_ind ne -1) then begin
 
 	endif else Rx1=0
 
-; if both exist, do the average
+; if both pairs exist, do the average
 if keyword_set(Rx1) and keyword_set(Rx2) then begin 
 	; so Rx1 and Rx2 are in hybrid positions 
 	; if by chance they are on the same line (yposition) then it would be constant - but this will never happen
@@ -160,7 +159,7 @@ if keyword_set(Rx1) and keyword_set(Rx2) then begin
 	new_bad=where(finite(new_psf) eq 0 and finite(Rx1) eq 1)
 	if new_bad[0] ne -1 then new_psf[new_bad]=Rx1[new_bad]
 
-; if just one exists, then just use it 
+; if just one pair exists, then just use it 
 endif else if keyword_set(Rx1) ne 0 or keyword_set(Rx2) ne 0 then if keyword_set(Rx1) ne 0 then new_psf=Rx1 else new_psf=Rx2
 
 ; CASE II 
@@ -245,8 +244,29 @@ if keyword_set(rx1) eq 0 and keyword_set(rx2) eq 0 then begin
 ; we know from above that both R2y and R1y do not exist since a corner (or two) are missing
 	if (keyword_set(R1y) ne 0 or keyword_set(R2y) ne 0) then if (keyword_set(R1y) ne 0) then new_psf=R1y else new_psf=R2y
 
-	if keyword_set(r1y) eq 0 and keyword_set(r2y) eq 0 then stop,'this should never happen!'
+endif ; if keyword_set(rx1) eq 0 and keyword_set(rx2) eq 0 
+
+;Case III
+; only a single PSF exists - this can happen if the desired spot only has 1 surrounding PSF
+; for this case we just take that psf
+
+if keyword_set(r1y) eq 0 and keyword_set(r2y) eq 0 and keyword_set(r1x) eq 0 and keyword_set(r2x) eq 0 then begin
+
+; determine which indice is set
+if (Q11_ind ne -1) then only_ind=Q11_ind
+if (Q12_ind ne -1) then only_ind=Q12_ind
+if (Q21_ind ne -1) then only_ind=Q21_ind
+if (Q22_ind ne -1) then only_ind=Q22_ind
+
+master_xcoords=(*high_res_psfs[only_ind mod 281,only_ind / 281]).xcoords ; for use in new input of high_res_psfs
+master_ycoords=(*high_res_psfs[only_ind mod 281,only_ind / 281]).ycoords ; for use in new input of high_res_psfs
+; set psf
+new_psf=(*high_res_psfs[only_ind mod 281,only_ind / 281]).values
+
 endif
+
+if keyword_set(new_psf) eq 0 then stop,'this should never happen! '
+
 
 ; now we have the new PSF, so we have to put it into a structure which is the same as high_res_psfs
 obj_PSF = {values: new_psf, $
