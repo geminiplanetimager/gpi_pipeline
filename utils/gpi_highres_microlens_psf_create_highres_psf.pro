@@ -82,7 +82,7 @@
 ;- 
 function gpi_highres_microlens_psf_create_highres_psf, pixel_array, x_centroids, y_centroids, intensities, sky_values, $
                   PSF_nx_pix,PSF_ny_pix, PSF_samples_per_xpix, PSF_samples_per_ypix, $
-                  MASK = mask,  XCOORDS = xcoords, YCOORDS = ycoords, $
+                  MASK = mask,  XCOORDS = xcoords, YCOORDS = ycoords, filter=filter $
                   ERROR_FLAG = error_flag, $
                   SPLINE_PSF = spline_psf, X_SPLINE_PSF = x_spline_psf, Y_SPLINE_PSF = y_spline_psf, $
                   CENTROID_MODE = centroid_mode, $
@@ -306,14 +306,26 @@ if where_coords_NOT_too_big[0] eq -1 then stop, 'line 219'
 n=3
 r=distarr(n,n)
 ; norm is about the FWHM of a psf
-norm=3.0
-r/=norm
+;norm=3.0
+;r/=norm
 
 signs= [ [-1.0, 1.0, -1.0], $
          [ 1.0, 1.0,  1.0], $
          [-1.0, 1.0, -1.0]]
 
-kernel=1.0/((abs(r)+1.0)^9)*signs
+; kernel depends on the filter!
+; The r-array is to be normalized by the FWHM of the 
+	case filter of
+ 	 'Y':kernel=1.0/((abs(r/)+1.0)^9)*signs
+ 	 'J':specresolution=75;37.
+ 	 'H':specresolution=45;45.
+ 	 'K1':specresolution=65;65.
+ 	 'K2':specresolution=75.
+	endcase
+
+'Y':
+
+
 
 ; these are the shifts of the psf samplings so that the high-res psf
 ; is properly centered. We start with zero, but this will be changed 
@@ -412,6 +424,7 @@ for l=0, loop_iterations-1 do begin
                                 ; now we smooth by a kernel
 ;	window,1,xsize=200,ysize=500,retain=200
 ;	tvdl,psf
+	
 	psf0=psf
 	; so psf holds the pre-smoothed psf
 	; psf2 is the smoothed psf
@@ -513,11 +526,11 @@ for l=0, loop_iterations-1 do begin
 	; display the smoothed psf
 	;loadct,1
 	;print,l,xshift,yshift,sqrt((xshift)^2+(yshift)^2)
-	;if l eq 0 then window,2,retain=2
-	 ;tvdl, abs(psf2-psf)/psf,0.001,0.5,box=28
-	;wait,1
-	;stop
-	;if l eq loop_iterations-2 then stop,'about to break psf smoothing loop'
+	;if l eq 0 then window,3,retain=2
+;	 tvdl, abs(psf2-psf)/psf,0.001,0.5,box=28
+;	wait,1
+;	stop
+;	if l eq loop_iterations-2 then stop,'about to break psf smoothing loop'
 
                                 ; now put the nans to zeros to prevent propagation
                                 ; if there is not enough points
