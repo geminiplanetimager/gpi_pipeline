@@ -225,8 +225,9 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 		wavecal2 = gpi_wavecal_extrapolate_edges(wavcal)
         
         ; The following code is lifted directly from extractcube.
-        sdpx = calc_sdpx(wavecal2, filter, xmini, CommonWavVect)
-        if (sdpx < 0) then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
+        sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect) ; get length from original wavecal - sometimes the extrapolated one has extraneous values
+        
+	if (sdpx < 0) then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
         tilt=wavecal2[*,*,4]
 		          
 		; when building the mask, it should be based upon whether or not the bleeding from the ajacent pixels is higher than the readnoise of a raw dark frame, divided by the sqrt of the reads. So the readnoise is 8 electrons.
@@ -257,27 +258,27 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 	; must also mask edges where no wavcal is present
 	mask[0:8,*]=1
 	 mask[2040:2047,*]=1
-				for i=0,sdpx-1 do begin  ;through spaxels
-					;get the locations on the image where intensities will be extracted:
-					x3=xmini-i
-					y3=round(wavecal2[*,*,1]+(wavecal2[*,*,0]-x3)*tan(tilt[*,*]))    
-					; Normally we extract intensities on a 3x1 box;
-					; instead of extracting pixels, mask out those pixels.
-					dy=1
-					mask[y3,x3] = 1
-					mask[y3+dy,x3] = 1
-					mask[y3-dy,x3] = 1
-					high_ind=where(image[y3,x3] gt high_limit $
-								  and finite(image[x3,y3] eq 1),complement=low_ind)
+			for i=0,sdpx-1 do begin  ;through spaxels
+				;get the locations on the image where intensities will be extracted:
+				x3=xmini-i
+				y3=round(wavecal2[*,*,1]+(wavecal2[*,*,0]-x3)*tan(tilt[*,*]))    
+				; Normally we extract intensities on a 3x1 box;
+				; instead of extracting pixels, mask out those pixels.
+				dy=1
+				mask[y3,x3] = 1
+				mask[y3+dy,x3] = 1
+				mask[y3-dy,x3] = 1
+				high_ind=where(image[y3,x3] gt high_limit $
+						  and finite(image[x3,y3] eq 1),complement=low_ind)
 			; mask a 5x1 box for pixels passing
 			; the high limit
 			dy_arr=[-2,2] & dx_arr=[-1,1]
 			if high_ind[0] ne -1 then begin 			
-						for yy=0, N_ELEMENTS(dy_arr)-1 do begin
-							for xx=0, N_ELEMENTS(dx_arr)-1 do begin
+			for yy=0, N_ELEMENTS(dy_arr)-1 do begin
+				for xx=0, N_ELEMENTS(dx_arr)-1 do begin
 					mask[y3[high_ind]+dy_arr[yy],x3[high_ind]+dx_arr[xx]] = 1
 				endfor
-						endfor
+			endfor
 			endif
 			; limit where cross-talk dominates
 			; entire spectrum.
@@ -287,12 +288,12 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 			; the high limit
 			dy_arr=[-3,3] & dx_arr=[-2,2]
 			if very_high_ind[0] ne -1 then begin
-						for yy=0, N_ELEMENTS(dy_arr)-1 do begin
-							for xx=0, N_ELEMENTS(dx_arr)-1 do begin
+				for yy=0, N_ELEMENTS(dy_arr)-1 do begin
+					for xx=0, N_ELEMENTS(dx_arr)-1 do begin
 					mask[y3[very_high_ind]+dy_arr[yy],x3[very_high_ind]+dx_arr[xx]] = 1
-				endfor
-						endfor
-					endif
+					endfor
+					endfor
+				endif
 		  endfor
 		end ; end prism case
 		'WOLLASTON':    begin
@@ -334,7 +335,6 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
         endcase
 
     endelse
-
 
 ;////////////////////////////////////////////////////////////////////////////////
   ;---- OPTIONAL channel offset repair
@@ -576,11 +576,11 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
   ;                                  script but rather exit nicely
 
   if total(finite(medpart))/(2048.0*64) le abort_fraction then begin
+
      backbone->set_keyword, "HISTORY", "NOT Destriped, masked pixels in the noise model greater than abort_fraction "
      logstr = 'NOT Destriped, percentage of valid pixels to derive noise model '+strcompress(string(total(finite(medpart))/(2048.0*64)),/remove_all)+' below the abort_fraction '+strcompress(string(abort_fraction),/remove_all)+' in destripe_science_image'
      backbone->set_keyword, "HISTORY", logstr
      backbone->Log, logstr
-
      return, ok
   endif
 
@@ -635,7 +635,6 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 
   
   if nan_check[0] ne -1 then begin
-stop
      backbone->set_keyword, "HISTORY", "NOT Destriped, failed in Subtract_background_2d - NaN found in mask"
      logstr = 'Destripe failed in Subtract_background_2d - NaN found in output image - so no destripe performed'
      backbone->set_keyword, "HISTORY", logstr
