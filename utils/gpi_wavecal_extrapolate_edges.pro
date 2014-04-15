@@ -21,7 +21,6 @@
 
 function gpi_wavecal_extrapolate_edges, wavecal
 
-
 	mask = finite( wavecal[*,*,0])
 
 	kernel = [[0,1,0],[1,1,1],[0,1,0]]
@@ -37,9 +36,13 @@ function gpi_wavecal_extrapolate_edges, wavecal
 	; smoothing to get nice even gradiants
 	sm_dwavecaldx = dwavecaldx
 	sm_dwavecaldy = dwavecaldy
-	for i=0,4 do sm_dwavecaldx[*,*,i] = smooth(median(dwavecaldx[*,*,i],5),7,/nan)
-	for i=0,4 do sm_dwavecaldy[*,*,i] = smooth(median(dwavecaldy[*,*,i],5),7,/nan)
+; original - susceptible to edge effects as median will not filter the edges
+;	for i=0,4 do sm_dwavecaldx[*,*,i] = smooth(median(dwavecaldx[*,*,i],5),7,/nan)
+;	for i=0,4 do sm_dwavecaldy[*,*,i] = smooth(median(dwavecaldy[*,*,i],5),7,/nan)
 
+	; new edge handling version
+	for i=0,4 do sm_dwavecaldx[*,*,i] = filter_image(dwavecaldx[*,*,i],median=5,smooth=7,/all)*mask
+	for i=0,4 do sm_dwavecaldx[*,*,i] = filter_image(dwavecaldy[*,*,i],median=5,smooth=7,/all)*mask
 
 	mask3 = fltarr(281,281)+1.0
 	mask3[where(mask)] = !values.f_nan
