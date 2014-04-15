@@ -314,18 +314,14 @@ signs= [ [-1.0, 1.0, -1.0], $
          [-1.0, 1.0, -1.0]]
 
 ; kernel depends on the filter!
-; The r-array is to be normalized by the FWHM of the 
+; The r-array is to be normalized by the ~FWHM of the psf
 	case filter of
- 	 'Y':kernel=1.0/((abs(r/)+1.0)^9)*signs
- 	 'J':specresolution=75;37.
- 	 'H':specresolution=45;45.
- 	 'K1':specresolution=65;65.
- 	 'K2':specresolution=75.
+ 	 'Y':kernel=1.0/((abs(r/13.0)+1.0)^15)*signs ; updated 140415 - PI
+ 	 'J':kernel=1.0/((abs(r/12.0)+1.0)^9)*signs  ; MUST UPDATE
+ 	 'H':kernel=1.0/((abs(r/12.0)+1.0)^10)*signs ; MUST UPDATE
+ 	 'K1':kernel=1.0/((abs(r/12.0)+1.0)^9)*signs  ; MUST UPDATE
+ 	 'K2':kernel=1.0/((abs(r/12.0)+1.0)^9)*signs  ; MUST UPDATE
 	endcase
-
-'Y':
-
-
 
 ; these are the shifts of the psf samplings so that the high-res psf
 ; is properly centered. We start with zero, but this will be changed 
