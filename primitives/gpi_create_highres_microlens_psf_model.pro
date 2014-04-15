@@ -138,7 +138,7 @@ start_time=systime(1)
 ; this should probably be moved into a recipe keyword.
 ;stop
   it_flex_max = 4				; what is this? -MP  # of iterations for flexure? Not clear what is being iterated over.
-   degree_of_the_polynomial_fit = 2 ; degree of the polynomial surface used for the flexure correction
+;   degree_of_the_polynomial_fit = 2 ; degree of the polynomial surface used for the flexure correction
 ; can't have multiple iterations if just one file - this should be a recipe failure
 
   if nfiles eq 1 then begin 
@@ -198,7 +198,7 @@ kernel_testing:
 
            ; now loop over each lenslet
            for i=imin_test,imax_test do begin				
-              ;statusline, "Get and fit PSF: Fitting line "+strc(i+1)+" of 281 and spot "+strc(k+1)+" of "+strc(kmax+1)+" for iteration " +strc(it+1)+" of "+strc(it_max)
+              statusline, "Creating highres psf: Line "+strc(i+1)+" of "+strc(imax_test)+" and spot "+strc(k+1)+" of "+strc(n_per_lenslet+1)+" for iteration " +strc(it_flex+1)+" of "+strc(it_flex_max)
 						
               for j=jmin_test,jmax_test do begin
 								
@@ -247,9 +247,7 @@ kernel_testing:
                     current_flux = (spaxels.intensities[imin:imax,jmin:jmax,k,*])[not_null_ptrs]
                     current_sky =  (spaxels.sky_values[imin:imax,jmin:jmax,k,*])[not_null_ptrs]
                     
-		print, "Creating PSF: [line,column] ["+strc(i+1)+','+strc(j+1)+"] of 281 and spot "+strc(k+1)+" of "+strc(n_per_lenslet)
- 
-psf_kernel_testing:
+		psf_kernel_testing:
 
                    ptr_current_PSF = gpi_highres_microlens_psf_create_highres_psf($
 					 temporary(current_stamps), $
@@ -262,7 +260,7 @@ psf_kernel_testing:
                                                MASK = temporary(current_masks),  $
                                 ;XCOORDS = polspot_coords_x, $
                                 ;YCOORDS = polspot_coords_y, $
-                                               ERROR_FLAG = myerror_flag, $
+                                               ERROR_FLAG = myerror_flag, filter=filter,$
                                                CENTROID_MODE = cent_mode, $
                                                HOW_WELL_SAMPLED = my_Sampling,$
                                                LENSLET_INDICES = [i,j,k], no_error_checking=1,$
@@ -285,44 +283,46 @@ psf_kernel_testing:
 ; using the highres PSF
 ; ##############################
 
-			; now fit the PSF to each elevation psf and each neighbour
-			for f = 0,nfiles-1 do begin
-			print, "Fitting PSFs: for file "+strc(f)
+	; now fit the PSF to each elevation psf and each neighbour
+;		print, "Fitting PSFs: for file "+strc(f)
 
-			  ; now loop over each lenslet
-		           for i=imin_test,imax_test do begin				
-              statusline, "fitting PSF: Fitting line "+strc(i+1)+" of "+strc(imax_test)+" and spot "+strc(k+1)+" of "+strc(kmax+1)+" for iteration " +strc(it+1)+" of "+strc(it_max)
-        		      for j=jmin_test,jmax_test do begin
-				
-				; check to make sure pointer is valid
-				if ptr_valid(spaxels.values[i,j,k,f]) eq 0 then continue
-		
-				; interpolate to grab the psf for this lenslet
-				ptr_highres_psf = gpi_highres_microlens_psf_get_local_highres_psf(PSFs,[i,j,k])
+	  ; now loop over each lenslet
+           for i=imin_test,imax_test do begin				
+	      statusline, "fitting PSF: Fitting line "+strc(i+1)+" of "+strc(imax_test)+" for iteration " +strc(it_flex+1)+" of "+strc(it_flex_max)
+       	      for j=jmin_test,jmax_test do begin
+			
+		; check to make sure pointer is valid
+		if ptr_valid(spaxels.values[i,j,k,f]) eq 0 then continue
 
-				first_guess_parameters = [spaxels.xcentroids[i,j,k,f], spaxels.ycentroids[i,j,k,f], spaxels.intensities[i,j,k,f]]
-				ptr_fitted_PSF = gpi_highres_microlens_psf_fit_detector_psf($
-					 *spaxels.values[i,j,k,f] - spaxels.sky_values[i,j,k,f], $
-					 FIRST_GUESS = (first_guess_parameters),$
-					 mask=*spaxels.masks[i,j,k,f],$
-					 ptr_highres_psf,$
-					 X0 = (*spaxels.xcoords[i,j,k,f])[0,0], $
-					 Y0 = (*spaxels.ycoords[i,j,k,f])[0,0], $
-					 FIT_PARAMETERS = best_parameters, $
-					 /QUIET, $
-					;                              /anti_stuck, $
-					 ERROR_FLAG = my_other_error_flag, no_error_checking=1) ;
-							
-				fitted_spaxels.values[i,j,k,f] =temporary(ptr_fitted_PSF)
-				fitted_spaxels.xcentroids[i,j,k,f] = best_parameters[0]
-				fitted_spaxels.ycentroids[i,j,k,f] = best_parameters[1]
-				fitted_spaxels.intensities[i,j,k,f] = best_parameters[2]
+		; interpolate to grab the psf for this lenslet
+		ptr_highres_psf = gpi_highres_microlens_psf_get_local_highres_psf(PSFs,[i,j,k])
+
+		; loop over the files/elevations
+		for f = 0,nfiles-1 do begin
+
+			first_guess_parameters = [spaxels.xcentroids[i,j,k,f], spaxels.ycentroids[i,j,k,f], spaxels.intensities[i,j,k,f]]
+			ptr_fitted_PSF = gpi_highres_microlens_psf_fit_detector_psf($
+			 *spaxels.values[i,j,k,f] - spaxels.sky_values[i,j,k,f], $
+			 FIRST_GUESS = (first_guess_parameters),$
+			 mask=*spaxels.masks[i,j,k,f],$
+			 ptr_highres_psf,$
+			 X0 = (*spaxels.xcoords[i,j,k,f])[0,0], $
+			 Y0 = (*spaxels.ycoords[i,j,k,f])[0,0], $
+			 FIT_PARAMETERS = best_parameters, $
+			 /QUIET, $
+			;                              /anti_stuck, $
+			 ERROR_FLAG = my_other_error_flag, no_error_checking=1) ;
+						
+			fitted_spaxels.values[i,j,k,f] =temporary(ptr_fitted_PSF)
+			fitted_spaxels.xcentroids[i,j,k,f] = best_parameters[0]
+			fitted_spaxels.ycentroids[i,j,k,f] = best_parameters[1]
+			fitted_spaxels.intensities[i,j,k,f] = best_parameters[2]
 
 ; gpi_highres_debugging
 
 		endfor      ; loop to fit psfs in elevation
-              endfor       ; end loop over j lenslets (columns?)
-           endfor ; end loop over i lenslsets (rows?)
+           endfor       ; end loop over j lenslets (columns?)
+        endfor ; end loop over i lenslsets (rows?)
 
         endfor ; end loop over # of spots per lenslet  (1 for spectra, 2 for polarization)
         
@@ -382,10 +382,10 @@ transform_section:
 	ytrans_tmp=ycen_ref-(spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,f])
 	nan_ind=where(finite(xtrans_tmp+ytrans_tmp) eq 0,ct)	
 	; now filter the array
-	xtrans_tmp2=filter_image(xtrans_tmp,median=40,/all) ; this is about 4 cycles per aperture
-	ytrans_tmp2=filter_image(ytrans_tmp,median=40,/all)
+	xtrans_tmp2=filter_image(xtrans_tmp,median=20,/all) ; this is about 4 cycles per aperture
+	ytrans_tmp2=filter_image(ytrans_tmp,median=20,/all)
 
-	; put the nan's back in the image
+	; put the nan's back in the image - the filtering expands the image
 	if ct gt 0 then begin
 		xtrans_tmp2[nan_ind]=!values.f_nan
 		ytrans_tmp2[nan_ind]=!values.f_nan
@@ -430,7 +430,6 @@ endfor
 ; a stupid idl problem that naturally collapses arrays makes this only usable when f gt 1 at the moment
 if 1 eq 1 and nfiles gt 1 then begin
 	; pp_logs is just a dump variable at the moment, but can be used to track pp over iterations
-	  pp_xind=166 & pp_yind=177
 	; polynomial fitting
 ;	pp_logs=gpi_highres_microlens_plot_pixel_phase(spaxels.xcentroids[pp_xind-pp_neighbors:pp_xind+pp_neighbors,pp_yind-pp_neighbors:pp_yind+pp_neighbors,*,*],(spaxels.ycentroids[pp_xind-pp_neighbors:pp_xind+pp_neighbors,pp_yind-pp_neighbors:pp_yind+pp_neighbors,*,*]),pp_neighbors,n_per_lenslet,degree_of_the_polynomial_fit=degree_of_the_polynomial_fit,xtransf_im_to_ref=xtransf_im_to_ref,ytransf_im_to_ref=ytransf_im_to_ref)
 	pp_logs=gpi_highres_microlens_plot_pixel_phase(spaxels.xcentroids[pp_xind-pp_neighbors:pp_xind+pp_neighbors,pp_yind-pp_neighbors:pp_yind+pp_neighbors,*,*],(spaxels.ycentroids[pp_xind-pp_neighbors:pp_xind+pp_neighbors,pp_yind-pp_neighbors:pp_yind+pp_neighbors,*,*]),pp_neighbors,n_per_lenslet,xtransf_im_to_ref=xtransf_im_to_ref[pp_xind-pp_neighbors:pp_xind+pp_neighbors,pp_yind-pp_neighbors:pp_yind+pp_neighbors,*],ytransf_im_to_ref=ytransf_im_to_ref[pp_xind-pp_neighbors:pp_xind+pp_neighbors,pp_yind-pp_neighbors:pp_yind+pp_neighbors,*])
@@ -474,14 +473,6 @@ stop,"about to apply flexure correction to centroids"
               spaxels.ycentroids[ind_arr[0,zx]+imin_test,ind_arr[1,zx]+jmin_test,*,f] = mean_ycen_ref_in_im[zx]
            endfor
         endelse
-
-
-
-
-;stop,'in application of flexure correction'
-;				spaxels.xcentroids[x_id,y_id,z_id,lonarr(n_elements(x_id))+f] = mean_xcen_ref_in_im
-;        spaxels.ycentroids[x_id,y_id,z_id,lonarr(n_elements(x_id))+f] = mean_ycen_ref_in_im
-
         
      endfor                     ; ends loop over f to apply flexure correction (line 670)
   endif ; if statement to see if there is more than 1 file - 
@@ -493,9 +484,7 @@ stop,"about to apply flexure correction to centroids"
 
   
      print, 'Run complete in '+strc((systime(1)-start_time)/60.)+' minutes' 
-;     writefits, "diff_image.fits",diff_intensity_arr
-;     writefits, "intensity_arr.fits",intensity_arr
-;     writefits, "stddev_arr.fits",stddev_arr
+
 ;stop
 ; #######################
 ; BUILD THE FLAT FIELD
