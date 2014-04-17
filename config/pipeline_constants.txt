@@ -21,7 +21,8 @@ observatory_lon     -70.73669333333333
 #
 #primary and secondary diameters (m) from http://dms.hia.nrc.ca/view.php?fDocumentId=2164
 primary_diam    7.7701
-secondary_diam  1.02375
+secondary_diam  1.32090 ;  7.7701*0.17 - projected inner diameter of secondary hole
+ 
 #
 #Rotation of frame in IFS image (orig. measurement by Marshall Perrin)
 ifs_rotation    24.5
