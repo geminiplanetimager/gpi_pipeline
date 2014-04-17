@@ -10,8 +10,7 @@ documentation of the tools shown here can be found on subsequent pages.
 Sample Data Reduction Tutorial
 ==============================
 
-As an introduction to reducing data with the GPI Pipeline, a simple set of data is available on the Canadian Astronomy Data Center (CADC). If it is the first time you visit CADC, you will need to `register <http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/auth/register.html>`_. Once completed, go into the gpi directory and download the **GettingStarted_tutorial_dataset** folder.
-This contains a small set of data to give an overview of the different types of image and how to process them. All the files are raw data coming from the detector and we will reduce them one at a time.
+As an introduction to reducing data with the GPI Pipeline, a simple set of data (300 Mb) is available for download `here <http://docs.planetimager.org/GettingStarted_tutorial_dataset>`. This directory contains a small set of data to give an overview of the different types of image and how to process them. All the files are raw data coming from the detector and we will reduce them one at a time.
 
 .. Note:: It is important that the user follow the tutorial in the displayed order. Skipping steps will result in reduction errors (missing calibrations etc).
 
