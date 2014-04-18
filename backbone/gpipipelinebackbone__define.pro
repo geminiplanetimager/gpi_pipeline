@@ -1191,7 +1191,7 @@ pro gpiPipelineBackbone::rescan_Config
 	; routines if added)
 	if not lmgr(/runtime) then begin
 		self->log, "Rescanning for new primitives, and regenerating primitives config file."
-		self.statuswindow->update, [{name:'Rescanning primitives headers and regenerating config file'}], 0, 2, 1, ""
+		if obj_valid(self.statuswindow) then self.statuswindow->update, [{name:'Rescanning primitives headers and regenerating config file'}], 0, 2, 1, ""
 		gpi_make_primitives_config 
 		self->log, "Generated new primitives config file OK."
 	endif
@@ -1202,7 +1202,7 @@ pro gpiPipelineBackbone::rescan_Config
 	for i=0,n_elements(config.idlfuncs)-1 do begin
 		print, "Recompiling for "+config.names[i]
 
-		self.statuswindow->update, [{name:'Recompiling primitives'}], 0, n_elements(config.idlfuncs), i, ""
+		if obj_valid(self.statuswindow) then self.statuswindow->update, [{name:'Recompiling primitives'}], 0, n_elements(config.idlfuncs), i, ""
 		catch, compile_error
 		if compile_error eq 0 then begin
 			resolve_routine, config.idlfuncs[i], /is_func 
@@ -1212,7 +1212,7 @@ pro gpiPipelineBackbone::rescan_Config
 	endfor
 	statusmessage = 'Refreshed all '+strc(n_elements(config.idlfuncs))+' available pipeline primitive procedures.'
 	self->Log, statusmessage
-	self.statuswindow->update, [{name:statusmessage}], 0, n_elements(config.idlfuncs), 0, ""
+	if obj_valid(self.statuswindow) then self.statuswindow->update, [{name:statusmessage}], 0, n_elements(config.idlfuncs), 0, ""
 
 
 end
