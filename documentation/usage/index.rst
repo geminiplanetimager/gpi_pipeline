@@ -25,16 +25,19 @@ Contents
    overview.rst
    recipesqueue.rst
    starting.rst
-   quickstart.rst
+   tutorial.rst
+   tutorial_wavecals.rst
+   tutorial_pol.rst
    launcher.rst
+   status_console.rst
    data_parser.rst
    recipe_editor.rst
    autoreducer.rst
-   status_console.rst
    queue_view.rst
    templates.rst
    calibdb.rst
    primitives.rst
+   logging.rst
    recipe_xml.rst
    appendix_other.rst
 

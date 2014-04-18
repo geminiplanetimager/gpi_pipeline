@@ -3,9 +3,14 @@
 Autoreducer 
 ==============
 
-The Autoreducer GUI provides quick look reductions of GPI data with minimal (or no) human intervention. It is intended primarily for
-making real-time reductions at the telescope during observations.  It watches one directory for newly arrived FITS files. 
+The Autoreducer GUI provides quick look reductions of GPI data with minimal (or no) human intervention.  It watches one directory for newly arrived FITS files. 
 When a new file is detected, the Autoreducer creates a recipe to reduce that one file based on a pre-identified template recipe, and adds that recipe to the queue. It also can optionally display on screen the new file. 
+
+
+.. note::
+       The Autoreducer GUI is intended primarily for making real-time quicklook reductions at the telescope during observations. It's included in the pipeline 
+       distribution in case users want to run it themselves for some reason, but it's not particularly useful as a general purpose tool. 
+
 
 .. image:: fig_autoreducer.png
         :width: 532 px

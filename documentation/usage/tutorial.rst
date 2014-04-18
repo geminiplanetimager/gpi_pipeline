@@ -1,14 +1,14 @@
 .. _usage-quickstart:
 
-Quick Start: Diving into data reduction
-########################################
+Quick Start Tutorial: Diving into data reduction
+#####################################################
 
 
 This is a quick tutorial to help new users get familiar with the GPI pipeline. More detailed
 documentation of the tools shown here can be found on subsequent pages. 
 
-Sample Data Reduction Tutorial
-==============================
+Getting the Sample Dataset for this Tutorial
+=================================================
 
 As an introduction to reducing data with the GPI Pipeline, a simple set of data (300 Mb) is available for download `here <http://docs.planetimager.org/GettingStarted_tutorial_dataset>`_. This directory contains a small set of data to give an overview of the different types of image and how to process them. All the files are raw data coming from the detector and we will reduce them one at a time.
 
@@ -44,8 +44,8 @@ See :ref:`status_console` for more details.
         :align: center
 
 
-Contents of the Sample Dataset
-==============================
+Exploring the Sample Dataset using GPItv
+===========================================
 
 .. image:: GPI-TV-steps.png
         :scale: 75%
