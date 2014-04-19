@@ -25,8 +25,8 @@
 ;
 ; PIPELINE COMMENT: Derive polarization calibration files from a flat field image.
 ; PIPELINE ARGUMENT: Name="nlens" Type="int" Range="[0,400]" Default="281" Desc="side length of  the  lenslet array "
-; PIPELINE ARGUMENT: Name="centrXpos" Type="int" Range="[0,2048]" Default="969" Desc="Initial approximate x-position [pixel] of central peak at 1.5microns"
-; PIPELINE ARGUMENT: Name="centrYpos" Type="int" Range="[0,2048]" Default="1000" Desc="Initial approximate y-position [pixel] of central peak at 1.5microns"
+; PIPELINE ARGUMENT: Name="centrXpos" Type="int" Range="[0,2048]" Default="1078" Desc="Initial approximate x-position [pixel] of central peak at 1.5microns"
+; PIPELINE ARGUMENT: Name="centrYpos" Type="int" Range="[0,2048]" Default="1028" Desc="Initial approximate y-position [pixel] of central peak at 1.5microns"
 ; PIPELINE ARGUMENT: Name="w" Type="float" Range="[0.,10.]" Default="4.4" Desc="Spectral spacing perpendicular to the dispersion axis at the detcetor in pixel"
 ; PIPELINE ARGUMENT: Name="P" Type="float" Range="[-7.,7.]" Default="2.18" Desc="Micro-pupil pattern"
 ; PIPELINE ARGUMENT: Name="maxpos" Type="float" Range="[-7.,7.]" Default="2.5" Desc="Allowed maximum location fluctuation (in pixel) between adjacent mlens"
@@ -260,12 +260,13 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     backbone->set_keyword,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
     
 	backbone->set_keyword, "HISTORY", "      ",ext_num=0
-    backbone->set_keyword, "HISTORY", " Pol Calib File Format:",ext_num=0
-    backbone->set_keyword, "HISTORY", "    Axis 1:  pos_x, pos_y, rotangle, width_x, width_y",ext_num=0
-    backbone->set_keyword, "HISTORY", "       rotangle is in degrees, widths in pixels",ext_num=0
-    backbone->set_keyword, "HISTORY", "    Axis 2:  Lenslet X",ext_num=0
-    backbone->set_keyword, "HISTORY", "    Axis 3:  Lenslet Y",ext_num=0
-    backbone->set_keyword, "HISTORY", "    Axis 4:  Polarization ( -- or | ) ",ext_num=0
+	backbone->set_keyword, "HISTORY", " Center peak detected at pos:"+string(cen1[0])+","+string(cen1[1]), ext_num=0
+  backbone->set_keyword, "HISTORY", " Pol Calib File Format:",ext_num=0
+  backbone->set_keyword, "HISTORY", "    Axis 1:  pos_x, pos_y, rotangle, width_x, width_y",ext_num=0
+  backbone->set_keyword, "HISTORY", "       rotangle is in degrees, widths in pixels",ext_num=0
+  backbone->set_keyword, "HISTORY", "    Axis 2:  Lenslet X",ext_num=0
+  backbone->set_keyword, "HISTORY", "    Axis 3:  Lenslet Y",ext_num=0
+  backbone->set_keyword, "HISTORY", "    Axis 4:  Polarization ( -- or | ) ",ext_num=0
 	backbone->set_keyword, "HISTORY", "      ",ext_num=0
     
     ;Unmapping the shared memory
