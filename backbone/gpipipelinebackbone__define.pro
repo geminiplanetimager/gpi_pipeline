@@ -459,18 +459,54 @@ PRO gpiPipelineBackbone::Run_queue, QueueDir
                 endif
                 if self.statuswindow->flushqueue() then begin
 		            self->log, '**User request**:  flushing the queue.'
-                    self->flushqueue, queuedir
-                    self.statuswindow->flushqueue_end
+					
+					;; if any errors occur, make sure rescanning ends to prevent infintie loops
+					catch, Error_status
+					
+					if Error_status ne 0 then begin
+						message,/info, 'Error while clearing recipe queue: ' + !ERROR_STATE.MSG
+						self->log, 'Error while clearing recipe queue: ' + !ERROR_STATE.MSG
+						self.statuswindow->flushqueue_end
+					endif else begin
+						self->flushqueue, queuedir
+						self.statuswindow->flushqueue_end
+					endelse
+					
+					catch, /cancel
                 endif    
                 if self.statuswindow->rescandb() then begin
 		            self->log, '**User request**:  Rescan Calibrations DB.'
-                    self->rescan_CalDB
-                    self.statuswindow->rescandb_end
+					
+					;; if any errors occur, make sure rescanning ends to prevent infintie loops
+					catch, Error_status
+					
+					if Error_status ne 0 then begin
+						message,/info, 'Error while rescanning CalDB: ' + !ERROR_STATE.MSG
+						self->log, 'Error while rescanning CalDB: ' + !ERROR_STATE.MSG
+						self.statuswindow->rescandb_end					
+					endif else begin
+						self->rescan_CalDB
+						self.statuswindow->rescandb_end
+					endelse
+					
+					catch, /cancel
                 endif    
                 if self.statuswindow->rescanConfig() then begin
 		            self->log, '**User request**:  Rescan GPI data pipeline configuration.'
-                    self->rescan_Config
-                    self.statuswindow->rescanconfig_end
+					
+					;; if any errors occur, make sure rescanning ends to prevent infintie loops
+					catch, Error_status
+					
+					if Error_status ne 0 then begin
+						message,/info, 'Error while rescanning DRP Config: ' + !ERROR_STATE.MSG
+						self->log, 'Error while rescanning DRP Config: ' + !ERROR_STATE.MSG
+						self.statuswindow->rescanconfig_end					
+					endif else begin
+						self->rescan_Config
+						self.statuswindow->rescanconfig_end
+					endelse
+					
+					catch, /cancel
                 endif    
  
             endif
