@@ -102,7 +102,7 @@ start_time=systime(1)
   endcase
 
   common psf_lookup_table, com_psf, com_x_grid_PSF, com_y_grid_PSF, com_triangles, com_boundary
-
+  common hr_psf_common, c_psf,c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
   diff_image = fltarr(2048,2048)	; MP: difference image, output at end of calculation? PI: Yes
   model_image = fltarr(2048,2048)		; new modeled image - output at end of calculation
   
@@ -137,7 +137,7 @@ start_time=systime(1)
 ; over the flexure loop - so the RHS of figure 8 in the Anderson paper
 ; this should probably be moved into a recipe keyword.
 ;stop
-  it_flex_max = 4				; what is this? -MP  # of iterations for flexure? Not clear what is being iterated over.
+  it_flex_max = 3				; what is this? -MP  # of iterations for flexure? Not clear what is being iterated over.
 ;   degree_of_the_polynomial_fit = 2 ; degree of the polynomial surface used for the flexure correction
 ; can't have multiple iterations if just one file - this should be a recipe failure
 
@@ -170,8 +170,8 @@ debug=1
 ; imin_test = 145 & imax_test = 155
 ; jmin_test = 145 & jmax_test = 155
 
- imin_test = 166-10 & imax_test = 177+10
- jmin_test = 166-10 & jmax_test = 177+10
+; imin_test = 166-20 & imax_test = 177+20
+; jmin_test = 166-20 & jmax_test = 177+20
   ; code check range
 ; imin_test = 81 & imax_test = 89
 ; jmin_test = 87 & jmax_test = 89
@@ -266,7 +266,6 @@ kernel_testing:
                                                LENSLET_INDICES = [i,j,k], no_error_checking=1,$
 					   /plot_samples )
 	
-		
 			; only store high-res psf in the place for which it was determined 
 			PSFs[i,j,k] = (ptr_current_PSF)
 
@@ -292,7 +291,7 @@ kernel_testing:
        	      for j=jmin_test,jmax_test do begin
 			
 		; check to make sure pointer is valid
-		if ptr_valid(spaxels.values[i,j,k,f]) eq 0 then continue
+		if ptr_valid(spaxels.values[i,j,k]) eq 0 then continue
 
 		; interpolate to grab the psf for this lenslet
 		ptr_highres_psf = gpi_highres_microlens_psf_get_local_highres_psf(PSFs,[i,j,k])
@@ -399,7 +398,6 @@ transform_section:
 
 	xcen_ref_arr2d[imin_test:imax_test,jmin_test:jmax_test,f]=( (spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,f])+xtransf_im_to_ref[imin_test:imax_test,jmin_test:jmax_test,f] )
 	ycen_ref_arr2d[imin_test:imax_test,jmin_test:jmax_test,f]=( (spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,f])+ytransf_im_to_ref[imin_test:imax_test,jmin_test:jmax_test,f] )
-
 
     endfor   ; ends loop over different elevations
 
@@ -541,53 +539,53 @@ endif ; end flat field creation
 ; create flexure plots
 ; ####################
 
-if f gt 1 then begin
+     if f gt 1 then begin
 ; stored in xtransf_im_to_ref
-xx=(fltarr(2048)+1)##findgen(2048)
-xx1d=reform(xx,2048*2048)
-yy=findgen(2048)##(fltarr(2048)+1)
-yy1d=reform(yy,2048*2048)
-
-xflex_trans_arr1d=fltarr(2048*2048,nfiles)
-for f=0,nfiles-1 do $
-	for i=0,degree_of_the_polynomial_fit do $
-		for j= 0,degree_of_the_polynomial_fit do $
-			xflex_trans_arr1d[*,f] += xtransf_im_to_ref[i,j,f]*xx1d^j * yy1d^i
+        xx=(fltarr(2048)+1)##findgen(2048)
+        xx1d=reform(xx,2048*2048)
+        yy=findgen(2048)##(fltarr(2048)+1)
+        yy1d=reform(yy,2048*2048)
+        
+        xflex_trans_arr1d=fltarr(2048*2048,nfiles)
+        for f=0,nfiles-1 do $
+           for i=0,degree_of_the_polynomial_fit do $
+              for j= 0,degree_of_the_polynomial_fit do $
+                 xflex_trans_arr1d[*,f] += xtransf_im_to_ref[i,j,f]*xx1d^j * yy1d^i
 ; now put back into 2-d arrays
-xflex_trans_arr2d=(reform(xflex_trans_arr1d,2048,2048,nfiles))
+        xflex_trans_arr2d=(reform(xflex_trans_arr1d,2048,2048,nfiles))
 ; we want the difference, so we must subtract the xx array
-for f=0,nfiles-1 do xflex_trans_arr2d[*,*,f]-=xx
-
+        for f=0,nfiles-1 do xflex_trans_arr2d[*,*,f]-=xx
+        
 ; now do it in the y-direction
-yflex_trans_arr1d=fltarr(2048*2048,nfiles)
-for f=0,nfiles-1 do $
-	for i=0,degree_of_the_polynomial_fit do $
-		for j= 0,degree_of_the_polynomial_fit do $
-			yflex_trans_arr1d[*,f] += ytransf_im_to_ref[i,j,f]*xx1d^j * yy1d^i
+        yflex_trans_arr1d=fltarr(2048*2048,nfiles)
+        for f=0,nfiles-1 do $
+           for i=0,degree_of_the_polynomial_fit do $
+              for j= 0,degree_of_the_polynomial_fit do $
+                 yflex_trans_arr1d[*,f] += ytransf_im_to_ref[i,j,f]*xx1d^j * yy1d^i
 ; now put back into 2-d arrays
-yflex_trans_arr2d=(reform(yflex_trans_arr1d,2048,2048,nfiles))
+        yflex_trans_arr2d=(reform(yflex_trans_arr1d,2048,2048,nfiles))
 ; we want the difference, so we must subtract the xx array
-for f=0,nfiles-1 do yflex_trans_arr2d[*,*,f]-=yy
-
+        for f=0,nfiles-1 do yflex_trans_arr2d[*,*,f]-=yy
+        
 ; evalute performance increase
-window,2,retain=2,title='weighted % residual'
-tmp=(weighted_diff_intensity_arr/weighted_intensity_arr)
-plothist,tmp[*,*,*,*,0],xhist,yhist,/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5
-plothist,tmp[*,*,*,*,0],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,yr=[0,max(yhist)*1.5],ys=1
-if nfiles ne 1 then plothist,tmp[*,*,*,*,1],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,/noerase,linestyle=2,yr=[0,max(yhist)*1.5],ys=1,color=155
-
-window,1,retain=2,title='non-weighted % residual'
-tmp2=(diff_intensity_arr/intensity_arr)
-
-plothist,tmp2[*,*,*,*,0],xhist,yhist,/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5
-plothist,tmp2[*,*,*,*,0],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,yr=[0,max(yhist)*1.5],ys=1
-if nfiles ne 1 then plothist,tmp2[*,*,*,*,1],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,/noerase,linestyle=2,yr=[0,max(yhist)*1.5],ys=1,color=155
-
-endif
-
-  valid_psfs = where(ptr_valid(PSFs), n_valid_psfs)
-  
-  to_save_psfs = replicate(*PSFs[valid_psfs[0]],n_valid_psfs)
+        window,2,retain=2,title='weighted % residual'
+        tmp=(weighted_diff_intensity_arr/weighted_intensity_arr)
+        plothist,tmp[*,*,*,*,0],xhist,yhist,/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5
+        plothist,tmp[*,*,*,*,0],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,yr=[0,max(yhist)*1.5],ys=1
+        if nfiles ne 1 then plothist,tmp[*,*,*,*,1],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,/noerase,linestyle=2,yr=[0,max(yhist)*1.5],ys=1,color=155
+        
+        window,1,retain=2,title='non-weighted % residual'
+        tmp2=(diff_intensity_arr/intensity_arr)
+        
+        plothist,tmp2[*,*,*,*,0],xhist,yhist,/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5
+        plothist,tmp2[*,*,*,*,0],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,yr=[0,max(yhist)*1.5],ys=1
+        if nfiles ne 1 then plothist,tmp2[*,*,*,*,1],/nan,bin=0.01,xr=[0,0.15],xs=1,charsize=1.5,/noerase,linestyle=2,yr=[0,max(yhist)*1.5],ys=1,color=155
+        
+     endif
+     
+     valid_psfs = where(ptr_valid(PSFs), n_valid_psfs)
+     
+     to_save_psfs = replicate(*PSFs[valid_psfs[0]],n_valid_psfs)
   
   for i=0,n_valid_psfs-1 do begin
      to_save_psfs[i] = *PSFs[valid_psfs[i]]
@@ -609,7 +607,7 @@ endif
   pri_header=*dataset.headersphu[0]
   sxaddpar,pri_header,'ISCALIB','YES'
   sxaddpar,pri_header,'FILETYPE','High-res Microlens PSFs'
-  sxaddpar,pri_header,'NRW_wave','1.15'
+  sxaddpar,pri_header,'NRW_wave','1.00'
  
   mwrfits,to_save_psfs, my_file_name, /create
   ; now add values to the primary header that do not interfere
