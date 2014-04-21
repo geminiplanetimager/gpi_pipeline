@@ -19,18 +19,32 @@
 ;     
 ; HISTORY:
 ;   Originally by Jean-Baptiste Ruffio 2013-06
+;   Moved to be a bilinear interpolation - 2014-04-21 - PI
 ;-
 function gpi_highres_microlens_psf_evaluate_detector_psf, x, y, p
-;common psf_lookup_table, com_psf, com_x_grid_PSF, com_y_grid_PSF, com_triangles, com_boundary
-common psf_lookup_table
 
-x_cen = p[0]
-y_cen = p[1]
-f = p[2]
+; call the common block
+common hr_psf_common
+; x - detector xgrid
+; y - detector ygrid
 
-diff_x_grid = x - x_cen
-diff_y_grid = y - y_cen
+;p[0]  ; x-centroid position
+;p[1]  ; y-centroid position
+;p[2]	; flux
 
-return, f * TRIGRID( com_x_grid_PSF, com_y_grid_PSF, com_psf, com_triangles , XOUT = diff_x_grid[*,0], YOUT = diff_y_grid[0,*], MISSING = 0.0 )
+;diff_x_grid = x - p[0]
+;diff_y_grid = y - p[1]
+
+; now scale into array without coordinates
+;xgrid2=(diff_x_grid-min(c_x_vector_psf_min))*c_sampling
+;ygrid2=(diff_y_grid-min(c_y_vector_psf_min))*c_sampling
+
+;return, p[2]*interpolate(c_psf,xgrid2,ygrid2)
+
+
+; now for speed
+
+return, p[2]*interpolate(c_psf,(x - (p[0] + c_x_vector_psf_min))*c_sampling,(y - (p[1] + c_y_vector_psf_min))*c_sampling)
+
 
 end

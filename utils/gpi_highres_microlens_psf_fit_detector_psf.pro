@@ -62,7 +62,7 @@ function gpi_highres_microlens_psf_fit_detector_psf, pixel_array, FIRST_GUESS = 
                   ptr_obj_psf,$
                   FIT_PARAMETERS = fit_parameters,$
                   ERROR_FLAG = error_flag, QUIET = quiet, ANTI_STUCK = anti_stuck, $
-									no_error_checking=no_error_checking
+			no_error_checking=no_error_checking, weights=weights,chisq=chisq
 
 
 error_flag = 0
@@ -177,10 +177,22 @@ if keyword_set(mask) then my_weights = mask else begin
 	my_weights=fltarr(sz[1],sz[2])+1
 endelse
 
+
+
 ; we want to follow the format of Anderson et al.
 ; he uses a radial weighting scheme combined with a poisson distribution
 ; he can do this because he is looking for astrometry not intensity
 
+
+; find peak in mask space
+;tmp=abs(x_grid-first_guess[0])+abs(y_grid-first_guess[1])
+;tmp2=min(tmp,mind,/nan)
+;
+;weights=(1.0/tmp)
+;weights/=max(weights)
+;weights*=mask
+;
+;my_weights=weights
 ;stop
 
   ;  my_weights = double(pixel_array[*,*,i_slice]
@@ -214,7 +226,7 @@ endelse
     else  parameters = MPFIT2DFUN("gpi_highres_microlens_psf_evaluate_detector_psf", x_grid, y_grid, pixel_array[*,*,i_slice], err, $
                                                       first_guess[*,i_slice], $
                                                       WEIGHTS = my_weights, PARINFO = parinfo, $
-                                                      BESTNORM = chisq, YFIT = yfit  )
+                                                      BESTNORM = chisq, YFIT = yfit , dof=dof)
     fitted_PSF[*,*,i_slice] = temporary(yfit)
     
     if keyword_set(anti_stuck) and chisq gt TOTAL( (0.1*pixel_array[*,*,i_slice])^2 * ABS(MY_WEIGHTS) ) then begin
@@ -252,6 +264,6 @@ endelse
     ;CHISQ = TOTAL( (0.1*pixel_array[*,*,i_slice])^2 * ABS(MY_WEIGHTS) )
   endfor
 endif
-;stop
+
 return, ptr_new(fitted_PSF,/no_copy)
 end
