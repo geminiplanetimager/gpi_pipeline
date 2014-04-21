@@ -102,7 +102,8 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	; Generate output filename
 	; remove extension if need be
 	base_filename = file_basename(gpi_expand_path(filenm))
-	extloc = strpos(base_filename,'.', /reverse_search)
+	print, base_filename
+	extloc = strpos(base_filename,'.')
 
 	; suffix must be separated by a dash
 	if strmid(s_Ext,0,1) eq '-' then strreplace, s_Ext,'-','_' ; swap dashes to underscores!
