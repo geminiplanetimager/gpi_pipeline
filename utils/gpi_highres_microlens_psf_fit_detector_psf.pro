@@ -3,6 +3,9 @@
 ; 
 ; DESCRIPTION: Give the best fit of an image for a given ePSF
 ; 
+;
+; - THIS USES LINEAR INTERPOLATION
+;
 ; IMPORTANT: The common psf_lookup_table, com_psf, com_x_grid_PSF, com_y_grid_PSF, com_triangles, com_boundary needs to be declared prior to the call of this function. If not, copy paste it in your code.
 ; 
 ; Use MPFIT2DFUN to perform a least square fit using the function gpi_highres_microlens_psf_evaluate_detector_psf with parameters x_centroid, y_centroid and intensity.
@@ -75,7 +78,8 @@ if pixel_array_sz[0] eq 3 or pixel_array_sz[0] eq 2 then begin
   ny = pixel_array_sz[2]
   if pixel_array_sz[0] eq 3 then nz = pixel_array_sz[3] else nz = 1
 
-	if keyword_set(no_error_checking) eq 0 then begin
+
+if keyword_set(no_error_checking) eq 0 then begin
 
   if ~keyword_set(FIRST_GUESS) then begin
       error_flag = -7
@@ -120,37 +124,42 @@ endif else begin
 endelse
 
 ;////////////////////////////////////
-  fitted_PSF = fltarr(nx,ny,nz) + !values.f_nan
+  fitted_PSF = fltarr(nx,ny,nz)
   ;the coordinates corresponding to the fitted PSF
   x_grid0 = rebin(findgen(nx),nx,ny)
   y_grid0 = rebin(reform(findgen(ny),1,ny),nx,ny)
   
   ;these are the outputs of the function. centroid and intensity of the best fit.
-  fit_parameters = fltarr(3,nz) + !values.f_nan
-  
+  fit_parameters = fltarr(3,nz)  
 ;todo: check the validity of the psf and coordinates vectors
-psf = (*ptr_obj_psf).values
-x_vector_psf = (*ptr_obj_psf).xcoords
-y_vector_psf = (*ptr_obj_psf).ycoords
-if (where(finite(psf)))[0] ne -1 then begin
-  ;gpi_highres_microlens_psf_initialize_psf_interpolation set the common psf_lookup_table variables. The common contains a lookuptable for the PSF with a spline interpolation. 
-  gpi_highres_microlens_psf_initialize_psf_interpolation, psf, x_vector_psf, y_vector_psf;, /SPLINE, RESOLUTION = 2
-  
-  ;loop over all the slice of the pixel_array cube. It fit the same PSF to all of them.
 
- parinfo = replicate({limited:[0,0], limits:[0.0,0]}, 3)
+; load in the common block
+common hr_psf_common
+
+; put highres psf in common block for fitting
+c_psf = (*ptr_obj_psf).values
+; put min values in common block for fitting
+c_x_vector_psf_min = min((*ptr_obj_psf).xcoords)
+c_y_vector_psf_min = min((*ptr_obj_psf).ycoords)
+; determine hte sampling and put in common block
+c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
+
+
+; declare the parinfo for the fitting
+  parinfo = replicate({limited:[0,0], limits:[0.0,0]}, 3)
     parinfo[0].limited = [1,1]
     parinfo[1].limited = [1,1]
     parinfo[2].limited = [1,0]
     parinfo[2].limits  = 0.0
 
+ ;loop over all the slice of the pixel_array cube. It fit the same PSF to all of them.
+
   for i_slice = 0L,long(nz-1) do begin
-    if ~keyword_set(QUIET) then statusline, "Fit PSF: "+strc(i_slice+1) +" of "+strc(long(nz)) + " slices fitted"
+; statusline, "Fit PSF: "+strc(i_slice+1) +" of "+strc(long(nz)) + " slices fitted"
     
     if keyword_set(x0) then x_grid = x_grid0 + x0[i_slice] else x_grid = x_grid0
     if keyword_set(y0) then y_grid = y_grid0 + y0[i_slice] else y_grid = y_grid0
     
-    err = pixel_array[*,*,i_slice]*0.0
     
   ;   WEIGHTS - Array of weights to be used in calculating the
   ;             chi-squared value.  If WEIGHTS is specified then the ERR
@@ -171,11 +180,11 @@ if (where(finite(psf)))[0] ne -1 then begin
 ; Once polarimetry mode is setup in get_spaxels2.pro to do masks as well
 ; this should be deleted!
 
-if keyword_set(mask) then my_weights = mask else begin
-	; mask must be the same size as the stamp
-	sz=size(x_grid)
-	my_weights=fltarr(sz[1],sz[2])+1
-endelse
+	if keyword_set(mask) then my_weights = mask else begin
+		; mask must be the same size as the stamp
+		sz=size(x_grid)
+		my_weights=fltarr(sz[1],sz[2])+1
+	endelse
 
 
 
@@ -200,70 +209,22 @@ endelse
   ;  weights_not_finite = where(~finite(my_weights))
   ;  if weights_not_finite[0] ne -1 then my_weights[weights_not_finite] = 0.0
   
-  ;  PARINFO should be an array of structures, one for each parameter.
-  ;  Each parameter is associated with one element of the array, in
-  ;  numerical order.  The structure can have the following entries
-  ;  (none are required):
-  ;     .LIMITED - a two-element boolean array.  If the first/second
-  ;                element is set, then the parameter is bounded on the
-  ;                lower/upper side.  A parameter can be bounded on both
-  ;                sides.  Both LIMITED and LIMITS must be given
-  ;                together.
-  ;  
-  ;     .LIMITS - a two-element float or double array.  Gives the
-  ;               parameter limits on the lower and upper sides,_
-  ;               respectively.  Zero, one or two of these values can be
-  ;               set, depending on the values of LIMITED.  Both LIMITED
-  ;               and LIMITS must be given together.
+; set centroid limits as the edges of the array
     parinfo[0].limits  = [x0[i_slice],x0[i_slice]+nx]
     parinfo[1].limits  = [y0[i_slice],y0[i_slice]+ny]
-  
-    ;Fit the result of gpi_highres_microlens_psf_evaluate_detector_psf to the current slice. gpi_highres_microlens_psf_evaluate_detector_psf uses the common psf_lookup_table to get the PSF to fit. Then it shifts and scales it according to the parameters (centroid and intensity).
-    if keyword_set(QUIET) then parameters = MPFIT2DFUN("gpi_highres_microlens_psf_evaluate_detector_psf", x_grid, y_grid, pixel_array[*,*,i_slice], err, $
-                                                      first_guess[*,i_slice], $
-                                                      WEIGHTS = my_weights, PARINFO = parinfo, $
-                                                      BESTNORM = chisq, /QUIET, YFIT = yfit ) $
-    else  parameters = MPFIT2DFUN("gpi_highres_microlens_psf_evaluate_detector_psf", x_grid, y_grid, pixel_array[*,*,i_slice], err, $
-                                                      first_guess[*,i_slice], $
-                                                      WEIGHTS = my_weights, PARINFO = parinfo, $
-                                                      BESTNORM = chisq, YFIT = yfit , dof=dof)
-    fitted_PSF[*,*,i_slice] = temporary(yfit)
-    
-    if keyword_set(anti_stuck) and chisq gt TOTAL( (0.1*pixel_array[*,*,i_slice])^2 * ABS(MY_WEIGHTS) ) then begin
-      ;this means the fitting sucked so it might be possible that the convergence algorithm got stuck in a local minimum so we gonna try to make him move by changing a bit the initial value.
-      error_flag = 1
-      if ~keyword_set(QUIET) then print, "WARNING: bad fit. Trying to test different initial values."
-      param_init = first_guess[*,i_slice]
-      param_init_test = [[param_init+[0.5,0.0,0.0]],[param_init-[0.5,0.0,0.0]],$
-                    [param_init+[0.0,0.5,0.0]],[param_init-[0.0,0.5,0.0]]]
-      param_end_test = fltarr(3,4)
-      chisq_test = fltarr(4)
-      for n=0,3 do begin
-        param_end_test[*,n] = MPFIT2DFUN("gpi_highres_microlens_psf_evaluate_detector_psf", x_grid, y_grid, pixel_array[*,*,i_slice], err, $
-                                                      param_init_test[*,n], $
-                                                      WEIGHTS = my_weights, PARINFO = parinfo, $
-                                                      BESTNORM = chisq, /QUIET )
-        chisq_test[n] = chisq
-      endfor
-      min_chisq = min(chisq_test, min_subscript)
-      parameters = param_end_test[*,min_subscript]
-      fitted_PSF[*,*,i_slice] = gpi_highres_microlens_psf_evaluate_detector_psf(x_grid, y_grid, parameters)
-      if min_chisq gt TOTAL( (0.1*pixel_array[*,*,i_slice])^2 * ABS(MY_WEIGHTS) ) then begin
-        error_flag = 2
-        if ~keyword_set(QUIET) then print, "WARNING: Still bad... Maybe a bad PSF?"
-      endif else begin
-        if ~keyword_set(QUIET) then print, "WARNING: Problem solved!"
-      endelse
-    endif ; end of anti-stuck
+ 
 
-    ;store the results of the fit
-    fit_parameters[*,i_slice] = temporary(parameters)
+    ;Fit the result of gpi_highres_microlens_psf_evaluate_detector_psf to the current slice. gpi_highres_microlens_psf_evaluate_detector_psf uses the common psf_lookup_table to get the PSF to fit. Then it shifts and scales it according to the parameters (centroid and intensity).
+ parameters = MPFIT2DFUN("gpi_highres_microlens_psf_evaluate_detector_psf", x_grid, y_grid, pixel_array[*,*,i_slice],0, $
+                                                      first_guess[*,i_slice], $
+                                                      WEIGHTS = my_weights, PARINFO = parinfo, $
+                                                      BESTNORM = chisq, /QUIET, YFIT = yfit ) 
   
-    ;parameters = MPFIT2DFUN("EVALUATE_PSF", x_grid, y_grid, pixel_array[*,*,i_slice], err, [x_centroids_first_guess[i_slice]+0.5,y_centroids_first_guess[i_slice]+0.5,intensities_first_guess[i_slice]], WEIGHTS = my_weights, PARINFO = parinfo,BESTNORM = chisq )
-    ;CHISQ = TOTAL( (pixel_array[*,*,i_slice]-gpi_highres_microlens_psf_evaluate_detector_psf(x_grid, y_grid, parameters))^2 * ABS(MY_WEIGHTS) )
-    ;CHISQ = TOTAL( (0.1*pixel_array[*,*,i_slice])^2 * ABS(MY_WEIGHTS) )
+ fitted_PSF[*,*,i_slice] = temporary(yfit)  
+   ;store the results of the fit
+    fit_parameters[*,i_slice] = temporary(parameters)
+
   endfor
-endif
 
 return, ptr_new(fitted_PSF,/no_copy)
 end
