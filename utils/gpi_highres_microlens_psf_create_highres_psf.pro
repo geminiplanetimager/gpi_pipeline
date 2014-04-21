@@ -82,7 +82,7 @@
 ;- 
 function gpi_highres_microlens_psf_create_highres_psf, pixel_array, x_centroids, y_centroids, intensities, sky_values, $
                   PSF_nx_pix,PSF_ny_pix, PSF_samples_per_xpix, PSF_samples_per_ypix, $
-                  MASK = mask,  XCOORDS = xcoords, YCOORDS = ycoords, filter=filter $
+                  MASK = mask,  XCOORDS = xcoords, YCOORDS = ycoords, filter=filter, $
                   ERROR_FLAG = error_flag, $
                   SPLINE_PSF = spline_psf, X_SPLINE_PSF = x_spline_psf, Y_SPLINE_PSF = y_spline_psf, $
                   CENTROID_MODE = centroid_mode, $
