@@ -9,6 +9,7 @@
 ;
 ; PIPELINE COMMENT: Create a few calibrations files based on the determination of a high resolution PSF.
 ; PIPELINE ARGUMENT: Name="filter_wavelength" Type="string" Range="" Default="" Desc="Narrowband filter wavelength"
+; PIPELINE ARGUMENT: Name="bad_pixel_map" Type="string" Range="" Default="" Desc="Bad pixel map"
 ; PIPELINE ARGUMENT: Name="flat_field" Type="int" Range="[0,1]" Default="0" Desc="Is this a flat field"
 ; PIPELINE ARGUMENT: Name="flat_filename" Type="string" Default="" Desc="Name of flat field"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
@@ -45,6 +46,7 @@ start_time=systime(1)
 
 
   if tag_exist( Modules[thisModuleIndex], "filter_wavelength") then filter_wavelength=string(Modules[thisModuleIndex].filter_wavelength) else filter_wavelength=''
+  if tag_exist( Modules[thisModuleIndex], "bad_pixel_map") then bad_pixel_map=float(Modules[thisModuleIndex].bad_pixel_map) else bad_pixel_map=0
   if tag_exist( Modules[thisModuleIndex], "flat_field") then flat_field=float(Modules[thisModuleIndex].flat_field) else flat_field=0
   if tag_exist( Modules[thisModuleIndex], "flat_filename") then flat_filename=string(Modules[thisModuleIndex].flat_filename) else flat_filename=""
   
@@ -80,7 +82,7 @@ start_time=systime(1)
   backbone->Log, "Cutting out postage stamps around each lenslet PSF"
   case disperser of
      'PRISM': begin
-        width_PSF = 4                             ; size of stamp? 
+        width_PSF = 5;4 ; orig                             ; size of stamp? 
         n_per_lenslet = 1                         ; there is only 1 PSF per lenslet in spectral mode                
         sub_pix_res_x = 5		;sub_pixel resolution of the highres ePSF
         sub_pix_res_y = 5		;sub_pixel resolution of the highres ePSF
@@ -539,7 +541,7 @@ endif ; end flat field creation
 ; create flexure plots
 ; ####################
 
-     if f gt 1 then begin
+     if f gt 1  and 0 eq 1 then begin
 ; stored in xtransf_im_to_ref
         xx=(fltarr(2048)+1)##findgen(2048)
         xx1d=reform(xx,2048*2048)
