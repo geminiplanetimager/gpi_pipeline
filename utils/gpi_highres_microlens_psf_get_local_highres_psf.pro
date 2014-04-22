@@ -1,8 +1,8 @@
-function gpi_highres_microlens_psf_get_local_highres_psf, high_res_PSFs, lcoords
+function gpi_highres_microlens_psf_get_local_highres_psf, high_res_PSFs, lcoords,preserve_structure=preserve_structure,valid=valid
 ; this function returns the highres psf for a local lenslet coordinate 
 ; it reads the large structure then interpolates between the closest four positions in order to determine 
 ; an average local psf
-time1=systime(/seconds)
+
 ; check to see if there is already a psf at this position!
 ptr_current_PSF = high_res_psfs[lcoords[0],lcoords[1],lcoords[2]]
 ; if yes, then just return it
@@ -13,18 +13,23 @@ ptr_current_PSF = high_res_psfs[lcoords[0],lcoords[1],lcoords[2]]
 ; the high_res_psfs structure
 
 ; find valid pointers
-valid=ptr_valid(high_res_psfs)
-ygrid=findgen(281)##(fltarr(281)+1)
-;xgrid=(fltarr(281)+1)##findgen(281)  ; slower
-xgrid=transpose(ygrid)
+time1=systime(/seconds)
+
+if keyword_set(valid) eq 0 then valid=ptr_valid(high_res_psfs) ; takes 0.0013s - this is the slowest portion of the code by a factor of 3
+ 
+time1aa=systime(/seconds)
+; create a grid
+tmp=findgen(281)
+xgrid=rebin(tmp,281,281)
+ygrid=rebin(transpose(tmp),281,281)
 time1a=systime(/seconds)
+
 
 ; make non-valid points nans
 bad=where(valid eq 0,complement=good)
-ygrid[bad]=!values.f_nan & xgrid[bad]=!values.f_nan
 
 ; now offset these grids so they represent the distance to the nearest points
-xgrid-=lcoords[0] & ygrid-=lcoords[1]
+xgrid[good]-=lcoords[0] & ygrid[good]-=lcoords[1]
 
 ; now find the closest indices surrounding the object
 rad_dist=fltarr(281,281)
@@ -32,29 +37,30 @@ rad_dist[good]=sqrt(xgrid[good]^2+ygrid[good]^2)
 time1b=systime(/seconds)
 
 ; nearest positive x , positive y
-ind=where(ygrid ge 0 and xgrid ge 0)
+ind=where(ygrid[good] ge 0 and xgrid[good] ge 0)
+; the annoying indices below are purely for speed reasons
 if ind[0] eq -1 then Q22_ind=-1 else begin
-	dump=min(rad_dist[ind],/nan,tmp)
-	Q22_ind=ind[tmp]
+	dump=min(rad_dist[good[ind]],/nan,tmp)
+	Q22_ind=good[ind[tmp]]
 endelse
 ; nearest negative x , positive y
-ind=where(ygrid ge 0 and xgrid lt 0)
+ind=where(ygrid[good] ge 0 and xgrid[good] lt 0)
 if ind[0] eq -1 then Q12_ind=-1 else begin
-	dump=min(rad_dist[ind],/nan,tmp)
-	Q12_ind=ind[tmp]
+	dump=min(rad_dist[good[ind]],/nan,tmp)
+	Q12_ind=good[ind[tmp]]
 endelse
 ; nearest negative x , negative y
-ind=where(ygrid lt 0 and xgrid lt 0)
+ind=where(ygrid[good] lt 0 and xgrid[good] lt 0)
 if ind[0] eq -1 then Q11_ind=-1 else begin
-	dump=min(rad_dist[ind],/nan,tmp)
-	Q11_ind=ind[tmp]
+	dump=min(rad_dist[good[ind]],/nan,tmp)
+	Q11_ind=good[ind[tmp]]
 endelse
 
 ; nearest positive x , negative y
-ind=where(ygrid lt 0 and xgrid ge 0)
+ind=where(ygrid[good] lt 0 and xgrid[good] ge 0)
 if ind[0] eq -1 then Q21_ind=-1 else begin
-	dump=min(rad_dist[ind],/nan,tmp)
-	Q21_ind=ind[tmp]
+	dump=min(rad_dist[good[ind]],/nan,tmp)
+	Q21_ind=good[ind[tmp]]
 endelse
 time2=systime(/seconds)
 ;
@@ -274,22 +280,27 @@ obj_PSF = {values: new_psf, $
            ycoords: master_ycoords, $
            tilt: 0.0,$
            id: [lcoords] }
-; now replace the null pointer in high_res_psfs with a new (and valid) one
-high_res_psfs[lcoords[0],lcoords[1],lcoords[2]]=ptr_new(obj_PSF,/no_copy)
+
+new_psf_ptr=ptr_new(obj_PSF,/no_copy)
+
+; now replace the null pointer in high_res_psfs with a new (and valid) one - if desired
+if keyword_set(preserve_structure) eq 0 then high_res_psfs[lcoords[0],lcoords[1],lcoords[2]]=new_psf_ptr
+
 ;window,2
 ;tvdl, (*high_res_psfs[lcoords[0],lcoords[1],lcoords[2]]).values
 ;stop
 
-;time3=systime(/seconds)
-;print, time2-time1
-;print, time3-time2
-
+;time3=systime(/seconds);
+;print, 'time2-time1', time2-time1
+;print, 'time3-time2', time3-time2
+;
 ;print,''
-;print, time1a-time1
-;print, time1b-time1a
-;print, time2-time1b
+;print, 'time1aa-time1', time1aa-time1
+;print, 'time1a-time1aa', time1a-time1aa
+;print, 'time1b-time1a', time1b-time1a
+;print, 'time2-time1b', time2-time1b
 ;stop
 ; now return the pointer 
-return,high_res_psfs[lcoords[0],lcoords[1],lcoords[2]] 
+return,new_psf_ptr
 
 end
