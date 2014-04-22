@@ -46,12 +46,16 @@ start_time=systime(1)
 
 
   if tag_exist( Modules[thisModuleIndex], "filter_wavelength") then filter_wavelength=string(Modules[thisModuleIndex].filter_wavelength) else filter_wavelength=''
-  if tag_exist( Modules[thisModuleIndex], "bad_pixel_mask") then bad_pixel_mask=float(Modules[thisModuleIndex].bad_pixel_mask) else bad_pixel_mask=0
+  if tag_exist( Modules[thisModuleIndex], "bad_pixel_mask") then bad_pixel_mask=string(Modules[thisModuleIndex].bad_pixel_mask) else bad_pixel_mask=0
   if tag_exist( Modules[thisModuleIndex], "flat_field") then flat_field=float(Modules[thisModuleIndex].flat_field) else flat_field=0
   if tag_exist( Modules[thisModuleIndex], "flat_filename") then flat_filename=string(Modules[thisModuleIndex].flat_filename) else flat_filename=""
   
   if filter_wavelength eq '' and flat_field eq 0 then return, error(' No narrowband filter wavelength specified. Please specify a wavelength and re-add to queue')
-  
+
+if keyword_set(bad_pixel_mask) eq 0 then return,error('no bad pixel mask specified')
+bad_pixel_mask=mrdfits(bad_pixel_mask,1)
+bad_pixel_mask=abs(bad_pixel_mask-1)
+
   filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
 	disperser = gpi_simplify_keyword_value(backbone->get_keyword('DISPERSR', indexFrame=nfiles))
 	nfiles=dataset.validframecount
@@ -100,6 +104,7 @@ start_time=systime(1)
         cent_mode = "MAX"
                                 ; Create raw data stamps
         spaxels = gpi_highres_microlens_psf_extract_microspectra_stamps(disperser, image, polcal, width_PSF, bad_pixel_mask=bad_pixel_mask, /STAMPS_MODE)
+
      end
   endcase
 
@@ -139,7 +144,7 @@ start_time=systime(1)
 ; over the flexure loop - so the RHS of figure 8 in the Anderson paper
 ; this should probably be moved into a recipe keyword.
 ;stop
-  it_flex_max = 3				; what is this? -MP  # of iterations for flexure? Not clear what is being iterated over.
+  it_flex_max = 5				; what is this? -MP  # of iterations for flexure? Not clear what is being iterated over.
 ;   degree_of_the_polynomial_fit = 2 ; degree of the polynomial surface used for the flexure correction
 ; can't have multiple iterations if just one file - this should be a recipe failure
 
@@ -200,7 +205,7 @@ kernel_testing:
 
            ; now loop over each lenslet
            for i=imin_test,imax_test do begin				
-              statusline, "Creating highres psf: Line "+strc(i+1)+" of "+strc(imax_test)+" and spot "+strc(k+1)+" of "+strc(n_per_lenslet+1)+" for iteration " +strc(it_flex+1)+" of "+strc(it_flex_max)
+              statusline, "Creating highres psf: Line "+strc(i+1)+" of "+strc(imax_test)+" and spot "+strc(k+1)+" of "+strc(n_per_lenslet)+" for iteration " +strc(it_flex+1)+" of "+strc(it_flex_max)
 						
               for j=jmin_test,jmax_test do begin
 								
@@ -278,6 +283,7 @@ kernel_testing:
 		i+=((2*n_neighbors)*loop_jump)
            endfor ; end loop over i lenslsets (rows?)
 
+print,'' ; just puts a space in the status line
 
 ; ##############################
 ; Fit each detector mlens PSF 
@@ -452,7 +458,7 @@ endif
 ; determine indices of arrays to replace
 ind_arr = array_indices(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,0],valid_ctrd_ptrs)
 
-stop,"about to apply flexure correction to centroids"
+;stop,"about to apply flexure correction to centroids"
 
 
   if nfiles ne 1 then begin
@@ -606,7 +612,7 @@ endif ; end flat field creation
   base_filename = file_basename(filenm)
   extloc = strpos(base_filename,'.', /reverse_search)
   
-  nrw_filt=strmid(strcompress(string(filter_wavelength),/rem),0,5)
+  nrw_filt=strmid(strcompress(string(filter_wavelength),/rem),0,6)
   my_file_name=gpi_get_directory('GPI_REDUCED_DATA_DIR')+'highres-'+nrw_filt+'-psf_structure.fits'
   pri_header=*dataset.headersphu[0]
   sxaddpar,pri_header,'ISCALIB','YES'
