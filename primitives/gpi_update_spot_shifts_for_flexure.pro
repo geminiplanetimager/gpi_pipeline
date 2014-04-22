@@ -56,7 +56,7 @@
 ; (experimental, not to be trusted yet)
 ; Scroll on down further for the main primitive code!
 ;
-function update_shifts_for_flexure_auto_optimize, det, wavcal, filter, coarse=coarse, guess=guess, nsteps=nsteps
+function update_shifts_for_flexure_auto_optimize, det, wavcal, filter, coarse=coarse, guess=guess, nsteps=nsteps,display=display
 	compile_opt defint32, strictarr, logical_predicate
 	
     if keyword_set(coarse) then begin
@@ -125,9 +125,10 @@ function update_shifts_for_flexure_auto_optimize, det, wavcal, filter, coarse=co
     endfor
 
     ;atv, reform(mask_traces, dim,dim,  n_elements(xsteps)*n_elements(ysteps)),/bl
-
-    window, 0
+if display ne -1 then begin
+    window,display
     imdisp, xcors,/axis
+endif
     whereismax, xcors, mx, my,/silent
     shiftx = xsteps[mx]
     shifty = ysteps[my]
@@ -324,12 +325,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
         endif else begin
             backbone->Log, "Making a first coarse estimate of shifts"
-            shifts = update_shifts_for_flexure_auto_optimize(det, wavcal, filter, /coarse)
+            shifts = update_shifts_for_flexure_auto_optimize(det, wavcal, filter, /coarse,display=display)
             backbone->Log, "Coarse shift estimate = "+strc(shifts[0])+", "+strc(shifts[1])
         endelse
 
         backbone->Log, "Refining estimate of shifts"
-        fineshifts = update_shifts_for_flexure_auto_optimize(det, wavcal, filter, guess=shifts)
+        fineshifts = update_shifts_for_flexure_auto_optimize(det, wavcal, filter, guess=shifts, display=display)
 
         shiftx = fineshifts[0]
         shifty = fineshifts[1]
