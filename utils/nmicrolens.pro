@@ -25,8 +25,9 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
 ;Code you need to add before using gpi_highres_microlens_psf_evaluate_detector_psf
 ;declare the common variable used by gpi_highres_microlens_psf_evaluate_detector_psf()
 common psf_lookup_table, com_psf, com_x_grid_PSF, com_y_grid_PSF, com_triangles, com_boundary
+common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
 ;fill the common variables with initialize_psf_interp.
-gpi_highres_microlens_psf_initialize_psf_interpolation, my_psf.values, my_psf.xcoords, my_psf.ycoords
+;gpi_highres_microlens_psf_initialize_psf_interpolation, my_psf.values, my_psf.xcoords, my_psf.ycoords
 ;/////////////////////////
 
 

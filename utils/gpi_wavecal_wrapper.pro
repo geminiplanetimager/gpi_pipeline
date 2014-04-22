@@ -40,7 +40,7 @@ FUNCTION gpi_wavecal_wrapper, xdim,ydim,refwlcal,lensletarray,badpixels,wlcalsiz
 
 common ngausscommon, numgauss, wl, flux, lambdao, my_psf
 common highrespsfstructure, myPSFs_array
-
+common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
 nflux=size(flux,/dimensions)
 
 ;read in my_psf
@@ -155,8 +155,8 @@ parinfo[3].limited[1]=1
 parinfo[3].limits[1]=theta+deltatheta
 
 if whichpsf EQ 'ngauss' then begin
-if lambdao lt 1.1 then max_fwhm= 4 else max_fwhm=2
-
+;if lambdao lt 1.1 then max_fwhm= 4 else max_fwhm=2
+max_fwhm = 3
 ; X FWHM
 parinfo[4].limited[0]=1
 parinfo[4].limits[0]=0.4
@@ -209,7 +209,7 @@ parinfo[7].limits[0]=0.0
 		  'nmicrolens': modelimage=nmicrolens(x,y,bestres)
 		  'ngauss': modelimage=ngauss(x,y,bestres)
 		endcase
-
+                ;print, 'Created modelimage'
 		; remove the constant background since we have to handle overlaps
 		; carefully when combining these. This implementation is easiest given
 		; the normalization present in the ngauss function
