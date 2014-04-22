@@ -35,6 +35,7 @@
 ; PIPELINE ARGUMENT: Name="Save_model_image" Type="int" Range="[0,1]" Default="0" Desc="1: save 2d detector model fit image to disk, 0:don't save"
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="wavcal" Default="AUTOMATIC" Desc="Filename of the desired reference wavelength calibration file to be read"
 ; PIPELINE ARGUMENT: Name="Save_model_params" Type="int" Range="[0,1]" Default="0" Desc="1: save model nuisance parameters to disk, 0: don't save"
+; PIPELINE ARGUMENT: Name="AutoOffset" Type="int" Range="[0,1]" Default="0" Desc="Automatically determine x/yoffset values 0;NO, 1;YES"
 ;
 ; PIPELINE ORDER: 1.7
 ;
@@ -70,7 +71,7 @@ calfiletype = 'wavecal'
   	if tag_exist( Modules[thisModuleIndex], "Smooth") then Smooth=uint(Modules[thisModuleIndex].Smooth) else Smooth=0
   	if tag_exist( Modules[thisModuleIndex], "Save_model_image") then Save_model_image=uint(Modules[thisModuleIndex].Save_model_image) else Save_model_image=0
   	if tag_exist( Modules[thisModuleIndex], "Save_model_params") then Save_model_params=uint(Modules[thisModuleIndex].Save_model_params) else Save_model_params=0
-
+ 	if tag_exist( Modules[thisModuleIndex], "AutoOffset") then AutoOffset=uint(Modules[thisModuleIndex].AutoOffset) else AutoOffset=1
 
 ;Load in the image. Primitive assumes a dark,flat,badpixel,flexure, and microphonics corrected lamp image. 
 
@@ -87,7 +88,8 @@ calfiletype = 'wavecal'
 	;open the reference wavecal file. Save into common block variable.
 	refwlcal = gpi_readfits(c_File,header=Header)
 
-
+        common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
+        
 ;Use the next line to manually select a wavecal by hand until that
 ;software bug is fixed.
         ;refwlcal=mrdfits('/Users/schuylerwolff/gpi/data/Reduced/calibrations/wavecals/S20130315S0059-J--wavecal.fits',1,HEADER)
@@ -99,8 +101,8 @@ calfiletype = 'wavecal'
 	newwavecal=dblarr(wlcalsize) 
 	
         print,wlcalsize
-	valid = gpi_wavecal_sanity_check(c_File, errmsg=errmsg,/noplot)
-	if ~(keyword_set(valid)) then return, error("The chosen starting reference wavecal, "+c_File+", does not pass the qualty check. Cannot be used to generate a new wavecal. Remove it from your calibration DB and rescan before trying again. ")
+;	valid = gpi_wavecal_sanity_check(c_File, errmsg=errmsg,/noplot)
+;	if ~(keyword_set(valid)) then return, error("The chosen starting reference wavecal, "+c_File+", does not pass the qualty check. Cannot be used to generate a new wavecal. Remove it from your calibration DB and rescan before trying again. ")
 
 	;READ IN BAD PIXEL MAP
 	; assume this is already present in the DQ extension.
@@ -134,8 +136,8 @@ calfiletype = 'wavecal'
 
 	if whichpsf eq 1 then begin
 
-;           psffn = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'mlenspsf',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
-           psffn = '/Users/schuylerwolff/Dropbox/GPI/GPI_Calibrations/lenslet_PSFs/140226_highres-2058um-psf_structure.fits'
+           psffn = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'mlenspsf',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
+           ;psffn = '/astro/4/mperrin/gpi/data/Calibrations/Dropbox_Calibrations/lenslet_PSFs/140226_highres-2058um-psf_structure.fits'
           ;open the appropriate micrlens psf file and assign it to the variable myPSFs_array.
            ;myPSFs_array = gpi_highres_microlens_psf_read_highres_psf_structure(psffn, [281,281,1])
 
@@ -157,12 +159,14 @@ calfiletype = 'wavecal'
 
 
 istart=0
-iend=nlens-1
+iend=17
 jstart=0
 jend=nlens-1
 
 
 im_uncert = gpi_estimate_2d_uncertainty_image( *dataset.currframe , *dataset.headersPHU[numfile], *dataset.headersExt[numfile])
+
+
 
 
 if keyword_set(parallel) then begin
@@ -171,7 +175,7 @@ if keyword_set(parallel) then begin
 	backbone->set_keyword, 'HISTORY',"Parallelizing over "+strc(numsplit)+" IDL processes", depth=3,/flush
 	readcol, datafn,wla,fluxa,skipline=1,format='F,F'
 	readcol,datafn,nmgauss,numline=1,format='I'
-
+       
 	count=0 ; count of lenslet columns fit
         icount=1
 	lensletcount = 0 ; count of individual lenslets fit
@@ -180,6 +184,66 @@ if keyword_set(parallel) then begin
 	sizeres = 9+nmgauss[0]
     if ~(keyword_set(modelparams)) then modelparams=fltarr( (size(refwlcal))[1],(size(refwlcal))[2],sizeres )+!values.f_nan
     if ~(keyword_set(modelbackgrounds)) then modelbackgrounds = fltarr( (size(refwlcal))[1],(size(refwlcal))[2] ) + !values.f_nan
+
+    if AutoOffset EQ 1 then begin
+           ngausspars=dblarr(sizeres)
+           boxsizex=7
+           boxsizey=24
+           xindex=140
+           yindex=140
+           xo=refwlcal[xindex,yindex,1]
+           yo=refwlcal[xindex,yindex,0]
+           startx=floor(xo-boxsizex/2.0)
+           starty=round(yo)-20
+           stopx = startx+boxsizex
+           stopy = starty+boxsizey
+
+           rawarray=image[startx:stopx, starty:stopy] 
+
+           xposo=xo-startx
+           yposo=yo-starty
+           theta=refwlcal[xindex,yindex,3]
+           w=refwlcal[xindex,yindex,4]
+           fwhmx=1.9
+           fwhmy=1.9
+           lambdaref=refwlcal[xindex,yindex,2]
+           rotation=0
+           background=20
+           for z=0,nmgauss[0]-1 do begin
+              ngausspars[9+z]=fluxa[z]
+           endfor
+
+           x=indgen(boxsizex)
+           y=indgen(boxsizey)
+           szx=size(x,/n_elements)
+           szy=size(y,/n_elements)
+           zmod=dblarr(szx,szy)
+           xvals = make_array(szx,szy,/index,/integer) mod szx
+           yvals = make_array(szx,szy,/index,/integer) / szx
+           
+           for i=0, nmgauss[0]-1 do begin
+              lambda=wla[i]
+              coeff=ngausspars[9+i]
+              xcent=xposo+sin(theta)*(lambda-lambdaref)/w
+              ycent=yposo-cos(theta)*(lambda-lambdaref)/w
+              zmod += coeff*psf_gaussian(npixel=[szx,szy],fwhm=[fwhmx,fwhmy],centroid=[xcent,ycent],ndimen=2,/double,/normalize)
+
+;one_2d_gaussian(xvals, yvals, fwhm=[fwhmx,fwhmy],centroid=[xcent,ycent],ndimen=2,/double,/normalize,rotation=rotation)              
+           endfor
+
+;normalize this to the scale factor relative to the science image
+           zmod=zmod*total(rawarray)/total(zmod)
+; and add in constant background              
+           simarray=zmod+background
+
+
+           corrmat_analyze, CORREL_IMAGES(rawarray,simarray,xshift=3,yshift=3),xoffset_auto,yoffset_auto,/print
+
+           backbone->Log, "Applying a prelimiinary shift of (X,Y) = ("+strc(xoffset_auto)+", "+strc(yoffset_auto)+")"
+
+        endif
+
+
 
 
 	waveinfo = get_cwv(filter)
@@ -254,8 +318,8 @@ if keyword_set(parallel) then begin
 	'    lensletmodel[startx:stopx, starty:stopy] += modelimage',$
 	'    lensletcount+=1',$
  	'endfor',$
-        'if lensletcount GT 0 then icount+=1',$
-	'print,"Have now fit "+strc(lensletcount)+"/"+strc(n_valid_lenslets)+ " lenslets in process "+strc(which_bridge)']
+        'if lensletcount GT 0 then icount+=1'];,$
+	;'print,"Have now fit "+strc(lensletcount)+"/"+strc(n_valid_lenslets)+ " lenslets in process "+strc(which_bridge)']
 
 	backbone->Log,"Parallel process execution complete.", depth=3,/flush
 
