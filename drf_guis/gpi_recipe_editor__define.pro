@@ -97,7 +97,7 @@ function gpi_recipe_editor::get_obs_keywords, filename
 	if ct0 eq 0 then obsstruct.astromtc= 'F'
         if ct12 eq 0 then obsstruct.elevatio = 'no elevation'
 ;        if ct13 eq 0 then obsstruct.gcalfilt = 'no gcalfilt'
-print,'counts',ct1,ct2,ct4,ct5,ct6,ct7,ct8,ct9,ctobsmode
+;print,'counts',ct1,ct2,ct4,ct5,ct6,ct7,ct8,ct9,ctobsmode
 	; some we need to have in order to be able to parse.
 	vec=[ct1,ct2,ct4,ct5,ct6,ct7,ct8,ct9,  ctobsmode]
 	if total(vec) lt n_elements(vec) then begin
@@ -823,23 +823,25 @@ pro gpi_recipe_editor::event,ev
     'REMOVE' : begin
 		widget_control,self.top_base,get_uvalue=storage  
 		selected_index = widget_info(storage.fname,/list_select) ; 
-		n_selected_index = n_elements(selected_index)-1
-
-		if n_selected_index eq 0 then begin
-			if selected_index eq -1 then begin
-				self->Log, 'You have to click to select a file before you can remove anything.'
-				return ; nothing is selected so do nothing
-			endif
-			filelist = self.drf->get_datafiles()
-			self->removefile, filelist[selected_index]
+		n_selected_index = n_elements(selected_index)
+		if (n_selected_index eq 1 ) then if (selected_index eq -1) then begin
+			ret=dialog_message("ERROR: You have to click to select one or more files before you can remove anything.",/error,/center,dialog_parent=self.top_base)
+			self->Log, 'You have to click to select a file before you can remove anything.'
+			return ; nothing is selected so do nothing
 		endif
 
-		if n_selected_index gt 0 then begin
-			filelist = self.drf->get_datafiles()
-			if n_selected_index gt n_elements(filelist)-1 then n_selected_index = n_elements(filelist)-1
-			for i=0,n_selected_index do self->removefile, filelist[selected_index[i]]
-		endif
-	
+		filelist = self.drf->get_datafiles() ; Note: must save this prior to starting the for loop since that will
+											; confuse the list indices, and make us have to bookkeep things as the
+											; list changes during a deletion of multiple files. 
+		if n_selected_index gt n_elements(filelist)-1 then n_selected_index = n_elements(filelist)-1
+		for i=0,n_selected_index-1 do begin
+			self->removefile, filelist[selected_index[i]]
+			self->Log, "Removed "+filelist[selected_index[i]]
+
+		endfor
+
+		; I don't remember why we do the following here after removing files?
+		; -MP
 		widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
     end
     'REMOVEALL' : begin
