@@ -20,7 +20,6 @@
 FUNCTION nmicrolens,x,y, start_params
 
 common ngausscommon, numgauss, wl, flux, lambdao,my_psf
-
 ;/////////////////////////
 ;Code you need to add before using gpi_highres_microlens_psf_evaluate_detector_psf
 ;declare the common variable used by gpi_highres_microlens_psf_evaluate_detector_psf()
