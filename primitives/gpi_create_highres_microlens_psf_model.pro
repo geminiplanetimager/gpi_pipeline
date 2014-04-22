@@ -9,7 +9,7 @@
 ;
 ; PIPELINE COMMENT: Create a few calibrations files based on the determination of a high resolution PSF.
 ; PIPELINE ARGUMENT: Name="filter_wavelength" Type="string" Range="" Default="" Desc="Narrowband filter wavelength"
-; PIPELINE ARGUMENT: Name="bad_pixel_map" Type="string" Range="" Default="" Desc="Bad pixel map"
+; PIPELINE ARGUMENT: Name="bad_pixel_mask" Type="string" Range="" Default="" Desc="Bad pixel mask"
 ; PIPELINE ARGUMENT: Name="flat_field" Type="int" Range="[0,1]" Default="0" Desc="Is this a flat field"
 ; PIPELINE ARGUMENT: Name="flat_filename" Type="string" Default="" Desc="Name of flat field"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
@@ -46,7 +46,7 @@ start_time=systime(1)
 
 
   if tag_exist( Modules[thisModuleIndex], "filter_wavelength") then filter_wavelength=string(Modules[thisModuleIndex].filter_wavelength) else filter_wavelength=''
-  if tag_exist( Modules[thisModuleIndex], "bad_pixel_map") then bad_pixel_map=float(Modules[thisModuleIndex].bad_pixel_map) else bad_pixel_map=0
+  if tag_exist( Modules[thisModuleIndex], "bad_pixel_mask") then bad_pixel_mask=float(Modules[thisModuleIndex].bad_pixel_mask) else bad_pixel_mask=0
   if tag_exist( Modules[thisModuleIndex], "flat_field") then flat_field=float(Modules[thisModuleIndex].flat_field) else flat_field=0
   if tag_exist( Modules[thisModuleIndex], "flat_filename") then flat_filename=string(Modules[thisModuleIndex].flat_filename) else flat_filename=""
   
@@ -90,7 +90,7 @@ start_time=systime(1)
 				; if we are working with narrowband filter data, we want the centroid to be at the maximum
         if filter_wavelength ne -1 then cent_mode="MAX"
                                 ; Create raw data stamps
-        spaxels = gpi_highres_microlens_psf_extract_microspectra_stamps(disperser, dataset.frames[0:(nfiles-1)], dataset.wavcals[0:(nfiles-1)], width_PSF, /STAMPS_MODE) 
+        spaxels = gpi_highres_microlens_psf_extract_microspectra_stamps(disperser, dataset.frames[0:(nfiles-1)], dataset.wavcals[0:(nfiles-1)], width_PSF, bad_pixel_mask=bad_pixel_mask, /STAMPS_MODE) 
      end
      'WOLLASTON': begin
         width_PSF = 7                            ; size of stamp?
@@ -99,7 +99,7 @@ start_time=systime(1)
         sub_pix_res_y = 4                        ; sub_pixel resolution of the highres ePSF
         cent_mode = "MAX"
                                 ; Create raw data stamps
-        spaxels = gpi_highres_microlens_psf_extract_microspectra_stamps(disperser, image, polcal, width_PSF, /STAMPS_MODE)
+        spaxels = gpi_highres_microlens_psf_extract_microspectra_stamps(disperser, image, polcal, width_PSF, bad_pixel_mask=bad_pixel_mask, /STAMPS_MODE)
      end
   endcase
 
@@ -287,6 +287,8 @@ kernel_testing:
 	; now fit the PSF to each elevation psf and each neighbour
 ;		print, "Fitting PSFs: for file "+strc(f)
 
+	valid=ptr_valid(high_res_psfs) ; which psfs are valid?
+
 	  ; now loop over each lenslet
            for i=imin_test,imax_test do begin				
 	      statusline, "fitting PSF: Fitting line "+strc(i+1)+" of "+strc(imax_test)+" for iteration " +strc(it_flex+1)+" of "+strc(it_flex_max)
@@ -296,7 +298,7 @@ kernel_testing:
 		if ptr_valid(spaxels.values[i,j,k]) eq 0 then continue
 
 		; interpolate to grab the psf for this lenslet
-		ptr_highres_psf = gpi_highres_microlens_psf_get_local_highres_psf(PSFs,[i,j,k])
+		ptr_highres_psf = gpi_highres_microlens_psf_get_local_highres_psf(PSFs,[i,j,k],/preserve_structure,valid=valid)
 
 		; loop over the files/elevations
 		for f = 0,nfiles-1 do begin
