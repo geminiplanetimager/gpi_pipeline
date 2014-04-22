@@ -55,6 +55,11 @@
 ;   Originally by Jean-Baptiste Ruffio 2013-06
 ;- 
 function gpi_highres_microlens_psf_extract_microspectra_stamps, my_type, image, calibration, width, STAMPS_MODE = stamps_mode,bad_pixel_mask=bad_pixel_mask;, CENTROID_MODE = centroid_mode
+
+if keyword_set(bad_pixel_map) eq 0 then begin
+print, 'WARNING - no bad pixel map is being used when cutting the image into stamps - '
+bad_pixel_mask=fltarr(2048,2048)+1
+endif
                   
   common PIP
   COMMON APP_CONSTANTS
@@ -118,8 +123,7 @@ case my_type of
 ;/////////////////////////////////////////////////////////////////////////
 ;/////// Iteration over the different elevations
       for it_elev = 0,n_diff_elev-1 do begin
-				image = *(ptr_images[it_elev])*bad_pixel_mask
-
+				image = *(ptr_images[it_elev])
 		  ;get length of spectrum
       ;maybe sdpx should be variable. the length of the spectra is not constant over the detector
       ;TODO: filter is a variable of the common PIP I think but sometimes it is not defined. I don't know where the definition occurs. Should check that.
