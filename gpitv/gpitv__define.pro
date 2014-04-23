@@ -19187,7 +19187,7 @@ pro GPItv::contrast_settings
   xunits = strcompress('2, button, Arcseconds|l/D, exclusive,' + $ ;10
                        'label_left = Contrast X units:, set_value =' + $
                        string( (*self.state).contr_xunit))
-  ftype = strcompress('0, button, FITS|TXT, exclusive,' + $ ;11
+  ftype = strcompress('0, button, FITS|TXT|FITS TABLE, exclusive,' + $ ;11
                        'label_left = Profile Filetype:, set_value =' + $
                        string( (*self.state).contr_prof_filetype))
 
@@ -19468,7 +19468,7 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
 
   ;;save radial contrast as fits
   if (keyword_set(radialsav)) then begin
-     ftype = (['fits','txt'])[(*self.state).contr_prof_filetype]
+     ftype = (['fits','txt','fits'])[(*self.state).contr_prof_filetype]
      contr_outfile = dialog_pickfile(filter='*.'+ftype, $
                                      file=nm+'-contrast_profile.'+ftype, get_path = tmp_dir, $
                                      path=(*self.state).current_dir,$
@@ -19498,13 +19498,29 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
               sxaddpar,hdr,'YUNITS',(['Std Dev','Median','Mean'])[(*self.state).contr_yunit],'Contrast units'
               sxaddpar,hdr,'WINAP',(*self.state).contrwinap,'Search window size'
               sxaddpar,hdr,'GAUSSAP',(*self.state).contrap,'Gaussian window size'
-              
               writefits,contr_outfile,out,hdr
            end
            1: begin
               openw,lun,contr_outfile,/get_lun
               printf,lun,transpose(out),format='('+strtrim((size(out,/dim))[1],2)+'(F))'
               free_lun,lun
+           end 
+           2: begin
+              hdr = []
+              sxaddpar,hdr,'SLICES',slices,'Cube slices used.'
+              sxaddpar,hdr,'YUNITS',(['Std Dev','Median','Mean'])[(*self.state).contr_yunit],'Contrast units'
+              sxaddpar,hdr,'WINAP',(*self.state).contrwinap,'Search window size'
+              sxaddpar,hdr,'GAUSSAP',(*self.state).contrap,'Gaussian window size'
+              names = ['Angle']
+              fmt = 'D'
+              for j=0,n_elements(inds)-1 do begin &$
+                 names = [names,'Slice_'+strtrim(fix(inds[j]),2)] &$
+                 fmt = fmt+',D' &$
+              end
+              create_struct,out1,'',names,fmt
+              out1 = replicate(out1,  (size(out,/dim))[0])
+              for j = 0,n_elements(names)-1 do out1.(j) = out[*,j]
+              mwrfits,out1,contr_outfile,hdr,/create
            end 
         endcase
   endif 
