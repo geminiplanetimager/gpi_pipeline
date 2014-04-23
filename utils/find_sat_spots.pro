@@ -1,4 +1,5 @@
-function find_sat_spots,s0,leg=leg,locs=locs0, winap = winap, highpass=highpass,constrain=constrain
+function find_sat_spots,s0,leg=leg,locs=locs0, winap = winap,$
+                        highpass=highpass,constrain=constrain
 ;+
 ; NAME:
 ;       find_sat_spots
@@ -20,7 +21,10 @@ function find_sat_spots,s0,leg=leg,locs=locs0, winap = winap, highpass=highpass,
 ;       locs - Initial sat locations to refine.  If set,
 ;              coregistration step is skipped.
 ;       winap - Size of aperture to use (pixels) defaults to 20
-;      
+;       highpass - If 1, apply highpass filter with default box size
+;                  of 9, otherwise apply with given box size.
+;       constrain - Size of leg must be within 10 pixels of this value
+;
 ;       res - 2x4 array of satellite spot pixel locations
 ;
 ; OPTIONAL OUTPUT:

@@ -28,9 +28,9 @@ function find_sat_spots_all,im0,band=band,indx=indx,good=good,$
 ;      
 ;       cens - 2x4xl array of sat spot center pixel locations
 ;
-;       /highpass - High pass filter image used for initial sat spot
-;                   finding
-;       /constrain - Apply constraints on box sizes based on
+;       highpass - High pass filter image used for initial sat spot
+;                   finding.  If not 1, use this box size.
+;       constrain - Apply constraints on box sizes based on
 ;                    wavelength and apodizer
 ;
 ; OPTIONAL OUTPUT:
