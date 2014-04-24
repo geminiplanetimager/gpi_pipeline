@@ -272,6 +272,7 @@ if where_coords_NOT_too_big[0] eq -1 then stop, 'line 219'
 ;         yr=[min(y_grid_psf)-2,max(y_grid_psf)+2],/ys, $
 ;         xr=[min(x_grid_psf)-2,max(x_grid_psf)+2],/xs
 ;    oplot, reform(x_grid_PSF, n_elements(x_grid_PSF)),reform(y_grid_PSF, n_elements(y_grid_PSF)),psym=1,color=cgcolor('green')
+
 ;   stop
   ;endif
 
@@ -424,22 +425,27 @@ for l=0, loop_iterations-1 do begin
 	
 	psf0=psf
 	; so psf holds the pre-smoothed psf
-	; psf2 is the smoothed psf
+	; psf2 is the smoothed psfi
 	psf2 = CONVOL( psf, kernel,/nan )
         ; must replace the nans that were in the array with nans
         ; otherwise a weird smoothing happens which is bad
-	ind = where(finite(psf) eq 0,complement=gind) ; just original nans
-	ind2=where(finite(psf2) eq 0); values surrounding edge of original
+	ind = where(finite(psf) eq 0) ; just original nans
 	; make it such that the nans are the same
 	psf2[ind]=!values.f_nan
-	; however, the edges are pretty bad - must come up with a solution
-	; for this but for the moment we'll just replace them with the
-	; originals
-	; because the convolution kernel is so incorrect this is actually rather minimal
-	psf2[ind2]=psf[ind2]
 
+	; also the edges that do not have all of the indices in the convolution
+	; should not be touched.
+	; we would actually like to invoke a smoothing kernel, i'm just not sure how...
+	; for the moment we'll just replace them with the originals
+	mask=finite(psf0)
+	mask2= CONVOL( float(mask), kernel,/nan )
+	corrupt_ind=where(mask2 ne total(kernel),complement=gind)
+	
 	; normalize so that the psf is the same total as the convolved psf
 	psf2*=total(psf[gind],/nan)/total(psf2[gind],/nan)
+	
+	; now replace the edges
+	psf2[corrupt_ind]=psf[corrupt_ind]
 
 ;	window, 2, xsize=200, ysize=500,retain=2
 ;	tvdl,psf2;,min(psf,/nan),max(psf,/nan)
@@ -520,13 +526,26 @@ for l=0, loop_iterations-1 do begin
 	; Just make sure nothing goofy happened
 	if finite(xshift+yshift) eq 0 then stop, 'shifts are not a number ?!? - get_psf2 line 360'
 
-	; display the smoothed psf
-	;loadct,1
-	;print,l,xshift,yshift,sqrt((xshift)^2+(yshift)^2)
-	;if l eq 0 then window,3,retain=2
-	; tvdl, abs(psf2-psf)/psf,0.001,0.5
-	;wait,1
-	;stop
+	if 0 eq 1 then begin
+
+	data=psf0
+	fit=psf2
+
+	my_residuals =  abs(data - fit) / abs(data)  
+
+	sz=size(data)*5
+	window,2,xsize=sz[1]*3,ysize=sz[2]
+	ind=where(fit ne 0 and finite(fit) eq 1)
+	dmax=max(data[ind],/nan)
+	dmin=min(data[ind],/nan)
+	loadct,1
+	tvdl, data,dmin,dmax,position=0,/log
+	tvdl,fit,dmin,dmax,position=1,/log
+	loadct,0
+	tvdl,my_residuals,0.0,0.2,position=2
+	stop
+	endif
+
 ;	if l eq loop_iterations-2 then stop,'about to break psf smoothing loop'
 
                                 ; now put the nans to zeros to prevent propagation
