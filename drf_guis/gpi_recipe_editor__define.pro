@@ -784,7 +784,7 @@ pro gpi_recipe_editor::event,ev
   'ADDFILE' : begin
      
 		result=dialog_pickfile(path=self.last_used_input_dir,/multiple,/must_exist,$
-								   title='Select Raw Data File(s)', filter=['*.fits,*.fits.gz', '*.fits'],get_path=getpath)
+								   title='Select Raw Data File(s)', filter=['*.fits;*.fits.gz', '*.fits'],get_path=getpath)
 		 
 		if n_elements(result) eq 1 then if strc(result) eq '' then return ; user cancelled in the dialog box. 
 
