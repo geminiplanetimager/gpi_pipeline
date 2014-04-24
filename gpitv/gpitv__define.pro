@@ -5441,7 +5441,7 @@ pro GPItv::readfits, fitsfilename=fitsfilename, imname=imname, _extra=_extra
   ;; from dialog_pickfile.
   if (n_elements(fitsfilename) EQ 0) then begin
 		at_gemini = gpi_get_setting('at_gemini', /bool,default=0,/silent)
-		if keyword_set(at_gemini) then filter='S20'+gpi_datestr(/current)+"S*.fits" else filter ='*.fits,*.fits.gz'
+		if keyword_set(at_gemini) then filter='S20'+gpi_datestr(/current)+"S*.fits" else filter ='*.fits;*.fits.gz'
 		fitsfile = $
 			dialog_pickfile(filter = filter, $
                         dialog_parent = (*self.state).base_id, $
