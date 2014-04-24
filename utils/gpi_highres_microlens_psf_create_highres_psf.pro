@@ -204,8 +204,8 @@ all_y_coords = reform(all_y_coords, n_elements(all_y_coords))
 all_pix_values = reform(all_pix_values, n_elements(all_pix_values)) 
 
 ; want a coordinate system with 0,0 at the centroid
-PSF_nx_samples = PSF_nx_pix*PSF_samples_per_xpix + 1 ; 7 pixels box * 5 samples per pixel
-PSF_ny_samples = PSF_ny_pix*PSF_samples_per_ypix + 1 ; 22 pixel box * 5 samples per pixel
+PSF_nx_samples = (PSF_nx_pix+0)*PSF_samples_per_xpix ; 7 pixels box * 5 samples per pixel
+PSF_ny_samples = (PSF_ny_pix+0)*PSF_samples_per_ypix ; 22 pixel box * 5 samples per pixel
 PSF_x_step = 1.0/float(PSF_samples_per_xpix) ; step size of sampling
 PSF_y_step = 1.0/float(PSF_samples_per_ypix)
 ; want the mean centered at 0,0 ?
@@ -217,16 +217,15 @@ PSF_y_step = 1.0/float(PSF_samples_per_ypix)
 ; creates symmetrical grid the length of the box with zero at center
 PSF_y_sampling = (findgen(PSF_ny_samples) - floor(PSF_ny_samples/2))* PSF_y_step 
 ; offset the grid to make the centroid at 0,0
-yoffset=round( (median(y_centroids)+psf_y_sampling[0])/psf_y_step) ; gives offset in pixels!
-psf_y_sampling+=(yoffset*psf_y_step) ; apply offset to grid - but the size of a stepsize
+yoffset=( (median(y_centroids)+psf_y_sampling[0])/psf_y_step) ; gives offset in pixels!
+psf_y_sampling-=ceil(yoffset*psf_y_step) ; apply offset to grid - but the size of a stepsize
 
 ; set up the sampling in x
 ; creates symmetrical grid the length of the box with zero at center
 PSF_x_sampling = (findgen(PSF_nx_samples) - floor(PSF_nx_samples/2))* PSF_x_step 
 ; offset the grid to make the centroid at 0,0
-xoffset=round( (median(x_centroids)+psf_x_sampling[0])/psf_x_step) ; gives offset in pixels!
-psf_x_sampling+=(xoffset*psf_x_step) ; apply offset to grid - but the size of a stepsize
-
+xoffset=( (median(x_centroids)+psf_x_sampling[0])/psf_x_step) ; gives offset in pixels!
+psf_x_sampling-=ceil(xoffset*psf_x_step) ; apply offset to grid - but the size of a stepsize
 
 ; verify there is a zero,zero point
 ; this is just a bug catching line - can one day be commented out?
@@ -265,13 +264,15 @@ if where_coords_NOT_too_big[0] eq -1 then stop, 'line 219'
   
   
   ;if keyword_set(PLOT_SAMPLES) then begin
-;    select_window, 10,retain=2,xsize=550,ysize=500
+;    select_window, 10,retain=2,xsize=650,ysize=600
 ;    plot,all_x_coords,all_y_coords ,psym=3,$
-;                  TITLE = "PSF sampling (green = psf grid, white = samples)", $
-;                  XTITLE = "x axis (in pixel)", $
-;                  YTITLE = "y axis (in pixel)", yr=[-1,1],xr=[-1,1]
+;         TITLE = "PSF sampling (green = psf grid, white = samples)", $
+;         XTITLE = "x axis (in pixel)", $
+;         YTITLE = "y axis (in pixel)", $
+;         yr=[min(y_grid_psf)-2,max(y_grid_psf)+2],/ys, $
+;         xr=[min(x_grid_psf)-2,max(x_grid_psf)+2],/xs
 ;    oplot, reform(x_grid_PSF, n_elements(x_grid_PSF)),reform(y_grid_PSF, n_elements(y_grid_PSF)),psym=1,color=cgcolor('green')
-  ;  ;stop
+;   stop
   ;endif
 
 
@@ -523,9 +524,9 @@ for l=0, loop_iterations-1 do begin
 	;loadct,1
 	;print,l,xshift,yshift,sqrt((xshift)^2+(yshift)^2)
 	;if l eq 0 then window,3,retain=2
-;	 tvdl, abs(psf2-psf)/psf,0.001,0.5,box=28
-;	wait,1
-;	stop
+	; tvdl, abs(psf2-psf)/psf,0.001,0.5
+	;wait,1
+	;stop
 ;	if l eq loop_iterations-2 then stop,'about to break psf smoothing loop'
 
                                 ; now put the nans to zeros to prevent propagation
