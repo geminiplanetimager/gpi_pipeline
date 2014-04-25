@@ -174,11 +174,9 @@ FUNCTION gpi_rotate_cube,  backbone, dataset, cube0, center_method=center_method
   endcase 
 
   if pivot eq 0 then begin
-    sxaddpar, astr_header, 'PSFCENTX', 140
-    sxaddpar, astr_header, 'PSFCENTY', 140
+    sxaddpar, astr_header, 'PSFCENTX', (sz[1]-1)/2 ;Same as in the rot command
+    sxaddpar, astr_header, 'PSFCENTY', (sz[2]-1)/2
   endif
-  
-  
 
   if ~(keyword_set(noheaderupdate)) then begin
 	backbone->set_keyword, 'HISTORY', "Rotated by "+sigfig(d_PAR_ANG, 4)+" deg to have north up",ext_num=0, indexFrame=indexFrame
