@@ -19,7 +19,7 @@
 ;
 ;
 ; PIPELINE ARGUMENT: Name="HWPoffset" Type="float" Range="[-360.,360.]" Default="-29.14" Desc="The internal offset of the HWP. If unknown set to 0"
-; PIPELINE ARGUMENT: Name="IncludeSystemMueller" Type="int" Range="[0,1]" Default="1" Desc="1: Include, 0: Don't"
+; PIPELINE ARGUMENT: Name="IncludeSystemMueller" Type="int" Range="[0,1]" Default="0" Desc="1: Include, 0: Don't"
 ; PIPELINE ARGUMENT: Name="IncludeSkyRotation" Type="int" Range="[0,1]" Default="1" Desc="1: Include, 0: Don't"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="10" Desc="1-500: choose gpitv session for displaying output, 0: no display "
@@ -98,11 +98,11 @@ function DST_waveplate, polcube, angle=angle, degrees=degrees, mueller=return_mu
     if ~ keyword_set(pband) then pband = 'H' 
       ;prprint, "Using the HWP Mueller Matrix for "+pband+" band"
       case pband of 
-        'Y': M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9998,0.0186],[0,0,-0.0186,-0.9998]]
-        'J': M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9970,0.0772],[0,0,-0.0772,-0.9970]]
-        'H': M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9924,0.1228],[0,0,-0.1228,-0.9924]]
-        'K1':M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9996,0.0266],[0,0,-0.0266,-0.9996]]
-        'K2':M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9973,-0.0729],[0,0,0.0729,-0.9973]]
+        'Y': M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9997,0.0258],[0,0,-0.0258,-0.9997]] ;0.4959 Waves
+        'J': M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9963,0.0860],[0,0,-0.0860,-0.9963]] ;0.4863 Waves
+        'H': M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9977,0.1134],[0,0,-0.1134,-0.9977]] ;0.4819 Waves
+        'K1':M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9994,0.0345],[0,0,-0.0345,-0.9994]] ;0.4945 Waves
+        'K2':M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9986,-0.0534],[0,0,0.0534,-0.9986]] ;0.5085 Waves
       endcase
    ;stop   
   mueller = mueller_rot(-theta)##M##mueller_rot(theta) ; Apply a rotation matrix. If angle wasn't set this has no effect
