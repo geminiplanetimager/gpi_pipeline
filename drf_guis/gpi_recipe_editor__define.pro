@@ -206,8 +206,9 @@ end
 ;	/notemplate		Don't actually load the template. This is used when
 ;					switching menu options and you don't actually want to overwrite
 ;					the current recipe completely.
+;	/cleardata		Clear the data files from the recipe editor instead of preserving them
 ;-
-pro gpi_recipe_editor::change_current_template, typestring,seqnum, notemplate=notemplate
+pro gpi_recipe_editor::change_current_template, typestring,seqnum, notemplate=notemplate, cleardata=cleardata
 
 
   ;; check if the current recipe has been modified
@@ -232,17 +233,25 @@ pro gpi_recipe_editor::change_current_template, typestring,seqnum, notemplate=no
   
   ;; Now we can switch to that template
   if ~(keyword_set(notemplate)) then begin
-     chosen_template = wm[seqnum]
-     widget_control, self.template_name_id,SET_DROPLIST_SELECT=seqnum
-     print, "Chosen template filename:"+((*self.templates)[chosen_template]).filename
+    chosen_template = wm[seqnum]
+    widget_control, self.template_name_id,SET_DROPLIST_SELECT=seqnum
+    print, "Chosen template filename:"+((*self.templates)[chosen_template]).filename
      
-     ;; Load the new template, preserving the data files of the current recipe
-     if obj_valid(self.drf) then datafiles = self.drf->get_datafiles()
-     
-     self->open, ((*self.templates)[chosen_template]).filename,  /template
+    ;; Load the new template, preserving the data files of the current recipe
+    if obj_valid(self.drf) then datafiles = self.drf->get_datafiles()
+    
+    self->open, ((*self.templates)[chosen_template]).filename,  /template
 
-     if n_elements(datafiles) gt 0 then self.drf->set_datafiles, datafiles
-     self->refresh_filenames_display
+	if ~(keyword_set(cleardata)) then begin
+		if n_elements(datafiles) gt 0 then begin
+			self.drf->set_datafiles, datafiles
+		endif
+	endif else begin
+		;clear all loaded files
+		self.drf->clear_datafiles
+	endelse
+	
+    self->refresh_filenames_display
      
   endif
   
@@ -901,11 +910,9 @@ pro gpi_recipe_editor::event,ev
         self->queue, self.drfpath+path_sep()+self.drffilename
      end
     'New Recipe':begin
-       ;clear all loaded files
-       self.drf->clear_datafiles
-       self.customdrffilename = 0
        selecseq=widget_info(self.template_name_id,/DROPLIST_SELECT)
-       self->change_current_template, self.reductiontype, selecseq
+       self->change_current_template, self.reductiontype, selecseq, /cleardata
+	   self.customdrffilename = 0
     end
     'Open Recipe...':begin
         newDRF =  DIALOG_PICKFILE(TITLE='Select a Recipe File', filter='*.xml',/MUST_EXIST,path=self.drfpath)
