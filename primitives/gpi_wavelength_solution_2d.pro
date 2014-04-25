@@ -134,15 +134,12 @@ calfiletype = 'wavecal'
         datafn = gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+filter+lamp+'.dat'
  
 
-	if whichpsf eq 1 then begin
-
-           psffn = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'mlenspsf',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
-           ;psffn = '/astro/4/mperrin/gpi/data/Calibrations/Dropbox_Calibrations/lenslet_PSFs/140226_highres-2058um-psf_structure.fits'
-          ;open the appropriate micrlens psf file and assign it to the variable myPSFs_array.
-           ;myPSFs_array = gpi_highres_microlens_psf_read_highres_psf_structure(psffn, [281,281,1])
-
+		if whichpsf eq 1 then begin
+			;determine the appropriate micrlens psf file; keep the filename to load that below.
+			psffn = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'mlenspsf',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
+			;myPSFs_array = gpi_highres_microlens_psf_read_highres_psf_structure(psffn, [281,281,1])
+			if ~file_test(psffn) then return, error("Microlens PSF file not found: "+psffn)
         endif
-
 
 
         ;Create an array to serve as the simulated detector image
@@ -441,7 +438,7 @@ endif else begin
                   case whichpsf of
                      0: begin
                         res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",$
-			  modelimage=modelimage, modelbackground=modelbackground, debug=keyword_set(debuglenslet) or keyword_set(debugall),jcount=jcount,count=count,psffn=psffn)
+						modelimage=modelimage, modelbackground=modelbackground, debug=keyword_set(debuglenslet) or keyword_set(debugall),jcount=jcount,count=count,psffn=psffn)
                      end
                      1: begin
                         res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"nmicrolens",$
