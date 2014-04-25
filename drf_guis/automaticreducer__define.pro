@@ -547,6 +547,7 @@ function automaticreducer::init, groupleader, _extra=_extra
 	; Initialization code for automatic processing GUI
 
 	self.name='GPI Automatic Reducer'
+	self.xname='automaticreducer'
 	self.watch_directory=self->get_default_input_dir()
     self.view_in_gpitv = 1
     self.ignore_indiv_reads = 1

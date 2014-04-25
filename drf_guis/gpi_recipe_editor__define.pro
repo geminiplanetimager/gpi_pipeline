@@ -1299,7 +1299,12 @@ pro gpi_recipe_editor::update_title_bar, filename
   
   ;;update title bar of window:
   title  = "Recipe Editor"
-  if keyword_set(self.session) then title += " #"+strc(self.session)
+
+  ; Hide this - it's not useful to have a session # in the title of the
+  ; recipe editor window since there's not really anything one can do with that
+  ; information.
+  ;if keyword_set(self.session) then title += " #"+strc(self.session)
+
   widget_control, self.top_base, tlb_set_title=title+": "+filename
 end
 

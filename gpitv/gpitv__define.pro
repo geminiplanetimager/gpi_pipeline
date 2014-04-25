@@ -3257,6 +3257,13 @@ pro GPItv::collapsecube
         *self.images.main_image=sqrt(((*self.images.main_image_stack)[*,*,1])^2 + ((*self.images.main_image_stack)[*,*,2]^2))
         if bpct gt 0 then (*self.images.main_image)[wn] = !values.f_nan
      end
+;     'Radial Pol. Intensity': begin
+;		 ; Radial polarized intensity - see Schmid et al. 2006.
+;        widget_control,(*self.state).curimnum_base_id,map=0
+;        *self.images.main_image=sqrt(((*self.images.main_image_stack)[*,*,1])^2 + ((*self.images.main_image_stack)[*,*,2]^2))
+;        if bpct gt 0 then (*self.images.main_image)[wn] = !values.f_nan
+;     end
+
 
      'Linear Pol. Fraction': begin
         widget_control,(*self.state).curimnum_base_id,map=0
@@ -19739,6 +19746,12 @@ function gpitv::get_session
   ;;accessor function for session number, for use by external programs
     return, (*self.state).multisess
 end
+
+function gpitv::xname
+  ;;accessor function for xname, for use by external programs
+    return, self.xname
+end
+
 
 ;-------------------------------------------------------------------
 ;-------------------------------------------------------------------

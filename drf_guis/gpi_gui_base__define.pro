@@ -277,6 +277,12 @@ function gpi_gui_base::xname
 end
 
 
+pro gpi_gui_base::show
+	; raise window to the front on screen. 
+	widget_control, self.top_base, /show
+end
+
+
 
 ;-----------------------
 pro gpi_gui_base__define
