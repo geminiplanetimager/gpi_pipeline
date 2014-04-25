@@ -38,8 +38,9 @@ function find_pol_center, img0, x0, y0, xrad, yrad, maskrad=maskrad, highpass=hi
 ;make copy of image, I think
 img = img0
 
+sz=size(img)
 ;collapse polarization dimension if not already
-if (size(img))[0] eq 3 then img = total(img, 3)
+if sz[0] eq 3 then img = total(img, 3)
 
 ;remove NANs
 badind = where(~FINITE(img),cc)
