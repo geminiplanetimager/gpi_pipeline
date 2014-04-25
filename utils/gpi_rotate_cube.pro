@@ -26,7 +26,7 @@
 ;-
 
 FUNCTION gpi_rotate_cube,  backbone, dataset, cube0, center_method=center_method, rot_method=rot_method, rot_center=rot_center, $
-	indexFrame=indexFrame, noheaderupdate=noheaderupdate
+	indexFrame=indexFrame, noheaderupdate=noheaderupdate, pivot=pivot
 
 	cube=cube0  ; make a copy
 	sz = size(cube)
@@ -102,9 +102,8 @@ FUNCTION gpi_rotate_cube,  backbone, dataset, cube0, center_method=center_method
 	 centerx = sz[1]-1-centerx
 
 	 backbone->Log, "Flipping image parity to get east CCW of north", depth=3
-	 if ~(keyword_set(noheaderupdate)) then $
+	 if ~(keyword_set(noheaderupdate)) and pivot eq 1 then $
 		 sxaddpar, astr_header, 'PSFCENTX', centerx, 'After image flip for handedness'
-
   endif
 
   ;;d_PAR_ANG is the angle you wish to rotate
@@ -164,9 +163,9 @@ FUNCTION gpi_rotate_cube,  backbone, dataset, cube0, center_method=center_method
      'CUBIC': begin
         cube_r = cube
         for i=0,sz[3]-1 do begin
-           ;;rot has the same stupid CW conventionas hrot2
-           interpolated = rot(reform(cube_r[*,*,i],sz[1],sz[2]), -d_PAR_ANG, 1.,centerx,centery, cubic=-0.5, /pivot, missing=!values.f_nan) ; do a cubic rotation by slice, and
-           nearest =      rot(reform(cube_r[*,*,i],sz[1],sz[2]), -d_PAR_ANG, 1.,centerx,centery, interp=0, /pivot, missing=!values.f_nan) ; nearest neighbor to fix any NaNs
+           ;;rot has the same stupid CW conventionas hrot2      
+           interpolated = rot(reform(cube_r[*,*,i],sz[1],sz[2]), -d_PAR_ANG, 1.,centerx,centery, cubic=-0.5, missing=!values.f_nan,pivot=pivot) ; do a cubic rotation by slice, and
+           nearest =      rot(reform(cube_r[*,*,i],sz[1],sz[2]), -d_PAR_ANG, 1.,centerx,centery, interp=0, missing=!values.f_nan,pivot=pivot) ; nearest neighbor to fix any NaNs
            wnan = where(~finite(interpolated), nanct)
            if nanct gt 0 then interpolated[wnan] = nearest[wnan]
            cube_r[*,*,i] = interpolated
@@ -174,6 +173,12 @@ FUNCTION gpi_rotate_cube,  backbone, dataset, cube0, center_method=center_method
      end  
   endcase 
 
+  if pivot eq 0 then begin
+    sxaddpar, astr_header, 'PSFCENTX', 140
+    sxaddpar, astr_header, 'PSFCENTY', 140
+  endif
+  
+  
 
   if ~(keyword_set(noheaderupdate)) then begin
 	backbone->set_keyword, 'HISTORY', "Rotated by "+sigfig(d_PAR_ANG, 4)+" deg to have north up",ext_num=0, indexFrame=indexFrame
