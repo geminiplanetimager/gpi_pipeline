@@ -8,6 +8,7 @@ utils/gpi_highres_microlens_psf_initialize_psf_interpolation.pro
 utils/gpi_highres_microlens_psf_evaluate_detector_psf.pro
 utils/gpi_highres_microlens_psf_read_highres_psf_structure.pro
 utils/gpi_highres_microlens_psf_extract_microspectra_stamps.pro
+utils/gpi_lsqr_mlens_extract_pol_dep.pro
 primitives/gpi_create_highres_microlens_psf_model.pro
-
-
+primitives/gpi_lsqr_mlens_extract_pol.pro
+primitives/gpi_combine_polarizations_dd.pro
