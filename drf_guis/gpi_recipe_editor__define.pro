@@ -529,19 +529,29 @@ pro gpi_recipe_editor::changetype, type_num, notemplate=notemplate, force_update
 
   
 end
-;+ -----------------------------------------
-; gpi_recipe_editor::removefile
-;    Remove a file from the input files list. 
-;
-;-
-pro gpi_recipe_editor::removefile, file
 
-	self.drf->remove_datafile, file
-	self->refresh_filenames_display ; update the filenames display
-    self->update_available_primitives, self.reductiontype ; why do we do this after removing a file?
-
-end
-
+; OBSOLETE - merged into 'REMOVE' menu action item.
+;    ;+ -----------------------------------------
+;    ; gpi_recipe_editor::removefile
+;    ;    Remove a file from the input files list. 
+;    ;
+;    ; Keywords:
+;    ;   /norefresh		useful if you might be removing multiple files at once, to
+;    ;					save multiple repeats of this.
+;    ;
+;    ;-
+;    pro gpi_recipe_editor::removefile, file, norefresh=norefresh
+;    
+;    
+;    	self.drf->remove_datafile, file
+;    
+;    	if ~keyword_set(norefresh) then begin
+;    		self->refresh_filenames_display ; update the filenames display
+;    		self->update_available_primitives, self.reductiontype ; why do we do this after removing a file?
+;    	endif
+;    
+;    end
+    
 ;+-----------------------------------------
 ; gpi_recipe_editor::queue
 ;    Add a file to the queue
@@ -842,15 +852,20 @@ pro gpi_recipe_editor::event,ev
 		filelist = self.drf->get_datafiles() ; Note: must save this prior to starting the for loop since that will
 											; confuse the list indices, and make us have to bookkeep things as the
 											; list changes during a deletion of multiple files. 
-		if n_selected_index gt n_elements(filelist)-1 then n_selected_index = n_elements(filelist)-1
+		;if n_selected_index gt n_elements(filelist)-1 then n_selected_index = n_elements(filelist)-1
 		for i=0,n_selected_index-1 do begin
+			; sanity check indices:
+			if selected_index[i] lt 0 or selected_index[i] gt n_elements(filelist)-1 then continue
 			self->removefile, filelist[selected_index[i]]
 			self->Log, "Removed "+filelist[selected_index[i]]
 
 		endfor
 
-		; I don't remember why we do the following here after removing files?
-		; -MP
+		self->refresh_filenames_display ; update the filenames display
+		;self->update_available_primitives, self.reductiontype ; why do we do this after removing a file?
+		; I don't remember why we do the following here after removing files? -MP
+		; I suppose because the default behavior is organize by date and that
+		; depends on the files present.
 		widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
     end
     'REMOVEALL' : begin
@@ -1174,8 +1189,8 @@ pro gpi_recipe_editor::save, template=template, nopickfile=nopickfile
         
         drf_summary = self.drf->get_summary()
         
-        if first_file[0] eq last_file[0] then outputfilename = first_file[0]+'_'+drf_summary.shortname+'_drf.waiting.xml' else $
-           outputfilename = first_file[0]+'-'+last_file[0]+'_'+drf_summary.shortname+'_drf.waiting.xml'
+        if first_file[0] eq last_file[0] then outputfilename = first_file[0]+'_'+drf_summary.shortname+'_recipe.waiting.xml' else $
+           outputfilename = first_file[0]+'-'+last_file[0]+'_'+drf_summary.shortname+'_recipe.waiting.xml'
      endelse
   endif else outputfilename = self.drffilename
 
