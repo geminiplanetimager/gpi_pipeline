@@ -719,11 +719,11 @@ pro parsergui::create_recipe_from_template, templatename, fitsfiles, current,  i
 
 	if n_elements(first_file) gt 2 then begin
 		; normal Gemini style filename
-        outputfilename='S'+first_file[1]+'S'+first_file[2]+'-'+last_file[2]+'_'+recipe.shortname+'_drf.waiting.xml'
+        outputfilename='S'+first_file[1]+'S'+first_file[2]+'-'+last_file[2]+'_'+recipe.shortname+'_recipe.waiting.xml'
 	endif else begin
 		; something else? e.g. temporary workaround for engineering or other
 		; data with nonstandard filenames
-        outputfilename=file_basename(first_file[0])+'-'+file_basename(last_file[0])+'_'+recipe.shortname+'_drf.waiting.xml'
+        outputfilename=file_basename(first_file[0])+'-'+file_basename(last_file[0])+'_'+recipe.shortname+'_recipe.waiting.xml'
 	endelse
 
 
