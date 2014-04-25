@@ -297,13 +297,15 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 		  endfor
 		end ; end prism case
 		'WOLLASTON':    begin
-			; Assume pol cal info already loaded by readpolcal primitive 
+			; Assume pol cal info already loaded by readpolcal primitive
+			 
 			polspot_coords = polcal.coords
 			polspot_pixvals = polcal.pixvals
 			
 			sz = size(polspot_coords)
 			nx = sz[1+2]
 			ny = sz[2+2]
+			boxsize=2
 			
 			for pol=0,1 do begin
 			for ix=0L,nx-1 do begin
@@ -311,11 +313,16 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 			  ;if ~ptr_valid(polcoords[ix, iy,pol]) then continue
 			  wg = where(finite(polspot_pixvals[*,ix,iy,pol]) and polspot_pixvals[*,ix,iy,pol] gt 0, gct)
 			  if gct eq 0 then continue
-
-			  spotx = polspot_coords[0,wg,ix,iy,pol]
-			  spoty = polspot_coords[1,wg,ix,iy,pol]
+        
+        cenx = round(polcal.spotpos[0,ix,iy,pol])
+        ceny =  round(polcal.spotpos[1,ix,iy,pol])
+        
+			  ;spotx = polspot_coords[0,wg,ix,iy,pol]
+			  ;spoty = polspot_coords[1,wg,ix,iy,pol]
 			  
-			  mask[spotx,spoty]= 1
+			  ;mask[spotx,spoty]= 1
+			  if strcmp(filter,'K1') then mask[cenx-boxsize:cenx+boxsize,ceny-boxsize-1:ceny+boxsize] = 1 $
+			  else mask[cenx-boxsize:cenx+boxsize,ceny-boxsize:ceny+boxsize] = 1 
 			   
 			  endfor 
 			endfor 
