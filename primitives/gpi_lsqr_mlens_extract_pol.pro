@@ -12,11 +12,11 @@
 ;
 ; PIPELINE COMMENT: This primitive will extract flux from a 2D detector image into a GPI polarization cube using a least-square algorithm and microlenslet PSFs. Optionally can produce a residual detector image, solve for microphonics, and iterate the polcal solution to find a minimum residual.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="stopidl" Type="int" Range="[0,1]" Default="1" Desc="1: stop IDL, 0: dont stop IDL"
+; PIPELINE ARGUMENT: Name="stopidl" Type="int" Range="[0,1]" Default="0" Desc="1: stop IDL, 0: dont stop IDL"
 ; PIPELINE ARGUMENT: Name="np" Type="float" Default="2" Range="[0,100]" Desc="Number of processors to use in reduction (double check enviroment before running)"
 ; PIPELINE ARGUMENT: Name="resid" Type="int" Default="1" Range="[0,1]" Desc="Save residual detector image?"
 ; PIPELINE ARGUMENT: Name="micphn" Type="int" Default="0" Range="[0,1]" Desc="Solve for microphonics?"
-; PIPELINE ARGUMENT: Name="iter" Type="int" Default="0" Range="[0,1]" Desc="Run iterative solver of polcal?"
+; PIPELINE ARGUMENT: Name="iter" Type="int" Default="1" Range="[0,1]" Desc="Run iterative solver of polcal?"
 ; PIPELINE ARGUMENT: Name="x_off" Type="float" Default="0" Range="[-5,5]" Desc="Offset from wavecal in x pixels"
 ; PIPELINE ARGUMENT: Name="y_off" Type="float" Default="0" Range="[-5,5]" Desc="Offset from wavecal in y pixels"
 ;
@@ -92,8 +92,13 @@ suffix='-podc' 		 ; set this to the desired output filename suffix
 	;shmmap,'imshr',type=szim[0],szim[1],szim[2]
 	;imshr=shmvar('imshr')
 	;imshr[0,0]=img
+	
+	;The Data quality array
+	dqarr=*(dataset.currdq)
 
-	;setup memory for model images, wavecal offsets, and spectral cube data
+  nlens=281;szim[1] ;The number of lenslets
+  
+	;setup memory for model images, wavecal offsets, and pol cube data
 	pcal_off_cube=fltarr(nlens,nlens,3)
 	;shmmap,'wcal_off_cube',type=4,nlens,nlens,7,/sysv
 	;wcal_off_cube=shmvar('wcal_off_cube')
@@ -109,65 +114,41 @@ suffix='-podc' 		 ; set this to the desired output filename suffix
 	;mic_cube=shmvar('mic_cube')
 	mic_cube[0,0]=mic_cube
 
-	gpi_pol=fltarr(nlens,nlens,37)
-	;shmmap,'gpi_cube',type=4,nlens,nlens,37,/sysv
-	;gpi_cube=shmvar('gpi_cube')
+	gpi_pol=fltarr(nlens,nlens,2)
+	shmmap,'gpi_cube',type=4,nlens,nlens,2,/sysv
+	gpi_cube=shmvar('gpi_cube')
 	gpi_pol[0,0,0]=gpi_pol
+  
+  cwv=get_cwv(filter) 
+  gpi_lambda=cwv.lambda 
+  para=cwv.CommonWavVect
+  
+  ;Copied from the spectral mode equivalent
+  id = where_xyz(finite(reform(polcal.spotpos[0,*,*,0])),XIND=xarr,YIND=yarr)
+  nlens_tot = n_elements(xarr)
+  lens = [transpose(xarr),transpose(yarr)]
 
+  ;randomly sort lenslet list to equalize job time.
+  lens=lens[*,sort(randomu(seed,n_elements(lens)/2))]
 
-	; start bridges from utils function
-	oBridge=gpi_obridgestartup(nbproc=np)
-	
-	for j=0,np-1 do begin
-		oBridge[j]->Setvar,'img',img
-		oBridge[j]->Setvar,'gpi_lambda',gpi_lambda
-		oBridge[j]->Setvar,'para',para
-		oBridge[j]->Setvar,'pol_cube',spec_cube
-		oBridge[j]->Setvar,'mic_pol',mic_cube
-		oBridge[j]->Setvar,'wavcal',wavcal
-		oBridge[j]->Setvar,'lens',lens
+;*******Parallel start *********
 
-		cut1 = floor((nlens_tot/np)*j)
-		cut2 = floor((nlens_tot/np)*(j+1))-1
-
-		;oBridge[j]->Execute, "shmmap,'pol_cube',type=4"+","+string(szim[1])+","+string(szim[2])+",/sysv"
-		;oBridge[j]->Execute, "shmmap,'wcal_off_cube',type=4"+","+string(nlens)+","+string(nlens)+",7,/sysv"
-		;oBridge[j]->Execute, "shmmap,'mic_pol',type=4"+","+string(szim[1])+","+string(szim[2])+",/sysv"
-		;oBridge[j]->Execute, "shmmap,'gpi_pol',type=4"+","+string(nlens)+","+string(nlens)+",37,/sysv"
-
-		oBridge[j]->Execute, "pol_cube=shmvar('pol_cube')"
-		oBridge[j]->Execute, "pcal_off_cube=shmvar('pcal_off_cube')"
-		oBridge[j]->Execute, "mic_pol=shmvar('mic_pol')"
-		oBridge[j]->Execute, "gpi_pol=shmvar('gpi_pol')"
-
-		oBridge[j]->Execute, strcompress('wait,'+string(5),/remove_all)
-		oBridge[j]->Execute, "print,'loading PSFs'"
-		oBridge[j]->Execute, ".r "+gpi_get_directory('GPI_DRP_DIR')+"/utils/gpi_lsqr_mlens_extract_pol_dep.pro"
-		process=strcompress('img_ext_pol_para,'+string(cut1)+','+string(cut2)+','+string(j)+',img,pcal_off_cube,pol_cube,mic_pol,gpi_pol,pcal,"'+mlens_file+'",'+'x_off='+string(xsft)+','+'y_off='+string(ysft)+',lens=lens'+keywords,/remove_all)
-
-		oBridge[j]->Execute, "print,'"+process+"'"
-		oBridge[j]->Execute, process, /nowait
-		
-	endfor
-
-	waittime=10
-	  ;check status if finish kill bridges
-	backbone->Log, 'Waiting for jobs to complete...'
-  	status=intarr(np)
-  	statusinteg=1
-  	wait,1
-  	t2start=systime(/seconds)
-  	while statusinteg ne 0 do begin
-   	t2=systime(/seconds)
-   		if (round(t2-t2start))mod(300.) eq 0 then print,'Processors have been working for = ',round((t2-t2start)/60),'min'
-   			for i=0,np-1 do begin
-    				status[i] = oBridge[i]->Status()
-   			endfor
-   		print,status
-   		statusinteg=total(status)
-   		wait,waittime
-  	endwhile
-  	backbone->Log, 'Job status:'+string(status)
+ 
+  ;*******Parallel over ********* 
+ 
+  ;******* Non Parallel version *******
+  cut1=1000
+  cut2=1025
+  j=0 
+  np=1
+  ex=execute(strcompress('img_ext_pol_para,'+string(cut1)+','+string(cut2)+','+string(j)+',img,dqarr,pcal_off_cube,pol_cube,mic_cube,gpi_pol,polcal.spotpos,"'+mlens_file+'",'+'x_off='+string(xsft)+','+'y_off='+string(ysft)+',lens=lens'+keywords,/remove_all))
+  
+;  Clean up variables before reloading them
+  gpi_pol[*]=0
+  pol_cube[*]=0
+  mic_cube[*]=0
+  pcal_ofF_cube[*]=0
+  
 
 	dir = gpi_get_directory('GPI_REDUCED_DATA_DIR')
 	;recover from scratch since shared memory doesnt work yet
@@ -179,9 +160,11 @@ suffix='-podc' 		 ; set this to the desired output filename suffix
 			exe_tst = execute(strcompress('restore,"'+dir+'pol_cube_'+string(n)+'.sav"',/remove_all))
 			exe_tst = execute(strcompress('pol_cube=pol_cube+pol_cube_'+string(n),/remove_all))
 			;exe_tst = execute('file_delete,"'+dir+'spec_cube_'+strcompress(string(n)+'.sav"',/remove_all))
-			exe_tst = execute(strcompress('restore,"'+dir+'mic_cube_pol_'+string(n)+'.sav"',/remove_all))
-			exe_tst = execute(strcompress('mic_cube_pol=mic_cube_pol+mic_cube_pol_'+string(n),/remove_all))
-			;exe_tst = execute('file_delete,"'+dir+'mic_cube_'+strcompress(string(n)+'.sav"',/remove_all))
+      if (micphn eq 1) then begin
+			 exe_tst = execute(strcompress('restore,"'+dir+'mic_cube_pol_'+string(n)+'.sav"',/remove_all))
+       exe_tst = execute(strcompress('mic_cube=mic_cube+mic_cube_pol_'+string(n),/remove_all))
+       ;exe_tst = execute('file_delete,"'+dir+'mic_cube_'+strcompress(string(n)+'.sav"',/remove_all))
+			endif
 		endif
 		if (iter eq 1) then begin
 			exe_tst = execute(strcompress('restore,"'+dir+'pcal_off_cube_'+string(n)+'.sav"',/remove_all))
@@ -193,13 +176,15 @@ suffix='-podc' 		 ; set this to the desired output filename suffix
 	;Save residual
 	if (resid eq 1) then begin
 		residual_pol=img-pol_cube
-		if (micphn) then residual_pol=residual_pol-mic_pol
-		b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, 'residual_pol', SaveData=residual, SaveHead=Header)
+		if (micphn eq 1) then residual_pol=residual_pol-mic_pol
+		*(dataset.currframe)=residual_pol
+		b_Stat = save_currdata( Dataset,  Modules[thisModuleIndex].OutputDir, 'residual_pol', SaveData=residual, SaveHead=Header)
 	endif	
 
 	;Save pcal offsets
 	if (iter eq 1) then begin
-		b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, 'pcaloff', SaveData=pcal_off_cube, SaveHead=Header)
+	*(dataset.currframe)=pcal_off_cube
+		b_Stat = save_currdata( Dataset,  Modules[thisModuleIndex].OutputDir, 'pcaloff', SaveData=pcal_off_cube, SaveHead=Header)
 	endif		
 	
 	;; Update FITS header 
