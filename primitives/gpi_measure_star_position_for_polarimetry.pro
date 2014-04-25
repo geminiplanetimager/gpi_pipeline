@@ -50,16 +50,26 @@ calfiletype=''   ; set this to some non-null value e.g. 'dark' if you want to lo
 
 
 cube = *dataset.currframe
-cubetype = strtrim(backbone->get_keyword('CTYPE3'), 2)
 
 ; check for polarization data
-if (cubetype ne 'STOKES') then $
-	return, error('FAILURE ('+functionName+'): Datacube must be a Stokes cube. Cannot be from spectral mode.')
+; cubetype = strtrim(backbone->get_keyword('CTYPE3'), 2)
+;if (cubetype ne 'STOKES') then $
+;	return, error('FAILURE ('+functionName+'): Datacube must be a Stokes cube. Cannot be from spectral mode.')
+
+    mode= strc(backbone->get_keyword( "DISPERSR", count=ct))
+    mode = strlowcase(mode)
+    if ~strmatch(mode,"*wollaston*",/fold) then begin
+    backbone->Log, "ERROR: That's not a polarimetry file!"
+    return, error('FAILURE ('+functioName+'): data is NOT a polarimetry file!')
+    endif
 
 ; check for data dimensions that probably won't happen. We will support 3d Stokes cubes and 2d ones
 ; that have collapsed the polarization dimension
-if ((size(cube))[0] gt 3) || ((size(cube))[0] lt 2) then $
-	return, error('FAILURE ('+functionName+'): data is either less than 2D or more than 3D.')
+; MMB: Let's instead let it take a podc cube and collapse it itself! In which case we only need 3D
+
+if (size(cube))[0] ne 3 then $ 
+;if ((size(cube))[0] gt 3) || ((size(cube))[0] lt 2) then $
+	return, error('FAILURE ('+functionName+'): This primitive only accepts -podc or -stokesdc files.')
 
 ; get user inputs
 search_window = fix(Modules[thisModuleIndex].search_window)
@@ -77,6 +87,10 @@ cent = find_pol_center(cube, x0, y0, search_window, search_window, maskrad=mask_
 ; write calculated center to header
 backbone->set_keyword,"PSFCENTX", cent[0], 'X-Location of PSF center', ext_num=1
 backbone->set_keyword,"PSFCENTY", cent[1], 'Y-Location of PSF center', ext_num=1
+
+; update FITS header history
+backbone->set_keyword,'HISTORY', functionname+": "+string(cent[0])+'X-Location of PSF center', ext_num=0
+backbone->set_keyword,'HISTORY', functionname+": "+string(cent[1])+'Y-Location of PSF center', ext_num=0
 
 @__end_primitive
 
