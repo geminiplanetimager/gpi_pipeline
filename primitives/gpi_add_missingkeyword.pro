@@ -9,6 +9,7 @@
 ; PIPELINE ARGUMENT: Name="keyword" Type="string"  Default="" Desc="Enter keyword name to add."
 ; PIPELINE ARGUMENT: Name="value" Type="string" Default="" Desc="Enter value of the keyword to add."
 ; PIPELINE ARGUMENT: Name="valuetype" Type="string" Default="string" Desc="Enter keyword type."
+; PIPELINE ARGUMENT: Name="ext_no" Type="int" Default="0" Desc="Extension Number."
 ; PIPELINE COMMENT: Add any missing keyword. (use this function several times in the DRF if you need to add more than one keyword)
 ; PIPELINE ORDER: 0.1
 ; PIPELINE CATEGORY: Calibration,Testing
@@ -35,8 +36,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
       else:   backbone->Log, 'WARNING: Add missing keyword was called, but an incorrect valuetype was chosen. Choose from string, float, int, double, or byte. Doing nothing.'
    endcase
 
+    if tag_exist(Modules[thisModuleIndex], 'ext_no') then ext_no=Modules[thisModuleIndex].ext_no else ext_no=0 ;Default is primary header
 
-    backbone->set_keyword, Modules[thisModuleIndex].keyword, castvalue
+    backbone->set_keyword, Modules[thisModuleIndex].keyword, castvalue, ext_no=ext_no
     backbone->Log, 'Added keyword "'+Modules[thisModuleIndex].keyword+'", value="'+Modules[thisModuleIndex].value+'".', depth=3
   endif else begin
     backbone->Log, 'WARNING: Add missing keyword was called, but there were no arguments describing a keyword to add. Doing nothing.'
