@@ -36,7 +36,7 @@ endif else begin
    endif
 endelse
 
-if tag_exist( Modules[thisModuleIndex], "stopidl") then if keyword_set( Modules[thisModuleIndex].stopidl) then stop
+if tag_exist( Modules[thisModuleIndex], "stopidl") then if keyword_set( uint(Modules[thisModuleIndex].stopidl)) then stop
 
 return, ok
 
