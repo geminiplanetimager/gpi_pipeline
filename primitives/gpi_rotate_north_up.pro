@@ -24,6 +24,7 @@
 ; PIPELINE ARGUMENT: Name="Center_Method" Type="string" Range="HEADERS|MANUAL" Default="HEADERS" Desc="Determine the center of rotation from FITS header keywords, manual entry"
 ; PIPELINE ARGUMENT: Name="centerx" Type="int" Range="[0,281]" Default="140" Desc="Center X Pixel if Center_Method=Manual"
 ; PIPELINE ARGUMENT: Name="centery" Type="int" Range="[0,281]" Default="140" Desc="Center Y Pixel if Center_Method=Manual"
+; PIPELINE ARGUMENT: Name="pivot" Type ="int" Range="[0,1]" Default="0" Desc="Pivot about the center of the image? 0 = No" 
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 3.9
@@ -55,6 +56,8 @@ function gpi_rotate_north_up, DataSet, Modules, Backbone
 	; multiple files?
 	reduction_level = backbone->get_current_reduction_level() 
 
+  pivot=fix(Modules[thisModuleIndex].pivot)
+
 	case reduction_level of
 	1: begin ;---------  Rotate one single file ----------
 		cube=*(dataset.currframe)
@@ -62,7 +65,7 @@ function gpi_rotate_north_up, DataSet, Modules, Backbone
 		; The actual rotation is offloaded to a helper function. 
 		; This will also update the FITS headers appropriately
 		rotated_cube = gpi_rotate_cube(backbone, dataset, cube, $
-						rot_method=rot_method, center_method=center_method, rot_center=rot_center )
+						rot_method=rot_method, center_method=center_method, rot_center=rot_center, pivot=pivot )
 		if n_elements(rotated_cube) eq 1 then return, error('Rotate cube failed.')
 
 		; And output the results:
@@ -87,7 +90,7 @@ function gpi_rotate_north_up, DataSet, Modules, Backbone
 			; headers get updated directly in gpi_rotate_cube but we have to
 			; explicitly store the output rotated cube
 			rotated_cube = gpi_rotate_cube(backbone, dataset, original_cube, indexFrame=i, $
-							rot_method=rot_method, center_method=center_method, rot_center=rot_center )
+							rot_method=rot_method, center_method=center_method, rot_center=rot_center, pivot=pivot )
 			if n_elements(rotated_cube) eq 1 then return, error('Rotate cube failed.')
 
 			accumulate_updateimage, dataset, i, newdata = rotated_cube
