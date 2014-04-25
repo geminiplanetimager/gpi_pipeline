@@ -42,7 +42,7 @@ function gpi_pol_lsqr,sub_img,r_cube,resid=resid,pol=pol
 
 	sc = size(r_cube,/dimensions)
 	if (n_elements(sc) eq 2) then num=1 else num=sc[2]
-
+  num=1 ; Hardcode in because right now we're giving each spot its own lenslet
 ;value vector
 	v=fltarr(num)
 	
@@ -198,7 +198,7 @@ function pol_ext_amoeba,P,best=best
 	
 	;bin and position within sub image
 	r1 = gpi_highres_microlens_psf_evaluate_detector_psf(x_grid,y_grid, [spec_spix3[0,k], spec_spix3[1,k], 1])
-
+  stop
 	tstimage=tstimage+r1
 	psfcube = [[[psfcube]],[[r1]]]
 	;spectra = [[spectra],[[spec_spix3[2,k],spec_spix3[3,k],spec_spix3[4,k],spec_spix3[0,k],spec_spix3[1,k]]]]
@@ -446,8 +446,7 @@ pro img_ext_pol_para,cut1,cut2,z,img,pcal_off_cube,pol_cube,mic_pol,gpi_pol,polc
 		y=lens[1,i]
 		print,x,y,i
 		img_pol_ext_amoeba,x,y,img,mlens,polcal,e,pol_img,mic_pol,del_x,del_y,x_off,y_off,pcal_off,0,resid=resid,micphn=micphn,iter=iter
-
-img_pol_ext_amoeba,x,y,img,mlens,polcal,o,pol_img,mic_pol,del_x,del_y,x_off,y_off,pcal_off,1,resid=resid,micphn=micphn,iter=iter
+    img_pol_ext_amoeba,x,y,img,mlens,polcal,o,pol_img,mic_pol,del_x,del_y,x_off,y_off,pcal_off,1,resid=resid,micphn=micphn,iter=iter
 
 		if (pol[0] ne -1) then begin
 			gpi_pol[x,y,0:1] = [e,o]
