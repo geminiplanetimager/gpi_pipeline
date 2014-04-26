@@ -405,10 +405,6 @@ state = {                   $
         blinks: 0B, $                       ; remembers which images are blinked
         polarim_plotindex: -1,$             ; Which plot structure is the polarimetry? -1 means no pol plot present
         polarim_display: 1, $               ; overplot polarimetry vectors?
-        polarim_polfrac_lowthresh: 0.0,$    ; Polarimetry low threshhold for polarization fraction
-        polarim_polfrac_highthresh: 1.0,$   ; Polarimetry high threshhold for polarization fraction
-        polarim_polint_lowthresh: !values.f_nan,$     ; Polarimetry low threshhold for polarized intensity
-        polarim_polint_highthresh: !values.f_nan,$    ; Polarimetry high threshhold for polarized intensity
         polarim_dialog_id: 0L, $            ; widget ID of polarimetry display flag
         aborted_id: 0L, $                   ; widget ID for 'ABORTED'
         dateobs_id: 0L, $                   ; widget id for'DATE-OBS'
@@ -14275,97 +14271,42 @@ endcase
 end
 
 ;--------------------------------------------------------------------------------
-;    pro GPItv::polarim_from_cube, status=ok,norefresh=norefresh
-;    	;
-;    	; This used to do more complex stuff but now it's all integrated into
-;    	; the plot1pol routine...
-;    	ok=0
-;    	self->pol, norefresh=norefresh
-;    	ok=1
-;    
-;	ok=0
-;
-;	if (*self.state).cube_mode ne "STOKES" then return
-;
-;	; set up to overplot polarization vectors
-;	crval3 = sxpar(*(*self.state).exthead_ptr, "CRVAL3")
-;	crPIX3 = sxpar(*(*self.state).exthead_ptr, "CRPIX3")
-;	naxis3 = sxpar(*(*self.state).exthead_ptr, "NAXIS3")
-;	stokesaxis0 = indgen(naxis3)-crpix3+crval3
-;
-;	; TODO error checking on the above in case they are not present.
-;
-;	; For specification of Stokes WCS axis, see
-;	; Greisen & Calabretta 2002 A&A 395, 1061, section 5.4
-;	modelabels = ["YX", "XY", "YY", "XX", "LR", "RL", "LL", "RR", "INVALID", "I", "Q", "U", "V", "P"]
-;	stokesaxis = modelabels[stokesaxis0+8]
-;	wi =  (where(stokesaxis eq "I", ict))[0]
-;	wq =  (where(stokesaxis eq "Q", qct))[0]
-;	wu =  (where(stokesaxis eq "U", uct))[0]
-;	wxx = (where(stokesaxis eq "XX", xxct))[0]
-;	wyy = (where(stokesaxis eq "YY", yyct))[0]
-;
-;
-;	; valid Stokes Q and U?
-;	if qct eq 1 and uct eq 1 then begin
-;           self->message, msgtype = 'information', "Loading Q and U Stokes vectors from image slices "+strc(wq)+" and "+strc(wu)
-;		if ict gt 0 then image_i = (*self.images.main_image_stack)[*,*,wi] else image_i=1.0
-;		self->pol, (*self.images.main_image_stack)[*,*,wq]/image_i, (*self.images.main_image_stack)[*,*,wu]/image_i, norefresh=norefresh
-;		ok=1
-;	endif else if xxct eq 1 and yyct eq 1 then begin
-;		self->message, msgtype = 'information',  "Loading perpendicular polarization vectors from image slices x="+strc(wxx)+" and y="+strc(wyy)
-;		if ict gt 0 then image_i = (*self.images.main_image_stack)[*,*,wi] else image_i = (*self.images.main_image_stack)[*,*,wxx]+(*self.images.main_image_stack)[*,*,wyy]
-;		sz = size(*self.images.main_image_stack)
-;		self->pol, ((*self.images.main_image_stack)[*,*,wxx]- (*self.images.main_image_stack)[*,*,wyy])/image_i, fltarr(sz[1], sz[2]), norefresh=norefresh
-;		ok=1
-;	endif
-;    
-;    
-;    end
-;    
-
-;--------------------------------------------------------------------------------
-;pro GPItv::pol,  $
-pro GPItv::polarim_from_cube, status=status, norefresh=norefresh, $
+pro GPItv::polarim_from_cube, status=status, $
 	magnification=magnification, $
-	polmask=polmask, binning=binning, fractional=fractional, $
-	_extra = options
+	binning=binning, fractional=fractional, $
+	color=color, thetaoffset=thetaoffset
 	; Routine to set up polarization plot data structure and options
 	; Set up polarization vector overplot, based on the data present 
 	; in the currently loaded image cube itself. 
 
 	status=0
 
+	if (self.pdata.nplot ge self.pdata.maxplot) then begin
+	   self->message, msgtype='error', 'Too many calls to GPITVPLOT.'
+	   return
+	endif
+	self.pdata.nplot = self.pdata.nplot + 1
 
-if (n_elements(options) EQ 0) then options = {color: 'red'}
-
-if (self.pdata.nplot LT self.pdata.maxplot) then begin
-   self.pdata.nplot = self.pdata.nplot + 1
-
-;  convert color names to index numbers, and set default=red
-   c = where(tag_names(options) EQ 'COLOR', count)
-   if (count EQ 0) then options = create_struct(options, 'color', 'red')
-   options.color = self->icolor(options.color)
-
-   c = where(tag_names(options) EQ 'THETAOFFSET', count)
-   if (count EQ 0) then options = create_struct(options, 'thetaoffset', '0.00')
-   c = where(tag_names(options) EQ 'POLMASK', count)
-   ; Don't create a polmask if there isn't one supplied.
-   ;if not(keyword_set(polmask)) then polmask = byte(q*0)
-   if (count EQ 0) then if n_elements(polmask) gt 0 then options = create_struct(options, 'polmask', polmask)
+	if ~(keyword_set(color)) then color='red'
+	if n_elements(thetaoffset) eq 0 then thetaoffset=0.0
+    if ~(keyword_set(magnification)) then magnification=1.0
+    if ~(keyword_set(binning)) then binning = 4.0
+    if ~(keyword_set(fractional)) then fractional=0
 
 
-   if not(keyword_set(magnification)) then magnification=1.0
-   if ~(keyword_set(binning)) then binning = 4.0
-   if ~(keyword_set(fractional)) then fractional=0
-   options = create_struct(options, 'magnification', float(magnification))
-   options = create_struct(options, 'binning', float(binning))
-   options = create_struct(options, 'fractional', uint(fractional))
+	options = {magnification: float(magnification),$ ; arbitrary scale factor adjustment
+				binning: float(binning),$			; How many lenslets to bin to show one vector
+				fractional: uint(fractional),$		; fractional polarization or pol intensity?
+				mask_vectors: 0, $					; apply the mask?
+				polfrac_lowthresh: 0.0,$			; low threshhold for polarization fraction
+				polfrac_highthresh: 1.0,$			; high threshhold for polarization fraction
+				polint_lowthresh: !values.f_nan,$   ; low threshhold for polarized intensity
+				polint_highthresh: !values.f_nan,$  ; high threshhold for polarized intensity
+				display_legend: 1, $				; Display the legend?
+				thetaoffset: float(thetaoffset), $	; Optional offset for position angles?
+				color: color}						; plot color. Anything that works for cgColor.
 
-   options = create_struct(options, 'mask_vectors', keyword_set(polmask))
-   options = create_struct(options, 'display_legend', 1)
-
-   pstruct = {type: 'polarization',   $     ; points
+    pstruct = {type: 'polarization',   $     ; points
               options: options  $     ; plot keyword options
              }
 
@@ -14373,17 +14314,7 @@ if (self.pdata.nplot LT self.pdata.maxplot) then begin
 	(*self.state).polarim_plotindex=self.pdata.nplot
 
 	self->message, msgtype='information', 'Polarimetry vector plot setup complete.'
-
-
-	if ~(keyword_set(norefresh)) then begin
-	   self->plotwindow
-	   self->plot1pol, self.pdata.nplot
-	endif
 	status=1
-
-endif else begin
-   self->message, msgtype='error', 'Too many calls to GPITVPLOT.'
-endelse
 
 end
 
@@ -14395,8 +14326,6 @@ pro GPItv::plot1pol, iplot
 	; 
 	; Based on Marshall's polvect.pro, heavily modified for GPItv.
 
-    ;self->message, msgtype = 'information', "Plotting polarimetry vectors."
-
 	if (*self.state).polarim_display eq 0 then return
 
 	self->setwindow, (*self.state).draw_window_id
@@ -14405,23 +14334,14 @@ pro GPItv::plot1pol, iplot
 
 	polplotoptions = (*(self.pdata.plot_ptr[iplot])).options
 
-	; Automaticly adjust the effective binning when you zoom?
-	;  No this just leads to confusing behavior - make it something the
-	;  user has to control explicitly. 
-	;resample =  8 <  8/(*self.state).zoom_factor > 1
-	;resample=1
-	;lengthscale=4 <  4./(*self.state).zoom_factor > 1
-	;lengthscale = float(lengthscale)*polplotoptions.magnification
-	;lengthscale =  1.0*polplotoptions.magnification
-	color =			polplotoptions.color
 	thetaoffset =	polplotoptions.thetaoffset
 	binning =		polplotoptions.binning > 1
-	magnification = polplotoptions.magnification * 30 ; 30 screen pixels is a useful length for the default
+	magnification = polplotoptions.magnification * 30 ; 30 screen pixels is reasonable for the default length
 	resample = binning
     ;self->message, msgtype = 'information', "Resample: "+strc(resample)+"     zoom factor: "+strc((*self.state).zoom_factor)
 	
 	;--- Obtain Stokes {I,Q,U} from datacube ---
-	; This is somewhat tricky since generalized;
+	; This is somewhat tricky since it has to be generalized;
 	; it should handle both Stokes cubes and polarization pair cubes,
 	; and more generally any polarized datacube with a valid WCS axis
 
@@ -14440,12 +14360,12 @@ pro GPItv::plot1pol, iplot
 	wyy = (where(stokesaxis eq "YY", yyct))[0]
 
 	if qct eq 1 and uct eq 1 then begin
-        self->message, msgtype = 'information', "Loading Q and U Stokes vectors from image slices "+strc(wq)+" and "+strc(wu)
+        ;self->message, msgtype = 'information', "Loading Q and U Stokes vectors from image slices "+strc(wq)+" and "+strc(wu)
 		io = (*self.images.main_image_backup)[*,*,wi]	; Stokes I original
 		qo = (*self.images.main_image_backup)[*,*,wq]	; Stokes Q original
 		uo = (*self.images.main_image_backup)[*,*,wu]	; Stokes U original
 	endif else if xxct eq 1 and yyct eq 1 then begin
-		self->message, msgtype = 'information',  "Loading perpendicular polarization vectors from image slices x="+strc(wxx)+" and y="+strc(wyy)
+		;self->message, msgtype = 'information',  "Loading perpendicular polarization vectors from image slices x="+strc(wxx)+" and y="+strc(wyy)
 		io = ((*self.images.main_image_stack)[*,*,wxx] + (*self.images.main_image_stack)[*,*,wyy])
 		qo = ((*self.images.main_image_stack)[*,*,wxx] - (*self.images.main_image_stack)[*,*,wyy])
 		sz = size(qo)
@@ -14460,7 +14380,7 @@ pro GPItv::plot1pol, iplot
 												  
 
 
-	
+	;---  Linear transformations of the image ---
 	; To enable masking by either polarized and total intensity we
 	; have to propagate all of [I,Q,U] through the rotation steps here.
 
@@ -14526,8 +14446,7 @@ pro GPItv::plot1pol, iplot
 		endelse
 	endif
 
-	; Do we need to resample the Stokes images? (Either because the user has 
-	; zoomed in/out, or because the rebinning is != 1)
+	; Do we need to resample the Stokes images? 
 	if resample eq 1 then begin
 		i = io
 		q = qo
@@ -14543,54 +14462,43 @@ pro GPItv::plot1pol, iplot
 	sz = size(q)
 	x = (findgen(sz[1]))*resample
 	y = (findgen(sz[2]))*resample
-	pol_intensity = sqrt(u^2.+q^2.)             ; vector magnitude. (either pol int or pol intensity)
+	pol_intensity = sqrt(u^2.+q^2.)      
 	pol_fraction = pol_intensity / i
 
 
-	; The 'mag' array which we use to plot is constrained to be in the range 0-1
-	; in all cases for both pol fraction and intensity. This keeps the plotting
-	; length scales more consistent.
 	if keyword_set(polplotoptions.fractional) then begin
 		mag = pol_fraction 
 		label = 'linear polarization fraction'
 	endif else begin
+		; normalize relative to 1.0 = peak polarized intensity. This keeps the
+		; plotting length scales more consistent between frac. and intensity
+		; display modes
 		mag = pol_intensity/max_pol_intensity
 		label='linear polarized intensity'
 	endelse
 
-	; Which vectors should be displayed? 
-	; Is there a user-supplied mask of which polarization vectors should be shown?
-	c = where(tag_names(polplotoptions) EQ 'POLMASK', polmaskpresent)
-	if polmaskpresent ne 0 then begin
-		maskresize = congrid( (*(self.pdata.plot_ptr[iplot])).options.polmask, sz[1],sz[2])
-		good = where (maskresize ne 0)
+
+	; check whether the polarization masking options are selected and apply it;
+	if polplotoptions.mask_vectors then begin
+		good  = where ( (pol_fraction ge polplotoptions.polfrac_lowthresh) and $
+						(pol_fraction le polplotoptions.polfrac_highthresh) and $
+						(pol_intensity ge polplotoptions.polint_lowthresh) and $
+						(pol_intensity le polplotoptions.polint_highthresh))
 	endif else begin
-		;otherwise we check whether the polarization masking options are selected and apply it;
-
-		if polplotoptions.mask_vectors then begin
-			good  = where ( (pol_fraction ge (*self.state).polarim_polfrac_lowthresh) and $
-							(pol_fraction le (*self.state).polarim_polfrac_highthresh) and $
-							(pol_intensity ge (*self.state).polarim_polint_lowthresh) and $
-							(pol_intensity le (*self.state).polarim_polint_highthresh))
-		endif else begin
-			good = where(finite(mag))
-		endelse
-
+		good = where(finite(mag))
 	endelse
 
 	if n_elements(good) eq 1 then return
-    self->message, msgtype = 'information', "Plotting "+strc(n_elements(good))+" vectors for "+label
 	
-
 	ugood = u[good]
 	qgood = q[good]
-	x0 = min(x,max=x1,/NaN)                     ;get scaling
+	x0 = min(x,max=x1,/NaN)      ; get coordinates
 	y0 = min(y,max=y1,/NaN)
 	x_step=(x1-x0)/(sz[1]-1.0)   ; Convert to float. Integer math
 	y_step=(y1-y0)/(sz[2]-1.0)   ; could result in divide by 0
     	
 	;To compensate for the use of the Rotate North Up Primitive, we may need to
-	;apply some additional rotation here.
+	;apply some additional rotation here to the position angle.
 	if ptr_valid((*self.state).exthead_ptr) then begin ;If the header exists
 		hdr = *((*self.state).exthead_ptr) 
 		rot_ang = sxpar(hdr, 'ROTANG') ;If this keyword isn't set sxpar just returns 0, which is acceptable. 
@@ -14614,28 +14522,22 @@ pro GPItv::plot1pol, iplot
 	;   self->Message, "Image Rotation from GPItv:"+string((*self.state).rot_angle)
 	;   self->Message, "Image Rotation Angle:"+string(d_par_ang)
 
-	;Check for image inversion: 
-
+	; Compute offsets {dx, dy} for each vector.
     ; remember position angle is defined starting at NORTH so
     ; the usual positions of sin and cosine are swapped.
     deltax = - magnification * resample * mag * sin(theta)/2
     deltay =   magnification * resample * mag * cos(theta)/2
-    ;x_b0=x0-x_step
-    ;x_b1=x1+x_step
-    ;y_b0=y0-y_step
-    ;y_b1=y1+y_step
-    ;if n_elements(clip) eq 0 then $
-        ;clip = [!x.crange[0],!y.crange[0],!x.crange[1],!y.crange[1]]
-    ;r = 0                          ;len of arrow head
 
+	; compute start and end coordinates for each vector
 	ys = y[good /sz[1]]
 	xs = x[good mod sz[1]]
 	x0 = xs-deltax[good]
 	x1 = xs+deltax[good]
 	y0 = ys-deltay[good]
 	y1 = ys+deltay[good]
+
+	color = cgcolor( polplotoptions.color )
     for i=0l,n_elements(good)-1 do begin     ;Each point
-		;if deltax[good[i]] gt 20 or deltay[good[i]] gt 20 then continue; don't print huge garbage
 		plots,[x0[i],x1[i]], [y0[i],y1[i]], color=color, noclip=0
     endfor
 
@@ -14648,13 +14550,12 @@ pro GPItv::plot1pol, iplot
 		labelxstart = total(!x.crange*[0.23, 0.77])
 		labelystart = total(!y.crange*[0.96, 0.04])
 
-		legendcolor='orange'
+		legendcolor='orange' 
 		thick=3
-
 		if keyword_set(polplotoptions.fractional) then begin
 			; Draw and label a vector for 20% polarization
 			; Basically this just repeats the calculation done for plotting any
-			; typical point, using a value fixed to 0.5
+			; typical vector, using a value fixed to 0.5
 			deltax =  magnification * resample * 0.2 * cos(0)/2
 			xyouts, labelxstart, labelystart , 'Pol. Frac. = 20%', charsize=1.5, color=cgcolor(legendcolor)
 			plots, [xstart-2*deltax, xstart], [ystart, ystart], thick=thick, color=cgcolor(legendcolor)
@@ -14666,16 +14567,13 @@ pro GPItv::plot1pol, iplot
 			med_pol_int = median(pol_intensity)
 			pol_int_97th = sorted_pol_int[0.97*n_elements(sorted_pol_int)]
 			; And then display it. Remember to normalize by the max of the
-			; polarized intensity as we do when creating the 'mag' variable
-			; above.
+			; polarized intensity as we do when creating the 'mag' variable above.
 			deltax =  magnification * resample * pol_int_97th/max_pol_intensity* cos(0)/2
 			xyouts, labelxstart, labelystart , 'Pol. Int. = '+sigfig(pol_int_97th,3), charsize=1.5, color=cgcolor(legendcolor)
 			plots, [xstart-2*deltax, xstart], [ystart, ystart], thick=thick, color=cgcolor(legendcolor)
-			print, "pol legend: ", magnification, resample, pol_int_97th/max(pol_intensity,/nan)
-			;stop
+			;print, "pol legend: ", magnification, resample, pol_int_97th/max(pol_intensity,/nan)
 
 		endelse
-		;stop
 
 	endif
 
@@ -14697,35 +14595,33 @@ pro GPItv::polarim_event, event
 @gpitv_err
 
 	if (*self.state).polarim_plotindex lt 0 then begin
-		; create a new polarization plot structure if not already defined
-		self->polarim_from_cube, status=status,/norefresh
+		; create a new polarization plot structure if somehow it's not already defined
+		self->polarim_from_cube, status=status
 		if ~status then return
 	endif
 
 
 	widget_control, event.id, get_uvalue = uvalue
-	self.pdata.nplot = (*self.state).polarim_plotindex
+	;self.pdata.nplot = (*self.state).polarim_plotindex
+	pol_index = (*self.state).polarim_plotindex
 
 	dorefresh=1 ; by default should refresh after any change
 	case uvalue of
 	    'polarim_display': (*self.state).polarim_display = event.value
 	    'polarim_display_yes': if ~(*self.state).polarim_display then (*self.state).polarim_display = 1 else dorefresh=0
 	    'polarim_display_no': if (*self.state).polarim_display then (*self.state).polarim_display = 0 else dorefresh=0
-		'polarim_mask_yes': (*(self.pdata.plot_ptr[self.pdata.nplot])).options.mask_vectors = 1
-		'polarim_mask_no': (*(self.pdata.plot_ptr[self.pdata.nplot])).options.mask_vectors = 0
-		'polarim_legend_yes': (*(self.pdata.plot_ptr[self.pdata.nplot])).options.display_legend = 1
-		'polarim_legend_no': (*(self.pdata.plot_ptr[self.pdata.nplot])).options.display_legend = 0
-	    'polarim_polfrac_highthresh': (*self.state).polarim_polfrac_highthresh = float(event.value)
-	    'polarim_polfrac_lowthresh':  (*self.state).polarim_polfrac_lowthresh  = float(event.value)
-	    'polarim_polint_highthresh': (*self.state).polarim_polint_highthresh = float(event.value)
-	    'polarim_polint_lowthresh':  (*self.state).polarim_polint_lowthresh  = float(event.value)
-	    'magnification': (*(self.pdata.plot_ptr[self.pdata.nplot])).options.magnification = event.value
-	    'binning': (*(self.pdata.plot_ptr[self.pdata.nplot])).options.binning = event.value
-	    'fractional': begin
-			(*(self.pdata.plot_ptr[self.pdata.nplot])).options.fractional = event.index
-			print, "Set polarization display fractional to ", event.index
-		end
-	    'polarim_offset': (*(self.pdata.plot_ptr[self.pdata.nplot])).options.thetaoffset = event.value
+		'polarim_mask_yes':   (*(self.pdata.plot_ptr[pol_index])).options.mask_vectors = 1
+		'polarim_mask_no':    (*(self.pdata.plot_ptr[pol_index])).options.mask_vectors = 0
+		'polarim_legend_yes': (*(self.pdata.plot_ptr[pol_index])).options.display_legend = 1
+		'polarim_legend_no':  (*(self.pdata.plot_ptr[pol_index])).options.display_legend = 0
+	    'polarim_polfrac_highthresh': (*(self.pdata.plot_ptr[pol_index])).options.polfrac_highthresh = float(event.value)
+	    'polarim_polfrac_lowthresh':  (*(self.pdata.plot_ptr[pol_index])).options.polfrac_lowthresh  = float(event.value)
+	    'polarim_polint_highthresh':  (*(self.pdata.plot_ptr[pol_index])).options.polint_highthresh = float(event.value)
+	    'polarim_polint_lowthresh':   (*(self.pdata.plot_ptr[pol_index])).options.polint_lowthresh  = float(event.value)
+	    'magnification':	  (*(self.pdata.plot_ptr[pol_index])).options.magnification = event.value
+	    'binning':            (*(self.pdata.plot_ptr[pol_index])).options.binning = event.value
+	    'fractional':		  (*(self.pdata.plot_ptr[pol_index])).options.fractional = event.index
+	    'polarim_offset':     (*(self.pdata.plot_ptr[pol_index])).options.thetaoffset = event.value
 	    'Refresh': dorefresh=1
 	    'polarim_done': widget_control, event.top, /destroy
 	    else:
@@ -14739,16 +14635,19 @@ end
 pro GPItv::polarim_options_dialog
 	; Display the polarimetry vector overplotting control dialog window. 
 
+(*self.state).polarim_display = 1 ; Any time you open this dialog, you probably want the plot active
 
 if (*self.state).polarim_plotindex eq -1 then begin
-	; create a new polarization plot structure!
+	; create a new polarization plot structure if none exists.
 	self->polarim_from_cube, status=status
 	if ~status then return
 endif
 
+
 if (not (xregistered(self.xname+'_polarim'))) then begin
 
-	self.pdata.nplot = (*self.state).polarim_plotindex
+	pol_index = (*self.state).polarim_plotindex
+	polplotoptions = (*(self.pdata.plot_ptr[pol_index])).options
     
 	if (*self.state).multisess GT 0 then title_base = "GPItv #"+strc((*self.state).multisess) else title_base = 'GPItv '
 
@@ -14772,6 +14671,7 @@ if (not (xregistered(self.xname+'_polarim'))) then begin
 	b_plot_no = widget_button(base2, uvalue="polarim_display_no", value="no" )
 
 
+
 	;(*self.state).polarim_fractional_id = $
 	res=	widget_droplist(polarim_data_base1a, $
 			frame=0, $
@@ -14783,7 +14683,7 @@ if (not (xregistered(self.xname+'_polarim'))) then begin
                /float, /return_events, $
                title = 'Magnification:', $
                uvalue = 'magnification', $
-               value = sigfig((*(self.pdata.plot_ptr[self.pdata.nplot])).options.magnification,2), $
+               value = sigfig(polplotoptions.magnification,2), $
                xsize = 8)
 
     ;(*self.state).polarim_mag_id = $
@@ -14792,18 +14692,18 @@ if (not (xregistered(self.xname+'_polarim'))) then begin
                /return_events, $
                title = 'Binning:      ', $
                uvalue = 'binning', $
-               value = sigfig( (*(self.pdata.plot_ptr[self.pdata.nplot])).options.binning ,2), $
+               value = sigfig(polplotoptions.binning ,2), $
                xsize = 8)
 
 	base_mask = widget_base(polarim_data_base1a,/column, frame=1, /base_align_left)
 
 	base3 = widget_base(base_mask ,/row, frame=0)
 	label = widget_label(base3, value="Mask pol. vectors?")
-	base3b = widget_base(base3,/row,/exclusive, frame=0)
+	base3b= widget_base(base3,/row,/exclusive, frame=0)
 	b_yes = widget_button(base3b, uvalue="polarim_mask_yes", value="Yes")
-	b_no = widget_button(base3b, uvalue="polarim_mask_no", value="No" )
+	b_no =  widget_button(base3b, uvalue="polarim_mask_no", value="No" )
 
-	if keyword_set((*(self.pdata.plot_ptr[self.pdata.nplot])).options.mask_vectors) then $
+	if keyword_set(polplotoptions.mask_vectors) then $
 		widget_control, b_yes, /set_button else widget_control, b_no, /set_button
 	label = widget_label(base_mask, value=" Pol. fraction (between 0.0 - 1.0):  ")
 
@@ -14813,20 +14713,21 @@ if (not (xregistered(self.xname+'_polarim'))) then begin
                /float, /return_events, $
                title = 'Min:', $
                uvalue = 'polarim_polfrac_lowthresh', $
-               value = (*self.state).polarim_polfrac_lowthresh, $
+               value = polplotoptions.polfrac_lowthresh, $
                xsize = 10)
 
     res=  cw_field(base3, $
                /float, /return_events, $
                title = 'Max:', $
                uvalue = 'polarim_polfrac_highthresh', $
-               value = (*self.state).polarim_polfrac_highthresh, $
+               value = polplotoptions.polfrac_highthresh, $
                xsize = 10)
 		   
-	; display min/max of raw untransformed polarized intensity, I suppose
+	; default is to set min/max thresh to the min/max of raw untransformed polarized intensity
 	pol_intensity = sqrt(((*self.images.main_image_stack)[*,*,1])^2 + ((*self.images.main_image_stack)[*,*,2]^2))
-	if ~finite((*self.state).polarim_polint_lowthresh  )  then (*self.state).polarim_polint_lowthresh= min(pol_intensity,/nan)
-	if ~finite((*self.state).polarim_polint_highthresh  ) then (*self.state).polarim_polint_highthresh= max(pol_intensity,/nan)
+	if ~finite(polplotoptions.polint_lowthresh  )  then polplotoptions.polint_lowthresh= min(pol_intensity,/nan)
+	if ~finite(polplotoptions.polint_highthresh  ) then polplotoptions.polint_highthresh= max(pol_intensity,/nan)
+	(*(self.pdata.plot_ptr[pol_index])).options = polplotoptions ; save the modified structure!
 
 	label = widget_label(base_mask, value=" Pol. intensity (between "+sigfig(min(pol_intensity,/nan),3)+" - "+$
 							sigfig(max(pol_intensity,/nan),3)+"): ")
@@ -14835,14 +14736,14 @@ if (not (xregistered(self.xname+'_polarim'))) then begin
                /float, /return_events, $
                title = 'Min:', $
                uvalue = 'polarim_polint_lowthresh', $
-               value = sigfig((*self.state).polarim_polint_lowthresh,4), $
+               value = sigfig(polplotoptions.polint_lowthresh,4), $
                xsize = 10)
 
     res=  cw_field(base3, $
                /float, /return_events, $
                title = 'Max:', $
                uvalue = 'polarim_polint_highthresh', $
-               value = sigfig((*self.state).polarim_polint_highthresh,4), $
+               value = sigfig(polplotoptions.polint_highthresh,4), $
                xsize = 10)
 
 
@@ -14851,13 +14752,12 @@ if (not (xregistered(self.xname+'_polarim'))) then begin
 		; being able to adjust the polarization position angle was useful early
 		; in gpi polarimetry development, but is not generally needed any more
 		; so it's hidden
-		(*self.state).polarim_offset_id = $
-		  cw_field(polarim_data_base1a, $
+		res = cw_field(polarim_data_base1a, $
 				   /float, $
 				   /return_events, $
 				   title = 'Pos Angle Offset:', $
 				   uvalue = 'polarim_offset', $
-				   value = (*(self.pdata.plot_ptr[self.pdata.nplot])).options.thetaoffset, $
+				   value = polplotoptions.thetaoffset, $
 				   xsize = 10)
 	endif
 
@@ -14890,6 +14790,7 @@ if (not (xregistered(self.xname+'_polarim'))) then begin
 
 
     self->resetwindow
+	self->refresh 
 endif
 
 
