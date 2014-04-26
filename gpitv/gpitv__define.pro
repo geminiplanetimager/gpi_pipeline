@@ -5535,7 +5535,9 @@ pro GPItv::readfits, fitsfilename=fitsfilename, imname=imname, _extra=_extra
   endelse
   
   if (cancelled EQ 1) then return
-  if ~(keyword_set(imname)) then imname=fitsfile else imname=imname+" ("+fitsfile+")"
+  ;if ~(keyword_set(imname)) then imname=fitsfile else imname=imname+" ("+fitsfile+")"
+	;beceuase GPItv will actually use imname as a filename to try to open headers, we cant set it as some fancy string
+	imname=fitsfile
   
   self->setup_new_image, header=head, imname=imname, extensionhead=extensionhead, _extra=_extra
 
@@ -5589,7 +5591,7 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
      if ~silent then self->message,msgtype='information',"No header supplied! Creating a basic one with MKHDR"
      mkhdr,header,*self.images.main_image
   endif
-  
+
   ;; set the main image and update gui appropriately
   thirddimchange = 0            ;track whether we're switching between a 2&3d image
   (*self.state).prev_image_size = (*self.state).image_size ;back up image size
