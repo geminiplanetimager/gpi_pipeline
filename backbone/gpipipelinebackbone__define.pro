@@ -367,7 +367,8 @@ PRO gpiPipelineBackbone::gpitv, filename_or_data, session=session, header=header
 					endif
 				endif 
 
-				writefits, tempfile, [0], header
+				FXADDPAR, header, 'NEXTEND', 1
+				mwrfits, 0, tempfile, header, /create, /silent
 				writefits, tempfile, data, extheader,/append
 
 				self->Log, "Sending data to be displayed in GPITV via temp file= "+tempfile
