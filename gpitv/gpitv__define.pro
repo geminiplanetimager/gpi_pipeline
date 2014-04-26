@@ -462,24 +462,15 @@ state = {                   $
         gaussmax: 0L, $                     ; widget id of max button
         wcfilename: '', $
         multisess:-1, $
-        confirm_before_quit: 1,$ ; should we ask before quitting?          
-        drawvectorpress:0,$      ; for drawvector, to be sure button press has been done
-        sdilist_id: 0L, $
-        currsdi: 0 ,$
-        sdiL1_id: 0L, $
-        sdiL1: 0. ,$
-        sdiL1s_id: 0L ,$
-        sdiL2_id: 0L, $
-        sdiL2: 0. ,$
-        sdiL2s_id: 0L ,$
-        sdiL3_id: 0L, $
-        sdiL3: 0. ,$
-        sdiL3s_id: 0L ,$
-        sdiL4_id: 0L, $
-        sdiL4: 0. ,$
-        sdiL4s_id: 0L ,$
-        sdik_id: 0L, $
-        sdik: -1. ,$
+        confirm_before_quit: 1,$            ; should we ask before quitting?          
+        drawvectorpress:0,$                 ; for drawvector, to be sure button press has been done
+        sdi_userdef: 0L, $                  ; user defined SDI band?
+        sdi_userdef_id: 0L, $               ; user defined SDI button
+        sdi_slices: [10,11,14,15], $        ; SDI slices to use (defaults to H methane)
+        sdi_sliceids: lonarr(4), $          ; SDI slice text widgets
+        sdi_wavids: lonarr(4), $            ; SDI wav labels
+        sdik_id: 0L, $                      ; SDI sub. fac text widget
+        sdik: -1. ,$                        ; SDI subtraction factor
         nbrsatspot: 0,$
         spotwarning_id:0L ,$
         satradius_id :0L ,$          
@@ -747,6 +738,7 @@ top_menu_desc = [ $
                 {cw_pdmenu_s, 1, 'Options'}, $ ;options menu
                 {cw_pdmenu_s, 0, 'Contrast Settings...'}, $
                 {cw_pdmenu_s, 0, 'High pass filter Settings...'}, $
+                {cw_pdmenu_s, 0, 'SDI Settings...'}, $
                 {cw_pdmenu_s, 0, 'KLIP Settings...'}, $
                 {cw_pdmenu_s, 0, 'Clear KLIP Data'}, $
                 {cw_pdmenu_s, 12, 'Retain Current Slice'}, $
@@ -1632,8 +1624,9 @@ case event_name of
    END
 
    ;;Options options
-   'Contrast Settings...':		self->contrast_settings
+   'Contrast Settings...':          self->contrast_settings
    'KLIP Settings...':              self->KLIP_settings
+   'SDI Settings...':               self->SDI_settings
    'High pass filter Settings...':  self->high_pass_filter_settings
    'Clear KLIP Data': BEGIN
       ptr_free,self.images.klip_image
@@ -8112,7 +8105,7 @@ pro GPItv::update_child_windows, noheader=noheader,update=update
   if xregistered(self.xname+'_lineplot', /noshow) then self->lineplot_update,update=update
   if xregistered(self.xname+'_stats', /noshow) then self->stats_refresh
   
-  if xregistered(self.xname+'_sdi', /noshow) then self->sdi
+  if xregistered(self.xname+'_sdi', /noshow) then self->sdi_refresh
   if xregistered(self.xname+'_hist', /noshow) then self->hist_refresh
   
   if ~(keyword_set(noheader)) then if obj_valid((*self.state).subwindow_headerviewer) then self->headinfo
@@ -14927,6 +14920,7 @@ h = ['GPItv HELP',$
 '                              Native:        Coordinates displayed are those of the image',$
 '',$
 'Options->Contrast Settings...: Brings up contrast plot settings window',$
+'Options->SDI Settings...:     Brings up SDI settings window',$
 'Options->KLIP Settings...:    Brings up KLIP settings window',$
 'Options->Clear KLIP Data:     Removes KLIP processed cube from memory',$
 'Options->Retain Current Slice: Current slice index will be displayed when next image is loaded',$
@@ -17775,6 +17769,7 @@ endif
 
 self->lambprof_refresh
 end
+
 ;-------------------------------------------------------------------
 
 pro GPItv::sdi_event, event
@@ -17784,98 +17779,90 @@ pro GPItv::sdi_event, event
 widget_control, event.id, get_uvalue = uvalue
 
 case uvalue of
+   
+   'userdef':begin
+      widget_control, (*self.state).sdi_userdef_id,get_value=res
+      (*self.state).sdi_userdef = res
+      self->sdi_refresh
+   end 
 
-'Help':begin
-;void = widget_label( sdi_base1, VALUE='  Choose predefined wav. intervals in the droplist or enter user-defined values.',/ALIGN_LEFT )
-;void = widget_label( sdi_base1, VALUE='Validate new values by pressing the Return or Enter key in the text widget.' ,/ALIGN_LEFT)
-;void = widget_label( sdi_base1, VALUE='It will average slices between wav1 & wav2 (Im1) and between wav3 & wav4 (Im2).' ,/ALIGN_LEFT)
-;void = widget_label( sdi_base1, VALUE='It scales Im1 taking into account the ratio of the central wav of the band considered.' ,/ALIGN_LEFT)
-;void = widget_label( sdi_base1, VALUE='After, it will calculate (Im2)-fact*(scaled(Im1)).' ,/ALIGN_LEFT)
-help=strarr(6)
-help=['  ***  SIMPLE DIFFERENCE IMAGING   ***',$
-      'Choose predefined wav. intervals in the droplist or enter user-defined values.',$
-      'Validate new values by pressing the Return or Enter key in the text widget.',$
-      'It will average slices between wav1 & wav2 (Im1) and between wav3 & wav4 (Im2).',$
-      'It will scale spatially Im1 by taking into account the ratio of the central wav of the band considered.',$
-      'After, it will calculate (Im1)-fact*(scaled(Im2)).']
-void = dialog_message(help)
-end
+   'slicebox': begin
+      ;;only care about leaving the widget 
+      if tag_exist(event,'ENTER') then if event.enter eq 0 then return
 
-'elem':begin
-		(*self.state).currsdi=widget_info((*self.state).sdilist_id,/DROPLIST_SELECT)
-		sdilist = ['Methane', 'User-defined'];, 'Met2',  'Met3']
-		if strmatch(sdilist[(*self.state).currsdi], 'User-defined') then begin
-			widget_control, (*self.state).sdiL1_id, EDITABLE=0
-			widget_control, (*self.state).sdiL2_id, EDITABLE=0
-			widget_control, (*self.state).sdiL3_id, EDITABLE=0
-			widget_control, (*self.state).sdiL4_id, EDITABLE=0
-			widget_control, (*self.state).sdiL1s_id, /EDITABLE
-			widget_control, (*self.state).sdiL2s_id, /EDITABLE
-			widget_control, (*self.state).sdiL3s_id, /EDITABLE
-			widget_control, (*self.state).sdiL4s_id, /EDITABLE
-		endif
-		end
-	'L1':begin
-			widget_control,(*self.state).sdiL1_id, GET_VALUE=wav
-			widget_control,(*self.state).sdiL1s_id, SET_VALUE= string(VALUE_LOCATE(*((*self.state).CWV_ptr),double(wav) ),format='(I3)')
-		end
-	'L2':begin
-			widget_control,(*self.state).sdiL2_id, GET_VALUE=wav
-			widget_control,(*self.state).sdiL2s_id, SET_VALUE= string(VALUE_LOCATE(*((*self.state).CWV_ptr),double(wav) ),format='(I3)')
-		end
-	'L3':begin
-			widget_control,(*self.state).sdiL3_id, GET_VALUE=wav
-			widget_control,(*self.state).sdiL3s_id, SET_VALUE= string(VALUE_LOCATE(*((*self.state).CWV_ptr),double(wav) ),format='(I3)')
-		end
-	'L4':begin
-			widget_control,(*self.state).sdiL4_id, GET_VALUE=wav
-			widget_control,(*self.state).sdiL4s_id, SET_VALUE= string(VALUE_LOCATE(*((*self.state).CWV_ptr),double(wav) ),format='(I3)')
-		end
-	'L1s':begin
-			widget_control,(*self.state).sdiL1s_id, GET_VALUE=sli
-			widget_control,(*self.state).sdiL1_id, SET_VALUE= strcompress(string((*((*self.state).CWV_ptr))[fix(sli)],format='(2g)'), /rem)
-		end
-	'L2s':begin
-			widget_control,(*self.state).sdiL2s_id, GET_VALUE=sli
-			widget_control,(*self.state).sdiL2_id, SET_VALUE= strcompress(string((*((*self.state).CWV_ptr))[fix(sli)],format='(2g)'), /rem)
-		end
-	'L3s':begin
-			widget_control,(*self.state).sdiL3s_id, GET_VALUE=sli
-			widget_control,(*self.state).sdiL3_id, SET_VALUE= strcompress(string((*((*self.state).CWV_ptr))[fix(sli)],format='(2g)'), /rem)
-		end
-	'L4s':begin
-			widget_control,(*self.state).sdiL4s_id, GET_VALUE=sli
-			widget_control,(*self.state).sdiL4_id, SET_VALUE= strcompress(string((*((*self.state).CWV_ptr))[fix(sli)],format='(2g)'), /rem)
-		end
-	'sdi_draw': begin
-		;(*self.state).currmeth=(*self.state).methlist[event.index]
-		self->sdi_refresh
-		end
+      ;;if image is currently loaded, grab the wavelengths associated
+      ;;with the slices
+      if ptr_valid((*self.state).CWV_ptr) then begin
+         for j = 0,3 do begin
+            widget_control, (*self.state).sdi_sliceids[j],get_value=res
+            res = long(res)
+            if (res ge 0) && (res lt n_elements(*(*self.state).CWV_ptr)) then $
+               widget_control, (*self.state).sdi_wavids[j], set_value=$
+                               string((*((*self.state).CWV_ptr))[res],format='(F4.2)')+' um'$
+            else widget_control,(*self.state).sdi_sliceids[j],set_value=string((*self.state).sdi_slices[j],format='(I3)')
+         endfor
+      endif 
+   end 
 
-    'sdi_done': widget_control, event.top, /destroy
-    else:
+   ;;grab all info and save to state
+   'save': begin
+      widget_control, (*self.state).sdi_userdef_id,get_value=res
+      (*self.state).sdi_userdef = res
+      for j = 0,3 do begin
+         widget_control, (*self.state).sdi_sliceids[j],get_value=res
+         (*self.state).sdi_slices[j] = long(res)
+      endfor
+      widget_control, (*self.state).sdik_id,get_value=res
+      (*self.state).sdik = res
+      ;;close
+      widget_control, event.top, /destroy
+
+      ;;if you are currently in the SDI collapse mode, update the view
+      widget_control,(*self.state).collapse_button,get_value=modelist
+      if ((*self.state).collapse eq where(strmatch(modelist,'Collapse by SDI'))) then $
+         self->sdi
+   end 
+
+   'cancel': widget_control, event.top, /destroy
+   else:
 endcase
 
 end
 ;----------------------------------------------------------------------
 
-pro GPItv::sdi_refresh
+pro GPItv::sdi_update_defs
+;;update default slices based on current band
 
-;; Do ssdi
-if (*self.state).rgb_mode then begin
-   self->message, msgtype='warning', "I don't know how to properly do SSDI on an RGB cube. Returning."
-   return
-endif
+  ;;if no image loaded or user selection set, do nothing
+  if ~ptr_valid((*self.state).CWV_ptr) || (*self.state).sdi_userdef then return
 
-;;only do ssdi from original cube  or sdi mode
-widget_control,(*self.state).collapse_button,get_value=modelist
-jcm=where(strmatch(modelist,'Collapse by SDI'))
-if ((*self.state).collapse ne 0) && ((*self.state).collapse ne jcm) then begin
-   self->message, msgtype='warning', "SSDI not supported in collapse modes.  Please switch to 'Show Cube Slices'."
-   return
-endif
+  ;;figure out which slices you're using based on band
+  case (*self.state).obsfilt of
+     'H': wavs = [1.585, 1.593, 1.617, 1.625]
+     'J': wavs = [1.207, 1.213, 1.232, 1.238]
+     'Y': wavs = [1.002, 1.008, 1.033, 1.038]
+     'K1': wavs = [1.957, 1.965, 1.996, 2.004]
+     else: wavs = -1            
+  endcase 
+   
+  if n_elements(wavs) eq 1 then begin
+     self->message,msgtyp='warning',"No default defined for this band.  Using H-equivalent slices."
+     slices = [10,11,14,15]
+  endif else begin
+     slices = lonarr(4)
+     for j = 0,3 do slices[j] = VALUE_LOCATE(*((*self.state).CWV_ptr),wavs[j])
+  endelse 
 
-;; if you were previously speckle aligned or kliped or restore the
+(*self.state).sdi_slices = slices
+  
+end 
+
+;----------------------------------------------------------------------
+
+pro GPItv::sdi
+;; Do SSDI
+
+;; if you were previously speckle aligned kliped or restore the
 ;; backup cube before doing anything else 
 if ((*self.state).specalign_mode eq 1) || ((*self.state).klip_mode eq 1)  then begin
    (*self.images.main_image_stack)=(*self.images.main_image_backup)
@@ -17897,72 +17884,50 @@ if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then be
    endif
 endif
 
-widget_control,(*self.state).sdiL1s_id, GET_VALUE=sli
-numL1=fix(sli)
-widget_control,(*self.state).sdiL2s_id, GET_VALUE=sli
-numL2=fix(sli)
-widget_control,(*self.state).sdiL3s_id, GET_VALUE=sli
-numL3=fix(sli)
-widget_control,(*self.state).sdiL4s_id, GET_VALUE=sli
-numL4=fix(sli)
+;;figure out which slices you're using
+self->sdi_update_defs
+slices = (*self.state).sdi_slices
 
-L1=(*((*self.state).CWV_ptr))[numL1]
-L2=(*((*self.state).CWV_ptr))[numL2]
-L3=(*((*self.state).CWV_ptr))[numL3]
-L4=(*((*self.state).CWV_ptr))[numL4]
-L1m=double(L1[0])+0.5*(double(L2[0])-double(L1[0]))
-L2m=double(L3[0])+0.5*(double(L3[0])-double(L4[0]))
+;;make sure that slices are ordered correctly
+if slices[0] gt slices[1] then begin
+   self->message,msgtype='warning','Slice 2 is before slice 1.  Changing order.'
+   slices[0:1] = slices[[1,0]]
+endif 
+if slices[2] gt slices[3] then begin
+   self->message,msgtype='warning','Slice 4 is before slice 3.  Changing order.'
+   slices[2:3] = slices[[3,2]]
+endif 
 
 ;note that following 2 code lines remove a lot of nan...
-if (numL1 lt numL2)  then begin
-   I1=avg((*self.images.main_image_stack)[*,*,numL1:numL2],2,/double,/nan)
-endif else begin
-   if (numL1 eq numL2) then I1=(*self.images.main_image_stack)[*,*,numL1] else begin
-      self->message, msgtype = 'error', 'Wav 2 must be greater than Wav 1',/window
-      return
-   endelse
-endelse
-if (numL3 lt numL4)  then begin
-   I2=avg((*self.images.main_image_stack)[*,*,numL3:numL4],2,/double,/nan)
-endif else begin
-   if (numL3 eq numL4) then I2=(*self.images.main_image_stack)[*,*,numL3] else begin
-      self->message, msgtype = 'error', 'Wav 4 must be greater than Wav 3',/window
-      return
-   endelse
-endelse
+if (slices[0] ne slices[1]) then $
+   I1 = avg((*self.images.main_image_stack)[*,*,slices[0]:slices[1]],2,/double,/nan) else $
+      I1 = (*self.images.main_image_stack)[*,*,slices[0]]
+
+if (slices[2] ne slices[3]) then $
+   I2 = avg((*self.images.main_image_stack)[*,*,slices[2]:slices[3]],2,/double,/nan) else $
+      I2 = (*self.images.main_image_stack)[*,*,slices[2]] 
 
 I1[where(~FINITE(I1))]=0.
 I2[where(~FINITE(I2))]=!VALUES.F_NAN
 
-;;fftscale bugs with image of odd size:
-szim=size(I1)
-
-;FFTSCALE
-;if (szim[1] mod 2) then begin
-;  I1=I1[0:szim[1]-2,0:szim[2]-2]
-;  I2=I2[0:szim[1]-2,0:szim[2]-2]
-;endif 
-;I1s=fftscale(I1,double(L2m)/double(L1m),double(L2m)/double(L1m),1e-7)
-
-widget_control,(*self.state).sdik_id, GET_VALUE=knumin
+;;generate SDI settings
+Ls = (*((*self.state).CWV_ptr))[slices] 
+L1m = Ls[0]+0.5*(Ls[1] - Ls[0])
+L2m = Ls[2]+0.5*(Ls[2] - Ls[3])
 vscaleopt=1
 knum=1
 locs = dblarr(2,4)
-for j = 0,1 do for k = 0,3 do locs[j,k] = mean((*self.satspots.cens)[j,k,numL1:numL2],/nan)
+for j = 0,1 do for k = 0,3 do locs[j,k] = mean((*self.satspots.cens)[j,k,slices[0]:slices[1]],/nan)
 
-sdidiff=gpi_ssdi(I1,I2,L1m,L2m,vscaleopt,knumin,knum,locs)
+sdidiff=gpi_ssdi(I1,I2,L1m,L2m,vscaleopt,(*self.state).sdik,knum,locs)
+
 *self.images.main_image=sdidiff
 self->message, msgtype='information','Optimal SDI image magnification is = '+strtrim(vscaleopt[0],2)
 self->message, msgtype='information','Optimal SDI image intensity renormalization is = '+strtrim(knum[0],2)
 
-;Reset GPItv WINDOWS to SSDI mode
-widget_control,(*self.state).collapse_button,get_value=modelist
-jcm=where(strmatch(modelist,'Collapse by SDI'))
-(*self.state).collapse=jcm
-widget_control,(*self.state).collapse_button,set_droplist_select=(*self.state).collapse
+;Reset GPItv to SSDI mode
 (*self.state).rgb_mode=0
 (*self.state).specalign_mode=0
-self->collapsecube
 
 self->getstats
 self->recenter
@@ -17972,168 +17937,117 @@ self->displayall
 self->update_child_windows,/update
 self->resetwindow
 
-
 end
 
 ;----------------------------------------------------------------------
-pro GPItv::sdi
 
-;; aperture radial profil front end
-;if ( (xregistered(self.xname+'_sdi', /noshow)) or not (xregistered(self.xname+'_sdi', /noshow))) then begin
-if ~(xregistered(self.xname+'_sdi')) then begin  
-   sdi_base = $
-      widget_base(/base_align_center, $
-                  group_leader = (*self.state).base_id, $
-                  /column, $
-                  title = 'GPItv sdi', $
-                  uvalue = 'sdi_base')
-   
-   sdi_top_base = widget_base(sdi_base, /row, /base_align_center)
-   
-   sdi_base1 = widget_base( $
-               sdi_top_base, /column, frame=1)
-   sdi_base1b = widget_base( $
-                sdi_top_base, /column, frame=0)
-   sdi_base2 = widget_base( $
-               sdi_top_base, /column, frame=0)
-   sdi_base2a = widget_base( $
-                sdi_base2, /row, frame=0)
-   sdi_base2b = widget_base( $
-                sdi_base2, /row, frame=0)
-   sdi_base2c = widget_base( $
-                sdi_base2, /row, frame=0)
-   sdi_base2d = widget_base( $
-                sdi_base2, /row, frame=0)
-   
-   
-   sdi_base3 = widget_base( $
-               sdi_top_base, /column, frame=0)
-   sdi_base4 = widget_base( $
-               sdi_top_base, /column, frame=0)
-   
-   
-   void = widget_label( sdi_base1, VALUE='*** SIMPLE DIFFERENCE IMAGING ***',/ALIGN_CENTER )
-   sdi_base1h = widget_base( $
-                sdi_base1, /column, frame=0,xsize=60)
-   sdi_help = $
-      widget_button(sdi_base1h, $
-                    value = 'Help', $
-                    uvalue = 'Help',xsize=5)
-   
-   sdilist = ['Default', 'User-defined'] ;, 'Met2',  'Met3']
-   inic=0
-   if strmatch((*self.state).obsfilt, 'H') then inic=1
-   if strmatch((*self.state).obsfilt, 'J') then inic=2 
-   if strmatch((*self.state).obsfilt, 'Y') then inic=3 
-   if strmatch((*self.state).obsfilt, 'K1') then inic=4 
-   
-   (*self.state).sdilist_id = widget_droplist(sdi_base1b, $
-                                              frame = 0, $
-                                              title = 'band:', $
-                                              uvalue = 'elem', $
-                                              /ALIGN_RIGHT,$
-                                              value = sdilist)
-   (*self.state).currsdi=inic
-   
-   if inic eq 1 then begin      ;H
-      (*self.state).sdiL1=1.585
-      (*self.state).sdiL2= 1.593
-      (*self.state).sdiL3= 1.617
-      (*self.state).sdiL4= 1.625
-   endif
-   ;;Will need to update the none H wavelengths to some more model relavant values.
-   if inic eq 2 then begin      ;J
-      (*self.state).sdiL1= 1.207
-      (*self.state).sdiL2= 1.213
-      (*self.state).sdiL3= 1.232
-      (*self.state).sdiL4= 1.238
-   endif
-   
-   if inic eq 3 then begin      ;Y
-      (*self.state).sdiL1= 1.002
-      (*self.state).sdiL2= 1.008
-      (*self.state).sdiL3= 1.033
-      (*self.state).sdiL4= 1.038
-   endif
-   
-   if inic eq 4 then begin      ;K1
-      (*self.state).sdiL1= 1.957
-      (*self.state).sdiL2= 1.965
-      (*self.state).sdiL3= 1.996
-      (*self.state).sdiL4= 2.004
-   endif
-   ;;will crash is wavelength info is not available
-   
-   sdiL1s= VALUE_LOCATE(*((*self.state).CWV_ptr),double((*self.state).sdiL1) )
-   sdiL2s= VALUE_LOCATE(*((*self.state).CWV_ptr),double((*self.state).sdiL2) )
-   sdiL3s= VALUE_LOCATE(*((*self.state).CWV_ptr),double((*self.state).sdiL3) )
-   sdiL4s= VALUE_LOCATE(*((*self.state).CWV_ptr),double((*self.state).sdiL4) )
+pro GPItv::sdi_refresh
+;;refresh the SDI settings box, if it exists
 
-	void = widget_label( sdi_base2a, VALUE='Wav 1:' )
-        void = widget_label( sdi_base2b, VALUE='Wav 2:' )
-        void = widget_label( sdi_base2c, VALUE='Wav 3:' )
-        void = widget_label( sdi_base2d, VALUE='Wav 4:' )
-        (*self.state).sdiL1_id = widget_text(sdi_base2a,editable=0,uvalue = 'L1', $
-                                             value = strcompress(string((*self.state).sdiL1,format='(2g)'),/rem), $
-                                             xsize = 5)
-        (*self.state).sdiL2_id = widget_text(sdi_base2b,editable=0,uvalue = 'L2', $
-                                             value = strcompress(string((*self.state).sdiL2,format='(2g)'),/rem), $
-                                             xsize = 5)
-        (*self.state).sdiL3_id = widget_text(sdi_base2c,editable=0,uvalue = 'L3', $
-                                             value = strcompress(string((*self.state).sdiL3,format='(2g)'),/rem), $
-                                             xsize = 5)
-        (*self.state).sdiL4_id = widget_text(sdi_base2d,editable=0,uvalue = 'L4', $
-                                             value = strcompress(string((*self.state).sdiL4,format='(2g)'),/rem), $
-                                             xsize = 5)
-        
-        void = widget_label( sdi_base2a, VALUE='Slice 1:' )
-        void = widget_label( sdi_base2b, VALUE='Slice 2:' )
-        void = widget_label( sdi_base2c, VALUE='Slice 3:' )
-        void = widget_label( sdi_base2d, VALUE='Slice 4:' )
-        
-        (*self.state).sdiL1s_id = widget_text(sdi_base2a,editable=0,uvalue = 'L1s', $
-                                              value = string(sdiL1s,format='(I3)'), $
-                                              xsize = 5)
-        (*self.state).sdiL2s_id = widget_text(sdi_base2b,editable=0,uvalue = 'L2s', $
-                                              value = string(sdiL2s,format='(I3)'), $
-                                              xsize = 5)
-        (*self.state).sdiL3s_id = widget_text(sdi_base2c,editable=0,uvalue = 'L3s', $
-                                              value = string(sdiL3s,format='(I3)'), $
-                                              xsize = 5)
-        (*self.state).sdiL4s_id = widget_text(sdi_base2d,editable=0,uvalue = 'L4s', $
-                                              value = string(sdiL4s,format='(I3)'), $
-                                              xsize = 5)
-        
-        
-        (*self.state).sdik_id = $
-           cw_field(sdi_base4, $
-                                ;/long, $
-                    /return_events, $
-                    title = 'subtr. fact (-1 = soft opt):', $
-                    uvalue = 'kd', $
-                    value = (*self.state).sdik, $
-                    xsize = 5)
-        
-        sdi_plot = $
-           widget_button(sdi_base4, $
-                         value = 'Draw', $
-                         uvalue = 'sdi_draw')
-        
-        sdi_done = $
-           widget_button(sdi_base4, $
-                         value = 'Done', $
-                         uvalue = 'sdi_done')
-        
-        widget_control, sdi_base, /realize
-        
-        xmanager, self.xname+'_sdi', sdi_base, /no_block
-        widget_control, sdi_base, set_uvalue={object: self, method: 'sdi_event'}
-        widget_control, sdi_base,event_pro = 'GPItvo_subwindow_event_handler'
-        self->resetwindow
-endif
+  if ~(xregistered(self.xname+'_sdi', /noshow)) then return
+  
+  if ptr_valid((*self.state).CWV_ptr) then begin
+     self->sdi_update_defs
+     wavs = strarr(4)
+     for j = 0,3 do wavs[j] = string((*((*self.state).CWV_ptr))[(*self.state).sdi_slices[j]],format='(F4.2)')+' um'
+  endif else wavs =  ['','','','']
 
+  ;;update displays
+  for j = 0,3 do begin
+     widget_control, (*self.state).sdi_sliceids[j],$
+                     set_value = string((*self.state).sdi_slices[j],format='(I3)'),$
+                     sensitive=(*self.state).sdi_userdef
+     widget_control,(*self.state).sdi_wavids[j],set_value = wavs[j]
+  endfor
+  
 end
 
+;----------------------------------------------------------------------
+pro GPItv::SDI_settings
+
+  ;; SDI settings front end
+  if ~(xregistered(self.xname+'_sdi')) then begin  
+     sdi_base = $
+        widget_base(/base_align_center, $
+                    group_leader = (*self.state).base_id, $
+                    /column, $
+                    title = 'GPItv SDI', $
+                    uvalue = 'sdi_base')
+     
+     message = ['            *** SIMPLE DIFFERENCE IMAGING ***',$
+                'Choose default (methane band) or enter user-defined values.',$
+                'SDI collapse mode generates a difference image between the',$
+                'average of all slices between Slice 1 and Slice 2 (Im1), and',$
+                'the average of all slices between Slice 3 and Slice 4 (Im2).', $
+                'Im1 is spatially scaled by the ratio of the central wavelengths',$
+                'and Im2 is photometrically scaled by the subraction factor (f).',$
+                'Setting the subtraction factor to -1 causes the code to find',$
+                'the optimum value.',$
+                'Wavelengths are for current cube (or none if no cube loaded).',$
+                "Settings are only applied when 'Save Settings' is clicked."]
+
+     void = widget_text(sdi_base, value = message, xsize = max(strlen(message)), ysize = n_elements(message))
+     sdi_base1 = widget_base(sdi_base, /row)
+     (*self.state).sdi_userdef_id = CW_BGROUP(sdi_base1, ['Default', 'User-defined'], /COLUMN,$
+                                              /EXCLUSIVE,/FRAME, SET_VALUE=(*self.state).sdi_userdef,$
+                                              uvalue='userdef')
+     sdi_base1a = widget_base(sdi_base1, /row)
+     void = widget_label(sdi_base1a,Value='Subtraction Factor')
+     (*self.state).sdik_id =  widget_text(sdi_base1a,uvalue = 'subfrac', $
+                                                    value = strtrim((*self.state).sdik,2),$
+                                                    xsize = 5,/editable)
+
+     sdi_base2 = widget_base( $
+                 sdi_base, /column, frame=0)
+     sdi_base2s = lonarr(4)
+     sdi_base2s[0] = widget_base( $
+                  sdi_base2, /row, frame=0)
+     sdi_base2s[1] = widget_base( $
+                  sdi_base2, /row, frame=0)
+     sdi_base2s[2] = widget_base( $
+                  sdi_base2, /row, frame=0)
+     sdi_base2s[3] = widget_base( $
+                  sdi_base2, /row, frame=0)
+     
+     ;;if image is currently loaded, grab the wavelengths associated
+     ;;with the slices
+     if ptr_valid((*self.state).CWV_ptr) then begin
+        self->sdi_update_defs
+        wavs = strarr(4)
+        for j = 0,3 do wavs[j] = string((*((*self.state).CWV_ptr))[(*self.state).sdi_slices[j]],format='(F4.2)')+' um'
+     endif else wavs =  ['','','','']
+     
+     extratext1 = ['   mean( ','         ','-f*mean( ','         ']
+     extratext2 = ['  ',' )','  ',' )']
+     for j = 0,3 do begin
+        void = widget_label( sdi_base2s[j], VALUE=extratext1[j]+'Slice '+strtrim(j,2)+':' )
+        (*self.state).sdi_sliceids[j] = widget_text(sdi_base2s[j],uvalue = 'slicebox', $
+                                                    value = string((*self.state).sdi_slices[j],$
+                                                                   format='(I3)'), $
+                                                    xsize = 5,/editable,/KBRD_FOCUS_EVENTS)
+        widget_control,(*self.state).sdi_sliceids[j],sensitive=(*self.state).sdi_userdef
+        void =  widget_label( sdi_base2s[j], VALUE=extratext2[j])
+        (*self.state).sdi_wavids[j] = widget_label( sdi_base2s[j], VALUE=wavs[j] )
+     endfor
+
+     sdi_base3 = widget_base( sdi_base, /row, frame=0)
+
+     void = widget_button(sdi_base3, $
+                          value = 'Cancel', $
+                          uvalue = 'cancel')
+     void = widget_button(sdi_base3, $
+                          value = 'Save Settings', $
+                          uvalue = 'save')
+     
+     widget_control, sdi_base, /realize
+     
+     xmanager, self.xname+'_sdi', sdi_base, /no_block
+     widget_control, sdi_base, set_uvalue={object: self, method: 'sdi_event'}
+     widget_control, sdi_base,event_pro = 'GPItvo_subwindow_event_handler'
+     self->resetwindow
+  endif
+  
+end
 
 ;----------------------------------------------------------------------
 pro GPItv::alignspeckle, status=status
