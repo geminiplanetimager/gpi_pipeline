@@ -578,7 +578,6 @@ pro parsergui::parse_current_files
 										templatename = self->lookup_template_filename(templatename)
 										self->create_recipe_from_template, templatename, file_filt_obst_disp_occ_obs_itime_object, current
 
-
                                     endfor ;loop on object
                                 endfor ;loop on itime
                             endfor ;loop on obsclass
@@ -710,16 +709,17 @@ pro parsergui::create_recipe_from_template, templatename, fitsfiles, current,  i
 
 	drf->set_outputdir, self.outputdir
 
-
 	; Generate output file name
 	recipe=drf->get_summary() 
-	first_file=strsplit(fitsfiles[0],'S.',/extract) ; split on letter S or period
-	last_file=strsplit(fitsfiles[size(fitsfiles,/n_elements)-1],'S.',/extract)
+        first_file=strsplit(fitsfiles[0],'/',/extract) ; split on letter S or period
+        first_file=strsplit(first_file[size(first_file,/n_elements)-1],'S.',/extract) ; split on letter S or period
+	last_file=strsplit(fitsfiles[size(fitsfiles,/n_elements)-1],'/',/extract)
+        last_file=strsplit(last_file[size(last_file,/n_elements)-1],'S.',/extract)
 	prefixname=string(self.num_recipes_in_table+1, format="(I03)")
 
 	if n_elements(first_file) gt 2 then begin
 		; normal Gemini style filename
-        outputfilename='S'+first_file[1]+'S'+first_file[2]+'-'+last_file[2]+'_'+recipe.shortname+'_recipe.waiting.xml'
+        outputfilename='S'+first_file[0]+'S'+first_file[1]+'-'+last_file[1]+'_'+recipe.shortname+'_drf.waiting.xml'
 	endif else begin
 		; something else? e.g. temporary workaround for engineering or other
 		; data with nonstandard filenames
