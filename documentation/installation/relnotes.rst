@@ -6,12 +6,38 @@ Release Notes
 
 You may wish to skip ahead to  :ref:`configuring`.
 
+
+Version 1.1
+=========================================
+Released TBD May 1 ish. 
+
+This version was released in support of the GPI Early Science shared-risk observing programs by the community. It includes a range
+of enhancements and fixes made during the ongoing commissioning observing runs, including in particular substantial updates to polarimetry mode support. 
+
+.. comment:
+    Everything significatn in commits from 2564 (release 1.0) through to current
+
+* Enhancements/Additions to primitives and recipes:
+
+* Pipeline infrastructure
+
+* Recipe Editor, Data Parser, Autoreducer GUIs: 
+
+* GPItv enhancements and bug fixes:
+
+* Documentation 
+
+
+* Miscellaneous bug fixes and minor tasks:
+
+ 
+
+
 Version 1.0.0
 =========================================
 Released 2014 Feb 14
 
-The current stable version of the pipeline is 1.0.0, released along with the full GPI first light data release. 
-
+Version  1.0.0 of the GPI dat pipeline was released together with the full GPI first light data release.  
 This version includes a variety of enhancements and bugfixes specifically targeted at the first light data.
   
 * Enhancements/Additions to primitives and recipes: 
