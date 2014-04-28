@@ -6,8 +6,17 @@ function gpi_highres_microlens_psf_get_local_highres_psf, high_res_PSFs, lcoords
 ; check to see if there is already a psf at this position!
 ptr_current_PSF = high_res_psfs[lcoords[0],lcoords[1],lcoords[2]]
 ; if yes, then just return it
-   if ptr_valid(ptr_current_PSF) then return,high_res_psfs[lcoords[0],lcoords[1],lcoords[2]] 
+   if ptr_valid(ptr_current_PSF) then begin
+	obj_PSF  = *high_res_psfs[lcoords[0],lcoords[1],lcoords[2]]
+	obj_psf.values/=total(obj_psf.values,/nan) ; this is dangerous due to goofy edge effects
 
+	new_psf_ptr=ptr_new(obj_PSF,/no_copy)
+
+	; now replace the null pointer in high_res_psfs with a new (and valid) one - if desired
+	if keyword_set(preserve_structure) eq 0 then high_res_psfs[lcoords[0],lcoords[1],lcoords[2]]=new_psf_ptr
+	; now return the pointer 
+	return,new_psf_ptr
+  endif	
 ; otherwise, grab the 4 closest valid psfs and interpolate
 ; this will actually create all of the necessary data and add it into 
 ; the high_res_psfs structure
@@ -100,11 +109,9 @@ if (Q12_ind ne -1 and Q22_ind ne -1) then begin
 	dx=Q12_xzeroind-master_xzeroind
 	dy=Q12_yzeroind-master_yzeroind
 	Q12_ind_psf=translate(Q12_ind_psf0,-dx,-dy,missing=!values.f_nan)
-
 	; now normalize to ensure the fluxes are equal
-	Q12_ind_psf/=(Q12_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
-	Q22_ind_psf/=(Q22_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
-
+	Q12_ind_psf/=total(Q12_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
+	Q22_ind_psf/=total(Q22_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
 	; these are just weighted means
 	Rx2=( (xgrid[Q22_ind]-0.0)/(xgrid[Q22_ind]-xgrid[Q12_ind]) )*Q12_ind_psf + $
 			( (0.0-xgrid[Q12_ind])/(xgrid[Q22_ind]-xgrid[Q12_ind]) )*Q22_ind_psf
@@ -145,8 +152,8 @@ if (Q11_ind ne -1 and Q21_ind ne -1) then begin
 	Q21_ind_psf=translate(Q21_ind_psf0,-dx,-dy,missing=!values.f_nan)
 
 	; now normalize to ensure the fluxes are equal
-	Q11_ind_psf/=(Q11_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
-	Q21_ind_psf/=(Q21_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
+	Q11_ind_psf/=total(Q11_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
+	Q21_ind_psf/=total(Q21_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
 
 	; these are just weighted means
 	Rx1=( (xgrid[Q21_ind]-0.0)/(xgrid[Q21_ind]-xgrid[Q11_ind]) )*Q11_ind_psf + $
@@ -205,8 +212,8 @@ if keyword_set(rx1) eq 0 and keyword_set(rx2) eq 0 then begin
 			Q21_ind_psf=translate(Q21_ind_psf0,-dx,-dy,missing=!values.f_nan)
 	
 			; now normalize to ensure the fluxes are equal
-			Q11_ind_psf/=(Q11_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
-			Q21_ind_psf/=(Q21_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
+			Q22_ind_psf/=total(Q22_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
+			Q21_ind_psf/=total(Q21_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
 
 			; these are just weighted means
 			R2y=( (ygrid[Q22_ind]-0.0)/(ygrid[Q22_ind]-ygrid[Q21_ind]) )*Q21_ind_psf + $
@@ -249,8 +256,8 @@ if keyword_set(rx1) eq 0 and keyword_set(rx2) eq 0 then begin
 		Q12_ind_psf=translate(Q12_ind_psf,-dx,-dy,missing=!values.f_nan)
 
 		; now normalize to ensure the fluxes are equal
-		Q11_ind_psf/=(Q11_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
-		Q21_ind_psf/=(Q21_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
+		Q11_ind_psf/=total(Q11_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
+		Q12_ind_psf/=total(Q12_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
 
 		; these are just weighted means
 		R1y=( (ygrid[Q12_ind]-0.0)/(ygrid[Q12_ind]-ygrid[Q11_ind]) )*Q11_ind_psf + $
@@ -273,8 +280,7 @@ endif ; if keyword_set(rx1) eq 0 and keyword_set(rx2) eq 0
 ; only a single PSF exists - this can happen if the desired spot only has 1 surrounding PSF
 ; for this case we just take that psf
 
-if keyword_set(r1y) eq 0 and keyword_set(r2y) eq 0 and keyword_set(r1x) eq 0 and keyword_set(r2x) eq 0 then begin
-
+if keyword_set(r1y) eq 0 and keyword_set(r2y) eq 0 and keyword_set(rx2) eq 0 and keyword_set(rx1) eq 0 then begin
 ; determine which indice is set
 if (Q11_ind ne -1) then only_ind=Q11_ind
 if (Q12_ind ne -1) then only_ind=Q12_ind
@@ -285,11 +291,15 @@ master_xcoords=(*high_res_psfs[only_ind mod 281,only_ind / 281]).xcoords ; for u
 master_ycoords=(*high_res_psfs[only_ind mod 281,only_ind / 281]).ycoords ; for use in new input of high_res_psfs
 ; set psf
 new_psf=(*high_res_psfs[only_ind mod 281,only_ind / 281]).values
+;normalize PSF
+;new_psf/=total(new_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
 
 endif
 
-if keyword_set(new_psf) eq 0 then stop,'this should never happen! '
+;normalize such that the total intensity is equal to 1
+new_psf/=total(new_psf,/nan) ; this is dangerous due to goofy edge effects
 
+if keyword_set(new_psf) eq 0 then stop,'this should never happen! '
 
 ; now we have the new PSF, so we have to put it into a structure which is the same as high_res_psfs
 obj_PSF = {values: new_psf, $
@@ -297,6 +307,8 @@ obj_PSF = {values: new_psf, $
            ycoords: master_ycoords, $
            tilt: 0.0,$
            id: [lcoords] }
+
+
 
 new_psf_ptr=ptr_new(obj_PSF,/no_copy)
 
