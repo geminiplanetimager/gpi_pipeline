@@ -711,9 +711,9 @@ pro parsergui::create_recipe_from_template, templatename, fitsfiles, current,  i
 
 	; Generate output file name
 	recipe=drf->get_summary() 
-        first_file=strsplit(fitsfiles[0],'/',/extract) ; split on letter S or period
+        first_file=strsplit(fitsfiles[0],path_sep(),/extract) ; split on letter S or period
         first_file=strsplit(first_file[size(first_file,/n_elements)-1],'S.',/extract) ; split on letter S or period
-	last_file=strsplit(fitsfiles[size(fitsfiles,/n_elements)-1],'/',/extract)
+	last_file=strsplit(fitsfiles[size(fitsfiles,/n_elements)-1],path_sep(),/extract)
         last_file=strsplit(last_file[size(last_file,/n_elements)-1],'S.',/extract)
 	prefixname=string(self.num_recipes_in_table+1, format="(I03)")
 
