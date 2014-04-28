@@ -17,19 +17,72 @@ of enhancements and fixes made during the ongoing commissioning observing runs, 
 .. comment:
     Everything significatn in commits from 2564 (release 1.0) through to current
 
-* Enhancements/Additions to primitives and recipes:
+* Enhancements/Additions to primitives and recipes:	
+
+  * Dark subtraction can interpolate between dark frames taken before and after an observation. (Perrin)
+  * Contrast profiles can be written to TXT files and FITS tables. (Savransky)
+  * Added infrastructure to allow a primitive to execute on an entire dataset. Allows primitives that work on individual images to work after Accumulate Images. (Perrin)
+  * Rotate North primitive can be applied after Accumulate Images. (Perrin)
+  * Added new primitive to clear/debias polarization pairs using a double difference algorithm. (Perrin)
+  * Added experimental primitive to subtract stellar polarization. (Perrin)
+  * Improved performance of locating satellite spots in spectral mode. Now can add satellite spots separation constraint. (Ingraham, Savransky)
+  * Improved stability of locating star center in polarimetry mode by setting a lower threshold in pixel value. (Wang)
+  * Updates for extracting 1D spectrum and calibrating photometry flux primitives. (Ingraham)
+  * Added new primitive to calculate spectral throughput. (Maire)
+  * Improved performance of 2D wavelength solution. (Wolff)
+  * Updates to inserting fake planet into cube. (Ingraham)
+  * Minor fixes to image destriping routine. (Ingraham)
+  * Fixed edge effect error for wavecals. (Ingraham)
+  * Image centeres in polarimetry mode match spectral mode. (Millar-Blanchaer)
+  * Added KLIP for polarimetry data. (Millar-Blanchaer)
+  * Many bug fixes and minor updates to polarimetry primitives. (Millar-Blanchaer)
+  * Add a primitive to smooth a 3D datacube. (Millar-Blanchaer)
+  * Rotate North updates headers properly. (Millar-Blanchaer)
+
 
 * Pipeline infrastructure
 
+  * Minor reordering of default order of primitives. (Perrin)
+  * Fixed bug in Windows when encountering symlinks. (Maire)
+  * Improved nogui mode of pipeline. (Perrin)
+  * Install script will warn but allow aliased IDL commands. (Wang)
+
+
 * Recipe Editor, Data Parser, Autoreducer GUIs: 
+
+  * Improved handling of saving recipe files. (Perrin, Wolff)
+  * Autoreducer should now automatically change directories for different dates. (Perrin)
+  * Better handling of errors to mitigate GUI crashes and other unresponsive behavior. (Wang)
+  * Added ability to make new blank recipes. (Savransky)
+  * Remove file button for data parser. (Perrin)
+  * Allow removal of the last file in a recipe. (Perrin)
+
 
 * GPItv enhancements and bug fixes:
 
+  * Improved display options for polarimetry data. (Perrin)
+  * Improved UI for selecting polcal/wavecal files. (Perrin)
+  * Added behavior to discard current polcal/wavecal when switching to a new file. (Perrin)
+  * GPI Launcher will bring to the front any existing window if you click the corresponding button. (perrin)
+  * Fixed bugs that prevented viewing of temporary data and headers in certain cases. (Wang)
+  * SDI settings now are a menu item under options and now consistent with other GPItv settings. (Savransky)
+  * Overhaul of polarization vector plotting. (Perrin)
+
+
 * Documentation 
+
+  * Updated Quickstar documentation. (Ingraham)
+  * Improved installation notes. (Perrin)
+  * Added polarization data reduction tutorial. (Millar-Blanchaer)
 
 
 * Miscellaneous bug fixes and minor tasks:
 
+  * Many minor bug fixes. (Ingraham, Maire, Millar-Blanchaer, Perrin, Savransky, Wang, Wolff)
+  * Refactoring and reorganizing routines. (Perrin, Wolff)
+  * Updates to default recipes. (Millar-Blanchaer, Savransky)
+  * Updated pipeline constants. (Perrin, Ingraham) 
+  * Better filename handling, parsing, and creation. (Millar-Blanchaer, Perrin, Wang, Wolff)
  
 
 
