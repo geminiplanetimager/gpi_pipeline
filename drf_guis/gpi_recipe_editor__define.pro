@@ -856,7 +856,8 @@ pro gpi_recipe_editor::event,ev
 		for i=0,n_selected_index-1 do begin
 			; sanity check indices:
 			if selected_index[i] lt 0 or selected_index[i] gt n_elements(filelist)-1 then continue
-			self->removefile, filelist[selected_index[i]]
+			;self->removefile, filelist[selected_index[i]]
+		    self.drf->remove_datafile, filelist[selected_index[i]]
 			self->Log, "Removed "+filelist[selected_index[i]]
 
 		endfor
