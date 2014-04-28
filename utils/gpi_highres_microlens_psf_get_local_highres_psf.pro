@@ -24,6 +24,8 @@ xgrid=rebin(tmp,281,281)
 ygrid=rebin(transpose(tmp),281,281)
 time1a=systime(/seconds)
 
+xstep=1/0.2 ; stepsize in detector pixels
+ystep=1/0.2 
 
 ; make non-valid points nans
 bad=where(valid eq 0,complement=good)
@@ -99,6 +101,10 @@ if (Q12_ind ne -1 and Q22_ind ne -1) then begin
 	dy=Q12_yzeroind-master_yzeroind
 	Q12_ind_psf=translate(Q12_ind_psf0,-dx,-dy,missing=!values.f_nan)
 
+	; now normalize to ensure the fluxes are equal
+	Q12_ind_psf/=(Q12_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
+	Q22_ind_psf/=(Q22_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
+
 	; these are just weighted means
 	Rx2=( (xgrid[Q22_ind]-0.0)/(xgrid[Q22_ind]-xgrid[Q12_ind]) )*Q12_ind_psf + $
 			( (0.0-xgrid[Q12_ind])/(xgrid[Q22_ind]-xgrid[Q12_ind]) )*Q22_ind_psf
@@ -137,6 +143,10 @@ if (Q11_ind ne -1 and Q21_ind ne -1) then begin
 	dx=Q21_xzeroind-master_xzeroind
 	dy=Q21_yzeroind-master_yzeroind
 	Q21_ind_psf=translate(Q21_ind_psf0,-dx,-dy,missing=!values.f_nan)
+
+	; now normalize to ensure the fluxes are equal
+	Q11_ind_psf/=(Q11_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
+	Q21_ind_psf/=(Q21_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
 
 	; these are just weighted means
 	Rx1=( (xgrid[Q21_ind]-0.0)/(xgrid[Q21_ind]-xgrid[Q11_ind]) )*Q11_ind_psf + $
@@ -179,10 +189,10 @@ if keyword_set(rx1) eq 0 and keyword_set(rx2) eq 0 then begin
 	if (Q21_ind ne -1 and Q22_ind ne -1) then begin
 			Q22_ind_psf=(*high_res_psfs[Q22_ind mod 281,Q22_ind / 281]).values
 			; reset the master
-				master_xzeroind=where((*high_res_psfs[Q22_ind mod 281,Q22_ind / 281]).xcoords eq 0)
-				master_yzeroind=where((*high_res_psfs[Q22_ind mod 281,Q22_ind / 281]).ycoords eq 0)
-				master_xcoords=(*high_res_psfs[Q22_ind mod 281,Q22_ind / 281]).xcoords ; for use in new input of high_res_psfs
-				master_ycoords=(*high_res_psfs[Q22_ind mod 281,Q22_ind / 281]).ycoords ; for use in new input of high_res_psfs
+			master_xzeroind=where((*high_res_psfs[Q22_ind mod 281,Q22_ind / 281]).xcoords eq 0)
+			master_yzeroind=where((*high_res_psfs[Q22_ind mod 281,Q22_ind / 281]).ycoords eq 0)
+			master_xcoords=(*high_res_psfs[Q22_ind mod 281,Q22_ind / 281]).xcoords ; for use in new input of high_res_psfs
+			master_ycoords=(*high_res_psfs[Q22_ind mod 281,Q22_ind / 281]).ycoords ; for use in new input of high_res_psfs
 
 			; so now we must determine the shifts and put Q21_ind_psf on the same grid
 			; note that no interpolation is ever necessary since they all have the same
@@ -194,6 +204,10 @@ if keyword_set(rx1) eq 0 and keyword_set(rx2) eq 0 then begin
 			dy=Q21_yzeroind-master_yzeroind
 			Q21_ind_psf=translate(Q21_ind_psf0,-dx,-dy,missing=!values.f_nan)
 	
+			; now normalize to ensure the fluxes are equal
+			Q11_ind_psf/=(Q11_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
+			Q21_ind_psf/=(Q21_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
+
 			; these are just weighted means
 			R2y=( (ygrid[Q22_ind]-0.0)/(ygrid[Q22_ind]-ygrid[Q21_ind]) )*Q21_ind_psf + $
 					( (0.0-ygrid[Q21_ind])/(ygrid[Q22_ind]-ygrid[Q21_ind]) )*Q22_ind_psf
@@ -234,6 +248,10 @@ if keyword_set(rx1) eq 0 and keyword_set(rx2) eq 0 then begin
 		dy=Q12_yzeroind-master_yzeroind
 		Q12_ind_psf=translate(Q12_ind_psf,-dx,-dy,missing=!values.f_nan)
 
+		; now normalize to ensure the fluxes are equal
+		Q11_ind_psf/=(Q11_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
+		Q21_ind_psf/=(Q21_ind_psf[master_xzeroind-xstep:master_xzeroind+xstep,master_yzeroind-ystep:master_yzeroind+ystep])
+
 		; these are just weighted means
 		R1y=( (ygrid[Q12_ind]-0.0)/(ygrid[Q12_ind]-ygrid[Q11_ind]) )*Q11_ind_psf + $
 				( (0.0-ygrid[Q11_ind])/(ygrid[Q12_ind]-ygrid[Q11_ind]) )*Q12_ind_psf
@@ -244,7 +262,6 @@ if keyword_set(rx1) eq 0 and keyword_set(rx2) eq 0 then begin
 		new_bad=where(finite(r1y) eq 0 and finite(Q12_ind_psf) eq 1)
 		if new_bad[0] ne -1 then r1y[new_bad]=Q12_ind_psf[new_bad]
 
-	
 	endif else R1y=0
 
 ; we know from above that both R2y and R1y do not exist since a corner (or two) are missing
