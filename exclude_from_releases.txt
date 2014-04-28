@@ -27,3 +27,7 @@ utils/parallelize/gpi_obridgeabort.pro
 
 #some more polarimetry
 primitives/gpi_combine_polarizations_dd.pro
+
+#Wavelength solution requiring microlens PSFs:
+primitives/gpi_wavelength_solution_2d_developer.pro
+utils/nmicrolens.pro
