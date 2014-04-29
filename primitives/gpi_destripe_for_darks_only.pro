@@ -35,7 +35,7 @@
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="-1" Desc="-1 = No display; 0 = New (unused) window else = Window number to display diagonostics in."
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display " 
-; PIPELINE ORDER: 1.3
+; PIPELINE ORDER: 1.35
 ; PIPELINE CATEGORY: Calibration
 
 ; HISTORY:
@@ -53,7 +53,7 @@ function gpi_destripe_for_darks_only, DataSet, Modules, Backbone
   if tag_exist( Modules[thisModuleIndex], "remove_microphonics") then remove_microphonics=Modules[thisModuleIndex].remove_microphonics else remove_microphonics='yes'
   if tag_exist( Modules[thisModuleIndex], "display") then display=fix(Modules[thisModuleIndex].display) else display=-1
 
-  im =  *(dataset.currframe[0])
+  im =  *(dataset.currframe)
 
   if display ne -1 then im0 = im ; save a copy of input image for later display
   sz = size(im)
@@ -63,6 +63,10 @@ function gpi_destripe_for_darks_only, DataSet, Modules, Backbone
   endif
 
 
+  ;---- Part one: Measure stripes as medians across pixels read out simultaneously across
+  ;     the 32 readout channels. This allows for an excellent removal of readout
+  ;     noise, under the assumption that there isn't any actual signal in the
+  ;     image at all. 
   backbone->Log, "Removing horizontal stripes based on median across channels.",depth=2
                                 ; Chop the image into the 32 readout channels. 
                                 ; Flip every other channel to account for the readout direction
@@ -81,10 +85,67 @@ function gpi_destripe_for_darks_only, DataSet, Modules, Backbone
   stripes = reform(transpose(model, [0,2,1]), 2048, 2048)	
 
 
+  ;---- Part two: From the model of the striping that we dervied above, remove the
+  ;     overall median, so as to leave unchanged the total bias of the dark
+  ;     frame. This ensures that when it is subtracted from a science image, the
+  ;     resulting background count level should end up near zero.
+  ;
+  ;     When doing this, pay special attention to the bottom of the detector
+  ;     where there is a roll-off to negative counts of the background, particularly 
+  ;     at short exposures. THis is due to the 'reset anomaly' effect in H2RGs,
+  ;     where the first read of any UTR series is biased downwards for the first
+  ;     tens of milliseconds as the array recovers from having done the reset. 
+  ;     Empirically this shows up in the lowest 100 rows or so, so we fit a
+  ;     simple polynomial model there so that the destriping doesn't remove this
+  ;     effect from the dark background. This allows the darks to better
+  ;     subtract off this curvature. 
+  ;
+  ;     Note that all of this care here is less important in cases where we are
+  ;     going to destripe the science data itself, since that destriping will
+  ;     just remove the bias level to zero and take out the curvature at the
+  ;     bottom from reset anomaly. But we want to treat this carefully to handle 
+  ;     cases where we are not destriping the science frames. 
+
+
+  ; Empirically we want to smooth out the stripes pattern overall to leave the 
+  ; medians relatively untouched, but allow higher frequency curvature near the
+  ; bottom of the detector due to the reset anomaly curvature observed there
+  ; particularly at short exposures
+  stripes2 = stripes
+
+  rowmeds = (median(stripes,dim=1))[4:2043]
+  ;rowmeds_filt30 = smooth(rowmeds,30,/edge_truncate)
+  ;rowmeds_filt100 = smooth(rowmeds,100,/edge_truncate)
+
+  ;stripes2[*,4:100] -= rebin(transpose(rowmeds_filt30[0:96]), 2048, 97)
+  ;stripes2[*,101:2043] -= rebin(transpose(rowmeds_filt100[97:*]), 2048, 1943)
+
+
+  res = poly_fit(findgen(200),rowmeds[0:199],3)
+  ;plot, rowmeds[0:199]
+  ;oplot, poly(findgen(100), res), color=cgcolor('red')
+
+  backgndlevel = fltarr(2040)
+  backgndlevel[0:100] = poly(findgen(101), res)
+  backgndlevel[101:*] = median(stripes[101:*])
+  ; enforce continuity
+  step = backgndlevel[100]-backgndlevel[101]
+  backgndlevel[0:100]-=step
+
+  ;oplot, [100,500], median(stripes[100:*])*[1,1], color=cgcolor('orange')
+  ;oplot, backgndlevel, color=cgcolor('green')
+
+  stripes2[*,4:2043] -= rebin(transpose(backgndlevel), 2048, 2040)
+
+  stripes=stripes2
+
+  ;---- Part three: Subtract the stripes model and save history
+
   imout = im - stripes
   backbone->set_keyword, "HISTORY", "Destriped, using aggressive algorithm assuming no signal in image"
   backbone->set_keyword, "HISTORY", "This had better be a dark frame or else it's probably messed up now."
 
+  ;---- Part four: Remove microphonics (optional)
   if strlowcase(remove_microphonics) eq 'yes' then begin
      backbone->Log, "Fourier filtering to remove microphonics noise.",depth=2
                                 ; first we want to mask out all the hot/cold pixels so they don't bias
@@ -97,14 +158,32 @@ function gpi_destripe_for_darks_only, DataSet, Modules, Backbone
 
                                 ; Now we use a FFT filter to generate a model of the microphonics noise
 
-     fftim = fft(smoothed)
-     fftmask = bytarr(2048,2048)
-     fftmask[1004:1046, 1190:1210]  = 1 ; a box around the 3 peaks from the microphonics blobs,
+	;	 ; Original version using all 2048x^2 pixels - it works ***slightly*** better
+	;	 ; to use just the photosensitive 2040^2
+	;     fftim = fft(smoothed)
+	;     fftmask = bytarr(2048,2048)
+	;     fftmask[1004:1046, 1190:1210]  = 1 ; a box around the 3 peaks from the microphonics blobs,
+	;     fftmask += reverse(fftmask, 2)
+	;     fftmask = shift(fftmask,-1020,-1020) ; flop to line up with fftim
+	;     microphonics_model1 = real_part(fft( fftim*fftmask,/inverse))
+	;     microphonics_model1[*, 1975:*] = 0
+	;     clean1 = imout - microphonics_model1
+
+
+
+								; Only do this on the photosensitive pixels; the
+								; effect of microphonics is different on the ref
+								; pix.
+     fftim = fft(smoothed[4:2043, 4:2043])
+     fftmask = bytarr(2040,2040)
+     ;fftmask[1004:1046, 1190:1210]  = 1 ; a box around the 3 peaks from the microphonics blobs,
+     ;fftmask[1004:1046, 1190:1210]  = 1 ; a box around the 3 peaks from the microphonics blobs,
+     fftmask[1000:1042, 1186:1206]  = 1 ; a box around the 3 peaks from the microphonics blobs,
                                 ; as seen in an FFT array if 'flopped'
                                 ; to be centered on the 0-freq component
                                 ;fftmask[1004:1046, 1368:1378] = 1
      fftmask += reverse(fftmask, 2)
-     fftmask = shift(fftmask,-1024,-1024) ; flop to line up with fftim
+     fftmask = shift(fftmask,-1020,-1020) ; flop to line up with fftim
 
      microphonics_model = real_part(fft( fftim*fftmask,/inverse))
 
@@ -116,7 +195,10 @@ function gpi_destripe_for_darks_only, DataSet, Modules, Backbone
 
      if display ne -1 then im_destriped = imout ; save for use in display
 
-     imout -= microphonics_model
+     clean2 = imout
+	 clean2[4:2043,4:2043] -= microphonics_model
+     ;imout[4:2040,4:2040] -= microphonics_model
+	 imout = clean2
      backbone->set_keyword, "HISTORY", "Microphonics noise removed via Fourier filtering."
 
   endif
@@ -127,30 +209,34 @@ function gpi_destripe_for_darks_only, DataSet, Modules, Backbone
      loadct, 0
      erase
 
+	 immedian = median(im0)
+	 disprange = [immedian-10,immedian+30]
      if strlowcase(remove_microphonics) eq 'yes' then begin
                                 ; display for destriping and microphonics removal
-        !p.multi=[0,4,1]
-        mean_offset = mean(im0) - mean(imout)
-        imdisp, im0 - mean_offset, /axis, range=[-10,30], title='Input Data', charsize=2
-        imdisp, im_destriped, /axis, range=[-10,30], title='Destriped', charsize=2
+        !p.multi=[0,5,1]
+        ;mean_offset = mean(im0) - mean(imout)
+        imdisp, im0 , /axis, range=disprange, title='Input Data', charsize=2
+        imdisp, stripes, /axis, range=[-10,30], title='Stripes Model', charsize=2
+        imdisp, im_destriped, /axis, range=disprange, title='Destriped', charsize=2
         imdisp, microphonics_model, /axis, range=[-10,30],title="Microphonics model", charsize=2
-        imdisp, imout, /axis, range=[-10,30], title="Destriped and de-microphonicsed", charsize=2
+        imdisp, imout, /axis, range=disprange, title="Destriped and de-microphonicsed", charsize=2
         xyouts, 0.5, 0.95, /normal, "Stripe & Microphonics Noise Removal for "+strc( dataset.filenames[numfile]), charsize=2, alignment=0.5
      endif else begin
                                 ; display for just destriping
         if numfile eq 0 then window,0
         !p.multi=[0,3,1]
-        mean_offset = mean(im0) - mean(imout)
-        imdisp, im0-mean_offset, /axis, range=[-10,30], title='Input Data', charsize=2
-        imdisp, stripes-mean_offset, /axis, range=[-10,30], title='Stripes Model', charsize=2
-        imdisp, imout, /axis, range=[-10,30], title='Destriped Data', charsize=2
+        ;mean_offset = mean(im0) - mean(imout)
+        imdisp, im0, /axis, range=disprange, title='Input Data', charsize=2
+        imdisp, stripes, /axis, range=[-10,30], title='Stripes Model', charsize=2
+        imdisp, imout, /axis, range=disprange, title='Destriped Data', charsize=2
         xyouts, 0.5, 0.95, /normal, "Stripe & Microphonics Noise Removal for "+strc( dataset.filenames[numfile]), charsize=2, alignment=0.5
      endelse
      !P.MULTI = 0
   endif
   
 
-  *(dataset.currframe[0]) = imout
+  ;---- and now we're done.
+  *(dataset.currframe) = imout
 
   suffix = 'destripe'
 @__end_primitive

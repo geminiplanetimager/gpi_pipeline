@@ -18,7 +18,7 @@
 ; PIPELINE ORDER: 5.0
 ;
 ; pick one of the following options for the primitive type:
-; PIPELINE NEWTYPE: SpectralScience,PolarimetricScience,Calibration,Testing,ALL
+; PIPELINE CATEGORY: SpectralScience,PolarimetricScience,Calibration,Testing,ALL
 ;
 ; HISTORY:
 ;    2013-07-17 MP: Update template.

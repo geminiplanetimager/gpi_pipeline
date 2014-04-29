@@ -254,7 +254,7 @@ unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm
 				
 				; must account for instrument transmission
 				; lets just pretend it is the filter profile and 4%
-				filt_prof0=mrdfits('/Users/Patrick/work/GPI/gpi_pipeline/pipeline/config/filters/GPI-filter-'+strc(filter)+'.fits',1,/silent)
+				filt_prof0=mrdfits(gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'filters/GPI-filter-'+strc(filter)+'.fits',1,/silent)
 				; iterpolate to lambda
 				filt_prof=interpol(filt_prof0.transmission, filt_prof0.wavelength,lambda)
 				transmission=filt_prof*trans_val  
@@ -282,7 +282,7 @@ unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm
 				
 				; must account for instrument transmission
 				; lets just pretend it is the filter profile and 4%
-				filt_prof0=mrdfits('/Users/Patrick/work/GPI/gpi_pipeline/pipeline/config/filters/GPI-filter-'+strc(filter)+'.fits',1,/silent)
+				filt_prof0=mrdfits(gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'filters/GPI-filter-'+strc(filter)+'.fits',1,/silent)
 				; iterpolate to lambda
 				filt_prof=interpol(filt_prof0.transmission, filt_prof0.wavelength,lambda)	
 				transmission=filt_prof*trans_val

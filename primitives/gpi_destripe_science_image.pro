@@ -80,7 +80,7 @@
 ; PIPELINE ARGUMENT: Name="method" Type="string" Range="[threshhold|calfile]" Default="calfile" Desc='Find background based on image value threshhold cut, or calibration file spectra/spot locations?'
 ; PIPELINE ARGUMENT: Name="abort_fraction" Type="float" Range="[0.0,1.0]" Default="0.9" Desc="Necessary fraction of pixels in mask to continue - set at 0.9 to ensure quicklook tool is robust"
 ; PIPELINE ARGUMENT: Name="chan_offset_correction" Type="int" Range="[0,1]" Default="0" Desc="Tries to correct for channel bias offsets - useful when no dark is available"
-; PIPELINE ARGUMENT: Name="fraction" Type="float" Range="[0.0,1.0]" Default="0.7" Desc="What fraction of the total pixels in a row should be masked"
+; PIPELINE ARGUMENT: Name="readnoise_floor" Type="float" Range="[0.0,100]" Default="0.0" Desc="Readnoise floor in ADU. 0 = default to 8 electrons per CDS image"
 ; PIPELINE ARGUMENT: Name="Save_stripes" Type="int" Range="[0,1]" Default="0" Desc="Save the striping noise image subtracted from frame?"
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="-1" Desc="-1 = No display; 0 = New (unused) window else = Window number to display diagonostics in."
 ; PIPELINE ARGUMENT: Name="remove_microphonics" Type="int" Range="[0,2]" Default="0" Desc='Remove microphonics noise based on a precomputed fixed model.0: not applied. 1: applied. 2: the algoritm is applied only if the measured noise is greater than micro_threshold'
@@ -89,6 +89,8 @@
 ; PIPELINE ARGUMENT: Name="Plot_micro_peaks" Type="string" Range="[yes|no]" Default="no" Desc="Plot in 3d the peaks corresponding to the microphonics"
 ; PIPELINE ARGUMENT: Name="save_microphonics" Type="string" Range="[yes|no]" Default="no" Desc='If remove_microphonics = 1 or (auto and micro_threshold overpassed), save the removed microphonics'
 ; PIPELINE ARGUMENT: Name="micro_threshold" Type="float" Range="[0.0,1.0]" Default="0.01" Desc='If remove_microphonics = 2, set the threshold. This value is sum(abs(fft(image))*abs(fft(noise_model)))/sqrt(sum(image^2))'
+; PIPELINE ARGUMENT: Name="write_mask" Type="int" Range="[0,1]" Default="0" Desc='write signal mask to reduced directory?'
+; PIPELINE ARGUMENT: Name="fraction" Type="float" Range="[0.0,1.0]" Default="0.7" Desc="Threshold fraction of the total pixels in a row should be masked"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: Save output to disk, 0: Don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="1" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE COMMENT:  Subtract detector striping using measurements between the microspectra
@@ -106,31 +108,42 @@
 ;   2013-05-28 JBR: Primitive copy pasted from the destripe_mask_spectra.pro primitive. Microphonics noise enhancement. Microphonics algorithm now applied before the destriping.
 ;   2013-12-04 PI: Removed high_limit- now does masking based on readnoise levels 
 ;	2013-12-30 MP: CalibrationFile argument syntax update.
+;	2014-02-25 MP: flats in polarization mode are OK to destripe
 ;-
 function gpi_destripe_science_image, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 
 @__start_primitive
 
-; check to see if the frame is a flat or ARC
-if strcompress(backbone->get_keyword('OBSTYPE'),/remove_all) eq 'FLAT' or $
-   strcompress(backbone->get_keyword('OBSTYPE'),/remove_all) eq 'ARC' then begin
-   logstr = 'This is a flat or arc observation - no destriping will be performed!'
-   backbone->set_keyword, "HISTORY", logstr,ext_num=0
-   message,/info, "This is a flat or arc observation - no destriping will be performed!"
+; check to see if the frame is a flat or ARC.
+; In spectral mode, flats and arcs have too few clear detector pixels for this
+; algorithm to work robustly. 
+; In polarization mode, the smaller spots leave more clear area so this is OK. 
+if ((strcompress(backbone->get_keyword('OBSTYPE'),/remove_all) eq 'FLAT' or $
+   strcompress(backbone->get_keyword('OBSTYPE'),/remove_all) eq 'ARC') and $
+   (backbone->get_keyword('DISPERSR',/simplify) eq 'PRISM')) then begin
+   logstr = 'This is a flat or arc observation in spectral mode - no destriping will be performed!'
+   backbone->set_keyword, "HISTORY", logstr
+   backbone->Log, "This is a flat or arc observation - no destriping will be performed!"
    return, ok
 endif
 
+; get detector gain
+gain = backbone->get_keyword('SYSGAIN') ; gives e-/DN
+
 if tag_exist( Modules[thisModuleIndex], "method") then method=(Modules[thisModuleIndex].method) else method=''
 if tag_exist( Modules[thisModuleIndex], "abort_fraction") then abort_fraction=float(Modules[thisModuleIndex].abort_fraction) else abort_fraction=0.9
-if tag_exist( Modules[thisModuleIndex], "Chan_offset_correction") then chan_offset_correction=float(Modules[thisModuleIndex].chan_offset_correction) else chan_offset_correction=0.0
+if tag_exist( Modules[thisModuleIndex], "Chan_offset_correction") then chan_offset_correction=uint(Modules[thisModuleIndex].chan_offset_correction) else chan_offset_correction=0.0
 if tag_exist( Modules[thisModuleIndex], "fraction") then fraction=float(Modules[thisModuleIndex].fraction) else fraction=0.7
-if tag_exist( Modules[thisModuleIndex], "Save") then save=float(Modules[thisModuleIndex].Save) else Save=0
-if tag_exist( Modules[thisModuleIndex], "Save_stripes") then save_stripes=float(Modules[thisModuleIndex].Save_stripes) else Save_stripes=0 
+if tag_exist( Modules[thisModuleIndex], "readnoise_floor") then readnoise_floor=float(Modules[thisModuleIndex].readnoise_floor) else readnoise_floor=0.0
+if tag_exist( Modules[thisModuleIndex], "Save") then save=uint(Modules[thisModuleIndex].Save) else Save=0
+if tag_exist( Modules[thisModuleIndex], "Save_stripes") then save_stripes=uint(Modules[thisModuleIndex].Save_stripes) else Save_stripes=0 
 if tag_exist( Modules[thisModuleIndex], "method_microphonics") then method_microphonics=uint(Modules[thisModuleIndex].method_microphonics) else method_microphonics=1
 if tag_exist( Modules[thisModuleIndex], "remove_microphonics") then remove_microphonics=uint(Modules[thisModuleIndex].remove_microphonics) else remove_microphonics=0
 if tag_exist( Modules[thisModuleIndex], "Plot_micro_peaks") then Plot_micro_peaks=string(Modules[thisModuleIndex].Plot_micro_peaks) else Plot_micro_peaks='no'
 if tag_exist( Modules[thisModuleIndex], "save_microphonics") then save_microphonics=Modules[thisModuleIndex].save_microphonics else save_microphonics='no'
+if tag_exist( Modules[thisModuleIndex], "write_mask") then write_mask=uint(Modules[thisModuleIndex].write_mask) else write_mask=0
+
 if tag_exist( Modules[thisModuleIndex], "display") then display=fix(Modules[thisModuleIndex].display) else display=-1
 gpitvsess = fix(Modules[thisModuleIndex].gpitv)
  
@@ -172,7 +185,7 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
  if keyword_set(badpixmap) then mask[where(badpixmap eq 1)]=1
 
  backbone->set_keyword, "HISTORY", "Destriping, using spectral masking + median across channels"
- backbone->set_keyword, "HISTORY", "   (This does not work on flat fields!)"
+ backbone->set_keyword, "HISTORY", "   (This does not work on flat fields in spectral mode!)"
 
  if strlowcase(method) eq 'threshhold' then begin
   
@@ -212,8 +225,9 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 		wavecal2 = gpi_wavecal_extrapolate_edges(wavcal)
         
         ; The following code is lifted directly from extractcube.
-        sdpx = calc_sdpx(wavecal2, filter, xmini, CommonWavVect)
-        if (sdpx < 0) then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
+        sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect) ; get length from original wavecal - sometimes the extrapolated one has extraneous values
+        
+	if (sdpx < 0) then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
         tilt=wavecal2[*,*,4]
 		          
 		; when building the mask, it should be based upon whether or not the bleeding from the ajacent pixels is higher than the readnoise of a raw dark frame, divided by the sqrt of the reads. So the readnoise is 8 electrons.
@@ -224,7 +238,7 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 		nreads=2
 		ncoadds=1
 	endif
-	readnoise=8.0/(sqrt(nreads-1))/sqrt(float(ncoadds))
+	readnoise=(8.0/(sqrt(nreads-1))/sqrt(float(ncoadds)))*gain>readnoise_floor
 
 	; so if the tail is greater than the readnoise, it should be dropped.
 	; this requires a model for the tail.
@@ -244,27 +258,27 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 	; must also mask edges where no wavcal is present
 	mask[0:8,*]=1
 	 mask[2040:2047,*]=1
-				for i=0,sdpx-1 do begin  ;through spaxels
-					;get the locations on the image where intensities will be extracted:
-					x3=xmini-i
-					y3=round(wavecal2[*,*,1]+(wavecal2[*,*,0]-x3)*tan(tilt[*,*]))    
-					; Normally we extract intensities on a 3x1 box;
-					; instead of extracting pixels, mask out those pixels.
-					dy=1
-					mask[y3,x3] = 1
-					mask[y3+dy,x3] = 1
-					mask[y3-dy,x3] = 1
-					high_ind=where(image[y3,x3] gt high_limit $
-								  and finite(image[x3,y3] eq 1),complement=low_ind)
+			for i=0,sdpx-1 do begin  ;through spaxels
+				;get the locations on the image where intensities will be extracted:
+				x3=xmini-i
+				y3=round(wavecal2[*,*,1]+(wavecal2[*,*,0]-x3)*tan(tilt[*,*]))    
+				; Normally we extract intensities on a 3x1 box;
+				; instead of extracting pixels, mask out those pixels.
+				dy=1
+				mask[y3,x3] = 1
+				mask[y3+dy,x3] = 1
+				mask[y3-dy,x3] = 1
+				high_ind=where(image[y3,x3] gt high_limit $
+						  and finite(image[x3,y3] eq 1),complement=low_ind)
 			; mask a 5x1 box for pixels passing
 			; the high limit
 			dy_arr=[-2,2] & dx_arr=[-1,1]
 			if high_ind[0] ne -1 then begin 			
-						for yy=0, N_ELEMENTS(dy_arr)-1 do begin
-							for xx=0, N_ELEMENTS(dx_arr)-1 do begin
+			for yy=0, N_ELEMENTS(dy_arr)-1 do begin
+				for xx=0, N_ELEMENTS(dx_arr)-1 do begin
 					mask[y3[high_ind]+dy_arr[yy],x3[high_ind]+dx_arr[xx]] = 1
 				endfor
-						endfor
+			endfor
 			endif
 			; limit where cross-talk dominates
 			; entire spectrum.
@@ -274,23 +288,24 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 			; the high limit
 			dy_arr=[-3,3] & dx_arr=[-2,2]
 			if very_high_ind[0] ne -1 then begin
-						for yy=0, N_ELEMENTS(dy_arr)-1 do begin
-							for xx=0, N_ELEMENTS(dx_arr)-1 do begin
+				for yy=0, N_ELEMENTS(dy_arr)-1 do begin
+					for xx=0, N_ELEMENTS(dx_arr)-1 do begin
 					mask[y3[very_high_ind]+dy_arr[yy],x3[very_high_ind]+dx_arr[xx]] = 1
-				endfor
-						endfor
-					endif
+					endfor
+					endfor
+				endif
 		  endfor
-
-		end
+		end ; end prism case
 		'WOLLASTON':    begin
-			; Assume pol cal info already loaded by readpolcal primitive 
+			; Assume pol cal info already loaded by readpolcal primitive
+			 
 			polspot_coords = polcal.coords
 			polspot_pixvals = polcal.pixvals
 			
 			sz = size(polspot_coords)
 			nx = sz[1+2]
 			ny = sz[2+2]
+			boxsize=2
 			
 			for pol=0,1 do begin
 			for ix=0L,nx-1 do begin
@@ -298,11 +313,16 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 			  ;if ~ptr_valid(polcoords[ix, iy,pol]) then continue
 			  wg = where(finite(polspot_pixvals[*,ix,iy,pol]) and polspot_pixvals[*,ix,iy,pol] gt 0, gct)
 			  if gct eq 0 then continue
-
-			  spotx = polspot_coords[0,wg,ix,iy,pol]
-			  spoty = polspot_coords[1,wg,ix,iy,pol]
+        
+        cenx = round(polcal.spotpos[0,ix,iy,pol])
+        ceny =  round(polcal.spotpos[1,ix,iy,pol])
+        
+			  ;spotx = polspot_coords[0,wg,ix,iy,pol]
+			  ;spoty = polspot_coords[1,wg,ix,iy,pol]
 			  
-			  mask[spotx,spoty]= 1
+			  ;mask[spotx,spoty]= 1
+			  if strcmp(filter,'K1') then mask[cenx-boxsize:cenx+boxsize,ceny-boxsize-1:ceny+boxsize] = 1 $
+			  else mask[cenx-boxsize:cenx+boxsize,ceny-boxsize:ceny+boxsize] = 1 
 			   
 			  endfor 
 			endfor 
@@ -322,7 +342,6 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
         endcase
 
     endelse
-
 
 ;////////////////////////////////////////////////////////////////////////////////
   ;---- OPTIONAL channel offset repair
@@ -503,6 +522,13 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
     im = image
 		im[where(mask eq 1)]=!values.f_nan
 
+		; write the mask?
+		if keyword_set(write_mask) eq 1 then begin
+			name=Modules[thisModuleIndex].OutputDir+path_sep()+strmid(dataset.filenames[numfile],0,14)+'-destripe-mask.fits'
+			writefits,name,[0],*dataset.headersphu[numfile]
+			writefits,name,mask,*dataset.headersext[numfile],/append
+		endif
+
     if keyword_set(chan_offset_correction) then im-=chan_offset
 	  if remove_microphonics ge 1 then im-=microphonics_model
 
@@ -557,10 +583,11 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
   ;                                  script but rather exit nicely
 
   if total(finite(medpart))/(2048.0*64) le abort_fraction then begin
+
      backbone->set_keyword, "HISTORY", "NOT Destriped, masked pixels in the noise model greater than abort_fraction "
      logstr = 'NOT Destriped, percentage of valid pixels to derive noise model '+strcompress(string(total(finite(medpart))/(2048.0*64)),/remove_all)+' below the abort_fraction '+strcompress(string(abort_fraction),/remove_all)+' in destripe_science_image'
-     backbone->set_keyword, "HISTORY", logstr,ext_num=0
-     message,/info, logstr
+     backbone->set_keyword, "HISTORY", logstr
+     backbone->Log, logstr
      return, ok
   endif
 
@@ -571,10 +598,15 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
      for i=0, 2048-1 do begin
       ind=where(finite(medpart[*,i]) eq 0)
       if ind[0] eq -1 then continue   
-      medpart[ind,i]=median(medpart[*,i])
+	med_val=median(medpart[*,i])
+	; check to see if the entire line is nan - if so, set to zero in the model
+	if finite(med_val) eq 0 then med_val=0
+      medpart[ind,i]=med_val
      endfor 
   endif        
-              
+
+; if there are entire rows that are nan, set them to zero
+ 
 
   ;----- Generate 2D model to subtract from the image
     ; Generate a model stripe image from that median, replicated for 
@@ -596,6 +628,8 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
      stripes[nan_ind]=sm_im[nan_ind]
   endif
     
+;  check to see if an entire row has nans
+
     
 ;////////////////////////////////////////////////////////////////////////////////
 ;----  Subtraction of the horizontal stripes - check for nans
@@ -610,8 +644,8 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
   if nan_check[0] ne -1 then begin
      backbone->set_keyword, "HISTORY", "NOT Destriped, failed in Subtract_background_2d - NaN found in mask"
      logstr = 'Destripe failed in Subtract_background_2d - NaN found in output image - so no destripe performed'
-     backbone->set_keyword, "HISTORY", logstr,ext_num=0
-     message,/info, 'Destripe failed in Subtract_background_2d - NaN found in mask - so no destripe performed'
+     backbone->set_keyword, "HISTORY", logstr
+     backbone->Log, logstr
      imout=image
   endif
 
@@ -660,8 +694,6 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 
     imout = image - full_noise_model
 
-
-
   ; input safety to make sure no NaN's are in the image
   nan_check=where(finite(imout) eq 0)
 
@@ -671,8 +703,8 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
   if nan_check[0] ne -1 then begin
      backbone->set_keyword, "HISTORY", "NOT Destriped, failed in Subtract_background_2d - NaN found in mask"
      logstr = 'Destripe failed in Subtract_background_2d - NaN found in output image - so no destripe performed'
-     backbone->set_keyword, "HISTORY", logstr,ext_num=0
-     message,/info, 'Destripe failed in Subtract_background_2d - NaN found in mask - so no destripe performed'
+     backbone->set_keyword, "HISTORY", logstr
+	 backbone->Log, logstr
      imout=image
   endif
 
@@ -680,7 +712,7 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 
 
   if display ne -1 then begin
-     if display eq 0 then window,/free else select_window, display
+    if display eq 0 then window,/free else select_window, display
     loadct, 0
     erase
 
@@ -695,7 +727,6 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
       xyouts, 0.5, 0.95, /normal, "Stripe & Microphonics Noise Removal for "+strc( dataset.filenames[numfile]), charsize=2, alignment=0.5
     endif else begin
       ; display for just destriping
-      if numfile eq 0 then window,0
       !p.multi=[0,3,1]
       mean_offset = mean(image) - mean(imout)
       imdisp, image-mean_offset, /axis, range=[-10,30], title='Input Data', charsize=2
@@ -706,16 +737,24 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
     !P.MULTI = 0
   endif
 
+
   ; and now output
   *(dataset.currframe[0]) = imout
-  backbone->set_keyword, "HISTORY", "Subtracted 2D image background estimated from pixels between spectra",ext_num=0
+  logstr="Subtracted 2D image background estimated from pixels between spectra"
+  backbone->set_keyword, "HISTORY", logstr
+  backbone->Log, logstr
   suffix='-bgsub2d'
 
-  if tag_exist( Modules[thisModuleIndex], "Save_Stripes") && ( Modules[thisModuleIndex].Save_stripes eq 1 ) then b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, '-stripes', display=gpitvsess,savedata=full_noise_model,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile])
+  if keyword_set(save_stripes) then b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, 'stripes', display=gpitvsess,savedata=full_noise_model,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile])
   
-  logstr = 'Robust sigma of unmasked pixels before destriping: '+strc(robust_sigma(image[where(~mask)]))
-  backbone->set_keyword, "HISTORY", logstr,ext_num=0
+  logstr = 'Robust sigma of unmasked pixels BEFORE destriping: '+strc(robust_sigma(image[where(~mask)]))
+  backbone->set_keyword, "HISTORY", logstr
   backbone->Log, logstr
+
+  logstr = 'Robust sigma of unmasked pixels AFTER destriping: '+strc(robust_sigma(imout[where(~mask)]))
+  backbone->set_keyword, "HISTORY", logstr
+  backbone->Log, logstr
+
 
 @__end_primitive
 end

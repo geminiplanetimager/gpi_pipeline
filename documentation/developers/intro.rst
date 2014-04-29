@@ -33,6 +33,7 @@ There are separate 'trunk', 'tags', and 'branches' directories inside both the `
 The `trunk` directory contains the main, current development of the pipeline. For most developers, this is all you will want to check out:
 
 .. code-block:: sh
+
         svn checkout https://repos.seti.org/gpi/pipeline/trunk pipeline
         svn checkout https://repos.seti.org/gpi/external/trunk external
 

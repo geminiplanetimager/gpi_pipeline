@@ -739,9 +739,15 @@ pro drf::save, outputfile0, autodir=autodir,silent=silent, status=status, $
   
   if ~(keyword_set(silent)) then self->log,'Writing recipe to '+gpi_shorten_path(outputfile)
   
-  OpenW, lun, outputfile, /Get_Lun
+
+  recipe_outputname = file_basename(outputfile)
+  temp_outputfile = recipe_outputdir+path_sep()+"."+recipe_outputname+".temp"
+
+  OpenW, lun, temp_outputfile, /Get_Lun
   PrintF, lun, self->tostring( _extra=_extra)
   Free_Lun, lun
+
+	file_move, temp_outputfile, outputfile, /overwrite
   
   self.last_saved_filename = outputfile
   self.loaded_filename = outputfile

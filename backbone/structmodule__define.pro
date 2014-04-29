@@ -18,8 +18,8 @@ pro structModule__define
     void = {structModule, $
             Name:'', $
             IDLCommand:'', $
-            Skip:0, $
-            Save:0, $
+            Skip:'0', $
+            Save:'0', $
             OutputDir:'', $			; For historical reasons this is replicated for each module/primitive but in practice will always have the same value for all primitives in a recipe
             CalibrationFile:'',$
 			CalFileType: ''}

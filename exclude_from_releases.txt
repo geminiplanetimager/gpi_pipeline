@@ -1,5 +1,6 @@
 # filenames included here will not be included in public release branches
 
+# microlens PSF functions:
 utils/gpi_highres_microlens_psf_get_local_highres_psf.pro
 utils/gpi_highres_microlens_plot_pixel_phase.pro			
 utils/gpi_highres_microlens_psf_fit_detector_psf.pro
@@ -8,6 +9,25 @@ utils/gpi_highres_microlens_psf_initialize_psf_interpolation.pro
 utils/gpi_highres_microlens_psf_evaluate_detector_psf.pro
 utils/gpi_highres_microlens_psf_read_highres_psf_structure.pro
 utils/gpi_highres_microlens_psf_extract_microspectra_stamps.pro
+utils/gpi_lsqr_mlens_extract_pol_dep.pro
 primitives/gpi_create_highres_microlens_psf_model.pro
 
+# flexure via microlens PSF fitting:
+primitives/gpi_lsqr_mlens_extract.pro
+primitives/gpi_lsqr_mlens_extract_pol.pro
+primitives/gpi_img_xcorr.pro
+utils/gpi_lsqr_mlens_extract_dep.pro
+gpi_lsqr_mlens_extract_pol_dep.pro
 
+# Parallelization utility used by the above
+utils/parallelize
+utils/parallelize/gpi_obridgekill.pro
+utils/parallelize/gpi_obridgestartup.pro
+utils/parallelize/gpi_obridgeabort.pro
+
+#some more polarimetry
+primitives/gpi_combine_polarizations_dd.pro
+
+#Wavelength solution requiring microlens PSFs:
+primitives/gpi_wavelength_solution_2d_developer.pro
+utils/nmicrolens.pro

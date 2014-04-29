@@ -109,12 +109,12 @@ end
 ;     and check keywords, and then apply the parsing rules to generate recipes.
 ;
 ;-
-pro parsergui::addfile, filenames
+pro parsergui::addfile, filenames, n_added = n_added
 
 
     widget_control,self.top_base,get_uvalue=storage  
-    index = (*storage.splitptr).selindex
-    cindex = (*storage.splitptr).findex
+    ;index = (*storage.splitptr).selindex
+    findex = (*storage.splitptr).findex
     file = (*storage.splitptr).filename
     pfile = (*storage.splitptr).printname
     datefile = (*storage.splitptr).datefile
@@ -131,33 +131,33 @@ pro parsergui::addfile, filenames
 
     for i=0,n_elements(filenames)-1 do begin   ; Check for duplicate
         if (total(file eq filenames[i]) ne 0) then filenames[i] = ''
+		self->Log, "File is already present in the list: "+filenames[i]
     endfor
 
 
     w = where(filenames ne '', wcount) ; avoid blanks
-    if wcount eq 0 then void=dialog_message('No new files. Please add new files before parsing.')
-    if wcount eq 0 then return
-    filenames = filenames[w]
+    if wcount eq 0 then begin 
+		void=dialog_message(['No new files found. Please add new files that were not already in the list.',$
+				'No changes made to recipes.'], title='No new files found', dialog_parent=self.top_base )
+		n_added = 0
+		return
+	endif
 
-    if ((cindex+n_elements(filenames)) gt n_elements(file)) then begin
-        nover = cindex+n_elements(filenames)-n_elements(file)
+    filenames = filenames[w]
+	n_added = wcount
+
+    if ((findex+n_elements(filenames)) gt n_elements(file)) then begin
+        nover = findex+n_elements(filenames)-n_elements(file)
         self->Log,'WARNING: You tried to add more files than the file number limit, currently '+strc(n_elements(file))+". Adjust pipeline setting 'max_files_per_recipe' in your config file if you want to load larger datasets at once." +$
             strtrim(nover,2)+' files ignored.'
         filenames = filenames[0:n_elements(filenames)-1-nover]
+		n_added -= nover
     endif
 
-    file[cindex:cindex+n_elements(filenames)-1] = filenames
+    file[findex:findex+n_elements(filenames)-1] = filenames
 
-    ;for i=0,n_elements(filenames)-1 do begin
-        ;tmp = strsplit(filenames[i],path_sep(),/extract)
-        ;pfile[cindex+i] = tmp[n_elements(tmp)-1]+'    '
-    ;endfor
-
-    ;self.inputdir=strjoin(tmp[0:n_elements(tmp)-2],path_sep())
-    ;if !VERSION.OS_FAMILY ne 'Windows' then self.inputdir = "/"+self.inputdir 
-    cindex = cindex+n_elements(filenames)
-    (*storage.splitptr).selindex = max([0,cindex-1])
-    (*storage.splitptr).findex = cindex
+    ;(*storage.splitptr).selindex = max([0,findex-1])
+    (*storage.splitptr).findex += n_elements(filenames)
     (*storage.splitptr).filename = file
     (*storage.splitptr).printname = pfile
     (*storage.splitptr).datefile = datefile 
@@ -176,21 +176,37 @@ end
 ;     and check keywords, and then apply the parsing rules to generate recipes.
 ;
 ;-
-pro parsergui::removefile, filenames
+pro parsergui::removefiles, filenames_to_remove, n_removed=n_removed
 
+		n_to_remove =n_elements(filenames_to_remove)
+		if n_to_remove eq 0 then return ; nothing to do
 
-    widget_control,self.top_base,get_uvalue=storage  
-    index = (*storage.splitptr).selindex
-    cindex = (*storage.splitptr).findex
-    file = (*storage.splitptr).filename
-    pfile = (*storage.splitptr).printname
-    datefile = (*storage.splitptr).datefile
+		widget_control,self.top_base,get_uvalue=storage  
+		filelist = (*storage.splitptr).filename    ; Note: must save this prior to starting the for loop since that will
+												; confuse the list indices, and make us have to bookkeep things as the
+												; list changes during a deletion of multiple files. 
+		n_removed = 0	
+		for i=0,n_to_remove-1 do begin
+			if strc(filenames_to_remove[i]) eq '' then continue
+			;print, filenames_to_remove[i]
+			wm = where( (*storage.splitptr).filename ne filenames_to_remove[i], keepcount)
 
-	t0 = systime(/seconds)
+			(*storage.splitptr).filename = ((*storage.splitptr).filename)[wm]
+			(*storage.splitptr).printname= ((*storage.splitptr).printname)[wm]
+			self->Log, "Removed "+filenames_to_remove[i]
+			n_removed += 1
+			;stop
+			;self->removefile, filelist[selected_index[i]]
+		endfor
+		
+		
+		; update the filenames display
+		widget_control,storage.file_table_id, set_value=(*storage.splitptr).printname
 
-    self->Log, "Removing files from data parser needs to be implemented"
+	
+    ;self->Log, "Removing files from data parser needs to be implemented"
 
-	stop
+	;stop
 end
 
 
@@ -208,8 +224,8 @@ end
 pro parsergui::parse_current_files
 
     widget_control,self.top_base,get_uvalue=storage  
-    index = (*storage.splitptr).selindex
-    cindex = (*storage.splitptr).findex
+    ;index = (*storage.splitptr).selindex
+    ;cindex = (*storage.splitptr).findex
     file = (*storage.splitptr).filename
     pfile = (*storage.splitptr).printname
     datefile = (*storage.splitptr).datefile
@@ -222,18 +238,12 @@ pro parsergui::parse_current_files
 	file=file[wnotblank]
 
 
-    ;self.inputdir=strjoin(tmp[0:n_elements(tmp)-2],path_sep())
-    ;if !VERSION.OS_FAMILY ne 'Windows' then self.inputdir = "/"+self.inputdir 
-
-
     self->Log, "Loading and parsing files..."
     ;-- Update information in the structs
-    ;cindex = cindex+n_elements(filenames)
-    (*storage.splitptr).selindex = max([0,cindex-1])
-    (*storage.splitptr).findex = cindex
-    (*storage.splitptr).filename = file
-    (*storage.splitptr).printname = pfile
-    (*storage.splitptr).datefile = datefile 
+    ;(*storage.splitptr).selindex = max([0,findex-1])
+    ;(*storage.splitptr).filename = file
+    ;(*storage.splitptr).printname = pfile
+    ;(*storage.splitptr).datefile = datefile 
 
     ;;TEST DATA SANITY
     ;;ARE THEY VALID  GEMINI & GPI & IFS DATA?
@@ -260,7 +270,7 @@ pro parsergui::parse_current_files
             if countvalid gt 0 then file=file[wvalid]
 			nfiles = n_elements(file)
 
-			(*storage.splitptr).selindex = max([0,countvalid-1])
+			;(*storage.splitptr).selindex = max([0,countvalid-1])
 			(*storage.splitptr).findex = countvalid
 			(*storage.splitptr).filename = file
 			(*storage.splitptr).printname = file
@@ -282,7 +292,7 @@ pro parsergui::parse_current_files
     (*self.recipes_table)=strarr(10)
 
     for i=0,nfiles-1 do pfile[i] = file_basename(file[i]) 
-    widget_control,storage.fname,set_value=pfile ; update displayed filename information - temporary, just show filenames
+    widget_control,storage.file_table_id, set_value=pfile ; update displayed filename information - temporary, just show filenames
 
     if nfiles gt 0 then begin ;assure that data are selected
 		self->Log,'Now reading in keywords for all files...'
@@ -297,15 +307,20 @@ pro parsergui::parse_current_files
             ;if (~strmatch(finfo[jj].filter,'[HJ]')) && (strmatch(finfo[jj].object,'Xenon') || strmatch(finfo[jj].object,'Argon')) then $
                     ;finfo[jj].object='Lamp'
             pfile[jj] = finfo[jj].summary
+			(*storage.splitptr).printname[jj] = finfo[jj].summary ; save for use if we redisplay
         endfor
 		wnz = where(pfile ne '')
-        widget_control,storage.fname,set_value=pfile[wnz] ; update displayed filename information - filenames plus parsed keywords
+        widget_control,storage.file_table_id,set_value=pfile[wnz] ; update displayed filename information - filenames plus parsed keywords
 
 		wvalid = where(finfo.valid, nvalid, complement=winvalid, ncomplement=ninvalid)
 		if ninvalid gt 0 then begin
 			self->Log, "Some files are lacking valid required FITS keywords: "
 			self->Log, strjoin(file[winvalid], ", ")
 			self->Log, "These will be ignored in all further parsing steps."
+			if wvalid[0] eq -1 then begin
+				ret=dialog_message("ERROR: All files rejected",/error,/center,dialog_parent=self.top_base)
+				return
+			endif
 			finfo = finfo[wvalid]
 		endif
 
@@ -353,6 +368,7 @@ pro parsergui::parse_current_files
             uniqitimes = uniqvals(finfo.itime, /sort)
             uniqobjects = uniqvals(finfo.object, /sort)
             ;uniqelevation = uniqvals(finfo.elevatio, /sort)
+;            uniqgcalfilt = uniqvals(finfo.gcalfilt,/sort)
 
             nbfilter=n_elements(uniqfilter)
             message,/info, "Now adding "+strc(n_elements(finfo))+" files. "
@@ -396,7 +412,7 @@ pro parsergui::parse_current_files
                 for fc=0,nbobstype-1 do begin
                     ;get files corresponding to one filt and one obstype
                     current.obstype = uniqsortedobstype[indsortseq[fc]]
-                    
+
                     ;categorize by PRISM
                     for fd=0,n_elements(uniqprisms)-1 do begin
                         current.dispersr = uniqprisms[fd]
@@ -410,9 +426,15 @@ pro parsergui::parse_current_files
                                 for fitime=0,n_elements(uniqitimes)-1 do begin
 
                                     current.itime = uniqitimes[fitime]    ; in seconds, now
-                                    ;current.exptime = uniqitimes[fitime] ; in seconds
+                                ;current.exptime =
+                                ;uniqitimes[fitime] ; in seconds
+                                    
+                                   ;for ffilt=0,n_elements(uniqgcalfilt)-1 do begin
+                                   ;    current.gcalfilt=uniqgcalfilt[ffilt]
+                                   ;    print,'TEST:', current.gcalfilt,n_elements(uniqgcalfilt)
                                     
                                     for fobj=0,n_elements(uniqobjects)-1 do begin
+										continue_after_case = 0 ; reset if this was set before.
                                         current.object = uniqobjects[fobj]
                                         ;these following 2 lines for adding Y-band flat-field in wav.solution measurement
                                         currobstype=current.obstype
@@ -421,7 +443,7 @@ pro parsergui::parse_current_files
                           
                                         indfobject = where(finfo.filter eq current.filter and $
                                                     ;finfo.obstype eq current.obstype and $
-                                                    strmatch(finfo.obstype, currobstype,/fold) and $                                                    
+                                                    strmatch(finfo.obstype, currobstype,/fold) and $  
                                                     strmatch(finfo.dispersr,current.dispersr+"*",/fold) and $
                                                     strmatch(finfo.occulter,current.occulter+"*",/fold) and $
                                                     finfo.obsclass eq current.obsclass and $
@@ -430,7 +452,7 @@ pro parsergui::parse_current_files
                                                     
 										if self.debug then begin
 											message,/info, 'Now testing the following parameters: ('+strc(cobj)+' files help) '
-											match, current,/str
+										;	match, current,/str
 										endif
 
                       
@@ -465,32 +487,53 @@ pro parsergui::parse_current_files
                                             endelse                     
                                         end
                                         'FLAT': begin
+
+                                           	fits_data = gpi_load_fits(finfo[indfobject[0]].filename,/nodata,/silent)
+                                                head = *fits_data.pri_header
+                                                ext_head = *fits_data.ext_header
+                                                ptr_free, fits_data.pri_header, fits_data.ext_header
+                                                gcalfilter =  strc(  gpi_get_keyword(head, ext_head,  'GCALFILT',   count=ct13))
+
                                             if  current.dispersr eq 'WOLLASTON' then begin 
                                                 ; handle polarization flats
                                                 ; differently: compute **both**
                                                 ; extraction files and flat
                                                 ; fields from these data, in two
                                                 ; passes
-
-
+                                               
+                                               ;gcalfilter = finfo[indfobject[0]].gcalfilt
+                                               if gcalfilter EQ 'ND4-5' then begin
+												   self->Log, "    Those data have GCALFILT=ND4-5, which indicates they are throwaway exposures for persistence decay. Ignoring them."
+                                                   continue_after_case=1
+                                               endif else begin
 												templatename1 = self->lookup_template_filename("Calibrate Polarization Spots Locations")
 												templatename2 = self->lookup_template_filename('Create Polarized Flat-field')
                                                 self->create_recipe_from_template, templatename1, file_filt_obst_disp_occ_obs_itime_object, current 
                                                 self->create_recipe_from_template, templatename2, file_filt_obst_disp_occ_obs_itime_object, current 
-
+                                             endelse
 
                                                 ;continue        aaargh can't continue inside a case. stupid IDL
                                                 continue_after_case=1
                                             endif else begin              
-												templatename='Flat-field Extraction'
+                                               
+                                          
+                                               ;gcalfilter = finfo[indfobject[0]].gcalfilt
+                                                if gcalfilter EQ 'ND4-5' then begin            
+                                                   continue_after_case=1
+												   self->Log, "    Those data have GCALFILT=ND4-5, which indicates they are throwaway exposures for persistence decay. Ignoring them."
+                                               endif else begin
+                                                   templatename='Flat-field Extraction'
+                                             endelse
+
+
                                             endelse                             
                                         end
                                         'OBJECT': begin
-											case strupcase(current.dispersr) of 
-											'WOLLASTON': begin 
-												templatename='Basic Polarization Sequence'
-                                            end 
-											'SPECTRAL': begin 
+                                           case strupcase(current.dispersr) of 
+						'WOLLASTON': begin 
+							templatename='Basic Polarization Sequence'
+                                                     end 
+                                                'SPECTRAL': begin 
                                                 if  current.occulter eq 'SCIENCE'  then begin ;'Science fold' means no occulter
                                                     ;if binaries:
                                                     if strmatch(current.obsclass, 'AstromSTD',/fold) then begin
@@ -526,13 +569,14 @@ pro parsergui::parse_current_files
                                         end
                                         endcase
 
-                                        if keyword_set(continue_after_case) then continue
+                                        if keyword_set(continue_after_case) then begin
+											continue
+										endif
 
 										; Now create the actual DRF based on a
 										; template:
 										templatename = self->lookup_template_filename(templatename)
 										self->create_recipe_from_template, templatename, file_filt_obst_disp_occ_obs_itime_object, current
-
 
                                     endfor ;loop on object
                                 endfor ;loop on itime
@@ -592,7 +636,7 @@ pro parsergui::parse_current_files
 		endif
 		
 
-    endif ;condition on cindex>0, assure there are data to process
+    endif ;condition on findex>0, assure there are data to process
 
     void=where(file ne '',cnz)
     self->Log,'Data Parsed: '+strtrim(cnz,2)+' FITS files.'
@@ -665,20 +709,21 @@ pro parsergui::create_recipe_from_template, templatename, fitsfiles, current,  i
 
 	drf->set_outputdir, self.outputdir
 
-
 	; Generate output file name
 	recipe=drf->get_summary() 
-	first_file=strsplit(fitsfiles[0],'S.',/extract) ; split on letter S or period
-	last_file=strsplit(fitsfiles[size(fitsfiles,/n_elements)-1],'S.',/extract)
+        first_file=strsplit(fitsfiles[0],path_sep(),/extract) ; split on letter S or period
+        first_file=strsplit(first_file[size(first_file,/n_elements)-1],'S.',/extract) ; split on letter S or period
+	last_file=strsplit(fitsfiles[size(fitsfiles,/n_elements)-1],path_sep(),/extract)
+        last_file=strsplit(last_file[size(last_file,/n_elements)-1],'S.',/extract)
 	prefixname=string(self.num_recipes_in_table+1, format="(I03)")
 
 	if n_elements(first_file) gt 2 then begin
 		; normal Gemini style filename
-        outputfilename='S'+first_file[1]+'S'+first_file[2]+'-'+last_file[2]+'_'+recipe.shortname+'_drf.waiting.xml'
+        outputfilename='S'+first_file[0]+'S'+first_file[1]+'-'+last_file[1]+'_'+recipe.shortname+'_drf.waiting.xml'
 	endif else begin
 		; something else? e.g. temporary workaround for engineering or other
 		; data with nonstandard filenames
-        outputfilename=file_basename(first_file[0])+'-'+file_basename(last_file[0])+'_'+recipe.shortname+'_drf.waiting.xml'
+        outputfilename=file_basename(first_file[0])+'-'+file_basename(last_file[0])+'_'+recipe.shortname+'_recipe.waiting.xml'
 	endelse
 
 
@@ -883,8 +928,8 @@ pro parsergui::event,ev
          ;self.flatreduc=widget_info(self.calibflatid,/DROPLIST_SELECT)
     ;end
     'WILDCARD' : begin
-        index = (*storage.splitptr).selindex
-        cindex = (*storage.splitptr).findex
+        ;index = (*storage.splitptr).selindex
+        findex = (*storage.splitptr).findex
         file = (*storage.splitptr).filename
         pfile = (*storage.splitptr).printname
         datefile = (*storage.splitptr).datefile
@@ -924,20 +969,62 @@ pro parsergui::event,ev
         
     end
     'FNAME' : begin
-        (*storage.splitptr).selindex = ev.index
+        ;(*storage.splitptr).selindex = ev.index
     end
     'REMOVE' : begin
-        self->removefile, file
+
+		widget_control,self.top_base,get_uvalue=storage  
+		selected_index = widget_info(storage.file_table_id,/list_select) ; 
+		n_selected_index = n_elements(selected_index)
+		if (n_selected_index eq 1 ) then if (selected_index eq -1) then begin
+			ret=dialog_message("ERROR: You have to click to select one or more files before you can remove anything.",/error,/center,dialog_parent=self.top_base)
+			self->Log, 'You have to click to select one or more files before you can remove anything.'
+			return ; nothing is selected so do nothing
+		endif
+
+		filelist = (*storage.splitptr).filename    ; Note: must save this prior to starting the for loop since that will
+												; confuse the list indices, and make us have to bookkeep things as the
+												; list changes during a deletion of multiple files. 
+  		; not sure this next section is needed? 
+		if n_selected_index gt n_elements(filelist)-1 then begin
+			self->Log, "WARNING: more items selected than total files in the list, somehow. Truncating selection." 
+			n_selected_index = n_elements(filelist)-1
+		endif
+    
+		if n_selected_index gt 0 then begin
+			filenames_to_remove = filelist[selected_index]
+			self->removefiles, filenames_to_remove, n_removed=n_removed
+
+
+			if n_removed gt 0 then begin
+				res =  dialog_message(["Files have been removed from the list ("+strc(n_removed)+" in total).","", "Do you want to re-parse the current list and generate "+$
+									  "new recipes?","This will discard and/or overwrite any current recipes below."], $
+									  title="Re-parse the updated list of files?", dialog_parent=self.top_base, /question) 
+
+				if res eq 'Yes' then begin
+					self->parse_current_files
+				endif 
+			endif
+
+
+		endif
+
+		;; update the filenames display
+		;widget_control,storage.fname, set_value=(*storage.splitptr).pfile
+
+	
+
+
     end
     'REMOVEALL' : begin
         if confirm(group=ev.top,message='Remove all items from the list?',$
             label0='Cancel',label1='Proceed') then begin
             (*storage.splitptr).findex = 0
-            (*storage.splitptr).selindex = 0
+            ;(*storage.splitptr).selindex = 0
             (*storage.splitptr).filename[*] = ''
             (*storage.splitptr).printname[*] = '' 
             (*storage.splitptr).datefile[*] = '' 
-            widget_control,storage.fname,set_value=(*storage.splitptr).printname
+            widget_control,storage.file_table_id,set_value=(*storage.splitptr).printname
             self->Log,'All items removed.'
         endif
     end
@@ -952,8 +1039,8 @@ pro parsergui::event,ev
     'sortdata': begin
         sortfieldind=widget_info(self.sortfileid,/DROPLIST_SELECT)
         file = (*storage.splitptr).filename
-        pfile = (*storage.splitptr).printname
-        cindex = (*storage.splitptr).findex 
+        printname = (*storage.splitptr).printname
+        findex = (*storage.splitptr).findex 
         datefile = (*storage.splitptr).datefile 
 
         wgood = where(strc(file) ne '',goodct)
@@ -965,8 +1052,8 @@ pro parsergui::event,ev
 
         case (self.sorttab)[sortfieldind] of 
                 'obs. date/time': begin
-                    juldattab=dblarr(cindex)
-                    for i=0,cindex-1 do begin
+                    juldattab=dblarr(findex)
+                    for i=0,findex-1 do begin
                       dateobs=self->resolvekeyword( file[i], 1,'DATE-OBS')
                       timeobs=self->resolvekeyword( file[i], 1,'TIME-OBS')
                       if (dateobs[0] ne 0) &&  (timeobs[0] ne 0) then begin
@@ -984,34 +1071,34 @@ pro parsergui::event,ev
                     indsort=sort(juldattab)
                   end
                 'OBSID': begin
-                     obsid=strarr(cindex)
-                    for i=0,cindex-1 do begin
+                     obsid=strarr(findex)
+                    for i=0,findex-1 do begin
                       obsid[i]=self->resolvekeyword( file[i], 1,'OBSID')
                     endfor
                     indsort=sort(obsid)
                 end
                 'alphabetic filename':  begin
-                     alpha=strarr(cindex)
-                    for i=0,cindex-1 do begin
+                     alpha=strarr(findex)
+                    for i=0,findex-1 do begin
                       alpha[i]= file[i]
                     endfor
                     indsort=sort(alpha)
                 end
                 'file creation date':begin
-                     ctime=findgen(cindex)
-                    for i=0,cindex-1 do begin
+                     ctime=findgen(findex)
+                    for i=0,findex-1 do begin
                       ctime[i]= (file_info(file[i])).ctime
                     endfor
                     indsort=sort(ctime)
                 end
         endcase
         file[0:n_elements(indsort)-1]= file[indsort]
-        pfile[0:n_elements(indsort)-1]= pfile[indsort]
+        printname[0:n_elements(indsort)-1]= printname[indsort]
         datefile[0:n_elements(indsort)-1]= datefile[indsort]
         (*storage.splitptr).filename = file
-        (*storage.splitptr).printname = pfile
+        (*storage.splitptr).printname = printname
         (*storage.splitptr).datefile = datefile
-        widget_control,storage.fname,set_value=pfile
+        widget_control,storage.file_table_id,set_value=pfile
     end
 
 	'outputdir': begin
@@ -1150,8 +1237,8 @@ pro parsergui::ask_add_files
 
 	if result[0] ne '' then begin
 		self.last_used_input_dir = file_dirname(result[0])
-		self->AddFile, result
-		self->parse_current_files
+		self->AddFile, result, n_added=n_added
+		if n_added gt 0 then self->parse_current_files
 	endif
 
 end
@@ -1209,12 +1296,12 @@ function parsergui::init_widgets,  _extra=_Extra
 
     if screensize[1] lt 900 then begin
       nlines_status=12
-      nlines_fname=10
+      nlines_file_table=10
       nlines_modules=7
       nlines_args=6
     endif else begin
       nlines_status=12
-      nlines_fname=10
+      nlines_file_table=10
       nlines_modules=10
       nlines_args=6
     endelse
@@ -1291,7 +1378,7 @@ function parsergui::init_widgets,  _extra=_Extra
         
     top_baseident=widget_base(parserbase,/BASE_ALIGN_LEFT,/row, frame=DEBUG_SHOWFRAMES)
     ; file name list widget
-    fname=widget_list(top_baseident,xsize=106,scr_xsize=780, ysize=nlines_fname,$
+    file_table=widget_list(top_baseident,xsize=106,scr_xsize=780, ysize=nlines_file_table,$
             xoffset=10,yoffset=150,uvalue="FNAME", /TRACKING_EVENTS,resource_name='XmText',/multiple)
 
     ; add 5 pixel space between the filename list and controls
@@ -1372,17 +1459,15 @@ function parsergui::init_widgets,  _extra=_Extra
     filename=strarr(maxfilen)
     printname=strarr(maxfilen)
     datefile=lonarr(maxfilen)
-    findex=0
-    selindex=0
     splitptr=ptr_new({filename:filename,$ ; array for FITS filenames loaded
 		printname:printname,$	; array for printname
-		findex:findex,$			; current index to write filename
-		selindex:selindex,$		; 
+		findex:0,$				; current index to write filename
+		;selindex:0,$			; 
 		datefile:datefile, $	; date of each FITS file (for sort-by-date)
 		maxfilen:maxfilen})		; max allowed number of files
 
     storage={info:info,$	; widget ID for information text box
-		fname:fname,$		; widget ID for filename text box
+		file_table_id:file_table,$		; widget ID for filename text box
         splitptr:splitptr,$	; structure (pointer)
         self:self}			; Object handle to self (for access from widgets)
     widget_control,parserbase,set_uvalue=storage,/no_copy

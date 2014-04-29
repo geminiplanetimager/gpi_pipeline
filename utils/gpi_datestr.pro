@@ -39,7 +39,7 @@ FUNCTION gpi_datestr, jd=jd, current=current
 			;; whether it's standard or daylight time
 			currtime = systime(/jul)
 			tod = double(string(currtime,format = '(C(CHI2.2))'))
-			if tod gt 14d0 then currtime += 1d0
+			if tod ge 14d0 then currtime += 1d0
 
 			datestr = string(currtime,format = '(C(CYI2.2,CMOI2.2,CDI2.2))') 
 

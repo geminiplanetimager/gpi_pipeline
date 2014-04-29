@@ -1,4 +1,5 @@
-function find_sat_spots,s0,leg=leg,locs=locs0, winap = winap, highpass=highpass,constrain=constrain
+function find_sat_spots,s0,leg=leg,locs=locs0, winap = winap,$
+                        highpass=highpass,constrain=constrain
 ;+
 ; NAME:
 ;       find_sat_spots
@@ -20,7 +21,10 @@ function find_sat_spots,s0,leg=leg,locs=locs0, winap = winap, highpass=highpass,
 ;       locs - Initial sat locations to refine.  If set,
 ;              coregistration step is skipped.
 ;       winap - Size of aperture to use (pixels) defaults to 20
-;      
+;       highpass - If 1, apply highpass filter with default box size
+;                  of 9, otherwise apply with given box size.
+;       constrain - Size of leg must be within 10 pixels of this value
+;
 ;       res - 2x4 array of satellite spot pixel locations
 ;
 ; OPTIONAL OUTPUT:
@@ -55,11 +59,17 @@ generate_grids, fx, fy, refpix, /whole
 fr = sqrt(fx^2 + fy^2)
 ref = exp(-0.5*fr^2)
 
+; run the highpass filter if desired
+   s0i = s0  
+if keyword_set(highpass) then begin
+   if highpass eq 1 then s0i -= filter_image(s0i,median=9) $
+	else s0i -= filter_image(s0i,median=highpass)	
+endif
+
+
 ;;if not given initial centers, need to hunt for them
 if not keyword_set(locs0) then begin
-   s0i = s0
-   if keyword_set(highpass) then s0i -= filter_image(s0i,median=9)
-
+   
    ;;fourier coregister with gaussian to smooth image
    fourier_coreg,s0i,ref,out,/wind
 
@@ -121,7 +131,6 @@ if not keyword_set(locs0) then begin
       ;;set up next iteration
       out[msk[*,0]+inds[0],msk[*,1]+inds[1]] = min(out)   
       val = max(out,ind) 
-      print,val
       counter += 1 
    endwhile
 
@@ -141,7 +150,7 @@ endelse
 cens = dblarr(2,4)
 for i=0,3 do begin 
    ;;correlate
-   subimage = s0[locs[0,i]-hh:locs[0,i]+hh,locs[1,i]-hh:locs[1,i]+hh]
+   subimage = s0i[locs[0,i]-hh:locs[0,i]+hh,locs[1,i]-hh:locs[1,i]+hh]
    fourier_coreg,subimage,ref,shft,/findshift
    cens[*,i] = locs[*,i] - shft
 endfor

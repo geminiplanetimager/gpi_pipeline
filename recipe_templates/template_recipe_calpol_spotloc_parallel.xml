@@ -7,5 +7,5 @@
 <module name="Interpolate bad pixels in 2D frame" CalibrationFile="AUTOMATIC" method="all8" before_and_after="0" />
 <module name="Accumulate Images" Method="InMemory" />
 <module name="Combine 2D images" Method="Mean"  Save="0" gpitv="0" />
-<module name="Parallelized Polarization Spot Calibration"  nlens="281" centrXpos="969" centrYpos="1000" w="4.2" P="2.18" maxpos="2.5" FitWidth="3" Save="1" Display="1"/>
+<module name="Parallelized Polarization Spot Calibration"  nlens="281" centrXpos="1078" centrYpos="1028" w="4.2" P="2.18" maxpos="2.5" FitWidth="3" Save="1" Display="1"/>
 </DRF>

@@ -36,7 +36,7 @@
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="-1" Desc="-1 = No display; 0 = New (unused) window; else = Window number to display diagnostic plot."
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
-; PIPELINE ORDER: 1.99
+; PIPELINE ORDER: 1.34
 ; PIPELINE TYPE: ALL
 ; PIPELINE CATEGORY: SpectralScience, Calibration, PolarimetricScience
 ;
@@ -56,7 +56,7 @@
 ; (experimental, not to be trusted yet)
 ; Scroll on down further for the main primitive code!
 ;
-function update_shifts_for_flexure_auto_optimize, det, wavcal, filter, coarse=coarse, guess=guess, nsteps=nsteps
+function update_shifts_for_flexure_auto_optimize, det, wavcal, filter, coarse=coarse, guess=guess, nsteps=nsteps,display=display
 	compile_opt defint32, strictarr, logical_predicate
 	
     if keyword_set(coarse) then begin
@@ -125,9 +125,10 @@ function update_shifts_for_flexure_auto_optimize, det, wavcal, filter, coarse=co
     endfor
 
     ;atv, reform(mask_traces, dim,dim,  n_elements(xsteps)*n_elements(ysteps)),/bl
-
-    window, 0
+if display ne -1 then begin
+    window,display
     imdisp, xcors,/axis
+endif
     whereismax, xcors, mx, my,/silent
     shiftx = xsteps[mx]
     shifty = ysteps[my]
@@ -169,6 +170,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     'WOLLASTON':    begin
         polspot_coords = polcal.coords
         polspot_pixvals = polcal.pixvals
+        polspot_spotpos = polcal.spotpos
         
         if ((size(polspot_coords))[0] eq 0) || (dim eq 0)  then begin
           return, error('FAILURE ('+functionName+'): Failed to load polarimetry calibration data prior to calling this primitive.') 
@@ -323,12 +325,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
         endif else begin
             backbone->Log, "Making a first coarse estimate of shifts"
-            shifts = update_shifts_for_flexure_auto_optimize(det, wavcal, filter, /coarse)
+            shifts = update_shifts_for_flexure_auto_optimize(det, wavcal, filter, /coarse,display=display)
             backbone->Log, "Coarse shift estimate = "+strc(shifts[0])+", "+strc(shifts[1])
         endelse
 
         backbone->Log, "Refining estimate of shifts"
-        fineshifts = update_shifts_for_flexure_auto_optimize(det, wavcal, filter, guess=shifts)
+        fineshifts = update_shifts_for_flexure_auto_optimize(det, wavcal, filter, guess=shifts, display=display)
 
         shiftx = fineshifts[0]
         shifty = fineshifts[1]
@@ -401,14 +403,17 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
        ;  Now we actually apply the shifts to the wavelength solution
        polspot_coords[0,*,*,*,*]+=shiftx
        polspot_coords[1,*,*,*,*]+=shifty
+       polspot_spotpos[0,*,*,*]+=shiftx
+       polspot_spotpos[1,*,*,*]+=shifty
+       
        polcal.coords = polspot_coords
+       polcal.spotpos = polspot_spotpos
     end
   endcase
      
     logmsg = "Applied shifts of "+strc(shiftx)+", "+strc(shifty)+" based on method="+method
     backbone->Log, logmsg, depth=3
     backbone->set_keyword, "HISTORY", "  "+logmsg
-
 
 
 ;--- for this one, we don't call the usual __end_primitive common code

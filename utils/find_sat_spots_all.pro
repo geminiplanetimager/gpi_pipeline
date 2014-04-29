@@ -28,9 +28,9 @@ function find_sat_spots_all,im0,band=band,indx=indx,good=good,$
 ;      
 ;       cens - 2x4xl array of sat spot center pixel locations
 ;
-;       /highpass - High pass filter image used for initial sat spot
-;                   finding
-;       /constrain - Apply constraints on box sizes based on
+;       highpass - High pass filter image used for initial sat spot
+;                   finding.  If not 1, use this box size.
+;       constrain - Apply constraints on box sizes based on
 ;                    wavelength and apodizer
 ;
 ; OPTIONAL OUTPUT:
@@ -92,9 +92,7 @@ for j=0,sz[2]-1 do if j ne indx then $
    cens[*,*,j] = cv_coord(from_polar=[cens0p[0,*],cens0p[1,*]/scl[j]],/to_rect) + c0
 
 ;;refine, if asked
-if keyword_set(refinefits) then $
-   for j=0,sz[2]-1 do if j ne indx then $
-      cens[*,*,j] = find_sat_spots(im[*,*,j],locs=cens[*,*,j])
+if keyword_set(refinefits) then for j=0,sz[2]-1 do cens[*,*,j] = find_sat_spots(im[*,*,j],locs=cens[*,*,j],highpass=highpass)
 
 ;;get rid of slices where satellites can't be found
 bad = where(cens ne cens, badct)

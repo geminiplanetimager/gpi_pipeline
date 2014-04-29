@@ -21,7 +21,8 @@ observatory_lon     -70.73669333333333
 #
 #primary and secondary diameters (m) from http://dms.hia.nrc.ca/view.php?fDocumentId=2164
 primary_diam    7.7701
-secondary_diam  1.02375
+secondary_diam  1.32090 ;  7.7701*0.17 - projected inner diameter of secondary hole
+ 
 #
 #Rotation of frame in IFS image (orig. measurement by Marshall Perrin)
 ifs_rotation    24.5
@@ -44,4 +45,9 @@ cen_wave_H  1.6473029
 cen_wave_K1  2.0425281
 cen_wave_K2  2.2515272
 
-
+# size of coronagraph focal plane masks, in arcseconds
+fpm_diam_y = 0.156
+fpm_diam_j = 0.184
+fpm_diam_h = 0.246
+fpm_diam_k1 = 0.306
+fpm_diam_k2 = 0.306

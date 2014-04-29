@@ -36,11 +36,12 @@
 ;	2014-01-07		Release 0.9.4 for AAS Meeting 
 ;	2014-02-11		Release candidate 1.0rc1
 ;	2014-02-14		Milestone: Release version 1.0!
+;	2014-04-26		Release candidate for 1.1
 ;-
 
 function gpi_pipeline_version, svn=svn
 
-version = '1.0'
+version = '1.1rc1'
 
 if keyword_set(svn) then begin
 	; append svn version ID also

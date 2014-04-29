@@ -19,8 +19,9 @@
 ; PIPELINE ARGUMENT: Name="search_window" Type="int" Range="[1,50]" Default="5" Desc="Radius of search window to search for the center"
 ; PIPELINE ARGUMENT: Name="mask_radius" Type="int" Range="[0,100]" Default="50" Desc="Radius of center of image to mask (centered on x0, y0 inputs)"
 ; PIPELINE ARGUMENT: Name="highpass" Type="int" Range="[0,1]" Default="1" Desc="1: Use high pass filter 0: don't"
+; PIPELINE ARGUMENT: Name="lower_threshold" Type="float" Range="[-100000,100000]" Default="-100" Desc="Lower pixel values will be converted to this value"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
+; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ;
 ; PIPELINE ORDER: 2.445
 ; PIPELINE CATEGORY: Calibration, PolarimetricScience
@@ -43,20 +44,32 @@ calfiletype=''   ; set this to some non-null value e.g. 'dark' if you want to lo
 ; history, then if calfiletype is not blank it queries the calibration database
 ; for that file, and does error checking on the returned filename.
 @__start_primitive
-suffix='' 		 ; set this to the desired output filename suffix
+;suffix='' 		 ; set this to the desired output filename suffix
+				 ; This primitive should not change the existing suffix, it
+				 ; just updates the headers slightly.
 
 
 cube = *dataset.currframe
-cubetype = strtrim(backbone->get_keyword('CTYPE3'), 2)
 
 ; check for polarization data
-if (cubetype ne 'STOKES') then $
-	return, error('FAILURE ('+functionName+'): Datacube must be a Stokes cube. Cannot be from spectral mode.')
+; cubetype = strtrim(backbone->get_keyword('CTYPE3'), 2)
+;if (cubetype ne 'STOKES') then $
+;	return, error('FAILURE ('+functionName+'): Datacube must be a Stokes cube. Cannot be from spectral mode.')
+
+    mode= strc(backbone->get_keyword( "DISPERSR", count=ct))
+    mode = strlowcase(mode)
+    if ~strmatch(mode,"*wollaston*",/fold) then begin
+    backbone->Log, "ERROR: That's not a polarimetry file!"
+    return, error('FAILURE ('+functioName+'): data is NOT a polarimetry file!')
+    endif
 
 ; check for data dimensions that probably won't happen. We will support 3d Stokes cubes and 2d ones
 ; that have collapsed the polarization dimension
-if ((size(cube))[0] gt 3) || ((size(cube))[0] lt 2) then $
-	return, error('FAILURE ('+functionName+'): data is either less than 2D or more than 3D.')
+; MMB: Let's instead let it take a podc cube and collapse it itself! In which case we only need 3D
+
+if (size(cube))[0] ne 3 then $ 
+;if ((size(cube))[0] gt 3) || ((size(cube))[0] lt 2) then $
+	return, error('FAILURE ('+functionName+'): This primitive only accepts -podc or -stokesdc files.')
 
 ; get user inputs
 search_window = fix(Modules[thisModuleIndex].search_window)
@@ -64,16 +77,22 @@ mask_radius = fix(Modules[thisModuleIndex].mask_radius)
 x0 = fix(Modules[thisModuleIndex].x0)
 y0 = fix(Modules[thisModuleIndex].y0)
 highpass = fix(Modules[thisModuleIndex].highpass)
+lower_threshold = fix(Modules[thisModuleIndex].lower_threshold)
 
 statuswindow = backbone->getstatusconsole()
 
 ;find location of image center
-cent = find_pol_center(cube, x0, y0, search_window, search_window, maskrad=mask_radius, highpass=highpass, statuswindow=statuswindow)
+cent = find_pol_center(cube, x0, y0, search_window, search_window, maskrad=mask_radius, highpass=highpass, pixlowerbound=lower_threshold, statuswindow=statuswindow)
 
 ; write calculated center to header
 backbone->set_keyword,"PSFCENTX", cent[0], 'X-Location of PSF center', ext_num=1
 backbone->set_keyword,"PSFCENTY", cent[1], 'Y-Location of PSF center', ext_num=1
 
+; update FITS header history
+backbone->set_keyword,'HISTORY', functionname+": "+string(cent[0])+'X-Location of PSF center', ext_num=0
+backbone->set_keyword,'HISTORY', functionname+": "+string(cent[1])+'Y-Location of PSF center', ext_num=0
+
 @__end_primitive
 
+stop
 end

@@ -60,7 +60,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 
 
-  suffix='-bpfix'
+  if fix(Modules[thisModuleIndex].save) eq 1 then suffix='-bpfix'
 
 
 @__end_primitive

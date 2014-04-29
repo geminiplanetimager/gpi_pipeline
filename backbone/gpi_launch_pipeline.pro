@@ -81,9 +81,19 @@ PRO gpi_launch_pipeline, noinit=noinit, $
 	if keyword_set(rescanDB) then backbone->rescan
 
 	if keyword_set(single) then begin
+		message,/info, "PIPELINE INVOKED IN SINGLE-RECIPE MODE"
+		message,/info, "    to process: "+single
 		; process one single DRF and then exit
-		status = backbone->run_one_recipe(single)
-		backbone->Log, "Pipeline was invoked in single-DRF mode. Shutting down now. ",/general
+		; First, test that recipe file actually exists
+		if ~file_test(single) then message, "Cannot process nonexistent file: "+single+" does not exist."
+		; Second copy this recipe into the queue
+		copied_filename = queue_dir+path_sep()+file_basename(single)
+		file_copy, single, copied_filename, /allow_same, /overwrite
+		message,/info, "Copied "+single+" to Queue directory as "+copied_filename
+
+		; Now we can process it. 
+		status = backbone->run_one_recipe(copied_filename)
+		backbone->Log, "Pipeline was invoked in single-DRF mode. Shutting down now." 
 	endif else begin		
 		; watch the queue dir and process many DRFs
 		backbone->Run_queue, Queue_Dir

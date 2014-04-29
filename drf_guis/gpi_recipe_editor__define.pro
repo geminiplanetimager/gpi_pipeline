@@ -96,13 +96,14 @@ function gpi_recipe_editor::get_obs_keywords, filename
 	if ct3 eq 0 then obsstruct.obsid = 'no OBSID'
 	if ct0 eq 0 then obsstruct.astromtc= 'F'
         if ct12 eq 0 then obsstruct.elevatio = 'no elevation'
-
+;        if ct13 eq 0 then obsstruct.gcalfilt = 'no gcalfilt'
+;print,'counts',ct1,ct2,ct4,ct5,ct6,ct7,ct8,ct9,ctobsmode
 	; some we need to have in order to be able to parse.
-	vec=[ct1,ct2,ct4,ct5,ct6,ct7,ct8,ct9,ct12,  ctobsmode]
+	vec=[ct1,ct2,ct4,ct5,ct6,ct7,ct8,ct9,  ctobsmode]
 	if total(vec) lt n_elements(vec) then begin
 		obsstruct.valid=0
 		;give some info on missing keyw:
-		keytab=['OBSCLASS','OBSTYPE', 'IFSFILT','DISPERSR','OCCULTER','LYOTMASK','APODIZER', 'ITIME', 'ELEVATIO', 'OBSMODE']
+		keytab=['OBSCLASS','OBSTYPE', 'IFSFILT','DISPERSR','OCCULTER','LYOTMASK','APODIZER', 'ITIME', 'OBSMODE']
 		indzero=where(vec eq 0, cc)
 		;print, "Invalid/missing keywords for file "+filename
 		logmsg = 'Missing keyword(s): '+strjoin(keytab[indzero]," ")+" for "+filename
@@ -205,46 +206,55 @@ end
 ;	/notemplate		Don't actually load the template. This is used when
 ;					switching menu options and you don't actually want to overwrite
 ;					the current recipe completely.
+;	/cleardata		Clear the data files from the recipe editor instead of preserving them
 ;-
-pro gpi_recipe_editor::change_current_template, typestring,seqnum, notemplate=notemplate
+pro gpi_recipe_editor::change_current_template, typestring,seqnum, notemplate=notemplate, cleardata=cleardata
 
 
-	; check if the current recipe has been modified
-	if obj_valid(self.drf) then begin
-		if self.drf->is_modified() then begin
-			res =  dialog_message('The currently opened recipe file has been modified. Loading a new template will discard your modifications. Are you sure you want to change templates?', $
-			title="Discard changes?", dialog_parent=self.top_base, /question) 
-			if res ne 'Yes' then return
+  ;; check if the current recipe has been modified
+  if obj_valid(self.drf) then begin
+     if self.drf->is_modified() then begin
+        res =  dialog_message('The currently opened recipe file has been modified. Loading a new template will discard your modifications. Are you sure you want to change templates?', $
+                              title="Discard changes?", dialog_parent=self.top_base, /question) 
+        if res ne 'Yes' then return
+     endif
+     
+  endif
+  
+  ;; check that the requested reduction type is valid and retrieve its
+  ;; template filenames
+  wm = where((*self.templates).reductiontype eq typestring, mct)
+  if mct eq 0 then begin
+     message, 'Requested reduction type "'+typestring+'" is invalid/unknown. Cannot load any Recipes!',/info
+     widget_control, self.template_name_id,SET_DROPLIST_SELECT=0
+     return
+  endif
+  
+  
+  ;; Now we can switch to that template
+  if ~(keyword_set(notemplate)) then begin
+    chosen_template = wm[seqnum]
+    widget_control, self.template_name_id,SET_DROPLIST_SELECT=seqnum
+    print, "Chosen template filename:"+((*self.templates)[chosen_template]).filename
+     
+    ;; Load the new template, preserving the data files of the current recipe
+    if obj_valid(self.drf) then datafiles = self.drf->get_datafiles()
+    
+    self->open, ((*self.templates)[chosen_template]).filename,  /template
+
+	if ~(keyword_set(cleardata)) then begin
+		if n_elements(datafiles) gt 0 then begin
+			self.drf->set_datafiles, datafiles
 		endif
-
-	endif
-
-	; check that the requested reduction type is valid and retrieve its
-	; template filenames
-    wm = where((*self.templates).reductiontype eq typestring, mct)
-    if mct eq 0 then begin
-		message, 'Requested reduction type "'+typestring+'" is invalid/unknown. Cannot load any Recipes!',/info
-		widget_control, self.template_name_id,SET_DROPLIST_SELECT=0
-		return
-	endif
-
-
-	; Now we can switch to that template
-    if ~(keyword_set(notemplate)) then begin
-		chosen_template = wm[seqnum]
-		widget_control, self.template_name_id,SET_DROPLIST_SELECT=seqnum
-		print, "Chosen template filename:"+((*self.templates)[chosen_template]).filename
-
-		; Load the new template, preserving the data files of the current recipe
-		if obj_valid(self.drf) then datafiles = self.drf->get_datafiles()
-
-        self->open, ((*self.templates)[chosen_template]).filename,  /template
-
-		if n_elements(datafiles) gt 0 then self.drf->set_datafiles, datafiles
-		self->refresh_filenames_display
-
-    endif
-
+	endif else begin
+		;clear all loaded files
+		self.drf->clear_datafiles
+	endelse
+	
+    self->refresh_filenames_display
+     
+  endif
+  
 end
 
 
@@ -519,19 +529,29 @@ pro gpi_recipe_editor::changetype, type_num, notemplate=notemplate, force_update
 
   
 end
-;+ -----------------------------------------
-; gpi_recipe_editor::removefile
-;    Remove a file from the input files list. 
-;
-;-
-pro gpi_recipe_editor::removefile, file
 
-	self.drf->remove_datafile, file
-	self->refresh_filenames_display ; update the filenames display
-    self->update_available_primitives, self.reductiontype ; why do we do this after removing a file?
-
-end
-
+; OBSOLETE - merged into 'REMOVE' menu action item.
+;    ;+ -----------------------------------------
+;    ; gpi_recipe_editor::removefile
+;    ;    Remove a file from the input files list. 
+;    ;
+;    ; Keywords:
+;    ;   /norefresh		useful if you might be removing multiple files at once, to
+;    ;					save multiple repeats of this.
+;    ;
+;    ;-
+;    pro gpi_recipe_editor::removefile, file, norefresh=norefresh
+;    
+;    
+;    	self.drf->remove_datafile, file
+;    
+;    	if ~keyword_set(norefresh) then begin
+;    		self->refresh_filenames_display ; update the filenames display
+;    		self->update_available_primitives, self.reductiontype ; why do we do this after removing a file?
+;    	endif
+;    
+;    end
+    
 ;+-----------------------------------------
 ; gpi_recipe_editor::queue
 ;    Add a file to the queue
@@ -717,6 +737,7 @@ pro gpi_recipe_editor::event,ev
 			  5:typeName ='FLOAT'
 			  7:typeName ='STRING'
 			  12:typeName ='INT'
+				else:typeName ='INVALID'
 			endcase    
 		endelse
 
@@ -782,7 +803,7 @@ pro gpi_recipe_editor::event,ev
   'ADDFILE' : begin
      
 		result=dialog_pickfile(path=self.last_used_input_dir,/multiple,/must_exist,$
-								   title='Select Raw Data File(s)', filter=['*.fits,*.fits.gz', '*.fits'],get_path=getpath)
+								   title='Select Raw Data File(s)', filter=['*.fits;*.fits.gz', '*.fits'],get_path=getpath)
 		 
 		if n_elements(result) eq 1 then if strc(result) eq '' then return ; user cancelled in the dialog box. 
 
@@ -821,14 +842,31 @@ pro gpi_recipe_editor::event,ev
     'REMOVE' : begin
 		widget_control,self.top_base,get_uvalue=storage  
 		selected_index = widget_info(storage.fname,/list_select) ; 
-		if selected_index eq -1 then begin
+		n_selected_index = n_elements(selected_index)
+		if (n_selected_index eq 1 ) then if (selected_index eq -1) then begin
+			ret=dialog_message("ERROR: You have to click to select one or more files before you can remove anything.",/error,/center,dialog_parent=self.top_base)
 			self->Log, 'You have to click to select a file before you can remove anything.'
 			return ; nothing is selected so do nothing
 		endif
-		filelist = self.drf->get_datafiles()
 
-		if selected_index gt n_elements(filelist)-1 then selected_index = n_elements(filelist)-1
-		self->removefile, filelist[selected_index]
+		filelist = self.drf->get_datafiles() ; Note: must save this prior to starting the for loop since that will
+											; confuse the list indices, and make us have to bookkeep things as the
+											; list changes during a deletion of multiple files. 
+		;if n_selected_index gt n_elements(filelist)-1 then n_selected_index = n_elements(filelist)-1
+		for i=0,n_selected_index-1 do begin
+			; sanity check indices:
+			if selected_index[i] lt 0 or selected_index[i] gt n_elements(filelist)-1 then continue
+			;self->removefile, filelist[selected_index[i]]
+		    self.drf->remove_datafile, filelist[selected_index[i]]
+			self->Log, "Removed "+filelist[selected_index[i]]
+
+		endfor
+
+		self->refresh_filenames_display ; update the filenames display
+		;self->update_available_primitives, self.reductiontype ; why do we do this after removing a file?
+		; I don't remember why we do the following here after removing files? -MP
+		; I suppose because the default behavior is organize by date and that
+		; depends on the files present.
 		widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
     end
     'REMOVEALL' : begin
@@ -886,6 +924,11 @@ pro gpi_recipe_editor::event,ev
         ;file = (*storage.splitptr).filename
         self->save, /nopickfile
         self->queue, self.drfpath+path_sep()+self.drffilename
+     end
+    'New Recipe':begin
+       selecseq=widget_info(self.template_name_id,/DROPLIST_SELECT)
+       self->change_current_template, self.reductiontype, selecseq, /cleardata
+	   self.customdrffilename = 0
     end
     'Open Recipe...':begin
         newDRF =  DIALOG_PICKFILE(TITLE='Select a Recipe File', filter='*.xml',/MUST_EXIST,path=self.drfpath)
@@ -1147,8 +1190,8 @@ pro gpi_recipe_editor::save, template=template, nopickfile=nopickfile
         
         drf_summary = self.drf->get_summary()
         
-        if first_file[0] eq last_file[0] then outputfilename = first_file[0]+'_'+drf_summary.shortname+'_drf.waiting.xml' else $
-           outputfilename = first_file[0]+'-'+last_file[0]+'_'+drf_summary.shortname+'_drf.waiting.xml'
+        if first_file[0] eq last_file[0] then outputfilename = first_file[0]+'_'+drf_summary.shortname+'_recipe.waiting.xml' else $
+           outputfilename = first_file[0]+'-'+last_file[0]+'_'+drf_summary.shortname+'_recipe.waiting.xml'
      endelse
   endif else outputfilename = self.drffilename
 
@@ -1211,12 +1254,11 @@ pro gpi_recipe_editor::open, filename, template=template, silent=silent, log=log
     
     ; now parse the requested DRF.
     self->log, "Opening: "+gpi_shorten_path(self.loadedRecipeFile)
-
     self.drf = obj_new('drf', self.loadedRecipeFile, parent_object=self, /silent, /quick, as_template=keyword_set(nodata))
     drf_summary = self.drf->get_summary()
     drf_contents = self.drf->get_contents()
     drf_module_names = self.drf->list_primitives() 
-    
+
     ;; if requested, load the filenames in that DRF
     ;; (for Template use, don't load the data)
     if keyword_set(template) then  begin
@@ -1258,7 +1300,12 @@ pro gpi_recipe_editor::update_title_bar, filename
   
   ;;update title bar of window:
   title  = "Recipe Editor"
-  if keyword_set(self.session) then title += " #"+strc(self.session)
+
+  ; Hide this - it's not useful to have a session # in the title of the
+  ; recipe editor window since there's not really anything one can do with that
+  ; information.
+  ;if keyword_set(self.session) then title += " #"+strc(self.session)
+
   widget_control, self.top_base, tlb_set_title=title+": "+filename
 end
 
@@ -1317,7 +1364,6 @@ pro gpi_recipe_editor::init_data, _extra=_Extra
 
 	self->scan_templates
 	self->update_available_primitives, self.reductiontypes[0] ; needed before widget creation
-
 
 	self.loadedRecipeFile = 'none' 
 
@@ -1398,6 +1444,7 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
 	tmp_struct = {cw_pdmenu_s, flags:0, name:''}
 	top_menu_desc = [ $
                   {cw_pdmenu_s, 1, 'File'}, $ ; file menu;
+                  {cw_pdmenu_s, 0, 'New Recipe'}, $
                   {cw_pdmenu_s, 0, 'Open Recipe...'}, $
                   {cw_pdmenu_s, 0, 'Save Recipe'}, $
                   {cw_pdmenu_s, 0, 'Save Recipe as...'}, $
@@ -1613,13 +1660,14 @@ end
 ;    Set view mode and optionally load a recipe
 ;-
 PRO gpi_recipe_editor::post_init, drfname=drfname, _extra=_extra
-    if keyword_set(drfname) then begin
-        self->open, drfname, /log
-    end
-	self->set_view_mode, 2
-
-	if self.last_used_input_dir eq '' then self.last_used_input_dir = self->get_default_input_dir()
-
+  
+  if keyword_set(drfname) then begin
+     self->open, drfname, /log
+  end
+  self->set_view_mode, 2
+  
+  if self.last_used_input_dir eq '' then self.last_used_input_dir = self->get_default_input_dir()
+  
 end
 
 ;+-----------------------

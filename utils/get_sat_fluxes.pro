@@ -35,7 +35,7 @@ function get_sat_fluxes,im0,band=band,good=good,cens=cens,warns=warns,$
 ;                  satspot locations.  good must also be passed
 ;                  in. Skips finding sat spots alltogether.
 ;       /highpass - Pass highpass setting to find_sat_spots
-;       /constrain - Pass /constrain to find_sat_spots
+;       /constrain - Pass /constrain to find_sat_spots_all
 ;      
 ;       res - 4xl array of satellite spot max fluxes (where l is the
 ;             number of slices in im0)

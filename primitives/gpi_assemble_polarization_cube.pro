@@ -101,7 +101,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
         spotx = polspot_coords[0,wg,ix,iy,pol] ; X coord of spot center
         spoty = polspot_coords[1,wg,ix,iy,pol] ; Y coord of spot center
-
+        
 		case method of
 		'PSF': begin
 			; Extract using a fixed saved PSF from the calibration data.
@@ -118,6 +118,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 			cenx = round(polcal.spotpos[0,ix,iy,pol])
 			ceny =  round(polcal.spotpos[1,ix,iy,pol])
 			boxsize=2
+			if cenx-boxsize lt 0 or ceny-boxsize lt 0 or cenx+boxsize gt 2047 or ceny+boxsize gt 2047 then break 
+			
 			polcube[ix, iy, pol] = total(input[ cenx-boxsize:cenx+boxsize, ceny-boxsize:ceny+boxsize]  )
 			mask[cenx-boxsize:cenx+boxsize, ceny-boxsize:ceny+boxsize] += pol+1
 			residual[cenx-boxsize:cenx+boxsize, ceny-boxsize:ceny+boxsize]=0

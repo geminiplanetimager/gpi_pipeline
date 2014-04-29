@@ -76,22 +76,23 @@ FUNCTION gpipipelinebackbone::Init,  session=session, verbose=verbose, nogui=nog
 	GOTO_NEXT_FILE = -2
 
 
-	; Eventually this will be a configuration structure.
+	; Set up a configuration structure for additional pipeline internals
 	pipelineConfig = {$
 		logdir : gpi_get_directory("GPI_DRP_LOG_DIR"),     $ ; directory for output log files
 		continueAfterRecipeXMLParsing:0,        $    				; Should program actually run the pipeline or just parse?
-		MaxFramesInDataSets: gpi_get_setting('max_files_per_recipe', default=1000, /silent),        $    ; Max # of files in one dataset in a Recipe XML file
-		MaxMemoryUsage: 0L,                 $   			; this will eventually be used for array size limits on what gets done in memory versus swapped to disk.
-		desired_dispersion: 'vertical' $					; do we want horizontal or vertical spectra?
+		MaxFramesInDataSets: gpi_get_setting('max_files_per_recipe', default=1000, /silent)        $    ; Max # of files in one dataset in a Recipe XML file
+		;MaxMemoryUsage: 0L,                 $   			; this will eventually be used for array size limits on what gets done in memory versus swapped to disk.
+		;desired_dispersion: 'vertical' $					; do we want horizontal or vertical spectra?
 	}
 	self.pipelineconfig=ptr_new(pipelineConfig)
+	self.nogui = keyword_set(nogui)	 						; disable GUI windows when running over an ssh link without X11?
+	self.verbose = keyword_set(verbose)						; Enable extra verbosity in some logging
 
 	self->AboutMessage
 
     !quiet=0 ; always print out any output from "message" command, etc.
 
 	config_file=gpi_get_directory('GPI_DRP_CONFIG_DIR') +path_sep()+"gpi_pipeline_primitives.xml"
-    self.verbose = keyword_set(verbose)
 
     error=0
     ;CATCH, Error       ; Catch errors before the pipeline
@@ -104,13 +105,12 @@ FUNCTION gpipipelinebackbone::Init,  session=session, verbose=verbose, nogui=nog
         Self.Parser = OBJ_NEW('gpiDRFParser', backbone=self) ; Init DRF parser
 
         ; Read in the XML Config File with the primitive name translations.
-        Self.ConfigParser = OBJ_NEW('gpiDRSConfigParser',/verbose)
+        Self.ConfigParser = OBJ_NEW('gpiDRSConfigParser',verbose=self.verbose)
         if file_test(config_file) then  Self.ConfigParser -> ParseFile, config_file
 
         self.GPICalDB = obj_new('gpicaldatabase', backbone=self)
 
-		self.nogui=keyword_set(nogui)
-		if ~(keyword_set(nogui)) then begin
+		if ~(keyword_set(self.nogui)) then begin
 			self->SetupStatusConsole
 			self.statuswindow->display_log,"* GPI DATA REDUCTION PIPELINE  *"
 			self.statuswindow->display_log,"* VERSION "+gpi_pipeline_version(/svn)+"  *"
@@ -367,7 +367,8 @@ PRO gpiPipelineBackbone::gpitv, filename_or_data, session=session, header=header
 					endif
 				endif 
 
-				writefits, tempfile, [0], header
+				FXADDPAR, header, 'NEXTEND', 1
+				mwrfits, 0, tempfile, header, /create, /silent
 				writefits, tempfile, data, extheader,/append
 
 				self->Log, "Sending data to be displayed in GPITV via temp file= "+tempfile
@@ -459,18 +460,54 @@ PRO gpiPipelineBackbone::Run_queue, QueueDir
                 endif
                 if self.statuswindow->flushqueue() then begin
 		            self->log, '**User request**:  flushing the queue.'
-                    self->flushqueue, queuedir
-                    self.statuswindow->flushqueue_end
+					
+					;; if any errors occur, make sure rescanning ends to prevent infintie loops
+					catch, Error_status
+					
+					if Error_status ne 0 then begin
+						message,/info, 'Error while clearing recipe queue: ' + !ERROR_STATE.MSG
+						self->log, 'Error while clearing recipe queue: ' + !ERROR_STATE.MSG
+						self.statuswindow->flushqueue_end
+					endif else begin
+						self->flushqueue, queuedir
+						self.statuswindow->flushqueue_end
+					endelse
+					
+					catch, /cancel
                 endif    
                 if self.statuswindow->rescandb() then begin
 		            self->log, '**User request**:  Rescan Calibrations DB.'
-                    self->rescan_CalDB
-                    self.statuswindow->rescandb_end
+					
+					;; if any errors occur, make sure rescanning ends to prevent infintie loops
+					catch, Error_status
+					
+					if Error_status ne 0 then begin
+						message,/info, 'Error while rescanning CalDB: ' + !ERROR_STATE.MSG
+						self->log, 'Error while rescanning CalDB: ' + !ERROR_STATE.MSG
+						self.statuswindow->rescandb_end					
+					endif else begin
+						self->rescan_CalDB
+						self.statuswindow->rescandb_end
+					endelse
+					
+					catch, /cancel
                 endif    
                 if self.statuswindow->rescanConfig() then begin
 		            self->log, '**User request**:  Rescan GPI data pipeline configuration.'
-                    self->rescan_Config
-                    self.statuswindow->rescanconfig_end
+					
+					;; if any errors occur, make sure rescanning ends to prevent infintie loops
+					catch, Error_status
+					
+					if Error_status ne 0 then begin
+						message,/info, 'Error while rescanning DRP Config: ' + !ERROR_STATE.MSG
+						self->log, 'Error while rescanning DRP Config: ' + !ERROR_STATE.MSG
+						self.statuswindow->rescanconfig_end					
+					endif else begin
+						self->rescan_Config
+						self.statuswindow->rescanconfig_end
+					endelse
+					
+					catch, /cancel
                 endif    
  
             endif
@@ -499,6 +536,7 @@ function gpiPipelineBackbone::Run_One_Recipe, CurrentRecipe
 	; if needed, convert from a filename string to an info structure
 	if size(/tname, CurrentRecipe) ne 'STRUCT' then CurrentRecipe = self->Recipe2Struct(CurrentRecipe)
 
+	self->Log, "------------------------------ Starting Recipe Processing ------------------------------"
 	self->log, 'Reading file: ' + CurrentRecipe.name
 	if obj_valid(self.statuswindow) then self.statuswindow->set_DRF, CurrentRecipe
 	self->SetRecipeQueueStatus, CurrentRecipe, 'working'
@@ -609,6 +647,8 @@ FUNCTION gpiPipelineBackbone::Reduce
 		lambda0, $
 		filename, $
 		wavcal, $
+		mlens_file,$		; microlens psf calibration variables
+		mlens,$			;
 		polcal, $
 		tilt, $
 		badpixmap, $
@@ -637,6 +677,7 @@ FUNCTION gpiPipelineBackbone::Reduce
     ; can in turn contain some number of data files, which get stored in the
     ; 'frame' arrays etc. 
     self->Log, 'Reducing data set containing '+strc((*self.Data).validframecount)+" file(s).",  depth=0
+	self.currentReductionLevel = 1 ; we always expect level 1 primitives first
 
     FOR IndexFrame = 0, (*self.Data).validframecount-1 DO BEGIN
         if debug ge 1 then print, "########### start of file "+strc(indexFrame+1)+" ################"
@@ -697,14 +738,16 @@ FUNCTION gpiPipelineBackbone::Reduce
 
         if debug ge 1 then print, "########### end of file "+strc(indexframe+1)+" ################"
     ENDFOR
+
     if (*self.Data).validframecount eq 0 then begin    
       if obj_valid(self.statuswindow) then self.statuswindow->Update, *self.Primitives,N_ELEMENTS(*self.Primitives)-1, (*self.data).validframecount, 1,' No file processed.'
       self->log, 'No file processed. ' 
       status=OK
     endif
-    if status eq GOTO_NEXT_FILE then status = OK
+    if status eq GOTO_NEXT_FILE then status = OK ; handle the corner case of a recipe ending with 'Accumulate Images' with nothing after it
     if status eq OK then self->Log, "Recipe Complete!",/flush
 
+	self.currentReductionLevel = 0 ; not reducing anything now
     if debug ge 1 then print, "########### end of reduction for that recipe ################"
     PRINT, ''
     PRINT, CMSYSTIME(/ext)
@@ -1185,7 +1228,7 @@ pro gpiPipelineBackbone::rescan_Config
 	; routines if added)
 	if not lmgr(/runtime) then begin
 		self->log, "Rescanning for new primitives, and regenerating primitives config file."
-		self.statuswindow->update, [{name:'Rescanning primitives headers and regenerating config file'}], 0, 2, 1, ""
+		if obj_valid(self.statuswindow) then self.statuswindow->update, [{name:'Rescanning primitives headers and regenerating config file'}], 0, 2, 1, ""
 		gpi_make_primitives_config 
 		self->log, "Generated new primitives config file OK."
 	endif
@@ -1196,7 +1239,7 @@ pro gpiPipelineBackbone::rescan_Config
 	for i=0,n_elements(config.idlfuncs)-1 do begin
 		print, "Recompiling for "+config.names[i]
 
-		self.statuswindow->update, [{name:'Recompiling primitives'}], 0, n_elements(config.idlfuncs), i, ""
+		if obj_valid(self.statuswindow) then self.statuswindow->update, [{name:'Recompiling primitives'}], 0, n_elements(config.idlfuncs), i, ""
 		catch, compile_error
 		if compile_error eq 0 then begin
 			resolve_routine, config.idlfuncs[i], /is_func 
@@ -1206,7 +1249,7 @@ pro gpiPipelineBackbone::rescan_Config
 	endfor
 	statusmessage = 'Refreshed all '+strc(n_elements(config.idlfuncs))+' available pipeline primitive procedures.'
 	self->Log, statusmessage
-	self.statuswindow->update, [{name:statusmessage}], 0, n_elements(config.idlfuncs), 0, ""
+	if obj_valid(self.statuswindow) then self.statuswindow->update, [{name:statusmessage}], 0, n_elements(config.idlfuncs), 0, ""
 
 
 end
@@ -1235,6 +1278,19 @@ function gpipipelinebackbone::get_last_saved_file
 	return, self.last_saved_filename 
 end
 
+; Getter/Setting functions for the reduction level
+;  See docs/usage/recipesqueue.html
+;
+pro gpipipelinebackbone::set_reduction_level, newlevel
+	newlevel = fix(newlevel)
+	if newlevel lt 0 or newlevel gt 2 then self->Log, 'WARNING: invalid reduction level: '+strc(newlevel)+'. Must be in {0, 1, 2}.'
+	self.CurrentReductionLevel = newlevel
+end
+
+function gpipipelinebackbone::get_current_reduction_level
+	return, self.CurrentReductionLevel 
+end
+
 
 
 ;+-----------------------------------------------------------
@@ -1246,23 +1302,23 @@ end
 PRO gpiPipelineBackbone__define
 
     void = {gpiPipelineBackbone, $
-			pipelineconfig: ptr_new(), $
-            Parser:OBJ_NEW(), $
-            ConfigParser:OBJ_NEW(), $
-            Data:PTR_NEW(), $
-            Primitives:PTR_NEW(), $
-            statuswindow: obj_new(), $
-            launcher: obj_new(), $
-            gpicaldb: obj_new(), $
-			LOG_GENERAL: 0L, $   ; LUN (file handle) to the pipeline log file
-            ;ReductionType:'', $
-            CurrentlyExecutingPrimitiveNumber:0, $
-            TempFileNumber: 0, $ ; Used for passing multiple files to multiple gpitv sessions. See self->gpitv pro above
-			last_saved_filename: '', $ ; remember the last filename saved
-            generallogfilename: '', $
-            log_date: '',            $  ;date string of current log file
-            verbose: 0, $
-            nogui: 0, $
+			pipelineconfig: ptr_new(), $		; Pipeline backbone additional internal state and config. See ::init
+            Primitives:PTR_NEW(), $				; Parsed index of primitives
+            Data:PTR_NEW(), $					; Pointer to the dataset structure
+            Parser:OBJ_NEW(), $					; Recipe parser object
+            ConfigParser:OBJ_NEW(), $			; Pipeline Config parser object
+            statuswindow: obj_new(), $			; Status window object
+            launcher: obj_new(), $				; launcher object (used to connect to other IDL session)
+            gpicaldb: obj_new(), $				; Calibrations Database object
+			LOG_GENERAL: 0L, $					; LUN (file handle) to the pipeline log file
+            CurrentlyExecutingPrimitiveNumber:0, $	; index of currently executing primitive
+			CurrentReductionLevel: 0, $			; 0 = not reducing anything, 1 = Level 1 actions on individual files, 2 = Level 2 actions on entire datasets
+            TempFileNumber: 0, $				; Used for passing multiple files to multiple gpitv sessions. See self->gpitv pro above
+			last_saved_filename: '', $			; remember the last filename saved
+            generallogfilename: '', $			; Filename of log file we are currently writing
+            log_date: '',            $			; date string of current log file, used to check when we must advance to next date
+			nogui: 0, $							; Should we disable GUIs because we're running over an ssh connection without X11? 
+			verbose: 0, $						; Should we print some more verbose debug output? 
             LogPath:''}
 
 END

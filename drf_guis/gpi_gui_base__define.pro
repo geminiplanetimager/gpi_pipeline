@@ -264,6 +264,25 @@ function gpi_gui_base::init, groupleader, _extra=_extra ;,group,proj
 end
 
 
+;------------------------------------------------
+
+function gpi_gui_base::name
+	; accessor function for what name this has
+	return, self.name
+end
+
+function gpi_gui_base::xname
+	; accessor function for what xname this has
+	return, self.xname
+end
+
+
+pro gpi_gui_base::show
+	; raise window to the front on screen. 
+	widget_control, self.top_base, /show
+end
+
+
 
 ;-----------------------
 pro gpi_gui_base__define

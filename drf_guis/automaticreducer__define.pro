@@ -42,7 +42,6 @@ end
 
 function automaticreducer::refresh_file_list, count=count, init=init, _extra=_extra
 
-	self.current_datestr = gpi_datestr(/current)
 
     searchpattern = self.watch_directory + path_sep() + self.watch_filespec
 	current_files =FILE_SEARCH(searchpattern,/FOLD_CASE, count=count)
@@ -97,8 +96,7 @@ end
 
 ;--------------------------------------------------------------------------------
 pro automaticreducer::start
-	message,/info,'Starting watching directory '+self.watch_directory
-	self->Log, 'Starting watching directory '+self.watch_directory
+	self->Log, 'Starting watching directory '+self.watch_directory+" for "+self.watch_filespec
 	widget_control, self.top_base, timer=1  ; Start off the timer events for updating at 1 Hz
 end
 
@@ -127,7 +125,7 @@ pro automaticreducer::run
 	; specification when the date changes. 
 	if keyword_set(gpi_get_setting('at_gemini', default=0,/silent)) then if gpi_datestr(/current) ne self.current_datestr then begin
 		self->set_default_filespec
-		widget_control, self.wildcard_id, set_value=new_wildcard
+		if widget_info(self.wildcard_id,/valid_id) then widget_control, self.wildcard_id, set_value=new_wildcard
 
 	endif 
 
@@ -147,6 +145,14 @@ pro automaticreducer::handle_new_files, new_filenames ;, nowait=nowait
 			message,/info, ' Received an empty string as a filename; ignoring it.'
 			continue
 		endif
+
+		header = headfits(new_filenames[i])
+		if strc(sxpar(header, 'INSTRUME')) ne 'GPI' then begin
+			message,/info, ' Not a GPI file so it will be ignored: '+new_filenames[i]
+			self->Log, "   Ignored since not a GPI file: "+new_filenames[i]
+			continue
+		endif
+
 		finfo = file_info(new_filenames[i])
 		if (finfo.size ne 20998080) and (finfo.size ne 21000960) and (finfo.size ne 16790400) then begin
 			message,/info, "File size is not an expected value: "+strc(finfo.size)+" bytes. Waiting 0.5 s for file write to complete?"
@@ -180,8 +186,9 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 
 		info = gpi_load_fits(filenames[0], /nodata)
 		prism = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'DISPERSR', count=dispct) ))
-		obsclass = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'OBSCLASS', count=obsclassct) ))
+		obsclass = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'OBSTYPE', count=obsclassct) ))
 		gcallamp = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'GCALLAMP', count=gcallampct) ))
+                gcalfilt = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'GCALFILT', count=gcalfiltct) ))
 
 		if (dispct eq 0) or (strc(prism) eq '') then begin
 			message,/info, 'Missing or blank DISPERSR keyword! '
@@ -205,13 +212,24 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 
 		case prism of
 		'PRISM': begin
-			if obsclass eq 'ARC' and gcallamp eq 'XE' then begin
+			if obsclass eq 'ARC' then begin
 				templatename='Quick Wavelength Solution'
 			endif else begin
-				templatename='Quicklook Automatic Datacube Extraction'
+				if gcalfilt eq 'ND4-5' then begin
+				   return ; this is a "cleanup" frame for persistence decay. There is no need to make a datacube
+				endif else begin
+				   templatename='Quicklook Automatic Datacube Extraction'
+				endelse
 			endelse
 		end
-		'WOLLASTON': templatename='Quicklook Automatic Polarimetry Extraction'
+		'WOLLASTON': begin
+                   if gcalfilt eq 'ND4-5' then begin
+                                   return
+                   endif else begin
+                      templatename='Quicklook Automatic Polarimetry Extraction'
+                   endelse
+                end
+
 		'OPEN':templatename='Quicklook Automatic Undispersed Extraction'
 		endcase
 	endif else begin
@@ -455,7 +473,7 @@ pro automaticreducer::change_directory
 	if dir ne '' then begin
 		self->Log, 'Directory changed to '+dir
 		self.watch_directory=dir
-		widget_control, self.watchdir_id, set_value=dir
+		if widget_info(self.watchdir_id,/valid_id) then widget_control, self.watchdir_id, set_value=dir
 		self.reason_for_rescan =  "change of directory"
 		ptr_free, self.previous_file_list ; we have lost info on our previous files so start over
 	endif
@@ -529,10 +547,11 @@ function automaticreducer::init, groupleader, _extra=_extra
 	; Initialization code for automatic processing GUI
 
 	self.name='GPI Automatic Reducer'
+	self.xname='automaticreducer'
 	self.watch_directory=self->get_default_input_dir()
     self.view_in_gpitv = 1
     self.ignore_indiv_reads = 1
-
+	self.current_datestr = gpi_datestr(/current)
 
 	; should we include any flexure compensation in the recipes? 
 	; By default turn this on ONLY if there is at least one flexure cal
@@ -584,15 +603,17 @@ function automaticreducer::init, groupleader, _extra=_extra
 					 uname='top_menu')
 
 
-	base_dir = widget_base(self.top_base, /row)
-	void = WIDGET_LABEL(base_dir,Value='Directory being watched: ', xsize=140, /align_left)
-	self.watchdir_id =  WIDGET_LABEL(base_dir,Value=self.watch_directory, xsize=250, /align_left)
-	button_id = WIDGET_BUTTON(base_dir,Value='Change...',Uname='changedir',/align_right,/tracking_events)
+	if ~ keyword_set(gpi_get_setting('at_gemini', default=0,/silent)) then begin
+		base_dir = widget_base(self.top_base, /row)
+		void = WIDGET_LABEL(base_dir,Value='Directory being watched: ', xsize=140, /align_left)
+		self.watchdir_id =  WIDGET_LABEL(base_dir,Value=self.watch_directory, xsize=250, /align_left)
+		button_id = WIDGET_BUTTON(base_dir,Value='Change...',Uname='changedir',/align_right,/tracking_events)
 
-	base_dir = widget_base(self.top_base, /row)
-	void = WIDGET_LABEL(base_dir,Value='Filename wildcard spec: ', xsize=140, /align_left)
-	self.wildcard_id =  WIDGET_LABEL(base_dir,Value=self.watch_filespec, xsize=250,  /align_left)
-	button_id = WIDGET_BUTTON(base_dir,Value='Change...',Uname='changewildcard',/align_right,/tracking_events)
+		base_dir = widget_base(self.top_base, /row)
+		void = WIDGET_LABEL(base_dir,Value='Filename wildcard spec: ', xsize=140, /align_left)
+		self.wildcard_id =  WIDGET_LABEL(base_dir,Value=self.watch_filespec, xsize=250,  /align_left)
+		button_id = WIDGET_BUTTON(base_dir,Value='Change...',Uname='changewildcard',/align_right,/tracking_events)
+	endif
 
 	   
 ;	base_dir = widget_base(self.top_base, /row)

@@ -54,7 +54,12 @@
 ; HISTORY:
 ;   Originally by Jean-Baptiste Ruffio 2013-06
 ;- 
-function gpi_highres_microlens_psf_extract_microspectra_stamps, my_type, image, calibration, width, STAMPS_MODE = stamps_mode;, CENTROID_MODE = centroid_mode
+function gpi_highres_microlens_psf_extract_microspectra_stamps, my_type, image, calibration, width, STAMPS_MODE = stamps_mode,bad_pixel_mask=bad_pixel_mask;, CENTROID_MODE = centroid_mode
+
+if keyword_set(bad_pixel_mask) eq 0 then begin
+print, 'WARNING - no bad pixel map is being used when cutting the image into stamps - '
+bad_pixel_mask=fltarr(2048,2048)+1
+endif
                   
   common PIP
   COMMON APP_CONSTANTS
@@ -119,7 +124,6 @@ case my_type of
 ;/////// Iteration over the different elevations
       for it_elev = 0,n_diff_elev-1 do begin
 				image = *(ptr_images[it_elev])
-
 		  ;get length of spectrum
       ;maybe sdpx should be variable. the length of the spectra is not constant over the detector
       ;TODO: filter is a variable of the common PIP I think but sometimes it is not defined. I don't know where the definition occurs. Should check that.
@@ -204,25 +208,27 @@ case my_type of
        
         for i=0,nlens-1 do begin
           for j=0,nlens-1 do begin
-						if finite(wavcal[i,j,4]) eq 0 then continue
-            if wavcal[i,j,4] ge 0.0 then begin
-              mask_image[xcoords[where(finite(xcoords[*,i,j])),i,j],ycoords[where(finite(ycoords[*,i,j])),i,j]] = 1
-              xlim = round(wavcal[i,j,1]+(wavcal[i,j,0]-xmini[i,j])*tan(wavcal[i,j,4]) - float((width-1))/2.)
-              ylim = xmini[i,j]-ny+1
-              
-              xmin = max([0,xlim])
-              xmax = min([2047,(xlim+nx-1)])
-              ymin = max([0,ylim])
-              ymax = min([2047,(ylim+ny-1)])
-              
-              values_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = image[xmin:xmax,ymin:ymax]
-              masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = mask_image[xmin:xmax,ymin:ymax]
-              xcoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = xcoords_image[xmin:xmax,ymin:ymax]
-              ycoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = ycoords_image[xmin:xmax,ymin:ymax]
+		; check to see if the spaxel is defined
+		if finite(wavcal[i,j,4]) eq 0 then continue
+		; depends on the tilt - so if the tilt gt 0
+        	    if wavcal[i,j,4] ge 0.0 then begin
+	              mask_image[xcoords[where(finite(xcoords[*,i,j])),i,j],ycoords[where(finite(ycoords[*,i,j])),i,j]] = 1
+	              xlim = round(wavcal[i,j,1]+(wavcal[i,j,0]-xmini[i,j])*tan(wavcal[i,j,4]) - float((width-1))/2.)
+	              ylim = xmini[i,j]-ny+1
+	              
+	              xmin = max([0,xlim])
+	              xmax = min([2047,(xlim+nx-1)])
+	              ymin = max([0,ylim])
+	              ymax = min([2047,(ylim+ny-1)])
+       	       
+		      values_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = image[xmin:xmax,ymin:ymax]
+			masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = mask_image[xmin:xmax,ymin:ymax]*(bad_pixel_mask)[xmin:xmax,ymin:ymax]
+       	       xcoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = xcoords_image[xmin:xmax,ymin:ymax]
+       	       ycoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = ycoords_image[xmin:xmax,ymin:ymax]
               
               mask_image[xcoords[where(finite(xcoords[*,i,j])),i,j],ycoords[where(finite(ycoords[*,i,j])),i,j]] = 0
 							 ;endif else if wavcal[i,j,4] lt 0.0 then begin
-						endif else begin 
+		endif else begin 
 							; so this is when wavcal[i,j,4] lt 0.0
               mask_image[xcoords[where(finite(xcoords[*,i,j])),i,j],ycoords[where(finite(ycoords[*,i,j])),i,j]] = 1
         
@@ -235,30 +241,28 @@ case my_type of
               ymax = min([2047,(ylim+ny-1)])
               
               values_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = image[xmin:xmax,ymin:ymax]
-              masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = mask_image[xmin:xmax,ymin:ymax]
+              masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = mask_image[xmin:xmax,ymin:ymax]*(bad_pixel_mask)[xmin:xmax,ymin:ymax]
               xcoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = xcoords_image[xmin:xmax,ymin:ymax]
               ycoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = ycoords_image[xmin:xmax,ymin:ymax]
                            
               mask_image[xcoords[where(finite(xcoords[*,i,j])),i,j],ycoords[where(finite(ycoords[*,i,j])),i,j]] = 0
             endelse
-						; now calculate the centroids - this just does a center of mass calculation
-							tmpx=xcentroids[i,j,0,it_elev]
-							tmpy=ycentroids[i,j,0,it_elev]
-							xcentroids[i,j,0,it_elev]= total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
-																								xcoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
-																								masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])/$ 
-																								total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
-																											masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])
-							ycentroids[i,j,0,it_elev]= total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
-																								ycoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
-																								masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])/$ 
-																								total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
-																											masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])
-							; the following just flags if the offset is too large?
-							if tmpx-xcentroids[i,j,0,it_elev] ge 1.1*tmpx then stop ; PI: Have never seen this flag
-							if tmpy-ycentroids[i,j,0,it_elev] ge 1.1*tmpy then stop ; PI: Have never seen this flag
-
-
+		; now calculate the centroids - this just does a center of mass calculation
+		tmpx=xcentroids[i,j,0,it_elev]
+		tmpy=ycentroids[i,j,0,it_elev]
+		xcentroids[i,j,0,it_elev]= total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
+						xcoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$ 
+						masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])/$ 
+						total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
+						      masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])
+		ycentroids[i,j,0,it_elev]= total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
+						ycoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
+						masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])/$ 
+						total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
+						masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])
+			; the following just flags if the offset is too large?
+			if tmpx-xcentroids[i,j,0,it_elev] ge 1.1*tmpx then stop ; PI: Have never seen this flag
+			if tmpy-ycentroids[i,j,0,it_elev] ge 1.1*tmpy then stop ; PI: Have never seen this flag
           endfor
         endfor
       endif

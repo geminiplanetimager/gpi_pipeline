@@ -19,21 +19,50 @@ Exactly how you start up those two IDL sessions varies with operating system, an
 Starting from source code (either from the repository or zip files)
 ==========================================================================
 
-.. admonition:: Mac OS and Linux
+
+.. admonition:: Starting the pipeline manually
+
+    .. image:: ../shared_images/icon_mac2.png
+    .. image:: ../shared_images/icon_linux2.png
+    .. image:: ../shared_images/icon_windows2.png
+ 
+  On any OS you can simply start up the pipeline manually.
+
+  Start an IDL session. Run 
+
+     .. code-block:: idl
+
+       IDL> gpi_launch_pipeline 
+     
+  Start a second IDL session. Run 
+
+     .. code-block:: idl
+
+       IDL> gpi_launch_guis
+
+  If in the first IDL session you see a line reading "Now polling for
+  data in such-and-such directory", and the Status Console and
+  Launcher windows are displayed as :ref:`shown below <itsworking>`, then the pipeline has launched successfully.
+
+
+
+.. admonition:: Mac OS and Linux startup script
 
     .. image:: ../shared_images/icon_mac2.png
     .. image:: ../shared_images/icon_linux2.png
  
-  On Linux or Mac, a script is provided in pipeline/scripts that starts 2 xterms, each with an IDL session, and runs the two appropriate commands:
+  On Linux or Mac, a convenient shell script is provided in ``pipeline/scripts`` that starts 2 xterms, each with an IDL session, and runs the above two commands. This script is called ``gpi-pipeline``:
 
     ::
 
      shell> gpi-pipeline
 
   You should see two xterms appear, both launch IDL sessions, and various
-  commands run. If in the second xterm you see a line reading "Now polling for
-  data in such-and-such directory" at the bottom, and the GPI Status Console and
-  Launcher windows are displayed, then the pipeline has launched successfully.
+  commands run and status messages display. 
+
+  If in the second xterm you see a line reading "Now polling for
+  data in such-and-such directory", and the Status Console and
+  Launcher windows are displayed as :ref:`shown below <itsworking>`, then the pipeline has launched successfully.
 
 .. warning::
    In order for the ``gpi-pipeline`` script to work, your system must be set up such that IDL can be launched from the command line by running ``idl``.  The script will not execute correctly if you use an alias to start IDL rather than having the IDL executable in your path. In this case you will probably get an error in the xterms along the lines lines of: 'xterm: Can't execvp idl: No such file or directory'. To check on how you start IDL, run: ::
@@ -44,31 +73,23 @@ Starting from source code (either from the repository or zip files)
         
         shell> ln -s /path/to/idl idl
 
-   Note that you can always start the pipeline using two separate IDL sessions as in the Windows instructions, below.  You can also edit the ``gpi-pipeline`` script with the full path of your IDL binary.
+   If you encounter problems with the startup script, just start the IDL sessions manually as described above. 
 
-.. admonition:: Windows
+
+
+.. admonition:: Windows startup script
 
     .. image:: ../shared_images/icon_windows2.png
  
- On Windows, there is a batch script in the ``pipeline/scripts`` directory called ``gpi-pipeline-windows.bat``. Double click it to start the GPI pipeline. 
+   On Windows, there is a batch script in the ``pipeline/scripts`` directory called ``gpi-pipeline-windows.bat``. Double click it to start the GPI pipeline. 
 
- For convenience, you can create a shortcut of ``gpi-pipeline-windows.bat`` by right clicking on the file and selecting the option to create a shortcut. You can then place this on your desktop, start menu, or start screen to launch the pipeline from where it is convenient for you. 
+   If in the first IDL session you see a line reading "Now polling for
+   data in such-and-such directory", and the Status Console and
+   Launcher windows are displayed as :ref:`shown below <itsworking>`, then the pipeline has launched successfully.
 
-.. note::
-  Alternatively, on any OS you can use the following to start up the pipeline manually:
+   For convenience, you can create a shortcut of ``gpi-pipeline-windows.bat`` by right clicking on the file and selecting the option to create a shortcut. You can then place this on your desktop, start menu, or start screen to launch the pipeline from where it is convenient for you. 
 
-  Start an IDL session. Run 
-
-     ::
-
-       IDL> gpi_launch_pipeline 
-     
-  Start a second IDL session. Run 
-
-     ::
-
-       IDL> gpi_launch_guis
-
+   If you encounter problems with the startup script, just start the IDL sessions manually as described above. 
 
 
 Starting compiled code with the IDL Virtual Machine
@@ -77,73 +98,83 @@ Starting compiled code with the IDL Virtual Machine
 The compiled binary versions of DRP applications that can be started with the
 IDL Virtual Machine are:
 
-*  gpi_launch_pipeline.sav starts the pipeline controller, the administration console
+*  ``gpi_launch_pipeline.sav`` starts the pipeline controller and the status console
 
-*  gpitv.sav starts GPItv
+*  ``gpi_launch_guis.sav`` starts the Launcher and other GUIs. 
 
-*  gpi_launch_guis.sav starts an application that will allow the user to start the DRF-GUI, the Parser, GPItv, in addition to some other applications (DRF queue viewer, DST).
+These files are located in the ``executables`` subdirectory of the distributed zip files. 
 
-How to run a .sav file in the IDL Virtual Machine depends on your operating system. 
 
-.. admonition:: Mac OS and Linux
+How to run a .sav file in the IDL Virtual Machine depends on your operating system.  Please see `Exelis' page on Starting a Virtual Machine Application <http://www.exelisvis.com/docs/StartingVirtualMachineApplication.html>`_ for more details. 
+
+.. admonition::  Mac OS and Linux manual startup of the Virtual Machine
 
     .. image:: ../shared_images/icon_mac2.png
     .. image:: ../shared_images/icon_linux2.png
  
-  Just like for the source code install, a script is provided in pipeline/scripts that launches 2 IDL sessions, and starts the pipeline code. 
-  While the under the hood implementation is slightly different, the script name and effective functionality are identical::
-
-     shell> gpi-pipeline
-
-  You should see two xterms appear, both launch IDL sessions, and various
-  commands run. If in the second xterm you see a line reading "Now polling for
-  data in such-and-such directory" at the bottom, and the GPI Status Console and
-  Launcher windows are displayed, then the pipeline has launched successfully.
+  Mac and Linux users can launch the IDL virtual machine and then tell it to launch a particular .sav file. You'll need to repeat this for the two GPI pipeline IDL sessions. 
 
 
-  **Alternatives**
-
-  You may also choose to start the IDL runtime sessions manually, as follows. 
-  The first step is to launch the IDL Virtual Machine from the command line. To run a .sav file in the IDL Virtual Machine: 
-  
-  1. Enter the following at the UNIX command line::
-
-       >>>idl -vm=<path><filename>  
-
-     where <path> is the complete path to the .sav file and <filename> is the name of the .sav file. The IDL Virtual Machine window is displayed.
-  
-  2.  Click anywhere in the IDL Virtual Machine window to close the window and run the .sav file.
-  
   You may also launch the IDL Virtual Machine and use the file selection menu to locate the .sav file to run: 
   
   1. Enter the following at the UNIX command line::
 
        >>>idl -vm  
      
-     The IDL Virtual Machine window is displayed.
+     
   
-  2. Click anywhere in the IDL Virtual Machine window to display the file selection menu.
+  2. The IDL Virtual Machine window will be displayed. Click anywhere in the IDL Virtual Machine window to display the file selection menu.
 
   3.  Locate and select the .sav file and click OK.
 
-.. admonition:: Windows
+
+  To run a .sav file in the IDL Virtual Machine from the command line: 
+  
+  1. Enter the following at the UNIX command line::
+
+       >>>idl -vm=<path><filename>  
+
+     where <path> is the complete path to the .sav file and <filename> is the name of the .sav file. 
+     
+  2.  The IDL Virtual Machine logo window will be displayed.  Click anywhere in the IDL Virtual Machine window to close the window and run the .sav file.
+  
+
+  
+.. admonition:: Mac OS 
+
+    .. image:: ../shared_images/icon_mac2.png
+ 
+  Macintosh users can also drag and drop each .sav file onto the IDL Virtual Machine icon, and this will also work to launch it similarly to if you had started it from the command line. 
+  Depending on whether the .sav file extension is configured to be associated with IDL on your computer, you may be able to just double click the .sav files, too. 
+
+.. admonition:: Mac OS and Linux startup script
+
+    .. image:: ../shared_images/icon_mac2.png
+    .. image:: ../shared_images/icon_linux2.png
+ 
+   Just like for the source code install, a script is provided in ``pipeline/scripts`` that launches 2 IDL sessions, and starts the pipeline code. 
+   While the under the hood implementation is slightly different, the script name and effective functionality are identical.
+
+    ::
+
+      shell> gpi-pipeline
+
+   If in the first IDL session you see a line reading "Now polling for
+   data in such-and-such directory", and the Status Console and
+   Launcher windows are displayed as :ref:`shown below <itsworking>`, then the pipeline has launched successfully.
+
+   If you encounter problems with the startup script, just start the IDL sessions manually as described above. 
+
+
+.. admonition:: Windows manual startup of the Virtual Machine
 
     .. image:: ../shared_images/icon_windows2.png
  
-  Windows users can drag and drop the .sav file onto the IDL Virtual Machine
-  desktop icon, launch the IDL Virtual Machine and open the .sav file, or launch
-  the.sav file in the IDL Virtual Machine from the command line. 
+
+  Most simply, if your operating system has file extensions configured to associate .sav files with IDL, you can just double click.
+
+  1. 
   
-  To use drag and drop: 
-  
-  1.  Locate and select the .sav file in Windows Explorer.
-  
-  2.  Drag the file icon from the Windows Explorer list and drop it onto the IDL
-      Virtual Machine 8.0 icon that has been created for you on the desktop. The
-      IVM window is displayed.
-  
-  3.  Click anywhere in the IDL Virtual Machine window to close the window and
-      run the .sav file.
   
   To open a .sav file from the IDL Virtual Machine icon: 
   
@@ -155,13 +186,14 @@ How to run a .sav file in the IDL Virtual Machine depends on your operating syst
       selection menu.
   
   3.  Locate and select the .sav file, and double-click or click Open to run it.
-  
-  To run a .sav file from the command line
-  prompt: 
+
+
+ 
+  To run a .sav file from the command line prompt: 
   
   1. Open a command line prompt. Select Run from the Start menu, and enter cmd.
   
-  2.  Change directory (cd) to the ``IDL_DIR\bin\bin.platform`` directory where
+  2.  Change directory (cd) to the ``IDL_DIR\bin\bin.platform`` directory, where
       platform is the platform-specific bin directory.
   
   3.  Enter the following at the command line prompt::
@@ -170,36 +202,9 @@ How to run a .sav file in the IDL Virtual Machine depends on your operating syst
 
       where ``<path>`` is the path to the .sav file, and ``<filename>`` is the name of the .sav file.
 
-
-  
-.. admonition:: Mac OS 
-
-    .. image:: ../shared_images/icon_mac2.png
- 
-  Macintosh users can also drag and drop the .sav file onto the IDL Virtual Machine desktop icon, launch the IDL Virtual Machine and open the .sav file, or launch the.sav file in the IDL Virtual Machine from the command line. 
-  
-  To use drag and drop: 
-  
-  1. Locate and select the .sav file in the Finder.
-  
-  2. Drag the file icon from the Finder and drop it onto the IDL 8.0 Virtual
-     Machine icon that has been created for you on the desktop. The IDL Virtual
-     Machine window is displayed.
-  
-  3. Click anywhere in the IDL Virtual Machine window to close the window and run
-     the .sav file.
-  
-  To open a .sav file from the IDL Virtual Machine icon: 
-  
-  1.  Double-click the IDL 6.4 Virtual Machine icon to display the IDL Virtual
-      Machine window:
-  
-  2.  Click anywhere in the IDL Virtual Machine window to close the window and
-      display the file selection menu.
-  
-  3. Locate and select the .sav file and click OK.
   
  
+.. _itsworking:
 
 Pipeline IDL Session
 ==========================================================================
@@ -268,34 +273,3 @@ The ``gpi_launch_guis`` commands starts the GUI Launcher window:
 These are described in detail in the :ref:`user-intro`.
 
 
-.. _logging:
-
-Logging
-===========
-
-To ensure scientific reproducibility and aid in comparisons of results, the GPI data pipeline carefully logs its actions. 
-
-**Log files:**
-The GPI data pipeline writes a log of all activities to text files in the ``$GPI_DRP_LOG_DIR`` directory. 
-A new file is created for each date, with filenames following the format ``gpi_drp_YYMMDD.log`` where ``YYMMDD`` gives the current year, month, and date 
-numbers in standard Gemini fashion.  Log messages are also viewable on screen in the Status Console GUI, and printed to the console in the Pipeline IDL session.
-
-
-**FITS header history:** Provenance information is also written to FITS headers of all output files, in several forms. 
-
- 1.  A copy of the entire reduction recipe used to reduce a given file is pasted into the header, in a block of COMMENT lines. This block
-     also includes comments giving the values of any environment variables used in that recipe. If an output file from one recipe is then used as 
-     input to a subsequent recipe, then both recipes will be recorded in the headers cumulatively.
- 2.  HISTORY lines in the FITS headers record actions as each recipe is processed, including which primitives are run and what the results are
-     of various calculations. For each Primitive used in the recipe, a HISTORY line
-     states the specific revision id of that primitive.  HISTORY keywords also record the date and time of reduction, the 
-     computer hostname, and the username of the pipeline user. 
- 3.  Some values of particular interest such as the names of calibration files used to reduce a given data set are also written as
-     additional header keywords. For instance the keyword DRPWVCLF (DRP Wavecal File) records the name of the wavelength calibration file
-     used when reducing a given observation.  
-     
-Of particular note, the keyword ``QUIKLOOK = T`` indicates that a given file
-is the result of a "quicklook" quality reduction, typically in real time at the
-telescope. These may not have made use of optimal calibration files, are not
-likely to be as good as more careful re-analyses, and should
-generally not be used directly for publications.

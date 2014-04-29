@@ -9,6 +9,9 @@
 ;          s_Ext       : output filename extension (suffix)
 ;          /DEBUG      : initializes debugging mode
 ;          level2=	   : offset for file index, used in saving ADI sequences.
+;          indexFrame= : File index if you want to save some other than the
+;						 current file. Note that level2 and indexFrame are sort
+;						 of redundant. This could be cleaned up.
 ;
 ;          SaveData=     Save this data INSTEAD of the current DataSet pointer
 ;          SaveHeader=	 Extension Header for writing along with the SaveData data.
@@ -46,7 +49,7 @@
 
 
 function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=savedata, saveheader=saveheader, savePHU=savePHU,  $
-		output_filename=c_File, level2=level2
+		output_filename=c_File, level2=level2, indexFrame=indexFrame
 
     COMMON APP_CONSTANTS
     COMMON PIP
@@ -55,6 +58,7 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	version = gpi_pipeline_version()
 
     if keyword_set(level2) then i=level2-1 else i=numfile ;; Huh?  Used in some of the ADI/LOCI infrastructure? Cryptic, needs explanatory comment please.
+	if keyword_set(indexFrame) then i=indexFrame 
 
 	;=== Generate output filename, starting from the input one.
 	filenm=fxpar(*(DataSet.HeadersPHU[i]),'DATAFILE',count=cdf)
@@ -98,7 +102,8 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	; Generate output filename
 	; remove extension if need be
 	base_filename = file_basename(gpi_expand_path(filenm))
-	extloc = strpos(base_filename,'.', /reverse_search)
+	print, base_filename
+	extloc = strpos(base_filename,'.')
 
 	; suffix must be separated by a dash
 	if strmid(s_Ext,0,1) eq '-' then strreplace, s_Ext,'-','_' ; swap dashes to underscores!
@@ -192,7 +197,7 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
       	fxaddpar, *DataSet.HeadersPHU[i], 'DRPVER', version, ' Version number of GPI DRP software', after='TLCVER'
       	fxaddpar, *DataSet.HeadersPHU[i], 'DRPDATE', datestr+'T'+hourstr, ' UT creation time of this reduced data file', after='UTEND'
 		; update the header if we're writing out VAR or DQ extensions.
-		FXADDPAR,  *(dataset.headersPHU[numfile]),'NEXTEND',1+ptr_valid(dataSet.CurrDQ)+ptr_valid(dataset.CurrUncert)
+		FXADDPAR,  *(dataset.headersPHU[i]),'NEXTEND',1+ptr_valid(dataSet.CurrDQ)+ptr_valid(dataset.CurrUncert)
 
 
 		; update Gemini DATALABel keyword if present

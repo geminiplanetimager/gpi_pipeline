@@ -70,12 +70,12 @@ PRO launcher::event, ev
                 'dst':         begin
                         textinfo='Click to start the Data Simulation ' & textinfo2='Tool.'
                         end
-                'AutomaticProcGUI':begin
+                'autoreducer':begin
                       textinfo='Click to start simple automatic ' & textinfo2='reduction of incoming data files.'
                       end 
-                'makedatalogfile': begin
-                      textinfo='Click to create a text logfile of' & textinfo2='FITS files in a chosen directory.' 
-                      end
+                ;'makedatalogfile': begin
+                      ;textinfo='Click to create a text logfile of' & textinfo2='FITS files in a chosen directory.' 
+                      ;end
                 'quit':         begin
                    textinfo='Click to close this window.'
                    end
@@ -134,19 +134,18 @@ PRO launcher::event, ev
           end
 	'Launcher Help...': gpi_open_help, 'usage'
 	'GPI DRP Help...': gpi_open_help, ''
-	'GPItv': self->launch, 'gpitv'
-	'RecipeEditor': self->launch, 'gpi_recipe_editor', session=40
-	'ParserGUI': self->launch, 'parsergui', session=41
-	'QueueView': self->launch, 'queueview', session=42
+	'GPItv': self->launch, 'gpitv' ; will use next available free window handle
+	'RecipeEditor': self->launch, 'gpi_recipe_editor', session=self.max_n_sessions-5
+	'ParserGUI': self->launch, 'parsergui', session=self.max_n_sessions-4
+	'QueueView': self->launch, 'queueview', session=self.max_n_sessions-3
+    'autoreducer':self->launch, 'automaticreducer', session=self.max_n_sessions-2
     'dst': begin
 		if ~ self.enable_dst then begin
 	            void=dialog_message('The Data Simulation Tool is not an official part of the Gemini DRP. Please contact J. Maire or M. Perrin to make the DST available.')
 		endif else begin
-			self->launch, 'dst', session=43
+			self->launch, 'dst', session=self.max_n_sessions-1
 		endelse
 	end
-    'AutomaticProcGUI':self->launch, 'automaticreducer', session=44
-    'makedatalogfile':self->launch, 'makedatalogfile', session=45
     'quit': begin
         conf = dialog_message("Are you sure you want to exit the GPI Data Reduction Pipeline?",/question,title="Confirm Close",/default_no,/center)
         if conf eq "Yes" then obj_destroy, self
@@ -459,27 +458,43 @@ pro launcher::launch, objname, filename=filename, session=session, _extra=_extra
 
 		mnv = min(where(valid eq 0, nvct))
 		if nvct eq 0 then begin
-			message,/info, "Unable to launch new window - max # sessions hit!"
+			self->complain, "Unable to launch any new windows, no more available launcher session handles. You must have a TON of windows open, wow."
 			return
 		endif else begin
 			session=mnv[0]
 		endelse
 	endif
     if obj_valid(self.sessions[session]) then begin
-		; object already exists, so re-use it if some new filename is supplied
-			if keyword_set(filename) then self.sessions[session]->open, filename,_extra=_extra else $
-				message,/info, "Unable to launch new window in session "+strc(session)+", since that session is already in use."
-				return
+
+		existing_obj_type = self.sessions[session]->xname()
+
+		if strmatch(existing_obj_type, objname+"*",/fold_case) then begin
+			; that window object already exists, so re-use it if some new filename is supplied
+			if keyword_set(filename) then self.sessions[session]->open, filename,_extra=_extra else begin
+				self.sessions[session]->show
+				message,/info, "A "+objname+" window is already open. Reusing that."
+				;self->complain,  "Unable to launch new window in session "+strc(session)+", since that session is already in use."
+				;message,/info,  "Unable to launch a new "+objname+" in window session number "+strc(session)+", since that number is already in use."
+
+			endelse
+
+		endif else begin
+			; That window object already exists, but it's of a different type so
+			; we can't just reuse it.
+			self->complain, "Cannot launch a "+objname+" in window session "+strc(session)+", because that session handle is already being used for a window of type "+strc(existing_obj_type)
+		endelse 
+
+
 	endif else begin
 		; need to create a new object
 
-		valid_cmds = ['gpitv', 'gpi_recipe_editor', 'parsergui', 'queueview', 'dst', 'automaticreducer','makedatalogfile']
-		provide_launcher_handle = [0,0,0,0,0,1,0]
+		valid_cmds = ['gpitv', 'gpi_recipe_editor', 'parsergui', 'queueview', 'dst', 'automaticreducer']
+		provide_launcher_handle = [0,0,0,0,0,1]
 
 		if total(strmatch(valid_cmds, objname,/fold_case)) eq 0 then begin
-			message,/info, 'Invalid command name: '+objname
+			self->complain, 'Invalid command name: '+objname
 		endif else begin
-		
+			message,/info, 'Launching a new '+objname+" window in session #"+strc(session)	
 			if keyword_set(filename) then self.sessions[session] = obj_new(objname, filename, session=session, _extra=_extra) $
 									 else self.sessions[session] = obj_new(objname, session=session, _extra=_extra)
 			; some objects may want a handle to this launcher object to launch
@@ -531,7 +546,7 @@ PRO launcher::cleanup
 
 	;self->clear_queue
 
-	for i=0,self.max_sess-1 do if obj_valid(self.sessions[i]) then obj_destroy, self.sessions[i]
+	for i=0,self.max_n_sessions-1 do if obj_valid(self.sessions[i]) then obj_destroy, self.sessions[i]
     ptr_free, self.cmd_queue_flags
     ptr_free, self.cmd_queue
     ptr_free, self.cmd_queue_args
@@ -547,6 +562,20 @@ PRO launcher::cleanup
 
 
 end
+
+;+------------------
+; launcher::complain
+;	Display an error message to the user and log in the IDL console session. 
+;	TODO: have a log file for this too? 
+;-
+PRO launcher::complain, msg, title=title
+
+	msg = string(msg)
+	message,/info, msg
+	answer=dialog_message(msg, dialog_parent=self.baseid, title=title, /error)
+
+end
+
 
 
 ;+------------------
@@ -565,7 +594,7 @@ FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, cle
 	endif
 
   
-	self.max_sess = n_elements(self.sessions)
+	self.max_n_sessions = n_elements(self.sessions)
 	self.queuelen=10
 	self.username=strmid(getenv('USER'),0,8) ;JM fixed bug with long name (shmmap do not support them)
     if strmatch(!VERSION.OS_FAMILY , 'Windows',/fold) then self.username=strmid(getenv('USERNAME'),0,8) ; windows username is different
@@ -641,7 +670,7 @@ FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, cle
         bclose = widget_button(frame,VALUE='Recipe Editor',UVALUE='RecipeEditor', resource_name='button', /tracking_events)
         bclose = widget_button(frame,VALUE='Queue Viewer',UVALUE='QueueView', resource_name='button', /tracking_events)
 		bclose = widget_button(frame,VALUE='GPItv',UVALUE='GPItv', resource_name='button', /tracking_events)
-		bclose = widget_button(frame,VALUE='Auto-Reducer',UVALUE='AutomaticProcGUI', resource_name='button', /tracking_events)
+		bclose = widget_button(frame,VALUE='Auto-Reducer',UVALUE='autoreducer', resource_name='button', /tracking_events)
         ;bclose = widget_button(frame,VALUE='Data log-file',UVALUE='makedatalogfile', resource_name='button', /tracking_events)
 		if self.enable_dst then bclose = widget_button(frame,VALUE='DST',UVALUE='dst', resource_name='button', /tracking_events)
 		tmp = widget_label(frame, value=' ')
@@ -704,7 +733,7 @@ PRO launcher__define
 		cmd_queue_flags: ptr_new(), $
 		cmd_queue: ptr_new(), $
 		cmd_queue_args: ptr_new(), $
-		sessions: objarr(50), $
-		max_sess: 0L}
+		sessions: objarr(200), $
+		max_n_sessions: 0L}
 
 end

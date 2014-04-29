@@ -9,6 +9,17 @@ Thermal emission (from sky or telescope) becomes an important background source 
 
 In a thermal background image, image artifacts include striping, microphonics, dark current/bias and possibly persistence (although this is ignored here). Because the background is merely a flux, a long exposure can be taken and then scaled to the relative exposure time and unlike darks, the pipeline is set up to do so. Thus, one set of relatively deep background observations will suffice to correct observations in the same mode but with different integration times. 
 
+The observed background pattern for the GPI IFS is brighter near the 'top' of the field of view (in detector coordinates). At the very top of the field, in data taken after the servicing in early 2014, an internal baffle blocks the excess thermal emission so the background is reduced there. Note that this is *NOT* a vignetting of actual science data in the field, but rather a reduction of background thermal light scattered in from rays outside the field of view. 
+
+It is hypothesized that most of this gradient is due to thermal emission from the pupil viewer camera and its optics, which are room temperature and mounted onto a side port of the IFS located after the Lyot stop. Thermal emission from these 300 K objects can enter the IFS and (we hypothesize) some fraction of it scatters off of the internal surfaces of the optics enclosurse to reach the lenslet array. Due to the spectrograph optical design and mechanical constraints it is not possible to baffle this area completely. 
+
+.. figure:: GCAL_background_K2.png
+       :width: 513pt
+       :align: center
+
+
+
+
 Using Thermal/Sky Backgrounds in GPI Data Reduction:
 ----------------------------------------------------------
 
@@ -28,7 +39,7 @@ Creating Calibrations:
 
 **File Suffix:** bkgnd
 
-To generate a background calibration, obtain a number of images of the relevant background (e.g. sky frames, or images of the dome interior with calibration lamps turned off), with as similar as possible instrument settings to your science data. Reduce these frames with the above recipe. As per usual, take enough frames to ensure a good S/N measurement.
+To generate a background calibration, obtain a number of images of the relevant background (e.g. sky frames, or images with calibration lamps turned off), with as similar as possible instrument settings to your science data. At Gemini this is most easily accomplished by viewing GCAL's IR flat lamp but leaving the shutter closed so that no light exits GCAL.  Reduce these frames with the above recipe. As per usual, take enough frames to ensure a good S/N measurement.
 
 The Data Parser does not currently automatically generate recipes for this calibration reduction.
 

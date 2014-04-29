@@ -224,7 +224,10 @@ PRO gpicaldatabase::rescan_directory
 	; the following code will follow through one layer of symlinks, for any symlinks 
 	; found in the caldir. It won't recursively follow any additional symlinks.
 	; That's probably good enough for >99% of use cases.
-	symlinks = file_search(self.caldir, '*', /test_symlink, count=count_symlinks)
+	
+if strmatch(!VERSION.OS_FAMILY , 'Windows',/fold) then count_symlinks = 0 $;not sure why not working under Wnidows
+else 	symlinks = file_search(self.caldir, '*', /test_symlink, count=count_symlinks)
+
 	if count_symlinks gt 0 then begin
 		for j=0L,count_symlinks-1 do begin
 			files = [files,file_search(symlinks[j],"*.fits")]
@@ -438,7 +441,9 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	; just 'itime' unless someone has another opinion?
 
                                 ; FIXME perhaps this should be a configuration file instead?
-        types_str =[['dark', 'Dark', 'ApproxItimeReadmode'], $  ;  dark with scaling of inttime allows 
+        types_str =[['dark', 'Dark', 'ApproxItimeReadmode'], $  ;  dark with scaling of inttime allowed 
+                    ['dark_before', 'Dark', 'ApproxItimeReadmodeBefore'], $  ;  dark with scaling of inttime allowed, PRIOR TO science frame
+                    ['dark_after', 'Dark', 'ApproxItimeReadmodeAfter'], $  ;  dark with scaling of inttime allowed, AFTER science frame
 					['dark_exact', 'Dark', 'itimeReadmode'],  $ ;  dark with exact match required
                     ['wavecal', 'Wavelength Solution Cal File', 'FiltPrism'], $
                     ['flat', 'Flat Field', 'FiltPrism'], $
@@ -548,24 +553,6 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	    imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
 	   		(calfiles_table.itime) eq itime,cc)
 		errdesc = 'with same ITIME'
-
-		; NOTE: we are no longer going to hand back approximate matches, since
-		; that would involve rescaling in darks that we do not do. Instead, you
-		; must always have the appropriate ITIME darks. 
-		;		; FIXME if no exact match found for itime, fall back to closest match
-		;		if cc eq 0 then begin
-		;			self->Log, "No exact match found for ITIME, thus looking for closesd approximate mathc instead",depth=3
-		;	    	imatches_typeonly= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold))
-		;			deltatimes = calfiles_table[imatches_typeonly].itime - itime
-		;
-		;			mindelta = min( abs(deltatimes), wmin)
-		;			imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
-		;				            (calfiles_table.itime) eq calfiles_table[wmin[0]].itime,cc)
-		;			self->Log, "Found "+strc(cc)+" approx matches with ITIME="+strc(calfiles_table[wmin[0]].itime)
-		;
-		;
-		;		endif
-
 	end
 	'itimeReadmode': begin
 	    imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
@@ -610,6 +597,27 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 
 		;endif
 	end
+	'ApproxItimeReadmodeBefore': begin
+		max_allowed_rescale = 3.0	
+		; Find best available dark *before* science data, used for interpolation option
+			self->Log, "Looking for approximate match on ITIME within a factor of "+sigfig(max_allowed_rescale,2)+" BEFORE the sci data",depth=3
+		   	imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
+				( (calfiles_table.itime gt itime/max_allowed_rescale) AND (calfiles_table.itime lt itime*max_allowed_rescale) ) and $
+				( calfiles_table.JD lt date) , cc)
+			errdesc = 'with approximatedly same ITIME and Detector Readout Mode, BEFORE the sci data'
+	        self->Log, " Found "+strc(cc)+" approx matches.",depth=3
+	end
+	'ApproxItimeReadmodeAfter': begin
+		max_allowed_rescale = 3.0	
+		; Find best available dark *after* science data, used for interpolation option
+			self->Log, "Looking for approximate match on ITIME within a factor of "+sigfig(max_allowed_rescale,2)+" AFTER the sci data",depth=3
+		   	imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
+				( (calfiles_table.itime gt itime/max_allowed_rescale) AND (calfiles_table.itime lt itime*max_allowed_rescale) ) and $
+				( calfiles_table.JD gt date) , cc)
+			errdesc = 'with approximatedly same ITIME and Detector Readout Mode, AFTER the sci data'
+	        self->Log, " Found "+strc(cc)+" approx matches.",depth=3
+	end
+
 	'FiltPrism': begin
 		 imatches= where( strmatch(calfiles_table.type, types[itype].description,/fold) and $
 	   		((calfiles_table.filter) eq filter ) and $

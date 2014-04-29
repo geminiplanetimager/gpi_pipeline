@@ -7,7 +7,7 @@
 ;	user-indicated cube, or any user-supplied spectral response function (e.g. derived 
 ;	from an open loop image of a standard star). 
 ;
-; The user may also specify the extraction and sky radii used in performing the aperture photometry.
+; The user may also specify the extraction and sky radii used in performing the aperture photometry. Note that the 'annuli' only represent the radial size of the extraction. The background is extracted by fitting a plane an annulus surrounding the central star at the same radius as the planet. The width of the annulus is equal to the inner_sky_radius, the outer annulus describes the distance from the companion to the edges of the annulus that should be considered when fitting the plane
 ;
 ; WARNING: the user-supplied spectral response function is not yet implemented.
 ;	
@@ -88,7 +88,7 @@ lambda=cwv.lambda
 ; if nothing is supplied, then we use the cube itself.
 if strc(calib_spectrum) eq '' and strc(calib_cube_name) eq '' then begin
 	backbone->Log,functionname+":  calib_spectrum nor calib_cube_name specified, using the sat spots in the supplied cube"+string(calib_cube_name)+" to generate calibration"
-	calib_cube_struct={image:dataset.currframe[numfile],pri_header:dataset.headersphu[numfile],ext_header:dataset.headersext[numfile]}
+	calib_cube_struct={image:dataset.currframe[0],pri_header:dataset.headersphu[numfile],ext_header:dataset.headersext[numfile]}
 endif
 
 ; first have to determine if a calibration spectrum is supplied
@@ -131,7 +131,7 @@ if keyword_set(calib_cube_name) eq 1 or keyword_set(calib_cube_struct) eq 1 then
 				backbone->Log,logstr
 				calib_cube_struct=gpi_load_fits(Modules[thisModuleIndex].OutputDir+path_sep()+calib_cube_name)
 			endif else begin ; no? - then fail
-				logstr = functionname+':  User specified cube name does not exist; check filename and directory. Aborting sequence'
+				logstr = functionname+':  User specified cube name '+strc(calib_cube_name)+'  does not exist; check filename and directory. Aborting sequence'
 				backbone->Log,logstr
 				return, not_ok
 			endelse
@@ -167,15 +167,16 @@ if ct eq 0 then return, error('FAILURE ('+functionName+'): SATSWARN undefined.  
 	stddev_sat_flux=  fltarr(n_elements(cens[0,0,*]))
 
 	if c_ap_scaling eq 1 then begin
-  aperrad0=extraction_radius/lambda[N_ELEMENTS(lambda)/2]  
-	sat_skyrad0 =[inner_sky_radius, outer_sky_radius]/lambda[N_ELEMENTS(lambda)/2]
-		endif else begin
-	aperrad0=extraction_radius/lambda 
-	sat_skyrad0 =[inner_sky_radius, outer_sky_radius]/lambda
+		aperrad0=fltarr(N_ELEMENTS(lambda))
+  		aperrad0[*]=extraction_radius/lambda[N_ELEMENTS(lambda)/2]  
+		sat_skyrad0 =[inner_sky_radius, outer_sky_radius]/lambda[N_ELEMENTS(lambda)/2]
+	endif else begin
+		aperrad0=extraction_radius/lambda 
+		sat_skyrad0 =[inner_sky_radius, outer_sky_radius]/lambda
 	endelse
  	phpadu = 1.0 
   for s=0,n_elements(cens[0,0,*])-1 do begin
-	aperrad = aperrad0*lambda[s]
+	aperrad = aperrad0[s]*lambda[s]
  	sat_skyrad = sat_skyrad0*lambda[s]
 
      ;;using aperature radius 3 pixels
@@ -218,20 +219,93 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 		; centroid must be at a half pixel
 		x0=floor(xarr[cent_ind])+0.5
 		y0=floor(yarr[cent_ind])+0.5
-		
+		;window,1
+		;plot, lambda[ind],xarr0[ind],yr=[min(xarr0[ind],/nan),max(xarr0[ind],/nan)],title='xposition of sat spot '+strc(s)
+		;oplot, lambda,xarr
+		;window,2
+		;plot, lambda[ind],yarr0[ind],yr=[min(yarr0[ind],/nan),max(yarr0[ind],/nan)],title='yposition of sat spot '+strc(s)
+		;oplot, lambda,yarr
+		;stop
+		;wdelete,1
+		;wdelete,2
+
+
+		; start photometry
+		ygrid=findgen(281)##(fltarr(281)+1)
+		xgrid=transpose(ygrid)
+	
+		psfcentx= sxpar(*calib_cube_struct.ext_header,"PSFCENTX",count=ct)	
+		psfcenty= sxpar(*calib_cube_struct.ext_header,"PSFCENTY",count=ct)	
+		ygrid-=psfcenty
+		xgrid-=psfcentx
+	
+		; first rotate the grids such that the angle is defined to be zero
+		; where the satellite is
+		; get the angle from the declared position [x0,y0]
+		theta0=atan((y0-psfcenty)/(x0-psfcentx))
+
+		; want to rotate away not towards
+		theta=-theta0
+
+		xgrid2=xgrid*cos(theta)-ygrid*sin(theta) ; rotate coord system
+		ygrid2=xgrid*sin(theta)+ygrid*cos(theta)
+		rad_arr=sqrt(xgrid2^2+ygrid2^2); make radius array
+		ang_arr=atan(ygrid2/(xgrid2)) ; make angle array
+		xgrid=temporary(xgrid2)
+		ygrid=temporary(ygrid2)
+
 		; loop over the wavelength
 		for l=0, N_ELEMENTS(lambda)-1 do begin
-				aperrad = aperrad0*lambda[l]
+				aperrad = aperrad0[l]*lambda[l]
 			 	skyrad = sat_skyrad0*lambda[l]
 
-			; do the photometry
+				; do the photometry
 				trans_cube_slice=translate(calib_cube[*,*,l],x0-xarr[l],y0-yarr[l])
+				
+				; HIGHPASS FILTER FOR TESTING ONLY
+;				trans_cube_slice -= filter_image(trans_cube_slice,median=30)	
+
 
 			; do an error approximation - the error is useless from aper unless in photons and
 				; even then it adds photon noise that won,t be correct.
 				;get size of aperture in pixels - this is not really exact...
 				src_ind=get_xycind(281,281,x0,y0,aperrad)
-				bkg_ind=get_xyaind(281,281,x0,y0,skyrad[0],skyrad[1]-skyrad[0])
+				;bkg_ind=get_xyaind(281,281,x0,y0,skyrad[0],skyrad[1]-skyrad[0])
+
+			; look at fitting around an annulus instead
+				; first find the planet/star separation
+				sep=sqrt((x0-psfcentx)^2+(y0-psfcenty)^2)
+				dr= ceil(aperrad*2)
+
+				; set to REAL ANGLE SOON
+				dang=(skyrad[1]/sep)
+
+				parity=(x0-psfcentx)/abs((x0-psfcentx))
+				bkg_ind0=where(xgrid/abs(xgrid) eq parity and  ang_arr gt ((-dang) mod !pi) and $
+					 ang_arr lt ((dang) mod !pi) and $
+				rad_arr gt sep-dr and rad_arr lt sep+dr )
+
+				;if l eq 15 then begin
+				;	tmp=fltarr(281,281)
+				;	tmp[bkg_ind0]=1
+				;	window,13,xsize=300,ysize=300,title="satellite "+strc(s)+" background region"
+				;	tvdl,tmp
+				;	;wait,1
+				;endif
+
+
+				; mask source region+1 pixel
+				tmp_src_ind=get_xycind(281,281,x0,y0,ceil(skyrad[0]))
+				bkg_ind=setdifference(bkg_ind0,tmp_src_ind)
+	
+				; declare arrays when in the first iteration of loop
+				if l eq 0 then begin
+					bkg_ind_slice0=bkg_ind			
+					bkg_ind_arr=fltarr(N_ELEMENTS(lambda),N_ELEMENTS(bkg_ind_slice0))
+				endif
+				bkg_ind_arr[l,*]=trans_cube_slice[bkg_ind_slice0]
+
+				; error check to see that not all nan's are encountered
 				if bkg_ind[0] eq -1 or total(finite(trans_cube_slice[bkg_ind])) eq 0 or total(finite(trans_cube_slice[src_ind])) eq 0 then begin
 					phot_comp[l]=!values.f_nan
 					phot_comp_err[l]=!values.f_nan
@@ -242,12 +316,63 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 				finite_bkg_ind=bkg_ind[where(finite(trans_cube_slice[bkg_ind]) eq 1)]
 				; fits and subtracts a plane to get proper error estimation
 				coef = PLANEFIT( finite_bkg_ind mod 281 ,finite_bkg_ind / 281,trans_cube_slice[finite_bkg_ind],weights, yfit )
+
+			
+				; get source bkg plane
 				xinds=src_ind mod 281 & yinds=src_ind / 281	
 				src_bkg_plane=coef[0]+coef[1]*xinds+coef[2]*yinds	
+
+				; OVERRIDE
+				yfit[*]=median(trans_cube_slice[finite_bkg_ind])
+				src_bkg_plane[*]=median(trans_cube_slice[finite_bkg_ind])
+	
 				; peform background subtraction
 				satflux_arr[s,l]=total(trans_cube_slice[src_ind]-src_bkg_plane)
-				bkg_stddev=stddev(trans_cube_slice[finite_bkg_ind]-yfit,/nan)
-				satflux_err_arr[s,l]=sqrt(float(N_ELEMENTS(src_ind))*(bkg_stddev)^2)
+							
+				; now do the error bar - this is dirty and must be cleaned up.. 
+				; must convolve the bkg by the source annulus, then 
+				bkg=fltarr(281,281) & mask=fltarr(281,281)+1
+				bkg[finite_bkg_ind]=trans_cube_slice[finite_bkg_ind]-yfit
+				bkg_bad=where(bkg eq 0)
+				bkg[bkg_bad]=!values.f_nan & mask[bkg_bad]=!values.f_nan
+				kernel0=fltarr(281,281)
+				kernel0[src_ind]=1
+				kernel=subarr(kernel0,ceil(aperrad*2)+2,[x0,y0])
+				bkg_conv=convol(bkg,kernel,/nan)
+				mask2=convol(mask,kernel,/nan)
+				good_ind=where(mask2 eq N_ELEMENTS(src_ind))
+				satflux_err_arr[s,l]=stddev(bkg_conv[good_ind],/nan,/double)
+
+
+
+				if finite(satflux_err_arr[s,l]) eq 0 then stop
+
+				; examine the fit
+				if 0 eq 1 and l eq 15 then begin
+					yfit2d=fltarr(281,281)
+					yfit2d[*,*]=!values.f_nan
+					yfit2d[finite_bkg_ind]=yfit
+					yfit2d[src_ind]=src_bkg_plane
+					tmask=fltarr(281,281)
+					tmask[*,*]=!values.f_nan
+					tmask[good_ind]=1 & tmask[src_ind]=1
+					rmax=max(trans_cube_slice[good_ind],/nan)
+					rmin=min(trans_cube_slice[good_ind],/nan)
+					sz=skyrad[1]*2*3;(ceil(aperrad*2)+2)*40 
+					sz=300
+					loadct,1
+					window,0, xsize=sz*4,ysize=sz,title='satellite '+strc(s)+' background region/fit/residuals/error',xpos=0,ypos=400
+					tvdl, subarr(trans_cube_slice*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),rmin,rmax,position=0
+					tvdl, subarr(yfit2d*tmask,          ceil(skyrad[1]+1)*2,[x0,y0]),rmin,rmax,position=1
+					tvdl, subarr((trans_cube_slice-yfit2d)*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=2
+					mask[src_ind]=!values.f_nan
+					tvdl, subarr(bkg_conv*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=3
+					print, 'SNR at slice 15 = ',strc(satflux_arr[s,l]/satflux_err_arr[s,l])
+
+					;stop
+
+				endif
+
 		endfor ; end loop over photometry of wavelength slices
 
 	endfor ; end loop over satellites
@@ -258,33 +383,62 @@ sat3flux=satflux_arr[2,*]
 sat4flux=satflux_arr[3,*]
 
 ; determine the normalization of the satellites. This is currently a little crude but works ok
-	norm1=median(sat1flux[5:N_ELEMENTS(lambda)-5]) ; do not use the low throughput regions of the filter bands
-	norm2=median(sat2flux[5:N_ELEMENTS(lambda)-5])
-	norm3=median(sat3flux[5:N_ELEMENTS(lambda)-5])
-	norm4=median(sat4flux[5:N_ELEMENTS(lambda)-5])
-	mean_norm=mean([norm1,norm2,norm3,norm4])
 
-	for l=0,n_elements(lambda)-1 do begin
- 	; now look at scaling the values to remove net flux offsets
-		stddev_sat_flux[l]=robust_sigma([sat1flux[l]/norm1, sat2flux[l]/norm2, sat3flux[l]/norm3, sat4flux[l]/norm4]) ; counts/slice
-		; however, the stddev cannot be smaller than the mean noise of the 4 spots - this never actually happens....
-		photom_noise=sqrt(total(satflux_err_arr[*,l]^2))
-		if stddev_sat_flux[l] eq -1 then stddev_sat_flux[l]=(stddev([sat1flux[l]/norm1, sat2flux[l]/norm2, sat3flux[l]/norm3, sat4flux[l]/norm4]))>(photom_noise/mean_norm)
-		mean_sat_flux[l]=median([sat1flux[l]/norm1, sat2flux[l]/norm2, sat3flux[l]/norm3, sat4flux[l]/norm4],/even)*mean_norm ; counts/slice
-		stddev_sat_flux[l]*=(mean_norm)
-	endfor
+norm1=total(sat1flux[5:N_ELEMENTS(lambda)-5],/nan) 
+norm2=total(sat2flux[5:N_ELEMENTS(lambda)-5],/nan) 
+norm3=total(sat3flux[5:N_ELEMENTS(lambda)-5],/nan) 
+norm4=total(sat4flux[5:N_ELEMENTS(lambda)-5],/nan) 
 
-if 1 eq 1 then begin
-window,19,xsize=700,ysize=400
-device,decomposed=0
-ploterror, lambda, mean_sat_flux,stddev_sat_flux, xr=[min(lambda),max(lambda)],/xs,xtitle='wavelength', ytitle='sat spot intensity (ADU)',charsize=1.5,background=cgcolor('white'),color=cgcolor('black'),thick=2
-oplot, lambda,(sat1flux/norm1)*mean_norm, color=cgcolor('blue'),linestyle=2,thick=2
-oplot, lambda,sat2flux/norm2*mean_norm, color=cgcolor('teal'),linestyle=3,thick=2
-oplot, lambda,sat3flux/norm3*mean_norm, color=cgcolor('red'),linestyle=4,thick=2
-oplot, lambda,sat4flux/norm4*mean_norm, color=cgcolor('green'),linestyle=5,thick=2
-legend,['median(even)','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/right,textcolor=cgcolor('black')
+mean_norm=mean([norm1,norm2,norm3,norm4])
+
+for l=0,n_elements(lambda)-1 do begin
+	; now look at scaling the values to remove net flux offsets
+	stddev_sat_flux[l]=robust_sigma([sat1flux[l]/norm1, sat2flux[l]/norm2, sat3flux[l]/norm3, sat4flux[l]/norm4]) ; counts/slice
+	; however, the stddev cannot be smaller than the mean noise of the 4 spots - this never actually happens....
+	photom_noise=sqrt(total(satflux_err_arr[*,l]^2))
+	if stddev_sat_flux[l] eq -1 then stddev_sat_flux[l]=(stddev([sat1flux[l]/norm1, sat2flux[l]/norm2, sat3flux[l]/norm3, sat4flux[l]/norm4]))>(photom_noise/mean_norm)
+	mean_sat_flux[l]=mean([sat1flux[l]/norm1, sat2flux[l]/norm2, sat3flux[l]/norm3, sat4flux[l]/norm4])*mean_norm ; counts/slice
+	; new error analysis
+
+
+
+	stddev_sat_flux[l]*=(mean_norm)
+endfor
+
+	; the following is for satellite spot evaluation
+	if 0 eq 1 then begin
+	window,19,xsize=700,ysize=400
+	device,	decomposed=0
+	dlambda=lambda[1]-lambda[0]
+	ploterror, lambda, mean_sat_flux,stddev_sat_flux, xr=[min(lambda)-dlambda,max(lambda)+dlambda],/xs,xtitle='wavelength', ytitle='sat spot intensity (ADU)',charsize=1.5,background=cgcolor('white'),color=cgcolor('black'),thick=2
+	oplot, lambda,(sat1flux/norm1)*mean_norm, color=cgcolor('blue'),linestyle=2,thick=2
+	oplot, lambda,sat2flux/norm2*mean_norm, color=cgcolor('teal'),linestyle=3,thick=2
+	oplot, lambda,sat3flux/norm3*mean_norm, color=cgcolor('red'),linestyle=4,thick=2
+	oplot, lambda,sat4flux/norm4*mean_norm, color=cgcolor('green'),linestyle=5,thick=2
+	legend,['mean','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/right,textcolor=cgcolor('black')
+
+	window,20,xsize=700,ysize=400
+	device,decomposed=0
+	ploterror, lambda, mean_sat_flux/mean_sat_flux,stddev_sat_flux/mean_sat_flux, xr=[min(lambda)-dlambda,max(lambda)+dlambda],/xs,xtitle='wavelength', ytitle='sat spot intensity (ADU)',charsize=1.5,background=cgcolor('white'),color=cgcolor('black'),thick=2
+	oplot, lambda,(sat1flux/norm1)*mean_norm/mean_sat_flux, color=cgcolor('blue'),linestyle=2,thick=2
+	oplot, lambda,sat2flux/norm2*mean_norm/mean_sat_flux, color=cgcolor('teal'),linestyle=3,thick=2
+	oplot, lambda,sat3flux/norm3*mean_norm/mean_sat_flux, color=cgcolor('red'),linestyle=4,thick=2
+	oplot, lambda,sat4flux/norm4*mean_norm/mean_sat_flux, color=cgcolor('green'),linestyle=5,thick=2
+	legend,['mean','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/right,textcolor=cgcolor('black')
+
+	window,21,xsize=700,ysize=400
+	device,decomposed=0
+	ploterror, lambda, mean_sat_flux/mean_sat_flux,stddev_sat_flux/mean_sat_flux, xr=[min(lambda)-dlambda,max(lambda)+dlambda],xs=1,xtitle='wavelength', ytitle='sat spot intensity (ADU)',charsize=1.5,background=cgcolor('white'),color=cgcolor('black'),thick=2,errthick=2
+	oploterror, lambda,(sat1flux/norm1)*mean_norm/mean_sat_flux, satflux_err_arr[0,*]/sat1flux, color=cgcolor('blue'),linestyle=2,thick=2
+	oploterror, lambda,sat2flux/norm2*mean_norm/mean_sat_flux, satflux_err_arr[1,*]/sat2flux, color=cgcolor('teal'),linestyle=3,thick=2
+	oploterror, lambda,sat3flux/norm3*mean_norm/mean_sat_flux, satflux_err_arr[2,*]/sat3flux, color=cgcolor('red'),linestyle=4,thick=2
+	oploterror, lambda,sat4flux/norm4*mean_norm/mean_sat_flux, satflux_err_arr[3,*]/sat4flux, color=cgcolor('green'),linestyle=5,thick=2
+
+	legend,['mean','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/left,textcolor=cgcolor('black')
+
+	stop
+
 endif
-
 	
 	; Must approximate a ratio between the flux in the aperture, and the flux outside the aperture.
 	; The truth is that we really don't have a good idea of how it changes radially. What we do know is that it is about 
@@ -295,17 +449,17 @@ endif
 	mean_sat_flux/=contained_flux_ratio ; so this gives the total flux for a given satellite
 	stddev_sat_flux/=contained_flux_ratio ; and the total error for a given satellite
 
-; this is meant to determine what you need to multiply by in order to calibrate your spectrum
-; calibrated spectrum=spectrum/reference_spectrum * converted_model_reference_spectrum
-unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A','ergs/s/cm^2/Hz']
+	; this is meant to determine what you need to multiply by in order to calibrate your spectrum
+	; calibrated spectrum=spectrum/reference_spectrum * converted_model_reference_spectrum
+	unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A','ergs/s/cm^2/Hz']
 
 
-; check if the user supplied a magnitude for the band that can be used instead of the HMAG in the header
-;test=sxpar(*(dataset.headersPHU[numfile]),"MAGNITUD",count=ct)
-;if ct[0] ne 0 then begin
-;	star_mag=test[0]
-;	backbone->Log,functionname+":  Using user specified magnitude value instead of "+strc(star_mag)+" instead of the default HMAG keyword"
-;endif
+	; check if the user supplied a magnitude for the band that can be used instead of the HMAG in the header
+	;test=sxpar(*(dataset.headersPHU[numfile]),"MAGNITUD",count=ct)
+	;if ct[0] ne 0 then begin
+	;	star_mag=test[0]
+	;	backbone->Log,functionname+":  Using user specified magnitude value instead of "+strc(star_mag)+" instead of the default HMAG keyword"
+	;endif
 
 ; should actually put in the data from the calibration cube!
 ; aso have to pass a variable with the calib_model_spectrum
@@ -319,6 +473,12 @@ if converted_model_spectrum[0] eq -1 then return, error('FAILURE ('+functionName
 ; now correct the spectrum
 calibrated_cube=fltarr(281,281,N_ELEMENTS(lambda))
 cube=*(dataset.currframe[0]) ; in ADU/coadd normally , but not always!!
+
+	; HIGHPASS FILTER FOR TESTING ONLY
+;for l=0, N_ELEMENTS(lambda)-1 do cube[*,*,l] -= filter_image(cube[*,*,l],median=15)	
+
+
+
 conv_fact= 1.0/mean_sat_flux * converted_model_spectrum ; mean sat flux is also in ADU/coadd
 for l=0, N_ELEMENTS(lambda)-1 do calibrated_cube[*,*,l]=cube[*,*,l] * conv_fact[l]
 calibrated_cube_err=stddev_sat_flux * conv_fact
@@ -381,7 +541,8 @@ unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm
 		backbone->set_keyword, 'EFLUXRAT',  contained_flux_ratio ,"flux ratio in photom aper", ext_num=0
 ;calibrated_cube[*,*,0:2]=0.0
 ;calibrated_cube[*,*,34:36]=0
-*(dataset.currframe[numfile])=calibrated_cube
+;*(dataset.currframe[numfile])=calibrated_cube  ; orig
+*(dataset.currframe[0])=calibrated_cube  ; orig
 
 @__end_primitive 
 

@@ -35,12 +35,28 @@
 ;+
 
 FUNCTION gpi_wavecal_wrapper, xdim,ydim,refwlcal,lensletarray,badpixels,wlcalsize,startx,starty,whichpsf,$
-	image_uncert=image_uncert, debug=debug, $
+	image_uncert=image_uncert, debug=debug, psffn=psffn, count=count,jcount=jcount,$
 	modelimage=modelimage, modelmask=modelmask, modelbackground=modelbackground
 
 common ngausscommon, numgauss, wl, flux, lambdao, my_psf
+common highrespsfstructure, myPSFs_array
+common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
 
 nflux=size(flux,/dimensions)
+
+;read in my_psf
+if whichpsf EQ 'nmicrolens' then begin
+;print,count,xdim,ydim
+   if (count EQ 1 AND jcount EQ 1) then begin
+       myPSFs_array = gpi_highres_microlens_psf_read_highres_psf_structure(psffn, [281,281,1])
+       print, 'Created myPSFs array.'
+    endif
+       ptr = gpi_highres_microlens_psf_get_local_highres_psf(myPSFs_array,[xdim,ydim,0])
+       if ptr_valid(myPSFs_array[xdim,ydim]) then begin
+          my_psf = *myPSFs_array[xdim,ydim]
+;          print,'psf was valid'
+       endif else print, 'ERROR: PSF was not valid'
+endif
 
 ;Pull the values for this lenslet from the reference wavelength calibration
 xo=refwlcal[xdim,ydim,1]
@@ -81,7 +97,11 @@ start_params[8]=total(lensletarray);-min(lensletarray)*size(lensletarray,/n_elem
 ;Initially guess zero rotation for gaussian
 start_params[6]=0
 
+if whichpsf EQ 'nmicrolens' then parinfo[6].fixed=1
+
+
 ;Provide starting guesses for the gaussian parameters (sigmax,sigmay)
+if whichpsf EQ 'ngauss' then begin
 if lambdao GT 1.2 then begin
    if xdim LT 211 then start_params[4:5] = [1.5, 1.5]
    if (xdim GE 211) AND (xdim LT 223) then start_params[4:5] = [1.7, 1.7]
@@ -91,6 +111,8 @@ if lambdao GT 1.2 then begin
 endif else begin
    start_params[4:5] = [1.5, 1.5]
 endelse
+endif
+
 
 
 ;Compute a weighted error array to be passed to mp2dfitfunct
@@ -133,8 +155,9 @@ parinfo[3].limits[0]=theta-deltatheta
 parinfo[3].limited[1]=1
 parinfo[3].limits[1]=theta+deltatheta
 
-if lambdao lt 1.1 then max_fwhm= 4 else max_fwhm=2
-
+if whichpsf EQ 'ngauss' then begin
+;if lambdao lt 1.1 then max_fwhm= 4 else max_fwhm=2
+max_fwhm = 3
 ; X FWHM
 parinfo[4].limited[0]=1
 parinfo[4].limits[0]=0.4
@@ -145,15 +168,17 @@ parinfo[5].limited[0]=1
 parinfo[5].limits[0]=0.4
 parinfo[5].limited[1]=1
 parinfo[5].limits[1]=max_fwhm
-; Flux Scaling
- ;parinfo[7].limited(0)=1
- ;parinfo[7].limits(0)=0.0001*start_params[7]
- ;parinfo[7].limited(1)=1
- ;parinfo[7].limits(1)=start_params[7]
+
+endif else begin
+parinfo[4].fixed=1
+parinfo[5].fixed=1
+endelse
 
 ; Constant background offset must be positive?
 parinfo[7].limited[0]=1
 parinfo[7].limits[0]=0.0
+
+ 
 
 ;wprior=refwlcal[xdim,ydim,3]
 ;wstart=0.999*w
@@ -176,7 +201,7 @@ parinfo[7].limits[0]=0.0
 
 	if status lt 0 then print, "ERROR: ", errmsg
  
-	loww=k
+;	loww=k
 
 	; Return other helpful stuff to the calling routine:
 	if arg_present(modelimage) then begin
@@ -185,7 +210,7 @@ parinfo[7].limits[0]=0.0
 		  'nmicrolens': modelimage=nmicrolens(x,y,bestres)
 		  'ngauss': modelimage=ngauss(x,y,bestres)
 		endcase
-
+                ;print, 'Created modelimage'
 		; remove the constant background since we have to handle overlaps
 		; carefully when combining these. This implementation is easiest given
 		; the normalization present in the ngauss function

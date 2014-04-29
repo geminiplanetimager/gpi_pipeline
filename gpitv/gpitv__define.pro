@@ -201,7 +201,7 @@ state = {                   $
         curimnum_textLamb_id: 0L, $        ; id of cur_image_num textbox widget
         curimnum_lambLabel_id: 0L, $       ; id of cur_image_num textbox widget
         curimnum_slidebar_id: 0L, $        ; id of cur_image_num slider widget
-        cube_mode: 	'', $              ; 0 = unknown, 1 = wave, 2 = pol
+        cube_mode: 	'', $				   ; {Unknown, WAVE, STOKES}
         scale_mode_droplist_id: 0L, $      ; id of scale droplist widget
         curimnum_minmaxmode: 'Constant', $ ; mode for determining min/max
                                            ; of display when changing curimnum
@@ -345,6 +345,7 @@ state = {                   $
         contr_plotouter: 0, $               ; plot contrasts for region outside of dark hole
         contr_yunit:0, $                    ; 0 = sigma, 1 = median, 2 = mean
         contr_xunit:0, $                    ; 0 = as, 1 = l/D
+        contr_prof_filetype:0, $            ; 0 = fits, 1 = txt
         lambplot_widget_id: 0L, $           ; id of radial profile widget
         lambplot_window_id: 0L, $           ; id of radial profile window
         showlambplot_id: 0L, $              ;
@@ -402,16 +403,9 @@ state = {                   $
         title_blink3: '', $                 ; window title for 3rd blink image
         title_extras: '', $                 ; extras for image title
         blinks: 0B, $                       ; remembers which images are blinked
-        polarim_lowthresh: 0.0,$            ; Polarimetry low threshhold
-        polarim_highthresh: 1.0,$           ; Polarimetry high threshhold
+        polarim_plotindex: -1,$             ; Which plot structure is the polarimetry? -1 means no pol plot present
         polarim_display: 1, $               ; overplot polarimetry vectors?
-        polarim_plotindex: 0,$              ; Which plot structure is the polarimetry?
-        polarim_present: 0, $               ; Do we have polarimetry data?
-        polarim_lowth_id: 0L, $             ; widget ID of polarimetry low thresh
-        polarim_highth_id: 0L, $            ; widget ID of polarimetry high thresh
-        polarim_mag_id: 0L, $               ; widget ID of polarimetry high thresh
-        polarim_offset_id: 0L, $            ; widget ID of polarimetry high thresh
-        polarim_display_id: 0L, $           ; widget ID of polarimetry display flag
+        polarim_dialog_id: 0L, $            ; widget ID of polarimetry display flag
         aborted_id: 0L, $                   ; widget ID for 'ABORTED'
         dateobs_id: 0L, $                   ; widget id for'DATE-OBS'
         timeobs_id: 0L, $                   ; widget id for 'TIME-OBS')
@@ -459,24 +453,15 @@ state = {                   $
         gaussmax: 0L, $                     ; widget id of max button
         wcfilename: '', $
         multisess:-1, $
-        confirm_before_quit: 1,$ ; should we ask before quitting?          
-        drawvectorpress:0,$      ; for drawvector, to be sure button press has been done
-        sdilist_id: 0L, $
-        currsdi: 0 ,$
-        sdiL1_id: 0L, $
-        sdiL1: 0. ,$
-        sdiL1s_id: 0L ,$
-        sdiL2_id: 0L, $
-        sdiL2: 0. ,$
-        sdiL2s_id: 0L ,$
-        sdiL3_id: 0L, $
-        sdiL3: 0. ,$
-        sdiL3s_id: 0L ,$
-        sdiL4_id: 0L, $
-        sdiL4: 0. ,$
-        sdiL4s_id: 0L ,$
-        sdik_id: 0L, $
-        sdik: -1. ,$
+        confirm_before_quit: 1,$            ; should we ask before quitting?          
+        drawvectorpress:0,$                 ; for drawvector, to be sure button press has been done
+        sdi_userdef: 0L, $                  ; user defined SDI band?
+        sdi_userdef_id: 0L, $               ; user defined SDI button
+        sdi_slices: [10,11,14,15], $        ; SDI slices to use (defaults to H methane)
+        sdi_sliceids: lonarr(4), $          ; SDI slice text widgets
+        sdi_wavids: lonarr(4), $            ; SDI wav labels
+        sdik_id: 0L, $                      ; SDI sub. fac text widget
+        sdik: -1. ,$                        ; SDI subtraction factor
         nbrsatspot: 0,$
         spotwarning_id:0L ,$
         satradius_id :0L ,$          
@@ -683,14 +668,14 @@ top_menu_desc = [ $
                 {cw_pdmenu_s, 0, 'Contour'}, $
                 {cw_pdmenu_s, 0, 'Compass'}, $
                 {cw_pdmenu_s, 0, 'ScaleBar'}, $
-                {cw_pdmenu_s, 0, 'Polarimetry'}, $
                 {cw_pdmenu_s, 0, 'Draw Region'}, $
 ; This line commented out to remove "WCS Grid" menu option.
 ; Can be re-instated if "WCS Grid" required but will need modification.
-                {cw_pdmenu_s, 0, 'WCS Grid'}, $
-                {cw_pdmenu_s, 4, 'Select Wavecal File'}, $
-                {cw_pdmenu_s, 0, 'Get Wavecal from CalDB'}, $
-                {cw_pdmenu_s, 0, 'Plot Wavecal Grid'}, $
+                ;;{cw_pdmenu_s, 0, 'WCS Grid'}, $
+                {cw_pdmenu_s, 4, 'Polarimetry'}, $
+                {cw_pdmenu_s, 4, 'Select Wavecal/Polcal File'}, $
+                {cw_pdmenu_s, 0, 'Get Wavecal/Polcal from CalDB'}, $
+                {cw_pdmenu_s, 0, 'Plot Wavecal/Polcal Grid'}, $
                 {cw_pdmenu_s, 4, 'EraseLast'}, $
                 {cw_pdmenu_s, 0, 'EraseAll'}, $
                 {cw_pdmenu_s, 4, 'Load Regions'}, $
@@ -744,6 +729,7 @@ top_menu_desc = [ $
                 {cw_pdmenu_s, 1, 'Options'}, $ ;options menu
                 {cw_pdmenu_s, 0, 'Contrast Settings...'}, $
                 {cw_pdmenu_s, 0, 'High pass filter Settings...'}, $
+                {cw_pdmenu_s, 0, 'SDI Settings...'}, $
                 {cw_pdmenu_s, 0, 'KLIP Settings...'}, $
                 {cw_pdmenu_s, 0, 'Clear KLIP Data'}, $
                 {cw_pdmenu_s, 12, 'Retain Current Slice'}, $
@@ -1472,18 +1458,12 @@ case event_name of
    'Contour': self->oplotcontour
    'Compass': self->setcompass
    'ScaleBar': self->setscalebar
-   'Polarimetry': self->polarim
+   'Polarimetry': self->polarim_options_dialog
    'Draw Region': self->regionlabel
    'WCS Grid': self->wcsgridlabel
-   'Select Wavecal File':begin
-	  fitsfile = DIALOG_PICKFILE( TITLE='Select Wavecal File ', FILTER = '*wavecal*.fits', FILE='*.fits',/MUST_EXIST,$
-			path=gpi_get_directory('GPI_CALIBRATIONS_DIR'))
-     if (fitsfile EQ '') then return ; 'cancel' button returns empty string
-      (*self.state).wcfilename= fitsfile
-      self->message, msgtype = 'information',  "Wavelength Cal file set to "+(*self.state).wcfilename 
-   end
-   'Get Wavecal from CalDB': self->getautowavecal
-   'Plot Wavecal Grid': self->wavecalgridlabel
+   'Select Wavecal/Polcal File': self->selectwavecal
+   'Get Wavecal/Polcal from CalDB': self->getautowavecal
+   'Plot Wavecal/Polcal Grid': self->wavecalgridlabel
    'EraseLast': self->erase, 1
    'EraseAll': begin
       self->erase
@@ -1635,8 +1615,9 @@ case event_name of
    END
 
    ;;Options options
-   'Contrast Settings...':		self->contrast_settings
+   'Contrast Settings...':          self->contrast_settings
    'KLIP Settings...':              self->KLIP_settings
+   'SDI Settings...':               self->SDI_settings
    'High pass filter Settings...':  self->high_pass_filter_settings
    'Clear KLIP Data': BEGIN
       ptr_free,self.images.klip_image
@@ -2119,7 +2100,6 @@ endif
 
 if (event.type EQ 2) then self->draw_motion_event, event
 
-;if (xregistered(self.xname, /noshow)) then $
 widget_control, (*self.state).keyboard_text_id, /sensitive, /input_focus
 
 end
@@ -2967,6 +2947,7 @@ pro GPItv::displayall
 ; zoomed without a change in scaling, then just call self->refresh
 ; rather than this routine.
 
+print, 'displayall'
 
 self->scaleimage
 self->makepan
@@ -3260,6 +3241,13 @@ pro GPItv::collapsecube
         *self.images.main_image=sqrt(((*self.images.main_image_stack)[*,*,1])^2 + ((*self.images.main_image_stack)[*,*,2]^2))
         if bpct gt 0 then (*self.images.main_image)[wn] = !values.f_nan
      end
+;     'Radial Pol. Intensity': begin
+;		 ; Radial polarized intensity - see Schmid et al. 2006.
+;        widget_control,(*self.state).curimnum_base_id,map=0
+;        *self.images.main_image=sqrt(((*self.images.main_image_stack)[*,*,1])^2 + ((*self.images.main_image_stack)[*,*,2]^2))
+;        if bpct gt 0 then (*self.images.main_image)[wn] = !values.f_nan
+;     end
+
 
      'Linear Pol. Fraction': begin
         widget_control,(*self.state).curimnum_base_id,map=0
@@ -4073,7 +4061,7 @@ pro GPItv::change_image_units, new_requested_units, silent=silent
 	ind = where(STRCMP(  *(*self.state).unitslist,(*self.state).current_units))
 	widget_control, (*self.state).units_droplist_id, set_droplist_select = ind, set_value=*(*self.state).unitslist
  
-	self->getstats,/noerase       ; updates image min/max stats displayed on screen
+	self->getstats       ; updates image min/max stats displayed on screen
 	;self->autoscale
 	self->set_minmax
 	self->displayall
@@ -4411,7 +4399,7 @@ pro GPItv::changeimage,imagenum,next=next,previous=previous, nocheck=nocheck,$
 	self->settitle
 
     *self.images.main_image = (*self.images.main_image_stack)[*, *, (*self.state).cur_image_num]
-    self->getstats,/noerase
+    self->getstats
     case (*self.state).curimnum_minmaxmode of
          'Min/Max': begin
            (*self.state).min_value = (*self.state).image_min
@@ -5230,7 +5218,7 @@ end
 
 ;----------------------------------------------------------------------
 
-pro GPItv::getstats, noerase=noerase
+pro GPItv::getstats ;, noerase=noerase
 
 ; Get basic image stats: min and max, and size.
 ;
@@ -5238,6 +5226,11 @@ pro GPItv::getstats, noerase=noerase
 ; nothing to do with getstats so I took it out. -MDP
 ; /align keyword now deprecated
 ; this routine operates on *self.images.main_image
+;
+; Also previously erased plot annotations for some reason, unless you set /noerase.
+; OK, this has nothing to do with statistics - moving it to a call in
+; setup_new_image instead. -MP
+
 
 widget_control, /hourglass
 
@@ -5256,15 +5249,6 @@ if ((*self.state).min_value GE (*self.state).max_value) then begin
     (*self.state).max_value = (*self.state).max_value + 1
 endif
 
-;; as the comment above says, this has nothing to do with statistics.
-;; Reall doesn't belong here at all.  Leaving in case taking it
-;; out breaks something.
-; zero the current display position on the center of the image,
-; (*self.state).coord = round((*self.state).image_size[0:1] / 2.)
-; self->getoffset
-
-; Clear all plot annotations
-if (not(keyword_set(noerase))) then self->erase, /norefresh
 
 end
 
@@ -5444,7 +5428,7 @@ pro GPItv::readfits, fitsfilename=fitsfilename, imname=imname, _extra=_extra
   ;; from dialog_pickfile.
   if (n_elements(fitsfilename) EQ 0) then begin
 		at_gemini = gpi_get_setting('at_gemini', /bool,default=0,/silent)
-		if keyword_set(at_gemini) then filter='S20'+gpi_datestr(/current)+"S*.fits" else filter ='*.fits,*.fits.gz'
+		if keyword_set(at_gemini) then filter='S20'+gpi_datestr(/current)+"S*.fits" else filter ='*.fits;*.fits.gz'
 		fitsfile = $
 			dialog_pickfile(filter = filter, $
                         dialog_parent = (*self.state).base_id, $
@@ -5531,7 +5515,9 @@ pro GPItv::readfits, fitsfilename=fitsfilename, imname=imname, _extra=_extra
   endelse
   
   if (cancelled EQ 1) then return
-  if ~(keyword_set(imname)) then imname=fitsfile else imname=imname+" ("+fitsfile+")"
+  ;if ~(keyword_set(imname)) then imname=fitsfile else imname=imname+" ("+fitsfile+")"
+	;beceuase GPItv will actually use imname as a filename to try to open headers, we cant set it as some fancy string
+	imname=fitsfile
   
   self->setup_new_image, header=head, imname=imname, extensionhead=extensionhead, _extra=_extra
 
@@ -5585,7 +5571,7 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
      if ~silent then self->message,msgtype='information',"No header supplied! Creating a basic one with MKHDR"
      mkhdr,header,*self.images.main_image
   endif
-  
+
   ;; set the main image and update gui appropriately
   thirddimchange = 0            ;track whether we're switching between a 2&3d image
   (*self.state).prev_image_size = (*self.state).image_size ;back up image size
@@ -5645,11 +5631,9 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
 
      else: begin
         ;; Catch-all case for non 2-d or 3-d images - alert the user
-stop
         self->message, 'Selected file is not a 2-D or 3-D FITS image!', $
                        msgtype = 'error', window = window
         *self.images.main_image = fltarr(512, 512)
-stop
         return
      end  
   endcase ;;dimensionality of main image 
@@ -5680,6 +5664,10 @@ stop
   ;; remove any existing CWV_ptrs
   if (ptr_valid((*self.state).CWV_ptr)) then ptr_free, (*self.state).CWV_ptr
 
+
+  ;; discard any previously loaded polcal or wavecal file for overplotting. 
+  (*self.state).wcfilename=''
+
   ;; set image header
   self->setheader, header, _extra=_extra
   self->setheadinfo
@@ -5690,6 +5678,8 @@ stop
 
   ; get statistics
   self->getstats
+  ; Remove any plots or annotations left over from the previous image.
+  self->erase, /norefresh
 
   if n_elements(minimum) GT 0 then (*self.state).min_value = minimum
   if n_elements(maximum) GT 0 then (*self.state).max_value = maximum
@@ -5801,7 +5791,24 @@ pro GPItv::update_sat_spots,locs0=locs0
                                        'Check that it is a coronagraphic image with an occulted target.']
         return
      endif
-  endif 
+  endif else begin
+    ;;edge case where sat spot locations are in the header but
+    ;;sat spot fluxes aren't. Use locations to measure fluxes
+    if n_elements(sats) eq 0 then begin
+      ;;always use the backup main image so that you know you're
+      ;;operating on the orig image.
+      sats = get_sat_fluxes(*self.images.main_image_backup,band=(*self.state).obsfilt,$
+                           good=good,cens=cens,warns=warns,highpass=(*self.state).contr_highpassspots,$
+                           constrain = (*self.state).contr_constspots,$
+                           winap=(*self.state).contrwinap,gaussap=(*self.state).contrap,$
+                           indx=(*self.state).cur_image_num,locs=locs0,gaussfit=1,refinefits=1,/usecens)
+      if n_elements(sats) eq 1 and sats[0] eq -1 then begin
+        self->message,msgtype='error',['Failed to locate satellite spots in this image.',$
+                                       'Check that it is a coronagraphic image with an occulted target.']
+        return
+      endif
+		endif
+	endelse
   
   ;;Added by Naru 130709: Measuring sat spot total fluxes and
   ;;calculated central star brightness in magnitudes
@@ -7056,11 +7063,12 @@ CASE event.tag OF
         ;;if lowct gt 0 then tmp[wlow] = 0
         ;; FIXME this does not appear to be working right??
 
+		if ptr_valid((*self.state).cwv_ptr) then lambdas=*(*self.state).cwv_ptr
         ;;do the writing here
         ifs_cube_movie,tmp,outname=filename,/prescaled,$
                        r = r1, g = g1, b = b1,$
                        fps=(*self.state).moviefps,$
-                       lambdas = *(*self.state).cwv_ptr, $
+                       lambdas = lambdas, $
                        mpeg=long(strcmp((*self.state).movieformat,'MPEG')),$
                        png=long(strcmp((*self.state).movieformat,'PNG'))
 
@@ -7879,7 +7887,12 @@ val=gpi_get_keyword(h, e, 'OBSTYPE',count=cc,/silent)
 val = strmid(val, 0, max_display_len)
 ;; special case for arc lamps: append the GCAL lamp name
 if strc(val) eq 'ARC' then val='ARC - '+strc(gpi_get_keyword(h, e,'GCALLAMP'))
-if strc(val) eq 'FLAT' then val='FLAT - '+strc(gpi_get_keyword(h, e,'GCALLAMP'))+ ","+strc(strmid(gpi_get_keyword(h, e,'GCALFILT'),0,3))
+if strc(val) eq 'FLAT' then begin
+	gcallamp = gpi_get_keyword(h, e,'GCALLAMP')
+	val='FLAT - '+strc(gpi_get_keyword(h, e,'GCALLAMP'))+ ","+strc(strmid(gpi_get_keyword(h, e,'GCALFILT'),0,3))
+	; special case the 'closed' IRlamp we use for GCAL backgrounds
+	if gcallamp eq 'IRhigh' then if gpi_get_keyword(h, e,'GCALSHUT') eq 'CLOSED' then val='FLAT- CLOSED'
+endif
 
 if cc gt 0 then begin
 	val = strmid(val,0,12)
@@ -7983,9 +7996,9 @@ if naxis eq 3 then begin
 	; for pixel coordinates, recall these must be in the FITS convention where
 	; pixel indices start at 1, not 0. 
     crpix3 = gpi_get_keyword(h, e, "CRPIX3", count=cw2) ;pix coord. of ref. point
-
-	if crpix3 eq 0 then begin
-		message, 'wavelength reference pixel CRPIX3 is 0, outside of the actual datacube',/info
+	ctype3 = strc(gpi_get_keyword(h, e, "CTYPE3", count=mct))
+	if (crpix3 eq 0) and (ctype3 ne 'STOKES') then begin
+		message, 'Wavelength reference pixel CRPIX3 is 0, outside of the actual datacube',/info
 		message, 'Assuming this is an older non-FITS-WCS compliant header and guessing that ',/info
 		message, 'CRPIX=1 for the first spectral slice is what was actually meant.',/info
 		crpix3=1
@@ -8081,7 +8094,7 @@ pro GPItv::update_child_windows, noheader=noheader,update=update
   if xregistered(self.xname+'_lineplot', /noshow) then self->lineplot_update,update=update
   if xregistered(self.xname+'_stats', /noshow) then self->stats_refresh
   
-  if xregistered(self.xname+'_sdi', /noshow) then self->sdi
+  if xregistered(self.xname+'_sdi', /noshow) then self->sdi_refresh
   if xregistered(self.xname+'_hist', /noshow) then self->hist_refresh
   
   if ~(keyword_set(noheader)) then if obj_valid((*self.state).subwindow_headerviewer) then self->headinfo
@@ -9199,28 +9212,14 @@ end
 ;----------------------------------------------------------------------
 
 pro GPItv::plotwindow
-
-
 	; Set up the plot window to have X and Y coordinates for overplotting.
 
 	self->setwindow, (*self.state).draw_window_id
 
-	; TODO I suspect there is a bug here which is screwing up the overplotting
-	; registration.
-
-;	; Set plot window
-;	xrange=[(*self.state).offset[0], $
-;	 (*self.state).offset[0] + (*self.state).draw_window_size[0] / (*self.state).zoom_factor] - 0.5
-;	yrange=[(*self.state).offset[1], $
-;	 (*self.state).offset[1] + (*self.state).draw_window_size[1] / (*self.state).zoom_factor] - 0.5
-;	 print, "Xrange: ", xrange
-
-	; MDP modified version - why are draw_window_size != !d size?
 	xrange=[(*self.state).offset[0], $
 	 (*self.state).offset[0] + !d.x_size / (*self.state).zoom_factor] - 0.5
 	yrange=[(*self.state).offset[1], $
 	 (*self.state).offset[1] + !d.y_size / (*self.state).zoom_factor] - 0.5
-
 
 	plot, [0], [0], /nodata, position=[0,0,1,1], $
 	 xrange=xrange, yrange=yrange, xstyle=5, ystyle=5, /noerase
@@ -10795,6 +10794,12 @@ end
 ;----------------------------------------------------------------------
 pro GPItv::plot1wavecalgrid,iplot
 
+if (*self.state).wcfilename eq "" then begin
+   self->message, msgtype = 'error', "You must select a wavelength/polarization calibration file first before you can plot!"
+   return
+endif
+
+
 
 gridcolor = (*(self.pdata.plot_ptr[iplot])).options.gridcolor
 tiltcolor = (*(self.pdata.plot_ptr[iplot])).options.tiltcolor
@@ -10802,11 +10807,6 @@ labeldisp = (*(self.pdata.plot_ptr[iplot])).options.labeldisp
 labelcolor = (*(self.pdata.plot_ptr[iplot])).options.labelcolor
 charsize = (*(self.pdata.plot_ptr[iplot])).options.charsize
 charthick = (*(self.pdata.plot_ptr[iplot])).options.charthick
-
-if (*self.state).wcfilename eq "" then begin
-   self->message, msgtype = 'error', "You must select a wavelength/polarization calibration file first before you can plot!"
-   return
-endif
 
 self->setwindow, (*self.state).draw_window_id
 
@@ -11143,7 +11143,7 @@ end
 
 pro gpitv::erase, nerase, norefresh = norefresh
 
-; Routine to erase line plots from GPItvPLOT, text from GPItvXYOUTS,
+; Routine to erase line plots, e.g. from GPItvPLOT, text from GPItvXYOUTS,
 ; arrows from GPItvARROW and contours from GPItvCONTOUR.
 
 
@@ -11155,7 +11155,11 @@ endelse
 
 for iplot = self.pdata.nplot - nerase + 1, self.pdata.nplot do begin
 	; if we erase the polarization plots, clear the status flag.
-	if (*(self.pdata.plot_ptr[iplot])).type eq 'polarization' then (*self.state).polarim_present=0
+	if (*(self.pdata.plot_ptr[iplot])).type eq 'polarization' then begin
+		(*self.state).polarim_plotindex=-1
+		; close polarimetry options dialog, if present
+		if (xregistered(self.xname+'_polarim')) then widget_control, (*self.state).polarim_dialog_id, /destroy
+	endif
     ptr_free, self.pdata.plot_ptr[iplot]
     self.pdata.plot_ptr[iplot] = ptr_new()
 endfor
@@ -11375,19 +11379,59 @@ self->wcsgrid, gridcolor=gridcolor, wcslabelcolor=wcslabelcolor, $
 endif
 
 end
+;---------------------------------------------------------------------
+pro GPItv::selectwavecal
+	; Let the user manually select a wavelength calibration (or polarization
+	; calibration) file
 
+	hd = *((*self.state).head_ptr)	
+	if ptr_valid((*self.state).exthead_ptr) then exthd = *((*self.state).exthead_ptr) else exthd = ['', 'END']
+
+	inst = gpi_get_keyword(hd, exthd, 'INSTRUME',count=cc)
+	if strc(inst) ne 'GPI' then begin
+		self->message, "The current file does not appear to be a GPI IFS 2D image",msgtype='error', /window
+		return
+	endif
+
+	if (size(*self.images.main_image_stack))[0] ne 2 then begin
+		self->message, "The current file does not appear to be a GPI IFS 2D image",msgtype='error', /window
+		return
+	endif
+
+	disperser = gpi_get_keyword(hd, exthd, 'DISPERSR',count=cc)
+	if strmatch(disperser, '*PRISM*',/fold) then begin
+		calfiletype = 'Wavecal'
+		filter='*wavecal*.fits'
+	endif else if strmatch(disperser, '*WOLL*',/fold) then begin
+		calfiletype = 'Polcal' 
+		filter='*polcal*.fits'
+	endif else begin
+		self->message, "The current file does not appear to have a valid DISPERSR keyword",msgtype='error', /window
+		return
+	endelse
+
+
+
+	 fitsfile = DIALOG_PICKFILE( TITLE='Select '+calfiletype+'File ', FILTER = filter, FILE='*.fits',/MUST_EXIST,$
+			path=gpi_get_directory('GPI_CALIBRATIONS_DIR'))
+     if (fitsfile EQ '') then return ; 'cancel' button returns empty string
+
+     (*self.state).wcfilename= fitsfile
+	 self->message, [calfiletype+" file set to "+(*self.state).wcfilename, "Now select 'Plot Wavecal/Polcal Grid' to display it."],/window
+
+end
+	
 ;---------------------------------------------------------------------
 pro GPItv::getautowavecal
 	; load automatic best wavelength calibration (or polarizatoin calibration)
 	; file from the GPI Calibration DB
 	
 
-
 	hd = *((*self.state).head_ptr)	
-	exthd = *((*self.state).exthead_ptr)
+	if ptr_valid((*self.state).exthead_ptr) then exthd = *((*self.state).exthead_ptr) else exthd = ['', 'END']
 
 	inst = gpi_get_keyword(hd, exthd, 'INSTRUME',count=cc)
-	if inst ne 'GPI' then begin
+	if strc(inst) ne 'GPI' then begin
 		self->message, "The current file does not appear to be a GPI IFS 2D image",msgtype='error', /window
 		return
 	endif
@@ -11413,7 +11457,7 @@ pro GPItv::getautowavecal
 		self->message, ['ERROR: No available appropriate calibration files for this data!','', 'The calibration database does not contain a wavecal or polcal file','that matches this image in IFSFILT and DISPERSR keywords. Cannot load data to plot.'],/window,msgtype='error'
 		(*self.state).wcfilename=''
 	endif else begin
-		self->message, ["Retrieved "+calfiletype+" file from Calibration DB: "+bestfile, "Now select 'Plot Wavecal Grid' to display it."],/window
+		self->message, ["Retrieved "+calfiletype+" file from Calibration DB: "+bestfile, "Now select 'Plot Wavecal/Polcal Grid' to display it."],/window
 		(*self.state).wcfilename = bestfile
 	endelse
 
@@ -11424,8 +11468,7 @@ end
 pro GPItv::wavecalgridlabel
 ; Front-end widget for wavecal labels
 if (*self.state).wcfilename eq '' then begin
-    self->message, 'You must select a wavecal file before you can overplot the wavelength solution grid.', $
-      msgtype = 'error', /window
+   self->message, msgtype = 'error', "You must select a wavelength/polarization calibration file first before you can overplot the solution!",/window
   return
 endif
 
@@ -11437,12 +11480,14 @@ if ct eq 0 then shifty=0
 
 ; estimate the appropriate shifts from the wavecal and the flexure model
 
-;catch, recommend_shifts
 recommend_shifts=0
-if recommend_shifts eq 0 then begin
+caldb = obj_new('gpicaldatabase')
+shiftsfile = caldb->get_best_cal_from_header( 'shifts', *((*self.state).head_ptr),  *((*self.state).exthead_ptr) )
+; determine if shiftsfile is a string - if it is then it found a valid file
+; if it returned an interger (-1) then it found nothing
+sz=size(shiftsfile,/type)
+if sz[0] eq 7 then begin
 	; Try to read in all the necessary info and call the flexure model
-	caldb = obj_new('gpicaldatabase')
-	shiftsfile = caldb->get_best_cal_from_header( 'shifts', *((*self.state).head_ptr),  *((*self.state).exthead_ptr) )
 	elevation = sxpar(*((*self.state).head_ptr), 'ELEVATIO')
 	wchd = headfits((*self.state).wcfilename)
 	wc_elevation = sxpar(wchd, 'ELEVATIO')
@@ -11451,11 +11496,6 @@ if recommend_shifts eq 0 then begin
 endif else begin
 	recommended_shifts = [0.0, 0.0]
 endelse
-;catch, /cancel
-
-
-	; need to get a flexure table from the calibration DB
-
 
 ; Query the user for desired wavecal display options
 
@@ -14231,69 +14271,50 @@ endcase
 end
 
 ;--------------------------------------------------------------------------------
-pro GPItv::pol, q, u, magnification=magnification, noxmcheck=noxmcheck,$
-	polmask=polmask, norefresh=norefresh, $
-	_extra = options
+pro GPItv::polarim_from_cube, status=status, $
+	magnification=magnification, $
+	binning=binning, fractional=fractional, $
+	color=color, thetaoffset=thetaoffset
+	; Routine to set up polarization plot data structure and options
+	; Set up polarization vector overplot, based on the data present 
+	; in the currently loaded image cube itself. 
+
+	status=0
+
+	if (self.pdata.nplot ge self.pdata.maxplot) then begin
+	   self->message, msgtype='error', 'Too many calls to GPITVPLOT.'
+	   return
+	endif
+	self.pdata.nplot = self.pdata.nplot + 1
+
+	if ~(keyword_set(color)) then color='red'
+	if n_elements(thetaoffset) eq 0 then thetaoffset=0.0
+    if ~(keyword_set(magnification)) then magnification=1.0
+    if ~(keyword_set(binning)) then binning = 4.0
+    if ~(keyword_set(fractional)) then fractional=0
 
 
-; Routine to read in polarizatin plot data and options, store in a heap
-; variable structure, and plot the polarization
-;if not(keyword_set(noxmcheck)) then $
-;if (not(xregistered(self.xname, /noshow))) then begin
-;    print, 'You need to start GPITV first!'
-;    return
-;endif
+	options = {magnification: float(magnification),$ ; arbitrary scale factor adjustment
+				binning: float(binning),$			; How many lenslets to bin to show one vector
+				fractional: uint(fractional),$		; fractional polarization or pol intensity?
+				mask_vectors: 0, $					; apply the mask?
+				polfrac_lowthresh: 0.0,$			; low threshhold for polarization fraction
+				polfrac_highthresh: 1.0,$			; high threshhold for polarization fraction
+				polint_lowthresh: !values.f_nan,$   ; low threshhold for polarized intensity
+				polint_highthresh: !values.f_nan,$  ; high threshhold for polarized intensity
+				display_legend: 1, $				; Display the legend?
+				thetaoffset: float(thetaoffset), $	; Optional offset for position angles?
+				color: color}						; plot color. Anything that works for cgColor.
 
-if (N_params() LT 1) then begin
-   self->message, msgtype='error', 'Too few parameters for GPITVPLOT.'
-   return
-endif
-
-if (n_elements(options) EQ 0) then options = {color: 'red'}
-
-if (self.pdata.nplot LT self.pdata.maxplot) then begin
-   self.pdata.nplot = self.pdata.nplot + 1
-
-;  convert color names to index numbers, and set default=red
-   c = where(tag_names(options) EQ 'COLOR', count)
-   if (count EQ 0) then options = create_struct(options, 'color', 'red')
-   options.color = self->icolor(options.color)
-
-   c = where(tag_names(options) EQ 'MINVAL', count)
-   if (count EQ 0) then options = create_struct(options, 'minval', '0.02')
-
-   c = where(tag_names(options) EQ 'THETAOFFSET', count)
-   if (count EQ 0) then options = create_struct(options, 'thetaoffset', '0.00')
-   c = where(tag_names(options) EQ 'POLMASK', count)
-; Don't create a polmask if there isn't one supplied.
-
-;   if not(keyword_set(polmask)) then polmask = byte(q*0)
-   if (count EQ 0) then if n_elements(polmask) gt 0 then options = create_struct(options, 'polmask', polmask)
-
-
-   if not(keyword_set(magnification)) then magnification=10.
-	magnification = float(magnification)
-   options = create_struct(options, 'magnification', magnification)
-
-
-   pstruct = {type: 'polarization',   $     ; points
-              q: q,             $     ; q stokes
-              u: u,             $     ; u stokes
+    pstruct = {type: 'polarization',   $     ; points
               options: options  $     ; plot keyword options
              }
 
-   self.pdata.plot_ptr[self.pdata.nplot] = ptr_new(pstruct)
-	(*self.state).polarim_present=1
+	self.pdata.plot_ptr[self.pdata.nplot] = ptr_new(pstruct)
 	(*self.state).polarim_plotindex=self.pdata.nplot
 
-	if ~(keyword_set(norefresh)) then begin
-	   self->plotwindow
-	   self->plot1pol, self.pdata.nplot
-	endif
-
-endif else begin
-   self->message, msgtype='error', 'Too many calls to GPITVPLOT.'
-endelse
+	self->message, msgtype='information', 'Polarimetry vector plot setup complete.'
+	status=1
 
 end
 
@@ -14301,232 +14322,267 @@ end
 
 ;---------------------------------------------------------------------
 pro GPItv::plot1pol, iplot
-; a version of polvect.pro modified for GPItv.
-;
-; This overprints polarization vectors onto the image.
+	; This overprints polarization vectors onto the image.
+	; 
+	; Based on Marshall's polvect.pro, heavily modified for GPItv.
+
+	if (*self.state).polarim_display eq 0 then return
+
+	self->setwindow, (*self.state).draw_window_id
+
+	widget_control, /hourglass
+
+	polplotoptions = (*(self.pdata.plot_ptr[iplot])).options
+
+	thetaoffset =	polplotoptions.thetaoffset
+	binning =		polplotoptions.binning > 1
+	magnification = polplotoptions.magnification * 30 ; 30 screen pixels is reasonable for the default length
+	resample = binning
+    ;self->message, msgtype = 'information', "Resample: "+strc(resample)+"     zoom factor: "+strc((*self.state).zoom_factor)
+	
+	;--- Obtain Stokes {I,Q,U} from datacube ---
+	; This is somewhat tricky since it has to be generalized;
+	; it should handle both Stokes cubes and polarization pair cubes,
+	; and more generally any polarized datacube with a valid WCS axis
+
+	; For specification of Stokes WCS axis, see
+	; Greisen & Calabretta 2002 A&A 395, 1061, section 5.4
+	crval3 = sxpar(*(*self.state).exthead_ptr, "CRVAL3")
+	crPIX3 = sxpar(*(*self.state).exthead_ptr, "CRPIX3")
+	naxis3 = sxpar(*(*self.state).exthead_ptr, "NAXIS3")
+	stokesaxis0 = indgen(naxis3)-crpix3+crval3
+	modelabels = ["YX", "XY", "YY", "XX", "LR", "RL", "LL", "RR", "INVALID", "I", "Q", "U", "V", "P"]
+	stokesaxis = modelabels[stokesaxis0+8]
+	wi =  (where(stokesaxis eq "I", ict))[0]
+	wq =  (where(stokesaxis eq "Q", qct))[0]
+	wu =  (where(stokesaxis eq "U", uct))[0]
+	wxx = (where(stokesaxis eq "XX", xxct))[0]
+	wyy = (where(stokesaxis eq "YY", yyct))[0]
+
+	if qct eq 1 and uct eq 1 then begin
+        ;self->message, msgtype = 'information', "Loading Q and U Stokes vectors from image slices "+strc(wq)+" and "+strc(wu)
+		io = (*self.images.main_image_backup)[*,*,wi]	; Stokes I original
+		qo = (*self.images.main_image_backup)[*,*,wq]	; Stokes Q original
+		uo = (*self.images.main_image_backup)[*,*,wu]	; Stokes U original
+	endif else if xxct eq 1 and yyct eq 1 then begin
+		;self->message, msgtype = 'information',  "Loading perpendicular polarization vectors from image slices x="+strc(wxx)+" and y="+strc(wyy)
+		io = ((*self.images.main_image_stack)[*,*,wxx] + (*self.images.main_image_stack)[*,*,wyy])
+		qo = ((*self.images.main_image_stack)[*,*,wxx] - (*self.images.main_image_stack)[*,*,wyy])
+		sz = size(qo)
+		uo = fltarr(sz[1],sz[2])
+	endif else begin
+		self->message, "Error: Can't determine Stokes I,Q,U from currently loaded cube and WCS header.", msgtype='error'
+
+	endelse
+	max_pol_intensity = max(sqrt(qo^2+uo^2),/nan) ; we will use this below for normalization.
+												  ; calculate it before any
+												  ; transformations on Q and U
+												  
 
 
-if (*self.state).polarim_display eq 0 then return
+	;---  Linear transformations of the image ---
+	; To enable masking by either polarized and total intensity we
+	; have to propagate all of [I,Q,U] through the rotation steps here.
 
-self->setwindow, (*self.state).draw_window_id
+	; We have to transform the Q and U to match any transformations that 
+	; have been applied to the image itself.
+	; The inversion and rotation have basically been copied from gpitv::refresh_image_invert_rotate
+	; is X flip needed? 
+	if strpos((*self.state).invert_image, 'x') ge 0 then begin
+		io = reverse(io)
+		qo = reverse(qo)
+		uo = reverse(uo)
+	endif
+	  
+	; is Y flip needed? 
+	if strpos((*self.state).invert_image, 'y') ge 0 then begin
+		io = reverse(io,2)
+		qo = reverse(qo,2)
+		uo = reverse(uo,2)
+	endif
 
-widget_control, /hourglass
+	; is Image Rotation needed?
+	if (*self.state).rot_angle ne 0 then begin
+		desired_angle = (*self.state).rot_angle  ; for back compatibility with prior implementation
+		
+		;; Are we rotating by some multiple of 90 degrees? If so, we can do so
+		;; exactly.
+		if (desired_angle/90. eq fix(desired_angle/90)) then begin
+		   desired_angle = desired_angle mod 360
+		   if desired_angle lt 0 then desired_angle +=360
+		   rchange = strc(fix(desired_angle)) ; how much do we need to change the image to get the new rotation?
 
-resample =  6 <  8/(*self.state).zoom_factor > 1
-lengthscale=4 <  4./(*self.state).zoom_factor > 1
-lengthscale = 1.0*lengthscale*(*(self.pdata.plot_ptr[iplot])).options.magnification
-minmag = (*(self.pdata.plot_ptr[iplot])).options.minval
-;print,"zoom: ",(*self.state).zoom_factor
-;print,"resample: ",resample
-;print,"minmag: ",minmag
-;print,"lengthscale: ",lengthscale
+		   case rchange of
+			'0':  rot_dir=0           ;; do nothing
+			'90': rot_dir=1
+			'180': rot_dir=2
+			'270': rot_dir=3
+		   endcase
 
-if not(keyword_set(resample)) then resample=1 ; for use later to simplify the code...
-color = (*(self.pdata.plot_ptr[iplot])).options.color
-thetaoffset = (*(self.pdata.plot_ptr[iplot])).options.thetaoffset
-;print,"thetaoffset: ",thetaoffset
+			;; no astrometry, just do the rotate
+			io = rotate(io, rot_dir)
+			qo = rotate(qo, rot_dir)
+			uo = rotate(uo, rot_dir)
+		   
+		endif else begin
+			;Arbitrary Rotation Angle
+			interpolated_io= rot(io, (-1)*desired_angle,  cubic=-0.5, missing=!values.f_nan)
+			nearest_io = rot(io, (-1)*desired_angle,  interp =0,  missing=!values.f_nan)
+			wnan = where(~finite(interpolated_io), nanct)
+			if nanct gt 0 then interpolated_io[wnan] = nearest_io[wnan]
+			io = interpolated_io
+	
+			interpolated_qo= rot(qo, (-1)*desired_angle,  cubic=-0.5, missing=!values.f_nan)
+			nearest_qo = rot(qo, (-1)*desired_angle,  interp =0,  missing=!values.f_nan)
+			wnan = where(~finite(interpolated_qo), nanct)
+			if nanct gt 0 then interpolated_qo[wnan] = nearest_qo[wnan]
+			qo = interpolated_qo
+			
+			interpolated_uo= rot(uo, (-1)*desired_angle,  cubic=-0.5, missing=!values.f_nan)
+			nearest_uo = rot(uo, (-1)*desired_angle,  interp =0,  missing=!values.f_nan)
+			wnan = where(~finite(interpolated_uo), nanct)
+			if nanct gt 0 then interpolated_uo[wnan] = nearest_uo[wnan]
+			uo = interpolated_uo
+		endelse
+	endif
 
+	; Do we need to resample the Stokes images? 
+	if resample eq 1 then begin
+		i = io
+		q = qo
+		u = uo
+	endif else begin
+		sz = size(qo)
+		i = congrid(io,sz[1]/resample,sz[2]/resample,/int);,/half)
+		q = congrid(qo,sz[1]/resample,sz[2]/resample,/int);,/half)
+		u = congrid(uo,sz[1]/resample,sz[2]/resample,/int);,/half)
+	endelse
 
-;qo = (*(self.pdata.plot_ptr[iplot])).q
-;uo = (*(self.pdata.plot_ptr[iplot])).u
-
-qo = (*self.images.main_image_backup)[*,*,1]/(*self.images.main_image_backup)[*,*,0]
-uo = (*self.images.main_image_backup)[*,*,2]/(*self.images.main_image_backup)[*,*,0]
-
-;The inversion and rotation have basically been copied from gpitv::refresh_image_invert_rotate
-; is X flip needed? 
-if strpos((*self.state).invert_image, 'x') ge 0 then begin
- self->message, 'inverting in x'
-    ;if ptr_valid((*self.state).exthead_ptr)  then begin ; transformation with astrometry header updates
-     ; hreverse2, theta,  hdr , theta,  hdr , 1, /silent
-    ;endif else begin                ; simple transformations without astrometry headers to worry about
-    qo = reverse(qo)
-    uo = reverse(uo)
-      ;theta = -theta
-    ;endelse
-  endif
-  
-; is Y flip needed? 
-if strpos((*self.state).invert_image, 'y') ge 0 then begin
-    self->message, 'inverting in y'
-    ;if ptr_valid((*self.state).exthead_ptr)  then begin ; transformation with astrometry header updates
-    ;  hreverse2, theta,  hdr , theta,  hdr , 2, /silent
-    ;endif else begin                ; simple transformations without astrometry headers to worry about
-    qo = reverse(qo,2)
-    uo = reverse(uo,2)
-    ;endelse
-endif
-
-;Image Rotation?
-if (*self.state).rot_angle ne 0 then begin
-    desired_angle = (*self.state).rot_angle  ; for back compatibility with prior implementation
-    
-    ;; Are we rotating by some multiple of 90 degrees? If so, we can do so
-    ;; exactly.
-    if (desired_angle/90. eq fix(desired_angle/90)) then begin
-       desired_angle = desired_angle mod 360
-       if desired_angle lt 0 then desired_angle +=360
-       rchange = strc(fix(desired_angle)) ; how much do we need to change the image to get the new rotation?
-
-       case rchange of
-        '0':  rot_dir=0           ;; do nothing
-        '90': rot_dir=1
-        '180': rot_dir=2
-        '270': rot_dir=3
-       endcase
-
-        ;; no astrometry, just do the rotate
-        qo = rotate(qo, rot_dir)
-        uo = rotate(uo, rot_dir)
-       
-    endif else begin
-        ;Arbitrary Rotation Angle
-        interpolated_qo= rot(qo, (-1)*desired_angle,  cubic=-0.5, missing=!values.f_nan)
-        nearest_qo = rot(qo, (-1)*desired_angle,  interp =0,  missing=!values.f_nan)
-        wnan = where(~finite(interpolated_qo), nanct)
-        if nanct gt 0 then interpolated_qo[wnan] = nearest_qo[wnan]
-        qo = interpolated_qo
-        
-        interpolated_uo= rot(uo, (-1)*desired_angle,  cubic=-0.5, missing=!values.f_nan)
-        nearest_uo = rot(uo, (-1)*desired_angle,  interp =0,  missing=!values.f_nan)
-        wnan = where(~finite(interpolated_uo), nanct)
-        if nanct gt 0 then interpolated_uo[wnan] = nearest_uo[wnan]
-        uo = interpolated_uo
-    endelse
-endif
-
-;ORIGINAL
-;if resample eq 1 then begin
-;    q = (*(self.pdata.plot_ptr[iplot])).q
-;    u = (*(self.pdata.plot_ptr[iplot])).u
-;endif else begin
-;    sz = size((*(self.pdata.plot_ptr[iplot])).q)
-;    q = congrid((*(self.pdata.plot_ptr[iplot])).q,sz[1]/resample,sz[2]/resample,/int)
-;    if arg_present(xo) then x = congrid(xo,sz[1]/resample)
-;    u = congrid((*(self.pdata.plot_ptr[iplot])).u,sz[1]/resample,sz[2]/resample,/int)
-;    if arg_present(xo) then y = congrid(yo,sz[2]/resample)
-;endelse
-;UPDATED FOR INVERSION 
-if resample eq 1 then begin
-    q = qo
-    u = uo
-endif else begin
-    sz = size(qo)
-    q = congrid(qo,sz[1]/resample,sz[2]/resample,/int)
-    if arg_present(xo) then x = congrid(xo,sz[1]/resample)
-    u = congrid(uo,sz[1]/resample,sz[2]/resample,/int)
-    if arg_present(xo) then y = congrid(yo,sz[2]/resample)
-endelse
-
-sz = size(q)
-x = (findgen(sz[1]))*resample
-y = (findgen(sz[2]))*resample
-mag = sqrt(u^2.+q^2.)             ;magnitude.
-nbad = 0                        ;# of missing points
-        ;if n_elements(missing) gt 0 then begin
-                ;good = where(mag lt missing)
-                ;if keyword_set(dots) then bad = where(mag ge missing, nbad)
-        ;endif else begin
-                szmag = size(mag)
+	; Create x and y coordinate arrays we will use for plotting
+	sz = size(q)
+	x = (findgen(sz[1]))*resample
+	y = (findgen(sz[2]))*resample
+	pol_intensity = sqrt(u^2.+q^2.)      
+	pol_fraction = pol_intensity / i
 
 
-
-c = where(tag_names((*(self.pdata.plot_ptr[iplot])).options) EQ 'POLMASK', polmaskpresent)
-
-	; try rescaling?
-;	mag = mag-minmag
-;	minmag=0
-
-	if polmaskpresent ne 0 then begin
-		maskresize = congrid( (*(self.pdata.plot_ptr[iplot])).options.polmask, sz[1],sz[2])
-		good = where (maskresize ne 0)
-	endif else good  =where (mag gt (*self.state).polarim_lowthresh and mag lt (*self.state).polarim_highthresh)
-
-if n_elements(good) eq 1 then return
-        ;if n_elements(missing) gt 0 then begin
-                ;good = where(mag lt missing)
-                ;if keyword_set(dots) then bad = where(mag ge missing, nbad)
-        ;endif else begin
+	if keyword_set(polplotoptions.fractional) then begin
+		mag = pol_fraction 
+		label = 'linear polarization fraction'
+	endif else begin
+		; normalize relative to 1.0 = peak polarized intensity. This keeps the
+		; plotting length scales more consistent between frac. and intensity
+		; display modes
+		mag = pol_intensity/max_pol_intensity
+		label='linear polarized intensity'
+	endelse
 
 
-        ugood = u[good]
-        qgood = q[good]
-        x0 = min(x,max=x1,/NaN)                     ;get scaling
-        y0 = min(y,max=y1,/NaN)
-    	x_step=(x1-x0)/(sz[1]-1.0)   ; Convert to float. Integer math
-    	y_step=(y1-y0)/(sz[2]-1.0)   ; could result in divide by 0
+	; check whether the polarization masking options are selected and apply it;
+	if polplotoptions.mask_vectors then begin
+		good  = where ( (pol_fraction ge polplotoptions.polfrac_lowthresh) and $
+						(pol_fraction le polplotoptions.polfrac_highthresh) and $
+						(pol_intensity ge polplotoptions.polint_lowthresh) and $
+						(pol_intensity le polplotoptions.polint_highthresh))
+	endif else begin
+		good = where(finite(mag))
+	endelse
+
+	if n_elements(good) eq 1 then return
+	
+	ugood = u[good]
+	qgood = q[good]
+	x0 = min(x,max=x1,/NaN)      ; get coordinates
+	y0 = min(y,max=y1,/NaN)
+	x_step=(x1-x0)/(sz[1]-1.0)   ; Convert to float. Integer math
+	y_step=(y1-y0)/(sz[2]-1.0)   ; could result in divide by 0
     	
-   ;To compensate for the use of the Rotate North Up Primitive
-   if ptr_valid((*self.state).exthead_ptr) then begin ;If the header exists
-   hdr = *((*self.state).exthead_ptr) 
-   rot_ang = sxpar(hdr, 'ROTANG') ;If this keyword isn't set sxpar just returns 0, which is acceptable. 
-   getrot, hdr, npa, cdelt, /silent
-   d_PAR_ANG = - rot_ang
-   endif else begin 
-   d_PAR_ANG = 0
-   cdelt = [1,1] ;If there's no header create a dummy cdelt whose first element is positive 
-   endelse
- 
-   ;print, "Rotating pol vectors by angle of: "+string(-d_PAR_ANG) ; To match with north rotation
-  
-   if cdelt[0] gt 0 then sgn = -1 else sgn = 1 ; To check for flip between RH and LH coordinate systems
-   
-   theta =  sgn* 0.5 * atan(u/q)+sgn*d_par_ang*!dtor+(thetaoffset+npa)*!dtor
-   ;theta = 0.5 * atan(u/q)+thetaoffset*!dtor
-;   self->Message, "Mean theta "+string(mean(theta,/nan)/!dtor)
-;   self->Message, "Sign"+string(sgn)
-;   self->Message, "npa"+string(npa)
-;   self->Message, "PA Offset from GPItv:"+string(thetaoffset)
-;   self->Message, "Image Rotation from GPItv:"+string((*self.state).rot_angle)
-;   self->Message, "Image Rotation Angle:"+string(d_par_ang)
-;;  
-   maxmag = .50
-   
-   ;Check for image inversion: 
-   ;
+	;To compensate for the use of the Rotate North Up Primitive, we may need to
+	;apply some additional rotation here to the position angle.
+	if ptr_valid((*self.state).exthead_ptr) then begin ;If the header exists
+		hdr = *((*self.state).exthead_ptr) 
+		rot_ang = sxpar(hdr, 'ROTANG') ;If this keyword isn't set sxpar just returns 0, which is acceptable. 
+		getrot, hdr, npa, cdelt, /silent
+		d_PAR_ANG = - rot_ang
+	endif else begin 
+		d_PAR_ANG = 0
+		cdelt = [1,1] ;If there's no header create a dummy cdelt whose first element is positive 
+	endelse
 
-   
+	;print, "Rotating pol vectors by angle of: "+string(-d_PAR_ANG) ; To match with north rotation
+	if cdelt[0] gt 0 then sgn = -1 else sgn = 1 ; To check for flip between RH and LH coordinate systems
 
+	theta =  sgn* 0.5 * atan(u,q)+npa*!dtor+thetaoffset*!dtor
+
+	;theta = 0.5 * atan(u/q)+thetaoffset*!dtor
+	;   self->Message, "Mean theta "+string(mean(theta,/nan)/!dtor)
+	;   self->Message, "Sign"+string(sgn)
+	;   self->Message, "npa"+string(npa)
+	;   self->Message, "PA Offset from GPItv:"+string(thetaoffset)
+	;   self->Message, "Image Rotation from GPItv:"+string((*self.state).rot_angle)
+	;   self->Message, "Image Rotation Angle:"+string(d_par_ang)
+
+	; Compute offsets {dx, dy} for each vector.
     ; remember position angle is defined starting at NORTH so
     ; the usual positions of sin and cosine are swapped.
-    deltax = -lengthscale  *mag * sin(theta)/2
-    deltay = lengthscale  *mag * cos(theta)/2
-    x_b0=x0-x_step
-    x_b1=x1+x_step
-    y_b0=y0-y_step
-    y_b1=y1+y_step
-    if n_elements(clip) eq 0 then $
-        clip = [!x.crange[0],!y.crange[0],!x.crange[1],!y.crange[1]]
-    r = 0                          ;len of arrow head
+    deltax = - magnification * resample * mag * sin(theta)/2
+    deltay =   magnification * resample * mag * cos(theta)/2
 
+	; compute start and end coordinates for each vector
 	ys = y[good /sz[1]]
 	xs = x[good mod sz[1]]
 	x0 = xs-deltax[good]
 	x1 = xs+deltax[good]
 	y0 = ys-deltay[good]
 	y1 = ys+deltay[good]
+
+	color = cgcolor( polplotoptions.color )
     for i=0l,n_elements(good)-1 do begin     ;Each point
-
-			;if mag[good[i]] lt minmag then continue ; skip if it's too small
-                ;x0 = x[good[i] mod (sz[1])]        ;get coords of start & end
-                ;dx = deltax[good[i]]
-                ;y0 = y[good[i] / (sz[1])]
-                ;dy = deltay[good[i]]
-
-                ;if keyword_set(badmask) then $
-                        ;if badmask[x0,y0] eq 0 then continue ; don't print for b
-                ;if x0 eq 0 or y0 eq 0 then continue ; don't print on edges.
-                if deltax[good[i]] gt 20 or deltay[good[i]] gt 20 then continue; don't print huge garbage
-                plots,[x0[i],x1[i]], [y0[i],y1[i]],$
-                      color=color,noclip=0
+		plots,[x0[i],x1[i]], [y0[i],y1[i]], color=color, noclip=0
     endfor
 
-;%%%%%%%%%%%%%%%%%%%%%%%%%
+
+	if polplotoptions.display_legend then begin
+		; Draw a key at lower right to indicate the degree of polarization scale
+		; for the vectors
+		ystart = total(!y.crange*[0.95, 0.05])
+		xstart = total(!x.crange*[0.25, 0.75])
+		labelxstart = total(!x.crange*[0.23, 0.77])
+		labelystart = total(!y.crange*[0.96, 0.04])
+
+		legendcolor='orange' 
+		thick=3
+		if keyword_set(polplotoptions.fractional) then begin
+			; Draw and label a vector for 20% polarization
+			; Basically this just repeats the calculation done for plotting any
+			; typical vector, using a value fixed to 0.5
+			deltax =  magnification * resample * 0.2 * cos(0)/2
+			xyouts, labelxstart, labelystart , 'Pol. Frac. = 20%', charsize=1.5, color=cgcolor(legendcolor)
+			plots, [xstart-2*deltax, xstart], [ystart, ystart], thick=thick, color=cgcolor(legendcolor)
+		endif else begin
+			; draw and label a vector for the 97th percentile of the displayed  polarizations
+			; So first figure out that percentage:
+			sorted_pol_int = pol_intensity[sort(pol_intensity)]
+			sorted_pol_int = sorted_pol_int[where(finite(sorted_pol_int))]
+			med_pol_int = median(pol_intensity)
+			pol_int_97th = sorted_pol_int[0.97*n_elements(sorted_pol_int)]
+			; And then display it. Remember to normalize by the max of the
+			; polarized intensity as we do when creating the 'mag' variable above.
+			deltax =  magnification * resample * pol_int_97th/max_pol_intensity* cos(0)/2
+			xyouts, labelxstart, labelystart , 'Pol. Int. = '+sigfig(pol_int_97th,3), charsize=1.5, color=cgcolor(legendcolor)
+			plots, [xstart-2*deltax, xstart], [ystart, ystart], thick=thick, color=cgcolor(legendcolor)
+			;print, "pol legend: ", magnification, resample, pol_int_97th/max(pol_intensity,/nan)
+
+		endelse
+
+	endif
+
 
 self->resetwindow
 (*self.state).newrefresh=1
 end
 
+;--------------------------------------------------------------------------------
 
 
 pro GPItv::polarim_event, event
@@ -14538,25 +14594,34 @@ pro GPItv::polarim_event, event
 
 @gpitv_err
 
-	if ~(*self.state).polarim_present then begin
-		; create a new polarization plot structure!
-		self->polarim_from_cube, status=status,/norefresh
+	if (*self.state).polarim_plotindex lt 0 then begin
+		; create a new polarization plot structure if somehow it's not already defined
+		self->polarim_from_cube, status=status
 		if ~status then return
 	endif
 
 
 	widget_control, event.id, get_uvalue = uvalue
-	self.pdata.nplot = (*self.state).polarim_plotindex
+	;self.pdata.nplot = (*self.state).polarim_plotindex
+	pol_index = (*self.state).polarim_plotindex
 
-	dorefresh=1 ; by default should refresh
+	dorefresh=1 ; by default should refresh after any change
 	case uvalue of
 	    'polarim_display': (*self.state).polarim_display = event.value
 	    'polarim_display_yes': if ~(*self.state).polarim_display then (*self.state).polarim_display = 1 else dorefresh=0
 	    'polarim_display_no': if (*self.state).polarim_display then (*self.state).polarim_display = 0 else dorefresh=0
-	    'polarim_highth': (*self.state).polarim_highthresh = float(event.value)
-	    'polarim_lowth': (*self.state).polarim_lowthresh = float(event.value)
-	    'magnification': (*(self.pdata.plot_ptr[self.pdata.nplot])).options.magnification = event.value
-	    'polarim_offset': (*(self.pdata.plot_ptr[self.pdata.nplot])).options.thetaoffset = event.value
+		'polarim_mask_yes':   (*(self.pdata.plot_ptr[pol_index])).options.mask_vectors = 1
+		'polarim_mask_no':    (*(self.pdata.plot_ptr[pol_index])).options.mask_vectors = 0
+		'polarim_legend_yes': (*(self.pdata.plot_ptr[pol_index])).options.display_legend = 1
+		'polarim_legend_no':  (*(self.pdata.plot_ptr[pol_index])).options.display_legend = 0
+	    'polarim_polfrac_highthresh': (*(self.pdata.plot_ptr[pol_index])).options.polfrac_highthresh = float(event.value)
+	    'polarim_polfrac_lowthresh':  (*(self.pdata.plot_ptr[pol_index])).options.polfrac_lowthresh  = float(event.value)
+	    'polarim_polint_highthresh':  (*(self.pdata.plot_ptr[pol_index])).options.polint_highthresh = float(event.value)
+	    'polarim_polint_lowthresh':   (*(self.pdata.plot_ptr[pol_index])).options.polint_lowthresh  = float(event.value)
+	    'magnification':	  (*(self.pdata.plot_ptr[pol_index])).options.magnification = event.value
+	    'binning':            (*(self.pdata.plot_ptr[pol_index])).options.binning = event.value
+	    'fractional':		  (*(self.pdata.plot_ptr[pol_index])).options.fractional = event.index
+	    'polarim_offset':     (*(self.pdata.plot_ptr[pol_index])).options.thetaoffset = event.value
 	    'Refresh': dorefresh=1
 	    'polarim_done': widget_control, event.top, /destroy
 	    else:
@@ -14565,140 +14630,159 @@ pro GPItv::polarim_event, event
 
 end
 
+;--------------------------------------------------------------------------------
 
-pro GPItv::polarim_from_cube, status=ok,norefresh=norefresh
-	; Set up polarization vector overplot, based on the data present 
-	; in the currently loaded image sube itself. 
-
-	ok=0
-
-	if (*self.state).cube_mode ne "STOKES" then return
-
-	; set up to overplot polarization vectors
-	crval3 = sxpar(*(*self.state).exthead_ptr, "CRVAL3")
-	crPIX3 = sxpar(*(*self.state).exthead_ptr, "CRPIX3")
-	naxis3 = sxpar(*(*self.state).exthead_ptr, "NAXIS3")
-	stokesaxis0 = indgen(naxis3)-crpix3+crval3
-
-	; TODO error checking on the above in case they are not present.
-
-	; For specification of Stokes WCS axis, see
-	; Greisen & Calabretta 2002 A&A 395, 1061, section 5.4
-	modelabels = ["YX", "XY", "YY", "XX", "LR", "RL", "LL", "RR", "INVALID", "I", "Q", "U", "V", "P"]
-	stokesaxis = modelabels[stokesaxis0+8]
-	wi =  (where(stokesaxis eq "I", ict))[0]
-	wq =  (where(stokesaxis eq "Q", qct))[0]
-	wu =  (where(stokesaxis eq "U", uct))[0]
-	wxx = (where(stokesaxis eq "XX", xxct))[0]
-	wyy = (where(stokesaxis eq "YY", yyct))[0]
-
-
-	; valid Stokes Q and U?
-	if qct eq 1 and uct eq 1 then begin
-           self->message, msgtype = 'information', "Loading Q and U Stokes vectors from image slices "+strc(wq)+" and "+strc(wu)
-		if ict gt 0 then image_i = (*self.images.main_image_stack)[*,*,wi] else image_i=1.0
-		self->pol, (*self.images.main_image_stack)[*,*,wq]/image_i, (*self.images.main_image_stack)[*,*,wu]/image_i, norefresh=norefresh
-		ok=1
-	endif else if xxct eq 1 and yyct eq 1 then begin
-		self->message, msgtype = 'information',  "Loading perpendicular polarization vectors from image slices x="+strc(wxx)+" and y="+strc(wyy)
-		if ict gt 0 then image_i = (*self.images.main_image_stack)[*,*,wi] else image_i = (*self.images.main_image_stack)[*,*,wxx]+(*self.images.main_image_stack)[*,*,wyy]
-		sz = size(*self.images.main_image_stack)
-		self->pol, ((*self.images.main_image_stack)[*,*,wxx]- (*self.images.main_image_stack)[*,*,wyy])/image_i, fltarr(sz[1], sz[2]), norefresh=norefresh
-		ok=1
-	endif
-
-
-end
-
-
-pro GPItv::polarim
+pro GPItv::polarim_options_dialog
 	; Display the polarimetry vector overplotting control dialog window. 
 
+(*self.state).polarim_display = 1 ; Any time you open this dialog, you probably want the plot active
 
-if (*self.state).polarim_present eq 0 then begin
-	; create a new polarization plot structure!
+if (*self.state).polarim_plotindex eq -1 then begin
+	; create a new polarization plot structure if none exists.
 	self->polarim_from_cube, status=status
 	if ~status then return
-	;message,/info,"No polarimetry data is present in GPItv!"
-	;return
 endif
+
 
 if (not (xregistered(self.xname+'_polarim'))) then begin
 
-	self.pdata.nplot = (*self.state).polarim_plotindex
+	pol_index = (*self.state).polarim_plotindex
+	polplotoptions = (*(self.pdata.plot_ptr[pol_index])).options
+    
+	if (*self.state).multisess GT 0 then title_base = "GPItv #"+strc((*self.state).multisess) else title_base = 'GPItv '
 
     polarim_base = $
       widget_base(/base_align_center, /base_align_right, $
                   group_leader = (*self.state).base_id, $
                   /column, $
-                  title = 'GPItv Polarimetry', $
+                  title = title_base + ' Polarimetry Options', $
                   uvalue = 'polarim_base')
+	(*self.state).polarim_dialog_id = polarim_base
 
     polarim_data_base1 = widget_base(  polarim_base, /column, frame=1)
 
-    polarim_data_base1a = widget_base(polarim_data_base1, /column, frame=0, /base_align_right)
+    polarim_data_base1a = widget_base(polarim_data_base1, /column, frame=0, /base_align_left)
 
 	; all this code creates the Yes/No buttons
 	base1 = widget_base(polarim_data_base1a,/row, frame=0, /base_align_right)
-	label = widget_label(base1, value="Plot vectors?")
+	label = widget_label(base1, value="Plot pol. vectors?")
 	base2 = widget_base(base1,/row,/exclusive, frame=0)
-	b_yes = widget_button(base2, uvalue="polarim_display_yes", value="Yes")
-	b_no = widget_button(base2, uvalue="polarim_display_no", value="no" )
-	widget_control, b_yes, /set_button
+	b_plot_yes = widget_button(base2, uvalue="polarim_display_yes", value="Yes")
+	b_plot_no = widget_button(base2, uvalue="polarim_display_no", value="no" )
 
 
-	; and now create the option settings
-    (*self.state).polarim_lowth_id = $
-      cw_field(polarim_data_base1a, $
-               /float, $
-               /return_events, $
-               title = 'Minimum Pol Vector:', $
-               uvalue = 'polarim_lowth', $
-               value = (*self.state).polarim_lowthresh, $
-               xsize = 10)
 
-    (*self.state).polarim_highth_id = $
-      cw_field(polarim_data_base1a, $
-               /float, $
-               /return_events, $
-               title = 'Maximum Pol Vector:', $
-               uvalue = 'polarim_highth', $
-               value = (*self.state).polarim_highthresh, $
-               xsize = 10)
+	;(*self.state).polarim_fractional_id = $
+	res=	widget_droplist(polarim_data_base1a, $
+			frame=0, $
+			title='Using  ', uvalue='fractional',$
+			value=['Pol. Intensity', 'Pol. Fraction'])
 
-
-    (*self.state).polarim_mag_id = $
-      cw_field(polarim_data_base1a, $
-               /float, $
-               /return_events, $
+    ;(*self.state).polarim_mag_id = $
+    res=  cw_field(polarim_data_base1a, $
+               /float, /return_events, $
                title = 'Magnification:', $
                uvalue = 'magnification', $
-               value = (*(self.pdata.plot_ptr[self.pdata.nplot])).options.magnification, $
-               xsize = 10)
+               value = sigfig(polplotoptions.magnification,2), $
+               xsize = 8)
 
-    (*self.state).polarim_offset_id = $
-      cw_field(polarim_data_base1a, $
+    ;(*self.state).polarim_mag_id = $
+     res= cw_field(polarim_data_base1a, $
                /float, $
                /return_events, $
-               title = 'Pos Angle Offset:', $
-               uvalue = 'polarim_offset', $
-               value = (*(self.pdata.plot_ptr[self.pdata.nplot])).options.thetaoffset, $
+               title = 'Binning:      ', $
+               uvalue = 'binning', $
+               value = sigfig(polplotoptions.binning ,2), $
+               xsize = 8)
+
+	base_mask = widget_base(polarim_data_base1a,/column, frame=1, /base_align_left)
+
+	base3 = widget_base(base_mask ,/row, frame=0)
+	label = widget_label(base3, value="Mask pol. vectors?")
+	base3b= widget_base(base3,/row,/exclusive, frame=0)
+	b_yes = widget_button(base3b, uvalue="polarim_mask_yes", value="Yes")
+	b_no =  widget_button(base3b, uvalue="polarim_mask_no", value="No" )
+
+	if keyword_set(polplotoptions.mask_vectors) then $
+		widget_control, b_yes, /set_button else widget_control, b_no, /set_button
+	label = widget_label(base_mask, value=" Pol. fraction (between 0.0 - 1.0):  ")
+
+
+	base3 = widget_base(base_mask,/row, frame=0)
+    res=  cw_field(base3, $
+               /float, /return_events, $
+               title = 'Min:', $
+               uvalue = 'polarim_polfrac_lowthresh', $
+               value = polplotoptions.polfrac_lowthresh, $
                xsize = 10)
 
+    res=  cw_field(base3, $
+               /float, /return_events, $
+               title = 'Max:', $
+               uvalue = 'polarim_polfrac_highthresh', $
+               value = polplotoptions.polfrac_highthresh, $
+               xsize = 10)
+		   
+	; default is to set min/max thresh to the min/max of raw untransformed polarized intensity
+	pol_intensity = sqrt(((*self.images.main_image_stack)[*,*,1])^2 + ((*self.images.main_image_stack)[*,*,2]^2))
+	if ~finite(polplotoptions.polint_lowthresh  )  then polplotoptions.polint_lowthresh= min(pol_intensity,/nan)
+	if ~finite(polplotoptions.polint_highthresh  ) then polplotoptions.polint_highthresh= max(pol_intensity,/nan)
+	(*(self.pdata.plot_ptr[pol_index])).options = polplotoptions ; save the modified structure!
+
+	label = widget_label(base_mask, value=" Pol. intensity (between "+sigfig(min(pol_intensity,/nan),3)+" - "+$
+							sigfig(max(pol_intensity,/nan),3)+"): ")
+	base3 = widget_base(base_mask,/row, frame=0)
+    res=  cw_field(base3, $
+               /float, /return_events, $
+               title = 'Min:', $
+               uvalue = 'polarim_polint_lowthresh', $
+               value = sigfig(polplotoptions.polint_lowthresh,4), $
+               xsize = 10)
+
+    res=  cw_field(base3, $
+               /float, /return_events, $
+               title = 'Max:', $
+               uvalue = 'polarim_polint_highthresh', $
+               value = sigfig(polplotoptions.polint_highthresh,4), $
+               xsize = 10)
+
+
+
+	if gpi_get_setting('gpitv_enable_pol_angle_offset', /bool, default=0) then  begin
+		; being able to adjust the polarization position angle was useful early
+		; in gpi polarimetry development, but is not generally needed any more
+		; so it's hidden
+		res = cw_field(polarim_data_base1a, $
+				   /float, $
+				   /return_events, $
+				   title = 'Pos Angle Offset:', $
+				   uvalue = 'polarim_offset', $
+				   value = polplotoptions.thetaoffset, $
+				   xsize = 10)
+	endif
+
+	base3 = widget_base(polarim_data_base1a,/row, frame=0)
+	label = widget_label(base3, value="Display legend?")
+	base3b = widget_base(base3,/row,/exclusive, frame=0)
+	b_yes = widget_button(base3b, uvalue="polarim_legend_yes", value="Yes")
+	b_no = widget_button(base3b, uvalue="polarim_legend_no", value="No" )
+	widget_control, b_yes, /set_button 
+
+
+	base_row = widget_base(polarim_data_base1a,/row, frame=0)
     photsettings_id = $
-      widget_button(polarim_data_base1, $
-                    value = 'Refresh', $
+      widget_button(base_row, $
+                    value = '  Refresh Display  ', $
                     uvalue = 'Refresh')
 
     polarim_done = $
-      widget_button(polarim_data_base1, $
-                    value = 'Done', $
+      widget_button(base_row, $
+                    value = '       Close       ', $
                     uvalue = 'polarim_done')
 
-    widget_control, polarim_base, /realize
+	widget_control, b_plot_yes, /set_button ; make sure the plot is enabled!
 
-    ;widget_control, photzoom_widget_id, get_value=tmp_value
-    ;(*self.state).photzoom_window_id = tmp_value
+    widget_control, polarim_base, /realize
 
     xmanager, self.xname+'_polarim', polarim_base, /no_block
 	widget_control, polarim_base, set_uvalue = {object:self, method: 'polarim_event'}
@@ -14706,6 +14790,7 @@ if (not (xregistered(self.xname+'_polarim'))) then begin
 
 
     self->resetwindow
+	self->refresh 
 endif
 
 
@@ -14764,8 +14849,8 @@ h = ['GPItv HELP',$
 'Labels->Polarimetry:          Label polarimetry slices',$
 'Labels->Draw Region:          Brings up a dialog box for overplotting regions',$
 'Labels->WCS Grid:             Draws a WCS grid on current image',$
-'Labels->Select Wavecal File:  Brings up a dialog box to select wavelength calibration file',$
-'Labels->Get Wavecal from CalDB: Automatically selects wavelength calibration from available ones',$
+'Labels->Select Wavecal/Polcal File:  Brings up a dialog box to select wavelength calibration file',$
+'Labels->Get Wavecal/Polcal from CalDB: Automatically selects wavelength calibration from available ones',$
 'Labels->Plot Wavecal Grid:    Display wavelength calibration (only meaningful for raw data images)',$
 'Labels->EraseLast:            Erases the most recent plot label',$
 'Labels->EraseAll:             Erases all plot labels',$
@@ -14852,6 +14937,7 @@ h = ['GPItv HELP',$
 '                              Native:        Coordinates displayed are those of the image',$
 '',$
 'Options->Contrast Settings...: Brings up contrast plot settings window',$
+'Options->SDI Settings...:     Brings up SDI settings window',$
 'Options->KLIP Settings...:    Brings up KLIP settings window',$
 'Options->Clear KLIP Data:     Removes KLIP processed cube from memory',$
 'Options->Retain Current Slice: Current slice index will be displayed when next image is loaded',$
@@ -17700,6 +17786,7 @@ endif
 
 self->lambprof_refresh
 end
+
 ;-------------------------------------------------------------------
 
 pro GPItv::sdi_event, event
@@ -17709,98 +17796,90 @@ pro GPItv::sdi_event, event
 widget_control, event.id, get_uvalue = uvalue
 
 case uvalue of
+   
+   'userdef':begin
+      widget_control, (*self.state).sdi_userdef_id,get_value=res
+      (*self.state).sdi_userdef = res
+      self->sdi_refresh
+   end 
 
-'Help':begin
-;void = widget_label( sdi_base1, VALUE='  Choose predefined wav. intervals in the droplist or enter user-defined values.',/ALIGN_LEFT )
-;void = widget_label( sdi_base1, VALUE='Validate new values by pressing the Return or Enter key in the text widget.' ,/ALIGN_LEFT)
-;void = widget_label( sdi_base1, VALUE='It will average slices between wav1 & wav2 (Im1) and between wav3 & wav4 (Im2).' ,/ALIGN_LEFT)
-;void = widget_label( sdi_base1, VALUE='It scales Im1 taking into account the ratio of the central wav of the band considered.' ,/ALIGN_LEFT)
-;void = widget_label( sdi_base1, VALUE='After, it will calculate (Im2)-fact*(scaled(Im1)).' ,/ALIGN_LEFT)
-help=strarr(6)
-help=['  ***  SIMPLE DIFFERENCE IMAGING   ***',$
-      'Choose predefined wav. intervals in the droplist or enter user-defined values.',$
-      'Validate new values by pressing the Return or Enter key in the text widget.',$
-      'It will average slices between wav1 & wav2 (Im1) and between wav3 & wav4 (Im2).',$
-      'It will scale spatially Im1 by taking into account the ratio of the central wav of the band considered.',$
-      'After, it will calculate (Im1)-fact*(scaled(Im2)).']
-void = dialog_message(help)
-end
+   'slicebox': begin
+      ;;only care about leaving the widget 
+      if tag_exist(event,'ENTER') then if event.enter eq 0 then return
 
-'elem':begin
-		(*self.state).currsdi=widget_info((*self.state).sdilist_id,/DROPLIST_SELECT)
-		sdilist = ['Methane', 'User-defined'];, 'Met2',  'Met3']
-		if strmatch(sdilist[(*self.state).currsdi], 'User-defined') then begin
-			widget_control, (*self.state).sdiL1_id, EDITABLE=0
-			widget_control, (*self.state).sdiL2_id, EDITABLE=0
-			widget_control, (*self.state).sdiL3_id, EDITABLE=0
-			widget_control, (*self.state).sdiL4_id, EDITABLE=0
-			widget_control, (*self.state).sdiL1s_id, /EDITABLE
-			widget_control, (*self.state).sdiL2s_id, /EDITABLE
-			widget_control, (*self.state).sdiL3s_id, /EDITABLE
-			widget_control, (*self.state).sdiL4s_id, /EDITABLE
-		endif
-		end
-	'L1':begin
-			widget_control,(*self.state).sdiL1_id, GET_VALUE=wav
-			widget_control,(*self.state).sdiL1s_id, SET_VALUE= string(VALUE_LOCATE(*((*self.state).CWV_ptr),double(wav) ),format='(I3)')
-		end
-	'L2':begin
-			widget_control,(*self.state).sdiL2_id, GET_VALUE=wav
-			widget_control,(*self.state).sdiL2s_id, SET_VALUE= string(VALUE_LOCATE(*((*self.state).CWV_ptr),double(wav) ),format='(I3)')
-		end
-	'L3':begin
-			widget_control,(*self.state).sdiL3_id, GET_VALUE=wav
-			widget_control,(*self.state).sdiL3s_id, SET_VALUE= string(VALUE_LOCATE(*((*self.state).CWV_ptr),double(wav) ),format='(I3)')
-		end
-	'L4':begin
-			widget_control,(*self.state).sdiL4_id, GET_VALUE=wav
-			widget_control,(*self.state).sdiL4s_id, SET_VALUE= string(VALUE_LOCATE(*((*self.state).CWV_ptr),double(wav) ),format='(I3)')
-		end
-	'L1s':begin
-			widget_control,(*self.state).sdiL1s_id, GET_VALUE=sli
-			widget_control,(*self.state).sdiL1_id, SET_VALUE= strcompress(string((*((*self.state).CWV_ptr))[fix(sli)],format='(2g)'), /rem)
-		end
-	'L2s':begin
-			widget_control,(*self.state).sdiL2s_id, GET_VALUE=sli
-			widget_control,(*self.state).sdiL2_id, SET_VALUE= strcompress(string((*((*self.state).CWV_ptr))[fix(sli)],format='(2g)'), /rem)
-		end
-	'L3s':begin
-			widget_control,(*self.state).sdiL3s_id, GET_VALUE=sli
-			widget_control,(*self.state).sdiL3_id, SET_VALUE= strcompress(string((*((*self.state).CWV_ptr))[fix(sli)],format='(2g)'), /rem)
-		end
-	'L4s':begin
-			widget_control,(*self.state).sdiL4s_id, GET_VALUE=sli
-			widget_control,(*self.state).sdiL4_id, SET_VALUE= strcompress(string((*((*self.state).CWV_ptr))[fix(sli)],format='(2g)'), /rem)
-		end
-	'sdi_draw': begin
-		;(*self.state).currmeth=(*self.state).methlist[event.index]
-		self->sdi_refresh
-		end
+      ;;if image is currently loaded, grab the wavelengths associated
+      ;;with the slices
+      if ptr_valid((*self.state).CWV_ptr) then begin
+         for j = 0,3 do begin
+            widget_control, (*self.state).sdi_sliceids[j],get_value=res
+            res = long(res)
+            if (res ge 0) && (res lt n_elements(*(*self.state).CWV_ptr)) then $
+               widget_control, (*self.state).sdi_wavids[j], set_value=$
+                               string((*((*self.state).CWV_ptr))[res],format='(F4.2)')+' um'$
+            else widget_control,(*self.state).sdi_sliceids[j],set_value=string((*self.state).sdi_slices[j],format='(I3)')
+         endfor
+      endif 
+   end 
 
-    'sdi_done': widget_control, event.top, /destroy
-    else:
+   ;;grab all info and save to state
+   'save': begin
+      widget_control, (*self.state).sdi_userdef_id,get_value=res
+      (*self.state).sdi_userdef = res
+      for j = 0,3 do begin
+         widget_control, (*self.state).sdi_sliceids[j],get_value=res
+         (*self.state).sdi_slices[j] = long(res)
+      endfor
+      widget_control, (*self.state).sdik_id,get_value=res
+      (*self.state).sdik = res
+      ;;close
+      widget_control, event.top, /destroy
+
+      ;;if you are currently in the SDI collapse mode, update the view
+      widget_control,(*self.state).collapse_button,get_value=modelist
+      if ((*self.state).collapse eq where(strmatch(modelist,'Collapse by SDI'))) then $
+         self->sdi
+   end 
+
+   'cancel': widget_control, event.top, /destroy
+   else:
 endcase
 
 end
 ;----------------------------------------------------------------------
 
-pro GPItv::sdi_refresh
+pro GPItv::sdi_update_defs
+;;update default slices based on current band
 
-;; Do ssdi
-if (*self.state).rgb_mode then begin
-   self->message, msgtype='warning', "I don't know how to properly do SSDI on an RGB cube. Returning."
-   return
-endif
+  ;;if no image loaded or user selection set, do nothing
+  if ~ptr_valid((*self.state).CWV_ptr) || (*self.state).sdi_userdef then return
 
-;;only do ssdi from original cube  or sdi mode
-widget_control,(*self.state).collapse_button,get_value=modelist
-jcm=where(strmatch(modelist,'Collapse by SDI'))
-if ((*self.state).collapse ne 0) && ((*self.state).collapse ne jcm) then begin
-   self->message, msgtype='warning', "SSDI not supported in collapse modes.  Please switch to 'Show Cube Slices'."
-   return
-endif
+  ;;figure out which slices you're using based on band
+  case (*self.state).obsfilt of
+     'H': wavs = [1.585, 1.593, 1.617, 1.625]
+     'J': wavs = [1.207, 1.213, 1.232, 1.238]
+     'Y': wavs = [1.002, 1.008, 1.033, 1.038]
+     'K1': wavs = [1.957, 1.965, 1.996, 2.004]
+     else: wavs = -1            
+  endcase 
+   
+  if n_elements(wavs) eq 1 then begin
+     self->message,msgtyp='warning',"No default defined for this band.  Using H-equivalent slices."
+     slices = [10,11,14,15]
+  endif else begin
+     slices = lonarr(4)
+     for j = 0,3 do slices[j] = VALUE_LOCATE(*((*self.state).CWV_ptr),wavs[j])
+  endelse 
 
-;; if you were previously speckle aligned or kliped or restore the
+(*self.state).sdi_slices = slices
+  
+end 
+
+;----------------------------------------------------------------------
+
+pro GPItv::sdi
+;; Do SSDI
+
+;; if you were previously speckle aligned kliped or restore the
 ;; backup cube before doing anything else 
 if ((*self.state).specalign_mode eq 1) || ((*self.state).klip_mode eq 1)  then begin
    (*self.images.main_image_stack)=(*self.images.main_image_backup)
@@ -17822,72 +17901,50 @@ if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then be
    endif
 endif
 
-widget_control,(*self.state).sdiL1s_id, GET_VALUE=sli
-numL1=fix(sli)
-widget_control,(*self.state).sdiL2s_id, GET_VALUE=sli
-numL2=fix(sli)
-widget_control,(*self.state).sdiL3s_id, GET_VALUE=sli
-numL3=fix(sli)
-widget_control,(*self.state).sdiL4s_id, GET_VALUE=sli
-numL4=fix(sli)
+;;figure out which slices you're using
+self->sdi_update_defs
+slices = (*self.state).sdi_slices
 
-L1=(*((*self.state).CWV_ptr))[numL1]
-L2=(*((*self.state).CWV_ptr))[numL2]
-L3=(*((*self.state).CWV_ptr))[numL3]
-L4=(*((*self.state).CWV_ptr))[numL4]
-L1m=double(L1[0])+0.5*(double(L2[0])-double(L1[0]))
-L2m=double(L3[0])+0.5*(double(L3[0])-double(L4[0]))
+;;make sure that slices are ordered correctly
+if slices[0] gt slices[1] then begin
+   self->message,msgtype='warning','Slice 2 is before slice 1.  Changing order.'
+   slices[0:1] = slices[[1,0]]
+endif 
+if slices[2] gt slices[3] then begin
+   self->message,msgtype='warning','Slice 4 is before slice 3.  Changing order.'
+   slices[2:3] = slices[[3,2]]
+endif 
 
 ;note that following 2 code lines remove a lot of nan...
-if (numL1 lt numL2)  then begin
-   I1=avg((*self.images.main_image_stack)[*,*,numL1:numL2],2,/double,/nan)
-endif else begin
-   if (numL1 eq numL2) then I1=(*self.images.main_image_stack)[*,*,numL1] else begin
-      self->message, msgtype = 'error', 'Wav 2 must be greater than Wav 1',/window
-      return
-   endelse
-endelse
-if (numL3 lt numL4)  then begin
-   I2=avg((*self.images.main_image_stack)[*,*,numL3:numL4],2,/double,/nan)
-endif else begin
-   if (numL3 eq numL4) then I2=(*self.images.main_image_stack)[*,*,numL3] else begin
-      self->message, msgtype = 'error', 'Wav 4 must be greater than Wav 3',/window
-      return
-   endelse
-endelse
+if (slices[0] ne slices[1]) then $
+   I1 = avg((*self.images.main_image_stack)[*,*,slices[0]:slices[1]],2,/double,/nan) else $
+      I1 = (*self.images.main_image_stack)[*,*,slices[0]]
+
+if (slices[2] ne slices[3]) then $
+   I2 = avg((*self.images.main_image_stack)[*,*,slices[2]:slices[3]],2,/double,/nan) else $
+      I2 = (*self.images.main_image_stack)[*,*,slices[2]] 
 
 I1[where(~FINITE(I1))]=0.
 I2[where(~FINITE(I2))]=!VALUES.F_NAN
 
-;;fftscale bugs with image of odd size:
-szim=size(I1)
-
-;FFTSCALE
-;if (szim[1] mod 2) then begin
-;  I1=I1[0:szim[1]-2,0:szim[2]-2]
-;  I2=I2[0:szim[1]-2,0:szim[2]-2]
-;endif 
-;I1s=fftscale(I1,double(L2m)/double(L1m),double(L2m)/double(L1m),1e-7)
-
-widget_control,(*self.state).sdik_id, GET_VALUE=knumin
+;;generate SDI settings
+Ls = (*((*self.state).CWV_ptr))[slices] 
+L1m = Ls[0]+0.5*(Ls[1] - Ls[0])
+L2m = Ls[2]+0.5*(Ls[2] - Ls[3])
 vscaleopt=1
 knum=1
 locs = dblarr(2,4)
-for j = 0,1 do for k = 0,3 do locs[j,k] = mean((*self.satspots.cens)[j,k,numL1:numL2],/nan)
+for j = 0,1 do for k = 0,3 do locs[j,k] = mean((*self.satspots.cens)[j,k,slices[0]:slices[1]],/nan)
 
-sdidiff=gpi_ssdi(I1,I2,L1m,L2m,vscaleopt,knumin,knum,locs)
+sdidiff=gpi_ssdi(I1,I2,L1m,L2m,vscaleopt,(*self.state).sdik,knum,locs)
+
 *self.images.main_image=sdidiff
 self->message, msgtype='information','Optimal SDI image magnification is = '+strtrim(vscaleopt[0],2)
 self->message, msgtype='information','Optimal SDI image intensity renormalization is = '+strtrim(knum[0],2)
 
-;Reset GPItv WINDOWS to SSDI mode
-widget_control,(*self.state).collapse_button,get_value=modelist
-jcm=where(strmatch(modelist,'Collapse by SDI'))
-(*self.state).collapse=jcm
-widget_control,(*self.state).collapse_button,set_droplist_select=(*self.state).collapse
+;Reset GPItv to SSDI mode
 (*self.state).rgb_mode=0
 (*self.state).specalign_mode=0
-self->collapsecube
 
 self->getstats
 self->recenter
@@ -17897,168 +17954,117 @@ self->displayall
 self->update_child_windows,/update
 self->resetwindow
 
-
 end
 
 ;----------------------------------------------------------------------
-pro GPItv::sdi
 
-;; aperture radial profil front end
-;if ( (xregistered(self.xname+'_sdi', /noshow)) or not (xregistered(self.xname+'_sdi', /noshow))) then begin
-if ~(xregistered(self.xname+'_sdi')) then begin  
-   sdi_base = $
-      widget_base(/base_align_center, $
-                  group_leader = (*self.state).base_id, $
-                  /column, $
-                  title = 'GPItv sdi', $
-                  uvalue = 'sdi_base')
-   
-   sdi_top_base = widget_base(sdi_base, /row, /base_align_center)
-   
-   sdi_base1 = widget_base( $
-               sdi_top_base, /column, frame=1)
-   sdi_base1b = widget_base( $
-                sdi_top_base, /column, frame=0)
-   sdi_base2 = widget_base( $
-               sdi_top_base, /column, frame=0)
-   sdi_base2a = widget_base( $
-                sdi_base2, /row, frame=0)
-   sdi_base2b = widget_base( $
-                sdi_base2, /row, frame=0)
-   sdi_base2c = widget_base( $
-                sdi_base2, /row, frame=0)
-   sdi_base2d = widget_base( $
-                sdi_base2, /row, frame=0)
-   
-   
-   sdi_base3 = widget_base( $
-               sdi_top_base, /column, frame=0)
-   sdi_base4 = widget_base( $
-               sdi_top_base, /column, frame=0)
-   
-   
-   void = widget_label( sdi_base1, VALUE='*** SIMPLE DIFFERENCE IMAGING ***',/ALIGN_CENTER )
-   sdi_base1h = widget_base( $
-                sdi_base1, /column, frame=0,xsize=60)
-   sdi_help = $
-      widget_button(sdi_base1h, $
-                    value = 'Help', $
-                    uvalue = 'Help',xsize=5)
-   
-   sdilist = ['Default', 'User-defined'] ;, 'Met2',  'Met3']
-   inic=0
-   if strmatch((*self.state).obsfilt, 'H') then inic=1
-   if strmatch((*self.state).obsfilt, 'J') then inic=2 
-   if strmatch((*self.state).obsfilt, 'Y') then inic=3 
-   if strmatch((*self.state).obsfilt, 'K1') then inic=4 
-   
-   (*self.state).sdilist_id = widget_droplist(sdi_base1b, $
-                                              frame = 0, $
-                                              title = 'band:', $
-                                              uvalue = 'elem', $
-                                              /ALIGN_RIGHT,$
-                                              value = sdilist)
-   (*self.state).currsdi=inic
-   
-   if inic eq 1 then begin      ;H
-      (*self.state).sdiL1=1.585
-      (*self.state).sdiL2= 1.593
-      (*self.state).sdiL3= 1.617
-      (*self.state).sdiL4= 1.625
-   endif
-   ;;Will need to update the none H wavelengths to some more model relavant values.
-   if inic eq 2 then begin      ;J
-      (*self.state).sdiL1= 1.207
-      (*self.state).sdiL2= 1.213
-      (*self.state).sdiL3= 1.232
-      (*self.state).sdiL4= 1.238
-   endif
-   
-   if inic eq 3 then begin      ;Y
-      (*self.state).sdiL1= 1.002
-      (*self.state).sdiL2= 1.008
-      (*self.state).sdiL3= 1.033
-      (*self.state).sdiL4= 1.038
-   endif
-   
-   if inic eq 4 then begin      ;K1
-      (*self.state).sdiL1= 1.957
-      (*self.state).sdiL2= 1.965
-      (*self.state).sdiL3= 1.996
-      (*self.state).sdiL4= 2.004
-   endif
-   ;;will crash is wavelength info is not available
-   
-   sdiL1s= VALUE_LOCATE(*((*self.state).CWV_ptr),double((*self.state).sdiL1) )
-   sdiL2s= VALUE_LOCATE(*((*self.state).CWV_ptr),double((*self.state).sdiL2) )
-   sdiL3s= VALUE_LOCATE(*((*self.state).CWV_ptr),double((*self.state).sdiL3) )
-   sdiL4s= VALUE_LOCATE(*((*self.state).CWV_ptr),double((*self.state).sdiL4) )
+pro GPItv::sdi_refresh
+;;refresh the SDI settings box, if it exists
 
-	void = widget_label( sdi_base2a, VALUE='Wav 1:' )
-        void = widget_label( sdi_base2b, VALUE='Wav 2:' )
-        void = widget_label( sdi_base2c, VALUE='Wav 3:' )
-        void = widget_label( sdi_base2d, VALUE='Wav 4:' )
-        (*self.state).sdiL1_id = widget_text(sdi_base2a,editable=0,uvalue = 'L1', $
-                                             value = strcompress(string((*self.state).sdiL1,format='(2g)'),/rem), $
-                                             xsize = 5)
-        (*self.state).sdiL2_id = widget_text(sdi_base2b,editable=0,uvalue = 'L2', $
-                                             value = strcompress(string((*self.state).sdiL2,format='(2g)'),/rem), $
-                                             xsize = 5)
-        (*self.state).sdiL3_id = widget_text(sdi_base2c,editable=0,uvalue = 'L3', $
-                                             value = strcompress(string((*self.state).sdiL3,format='(2g)'),/rem), $
-                                             xsize = 5)
-        (*self.state).sdiL4_id = widget_text(sdi_base2d,editable=0,uvalue = 'L4', $
-                                             value = strcompress(string((*self.state).sdiL4,format='(2g)'),/rem), $
-                                             xsize = 5)
-        
-        void = widget_label( sdi_base2a, VALUE='Slice 1:' )
-        void = widget_label( sdi_base2b, VALUE='Slice 2:' )
-        void = widget_label( sdi_base2c, VALUE='Slice 3:' )
-        void = widget_label( sdi_base2d, VALUE='Slice 4:' )
-        
-        (*self.state).sdiL1s_id = widget_text(sdi_base2a,editable=0,uvalue = 'L1s', $
-                                              value = string(sdiL1s,format='(I3)'), $
-                                              xsize = 5)
-        (*self.state).sdiL2s_id = widget_text(sdi_base2b,editable=0,uvalue = 'L2s', $
-                                              value = string(sdiL2s,format='(I3)'), $
-                                              xsize = 5)
-        (*self.state).sdiL3s_id = widget_text(sdi_base2c,editable=0,uvalue = 'L3s', $
-                                              value = string(sdiL3s,format='(I3)'), $
-                                              xsize = 5)
-        (*self.state).sdiL4s_id = widget_text(sdi_base2d,editable=0,uvalue = 'L4s', $
-                                              value = string(sdiL4s,format='(I3)'), $
-                                              xsize = 5)
-        
-        
-        (*self.state).sdik_id = $
-           cw_field(sdi_base4, $
-                                ;/long, $
-                    /return_events, $
-                    title = 'subtr. fact (-1 = soft opt):', $
-                    uvalue = 'kd', $
-                    value = (*self.state).sdik, $
-                    xsize = 5)
-        
-        sdi_plot = $
-           widget_button(sdi_base4, $
-                         value = 'Draw', $
-                         uvalue = 'sdi_draw')
-        
-        sdi_done = $
-           widget_button(sdi_base4, $
-                         value = 'Done', $
-                         uvalue = 'sdi_done')
-        
-        widget_control, sdi_base, /realize
-        
-        xmanager, self.xname+'_sdi', sdi_base, /no_block
-        widget_control, sdi_base, set_uvalue={object: self, method: 'sdi_event'}
-        widget_control, sdi_base,event_pro = 'GPItvo_subwindow_event_handler'
-        self->resetwindow
-endif
+  if ~(xregistered(self.xname+'_sdi', /noshow)) then return
+  
+  if ptr_valid((*self.state).CWV_ptr) then begin
+     self->sdi_update_defs
+     wavs = strarr(4)
+     for j = 0,3 do wavs[j] = string((*((*self.state).CWV_ptr))[(*self.state).sdi_slices[j]],format='(F4.2)')+' um'
+  endif else wavs =  ['','','','']
 
+  ;;update displays
+  for j = 0,3 do begin
+     widget_control, (*self.state).sdi_sliceids[j],$
+                     set_value = string((*self.state).sdi_slices[j],format='(I3)'),$
+                     sensitive=(*self.state).sdi_userdef
+     widget_control,(*self.state).sdi_wavids[j],set_value = wavs[j]
+  endfor
+  
 end
 
+;----------------------------------------------------------------------
+pro GPItv::SDI_settings
+
+  ;; SDI settings front end
+  if ~(xregistered(self.xname+'_sdi')) then begin  
+     sdi_base = $
+        widget_base(/base_align_center, $
+                    group_leader = (*self.state).base_id, $
+                    /column, $
+                    title = 'GPItv SDI', $
+                    uvalue = 'sdi_base')
+     
+     message = ['            *** SIMPLE DIFFERENCE IMAGING ***',$
+                'Choose default (methane band) or enter user-defined values.',$
+                'SDI collapse mode generates a difference image between the',$
+                'average of all slices between Slice 1 and Slice 2 (Im1), and',$
+                'the average of all slices between Slice 3 and Slice 4 (Im2).', $
+                'Im1 is spatially scaled by the ratio of the central wavelengths',$
+                'and Im2 is photometrically scaled by the subraction factor (f).',$
+                'Setting the subtraction factor to -1 causes the code to find',$
+                'the optimum value.',$
+                'Wavelengths are for current cube (or none if no cube loaded).',$
+                "Settings are only applied when 'Save Settings' is clicked."]
+
+     void = widget_text(sdi_base, value = message, xsize = max(strlen(message)), ysize = n_elements(message))
+     sdi_base1 = widget_base(sdi_base, /row)
+     (*self.state).sdi_userdef_id = CW_BGROUP(sdi_base1, ['Default', 'User-defined'], /COLUMN,$
+                                              /EXCLUSIVE,/FRAME, SET_VALUE=(*self.state).sdi_userdef,$
+                                              uvalue='userdef')
+     sdi_base1a = widget_base(sdi_base1, /row)
+     void = widget_label(sdi_base1a,Value='Subtraction Factor')
+     (*self.state).sdik_id =  widget_text(sdi_base1a,uvalue = 'subfrac', $
+                                                    value = strtrim((*self.state).sdik,2),$
+                                                    xsize = 5,/editable)
+
+     sdi_base2 = widget_base( $
+                 sdi_base, /column, frame=0)
+     sdi_base2s = lonarr(4)
+     sdi_base2s[0] = widget_base( $
+                  sdi_base2, /row, frame=0)
+     sdi_base2s[1] = widget_base( $
+                  sdi_base2, /row, frame=0)
+     sdi_base2s[2] = widget_base( $
+                  sdi_base2, /row, frame=0)
+     sdi_base2s[3] = widget_base( $
+                  sdi_base2, /row, frame=0)
+     
+     ;;if image is currently loaded, grab the wavelengths associated
+     ;;with the slices
+     if ptr_valid((*self.state).CWV_ptr) then begin
+        self->sdi_update_defs
+        wavs = strarr(4)
+        for j = 0,3 do wavs[j] = string((*((*self.state).CWV_ptr))[(*self.state).sdi_slices[j]],format='(F4.2)')+' um'
+     endif else wavs =  ['','','','']
+     
+     extratext1 = ['   mean( ','         ','-f*mean( ','         ']
+     extratext2 = ['  ',' )','  ',' )']
+     for j = 0,3 do begin
+        void = widget_label( sdi_base2s[j], VALUE=extratext1[j]+'Slice '+strtrim(j,2)+':' )
+        (*self.state).sdi_sliceids[j] = widget_text(sdi_base2s[j],uvalue = 'slicebox', $
+                                                    value = string((*self.state).sdi_slices[j],$
+                                                                   format='(I3)'), $
+                                                    xsize = 5,/editable,/KBRD_FOCUS_EVENTS)
+        widget_control,(*self.state).sdi_sliceids[j],sensitive=(*self.state).sdi_userdef
+        void =  widget_label( sdi_base2s[j], VALUE=extratext2[j])
+        (*self.state).sdi_wavids[j] = widget_label( sdi_base2s[j], VALUE=wavs[j] )
+     endfor
+
+     sdi_base3 = widget_base( sdi_base, /row, frame=0)
+
+     void = widget_button(sdi_base3, $
+                          value = 'Cancel', $
+                          uvalue = 'cancel')
+     void = widget_button(sdi_base3, $
+                          value = 'Save Settings', $
+                          uvalue = 'save')
+     
+     widget_control, sdi_base, /realize
+     
+     xmanager, self.xname+'_sdi', sdi_base, /no_block
+     widget_control, sdi_base, set_uvalue={object: self, method: 'sdi_event'}
+     widget_control, sdi_base,event_pro = 'GPItvo_subwindow_event_handler'
+     self->resetwindow
+  endif
+  
+end
 
 ;----------------------------------------------------------------------
 pro GPItv::alignspeckle, status=status
@@ -19094,44 +19100,47 @@ pro GPItv::contrast_settings
   plotline = strcompress('0, button, Linear|Log, exclusive,' + $      ;1
                          'label_left = Select Plot Scale: , set_value =' + $
                          string( (*self.state).contr_yaxis_type))
-  yrange = strcompress('0, button, Manual|Auto, exclusive,' + $       ;2
+  yrange = strcompress('1, button, Manual|Auto, exclusive,' + $       ;2
                          'label_left = Y Range:, set_value =' + $
                          string( (*self.state).contr_yaxis_mode))
   yminline= strcompress('0, float,'+string((*self.state).contr_yaxis_min) + $  ;3
                         ',label_left = Y axis minimum:,' + $
                         'width = 12')
-  ymaxline = strcompress('0, float,'+string((*self.state).contr_yaxis_max) + $  ;4
+  ymaxline = strcompress('2, float,'+string((*self.state).contr_yaxis_max) + $  ;4
                          ',label_left = Y axis maximum:,' + $
                          'width = 12')
   fontline = strcompress('0, float,'+string((*self.state).contr_font_size) + $  ;5
                          ',label_left = Font size:,' + $
                          'width = 12')
-  plotmult = strcompress('0, button, Current|All, exclusive,' + $              ;6
+  plotmult = strcompress('1, button, Current|All, exclusive,' + $              ;6
                          'label_left = Select Image Slice: , set_value =' + $
                          string( (*self.state).contr_plotmult))
-  plotouter = strcompress('0, button, Dark Hole Only|All Image, exclusive,' + $  ;7
+  plotouter = strcompress('2, button, Dark Hole Only|All Image, exclusive,' + $  ;7
                          'label_left = Plot Contrast In:, set_value =' + $
                          string( (*self.state).contr_plotouter))
   autocent = strcompress('0, button, Auto Locate Sat Spots|Use Highpass Filter|Constrain Spot Locs,' + $ ;8
                          ' set_value = ' + $
                          '['+strtrim((*self.state).contr_autocent,2)+'\,'+strtrim((*self.state).contr_highpassspots,2)+'\,'+strtrim((*self.state).contr_constspots,2)+']')
-  yunits = strcompress('0, button, Sigma|Median|Mean, exclusive,' + $ ;9
-                         'label_left = Contrast Y units:, set_value =' + $
-                         string( (*self.state).contr_yunit))
-  xunits = strcompress('0, button, Arcseconds|l/D, exclusive,' + $ ;10
-                         'label_left = Contrast X units:, set_value =' + $
-                         string( (*self.state).contr_xunit))
+  yunits = strcompress('1, button, Sigma|Median|Mean, exclusive,' + $ ;9
+                       'label_left = Contrast Y units:, set_value =' + $
+                       string( (*self.state).contr_yunit))
+  xunits = strcompress('2, button, Arcseconds|l/D, exclusive,' + $ ;10
+                       'label_left = Contrast X units:, set_value =' + $
+                       string( (*self.state).contr_xunit))
+  ftype = strcompress('0, button, FITS|TXT|FITS TABLE, exclusive,' + $ ;11
+                       'label_left = Profile Filetype:, set_value =' + $
+                       string( (*self.state).contr_prof_filetype))
 
   formdesc = ['0, label, Select options for contrast plot display', $
               plotline, yrange, yminline, ymaxline, fontline,$
-              plotmult, plotouter,autocent, yunits, xunits,$
+              plotmult, plotouter,autocent, yunits, xunits, ftype,$
               '0, button, Apply Settings, quit', $
               '0, button, Cancel, quit']
 
   textform = cw_form(formdesc, /column, $
                      title = 'GPItv Contrast Plot settings')
 
-  if (textform.tag12 EQ 1) then return ; cancelled (tag# = # of inputs above+2)
+  if (textform.tag13 EQ 1) then return ; cancelled (tag# = # of inputs above+2)
 
   (*self.state).contr_yaxis_type = textform.tag1
   (*self.state).contr_yaxis_mode = textform.tag2
@@ -19145,6 +19154,7 @@ pro GPItv::contrast_settings
   (*self.state).contr_constspots = (textform.tag8)[2]
   (*self.state).contr_yunit = textform.tag9
   (*self.state).contr_xunit = textform.tag10
+  (*self.state).contr_prof_filetype = textform.tag11
 
   if not xregistered(self.xname+'_contrprof',/noshow) then return
 
@@ -19398,8 +19408,9 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
 
   ;;save radial contrast as fits
   if (keyword_set(radialsav)) then begin
-     contr_outfile = dialog_pickfile(filter='*.fits', $
-                                     file=nm+'-contrast_profile.fits', get_path = tmp_dir, $
+     ftype = (['fits','txt','fits'])[(*self.state).contr_prof_filetype]
+     contr_outfile = dialog_pickfile(filter='*.'+ftype, $
+                                     file=nm+'-contrast_profile.'+ftype, get_path = tmp_dir, $
                                      path=(*self.state).current_dir,$
                                      title='Please Select File to save contrast radial profile')
      
@@ -19420,13 +19431,38 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
            (*(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit])[*,0]
      endif else out = [[asec],[outval[*,0]]]
 
-     mkhdr,hdr,out
-     sxaddpar,hdr,'SLICES',slices,'Cube slices used.'
-     sxaddpar,hdr,'YUNITS',(['Std Dev','Median','Mean'])[(*self.state).contr_yunit],'Contrast units'
-     sxaddpar,hdr,'WINAP',(*self.state).contrwinap,'Search window size'
-     sxaddpar,hdr,'GAUSSAP',(*self.state).contrap,'Gaussian window size'
-
-     writefits,contr_outfile,out,hdr
+     case (*self.state).contr_prof_filetype of
+           0: begin
+              mkhdr,hdr,out
+              sxaddpar,hdr,'SLICES',slices,'Cube slices used.'
+              sxaddpar,hdr,'YUNITS',(['Std Dev','Median','Mean'])[(*self.state).contr_yunit],'Contrast units'
+              sxaddpar,hdr,'WINAP',(*self.state).contrwinap,'Search window size'
+              sxaddpar,hdr,'GAUSSAP',(*self.state).contrap,'Gaussian window size'
+              writefits,contr_outfile,out,hdr
+           end
+           1: begin
+              openw,lun,contr_outfile,/get_lun
+              printf,lun,transpose(out),format='('+strtrim((size(out,/dim))[1],2)+'(F))'
+              free_lun,lun
+           end 
+           2: begin
+              hdr = []
+              sxaddpar,hdr,'SLICES',slices,'Cube slices used.'
+              sxaddpar,hdr,'YUNITS',(['Std Dev','Median','Mean'])[(*self.state).contr_yunit],'Contrast units'
+              sxaddpar,hdr,'WINAP',(*self.state).contrwinap,'Search window size'
+              sxaddpar,hdr,'GAUSSAP',(*self.state).contrap,'Gaussian window size'
+              names = ['Angle']
+              fmt = 'D'
+              for j=0,n_elements(inds)-1 do begin &$
+                 names = [names,'Slice_'+strtrim(fix(inds[j]),2)] &$
+                 fmt = fmt+',D' &$
+              end
+              create_struct,out1,'',names,fmt
+              out1 = replicate(out1,  (size(out,/dim))[0])
+              for j = 0,n_elements(names)-1 do out1.(j) = out[*,j]
+              mwrfits,out1,contr_outfile,hdr,/create
+           end 
+        endcase
   endif 
 
   self->resetwindow
@@ -19643,6 +19679,12 @@ function gpitv::get_session
   ;;accessor function for session number, for use by external programs
     return, (*self.state).multisess
 end
+
+function gpitv::xname
+  ;;accessor function for xname, for use by external programs
+    return, self.xname
+end
+
 
 ;-------------------------------------------------------------------
 ;-------------------------------------------------------------------
