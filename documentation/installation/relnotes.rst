@@ -15,75 +15,115 @@ This version was released in support of the GPI Early Science shared-risk observ
 of enhancements and fixes made during the ongoing commissioning observing runs, including in particular substantial updates to polarimetry mode support. 
 
 .. comment:
-    Everything significatn in commits from 2564 (release 1.0) through to current
+    The following should summarize everything significant in commits from 2564 (release 1.0) through to current
+
+
+* Updates for polarimetry mode:
+
+  * Polarization waveplate angles offsets, coordinate system signs, and Stokes vector position angles all straightened out. Polarization reductions 
+    now yield position angles in output files which are oriented in the usual astronomical convention of starting with 
+    Stokes +Q = north. (Millar-Blanchaer)
+  * Added new primitive "Clean Polarization Pairs via Double Difference" to debias polarization pairs by subtracting the median single difference bias between pairs. (Perrin)
+  * Added new primitive "Subtract Mean Stellar Polarization". (Perrin)
+  * Added new primitive "KLIP ADI for Pol Mode" to create total intensity disk images from polarimetry data. (Millar-Blanchaer)
+  * Improvements to satellite spot handling and star position measurements for polarimetry mode. Improved stability of locating star center by setting a lower threshold in pixel value. (Wang)
+  * Improved polarization mode recipe templates (Millar-Blanchaer, Perrin)
+  * Lenslet coordinates in polarimetry mode match spectral mode. (Millar-Blanchaer)
+  * Update "Update spot shifts for flexure" to work in polarimetry mode (Millar-Blanchaer)
+  * Many bug fixes and minor updates to polarimetry primitives. (Millar-Blanchaer)
+  * Improved GPItv polarimetry display; see notes in GPItv section below. 
 
 * Enhancements/Additions to primitives and recipes:	
-
-  * Dark subtraction can interpolate between dark frames taken before and after an observation. (Perrin)
+  
+  * Added new primitive "Smooth a 3D Cube". (Millar-Blanchaer)
+  * Improvements to "Calibrate Photometric Flux" primitive. (Ingraham)
+  * Improved background subtraction in "Extract 1D Spectrum" (Ingraham)
+  * Update to "Destripe Science Image" (Ingraham)
+  * Update "wavelength solution 2D" primitive for parallelization, and for use of microlens PSFs; see note below. (Wolff) 
+  * "Subtract Dark" can interpolate between dark frames taken before and after an observation. (Perrin)
+  * "Destripe for Darks Only" algorithm improvements to preserve overall detector bias levels in darks, so they subtract better in science images. (Perrin)
   * Contrast profiles can be written to TXT files and FITS tables. (Savransky)
-  * Added infrastructure to allow a primitive to execute on an entire dataset. Allows primitives that work on individual images to work after Accumulate Images. (Perrin)
-  * Rotate North primitive can be applied after Accumulate Images. (Perrin)
-  * Added new primitive to clear/debias polarization pairs using a double difference algorithm. (Perrin)
-  * Added experimental primitive to subtract stellar polarization. (Perrin)
+  * "Rotate North" primitive can be applied either before or after Accumulate Images. (Perrin)
   * Improved performance of locating satellite spots in spectral mode. Now can add satellite spots separation constraint. (Ingraham, Savransky)
-  * Improved stability of locating star center in polarimetry mode by setting a lower threshold in pixel value. (Wang)
-  * Updates for extracting 1D spectrum and calibrating photometry flux primitives. (Ingraham)
-  * Added new primitive to calculate spectral throughput. (Maire)
-  * Improved performance of 2D wavelength solution. (Wolff)
-  * Updates to inserting fake planet into cube. (Ingraham)
-  * Minor fixes to image destriping routine. (Ingraham)
-  * Fixed edge effect error for wavecals. (Ingraham)
-  * Image centeres in polarimetry mode match spectral mode. (Millar-Blanchaer)
-  * Added KLIP for polarimetry data. (Millar-Blanchaer)
-  * Many bug fixes and minor updates to polarimetry primitives. (Millar-Blanchaer)
-  * Add a primitive to smooth a 3D datacube. (Millar-Blanchaer)
-  * Rotate North updates headers properly. (Millar-Blanchaer)
+  * Updates to inserting fake planets into cubes. (Ingraham)
+  * "Rotate North" has a new option to pivot around the star location or not. Also now saves rotation angle in extension header (Millar-Blanchaer)
+  * Parameter updates to default recipes. (Millar-Blanchaer, Savransky)
 
 
 * Pipeline infrastructure
 
+  * Added infrastructure code to allow primitives to modify images that have been stored by Accumulate Images. 
+    This allows some primitives that work on individual images to work either before or after Accumulate Images. If before, 
+    the primitive will act on each image one at a time. If after, the primitive will loop over all
+    accumulated images in a row. (Perrin) 
   * Minor reordering of default order of primitives. (Perrin)
   * Fixed bug in Windows when encountering symlinks. (Maire)
-  * Improved nogui mode of pipeline. (Perrin)
   * Install script will warn but allow aliased IDL commands. (Wang)
+  * Added new utility function, `get_spectral_response` to return measured spectral throughput in both direct and coronagraphic modes. (Maire)
 
 
 * Recipe Editor, Data Parser, Autoreducer GUIs: 
 
-  * Improved handling of saving recipe files. (Perrin, Wolff)
-  * Autoreducer should now automatically change directories for different dates. (Perrin)
+  * Autoreducer should ignore non-GPI FITS files (Perrin)
+  * Autoreducer should recognize arc lamps and run Quick Wavecal recipe template.  (Perrin)
+  * Autoreducer should recognize and ignore "cleanup frames", which are throwaway frames taken 
+    to allow for persistence decay between different lamps. (Wolff, Rantakyro, Perrin)
+  * At Gemini, Autoreducer should now automatically change directories for different dates. (Perrin)
+  * Data Parser should also ignore cleanup frames (Wolff, Perrin)
+  * Data Parser and Recipe Editor get improved filenames for saving recipe files. (Perrin, Wolff)
   * Better handling of errors to mitigate GUI crashes and other unresponsive behavior. (Wang)
-  * Added ability to make new blank recipes. (Savransky)
-  * Remove file button for data parser. (Perrin)
-  * Allow removal of the last file in a recipe. (Perrin)
-
+  * Added 'File | New' menu option in Recipe Editor to make new blank recipes. (Savransky)
+  * GPI Launcher will bring to the front any existing window if you click the corresponding button. (Perrin)
 
 * GPItv enhancements and bug fixes:
 
-  * Improved display options for polarimetry data. (Perrin)
-  * Improved UI for selecting polcal/wavecal files. (Perrin)
+  * Overhaul of polarization vector plotting. Improved display options, more intuitive vector 
+    behavior on image zooms, can display either polarized intensity or polarization fraction. (Perrin)
+  * Improved UI for selecting wavecal/polcal files. (Perrin)
   * Added behavior to discard current polcal/wavecal when switching to a new file. (Perrin)
-  * GPI Launcher will bring to the front any existing window if you click the corresponding button. (perrin)
   * Fixed bugs that prevented viewing of temporary data and headers in certain cases. (Wang)
-  * SDI settings now are a menu item under options and now consistent with other GPItv settings. (Savransky)
-  * Overhaul of polarization vector plotting. (Perrin)
-
+  * SDI settings for spectral cube collapsed display are now a menu item under Options, for consistency with other GPItv settings. (Savransky)
+  * Better FITS metadata display for lamp cleanup frames, which are flagged using the ND4 filter.
 
 * Documentation 
 
-  * Updated Quickstar documentation. (Ingraham)
-  * Improved installation notes. (Perrin)
+  * Improved installation documentation (Wang, Perrin)
+  * Updated Tutorial documentation. (Ingraham)
   * Added polarization data reduction tutorial. (Millar-Blanchaer)
-
+  * Docs page on IFS thermal backgrounds updated (Perrin)
+  * FAQ updates (Perrin)
 
 * Miscellaneous bug fixes and minor tasks:
 
   * Many minor bug fixes. (Ingraham, Maire, Millar-Blanchaer, Perrin, Savransky, Wang, Wolff)
-  * Refactoring and reorganizing routines. (Perrin, Wolff)
-  * Updates to default recipes. (Millar-Blanchaer, Savransky)
+  * Some refactoring and reorganizing routines. (Perrin, Wolff)
+  * Fix nonfunctional 'Remove File' button in Recipe Editor and Data Parser GUIs. (Rajan, Perrin)
+  * "Measure Distortion" primitive was disabled since distortion correction is a lab calibration rather than routine on-sky task. (Maire)
+  * Better error handling in gpitv if flexure shifts lookup file not present (Ingraham)
+  * Better edge case handling in gpitv if sat spot positions are recorded in the 
+    FITS header but fluxes are not (Wang)
+  * Minor fixes to 'Destripe Science Image' primitive. (Ingraham)
+  * In /nogui mode, Rescan CalDB shouldn't try to update nonexistent Status Console window (Perrin)
+  * Fixed bug for output directory path for saved contrast profiles. (Savransky)
+  * Fix logging bug if running the pipeline in single-recipe mode (Ingraham)
+  * Improved code clarity and variable names in wavelength solution primitive, remove redundant double save of the output file. (Wolff)
+  * Fix datestring bug for engineering mode ("E" filename) FITS files (Savransky)
+  * Path cleanup for install: remove hard coded filter paths, add trailing slashes unformly for consistency across unix systems (Ingraham, Wang)
+  * Minor debugging: remove some debug print statements, code cleanup, etc. (team)
   * Updated pipeline constants. (Perrin, Ingraham) 
   * Better filename handling, parsing, and creation. (Millar-Blanchaer, Perrin, Wang, Wolff)
  
+
+.. admonition:: Advertisement: SPIE talks on GPI Data Pipeline 
+
+ Want to learn more details on how to calibrate and reduce GPI data? The GPI data pipeline, its algorithms, and 
+ calibrations for the instrument will be discussed in detail in 13 presentations at the SPIE meeting this summer. 
+
+ In addition to the changes listed above, many code commits were made relevant
+ to new primitives for the creation and use of high-resolution subpixel sampled
+ microlens PSF models. These algorithms are not quite ready for prime time
+ yet and are not included in the public release. Stay tuned for 1.2 this fall, and/or see the
+ presentations by Ingraham,  Draper, and Wolff at the SPIE this summer. 
 
 
 Version 1.0.0

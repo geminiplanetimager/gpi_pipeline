@@ -29,39 +29,18 @@ The distribution ZIP files for the GPI pipeline come in two flavors:
 .. comment 
     ## DO NOT EDIT THIS LINE ## Marker for automated editing of this file by gpi_release.py
 
-**Version 1.0.0** (2014 Feb 14): 
- * `gpi_pipeline_1.0_compiled.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.0_compiled.zip>`_ -  GPI pipeline compiled code only
- * `gpi_pipeline_1.0_runtime_macosx.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.0_runtime_macosx.zip>`_ - GPI pipeline compiled code plus IDL runtime for Mac OS X
- * `gpi_pipeline_1.0_runtime_linux.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.0_runtime_linux.zip>`_ - GPI pipeline compiled code plus IDL runtime for Linux
- * `gpi_pipeline_1.0_runtime_windows.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.0_runtime_windows.zip>`_ - GPI pipeline compiled code plus IDL runtime for Windows
- * `gpi_pipeline_1.0_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.0_source.zip>`_ -  GPI pipeline source code (available for reference)
-
-
-**Version 0.9.4** (2014 Jan 7):
- * `gpi_pipeline_0.9.4_r2360_compiled.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.4_r2360_compiled.zip>`_ -  GPI pipeline compiled code only
- * `gpi_pipeline_0.9.4_r2360_runtime_macosx.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.4_r2360_runtime_macosx.zip>`_ - GPI pipeline compiled code plus IDL runtime for Mac OS X
- * `gpi_pipeline_0.9.4_r2360_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.4_r2360_source.zip>`_ -  GPI pipeline source code (available for reference)
-
-.. comment 
-    **Version 0.9.2** (2013 Sept 5):
-     * `gpi_pipeline_0.9.2_r1926_compiled.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.2_r1926_compiled.zip>`_ -  GPI pipeline compiled code only
-     * `gpi_pipeline_0.9.2_r1926_runtime_macosx.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.2_r1926_runtime_macosx.zip>`_ - GPI pipeline compiled code plus IDL runtime for Mac OS X
-     * `gpi_pipeline_0.9.2_r1926_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.2_r1926_source.zip>`_ -  GPI pipeline source code (available for reference)
-    **Version 0.9.1** (2013 July 18):
-     * `gpi_pipeline_0.9.1_compiled.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.1_compiled.zip>`_ -  GPI pipeline compiled code only
-     * `gpi_pipeline_0.9.1_runtime_macosx.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.1_runtime_macosx.zip>`_ - GPI pipeline compiled code plus IDL runtime for Mac OS X
-     * `gpi_pipeline_0.9.1_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.1_source.zip>`_ -  GPI pipeline source code (available for reference)
-
-.. comment 
-   **Temporary pre-release copies of the code hosted as follows**
-   * Updated version as of April 29, 2013 (untested): http://www.stsci.edu/~mperrin/software/gpidata/downloads/
-     (Not a zip file, just wget or rsync to get the entire directory or retrieve individual files at your choice)
-   * Updated version as of June 7, 2012 (untested): http://di.utoronto.ca/~maire/pipeline.zip
+**Version 1.1** (2014 May 1: 
+ * `gpi_pipeline_1.1_compiled.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1_compiled.zip>`_ -  GPI pipeline compiled code only
+ * `gpi_pipeline_1.1_runtime_macosx.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1_runtime_macosx.zip>`_ - GPI pipeline compiled code plus IDL runtime for Mac OS X
+ * `gpi_pipeline_1.1_runtime_linux.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1_runtime_linux.zip>`_ - GPI pipeline compiled code plus IDL runtime for Linux
+ * `gpi_pipeline_1.1_runtime_windows.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1_runtime_windows.zip>`_ - GPI pipeline compiled code plus IDL runtime for Windows
+ * `gpi_pipeline_1.1_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1_source.zip>`_ -  GPI pipeline source code (available for reference)
 
 
 
 Obtain the desired zip file and uncompress it to a directory of your choosing. Remember this path for use when configuring DRP paths in the next section.
 
+:ref:`priorversions` can be found below if desired
 
 Starting the DRP with the IDL Runtime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -134,6 +113,42 @@ In addition to the ``executables`` directory already discussed, the code distrib
 If you have followed these steps successfully, you have installed the pipeline code. 
 Proceed now to :ref:`configuring`.
 
+
+.. _priorversions:
+
+
+Download Links for Prior Versions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+**Version 1.0.0** (2014 Feb 14): 
+ * `gpi_pipeline_1.0_compiled.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.0_compiled.zip>`_ -  GPI pipeline compiled code only
+ * `gpi_pipeline_1.0_runtime_macosx.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.0_runtime_macosx.zip>`_ - GPI pipeline compiled code plus IDL runtime for Mac OS X
+ * `gpi_pipeline_1.0_runtime_linux.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.0_runtime_linux.zip>`_ - GPI pipeline compiled code plus IDL runtime for Linux
+ * `gpi_pipeline_1.0_runtime_windows.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.0_runtime_windows.zip>`_ - GPI pipeline compiled code plus IDL runtime for Windows
+ * `gpi_pipeline_1.0_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.0_source.zip>`_ -  GPI pipeline source code (available for reference)
+
+
+**Version 0.9.4** (2014 Jan 7):
+ * `gpi_pipeline_0.9.4_r2360_compiled.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.4_r2360_compiled.zip>`_ -  GPI pipeline compiled code only
+ * `gpi_pipeline_0.9.4_r2360_runtime_macosx.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.4_r2360_runtime_macosx.zip>`_ - GPI pipeline compiled code plus IDL runtime for Mac OS X
+ * `gpi_pipeline_0.9.4_r2360_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.4_r2360_source.zip>`_ -  GPI pipeline source code (available for reference)
+
+.. comment 
+    **Version 0.9.2** (2013 Sept 5):
+     * `gpi_pipeline_0.9.2_r1926_compiled.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.2_r1926_compiled.zip>`_ -  GPI pipeline compiled code only
+     * `gpi_pipeline_0.9.2_r1926_runtime_macosx.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.2_r1926_runtime_macosx.zip>`_ - GPI pipeline compiled code plus IDL runtime for Mac OS X
+     * `gpi_pipeline_0.9.2_r1926_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.2_r1926_source.zip>`_ -  GPI pipeline source code (available for reference)
+    **Version 0.9.1** (2013 July 18):
+     * `gpi_pipeline_0.9.1_compiled.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.1_compiled.zip>`_ -  GPI pipeline compiled code only
+     * `gpi_pipeline_0.9.1_runtime_macosx.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.1_runtime_macosx.zip>`_ - GPI pipeline compiled code plus IDL runtime for Mac OS X
+     * `gpi_pipeline_0.9.1_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_0.9.1_source.zip>`_ -  GPI pipeline source code (available for reference)
+
+.. comment 
+   **Temporary pre-release copies of the code hosted as follows**
+   * Updated version as of April 29, 2013 (untested): http://www.stsci.edu/~mperrin/software/gpidata/downloads/
+     (Not a zip file, just wget or rsync to get the entire directory or retrieve individual files at your choice)
+   * Updated version as of June 7, 2012 (untested): http://di.utoronto.ca/~maire/pipeline.zip
 
 
 
