@@ -11483,8 +11483,9 @@ caldb = obj_new('gpicaldatabase')
 shiftsfile = caldb->get_best_cal_from_header( 'shifts', *((*self.state).head_ptr),  *((*self.state).exthead_ptr) )
 ; determine if shiftsfile is a string - if it is then it found a valid file
 ; if it returned an interger (-1) then it found nothing
-sz=size(shiftsfile,/type)
-if sz[0] eq 7 then begin
+result_type=size(shiftsfile,/tname)
+
+if ((result_type eq 'STRING') and file_test(string(shiftsfile))) then begin
 	; Try to read in all the necessary info and call the flexure model
 	elevation = sxpar(*((*self.state).head_ptr), 'ELEVATIO')
 	wchd = headfits((*self.state).wcfilename)
