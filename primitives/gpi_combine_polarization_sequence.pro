@@ -88,12 +88,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	sxaddhist, functionname+": using instr pol for port ="+port, hdr0
 	
 	;Good for on-sky data
-  ; woll_mueller_vert = mueller_linpol_rot(0,/degrees)
-	; woll_mueller_horiz= mueller_linpol_rot(90,/degrees)
+  ; woll_mueller_vert = mueller_linpol_rotated(0,/degrees)
+	; woll_mueller_horiz= mueller_linpol_rotated(90,/degrees)
 	
 	;Good for lab data
-    woll_mueller_vert = mueller_linpol_rot(90,/degrees) 
-    woll_mueller_horiz= mueller_linpol_rot(0,/degrees)
+    woll_mueller_vert = mueller_linpol_rotated(90,/degrees) 
+    woll_mueller_horiz= mueller_linpol_rotated(0,/degrees)
     
     ;Getting Filter Information
     filter=gpi_simplify_keyword_value(sxpar(hdr0,"IFSFILT"))
