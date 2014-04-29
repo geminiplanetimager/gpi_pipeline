@@ -206,6 +206,7 @@ jstart=0
 jend=280
 
 	backbone->Log, "Fitting spectral lines for every "+strc(spacing)+"th lenslet"
+	print, "      Look at Pipeline Status GUI window for progress updates...   "
 counter=0
 statuswindow = backbone->getstatusconsole()
 

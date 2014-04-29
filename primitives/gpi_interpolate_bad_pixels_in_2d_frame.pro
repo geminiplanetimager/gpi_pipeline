@@ -312,7 +312,7 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 	endcase
 
 	if keyword_set(before_and_after) then begin
-		atv, [[[im0]], [[*dataset.currframe]], [[bpmask]]],/bl, names=['Input image','Output Image', 'Bad Pix Mask']
+		atv, [[[im0]], [[*dataset.currframe]], [[bpmask]]],/bl;, names=['Input image','Output Image', 'Bad Pix Mask']
 		stop
 	endif
 
