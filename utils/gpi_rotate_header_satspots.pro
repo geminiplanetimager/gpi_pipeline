@@ -1,4 +1,4 @@
-pro gpi_rotate_header_satspots,backbone,ang,locs,imcent=imcent
+pro gpi_rotate_header_satspots,backbone,ang,locs,imcent=imcent, indexFrame=indexFrame
 ;+
 ; NAME:
 ;      GPI_ROTATE_HEADER_SATSPOTS
@@ -15,6 +15,10 @@ pro gpi_rotate_header_satspots,backbone,ang,locs,imcent=imcent
 ;      locs - 2x4xl array of sat locations.
 ;      imcent - rotation pivot point.  If not set, defaults to center
 ;               of sat spots.
+;	   indexFrame - index of which file in a dataset to act on. By default 
+;					this is the current file, but if for some reason you
+;					need to rotate sat spots for another file this lets
+;					you select which one. 
 ;
 ; OUTPUTS:
 ;
@@ -30,6 +34,7 @@ pro gpi_rotate_header_satspots,backbone,ang,locs,imcent=imcent
 ;
 ; MODIFICATION HISTORY:
 ;	Written 11.08.2013 - ds
+;	2014-03-20 - MP: Added indexFrame keyword. 
 ;-
 
   compile_opt defint32, strictarr, logical_predicate
@@ -68,7 +73,7 @@ pro gpi_rotate_header_satspots,backbone,ang,locs,imcent=imcent
         backbone->set_keyword,'SATS'+strtrim(s,2)+'_'+strtrim(j,2),$
                               string(strtrim(newlocs[*,j,s],2),format='(F7.3," ",F7.3)'),$
                               'Location of sat. spot '+strtrim(j,2)+' of slice '+strtrim(s,2),$
-                              ext_num=1
+                              ext_num=1, indexFrame=indexFrame
      endfor
   endfor
  
