@@ -32,249 +32,8 @@
 ;  2009-07-21: MDP Started 
 ;    2009-09-17 JM: added DRF parameters
 ;    2013-01-30: updated with some new keywords
+;    2014-03 MP and MM-B: Polarization coordinates and angles verification and debug
 ;-
-
-;------------------------------------------
-
-;+
-; NAME: mueller_rot
-;
-;  The mueller matrix for a rotation of angle theta
-;
-; INPUTS:
-;   theta - the angle of rotation for the matrix in radians
-; OUTPUTS:
-;   a 4 x 4 mueller matrix 
-; HISTORY:
-;   Began 2012 - MMB  
-;
-;-
-function mueller_rot, theta
-theta=double(theta)
-M=[[1,0,0,0],[0,cos(2*theta),sin(2*theta),0],[0,-sin(2*theta),cos(2*theta),0],[0,0,0,1]]
-
-return, M
-end
-
-
-;------------------------------------------
-
-
-;+
-; NAME: DST_waveplate
-;   Given a Stokes datacube, transform it to model instrumental polarization.
-;
-;   The result is a modified Stokes datacube with the same dimensions as the
-;   input cube.
-;
-;   Right now, this assumes the retarder is a perfect achromatic half wave plate.
-;   TODO more realistic imperfect waveplate.
-;
-; INPUTS:
-;   polcube   A polarization datacube. Dimensions [npixels, npixels, nlambda, nStokes ]
-;         NOTE: nStokes **must** be 4.
-; KEYWORDS:
-; angle   Waveplate fast axis angle, in DEGREES.
-; /mueller  if set, just return the Mueller matrix instead of applying it.
-; OUTPUTS:
-;
-; HISTORY:
-;   Began 2008-02-05 15:29:54 by Marshall Perrin
-;-
-
-
-
-function DST_waveplate, polcube, angle=angle, degrees=degrees, mueller=return_mueller, silent=silent, retardance=retardance, pband=pband
-
-	if ~ keyword_set(angle) then angle=0
-  if keyword_Set(degrees) then theta=angle*!dtor else theta=angle; If keyword set then the input was in degrees
-  
-; Step 1: Compute the Mueller matrix for a retarder.
-  
-  if ~ keyword_set(retardance) then begin 
-   ;If the retardance isn't set then assume that we are dealing with the GPI HWP, with a
-   ;measured retardance
-   
-    if ~ keyword_set(pband) then pband = 'H' 
-      ;prprint, "Using the HWP Mueller Matrix for "+pband+" band"
-      case pband of 
-        'Y': M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9997,0.0258],[0,0,-0.0258,-0.9997]] ;0.4959 Waves
-        'J': M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9963,0.0860],[0,0,-0.0860,-0.9963]] ;0.4863 Waves
-        'H': M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9977,0.1134],[0,0,-0.1134,-0.9977]] ;0.4819 Waves
-        'K1':M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9994,0.0345],[0,0,-0.0345,-0.9994]] ;0.4945 Waves
-        'K2':M=[[1,0,0,0],[0,1,0,0],[0,0,-0.9986,-0.0534],[0,0,0.0534,-0.9986]] ;0.5085 Waves
-      endcase
-   ;stop   
-  mueller = mueller_rot(-theta)##M##mueller_rot(theta) ; Apply a rotation matrix. If angle wasn't set this has no effect
-  
-  endif else begin
-  d = retardance*360*!dtor
-  S2 = sin(2*theta)
-  C2 = cos(2*theta)
-
-    mueller = [ [1, 0,                 0,                  0           ],$
-              [0, C2^2+S2^2*cos(d),  S2*C2*(1-cos(d)),   -S2*sin(d)  ],$
-              [0, S2*C2*(1-cos(d)),  S2^2+C2^2*cos(d),   C2*sin(d)   ],$
-              [0, S2*sin(d),         -C2*sin(d),         cos(d)      ]]
-  endelse 
-
-	if keyword_set(return_mueller) then return, mueller
-
-; Step 2: Apply that Mueller matrix to the polarization data cube.
-
-	sz = size(polcube)
-	if sz[4] ne 4 then message, "Error - polarization axis must be 4 elements long!"
-
-	; we want to transform the polarization cube into a 2D array, nvoxels * 3,
-	; so that we can then easily apply the Mueller matrix to multiply it.
-	; Empirical speed tests by Marshall indicate that for the matrix multiply, for
-	; the sizes of arrays we are dealing with here there is essentially no speedup
-	; for arranging things as [3, nvoxels] versus [nvoxels, 3]. Both take ~ 0.04 s
-	; to run on my Macbook Pro, as of 2008-02-05.
-
-	tmpCube = reform(polcube, sz[1]*sz[2]*sz[3], sz[4])
-
-	tmpCube2 = mueller ## tmpCube
-
-	outcube = reform(tmpcube2, sz[1], sz[2], sz[3], sz[4])
-
-	return, outcube
-
-
-end
-
-
-;+
-; NAME: DST_instr_pol
-;
-; 	Given a Stokes datacube, transform it to model instrumental polarization.
-;
-; 	The result is a modified Stokes datacube with the same dimensions as the
-; 	input cube. 
-;
-;		Note: Right now this code assumes GPI is on a side-looking port. We
-;		don't yet have a system Mueller matrix for the up-looking port.
-;
-;
-; INPUTS:
-; 	polcube		A polarization datacube. Dimensions [npixels, npixels, nlambda,	nStokes ]
-; 				NOTE: nStokes **must** be 4.
-; KEYWORDS: 
-; 	mueller=	If present, just return the mueller matrix rather than applying
-; 				it to anything. 
-; OUTPUTS:
-;
-; HISTORY:
-; 	Began 2008-02-05 10:08:33 by Marshall Perrin 
-;
-;-
-
-
-function DST_instr_pol, polcube, mueller=mueller, port=port, pband=pband
-
-
-; Step 1: Compute the Mueller matrix corresponding to the instrumental
-; polarization.
-
-; We take this from the GPI optical model in ZEMAX and Matlab 
-; by J. Atwood, K. Wallace and J. R. Graham
-;  - see the OCDD appendix 15. 
-
-;The instrumental mueller matrices 
-
-; Where is GPI mounted? 
-if ~(keyword_set(port)) then port="side"
-case port of 
-	"side": system_mueller = [ $
-			[0.5263, 0.0078, 0.0006, 0.0000], $
-			[0.0078, 0.5263, -0.0001, 0.0063], $
-			[0.0006, 0.0012, 0.5182, -0.0920], $
-			[0.0000, -0.0062, 0.0920, 0.5181] $
-			]
-	"bottom": begin
-	          print, "No system mueller matrix for bottom port yet!"
-	          print, "Using a perfect telescope mueller matrix for now"
-	          system_mueller = [ $
-            [ 1.0, 0.0, 0.0, 0.0 ], $
-            [ 0.0, 1.0, 0.0, 0.0 ], $
-            [ 0.0, 0.0, 1.0, 0.0 ], $
-            [ 0.0, 0.0, 0.0, 1.0 ] $
-            ]
-            end
-	"perfect": system_mueller = [ $
-			[ 1.0, 0.0, 0.0, 0.0 ], $
-			[ 0.0, 1.0, 0.0, 0.0 ], $
-			[ 0.0, 0.0, 1.0, 0.0 ], $
-			[ 0.0, 0.0, 0.0, 1.0 ] $
-			]
-endcase
-
-;Insert the instrumental polarization measured in the UCSC lab
- if ~keyword_set(pband) then pband = 'H' 
- print, "Using the instrumental polarization matrix from the "+pband+" band"
- case pband of 
-    'Y': M_IP=[[1.,0,0,0],[-0.024, 0.94, 0.04, 0.26], [-0.026, -0.099, 0.94, 0.16], [0.04, 0.8, 0.9, -0.4]]
-    'J': M_IP=[[1.,0,0,0], [-0.024, 0.95, 0.049, 0.25], [-0.018, -0.108, 0.95, 0.09], [0.1, 0.1, 0.4, -2.8]]
-    'H': M_IP=[[1.,0,0,0], [-0.022, 0.96, 0.054, 0.19], [-0.009, -0.097, 0.96, 0.01], [0.04, 0.22, 0.17, -1.2]]
-    'K1':M_IP=[[1.,0,0,0], [-0.007, 0.97, 0.071, 0.15], [-0.009, -0.1, 0.96, 0.036], [0.3,0.3, 0.9, -1.0]]
-    'K2': begin
-          M_IP=[[1.,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]
-          print, "No instrumental polarization matrix measured in the lab"
-          print, "Instead using an indentity matrix"
-          end
- endcase
-
-
-if keyword_set(mueller) then return, M_IP##system_mueller
-
-; Step 2: Apply that Mueller matrix to the polarization data cube. 
-;
-sz = size(polcube)
-if sz[4] ne 4 then message, "Error - polarization axis must be 4 elements long!"
-
-; we want to transform the polarization cube into a 2D array, nvoxels * 3, 
-; so that we can then easily apply the Mueller matrix to multiply it. 
-; Empirical speed tests by Marshall indicate that for the matrix multiply, for
-; the sizes of arrays we are dealing with here there is essentially no speedup
-; for arranging things as [3, nvoxels] versus [nvoxels, 3]. Both take ~ 0.04 s
-; to run on my Macbook Pro, as of 2008-02-05.
-
-tmpCube = reform(polcube, sz[1]*sz[2]*sz[3], sz[4])
-
-tmpCube2 = system_mueller ## tmpCube
-
-outcube = reform(tmpcube2, sz[1], sz[2], sz[3], sz[4])
-
-return, outcube
-
-
-end
-
-;------------------------------------------
-;
-; FUNCTION: mueller_linpol_rot
-;   Returns the 4x4 Mueller polarization matrix for a perfect linear polarizer
-;   at position angle theta.
-;
-; INPUTS:
-;   theta   an angle, in degrees
-
-FUNCTION mueller_linpol_rot,theta
-;
-; The following formula is taken from C.U.Keller's Instrumentation for
-;  Astronomical Spectropolarimetry, page 11.
-;
-;  Or equivalently see Eq. 4.47 of "Introduction to Spectropolarimetry" by 
-;  Jose Carlos del Toro Iniesta, Cambridge University Press 2003
-
-ct = cos(2*theta*!dtor)
-st = sin(2*theta*!dtor)
-return,0.5*[[1.0,   ct,     st,     0],$
-            [ct,    ct^2,   ct*st,  0],$
-            [st,    st*ct,  st^2,   0],$
-            [0,     0,      0,      0]]
-
-end
 
 
 ;------------------------------------------
@@ -283,12 +42,13 @@ function gpi_combine_polarization_sequence, DataSet, Modules, Backbone
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
-	silent=1
 
+	if tag_exist( Modules[thisModuleIndex], "includesystemmueller") then IncludeSystemMueller=uint(Modules[thisModuleIndex].IncludeSystemMueller) else IncludeSystemMueller=1
+	if tag_exist( Modules[thisModuleIndex], "includeskyrotation") then   Includeskyrotation=  uint(Modules[thisModuleIndex].Includeskyrotation)   else Includeskyrotation=1
 
 	nfiles=dataset.validframecount
 
-	; Load the first file so we can figure out their size, etc. 
+	; Load the first file so we can figure out their dimensions, etc. 
 	im0 = accumulate_getimage(dataset, 0, hdr0,hdrext=hdrext)
 
 
@@ -306,6 +66,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	;  one acting on the pairs of sums and difference images. 
 	;
 	; It's TBD whether this makes any difference or not.
+	; But so far it appears the answer is not.
 
 
 	sumdiffstack = polstack			; a transformed version of polstack, holding the sum and single-difference images
@@ -316,59 +77,47 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	wpangle = fltarr(nfiles)		; waveplate angles
 
 	portnum=strc(sxpar(hdr0,"INPORT", count=pct))
-;<<<<<<< .mine
-; 
-;=======
-;stop
-;portnum=4
-;>>>>>>> .r2226
+
 	if pct eq 0 then port="side"
 	if pct eq 1 then begin
 	    if portnum eq 1 then port='bottom'
         if (portnum ge 2) && (portnum le 5) then port='side'
         if portnum eq 6 then port='perfect'
 	endif    
-		print, "using port = "+port
-		sxaddhist, functionname+": using instr pol for port ="+port, hdr0
-	;system_mueller = DST_instr_pol(/mueller, port=port)
+	backbone->Log, "using instr pol for port = "+port
+	sxaddhist, functionname+": using instr pol for port ="+port, hdr0
 	
 	;Good for on-sky data
-  ; woll_mueller_vert = mueller_linpol_rot(0)
-	; woll_mueller_horiz= mueller_linpol_rot(90)
+  ; woll_mueller_vert = mueller_linpol_rot(0,/degrees)
+	; woll_mueller_horiz= mueller_linpol_rot(90,/degrees)
 	
 	;Good for lab data
-    woll_mueller_vert = mueller_linpol_rot(90) 
-    woll_mueller_horiz= mueller_linpol_rot(0)
+    woll_mueller_vert = mueller_linpol_rot(90,/degrees) 
+    woll_mueller_horiz= mueller_linpol_rot(0,/degrees)
     
     ;Getting Filter Information
-    filter=strsplit(sxpar(hdr0,"IFSFILT"), '_',/extract)
-    pband=filter[1]
-    tabband=[['Y'],['J'],['H'],['K1'],['K2']]
-    if where(strcmp(tabband, pband) eq 1) lt 0 then return, error('FAILURE ('+functioname+'): IFSFILT keyword invalid. No HWP mueller matrix for that filter')
+    filter=gpi_simplify_keyword_value(sxpar(hdr0,"IFSFILT"))
+    tabband=['Y','J','H','K1','K2']
+    if where(strcmp(tabband, filter) eq 1) lt 0 then return, error('FAILURE ('+functioname+'): IFSFILT keyword invalid. No HWP mueller matrix for that filter')
     
-    include_mueller=uint(Modules[thisModuleIndex].IncludeSystemMueller)
-    if (include_mueller eq 1) then system_mueller = DST_instr_pol(/mueller, pband=pband, port=port)
+    if (include_mueller eq 1) then system_mueller = DST_instr_pol(/mueller, pband=filter, port=port) else system_mueller = identity(4)
 
 	for i=0L,nfiles-1 do begin
-	;if numext eq 0 then begin
-		;polstack[0,0,i*2] = accumulate_getimage(dataset,i,hdr)
-	;endif else begin
-	  polstack[0,0,i*2] = accumulate_getimage(dataset,i,hdr0,hdrext=hdrext)
-	;endelse	
+		polstack[0,0,i*2] = accumulate_getimage(dataset,i,hdr0,hdrext=hdrext)
+
 		wpangle[i] =-(float(sxpar(hdr0, "WPANGLE"))-float(Modules[thisModuleIndex].HWPOffset)) ;Include the known offset
 		parang = sxpar(hdr0, "PAR_ANG") ; we want the original, not rotated or de-rotated
 										; since that's what set's how the
 										; polarizations relate to the sky
-		print, "   File "+strc(i)+ ": WP="+strc(wpangle[i]), "     PA="+strc(parang)
-		sxaddhist, functionname+":  File "+strc(i)+ ": WP="+strc(wpangle[i])+ "  PA="+strc(parang) , hdr0
+										; FIXME this should be updated to AVPARANG
+		logmsg =  "   File "+strc(i)+ ": WP="+sigfig(wpangle[i],4)+ "     PA="+sigfig(parang, 4)
+		backbone->Log, logmsg
+		sxaddhist, functionname+":"+logmsg, hdr0
  
 		wp_mueller = DST_waveplate(angle=wpangle[i], pband=pband, /mueller,/silent, /degrees)
 		
-		; FIXME: Sky rotation!!
-		include_sky=uint(Modules[thisModuleIndex].IncludeSkyRotation)
-    ;include_sky=1
 		  
-    if include_sky eq 1 then skyrotation_mueller =  mueller_rot((parang+90-18.5)*!dtor) else skyrotation_mueller=identity(4)
+		if include_sky eq 1 then skyrotation_mueller =  mueller_rot((parang+90-18.5)*!dtor) else skyrotation_mueller=identity(4)
     
 ;    object=sxpar(hdr0, 'OBJECT') 
 ;    if strcmp(strcompress(object), 'Zenith ') eq 1 and include_sky eq 1 then begin ;If we aren't tracking then don't trust the parallactic angle. 
@@ -378,21 +127,23 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     
     sign_flip=[[1,0,0,0],[0,1,0,0],[0,0,-1,0],[0,0,0,-1]]
     
-		if (include_mueller eq 1) then begin ;Either include the system mueller matrix or not. Depending on the keyword
-    total_mueller_vert = woll_mueller_vert ##  sign_flip ## wp_mueller ## system_mueller ## skyrotation_mueller 
-    total_mueller_horiz = woll_mueller_horiz ## sign_flip## wp_mueller ## system_mueller ## skyrotation_mueller
+	if (include_mueller eq 1) then begin ;Either include the system mueller matrix or not. Depending on the keyword
+		total_mueller_vert = woll_mueller_vert ##  sign_flip ## wp_mueller ## system_mueller ## skyrotation_mueller 
+		total_mueller_horiz = woll_mueller_horiz ## sign_flip## wp_mueller ## system_mueller ## skyrotation_mueller
     endif else begin
-    total_mueller_vert = woll_mueller_vert ## sign_flip ## wp_mueller ## skyrotation_mueller
-    total_mueller_horiz = woll_mueller_horiz ## sign_flip ## wp_mueller ## skyrotation_mueller
+		total_mueller_vert = woll_mueller_vert ## sign_flip ## wp_mueller ## skyrotation_mueller
+		total_mueller_horiz = woll_mueller_horiz ## sign_flip ## wp_mueller ## skyrotation_mueller
     endelse
 
 ;		M[*,2*i] = total_mueller_vert[*,0]
 ;		M[*,2*i+1] = total_mueller_horiz[*,0]
 		
+		; fill in rows into the system measurement matrix
 		M[*,2*i+1] = total_mueller_vert[*,0]
-    M[*,2*i] = total_mueller_horiz[*,0]
+		M[*,2*i] = total_mueller_horiz[*,0]
 
-
+		; for convenience, set up summed and differences images from each
+		; polarization pair 
 		sumdiffstack[0,0,i*2] = polstack[*,*,i*2] + polstack[*,*,i*2+1]
 		sumdiffstack[0,0,i*2+1] = polstack[*,*,i*2] - polstack[*,*,i*2+1]
 		Msumdiff[*,2*i] = M[*,2*i]+M[*,2*i+1]
