@@ -29,7 +29,7 @@
 function gpi_subtract_mean_stellar_polarization, DataSet, Modules, Backbone
 compile_opt defint32, strictarr, logical_predicate
 
-primitive_version= '$Id: __template.pro 2340 2014-01-06 16:52:56Z ingraham $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 
 
 @__start_primitive

@@ -40,7 +40,7 @@ function gpi_img_xcorr, DataSet, Modules, Backbone
 compile_opt defint32, strictarr, logical_predicate
 
 ; don't edit the following line, it will be automatically updated by subversion:
-primitive_version= '$Id: __template.pro 2340 2014-01-06 16:52:56Z ingraham $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 
 calfiletype=''   ; set this to some non-null value e.g. 'dark' if you want to load a cal file.
 

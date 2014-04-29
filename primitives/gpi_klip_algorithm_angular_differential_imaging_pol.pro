@@ -33,7 +33,7 @@
 ;-
 
 function gpi_klip_algorithm_angular_differential_imaging_pol, DataSet, Modules, Backbone
-  primitive_version= '$Id: gpi_klip_algorithm_angular_differential_imaging.pro 2511 2014-02-11 05:57:27Z mperrin $' ; get version from subversion to store in header history
+  primitive_version= '$Id$' ; get version from subversion to store in header history
   @__start_primitive
 
   if numfile ne ((dataset.validframecount)-1) then return, OK

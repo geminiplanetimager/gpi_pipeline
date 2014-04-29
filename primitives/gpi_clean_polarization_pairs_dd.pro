@@ -43,7 +43,7 @@
 
 function gpi_clean_polarization_pairs_dd, DataSet, Modules, Backbone
 
-primitive_version= '$Id: gpi_combine_polarizations_dd.pro 2638 2014-03-11 20:04:00Z Max $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
 

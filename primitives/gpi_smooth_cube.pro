@@ -27,7 +27,7 @@
 ;-
 
 function gpi_smooth_cube, DataSet, Modules, Backbone
-  primitive_version= '$Id: gpi_clean_up_podc.pro 2302 2013-12-18 00:39:44Z mmb $' ; get version from subversion to store in header history
+  primitive_version= '$Id$' ; get version from subversion to store in header history
   @__start_primitive
   suffix += 'clean'
   

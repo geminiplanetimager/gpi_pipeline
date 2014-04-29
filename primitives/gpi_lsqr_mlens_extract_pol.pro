@@ -38,7 +38,7 @@ function gpi_lsqr_mlens_extract_pol, DataSet, Modules, Backbone
 compile_opt defint32, strictarr, logical_predicate
 
 ; don't edit the following line, it will be automatically updated by subversion:
-primitive_version= '$Id: gpi_lsqr_mlens_extract.pro 2563 2014-02-14 21:37:20Z zhd $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 
 calfiletype=''   ; set this to some non-null value e.g. 'dark' if you want to load a cal file.
 

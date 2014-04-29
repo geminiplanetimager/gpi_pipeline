@@ -19,7 +19,7 @@
 
 function gpi_load_highres_psfs, DataSet, Modules, Backbone
 
-primitive_version= '$Id: gpi_load_wavelength_calibration.pro 2511 2014-02-11 05:57:27Z mperrin $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 calfiletype = 'mlenspsf'
 @__start_primitive
 
