@@ -2947,8 +2947,6 @@ pro GPItv::displayall
 ; zoomed without a change in scaling, then just call self->refresh
 ; rather than this routine.
 
-print, 'displayall'
-
 self->scaleimage
 self->makepan
 self->settitle
