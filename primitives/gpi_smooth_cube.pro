@@ -4,22 +4,26 @@
 ;
 ; Convolves images with a gaussian kernel
 ;
+;	Note: This primitive will work properly either before or after Accumulate
+;	Images. If after, it will smooth all accumulated images. 
+;
 ; INPUTS: data-cube
 ;
 ; GEM/GPI KEYWORDS:
 ; DRP KEYWORDS: HISTORY
-; OUTPUTS:  cleaned up datacube
+; OUTPUTS:  smoothed datacube
 ;
-; PIPELINE COMMENT: Cleans up a 2-slice polarization cube
+; PIPELINE COMMENT: Smooth a cube by convolution with a Gaussian kernel, repeated for each slice of the cube.
 ; PIPELINE ARGUMENT: Name="Smooth_FWHM" Type="int" Range="[0,100]" Default="3" Desc="FWHM of gaussian kernel"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 3.5
-; PIPELINE NEWTYPE: PolarimetricScience, Calibration
+; PIPELINE NEWTYPE: PolarimetricScience,SpectralScience,Calibration
 ;
 ;
 ; HISTORY:
 ;   2014-01-09 MMB created
+;   2014-04-28 MP: Minor documentation updates
 ;-
 
 function gpi_smooth_cube, DataSet, Modules, Backbone
