@@ -5,6 +5,11 @@
 ;		Subtract an estimate of the stellar polarization, measured from
 ;		the mean polarization inside the occulting spot radius. 
 ;
+;		This primitive is simple, but has not been extensively tested.
+;		Under what circumstances, if any, it is useful on GPI data in practice
+;		is still TBD.
+;		
+;
 ; INPUTS: Coronagraphic mode Stokes Datacube
 ;
 ; OUTPUTS: That datacube with an estimated stellar polarization subtracted off. 
@@ -67,8 +72,6 @@ suffix='stokesdc_sub' 		 ; set this to the desired output filename suffix
 	modified_cube[*,*,1] -= totalint * mean_q
 	modified_cube[*,*,2] -= totalint * mean_u
 	modified_cube[*,*,3] -= totalint * mean_v
-
-	stop
 
 	backbone->set_keyword,'HISTORY',functionname+ " Subtracting estimated mean apparent stellar pol"
 	backbone->set_keyword,'STELLARQ', mean_q, "Estimated apparent stellar Q/I from behind FPM"
