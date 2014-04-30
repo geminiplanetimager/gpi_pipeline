@@ -39,21 +39,21 @@ Performing the wavelength calibrations are quite simple but ensuring that the de
        :align: center
 
 
-The following figure demonstrates an unsuccessful calibration due to a bad pixel. The image shows the full detector, where the grid and dispersion lines appear uniform, only a small variation is seen in the lower right hand corner. 
+If we zoom in on this figure, you can see two sets of grid lines. A successful determination of the calibration will show a clean grid of centroids (intersection of the red lines) with identical length dispersion axes (shown as green lines). The grid and dispersion lines appear uniform in the image below. 
 
-.. figure:: bad_wavecal.png
+.. figure:: good_wavecal_zoom.png
        :width: 400pt
        :align: center
 
 
-The following image shows a zoom on this region. The user should note that is an example of failure which is very difficult to see.
+The following image shows a zoomed in region of a bad wavelength calibration. Note that the grid has become uneven. In this case, the S/N was not high enough and bad pixels adversely effect the fit.
 
 .. figure:: bad_wavecal_zoom.png
        :width: 400pt
        :align: center
 
 
-A successful determination of the calibration will show a clean grid of centroids (intersection of the red lines) with identical length dispersion axes (shown as green lines).
+
 
 If you do experience a failed wavelength calibration, first check to make sure the correct dark and badpixel mask were used. The wavelength solution 2D primitive relies on a reference wavelength solution. If this file is not clean, this will cause errors in the final wavecal. The pipeline will automatically choose the most recent reference wavelength calibration files, but the user can manual choose a file by editing the CalibrationFile primitive keyword in the Recipe Editor. One may also change the interpolation type of the bad-pixel interpolation. 
 
