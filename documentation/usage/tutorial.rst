@@ -21,7 +21,9 @@ The GPI Pipeline GUIs
 ==============================
 
 It is assumed you have successfully launched the pipeline following the previous sections.(If not, see the :ref:`installation` manual.) Therefore, you should have the two IDL sessions opened with the GPI launcher GUI and the GPI DRP status console below. 
-See :ref:`first-startup` and :ref:`starting_pipeline`.
+See :ref:`first-startup` for details.
+ 
+
 The GPI pipeline console should indicate something like::
 
 |    Now polling for DRF files in /Users/yourusername/somedirectory/GPI/queue/
@@ -29,7 +31,7 @@ The GPI pipeline console should indicate something like::
 The Launcher Window
 ---------------------
 The Launcher is a little menu window that acts as the starting point for launching other tools. 
-In this getting started tutorial, we will mostly use **GPItv** and the **Recipe Editor** tools.
+In this getting started tutorial, we will mostly use :ref:`GPItv <gpitv>` and the :ref:`Recipe Editor <recipe_editor>` tools.
 
 .. image:: GPI-launcher.png
         :width: 348px
@@ -54,7 +56,7 @@ Exploring the Sample Dataset using GPItv
         :align: center
         
 Before reducing any files, the best is probably to take a look at the raw data we have using GPItv.
-Click on the GPItv button on the GPI launcher to open it (See :ref:`gpitv` for more details):
+Click on the GPItv button on the GPI launcher to open it:
 
   1.  Then **File->Browse Files...**, 
   2.  In the new window push the button **Change...** and select a folder in the **GettingStarted_tutorial_dataset**. 
@@ -64,6 +66,9 @@ Click on the GPItv button on the GPI launcher to open it (See :ref:`gpitv` for m
   6.  Click on the image to center the view on a pixel. Adapt the zoom with the buttons.
 
 Feel free to experiment with the GPItv GUI and try out different functions. Most concepts should be straightforward to anyone familiar with `ds9 <http://hea-www.harvard.edu/RD/ds9/site/Home.html>`_ or especially `atv <http://hea-www.harvard.edu/RD/ds9/site/Home.html>`_. 
+
+.. note:: 
+	Details into GPItv functionality and operations can be found as part of the :ref:`GPItv <gpitv>` section of the documentation. 
 
 
 Description and preview
@@ -201,9 +206,9 @@ In order to correct for this, we must account for the offsets. If one opens the 
         :scale: 50%
         :align: center
 
-As a rough approximation, one can input offsets in GPItv (in the plot wavecal grid) until the overlap looks correct (note that old drawings of the wavecal can be erased by Labels -> Erase All). An (X,Y) shift of (-2,1) is a reasonably good guess. The user can then input these offsets into the 'Update Spot Shifts for Flexure' primitive. To do this:
+As a rough approximation, one can input offsets in GPItv (in the plot wavecal grid) until the overlap looks correct (note that old drawings of the wavecal can be erased by Labels -> Erase All). An (X,Y) shift of (-2,1) is a reasonably good guess. The user can then input these offsets into the :ref:`Update Spot Shifts for Flexure <UpdateSpotShiftsforFlexure>` primitive. To do this:
 
-1. Click on the  Update Spot Shifts for Flexure primitive in the recipe window. 
+1. Click on the :ref:`Update Spot Shifts for Flexure <UpdateSpotShiftsforFlexure>` primitive in the recipe window. 
 2. Change the method keyword to, "Manual" in the primitive parameters window (just below the recipe window)
 3. Change the manual_dx and manual_dy keywords to the desired values.
 4. Re-run the reduction (Save Recipe and Queue)
@@ -220,7 +225,7 @@ This primitive will use every 20th lenslet in the frame to calculate the net shi
 .. note::
 	Handling flexure with GPI data is an important aspect of GPI data reduction. The effects of flexure and how to deal with it are addressed in detail as part of the :ref:`GPI IFS Data Handbook <ifs-data-handbook>`, under the :ref:`Processing GPI Data, Step by Step <processing_step_by_step>`. It is highly recommended that users should consult this guide prior to reducing their data.
 
-If you now repeat the reduction of the science data from above, the new wavecal will be captured and the datacube will appear as follows. Remember to set the "Update spots shifts for Flexure" correction to 'none'
+If you now repeat the reduction of the science data from above, the new wavecal will be captured and the datacube will appear as follows. Remember to set the ``method`` parameter in the :ref:`Update Spot Shifts for Flexure <UpdateSpotShiftsforFlexure>` primitive to `none` or `Lookup`.
 
 .. image:: data-cube.png
         :scale: 50%
