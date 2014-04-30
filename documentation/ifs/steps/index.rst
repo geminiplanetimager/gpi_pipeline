@@ -31,6 +31,7 @@ This page takes the alternate approach, of describing what you need to know in o
    persistence.rst
    flat_fielding_detector.rst
    flat_fielding_lenslets.rst
+   flexure.rst
    wavelength_calibration.rst
    datacube_extraction.rst
    satellite_spots.rst
@@ -38,7 +39,10 @@ This page takes the alternate approach, of describing what you need to know in o
    photometric_calib.rst
    psf_subtraction.rst
    companion_spectra.rst
-
+   instrument_polarization.rst
+   polarimitry_spots.rst
+   polarization_sequences.rst
+   
 If you're interested in GPI polarimetry, then you should also consult
 
  * :ref:`polspotcal`
