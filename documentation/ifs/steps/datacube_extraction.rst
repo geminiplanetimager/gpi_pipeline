@@ -21,7 +21,7 @@ These two primitives won't work if the wavelength solution has not been loaded f
 
 Creating Calibrations:
 -----------------------
-No calibration file is created. 
+This uses the wavelength calibration files, so see the pages for that task.
 
 Relevant GPI team members
 ------------------------------------
