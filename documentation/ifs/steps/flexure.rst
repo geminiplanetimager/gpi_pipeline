@@ -39,7 +39,7 @@ Once an approximate solution has been determined, the user should then run the *
 .. note:: 
 	The offsets calculated will apply to **ALL** master wavelength calibrations since they are all taken with the telescope at zenith. 
 
-The user should verify that these offsets make sense relative to the offsets they determined by eye. It is also recommended that the user examine the solution, this can be done by setting the ``display`` parameter to a value greater than 1. The user can sometimes increase the precision by decreasing the ``spacing`` parameter and the cost of computing time. Expanding the ``boxsizex`` or ``boxsizey`` parameter may also help in finding the proper solution. 
+The user should verify that these offsets make sense relative to the offsets they determined by eye. It is also recommended that the user examine the solution, this can be done by setting the ``display`` parameter to a value greater than 1. The user can sometimes increase the precision by decreasing the ``spacing`` parameter at the cost of computing time. Expanding the ``boxsizex`` or ``boxsizey`` parameter may also help in finding the proper solution. 
 
 
 Things to watch out for:
