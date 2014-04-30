@@ -22,7 +22,7 @@ We recommend taking an Argon arc lamp contemporary with each science target for 
 Compensating for Flexure:
 -----------------------------
 
-When reducing science data, the standard recipes, :ref:`Spectral Science <spectralscience_templates>` contain the "Update Spot Shifts for Flexure" primitive. This primitive allows the user to select between a manual flexure shift, default flexure shifts from a lookup table, and no shifts. If manual flexure shifts are chosen, the x and y shifts are controlled by the manual_dx and manual_dy keywords. The Lookup method requires a calibration file with a 'shifts' extension. This table lists the shifts in x and y as a function of elevation. We recommend beginning with the lookup table option.
+When reducing science data, the standard recipes, :ref:`Spectral Science <spectralscience_templates>` contain the :ref:`Update spot shifts for flexure <updatespotshiftsforflexure>` primitive. This primitive allows the user to select between a manual flexure shift, default flexure shifts from a lookup table, and no shifts. If manual flexure shifts are chosen, the x and y shifts are controlled by the manual_dx and manual_dy keywords. The Lookup method requires a calibration file with a 'shifts' extension. This table lists the shifts in x and y as a function of elevation. We recommend beginning with the lookup table option.
 
 If your datacube was reduced with the wrong flexure solution, the datacube will exhibit a checkerboard pattern. The figure below shows a slice of a datacube that used incorrect flexure shifts (1.5 pixels off in both x and y). 
 
