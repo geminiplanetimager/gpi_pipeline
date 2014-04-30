@@ -3,7 +3,7 @@
 Tutorial 3: Polarimetry data reduction 
 #####################################################
 
-This is a quick tutorial to help new users familiarize themselves with reducing polarization data sets with the GPI pipeline. It assumes that you have at least glanced at the **General Reduction Method** in the :ref:'_usage_quickstart'. 
+This is a quick tutorial to help new users familiarize themselves with reducing polarization data sets with the GPI pipeline. It assumes that you have at least glanced at the **General Reduction Method** in the :ref:`_usage-quickstart`. 
 
 We try to keep the tutorial as general as possible, so that it can be used as a guide for general pol reductions, but it has been designed for use with the sample data set. 
 
@@ -11,14 +11,14 @@ We try to keep the tutorial as general as possible, so that it can be used as a 
 Getting the Sample Dataset for this Tutorial
 =================================================
 
-A sample polarization dataset can be found 'here <http://docs.planetimager.org/GettingStarted_pol_tutorial_dataset>'_. 
+A sample polarization dataset can be found `here <http://docs.planetimager.org/GettingStarted_pol_tutorial_dataset>`_. 
 
 The directory contains a number of different GPI file types: 
-	* Dark File - 
-	* Bad Pixel Map -
-	* Microphonics Model -  
-	* GCAL K1 Flat - 
-	* Science Images - 
+	* Dark File - S20130912S0017-dark.fits
+	* Bad Pixel Map - S20131208S0020_badpix.fits
+	* Microphonics Model -  S20131117S0172_microModel.fits
+	* GCAL K1 Flat - S20131212S0043.fits to S20131212S0045.fits 
+	* Science Images - S20131212S0320.fits to S20131212S0323.fits
 
 Download these files and place both the bad pixel map and dark file into your GPI calibrations folder. Open the GPI Data Pipeline and in the GPI DRP Status Console window click the **RESCAN CAL DB** button. This registers your new files in the calibration file database, and will allow the pipeline to find them automatically. If you do not do this step you will run into errors. 
 
@@ -145,7 +145,7 @@ Creating Stokes Cubes from Polarization Cubes
 Creating Stokes Cubes from Raw Data
 ===========================================
 
-	1. If you are confident that you have a good estimate of the stars location you can create a Stokes Data Cube in one step by selecting Recipe Template -> Basic Polarization Sequence (from Raw Data). 
+	1. If you are confident that you have a good estimate of the star's location you can create a Stokes Data Cube in one step by selecting Recipe Template -> Basic Polarization Sequence (from Raw Data). 
 
 	2. Enter the offsets due to flexure as parameters to the "Update Spot Shifts for Flexure" primitive. 
 
