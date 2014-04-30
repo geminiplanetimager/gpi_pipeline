@@ -14,6 +14,8 @@ As an introduction to reducing data with the GPI Pipeline, a simple set of data 
 
 .. Note:: It is important that the user follow the tutorial in the displayed order. Skipping steps will result in reduction errors (missing calibrations etc).
 
+.. Note:: Although there is also a :ref:`tutorial for polarimetry data <usage-quickstart_pol>`, we highly recommend the user completes this tutorial first as the many aspects of using the GUI's are not covered.
+
 
 The GPI Pipeline GUIs
 ==============================
@@ -158,6 +160,10 @@ The pipeline will look for calibration files automatically by reading the text f
 
 Use the button **Remove All** to remove all the selected files then **Redo this with the 120s integration times** which corresponds to **S20131208S0021(-22).fits**. This newly created dark frame will be used to reduce the wavelength calibrations in the next section.
 
+.. note::
+	More information on the GPI dark frames and destriping can be found as part of the :ref:`GPI IFS Data Handbook <ifs-data-handbook>`, under the :ref:`Processing GPI Data, Step by Step <processing_step_by_step>` in the Darks and Destriping sections .
+
+	
 Wavelength solution
 --------------------
 
@@ -167,7 +173,7 @@ Like the dark frames, the wavelength solution calibration files can be created u
 - **For step 3)** Keep selected the **Calibration** reduction type.
 - **For step 4)** Choose the **Wavelength Solution** Recipe template.
 
-.. note:: If you did not correctly copy in the files from the **files_to_go_into_calibrations_directory** then you will get warnings but it should work anyway. How to create such files is described in the :ref:`Step-by-Step reduction documentation <processing_step_by_step>`
+.. note:: If you did not correctly copy in the files from the **files_to_go_into_calibrations_directory** then you will get warnings but it should work anyway. How to create such files is described in the :ref:`Processing GPI Data, Step by Step <processing_step_by_step>`
 
 A sample of the 2D image with the computed calibration is given below. The green lines are the locations of the individual lenslet spectra. The coordinates of the lenslets are stored in a .fits file cube in the **calibrations** folder. Use GPItv to take a look to the result.
 
@@ -210,6 +216,9 @@ Because a snapshot of the Argon arclamp was taken at the same telescope position
 - **For step 4)** Choose the **Quick Wavelength Solution** Recipe template.
 
 This primitive will use every 20th lenslet in the frame to calculate the net shift from the desired wavelength calibration. One must be careful to ensure the proper wavelength calibration is grabbed from the database (check the output in the pipeline xterm). If the wrong one is selected, then you can manually choose the correct one (S20131210S0055_H_wavecal.fits) using the Choose Calibration File button. A new wavecal (S20131210S0055_H_wavecal.fits) will then be added to the database, which is merely the old wavecal with new x-y spectral positions.
+
+.. note::
+	Handling flexure with GPI data is an important aspect of GPI data reduction. The effects of flexure and how to deal with it are addressed in detail as part of the :ref:`GPI IFS Data Handbook <ifs-data-handbook>`, under the :ref:`Processing GPI Data, Step by Step <processing_step_by_step>`. It is highly recommended that users should consult this guide prior to reducing their data.
 
 If you now repeat the reduction of the science data from above, the new wavecal will be captured and the datacube will appear as follows. Remember to set the "Update spots shifts for Flexure" correction to 'none'
 
