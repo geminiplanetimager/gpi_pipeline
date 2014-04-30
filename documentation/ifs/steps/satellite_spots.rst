@@ -36,11 +36,19 @@ For some images, particularily images with very strong halos and/or very low sig
 
 The positions of the satellites are stored in the science header for later use by other primitives. 
 
+In polarimetry mode, the location of the satellite spots are not currently found explictly, although this hopefully will be done in the future. Instead, the pipeline primitive `Measure Star Position for Polarimetry` uses a radon transform technique and the fact that all four elongated satellite spots point toward the center to locate the occulted star (see upcoming SPIE paper about satellite spots for deatils). 
+
+In our current anaylsis of the data, this technique seems to be sufficient for locating the central star: both spectral mode and polarimetry mode uncertainty is dominated by systematic errors. However, the radon technique takes into account the whole image and is sensitive to noise/bright objects. There are a few techniques to make this procedure stable. First, the primitive requires a guess for the occulted star position and a search radius around the inital guess position. This limits the search algorithm and for the most part gives very good precision. Occasionally, a pixel value floor needs to be set using the ``lower_threshold`` parameter to remove any extremely negative pixels which sometimes appear around the border of the image. Lastly, it is important to mask out any bright sources that are brighter than the satellite spots. The primitive already masks out the halo of the central star, but if there are any bright companions in the image, they should be manually masked out also.
+
+There is currently no pipeline primitive to measure the satellite spot fluxes or contrats in polarimetry mode. This has not been calibrated yet and will be done in future work.
+
 What to watch out for:
 ---------------------------------------
 Occasionally, the algorithm will falsely claim to have found the satellite spots. Users should check the headers of at least one image in their stack to ensure the proper spot locations have been determined. Generally, if the spot locations are incorrect it is relatively apparent when looking at any extracted spectra, or sometimes even when scrolling through the cube slices.
 
 As mentioned previously, the star:satellite flux ratio has been observed to vary between observations. Any absolute calibration will be subject to unquantified uncertainty. It is suggested that users proceed with their science using non-flux calibrated spectra.
+
+Data taken with the atmospheric dispersion corrector (ADC) out suffers from atmospheric differential refraction (ADR) effects. The ADR effect smears out the star/companions over ~1 pixel (dependening on zenith angle). In spectral mode, the optimal way to account for it currently is to measure the star position in each individual frame using the satellite spots. In polarimetry mode, there is currently no way of correcting for ADR. All early science data should have been taken with the ADC in so leftover ADR effects should be small. GPI team members working on early commissioning data should take this effect into account though.
 
 Relevant GPI team members
 ------------------------------------
