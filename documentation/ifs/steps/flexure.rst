@@ -5,7 +5,12 @@ IFS Flexure
 Observed Effect and Relevant Physics:
 ---------------------------------------
 
-The lenslet positions on the detector are subject to gravitationally induced flexure. During the course of an observation, the shifts vary in a repeatable way with elevation. However, large shifts of several pixels occur when the GPI rotates around the ___ axis, when other Gemini instruments are in use. In order to properly perform the spectral subtraction, we must compensate for this flexure.
+The positions of the individual spectra formed from each microlens are subject to gravitationally induced flexure that affects optical components between the microlens array and science detector on the IFS optical bench. Under normal observational procedure, as the instrument moves in elevation, the flexure is observed to follow standard hysteresis curves with amplitudes of ~0.5 pixels. 
+
+When the instrument is moved outside of it's normal observing range, being above ~80 degrees in elevation or when the cassegrain rotator is in use due to ongoing observations with other instruments, a non-repeatable and unpredictable flexure component is introduced. Although the cause of this has not been confirmed, it is believed to result from an optic or it's mount in the IFS exhibiting micron-level shifts when moved into non-standard positions. Due to the sensitive IFS alignment and the inaccessibility of the suspected optic, it has been decided to compensate for the non-repeatable flexure component in the data reduction software.
+
+Currently, the data reduction pipeline (DRP) corrects for the repeatable component of flexure by adding offsets to the positions of the microspectra that were determined when measuring their wavelength solution (zenith). This is accomplished using a lookup table and the :ref:`Update spot shifts for flexure <updatespotshiftsforflexure>` primitive. In  order to compensate for the non-repeatable component of the flexure, an arclamp image (normally Argon) is taken at either the beginning or end of the observing sequence. This provides a zero point offset to the hysteresis curves. How to implement this offset is discussed below.
+
 
 Using Flexure Shifts in the GPI Pipeline
 --------------------------------------------------
