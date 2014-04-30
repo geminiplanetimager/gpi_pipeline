@@ -17,8 +17,8 @@ The directory contains a number of different GPI file types:
 	* Dark File - S20130912S0017-dark.fits
 	* Bad Pixel Map - S20131208S0020_badpix.fits
 	* Microphonics Model -  S20131117S0172_microModel.fits
-	* GCAL K1 Flat - S20131212S0043.fits to S20131212S0045.fits 
-	* Science Images - S20131212S0320.fits to S20131212S0323.fits
+	* GCAL H Flat - S20131212S0022.fits to S20131212S0024.fits 
+	* Science Images - S20131212S0295.fits to S20131212S0298.fits
 
 Download these files and place both the bad pixel map and dark file into your GPI calibrations folder. Open the GPI Data Pipeline and in the GPI DRP Status Console window click the **RESCAN CAL DB** button. This registers your new files in the calibration file database, and will allow the pipeline to find them automatically. If you do not do this step you will run into errors. 
 
@@ -29,7 +29,7 @@ Download these files and place both the bad pixel map and dark file into your GP
 Making a Polarization Spot Calibration File
 ============================================================
 In GPI's polarization mode each lenslet creates a pair of spots on the detector plane: one for each orthogonal polarization state. A polarization spot calibration file tells the data pipeline where to find the two spots corresponding to each lenslet. Creating a polarization spot calibration file is done in much the same way as a wavelength calibration file for spectral mode. 
-	1. Open the recipe editor and press the Add Files button. Select flat files taken in the same GPI filter band as your science data. In the tutorial data set select files **S20131212S0043.fits to S20131212S0045.fits**. 
+	1. Open the recipe editor and press the Add Files button. Select flat files taken in the same GPI filter band as your science data. In the tutorial data set select files **S20131212S0022.fits to S20131212S0024.fits**. 
 	2. In the Recipe Editor, from the drop down menus on the right select **Reduction Category -> Calibrations** and then **Recipe Template -> Calibrate Polarization Spot Locations - Parallel**. By selecting the Parallel option by default the pipeline tries to spread the computation across 4 threads. If for some reason you'd rather limit the process to one thread can can choose Calibrate Polarization Spot Locations. 
 	3. Press Save Recipe and Queue. This process should take a few minutes, depending on your machine and whether or not you chose the parallel option. 
 	4. Once this is complete it's a good idea to double check that your spot calibration file is doing what it should. Open GPItv and open the raw data file. From the **Labels** menu select **Labels -> Get Wavcal/Polcal from CalDB**. Now select **Labels-> Plot Wavecal/Polcal Grid**. 
@@ -56,7 +56,7 @@ In GPI's polarization mode each lenslet creates a pair of spots on the detector 
 
 	   The green line indicates a polarization spot pair from the same lenslet. 
 
-	5. To check that the spots have been matched correctly look for a low throughput lenslet. In K1, one can be found roughly at [1915,1339] detector coordinates. The two dim spots should be connected with a green line: 
+	5. To check that the spots have been matched correctly look for a low throughput lenslet. One can be found at roughly [1915,1339] detector coordinates. The two dim spots should be connected with a green line: 
 
 		.. image:: low_throughput_polcal.png
 			:scale: 75%
@@ -71,9 +71,9 @@ Creating Polarization Data Cubes (podc files)
 ============================================================
 This step will walk through how to create polarization data cube from raw data. A polarization cube is a 3D data cube, where the third dimension holds two slices: one for each polarization orthogonal state measured at the detector plane. 
 
-	1. In the Recipe Editor press the Add Files button and choose your Data Files. For the tutorial dataset this will be files **S2013S0320.fits to S2013S0323.fits**.
+	1. In the Recipe Editor press the Add Files button and choose your Data Files. For the tutorial dataset this will be files **S20131212S0295.fits to S20131212S0298.fits**.
 	2. Select **Reduction Category-> PolarimetricScience** and **Recipe Template -> Simple Polarization Datacube Extraction**.
-	3. Because of flexure effects internal to GPI it is possible that your Pol Spot Calibration files will not properly reflect the locations of the Polarization spots in your science frame. To check this open GPItv and open one of your raw science images. Plot the Polcal spot locations as we did in Step 4 of creating our wavecal.   
+	3. Because of flexure effects internal to GPI it is possible that your Pol Spot Calibration files will not properly reflect the locations of the Polarization spots in your science frame. To check this open GPItv and open one of your raw science images. Plot the Polcal spot locations as we did in Step 4 of creating our wavecal.  
 
 	   If there are flexure effects present then you will see the spot calibration misaligned from the spot centers: 
 
@@ -81,7 +81,7 @@ This step will walk through how to create polarization data cube from raw data. 
 			:scale: 75%
 			:align: center
 
-	   At this point you should estimate (by eye) the offset [dx,dy] between the spot calibration and the centres of the pol spots. It should be on the order of 1 pixel or less. In the most extreme cases you might have offsets of up to 3 pixels. For the tutorial dataset the offsets are approximately [dx,dy]=[-0.9,0.6]. 
+	   At this point you should estimate (by eye) the offset [dx,dy] between the spot calibration and the centres of the pol spots. It should be on the order of 1 pixel or less. In the most extreme cases you might have offsets of up to 3 pixels. For the tutorial dataset the offsets are approximately [dx,dy]=[-0.5,0.6]. 
 
 	4. Return to the Recipe Editor window, and select the primitive named "Update Spot Shifts for Flexure". Change the Value of the method Parameter  to "manual". Enter your estimated [dx,dy] in the manual_dx and manual_dy Parameters. Don't forget to press ENTER after changing primitive parameter values. 
 
@@ -98,12 +98,12 @@ This step will walk through how to create polarization data cube from raw data. 
 			:scale: 75%
 			:align: center
 
-	   Here you may notice a Moiré pattern in the data. This is typical of K1 data and is an artifact of the extraction procedure. Do not fear, it will get removed later on during the double differencing. 
+	   At this step, depending on your dataset and your observing band, you may notice a Moiré pattern in the data. This is particularly strong in K1 data and is an artifact of the extraction procedure. Do not fear, it will get removed later on during the double differencing. 
 
 Creating Stokes Cubes from Polarization Cubes
 ============================================================
 
-	1. In the Recipe Editor press the Add Files button and select your newly created podc files. A standard polarization sequence has at least four rotations of the half-wave plate, rotating from 0 degrees to 67.5 degrees in 22.5 degree increments, though many observing sequences will have have more. For the tutorial you should add the files named: **S20131212S0320_podc.fits to S20131212S0323_podc.fits**.
+	1. In the Recipe Editor press the Add Files button and select your newly created podc files. A standard polarization sequence has at least four rotations of the half-wave plate, rotating from 0 degrees to 67.5 degrees in 22.5 degree increments, though many observing sequences will have have more. For the tutorial you should add the files named: **S20131212S0295_podc.fits to S20131212S0298_podc.fits**.
 
 	   If you are unsure where they have been saved, the GPI DRP Status Consol provides the path of the last saved file. 
 
