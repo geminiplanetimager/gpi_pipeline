@@ -6,7 +6,7 @@ Primitives, Listed by Category
 
 
 
-This page documents all available pipeline primitives, currently 134 in total. 
+This page documents all available pipeline primitives, currently 100 in total. 
 
 First we list the available primitives in each mode, and below provide the detailed documentation including the
 parameter arguments for each. 
@@ -25,12 +25,11 @@ SpectralScience
 ---------------
 
 ====== ======================================================================================================================================================================== =
-Order  Primitives relevant to SpectralScience     (58 total)
+Order  Primitives relevant to SpectralScience     (47 total)
 ====== ======================================================================================================================================================================== =
  0.01  :ref:`Display raw image with GPItv <DisplayrawimagewithGPItv>`
  0.10  :ref:`Flag Quicklook <FlagQuicklook>`
  0.50  :ref:`Load Wavelength Calibration <LoadWavelengthCalibration>`
- 0.50  :ref:`Load High-Res PSFs <LoadHigh-ResPSFs>`
  0.90  :ref:`Check Data Quality <CheckDataQuality>`
  1.10  :ref:`Subtract Dark Background <SubtractDarkBackground>`
  1.20  :ref:`Subtract Thermal/Sky Background if K band <SubtractThermal/SkyBackgroundifKband>`
@@ -40,7 +39,6 @@ Order  Primitives relevant to SpectralScience     (58 total)
  1.35  :ref:`Destripe science image <Destripescienceimage>`
  1.40  :ref:`Interpolate bad pixels in 2D frame <Interpolatebadpixelsin2Dframe>`
  1.50  :ref:`Combine 2D images <Combine2Dimages>`
- 2.00  :ref:`Assemble Spectral Datacube using mlens PSF <AssembleSpectralDatacubeusingmlensPSF>`
  2.00  :ref:`Assemble Spectral Datacube <AssembleSpectralDatacube>`
  2.00  :ref:`Assemble Spectral Datacube (bp) <AssembleSpectralDatacube(bp)>`
  2.20  :ref:`Divide by Lenslet Flat Field <DividebyLensletFlatField>`
@@ -48,20 +46,12 @@ Order  Primitives relevant to SpectralScience     (58 total)
  2.30  :ref:`Interpolate Wavelength Axis <InterpolateWavelengthAxis>`
  2.35  :ref:`Subtract Thermal/Sky Background Cube if K band <SubtractThermal/SkyBackgroundCubeifKband>`
  2.41  :ref:`Check for closed-loop coronagraphic image <Checkforclosed-loopcoronagraphicimage>`
- 2.44  :ref:`Measure satellite spot locations <Measuresatellitespotlocations>`
  2.44  :ref:`Correct Distortion <CorrectDistortion>`
+ 2.44  :ref:`Measure satellite spot locations <Measuresatellitespotlocations>`
  2.45  :ref:`Measure satellite spot peak fluxes <Measuresatellitespotpeakfluxes>`
  2.50  :ref:`Interpolate bad pixels in cube <Interpolatebadpixelsincube>`
- 2.50  :ref:`Measure telluric transmission <Measuretellurictransmission>`
- 2.50  :ref:`Divide by Telluric Transmission <DividebyTelluricTransmission>`
- 2.51  :ref:`Calibrate Photometric Flux and save conversion in DB <CalibratePhotometricFluxandsaveconversioninDB>`
- 2.51  :ref:`Calibrate Photometric Flux of extented object <CalibratePhotometricFluxofextentedobject>`
- 2.51  :ref:`Measure Unocculted Photometric Flux <MeasureUnoccultedPhotometricFlux>`
- 2.51  :ref:`Calibrate Photometric Flux <CalibratePhotometricFlux>`
- 2.51  :ref:`Extract one spectrum <Extractonespectrum>`
  2.51  :ref:`Extract one spectrum, plots <Extractonespectrum,plots>`
- 2.51  :ref:`Extract telluric transmission from sat. spots <Extracttellurictransmissionfromsat.spots>`
- 2.52  :ref:`Extract telluric transmission from datacube <Extracttellurictransmissionfromdatacube>`
+ 2.51  :ref:`Calibrate Photometric Flux <CalibratePhotometricFlux>`
  2.52  :ref:`Extract 1D spectrum from a datacube <Extract1Dspectrumfromadatacube>`
  2.60  :ref:`Collapse datacube <Collapsedatacube>`
  2.61  :ref:`Speckle alignment <Specklealignment>`
@@ -71,19 +61,17 @@ Order  Primitives relevant to SpectralScience     (58 total)
  2.80  :ref:`KLIP algorithm Spectral Differential Imaging <KLIPalgorithmSpectralDifferentialImaging>`
  2.90  :ref:`Update World Coordinates <UpdateWorldCoordinates>`
  3.50  :ref:`Smooth a 3D Cube <Smootha3DCube>`
- 3.90  :ref:`Rotate Field of View Square <RotateFieldofViewSquare>`
  3.90  :ref:`Rotate North Up <RotateNorthUp>`
+ 3.90  :ref:`Rotate Field of View Square <RotateFieldofViewSquare>`
  4.00  :ref:`Accumulate Images <AccumulateImages>`
  4.10  :ref:`Basic ADI <BasicADI>`
  4.11  :ref:`ADI with LOCI <ADIwithLOCI>`
- 4.20  :ref:`KLIP algorithm Angular Differential Imaging With Center Forced <KLIPalgorithmAngularDifferentialImagingWithCenterForced>`
  4.20  :ref:`KLIP algorithm Angular Differential Imaging <KLIPalgorithmAngularDifferentialImaging>`
+ 4.20  :ref:`KLIP algorithm Angular Differential Imaging With Center Forced <KLIPalgorithmAngularDifferentialImagingWithCenterForced>`
  4.30  :ref:`Simple SDI of post ADI residual <SimpleSDIofpostADIresidual>`
  4.50  :ref:`Median Combine ADI datacubes <MedianCombineADIdatacubes>`
  4.50  :ref:`Combine 3D Datacubes <Combine3DDatacubes>`
  5.00  :ref:`Insert Planet into datacube <InsertPlanetintodatacube>`
- 5.00  :ref:`Flexure 2D x correlation with wavecal model <Flexure2Dxcorrelationwithwavecalmodel>`
- 5.00  :ref:`Assemble Spectral Datacube (Lsqr, microlens psf) <AssembleSpectralDatacube(Lsqr,microlenspsf)>`
 10.00  :ref:`Save Output <SaveOutput>`
 ====== ======================================================================================================================================================================== =
 
@@ -94,9 +82,9 @@ Order  Primitives relevant to SpectralScience     (58 total)
 PolarimetricScience
 -------------------
 
-====== ================================================================================================================ =
-Order  Primitives relevant to PolarimetricScience     (38 total)
-====== ================================================================================================================ =
+====== ============================================================================================================== =
+Order  Primitives relevant to PolarimetricScience     (36 total)
+====== ============================================================================================================== =
  0.01  :ref:`Display raw image with GPItv <DisplayrawimagewithGPItv>`
  0.10  :ref:`Flag Quicklook <FlagQuicklook>`
  0.51  :ref:`Load Polarimetry Spot Calibration <LoadPolarimetrySpotCalibration>`
@@ -117,7 +105,6 @@ Order  Primitives relevant to PolarimetricScience     (38 total)
  2.44  :ref:`Correct Distortion <CorrectDistortion>`
  2.44  :ref:`Measure Star Position for Polarimetry <MeasureStarPositionforPolarimetry>`
  2.50  :ref:`Interpolate bad pixels in cube <Interpolatebadpixelsincube>`
- 2.51  :ref:`Calibrate Photometric Flux - Polarimetry <CalibratePhotometricFlux-Polarimetry>`
  2.60  :ref:`Collapse datacube <Collapsedatacube>`
  2.70  :ref:`Measure Contrast <MeasureContrast>`
  2.90  :ref:`Update World Coordinates <UpdateWorldCoordinates>`
@@ -129,13 +116,12 @@ Order  Primitives relevant to PolarimetricScience     (38 total)
  4.05  :ref:`Clean Polarization Pairs via Double Difference <CleanPolarizationPairsviaDoubleDifference>`
  4.20  :ref:`Advanced KLIP ADI for Pol Mode <AdvancedKLIPADIforPolMode>`
  4.20  :ref:`KLIP ADI for Pol Mode <KLIPADIforPolMode>`
- 4.40  :ref:`Combine Polarization Sequence <CombinePolarizationSequence>`
  4.40  :ref:`Combine Polarization Sequence via Double Difference <CombinePolarizationSequenceviaDoubleDifference>`
+ 4.40  :ref:`Combine Polarization Sequence <CombinePolarizationSequence>`
  4.50  :ref:`Combine 3D Datacubes <Combine3DDatacubes>`
- 5.00  :ref:`Assemble Polarization Datacube (Lsqr, microlens psf) <AssemblePolarizationDatacube(Lsqr,microlenspsf)>`
  5.00  :ref:`Subtract Mean Stellar Polarization <SubtractMeanStellarPolarization>`
 10.00  :ref:`Save Output <SaveOutput>`
-====== ================================================================================================================ =
+====== ============================================================================================================== =
 
 
 
@@ -145,18 +131,17 @@ Calibration
 -----------
 
 ====== ========================================================================================================================== =
-Order  Primitives relevant to Calibration     (64 total)
+Order  Primitives relevant to Calibration     (61 total)
 ====== ========================================================================================================================== =
  0.01  :ref:`Display raw image with GPItv <DisplayrawimagewithGPItv>`
  0.10  :ref:`Flag Quicklook <FlagQuicklook>`
- 0.50  :ref:`Load High-Res PSFs <LoadHigh-ResPSFs>`
  0.50  :ref:`Load Wavelength Calibration <LoadWavelengthCalibration>`
  0.51  :ref:`Load Polarimetry Spot Calibration <LoadPolarimetrySpotCalibration>`
  0.52  :ref:`Load Instrumental Polarization Calibration <LoadInstrumentalPolarizationCalibration>`
  0.90  :ref:`Check Data Quality <CheckDataQuality>`
  1.10  :ref:`Subtract Dark Background <SubtractDarkBackground>`
- 1.20  :ref:`Subtract Thermal/Sky Background if K band <SubtractThermal/SkyBackgroundifKband>`
  1.20  :ref:`Remove Persistence from Previous Images <RemovePersistencefromPreviousImages>`
+ 1.20  :ref:`Subtract Thermal/Sky Background if K band <SubtractThermal/SkyBackgroundifKband>`
  1.25  :ref:`Apply Reference Pixel Correction <ApplyReferencePixelCorrection>`
  1.34  :ref:`Update Spot Shifts for Flexure <UpdateSpotShiftsforFlexure>`
  1.35  :ref:`Destripe for Darks Only <DestripeforDarksOnly>`
@@ -165,25 +150,23 @@ Order  Primitives relevant to Calibration     (64 total)
  1.50  :ref:`Combine 2D images <Combine2Dimages>`
  1.51  :ref:`Combine 2D Thermal/Sky Backgrounds <Combine2DThermal/SkyBackgrounds>`
  1.70  :ref:`Measure Wavelength Calibration <MeasureWavelengthCalibration>`
- 1.70  :ref:`Quick Wavelength Solution Update <QuickWavelengthSolutionUpdate>`
  1.70  :ref:`2D Wavelength Solution <2DWavelengthSolution>`
+ 1.70  :ref:`Quick Wavelength Solution Update <QuickWavelengthSolutionUpdate>`
  1.80  :ref:`Measure Polarization Spot Calibration <MeasurePolarizationSpotCalibration>`
- 2.00  :ref:`Assemble Spectral Datacube using mlens PSF <AssembleSpectralDatacubeusingmlensPSF>`
+ 2.00  :ref:`Assemble Polarization Cube <AssemblePolarizationCube>`
  2.00  :ref:`Assemble Undispersed Image <AssembleUndispersedImage>`
  2.00  :ref:`Assemble Spectral Datacube <AssembleSpectralDatacube>`
- 2.00  :ref:`Assemble Polarization Cube <AssemblePolarizationCube>`
  2.20  :ref:`Divide by Lenslet Flat Field <DividebyLensletFlatField>`
  2.20  :ref:`Divide by Spectral Flat Field <DividebySpectralFlatField>`
  2.25  :ref:`Remove Flat Lamp spectrum <RemoveFlatLampspectrum>`
  2.30  :ref:`Interpolate Wavelength Axis <InterpolateWavelengthAxis>`
  2.35  :ref:`Subtract Thermal/Sky Background Cube if K band <SubtractThermal/SkyBackgroundCubeifKband>`
  2.41  :ref:`Check for closed-loop coronagraphic image <Checkforclosed-loopcoronagraphicimage>`
- 2.44  :ref:`Measure GPI distortion from grid pattern <MeasureGPIdistortionfromgridpattern>`
  2.44  :ref:`Measure satellite spot locations <Measuresatellitespotlocations>`
+ 2.44  :ref:`Measure GPI distortion from grid pattern <MeasureGPIdistortionfromgridpattern>`
  2.44  :ref:`Measure Star Position for Polarimetry <MeasureStarPositionforPolarimetry>`
  2.45  :ref:`Measure satellite spot peak fluxes <Measuresatellitespotpeakfluxes>`
  2.50  :ref:`Interpolate bad pixels in cube <Interpolatebadpixelsincube>`
- 2.50  :ref:`Divide by Telluric Transmission <DividebyTelluricTransmission>`
  2.60  :ref:`Collapse datacube <Collapsedatacube>`
  2.60  :ref:`Calibrate astrometry from binary (using separation and PA) <Calibrateastrometryfrombinary(usingseparationandPA)>`
  2.61  :ref:`Calibrate astrometry from binary (using 6th orbit catalog) <Calibrateastrometryfrombinary(using6thorbitcatalog)>`
@@ -191,24 +174,23 @@ Order  Primitives relevant to Calibration     (64 total)
  3.00  :ref:`Stores calibration in dataset <Storescalibrationindataset>`
  3.20  :ref:`Create Lenslet Flat Field <CreateLensletFlatField>`
  3.20  :ref:`Normalize polarimetry flat field <Normalizepolarimetryflatfield>`
- 3.50  :ref:`Smooth a 3D Cube <Smootha3DCube>`
  3.50  :ref:`Divide by Polarized Flat Field <DividebyPolarizedFlatField>`
+ 3.50  :ref:`Smooth a 3D Cube <Smootha3DCube>`
  4.00  :ref:`Accumulate Images <AccumulateImages>`
- 4.01  :ref:`Find Hot Bad Pixels from Darks <FindHotBadPixelsfromDarks>`
  4.01  :ref:`Combine 2D dark images <Combine2Ddarkimages>`
- 4.01  :ref:`Create High-Resolution Microlens PSF Model <CreateHigh-ResolutionMicrolensPSFModel>`
+ 4.01  :ref:`Find Hot Bad Pixels from Darks <FindHotBadPixelsfromDarks>`
  4.01  :ref:`Create microphonics noise model <Createmicrophonicsnoisemodel>`
- 4.01  :ref:`Find Cold Bad Pixels from Flats <FindColdBadPixelsfromFlats>`
  4.01  :ref:`Creates a thermal/sky background datacube <Createsathermal/skybackgrounddatacube>`
+ 4.01  :ref:`Find Cold Bad Pixels from Flats <FindColdBadPixelsfromFlats>`
  4.02  :ref:`Generate Combined Bad Pixel Map <GenerateCombinedBadPixelMap>`
  4.05  :ref:`Clean Polarization Pairs via Double Difference <CleanPolarizationPairsviaDoubleDifference>`
  4.20  :ref:`Populate Flexure Shifts vs Elevation Table <PopulateFlexureShiftsvsElevationTable>`
- 4.20  :ref:`Combine Wavelength Calibrations <CombineWavelengthCalibrations>`
  4.20  :ref:`Combine Wavelength Calibrations locations <CombineWavelengthCalibrationslocations>`
+ 4.20  :ref:`Combine Wavelength Calibrations <CombineWavelengthCalibrations>`
  4.40  :ref:`Combine Polarization Sequence via Double Difference <CombinePolarizationSequenceviaDoubleDifference>`
  4.40  :ref:`Combine Polarization Sequence <CombinePolarizationSequence>`
- 4.50  :ref:`Combine 3D Datacubes <Combine3DDatacubes>`
  4.50  :ref:`Quality Check Wavelength Calibration <QualityCheckWavelengthCalibration>`
+ 4.50  :ref:`Combine 3D Datacubes <Combine3DDatacubes>`
  4.60  :ref:`Pad Wavelength Calibration Edges <PadWavelengthCalibrationEdges>`
 10.00  :ref:`Save Output <SaveOutput>`
 ====== ========================================================================================================================== =
@@ -310,6 +292,7 @@ Flag Quicklook
 **IDL Filename**: gpi_flag_quicklook.pro
 
 
+
 .. index::
     single:Load Wavelength Calibration
 
@@ -361,47 +344,6 @@ Load Wavelength Calibration
 
 
 **IDL Filename**: gpi_load_wavelength_calibration.pro
-
-
-.. index::
-    single:Load High-Res PSFs
-
-.. _LoadHigh-ResPSFs:
-
-Load High-Res PSFs
-------------------
-
- Reads a high-res PSF file from disk. This primitive is required for PSF cube extraction.
-
-**Category**:  SpectralScience,Calibration      **Order**: 0.5
-
-**Inputs**:  none
-
-**Outputs**:  none; mlens psf is loaded into memory
-
-**Notes**:
-
-.. code-block:: idl
-
-
- 	Reads a high-res psf file.
- 	The high-res psf is stored using pointers into the common block.
-
-
-
- HISTORY:
- 	Originally by Zachary Draper 2-28-14
-
-**Parameters**:
-
-=================  ========  =======  ===========  ================================================================
-             Name      Type    Range      Default                                                       Description
-=================  ========  =======  ===========  ================================================================
-  CalibrationFile    String     None    AUTOMATIC    Filename of the desired wavelength calibration file to be read
-=================  ========  =======  ===========  ================================================================
-
-
-**IDL Filename**: gpi_load_highres_psfs.pro
 
 
 .. index::
@@ -655,6 +597,72 @@ Subtract Dark Background
 
 
 .. index::
+    single:Subtract Thermal/Sky Background if K band
+
+.. _SubtractThermal/SkyBackgroundifKband:
+
+Subtract Thermal/Sky Background if K band
+-----------------------------------------
+
+ Subtract a dark frame. 
+
+**Category**:  ALL      **Order**: 1.2
+
+**Inputs**:  2D image file
+
+**Outputs**:  2D image file, unchanged if YJH, background subtracted if K1 or K2.      **Output Suffix**:  'bkgndsub'
+
+**Notes**:
+
+.. code-block:: idl
+
+
+  Subtract thermal background emission, for K band data only
+
+	** special note: **
+
+	This is a new kind of "data dependent optional primitive". If the filter of
+	the current data is YJH, return without doing *anything*, even logging the
+	start/end of this primitive.  It becomes a complete no-op for non-K-band
+	cases.
+
+ Algorithm:
+
+	Get the best available thermal background calibration file from CalDB
+	Scale it to current exposure time
+	Subtract it.
+   The name of the calibration file used is saved to the DRPBKGND header keyword.
+
+ ALGORITHM TODO: Deal with uncertainty and pixel mask frames too.
+
+
+
+
+
+ HISTORY:
+   2012-12-13 MP: Initial implementation
+   2013-01-16 MP: Documentation cleanup.
+   2013-07-12 MP: Rename for consistency
+   2013-12-15 MP: Add override_scaling option, remove erroneous hard-coded
+					constant non-1 scaling.
+   2013-12-16 MP: CalibrationFile argument syntax update.
+
+**Parameters**:
+
+==================  ========  =========  ===========  =================================================================================================================
+              Name      Type      Range      Default                                                                                                        Description
+==================  ========  =========  ===========  =================================================================================================================
+   CalibrationFile    string       None    AUTOMATIC                                                                        Name of thermal background file to subtract
+              Save       int      [0,1]            0                                                                              1: save output on disk, 0: don't save
+  Override_scaling     float     [0,10]          1.0    Set to value other than 1 to manually adjust the background image flux scaling to better match the science data
+             gpitv       int    [0,500]            0                                                  1-500: choose gpitv session for displaying output, 0: no display 
+==================  ========  =========  ===========  =================================================================================================================
+
+
+**IDL Filename**: gpi_subtract_thermal_sky_background_if_k_band.pro
+
+
+.. index::
     single:Remove Persistence from Previous Images
 
 .. _RemovePersistencefromPreviousImages:
@@ -732,72 +740,6 @@ Remove Persistence from Previous Images
 
 
 **IDL Filename**: gpi_remove_persistence_from_previous_images.pro
-
-
-.. index::
-    single:Subtract Thermal/Sky Background if K band
-
-.. _SubtractThermal/SkyBackgroundifKband:
-
-Subtract Thermal/Sky Background if K band
------------------------------------------
-
- Subtract a dark frame. 
-
-**Category**:  ALL      **Order**: 1.2
-
-**Inputs**:  2D image file
-
-**Outputs**:  2D image file, unchanged if YJH, background subtracted if K1 or K2.      **Output Suffix**:  'bkgndsub'
-
-**Notes**:
-
-.. code-block:: idl
-
-
-  Subtract thermal background emission, for K band data only
-
-	** special note: **
-
-	This is a new kind of "data dependent optional primitive". If the filter of
-	the current data is YJH, return without doing *anything*, even logging the
-	start/end of this primitive.  It becomes a complete no-op for non-K-band
-	cases.
-
- Algorithm:
-
-	Get the best available thermal background calibration file from CalDB
-	Scale it to current exposure time
-	Subtract it.
-   The name of the calibration file used is saved to the DRPBKGND header keyword.
-
- ALGORITHM TODO: Deal with uncertainty and pixel mask frames too.
-
-
-
-
-
- HISTORY:
-   2012-12-13 MP: Initial implementation
-   2013-01-16 MP: Documentation cleanup.
-   2013-07-12 MP: Rename for consistency
-   2013-12-15 MP: Add override_scaling option, remove erroneous hard-coded
-					constant non-1 scaling.
-   2013-12-16 MP: CalibrationFile argument syntax update.
-
-**Parameters**:
-
-==================  ========  =========  ===========  =================================================================================================================
-              Name      Type      Range      Default                                                                                                        Description
-==================  ========  =========  ===========  =================================================================================================================
-   CalibrationFile    string       None    AUTOMATIC                                                                        Name of thermal background file to subtract
-              Save       int      [0,1]            0                                                                              1: save output on disk, 0: don't save
-  Override_scaling     float     [0,10]          1.0    Set to value other than 1 to manually adjust the background image flux scaling to better match the science data
-             gpitv       int    [0,500]            0                                                  1-500: choose gpitv session for displaying output, 0: no display 
-==================  ========  =========  ===========  =================================================================================================================
-
-
-**IDL Filename**: gpi_subtract_thermal_sky_background_if_k_band.pro
 
 
 .. index::
@@ -1039,7 +981,15 @@ Destripe science image
 
 
 
-  Subtract horizontal striping from the background of a 2d raw IFS image
+ This primitive was originally developed to remove striping and microphonics
+ noise in IFS images. The noise level of the detector has since decreased
+ significantly and therefore this primitive is generally only useful for
+ short exposures. Note that without proper examination, this primitive may
+ INTRODUCE a systematic noise into the image. Users should consult the
+ IFS handbook destriping section when using this primitive.
+
+
+  This primitive subtracts horizontal striping from the background of a 2d raw IFS image
   by masking spectra and using the remaining regions to obtain a
   sampling of the striping.
 
@@ -1112,6 +1062,12 @@ Destripe science image
     Only the absolute value is considered and the phase remains unchanged.
     This algorthim is not as efficient as the two others but if you don't have an accurate model, it can be better than nothing.
 
+ Currently, the readnoise floor, which is what is used to determine the pixel masking for spectral mode, is set to 8 electrons divided by the
+ square root of hte number of coadds. Note that for K band (and sometimes H) this often has to be adjusted. The channel
+ offset correction should also be used when this value is being adjusted. Note that if too much of the image is masked,
+ it will surpass the abort_fraction and no destriping will occur. Using an abort_fraction of 0.7 is the minimum
+ a user should use for normal cases.
+
 
 
 
@@ -1129,26 +1085,26 @@ Destripe science image
 
 **Parameters**:
 
-========================  ========  ======================  ===========  ================================================================================================================================================================================
-                    Name      Type                   Range      Default                                                                                                                                                                       Description
-========================  ========  ======================  ===========  ================================================================================================================================================================================
-                  method    string    [threshhold|calfile]      calfile                                                                                  Find background based on image value threshhold cut, or calibration file spectra/spot locations?
-          abort_fraction     float               [0.0,1.0]          0.9                                                                                  Necessary fraction of pixels in mask to continue - set at 0.9 to ensure quicklook tool is robust
-  chan_offset_correction       int                   [0,1]            0                                                                                                      Tries to correct for channel bias offsets - useful when no dark is available
-         readnoise_floor     float               [0.0,100]          0.0                                                                                                                  Readnoise floor in ADU. 0 = default to 8 electrons per CDS image
-            Save_stripes       int                   [0,1]            0                                                                                                                              Save the striping noise image subtracted from frame?
-                 Display       int                [-1,100]           -1                                                                                         -1 = No display; 0 = New (unused) window else = Window number to display diagonostics in.
-     remove_microphonics       int                   [0,2]            0    Remove microphonics noise based on a precomputed fixed model.0: not applied. 1: applied. 2: the algoritm is applied only if the measured noise is greater than micro_threshold
-     method_microphonics       int                   [1,3]            0                                                                                               Method applied for microphonics 1: model projection. 2: all to zero 3: gaussian fit
-         CalibrationFile    string                    None    AUTOMATIC                                                                                                                        Filename of the desired microphonics model file to be read
-        Plot_micro_peaks    string                [yes|no]           no                                                                                                                            Plot in 3d the peaks corresponding to the microphonics
-       save_microphonics    string                [yes|no]           no                                                                                If remove_microphonics = 1 or (auto and micro_threshold overpassed), save the removed microphonics
-         micro_threshold     float               [0.0,1.0]         0.01                                                        If remove_microphonics = 2, set the threshold. This value is sum(abs(fft(image))*abs(fft(noise_model)))/sqrt(sum(image^2))
-              write_mask       int                   [0,1]            0                                                                                                                                           write signal mask to reduced directory?
-                fraction     float               [0.0,1.0]          0.7                                                                                                                  Threshold fraction of the total pixels in a row should be masked
-                    Save       int                   [0,1]            0                                                                                                                                             1: Save output to disk, 0: Don't save
-                   gpitv       int                 [0,500]            1                                                                                                                 1-500: choose gpitv session for displaying output, 0: no display 
-========================  ========  ======================  ===========  ================================================================================================================================================================================
+=========================  ========  ======================  ===========  ================================================================================================================================================================================
+                     Name      Type                   Range      Default                                                                                                                                                                       Description
+=========================  ========  ======================  ===========  ================================================================================================================================================================================
+                   method    string    [threshhold|calfile]      calfile                                                                                  Find background based on image value threshhold cut, or calibration file spectra/spot locations?
+           abort_fraction     float               [0.0,1.0]          0.9                                                                                  Necessary fraction of pixels in mask to continue - set at 0.9 to ensure quicklook tool is robust
+   chan_offset_correction       int                   [0,1]            0                                                                                                      Tries to correct for channel bias offsets - useful when no dark is available
+          readnoise_floor     float               [0.0,100]          0.0                                                                                                                  Readnoise floor in ADU. 0 = default to 8 electrons per CDS image
+             Save_stripes       int                   [0,1]            0                                                                                                                              Save the striping noise image subtracted from frame?
+                  Display       int                [-1,100]           -1                                                                                         -1 = No display; 0 = New (unused) window else = Window number to display diagonostics in.
+      remove_microphonics       int                   [0,2]            0    Remove microphonics noise based on a precomputed fixed model.0: not applied. 1: applied. 2: the algoritm is applied only if the measured noise is greater than micro_threshold
+      method_microphonics       int                   [1,3]            0                                                                                               Method applied for microphonics 1: model projection. 2: all to zero 3: gaussian fit
+          CalibrationFile    string                    None    AUTOMATIC                                                                                                                        Filename of the desired microphonics model file to be read
+         Plot_micro_peaks    string                [yes|no]           no                                                                                                                            Plot in 3d the peaks corresponding to the microphonics
+        save_microphonics    string                [yes|no]           no                                                                                If remove_microphonics = 1 or (auto and micro_threshold overpassed), save the removed microphonics
+          micro_threshold     float               [0.0,1.0]         0.01                                                        If remove_microphonics = 2, set the threshold. This value is sum(abs(fft(image))*abs(fft(noise_model)))/sqrt(sum(image^2))
+               write_mask       int                   [0,1]            0                                                                                                                                           write signal mask to reduced directory?
+                 fraction     float               [0.0,1.0]          0.7                                                                                                                  Threshold fraction of the total pixels in a row should be masked
+                     Save       int                   [0,1]            0                                                                                                                                             1: Save output to disk, 0: Don't save
+                    gpitv       int                 [0,500]            1                                                                                                                 1-500: choose gpitv session for displaying output, 0: no display 
+=========================  ========  ======================  ===========  ================================================================================================================================================================================
 
 
 **IDL Filename**: gpi_destripe_science_image.pro
@@ -1420,75 +1376,6 @@ Combine 2D Thermal/Sky Backgrounds
 
 
 .. index::
-    single:2D Wavelength Solution
-
-.. _2DWavelengthSolution:
-
-2D Wavelength Solution
-----------------------
-
- This primitive uses an existing wavelength solution file to construct a new wavelength solution file by simulating the detector image and performing a least squares fit.
-
-**Category**:  Calibration      **Order**: 1.7
-
-**Inputs**:  An Xe/Ar lamp detector image
-
-**Outputs**:  A wavelength solution cube (and a simulated Xe/Ar lamp detector image; to come)      **Output Suffix**: 'wavecal'
-
-**Notes**:
-
-.. code-block:: idl
-
-
-	This is the main wavelength calibration generation primitive.
-
-   This Wavelength Solution generator models an arclamp spectrum
-   for each lenslet and uses mpfit2dfunc to fit the relevant
-   wavelength solution variables (ie. xo, yo, lambdao, dispersion,
-   tilt). A wavelength solution file is output along with a
-   simulated detector image.
-
-	A previous wavelength calibration file is used to supply the
-	initial guess for the fitting process, which is then updated
-	by this primitive.
-
-	This is fairly computationally intensive and requires
-	relatively high S/N data. See Quick Wavelength Solution if
-	you need faster results (albeit more limited and requiring you
-	already have a reference wavecal)
-
-
-
-
-
-
-
-
- HISTORY:
-    2013-09-19 SW: 2-dimensionsal wavelength solution
-
-**Parameters**:
-
-===================  ========  =========  ===========  =============================================================================================================================
-               Name      Type      Range      Default                                                                                                                    Description
-===================  ========  =========  ===========  =============================================================================================================================
-            display       Int      [0,1]            0    Whether or not to plot each lenslet spectrum model in comparison to the detector measured spectrum: 1;display, 0;no display
-           whichpsf       Int      [0,1]            0                                                                           Type of lenslet PSF model, 0: gaussian, 1: microlens
-           parallel       Int      [0,1]            0                                                                              Option for Parallelization,  0: none, 1: parallel
-           numsplit       Int    [0,100]            0                                                                  Number of cores for parallelization. Set to 0 for autoselect.
-               Save       int      [0,1]            1                                                                                          1: save output on disk, 0: don't save
-             Smooth       int      [0,1]            1                                                              1: Smooth over poorly fit lenslets in final datacube; 0:NO, 1:YES
-   Save_model_image       int      [0,1]            0                                                                      1: save 2d detector model fit image to disk, 0:don't save
-    CalibrationFile    wavcal       None    AUTOMATIC                                                       Filename of the desired reference wavelength calibration file to be read
-  Save_model_params       int      [0,1]            0                                                                       1: save model nuisance parameters to disk, 0: don't save
-         AutoOffset       int      [0,1]            0                                                                           Automatically determine x/yoffset values 0;NO, 1;YES
-===================  ========  =========  ===========  =============================================================================================================================
-
-
-**IDL Filename**: gpi_wavelength_solution_2d.pro
-
-
-.. index::
     single:Measure Wavelength Calibration
 
 .. _MeasureWavelengthCalibration:
@@ -1587,6 +1474,75 @@ Measure Wavelength Calibration
 
 
 **IDL Filename**: gpi_measure_wavelength_calibration.pro
+
+
+.. index::
+    single:2D Wavelength Solution
+
+.. _2DWavelengthSolution:
+
+2D Wavelength Solution
+----------------------
+
+ This primitive uses an existing wavelength solution file to construct a new wavelength solution file by simulating the detector image and performing a least squares fit.
+
+**Category**:  Calibration      **Order**: 1.7
+
+**Inputs**:  An Xe/Ar lamp detector image
+
+**Outputs**:  A wavelength solution cube (and a simulated Xe/Ar lamp detector image; to come)      **Output Suffix**: 'wavecal'
+
+**Notes**:
+
+.. code-block:: idl
+
+
+	This is the main wavelength calibration generation primitive.
+
+   This Wavelength Solution generator models an arclamp spectrum
+   for each lenslet and uses mpfit2dfunc to fit the relevant
+   wavelength solution variables (ie. xo, yo, lambdao, dispersion,
+   tilt). A wavelength solution file is output along with a
+   simulated detector image.
+
+	A previous wavelength calibration file is used to supply the
+	initial guess for the fitting process, which is then updated
+	by this primitive.
+
+	This is fairly computationally intensive and requires
+	relatively high S/N data. See Quick Wavelength Solution if
+	you need faster results (albeit more limited and requiring you
+	already have a reference wavecal)
+
+
+
+
+
+
+
+
+ HISTORY:
+    2013-09-19 SW: 2-dimensionsal wavelength solution
+
+**Parameters**:
+
+===================  ========  =========  ===========  =============================================================================================================================
+               Name      Type      Range      Default                                                                                                                    Description
+===================  ========  =========  ===========  =============================================================================================================================
+            display       Int      [0,1]            0    Whether or not to plot each lenslet spectrum model in comparison to the detector measured spectrum: 1;display, 0;no display
+           whichpsf       Int      [0,1]            0                                                                           Type of lenslet PSF model, 0: gaussian, 1: microlens
+           parallel       Int      [0,1]            0                                                                              Option for Parallelization,  0: none, 1: parallel
+           numsplit       Int    [0,100]            0                                                                  Number of cores for parallelization. Set to 0 for autoselect.
+               Save       int      [0,1]            1                                                                                          1: save output on disk, 0: don't save
+             Smooth       int      [0,1]            1                                                              1: Smooth over poorly fit lenslets in final datacube; 0:NO, 1:YES
+   Save_model_image       int      [0,1]            0                                                                      1: save 2d detector model fit image to disk, 0:don't save
+    CalibrationFile    wavcal       None    AUTOMATIC                                                       Filename of the desired reference wavelength calibration file to be read
+  Save_model_params       int      [0,1]            0                                                                       1: save model nuisance parameters to disk, 0: don't save
+         AutoOffset       int      [0,1]            0                                                                           Automatically determine x/yoffset values 0;NO, 1;YES
+===================  ========  =========  ===========  =============================================================================================================================
+
+
+**IDL Filename**: gpi_wavelength_solution_2d.pro
 
 
 .. index::
@@ -1735,60 +1691,59 @@ Measure Polarization Spot Calibration
 
 
 .. index::
-    single:Assemble Spectral Datacube
+    single:Assemble Spectral Datacube (bp)
 
-.. _AssembleSpectralDatacube:
+.. _AssembleSpectralDatacube(bp):
 
-Assemble Spectral Datacube
---------------------------
+Assemble Spectral Datacube (bp)
+-------------------------------
 
- Assemble a 3D datacube from a 2D image. Spatial integration (3 pixels box) along the dispersion axis
+ Extract a 3D datacube from a 2D image taking account of the hot/cold pixel map (need to use also readbadpixmap with this primitive).
 
-**Category**:  SpectralScience, Calibration      **Order**: 2.0
+**Category**:  SpectralScience      **Order**: 2.0
 
 **Inputs**: Not specified
 
-**Outputs**: Not specified      **Output Suffix**: '-rawspdc'
+**Outputs**: 
 
 **Notes**:
 
 .. code-block:: idl
 
 
-		This routine transforms a 2D detector image in the dataset.currframe input
-		structure into a 3D data cube in the dataset.currframe output structure.
-   This routine extracts data cube from an image using spatial summation along the dispersion axis
-     introduced suffix '-rawspdc' (raw spectral data-cube)
+         extract data cube from an image using spatial summation along the dispersion axis
+          introduced suffix '-spdc' (spectral data-cube)
+
+        This routine transforms a 2D detector image in the dataset.currframe input
+        structure into a 3D data cube in the dataset.currframe output structure.
+
 
  KEYWORDS:
  GEM/GPI KEYWORDS:IFSFILT
 
 
  HISTORY:
- 	Originally by Jerome Maire 2007-11
+     Originally by Jerome Maire 2007-11
    2008-04-02 JM: spatial summation window centered on pixel and interpolation on the zem. comm. wav. vector
-	  2008-06-06 JM: adapted to pipeline inputs
+      2008-06-06 JM: adapted to pipeline inputs
    2009-04-15 MDP: Documentation updated.
    2009-06-20 JM: adapted to wavcal input
+   2009-08-30 JM: take into acount bad-pixels
    2009-09-17 JM: added DRF parameters
-   2012-02-01 JM: adapted to vertical dispersion
-   2012-02-09 DS: offloaded sdpx calculation
-   2013-04-02 JBR: Correction on the y coordinate when reading the det array to match centered pixel convention. Removal of the reference pixel area.
-   2013-07-17 MDP: Rename for consistency
-   2013-08-06 MDP: Documentation update, code cleanup to relabel X and Y properly
-   2013-11-30 MDP: Clear DQ and Uncert pointers
+   2012-10-18 MP: Code cleanup and debugging.
 
 **Parameters**:
 
-=======  ======  =========  =========  ===================================================================
-   Name    Type      Range    Default                                                          Description
-=======  ======  =========  =========  ===================================================================
-   Save     int      [0,1]          0                                1: save output on disk, 0: don't save
-  gpitv     int    [0,500]          0    1-500: choose gpitv session for displaying output, 0: no display 
-=======  ======  =========  =========  ===================================================================
+========  ========  =========  ==========  ===================================================================
+    Name      Type      Range     Default                                                          Description
+========  ========  =========  ==========  ===================================================================
+    Save       int      [0,1]           0                                1: save output on disk, 0: don't save
+  suffix    string       None    -rawspdc                                                  Enter output suffix
+   gpitv       int    [0,500]           0    1-500: choose gpitv session for displaying output, 0: no display 
+========  ========  =========  ==========  ===================================================================
 
 
-**IDL Filename**: gpi_assemble_spectral_datacube.pro
+**IDL Filename**: extractcube_withbadpix.pro
 
 
 .. index::
@@ -1864,20 +1819,20 @@ Assemble Polarization Cube
 
 
 .. index::
-    single:Assemble Spectral Datacube using mlens PSF
+    single:Assemble Spectral Datacube
 
-.. _AssembleSpectralDatacubeusingmlensPSF:
+.. _AssembleSpectralDatacube:
 
-Assemble Spectral Datacube using mlens PSF
-------------------------------------------
+Assemble Spectral Datacube
+--------------------------
 
- Extract a 3D datacube from a 2D image. Spatial integration (3 pixels) along the dispersion axis
+ Assemble a 3D datacube from a 2D image. Spatial integration (3 pixels box) along the dispersion axis
 
 **Category**:  SpectralScience, Calibration      **Order**: 2.0
 
 **Inputs**: Not specified
 
-**Outputs**:       **Output Suffix**: Could not be determined automatically
+**Outputs**: Not specified      **Output Suffix**: '-rawspdc'
 
 **Notes**:
 
@@ -1886,90 +1841,38 @@ Assemble Spectral Datacube using mlens PSF
 
 		This routine transforms a 2D detector image in the dataset.currframe input
 		structure into a 3D data cube in the dataset.currframe output structure.
-   This routine extracts data cube from an image using an inversion method along the dispersion axis
-
-
-
- KEYWORDS:
- GEM/GPI KEYWORDS:
-
-
- HISTORY:
- 	Originally by Jerome Maire 2007-11
-   2012-02-01 JM: adapted to vertical dispersion
-   2012-02-15 JM: adapted as a pipeline module
-   2013-08-07 ds: idl2 compiler compatible
-   2013-12-16 MP: CalibrationFile argument syntax update.
-
-**Parameters**:
-
-=================  ========  =========  ===========  ===================================================================
-             Name      Type      Range      Default                                                          Description
-=================  ========  =========  ===========  ===================================================================
-             Save       int      [0,1]            1                                1: save output on disk, 0: don't save
-  CalibrationFile    String       None    AUTOMATIC                Filename of the mlens-PSF calibration file to be read
-      ReuseOutput       int      [0,1]            0               1: keep output for following primitives, 0: don't keep
-            gpitv       int    [0,500]            0    1-500: choose gpitv session for displaying output, 0: no display 
-=================  ========  =========  ===========  ===================================================================
-
-
-**IDL Filename**: gpi_extractcube_mlenspsf.pro
-
-
-.. index::
-    single:Assemble Spectral Datacube (bp)
-
-.. _AssembleSpectralDatacube(bp):
-
-Assemble Spectral Datacube (bp)
--------------------------------
-
- Extract a 3D datacube from a 2D image taking account of the hot/cold pixel map (need to use also readbadpixmap with this primitive).
-
-**Category**:  SpectralScience      **Order**: 2.0
-
-**Inputs**: Not specified
-
-**Outputs**: 
-
-**Notes**:
-
-.. code-block:: idl
-
-
-         extract data cube from an image using spatial summation along the dispersion axis
-          introduced suffix '-spdc' (spectral data-cube)
-
-        This routine transforms a 2D detector image in the dataset.currframe input
-        structure into a 3D data cube in the dataset.currframe output structure.
-
+   This routine extracts data cube from an image using spatial summation along the dispersion axis
+     introduced suffix '-rawspdc' (raw spectral data-cube)
 
  KEYWORDS:
  GEM/GPI KEYWORDS:IFSFILT
 
 
  HISTORY:
-     Originally by Jerome Maire 2007-11
+ 	Originally by Jerome Maire 2007-11
    2008-04-02 JM: spatial summation window centered on pixel and interpolation on the zem. comm. wav. vector
-      2008-06-06 JM: adapted to pipeline inputs
+	  2008-06-06 JM: adapted to pipeline inputs
    2009-04-15 MDP: Documentation updated.
    2009-06-20 JM: adapted to wavcal input
-   2009-08-30 JM: take into acount bad-pixels
    2009-09-17 JM: added DRF parameters
-   2012-10-18 MP: Code cleanup and debugging.
+   2012-02-01 JM: adapted to vertical dispersion
+   2012-02-09 DS: offloaded sdpx calculation
+   2013-04-02 JBR: Correction on the y coordinate when reading the det array to match centered pixel convention. Removal of the reference pixel area.
+   2013-07-17 MDP: Rename for consistency
+   2013-08-06 MDP: Documentation update, code cleanup to relabel X and Y properly
+   2013-11-30 MDP: Clear DQ and Uncert pointers
 
 **Parameters**:
 
-========  ========  =========  ==========  ===================================================================
-    Name      Type      Range     Default                                                          Description
-========  ========  =========  ==========  ===================================================================
-    Save       int      [0,1]           0                                1: save output on disk, 0: don't save
-  suffix    string       None    -rawspdc                                                  Enter output suffix
-   gpitv       int    [0,500]           0    1-500: choose gpitv session for displaying output, 0: no display 
-========  ========  =========  ==========  ===================================================================
+=======  ======  =========  =========  ===================================================================
+   Name    Type      Range    Default                                                          Description
+=======  ======  =========  =========  ===================================================================
+   Save     int      [0,1]          0                                1: save output on disk, 0: don't save
+  gpitv     int    [0,500]          0    1-500: choose gpitv session for displaying output, 0: no display 
+=======  ======  =========  =========  ===================================================================
 
 
-**IDL Filename**: extractcube_withbadpix.pro
+**IDL Filename**: gpi_assemble_spectral_datacube.pro
 
 
 .. index::
@@ -2123,6 +2026,47 @@ Noise and Flux Analysis
 
 
 .. index::
+    single:Divide by Lenslet Flat Field
+
+.. _DividebyLensletFlatField:
+
+Divide by Lenslet Flat Field
+----------------------------
+
+ Divides a spectral data-cube by a flat field data-cube.
+
+**Category**:  SpectralScience,PolarimetricScience,Calibration      **Order**: 2.2
+
+**Inputs**:  Spectral or polarization datacube
+
+**Outputs**:  Each slice of the input datacube is divided by the lenslet flat.
+
+**Notes**:
+
+.. code-block:: idl
+
+
+
+
+
+ HISTORY:
+   2014-01-02 MP: New primitive
+
+**Parameters**:
+
+=================  ========  =========  ===========  ===================================================================
+             Name      Type      Range      Default                                                          Description
+=================  ========  =========  ===========  ===================================================================
+  CalibrationFile    string       None    AUTOMATIC       Filename of the desired wavelength calibration file to be read
+             Save       int      [0,1]            0                                1: save output on disk, 0: don't save
+            gpitv       int    [0,500]            0    1-500: choose gpitv session for displaying output, 0: no display 
+=================  ========  =========  ===========  ===================================================================
+
+
+**IDL Filename**: gpi_divide_by_lenslet_flat_field.pro
+
+
+.. index::
     single:Divide by Spectral Flat Field
 
 .. _DividebySpectralFlatField:
@@ -2170,47 +2114,6 @@ Divide by Spectral Flat Field
 
 
 **IDL Filename**: gpi_divide_by_spectral_flat_field.pro
-
-
-.. index::
-    single:Divide by Lenslet Flat Field
-
-.. _DividebyLensletFlatField:
-
-Divide by Lenslet Flat Field
-----------------------------
-
- Divides a spectral data-cube by a flat field data-cube.
-
-**Category**:  SpectralScience,PolarimetricScience,Calibration      **Order**: 2.2
-
-**Inputs**:  Spectral or polarization datacube
-
-**Outputs**:  Each slice of the input datacube is divided by the lenslet flat.
-
-**Notes**:
-
-.. code-block:: idl
-
-
-
-
-
- HISTORY:
-   2014-01-02 MP: New primitive
-
-**Parameters**:
-
-=================  ========  =========  ===========  ===================================================================
-             Name      Type      Range      Default                                                          Description
-=================  ========  =========  ===========  ===================================================================
-  CalibrationFile    string       None    AUTOMATIC       Filename of the desired wavelength calibration file to be read
-             Save       int      [0,1]            0                                1: save output on disk, 0: don't save
-            gpitv       int    [0,500]            0    1-500: choose gpitv session for displaying output, 0: no display 
-=================  ========  =========  ===========  ===================================================================
-
-
-**IDL Filename**: gpi_divide_by_lenslet_flat_field.pro
 
 
 .. index::
@@ -2435,54 +2338,6 @@ Check for closed-loop coronagraphic image
 
 
 .. index::
-    single:Measure GPI distortion from grid pattern
-
-.. _MeasureGPIdistortionfromgridpattern:
-
-Measure GPI distortion from grid pattern
-----------------------------------------
-
- Measure GPI distortion from grid pattern
-
-**Category**:  Calibration HIDDEN      **Order**: 2.44
-
-**Inputs**:  Not used
-
-**Outputs**:  Distortion correction coefficients file (values are currently hard-coded)      **Output Suffix**: '-distor'
-
-**Notes**:
-
-.. code-block:: idl
-
-
-	CAUTION - NOT IMPLEMENTED
-
-	the distortion in lab was analyzed with other non-pipeline tools by Quinn,
-	and the result is just hard coded here to output it in the GPI pipeline
-	format.
-
-
-
-
-
- HISTORY:
- 	Originally by Jerome Maire 2009-12
-       Switched sxaddpar to backbone->set_keyword 01.31.2012 Dmitry Savransky
-   2013  Added hard-coded measurement of the distortion made by Quinn   JM
-
-**Parameters**:
-
-======  ======  =======  =========  =======================================
-  Name    Type    Range    Default                              Description
-======  ======  =======  =========  =======================================
-  Save     int    [0,1]          1    1: save output on disk, 0: don't save
-======  ======  =======  =========  =======================================
-
-
-**IDL Filename**: gpi_measure_distortion.pro
-
-
-.. index::
     single:Correct Distortion
 
 .. _CorrectDistortion:
@@ -2529,6 +2384,54 @@ Correct Distortion
 
 
 **IDL Filename**: gpi_correct_distortion.pro
+
+
+.. index::
+    single:Measure GPI distortion from grid pattern
+
+.. _MeasureGPIdistortionfromgridpattern:
+
+Measure GPI distortion from grid pattern
+----------------------------------------
+
+ Measure GPI distortion from grid pattern
+
+**Category**:  Calibration HIDDEN      **Order**: 2.44
+
+**Inputs**:  Not used
+
+**Outputs**:  Distortion correction coefficients file (values are currently hard-coded)      **Output Suffix**: '-distor'
+
+**Notes**:
+
+.. code-block:: idl
+
+
+	CAUTION - NOT IMPLEMENTED
+
+	the distortion in lab was analyzed with other non-pipeline tools by Quinn,
+	and the result is just hard coded here to output it in the GPI pipeline
+	format.
+
+
+
+
+
+ HISTORY:
+ 	Originally by Jerome Maire 2009-12
+       Switched sxaddpar to backbone->set_keyword 01.31.2012 Dmitry Savransky
+   2013  Added hard-coded measurement of the distortion made by Quinn   JM
+
+**Parameters**:
+
+======  ======  =======  =========  =======================================
+  Name    Type    Range    Default                              Description
+======  ======  =======  =========  =======================================
+  Save     int    [0,1]          1    1: save output on disk, 0: don't save
+======  ======  =======  =========  =======================================
+
+
+**IDL Filename**: gpi_measure_distortion.pro
 
 
 .. index::
@@ -2746,441 +2649,6 @@ Interpolate bad pixels in cube
 
 
 .. index::
-    single:Divide by Telluric Transmission
-
-.. _DividebyTelluricTransmission:
-
-Divide by Telluric Transmission
--------------------------------
-
- Divides a spectral data-cube by a telluric transmission calibration file.
-
-**Category**:  SpectralScience,Calibration      **Order**: 2.5
-
-**Inputs**:  data-cube
-
-**Outputs**:   datacube calibrated for telluric absorption
-
-**Notes**:
-
-.. code-block:: idl
-
-
-	Corrects for telluric transmission based on a telluric calibrator
-	target reduced and provied as the CalibrationFile.
-
-
-
- HISTORY:
- 	2009-08-27: JM created
-   2009-09-17 JM: added DRF parameters
-   2009-10-09 JM added gpitv display
-   2010-10-19 JM: split HISTORY keyword if necessary
-   2011-08-01 MP: Update for multi-extension FITS files
-   2012-10-10 MP: Minor code cleanup; remove deprecated suffix= parameter
-   2013-07-17 MP: Rename for consistency
-   2013-12-16 MP: CalibrationFile argument syntax update.
-
-**Parameters**:
-
-=================  ========  =========  ===========  ===================================================================
-             Name      Type      Range      Default                                                          Description
-=================  ========  =========  ===========  ===================================================================
-  CalibrationFile    String       None    AUTOMATIC       Filename of the desired wavelength calibration file to be read
-             Save       int      [0,1]            0                                1: save output on disk, 0: don't save
-            gpitv       int    [0,500]            0    1-500: choose gpitv session for displaying output, 0: no display 
-=================  ========  =========  ===========  ===================================================================
-
-
-**IDL Filename**: gpi_divide_by_telluric_transmission.pro
-
-
-.. index::
-    single:Measure telluric transmission
-
-.. _Measuretellurictransmission:
-
-Measure telluric transmission
------------------------------
-
- Extract Telluric transmission from satelitte spots (method 1) or from PSF signal (method 2) using theoretical star spectrum. Correct or save the transmisssion.
-
-**Category**:  SpectralScience      **Order**: 2.5
-
-**Inputs**: 
-
-**Outputs**:       **Output Suffix**: Could not be determined automatically
-
-**Notes**:
-
-.. code-block:: idl
-
-
-
-
-
-
- KEYWORDS:
-
- GEM/GPI KEYWORDS:
- DRP KEYWORDS: DATAFILE,FILETYPE,ISCALIB,PSFCENTX,PSFCENTY,SPOTix-y,SPOTWAVE,
-
-
-
- HISTORY:
- 	Jerome Maire 2010-03
-
-**Parameters**:
-
-============================  ========  =========  =========  ===================================================================
-                        Name      Type      Range    Default                                                          Description
-============================  ========  =========  =========  ===================================================================
-                      method       int      [1,2]          1                         1: Use satellite flux. 2:Use clean PSF area.
-            Correct_datacube       int      [0,1]          1     1: Correct datacube from extracted tell trams., 0: don't correct
-     Save_corrected_datacube       int      [0,1]          1                    1: save corrected datacube on disk, 0: don't save
-  Save_telluric_transmission       int      [0,1]          1                                1: save output on disk, 0: don't save
-                      suffix    string       None    -telcal                                                  Enter output suffix
-                       gpitv       int    [0,500]          2    1-500: choose gpitv session for displaying output, 0: no display 
-============================  ========  =========  =========  ===================================================================
-
-
-**IDL Filename**: extract_telluric_transmission.pro
-
-
-.. index::
-    single:Extract telluric transmission from sat. spots
-
-.. _Extracttellurictransmissionfromsat.spots:
-
-Extract telluric transmission from sat. spots
----------------------------------------------
-
- Extract Telluric Spectrum from satelitte spots
-
-**Category**:  SpectralScience      **Order**: 2.51
-
-**Inputs**: 
-
-**Outputs**:       **Output Suffix**: Could not be determined automatically
-
-**Notes**:
-
-.. code-block:: idl
-
-
-
-
-
-
- KEYWORDS:
-
-
-
-
- HISTORY:
- 	Jerome Maire 2009-12
-   2013-08-07 ds: idl2 compiler compatible, added start_primitive
-
-**Parameters**:
-
-============================  ========  ==========  =========  ===================================================================
-                        Name      Type       Range    Default                                                          Description
-============================  ========  ==========  =========  ===================================================================
-            Correct_datacube       int       [0,1]          1     1: Correct datacube from extracted tell trams., 0: don't correct
-     Save_corrected_datacube       int       [0,1]          1                    1: save corrected datacube on disk, 0: don't save
-  Save_telluric_transmission       int       [0,1]          1                                1: save output on disk, 0: don't save
-                      suffix    string        None    -telcal                                                  Enter output suffix
-                       gpitv       int     [0,500]          2    1-500: choose gpitv session for displaying output, 0: no display 
-                      Xspot1       int    [0,2048]         97                Initial approximate x-position [pixel] of sat. spot 1
-                      Yspot1       int    [0,2048]        117                Initial approximate y-position [pixel] of sat. spot 1
-                      Xspot2       int    [0,2048]        179                Initial approximate x-position [pixel] of sat. spot 2
-                      Yspot2       int    [0,2048]        159                Initial approximate y-position [pixel] of sat. spot 2
-============================  ========  ==========  =========  ===================================================================
-
-
-**IDL Filename**: extract_telluric_transmission_meth1.pro
-
-
-.. index::
-    single:Calibrate Photometric Flux and save conversion in DB
-
-.. _CalibratePhotometricFluxandsaveconversioninDB:
-
-Calibrate Photometric Flux and save conversion in DB
-----------------------------------------------------
-
- Apply photometric calibration using satellite flux 
-
-**Category**:  SpectralScience      **Order**: 2.51
-
-**Inputs**:  data-cube
-
-**Outputs**:   Flux calibrated datacube      **Output Suffix**: Could not be determined automatically
-
-**Notes**:
-
-.. code-block:: idl
-
-
-
-
- GEM/GPI KEYWORDS:EXPTIME,FILTER,IFSFILT,HMAG,IFSUNITS,SECDIAM,SPECTYPE,TELDIAM
- DRP KEYWORDS: CUNIT,FILETYPE,FSCALE,HISTORY,ISCALIB,PSFCENTX,PSFCENTY,SPOT1x,SPOT1y,SPOT2x,SPOT2y,SPOT3x,SPOT3y,SPOT4x,SPOT4y,SPOTWAVE
-
-
-
- HISTORY:
- 	Originally by Jerome Maire 2009-12
-   JM 2010-03 : added sat locations & choice of final units
-   JM 2010-08 : routine optimized with simulated test data
-   2010-10-19 JM: split HISTORY keyword if necessary
-   2010-11-16 JM: save conversion factor in Calibration DataBase for eventual future use (with extended object)
-   2013-12-16 MP: CalibrationFile argument syntax update.
-
-**Parameters**:
-
-======================  ========  =========  ===========  ==========================================================================================
-                  Name      Type      Range      Default                                                                                 Description
-======================  ========  =========  ===========  ==========================================================================================
-            FinalUnits       int     [0,10]            1    0:Counts, 1:Counts/s, 2:ph/s/nm/m^2, 3:Jy, 4:W/m^2/um, 5:ergs/s/cm^2/A, 6:ergs/s/cm^2/Hz
-       CalibrationFile    string       None    AUTOMATIC                                    Filename of the desired flux calibration file to be read
-                  Save       int      [0,1]            1                                                       1: save output on disk, 0: don't save
-  Save_flux_convertion       int      [0,1]            1                                       1: save flux convertion factor on disk, 0: don't save
-                 gpitv       int    [0,500]            2                           1-500: choose gpitv session for displaying output, 0: no display 
-======================  ========  =========  ===========  ==========================================================================================
-
-
-**IDL Filename**: apply_photometric_cal_02.pro
-
-
-.. index::
-    single:Calibrate Photometric Flux
-
-.. _CalibratePhotometricFlux:
-
-Calibrate Photometric Flux
---------------------------
-
- Extract one spectrum from a datacube somewhere in the FOV specified by the user.
-
-**Category**:  SpectralScience      **Order**: 2.51
-
-**Inputs**: 
-
-**Outputs**: Not specified      **Output Suffix**: '-phot'
-
-**Notes**:
-
-.. code-block:: idl
-
-
-	This primitive applies a spectrophotometric calibrations to the datacube that is determined either
-	from the satellite spots of the supplied cube, the satellite spots of a
-	user-indicated cube, or any user-supplied spectral response function (e.g. derived
-	from an open loop image of a standard star).
-
- The user may also specify the extraction and sky radii used in performing the aperture photometry. Note that the 'annuli' only represent the radial size of the extraction. The background is extracted by fitting a plane an annulus surrounding the central star at the same radius as the planet. The width of the annulus is equal to the inner_sky_radius, the outer annulus describes the distance from the companion to the edges of the annulus that should be considered when fitting the plane
-
- WARNING: the user-supplied spectral response function is not yet implemented.
-
-
-	1: datacube that requires calibration (loaded as an Input FITS file)
-	AND
-	2a: datacube or to be used to determine the calibration (with or without a accompanying model spectrum of the star)
-	OR
-	2b: a 2D spectrum (in ADU per COADD, where the COADD corresponds to input #1). The file format must be three columns, the first being wavelength in microns, the second being the flux in erg/s/cm2/A, the third being the uncertainty
-
- if neither 2a nor 2b or defined, the satellites of the input file are used.
-
- calib_cube_name and calib_model_spectrum require the entire directory+filename unless they are in the output directory
- calib_spectrum requires the full filename
-
-
- GEM/GPI KEYWORDS:FILTER,IFSUNIT
- DRP KEYWORDS: CUNIT,DATAFILE
-
-
-
- HISTORY:
-
-   JM 2010-03 : created module.
-   2012-10-17 MP: Removed deprecated suffix keyword. needs major cleanup!
-   2013-08-07 ds: idl2 compiler compatible
-	2014-01-07 PI: Created new gpi_calibrate_photometric_flux - big overhaul from the original apply_photometric_calibration
-
-**Parameters**:
-
-======================  ========  ==========  =========  ==========================================================================================================
-                  Name      Type       Range    Default                                                                                                 Description
-======================  ========  ==========  =========  ==========================================================================================================
-                  Save       int       [0,1]          0                                                                       1: save output on disk, 0: don't save
-                 gpitv       int     [0,500]          0                                           1-500: choose gpitv session for displaying output, 0: no display 
-     extraction_radius     float    [0,1000]         3.    Aperture radius at middle wavelength (in spaxels i.e. mlens) to extract photometry for each wavelength. 
-      inner_sky_radius     float     [1,100]        10.     Inner aperture radius at middle wavelength (in spaxels i.e. mlens) to extract sky for each wavelength. 
-      outer_sky_radius     float     [1,100]        15.     Outer aperture radius at middle wavelength (in spaxels i.e. mlens) to extract sky for each wavelength. 
-          c_ap_scaling       int       [0,1]          1                                                                   Perform aperture scaling with wavelength?
-       calib_cube_name    string        None                                    Leave blank to use satellites of this cube, or enter a file to use those satellites
-  calib_model_spectrum    string        None                Leave blank to use satellites of this cube, or enter a file to use with the spectrum for the satellites
-        calib_spectrum    string        None                                          Leave blank to use satellites of this cube, or enter calibrated spectrum file
-            FinalUnits       int      [0,10]          1       0: ADU per coadd, 1: ADU/s, 2: ph/s/nm/m^2, 3: Jy, 4: 'W/m^2/um, 5: ergs/s/cm^2/A, 6: ergs/s/cm^2/Hz'
-======================  ========  ==========  =========  ==========================================================================================================
-
-
-**IDL Filename**: gpi_calibrate_photometric_flux.pro
-
-
-.. index::
-    single:Calibrate Photometric Flux - Polarimetry
-
-.. _CalibratePhotometricFlux-Polarimetry:
-
-Calibrate Photometric Flux - Polarimetry
-----------------------------------------
-
- Apply photometric calibration using satellite flux for polarimetry-mode data
-
-**Category**:  PolarimetricScience      **Order**: 2.51
-
-**Inputs**:  data-cube
-
-**Outputs**:       **Output Suffix**: '-phot'
-
-**Notes**:
-
-.. code-block:: idl
-
-
-
-
-
- HISTORY:
- 	Originally by Jerome Maire 2009-12
-   JM 2010-03 : added sat locations & choice of final units
-   JM 2010-08 : routine optimized with simulated test data
-   2010-10-19 JM: split HISTORY keyword if necessary
-	2013-12-30 MP: CalibrationFile argument syntax update.
-
-**Parameters**:
-
-=================  ========  =========  ===========  ==========================================================================================
-             Name      Type      Range      Default                                                                                 Description
-=================  ========  =========  ===========  ==========================================================================================
-       FinalUnits       int     [0,10]            1    0:Counts, 1:Counts/s, 2:ph/s/nm/m^2, 3:Jy, 4:W/m^2/um, 5:ergs/s/cm^2/A, 6:ergs/s/cm^2/Hz
-  CalibrationFile    string       None    AUTOMATIC                                    Filename of the desired flux calibration file to be read
-             Save       int      [0,1]            1                                                       1: save output on disk, 0: don't save
-            gpitv       int    [0,500]            2                           1-500: choose gpitv session for displaying output, 0: no display 
-=================  ========  =========  ===========  ==========================================================================================
-
-
-**IDL Filename**: apply_photometric_cal_polar.pro
-
-
-.. index::
-    single:Measure Unocculted Photometric Flux
-
-.. _MeasureUnoccultedPhotometricFlux:
-
-Measure Unocculted Photometric Flux
------------------------------------
-
- Apply photometric calibration using satellite flux 
-
-**Category**:  SpectralScience      **Order**: 2.51
-
-**Inputs**:  data-cube
-
-**Outputs**: 
-
-**Notes**:
-
-.. code-block:: idl
-
-
-
- GEM/GPI KEYWORDS:EXPTIME,FILTER,IFSFILT,HMAG,IFSUNITS,SECDIAM,SPECTYPE,TELDIAM
- DRP KEYWORDS: CUNIT,FILETYPE,FSCALE,HISTORY,ISCALIB,PSFCENTX,PSFCENTY,SPOT1x,SPOT1y,SPOT2x,SPOT2y,SPOT3x,SPOT3y,SPOT4x,SPOT4y,SPOTWAVE
-
-
- HISTORY:
- 	Originally by Jerome Maire 2009-12
-   JM 2010-03 : added sat locations & choice of final units
-   JM 2010-08 : routine optimized with simulated test data
-   2010-10-19 JM: split HISTORY keyword if necessary
-   2011-07-30 MP: Updated for multi-extension FITS
-    2013-11-13 JM: major updates for better sat spot flux measurement
-
-**Parameters**:
-
-============  ======  =========  =========  ==========================================================================================
-        Name    Type      Range    Default                                                                                 Description
-============  ======  =========  =========  ==========================================================================================
-  FinalUnits     int     [0,10]          1    0:Counts, 1:Counts/s, 2:ph/s/nm/m^2, 3:Jy, 4:W/m^2/um, 5:ergs/s/cm^2/A, 6:ergs/s/cm^2/Hz
-        Save     int      [0,1]          1                                                       1: save output on disk, 0: don't save
-       gpitv     int    [0,500]          2                           1-500: choose gpitv session for displaying output, 0: no display 
-============  ======  =========  =========  ==========================================================================================
-
-
-**IDL Filename**: apply_photometric_cal_unocc.pro
-
-
-.. index::
-    single:Extract one spectrum
-
-.. _Extractonespectrum:
-
-Extract one spectrum
---------------------
-
- Extract one spectrum from a datacube somewhere in the FOV specified by the user.
-
-**Category**:  SpectralScience      **Order**: 2.51
-
-**Inputs**:  data-cube
-
-**Outputs**:       **Output Suffix**: Could not be determined automatically
-
-**Notes**:
-
-.. code-block:: idl
-
-
-
-
-
-
-
- KEYWORDS:
-	/Save	Set to 1 to save the output image to a disk file.
-
- GEM/GPI KEYWORDS:FILTER,IFSUNIT
- DRP KEYWORDS: CUNIT,DATAFILE,SPECCENX,SPECCENY
-
-
- HISTORY:
-
-   JM 2010-03 : created module.
-   2012-10-17 MP: Removed deprecated suffix keyword. FIXME this needs major
-   cleanup!
-   2013-08-07 ds: idl2 compiler compatible
-
-**Parameters**:
-
-===========  ========  =====================  =========  ===================================================================================
-       Name      Type                  Range    Default                                                                          Description
-===========  ========  =====================  =========  ===================================================================================
-    xcenter       int               [0,1000]        141                       x-locations in pixel on datacube where extraction will be made
-    ycenter       int               [0,1000]        141                       y-locations in pixel on datacube where extraction will be made
-     radius     float               [0,1000]         5.    Aperture radius (in pixel i.e. mlens) to extract photometry for each wavelength. 
-     method    string    [median|mean|total]      total                                    method of photometry extraction:median,mean,total
-  ps_figure       int                [0,500]          2                           1-500: choose # of saved fig suffix name, 0: no ps figure 
-       Save       int                  [0,1]          1                                         1: save output (fits) on disk, 0: don't save
-===========  ========  =====================  =========  ===================================================================================
-
-
-**IDL Filename**: extract_one_spectrum.pro
-
-
-.. index::
     single:Extract one spectrum, plots
 
 .. _Extractonespectrum,plots:
@@ -3238,101 +2706,80 @@ Extract one spectrum, plots
 
 
 .. index::
-    single:Calibrate Photometric Flux of extented object
+    single:Calibrate Photometric Flux
 
-.. _CalibratePhotometricFluxofextentedobject:
+.. _CalibratePhotometricFlux:
 
-Calibrate Photometric Flux of extented object
----------------------------------------------
+Calibrate Photometric Flux
+--------------------------
 
- Apply photometric calibration of extented object 
+ Apply photometric calibration to a single or set of datacubes
 
 **Category**:  SpectralScience      **Order**: 2.51
 
-**Inputs**:  data-cube
+**Inputs**: 
 
-**Outputs**:       **Output Suffix**: '-phot'
-
-**Notes**:
-
-.. code-block:: idl
-
-
-
-
-
- HISTORY:
- 	Originally by Jerome Maire 2009-12
-   JM 2010-03 : added sat locations & choice of final units
-   JM 2010-08 : routine optimized with simulated test data
-   2010-10-19 JM: split HISTORY keyword if necessary
-   2010-11-16 JM: save conversion factor in Calibration DataBase for eventual future use (with extended object)
-	2013-12-30 MP: CalibrationFile argument syntax update.
-
-**Parameters**:
-
-=================  ========  =========  ===========  ==========================================================================================
-             Name      Type      Range      Default                                                                                 Description
-=================  ========  =========  ===========  ==========================================================================================
-       FinalUnits       int     [0,10]            1    0:Counts, 1:Counts/s, 2:ph/s/nm/m^2, 3:Jy, 4:W/m^2/um, 5:ergs/s/cm^2/A, 6:ergs/s/cm^2/Hz
-  CalibrationFile    string       None    AUTOMATIC                                    Filename of the desired flux calibration file to be read
-             Save       int      [0,1]            1                                                       1: save output on disk, 0: don't save
-            gpitv       int    [0,500]            2                           1-500: choose gpitv session for displaying output, 0: no display 
-=================  ========  =========  ===========  ==========================================================================================
-
-
-**IDL Filename**: apply_photometric_cal_extented.pro
-
-
-.. index::
-    single:Calibrate Photometric Flux - deprecated
-
-.. _CalibratePhotometricFlux-deprecated:
-
-Calibrate Photometric Flux - deprecated
----------------------------------------
-
- Apply photometric calibration using satellite flux 
-
-**Category**:  HIDDEN      **Order**: 2.51
-
-**Inputs**:  data-cube
-
-**Outputs**:       **Output Suffix**: '-phot'
+**Outputs**: Not specified      **Output Suffix**: '-phot'
 
 **Notes**:
 
 .. code-block:: idl
 
 
- *DEPRECATED* for
- Users should now use Calibrate Photometric Flux (gpi_calibrate_photometric_flux.pro)
+	This primitive applies a spectrophotometric calibrations to the datacube that is determined either
+	from the satellite spots of the supplied cube, the satellite spots of a
+	user-indicated cube, or any user-supplied spectral response function (e.g. derived
+	from an open loop image of a standard star).
+
+ The user may also specify the extraction and sky radii used in performing the aperture photometry. Note that the 'annuli' only represent the radial size of the extraction. The background is extracted by fitting a constant to an annulus surrounding the central star at the same radius as the planet. The inner width of the annulus is equal to the inner_sky_radius, the outer annulus describes the distance from the companion to the edges of the annulus that should be considered when fitting the constant. If the user wishes to examine the section being fit, they should modify line 350 accordingly.
+
+ Error bars are calculated and put into the headers to be used with future primitives such as gpi_extract_1d_spectrum. They are determined by convolving the sky annulus with the extraction aperture then taking the standard deviation.
 
 
- GEM/GPI KEYWORDS:EXPTIME,FILTER,IFSFILT,HMAG,IFSUNITS,SECDIAM,SPECTYPE,TELDIAM
- DRP KEYWORDS: CUNIT,FILETYPE,FSCALE,HISTORY,ISCALIB,PSFCENTX,PSFCENTY,SPOT1x,SPOT1y,SPOT2x,SPOT2y,SPOT3x,SPOT3y,SPOT4x,SPOT4y,SPOTWAVE
+
+	1: datacube that requires calibration (loaded as an Input FITS file)
+	AND
+	2a: datacube or to be used to determine the calibration (with or without a accompanying model spectrum of the star)
+	OR
+	2b: a 2D spectrum (in ADU per COADD, where the COADD corresponds to input #1). The file format must be three columns, the first being wavelength in microns, the second being the flux in erg/s/cm2/A, the third being the uncertainty
+
+ if neither 2a nor 2b or defined, the satellites of the input file are used.
+
+ calib_cube_name and calib_model_spectrum require the entire directory+filename unless they are in the output directory
+ calib_spectrum requires the full filename
+
+
+ GEM/GPI KEYWORDS:FILTER,IFSUNIT
+ DRP KEYWORDS: CUNIT,DATAFILE
+
 
 
  HISTORY:
- 	Originally by Jerome Maire 2009-12
-   JM 2010-03 : added sat locations & choice of final units
-   JM 2010-08 : routine optimized with simulated test data
-   2010-10-19 JM: split HISTORY keyword if necessary
-   2011-07-30 MP: Updated for multi-extension FITS
-    2013-11-13 JM: major updates for better sat spot flux measurement
+
+   JM 2010-03 : created module.
+   2012-10-17 MP: Removed deprecated suffix keyword. needs major cleanup!
+   2013-08-07 ds: idl2 compiler compatible
+	2014-01-07 PI: Created new gpi_calibrate_photometric_flux - big overhaul from the original apply_photometric_calibration
 
 **Parameters**:
 
-============  ======  =========  =========  ==========================================================================================
-        Name    Type      Range    Default                                                                                 Description
-============  ======  =========  =========  ==========================================================================================
-  FinalUnits     int     [0,10]          1    0:Counts, 1:Counts/s, 2:ph/s/nm/m^2, 3:Jy, 4:W/m^2/um, 5:ergs/s/cm^2/A, 6:ergs/s/cm^2/Hz
-        Save     int      [0,1]          1                                                       1: save output on disk, 0: don't save
-       gpitv     int    [0,500]          2                           1-500: choose gpitv session for displaying output, 0: no display 
-============  ======  =========  =========  ==========================================================================================
+======================  ========  ==========  =========  ==========================================================================================================
+                  Name      Type       Range    Default                                                                                                 Description
+======================  ========  ==========  =========  ==========================================================================================================
+                  Save       int       [0,1]          0                                                                       1: save output on disk, 0: don't save
+                 gpitv       int     [0,500]          0                                           1-500: choose gpitv session for displaying output, 0: no display 
+     extraction_radius     float    [0,1000]         3.    Aperture radius at middle wavelength (in spaxels i.e. mlens) to extract photometry for each wavelength. 
+      inner_sky_radius     float     [1,100]        10.     Inner aperture radius at middle wavelength (in spaxels i.e. mlens) to extract sky for each wavelength. 
+      outer_sky_radius     float     [1,100]        15.     Outer aperture radius at middle wavelength (in spaxels i.e. mlens) to extract sky for each wavelength. 
+          c_ap_scaling       int       [0,1]          1                                                                   Perform aperture scaling with wavelength?
+       calib_cube_name    string        None                                    Leave blank to use satellites of this cube, or enter a file to use those satellites
+  calib_model_spectrum    string        None                Leave blank to use satellites of this cube, or enter a file to use with the spectrum for the satellites
+        calib_spectrum    string        None                                          Leave blank to use satellites of this cube, or enter calibrated spectrum file
+            FinalUnits       int      [0,10]          1       0: ADU per coadd, 1: ADU/s, 2: ph/s/nm/m^2, 3: Jy, 4: 'W/m^2/um, 5: ergs/s/cm^2/A, 6: ergs/s/cm^2/Hz'
+======================  ========  ==========  =========  ==========================================================================================================
 
 
-**IDL Filename**: apply_photometric_cal.pro
+**IDL Filename**: gpi_calibrate_photometric_flux.pro
 
 
 .. index::
@@ -3356,9 +2803,13 @@ Extract 1D spectrum from a datacube
 .. code-block:: idl
 
 
+ WARNING: This primitive will not provide spectra of publishable quality
+ it is designed to perform a quick extraction of a source.
+
+
  This primitive extracts a spectrum from a data cube. It is meant to be used
  on datacubes that have been calibrated by gpi_apply_photometric_calibration,
- but this is not required.
+ but this is not strictly required.
 
  The extraction radius is pulled out of the header such that is uses the
  same as what was used to calibrate the cube. If they keyword is not found,
@@ -3375,7 +2826,11 @@ Extract 1D spectrum from a datacube
  All photometry is done in ADU/coadd. This is performed by converting the cube to
  ADU/coadd then converting back to whatever units the cube was input with.
 
+ The error bars are determined using the same method as the satellite spots
+ in gpi_calibrate_photometric_flux primitive. The user specifies the sky radii used in performing the aperture photometry. Note that the 'annuli' only represent the radial size of the extraction. The background is extracted by fitting a constant to an annulus surrounding the central star at the same radius as the planet. The inner width of the annulus is equal to the inner_sky_radius, the outer annulus describes the distance from the companion to the edges of the annulus that should be considered when fitting the constant. If the user wishes to examine the section being fit, they should modify line 350 accordingly.
 
+ Highpass filtering the image is recommended to determine the centroids, note that the highpass filtered image
+ is not used when measuring the extracted spectrum.
 
 
  KEYWORDS:
@@ -3383,10 +2838,11 @@ Extract 1D spectrum from a datacube
  Save: Set to 1 to save the spectrum to a disk file (.fits).
  xcenter: x-location of extraction (in pixels)
  ycenter: y-location of extraction (in pixels)
- inner_sky_radius: inner radius used in defining sky subtraction annulus
- outer_sky_radius: outer radius used in defining sky subtraction annulus
-	override: allows input of a new extraction radius, and the use/non-use of c_ap_scaling
-	extraction_radius: Radius used to define annulus for source extraction. This keyword is only active if the override keyword is set, or if the CEXTR_AP keyword, set by the Calibrate Photometric Flux primitive (gpi_calibrate_photometric_flux.pro) is not present in the header
+ highpass: highpass filter the image when determining centroid?
+ inner_sky_radius: inner radius used in defining sky subtraction annulus section
+ outer_sky_radius: outer radius used in defining sky subtraction annulus section
+ override: allows input of a new extraction radius, and the use/non-use of c_ap_scaling
+ extraction_radius: Radius used to define annulus for source extraction. This keyword is only active if the override keyword is set, or if the CEXTR_AP keyword, set by the Calibrate Photometric Flux primitive (gpi_calibrate_photometric_flux.pro) is not present in the header
  c_ap_scaling: keyword that activates the scaling of the apertures with wavelength. This keyword is only active if the override keyword is set, or if the C_AP_SC keyword, set by the Calibrate Photometric Flux primitive (gpi_calibrate_photometric_flux.pro) is not present in the header
  display: window used to display the extracted spectrum plot
  save_ps_plot: saves a postscript version of the plot if desired
@@ -3425,20 +2881,20 @@ Extract 1D spectrum from a datacube
 
 
 .. index::
-    single:Extract telluric transmission from datacube
+    single:Calibrate astrometry from binary (using separation and PA)
 
-.. _Extracttellurictransmissionfromdatacube:
+.. _Calibrateastrometryfrombinary(usingseparationandPA):
 
-Extract telluric transmission from datacube
--------------------------------------------
+Calibrate astrometry from binary (using separation and PA)
+----------------------------------------------------------
 
- Extract Telluric Spectrum from star spec estimated from datacube
+ Calculate astrometry from unocculted binaries using user-specified separation and PA at DATEOBS
 
-**Category**:  SpectralScience      **Order**: 2.52
+**Category**:  Calibration      **Order**: 2.6
 
-**Inputs**: 
+**Inputs**:  data-cube
 
-**Outputs**:       **Output Suffix**: Could not be determined automatically
+**Outputs**:   plate scale & orientation      **Output Suffix**: 'astrom' ; output suffix
 
 **Notes**:
 
@@ -3446,36 +2902,27 @@ Extract telluric transmission from datacube
 
 
 
-
-
-
- KEYWORDS:
-
-
+ GEM/GPI KEYWORDS:CRPA
+ DRP KEYWORDS: FILETYPE,ISCALIB
 
 
  HISTORY:
- 	Jerome Maire 2009-12
-   2013-08-07 ds: idl2 compiler compatible, added start_primitive
+ 	Originally by Jerome Maire 2009-12
+ 	2013-07-19 MP: Rename for consistency
 
 **Parameters**:
 
-============================  ========  ==========  =========  ===================================================================
-                        Name      Type       Range    Default                                                          Description
-============================  ========  ==========  =========  ===================================================================
-            Correct_datacube       int       [0,1]          1     1: Correct datacube from extracted tell trams., 0: don't correct
-     Save_corrected_datacube       int       [0,1]          1                    1: save corrected datacube on disk, 0: don't save
-  Save_telluric_transmission       int       [0,1]          1                                1: save output on disk, 0: don't save
-                      suffix    string        None    -telcal                                                  Enter output suffix
-                       gpitv       int     [0,500]          2    1-500: choose gpitv session for displaying output, 0: no display 
-                      Xspot1       int    [0,2048]         97                Initial approximate x-position [pixel] of sat. spot 1
-                      Yspot1       int    [0,2048]        117                Initial approximate y-position [pixel] of sat. spot 1
-                      Xspot2       int    [0,2048]        179                Initial approximate x-position [pixel] of sat. spot 2
-                      Yspot2       int    [0,2048]        159                Initial approximate y-position [pixel] of sat. spot 2
-============================  ========  ==========  =========  ===================================================================
+============  =======  ===========  =========  ========================================================================
+        Name     Type        Range    Default                                                               Description
+============  =======  ===========  =========  ========================================================================
+  separation    float      [0.,4.]         1.        Separation [arcsec] at date DATEOBS of observation of the binaries
+          pa    float    [0.,360.]        4.8    Position angle [degree] at date DATEOBS of observation of the binaries
+        Save      int        [0,1]          1                                     1: save output on disk, 0: don't save
+       gpitv      int      [0,500]          2         1-500: choose gpitv session for displaying output, 0: no display 
+============  =======  ===========  =========  ========================================================================
 
 
-**IDL Filename**: extract_telluric_transmission_meth2.pro
+**IDL Filename**: gpi_calibrate_astrometry_from_binary_position.pro
 
 
 .. index::
@@ -3524,51 +2971,6 @@ Collapse datacube
 
 
 **IDL Filename**: gpi_collapse_datacube.pro
-
-
-.. index::
-    single:Calibrate astrometry from binary (using separation and PA)
-
-.. _Calibrateastrometryfrombinary(usingseparationandPA):
-
-Calibrate astrometry from binary (using separation and PA)
-----------------------------------------------------------
-
- Calculate astrometry from unocculted binaries using user-specified separation and PA at DATEOBS
-
-**Category**:  Calibration      **Order**: 2.6
-
-**Inputs**:  data-cube
-
-**Outputs**:   plate scale & orientation      **Output Suffix**: 'astrom' ; output suffix
-
-**Notes**:
-
-.. code-block:: idl
-
-
-
- GEM/GPI KEYWORDS:CRPA
- DRP KEYWORDS: FILETYPE,ISCALIB
-
-
- HISTORY:
- 	Originally by Jerome Maire 2009-12
- 	2013-07-19 MP: Rename for consistency
-
-**Parameters**:
-
-============  =======  ===========  =========  ========================================================================
-        Name     Type        Range    Default                                                               Description
-============  =======  ===========  =========  ========================================================================
-  separation    float      [0.,4.]         1.        Separation [arcsec] at date DATEOBS of observation of the binaries
-          pa    float    [0.,360.]        4.8    Position angle [degree] at date DATEOBS of observation of the binaries
-        Save      int        [0,1]          1                                     1: save output on disk, 0: don't save
-       gpitv      int      [0,500]          2         1-500: choose gpitv session for displaying output, 0: no display 
-============  =======  ===========  =========  ========================================================================
-
-
-**IDL Filename**: gpi_calibrate_astrometry_from_binary_position.pro
 
 
 .. index::
@@ -3651,6 +3053,50 @@ Simple Spectral Differential Imaging
 
 
 .. index::
+    single:Calibrate astrometry from binary (using 6th orbit catalog)
+
+.. _Calibrateastrometryfrombinary(using6thorbitcatalog):
+
+Calibrate astrometry from binary (using 6th orbit catalog)
+----------------------------------------------------------
+
+ Calculate astrometry from unocculted binaries; Calculate Separation and PA at date DATEOBS using the sixth orbit catalog.
+
+**Category**:  Calibration      **Order**: 2.61
+
+**Inputs**:  spectral mode datacube, observing a reference binary
+
+**Outputs**:   plate scale & orientation, saved as calibration file      **Output Suffix**: 'astrom' ; output suffix
+
+**Notes**:
+
+.. code-block:: idl
+
+
+
+
+
+ GEM/GPI KEYWORDS:CRPA,DATE-OBS,OBJECT,TIME-OBS
+ DRP KEYWORDS: FILETYPE,ISCALIB
+
+
+ HISTORY:
+ 	Originally by Jerome Maire 2009-12
+ 	2013-07-19 MP: Rename for consistency
+
+**Parameters**:
+
+======  ======  =======  =========  =======================================
+  Name    Type    Range    Default                              Description
+======  ======  =======  =========  =======================================
+  Save     int    [0,1]          1    1: save output on disk, 0: don't save
+======  ======  =======  =========  =======================================
+
+
+**IDL Filename**: gpi_calibrate_astrometry_from_binary_orbit_catalog.pro
+
+
+.. index::
     single:Speckle alignment
 
 .. _Specklealignment:
@@ -3700,50 +3146,6 @@ Speckle alignment
 
 
 **IDL Filename**: gpi_speckle_alignment.pro
-
-
-.. index::
-    single:Calibrate astrometry from binary (using 6th orbit catalog)
-
-.. _Calibrateastrometryfrombinary(using6thorbitcatalog):
-
-Calibrate astrometry from binary (using 6th orbit catalog)
-----------------------------------------------------------
-
- Calculate astrometry from unocculted binaries; Calculate Separation and PA at date DATEOBS using the sixth orbit catalog.
-
-**Category**:  Calibration      **Order**: 2.61
-
-**Inputs**:  spectral mode datacube, observing a reference binary
-
-**Outputs**:   plate scale & orientation, saved as calibration file      **Output Suffix**: 'astrom' ; output suffix
-
-**Notes**:
-
-.. code-block:: idl
-
-
-
-
-
- GEM/GPI KEYWORDS:CRPA,DATE-OBS,OBJECT,TIME-OBS
- DRP KEYWORDS: FILETYPE,ISCALIB
-
-
- HISTORY:
- 	Originally by Jerome Maire 2009-12
- 	2013-07-19 MP: Rename for consistency
-
-**Parameters**:
-
-======  ======  =======  =========  =======================================
-  Name    Type    Range    Default                              Description
-======  ======  =======  =========  =======================================
-  Save     int    [0,1]          1    1: save output on disk, 0: don't save
-======  ======  =======  =========  =======================================
-
-
-**IDL Filename**: gpi_calibrate_astrometry_from_binary_orbit_catalog.pro
 
 
 .. index::
@@ -4009,52 +3411,6 @@ Stores calibration in dataset
 
 
 .. index::
-    single:Normalize polarimetry flat field
-
-.. _Normalizepolarimetryflatfield:
-
-Normalize polarimetry flat field
---------------------------------
-
- Normalize a polarimetry-mode flat field to unity.
-
-**Category**:  Calibration      **Order**: 3.1992
-
-**Inputs**:  polarimetry data-cube with flat lamp
-
-**Outputs**:   Normalized polarimetry mode flat field      **Output Suffix**: 'polflat'
-
-**Notes**:
-
-.. code-block:: idl
-
-
-
- GEM/GPI KEYWORDS:
- DRP KEYWORDS:NAXES,NAXISi,FILETYPE,ISCALIB
-
-
- HISTORY:
- 	2009-06-20: JM created
- 	2009-07-22: MDP added doc header keywords
-   2009-09-17 JM: added DRF parameters
-   2009-10-09 JM added gpitv display
-   2011-07-30 MP: Updated for multi-extension FITS
-
-**Parameters**:
-
-=======  ======  =========  =========  ===================================================================
-   Name    Type      Range    Default                                                          Description
-=======  ======  =========  =========  ===================================================================
-   Save     int      [0,1]          1                                1: save output on disk, 0: don't save
-  gpitv     int    [0,500]          2    1-500: choose gpitv session for displaying output, 0: no display 
-=======  ======  =========  =========  ===================================================================
-
-
-**IDL Filename**: gpi_normalize_polarimetry_flat_field.pro
-
-
-.. index::
     single:Create Lenslet Flat Field
 
 .. _CreateLensletFlatField:
@@ -4099,55 +3455,49 @@ Create Lenslet Flat Field
 
 
 .. index::
-    single:Divide by Polarized Flat Field
+    single:Normalize polarimetry flat field
 
-.. _DividebyPolarizedFlatField:
+.. _Normalizepolarimetryflatfield:
 
-Divide by Polarized Flat Field
-------------------------------
+Normalize polarimetry flat field
+--------------------------------
 
- Divides a 2-slice polarimetry file by a flat field.
+ Normalize a polarimetry-mode flat field to unity.
 
-**Category**:  PolarimetricScience, Calibration      **Order**: 3.5
+**Category**:  Calibration      **Order**: 3.1992
 
-**Inputs**:  data-cube
+**Inputs**:  polarimetry data-cube with flat lamp
 
-**Outputs**:   datacube with slices flat-fielded
+**Outputs**:   Normalized polarimetry mode flat field      **Output Suffix**: 'polflat'
 
 **Notes**:
 
 .. code-block:: idl
 
 
-   ** Needs additional work, will not produce high qualty results yet **
-
 
  GEM/GPI KEYWORDS:
- DRP KEYWORDS: HISTORY
-
+ DRP KEYWORDS:NAXES,NAXISi,FILETYPE,ISCALIB
 
 
  HISTORY:
-   2009-07-22: MDP created
+ 	2009-06-20: JM created
+ 	2009-07-22: MDP added doc header keywords
    2009-09-17 JM: added DRF parameters
    2009-10-09 JM added gpitv display
-   2010-10-19 JM: split HISTORY keyword if necessary
    2011-07-30 MP: Updated for multi-extension FITS
-   2013-07-12 MP: Rename for consistency
-   2013-12-16 MP: CalibrationFile argument syntax update.
 
 **Parameters**:
 
-=================  ========  =========  ===========  ===================================================================
-             Name      Type      Range      Default                                                          Description
-=================  ========  =========  ===========  ===================================================================
-  CalibrationFile    String       None    AUTOMATIC       Filename of the desired wavelength calibration file to be read
-             Save       int      [0,1]            1                                1: save output on disk, 0: don't save
-            gpitv       int    [0,500]            2    1-500: choose gpitv session for displaying output, 0: no display 
-=================  ========  =========  ===========  ===================================================================
+=======  ======  =========  =========  ===================================================================
+   Name    Type      Range    Default                                                          Description
+=======  ======  =========  =========  ===================================================================
+   Save     int      [0,1]          1                                1: save output on disk, 0: don't save
+  gpitv     int    [0,500]          2    1-500: choose gpitv session for displaying output, 0: no display 
+=======  ======  =========  =========  ===================================================================
 
 
-**IDL Filename**: gpi_divide_by_polarized_flat_field.pro
+**IDL Filename**: gpi_normalize_polarimetry_flat_field.pro
 
 
 .. index::
@@ -4201,54 +3551,55 @@ Smooth a 3D Cube
 
 
 .. index::
-    single:Rotate Field of View Square
+    single:Divide by Polarized Flat Field
 
-.. _RotateFieldofViewSquare:
+.. _DividebyPolarizedFlatField:
 
-Rotate Field of View Square
----------------------------
+Divide by Polarized Flat Field
+------------------------------
 
- Rotate datacubes so that the field of view is squarely aligned with the image axes. 
+ Divides a 2-slice polarimetry file by a flat field.
 
-**Category**:  SpectralScience,PolarimetricScience      **Order**: 3.9
+**Category**:  PolarimetricScience, Calibration      **Order**: 3.5
 
-**Inputs**:  datacube
+**Inputs**:  data-cube
 
-**Outputs**:  Rotated datacube      **Output Suffix**:  '_rot'
+**Outputs**:   datacube with slices flat-fielded
 
 **Notes**:
 
 .. code-block:: idl
 
 
-    Rotate by the lenslet/field relative angle, so that the GPI IFS
-    field of view is roughly square with the pixel coordinate axes.
+   ** Needs additional work, will not produce high qualty results yet **
 
 
+ GEM/GPI KEYWORDS:
+ DRP KEYWORDS: HISTORY
 
- KEYWORDS:
- GEM/GPI KEYWORDS:RA,DEC,PAR_ANG
- DRP KEYWORDS: CDELT1,CDELT2,CRPIX1,CRPIX2,CRVAL1,CRVAL2,NAXIS1,NAXIS2,PC1_1,PC1_2,PC2_1,PC2_2
 
 
  HISTORY:
-   2012-04-10 MDP: Created, based on rotate_north_up.pro
-   2013-11-07 ds - updated to use gpi_update_wcs_basic
+   2009-07-22: MDP created
+   2009-09-17 JM: added DRF parameters
+   2009-10-09 JM added gpitv display
+   2010-10-19 JM: split HISTORY keyword if necessary
+   2011-07-30 MP: Updated for multi-extension FITS
+   2013-07-12 MP: Rename for consistency
+   2013-12-16 MP: CalibrationFile argument syntax update.
 
 **Parameters**:
 
-========  ======  ===========  =========  ===================================================================
-    Name    Type        Range    Default                                                          Description
-========  ======  ===========  =========  ===================================================================
-  Method    enum    CUBIC|FFT      CUBIC                                                                 None
-    crop     int        [0,1]          0                          Set to 1 to crop out non-illuminated pixels
-    Show     int        [0,1]          0                                                                 None
-    Save     int        [0,1]          0                                                                 None
-   gpitv     int      [0,500]          2    1-500: choose gpitv session for displaying output, 0: no display 
-========  ======  ===========  =========  ===================================================================
+=================  ========  =========  ===========  ===================================================================
+             Name      Type      Range      Default                                                          Description
+=================  ========  =========  ===========  ===================================================================
+  CalibrationFile    String       None    AUTOMATIC       Filename of the desired wavelength calibration file to be read
+             Save       int      [0,1]            1                                1: save output on disk, 0: don't save
+            gpitv       int    [0,500]            2    1-500: choose gpitv session for displaying output, 0: no display 
+=================  ========  =========  ===========  ===================================================================
 
 
-**IDL Filename**: gpi_rotate_field_of_view_square.pro
+**IDL Filename**: gpi_divide_by_polarized_flat_field.pro
 
 
 .. index::
@@ -4306,6 +3657,57 @@ Rotate North Up
 
 
 **IDL Filename**: gpi_rotate_north_up.pro
+
+
+.. index::
+    single:Rotate Field of View Square
+
+.. _RotateFieldofViewSquare:
+
+Rotate Field of View Square
+---------------------------
+
+ Rotate datacubes so that the field of view is squarely aligned with the image axes. 
+
+**Category**:  SpectralScience,PolarimetricScience      **Order**: 3.9
+
+**Inputs**:  datacube
+
+**Outputs**:  Rotated datacube      **Output Suffix**:  '_rot'
+
+**Notes**:
+
+.. code-block:: idl
+
+
+    Rotate by the lenslet/field relative angle, so that the GPI IFS
+    field of view is roughly square with the pixel coordinate axes.
+
+
+
+ KEYWORDS:
+ GEM/GPI KEYWORDS:RA,DEC,PAR_ANG
+ DRP KEYWORDS: CDELT1,CDELT2,CRPIX1,CRPIX2,CRVAL1,CRVAL2,NAXIS1,NAXIS2,PC1_1,PC1_2,PC2_1,PC2_2
+
+
+ HISTORY:
+   2012-04-10 MDP: Created, based on rotate_north_up.pro
+   2013-11-07 ds - updated to use gpi_update_wcs_basic
+
+**Parameters**:
+
+========  ======  ===========  =========  ===================================================================
+    Name    Type        Range    Default                                                          Description
+========  ======  ===========  =========  ===================================================================
+  Method    enum    CUBIC|FFT      CUBIC                                                                 None
+    crop     int        [0,1]          0                          Set to 1 to crop out non-illuminated pixels
+    Show     int        [0,1]          0                                                                 None
+    Save     int        [0,1]          0                                                                 None
+   gpitv     int      [0,500]          2    1-500: choose gpitv session for displaying output, 0: no display 
+========  ======  ===========  =========  ===================================================================
+
+
+**IDL Filename**: gpi_rotate_field_of_view_square.pro
 
 
 .. index::
@@ -4408,159 +3810,45 @@ Create 2D Low Frequency Flat
 
 
 .. index::
-    single:Create High-Resolution Microlens PSF Model
+    single:Creates a thermal/sky background datacube
 
-.. _CreateHigh-ResolutionMicrolensPSFModel:
+.. _Createsathermal/skybackgrounddatacube:
 
-Create High-Resolution Microlens PSF Model
-------------------------------------------
+Creates a thermal/sky background datacube
+-----------------------------------------
 
- Create a few calibrations files based on the determination of a high resolution PSF.
+ Create Sky/Thermal background cubes 
 
 **Category**:  Calibration      **Order**: 4.01
 
-**Inputs**:   Multiple 2D images with appropriate illumination
+**Inputs**:   A 2D sky image (should be a combination of several frames)
 
-**Outputs**:  High resolution microlens PSF empirical model      **Output Suffix**:  '-'+filter+'-'+nrw_filt+'PSFs'
+**Outputs**:  A master sky frame, saved as a calibration file      **Output Suffix**:  '-bkgnd_cube'
 
 **Notes**:
 
 .. code-block:: idl
 
 
- This primitive is based on the determination of a high resolution PSF for each lenslet. It uses an adapted none iterative algorithm from the paper of Jay Anderson and Ivan R. King 2000.
+ Create a thermal/sky background cube (3D) rather than using 2D detector frames as is done using the Combine 2D Thermal/Sky Backgrounds primitive. This allows a smoothing of the sky frame that will decrease the photon noise.
 
 
 
  HISTORY:
-     Originally by Jean-Baptiste Ruffio 2013-06
-     2014-01-23 MP: Rename and documentation update
-     2014-04-10 PI: overhaul of highres_psf creation
-     2014-04-10 PI: overhaul of flexure handling
+   2013-12-23 PI: Created Primitive
 
 **Parameters**:
 
-===================  ========  =========  =========  ===================================================================
-               Name      Type      Range    Default                                                          Description
-===================  ========  =========  =========  ===================================================================
-  filter_wavelength    string                                                               Narrowband filter wavelength
-     bad_pixel_mask    string                                                                             Bad pixel mask
-         flat_field       int      [0,1]          0                                                 Is this a flat field
-      flat_filename    string       None                                                              Name of flat field
-               Save       int      [0,1]          1                                1: save output on disk, 0: don't save
-              gpitv       int    [0,500]          2    1-500: choose gpitv session for displaying output, 0: no display 
-===================  ========  =========  =========  ===================================================================
+=================  ======  =========  =========  ===================================================================
+             Name    Type      Range    Default                                                          Description
+=================  ======  =========  =========  ===================================================================
+  smooth_box_size     int    [0,100]          3                              Size of box to smooth by (0: No smooth)
+             Save     int      [0,1]          1                                1: save output on disk, 0: don't save
+            gpitv     int    [0,500]          2    1-500: choose gpitv session for displaying output, 0: no display 
+=================  ======  =========  =========  ===================================================================
 
 
-**IDL Filename**: gpi_create_highres_microlens_psf_model.pro
-
-
-.. index::
-    single:Create microphonics noise model
-
-.. _Createmicrophonicsnoisemodel:
-
-Create microphonics noise model
--------------------------------
-
- Create a microphonics noise model in Fourier space.
-
-**Category**:  Calibration      **Order**: 4.01
-
-**Inputs**:   several dark frames with strong microphonics
-
-**Outputs**:  microphonics model in Fourier space, saved as a calibration file      **Output Suffix**:  '-microModel'
-
-**Notes**:
-
-.. code-block:: idl
-
-
-  Create a microphonics noise model in Fourier space. The model consits only on the absolute value of the Fourier coefficients.
-  This has to be applied after the accumulate images primitive.
-
-  For each frame, it computes the absolute value of the Fourier coefficients around the 3 microphonics identified peaks.
-  Then it combines the results of all frames based on the method defined by Combining method.
-  Either adding all the models or taking the median.
-  Then it normalizes the model.
-
-  If Gauss_Interp = 1: Each of the 3 peaks is fitted by a 2d gaussian. Better not using it. It doesn't give better results.
-
-
-
- HISTORY:
-     Originally by Jean-Baptiste Ruffio 2013-05
-     2013-07-17 MP: Rename for consistency
-
-**Parameters**:
-
-==================  ========  ============  =========  ===========================================================================
-              Name      Type         Range    Default                                                                  Description
-==================  ========  ============  =========  ===========================================================================
-      Gauss_Interp       int         [0,1]          0              1: Interpolate each peak by a 2d gaussian, 0: don't interpolate
-  Combining_Method    string    ADD|MEDIAN        ADD    Method to combine the Fourier transforms of the microphonics (ADD|MEDIAN)
-              Save       int         [0,1]          1                                        1: save output on disk, 0: don't save
-             gpitv       int       [0,500]          2            1-500: choose gpitv session for displaying output, 0: no display 
-==================  ========  ============  =========  ===========================================================================
-
-
-**IDL Filename**: gpi_create_microphonics_noise_model.pro
-
-
-.. index::
-    single:Find Hot Bad Pixels from Darks
-
-.. _FindHotBadPixelsfromDarks:
-
-Find Hot Bad Pixels from Darks
-------------------------------
-
- Find hot pixels from a stack of dark images (best with deep integration darks)
-
-**Category**:  Calibration      **Order**: 4.01
-
-**Inputs**:  Multiple dark images
-
-**Outputs**: 	Map of hot bad pixels      **Output Suffix**: '-hotpix'
-
-**Notes**:
-
-.. code-block:: idl
-
-
- This is a variant of combinedarkframes that (instead of combining darks)
- analyzes them to find hot pixels and then writes out a
- mask showing where the various hot pixels are.
-
-
- The current algorithm determines pixels that are hot according to the
- criteria:
-	(a) dark count rate must be > 1 e-/second for that pixel
-	(b) that must be measured with >5 sigma confidence above the estimated
-	    read noise of the frames.
- The first criterion can be adjusted using the hot_bad_thresh argument.
-
-
-
-
- HISTORY:
-   2009-07-20 JM: created
-   2009-09-17 JM: added DRF parameters
-   2012-01-31 Switched sxaddpar to backbone->set_keyword Dmitry Savransky
-   2012-11-15 MP: Algorithm entirely replaced with one based on combinedarkframes.
-
-**Parameters**:
-
-================  =======  ==========  =========  ===================================================================
-            Name     Type       Range    Default                                                          Description
-================  =======  ==========  =========  ===================================================================
-            Save      int       [0,1]          1                                1: save output on disk, 0: don't save
-  hot_bad_thresh    float    [0,100.]        1.0         Threshhold to consider a hot pixel bad, in electrons/second.
-           gpitv      int     [0,500]          2    1-500: choose gpitv session for displaying output, 0: no display 
-================  =======  ==========  =========  ===================================================================
-
-
-**IDL Filename**: gpi_find_hot_bad_pixels_from_darks.pro
+**IDL Filename**: gpi_create_sky_bkgd_cube.pro
 
 
 .. index::
@@ -4683,45 +3971,111 @@ Combine 2D dark images
 
 
 .. index::
-    single:Creates a thermal/sky background datacube
+    single:Find Hot Bad Pixels from Darks
 
-.. _Createsathermal/skybackgrounddatacube:
+.. _FindHotBadPixelsfromDarks:
 
-Creates a thermal/sky background datacube
------------------------------------------
+Find Hot Bad Pixels from Darks
+------------------------------
 
- Create Sky/Thermal background cubes 
+ Find hot pixels from a stack of dark images (best with deep integration darks)
 
 **Category**:  Calibration      **Order**: 4.01
 
-**Inputs**:   A 2D sky image (should be a combination of several frames)
+**Inputs**:  Multiple dark images
 
-**Outputs**:  A master sky frame, saved as a calibration file      **Output Suffix**:  '-bkgnd_cube'
+**Outputs**: 	Map of hot bad pixels      **Output Suffix**: '-hotpix'
 
 **Notes**:
 
 .. code-block:: idl
 
 
- Create a thermal/sky background cube (3D) rather than using 2D detector frames as is done using the Combine 2D Thermal/Sky Backgrounds primitive. This allows a smoothing of the sky frame that will decrease the photon noise.
+ This is a variant of combinedarkframes that (instead of combining darks)
+ analyzes them to find hot pixels and then writes out a
+ mask showing where the various hot pixels are.
+
+
+ The current algorithm determines pixels that are hot according to the
+ criteria:
+	(a) dark count rate must be > 1 e-/second for that pixel
+	(b) that must be measured with >5 sigma confidence above the estimated
+	    read noise of the frames.
+ The first criterion can be adjusted using the hot_bad_thresh argument.
+
 
 
 
  HISTORY:
-   2013-12-23 PI: Created Primitive
+   2009-07-20 JM: created
+   2009-09-17 JM: added DRF parameters
+   2012-01-31 Switched sxaddpar to backbone->set_keyword Dmitry Savransky
+   2012-11-15 MP: Algorithm entirely replaced with one based on combinedarkframes.
 
 **Parameters**:
 
-=================  ======  =========  =========  ===================================================================
-             Name    Type      Range    Default                                                          Description
-=================  ======  =========  =========  ===================================================================
-  smooth_box_size     int    [0,100]          3                              Size of box to smooth by (0: No smooth)
-             Save     int      [0,1]          1                                1: save output on disk, 0: don't save
-            gpitv     int    [0,500]          2    1-500: choose gpitv session for displaying output, 0: no display 
-=================  ======  =========  =========  ===================================================================
+================  =======  ==========  =========  ===================================================================
+            Name     Type       Range    Default                                                          Description
+================  =======  ==========  =========  ===================================================================
+            Save      int       [0,1]          1                                1: save output on disk, 0: don't save
+  hot_bad_thresh    float    [0,100.]        1.0         Threshhold to consider a hot pixel bad, in electrons/second.
+           gpitv      int     [0,500]          2    1-500: choose gpitv session for displaying output, 0: no display 
+================  =======  ==========  =========  ===================================================================
 
 
-**IDL Filename**: gpi_create_sky_bkgd_cube.pro
+**IDL Filename**: gpi_find_hot_bad_pixels_from_darks.pro
+
+
+.. index::
+    single:Create microphonics noise model
+
+.. _Createmicrophonicsnoisemodel:
+
+Create microphonics noise model
+-------------------------------
+
+ Create a microphonics noise model in Fourier space.
+
+**Category**:  Calibration      **Order**: 4.01
+
+**Inputs**:   several dark frames with strong microphonics
+
+**Outputs**:  microphonics model in Fourier space, saved as a calibration file      **Output Suffix**:  '-microModel'
+
+**Notes**:
+
+.. code-block:: idl
+
+
+  Create a microphonics noise model in Fourier space. The model consits only on the absolute value of the Fourier coefficients.
+  This has to be applied after the accumulate images primitive.
+
+  For each frame, it computes the absolute value of the Fourier coefficients around the 3 microphonics identified peaks.
+  Then it combines the results of all frames based on the method defined by Combining method.
+  Either adding all the models or taking the median.
+  Then it normalizes the model.
+
+  If Gauss_Interp = 1: Each of the 3 peaks is fitted by a 2d gaussian. Better not using it. It doesn't give better results.
+
+
+
+ HISTORY:
+     Originally by Jean-Baptiste Ruffio 2013-05
+     2013-07-17 MP: Rename for consistency
+
+**Parameters**:
+
+==================  ========  ============  =========  ===========================================================================
+              Name      Type         Range    Default                                                                  Description
+==================  ========  ============  =========  ===========================================================================
+      Gauss_Interp       int         [0,1]          0              1: Interpolate each peak by a 2d gaussian, 0: don't interpolate
+  Combining_Method    string    ADD|MEDIAN        ADD    Method to combine the Fourier transforms of the microphonics (ADD|MEDIAN)
+              Save       int         [0,1]          1                                        1: save output on disk, 0: don't save
+             gpitv       int       [0,500]          2            1-500: choose gpitv session for displaying output, 0: no display 
+==================  ========  ============  =========  ===========================================================================
+
+
+**IDL Filename**: gpi_create_microphonics_noise_model.pro
 
 
 .. index::
@@ -4953,106 +4307,173 @@ ADI with LOCI
 
 
 .. index::
-    single:Combine Wavelength Calibrations locations
+    single:Populate Flexure Shifts vs Elevation Table
 
-.. _CombineWavelengthCalibrationslocations:
+.. _PopulateFlexureShiftsvsElevationTable:
 
-Combine Wavelength Calibrations locations
------------------------------------------
+Populate Flexure Shifts vs Elevation Table
+------------------------------------------
 
- Combine wavelength calibration from  flat and arc
+ Derive shifts vs elevation lookup table.
 
 **Category**:  Calibration      **Order**: 4.2
 
-**Inputs**:  3D wavcal
+**Inputs**: Not specified
 
-**Outputs**: 
+**Outputs**: Not specified      **Output Suffix**:  '-shifts'
 
 **Notes**:
 
 .. code-block:: idl
 
 
- gpi_combine_wavcal_all is a simple median combination of wav. cal. files obtained with flat and arc images.
-  TO DO: exclude some mlens from the median in case of  wavcal
+	This function produces the table of spectral position shifts vs
+	elevation angle used to compensate for flexure within the GPI IFS.
+
+	It takes as input a series of reduced wavelength calibration
+	files. It compares them against a reference wavelength calibration file
+	obtained from the calibration database (which must have been taken in
+	horizontal orientation).  The shift in X and Y positions are calculated
+	for each lenslet, and then the mean over the entire field is taken.
+
+	The median X shift and Y shift for each elevation is saved into
+	a table in the calibration database.
 
 
- GEM/GPI KEYWORDS:FILTER,IFSFILT
- DRP KEYWORDS: DATAFILE, DATE-OBS,TIME-OBS
+   Optionally the user can request diagnostic plots displayed on screen or
+   saved to disk as postscript files.
+
+
 
 
  HISTORY:
-    Jerome Maire 2009-08-10
-   2009-09-17 JM: added DRF parameters
-   2012-10-17 MP: Removed deprecated suffix= keyword
-   2013-08-07 ds: idl2 compiler compatible
+      Jerome Maire 2013-02
+      2013-07-17 MP: Rename for consistency
 
 **Parameters**:
 
-============  ======  =========  =========  ===================================================================
-        Name    Type      Range    Default                                                          Description
-============  ======  =========  =========  ===================================================================
-  polydegree     int      [1,2]          1                1: linear wavelength solution, 2: quadratic wav. sol.
-        Save     int      [0,1]          1                                1: save output on disk, 0: don't save
-       gpitv     int    [0,500]          2    1-500: choose gpitv session for displaying output, 0: no display 
-============  ======  =========  =========  ===================================================================
+===========  ========  ==========  =========  ==============================================================================================
+       Name      Type       Range    Default                                                                                     Description
+===========  ========  ==========  =========  ==============================================================================================
+       Save       int       [0,1]          1                                                           1: save output on disk, 0: don't save
+    Display       int    [-1,100]          1    -1 = No display; 0 = New (unused) window else = Window number to display diagnostic plot in.
+  saveplots    string    [yes|no]         no                                       Save diagnostic plots to PS files after running? [yes|no]
+===========  ========  ==========  =========  ==============================================================================================
 
 
-**IDL Filename**: gpi_combine_wavcal_locations_all.pro
+**IDL Filename**: gpi_populate_flexure_shifts_vs_elevation_table.pro
 
 
 .. index::
-    single:Combine Wavelength Calibrations
+    single:Advanced KLIP ADI for Pol Mode
 
-.. _CombineWavelengthCalibrations:
+.. _AdvancedKLIPADIforPolMode:
 
-Combine Wavelength Calibrations
--------------------------------
+Advanced KLIP ADI for Pol Mode
+------------------------------
 
- Performs simple median combination of wavelength calibrations from flat and/or arc lamps
+ Reduce speckle noise using the KLIP algorithm with ADI data
 
-**Category**:  Calibration      **Order**: 4.2
+**Category**:  PolarimetricScience      **Order**: 4.2
 
-**Inputs**:  Multiple 3D wavcal cubes
+**Inputs**:  Multiple spectral datacubes
 
-**Outputs**:  One merged 3D wavecal cube
+**Outputs**:  A reduced datacube with reduced PSF speckle halo      **Output Suffix**:  suffix+'-klip'
 
 **Notes**:
 
 .. code-block:: idl
 
 
- gpi_combine_wavcal_all is a simple median combination of wav. cal. files obtained with flat and arc images.
-  TO DO: exclude some mlens from the median in case of  wavcal
+   This algorithm reduces PSF speckles in a datacube using the
+   KLIP algorithm and Angular Differential Imaging in Pol Mode
 
-  This is **mostly deprecated**: in general it is recommended to combine
-  all 2D images for a given arc lamp and then derive one wavelength solution
-  from those, rather than deriving multiple wavecals and then combining them.
-  On the other hand if you want to merge wavecals from two different lamps then
-  you can indeed use this.
+ ALGORITHM:
+       Star location must have been previously measured using satellite spots.
+       Measure annuli out from the center of the cube and create a
+       reference set for each annuli of each slice. Apply KLIP to the
+       reference set and project the target slice onto the KL
+       transform vector. Subtract the projected image from the
+       original and repeat for all slices
 
 
- GEM/GPI KEYWORDS:DATE-OBS,FILTER,IFSFILT,TIME-OBS
- DRP KEYWORDS: DATAFILE
 
 
  HISTORY:
-    Jerome Maire 2009-08-10
-   2009-09-17 JM: added DRF parameters
-   2012-10-17 MP: Removed deprecated suffix= keyword
-   2013-07-17 MP: Rename for consistency
+        2013-10-21 - ds
+        2014-03-23 - MMB: Started adjusting for pol mode
 
 **Parameters**:
 
-=======  ======  =========  =========  ===================================================================
-   Name    Type      Range    Default                                                          Description
-=======  ======  =========  =========  ===================================================================
-   Save     int      [0,1]          1                                1: save output on disk, 0: don't save
-  gpitv     int    [0,500]          2    1-500: choose gpitv session for displaying output, 0: no display 
-=======  ======  =========  =========  ===================================================================
+=============  ========  =============  ==============  ===============================================================================
+         Name      Type          Range         Default                                                                      Description
+=============  ========  =============  ==============  ===============================================================================
+         Save       int          [0,1]               0                                            1: save output on disk, 0: don't save
+       annuli       int        [0,100]               0                                                          Number of annuli to use
+  MinRotation     float    [0.0,360.0]               1                                        Minimum rotation between images (degrees)
+  CollapsePol       int          [0,1]               0                   Collapse the pol cube and perform KLIP on the total intensity?
+         Mask       int          [0,1]               0    Do you want to mask out any area? If so you must provide a list of mask files
+     MaskList    string           None    MaskList.txt        The name of a file containing a list of mask files corresponding to each 
+         prop     float      [0.8,1.0]          .99999                  Proportion of eigenvalues used to truncate KL transform vectors
+        gpitv       int        [0,500]               5                1-500: choose gpitv session for displaying output, 0: no display 
+=============  ========  =============  ==============  ===============================================================================
 
 
-**IDL Filename**: gpi_combine_wavelength_calibrations.pro
+**IDL Filename**: gpi_klip_adi_pol_adv.pro
+
+
+.. index::
+    single:KLIP algorithm Angular Differential Imaging
+
+.. _KLIPalgorithmAngularDifferentialImaging:
+
+KLIP algorithm Angular Differential Imaging
+-------------------------------------------
+
+ Reduce speckle noise using the KLIP algorithm with ADI data
+
+**Category**:  SpectralScience      **Order**: 4.2
+
+**Inputs**:  Multiple spectral datacubes
+
+**Outputs**:  A reduced datacube with reduced PSF speckle halo      **Output Suffix**:  suffix+'-klip'
+
+**Notes**:
+
+.. code-block:: idl
+
+
+   This algorithm reduces PSF speckles in a datacube using the
+   KLIP algorithm and Angular Differential Imaging.
+
+ ALGORITHM:
+       Star location must have been previously measured using satellite spots.
+       Measure annuli out from the center of the cube and create a
+       reference set for each annuli of each slice. Apply KLIP to the
+       reference set and project the target slice onto the KL
+       transform vector. Subtract the projected image from the
+       original and repeat for all slices
+
+
+
+
+ HISTORY:
+        2013-10-21 - ds
+
+**Parameters**:
+
+=============  =======  =============  =========  ===================================================================
+         Name     Type          Range    Default                                                          Description
+=============  =======  =============  =========  ===================================================================
+         Save      int          [0,1]          0                                1: save output on disk, 0: don't save
+       annuli      int        [0,100]          0                                              Number of annuli to use
+  MinRotation    float    [0.0,360.0]          1                            Minimum rotation between images (degrees)
+         prop    float      [0.8,1.0]     .99999      Proportion of eigenvalues used to truncate KL transform vectors
+        gpitv      int        [0,500]          5    1-500: choose gpitv session for displaying output, 0: no display 
+=============  =======  =============  =========  ===================================================================
+
+
+**IDL Filename**: gpi_klip_algorithm_angular_differential_imaging.pro
 
 
 .. index::
@@ -5173,173 +4594,106 @@ KLIP ADI for Pol Mode
 
 
 .. index::
-    single:KLIP algorithm Angular Differential Imaging
+    single:Combine Wavelength Calibrations
 
-.. _KLIPalgorithmAngularDifferentialImaging:
+.. _CombineWavelengthCalibrations:
 
-KLIP algorithm Angular Differential Imaging
--------------------------------------------
+Combine Wavelength Calibrations
+-------------------------------
 
- Reduce speckle noise using the KLIP algorithm with ADI data
-
-**Category**:  SpectralScience      **Order**: 4.2
-
-**Inputs**:  Multiple spectral datacubes
-
-**Outputs**:  A reduced datacube with reduced PSF speckle halo      **Output Suffix**:  suffix+'-klip'
-
-**Notes**:
-
-.. code-block:: idl
-
-
-   This algorithm reduces PSF speckles in a datacube using the
-   KLIP algorithm and Angular Differential Imaging.
-
- ALGORITHM:
-       Star location must have been previously measured using satellite spots.
-       Measure annuli out from the center of the cube and create a
-       reference set for each annuli of each slice. Apply KLIP to the
-       reference set and project the target slice onto the KL
-       transform vector. Subtract the projected image from the
-       original and repeat for all slices
-
-
-
-
- HISTORY:
-        2013-10-21 - ds
-
-**Parameters**:
-
-=============  =======  =============  =========  ===================================================================
-         Name     Type          Range    Default                                                          Description
-=============  =======  =============  =========  ===================================================================
-         Save      int          [0,1]          0                                1: save output on disk, 0: don't save
-       annuli      int        [0,100]          0                                              Number of annuli to use
-  MinRotation    float    [0.0,360.0]          1                            Minimum rotation between images (degrees)
-         prop    float      [0.8,1.0]     .99999      Proportion of eigenvalues used to truncate KL transform vectors
-        gpitv      int        [0,500]          5    1-500: choose gpitv session for displaying output, 0: no display 
-=============  =======  =============  =========  ===================================================================
-
-
-**IDL Filename**: gpi_klip_algorithm_angular_differential_imaging.pro
-
-
-.. index::
-    single:Advanced KLIP ADI for Pol Mode
-
-.. _AdvancedKLIPADIforPolMode:
-
-Advanced KLIP ADI for Pol Mode
-------------------------------
-
- Reduce speckle noise using the KLIP algorithm with ADI data
-
-**Category**:  PolarimetricScience      **Order**: 4.2
-
-**Inputs**:  Multiple spectral datacubes
-
-**Outputs**:  A reduced datacube with reduced PSF speckle halo      **Output Suffix**:  suffix+'-klip'
-
-**Notes**:
-
-.. code-block:: idl
-
-
-   This algorithm reduces PSF speckles in a datacube using the
-   KLIP algorithm and Angular Differential Imaging in Pol Mode
-
- ALGORITHM:
-       Star location must have been previously measured using satellite spots.
-       Measure annuli out from the center of the cube and create a
-       reference set for each annuli of each slice. Apply KLIP to the
-       reference set and project the target slice onto the KL
-       transform vector. Subtract the projected image from the
-       original and repeat for all slices
-
-
-
-
- HISTORY:
-        2013-10-21 - ds
-        2014-03-23 - MMB: Started adjusting for pol mode
-
-**Parameters**:
-
-=============  ========  =============  ==============  ===============================================================================
-         Name      Type          Range         Default                                                                      Description
-=============  ========  =============  ==============  ===============================================================================
-         Save       int          [0,1]               0                                            1: save output on disk, 0: don't save
-       annuli       int        [0,100]               0                                                          Number of annuli to use
-  MinRotation     float    [0.0,360.0]               1                                        Minimum rotation between images (degrees)
-  CollapsePol       int          [0,1]               0                   Collapse the pol cube and perform KLIP on the total intensity?
-         Mask       int          [0,1]               0    Do you want to mask out any area? If so you must provide a list of mask files
-     MaskList    string           None    MaskList.txt        The name of a file containing a list of mask files corresponding to each 
-         prop     float      [0.8,1.0]          .99999                  Proportion of eigenvalues used to truncate KL transform vectors
-        gpitv       int        [0,500]               5                1-500: choose gpitv session for displaying output, 0: no display 
-=============  ========  =============  ==============  ===============================================================================
-
-
-**IDL Filename**: gpi_klip_adi_pol_adv.pro
-
-
-.. index::
-    single:Populate Flexure Shifts vs Elevation Table
-
-.. _PopulateFlexureShiftsvsElevationTable:
-
-Populate Flexure Shifts vs Elevation Table
-------------------------------------------
-
- Derive shifts vs elevation lookup table.
+ Performs simple median combination of wavelength calibrations from flat and/or arc lamps
 
 **Category**:  Calibration      **Order**: 4.2
 
-**Inputs**: Not specified
+**Inputs**:  Multiple 3D wavcal cubes
 
-**Outputs**: Not specified      **Output Suffix**:  '-shifts'
+**Outputs**:  One merged 3D wavecal cube
 
 **Notes**:
 
 .. code-block:: idl
 
 
-	This function produces the table of spectral position shifts vs
-	elevation angle used to compensate for flexure within the GPI IFS.
+ gpi_combine_wavcal_all is a simple median combination of wav. cal. files obtained with flat and arc images.
+  TO DO: exclude some mlens from the median in case of  wavcal
 
-	It takes as input a series of reduced wavelength calibration
-	files. It compares them against a reference wavelength calibration file
-	obtained from the calibration database (which must have been taken in
-	horizontal orientation).  The shift in X and Y positions are calculated
-	for each lenslet, and then the mean over the entire field is taken.
-
-	The median X shift and Y shift for each elevation is saved into
-	a table in the calibration database.
+  This is **mostly deprecated**: in general it is recommended to combine
+  all 2D images for a given arc lamp and then derive one wavelength solution
+  from those, rather than deriving multiple wavecals and then combining them.
+  On the other hand if you want to merge wavecals from two different lamps then
+  you can indeed use this.
 
 
-   Optionally the user can request diagnostic plots displayed on screen or
-   saved to disk as postscript files.
-
-
+ GEM/GPI KEYWORDS:DATE-OBS,FILTER,IFSFILT,TIME-OBS
+ DRP KEYWORDS: DATAFILE
 
 
  HISTORY:
-      Jerome Maire 2013-02
-      2013-07-17 MP: Rename for consistency
+    Jerome Maire 2009-08-10
+   2009-09-17 JM: added DRF parameters
+   2012-10-17 MP: Removed deprecated suffix= keyword
+   2013-07-17 MP: Rename for consistency
 
 **Parameters**:
 
-===========  ========  ==========  =========  ==============================================================================================
-       Name      Type       Range    Default                                                                                     Description
-===========  ========  ==========  =========  ==============================================================================================
-       Save       int       [0,1]          1                                                           1: save output on disk, 0: don't save
-    Display       int    [-1,100]          1    -1 = No display; 0 = New (unused) window else = Window number to display diagnostic plot in.
-  saveplots    string    [yes|no]         no                                       Save diagnostic plots to PS files after running? [yes|no]
-===========  ========  ==========  =========  ==============================================================================================
+=======  ======  =========  =========  ===================================================================
+   Name    Type      Range    Default                                                          Description
+=======  ======  =========  =========  ===================================================================
+   Save     int      [0,1]          1                                1: save output on disk, 0: don't save
+  gpitv     int    [0,500]          2    1-500: choose gpitv session for displaying output, 0: no display 
+=======  ======  =========  =========  ===================================================================
 
 
-**IDL Filename**: gpi_populate_flexure_shifts_vs_elevation_table.pro
+**IDL Filename**: gpi_combine_wavelength_calibrations.pro
+
+
+.. index::
+    single:Combine Wavelength Calibrations locations
+
+.. _CombineWavelengthCalibrationslocations:
+
+Combine Wavelength Calibrations locations
+-----------------------------------------
+
+ Combine wavelength calibration from  flat and arc
+
+**Category**:  Calibration      **Order**: 4.2
+
+**Inputs**:  3D wavcal
+
+**Outputs**: 
+
+**Notes**:
+
+.. code-block:: idl
+
+
+ gpi_combine_wavcal_all is a simple median combination of wav. cal. files obtained with flat and arc images.
+  TO DO: exclude some mlens from the median in case of  wavcal
+
+
+ GEM/GPI KEYWORDS:FILTER,IFSFILT
+ DRP KEYWORDS: DATAFILE, DATE-OBS,TIME-OBS
+
+
+ HISTORY:
+    Jerome Maire 2009-08-10
+   2009-09-17 JM: added DRF parameters
+   2012-10-17 MP: Removed deprecated suffix= keyword
+   2013-08-07 ds: idl2 compiler compatible
+
+**Parameters**:
+
+============  ======  =========  =========  ===================================================================
+        Name    Type      Range    Default                                                          Description
+============  ======  =========  =========  ===================================================================
+  polydegree     int      [1,2]          1                1: linear wavelength solution, 2: quadratic wav. sol.
+        Save     int      [0,1]          1                                1: save output on disk, 0: don't save
+       gpitv     int    [0,500]          2    1-500: choose gpitv session for displaying output, 0: no display 
+============  ======  =========  =========  ===================================================================
+
+
+**IDL Filename**: gpi_combine_wavcal_locations_all.pro
 
 
 .. index::
@@ -5410,6 +4764,69 @@ Simple SDI of post ADI residual
 
 
 .. index::
+    single:Combine Polarization Sequence via Double Difference
+
+.. _CombinePolarizationSequenceviaDoubleDifference:
+
+Combine Polarization Sequence via Double Difference
+---------------------------------------------------
+
+
+
+**Category**:  PolarimetricScience,Calibration      **Order**: 4.4
+
+**Inputs**:  Multiple polarization pair datacubes
+
+**Outputs**:  a single Stokes datacube      **Output Suffix**: Could not be determined automatically
+
+**Notes**:
+
+.. code-block:: idl
+
+
+	Combine a sequence of polarized images via the SVD method, after first
+	performing double differencing to remove systematics between the e- and
+	o-rays.
+
+	See James Graham's SVD algorithm document, or this algorithm may be hard to
+	follow.  This is not your father's imaging polarimeter any more!
+
+
+
+ 	This routine assumes that it can read in a series of files on disk which were written by
+ 	the previous stage of processing.
+
+
+
+ GEM/GPI KEYWORDS:EXPTIME,ISS_PORT,PAR_ANG,WPANGLE
+ DRP KEYWORDS:CDELT3,CRPIX3,CRVAL3,CTYPE3,CUNIT3,DATAFILE,NAXISi,PC3_3
+
+
+
+
+
+ HISTORY:
+  2009-07-21: MDP Started
+    2009-09-17 JM: added DRF parameters
+    2013-01-30: updated with some new keywords
+
+**Parameters**:
+
+======================  =======  ==============  =========  ===================================================================
+                  Name     Type           Range    Default                                                          Description
+======================  =======  ==============  =========  ===================================================================
+             HWPoffset    float    [-360.,360.]     -29.14                  The internal offset of the HWP. If unknown set to 0
+  IncludeSystemMueller      int           [0,1]          1                                                 1: Include, 0: Don't
+    IncludeSkyRotation      int           [0,1]          1                                                 1: Include, 0: Don't
+                  Save      int           [0,1]          1                                1: save output on disk, 0: don't save
+                 gpitv      int         [0,500]         10    1-500: choose gpitv session for displaying output, 0: no display 
+======================  =======  ==============  =========  ===================================================================
+
+
+**IDL Filename**: gpi_combine_polarizations_dd.pro
+
+
+.. index::
     single:Combine Polarization Sequence
 
 .. _CombinePolarizationSequence:
@@ -5471,66 +4888,55 @@ Combine Polarization Sequence
 
 
 .. index::
-    single:Combine Polarization Sequence via Double Difference
+    single:Combine 3D Datacubes
 
-.. _CombinePolarizationSequenceviaDoubleDifference:
+.. _Combine3DDatacubes:
 
-Combine Polarization Sequence via Double Difference
----------------------------------------------------
+Combine 3D Datacubes
+--------------------
 
+ Combine 3D datacubes via mean or median. 
 
+**Category**:  ALL      **Order**: 4.5
 
-**Category**:  PolarimetricScience,Calibration      **Order**: 4.4
+**Inputs**:  3d datacubes
 
-**Inputs**:  Multiple polarization pair datacubes
-
-**Outputs**:  a single Stokes datacube      **Output Suffix**: Could not be determined automatically
+**Outputs**:  a single combined datacube      **Output Suffix**:  strlowcase(method)
 
 **Notes**:
 
 .. code-block:: idl
 
 
-	Combine a sequence of polarized images via the SVD method, after first
-	performing double differencing to remove systematics between the e- and
-	o-rays.
+  Multiple 3D cubes can be combined into one, using either a Mean or a Median.
 
-	See James Graham's SVD algorithm document, or this algorithm may be hard to
-	follow.  This is not your father's imaging polarimeter any more!
-
-
-
- 	This routine assumes that it can read in a series of files on disk which were written by
- 	the previous stage of processing.
-
-
-
- GEM/GPI KEYWORDS:EXPTIME,ISS_PORT,PAR_ANG,WPANGLE
- DRP KEYWORDS:CDELT3,CRPIX3,CRVAL3,CTYPE3,CUNIT3,DATAFILE,NAXISi,PC3_3
-
-
+  TODO: more advanced combination methods. Improved sigma-clipped mean implementation
 
 
 
  HISTORY:
-  2009-07-21: MDP Started
-    2009-09-17 JM: added DRF parameters
-    2013-01-30: updated with some new keywords
+ 	 Jerome Maire 2008-10
+   2009-09-17 JM: added DRF parameters
+   2009-10-22 MDP: Created from mediancombine_darks, converted to use
+   				accumulator.
+   2010-01-25 MDP: Added support for multiple methods, MEAN method.
+   2011-07-30 MP: Updated for multi-extension FITS
+   2012-10-10 MP: Minor code cleanup
+   2013-07-29 MP: Rename for consistency
 
 **Parameters**:
 
-======================  =======  ==============  =========  ===================================================================
-                  Name     Type           Range    Default                                                          Description
-======================  =======  ==============  =========  ===================================================================
-             HWPoffset    float    [-360.,360.]     -29.14                  The internal offset of the HWP. If unknown set to 0
-  IncludeSystemMueller      int           [0,1]          1                                                 1: Include, 0: Don't
-    IncludeSkyRotation      int           [0,1]          1                                                 1: Include, 0: Don't
-                  Save      int           [0,1]          1                                1: save output on disk, 0: don't save
-                 gpitv      int         [0,500]         10    1-500: choose gpitv session for displaying output, 0: no display 
-======================  =======  ==============  =========  ===================================================================
+==========  ======  ===============================  =========  ======================================================================
+      Name    Type                            Range    Default                                                             Description
+==========  ======  ===============================  =========  ======================================================================
+    Method    enum    MEAN|MEDIAN|SIGMACLIP|MINIMUM     MEDIAN    How to combine images: median, mean, or mean with outlier rejection?
+  sig_clip     int                             0,10          3              Clipping value to be used with SIGMACLIP in sigma (stddev)
+      Save     int                            [0,1]          1                                   1: save output on disk, 0: don't save
+     gpitv     int                          [0,500]          2       1-500: choose gpitv session for displaying output, 0: no display 
+==========  ======  ===============================  =========  ======================================================================
 
 
-**IDL Filename**: gpi_combine_polarizations_dd.pro
+**IDL Filename**: gpi_combine_3d_datacubes.pro
 
 
 .. index::
@@ -5626,58 +5032,6 @@ Median Combine ADI datacubes
 
 
 .. index::
-    single:Combine 3D Datacubes
-
-.. _Combine3DDatacubes:
-
-Combine 3D Datacubes
---------------------
-
- Combine 3D datacubes via mean or median. 
-
-**Category**:  ALL      **Order**: 4.5
-
-**Inputs**:  3d datacubes
-
-**Outputs**:  a single combined datacube      **Output Suffix**:  strlowcase(method)
-
-**Notes**:
-
-.. code-block:: idl
-
-
-  Multiple 3D cubes can be combined into one, using either a Mean or a Median.
-
-  TODO: more advanced combination methods. Improved sigma-clipped mean implementation
-
-
-
- HISTORY:
- 	 Jerome Maire 2008-10
-   2009-09-17 JM: added DRF parameters
-   2009-10-22 MDP: Created from mediancombine_darks, converted to use
-   				accumulator.
-   2010-01-25 MDP: Added support for multiple methods, MEAN method.
-   2011-07-30 MP: Updated for multi-extension FITS
-   2012-10-10 MP: Minor code cleanup
-   2013-07-29 MP: Rename for consistency
-
-**Parameters**:
-
-==========  ======  ===============================  =========  ======================================================================
-      Name    Type                            Range    Default                                                             Description
-==========  ======  ===============================  =========  ======================================================================
-    Method    enum    MEAN|MEDIAN|SIGMACLIP|MINIMUM     MEDIAN    How to combine images: median, mean, or mean with outlier rejection?
-  sig_clip     int                             0,10          3              Clipping value to be used with SIGMACLIP in sigma (stddev)
-      Save     int                            [0,1]          1                                   1: save output on disk, 0: don't save
-     gpitv     int                          [0,500]          2       1-500: choose gpitv session for displaying output, 0: no display 
-==========  ======  ===============================  =========  ======================================================================
-
-
-**IDL Filename**: gpi_combine_3d_datacubes.pro
-
-
-.. index::
     single:Pad Wavelength Calibration Edges
 
 .. _PadWavelengthCalibrationEdges:
@@ -5728,117 +5082,6 @@ Pad Wavelength Calibration Edges
 
 
 .. index::
-    single:Flexure 2D x correlation with wavecal model
-
-.. _Flexure2Dxcorrelationwithwavecalmodel:
-
-Flexure 2D x correlation with wavecal model
--------------------------------------------
-
- This primitive uses the relevent microlense PSF and wave cal to generate a model detector image to cross correlate with a science image. 
-
-**Category**:  SpectralScience      **Order**: 5.0
-
-**Inputs**:  Science image, microlens PSF, wavecal
-
-**Outputs**:  Flexure offset in xy detector coordinates.      **Output Suffix**: '' 		 ; set this to the desired output filename suffix
-
-**Notes**:
-
-.. code-block:: idl
-
-
-   This primitive uses the relevent microlense PSF and wave cal to generate a model detector image to cross correlate with a science image.
-   The resulting output can be used as a flexure offset prior to flux extraction.
-
-
-
-   The resulting output can be used as a flexure offset prior to flux extraction.
-
-
- where in the order of the primitives should this go by default?
-
- pick one of the following options for the primitive type:
-
- HISTORY:
-    Began 2014-01-13 by Zachary Draper
-
-**Parameters**:
-
-=============  =======  =========  =========  ======================================================
-         Name     Type      Range    Default                                             Description
-=============  =======  =========  =========  ======================================================
-        range    float      [0,5]          2            Range of cross corrleation search in pixels.
-   resolution    float      [0,1]       0.01    Subpixel resolution of cross correlation convergence
-      psf_sep    float      [0,1]       0.01                                PSF separation in pixels
-      stopidl      int      [0,1]          1                           1: stop IDL, 0: dont stop IDL
-  x_spec_lens    float    [0,281]        150                 x lenslet number for spectra extraction
-  y_spec_lens    float    [0,281]        150                                              same for y
-        x_off    float     [-5,5]          0                         initial guess for large offsets
-        y_off    float     [-5,5]          0                         initial guess for large offsets
-       badpix    float      [0,1]          0                                Weight by bad pixel map?
-=============  =======  =========  =========  ======================================================
-
-
-**IDL Filename**: gpi_img_xcorr.pro
-
-
-.. index::
-    single:Assemble Polarization Datacube (Lsqr, microlens psf)
-
-.. _AssemblePolarizationDatacube(Lsqr,microlenspsf):
-
-Assemble Polarization Datacube (Lsqr, microlens psf)
-----------------------------------------------------
-
- This primitive will extract flux from a 2D detector image into a GPI polarization cube using a least-square algorithm and microlenslet PSFs. Optionally can produce a residual detector image, solve for microphonics, and iterate the polcal solution to find a minimum residual.
-
-**Category**:  PolarimetricScience      **Order**: 5.0
-
-**Inputs**:  2D detector image, polcal, microlens PSF reference.
-
-**Outputs**:  GPI datacube      **Output Suffix**: '-podc' 		 ; set this to the desired output filename suffix
-
-**Notes**:
-
-.. code-block:: idl
-
-
-	This primitive will extract flux from a 2D detector image of Wollaston spots into a GPI polarization cube using a least-square, matrix inversion algorithm and microlenslet PSFs.
-	Optionally can produce a residual detector image, solve for microphonics, and iterate the polcal solution to find a minimum residual.
-	Ideally run in parrallel enviroment.
-
-
-
-
-
- where in the order of the primitives should this go by default?
-
- pick one of the following options for the primitive type:
-
- HISTORY:
-    Began 2014-02-17 by Zachary Draper
-
-**Parameters**:
-
-=========  =======  =========  =========  ===================================================================================
-     Name     Type      Range    Default                                                                          Description
-=========  =======  =========  =========  ===================================================================================
-     Save      int      [0,1]          1                                                1: save output on disk, 0: don't save
-  stopidl      int      [0,1]          0                                                        1: stop IDL, 0: dont stop IDL
-       np    float    [0,100]          2    Number of processors to use in reduction (double check enviroment before running)
-    resid      int      [0,1]          1                                                        Save residual detector image?
-   micphn      int      [0,1]          0                                                              Solve for microphonics?
-     iter      int      [0,1]          1                                                      Run iterative solver of polcal?
-    x_off    float     [-5,5]          0                                                      Offset from wavecal in x pixels
-    y_off    float     [-5,5]          0                                                      Offset from wavecal in y pixels
-=========  =======  =========  =========  ===================================================================================
-
-
-**IDL Filename**: gpi_lsqr_mlens_extract_pol.pro
-
-
-.. index::
     single:Subtract Mean Stellar Polarization
 
 .. _SubtractMeanStellarPolarization:
@@ -5886,65 +5129,6 @@ Subtract Mean Stellar Polarization
 
 
 **IDL Filename**: gpi_subtract_mean_stellar_polarization.pro
-
-
-.. index::
-    single:Assemble Spectral Datacube (Lsqr, microlens psf)
-
-.. _AssembleSpectralDatacube(Lsqr,microlenspsf):
-
-Assemble Spectral Datacube (Lsqr, microlens psf)
-------------------------------------------------
-
- This primitive will extract flux from a 2D detector image into a GPI spectral cube using a least-square algorithm and microlenslet PSFs. Optionally can produce a residual detector image, solve for microphonics, and iterate the wavecal solution to find a minimum residual.
-
-**Category**:  SpectralScience      **Order**: 5.0
-
-**Inputs**:  2D detector image, wavecal, microlens PSF reference.
-
-**Outputs**:  GPI datacube      **Output Suffix**: 'spdc' 		 ; set this to the desired output filename suffix
-
-**Notes**:
-
-.. code-block:: idl
-
-
-	This primitive will extract flux from a 2D detector image into a GPI spectral cube using a least-square, matrix inversion algorithm and microlenslet PSFs.
-	Optionally can produce a residual detector image, solve for microphonics, and iterate the wavecal solution to find a minimum residual.
-	Ideally run in parrallel enviroment.
-
-
-
-
-
- where in the order of the primitives should this go by default?
-
- pick one of the following options for the primitive type:
-
- HISTORY:
-    Began 2014-01-13 by Zachary Draper
-
-**Parameters**:
-
-================  =======  =========  =========  ===================================================================================
-            Name     Type      Range    Default                                                                          Description
-================  =======  =========  =========  ===================================================================================
-            Save      int      [0,1]          1                                                1: save output on disk, 0: don't save
-         stopidl      int      [0,1]          1                                                        1: stop IDL, 0: dont stop IDL
-              np    float    [0,100]          4    Number of processors to use in reduction (double check enviroment before running)
-           resid      int      [0,1]          1                                                        Save residual detector image?
-          micphn      int      [0,1]          0                                                              Solve for microphonics?
-            iter      int      [0,1]          0                                                     Run iterative solver of wavecal?
-          badpix    float      [0,1]          0                                                             Weight by bad pixel map?
-      del_x_best    float     [-5,5]          0            Best initial guess for flexure perpandicular to dispersion shift (pixels)
-  del_theta_best    float     [-5,5]          0                                Best initial guess for rotation angle shift (degrees)
-    del_lam_best    float     [-5,5]          0                Best initial guess for flexure parrallel to dispersion shift (pixels)
-           x_off    float     [-5,5]          0                                                      Offset from wavecal in x pixels
-           y_off    float     [-5,5]          0                                                      Offset from wavecal in y pixels
-================  =======  =========  =========  ===================================================================================
-
-
-**IDL Filename**: gpi_lsqr_mlens_extract.pro
 
 
 .. index::
