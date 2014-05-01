@@ -1,3 +1,4 @@
+.. _processing_step_by_step_badpixels:
 
 Bad Pixels
 =======================

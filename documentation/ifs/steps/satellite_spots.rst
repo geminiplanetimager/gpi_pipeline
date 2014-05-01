@@ -1,3 +1,4 @@
+.. _processing_step_by_step_flat_fielding_satellite_spot_calibrations:
 
 Satellite Spot Calibrations
 ==================================
@@ -26,11 +27,11 @@ The use of these spots for photometric calibration has been challenging for seve
 
 To date, we see no evidence of variability in the satellite spectra, therefore using the satellites as a relative spectrophotometric calibrators is an acceptable practice. Difficulty in working with the satellite spots also arises from the diagonal spot pairs having slightly different PSFs. Because it is not possible to obtain an unocculted image of the star simultaneously with the satellites, comparison between the 5 PSFs is challenging. During comissioning, non-simultaneous observations have been performed and analysis is ongoing.
 
-More details regarding the satellite spots and their stability can be found as part of the IFS handbook, :ref:`<satellitespots>`
+More details regarding the :ref:`satellite spots <satellite_spots>` and their stability can be found as part of the IFS handbook.
 
 Pipeline Processing:
 ---------------------
-The satellite spots are used by the pipeline to measure the central position of the star and subsequently perform a measure of contrast. Their locations are found using the pipeline primitive :ref:`Measure satellite flux locations <measuresatellitefluxlocations>`. The primitive uses an algorithm to find the spots that is described in detail in section 4 of the `Savransky et al (2013) Applied optics paper <http://adsabs.harvard.edu/abs/2013ApOpt..52.3394S>`_. 
+The satellite spots are used by the pipeline to measure the central position of the star and subsequently perform a measure of contrast. Their locations are found using the pipeline primitive :ref:`Measure satellite spot locations <Measuresatellitespotlocations>`. The primitive uses an algorithm to find the spots that is described in detail in section 4 of the `Savransky et al (2013) Applied optics paper <http://adsabs.harvard.edu/abs/2013ApOpt..52.3394S>`_. 
 
 For some images, particularily images with very strong halos and/or very low signal-to-noise in the satellite spots, the algorithm will fail. When this occurs the user has four levels of intervention to help remedy the situation. The first is to modify the ``search_window`` parameter from the recipe editor. Expanding this to larger numbers will sometimes allow convergence with zero impact on the processing time. The user can also apply a constraint on the distance between the satellite spots according to their wavelength, this is accomplished using the ``constrain`` parameter. A more robust method is to high-pass filter the image prior to running the algorithm. This is accomplished by modifying the ``highpass`` parameter, which declares the size of the side of median box filter. A box size of 15-25 is generally recommended. Note that this will provide a noticable reduction in the processing speed (~10 seconds per image). Lastly, the user can input the coordinates manually using the ``loc_input`` and ``x1,y1,x2,y2,x3,y3,x4,y4`` parameters and the ``reference_index`` for these values.
 
