@@ -16,7 +16,7 @@ A recipe consists of a list of some number of data processing steps ("primitives
 For GPI, recipes are saved as XML files, and while
 they may be edited by hand, they are more easily created through the use of the
 :ref:`recipe_editor` and :ref:`data_parser` tools. Available primitives are described in detail at :ref:`primitives`.  Some primitives are actions on individual input files one at a time,
-for instance :ref:`Subtract Dark Background <SubtractDarkBackground>` or :ref:`Assemble Datacube <AssembleDatacube>`. Other primitives act to
+for instance :ref:`Subtract Dark Background <SubtractDarkBackground>` or :ref:`Assemble Spectral Datacube <AssembleSpectralDatacube>`. Other primitives act to
 combine multiple files together, for instance :ref:`ADI with LOCI <ADIwithLOCI>`.
 
 For example, a typical GPI observation will consist of a sequence of
@@ -29,7 +29,7 @@ steps, each associated with specific primitives:
   * Remove detector artifacts. 
 
    * :ref:`Subtract Dark Background <SubtractDarkBackground>`
-   * :ref:`Destripe science frame <Destripescienceframe>`
+   * :ref:`Destripe science image <Destripescienceimage>`
    * :ref:`Interpolate bad pixels in 2D frame <Interpolatebadpixelsin2Dframe>`
 
   * Assemble a 3D spectral datacube.
@@ -54,8 +54,8 @@ steps, each associated with specific primitives:
 * For all the images at once: 
 
   * Perform PSF subtraction of all images with an ADI algorithm (:ref:`ADI with LOCI <ADIwithLOCI>`)
-  * Apply spectral difference (:ref:`Simple SSDI of median ADI residual <SimpleSSDIofmedianADIresidual>`) 
-  * Combine the results from ADI (:ref:`Median ADI data-cubes <MedianADIdata-cubes>`
+  * Apply spectral difference (:ref:`Simple SDI of post ADI residual <SimpleSDIofpostADIresidual>`) 
+  * Combine the results from ADI (:ref:`Median Combine ADI datacubes <MedianCombineADIdatacubes>`)
   * Save the result
 
 Predefined lists of steps (:ref:`templates`) exist for standard GPI
