@@ -1,3 +1,5 @@
+.. _satellite_spots:
+
 Satellite Spots
 =====================
 
