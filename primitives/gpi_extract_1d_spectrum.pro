@@ -2,9 +2,13 @@
 ; NAME: gpi_extract_1d_spectrum
 ; PIPELINE PRIMITIVE DESCRIPTION: Extract 1D spectrum from a datacube
 ;
+; WARNING: This primitive will not provide spectra of publishable quality
+; it is designed to perform a quick extraction of a source. 
+;
+;
 ; This primitive extracts a spectrum from a data cube. It is meant to be used 
 ; on datacubes that have been calibrated by gpi_apply_photometric_calibration, 
-; but this is not required.
+; but this is not strictly required.
 ;
 ; The extraction radius is pulled out of the header such that is uses the 
 ; same as what was used to calibrate the cube. If they keyword is not found, 
@@ -21,7 +25,11 @@
 ; All photometry is done in ADU/coadd. This is performed by converting the cube to 
 ; ADU/coadd then converting back to whatever units the cube was input with.
 ;
+; The error bars are determined using the same method as the satellite spots
+; in gpi_calibrate_photometric_flux primitive. The user specifies the sky radii used in performing the aperture photometry. Note that the 'annuli' only represent the radial size of the extraction. The background is extracted by fitting a constant to an annulus surrounding the central star at the same radius as the planet. The inner width of the annulus is equal to the inner_sky_radius, the outer annulus describes the distance from the companion to the edges of the annulus that should be considered when fitting the constant. If the user wishes to examine the section being fit, they should modify line 350 accordingly.
 ;
+; Highpass filtering the image is recommended to determine the centroids, note that the highpass filtered image
+; is not used when measuring the extracted spectrum.
 ;
 ; INPUTS: Datacube containing a source that needs extracting, located by the xcenter and ycenter arguments
 ; OUTPUTS: 1D spectrum
@@ -31,10 +39,11 @@
 ; Save: Set to 1 to save the spectrum to a disk file (.fits). 
 ; xcenter: x-location of extraction (in pixels)
 ; ycenter: y-location of extraction (in pixels)
-; inner_sky_radius: inner radius used in defining sky subtraction annulus 
-; outer_sky_radius: outer radius used in defining sky subtraction annulus 
-;	override: allows input of a new extraction radius, and the use/non-use of c_ap_scaling
-;	extraction_radius: Radius used to define annulus for source extraction. This keyword is only active if the override keyword is set, or if the CEXTR_AP keyword, set by the Calibrate Photometric Flux primitive (gpi_calibrate_photometric_flux.pro) is not present in the header
+; highpass: highpass filter the image when determining centroid?
+; inner_sky_radius: inner radius used in defining sky subtraction annulus section
+; outer_sky_radius: outer radius used in defining sky subtraction annulus section
+; override: allows input of a new extraction radius, and the use/non-use of c_ap_scaling
+; extraction_radius: Radius used to define annulus for source extraction. This keyword is only active if the override keyword is set, or if the CEXTR_AP keyword, set by the Calibrate Photometric Flux primitive (gpi_calibrate_photometric_flux.pro) is not present in the header
 ; c_ap_scaling: keyword that activates the scaling of the apertures with wavelength. This keyword is only active if the override keyword is set, or if the C_AP_SC keyword, set by the Calibrate Photometric Flux primitive (gpi_calibrate_photometric_flux.pro) is not present in the header
 ; display: window used to display the extracted spectrum plot
 ; save_ps_plot: saves a postscript version of the plot if desired
@@ -369,30 +378,24 @@ ygrid=temporary(ygrid2)
 
 				endif
 
-
-				; OLD AND WRONG
-				;bkg_stddev=stddev(trans_cube_slice[finite_bkg_ind]-yfit,/nan,/double)
-;				phot_comp_err[i]=sqrt(float(N_ELEMENTS(src_ind))*(bkg_stddev)^2)
-;tvdl,subarr(bkg_conv,9*ceil(aperrad*2+1),[x0,y0]
-
 				; now normalize for missing flux ratio in aperture used in gpi_calibrate_photometric flux
 				; this just cancels out if the extraction aperture is unchanged, which it should be! 
 				; this area of the code will be modified once we start using different apertures. 
 				phot_comp[i]/=(contained_flux_ratio)
 				phot_comp_err[i]/=(contained_flux_ratio)
 		endfor
-window,2,retain=2,xsize=600,ysize=400
-ploterror,lambda,phot_comp,phot_comp_err
+;window,2,retain=2,xsize=600,ysize=400
+;ploterror,lambda,phot_comp,phot_comp_err
 
 ; now convert back to desired units
 for l=0, N_ELEMENTS(lambda)-1 do phot_comp[l]*=fscale_arr[l]
 for l=0, N_ELEMENTS(lambda)-1 do phot_comp_err[l]*=fscale_arr[l]
 
-window,3,retain=2,xsize=600,ysize=400
-ploterror,lambda,phot_comp,phot_comp_err
-stop
-wdelete,2
-wdelete,3
+;window,3,retain=2,xsize=600,ysize=400
+;ploterror,lambda,phot_comp,phot_comp_err
+;stop
+;wdelete,2
+;wdelete,3
 
 ; we want to correlate wrt to which wavelength?
 ;correl_arr=fltarr(N_ELEMENTS(lambda))

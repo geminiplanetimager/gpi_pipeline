@@ -82,6 +82,11 @@ On Mac OS, unfortunately if you define environment variables in your shell confi
 your environment variables won't be defined in the child process. The fix is to start the pipeline from the command line in a shell (Terminal or xterm), for instance by using the ``gpi-pipeline`` script that is provided. Don't try to start it just by double clicking from Finder. 
 
 
+On my Mac, the GUI windows pop up with their title bars hidden under the Mac OS menu bar, so I can't move them around or see the very top of them. Why, and how do I stop this?
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+This appears to be due to a bug in X11 on Macs running Mavericks with multi-monitor support. See `this discussion at Stackexchange <http://apple.stackexchange.com/questions/111465/is-there-a-way-to-move-a-window-without-the-mouse>`. The workaround is to turn off the feature that displays the Mac OS menu bar on all monitors. Sorry, this is an Apple problem we can't do anything about!
+
+
 Common pipeline errors
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 

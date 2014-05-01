@@ -1,4 +1,4 @@
-.. _usage-quickstart:
+.. _usage-wavecal_flexure_tutorial:
 
 Tutorial 2: Wavelength Calibration and Dealing with Flexure
 #####################################################

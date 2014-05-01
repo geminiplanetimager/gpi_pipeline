@@ -11,6 +11,7 @@ utils/gpi_highres_microlens_psf_read_highres_psf_structure.pro
 utils/gpi_highres_microlens_psf_extract_microspectra_stamps.pro
 utils/gpi_lsqr_mlens_extract_pol_dep.pro
 primitives/gpi_create_highres_microlens_psf_model.pro
+primitives/gpi_load_highres_psfs.pro
 
 # flexure via microlens PSF fitting:
 primitives/gpi_lsqr_mlens_extract.pro
@@ -27,6 +28,7 @@ utils/parallelize/gpi_obridgeabort.pro
 
 #some more polarimetry
 primitives/gpi_combine_polarizations_dd.pro
+primitives/gpi_klip_adi_pol_adv.pro
 
 #Wavelength solution requiring microlens PSFs:
 primitives/gpi_wavelength_solution_2d_developer.pro

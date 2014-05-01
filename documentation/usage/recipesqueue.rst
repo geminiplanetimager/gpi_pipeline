@@ -16,7 +16,7 @@ A recipe consists of a list of some number of data processing steps ("primitives
 For GPI, recipes are saved as XML files, and while
 they may be edited by hand, they are more easily created through the use of the
 :ref:`recipe_editor` and :ref:`data_parser` tools. Available primitives are described in detail at :ref:`primitives`.  Some primitives are actions on individual input files one at a time,
-for instance :ref:`Subtract Dark Background <SubtractDarkBackground>` or :ref:`Assemble Datacube <AssembleDatacube>`. Other primitives act to
+for instance :ref:`Subtract Dark Background <SubtractDarkBackground>` or :ref:`Assemble Spectral Datacube <AssembleSpectralDatacube>`. Other primitives act to
 combine multiple files together, for instance :ref:`ADI with LOCI <ADIwithLOCI>`.
 
 For example, a typical GPI observation will consist of a sequence of
@@ -29,7 +29,7 @@ steps, each associated with specific primitives:
   * Remove detector artifacts. 
 
    * :ref:`Subtract Dark Background <SubtractDarkBackground>`
-   * :ref:`Destripe science frame <Destripescienceframe>`
+   * :ref:`Destripe science image <Destripescienceimage>`
    * :ref:`Interpolate bad pixels in 2D frame <Interpolatebadpixelsin2Dframe>`
 
   * Assemble a 3D spectral datacube.
@@ -54,8 +54,8 @@ steps, each associated with specific primitives:
 * For all the images at once: 
 
   * Perform PSF subtraction of all images with an ADI algorithm (:ref:`ADI with LOCI <ADIwithLOCI>`)
-  * Apply spectral difference (:ref:`Simple SSDI of median ADI residual <SimpleSSDIofmedianADIresidual>`) 
-  * Combine the results from ADI (:ref:`Median ADI data-cubes <MedianADIdata-cubes>`
+  * Apply spectral difference (:ref:`Simple SDI of post ADI residual <SimpleSDIofpostADIresidual>`) 
+  * Combine the results from ADI (:ref:`Median Combine ADI datacubes <MedianCombineADIdatacubes>`)
   * Save the result
 
 Predefined lists of steps (:ref:`templates`) exist for standard GPI
@@ -89,6 +89,16 @@ to ``.failed.xml``. The pipeline checks the queue for new recipes once per secon
 If multiple new recipes files are found at the same time, then the
 pipeline will reduce them according to their filenames in alphabetical order. Thus, to queue a recipe
 manually, simply copy it into the queue directory with a filename ending in ``".waiting.xml"``. 
+
+
+What happens when you run a recipe?
+---------------------------------------
+
+1. The pipeline starts executing the steps given in that recipe, iterating over multiple files if specified. 
+2. Progress in processing the recipe will be displayed in the :ref:`status_console` window, including progress bars showing the approximate percentage completed. 
+3. Each step in the pipeline processing may optionally save an output file, and/or display its results in a :ref:`GPItv <gpitv>` window.
+4. Details of the processing are :ref:`logged <logging>` in FITS headers and log files.
+5. When the recipe is finished, the pipeline simply returns to watching the queue directory for the next recipe to process.
 
 
 

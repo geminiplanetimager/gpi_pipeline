@@ -1,29 +1,6 @@
-Purpose of GPItv 
+Summary of Functionality  
 ############################
 
-
-GPItv is a data viewer tool that provides GPI observers with both a simple
-means for cursory "quick look" data analysis, in real time at the telescope,
-and a sophisticated set of tools for viewing and manipulating GPI data during
-post-observing scientific analyses.  GPItv includes features for spectral and
-polarimetric analyses of raw 2D and/or processed 3D data from GPI. GPItv should
-help you to look at GPI data in a way that enables you to get your science
-done.
-
-GPItv is a heavily customized derivative from ATV, the well-known DS9-like
-display tool for astronomical images in IDL (Barth et al. 2001;
-http://www.physics.uci.edu/~barth/atv/), with much new functionality
-developed specifically for GPI.  Anyone familiar with using ATV,
-SAOimage or DS9 will get used to GPItv very quickly.  
-
-One significant enhancement relative to the original ATV program is that
-GPItv's internals have been rewritten to allow multiple copies to run
-simultaneously. Thus users can view for instance raw frames, reduced datacubes,
-and ADI-processed subtracted images all in separate windows simultaneously
-
-
-Summary of Functionality: Image Manipulation and Data Analysis
-=====================================================================
 
 GPItv is a display tool that includes features for image analysis and spectral
 analysis. 2D image analysis tools are available for image manipulation,
@@ -56,10 +33,19 @@ Polarimetric analysis tools include:
 *    Overplotting of polarization vectors, with many configurable options
 *   Computation of total intensity, polarized intensity, & polarization fraction from IQUV datacubes. 
 
-New features can be added to GPItv easily, including linking to or calling
-existing IDL programs.  For example, you can easily define a keyboard shortcut
-that will pass the current cursor position in data coordinates to an external
-IDL routine.  
+
+One significant enhancement relative to the original ATV program is that
+GPItv's internals have been rewritten to allow multiple copies to run
+simultaneously. Thus users can view for instance raw frames, reduced datacubes,
+and ADI-processed subtracted images all in separate windows simultaneously
+
+
+.. comment:
+    (I would not say anything above developing for gpitv is done "easily"... -MP)
+    New features can be added to GPItv easily, including linking to or calling
+    existing IDL programs.  For example, you can easily define a keyboard shortcut
+    that will pass the current cursor position in data coordinates to an external
+    IDL routine.  
 
 
 

@@ -7,9 +7,10 @@
 ;	user-indicated cube, or any user-supplied spectral response function (e.g. derived 
 ;	from an open loop image of a standard star). 
 ;
-; The user may also specify the extraction and sky radii used in performing the aperture photometry. Note that the 'annuli' only represent the radial size of the extraction. The background is extracted by fitting a plane an annulus surrounding the central star at the same radius as the planet. The width of the annulus is equal to the inner_sky_radius, the outer annulus describes the distance from the companion to the edges of the annulus that should be considered when fitting the plane
+; The user may also specify the extraction and sky radii used in performing the aperture photometry. Note that the 'annuli' only represent the radial size of the extraction. The background is extracted by fitting a constant to an annulus surrounding the central star at the same radius as the planet. The inner width of the annulus is equal to the inner_sky_radius, the outer annulus describes the distance from the companion to the edges of the annulus that should be considered when fitting the constant. If the user wishes to examine the section being fit, they should modify line 350 accordingly.
 ;
-; WARNING: the user-supplied spectral response function is not yet implemented.
+; Error bars are calculated and put into the headers to be used with future primitives such as gpi_extract_1d_spectrum. They are determined by convolving the sky annulus with the extraction aperture then taking the standard deviation. 
+;
 ;	
 ;
 ; INPUTS: 
@@ -28,7 +29,7 @@
 ; GEM/GPI KEYWORDS:FILTER,IFSUNIT
 ; DRP KEYWORDS: CUNIT,DATAFILE
 ;
-; PIPELINE COMMENT: Extract one spectrum from a datacube somewhere in the FOV specified by the user.
+; PIPELINE COMMENT: Apply photometric calibration to a single or set of datacubes
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ARGUMENT: Name="extraction_radius" Type="float" Range="[0,1000]" Default="3." Desc="Aperture radius at middle wavelength (in spaxels i.e. mlens) to extract photometry for each wavelength. "
@@ -347,7 +348,7 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 
 				if finite(satflux_err_arr[s,l]) eq 0 then stop
 
-				; examine the fit
+				; examine the fit - l is the cube slice
 				if 0 eq 1 and l eq 15 then begin
 					yfit2d=fltarr(281,281)
 					yfit2d[*,*]=!values.f_nan

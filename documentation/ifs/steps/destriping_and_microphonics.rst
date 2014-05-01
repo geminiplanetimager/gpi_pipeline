@@ -1,3 +1,4 @@
+.. _processing_step_by_step_destriping:
 
 Destriping and Microphonics
 ============================
@@ -44,17 +45,17 @@ See below different examples of microphonics in Fourier space (Note: the lowest 
 Using the Destriping Algorithms in GPI Data Reduction
 ------------------------------------------------------
 
-The effectiveness of the pipeline to remove the striping is dependent upon the observation type. The ability to correct the striping is inversely proportional to the spatial distribution of light in the image. For example, a dark frame has no light in the image, therefore the entire detector can be used in deriving the striping correction. This is done using the pipeline primitive :ref:`Destripe for darks only <destripefordarksonly>`. 
+The effectiveness of the pipeline to remove the striping is dependent upon the observation type. The ability to correct the striping is inversely proportional to the spatial distribution of light in the image. For example, a dark frame has no light in the image, therefore the entire detector can be used in deriving the striping correction. This is done using the pipeline primitive :ref:`Destripe for Darks Only <DestripeforDarksOnly>`. 
 
-In the case of science data (e.g. coronagraphic data), all of the microspectra are masked, leaving only the space between to derive the correction. This is done in the primitive :ref:`Destripe science frame <Destripescienceframe>`. There are selectable options for also removing microphonics and channel offsets as well as the basic horizontal striping.
+In the case of science data (e.g. coronagraphic data), all of the microspectra are masked, leaving only the space between to derive the correction. This is done in the primitive :ref:`Destripe science image <Destripescienceimage>`. There are selectable options for also removing microphonics and channel offsets as well as the basic horizontal striping.
 
 For frames exhibiting large amounts of flux filling the entire field of view (e.g. flats, arclamp images) then the amount of masking is too large, and the detector striping cannot be derived from the image itself. However, a partial correction can be applied by capitalizing on the four reference pixels on either side of the detector (note that reference pixels are photo-insensitive but exhibit the same readnoise). This is performed using the primitive :ref:`Apply Reference Pixel Correction <ApplyReferencePixelCorrection>`. This primitive is safe to use in all cases should the other methods fail.
 
-* :ref:`Destripe science frame <Destripescienceframe>`:
+* :ref:`Destripe science image <Destripescienceimage>`:
 	Different methods are available for Microphonics removal:
 
-		- This algorithm is based on a fixed precomputed model (see :ref:`Create a microphonics noise model. <Createamicrophonicsnoisemodel.>` and below). This model is the normalized absolute value of the Fourier coefficients. The filtering consist of diminishing the intensity of the frequencies corresponding to the noise in the image proportionaly to the dot product of the image witht the noise model. The phase remains unchanged. This algorithm partially works and will succeed in removing a lot of the microphonics noise without jeopardize too much the image even in case of a structured image with overlapping frequencies with the noise. 
-		- Setting all the frequencies to zero in the aera of the microphonics frequencies peaks. (Dangerous algorithm even if it might be fine regarding the different Fourier transforms, see image above.). This algorithm is the one used for dark images in :ref:`Aggressive destripe assuming there is no signal in the image. (for darks only) <Aggressivedestripeassumingthereisnosignalintheimage.(fordarksonly)>`.
+		- This algorithm is based on a fixed precomputed model (see :ref:`Create microphonics noise model <Createmicrophonicsnoisemodel>` and below). This model is the normalized absolute value of the Fourier coefficients. The filtering consist of diminishing the intensity of the frequencies corresponding to the noise in the image proportionaly to the dot product of the image witht the noise model. The phase remains unchanged. This algorithm partially works and will succeed in removing a lot of the microphonics noise without jeopardize too much the image even in case of a structured image with overlapping frequencies with the noise. 
+		- Setting all the frequencies to zero in the aera of the microphonics frequencies peaks. (Dangerous algorithm even if it might be fine regarding the different Fourier transforms, see image above.). This algorithm is the one used for dark images in :ref:`Destripe for Darks Only <DestripeforDarksOnly>`.
 		- Removal of 3 gaussian fits located to the 3 microphonics peaks. (Probably useless, it was only for testing but it is not as good)
 
 
@@ -71,7 +72,7 @@ The effect of the first algorithm in absolute Fourier space is shown below. The 
 	:align: center
 	:alt: alternate text
 
-* :ref:`Create a microphonics noise model. <Createamicrophonicsnoisemodel.>`:
+* :ref:`Create microphonics noise model <Createmicrophonicsnoisemodel>`:
 	Build a microphonics noise model that will be used to quantity the noise in an image (using the dot product of the image on this model) and to remove it if necessary. There is no existing recipe template right now. The dependencies of the microphonics frequencies with other parameter has not been yet studied but it is unlikely to change very much. Therefore, one model for each cooldown should be enough. In order to build that model, this primitive extracts from dark images (with short integration time and visible strong microphonics noise) the absolute value of the Fourier coefficients in the aera of the identified peaks. No destripping should be done prior to this primitive. If there is more than one calibration file in the calibration database, the automatic selection will not work.
 
 	- **Calibration DB File Type:**  Micro Model

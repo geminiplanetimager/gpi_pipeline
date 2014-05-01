@@ -13,15 +13,19 @@ The GPI Data Analysis Team
 
 Pipeline architecture design, initial algorithms development, core structure, GUI frameworks, and many primitives by **Jerome Maire** and **Marshall Perrin**.  
 
+
+
 **Patrick Ingraham** developed many of the primitives, led major aspects of IFS calibration and testing, and extensively contributed to analyses and documentation.
 **Dmitry Savransky** made major contributions to pipeline primitives, infrastructure, and GPItv.
-**Jean-Baptiste "JB" Ruffio** vanquished many bugs, enhanced the destriping and microphonics removal primitives, and wrote portions of the documentation.
-**Max Millar-Blanchaer** contributed to polarization mode primitives and GPItv polarization support, and with **Sloane Wiktorowicz** calibrated the instrumental polarization.
-**Schuyler Wolff** developed and tested the PSF-fitting wavelength calibration algorithm, improved the Data Parser, made other pipeline improvements, and contributed significantly to this documentation.
-**Naru Sarakuni** extensively supported integration and test, and contributed improvements to GPItv.
+
+**Zack Draper** developed improved datacube extraction routines and tools for fitting flexure using microlens PSFs.
 **Christian Marois** contributed to improving PSF subtraction algorithms and contrast measurement code. 
-**Zack Draper** developed improved datacube extraction routines and tools for fitting flexure.
+**Max Millar-Blanchaer** contributed extensively to polarization mode primitives and GPItv polarization support, and with 
+**Abhijith Rajan** found and fixed a few bugs.
+**Jean-Baptiste "JB" Ruffio** vanquished many bugs, enhanced the destriping and microphonics removal primitives, and wrote portions of the documentation.
+**Naru Sarakuni** extensively supported integration and test, and contributed improvements to GPItv.
 **Jason Wang** contributed to satellite spot fitting, improved the installation system, and contributed improvements to GPItv.
+**Schuyler Wolff** developed and tested the PSF-fitting wavelength calibration algorithm, improved the Data Parser, made other pipeline improvements, and contributed significantly to this documentation.
 
 **Jeff Chilcote** provided guidance on detector operations and calibrations. 
 **Alexandra Greenbaum** is leading development of nonredundant aperture masking interferometry algorithms applied to GPI, and also contributed to this documentation.
@@ -31,6 +35,11 @@ Pipeline architecture design, initial algorithms development, core structure, GU
 **Franck Marchis** oversees the computer infrastructure at the SETI Institute hosting software repositories and documentation, and supervised visiting student JB Ruffio.
 **Laurent Pueyo** contributed to data analyses and algorithms development. 
 Some utility functions used in the pipeline are by **Mathilde Bealieau**, **David Lafreniere**, **Jean-Francois Lavigne**, and **Lisa Poyneer**.
+**Sloane Wiktorowicz** worked with Max to calibrate the instrumental polarization.
+
+
+Contributions to data analyses and public data releases have been made by many additional memebrs of the GPI Data Analysis team, including **Rob de Rosa**,  **Jennifer Patience**, **Sandrine Thomas** and **Kim Ward-Duong**.
+
 
 
 **Rene Doyon** was subsystem PI for the GPI DRP as part of the GPI project, and provided top-level guidance in overall pipeline design. 
@@ -38,7 +47,8 @@ Some utility functions used in the pipeline are by **Mathilde Bealieau**, **Davi
 **Bruce Macintosh** maintained overall coherence of the GPI project wavefront. 
 
 From Gemini, **Stephen Goodsell** kept the project on track. **Carlos Quiroz** and **Fredrik Rantakyro** supported 
-the Gemini Data System, including establishment of interfaces and extensive implementation and testing. 
+the Gemini Data System, including establishment of interfaces and extensive implementation and testing.
+**Pascale Hibon**  helped with testing of the pipeline and operations at Gemini.
 **Kathleen Labrie** provided valuable input from Gemini's perspective during software reviews. 
 
 

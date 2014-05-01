@@ -2,8 +2,8 @@
 Additional Features
 ======================
 
-Multi-Session Mode 
----------------------------
+Starting Multiple gpitv sessions
+----------------------------------
 
 
 By default, if you already have a GPItv running and you type
@@ -13,7 +13,7 @@ running simultaneously.
 
 To start an additional session, use::
 
-        GPItv, fitsfile_name, ses=num
+        GPItv, fitsfile_name, session=num
 
 where 'fitsfile_name' is a string containing the name of the FITS file
 (including extension and directory if needed) to be read and 'num' is an
@@ -56,38 +56,29 @@ The command-line options are:
 *   [,/stretch]: preserves the current min/max values when reading in a new image 
 *   [,/block]: starts ATV as a blocking widget, which can occasionally be useful
 
-Command Line Interface Advanced Features
-----------------------------------------------
-
-To overplot a contour plot on the draw window::
-
-        GPItv->contour, array_name [, options...]
-
-To overplot text on the draw window::
-
-        GPItv->xyouts, x, y, text_string [, options]  
-
-To overplot points or lines on the current plot::
-
-        GPItv->plot, xvector, yvector [, options]
-
-To erases all (or last N) plots and text::
-
-        GPItv->erase [, N]
 
 
-.. comment the following is I think obsolete 
-    When you're debugging a program, and you do not want to use a GPItv
-    multi-session mode, it can be useful to block your command line until you tell
-    GPItv to quit. You can do this with the /block keyword. If you call GPItv
-    without that at first, but then wish to switch to block mode, the command
-    GPItv_activate
-    will make GPItv active and block your command line.
-
-
-To quit GPItv from the command line, just type ::
-
-        GPItv->shutdown
+.. comment
+        I think none of this really works anymore after the gpitv redesign as an object oriented program...
+    Command Line Interface Advanced Features
+    ----------------------------------------------
+    To overplot a contour plot on the draw window::
+            GPItv->contour, array_name [, options...]
+    To overplot text on the draw window::
+            GPItv->xyouts, x, y, text_string [, options]  
+    To overplot points or lines on the current plot::
+            GPItv->plot, xvector, yvector [, options]
+    To erases all (or last N) plots and text::
+            GPItv->erase [, N]
+    .. comment the following is I think obsolete 
+        When you're debugging a program, and you do not want to use a GPItv
+        multi-session mode, it can be useful to block your command line until you tell
+        GPItv to quit. You can do this with the /block keyword. If you call GPItv
+        without that at first, but then wish to switch to block mode, the command
+        GPItv_activate
+        will make GPItv active and block your command line.
+    To quit GPItv from the command line, just type ::
+            GPItv->shutdown
 
 
 
@@ -133,7 +124,7 @@ the image (select arbitrary box with two clicks, defining the corners).
 
 Figure 10: Example of image statistics for a multi-plane datacube
 
-Blinking images and making an RGB color image
+Blinking images 
 -----------------------------------------------
 
 GPItv easily allows you to blink images, as follows. Load in the first image,
@@ -147,34 +138,6 @@ You can save up to 3 blink images and blink them with mouse buttons 1, 2, or 3.
 If you have fewer than 3 mouse buttons, you won't be able to use all 3 blink
 images.
 
-GPItv can make RGB "true-color" images in a rudimentary way (Fig.8).  To do
-this, first set the colormap to grayscale, and don't invert the colormap.  Load
-your "R" image and get the color stretch just the way you want it, and then
-save it in blink channel 1 with "Set Blink1".  Do the same for your G image in
-blink channel 2 and your B image in blink channel 3.  Then, just select
-"Blink->MakeRGB" and GPItv will make a truecolor RGB image using the 3 blink
-channels. If you like how your RGB image came out, you can save it to a file
-using "File->WriteImage" to save it to a jpg, png, or tiff image.  As soon as
-you change the display settings, GPItv goes back to its normal display mode
-with the last image that was loaded.
-
-
-Figure 11: Example of a RGB color image using three planes of a datacube.
-
-Automatic Detection of new FITS files
--------------------------------------------
-
-GPItv can watch directories in order to automatically show any new fits files
-coming into  those specific chosen directories.
-
-Select "DetectFits" in the File menu, and the 'FitsGet' window will appear
-(Fig.9). The left panel allows the user to browse the file system. One click on
-a directory will expand it. Double-click on a fits file will display the image
-in the GPItv main windows. Double-click on a directory will place it on the
-top-right panel which is the list of current directories where new fits files
-will be detected.
-
-Add your data repositories in this list. Click the "Search most recent fits files" button to automatically display in the bottom-right panel all fits files contained in the selected directories sorted by creation date from newest to oldest. Every time a new fits file come into these folders, it will appear at the top of this list.
 
 .. _gpitv_wavecal_grid:
 

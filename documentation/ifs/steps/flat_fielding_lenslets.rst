@@ -1,3 +1,4 @@
+.. _processing_step_by_step_flat_fielding_lenslets:
 
 Flat Fielding: Lenslet Array Flat 
 ==================================

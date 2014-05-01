@@ -1,3 +1,4 @@
+.. _processing_step_by_step_flat_thermal_sky_backgrounds:
 
 Thermal/Sky Backgrounds
 =======================
@@ -28,7 +29,7 @@ The pipeline treats thermal/sky backgrounds similar to dark frames and is design
 .. note::
    Currently, the GPI reduction scripts only subtracts thermal backgrounds by default for wavelength solutions. The user must manually insert the primitive into his/her reduction recipe for the correction to be applied. If the primitive is applied to a non-K-band observation, no correction is performed.
 
-If you try to run the 'Subtract Thermal Background' primitive on a Y, J, or H file, it will just skip that step, do no subtraction, and continue with the rest of the recipe. No error is raised. 
+If you try to run the :ref:`Subtract Thermal/Sky Background if K band <SubtractThermal/SkyBackgroundifKband>` on a Y, J, or H file, it will just skip that step, do no subtraction, and continue with the rest of the recipe. No error is raised. 
 
 
 Creating Calibrations:
@@ -53,7 +54,7 @@ The standard processing of Thermal/Sky background images involves 3 processing s
 2. A reference pixel destripe
 3. Combination of 2d images
 
-Similar to dark frames, thermal frames will also exhibit striping and microphonics, but because there is structure throughout the entire image, the standard destriping algorithms (:ref:`Aggressive destripe assuming there is no signal in the image. (for darks only) <Aggressivedestripeassumingthereisnosignalintheimage.(fordarksonly)>` and :ref:`Destripe science frame <Destripescienceframe>`) cannot be applied (see section :doc:`destriping_and_microphonics` for details). The consequence of this is that the detector noise in Thermal/Sky backgrounds will be significantly higher than science frames. 
+Similar to dark frames, thermal frames will also exhibit striping and microphonics, but because there is structure throughout the entire image, the standard destriping algorithms (:ref:`Destripe for Darks Only <DestripeforDarksOnly>` and :ref:`Destripe science image <Destripescienceimage>`) cannot be applied (see section :doc:`destriping_and_microphonics` for details). The consequence of this is that the detector noise in Thermal/Sky backgrounds will be significantly higher than science frames. 
 
 As noted above, the current routine does not perform the sky-subtraction in cube space. A consequence of this is that sky subtractions performed at significantly different elevations will not apply the correct calibration. 
 

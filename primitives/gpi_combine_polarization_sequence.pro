@@ -43,8 +43,8 @@ function gpi_combine_polarization_sequence, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
 @__start_primitive
 
-	if tag_exist( Modules[thisModuleIndex], "includesystemmueller") then IncludeSystemMueller=uint(Modules[thisModuleIndex].IncludeSystemMueller) else IncludeSystemMueller=1
-	if tag_exist( Modules[thisModuleIndex], "includeskyrotation") then   Includeskyrotation=  uint(Modules[thisModuleIndex].Includeskyrotation)   else Includeskyrotation=1
+	if tag_exist( Modules[thisModuleIndex], "includesystemmueller") then Include_Mueller=uint(Modules[thisModuleIndex].IncludeSystemMueller) else Include_Mueller=1
+	if tag_exist( Modules[thisModuleIndex], "includeskyrotation") then   Include_sky=  uint(Modules[thisModuleIndex].Includeskyrotation)   else Include_sky=1
 
 	nfiles=dataset.validframecount
 
@@ -88,12 +88,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	sxaddhist, functionname+": using instr pol for port ="+port, hdr0
 	
 	;Good for on-sky data
-  ; woll_mueller_vert = mueller_linpol_rot(0,/degrees)
-	; woll_mueller_horiz= mueller_linpol_rot(90,/degrees)
+  ; woll_mueller_vert = mueller_linpol_rotated(0,/degrees)
+	; woll_mueller_horiz= mueller_linpol_rotated(90,/degrees)
 	
 	;Good for lab data
-    woll_mueller_vert = mueller_linpol_rot(90,/degrees) 
-    woll_mueller_horiz= mueller_linpol_rot(0,/degrees)
+    woll_mueller_vert = mueller_linpol_rotated(90,/degrees) 
+    woll_mueller_horiz= mueller_linpol_rotated(0,/degrees)
     
     ;Getting Filter Information
     filter=gpi_simplify_keyword_value(sxpar(hdr0,"IFSFILT"))
@@ -114,7 +114,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		backbone->Log, logmsg
 		sxaddhist, functionname+":"+logmsg, hdr0
  
-		wp_mueller = DST_waveplate(angle=wpangle[i], pband=pband, /mueller,/silent, /degrees)
+		wp_mueller = mueller_gpi_waveplate(angle=wpangle[i], ifsfilt=filter, /degrees)
 		
 		  
 		if include_sky eq 1 then skyrotation_mueller =  mueller_rot((parang+90-18.5)*!dtor) else skyrotation_mueller=identity(4)

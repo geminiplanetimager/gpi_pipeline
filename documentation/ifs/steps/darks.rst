@@ -1,3 +1,5 @@
+.. _processing_step_by_step_darks:
+
 Darks
 =========
 
@@ -12,12 +14,11 @@ are taken with enough coadds and exposure to achieve good S/N. (Coadds increase 
 
 .. note::
 
-   Typical observations with GPI will be hour-long sequences of exposures. For these to not be systematically limited by the dark frame that is identically subtracted from each individual exposure, that dark frame must be significantly deeper than your science observations. You probably will want to take several hours of darks.
-
+   Typical observations with GPI will be hour-long sequences of exposures. For these to not be systematically limited by the dark frame that is identically subtracted from each individual exposure, that dark frame must be significantly deeper than your science observations. You probably will want to take several hours of darks. 
 
 Periodic dark observations taken during GPI I&T at UCSC show that the detector's complement of hot pixels evolves slightly but noticeably on two week timescales. Using darks more than a week or two different in time from your science data results in visibly more residual hot pixels in the final datacubes. (The dark current for the large majority of normal pixels is in comparison very stable, as are indeed most of the hot pixels - only some outliers have been observed to evolve.)
 
-Artifacts observed in dark frames but specifically addressed in other sections section include: :doc:`badpixels`, :Doc:`destriping_and_microphonics` and :doc:`persistence`.  Regions of elevated dark current are visible near the detector corners in deep exposures, due to scattered light within the IFS leaking around the detector housing baffle, but the count rates here are still very small.
+Artifacts observed in dark frames but specifically addressed in other sections section include: :ref:`processing_step_by_step_badpixels`, :ref:`processing_step_by_step_destriping` and :ref:`processing_step_by_step_persistence`.  Regions of elevated dark current are visible near the detector corners in deep exposures, due to scattered light within the IFS leaking around the detector housing baffle, but the count rates here are still very small.
 
 
 **Light leak:** There is a very low level light leak visible in 3 corners of the detector, where light is leaking around a small gap in the detector housing between the detector itself and the field flattener lens. This is visible on high S/N long exposure darks, but in practice has completely negligible impact on science. 
@@ -73,7 +74,7 @@ The standard pipeline processsing to create dark frames is a straightforward pro
  1. Destripe and remove microphonics
  2. Combine 2d images
 
-The image below shows the three dominant artifacts seen in dark images. The solid red circles show the regions where the majority of the microphonics is observed. The dashed green line shows examples of strong channel bias offsets (32-pixel wide vertical stripes). The dotted purple lines indicate regions of large horizontal striping. These effects, discussed in detail in :doc:`destriping_and_microphonics`, are removed using the :ref:`Aggressive destripe assuming there is no signal in the image. (for darks only) <Aggressivedestripeassumingthereisnosignalintheimage.(fordarksonly)>` primitive.
+The image below shows the three dominant artifacts seen in dark images. The solid red circles show the regions where the majority of the microphonics is observed. The dashed green line shows examples of strong channel bias offsets (32-pixel wide vertical stripes). The dotted purple lines indicate regions of large horizontal striping. These effects, discussed in detail in :doc:`destriping_and_microphonics`, are removed using the :ref:`Destripe for Darks Only <DestripeforDarksOnly>` primitive.
 
 .. image:: raw_dark_mod.png
         :scale: 50%

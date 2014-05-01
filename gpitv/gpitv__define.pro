@@ -2947,8 +2947,6 @@ pro GPItv::displayall
 ; zoomed without a change in scaling, then just call self->refresh
 ; rather than this routine.
 
-print, 'displayall'
-
 self->scaleimage
 self->makepan
 self->settitle
@@ -3896,21 +3894,22 @@ pro GPItv::change_image_units, new_requested_units, silent=silent
         proceed = 1 
         ;;to avoid confusion, we only do this starting from cube slices
         if ((*self.state).collapse ne 0)  then begin
-           self->message,msgtype='warning',$
-                         'Change to contrast units not supported in collapse mode (you can collapse after changing the units).'
+           self->message,msgtype='warning',/window, $
+                         'Change to contrast units not supported for a collapsed datacube (but you can collapse after changing the units first).'
            proceed = 0
         endif 
 
         ;;only support WAVE cubes (shouldn't be able to get here
         ;;otherwise, but we'll check anyway)
         if ~strcmp((*self.state).cube_mode, 'WAVE') then begin
-           self->message, msgtype='warning', 'Contrast calculation currently only supported for spectral cubes.'
+           self->message, msgtype='warning', /window, 'Contrast calculation currently only supported for spectral cubes.'
            proceed = 0
         endif 
         
         ;;if gridfac is nan, bail out
         if ~finite((*self.state).gridfac) then begin
-           self->message,msgtype='error','The sat spot flux ratio is currently NaN, indicating that the apodizer for this image could not be matched.  To calculate the contrast, please enter the proper value in the contrast profile window.'
+           self->message,msgtype='error', /window, $
+			   'The sat spot flux ratio is currently NaN, indicating that the apodizer for this image could not be matched.  To calculate the contrast, please enter the proper value in the contrast profile window.'
            proceed = 0
         endif 
 
@@ -3955,8 +3954,8 @@ pro GPItv::change_image_units, new_requested_units, silent=silent
            conversion_factor  = (*self.state).itime
         endif else begin
            ;; here, we deal with the nontrivial conversions that require flux calibration
-           self->message,['Nontrivial units conversions need to be reimplemented more carefully... ', $
-						  'Not sure how to convert from "'+(*self.state).current_units+'" to "'+new_requested_units+'". Not supported yet!'] ;,/window 
+           self->message,['Nontrivial units conversions not yet fully implemented... ', $
+						  'Not sure how to convert from "'+(*self.state).current_units+'" to "'+new_requested_units+'". Not supported yet!'] ,/window, msgtype='error'
 					  ;Ignoring Retain Current Stretch.',/window
 		   return
            
@@ -4001,7 +4000,7 @@ pro GPItv::change_image_units, new_requested_units, silent=silent
 
 
            if keyword_set(unsupportedUnits) then begin
-              self->message, 'The requested unit is not supported for conversions. Cannot rescale the image'
+              self->message, 'The requested unit is not supported for conversions. Cannot rescale the image',/window, msgtype='error'
               return
            endif else begin
 
@@ -4560,15 +4559,14 @@ pro gpitv::autohandedness, nodisplay=nodisplay
 
 
 if (not ptr_valid( (*self.state).exthead_ptr)) or (*self.state).wcstype eq 'none' then begin
-	self->message, 'No valid WCS present; cannot set image handedness'
+	self->message, 'No valid WCS present; cannot set image handedness',msgtype='error', /window
 	return
 endif
 
 extast, *(*self.state).exthead_ptr, astr
 
 if ~(keyword_set(astr)) then begin
-	self->message, "Image does not have valid WCS astrometry header"
-	self->message, "Cannot determine handedness. Skipping autohandedness!"
+	self->message, ["Image does not have valid WCS astrometry header", "Cannot determine handedness. Skipping autohandedness!"], msgtype='warning',/window
 	return
 endif
 
@@ -11485,8 +11483,9 @@ caldb = obj_new('gpicaldatabase')
 shiftsfile = caldb->get_best_cal_from_header( 'shifts', *((*self.state).head_ptr),  *((*self.state).exthead_ptr) )
 ; determine if shiftsfile is a string - if it is then it found a valid file
 ; if it returned an interger (-1) then it found nothing
-sz=size(shiftsfile,/type)
-if sz[0] eq 7 then begin
+result_type=size(shiftsfile,/tname)
+
+if ((result_type eq 'STRING') and file_test(string(shiftsfile))) then begin
 	; Try to read in all the necessary info and call the flexure model
 	elevation = sxpar(*((*self.state).head_ptr), 'ELEVATIO')
 	wchd = headfits((*self.state).wcfilename)

@@ -3,7 +3,15 @@
 ; PIPELINE PRIMITIVE DESCRIPTION: Destripe science image
 ;
 ;  
-;  Subtract horizontal striping from the background of a 2d raw IFS image
+; This primitive was originally developed to remove striping and microphonics
+; noise in IFS images. The noise level of the detector has since decreased
+; significantly and therefore this primitive is generally only useful for 
+; short exposures. Note that without proper examination, this primitive may
+; INTRODUCE a systematic noise into the image. Users should consult the 
+; IFS handbook destriping section when using this primitive.
+;
+;
+;  This primitive subtracts horizontal striping from the background of a 2d raw IFS image
 ;  by masking spectra and using the remaining regions to obtain a
 ;  sampling of the striping. 
 ;
@@ -76,10 +84,16 @@
 ;    Only the absolute value is considered and the phase remains unchanged.
 ;    This algorthim is not as efficient as the two others but if you don't have an accurate model, it can be better than nothing.
 ;
+; Currently, the readnoise floor, which is what is used to determine the pixel masking for spectral mode, is set to 8 electrons divided by the
+; square root of hte number of coadds. Note that for K band (and sometimes H) this often has to be adjusted. The channel 
+; offset correction should also be used when this value is being adjusted. Note that if too much of the image is masked, 
+; it will surpass the abort_fraction and no destriping will occur. Using an abort_fraction of 0.7 is the minimum 
+; a user should use for normal cases.
+;
 ;
 ; PIPELINE ARGUMENT: Name="method" Type="string" Range="[threshhold|calfile]" Default="calfile" Desc='Find background based on image value threshhold cut, or calibration file spectra/spot locations?'
 ; PIPELINE ARGUMENT: Name="abort_fraction" Type="float" Range="[0.0,1.0]" Default="0.9" Desc="Necessary fraction of pixels in mask to continue - set at 0.9 to ensure quicklook tool is robust"
-; PIPELINE ARGUMENT: Name="chan_offset_correction" Type="int" Range="[0,1]" Default="0" Desc="Tries to correct for channel bias offsets - useful when no dark is available"
+; PIPELINE ARGUMENT: Name="`chan_offset_correction" Type="int" Range="[0,1]" Default="0" Desc="Tries to correct for channel bias offsets - useful when no dark is available"
 ; PIPELINE ARGUMENT: Name="readnoise_floor" Type="float" Range="[0.0,100]" Default="0.0" Desc="Readnoise floor in ADU. 0 = default to 8 electrons per CDS image"
 ; PIPELINE ARGUMENT: Name="Save_stripes" Type="int" Range="[0,1]" Default="0" Desc="Save the striping noise image subtracted from frame?"
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="-1" Desc="-1 = No display; 0 = New (unused) window else = Window number to display diagonostics in."

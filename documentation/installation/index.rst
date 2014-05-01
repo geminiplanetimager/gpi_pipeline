@@ -42,6 +42,7 @@ Contents
    startup.rst
    config_settings.rst
    constants.rst
+   xdefaults.rst
 
 
 
