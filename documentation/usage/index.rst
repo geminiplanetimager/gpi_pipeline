@@ -26,7 +26,6 @@ Contents
    recipesqueue.rst
    starting.rst
    tutorial.rst
-   tutorial_wavecals.rst
    tutorial_pol.rst
    launcher.rst
    status_console.rst

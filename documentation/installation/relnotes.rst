@@ -4,14 +4,16 @@
 Release Notes
 ###################
 
-You may wish to skip ahead to  :ref:`configuring`.
+You may wish to skip ahead to  :ref:`configuring`.  
+
+The next release of the GPI pipeline will probably be sometime September-ish after the final commissioning run, for use in 2014B. 
 
 
 Version 1.1
 =========================================
-Released TBD May 1 ish. 
+Released 2014 May 1. 
 
-This version was released in support of the GPI Early Science shared-risk observing programs by the community. It includes a range
+This version was released in support of the GPI Early Science shared-risk observing programs by the community in 2014A. It includes a range
 of enhancements and fixes made during the ongoing commissioning observing runs, including in particular substantial updates to polarimetry mode support. 
 
 .. comment:
@@ -90,7 +92,7 @@ of enhancements and fixes made during the ongoing commissioning observing runs, 
   * Improved installation documentation (Wang, Perrin)
   * Updated Tutorial documentation. (Ingraham)
   * Added polarization data reduction tutorial. (Millar-Blanchaer)
-  * Docs page on IFS thermal backgrounds updated (Perrin)
+  * Updated Step-by-step data reduction pages (Wolff, Ingraham, Wang, Perrin)
   * FAQ updates (Perrin)
 
 * Miscellaneous bug fixes and minor tasks:

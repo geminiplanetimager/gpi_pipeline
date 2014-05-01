@@ -1,11 +1,11 @@
 .. _usage-quickstart_pol:
 
-Tutorial 3: Polarimetry data reduction 
+Tutorial 2: Polarimetry data reduction 
 #####################################################
 
-This is a quick tutorial to help new users familiarize themselves with reducing polarization data sets with the GPI pipeline. It assumes that you have at least glanced at the **General Reduction Method** in the :ref:`previous tutorial <usage-quickstart>` 
+This tutorial helps new users familiarize themselves with reducing polarization data sets from GPI. It assumes that you have already read the :ref:`previous tutorial <usage-quickstart>` 
 
-We try to keep the tutorial as general as possible, so that it can be used as a guide for general pol reductions, but it has been designed for use with the sample data set. 
+We try to keep this tutorial as general as possible, so that it can be used as a guide for polarimetry reductions in general, but the details have been designed for use with the sample data set. 
 
 
 Getting the Sample Dataset for this Tutorial
@@ -14,15 +14,20 @@ Getting the Sample Dataset for this Tutorial
 A sample polarization dataset can be found `here <http://docs.planetimager.org/GettingStarted_pol_tutorial_dataset>`_. 
 
 The directory contains a number of different GPI file types: 
-	* Dark File - S20130912S0017-dark.fits
+	* Dark File - S20130912S0017-dark.fits   (note that this is a *reduced* dark file, not the raw dark images.)
 	* Bad Pixel Map - S20131208S0020_badpix.fits
 	* Microphonics Model -  S20131117S0172_microModel.fits
 	* GCAL H Flat - S20131212S0022.fits to S20131212S0024.fits 
 	* Science Images - S20131212S0295.fits to S20131212S0298.fits
 
-Download these files and place both the bad pixel map and dark file into your GPI calibrations folder. Open the GPI Data Pipeline and in the Status Console window click the **RESCAN CAL DB** button. This registers your new files in the calibration file database, and will allow the pipeline to find them automatically. If you do not do this step you will run into errors. 
+The science target is HD 100546, a Herbig Be star with a prominent circumstellar disk.
 
-.. Note:: The creation of the dark file and the bad pixel map are not covered in this tutorial, but you can see how to create your own dark files in the :ref:`first tutorial <usage-quickstart>`. 
+Download these files and place the first three into your GPI calibrations
+folder. As discussed in the first tutorial, whenever you manually add any files to your calibration directory, you need
+to click the **Rescan Calib. DB** button in the Status Console window .  If you do not do this,
+you will run into errors because the pipeline doesn't know about those new files.  
+
+.. Note:: The creation of the dark file and the bad pixel map are not covered in this tutorial, but you should have already seen how to create your own dark files in the :ref:`first tutorial <usage-quickstart>`. 
 
 
 
@@ -30,7 +35,7 @@ Making a Polarization Spot Calibration File
 ============================================================
 In GPI's polarization mode each lenslet creates a pair of spots on the detector plane: one for each orthogonal polarization state. A polarization spot calibration file tells the data pipeline where to find the two spots corresponding to each lenslet. Creating a polarization spot calibration file is done in much the same way as a wavelength calibration file for spectral mode. 
 	1. Open the recipe editor and press the Add Files button. Select flat files taken in the same GPI filter band as your science data. In the tutorial data set select files **S20131212S0022.fits to S20131212S0024.fits**. 
-	2. In the Recipe Editor, from the drop down menus on the right select **Reduction Category -> Calibrations** and then **Recipe Template -> Calibrate Polarization Spot Locations - Parallel**. By selecting the Parallel option by default the pipeline tries to spread the computation across 4 threads. If for some reason you'd rather limit the process to one thread can can choose Calibrate Polarization Spot Locations. [#]_
+	2. In the Recipe Editor, from the drop down menus on the right select **Reduction Category -> Calibrations** and then **Recipe Template -> Calibrate Polarization Spot Locations - Parallel**. By selecting the Parallel option by default the pipeline tries to spread the computation across 4 threads. If for some reason you'd rather limit the process to one thread you can choose Calibrate Polarization Spot Locations. [#]_
 	3. Press Save Recipe and Queue. This process should take a few minutes, depending on your machine and whether or not you chose the parallel option. 
 	4. Once this is complete it's a good idea to double check that your spot calibration file is doing what it should. Open GPItv and open the raw data file. From the **Labels** menu select **Labels -> Get Wavcal/Polcal from CalDB**. Now select **Labels-> Plot Wavecal/Polcal Grid**. 
  
@@ -162,6 +167,6 @@ Creating Stokes Cubes from Raw Data
 
 .. rubric:: Footnotes
  
-.. [#] Note that the compiled IDL virtual machine `does not support the IDL-Bridge <http://www.exelisvis.com/docs/IDL_IDLBridge.html>`_ object used to enable the parallelization of this task across multiple processes. If you are running the GPI pipeline using the compiled code and virtual machine, then you will need to choose the single thread option here, or in any case parallelization will be automatically disabled.
+.. [#] Note that the compiled IDL virtual machine `does not support the IDL-Bridge <http://www.exelisvis.com/docs/IDL_IDLBridge.html>`_ object used to enable the parallelization of this task across multiple processes. If you are running the GPI pipeline using the compiled code with the virtual machine, then you will need to choose the single thread option here, or in any case parallelization will be automatically disabled.
 
 .. [#] Specifically it arises because of accidental systematic biases in the extraction regions used to sum the flux from each lenslet spot. Some spots are well centered on a pixel, some are centered on the corner between four pixels, etc. The current extraction box is fixed in size for all lenslet spots (5 pixels, rounded to integer pixel locations) and thus doesn't take into account the variations in encircled energy depending on how well each spot is centered. Here too we are working on improved algorithms (optimal extraction based on empirically calibrated subpixel resolution lenslet PSFs) that will mitigate this issue. 

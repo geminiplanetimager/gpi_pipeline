@@ -91,6 +91,16 @@ pipeline will reduce them according to their filenames in alphabetical order. Th
 manually, simply copy it into the queue directory with a filename ending in ``".waiting.xml"``. 
 
 
+What happens when you run a recipe?
+---------------------------------------
+
+1. The pipeline starts executing the steps given in that recipe, iterating over multiple files if specified. 
+2. Progress in processing the recipe will be displayed in the :ref:`status_console` window, including progress bars showing the approximate percentage completed. 
+3. Each step in the pipeline processing may optionally save an output file, and/or display its results in a :ref:`GPItv <gpitv>` window.
+4. Details of the processing are :ref:`logged <logging>` in FITS headers and log files.
+5. When the recipe is finished, the pipeline simply returns to watching the queue directory for the next recipe to process.
+
+
 
 
 Primitive classes and the special action "Accumulate Images"

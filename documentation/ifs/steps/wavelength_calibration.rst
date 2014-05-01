@@ -19,15 +19,20 @@ Creating Calibrations:
 
 **File Suffix:** wavecal
 
-**Generate with Recipe:** "Wavelength Solution 2D"
+**Generate with Recipe:** "Wavelength Solution" or "Wavelength Solution 2D"
 
-Take a series of arc lamp exposures (multiple exposures to increase S/N). Reduce these using the 'Wavelength Solution 2D' recipe. This will create a references datacube that provides the starting x and y positions, the wavelength at those positions, the wavelength dispersion, and the tilt angle for each lenslet spectrum. This data cube may then be used to extract full spectral data cubes from science data.
+Take a series of arc lamp exposures (multiple exposures to increase S/N). Reduce these using one of the two wavelength solution recipes discussed below. This will create a references datacube ("wavecal file")  that provides the starting x and y positions, the wavelength at those positions, the wavelength dispersion, and the tilt angle for each lenslet spectrum. This wavecal may then be used to extract full spectral data cubes from science data.
 
 The Xenon arc lamp spectrum has more cleanly separated emission lines, but with our updated algorithms we now believe the pipeline can derive good wavelength calibrations from either
 Xe or Ar. The GCAL Ar lamp is 3-10x brighter depending on wavelength so the integration times are favorable. In general, Gemini instrument scientists will ensure proper calibration data are taken for wavecals.  
 
+There are two different recipes for creating wavelength calibrations:
+
+* "Wavelength Solution" will bootstrap a wavelength solution from scratch using centroids measured for the arc lamp emssion lines.  It is somewhat fragile and in particular is sensitive to any residual hot pixels in your data, and the generated wavecal is not of the highest quality.  This recipe should only be used if you're setting up a copy of the pipeline from scratch with no existing wavecal files.
+* "Wavelength Solution 2D" on the other hand fits a 2D forward model of the dispersed spectrum to each lenslet and minimizes the chi squared to derive a more accurate wavecal. It yields better results but *requires that you already have at least one prior  wavecal already to use as a starting guess* for the optimization. This is the right recipe to use the vast majority of the time.
+
 .. note::
-        This recipe is computationally intensive, and will take tens of minutes to run on typical machines. The parallelized mode does not work with IDL Virtual Machine.
+        The Wavelength Solution 2D recipe is computationally intensive, and will take tens of minutes to run on typical machines. The parallelized mode does not work with IDL Virtual Machine.
 
 Things to Watch Out For
 -------------------------
