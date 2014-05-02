@@ -205,6 +205,7 @@ The effect of clicking any of the mouse buttons depends on the 'Mouse Mode' drop
 ======================  ====================    =============================   ============================
 Mouse Mode              Left Click              Middle Click                    Right Click
 ======================  ====================    =============================   ============================
+None                    --                      --                              --
 Recenter/Color          Recenter                Adjust color stretch            Adjust color stretch
 Zoom                    Zoom in                 Recenter                        Zoom out
 Blink                   Show blink image #1     Show blink image #2             Show blink image #3
