@@ -11,13 +11,13 @@ We try to keep this tutorial as general as possible, so that it can be used as a
 Getting the Sample Dataset for this Tutorial
 =================================================
 
-A sample polarization dataset can be found `here <http://docs.planetimager.org/GettingStarted_tutorial_dataset/Pol_Tutorial>`_. 
+A sample polarization dataset can be found `here <http://docs.planetimager.org/GettingStarted_tutorial_dataset/Pol_Tutorial>`_ in the file ``gpi_pol_tutorial.zip``. Unzip that to get the tutorial dataset directory. 
 
 The directory contains a number of different GPI file types: 
 	* Dark File - S20130912S0017-dark.fits   (note that this is a *reduced* dark file, not the raw dark images.)
 	* Bad Pixel Map - S20131208S0020_badpix.fits
 	* Microphonics Model -  S20131117S0172_microModel.fits
-	* GCAL H Flat - S20131212S0022.fits to S20131212S0024.fits 
+	* GCAL H Flat lamp images - S20131212S0022.fits to S20131212S0024.fits 
 	* Science Images - S20131212S0295.fits to S20131212S0298.fits
 
 The science target is HD 100546, a Herbig Be star with a prominent circumstellar disk.
