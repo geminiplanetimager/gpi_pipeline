@@ -2095,6 +2095,7 @@ if (event.type EQ 0) then begin
         1: self->zoom, 'in', /recenter
         2: self->zoom, 'none', /recenter
         4: self->zoom, 'out', /recenter
+        else: event.press =  0
     endcase
 endif
 
