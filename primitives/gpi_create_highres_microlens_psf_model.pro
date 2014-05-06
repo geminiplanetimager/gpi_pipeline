@@ -86,7 +86,7 @@ bad_pixel_mask=abs(bad_pixel_mask-1)
   backbone->Log, "Cutting out postage stamps around each lenslet PSF"
   case disperser of
      'PRISM': begin
-        width_PSF = 5;4 ; orig                             ; size of stamp? 
+        width_PSF = 4 ; orig          ; size of stamp? - MUST BE 4 - MESSES UP OTHERWISE 
         n_per_lenslet = 1                         ; there is only 1 PSF per lenslet in spectral mode                
         sub_pix_res_x = 5		;sub_pixel resolution of the highres ePSF
         sub_pix_res_y = 5		;sub_pixel resolution of the highres ePSF
@@ -94,7 +94,9 @@ bad_pixel_mask=abs(bad_pixel_mask-1)
 				; if we are working with narrowband filter data, we want the centroid to be at the maximum
         if filter_wavelength ne -1 then cent_mode="MAX"
                                 ; Create raw data stamps
-        spaxels = gpi_highres_microlens_psf_extract_microspectra_stamps(disperser, dataset.frames[0:(nfiles-1)], dataset.wavcals[0:(nfiles-1)], width_PSF, bad_pixel_mask=bad_pixel_mask, /STAMPS_MODE) 
+        spaxels = gpi_highres_microlens_psf_extract_microspectra_stamps(disperser, dataset.frames[0:(nfiles-1)],$
+				dataset.wavcals[0:(nfiles-1)], width_PSF, bad_pixel_mask=bad_pixel_mask, /STAMPS_MODE);,/gaussians) 
+
      end
      'WOLLASTON': begin
         width_PSF = 7                            ; size of stamp?
@@ -103,10 +105,18 @@ bad_pixel_mask=abs(bad_pixel_mask-1)
         sub_pix_res_y = 4                        ; sub_pixel resolution of the highres ePSF
         cent_mode = "MAX"
                                 ; Create raw data stamps
-        spaxels = gpi_highres_microlens_psf_extract_microspectra_stamps(disperser, image, polcal, width_PSF, bad_pixel_mask=bad_pixel_mask, /STAMPS_MODE)
+        spaxels = gpi_highres_microlens_psf_extract_microspectra_stamps(disperser, image, polcal, width_PSF,$
+					bad_pixel_mask=bad_pixel_mask, /STAMPS_MODE)
 
      end
   endcase
+
+; must remove the known bad lenslets
+; these are both bad
+ptr_free,spaxels.values[183,198],spaxels.values[199,199]
+; this is just very weak
+ptr_free, spaxels.values[50,167]
+
 
   common psf_lookup_table, com_psf, com_x_grid_PSF, com_y_grid_PSF, com_triangles, com_boundary
   common hr_psf_common, c_psf,c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
@@ -117,9 +127,7 @@ bad_pixel_mask=abs(bad_pixel_mask-1)
   ; set up a lenslet jump to improve speed - normally the step would be 2*n_neighbors+1
   ; so this makes it (2*n_neighbors+1)*loop_jump
 	loop_jump=1                  ; the multiple of lenslets to jump
-
-  ;  n_neighbors_flex = 3          ; for the flexure shift determination - not currently used
-
+ 
 ; determine the cutout size- this is not always the same as width_PSF
 ; and the y-axis size is determined by the calibration file
   values_tmp = *(spaxels.values[(where(ptr_valid(spaxels.values)))[0]]) ; determine a box size
@@ -128,13 +136,13 @@ bad_pixel_mask=abs(bad_pixel_mask-1)
 
   if (size(spaxels.values))[0] eq 4 then n_diff_elev = (size(spaxels.values))[4] else n_diff_elev = 1
   ; Create data structure for storing high-res PSF:
-  PSF_template = {values: fltarr(nx_pix*sub_pix_res_x+1,ny_pix*sub_pix_res_y+1), $
-                  xcoords: fltarr(nx_pix*sub_pix_res_x+1), $
-                  ycoords: fltarr(ny_pix*sub_pix_res_y+1), $
-                  tilt: 0.0,$		; MP: ???
-                  id: [0,0,0] }		; MP: ???
+  ; PSF_template = {values: fltarr(nx_pix*sub_pix_res_x,ny_pix*sub_pix_res_y), $
+  ;                xcoords: fltarr(nx_pix*sub_pix_res_x), $
+  ;                ycoords: fltarr(ny_pix*sub_pix_res_y), $
+  ;                tilt: 0.0,$		; MP: ???
+  ;                id: [0,0,0] }		; lenslet indices
   
-                                ;replace the 281 by variables 
+ ;replace the 281 by variables 
   PSFs = ptrarr(281, 281, n_per_lenslet)
   fitted_spaxels = replicate(spaxels,1)
   fit_error_flag = intarr(281, 281, n_per_lenslet)
@@ -165,6 +173,7 @@ debug=1
 	weighted_intensity_arr=fltarr(281,281,n_per_lenslet,nfiles,it_flex_max)
     diff_intensity_arr=fltarr(281,281,n_per_lenslet,nfiles,it_flex_max)
     weighted_diff_intensity_arr=fltarr(281,281,n_per_lenslet,nfiles,it_flex_max)
+chisq_arr=fltarr(281,281,n_per_lenslet,nfiles,it_flex_max)
   endif
 
 ; ########################
@@ -174,21 +183,37 @@ debug=1
 
   imin_test = 0 & imax_test=280		; Iterate over entire field of view.
   jmin_test = 0 & jmax_test=280
-; imin_test = 145 & imax_test = 155
-; jmin_test = 145 & jmax_test = 155
+
+; imin_test = 190 & imax_test = 280
+; jmin_test = 0 & jmax_test = 210
 
 ; imin_test = 166-20 & imax_test = 177+20
 ; jmin_test = 166-20 & jmax_test = 177+20
+
+
+; imin_test = 140-10 & imax_test =140+20
+; jmin_test = 123-20 & jmax_test = 123+20
+
+
   ; code check range
 ; imin_test = 81 & imax_test = 89
 ; jmin_test = 87 & jmax_test = 89
 ; want 82,88
 ; the following is for pixel phase plotting only - it has no effect on any results
   pp_xind=166 & pp_yind=177
-  pp_neighbors=5
+  pp_neighbors=3
 
 	; the following is the iteration over the flexure position fixes
 	; so the right/outer loop in fig 8
+
+	; want to make sure the reference psfs aren't less then n_neighbours from the border
+	; the last lenslets are also often bad or distorted, so move it +1 inside
+	tmp= ptr_valid(spaxels.masks[*,*,0,0]); shows all lenslets
+	kernel=fltarr(2*n_neighbors+1+2+1,2*n_neighbors+1+2+1) ; add 1 extra plus blanks on all sides
+	kernel[1:2*n_neighbors+1+1+2-2,1:2*n_neighbors+1+1+2-2]=1
+	sample_map=convol(tmp,kernel) ; shows which ones have full sampling
+
+; should maybe look at getting rid of the outside lenslets to not affect fitting??
 
 kernel_testing: 
 ;it_flex_max=2
@@ -210,12 +235,20 @@ kernel_testing:
               for j=jmin_test,jmax_test do begin
 								
 		; MP: Skip if this is not a valid illuminated lenslet
-                 if ~finite(spaxels.intensities[i,j,k]) or spaxels.intensities[i,j,k] eq 0.0 then continue
-		
-
+			; also want to skip if the lenslet is not within the number of neighbours from the border
+                if ~finite(spaxels.intensities[i,j,k]) or spaxels.intensities[i,j,k] eq 0.0 or sample_map[i,j] ne total(kernel) then begin
+					; can't just continue, or it messes up the spacing the next go around
+					; now we need to step in the number of neighbours
+					j+=((2*n_neighbors)*loop_jump)
+					continue
+				endif
+	
 ; ##############################
 ; Create each highres mlens PSF
 ; ##############################
+
+;if i ne 171 then continue
+;if j ne 181 then continue
 
 
                      ; takes a chunk of the array to work with so you're not
@@ -255,24 +288,25 @@ kernel_testing:
                     current_sky =  (spaxels.sky_values[imin:imax,jmin:jmax,k,*])[not_null_ptrs]
                     
 		psf_kernel_testing:
-
-                   ptr_current_PSF = gpi_highres_microlens_psf_create_highres_psf($
-					 temporary(current_stamps), $
-                                               temporary(current_xcen - current_x0), $
-                                               temporary(current_ycen - current_y0), $
-                                               temporary(current_flux), $
-                                               temporary(current_sky), $
-                                               nx_pix,ny_pix,$
-                                               sub_pix_res_x,sub_pix_res_y, $
-                                               MASK = temporary(current_masks),  $
+if i eq 140 and j eq 123 then stop,'before create_highres_psf'
+                    ptr_current_PSF = gpi_highres_microlens_psf_create_highres_psf($
+                                      temporary(current_stamps), $
+                                      temporary(current_xcen - current_x0), $
+                                      temporary(current_ycen - current_y0), $
+                                      temporary(current_flux), $
+                                      temporary(current_sky), $
+                                      nx_pix,ny_pix,$
+                                      sub_pix_res_x,sub_pix_res_y, $
+                                      MASK = temporary(current_masks),  $
                                 ;XCOORDS = polspot_coords_x, $
                                 ;YCOORDS = polspot_coords_y, $
-                                               ERROR_FLAG = myerror_flag, filter=filter,$
-                                               CENTROID_MODE = cent_mode, $
-                                               HOW_WELL_SAMPLED = my_Sampling,$
-                                               LENSLET_INDICES = [i,j,k], no_error_checking=1,$
-					   /plot_samples )
-	
+                                      ERROR_FLAG = myerror_flag, filter=filter,$
+                                      CENTROID_MODE = cent_mode, $
+                                      HOW_WELL_SAMPLED = my_Sampling,$
+                                      LENSLET_INDICES = [i,j,k], no_error_checking=1,$
+                                      /plot_samples )
+;if i eq 184 and j eq 194 and it_flex eq 1 then stop
+	;stop,i,j
 			; only store high-res psf in the place for which it was determined 
 			PSFs[i,j,k] = (ptr_current_PSF)
 
@@ -293,7 +327,7 @@ print,'' ; just puts a space in the status line
 	; now fit the PSF to each elevation psf and each neighbour
 ;		print, "Fitting PSFs: for file "+strc(f)
 
-	valid=ptr_valid(high_res_psfs) ; which psfs are valid?
+	valid=ptr_valid(psfs) ; which psfs are valid?
 
 	  ; now loop over each lenslet
            for i=imin_test,imax_test do begin				
@@ -320,21 +354,27 @@ print,'' ; just puts a space in the status line
 			 FIT_PARAMETERS = best_parameters, $
 			 /QUIET, $
 			;                              /anti_stuck, $
-			 ERROR_FLAG = my_other_error_flag, no_error_checking=1) ;
-						
-			fitted_spaxels.values[i,j,k,f] =temporary(ptr_fitted_PSF)
+			 ERROR_FLAG = my_other_error_flag, no_error_checking=1,chisq=chisq) ;
+			
+                        chisq_arr[i,j,k,f,it_flex]=chisq
+
+;if chisq gt 1e10 then stop,'chisq passed limit'
+                        
+            fitted_spaxels.values[i,j,k,f] =temporary(ptr_fitted_PSF)
 			fitted_spaxels.xcentroids[i,j,k,f] = best_parameters[0]
 			fitted_spaxels.ycentroids[i,j,k,f] = best_parameters[1]
 			fitted_spaxels.intensities[i,j,k,f] = best_parameters[2]
-
+;if it_flex eq 1 and i eq 174 and j eq 184 then stop,'here after fitting'
 ; gpi_highres_debugging
 
 		endfor      ; loop to fit psfs in elevation
            endfor       ; end loop over j lenslets (columns?)
         endfor ; end loop over i lenslsets (rows?)
 
+
         endfor ; end loop over # of spots per lenslet  (1 for spectra, 2 for polarization)
-        
+;     stop, 'at end of fitting'
+
         ; put the fitted values into the originals before re-iterating
 ;		stop,'just about to modify centroids'
         spaxels.xcentroids = fitted_spaxels.xcentroids
@@ -384,15 +424,15 @@ transform_section:
 ; !!!!!! WARNING !!!!!!!
 ;THIS IS tested TO WORK IN SPECTRAL MODE FOR NOW!
 ; although the code SHOULD work and combine both polarization states
-
+med_box=30
     for f = 0,nfiles-1 do begin
  	; xtransform array
 	xtrans_tmp=xcen_ref-(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,f])
 	ytrans_tmp=ycen_ref-(spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,f])
 	nan_ind=where(finite(xtrans_tmp+ytrans_tmp) eq 0,ct)	
 	; now filter the array
-	xtrans_tmp2=filter_image(xtrans_tmp,median=20,/all) ; this is about 4 cycles per aperture
-	ytrans_tmp2=filter_image(ytrans_tmp,median=20,/all)
+	xtrans_tmp2=filter_image(xtrans_tmp,median=med_box,/all) ; this is about 4 cycles per aperture
+	ytrans_tmp2=filter_image(ytrans_tmp,median=med_box,/all)
 
 	; put the nan's back in the image - the filtering expands the image
 	if ct gt 0 then begin
@@ -458,10 +498,10 @@ endif
 ; determine indices of arrays to replace
 ind_arr = array_indices(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,0],valid_ctrd_ptrs)
 
-;stop,"about to apply flexure correction to centroids"
+stop,"about to apply flexure correction to centroids"
 
 
-  if nfiles ne 1 then begin
+  if nfiles ne 1 and it_flex ne 0 then begin ; skip the flexure correction for the first run
      for f = 0,nfiles-1 do begin ; loop over each flexure position
         
 	mean_xcen_ref_in_im=mean_xcen_ref-(xtransf_im_to_ref[imin_test:imax_test,jmin_test:jmax_test,f])[valid_ctrd_ptrs]
@@ -469,7 +509,8 @@ ind_arr = array_indices(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_te
  
 ;	for i=0,degree_of_the_polynomial_fit do for j= 0,degree_of_the_polynomial_fit do mean_xcen_ref_in_im += xtransf_ref_to_im[i,j,f]*mean_xcen_ref^j * mean_ycen_ref^i
 ;        for i=0,degree_of_the_polynomial_fit do for j= 0,degree_of_the_polynomial_fit do mean_ycen_ref_in_im += ytransf_ref_to_im[i,j,f]*mean_xcen_ref^j * mean_ycen_ref^i
-        
+
+
         if (size(ind_arr))[0] gt 2 then begin
            for zx=0L,N_ELEMENTS(ind_arr[0,*])-1 do begin
               spaxels.xcentroids[ind_arr[0,zx]+imin_test,ind_arr[1,zx]+jmin_test,ind_arr[2,zx],f] = mean_xcen_ref_in_im[zx]
@@ -481,7 +522,7 @@ ind_arr = array_indices(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_te
               spaxels.ycentroids[ind_arr[0,zx]+imin_test,ind_arr[1,zx]+jmin_test,*,f] = mean_ycen_ref_in_im[zx]
            endfor
         endelse
-        
+
      endfor                     ; ends loop over f to apply flexure correction (line 670)
   endif ; if statement to see if there is more than 1 file - 
 
