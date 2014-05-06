@@ -69,7 +69,7 @@ Starting from source code (either from the repository or zip files)
    
         shell> which idl
 
-   A blank output (or an output that says 'aliased') means that idl is not in your path.  To add it, either edit your ``$PATH`` variable, or go to a user-writeable directory in your path (you can check which directories are in your path by running ``echo $PATH``).  Then create a symbolic link in the directory by running: ::
+   A blank output (or an output that says 'aliased') means that idl is not in your path.  To add it, either edit your ``$PATH`` variable, or go to a user-writeable directory in your path (you can check which directories are in your path by running ``echo $PATH``).  Then create a symbolic link in the directory by running::
         
         shell> ln -s /path/to/idl idl
 
@@ -115,48 +115,43 @@ How to run a .sav file in the IDL Virtual Machine depends on your operating syst
 
   Mac and Linux users can launch the IDL virtual machine and then tell it to launch a particular .sav file. You'll need to repeat this for the two GPI pipeline IDL sessions. 
 
-  You may also launch the IDL Virtual Machine and use the file selection menu to locate the .sav file to run: 
+  To run a .sav file in the IDL Virtual Machine from the command line: 
   
   1. Enter the following at the UNIX command line::
 
-       >>>idl -vm  
+       >>> <path_to_idl_runtime>/idl -vm=<path_to_sav_files><filename>  
+
+     where <path_to_sav_files> is the complete path to the .sav file and <filename> is the name of the .sav file. 
+     The idl runtime is included with the compiled GPI pipeline files for each platform, in the subdirectory ``executables/idl81/bin``.
+     So for instance you might enter here the command 
+
+       >>> ~/gpi_pipeline_1.1/executables/idl81/bin/idl -vm= ~/gpi_pipeline_1.1/executables/gpi_launch_pipeline.sav
      
+  2.  The IDL Virtual Machine logo window will be displayed.  Click anywhere in the IDL Virtual Machine window to close the window and run the .sav file.
+
+  You may also launch the IDL Virtual Machine and use its file selection menu to locate the .sav file to run. 
+  
+  1. Enter the following at the UNIX command line::
+
+       >>>  <path_to_idl_runtime>/idl -vm  
+    
+     The idl runtime is included with the compiled GPI pipeline files, in the subdirectory ``executables/idl81/bin`` so for instance you might enter here the command 
      
+       >>> ~/gpi_pipeline_1.1/executables/idl81/bin/idl -vm 
   
   2. The IDL Virtual Machine window will be displayed. Click anywhere in the IDL Virtual Machine window to display the file selection menu.
 
   3.  Locate and select the .sav file and click OK.
 
-
-  To run a .sav file in the IDL Virtual Machine from the command line: 
-  
-  1. Enter the following at the UNIX command line::
-
-       >>>idl -vm=<path><filename>  
-
-     where <path> is the complete path to the .sav file and <filename> is the name of the .sav file. 
-     
-  2.  The IDL Virtual Machine logo window will be displayed.  Click anywhere in the IDL Virtual Machine window to close the window and run the .sav file.
-  
-
-  
-.. warning:: 
-
-    .. image:: ../shared_images/icon_mac2.png
  
-    On Mac OS, in theory it ought to be possible to start the pipeline by double clicking the .sav files or .app bundles produced by the IDL compiler. However, if you start them from the Finder, then they will not have access to any environment variables that define paths, since those are set in your shell configuration files, which the Finder knows nothing about. 
-
-    We recommend you start the IDL virtual machine settings from inside Terminal or an xterm, as described above. 
-
-    If you really do want to start from double clicking in the Finder, you will need to define all the pipeline file paths using your ``.gpi_pipeline_settings`` file instead of via environment variables. See :ref:`configuring`.
-
 .. admonition:: Mac OS and Linux startup script
 
     .. image:: ../shared_images/icon_mac2.png
     .. image:: ../shared_images/icon_linux2.png
  
    Just like for the source code install, a script is provided in ``pipeline/scripts`` that launches 2 IDL sessions, and starts the pipeline code. 
-   While the under the hood implementation is slightly different, the script name and effective functionality are identical.
+   While the under the hood implementation is slightly different, the script name and effective functionality are identical. You must define the ``$GPI_DRP_DIR`` environment variable to point to the 
+   root directory of your GPI pipeline installation for this script to work.
 
     ::
 
@@ -167,6 +162,18 @@ How to run a .sav file in the IDL Virtual Machine depends on your operating syst
    Launcher windows are displayed as :ref:`shown below <itsworking>`, then the pipeline has launched successfully.
 
    If you encounter problems with the startup script, just start the IDL sessions manually as described above. 
+
+
+  
+.. warning:: 
+
+      .. image:: ../shared_images/icon_mac2.png
+ 
+    On Mac OS, in theory it ought to be possible to start the pipeline by double clicking the .sav files or .app bundles produced by the IDL compiler. However, if you start them from the Finder, then they will not have access to any environment variables that define paths, since those are set in your shell configuration files, which the Finder knows nothing about. 
+
+    We recommend you start the IDL virtual machine settings from inside Terminal or an xterm, as described above. 
+
+    If you really do want to start from double clicking in the Finder, you will need to define all the pipeline file paths using your ``.gpi_pipeline_settings`` file instead of via environment variables. See :ref:`configuring`.
 
 
 .. admonition:: Windows manual startup of the Virtual Machine

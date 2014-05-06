@@ -311,9 +311,10 @@ for i=0,n_elements(launcher_names)-1 do begin
 	MAKE_RT, launcher_names[i], compile_dir, savefile=compile_dir+launcher_names[i]+'.sav', /vm,  $
 		MACINT64=macint64, LIN64=lin64, WIN32=win32, /overwrite
 
-	;delete *.app files which dont load properly
+	;delete *.app files which dont load properly due to not having access to
+	; environment variables
 	if (macint64 eq 1) then begin
-		FILE_DELETE, compile_dir+launcher_names[i]+'.app'
+		FILE_DELETE, compile_dir+launcher_names[i]+path_sep()+launcher_names[i]+'.app',/recursive
 	endif
 
 endfor

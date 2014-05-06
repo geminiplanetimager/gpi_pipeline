@@ -15,11 +15,14 @@ Released 2014 May 7.
 
 This is a minor bugfix release for v1.1. 
 
- * Fix typo in gpi_destripe_science_images that was causing recipes to fail. 
- * Also some other minor changes: URL and zip file updates for tutorial dataset files (Millar-Blanchaer, Marchis, Perrin). 
-   Add 'None' mouse mode option to gpitv (Fitzgerald).  
-   Remove obsolete persistence model file (Ingraham) 
-   Compiler should not output nonfunctional Mac OS .app bundles (Draper)
+* Fix typo in gpi_destripe_science_images that was causing recipes to fail. 
+* Also some other minor changes: 
+  
+  * URL and zip file updates for tutorial dataset files (Millar-Blanchaer, Marchis, Perrin). 
+  * Add 'None' mouse mode option to gpitv (Fitzgerald).  
+  * Remove obsolete persistence model file (Ingraham) 
+  * Compiler should not output nonfunctional Mac OS .app bundles (Draper)
+  * Improved installation documentation and gpi-pipeline script for compiled version (Perrin)
 
 
 
