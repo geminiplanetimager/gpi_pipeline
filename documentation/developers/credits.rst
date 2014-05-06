@@ -19,6 +19,7 @@ Pipeline architecture design, initial algorithms development, core structure, GU
 **Dmitry Savransky** made major contributions to pipeline primitives, infrastructure, and GPItv.
 
 **Zack Draper** developed improved datacube extraction routines and tools for fitting flexure using microlens PSFs.
+**Mike Fitzgerald** contributed some improvements to gpitv. 
 **Christian Marois** contributed to improving PSF subtraction algorithms and contrast measurement code. 
 **Max Millar-Blanchaer** contributed extensively to polarization mode primitives and GPItv polarization support, and with 
 **Abhijith Rajan** found and fixed a few bugs.
@@ -34,8 +35,8 @@ Pipeline architecture design, initial algorithms development, core structure, GU
 **Quinn Konopacky** developed the distortion correction primitive along with Jerome.
 **Franck Marchis** oversees the computer infrastructure at the SETI Institute hosting software repositories and documentation, and supervised visiting student JB Ruffio.
 **Laurent Pueyo** contributed to data analyses and algorithms development. 
-Some utility functions used in the pipeline are by **Mathilde Bealieau**, **David Lafreniere**, **Jean-Francois Lavigne**, and **Lisa Poyneer**.
 **Sloane Wiktorowicz** worked with Max to calibrate the instrumental polarization.
+Some utility functions used in the pipeline are by **Mathilde Bealieau**, **David Lafreniere**, **Jean-Francois Lavigne**, and **Lisa Poyneer**.
 
 
 Contributions to data analyses and public data releases have been made by many additional memebrs of the GPI Data Analysis team, including **Rob de Rosa**,  **Jennifer Patience**, **Sandrine Thomas** and **Kim Ward-Duong**.
@@ -63,7 +64,7 @@ by James Larkin, Shelley Wright, Jason Weiss, Mike McElwain, Marshall Perrin,
 Christof Iserlohe, Alfred Krabbe, Tom Gasaway, and Tommer Wizanski. 
 
 
-The Recipe Editor  was inspired by the OSIRIS ODRFGUI, orginally written in Java by Jason Weiss.  Jerome Maire and Marshall Perrin reimplemented it in a modified form in IDL, with improvements contributed by several team members.
+The Recipe Editor  was inspired by the OSIRIS ODRFGUI, orginally written in Java by Jason Weiss.  Jerome Maire and Marshall Perrin reimplemented it in a modified form in IDL, with improvements since contributed by several team members.
 
 GPItv is based on `atv by Aaron Barth et al.
 <http://www.physics.uci.edu/~barth/atv/>`_   The Header Viewer dialog in gpitv
@@ -76,6 +77,7 @@ derived from David Fanning's tool `selectimage.pro
 The GPI data pipeline is
 built upon an extensive foundation of other open source software from the astronomical community, including 
 but not limited to the Goddard IDL Astronomy Pipeline, the JHUAPL library, Craig Markwardt's MPFIT library, 
-Liam Gumley's IMDISP.PRO, and many other individual tools.
+Liam Gumley's IMDISP.PRO, and many other individual tools.  See the licenses file provided in the pipeline source code's ``external`` directory for a
+complete list of all open source routines we've made use of. 
 
  

@@ -14,6 +14,7 @@ astrometry and spectrophotometry of detected sources.
 **Software and documentation by:** Marshall Perrin (STScI), Jérôme Maire
 (University of Toronto), Patrick Ingraham
 (Stanford), Dmitry Savransky (Cornell), Zack Draper (U Victoria),
+Michael Fitzgerald (UCLA),
 Christian Marois (NRC) ,
 Max Millar-Blanchaer (Toronto), 
 Abhi Rajan (ASU), JB Ruffio (SETI, ISAE), Naru Sadakuni (UCSC and Gemini), Jason Wang (Berkeley), Schuyler Wolff (JHU), 

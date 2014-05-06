@@ -9,7 +9,21 @@ You may wish to skip ahead to  :ref:`configuring`.
 The next release of the GPI pipeline will probably be sometime September-ish after the final commissioning run, for use in 2014B. 
 
 
-Version 1.1
+Version 1.1.1
+=========================================
+Released 2014 May 7. 
+
+This is a minor bugfix release for v1.1. 
+
+ * Fix typo in gpi_destripe_science_images that was causing recipes to fail. 
+ * Also some other minor changes: URL and zip file updates for tutorial dataset files (Millar-Blanchaer, Marchis, Perrin). 
+   Add 'None' mouse mode option to gpitv (Fitzgerald).  
+   Remove obsolete persistence model file (Ingraham) 
+   Compiler should not output nonfunctional Mac OS .app bundles (Draper)
+
+
+
+Version 1.1.0
 =========================================
 Released 2014 May 1. 
 

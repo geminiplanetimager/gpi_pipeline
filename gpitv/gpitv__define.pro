@@ -139,7 +139,7 @@ state = {                   $
         draw_base_id: 0L, $                ; id of base holding draw window
         draw_window_id: 0L, $              ; window id of draw window
         draw_widget_id: 0L, $              ; widget id of draw widget
-        mousemode: 0L, $                   ; color, blink, zoom, or imexam
+        mousemode: 1L, $                   ; color, blink, zoom, or imexam
         mousemode_count: 0L, $             ; number of available mouse modes
         mode_droplist_id: 0L, $            ; id of mode droplist widget
         track_window_id: 0L, $             ; widget id of tracking window
@@ -1034,7 +1034,7 @@ tmp_string = string(12, 12, 12.001, -60, 60, 60.01, ' J2000', $
 ;;for calculation of locations of sat-spots
 IF keyword_set(nbrsatspot) THEN (*self.state).nbrsatspot=nbrsatspot
 
-modelist = ['Recenter/Color', 'Zoom', 'Blink', 'Statistics 2D/3D','Plot Cut along Vector','Measure Distance', $
+modelist = ['None', 'Recenter/Color', 'Zoom', 'Blink', 'Statistics 2D/3D','Plot Cut along Vector','Measure Distance', $
             'Photometry','Spectrum Plot','Draw Region','Row/Column Plot','Gauss Row/Column Plot',$
             'Histogram/Contour Plot','Surface Plot']
 ;;if (*self.state).nbrsatspot ne 0 then modelist=[modelist,'SAT-SPOT LOCALIZE']
@@ -1048,6 +1048,8 @@ mode_droplist_id = widget_droplist(track_baseR, $
                                    uvalue = 'mode', $
                                    value = modelist)
 (*self.state).mode_droplist_id = mode_droplist_id
+widget_control, (*self.state).mode_droplist_id, set_droplist_select = (*self.state).mousemode
+
 
 ;------ add Buttons to the toolbar area
 
@@ -2060,19 +2062,20 @@ pro GPItv::changemode, newmode
 
   ;; This does the actual work (used to be in gpitv_event)
   case newmode of
-     0: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_color_event'}
-     1: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_zoom_event'}
-     2: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_blink_event'}
-     3: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_phot_event'}
-     4: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_vector_event'}
-     5: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_measure_event'}
-     6: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_anguprof_event'}
-     7: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_lambprof_event'}
-     8: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_region_event'}
-     9: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_rowcol_event'}
-     10: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_gauss_rowcol_event'}
-     11: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_histcont_event'}
-     12: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_surf_event'}
+     0: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_none_event'}
+     1: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_color_event'}
+     2: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_zoom_event'}
+     3: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_blink_event'}
+     4: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_phot_event'}
+     5: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_vector_event'}
+     6: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_measure_event'}
+     7: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_anguprof_event'}
+     8: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_lambprof_event'}
+     9: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_region_event'}
+     10: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_rowcol_event'}
+     11: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_gauss_rowcol_event'}
+     12: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_histcont_event'}
+     13: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_surf_event'}
      else: self->message, msgtype = 'error', 'Unknown mouse mode!'
   endcase
 
@@ -2081,6 +2084,27 @@ pro GPItv::changemode, newmode
 end
 
 ;------------------------------------------------------------------
+
+pro GPItv::draw_none_event, event
+
+; Event handler for None mode
+
+@gpitv_err
+
+;; if (!d.name NE (*self.state).graphicsdevice) then return
+
+;; if (event.type EQ 0) then begin
+;;     case event.press of
+;;         else: event.press =  0
+;;     endcase
+;; endif
+
+;; if (event.type EQ 2) then self->draw_motion_event, event
+
+;; widget_control, (*self.state).keyboard_text_id, /sensitive, /input_focus
+
+end
+
 
 pro GPItv::draw_zoom_event, event
 
@@ -2095,6 +2119,7 @@ if (event.type EQ 0) then begin
         1: self->zoom, 'in', /recenter
         2: self->zoom, 'none', /recenter
         4: self->zoom, 'out', /recenter
+        else: event.press =  0
     endcase
 endif
 
