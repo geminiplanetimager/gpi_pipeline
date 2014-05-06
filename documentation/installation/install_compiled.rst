@@ -29,12 +29,13 @@ The distribution ZIP files for the GPI pipeline come in two flavors:
 .. comment 
     ## DO NOT EDIT THIS LINE ## Marker for automated editing of this file by gpi_release.py
 
-**Version 1.1** (2014 May 1: 
- * `gpi_pipeline_1.1_compiled.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1_compiled.zip>`_ -  GPI pipeline compiled code only
- * `gpi_pipeline_1.1_runtime_macosx.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1_runtime_macosx.zip>`_ - GPI pipeline compiled code plus IDL runtime for Mac OS X
- * `gpi_pipeline_1.1_runtime_linux.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1_runtime_linux.zip>`_ - GPI pipeline compiled code plus IDL runtime for Linux
- * `gpi_pipeline_1.1_runtime_windows.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1_runtime_windows.zip>`_ - GPI pipeline compiled code plus IDL runtime for Windows
- * `gpi_pipeline_1.1_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1_source.zip>`_ -  GPI pipeline source code (available for reference)
+**Version 1.1.1** (2014 May 6): 
+ * `gpi_pipeline_1.1.1_compiled.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1.1_compiled.zip>`_ -  GPI pipeline compiled code only
+ * `gpi_pipeline_1.1.1_runtime_macosx.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1.1_runtime_macosx.zip>`_ - GPI pipeline compiled code plus IDL runtime for Mac OS X
+ * `gpi_pipeline_1.1.1_runtime_linux.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1.1_runtime_linux.zip>`_ - GPI pipeline compiled code plus IDL runtime for Linux
+ * `gpi_pipeline_1.1.1_runtime_windows.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1.1_runtime_windows.zip>`_ - GPI pipeline compiled code plus IDL runtime for Windows
+ * `gpi_pipeline_1.1.1_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1.1_source.zip>`_ -  GPI pipeline source code (available for reference)
+
 
 
 
@@ -119,6 +120,14 @@ Proceed now to :ref:`configuring`.
 
 Download Links for Prior Versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Version 1.1** (2014 May 1): 
+ * `gpi_pipeline_1.1_compiled.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1_compiled.zip>`_ -  GPI pipeline compiled code only
+ * `gpi_pipeline_1.1_runtime_macosx.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1_runtime_macosx.zip>`_ - GPI pipeline compiled code plus IDL runtime for Mac OS X
+ * `gpi_pipeline_1.1_runtime_linux.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1_runtime_linux.zip>`_ - GPI pipeline compiled code plus IDL runtime for Linux
+ * `gpi_pipeline_1.1_runtime_windows.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1_runtime_windows.zip>`_ - GPI pipeline compiled code plus IDL runtime for Windows
+ * `gpi_pipeline_1.1_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1_source.zip>`_ -  GPI pipeline source code (available for reference)
+
 
 
 **Version 1.0.0** (2014 Feb 14): 

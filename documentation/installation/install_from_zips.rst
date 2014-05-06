@@ -16,8 +16,8 @@ pipeline development.
 .. comments
     ## DO NOT EDIT THIS LINE ## Marker for automated editing of this file by gpi_release.py
 
-**Version 1.1** (2014 Feb 14):
- * `gpi_pipeline_1.1_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1_source.zip>`_ -  GPI pipeline source code 
+**Version 1.1** (2014 May 6):
+ * `gpi_pipeline_1.1.1_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1.1_source.zip>`_ -  GPI pipeline source code 
 
 
 See :ref:`here <priorversions>` to download earlier versions of the pipeline, if desired.
