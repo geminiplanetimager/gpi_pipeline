@@ -69,7 +69,7 @@ Starting from source code (either from the repository or zip files)
    
         shell> which idl
 
-   A blank output (or an output that says 'aliased') means that idl is not in your path.  To add it, go to a user-writeable directory in your path (you can check which directories are in your path by running ``echo $PATH``).  Then create a symbolic link in the directory by running: ::
+   A blank output (or an output that says 'aliased') means that idl is not in your path.  To add it, either edit your ``$PATH`` variable, or go to a user-writeable directory in your path (you can check which directories are in your path by running ``echo $PATH``).  Then create a symbolic link in the directory by running: ::
         
         shell> ln -s /path/to/idl idl
 
@@ -111,9 +111,9 @@ How to run a .sav file in the IDL Virtual Machine depends on your operating syst
 
     .. image:: ../shared_images/icon_mac2.png
     .. image:: ../shared_images/icon_linux2.png
- 
-  Mac and Linux users can launch the IDL virtual machine and then tell it to launch a particular .sav file. You'll need to repeat this for the two GPI pipeline IDL sessions. 
+    
 
+  Mac and Linux users can launch the IDL virtual machine and then tell it to launch a particular .sav file. You'll need to repeat this for the two GPI pipeline IDL sessions. 
 
   You may also launch the IDL Virtual Machine and use the file selection menu to locate the .sav file to run: 
   
@@ -140,12 +140,15 @@ How to run a .sav file in the IDL Virtual Machine depends on your operating syst
   
 
   
-.. admonition:: Mac OS 
+.. warning:: 
 
     .. image:: ../shared_images/icon_mac2.png
  
-  Macintosh users can also drag and drop each .sav file onto the IDL Virtual Machine icon, and this will also work to launch it similarly to if you had started it from the command line. 
-  Depending on whether the .sav file extension is configured to be associated with IDL on your computer, you may be able to just double click the .sav files, too. 
+    On Mac OS, in theory it ought to be possible to start the pipeline by double clicking the .sav files or .app bundles produced by the IDL compiler. However, if you start them from the Finder, then they will not have access to any environment variables that define paths, since those are set in your shell configuration files, which the Finder knows nothing about. 
+
+    We recommend you start the IDL virtual machine settings from inside Terminal or an xterm, as described above. 
+
+    If you really do want to start from double clicking in the Finder, you will need to define all the pipeline file paths using your ``.gpi_pipeline_settings`` file instead of via environment variables. See :ref:`configuring`.
 
 .. admonition:: Mac OS and Linux startup script
 
@@ -171,10 +174,8 @@ How to run a .sav file in the IDL Virtual Machine depends on your operating syst
     .. image:: ../shared_images/icon_windows2.png
  
 
-  Most simply, if your operating system has file extensions configured to associate .sav files with IDL, you can just double click.
+  Most simply, if your installation of Windows has file extensions configured to associate .sav files with IDL, you can just double click.
 
-  1. 
-  
   
   To open a .sav file from the IDL Virtual Machine icon: 
   
