@@ -83,7 +83,7 @@
 function gpi_highres_microlens_psf_create_highres_psf, pixel_array, x_centroids, y_centroids, intensities, sky_values, $
                   PSF_nx_pix,PSF_ny_pix, PSF_samples_per_xpix, PSF_samples_per_ypix, $
                   MASK = mask,  XCOORDS = xcoords, YCOORDS = ycoords, filter=filter, $
-                  ERROR_FLAG = error_flag, $
+                  ERROR_FLAG = error_flag,flag=flag, $
                   SPLINE_PSF = spline_psf, X_SPLINE_PSF = x_spline_psf, Y_SPLINE_PSF = y_spline_psf, $
                   CENTROID_MODE = centroid_mode, $
                   PLOT_SAMPLES = plot_samples,$
@@ -171,7 +171,6 @@ endif else if ~keyword_set(xcoords) and ~keyword_set(ycoords) and keyword_set(ma
 	  xcoords[not_relevant] = !values.f_nan
 	  ycoords[not_relevant] = !values.f_nan
 	endif
-
 
 endif else begin
 	error_flag = -1
@@ -263,18 +262,19 @@ if where_coords_NOT_too_big[0] eq -1 then stop, 'line 219'
   all_pix_values = all_pix_values[where_coords_NOT_too_big]
   
   
-  ;if keyword_set(PLOT_SAMPLES) then begin
-;    select_window, 10,retain=2,xsize=650,ysize=600
-;    plot,all_x_coords,all_y_coords ,psym=3,$
-;         TITLE = "PSF sampling (green = psf grid, white = samples)", $
-;         XTITLE = "x axis (in pixel)", $
-;         YTITLE = "y axis (in pixel)", $
-;         yr=[min(y_grid_psf)-2,max(y_grid_psf)+2],/ys, $
-;         xr=[min(x_grid_psf)-2,max(x_grid_psf)+2],/xs
-;    oplot, reform(x_grid_PSF, n_elements(x_grid_PSF)),reform(y_grid_PSF, n_elements(y_grid_PSF)),psym=1,color=cgcolor('green')
+  if keyword_set(PLOT_SAMPLES) or keyword_set(flag) then begin
+	  select_window, 10,retain=2,xsize=650,ysize=600;
+	    plot,all_x_coords,all_y_coords ,psym=3,$
+         TITLE = "PSF sampling (green = psf grid, white = samples)", $
+        XTITLE = "x axis (in pixel)", $
+         YTITLE = "y axis (in pixel)", $
+         yr=[min(y_grid_psf)-2,max(y_grid_psf)+2],/ys, $
+         xr=[min(x_grid_psf)-2,max(x_grid_psf)+2],/xs
+   oplot, reform(x_grid_PSF, n_elements(x_grid_PSF)),$
+	reform(y_grid_PSF, n_elements(y_grid_PSF)),psym=1,color=cgcolor('green')
 
 ;   stop
-  ;endif
+endif
 
 
 
@@ -321,8 +321,9 @@ signs= [ [-1.0, 1.0, -1.0], $
  	 'Y':kernel=1.0/((abs(r/13.0)+1.0)^15)*signs ; updated 140415 - PI
  	 'J':kernel=1.0/((abs(r/12.0)+1.0)^9)*signs  ; MUST UPDATE
  	 'H':kernel=1.0/((abs(r/12.0)+1.0)^10)*signs ; MUST UPDATE
- 	 'K1':kernel=1.0/((abs(r/12.0)+1.0)^9)*signs  ; MUST UPDATE
- 	 'K2':kernel=1.0/((abs(r/12.0)+1.0)^9)*signs  ; MUST UPDATE
+; 	 'K1':kernel=1.0/((abs(r/10.0)+1.0)^6)*signs  ; updated 140501 - not amazing - asymmetric?
+	 'K1':kernel=1.0/((abs(r/10.0)+1.0)^15)*signs  ; no idea why this works better... 
+ 	 'K2':kernel=1.0/((abs(r/10.0)+1.0)^6)*signs  ; same as K1
 	endcase
 
 ; these are the shifts of the psf samplings so that the high-res psf
@@ -336,11 +337,17 @@ time0=systime(1)  ; this is just for timing
 ; 10 gives the best result - this is when the x and y shifts 
 ; converge to a certain value
 loop_iterations=10
+cent_ind=where(x_grid_psf eq 0 and y_grid_psf eq 0)
+sz=size(x_grid_psf)
+cent_indx=cent_ind mod sz[1]
+cent_indy=cent_ind / sz[1]
 for l=0, loop_iterations-1 do begin
-                                ; this finds all the samplings for a given psf coordinate
-                                ; takes very little time
-   val_loc_x_coords = value_locate(PSF_x_sampling, all_x_coords-xshift) 
-   val_loc_y_coords = value_locate(PSF_y_sampling, all_y_coords-yshift)
+    ; this finds all the samplings for a given psf coordinate
+    ; takes very little time
+	; shifts are only singular values but if they get turned into 1 d arrays
+	; then the value_locate function no longer works :-( not sure why
+   val_loc_x_coords = value_locate(PSF_x_sampling, all_x_coords-xshift[0]) 
+   val_loc_y_coords = value_locate(PSF_y_sampling, all_y_coords-yshift[0])
                                 ; loop over x samples
    for i = 0,PSF_nx_samples-1 do begin
                                 ; the indices_for_current_point variable is determined in the following manner simply for speed reasons.
@@ -382,23 +389,27 @@ for l=0, loop_iterations-1 do begin
                                 ; is equally on all sides of the center
                                 ; if you have 10 points all on one side then your
                                 ; 'average' is very biased.       
-            if n_elements(matching_values[good]) ge 13 then begin
+            if n_elements(matching_values[good]) ge 3 then begin
                                 ; calculate residual.
-                                ; note that sometimes funny things happen where with the new shifts new samplings of the psf are possible that previously were not, so new pieces of the psf array appear and disappear. this is why this stupid little median hack is here. It only really affects the edges
+                                ; note that sometimes funny things happen where with the new shifts new samplings
+								;of the psf are possible that previously were not, so new pieces of the psf array 
+								;appear and disappear. this is why this stupid little median hack is here. 
+								;It only really affects the edges
                if finite(total(matching_values[good])) eq 0 or finite(psf[i,j]) eq 0 then begin
-                  resid= matching_values - median(psf[(i-1)>0:(i+1)<(PSF_nx_samples-1),(j-1)>0:(j+1)<(PSF_ny_samples-1)]) 
-               endif else begin
+                  ;resid= matching_values - median(psf[(i-1)>0:(i+1)<(PSF_nx_samples-1),(j-1)>0:(j+1)<(PSF_ny_samples-1)]) 
+               resid=matching_values
+				endif else begin
                   resid= matching_values - PSF[i,j]
                endelse
-                                ;stop,[i,j]
-                                ; find rejected mean for the psf datapoint
-               delvarx,subs
-               badind=where(finite(resid) eq 0)
+                ; find rejected mean for the psf datapoint
+               ;delvarx,subs
+               subs=[]
+			   badind=where(finite(resid) eq 0)
                if badind[0] ne -1 then begin
                                 ;	print,'badind flag'
                   continue
                endif 
-               meanclip, resid, curr_mean, curr_sigma, clipsig=2.5, subs=subs ;,/verbose   
+               meanclip, resid, curr_mean, curr_sigma, clipsig=2.0, subs=subs, maxiter=3 ;,/verbose   
                                 ;curr_sigma = robust_sigma(matching_values) ; WAY SLOWER
                                 ; median is very slow too!
                                 ; adjust the high-res psf accordingly
@@ -459,10 +470,31 @@ for l=0, loop_iterations-1 do begin
 
 	 case centroid_mode of
 		"MAX": begin
-			useless = max(psf2,max_subscript,/NAN)
-			x_centroid = x_grid_PSF[max_subscript]
-			y_centroid = y_grid_PSF[max_subscript]
+	; must find the peak which we know is near 0,0
+; can't just use max because sometimes an edge can go crazy due
+; to a lenslet having a bad centroid 
+	
+			; this attempts to find the max of the entire
+			; image after removing bad pixels
+			;tmp=psf2
+			;tmp[corrupt_ind]=!values.f_nan
+            ;useless = max(tmp,max_subscript,/NAN)
+			;x_centroid = x_grid_PSF[max_subscript]
+			;y_centroid = y_grid_PSF[max_subscript]
+			;stop, x_centroid, y_centroid
+			; this uses a small image section
+			; peak shouldn't miss by more than 1.0 pixels
+			stamp=psf2[cent_indx-1.0*psf_samples_per_xpix:cent_indx+1.0*psf_samples_per_xpix,$
+				cent_indy-1.0*psf_samples_per_ypix:cent_indy+1.0*psf_samples_per_ypix]
+			tmp=max(psf2[cent_indx-1.0*psf_samples_per_xpix:cent_indx+1.0*psf_samples_per_xpix,$
+				cent_indy-1.0*psf_samples_per_ypix:cent_indy+1.0*psf_samples_per_ypix],max_subscript,/nan)
+			x_centroid = (x_grid_PSF[cent_indx-1.0*psf_samples_per_xpix:cent_indx+1.0*psf_samples_per_xpix,$
+				cent_indy-1.0*psf_samples_per_ypix:cent_indy+1.0*psf_samples_per_ypix])[max_subscript]
+			y_centroid = (y_grid_PSF[cent_indx-1.0*psf_samples_per_xpix:cent_indx+1.0*psf_samples_per_xpix,$
+				cent_indy-1.0*psf_samples_per_ypix:cent_indy+1.0*psf_samples_per_ypix])[max_subscript]
+			;stop, x_centroid, y_centroid
 			; need it at 0,0 so shift negative
+			if xshift gt 2 or yshift gt 2 then stop, 'shifting error-interger pix'
 			xshift+= x_centroid
 			yshift+= y_centroid
 			; so if we are centered on the 0,0 pixel, we make fine adjustments
@@ -476,8 +508,11 @@ for l=0, loop_iterations-1 do begin
 
 			if x_centroid eq 0 and y_centroid eq 0 then begin
 				; get the indicies of the peak		
-				xind=(max_subscript mod PSF_nx_samples)
-				yind=(max_subscript / PSF_nx_samples)
+				;xind=(max_subscript mod PSF_nx_samples)
+				;yind=(max_subscript / PSF_nx_samples)
+				; it should always be at 0,0 here
+					xind=cent_indx[0]
+					yind=cent_indy[0]
 			
 				;so eqn 9 might have an error in the negative sign in the denominator... 
 				; if it doesnt, then you always get 0.5,0.5 - which is wrong
@@ -489,14 +524,18 @@ for l=0, loop_iterations-1 do begin
 				; centered on the pixel already
 				if finite(dx) eq 0 then dx=0
 				if finite(dy) eq 0 then dy=0
-				
+
 				;print, 'dx,dy' ,dx,dy
 				xshift-=(dx*psf_x_step)
 				yshift-=(dy*psf_y_step)
+				
+				;flag=0  ; this is a manual flag for debugging
+				if xshift gt 2 or yshift gt 2 then stop, 'shifting error-subpix'
 				; we want this loop to break if the offsets are really small
 				; so we'll designate 'small' as 1/10th of the sampling step size
-				if abs((dx*psf_x_step)) lt (PSF_x_step/10.) and abs((dy*psf_y_step)) lt (PSF_y_step/10.) then l=loop_iterations-1
+				if abs((dx*psf_x_step)) lt (PSF_x_step/10.) and abs((dy*psf_y_step)) lt (PSF_y_step/10.) and keyword_set(flag) eq 0 then l=loop_iterations-1
 			endif
+			; ### end of max
 		end ; end the peak centroid case
 		"BARYCENTER": begin
 			; the psf should be centered at 0,0 - but we dont have a real psf
@@ -526,14 +565,14 @@ for l=0, loop_iterations-1 do begin
 	; Just make sure nothing goofy happened
 	if finite(xshift+yshift) eq 0 then stop, 'shifts are not a number ?!? - get_psf2 line 360'
 
-	if 0 eq 1 then begin
+	if 0 eq 1 or keyword_set(flag) eq 1 then begin
 
 	data=psf0
 	fit=psf2
 
 	my_residuals =  abs(data - fit) / abs(data)  
 
-	sz=size(data)*5
+	sz=size(data)*4
 	window,2,xsize=sz[1]*3,ysize=sz[2]
 	ind=where(fit ne 0 and finite(fit) eq 1)
 	dmax=max(data[ind],/nan)
@@ -543,7 +582,7 @@ for l=0, loop_iterations-1 do begin
 	tvdl,fit,dmin,dmax,position=1,/log
 	loadct,0
 	tvdl,my_residuals,0.0,0.2,position=2
-	stop
+	stop,'loop iteration '+strc(l)
 	endif
 
 ;	if l eq loop_iterations-2 then stop,'about to break psf smoothing loop'
