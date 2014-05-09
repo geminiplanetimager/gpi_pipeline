@@ -19470,8 +19470,7 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
               free_lun,lun
            end 
            2: begin
-              ;hdr = []
-              mkhdr,hdr,out
+              hdr = ['',string('END',format='(A-80)')]
 
               sxaddpar,hdr,'SLICES',slices,'Cube slices used.'
               sxaddpar,hdr,'YUNITS',(['Std Dev','Median','Mean'])[(*self.state).contr_yunit],'Contrast units'
