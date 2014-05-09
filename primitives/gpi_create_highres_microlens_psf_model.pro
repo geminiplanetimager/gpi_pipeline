@@ -187,8 +187,8 @@ chisq_arr=fltarr(281,281,n_per_lenslet,nfiles,it_flex_max)
 ; imin_test = 190 & imax_test = 280
 ; jmin_test = 0 & jmax_test = 210
 
-; imin_test = 166-20 & imax_test = 177+20
-; jmin_test = 166-20 & jmax_test = 177+20
+; imin_test = 167-20 & imax_test = 168+25
+; jmin_test = 244-20 & jmax_test = 244+20
 
 
 ; imin_test = 140-10 & imax_test =140+20
@@ -213,8 +213,6 @@ chisq_arr=fltarr(281,281,n_per_lenslet,nfiles,it_flex_max)
 	kernel[1:2*n_neighbors+1+1+2-2,1:2*n_neighbors+1+1+2-2]=1
 	sample_map=convol(tmp,kernel) ; shows which ones have full sampling
 
-; should maybe look at getting rid of the outside lenslets to not affect fitting??
-
 kernel_testing: 
 ;it_flex_max=2
 
@@ -230,10 +228,16 @@ kernel_testing:
 
            ; now loop over each lenslet
            for i=imin_test,imax_test do begin				
-              statusline, "Creating highres psf: Line "+strc(i+1)+" of "+strc(imax_test)+" and spot "+strc(k+1)+" of "+strc(n_per_lenslet)+" for iteration " +strc(it_flex+1)+" of "+strc(it_flex_max)
-						
-              for j=jmin_test,jmax_test do begin
-								
+		statusline, "Creating highres psf: Line "+strc(i)+" of "+strc(imax_test)+ $
+			" and spot "+strc(k+1)+" of "+strc(n_per_lenslet)+" for iteration " + $
+			strc(it_flex+1)+" of "+strc(it_flex_max)
+              
+		   for j=jmin_test,jmax_test do begin
+;	  statusline, "Creating highres psf: Line/column "+strc(i)+","+strc(j)+$
+;				  " of "+strc(imax_test)+" and spot "+strc(k+1)+" of "+ $
+;					strc(n_per_lenslet)+" for iteration " +strc(it_flex+1)+$
+;					" of "+strc(it_flex_max)
+           							
 		; MP: Skip if this is not a valid illuminated lenslet
 			; also want to skip if the lenslet is not within the number of neighbours from the border
                 if ~finite(spaxels.intensities[i,j,k]) or spaxels.intensities[i,j,k] eq 0.0 or sample_map[i,j] ne total(kernel) then begin
@@ -288,7 +292,9 @@ kernel_testing:
                     current_sky =  (spaxels.sky_values[imin:imax,jmin:jmax,k,*])[not_null_ptrs]
                     
 		psf_kernel_testing:
-if i eq 140 and j eq 123 then stop,'before create_highres_psf'
+;if i eq 182 and j eq 196 then flag=1 else flag=0
+;flag=1
+if i gt 170 and j gt 180 and it_flex ge 2 then stop,'arrived at problematic section - create save file'
                     ptr_current_PSF = gpi_highres_microlens_psf_create_highres_psf($
                                       temporary(current_stamps), $
                                       temporary(current_xcen - current_x0), $
@@ -300,11 +306,11 @@ if i eq 140 and j eq 123 then stop,'before create_highres_psf'
                                       MASK = temporary(current_masks),  $
                                 ;XCOORDS = polspot_coords_x, $
                                 ;YCOORDS = polspot_coords_y, $
-                                      ERROR_FLAG = myerror_flag, filter=filter,$
+                                      ERROR_FLAG = myerror_flag,flag=flag, filter=filter,$
                                       CENTROID_MODE = cent_mode, $
                                       HOW_WELL_SAMPLED = my_Sampling,$
-                                      LENSLET_INDICES = [i,j,k], no_error_checking=1,$
-                                      /plot_samples )
+                                      LENSLET_INDICES = [i,j,k], no_error_checking=1);,$
+;                                      /plot_samples )
 ;if i eq 184 and j eq 194 and it_flex eq 1 then stop
 	;stop,i,j
 			; only store high-res psf in the place for which it was determined 
@@ -330,9 +336,9 @@ print,'' ; just puts a space in the status line
 	valid=ptr_valid(psfs) ; which psfs are valid?
 
 	  ; now loop over each lenslet
-           for i=imin_test,imax_test do begin				
+           for i=(imin_test-n_neighbors)>0,(imax_test+n_neighbors)<280 do begin				
 	      statusline, "fitting PSF: Fitting line "+strc(i+1)+" of "+strc(imax_test)+" for iteration " +strc(it_flex+1)+" of "+strc(it_flex_max)
-       	      for j=jmin_test,jmax_test do begin
+       	      for j=(jmin_test-n_neighbors)>0,(jmax_test+n_neighbors)<280 do begin
 			
 		; check to make sure pointer is valid
 		if ptr_valid(spaxels.values[i,j,k]) eq 0 then continue
@@ -424,15 +430,15 @@ transform_section:
 ; !!!!!! WARNING !!!!!!!
 ;THIS IS tested TO WORK IN SPECTRAL MODE FOR NOW!
 ; although the code SHOULD work and combine both polarization states
-med_box=30
+med_box=[40,30,30,20,10]
     for f = 0,nfiles-1 do begin
  	; xtransform array
 	xtrans_tmp=xcen_ref-(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,f])
 	ytrans_tmp=ycen_ref-(spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,f])
 	nan_ind=where(finite(xtrans_tmp+ytrans_tmp) eq 0,ct)	
 	; now filter the array
-	xtrans_tmp2=filter_image(xtrans_tmp,median=med_box,/all) ; this is about 4 cycles per aperture
-	ytrans_tmp2=filter_image(ytrans_tmp,median=med_box,/all)
+	xtrans_tmp2=filter_image(xtrans_tmp,median=med_box[it_flex<N_ELEMENTS(med_box)],/all) ; this is about 4 cycles per aperture
+	ytrans_tmp2=filter_image(ytrans_tmp,median=med_box[it_flex<N_ELEMENTS(med_box)],/all)
 
 	; put the nan's back in the image - the filtering expands the image
 	if ct gt 0 then begin
@@ -498,10 +504,10 @@ endif
 ; determine indices of arrays to replace
 ind_arr = array_indices(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,0],valid_ctrd_ptrs)
 
-stop,"about to apply flexure correction to centroids"
+;stop,"about to apply flexure correction to centroids"
 
 
-  if nfiles ne 1 and it_flex ne 0 then begin ; skip the flexure correction for the first run
+  if nfiles ne 1 then begin ; skip the flexure correction for the first run
      for f = 0,nfiles-1 do begin ; loop over each flexure position
         
 	mean_xcen_ref_in_im=mean_xcen_ref-(xtransf_im_to_ref[imin_test:imax_test,jmin_test:jmax_test,f])[valid_ctrd_ptrs]
