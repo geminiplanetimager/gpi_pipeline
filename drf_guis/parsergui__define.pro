@@ -130,8 +130,10 @@ pro parsergui::addfile, filenames, n_added = n_added
     endif
 
     for i=0,n_elements(filenames)-1 do begin   ; Check for duplicate
-        if (total(file eq filenames[i]) ne 0) then filenames[i] = ''
-		self->Log, "File is already present in the list: "+filenames[i]
+        if (total(file eq filenames[i]) ne 0) then begin
+			filenames[i] = ''
+			self->Log, "File is already present in the list: "+filenames[i]
+		endif
     endfor
 
 
@@ -240,10 +242,6 @@ pro parsergui::parse_current_files
 
     self->Log, "Loading and parsing files..."
     ;-- Update information in the structs
-    ;(*storage.splitptr).selindex = max([0,findex-1])
-    ;(*storage.splitptr).filename = file
-    ;(*storage.splitptr).printname = pfile
-    ;(*storage.splitptr).datefile = datefile 
 
     ;;TEST DATA SANITY
     ;;ARE THEY VALID  GEMINI & GPI & IFS DATA?
@@ -264,7 +262,8 @@ pro parsergui::parse_current_files
 
         indnonvalid=where(valid eq 0, cnv, complement=wvalid, ncomplement=countvalid)
         if cnv gt 0 then begin
-            self->Log,'WARNING: invalid files (based on FITS keywords) have been detected and removed:' + strjoin(file[indnonvalid],",")
+            self->Log, 'WARNING: invalid files (based on FITS keywords) have been detected and removed: ' 
+			self->Log, "      "+strjoin(file[indnonvalid],", ")
 
             if countvalid eq 0 then file=''
             if countvalid gt 0 then file=file[wvalid]

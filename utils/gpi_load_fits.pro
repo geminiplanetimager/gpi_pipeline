@@ -21,6 +21,9 @@
 ;				This is of course faster, for cases where you just need the
 ;				headers only. PHDU and first image ext HDU headers will be loaded.
 ; 	/silent		Don't display any text on screen while working.
+; 	/fast		Save speed by making assumptions this is standard GPI data, not
+;				obsolete early development files, and don't load FITS extensions 
+;				after the first one.
 ; OUTPUTS:
 ;
 ; HISTORY:
@@ -32,7 +35,7 @@
 ;--------------------------------------------------------------------------------
 
 
-FUNCTION gpi_load_fits, filename, nodata=nodata, silent=silent, _extra=_extra
+FUNCTION gpi_load_fits, filename, nodata=nodata, silent=silent, fast=fast, _extra=_extra
 
 	compile_opt defint32, strictarr, logical_predicate
 
@@ -57,7 +60,7 @@ FUNCTION gpi_load_fits, filename, nodata=nodata, silent=silent, _extra=_extra
 
 	; Read in the file, and check whether it is a single image or has
 	; extensions.
-    fits_info, filename, n_ext = numext, /silent
+	if keyword_set(fast) then numext=1 else fits_info, filename, n_ext = numext, /silent
     if (numext EQ 0) then begin
 		; No extension present: Read primary image into the data array
 		;  and copy the only header into both the primary and extension headers

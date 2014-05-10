@@ -64,8 +64,8 @@ function gpi_recipe_editor::get_obs_keywords, filename
 	endif
 
 
-	; Load FITS file, preprocessing as needed for I&T lack of keywords
-	fits_data = gpi_load_fits(filename,/nodata,/silent)
+	; Load FITS file
+	fits_data = gpi_load_fits(filename,/nodata,/silent,/fast)
 	head = *fits_data.pri_header
 	ext_head = *fits_data.ext_header
 	ptr_free, fits_data.pri_header, fits_data.ext_header
