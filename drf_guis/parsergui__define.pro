@@ -59,6 +59,7 @@ function  parsergui::init, groupleader, parse_contents_of=parse_contents_of, _ex
 	self.name = 'GPI Data Parser'
 	if self.debug then message,/info, 'Parser init'
 	drfgui_retval = self->gpi_recipe_editor::init(groupleader, _extra=_extra)
+	self.selection = ptr_new([''])
 
 	if keyword_set(parse_contents_of) then message,"Not yet implemented"
 	return, drfgui_retval
@@ -880,7 +881,7 @@ pro parsergui::event,ev
               'DRFGUI': textinfo='Click to load currently selected Recipe into the Recipe Editor'
               'Delete': textinfo='Click to delete the currently selected Recipe. (Cannot be undone!)'
               'QueueAll': textinfo='Click to add all DRFs to the execution queue.'
-              'QueueOne': textinfo='Click to add the currently selected Recipe to the execution queue.'
+              'QueueSelected': textinfo='Click to add the currently selected Recipe to the execution queue.'
               'QUIT': textinfo='Click to close this window.'
               else:
               endcase
@@ -907,14 +908,16 @@ pro parsergui::event,ev
 
     'tableselec':begin      
             IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_TABLE_CELL_SEL') && (ev.sel_top ne -1) THEN BEGIN  ;LEFT CLICK
-                selection = WIDGET_INFO((self.table_recipes_id), /TABLE_SELECT) 
+                selection = WIDGET_INFO((self.table_recipes_id), /TABLE_SELECT)  ; returns [LEFT, TOP, RIGHT, BOTTOM]
+
                 ;;uptade arguments tab
                 if n_elements((*self.recipes_table)) eq 0 then return
                 self.num_recipes_in_table=n_elements((*self.recipes_table)[0,*])
                 ;print, self.num_recipes_in_table
                 ; FIXME check error condition for nothing selected here. 
-                indselected=selection[1]
-                if indselected lt self.num_recipes_in_table then self.selection =(*self.recipes_table)[0,indselected]
+                startselected=selection[1]
+                endselected=selection[3] < self.num_recipes_in_table
+                if startselected lt self.num_recipes_in_table then *self.selection =reform((*self.recipes_table)[0,startselected:endselected])
                 ;if indselected lt self.num_recipes_in_table then begin 
                     ;print, "Starting DRFGUI with "+ (*self.recipes_table)[0,indselected]
                     ;gpidrfgui, drfname=(*self.recipes_table)[0,indselected], self.top_base
@@ -1130,25 +1133,41 @@ pro parsergui::event,ev
         endif
     end
     'Delete': begin
-        selection = WIDGET_INFO((self.table_recipes_id), /TABLE_SELECT) 
-        indselected=selection[1] ; FIXME allow multiple selections here?
-        if indselected lt 0 or indselected ge self.num_recipes_in_table then return ; nothing selected
-        self.selection=(*self.recipes_table)[0,indselected]
+		; we can assume the self.selection array already contains the selected
+		; recipe(s)
+        ;selection = WIDGET_INFO((self.table_recipes_id), /TABLE_SELECT) 
+        ;indselected=selection[1] ; FIXME allow multiple selections here?
+        ;if indselected lt 0 or indselected ge self.num_recipes_in_table then return ; nothing selected
+        ;*self.selection=(*self.recipes_table)[0,indselected]
+
+		if n_elements(*self.selection) eq 1 then begin
+			query = ['Are you sure you want to delete the recipe','', *self.selection+"?"]
+		endif else begin
+			query = ['Are you sure you want to delete the following recipes?','', *self.selection]
+		endelse
 
 
-        if confirm(group=self.top_base,message=['Are you sure you want to delete the file ',self.selection+"?"], label0='Cancel',label1='Delete', title="Confirm Delete") then begin
-            self->Log, 'Deleted file '+self.selection
-            file_delete, self.selection,/allow_nonexist
+        if confirm(group=self.top_base,message=query, label0='Cancel',label1='Delete', title="Confirm Delete") then begin
 
-            if self.num_recipes_in_table gt 1 then begin
-                indices = indgen(self.num_recipes_in_table)
-                new_indices = indices[where(indices ne indselected)]
+			keep_rows = bytarr(self.num_recipes_in_table)+1
+			for i=0,n_elements(*self.selection)-1 do begin
+		        file_delete, (*self.selection)[i],/allow_nonexist
+	            self->Log, 'Deleted file '+(*self.selection)[i]
+				wm = where((*self.recipes_table)[0,*] eq (*self.selection)[i])
+				keep_rows[wm]=0
+			endfor
+
+			if total(keep_rows) gt 0 then begin
+                ;indices = indgen(self.num_recipes_in_table)
+                new_indices = where(keep_rows)
                 (*self.recipes_table) = (*self.recipes_table)[*, new_indices]
-                self.num_recipes_in_table-=1
+                self.num_recipes_in_table= total(keep_rows)
             endif else begin
                 self.num_recipes_in_table=0
                 (*self.recipes_table)[*] = ''
             endelse
+
+			*self.selection= ['']
                   
             widget_control,   self.table_recipes_id,  set_value=(*self.recipes_table)[*,*] 
 			; no - don't set the selection to zero and reset the view, keep
@@ -1159,8 +1178,9 @@ pro parsergui::event,ev
         endif
     end
     'DRFGUI': begin
-        if self.selection eq '' then return
-            rec_editor = obj_new('gpi_recipe_editor', drfname=self.selection, self.top_base)
+		; Open the recipe editor for the FIRST selected recipe only
+        if (*self.selection)[0] eq '' then return
+            rec_editor = obj_new('gpi_recipe_editor', drfname=(*self.selection)[0], self.top_base)
     end
 
 
@@ -1173,13 +1193,16 @@ pro parsergui::event,ev
                 endfor      
                 self->Log,'All DRFs have been succesfully added to the queue.'
     end
-    'QueueOne'  : begin
-        if self.selection eq '' then begin
+    'QueueSelected'  : begin
+        if (*self.selection)[0] eq '' then begin
               self->Log, "Nothing is currently selected!"
               return ; nothing selected
         endif else begin
-            self->queue, self.selection
-            self->Log,'Queued '+self.selection
+			nselected = n_elements(*self.selection)
+			for i=0,nselected-1 do begin
+	            self->queue, (*self.selection)[i]
+		        self->Log,'Queued '+(*self.selection)[i]
+			endfor
         endelse
     end
     'QUIT'    : self->confirm_close
@@ -1438,7 +1461,7 @@ function parsergui::init_widgets,  _extra=_Extra
     ;-----------------------------------------
     top_baseexec=widget_base(parserbase,/BASE_ALIGN_LEFT,/row)
     button2b=widget_button(top_baseexec,value="Queue all Recipes",uvalue="QueueAll", /tracking_events)
-    button2b=widget_button(top_baseexec,value="Queue selected Recipes only",uvalue="QueueOne", /tracking_events)
+    button2b=widget_button(top_baseexec,value="Queue selected Recipes only",uvalue="QueueSelected", /tracking_events)
     directbase = Widget_Base(top_baseexec, UNAME='directbase' ,COLUMN=1 ,/NONEXCLUSIVE, frame=0)
     self.autoqueue_id =    Widget_Button(directbase, UNAME='direct'  $
 		,/ALIGN_LEFT ,VALUE='Queue all generated recipes automatically',uvalue='direct' )
@@ -1508,7 +1531,7 @@ PRO parsergui__define
 			  table_recipes_id: 0, $	; widget ID for recipes table
               sortfileid :0L,$		    ; widget ID for file list sort options 
               num_recipes_in_table:0,$	; # of recipes listed in the table
-              selection: '', $			; current selection in recipes table
+              selection: ptr_new(), $			; current selection in recipes table
               recipes_table: ptr_new(), $   ; pointer to resizeable string array, the data for the recipes table
 			  DEBUG:0, $				; debug flag, set by pipeline setting enable_parser_debug
               sorttab:strarr(3),$       ; table for sort options 
