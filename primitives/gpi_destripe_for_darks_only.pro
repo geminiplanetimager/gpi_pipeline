@@ -58,8 +58,7 @@ function gpi_destripe_for_darks_only, DataSet, Modules, Backbone
   if display ne -1 then im0 = im ; save a copy of input image for later display
   sz = size(im)
   if sz[1] ne 2048 or sz[2] ne 2048 then begin
-     backbone->Log, "REFPIX: Image is not 2048x2048, don't know how to destripe"
-     return, NOT_OK
+	 return, error('FAILURE ('+functionName+"): Image is not 2048x2048, don't know how to destripe")
   endif
 
 
@@ -113,37 +112,33 @@ function gpi_destripe_for_darks_only, DataSet, Modules, Backbone
   ; particularly at short exposures
   stripes2 = stripes
 
-  rowmeds = (median(stripes,dim=1))[4:2043]
-  ;rowmeds_filt30 = smooth(rowmeds,30,/edge_truncate)
-  ;rowmeds_filt100 = smooth(rowmeds,100,/edge_truncate)
+  rowmeds = (median(stripes,dim=1))[4:2043]		; concentrate on the photosensitive pixels only
 
-  ;stripes2[*,4:100] -= rebin(transpose(rowmeds_filt30[0:96]), 2048, 97)
-  ;stripes2[*,101:2043] -= rebin(transpose(rowmeds_filt100[97:*]), 2048, 1943)
-
-
-  res = poly_fit(findgen(200),rowmeds[0:199],3)
-  ;plot, rowmeds[0:199]
-  ;oplot, poly(findgen(100), res), color=cgcolor('red')
+  res = poly_fit(findgen(200),rowmeds[0:199],3)	; Fit a polynomial to the curved part
 
   backgndlevel = fltarr(2040)
-  backgndlevel[0:100] = poly(findgen(101), res)
-  backgndlevel[101:*] = median(stripes[101:*])
-  ; enforce continuity
+  backgndlevel[0:100] = poly(findgen(101), res)	; And subtract it
+  backgndlevel[101:*] = median(stripes[101:*])	; Remove a flat median from everything else. 
+  ; enforce continuity between the curved and flat parts
   step = backgndlevel[100]-backgndlevel[101]
   backgndlevel[0:100]-=step
 
-  ;oplot, [100,500], median(stripes[100:*])*[1,1], color=cgcolor('orange')
-  ;oplot, backgndlevel, color=cgcolor('green')
+  ;stripes2[*,4:2043] -= rebin(transpose(backgndlevel), 2048, 2040)
 
-  stripes2[*,4:2043] -= rebin(transpose(backgndlevel), 2048, 2040)
+  ; Now let's convert this back to a 2D array
+  backgndlevel2 = fltarr(2048)					; Make a padded version 
+  backgndlevel2[4:2043] = backgndlevel	
+  backgndlevel2[0:3] = mean(backgndlevel[0:3])	; extrapolate to fill in plausible values for the ref pixels (this is mostly cosmetic)
+  backgndlevel2[2044:2047] = mean(backgndlevel[2036:2039])
+  stripes2 -= rebin(transpose(backgndlevel2), 2048, 2048)
 
   stripes=stripes2
 
   ;---- Part three: Subtract the stripes model and save history
 
   imout = im - stripes
-  backbone->set_keyword, "HISTORY", "Destriped, using aggressive algorithm assuming no signal in image"
-  backbone->set_keyword, "HISTORY", "This had better be a dark frame or else it's probably messed up now."
+  backbone->set_keyword, "HISTORY", "   Destriped, using aggressive algorithm assuming no signal in image"
+  backbone->set_keyword, "HISTORY", "   This had better be a dark frame or else it's probably messed up now."
 
   ;---- Part four: Remove microphonics (optional)
   if strlowcase(remove_microphonics) eq 'yes' then begin
@@ -158,8 +153,11 @@ function gpi_destripe_for_darks_only, DataSet, Modules, Backbone
 
                                 ; Now we use a FFT filter to generate a model of the microphonics noise
 
-	;	 ; Original version using all 2048x^2 pixels - it works ***slightly*** better
-	;	 ; to use just the photosensitive 2040^2
+
+	;	 ; The following is the older, original version
+	;	 ; using all 2048x^2 pixels - But it works ***slightly*** better
+	;	 ; to use just the photosensitive 2040^2 as in the following code
+	;
 	;     fftim = fft(smoothed)
 	;     fftmask = bytarr(2048,2048)
 	;     fftmask[1004:1046, 1190:1210]  = 1 ; a box around the 3 peaks from the microphonics blobs,
@@ -176,12 +174,9 @@ function gpi_destripe_for_darks_only, DataSet, Modules, Backbone
 								; pix.
      fftim = fft(smoothed[4:2043, 4:2043])
      fftmask = bytarr(2040,2040)
-     ;fftmask[1004:1046, 1190:1210]  = 1 ; a box around the 3 peaks from the microphonics blobs,
-     ;fftmask[1004:1046, 1190:1210]  = 1 ; a box around the 3 peaks from the microphonics blobs,
      fftmask[1000:1042, 1186:1206]  = 1 ; a box around the 3 peaks from the microphonics blobs,
-                                ; as seen in an FFT array if 'flopped'
-                                ; to be centered on the 0-freq component
-                                ;fftmask[1004:1046, 1368:1378] = 1
+										; as seen in an FFT array if 'flopped'
+										; to be centered on the 0-freq component
      fftmask += reverse(fftmask, 2)
      fftmask = shift(fftmask,-1020,-1020) ; flop to line up with fftim
 
@@ -197,13 +192,12 @@ function gpi_destripe_for_darks_only, DataSet, Modules, Backbone
 
      clean2 = imout
 	 clean2[4:2043,4:2043] -= microphonics_model
-     ;imout[4:2040,4:2040] -= microphonics_model
 	 imout = clean2
-     backbone->set_keyword, "HISTORY", "Microphonics noise removed via Fourier filtering."
+     backbone->set_keyword, "HISTORY", "   Microphonics noise removed via Fourier filtering."
 
   endif
 
-
+  ;---- Part 5: Display (optional of course)
   if display ne -1 then begin
      if display eq 0 then window,/free else select_window,display
      loadct, 0
