@@ -16179,8 +16179,15 @@ pro GPItv::hist_refresh
 	wg = where(finite(im))
 	im = im[wg]
 
-	plothist, im,/ylog, /xlog, $
-		xtitle="Pixel values", ytitle='Number of pixels', /nan
+	arrmin = min( im, MAX = arrmax)
+	if  ( arrmin EQ arrmax ) then begin
+		plot, [0,1],/nodata
+		xyouts, 0.1, 0.5, "ERROR: Image must contain distinct values!Cto plot a histogram.", charsize=2
+	endif else begin
+
+		plothist, im,/ylog, /xlog, $
+			xtitle="Pixel values", ytitle='Number of pixels', /nan
+	endelse
 
 
 

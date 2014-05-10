@@ -923,7 +923,7 @@ PRO dirviewer::Cleanup
 	;
 	; Invokes window cleanup by destroying the TLB
 
-	if (xregistered (self.xname) gt 0) then widget_control,self.top_base,/destroy
+	if (xregistered (self.xname) gt 0) and  widget_info(self.top_base,/valid) then widget_control,self.top_base,/destroy
 	if ptr_valid(self.parent_gpitv) then ptr_free, self.parent_gpitv
 	ptr_free, self.state
 	heap_gc
