@@ -361,6 +361,16 @@ for i = istart,iend,spacing do begin
 ; calibration. Taken from the gpi_measure_wavelength_calibration.pro
 ; primitive file. 
 
+        
+; Set up the reference offsets so that we can compare directly to the
+; flexure
+referencex=1025.0  ;roughly x-position in H
+referencey=1008.0  ;roughly y-position in H
+yposition=shiftedwavecal[140,140,0]
+xposition=shiftedwavecal[140,140,1]
+absxshift=xposition-referencex
+absyshift=yposition-referencey
+
 backbone->set_keyword, "FILETYPE", "Wavelength Solution Cal File"
 backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
 
@@ -385,6 +395,8 @@ backbone->set_keyword, "HISTORY", " ",ext_num=0;,/blank
 backbone->set_keyword, "HISTORY", ext_num=0, "    Performed spectral fit for "+strc(counter)+" lenslets total."
 backbone->set_keyword, "HISTORY", ext_num=0, "    Mean shifts (X,Y) vs. prior wavecal: "+printcoo(mnx, mny)+" pixels"
 backbone->set_keyword, "HISTORY", ext_num=0, "                    1 sigma dispersions: "+printcoo(sdx, sdy)+" pixels"
+;backbone->set_keyword, "HISTORY", " Absolute shift values using reference locaitons "+printcoo(referencex,referencey)+" in H band",ext_num=0
+;backbone->set_keyword, "HISTORY"," (X,Y):"+printcoo(absxshift,abxyshift),ext_num=0
 
 
   suffix='wavecal'

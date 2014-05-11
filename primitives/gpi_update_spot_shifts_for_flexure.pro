@@ -19,7 +19,11 @@
 ;                      manual_dx and manual_dy arguments. 
 ;    method='Lookup'   Correction applied based on a lookup table of shifts
 ;                      precomputed based on arc lamp data at multiple
-;                      orientations, obtained from the calibration database. 
+;                      orientations, obtained from the calibration
+;                      database. 
+;    method='BandShift'Estimate the flexure values by comparing to the
+;                      most recent wavecal regardless of the band and 
+;                      interpolating.
 ;    method='Auto'     [work in progress, use at your own risk]
 ;                      Attempt to determine the shifts on-the-fly from each
 ;                      individual exposure via model fitting.
@@ -30,7 +34,7 @@
 ;
 ;
 ; PIPELINE COMMENT: Extract a 3D datacube from a 2D image. Spatial integration (3 pixels) along the dispersion axis
-; PIPELINE ARGUMENT: Name="method" Type="string" Range="[None|Manual|Lookup|Auto]" Default="None" Desc='How to correct spot shifts due to flexure? [None|Manual|Lookup|Auto]'
+; PIPELINE ARGUMENT: Name="method" Type="string" Range="[None|Manual|Lookup|BandShift|Auto]" Default="None" Desc='How to correct spot shifts due to flexure? [None|Manual|Lookup|BandShift|Auto]'
 ; PIPELINE ARGUMENT: Name="manual_dx" Type="float" Range="[-10,10]" Default="0" Desc="If method=Manual, the X shift of spectra at the center of the detector"
 ; PIPELINE ARGUMENT: Name="manual_dy" Type="float" Range="[-10,10]" Default="0" Desc="If method=Manual, the Y shift of spectra at the center of the detector"
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="-1" Desc="-1 = No display; 0 = New (unused) window; else = Window number to display diagnostic plot."
@@ -206,6 +210,47 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         shifty= strupcase(Modules[thisModuleIndex].manual_dy)
         backbone->set_keyword, 'SPOT_DX', shiftx, ' User manually set lenslet PSF X shift'
         backbone->set_keyword, 'SPOT_DY', shifty, ' User manually set lenslet PSF Y shift'
+    end
+    'bandshift': begin
+        referencex = 1025.0
+        referencey = 1008.0
+        offsetstable = [[0.909729003906,-0.230499267578],[1.11206054688,21.3256225586],[0.625366210938,-30.5368652344],[0.666259765625,-30.3093261719]] ;[x,y] offset values for H, J, K1, K2
+        my_filter =  gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=c))
+        if my_filter EQ 'Y' then begin
+            return, error('FAILURE ('+functionName+'): The BandShift mode for flexure compensation is not yet implemented in Y band.')
+        endif
+        bandxpos = wavcal[140,140,1]
+        bandypos = wavcal[140,140,0]
+
+        ;read in the most recent wavecal regardless of band
+        c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'wavecal', *(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /ignore_band)
+        refwavecal = gpi_readfits(c_File,header=Header,priheader=Priheader)
+        ;break
+        refoffsetx = refwavecal[140,140,1]
+        refoffsety = refwavecal[140,140,0]
+        ref_filter = gpi_get_keyword(Priheader, Header, 'IFSFILT', count=ct)
+        ref_filter = gpi_simplify_keyword_value(ref_filter)
+
+        case ref_filter of
+           'H': bulkoffsets = offsetstable[*,0]
+           'J': bulkoffsets = offsetstable[*,1]
+           'K1': bulkoffsets = offsetstable[*,2]
+           'K2': bulkoffsets = offsetstable[*,3]
+        endcase
+        case my_filter of
+           'H': mybulkoffsets = offsetstable[*,0]
+           'J': mybulkoffsets = offsetstable[*,1]
+           'K1': mybulkoffsets = offsetstable[*,2]
+           'K2': mybulkoffsets = offsetstable[*,3]
+        endcase
+        myxoffset = bandxpos - referencex
+        myyoffset = bandypos - referencey
+        shiftx = (refoffsetx - bandxpos) + (mybulkoffsets[0] - bulkoffsets[0])
+        shifty = (refoffsety - bandypos) + (mybulkoffsets[1] - bulkoffsets[1])
+        backbone->set_keyword, 'SPOT_DX', shiftx, ' (lenslet PSF X shift)'
+        backbone->set_keyword, 'SPOT_DY', shifty, ' (lenslet PSF Y shift)'
+        
+        
     end
     'lookup': begin
         my_elevation =  double(backbone->get_keyword('ELEVATIO', count=ct))
@@ -389,6 +434,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         last_elevation =  my_elevation
         last_mjd = my_mjd
         last_shifts = [shiftx, shifty]
+       
 
     end
     endcase

@@ -530,6 +530,14 @@ if keyword_set(save_model_image) then begin
 
 
 
+referencex=1025.0  ;roughly x-position in H
+referencey=1008.0  ;roughly y-position in H
+yposition=shiftedwavecal[140,140,0]
+xposition=shiftedwavecal[140,140,1]
+absxshift=xposition-referencex
+absyshift=yposition-referencey
+
+
 	pheader_copy = *dataset.headersPHU[numfile]
 	eheader_copy = *dataset.headersExt[numfile]
 	sxaddpar, pheader_copy, 'FILETYPE','Detector Model Synthesized during Wavecal Fit'
@@ -577,6 +585,28 @@ if keyword_set(save_model_params) then begin
 
 endif
 
+
+;Smooth out the poorly fit lenslets
+if keyword_set(Smooth) then begin
+   smoothedneww=median(newwavecal[*,*,3],5)
+   smoothednewt=median(newwavecal[*,*,4],5)
+   smoothedneww[where(refwlcal[*,*,0] EQ !values.f_nan )] = !values.f_nan
+   smoothednewt[where(refwlcal[*,*,0] EQ !values.f_nan )] = !values.f_nan
+   newwavecal[*,*,3]=smoothedneww
+   newwavecal[*,*,4]=smoothednewt
+endif
+
+
+; Set up the reference offsets so that we can compare directly to the
+; flexure
+referencex=1025.0  ;roughly x-position in H
+referencey=1008.0  ;roughly y-position in H
+yposition=newwavecal[140,140,0]
+xposition=newwavecal[140,140,1]
+absxshift=xposition-referencex
+absyshift=yposition-referencey
+
+
 ; Edit the header of the original raw data products to include the information
 ; about the new wavelength calibration. 
 
@@ -597,15 +627,9 @@ backbone->set_keyword, "HISTORY", "    Slice 3:  lambda0 [um]",ext_num=0
 backbone->set_keyword, "HISTORY", "    Slice 4:  dispersion w [um/pixel]",ext_num=0
 backbone->set_keyword, "HISTORY", "    Slice 5:  tilts of spectra [radians]",ext_num=0
 backbone->set_keyword, "HISTORY", " ",ext_num=0;,/blank
-
-
-;if keyword_set(Smooth) then begin
-
-;   newwavecal[*,*,3]=median(newwavecal[*,*,3],5)
-;   newwavecal[*,*,4]=median(newwavecal[*,*,4],5)
-
-;endif
-
+;backbone->set_keyword, "HISTORY", " Absolute shift values using reference locaitons "+printcoo(referencex,referencey)+" in H band",ext_num=0
+;backbone->set_keyword, "HISTORY"," (X,Y):"+printcoo(absxshift,abxyshift),ext_num=0
+;backbone->set_keyword, "HISTORY", " ",ext_num=0;,/blank
 
 ;SAVE THE NEW WAVELENGTH CALIBRATION:
 
