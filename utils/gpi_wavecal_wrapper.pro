@@ -40,7 +40,7 @@ FUNCTION gpi_wavecal_wrapper, xdim,ydim,refwlcal,lensletarray,badpixels,wlcalsiz
 
 common ngausscommon, numgauss, wl, flux, lambdao, my_psf
 common highrespsfstructure, myPSFs_array
-common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
+;common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
 
 nflux=size(flux,/dimensions)
 
@@ -198,7 +198,7 @@ parinfo[7].limits[0]=0.0
            bestres=mpfit2dfun('ngauss',x,y,lensletarray, ERR,weight=weights, start_params,parinfo=parinfo,bestnorm=bestnorm,/quiet, status=status, errmsg =errmsg)
         end
     endcase
-
+  
 	if status lt 0 then print, "ERROR: ", errmsg
  
 ;	loww=k
@@ -226,7 +226,7 @@ parinfo[7].limits[0]=0.0
 		atv,[[[lensletarray]],[[modelimage]]],/bl
 		stop
 	endif
-       
+        imdisp, modelimage
 ;TO DO: set bestres=0 as a flag for a failed fit, then interpolate the
 ;correct value in the wavelength solution 2d primitive
 if array_equal(start_params[0:1], bestres[0:1]) then begin

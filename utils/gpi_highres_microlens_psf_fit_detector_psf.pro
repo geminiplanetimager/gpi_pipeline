@@ -144,7 +144,6 @@ c_y_vector_psf_min = min((*ptr_obj_psf).ycoords)
 ; determine hte sampling and put in common block
 c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
 
-
 ; declare the parinfo for the fitting
   parinfo = replicate({limited:[0,0], limits:[0.0,0]}, 3)
     parinfo[0].limited = [1,1]
