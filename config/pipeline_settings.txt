@@ -40,7 +40,7 @@ organize_recipes_by_dates	1
 ## Debug and development 
 # max_files_per_recipe	1000
 # parsergui_max_files     1000
-# enable_primitive_debug  1
+ enable_primitive_debug  1
 # enable_parser_debug     0
 # enable_gpitv_debug	0
 # drp_queue_poll_freq	1.0

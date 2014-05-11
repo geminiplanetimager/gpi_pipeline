@@ -1,6 +1,6 @@
 ;+
-; NAME: gpi_wavelength_solution_2d.pro
-; PIPELINE PRIMITIVE DESCRIPTION: 2D Wavelength Solution
+; NAME: gpi_wavelength_solution_2d_developer.pro
+; PIPELINE PRIMITIVE DESCRIPTION: 2D Wavelength Solution Developer
 ;
 ;	This is the main wavelength calibration generation primitive.
 ;
@@ -45,12 +45,12 @@
 ;    2013-09-19 SW: 2-dimensionsal wavelength solution 
 ;-  
 
-function gpi_wavelength_solution_2d, DataSet, Modules, Backbone
+function gpi_wavelength_solution_2d_developer, DataSet, Modules, Backbone
 ; enforce modern IDL compiler options:
 compile_opt defint32, strictarr, logical_predicate
 
 ; don't edit the following line, it will be automatically updated by subversion:
-primitive_version= '$Id: gpi_wavelength_solution_2d.pro 2821 2014-04-22 18:32:53Z swolff $' ; get version from subversion to store in header history
+primitive_version= '$Id: gpi_wavelength_solution_2d_developer.pro 2821 2014-04-22 18:32:53Z swolff $' ; get version from subversion to store in header history
 calfiletype = 'wavecal'
 ; the following line sources a block of code common to all primitives
 ; It loads some common blocks, records the primitive version in the header for
@@ -603,12 +603,17 @@ backbone->set_keyword, "HISTORY", "    Slice 5:  tilts of spectra [radians]",ext
 backbone->set_keyword, "HISTORY", " ",ext_num=0;,/blank
 
 
-;if keyword_set(Smooth) then begin
 
-;   newwavecal[*,*,3]=median(newwavecal[*,*,3],5)
-;   newwavecal[*,*,4]=median(newwavecal[*,*,4],5)
+        if keyword_set(Smooth) then begin
 
-;endif
+           smoothedw=median(newwavecal[*,*,3],5)
+           smoothedt=median(newwavecal[*,*,4],5)
+           smoothedw[where(refwlcal[*,*,0] EQ !values.f_nan )] = !values.f_nan
+           smoothedt[where(refwlcal[*,*,0] EQ !values.f_nan )] = !values.f_nan
+           newwavecal[*,*,3]=smoothedw
+           newwavecal[*,*,4]=smoothedt
+
+        endif
 
 
 ;SAVE THE NEW WAVELENGTH CALIBRATION:

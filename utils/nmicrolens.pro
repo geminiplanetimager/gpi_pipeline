@@ -23,7 +23,7 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
 ;/////////////////////////
 ;Code you need to add before using gpi_highres_microlens_psf_evaluate_detector_psf
 ;declare the common variable used by gpi_highres_microlens_psf_evaluate_detector_psf()
-common psf_lookup_table, com_psf, com_x_grid_PSF, com_y_grid_PSF, com_triangles, com_boundary
+;common psf_lookup_table, com_psf, com_x_grid_PSF, com_y_grid_PSF, com_triangles, com_boundary
 ;common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
 ;fill the common variables with initialize_psf_interp.
 ;gpi_highres_microlens_psf_initialize_psf_interpolation, my_psf.values, my_psf.xcoords, my_psf.ycoords
@@ -34,6 +34,13 @@ c_x_vector_psf_min = min((my_psf).xcoords)
 c_y_vector_psf_min = min((my_psf).ycoords)
 c_sampling = round(1.0/( ((my_psf).xcoords)[1]-((my_psf).xcoords)[0] ))
 ;print, 'psf params', size(c_psf,/dimensions),c_x_vector_psf_min, c_sampling
+
+c_psf = my_psf
+c_x_vector_psf_min = min(c_psf.xcoords)
+c_y_vector_psf_min = min(c_psf.ycoords)
+c_sampling = round(1/( (c_psf.xcoords)[1]-(c_psf.xcoords)[0] ))
+
+
 
 szx=size(x,/n_elements)
 xoffset=szx
@@ -74,12 +81,10 @@ for peak = 0, numgauss-1 do begin
    ycent=yo-cos(theta)*(lambda-lambdao)/w
 
    x_centroid = xcent 
-   y_centroid = ycent;-1
-   intensity = coeff*100
-   ;my_eval_psf = coeff*gpi_highres_microlens_psf_evaluate_detector_psf(x,y,[x_centroid, y_centroid, intensity])
-   my_eval_psf = interpolate(c_psf,(x - (x_centroid + c_x_vector_psf_min))*c_sampling,(y - (y_centroid + c_y_vector_psf_min))*c_sampling,/grid,missing=0)
-   ;print, my_eval_psf
-   ;zmod[where(finite(my_eval_psf))] += my_eval_psf[where(finite(my_eval_psf))]
+   y_centroid = ycent-1
+   intensity = coeff
+   my_eval_psf = intensity*interpolate(c_psf,(x - (x_centroid + c_x_vector_psf_min))*c_sampling,(y - (y_centroid + c_y_vector_psf_min))*c_sampling,/grid)
+   ;my_eval_psf = gpi_highres_microlens_psf_evaluate_detector_psf(x_grid,y_grid,[x_centroid, y_centroid, intensity])
    zmod += my_eval_psf
    ;print, where(finite(my_eval_psf))
 endfor

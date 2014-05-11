@@ -426,8 +426,8 @@ pro parsergui::parse_current_files
                     current.obstype = uniqsortedobstype[indsortseq[fc]]
 
                   ;categorize by datalabel
-                  ;for fdl=0,n_elements(uniqdatalab)-1 do begin
-                  ;   current.datalab = uniqdatalab[fdl]
+                  for fdl=0,n_elements(uniqdatalab)-1 do begin
+                     current.datalab = uniqdatalab[fdl]
 
                     ;categorize by PRISM
                     for fd=0,n_elements(uniqprisms)-1 do begin
@@ -459,7 +459,8 @@ pro parsergui::parse_current_files
                           
                                         indfobject = where(finfo.filter eq current.filter and $
                                                     ;finfo.obstype eq current.obstype and $
-                                                    strmatch(finfo.obstype, currobstype,/fold) and $  
+                                                    strmatch(finfo.obstype, currobstype,/fold) and $
+                                                    strmatch(finfo.datalab,current.datalab+"*",/fold) and $
                                                     strmatch(finfo.dispersr,current.dispersr+"*",/fold) and $
                                                     strmatch(finfo.occulter,current.occulter+"*",/fold) and $
                                                     finfo.obsclass eq current.obsclass and $
@@ -599,7 +600,7 @@ pro parsergui::parse_current_files
                             endfor ;loop on obsclass
                         endfor ;loop on fo occulteur
                     endfor  ;loop on fd disperser
-                 ; endfor   ;loop for datalab
+                  endfor   ;loop for datalab
                 endfor ;loop on fc obstype
             endfor ;loop on ff filter
         endif ;cond on n_elements(file) 
