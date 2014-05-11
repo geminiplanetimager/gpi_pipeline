@@ -415,7 +415,7 @@ end
 ;    See http://docs.planetimager.org/pipeline/developers/caldb.html#caldb-devel
 ;-
 function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, itime=itime, $
-	verbose=verbose, ignore_cooldown_cycles=ignore_cooldown_cycles, status=status
+	verbose=verbose, ignore_cooldown_cycles=ignore_cooldown_cycles, status=status,ignore_band=ignore_band
 	; 
 	; Keywords
 	; verbose : print more display
@@ -619,12 +619,19 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	end
 
 	'FiltPrism': begin
-		 imatches= where( strmatch(calfiles_table.type, types[itype].description,/fold) and $
+           if keyword_set(ignore_band) then begin
+              	imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
+	   		((calfiles_table.prism) eq prism) ,cc)
+                errdesc = 'with same PRISM'
+           endif else begin
+		imatches= where( strmatch(calfiles_table.type, types[itype].description,/fold) and $
 	   		((calfiles_table.filter) eq filter ) and $
 	   		((calfiles_table.prism) eq prism) ,cc)
-		 errdesc = 'with same DISPERSR and FILTER'
+		errdesc = 'with same DISPERSR and FILTER'
+           endelse
 	end
-	'FiltOnly': begin
+	
+        'FiltOnly': begin
      	imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
         ((calfiles_table.filter) eq filter )  ,cc)
      	errdesc = 'with same FILTER'
