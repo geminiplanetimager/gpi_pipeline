@@ -311,6 +311,7 @@ pro automaticreducer::event, ev
 		'None': self->set_flexure_mode, 'None'
 		'Lookup': self->set_flexure_mode, 'Lookup'
 		'Manual': self->set_flexure_mode, 'Manual'
+                'BandShift': self->set_flexure_mode, 'BandShift'
 		'Autoreducer Help...': gpi_open_help, 'usage/autoreducer.html',/dev
 		'GPI DRP Help...': gpi_open_help, '',/dev
 		endcase
@@ -518,7 +519,7 @@ PRO automaticreducer::set_flexure_mode, modestr
 
 	widget_control, self.flex_base_id, map=self.flexure_mode eq 'Manual'
 
-	modes = ['None','Manual','Lookup']
+	modes = ['None','Manual','Lookup','BandShift']
 	for i=0,2 do self.menubar->set_check_state, modes[i], self.flexure_mode eq modes[i]
 	print, "Flexure handling mode is now "+self.flexure_mode
 end
@@ -586,6 +587,7 @@ function automaticreducer::init, groupleader, _extra=_extra
                   {cw_pdmenu_s, 3, 'Flexure Compensation'}, $
                   {cw_pdmenu_s, 8, 'None'},$
                   {cw_pdmenu_s, 8, 'Lookup'},$
+                  {cw_pdmenu_s, 8, 'BandShift'},$
                   {cw_pdmenu_s, 10, 'Manual'},$
                   {cw_pdmenu_s, 1, 'Help'}, $         ; help menu
                   {cw_pdmenu_s, 0, 'Autoreducer Help...'}, $

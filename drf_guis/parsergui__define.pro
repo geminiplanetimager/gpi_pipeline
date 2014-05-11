@@ -346,6 +346,18 @@ pro parsergui::parse_current_files
             ;uniqfilter = ['H', 'Y', 'J', "K1", "K2"] ; H first since it's primary science wvl?
             uniqobstype = uniqvals(strlowcase(finfo.obstype), /sort)
 
+            ;categorize by Gemini datalabel
+            tmpdatalabels = finfo.datalab
+            numdatalabs = n_elements(tmpdatalabels)
+            datalabels = tmpdatalabels
+            for dlbls=0,numdatalabs-1 do begin
+               datalabs = strsplit(tmpdatalabels[dlbls],'-',/EXTRACT)
+               datalabels[dlbls] = strjoin(datalabs[0:-2],'-')
+            endfor
+
+            uniqdatalab = uniqvals(strlowcase(datalabels), /sort)
+            print, 'number of uniqdatalabels', n_elements(uniqdatalab)
+            print, uniqdatalab
                 ; TODO - sort right order for obstype 
            ; uniqobstype = uniqvals(finfo.obstype, /sort)
 
@@ -412,6 +424,10 @@ pro parsergui::parse_current_files
                 for fc=0,nbobstype-1 do begin
                     ;get files corresponding to one filt and one obstype
                     current.obstype = uniqsortedobstype[indsortseq[fc]]
+
+                  ;categorize by datalabel
+                  ;for fdl=0,n_elements(uniqdatalab)-1 do begin
+                  ;   current.datalab = uniqdatalab[fdl]
 
                     ;categorize by PRISM
                     for fd=0,n_elements(uniqprisms)-1 do begin
@@ -581,8 +597,9 @@ pro parsergui::parse_current_files
                                     endfor ;loop on object
                                 endfor ;loop on itime
                             endfor ;loop on obsclass
-                        endfor ;loop on fo occulteur    
+                        endfor ;loop on fo occulteur
                     endfor  ;loop on fd disperser
+                 ; endfor   ;loop for datalab
                 endfor ;loop on fc obstype
             endfor ;loop on ff filter
         endif ;cond on n_elements(file) 
