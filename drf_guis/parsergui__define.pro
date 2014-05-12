@@ -213,6 +213,7 @@ pro parsergui::removefiles, filenames_to_remove, n_removed=n_removed
 end
 
 
+
 ;+-----------------------------------------
 ; parsergui::parse_current_files
 ;
@@ -227,8 +228,6 @@ end
 pro parsergui::parse_current_files
 
     widget_control,self.top_base,get_uvalue=storage  
-    ;index = (*storage.splitptr).selindex
-    ;cindex = (*storage.splitptr).findex
     file = (*storage.splitptr).filename
     pfile = (*storage.splitptr).printname
     datefile = (*storage.splitptr).datefile
@@ -244,20 +243,16 @@ pro parsergui::parse_current_files
     self->Log, "Loading and parsing files..."
     ;-- Update information in the structs
 
-    ;;TEST DATA SANITY
-    ;;ARE THEY VALID  GEMINI & GPI & IFS DATA?
-	
+    ;;Test Validity of the data (are these GPI files and is it OK to proceed?)
     if gpi_get_setting('strict_validation',/bool, default=1,/silent)  then begin
 
 		nfiles = n_elements(file)
         valid=bytarr(nfiles)
 
         for ff=0, nfiles-1 do begin
-			;print, "time 2, file "+strc(ff)+": ", systime(/seconds) - t0
 			if self.debug then message,/info, 'Verifying keywords for file '+file[ff]
 			if self.debug then message,/info, '  This code needs to be made more efficient...'
-              widget_control,self.textinfo_id,set_value='Verifying keywords for file '+file[ff]
-
+            widget_control,self.textinfo_id,set_value='Verifying keywords for file '+file[ff]
             valid[ff]=gpi_validate_file( file[ff] ) 
         endfor  
 
@@ -270,7 +265,6 @@ pro parsergui::parse_current_files
             if countvalid gt 0 then file=file[wvalid]
 			nfiles = n_elements(file)
 
-			;(*storage.splitptr).selindex = max([0,countvalid-1])
 			(*storage.splitptr).findex = countvalid
 			(*storage.splitptr).filename = file
 			(*storage.splitptr).printname = file
@@ -279,7 +273,7 @@ pro parsergui::parse_current_files
 			self->Log, "All "+strc(n_elements(file))+" files pass basic FITS keyword validity check."
 		endelse
       
-    endif else begin ;if data are test data don't remove them but inform a bit
+    endif else begin ;if strict_validation is disabled (ie. data are test data) don't remove them but inform a bit
 
 		nfiles = n_elements(file) ;edited by SGW 
 
@@ -288,7 +282,7 @@ pro parsergui::parse_current_files
 			valid = gpi_validate_file(file[ff]) ;Changed index from i to ff, SGW
 		endfor
     endelse
-    ;(*self.currModSelec)=strarr(5)
+
     (*self.recipes_table)=strarr(10)
 
     for i=0,nfiles-1 do pfile[i] = file_basename(file[i]) 
@@ -303,9 +297,6 @@ pro parsergui::parse_current_files
 
         for jj=0,nfiles-1 do begin
             finfo[jj] = self->get_obs_keywords(file[jj])
-            ;;we want Xenon&Argon considered as the same 'lamp' object for Y,K1,K2bands (for H&J, better to do separately to keep only meas. from Xenon)
-            ;if (~strmatch(finfo[jj].filter,'[HJ]')) && (strmatch(finfo[jj].object,'Xenon') || strmatch(finfo[jj].object,'Argon')) then $
-                    ;finfo[jj].object='Lamp'
             pfile[jj] = finfo[jj].summary
 			(*storage.splitptr).printname[jj] = finfo[jj].summary ; save for use if we redisplay
         endfor
@@ -332,18 +323,16 @@ pro parsergui::parse_current_files
 		wdark = where(strlowcase(finfo.obstype) eq 'dark', dct)
 		if dct gt 0 then finfo[wdark].filter='-'
 
+		timeit1=systime(/seconds)
         if (n_elements(file) gt 0) && (strlen(file[0]) gt 0) then begin
 
-            ; save starting date and time for use in DRF filenames
-            ;caldat,systime(/julian),month,day,year, hour,minute,second
-            ;datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
-            ;hourstr = string(hour,minute,format='(i2.2,i2.2)')  
           
             current = {gpi_obs}
 
             ;categorize by filter
             uniqfilter  = uniqvals(finfo.filter, /sort)
             ;uniqfilter = ['H', 'Y', 'J', "K1", "K2"] ; H first since it's primary science wvl?
+			uniqfilter = ['Y','J','H','K1','K2'] ; just always do this in wavelength order
             uniqobstype = uniqvals(strlowcase(finfo.obstype), /sort)
 
             ;categorize by Gemini datalabel
@@ -356,8 +345,8 @@ pro parsergui::parse_current_files
             endfor
 
             uniqdatalab = uniqvals(strlowcase(datalabels), /sort)
-            print, 'number of uniqdatalabels', n_elements(uniqdatalab)
-            print, uniqdatalab
+            if self.debug then print, 'number of uniqdatalabels', n_elements(uniqdatalab)
+            if self.debug then print, uniqdatalab
                 ; TODO - sort right order for obstype 
            ; uniqobstype = uniqvals(finfo.obstype, /sort)
 
@@ -386,7 +375,7 @@ pro parsergui::parse_current_files
             message,/info, "Now adding "+strc(n_elements(finfo))+" files. "
             message,/info, "Input files include data from these FILTERS: "+strjoin(uniqfilter, ", ")
             
-            ;for each filter category, categorize by obstype
+            ;for each filter, categorize by obstype, and so on
             for ff=0,nbfilter-1 do begin
                 current.filter = uniqfilter[ff]
                 indffilter =  where(finfo.filter eq current.filter)
@@ -395,14 +384,6 @@ pro parsergui::parse_current_files
                 ;categorize by obstype
                 uniqsortedobstype = uniqvals(strlowcase((finfo.obstype)[indffilter]))
 
-                ;add  wav solution if not present and if flat-field should be reduced as wav sol
-                ;void=where(strmatch(uniqsortedobstype,'*arc*',/fold),cwv)
-                ;void=where(strmatch(uniqsortedobstype,'flat*',/fold),cflat)
-                ;if ( cwv eq 0) && (cflat eq 1) && (self.flatreduc eq 1) then begin
-                    ;indfobstypeflat =  where(strmatch((finfo.obstype)[indffilter],'flat*',/fold)) 
-                    ;uniqsortedobstype = [uniqsortedobstype ,'wavecal']
-                ;endif
-                   
                 nbobstype=n_elements(uniqsortedobstype)
                     
                 ;;here we have to sequence the drf queue: 
@@ -419,17 +400,26 @@ pro parsergui::parse_current_files
                 if cnd ge 1  then sequenceorder[indnotdefined]=nbobstype-1
                 indsortseq=sort(sequenceorder)
 
-                
-                ;;for each filter and each obstype, create a drf
                 for fc=0,nbobstype-1 do begin
                     ;get files corresponding to one filt and one obstype
                     current.obstype = uniqsortedobstype[indsortseq[fc]]
 
-                  ;categorize by datalabel
                   for fdl=0,n_elements(uniqdatalab)-1 do begin
                      current.datalab = uniqdatalab[fdl]
 
-                    ;categorize by PRISM
+					;--- added for faster parsing of large datasets
+					; for efficiency's sake, before proceeding any further check
+					; if there exist files in this combination 
+					wmatch = where( finfo.filter eq current.filter and $
+									strmatch(finfo.obstype, current.obstype,/fold) and $
+						            strmatch(finfo.datalab, current.datalab+"*",/fold), matchct)
+					if matchct eq 0 then begin
+						if self.debug then message,/info, "No match for current obstype/datalabel - skipping ahead"
+						continue
+					endif
+					;--- end of faster parsing efficiency code
+
+
                     for fd=0,n_elements(uniqprisms)-1 do begin
                         current.dispersr = uniqprisms[fd]
                      
@@ -438,28 +428,34 @@ pro parsergui::parse_current_files
                             
                             for fobs=0,n_elements(uniqobsclass)-1 do begin
                                 current.obsclass=uniqobsclass[fobs]
+								
+								;--- added for faster parsing of large datasets
+								; for efficiency's sake, before proceeding any further check
+								; if there exist files in this combination 
+								wmatch = where( finfo.filter eq current.filter and $
+												strmatch(finfo.obstype, current.obstype,/fold) and $
+												strmatch(finfo.datalab, current.datalab+"*",/fold) and $
+                                                strmatch(finfo.dispersr,current.dispersr+"*",/fold) and $
+                                                strmatch(finfo.occulter,current.occulter+"*",/fold) and $
+                                                finfo.obsclass eq current.obsclass, matchct)
+								if matchct eq 0 then begin
+									if self.debug then message,/info, "No match for current obstype/datalabel/disperser/occulter/obsclass - skipping ahead"
+									continue
+								endif
+								;--- end of faster parsing efficiency code
+
+
  
                                 for fitime=0,n_elements(uniqitimes)-1 do begin
-
                                     current.itime = uniqitimes[fitime]    ; in seconds, now
-                                ;current.exptime =
-                                ;uniqitimes[fitime] ; in seconds
                                     
-                                   ;for ffilt=0,n_elements(uniqgcalfilt)-1 do begin
-                                   ;    current.gcalfilt=uniqgcalfilt[ffilt]
-                                   ;    print,'TEST:', current.gcalfilt,n_elements(uniqgcalfilt)
                                     
                                     for fobj=0,n_elements(uniqobjects)-1 do begin
 										continue_after_case = 0 ; reset if this was set before.
                                         current.object = uniqobjects[fobj]
-                                        ;these following 2 lines for adding Y-band flat-field in wav.solution measurement
-                                        currobstype=current.obstype
-                                        ;if (self.flatreduc eq 1)  && (current.filter eq 'Y') &&$
-                                        ;(current.obstype eq 'Wavecal')  then currobstype='[WF][al][va][et]*'
                           
                                         indfobject = where(finfo.filter eq current.filter and $
-                                                    ;finfo.obstype eq current.obstype and $
-                                                    strmatch(finfo.obstype, currobstype,/fold) and $
+                                                    strmatch(finfo.obstype, current.obstype,/fold) and $
                                                     strmatch(finfo.datalab,current.datalab+"*",/fold) and $
                                                     strmatch(finfo.dispersr,current.dispersr+"*",/fold) and $
                                                     strmatch(finfo.occulter,current.occulter+"*",/fold) and $
@@ -468,8 +464,7 @@ pro parsergui::parse_current_files
                                                     finfo.object eq current.object, cobj)
                                                     
 										if self.debug then begin
-											message,/info, 'Now testing the following parameters: ('+strc(cobj)+' files help) '
-										;	match, current,/str
+											message,/info, 'Now testing the following parameters: ('+strc(cobj)+' files match) '
 										endif
 
                       
@@ -484,7 +479,7 @@ pro parsergui::parse_current_files
 										current.lyotmask= finfo[indfobject[0]].lyotmask
                                                              
                                         ;identify which templates to use
-                                        print,  current.obstype ; uniqsortedobstype[indsortseq[fc]]
+                                        if self.debug then print,  current.obstype ; uniqsortedobstype[indsortseq[fc]]
                                         self->Log, "Found sequence of OBSTYPE="+current.obstype+", OBSMODE="+current.obsmode+", DISPERSR="+current.dispersr+", IFSFILT="+current.filter+ " with "+strc(cobj)+" files targeting "+current.object
 
                                         case strupcase(current.obstype) of
@@ -547,22 +542,22 @@ pro parsergui::parse_current_files
                                         end
                                         'OBJECT': begin
                                            case strupcase(current.dispersr) of 
-						'WOLLASTON': begin 
-							templatename='Basic Polarization Sequence'
+                                                'WOLLASTON': begin 
+                                                     templatename='Basic Polarization Sequence (From Raw Data)'
                                                      end 
                                                 'SPECTRAL': begin 
-                                                if  current.occulter eq 'SCIENCE'  then begin ;'Science fold' means no occulter
-                                                    ;if binaries:
-                                                    if strmatch(current.obsclass, 'AstromSTD',/fold) then begin
-													   templatename="Lenslet scale and orientation"
-                                                    endif
-                                                    if strmatch(current.obsclass, 'Science',/fold) then begin
-													   templatename="Create Datacubes, Rotate, and Combine unocculted sequence"
-                                                    endif
-                                                    if ~strmatch(current.obsclass, 'AstromSTD',/fold) && ~strmatch(current.obsclass, 'Science',/fold) then begin
-													   templatename='Satellite Flux Ratios'
-                                                    endif
-                                                endif else begin 
+                                                    if  current.occulter eq 'SCIENCE'  then begin ;'Science fold' means no occulter
+                                                      ;if binaries:
+                                                      if strmatch(current.obsclass, 'AstromSTD',/fold) then begin
+													     templatename="Lenslet scale and orientation"
+                                                      endif
+                                                      if strmatch(current.obsclass, 'Science',/fold) then begin
+							  						     templatename="Create Datacubes, Rotate, and Combine unocculted sequence"
+                                                      endif
+                                                      if ~strmatch(current.obsclass, 'AstromSTD',/fold) && ~strmatch(current.obsclass, 'Science',/fold) then begin
+								  					     templatename='Satellite Flux Ratios'
+                                                      endif
+                                                  endif else begin 
                                                     if n_elements(file_filt_obst_disp_occ_obs_itime_object) GE 5 then begin
 														templatename='Basic ADI + Simple SDI reduction (From Raw Data)'
                                                     endif else begin
@@ -656,9 +651,12 @@ pro parsergui::parse_current_files
 
     endif ;condition on findex>0, assure there are data to process
 
+	timeit2=systime(/seconds)
+
     void=where(file ne '',cnz)
     self->Log,'Data Parsed: '+strtrim(cnz,2)+' FITS files.'
     self->Log,'             '+strtrim(self.num_recipes_in_table,2)+' recipe files created.'
+    self->Log,'             Complete in '+sigfig(timeit2-timeit1,3)+' seconds.'
     ;self->Log,'resolved FILTER band: '+self.filter
 
 
