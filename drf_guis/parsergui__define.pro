@@ -434,7 +434,7 @@ pro parsergui::parse_current_files
 								; if there exist files in this combination 
 								wmatch = where( finfo.filter eq current.filter and $
 												strmatch(finfo.obstype, current.obstype,/fold) and $
-												strmatch(finfo.datalab, current.datalab+"*",/fold) and $
+												strmatch(finfo.datalab, current.datalab+"-*",/fold) and $
                                                 strmatch(finfo.dispersr,current.dispersr+"*",/fold) and $
                                                 strmatch(finfo.occulter,current.occulter+"*",/fold) and $
                                                 finfo.obsclass eq current.obsclass, matchct)
