@@ -608,8 +608,8 @@ backbone->set_keyword, "HISTORY", " ",ext_num=0;,/blank
 
            smoothedw=median(newwavecal[*,*,3],5)
            smoothedt=median(newwavecal[*,*,4],5)
-           smoothedw[where(refwlcal[*,*,0] EQ !values.f_nan )] = !values.f_nan
-           smoothedt[where(refwlcal[*,*,0] EQ !values.f_nan )] = !values.f_nan
+           smoothedw[where(newwavecal[*,*,0] EQ !values.f_nan )] = !values.f_nan
+           smoothedt[where(newwavecal[*,*,0] EQ !values.f_nan )] = !values.f_nan
            newwavecal[*,*,3]=smoothedw
            newwavecal[*,*,4]=smoothedt
 

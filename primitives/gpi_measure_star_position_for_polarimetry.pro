@@ -82,7 +82,7 @@ lower_threshold = fix(Modules[thisModuleIndex].lower_threshold)
 statuswindow = backbone->getstatusconsole()
 
 ;find location of image center
-cent = find_pol_center(cube, x0, y0, search_window, search_window, maskrad=mask_radius, highpass=highpass, pixlowerbound=lower_threshold, statuswindow=statuswindow)
+cent = find_pol_center(cube, x0, y0, search_window,  maskrad=mask_radius, highpass=highpass, pixlowerbound=lower_threshold, statuswindow=statuswindow)
 
 ; write calculated center to header
 backbone->set_keyword,"PSFCENTX", cent[0], 'X-Location of PSF center', ext_num=1
