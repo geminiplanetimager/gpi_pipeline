@@ -332,7 +332,7 @@ pro parsergui::parse_current_files
             ;categorize by filter
             uniqfilter  = uniqvals(finfo.filter, /sort)
             ;uniqfilter = ['H', 'Y', 'J', "K1", "K2"] ; H first since it's primary science wvl?
-			uniqfilter = ['Y','J','H','K1','K2'] ; just always do this in wavelength order
+			uniqfilter = ['-', 'Y','J','H','K1','K2'] ; just always do this in wavelength order
             uniqobstype = uniqvals(strlowcase(finfo.obstype), /sort)
 
             ;categorize by Gemini datalabel
