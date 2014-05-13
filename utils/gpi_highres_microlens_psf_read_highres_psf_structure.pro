@@ -22,7 +22,7 @@ function gpi_highres_microlens_psf_read_highres_psf_structure, filename, size
   
   sorted_psfs = ptrarr(size[0],size[1],size[2])
   
-  for it_psf = 0,n_psfs-1 do begin
+  for it_psf = 0L,n_psfs-1 do begin
     sorted_psfs[(psfs_from_file[it_psf].id)[0],$
                 (psfs_from_file[it_psf].id)[1],$
                 (psfs_from_file[it_psf].id)[2]] = ptr_new(psfs_from_file[it_psf],/no_copy)
