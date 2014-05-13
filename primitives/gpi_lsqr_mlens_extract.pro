@@ -114,7 +114,7 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 	lens_exclude=[[98,15],[94,13],[96,14]]
 	for i=0,2 do begin
 		id1 = where(lens[0,*] eq lens_exclude[0,i] and lens[1,*] eq lens_exclude[1,i])
-		id = where(~histogram(id1, min=0, max=nlens_tot-1))
+		id = where(~histogram([id1], min=0, max=nlens_tot-1))
 		lens=lens[*,id]
 	endfor
 	nlens_tot=nlens_tot-4
@@ -158,66 +158,74 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 	cwv=get_cwv(filter)	
 	gpi_lambda=cwv.lambda	
 	para=cwv.CommonWavVect
-	stop
-	; start bridges from utils function
-	oBridge=gpi_obridgestartup(nbproc=np)
+	;stop
+
+	;runtime only single processor
+
+	if lmgr(/runtime) and np gt 1 then begin
+		backbone->Log, "Cannot use parallelization in IDL runtime. Switching to single thread only."
+		call_function,'img_ext_para',cut1,cut2,0,img,wcal_off_cube,spec_cube,mic_cube,gpi_cube,gpi_lambda,para,wavcal,mlens_file,del_x_best=del_x_best,del_theta_best=del_theta_best,del_lam_best=del_lam_best,x_off=xsft,y_off=ysft,lens=lens,badpix=badpix,resid=resid,micphn=micphn,iter=iter
+
+	endif else begin
+		; start bridges from utils function
+		oBridge=gpi_obridgestartup(nbproc=np)
 	
-	for j=0,np-1 do begin
-		oBridge[j]->Setvar,'img',img
-		oBridge[j]->Setvar,'gpi_lambda',gpi_lambda
-		oBridge[j]->Setvar,'para',para
-		oBridge[j]->Setvar,'spec_cube',spec_cube
-		oBridge[j]->Setvar,'mic_cube',mic_cube
-		oBridge[j]->Setvar,'gpi_cube',gpi_cube
-		oBridge[j]->Setvar,'wcal_off_cube',wcal_off_cube
-		oBridge[j]->Setvar,'wavcal',wavcal
-		oBridge[j]->Setvar,'lens',lens
-		oBridge[j]->Setvar,'badpix',badpix
+		for j=0,np-1 do begin
+			oBridge[j]->Setvar,'img',img
+			oBridge[j]->Setvar,'gpi_lambda',gpi_lambda
+			oBridge[j]->Setvar,'para',para
+			oBridge[j]->Setvar,'spec_cube',spec_cube
+			oBridge[j]->Setvar,'mic_cube',mic_cube
+			oBridge[j]->Setvar,'gpi_cube',gpi_cube
+			oBridge[j]->Setvar,'wcal_off_cube',wcal_off_cube
+			oBridge[j]->Setvar,'wavcal',wavcal
+			oBridge[j]->Setvar,'lens',lens
+			oBridge[j]->Setvar,'badpix',badpix
 
-		cut1 = floor((nlens_tot/np)*j)
-		cut2 = floor((nlens_tot/np)*(j+1))-1
+			cut1 = floor((nlens_tot/np)*j)
+			cut2 = floor((nlens_tot/np)*(j+1))-1
 
-		;oBridge[j]->Execute, "shmmap,'spec_cube',type=4"+","+string(szim[1])+","+string(szim[2])+",/sysv"
-		;oBridge[j]->Execute, "shmmap,'wcal_off_cube',type=4"+","+string(nlens)+","+string(nlens)+",7,/sysv"
-		;oBridge[j]->Execute, "shmmap,'mic_cube',type=4"+","+string(szim[1])+","+string(szim[2])+",/sysv"
-		;oBridge[j]->Execute, "shmmap,'gpi_cube',type=4"+","+string(nlens)+","+string(nlens)+",37,/sysv"
+			;oBridge[j]->Execute, "shmmap,'spec_cube',type=4"+","+string(szim[1])+","+string(szim[2])+",/sysv"
+			;oBridge[j]->Execute, "shmmap,'wcal_off_cube',type=4"+","+string(nlens)+","+string(nlens)+",7,/sysv"
+			;oBridge[j]->Execute, "shmmap,'mic_cube',type=4"+","+string(szim[1])+","+string(szim[2])+",/sysv"
+			;oBridge[j]->Execute, "shmmap,'gpi_cube',type=4"+","+string(nlens)+","+string(nlens)+",37,/sysv"
 
-		;oBridge[j]->Execute, "spec_cube=shmvar('spec_cube')"
-		;oBridge[j]->Execute, "wcal_off_cube=shmvar('wcal_off_cube')"
-		;oBridge[j]->Execute, "mic_cube=shmvar('mic_cube')"
-		;oBridge[j]->Execute, "gpi_cube=shmvar('gpi_cube')"
+			;oBridge[j]->Execute, "spec_cube=shmvar('spec_cube')"
+			;oBridge[j]->Execute, "wcal_off_cube=shmvar('wcal_off_cube')"
+			;oBridge[j]->Execute, "mic_cube=shmvar('mic_cube')"
+			;oBridge[j]->Execute, "gpi_cube=shmvar('gpi_cube')"
 
-		oBridge[j]->Execute, strcompress('wait,'+string(5),/remove_all)
-		oBridge[j]->Execute, "print,'loading PSFs'"
-		oBridge[j]->Execute, ".r "+gpi_get_directory('GPI_DRP_DIR')+"/utils/gpi_lsqr_mlens_extract_dep.pro"
-		process=strcompress('img_ext_para,'+string(cut1)+','+string(cut2)+','+string(j)+',img,wcal_off_cube,spec_cube,mic_cube,gpi_cube,gpi_lambda,para,wavcal,"'+mlens_file+'",'+'del_x_best='+string(del_x_best)+','+'del_theta_best='+string(del_theta_best)+','+'del_lam_best='+string(del_lam_best)+','+'x_off='+string(xsft)+','+'y_off='+string(ysft)+',lens=lens,badpix=badpix'+keywords,/remove_all)
+			oBridge[j]->Execute, strcompress('wait,'+string(5),/remove_all)
+			oBridge[j]->Execute, "print,'loading PSFs'"
+			oBridge[j]->Execute, ".r "+gpi_get_directory('GPI_DRP_DIR')+"/utils/gpi_lsqr_mlens_extract_dep.pro"
+			process=strcompress('img_ext_para,'+string(cut1)+','+string(cut2)+','+string(j)+',img,wcal_off_cube,spec_cube,mic_cube,gpi_cube,gpi_lambda,para,wavcal,"'+mlens_file+'",'+'del_x_best='+string(del_x_best)+','+'del_theta_best='+string(del_theta_best)+','+'del_lam_best='+string(del_lam_best)+','+'x_off='+string(xsft)+','+'y_off='+string(ysft)+',lens=lens,badpix=badpix'+keywords,/remove_all)
 
-		oBridge[j]->Execute, "print,'"+process+"'"
-		oBridge[j]->Execute, process, /nowait
-		
-	endfor
+			oBridge[j]->Execute, "print,'"+process+"'"
+			oBridge[j]->Execute, process, /nowait		
 
-	  ;delay node startups to load high-res PSF
-	waittime=10
-	  ;check status if finish kill bridges
-	backbone->Log, 'Waiting for jobs to complete...'
-  	status=intarr(np)
-  	statusinteg=1
-  	wait,1
-  	t2start=systime(/seconds)
-  	while statusinteg ne 0 do begin
-   	t2=systime(/seconds)
-   		if (round(t2-t2start))mod(300.) eq 0 then print,'Processors have been working for = ',round((t2-t2start)/60),'min'
-   			for i=0,np-1 do begin
-    				status[i] = oBridge[i]->Status()
-   			endfor
-   		print,status
-   		statusinteg=total(status)
-   		wait,waittime
-  	endwhile
-  	backbone->Log, 'Job status:'+string(status)
+		endfor
+	  
+		waittime=10
+		  ;check status if finish kill bridges
+		backbone->Log, 'Waiting for jobs to complete...'
+	  	status=intarr(np)
+	  	statusinteg=1
+	  	wait,1
+	  	t2start=systime(/seconds)
+	  	while statusinteg ne 0 do begin
+	   		t2=systime(/seconds)
+	   		if (round(t2-t2start))mod(300.) eq 0 then print,'Processors have been working for = ',round((t2-t2start)/60),'min'
+	   			for i=0,np-1 do begin
+	    				status[i] = oBridge[i]->Status()
+	   			endfor
+	   		print,status
+	   		statusinteg=total(status)
+	   		wait,waittime
+	  	endwhile
+	  	backbone->Log, 'Job status:'+string(status)
 
-	gpi_obridgekill,oBridge
+		gpi_obridgekill,oBridge
+	endelse
 
 	dir = gpi_get_directory('GPI_REDUCED_DATA_DIR')
 	;recover from scratch since shared memory doesnt work yet
@@ -256,14 +264,14 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 	wavestep = (para[1]-para[0])/(para[2])
 
 	;set keywords for spectral cube
-	backbone->set_keyword,'NAXIS',3, ext_num=1
-	backbone->set_keyword,'NAXIS1',nlens, ext_num=1
-	backbone->set_keyword,'NAXIS2',nlens, ext_num=1
-	backbone->set_keyword,'NAXIS3',para[2], ext_num=1
+	backbone->set_keyword,'NAXIS',3,ext_num=1
+	backbone->set_keyword,'NAXIS1',nlens,ext_num=1
+	backbone->set_keyword,'NAXIS2',nlens,ext_num=1
+	backbone->set_keyword,'NAXIS3',para[2],ext_num=1
 	backbone->set_keyword,'FILETYPE','Spectral Cube','What kind of IFS file is this?'
 	backbone->set_keyword,'CD3_3',wavestep,'wavelength step [micron]',ext_num=1
-	backbone->set_keyword,'CRPIX3',1.,'Spectral wavelengths are references to the first slice', ext_num=1
-	backbone->set_keyword,'CRVAL3',para[0]+wavestep/2,'Center wavelength for first spectral channel [micron]', ext_num=1
+	backbone->set_keyword,'CRPIX3',1.,'Spectral wavelengths are references to the first slice',ext_num=1
+	backbone->set_keyword,'CRVAL3',para[0]+wavestep/2,'Center wavelength for first spectral channel [micron]',ext_num=1
 	backbone->set_keyword,'CTYPE3','WAVE','3rd axis is vaccuum wavelength',ext_num=1
 	backbone->set_keyword,'CUNIT3','microns','Wavelengths are in microns.',ext_num=1
 
