@@ -489,7 +489,7 @@ pro automaticreducer::change_wildcard
       Label='Filename Wildcard (can use * and ?): ', Cancel=cancelled, XSize=200, Value=self.watch_filespec)
    	IF NOT cancelled THEN BEGIN
 		self.watch_filespec= new_wildcard
-		widget_control, self.wildcard_id, set_value=new_wildcard
+		if widget_info(self.wildcard_id,/valid_id) then widget_control, self.wildcard_id, set_value=new_wildcard
 
 		; trash the list of previous files from the old wildcard, we need to
 		; regenerate a new list for the new wildcard to ignore all existing
