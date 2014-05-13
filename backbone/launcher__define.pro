@@ -696,7 +696,9 @@ FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, cle
 
 		; if at Gemini, automatically launch the autoreducer always upon
 		; startup.
-		if keyword_set(gpi_get_setting('at_gemini',default=0,/silent)) then self->launch, 'automaticreducer', session=44
+		;if keyword_set(gpi_get_setting('at_gemini',default=0,/silent)) then self->launch, 'automaticreducer', session=44
+		; No longer do the above since it can cause problems if running on
+		; multiple computers at Gemini at once. 
 
 
 	endif
