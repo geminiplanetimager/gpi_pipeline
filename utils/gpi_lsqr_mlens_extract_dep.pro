@@ -305,8 +305,8 @@ pro mk_psf_cube,psfcube,spectra,wavecal,para,steps,lens_x,lens_y,blank,x_sub1,x_
 	x_grid = rebin(findgen(xsize)+x_sub1,xsize,ysize)
 	y_grid = rebin(reform(findgen(ysize)+y_sub1,1,ysize),xsize,ysize)
 
-	lens_x = long(lens_x[0])
-	lens_y = long(lens_y[0])
+	lens_x = long(median(lens_x))
+	lens_y = long(median(lens_y))
 
 	;read in high-res of central microlens PSF for and use on whole sub_img
 	ptr = gpi_highres_microlens_psf_get_local_highres_psf(PSFs_array,[lens_x,lens_y,0])
