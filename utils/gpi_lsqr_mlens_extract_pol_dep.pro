@@ -168,6 +168,7 @@ function pol_ext_amoeba,P,best=best
 	x_off=com_struc.x_off
 	y_off=com_struc.y_off
 	psfpos_cen=com_struc.psfpos_cen
+	eo=com_struc.eo
 
 	del_x=P[0]
 	del_y=P[1]
@@ -179,7 +180,7 @@ function pol_ext_amoeba,P,best=best
 	s=size(psfpos_cen)
 
 	tstimage=blank
-	psfcube=[[blank2]]
+	;psfcube=[[blank2]]
 
 	j=0
 	buff_psf=[0]
@@ -188,29 +189,37 @@ function pol_ext_amoeba,P,best=best
 	x_grid = rebin(findgen(xsize)+x_sub1,xsize,ysize)
 	y_grid = rebin(reform(findgen(ysize)+y_sub1,1,ysize),xsize,ysize)
 
-	ptr = gpi_highres_microlens_psf_get_local_highres_psf(PSFs_array,[lens_x,lens_y,0])
-	if ptr_valid(PSFs_array[lens_x,lens_y]) then psf = *PSFs_array[lens_x,lens_y]
+	lens_x_m = long(median(lens_x))
+	lens_y_m = long(median(lens_y))
+
+	;read in high-res of central microlens PSF for and use on whole sub_img
+	ptr = gpi_highres_microlens_psf_get_local_highres_psf(PSFs_array,[lens_x_m,lens_y_m,0])
+	if ptr_valid(PSFs_array[lens_x_m,lens_y_m]) then psf = *PSFs_array[lens_x_m,lens_y_m]
 	
-	common psf_lookup_table, com_psf, com_x_grid_PSF, com_y_grid_PSF, com_triangles, com_boundary
-	gpi_highres_microlens_psf_initialize_psf_interpolation, psf.values, psf.xcoords, psf.ycoords
+	common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
+	c_psf = (psf).values
+	c_x_vector_psf_min = min((psf).xcoords)
+	c_y_vector_psf_min = min((psf).ycoords)
+	c_sampling=round(1/( ((psf).xcoords)[1]-((psf).xcoords)[0] ))
 
 	;t3=systime(/seconds)
 	
 	;bin and position within sub image
-	r1 = gpi_highres_microlens_psf_evaluate_detector_psf(x_grid,y_grid, [spec_spix3[0,k], spec_spix3[1,k], 1])
-  stop
-	tstimage=tstimage+r1
-	psfcube = [[[psfcube]],[[r1]]]
+	psfcube = gpi_highres_microlens_psf_evaluate_detector_psf(x_grid,y_grid, [psfpos_cen[0],psfpos_cen[1],1])
+
+	;why are PSFs coming out with NaN
+	
+	
+stop
+
 	;spectra = [[spectra],[[spec_spix3[2,k],spec_spix3[3,k],spec_spix3[4,k],spec_spix3[0,k],spec_spix3[1,k]]]]
 
 	;t4=systime(/seconds)
 	;print,t4-t3,'jbp_psf_amoeba'
 
-	if (micphn) then r_cube = [[[micphncube]],[[psfcube]]] else r_cube = psfcube
+	if (micphn eq 1) then r_cube = [[[micphncube]],[[psfcube]]] else r_cube = psfcube
 
-	resid = stddev(gpi_pol_lsqr(sub_img,r_cube,/resid))
-
-if (keyword_set(best)) then return,{r_cube:r_cube} else return,resid
+if (keyword_set(best)) then return,{r_cube:r_cube} else return,stddev(gpi_pol_lsqr(sub_img,r_cube,/resid))
 
 end
 
@@ -226,7 +235,7 @@ pro img_pol_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,polcal,pol,pol_img,m
 
 	n_modes=8			;(number of fourier modes - 1) used for microphonics 
 
-	if (micphn) then n_modes=n_modes else n_modes=0
+	if (micphn eq 1) then n_modes=n_modes else n_modes=0
 
 	blank = fltarr(xsize+20,ysize+20)
 	blank2 = fltarr(xsize,ysize)
@@ -234,8 +243,8 @@ pro img_pol_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,polcal,pol,pol_img,m
 ;get psf positions from wave cal
 
 	psfpos_cen = get_psf_pos_pol(x_lens_cen,y_lens_cen,polcal,0,0,x_off,y_off,eo)
-	x_med = floor(mean(psfpos_cen[0,*]))
-	y_med = floor(mean(psfpos_cen[1,*]))
+	x_med = floor(psfpos_cen[0])
+	y_med = floor(psfpos_cen[1])
 	x_sub1 = x_med-ceil(xsize/2)+1
 	x_sub2 = x_med+ceil(xsize/2)
 	y_sub1 = y_med-ceil(ysize/2)+1
@@ -253,7 +262,7 @@ pro img_pol_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,polcal,pol,pol_img,m
 	sub_img=img[x_sub1:x_sub2,y_sub1:y_sub2]
 	
 	micphncube=[[blank2]]
-	if (micphn) then begin
+	if (micphn eq 1) then begin
 	;get microphonics striping
 
 		microbox = amp_micphn([x_med,y_med])
@@ -325,12 +334,13 @@ pro img_pol_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,polcal,pol,pol_img,m
 		micphn:micphn,$
 		x_off:x_off,$
 		y_off:y_off,$
-		psfpos_cen:psfpos_cen}
+		psfpos_cen:psfpos_cen,$
+		eo:eo}
 	
 ;AMOEBA calling lsqr
 
-	if (iter) then begin
-		R=AMOEBA(0.01,FUNCTION_NAME='pol_ext_AMOEBA',P0=[del_x,del_y],SCALE=[3,3],NCALLS=ncalls,NMAX=100,FUNCTION_VALUE=resid_arr)
+	if (iter eq 1) then begin
+		R=AMOEBA(1e-5,FUNCTION_NAME='pol_ext_AMOEBA',P0=[del_x,del_y],SCALE=[2,2],NCALLS=ncalls,NMAX=100,FUNCTION_VALUE=resid_arr)
 		if n_elements(R) eq 1 then begin
 			print,'AMOEBA failed to converge',x_lens_cen,y_lens_cen
 			pol=[-1,-1]
@@ -353,7 +363,7 @@ pro img_pol_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,polcal,pol,pol_img,m
 
 	pol_eo = gpi_pol_lsqr(sub_img,r_cube_best,/pol)
 
-	if (micphn) then polspts = pol_eo[n_modes-1:*] else polspts = pol_eo
+	if (micphn eq 1) then polspts = pol_eo[n_modes-1:*] else polspts = pol_eo
 	;idt = where(pol_eo[0,*] eq x_lens_cen and pol_eo[1,*] eq y_lens_cen)
 ;stop
 	;if n_elements(idt) eq 1 then begin
@@ -368,7 +378,7 @@ pro img_pol_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,polcal,pol,pol_img,m
 
 	;pol_eo = polspts[idt]
 
-	if (resid) then begin
+	if (resid eq 1) then begin
 		pol_img_s = blank2
 		
 		psfcube2 = r_cube_best[*,*,n_modes]
@@ -381,9 +391,9 @@ pro img_pol_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,polcal,pol,pol_img,m
 		bfimg[x_sub1:x_sub2,y_sub1:y_sub2]=pol_img_s
 		pol_img=bfimg
 
-		if (micphn) then begin
+		if (micphn eq 1) then begin
 			mic_pol_s = blank2
-			mic_pol = pol[0:n_modes-1]
+			mic_pol = pol_eo[0:n_modes-1]
 			for m=0,n_modes-1 do begin
 				mic_pol_s = mic_pol_s + micphncube[*,*,m]*mic_pol[m]
 			endfor
@@ -407,7 +417,7 @@ pro img_pol_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,polcal,pol,pol_img,m
 	;	return	
 	;endif
 pol=pol_eo
-wcal_off=[del_x,del_y,chi_sqr]
+pcal_off=[del_x,del_y,chi_sqr]
 
 ; display model and data spectra sub images 
 ;print,wcal_off
@@ -426,7 +436,7 @@ end
 ;--------------------------------------------------
 ; Parrallel child process to extract all lenslets known from polcal and save residual
 
-pro img_ext_pol_para,cut1,cut2,z,img,pcal_off_cube,pol_cube,mic_pol,gpi_pol,polcal,mlens_file,resid=resid,micphn=micphn,iter=iter,x_off=x_off,y_off=y_off,lens=lens
+pro img_ext_pol_para,cut1,cut2,z,img,pcal_off_cube,pol_cube,mic_cube,gpi_pol,polcal,mlens_file,resid=resid,micphn=micphn,iter=iter,del_x=del_x,del_y=del_y,x_off=x_off,y_off=y_off,lens=lens
 
 	t_start=systime(/seconds)
 
@@ -434,6 +444,8 @@ pro img_ext_pol_para,cut1,cut2,z,img,pcal_off_cube,pol_cube,mic_pol,gpi_pol,polc
 	;help,/shared_memory
 
 	mlens = gpi_highres_microlens_psf_read_highres_psf_structure(mlens_file,[281,281,1])
+	;hack to fake eo spots using single spot per lens from spectral mode	
+	;mlens = [[mlens],[mlens]]
 
 	print,"main child loop executing "+string(cut1)+string(cut2)
 
@@ -444,17 +456,17 @@ pro img_ext_pol_para,cut1,cut2,z,img,pcal_off_cube,pol_cube,mic_pol,gpi_pol,polc
 	for i=long(cut1),long(cut2) do begin
 		x=lens[0,i]
 		y=lens[1,i]
-		print,x,y,i
-		img_pol_ext_amoeba,x,y,img,mlens,polcal,e,pol_img,mic_pol,del_x,del_y,x_off,y_off,pcal_off,0,resid=resid,micphn=micphn,iter=iter
-    img_pol_ext_amoeba,x,y,img,mlens,polcal,o,pol_img,mic_pol,del_x,del_y,x_off,y_off,pcal_off,1,resid=resid,micphn=micphn,iter=iter
+		print,x,y,i,del_x,del_y
+		img_pol_ext_amoeba,x,y,img,mlens,polcal,e,pol_img,mic_cube,del_x,del_y,x_off,y_off,pcal_off,0,resid=resid,micphn=micphn,iter=iter
+    img_pol_ext_amoeba,x,y,img,mlens,polcal,o,pol_img,mic_cube,del_x,del_y,x_off,y_off,pcal_off,0,resid=resid,micphn=micphn,iter=iter
 
-		if (pol[0] ne -1) then begin
+		if (e ne -1 and o ne -1) then begin
 			gpi_pol[x,y,0:1] = [e,o]
 			
-			if (resid) then begin
+			if (resid eq 1) then begin
 				pol_cube=pol_cube+pol_img
 				pcal_off_cube[x,y,0:2] = pcal_off[0:2]
-				if (micphn) then mic_cube_pol=stitch_images(mic_cube_pol,mic_pol)
+				if (micphn eq 1) then mic_cube_pol=stitch_images(mic_cube_pol,mic_cube)
 			endif
 		endif
 	endfor
@@ -462,13 +474,13 @@ pro img_ext_pol_para,cut1,cut2,z,img,pcal_off_cube,pol_cube,mic_pol,gpi_pol,polc
 	; save outputs into scratch space to recover
 	dir = gpi_get_directory('GPI_REDUCED_DATA_DIR')
 	;print,dir
-	if (resid) then begin
+	if (resid eq 1) then begin
 		exe_tst = execute(strcompress('pol_cube_'+string(z)+'=pol_cube',/remove_all))
 		exe_tst = execute(strcompress('save,pol_cube_'+string(z)+',filename="'+dir+'/pol_cube_'+string(z)+'.sav"',/remove_all))
 		exe_tst = execute(strcompress('mic_cube_pol_'+string(z)+'=mic_cube_pol',/remove_all))
 		exe_tst = execute(strcompress('save,mic_cube_pol_'+string(z)+',filename="'+dir+'/mic_cube_pol_'+string(z)+'.sav"',/remove_all))
 	endif
-	if (iter) then begin
+	if (iter eq 1) then begin
 		exe_tst = execute(strcompress('pcal_off_cube_'+string(z)+'=pcal_off_cube',/remove_all))
 		exe_tst = execute(strcompress('save,pcal_off_cube_'+string(z)+',filename="'+dir+'/pcal_off_cube_'+string(z)+'.sav"',/remove_all))
 	endif
@@ -478,4 +490,8 @@ pro img_ext_pol_para,cut1,cut2,z,img,pcal_off_cube,pol_cube,mic_pol,gpi_pol,polc
 	t_fin=systime(/seconds)
 	print,(t_fin-t_start)/60,': execution time (mins)'
 
+end
+
+pro gpi_lsqr_mlens_extract_pol_dep
+	;do nothing
 end
