@@ -104,7 +104,8 @@ pro twod_img_corr,img_a,img_b,range,resolution,xsft,ysft,corr,cm=cm
 end
 
 ;--------------------------------------------------
-; X-correlation for two images
+; X-correlation for two images in perpandicular frame
+
 pro twod_img_corr_perp,img_a,img_b,range,resolution,psft,del_x_best,corr,angle,cm=cm
 	;returns shift for image b in x and y to get image A
 	
@@ -410,16 +411,18 @@ function make_mdl_img,x_lens_cen,y_lens_cen,wavcal,para,steps,x_off,y_off,blank2
 		x_grid = rebin(findgen(xsize)+x_sub1,xsize,ysize)
 		y_grid = rebin(reform(findgen(ysize)+y_sub1,1,ysize),xsize,ysize)
 
-		lens_x = long(lens_x[0])
-		lens_y = long(lens_y[0])
+		lens_x = long(median(lens_x))
+		lens_y = long(median(lens_y))
 
 		;read in high-res of central microlens PSF for and use on whole sub_img
-		ptr = gpi_highres_microlens_psf_get_local_highres_psf(mlens,[lens_x,lens_y,0])
-		if ptr_valid(mlens[lens_x,lens_y]) then psf = *mlens[lens_x,lens_y]
-
-		common psf_lookup_table, com_psf, com_x_grid_PSF, com_y_grid_PSF, com_triangles, com_boundary
+		ptr = gpi_highres_microlens_psf_get_local_highres_psf(PSFs_array,[lens_x,lens_y,0])
+		if ptr_valid(PSFs_array[lens_x,lens_y) then psf = *PSFs_array[lens_x,lens_y]
+	
 		common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
-		gpi_highres_microlens_psf_initialize_psf_interpolation, psf.values, psf.xcoords, psf.ycoords
+		c_psf = (psf).values
+		c_x_vector_psf_min = min((psf).xcoords)
+		c_y_vector_psf_min = min((psf).ycoords)
+		c_sampling=round(1/(((psf).xcoords)[1]-((psf).xcoords)[0]))
 
 		for k=0L,s[2]-1 do begin
 

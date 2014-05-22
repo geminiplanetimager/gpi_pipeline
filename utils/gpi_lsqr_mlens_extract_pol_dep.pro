@@ -14,25 +14,50 @@
 ;    Began 2014-02-17 by Zachary Draper
 ;-  
 
-function get_gaus_psf
+;--------------------------------------------------
+; X-correlation for two images
+pro twod_img_corr,img_a,img_b,range,resolution,xsft,ysft,corr,cm=cm
+	;returns shift for image b in x and y to get image A
+	
+	x_arr = indgen((2*range)/resolution)*resolution-range
+	y_arr = x_arr
 
-	xo=5.5
-	yo=5.5
-	sigx=0.6
-	sigy=0.6
-	A=2
+	img_a=img_a/total(img_a)
+	img_b=img_b/total(img_b)
 
-	psfsize=11
-	psf = fltarr(psfsize,psfsize)
-	for x=0,psfsize-1 do begin
-		for y=0,psfsize-1 do begin
-			for i=-4,5 do begin
-				psf[x,y] = A*exp(-0.5*((x-(xo))/sigx)^2-((y-(yo))/sigy)^2)
-			endfor
+	corr = fltarr(n_elements(x_arr),n_elements(y_arr))
+
+	for i=0,n_elements(x_arr)-1 do begin
+		x_off = x_arr[i]
+		for j=0,n_elements(y_arr)-1 do begin
+			y_off = y_arr[j]
+
+			img_b_tmp = fftshift(img_b,x_off,y_off,/silent)
+			
+			corr[i,j] = total(img_b_tmp*img_a)
+			;corr[i,j] = stddev(img_b_tmp-img_a)
+			
 		endfor
 	endfor
+	
+	if(keyword_set(cm)) then begin 
+		;centroid value
+		s = size(corr, /dimensions)
+   		totalm = total(corr)
+   		xcm = total(total(corr,2)*indgen(s[0]))/totalm
+   		ycm = total(total(corr,1)*indgen(s[1]))/totalm        
+		xsft=(xcm*resolution)-range
+		ysft=(ycm*resolution)-range
+	endif else begin 
+		;maximal value
+		id = where_xyz(max(corr) eq corr,xind=xind,yind=yind)
+		xsft=(xind*resolution)-range
+		ysft=(yind*resolution)-range
+	endelse
 
-return,psf
+	xsft=xsft[0]
+	ysft=ysft[0]
+
 end
 
 ;--------------------------------------------------
@@ -71,27 +96,10 @@ function gpi_pol_lsqr,sub_img,r_cube,resid=resid,pol=pol
 	tspec=tspec[1:*]
 
 ;exit with either value vector or residual image
-if (keyword_set(pol)) then return,tspec
-if (keyword_set(resid)) then return,sub_img-fspec
-end
+;if (keyword_set(pol)) then return,tspec
+;if (keyword_set(resid)) then return,sub_img-fspec
 
-;--------------------------------------------------
-; Get a binned PSF from high-res model
-
-function get_jbp_psf,myPSFs_array,pix_x,pix_y,lens_x,lens_y,int,xsize,ysize,x_grid,y_grid
-
-	my_eval_psf = fltarr(xsize,ysize)
-	ptr = gpi_highres_microlens_psf_get_local_highres_psf(myPSFs_array,[lens_x,lens_y,0])
-	if ptr_valid(myPSFs_array[lens_x,lens_y]) then my_psf = *myPSFs_array[lens_x,lens_y]
-
-	common psf_lookup_table, com_psf, com_x_grid_PSF, com_y_grid_PSF, com_triangles, com_boundary
-	gpi_highres_microlens_psf_initialize_psf_interpolation, my_psf.values, my_psf.xcoords, my_psf.ycoords
-
-	my_eval_psf = gpi_highres_microlens_psf_evaluate_detector_psf(x_grid,y_grid, [pix_x, pix_y, int])
-
-;stop
-return,my_eval_psf
-
+	return,{spec:tspec,resid:stddev(sub_img-fspec)}
 end
 
 ;--------------------------------------------------
@@ -144,6 +152,101 @@ return,[spt_x,spt_y]
 end
 
 ;--------------------------------------------------
+; Generate a full model image from wavecal
+
+function make_mdl_img_pol,x_lens_cen,y_lens_cen,pcal,x_off,y_off,blank2,xsize,ysize,img,mlens,pol_flx
+
+		psfpos_cen = get_psf_pos_pol(x_lens_cen,y_lens_cen,pcal,0,0,x_off,y_off,0)
+		x_med = floor(mean(psfpos_cen[0,*]))
+		y_med = floor(mean(psfpos_cen[1,*]))
+		x_sub1 = x_med-ceil(xsize/2)+1
+		x_sub2 = x_med+ceil(xsize/2)
+		y_sub1 = y_med-ceil(ysize/2)+1
+		y_sub2 = y_med+ceil(ysize/2)
+
+		x_grid = rebin(findgen(xsize)+x_sub1,xsize,ysize)
+		y_grid = rebin(reform(findgen(ysize)+y_sub1,1,ysize),xsize,ysize)
+
+		imsz=size(img)
+		if x_sub2 gt imsz[1]-1 or y_sub2 gt imsz[2]-1 or x_sub1 lt 0 or y_sub1 lt 0 then begin
+			spec=[-1,-1]
+			spec_img=blank2
+			mic_img=blank2
+			wcal_off=[0,0,0,0,0]
+		endif
+
+		sub_img=img[x_sub1:x_sub2,y_sub1:y_sub2]
+
+		sbp = size(badpix)
+		if (sbp[0] ne 0) then begin
+			sub_img=sub_img*badpix[x_sub1:x_sub2,y_sub1:y_sub2]
+		endif
+
+	;find psf spot locations
+
+		xr = 35
+		yr = 43
+
+		lens_x = (findgen(xr)-floor(xr/2))+x_lens_cen
+		lens_y = (findgen(yr)-floor(yr/2))+y_lens_cen
+
+		;print,del_x,del_theta
+		spec_spix = [0,0,0,0]
+		for i=0L,n_elements(lens_x)-1 do begin
+			for j=0L,n_elements(lens_y)-1 do begin
+				if finite(pcal[0,lens_x[i],lens_y[j],0]) then begin
+					psfpos = get_psf_pos_pol(lens_x[i],lens_y[j],pcal,0,0,x_off,y_off,0)
+					spec_spix = [[spec_spix],[psfpos[0],psfpos[1],lens_x[i],lens_y[j]]]
+					psfpos = get_psf_pos_pol(lens_x[i],lens_y[j],pcal,0,0,x_off,y_off,1)
+					spec_spix = [[spec_spix],[psfpos[0],psfpos[1],lens_x[i],lens_y[j]]]
+					;print,[lens_x[i],lens_y[j]]
+				endif
+			endfor
+		endfor
+		spec_spix = spec_spix[*,1:*]
+
+		;clean for positions within sub_img
+		spec_spix2 = spec_spix[*,where(spec_spix[0,*] gt x_sub1-2 and spec_spix[0,*] lt x_sub2+2)]
+		spec_spix3 = spec_spix2[*,where(spec_spix2[1,*] gt y_sub1-2 and spec_spix2[1,*] lt y_sub2+2)]
+
+	;get psf reference images
+
+		s=size(spec_spix3)
+
+		mdl_img=[[blank2]]
+
+		x_grid = rebin(findgen(xsize)+x_sub1,xsize,ysize)
+		y_grid = rebin(reform(findgen(ysize)+y_sub1,1,ysize),xsize,ysize)
+
+		lens_x = long(median(lens_x))
+		lens_y = long(median(lens_y))
+
+		;read in high-res of central microlens PSF for and use on whole sub_img
+		ptr = gpi_highres_microlens_psf_get_local_highres_psf(mlens,[lens_x,lens_y,0])
+		if ptr_valid(mlens[lens_x,lens_y]) then psf = *mlens[lens_x,lens_y]
+	
+		common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
+		c_psf = (psf).values
+		c_x_vector_psf_min = min((psf).xcoords)
+		c_y_vector_psf_min = min((psf).ycoords)
+		c_sampling=round(1/(((psf).xcoords)[1]-((psf).xcoords)[0]))
+
+		for k=0L,s[2]-1 do begin
+
+			r1 = gpi_highres_microlens_psf_evaluate_detector_psf(x_grid,y_grid, [spec_spix3[0,k], spec_spix3[1,k], 1])
+
+			; match based on eo flux for polarized targets? not nessacary for spots?
+			flx=1
+			mdl_img = mdl_img+(r1*flx)
+
+		endfor
+
+		;stop
+return,[[[mdl_img]],[[sub_img]]]
+
+end
+
+;--------------------------------------------------
 ; Extract spectra individual spot
 
 function pol_ext_amoeba,P,best=best
@@ -169,6 +272,7 @@ function pol_ext_amoeba,P,best=best
 	y_off=com_struc.y_off
 	psfpos_cen=com_struc.psfpos_cen
 	eo=com_struc.eo
+	badpix=com_struc.badpix
 
 	del_x=P[0]
 	del_y=P[1]
@@ -200,7 +304,7 @@ function pol_ext_amoeba,P,best=best
 	c_psf = (psf).values
 	c_x_vector_psf_min = min((psf).xcoords)
 	c_y_vector_psf_min = min((psf).ycoords)
-	c_sampling=round(1/( ((psf).xcoords)[1]-((psf).xcoords)[0] ))
+	c_sampling=round(1/(((psf).xcoords)[1]-((psf).xcoords)[0]))
 
 	;t3=systime(/seconds)
 	
@@ -208,16 +312,24 @@ function pol_ext_amoeba,P,best=best
 	psfcube = gpi_highres_microlens_psf_evaluate_detector_psf(x_grid,y_grid, [psfpos_cen[0],psfpos_cen[1],1])
 
 	;why are PSFs coming out with NaN
-	
-	
-stop
-
-	;spectra = [[spectra],[[spec_spix3[2,k],spec_spix3[3,k],spec_spix3[4,k],spec_spix3[0,k],spec_spix3[1,k]]]]
-
-	;t4=systime(/seconds)
-	;print,t4-t3,'jbp_psf_amoeba'
 
 	if (micphn eq 1) then r_cube = [[[micphncube]],[[psfcube]]] else r_cube = psfcube
+	
+	sbp = size(badpix)
+	ids=[-1]
+	w=fltarr(s[2])+1
+	if (sbp[0] ne 0) then begin
+		sub_badpix = badpix[x_sub1:x_sub2,y_sub1:y_sub2]
+		for i=0,s[2]-1 do begin
+			r_cube[*,*,i]=r_cube[*,*,i]*sub_badpix
+			if (total(r_cube[*,*,i]) lt 0.8) then begin
+				ids = [[ids],[i]]
+			endif
+			w[i]=total(r_cube[*,*,i])
+		endfor
+	endif
+	
+;stop
 
 if (keyword_set(best)) then return,{r_cube:r_cube} else return,stddev(gpi_pol_lsqr(sub_img,r_cube,/resid))
 
@@ -226,7 +338,7 @@ end
 ;--------------------------------------------------
 ; Prep subsection of detector image for spectra extraction.
 
-pro img_pol_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,polcal,pol,pol_img,mic_pol,del_x,del_y,x_off,y_off,pcal_off,eo,resid=resid,micphn=micphn,iter=iter
+pro img_pol_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,polcal,pol,pol_img,mic_pol,del_x,del_y,x_off,y_off,pcal_off,eo,badpix,resid=resid,micphn=micphn,iter=iter
 
 	;tuning knobs
 
@@ -335,7 +447,8 @@ pro img_pol_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,polcal,pol,pol_img,m
 		x_off:x_off,$
 		y_off:y_off,$
 		psfpos_cen:psfpos_cen,$
-		eo:eo}
+		eo:eo,$
+		badpix:badpix}
 	
 ;AMOEBA calling lsqr
 
@@ -421,22 +534,22 @@ pcal_off=[del_x,del_y,chi_sqr]
 
 ; display model and data spectra sub images 
 ;print,wcal_off
-full_resid = fltarr(3*xsize,ysize)
-z=0
-full_resid[z*xsize:(z+1)*xsize-1,0:ysize-1]=sub_img
-z=1
-full_resid[z*xsize:(z+1)*xsize-1,0:ysize-1]=pol_img_s
-z=2
-full_resid[z*xsize:(z+1)*xsize-1,0:ysize-1]=sub_img-pol_img_s
-window,0
-imdisp,full_resid
-stop
+;full_resid = fltarr(3*xsize,ysize)
+;z=0
+;full_resid[z*xsize:(z+1)*xsize-1,0:ysize-1]=sub_img
+;z=1
+;full_resid[z*xsize:(z+1)*xsize-1,0:ysize-1]=pol_img_s
+;z=2
+;full_resid[z*xsize:(z+1)*xsize-1,0:ysize-1]=sub_img-pol_img_s
+;window,0
+;imdisp,full_resid
+;stop
 end
 
 ;--------------------------------------------------
 ; Parrallel child process to extract all lenslets known from polcal and save residual
 
-pro img_ext_pol_para,cut1,cut2,z,img,pcal_off_cube,pol_cube,mic_cube,gpi_pol,polcal,mlens_file,resid=resid,micphn=micphn,iter=iter,del_x=del_x,del_y=del_y,x_off=x_off,y_off=y_off,lens=lens
+pro img_ext_pol_para,cut1,cut2,z,img,pcal_off_cube,pol_cube,mic_cube,gpi_pol,polcal,mlens_file,resid=resid,micphn=micphn,iter=iter,del_x=del_x,del_y=del_y,x_off=x_off,y_off=y_off,lens=lens,badpix=badpix
 
 	t_start=systime(/seconds)
 
@@ -457,8 +570,8 @@ pro img_ext_pol_para,cut1,cut2,z,img,pcal_off_cube,pol_cube,mic_cube,gpi_pol,pol
 		x=lens[0,i]
 		y=lens[1,i]
 		print,x,y,i,del_x,del_y
-		img_pol_ext_amoeba,x,y,img,mlens,polcal,e,pol_img,mic_cube,del_x,del_y,x_off,y_off,pcal_off,0,resid=resid,micphn=micphn,iter=iter
-    img_pol_ext_amoeba,x,y,img,mlens,polcal,o,pol_img,mic_cube,del_x,del_y,x_off,y_off,pcal_off,0,resid=resid,micphn=micphn,iter=iter
+		img_pol_ext_amoeba,x,y,img,mlens,polcal,e,pol_img,mic_cube_pol,del_x,del_y,x_off,y_off,pcal_off,0,badpix,resid=resid,micphn=micphn,iter=iter
+    img_pol_ext_amoeba,x,y,img,mlens,polcal,o,pol_img,mic_cube_pol,del_x,del_y,x_off,y_off,pcal_off,0,badpix,resid=resid,micphn=micphn,iter=iter
 
 		if (e ne -1 and o ne -1) then begin
 			gpi_pol[x,y,0:1] = [e,o]
@@ -477,8 +590,10 @@ pro img_ext_pol_para,cut1,cut2,z,img,pcal_off_cube,pol_cube,mic_cube,gpi_pol,pol
 	if (resid eq 1) then begin
 		exe_tst = execute(strcompress('pol_cube_'+string(z)+'=pol_cube',/remove_all))
 		exe_tst = execute(strcompress('save,pol_cube_'+string(z)+',filename="'+dir+'/pol_cube_'+string(z)+'.sav"',/remove_all))
-		exe_tst = execute(strcompress('mic_cube_pol_'+string(z)+'=mic_cube_pol',/remove_all))
-		exe_tst = execute(strcompress('save,mic_cube_pol_'+string(z)+',filename="'+dir+'/mic_cube_pol_'+string(z)+'.sav"',/remove_all))
+		if (micphn eq 1) then begin
+			exe_tst = execute(strcompress('mic_cube_pol_'+string(z)+'=mic_cube_pol',/remove_all))
+			exe_tst = execute(strcompress('save,mic_cube_pol_'+string(z)+',filename="'+dir+'/mic_cube_pol_'+string(z)+'.sav"',/remove_all))
+		endif
 	endif
 	if (iter eq 1) then begin
 		exe_tst = execute(strcompress('pcal_off_cube_'+string(z)+'=pcal_off_cube',/remove_all))
