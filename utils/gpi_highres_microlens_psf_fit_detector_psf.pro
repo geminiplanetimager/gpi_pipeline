@@ -65,7 +65,7 @@ function gpi_highres_microlens_psf_fit_detector_psf, pixel_array, FIRST_GUESS = 
                   ptr_obj_psf,$
                   FIT_PARAMETERS = fit_parameters,$
                   ERROR_FLAG = error_flag, QUIET = quiet, ANTI_STUCK = anti_stuck, $
-			no_error_checking=no_error_checking, weights=weights,chisq=chisq
+			no_error_checking=no_error_checking, ncoadds=ncoadds,weights=weights,chisq=chisq
 
 
 error_flag = 0
@@ -145,11 +145,11 @@ c_y_vector_psf_min = min((*ptr_obj_psf).ycoords)
 c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
 
 ; declare the parinfo for the fitting
-  parinfo = replicate({limited:[0,0], limits:[0.0,0]}, 3)
+  parinfo = replicate({limited:[0,0], limits:[0.0,0]}, 3) ; x,y,f
     parinfo[0].limited = [1,1]
     parinfo[1].limited = [1,1]
     parinfo[2].limited = [1,0]
-    parinfo[2].limits  = 0.0
+ ;   parinfo[2].limits  = [0.0]
 
  ;loop over all the slice of the pixel_array cube. It fit the same PSF to all of them.
 
@@ -159,7 +159,7 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
     if keyword_set(x0) then x_grid = x_grid0 + x0[i_slice] else x_grid = x_grid0
     if keyword_set(y0) then y_grid = y_grid0 + y0[i_slice] else y_grid = y_grid0
     
-    
+ 
   ;   WEIGHTS - Array of weights to be used in calculating the
   ;             chi-squared value.  If WEIGHTS is specified then the ERR
   ;             parameter is ignored.  The chi-squared value is computed
@@ -193,14 +193,36 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
 
 
 ; find peak in mask space
-;tmp=abs(x_grid-first_guess[0])+abs(y_grid-first_guess[1])
-;tmp2=min(tmp,mind,/nan)
-;
-;weights=(1.0/tmp)
-;weights/=max(weights)
-;weights*=mask
-;
-;my_weights=weights
+weights=mask ; just makes the array 
+
+if 1 eq 1 then begin 
+rad_arr=sqrt((x_grid-first_guess[0])^2+(y_grid-first_guess[1])^2)
+
+;;tmp=abs(x_grid-first_guess[0])+abs(y_grid-first_guess[1])  ; orig
+
+ind1=where(rad_arr gt 2,ct1)
+if ct1 ne 0 then weights[ind1]=0.0
+ind2=where(rad_arr ge 1.5 and rad_arr lt 2,ct2)
+if ct2 ne 0 then weights[ind2]=1.0/((rad_arr[ind2])/1.5) ; goes linearly from 1 to zero with radius
+ind3=where(rad_arr lt 1.5 and mask ne 0,ct3)
+if ct3 ne 0 then weights[ind3]=1.0  ; sets the core to 1
+weights*=mask
+
+endif
+my_weights=weights
+
+if keyword_set(ncoadds) eq 0 then ncoadds=1
+
+data_variance=sqrt(mask*pixel_array*3.04*ncoadds)
+; if negative, set it to be consistent with zero 
+ind=where(pixel_array lt 0,ct)
+if ct ne 0 then data_variance[ind]=abs(pixel_array[ind]*3.04*ncoadds)
+; 1/data_variance will give nans
+
+final_weights=my_weights/data_variance
+ind=where(finite(final_weights) eq 0,ct)
+if ct ne 0 then final_weights[ind]=0
+
 ;stop
 
   ;  my_weights = double(pixel_array[*,*,i_slice]
@@ -211,18 +233,51 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
 ; set centroid limits as the edges of the array
     parinfo[0].limits  = [x0[i_slice],x0[i_slice]+nx]
     parinfo[1].limits  = [y0[i_slice],y0[i_slice]+ny]
- 
+if keyword_set(rad_arr) eq 1 then begin
+		; center is at
+		junk=min(rad_arr,ind,/nan)
+		sz=size(rad_arr)
+
+	; must be within 1 pixel of approximation
+     parinfo[0].limits  = [x0[i_slice]+(ind mod sz[1])-1,x0[i_slice]+(ind mod sz[1])+1]
+    parinfo[1].limits  = [y0[i_slice]+(ind / sz[1])-1,y0[i_slice]+(ind / sz[1])+1]
+
+endif
 
     ;Fit the result of gpi_highres_microlens_psf_evaluate_detector_psf to the current slice. gpi_highres_microlens_psf_evaluate_detector_psf uses the common psf_lookup_table to get the PSF to fit. Then it shifts and scales it according to the parameters (centroid and intensity).
  parameters = MPFIT2DFUN("gpi_highres_microlens_psf_evaluate_detector_psf", x_grid, y_grid, pixel_array[*,*,i_slice],0, $
                                                       first_guess[*,i_slice], $
-                                                      WEIGHTS = my_weights, PARINFO = parinfo, $
-                                                      BESTNORM = chisq, /QUIET, YFIT = yfit ) 
+                                                      WEIGHTS = final_weights, PARINFO = parinfo, $
+                                                      BESTNORM = chisq, /quiet, YFIT = yfit ) 
+ 
+ if 0 eq 1 then begin
+	sz=size(mask)*30
+	window,2,xsize=sz[1]*3,ysize=sz[2]
+	ind=where(mask ne 0)
+	dmax=max(pixel_array[ind],/nan)
+	dmin=min(pixel_array[ind],/nan)
+	loadct,1
+	tvdl, pixel_array*mask,dmin,dmax,position=0,/log
+	tvdl,yfit*mask,dmin,dmax,position=1,/log
+	loadct,0
+	diff=pixel_array-yfit
+	my_residuals =  abs(diff) / abs(pixel_array)  
+
+	tvdl,my_residuals*mask,0.0,0.2,position=2
+	stop
+ endif
+ 
   
  fitted_PSF[*,*,i_slice] = temporary(yfit)  
    ;store the results of the fit
     fit_parameters[*,i_slice] = temporary(parameters)
+; improvised red chisq - 
+	junk=where(weights/data_variance ne 0, ct)
+	chisq0=chisq
+; chisq=( total( weights *(pixel_array-fitted_psf)^2) / (total(final_weights)) ) / (dof-3-1)
 
+
+if chisq lt 0 then stop
   endfor
 
 return, ptr_new(fitted_PSF,/no_copy)
