@@ -74,14 +74,22 @@ suffix='-podc' 		 ; set this to the desired output filename suffix
 	;stop idl session
 	if tag_exist( Modules[thisModuleIndex], "stopidl") then stopidl=long(Modules[thisModuleIndex].stopidl) else stopidl=0
 
-		
-	; get mlens PSF filename
-	mlens_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'mlenspsf',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose)
-
 	;define the common wavelength vector with the IFSFILT keyword:
   	filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
   	if (filter eq '') then return, error('FAILURE ('+functionName+'): IFSFILT keyword not found.') 
 
+	;run badpixel suppresion
+	if tag_exist(Modules[thisModuleIndex],"badpix") then $
+		badpix=float(Modules[thisModuleIndex].badpix) else badpix=0
+
+	if (badpix eq 1) then begin
+		badpix_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header('badpix',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile])
+		if ((size(badpix_file))[1] eq 0) then $
+			return, error('FAILURE ('+functionName+'): Failed to find badpixel map, set to 0 or make badpixel map prior.') 
+		badpix = gpi_READFITS(badpix_file)
+		ones = bytarr(2048,2048)+1
+		badpix=ones-badpix
+	endif
 	
   	;;error handle if readpolcal or not used before
 	if ~(keyword_set(polcal.coords)) then return, error("You must use Load Polarization Calibration before Assemble Polarization Cube")
@@ -109,19 +117,15 @@ suffix='-podc' 		 ; set this to the desired output filename suffix
 	;spec_cube=shmvar('spec_cube')
 	pol_cube[0,0]=pol_cube
 
-	mic_cube=fltarr(szim[1],szim[2])
+	mic_cube_pol=fltarr(szim[1],szim[2])
 	;shmmap,'mic_cube',type=4,szim[1],szim[2],/sysv
 	;mic_cube=shmvar('mic_cube')
-	mic_cube[0,0]=mic_cube
+	mic_cube_pol[0,0]=mic_cube_pol
 
 	gpi_pol=fltarr(nlens,nlens,2)
-	shmmap,'gpi_cube',type=4,nlens,nlens,2,/sysv
-	gpi_cube=shmvar('gpi_cube')
+	shmmap,'gpi_pol',type=4,nlens,nlens,2,/sysv
+	gpi_pol=shmvar('gpi_pol')
 	gpi_pol[0,0,0]=gpi_pol
-  
-  cwv=get_cwv(filter) 
-  gpi_lambda=cwv.lambda 
-  para=cwv.CommonWavVect
   
   ;Copied from the spectral mode equivalent
   id = where_xyz(finite(reform(polcal.spotpos[0,*,*,0])),XIND=xarr,YIND=yarr)
@@ -131,24 +135,65 @@ suffix='-podc' 		 ; set this to the desired output filename suffix
   ;randomly sort lenslet list to equalize job time.
   lens=lens[*,sort(randomu(seed,n_elements(lens)/2))]
 
-;*******Parallel start *********
+	pcal = polcal.spotpos
+	del_x=0
+	del_y=0
 
- 
-  ;*******Parallel over ********* 
- 
-  ;******* Non Parallel version *******
-  cut1=1000
-  cut2=1025
-  j=0 
-  np=1
-  ex=execute(strcompress('img_ext_pol_para,'+string(cut1)+','+string(cut2)+','+string(j)+',img,dqarr,pcal_off_cube,pol_cube,mic_cube,gpi_pol,polcal.spotpos,"'+mlens_file+'",'+'x_off='+string(xsft)+','+'y_off='+string(ysft)+',lens=lens'+keywords,/remove_all))
-  
-;  Clean up variables before reloading them
-  gpi_pol[*]=0
-  pol_cube[*]=0
-  mic_cube[*]=0
-  pcal_ofF_cube[*]=0
-  
+	;if lmgr(/runtime) and np gt 1 then begin
+	if (0 eq 1) then begin
+		backbone->Log, "Cannot use parallelization in IDL runtime. Switching to single thread only."
+		tst = call_function('img_ext_pol_para',0,(nlens_tot-1),0,img,pcal_off_cube,pol_cube,mic_cube_pol,gpi_pol,pcal,mlens_file,resid=resid,micphn=micphn,iter=iter,del_x=del_x,del_y=del_y,x_off=xsft,y_off=ysft,lens=lens,badpix=badpix)
+
+	endif else begin
+		; start bridges from utils function
+		oBridge=gpi_obridgestartup(nbproc=np)
+		
+		for j=0,np-1 do begin
+			oBridge[j]->Setvar,'img',img
+			oBridge[j]->Setvar,'pol_cube',pol_cube
+			oBridge[j]->Setvar,'mic_cube_pol',mic_cube_pol
+			oBridge[j]->Setvar,'gpi_pol',gpi_pol
+			oBridge[j]->Setvar,'pcal_off_cube',pcal_off_cube
+			oBridge[j]->Setvar,'pcal',pcal
+			oBridge[j]->Setvar,'lens',lens
+			oBridge[j]->Setvar,'badpix',badpix
+
+			cut1 = floor((nlens_tot/np)*j)
+			cut2 = floor((nlens_tot/np)*(j+1))-1
+
+			oBridge[j]->Execute, strcompress('wait,'+string(5),/remove_all)
+			oBridge[j]->Execute, "print,'loading PSFs'"
+			
+			oBridge[j]->Execute, ".r "+gpi_get_directory('GPI_DRP_DIR')+"/utils/gpi_lsqr_mlens_extract_pol_dep.pro"
+
+			process=strcompress('img_ext_pol_para,'+string(cut1)+','+string(cut2)+','+string(j)+',img,pcal_off_cube,pol_cube,mic_cube_pol,gpi_pol,pcal,"'+mlens_file+'",del_x='+string(del_x)+',del_y='+string(del_y)+',x_off='+string(xsft)+',y_off='+string(ysft)+',lens=lens,badpix=badpix'+keywords,/remove_all)
+
+			oBridge[j]->Execute, "print,'"+process+"'"
+			oBridge[j]->Execute, process, /nowait		
+
+		endfor
+	  
+		waittime=10
+		  ;check status if finish kill bridges
+		backbone->Log, 'Waiting for jobs to complete...'
+	  	status=intarr(np)
+	  	statusinteg=1
+	  	wait,1
+	  	t2start=systime(/seconds)
+	  	while statusinteg ne 0 do begin
+	   		t2=systime(/seconds)
+	   		if (round(t2-t2start))mod(300.) eq 0 then print,'Processors have been working for = ',round((t2-t2start)/60),'min'
+	   			for i=0,np-1 do begin
+	    				status[i] = oBridge[i]->Status()
+	   			endfor
+	   		print,status
+	   		statusinteg=total(status)
+	   		wait,waittime
+	  	endwhile
+	  	backbone->Log, 'Job status:'+string(status)
+
+		gpi_obridgekill,oBridge
+	endelse
 
 	dir = gpi_get_directory('GPI_REDUCED_DATA_DIR')
 	;recover from scratch since shared memory doesnt work yet
@@ -160,10 +205,10 @@ suffix='-podc' 		 ; set this to the desired output filename suffix
 			exe_tst = execute(strcompress('restore,"'+dir+'pol_cube_'+string(n)+'.sav"',/remove_all))
 			exe_tst = execute(strcompress('pol_cube=pol_cube+pol_cube_'+string(n),/remove_all))
 			;exe_tst = execute('file_delete,"'+dir+'spec_cube_'+strcompress(string(n)+'.sav"',/remove_all))
-      if (micphn eq 1) then begin
-			 exe_tst = execute(strcompress('restore,"'+dir+'mic_cube_pol_'+string(n)+'.sav"',/remove_all))
-       exe_tst = execute(strcompress('mic_cube=mic_cube+mic_cube_pol_'+string(n),/remove_all))
-       ;exe_tst = execute('file_delete,"'+dir+'mic_cube_'+strcompress(string(n)+'.sav"',/remove_all))
+      			if (micphn eq 1) then begin
+				exe_tst = execute(strcompress('restore,"'+dir+'mic_cube_pol_'+string(n)+'.sav"',/remove_all))
+      				exe_tst = execute(strcompress('mic_cube=mic_cube+mic_cube_pol_'+string(n),/remove_all))
+       				;exe_tst = execute('file_delete,"'+dir+'mic_cube_'+strcompress(string(n)+'.sav"',/remove_all))
 			endif
 		endif
 		if (iter eq 1) then begin
@@ -217,6 +262,12 @@ suffix='-podc' 		 ; set this to the desired output filename suffix
 	;SHMUNMAP, 'spec_cube'
 	;SHMUNMAP, 'mic_cube'
 	;SHMUNMAP, 'gpi_cube'
+
+	;  Clean up variables before reloading them
+  	gpi_pol[*]=0
+  	pol_cube[*]=0
+  	mic_cube_pol[*]=0
+  	pcal_off_cube[*]=0
 	
 @__end_primitive
 

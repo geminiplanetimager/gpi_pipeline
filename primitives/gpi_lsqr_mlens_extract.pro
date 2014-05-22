@@ -164,7 +164,7 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 
 	if lmgr(/runtime) and np gt 1 then begin
 		backbone->Log, "Cannot use parallelization in IDL runtime. Switching to single thread only."
-		call_function,'img_ext_para',cut1,cut2,0,img,wcal_off_cube,spec_cube,mic_cube,gpi_cube,gpi_lambda,para,wavcal,mlens_file,del_x_best=del_x_best,del_theta_best=del_theta_best,del_lam_best=del_lam_best,x_off=xsft,y_off=ysft,lens=lens,badpix=badpix,resid=resid,micphn=micphn,iter=iter
+		tst = call_function(call_function,'img_ext_para',cut1,cut2,0,img,wcal_off_cube,spec_cube,mic_cube,gpi_cube,gpi_lambda,para,wavcal,mlens_file,del_x_best=del_x_best,del_theta_best=del_theta_best,del_lam_best=del_lam_best,x_off=xsft,y_off=ysft,lens=lens,badpix=badpix,resid=resid,micphn=micphn,iter=iter)
 
 	endif else begin
 		; start bridges from utils function
@@ -184,6 +184,7 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 
 			cut1 = floor((nlens_tot/np)*j)
 			cut2 = floor((nlens_tot/np)*(j+1))-1
+			stop
 
 			;oBridge[j]->Execute, "shmmap,'spec_cube',type=4"+","+string(szim[1])+","+string(szim[2])+",/sysv"
 			;oBridge[j]->Execute, "shmmap,'wcal_off_cube',type=4"+","+string(nlens)+","+string(nlens)+",7,/sysv"
@@ -198,7 +199,7 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 			oBridge[j]->Execute, strcompress('wait,'+string(5),/remove_all)
 			oBridge[j]->Execute, "print,'loading PSFs'"
 			oBridge[j]->Execute, ".r "+gpi_get_directory('GPI_DRP_DIR')+"/utils/gpi_lsqr_mlens_extract_dep.pro"
-			process=strcompress('img_ext_para,'+string(cut1)+','+string(cut2)+','+string(j)+',img,wcal_off_cube,spec_cube,mic_cube,gpi_cube,gpi_lambda,para,wavcal,"'+mlens_file+'",'+'del_x_best='+string(del_x_best)+','+'del_theta_best='+string(del_theta_best)+','+'del_lam_best='+string(del_lam_best)+','+'x_off='+string(xsft)+','+'y_off='+string(ysft)+',lens=lens,badpix=badpix'+keywords,/remove_all)
+			process=strcompress('img_ext_para,'+string(cut1)+','+string(cut2)+','+string(j)+',img,wcal_off_cube,spec_cube,mic_cube,gpi_cube,gpi_lambda,para,wavcal,"'+mlens_file+'",'+'del_x_best='+string(del_x_best)+',del_theta_best='+string(del_theta_best)+',del_lam_best='+string(del_lam_best)+',x_off='+string(xsft)+',y_off='+string(ysft)+',lens=lens,badpix=badpix'+keywords,/remove_all)
 
 			oBridge[j]->Execute, "print,'"+process+"'"
 			oBridge[j]->Execute, process, /nowait		
