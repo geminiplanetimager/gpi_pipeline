@@ -12,11 +12,10 @@
 ; PIPELINE COMMENT: This primitive uses the relevent microlense PSF and wave cal to generate a model detector image to cross correlate with a science image. 
 ;   The resulting output can be used as a flexure offset prior to flux extraction.
 ; PIPELINE ARGUMENT: Name="range" Type="float" Default="2" Range="[0,5]" Desc="Range of cross corrleation search in pixels."
-; PIPELINE ARGUMENT: Name="resolution" Type="float" Default="0.01" Range="[0,1]" Desc="Subpixel resolution of cross correlation convergence"
+; PIPELINE ARGUMENT: Name="resolution" Type="float" Default="0.01" Range="[0,1]" Desc="Subpixel resolution of cross correlation"
+; PIPELINE ARGUMENT: Name="yoff_factor" Type="float" Default="2" Range="[0,5]" Desc="Fractor of resolution to which the code converges in y_offset"
 ; PIPELINE ARGUMENT: Name="psf_sep" Type="float" Default="0.01" Range="[0,1]" Desc="PSF separation in pixels"
 ; PIPELINE ARGUMENT: Name="stopidl" Type="int" Range="[0,1]" Default="1" Desc="1: stop IDL, 0: dont stop IDL"
-; PIPELINE ARGUMENT: Name="x_spec_lens" Type="float" Default="150" Range="[0,281]" Desc="x lenslet number for spectra extraction"
-; PIPELINE ARGUMENT: Name="y_spec_lens" Type="float" Default="150" Range="[0,281]" Desc="same for y"
 ; PIPELINE ARGUMENT: Name="x_off" Type="float" Default="0" Range="[-5,5]" Desc="initial guess for large offsets"
 ; PIPELINE ARGUMENT: Name="y_off" Type="float" Default="0" Range="[-5,5]" Desc="initial guess for large offsets"
 ; PIPELINE ARGUMENT: Name="badpix" Type="float" Default="0" Range="[0,1]" Desc="Weight by bad pixel map?"
@@ -51,17 +50,13 @@ calfiletype=''   ; set this to some non-null value e.g. 'dark' if you want to lo
 @__start_primitive
 suffix='' 		 ; set this to the desired output filename suffix
 
- 	if tag_exist( Modules[thisModuleIndex], "range") then range=float(Modules[thisModuleIndex].range) else range=2.0
-	if tag_exist( Modules[thisModuleIndex], "resolution") then resolution=float(Modules[thisModuleIndex].resolution) else resolution=0.01
+ 	if tag_exist( Modules[thisModuleIndex],"range") then range=float(Modules[thisModuleIndex].range) else range=2.0
+	if tag_exist( Modules[thisModuleIndex],"resolution") then resolution=float(Modules[thisModuleIndex].resolution) else resolution=0.01
 
-	if tag_exist( Modules[thisModuleIndex], "psf_sep") then steps=float(Modules[thisModuleIndex].psf_sep) else steps=0.01
+	if tag_exist( Modules[thisModuleIndex],"psf_sep") then steps=float(Modules[thisModuleIndex].psf_sep) else steps=0.01
 
 	;stop idl session
-	if tag_exist( Modules[thisModuleIndex], "stopidl") then stopidl=long(Modules[thisModuleIndex].stopidl) else save=0
-
-	;Lenslet number for spectra extraction
-	if tag_exist(Modules[thisModuleIndex],"x_spec_lens") then x_spec_lens=float(Modules[thisModuleIndex].x_spec_lens) else x_spec_lens=150
-	if tag_exist(Modules[thisModuleIndex],"y_spec_lens") then y_spec_lens=float(Modules[thisModuleIndex].y_spec_lens) else y_spec_lens=150
+	if tag_exist( Modules[thisModuleIndex],"stopidl") then stopidl=long(Modules[thisModuleIndex].stopidl) else save=0
 
 	if tag_exist(Modules[thisModuleIndex],"x_off") then x_off=float(Modules[thisModuleIndex].x_off) else x_off=0
 	if tag_exist(Modules[thisModuleIndex],"y_off") then y_off=float(Modules[thisModuleIndex].y_off) else y_off=0
@@ -93,12 +88,12 @@ suffix='' 		 ; set this to the desired output filename suffix
 		return, error('FAILURE ('+functionName+'): Failed to load microlens PSF data prior to calling this primitive.') 
 	
 	;free optimization knobs
-	xsize=32			;spectra sub image size
+	xsize=16			;spectra sub image size
 	ysize=64			;	extracted for lsqr
 
 	;lens_arr=[[46,175],[178,226],[85,116],[210,170]] 	; center lens locations for sub image extraction.
 	;lens_arr=[[85,116],[210,170],[167,87],[114,190]] 
-	lens_arr=[[85,116],[210,170],[46,175],[178,226]]
+	lens_arr=[[85,116],[210,170],[46,175],[178,200]]
 	; make a function to determine satellite spot locations for beter performance?
 
 	blank2 = fltarr(xsize,ysize)
@@ -128,7 +123,10 @@ suffix='' 		 ; set this to the desired output filename suffix
 	y_off_mem=[0]
 	flux_mem=[0]
 
-	while (abs(ysft) gt (resolution/2)) or (abs(xsft_sav) gt (resolution/2)) do begin
+	;supress all bad pixels 
+	img=img*badpix
+
+	while (abs(ysft) gt (3*resolution)) or (abs(xsft_sav) gt (resolution/2)) do begin
 
 img_spec_ext_amoeba,lens_arr[0,0],lens_arr[1,0],img,mlens,wavcal,spec,spec_img,mic_img,del_lam_best,del_x_best,del_theta_best,x_off,y_off,wcal_off,para,badpix,resid=1,micphn=0,iter=0	
 img_spec_ext_amoeba,lens_arr[0,0],lens_arr[1,0],img,mlens,wavcal,spec2,spec_img2,mic_img2,del_lam_best+0.66,del_x_best,del_theta_best,x_off,y_off,wcal_off2,para,badpix,resid=1,micphn=0,iter=0
@@ -167,6 +165,13 @@ img_spec_ext_amoeba,lens_arr[0,3],lens_arr[1,3],img,mlens,wavcal,spec3,spec_img2
 			;oplot,spec2[0,*],spec2[1,*]
 			;oplot,spec3[0,*],spec3[1,*]
 			;oplot,spec4[0,*],spec4[1,*]
+	
+			;lens_spec=fltarr(n_elements(gpi_lambda))+1
+			;lens_spec[0:1]=0
+			;lens_spec[n_elements(gpi_lambda)-2:*]=0
+			;lens_spec2=lens_spec
+			;lens_spec3=lens_spec
+			;lens_spec4=lens_spec
 
 			spec_flx_all=[[lens_spec],[lens_spec2],[lens_spec3],[lens_spec4]]
 
@@ -185,99 +190,15 @@ img_spec_ext_amoeba,lens_arr[0,3],lens_arr[1,3],img,mlens,wavcal,spec3,spec_img2
 				y_lens_cen=lens_arr[1,z]
 				;get psf positions from wave cal
 
-					psfpos_cen = get_psf_pos(x_lens_cen,y_lens_cen,wavcal,para[0],para[1],steps,0,0,0,x_off,y_off)
-					x_med = floor(mean(psfpos_cen[0,*]))
-					y_med = floor(mean(psfpos_cen[1,*]))
-					x_sub1 = x_med-ceil(xsize/2)+1
-					x_sub2 = x_med+ceil(xsize/2)
-					y_sub1 = y_med-ceil(ysize/2)+1
-					y_sub2 = y_med+ceil(ysize/2)
-
-					x_grid = rebin(findgen(xsize)+x_sub1,xsize,ysize)
-					y_grid = rebin(reform(findgen(ysize)+y_sub1,1,ysize),xsize,ysize)
-
-					imsz=size(img)
-					if x_sub2 gt imsz[1]-1 or y_sub2 gt imsz[2]-1 or x_sub1 lt 0 or y_sub1 lt 0 then begin
-						spec=[-1,-1]
-						spec_img=blank2
-						mic_img=blank2
-						wcal_off=[0,0,0,0,0]
-					endif
-
-					sub_img=img[x_sub1:x_sub2,y_sub1:y_sub2]
-
-					sbp = size(badpix)
-					if (sbp[0] ne 0) then begin
-						sub_img=sub_img*badpix[x_sub1:x_sub2,y_sub1:y_sub2]
-					endif
-
-				;find psf spot locations
-
-					xr = 35
-					yr = 43
-
-					lens_x = (findgen(xr)-floor(xr/2))+x_lens_cen
-					lens_y = (findgen(yr)-floor(yr/2))+y_lens_cen
-
-					;print,del_x,del_theta
-					spec_spix = [0,0,0,0,0]
-					for i=0L,n_elements(lens_x)-1 do begin
-						for j=0L,n_elements(lens_y)-1 do begin
-							if finite(wavcal[lens_x[i],lens_y[j],0]) then begin
-								psfpos = get_psf_pos(lens_x[i],lens_y[j],wavcal,para[0],para[1],steps,0,0,0,x_off,y_off)
-								num = n_elements(psfpos[0,*])
-								psflens = fltarr(5,num)
-								psflens[0:1,*] = psfpos[0:1,*]
-				 				psflens[2,*] = lens_x[i]
-								psflens[3,*] = lens_y[j]
-								psflens[4,*] = psfpos[2,*]
-								spec_spix = [[spec_spix],[psflens]]
-								;print,[lens_x[i],lens_y[j]]
-							endif
-						endfor
-					endfor
-					spec_spix = spec_spix[*,1:*]
-
-					;clean for positions within sub_img
-					spec_spix2 = spec_spix[*,where(spec_spix[0,*] gt x_sub1-2 and spec_spix[0,*] lt x_sub2+2)]
-					spec_spix3 = spec_spix2[*,where(spec_spix2[1,*] gt y_sub1-2 and spec_spix2[1,*] lt y_sub2+2)]
-
-				;get psf reference images
-
-					s=size(spec_spix3)
-
-					mdl_img=[[blank2]]
-					psf_offset = [0,1]
-
-					x_grid = rebin(findgen(xsize)+x_sub1,xsize,ysize)
-					y_grid = rebin(reform(findgen(ysize)+y_sub1,1,ysize),xsize,ysize)
-
-					lens_x = long(lens_x[0])
-					lens_y = long(lens_y[0])
-
-					;read in high-res of central microlens PSF for and use on whole sub_img
-					ptr = gpi_highres_microlens_psf_get_local_highres_psf(mlens,[lens_x,lens_y,0])
-					if ptr_valid(mlens[lens_x,lens_y]) then psf = *mlens[lens_x,lens_y]
-
-					common psf_lookup_table, com_psf, com_x_grid_PSF, com_y_grid_PSF, com_triangles, com_boundary
-					gpi_highres_microlens_psf_initialize_psf_interpolation, psf.values, psf.xcoords, psf.ycoords
-
-					for k=0L,s[2]-1 do begin
-
-						r1 = gpi_highres_microlens_psf_evaluate_detector_psf(x_grid,y_grid, [spec_spix3[0,k], spec_spix3[1,k], 1])
-
-						lam = spec_spix3[4,k]
-						flx = interpol(spec_flx,spec_lam,lam)
-						mdl_img = mdl_img+(r1*flx[0])
-
-					endfor
+				sub_mdl_img=make_mdl_img(x_lens_cen,y_lens_cen,wavcal,para,steps,x_off,y_off,blank2,xsize,ysize,img,mlens,spec_flx,spec_lam,del_x_best)
 
 				;stack sub images length wise
-				mdl_full[z*xsize:(z+1)*xsize-1,0:ysize-1]=mdl_img/total(mdl_img)
-				sub_full[z*xsize:(z+1)*xsize-1,0:ysize-1]=sub_img
+				mdl_full[z*xsize:(z+1)*xsize-1,0:ysize-1]=sub_mdl_img[*,*,0]/total(sub_mdl_img[*,*,0])
+				sub_full[z*xsize:(z+1)*xsize-1,0:ysize-1]=sub_mdl_img[*,*,1]
 
-				;twod_img_corr,sub_img,mdl_img,range,resolution,xsft,ysft,corr
-				;print,xsft,ysft
+				twod_img_corr,sub_mdl_img[*,*,1],sub_mdl_img[*,*,0],range,resolution,xsft,ysft,corr
+				print,xsft,ysft
+
 
 		window,0
 		plot,spec_lam,spec_flx
@@ -295,7 +216,7 @@ img_spec_ext_amoeba,lens_arr[0,3],lens_arr[1,3],img,mlens,wavcal,spec3,spec_img2
 			if ids[0] ne -1 then mdl_full[ids]=0
 
 			mdl_full_save = mdl_full
-			twod_img_corr,sub_full,mdl_full,range,resolution/2.00,xsft,ysft,corr
+			twod_img_corr,sub_full,mdl_full,range,resolution/4.00,xsft,ysft,corr
 			;corr=correl_images(mdl_full,sub_full,magnification=resolution)
 			;corrmat_analyze, corr, xsft, ysft, magnification=resolution
 			;stop
@@ -307,14 +228,14 @@ img_spec_ext_amoeba,lens_arr[0,3],lens_arr[1,3],img,mlens,wavcal,spec3,spec_img2
 		range=max([range,7*resolution])
 		;range=range_start
 
-		ysft=ysft*2
+		ysft=ysft
 		y_off=y_off+ysft
 
 		print,x_off,y_off
 
 		xsft_sav=xsft
 
-		sdev=stddev(sub_img-(total(sub_full)/total(mdl_full))*mdl_img)
+		sdev=stddev(sub_full-(total(sub_full)/total(mdl_full))*mdl_full)
 		stddev_mem=[stddev_mem,sdev]
 		y_off_mem=[y_off_mem,y_off]
 		flux_mem=[flux_mem,total(spec_flx_all)]
@@ -331,22 +252,33 @@ img_spec_ext_amoeba,lens_arr[0,3],lens_arr[1,3],img,mlens,wavcal,spec3,spec_img2
 		if (n eq 4) then begin 
 			stop
 		endif
-
+		;stop
 		window,1
 		imdisp,corr,/axis
 		window,2
-		imdisp,mdl_img,/axis
+		imdisp,mdl_full,/axis
 		window,3
-		imdisp,sub_img-(total(sub_full)/total(mdl_full))*mdl_img
+		;imdisp,sub_full-(total(sub_full)/total(mdl_full))*mdl_full
 		print,sdev
 		print,total(spec_flx_all)
-		tstimg=fltarr(2*xsize,ysize)
-		tstimg[0:xsize-1,0:ysize-1]=sub_img*(total(mdl_img)/total(sub_img))
-		tstimg[xsize:(2*xsize)-1,0:ysize-1]=mdl_img
+
+
+
+		tstimg=fltarr(3*xsize,ysize)
+		data = sub_mdl_img[*,*,1]*(total(sub_mdl_img[*,*,0])/total(sub_mdl_img[*,*,1]))
+		tstimg[0:xsize-1,0:ysize-1] = data
+		model = sub_mdl_img[*,*,0]
+		tstimg[xsize:(2*xsize)-1,0:ysize-1] = model
+		residual = sub_mdl_img[*,*,1]-(total(sub_mdl_img[*,*,1])/total(sub_mdl_img[*,*,0]))*sub_mdl_img[*,*,0]
+		tstimg[(2*xsize):(3*xsize)-1,0:ysize-1] = residual
 		imdisp,tstimg,/axis
+
+		;cgimage, residual, /keep_aspect_ratio, /axis    
+		;cgColorbar, /fit, /vertical, position=[0.10, 0.90, 0.90, 0.91]
 				
 		;stop
 	endwhile
+
 
 	backbone->set_keyword,'HISTORY',functionname+ " Flexure determined by 2D xcorrelation with wavecal"
 	;fxaddpar not working to add keyword ??
