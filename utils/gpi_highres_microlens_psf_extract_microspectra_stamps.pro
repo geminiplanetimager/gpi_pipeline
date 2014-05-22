@@ -54,7 +54,7 @@
 ; HISTORY:
 ;   Originally by Jean-Baptiste Ruffio 2013-06
 ;- 
-function gpi_highres_microlens_psf_extract_microspectra_stamps, my_type, image, calibration, width, STAMPS_MODE = stamps_mode,bad_pixel_mask=bad_pixel_mask;, CENTROID_MODE = centroid_mode
+function gpi_highres_microlens_psf_extract_microspectra_stamps, my_type, image, calibration, width, STAMPS_MODE = stamps_mode,bad_pixel_mask=bad_pixel_mask, gaussians=gaussians;, CENTROID_MODE = centroid_mode
 
 if keyword_set(bad_pixel_mask) eq 0 then begin
 print, 'WARNING - no bad pixel map is being used when cutting the image into stamps - '
@@ -247,19 +247,35 @@ case my_type of
                            
               mask_image[xcoords[where(finite(xcoords[*,i,j])),i,j],ycoords[where(finite(ycoords[*,i,j])),i,j]] = 0
             endelse
-		; now calculate the centroids - this just does a center of mass calculation
-		tmpx=xcentroids[i,j,0,it_elev]
-		tmpy=ycentroids[i,j,0,it_elev]
-		xcentroids[i,j,0,it_elev]= total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
-						xcoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$ 
-						masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])/$ 
-						total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
-						      masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])
-		ycentroids[i,j,0,it_elev]= total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
-						ycoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
-						masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])/$ 
-						total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
-						masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])
+			; now calculate the centroids - this just does a center of mass calculation
+			tmpx=xcentroids[i,j,0,it_elev]
+			tmpy=ycentroids[i,j,0,it_elev]
+			if keyword_set(gaussians) eq 1 then begin
+			; ####### look at fitting gaussians
+				A=[] ; reset the variable	
+				stamp=values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]
+				yarr=reform(ycoords_stamps[0,0:ymax-ymin,i,j])
+				xarr=xcoords_stamps[0:xmax-xmin,0,i,j]
+				mask=masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j]
+				ind=where(mask eq 0)
+				stamp*=mask;[ind]=!values.f_nan
+				test=mpfit2dpeak(stamp*mask,A,xarr,yarr,mask=mask,/tilt)
+				xcentroids[i,j,0,it_elev]=A[4]
+				ycentroids[i,j,0,it_elev]=A[5]
+			endif else begin
+			xcentroids[i,j,0,it_elev]= total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
+										xcoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$ 
+										masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])/$ 
+										total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
+										masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])
+			ycentroids[i,j,0,it_elev]= total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
+										ycoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
+										masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])/$ 
+										total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
+										masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])
+			endelse
+
+
 			; the following just flags if the offset is too large?
 			if tmpx-xcentroids[i,j,0,it_elev] ge 1.1*tmpx then stop ; PI: Have never seen this flag
 			if tmpy-ycentroids[i,j,0,it_elev] ge 1.1*tmpy then stop ; PI: Have never seen this flag
