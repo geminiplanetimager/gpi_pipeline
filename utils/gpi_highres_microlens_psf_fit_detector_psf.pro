@@ -141,7 +141,7 @@ c_psf = (*ptr_obj_psf).values
 ; put min values in common block for fitting
 c_x_vector_psf_min = min((*ptr_obj_psf).xcoords)
 c_y_vector_psf_min = min((*ptr_obj_psf).ycoords)
-; determine hte sampling and put in common block
+; determine the sampling and put in common block
 c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
 
 ; declare the parinfo for the fitting
@@ -149,7 +149,7 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
     parinfo[0].limited = [1,1]
     parinfo[1].limited = [1,1]
     parinfo[2].limited = [1,0]
- ;   parinfo[2].limits  = [0.0]
+    parinfo[2].limits  = [0.0]
 
  ;loop over all the slice of the pixel_array cube. It fit the same PSF to all of them.
 
@@ -190,38 +190,37 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
 ; we want to follow the format of Anderson et al.
 ; he uses a radial weighting scheme combined with a poisson distribution
 ; he can do this because he is looking for astrometry not intensity
+if weights eq 'radial' then begin 
+	; find peak in mask space
+	weights0=mask ; just makes the array 
 
+	rad_arr=sqrt((x_grid-first_guess[0])^2+(y_grid-first_guess[1])^2)
 
-; find peak in mask space
-weights=mask ; just makes the array 
+	ind1=where(rad_arr gt 2,ct1)
+	if ct1 ne 0 then weights0[ind1]=0.0
+	ind2=where(rad_arr ge 1.5 and rad_arr lt 2,ct2)
+	if ct2 ne 0 then weights0[ind2]=1.0/((rad_arr[ind2])/1.5) ; goes linearly from 1 to zero with radius
+	ind3=where(rad_arr lt 1.5 and mask ne 0,ct3)
+	if ct3 ne 0 then weights0[ind3]=1.0  ; sets the core to 1
+	weights0*=mask
 
-if 1 eq 1 then begin 
-rad_arr=sqrt((x_grid-first_guess[0])^2+(y_grid-first_guess[1])^2)
+	; now add the poisson error component
+	if keyword_set(ncoadds) eq 0 then ncoadds=1
+	data_variance=sqrt(mask*pixel_array*3.04*ncoadds)
+	; if negative, set it to be consistent with zero 
+	ind=where(pixel_array lt 0,ct)
+	if ct ne 0 then data_variance[ind]=abs(pixel_array[ind]*3.04*ncoadds)
 
-;;tmp=abs(x_grid-first_guess[0])+abs(y_grid-first_guess[1])  ; orig
-
-ind1=where(rad_arr gt 2,ct1)
-if ct1 ne 0 then weights[ind1]=0.0
-ind2=where(rad_arr ge 1.5 and rad_arr lt 2,ct2)
-if ct2 ne 0 then weights[ind2]=1.0/((rad_arr[ind2])/1.5) ; goes linearly from 1 to zero with radius
-ind3=where(rad_arr lt 1.5 and mask ne 0,ct3)
-if ct3 ne 0 then weights[ind3]=1.0  ; sets the core to 1
-weights*=mask
+	; 1/data_variance will give nans
+	final_weights=my_weights/data_variance
+	ind=where(finite(final_weights) eq 0,ct)
+	if ct ne 0 then final_weights[ind]=0
 
 endif
 my_weights=weights
 
-if keyword_set(ncoadds) eq 0 then ncoadds=1
 
-data_variance=sqrt(mask*pixel_array*3.04*ncoadds)
-; if negative, set it to be consistent with zero 
-ind=where(pixel_array lt 0,ct)
-if ct ne 0 then data_variance[ind]=abs(pixel_array[ind]*3.04*ncoadds)
-; 1/data_variance will give nans
 
-final_weights=my_weights/data_variance
-ind=where(finite(final_weights) eq 0,ct)
-if ct ne 0 then final_weights[ind]=0
 
 ;stop
 
@@ -233,15 +232,16 @@ if ct ne 0 then final_weights[ind]=0
 ; set centroid limits as the edges of the array
     parinfo[0].limits  = [x0[i_slice],x0[i_slice]+nx]
     parinfo[1].limits  = [y0[i_slice],y0[i_slice]+ny]
+
+	; if weighting is being used, then restrict it to 1 pixel from the central guess
 if keyword_set(rad_arr) eq 1 then begin
-		; center is at
-		junk=min(rad_arr,ind,/nan)
-		sz=size(rad_arr)
+	; center is at
+	junk=min(rad_arr,ind,/nan)
+	sz=size(rad_arr)
 
 	; must be within 1 pixel of approximation
-     parinfo[0].limits  = [x0[i_slice]+(ind mod sz[1])-1,x0[i_slice]+(ind mod sz[1])+1]
-    parinfo[1].limits  = [y0[i_slice]+(ind / sz[1])-1,y0[i_slice]+(ind / sz[1])+1]
-
+    parinfo[0].limits  = [x0[i_slice]+(ind mod sz[1])-1,x0[i_slice]+(ind mod sz[1])+1]
+	parinfo[1].limits  = [y0[i_slice]+(ind / sz[1])-1,y0[i_slice]+(ind / sz[1])+1]
 endif
 
     ;Fit the result of gpi_highres_microlens_psf_evaluate_detector_psf to the current slice. gpi_highres_microlens_psf_evaluate_detector_psf uses the common psf_lookup_table to get the PSF to fit. Then it shifts and scales it according to the parameters (centroid and intensity).
