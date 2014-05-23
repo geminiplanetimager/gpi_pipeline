@@ -272,7 +272,7 @@ endif
    ;store the results of the fit
     fit_parameters[*,i_slice] = temporary(parameters)
 ; improvised red chisq - 
-	junk=where(weights/data_variance ne 0, ct)
+	junk=where(final_weights ne 0, ct)
 	chisq0=chisq
 ; chisq=( total( weights *(pixel_array-fitted_psf)^2) / (total(final_weights)) ) / (dof-3-1)
 
