@@ -36,6 +36,10 @@
 ;   the initial falloff and readnoise. A new dataset will be taken prior to shipping,
 ;   and new model parameters will be derived prior to commissioning.
 ;
+;	WARNING: Persistence removal does not (yet) work with COADDED images!
+;
+;
+;
 ; INPUTS: Raw or destriped 2D image
 ; OUTPUTS: 2D image corrected for persistence of previous non-saturated images
 ;
@@ -59,6 +63,12 @@ function gpi_remove_persistence_from_previous_images, DataSet, Modules, Backbone
 primitive_version= '$Id$'  ; get version from subversion to store in header history
 calfiletype = 'persis'
 @__start_primitive
+
+; make sure hte image is not-coadded
+ncoadds=backbone->get_keyword('COADDS0')
+
+if ncoadds ne 1 then return, error('No persistence correction can (currently) be applied to images with coadds')
+
 
 ; determine when the image of interest started
 ; the UTSTART keyword is actually not a good keyword to use as the start of the image
@@ -151,12 +161,19 @@ for f=0, N_ELEMENTS(ind)-1 do begin
 
 ; t1 is the time of the first read, t2 the last read
 ; so T1=UTSTART+0.964(reset time?)+clock_time
+
 T1 =abs(UTEND_arr[ind[f]]); UTEND (time of last read)
+
 T2=T1+itime
 gamma=median(persis_params[*,*,4])
 tx= 1000.0d0*([1000/(1.0-gamma)* [ (t2/1000)^(1.0-gamma) - ((t1/1000)^(1.0-gamma))]/(t2-t1)])^(-1d0/gamma)
 
-   tmp_model=persistence_model(im*gain/itime*(itime+2*1.45479),tx[0],persis_params)
+tmp_model=persistence_model(im*gain/itime*(itime+2*1.45479),tx[0],persis_params)
+
+; new way finds the rates for every read - then subtracts the mean rate from the rate in the image
+;dtime=findgen(round(itime/1.45479))*1.45479
+;tmp_model=persistence_model(im*gain/itime*(itime+2*1.45479), dtime+T1, persis_params)
+;stop
 if N_ELEMENTS(tmp_model) eq 1 then stop,'model failure at line 146'
    ; values in im that were negative created nan's in the image, set the
 ; nans's to zero
@@ -169,19 +186,24 @@ endfor
 ;get exposure time of the image of interest
 itime=backbone->get_keyword('ITIME')
 ; and now subtract the persistence (in ADU)
-im=*(dataset.currframe[0])
-*(dataset.currframe[0])=im-persis*itime/gain
 
+im=*(dataset.currframe[0])
 ; for testing purposes
 if 0 eq 1 then begin
    loadct,0
-   window,1,retain=2
-   imdisp,subarr(im,400,[250,1350]),range=[-10,100]
+   window,1,retain=2,xsize=600,ysize=600
+   imdisp,subarr(im,400,[1100,1100]),range=[-10,100]
    
-   window,2,retain=2
-   imdisp,subarr(im-persis*itime/gain,400,[250,1350]),range=[-10,100]
+	determined_persistence=persis*itime/gain
+   window,2,retain=2,xsize=600,ysize=600
+
+   imdisp,subarr(im-determined_persistence,400,[1100,1100]),range=[-10,100]
    stop
 endif
+
+*(dataset.currframe[0])=im-persis*itime/gain
+
+
 
 backbone->set_keyword, "HISTORY", "Applied persistence correction using the previous "+strcompress(string(N_ELEMENTS(ind)),/remove_all)+'frames',ext_num=0
 
