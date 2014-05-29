@@ -142,6 +142,8 @@ for b=1,nbins-1 do begin
 	endelse
 endfor
 oploterror,bins,x_med_arr,x_stddev_arr,color=cgcolor('black')
+xyouts,0.3,0.08,'SYS = '+strc(number_formatter(max(x_med_arr),decimals=4)),color=cgcolor('black')
+xyouts,0.3,0.07,'RAND = '+strc(number_formatter(median(x_stddev_arr),decimals=4)),color=cgcolor('black')
 
 
 window,4,retain=2,xsize=600,ysize=400
@@ -163,6 +165,8 @@ for b=1,nbins-1 do begin
 	endelse
 endfor
 oploterror,bins,y_med_arr,y_stddev_arr,color=cgcolor('black')
+xyouts,0.3,0.08,'SYS = '+strc(number_formatter(max(y_med_arr),decimals=4)),color=cgcolor('black')
+xyouts,0.3,0.07,'RAND = '+strc(number_formatter(median(y_stddev_arr),decimals=4)),color=cgcolor('black')
 
 
 ;stop, 'at the end of pixel-phase2'
