@@ -209,7 +209,7 @@ for l = 0 + waveclip,nlam-1-waveclip do begin
 
 	   ;;figure out which images are to be used
 	   ;;assuming a planet is in the middle of the annulus, where can we avoid self-subtraction
-	   fileinds = where(sqrt(((PAs_wv - PAs[imnum])*meanrad)^2 + (lambda_moves_file[*,radcount] - lambda_moves[l,radcount]))^2 gt minsep, count)
+	   fileinds = where(sqrt(((PAs_wv - PAs[imnum])*meanrad)^2 + (lambda_moves_file[*,radcount] - lambda_moves[l,radcount])^2 ) gt minsep, count)
 	   print, "Number of files for ref PSF: ", count
 	   if count lt 2 then begin 
 		  logstr = 'No reference slices available for requested motion. Skipping.'
