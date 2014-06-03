@@ -229,6 +229,7 @@ for l = 0 + waveclip,nlam-1-waveclip do begin
 	   ;;determines which eigenalues to truncate
 	   evals_cut = where(total(evals,/cumulative) gt prop*total(evals))
 	   K = evals_cut[0]
+			print, "truncating at eigenvalue", K
 	   if K eq -1 then continue
 
 	   ;;creates mean subtracted and truncated KL transform vectors
@@ -238,7 +239,8 @@ for l = 0 + waveclip,nlam-1-waveclip do begin
 	   Z_bar = G ## Z
 	   Z_bar_trunc=Z_bar[*,0:K] 
 
-	   T = R_bar[*,imnum]
+			;grab the original file
+	   T = R_bar[*,imnum*nlam+l]
 	   ;;T = R[*,ref_value]
 
 	   ;;Project KL transform vectors and subtract from target
@@ -248,7 +250,7 @@ for l = 0 + waveclip,nlam-1-waveclip do begin
 	   
 	   ;;restore,NANs,rotate estimate by -PA and add to output
 	   if countnan ne 0 then Test[naninds[0,where(naninds[1,*] eq imnum)]] = !values.d_nan
-
+		
 	   sub_im[radinds,l,imnum] = Test
 	   ;;final_im[*,*,l] += rot(reform(Test,dim),PAs[imnum],/interp,cubic=-0.5)
 	endfor
