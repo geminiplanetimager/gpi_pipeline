@@ -21,7 +21,7 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="annuli" Type="int" Range="[0,100]" Default="5" Desc="Number of annuli to use"
 ; PIPELINE ARGUMENT: Name="minsep" Type="float" Range="[0.0,250]" Default="3" Desc="Minimum separation between slices (pixels)"
-; PIPELINE ARGUMENT: Name="prop" Type="float" Range="[0.8,1.0]" Default=".99999" Desc="Proportion of eigenvalues used to truncate KL transform vectors"
+; PIPELINE ARGUMENT: Name="numbasis" Type="int" Range="[1,10000]" Default="20" Desc="Number of KL transform vectors to use"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="5" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.2
 ; PIPELINE CATEGORY: SpectralScience
@@ -86,7 +86,8 @@ endfor
 ;;get user inputs
 annuli=long(Modules[thisModuleIndex].annuli)
 minsep=double(Modules[thisModuleIndex].minsep)
-prop=double(Modules[thisModuleIndex].prop)
+;prop=double(Modules[thisModuleIndex].prop)
+numbasis=double(Modules[thisModuleIndex].numbasis)
 
 ;;get the status console and number of modules
 statuswindow = backbone->getstatusconsole()
@@ -175,10 +176,14 @@ for l = 0 + waveclip,nlam-1-waveclip do begin
  
  ;;apply KLIP to each annulus
  for radcount = 0,n_elements(rads)-2 do begin
-	print, "starting on anuulus", radcount
+	;;break each annulus into 4 section
+	subsections = 4
+	dphi = 2.0*!pi/subsections
+	for phi_i = 0,subsections-1 do begin
+	print, "starting on anuulus", radcount, "subsection", phi_i
 	;;rad range: rads[radcount]<= R <rads[radcount+1]
 	meanrad = (rads[radcount]+rads[radcount+1])/2.
-	radinds = where((rs ge rads[radcount]) and (rs lt rads[radcount+1]))
+	radinds = where( (rs ge rads[radcount]) and (rs lt rads[radcount+1]) and (phis ge phi_i*dphi-!Pi) and (phis lt (phi_i+1)*dphi-!Pi) )
 	R = R0[radinds,*] ;;ref set
 
 	;;check that you haven't just grabbed a blank annulus
@@ -227,10 +232,11 @@ for l = 0 + waveclip,nlam-1-waveclip do begin
 	   evals = eigenql(covar,eigenvectors=evecs,/double,residual=residual)  
 
 	   ;;determines which eigenalues to truncate
-	   evals_cut = where(total(evals,/cumulative) gt prop*total(evals))
-	   K = evals_cut[0]
-			print, "truncating at eigenvalue", K
-	   if K eq -1 then continue
+	   ;evals_cut = where(total(evals,/cumulative) gt prop*total(evals))
+	   ;K = evals_cut[0]
+		;	print, "truncating at eigenvalue", K
+	   ;if K eq -1 then continue
+		K = min([numbasis,(size(covar,/dim))[0]-1])
 
 	   ;;creates mean subtracted and truncated KL transform vectors
 	   Z = evecs ## R_bar[*,fileinds]
@@ -253,6 +259,7 @@ for l = 0 + waveclip,nlam-1-waveclip do begin
 		
 	   sub_im[radinds,l,imnum] = Test
 	   ;;final_im[*,*,l] += rot(reform(Test,dim),PAs[imnum],/interp,cubic=-0.5)
+	endfor
 	endfor
  endfor
 endfor 
