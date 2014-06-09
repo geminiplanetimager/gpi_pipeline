@@ -20,8 +20,11 @@
 ; PIPELINE COMMENT: Reduce speckle noise using the KLIP algorithm with ADI+SDI data
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="annuli" Type="int" Range="[0,100]" Default="5" Desc="Number of annuli to use"
-; PIPELINE ARGUMENT: Name="minsep" Type="float" Range="[0.0,250]" Default="3" Desc="Minimum separation between slices (pixels)"
+; PIPELINE ARGUMENT: Name="subsections" Type="int" Range="[1,10]" Default="4" Desc="Number of equal area subsections to break up each annulus into"
 ; PIPELINE ARGUMENT: Name="numbasis" Type="int" Range="[1,10000]" Default="20" Desc="Number of KL transform vectors to use"
+; PIPELINE ARGUMENT: Name="minsep" Type="float" Range="[0.0,250]" Default="3" Desc="Minimum separation between slices (pixels)"
+; PIPELINE ARGUMENT: Name="minPA" Type="float" Range="[0.0,6.284]" Default="0.0" Desc="Minimum parallactic rotation for constructing reference PSF (good for disk targets)"
+; PIPELINE ARGUMENT: Name="waveclip" Type="int" Range="[0,18]" Default="3" Desc="Number of wavelength slices at the beginning and end of each cube to ignore"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="5" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.2
 ; PIPELINE CATEGORY: SpectralScience
@@ -88,6 +91,9 @@ annuli=long(Modules[thisModuleIndex].annuli)
 minsep=double(Modules[thisModuleIndex].minsep)
 ;prop=double(Modules[thisModuleIndex].prop)
 numbasis=double(Modules[thisModuleIndex].numbasis)
+subsections=double(Modules[thisModuleIndex].subsections)
+minPA=double(Modules[thisModuleIndex].minPA)
+waveclip=double(Modules[thisModuleIndex].waveclip)
 
 ;;get the status console and number of modules
 statuswindow = backbone->getstatusconsole()
@@ -141,7 +147,7 @@ phis = rth[0,*] ;;for later if we want to break up the images
 sub_im = dblarr(dim[0]*dim[1],nlam,nfiles)
 
 ;;wavelength clipping
-waveclip = 3
+;waveclip = 3
 
 ;; do this by slice
 for l = 0 + waveclip,nlam-1-waveclip do begin
@@ -173,11 +179,12 @@ for l = 0 + waveclip,nlam-1-waveclip do begin
  PAs_wv = rebin(PAs, nfiles*nlam, /sample)
  lambda_files = reform(transpose(reform(rebin(lambda,nlam*nfiles,/sample),nfiles,nlam)),nlam*nfiles) ;stupid idl array duplication
  lambda_moves_file  = (lambda[0]/lambda_files - 1d0) # radcents
+ waveslice_files = indgen(nfiles*nlam) mod nlam
  
  ;;apply KLIP to each annulus
  for radcount = 0,n_elements(rads)-2 do begin
-	;;break each annulus into 4 section
-	subsections = 4
+	;;break each annulus into subsections
+	;;;;subsections = 4
 	dphi = 2.0*!pi/subsections
 	for phi_i = 0,subsections-1 do begin
 	print, "starting on anuulus", radcount, "subsection", phi_i
@@ -214,7 +221,7 @@ for l = 0 + waveclip,nlam-1-waveclip do begin
 
 	   ;;figure out which images are to be used
 	   ;;assuming a planet is in the middle of the annulus, where can we avoid self-subtraction
-	   fileinds = where(sqrt(((PAs_wv - PAs[imnum])*meanrad)^2 + (lambda_moves_file[*,radcount] - lambda_moves[l,radcount])^2 ) gt minsep, count)
+	   fileinds = where( (sqrt(((PAs_wv - PAs[imnum])*meanrad)^2 + (lambda_moves_file[*,radcount] - lambda_moves[l,radcount])^2 ) gt minsep) and (abs(PAs_wv - PAs[imnum]) ge minPA) and (waveslice_files ge waveclip) and (waveslice_files lt nlam-waveclip) , count)
 	   print, "Number of files for ref PSF: ", count
 	   if count lt 2 then begin 
 		  logstr = 'No reference slices available for requested motion. Skipping.'
