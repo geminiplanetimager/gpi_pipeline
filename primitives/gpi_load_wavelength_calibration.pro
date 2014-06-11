@@ -67,6 +67,9 @@ calfiletype = 'wavecal'
         wc_date= sxpar(  headerphu, 'DATE-OBS', count=count)
     endif
     backbone->set_keyword, "WVDATE", wc_date, "Wavelength solution obstime", ext_num=0
+
+	;print file name used even when in automatic mode
+	backbone->Log, "File used for WaveCal: ",c_File
     
 @__end_primitive 
 
