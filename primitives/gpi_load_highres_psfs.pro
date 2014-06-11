@@ -36,7 +36,7 @@ calfiletype = 'mlenspsf'
 	mlens_file = c_File
     
 	;print file name used even when in automatic mode
-	backbone->Log, "File used for High-Res PSF: ",c_File
+	backbone->Log, "File used for High-Res PSF: "+c_File
 
 @__end_primitive 
 
