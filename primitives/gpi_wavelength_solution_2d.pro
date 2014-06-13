@@ -446,8 +446,8 @@ if keyword_set(save_model_image) then begin
 
 referencex=1025.0  ;roughly x-position in H
 referencey=1008.0  ;roughly y-position in H
-yposition=shiftedwavecal[140,140,0]
-xposition=shiftedwavecal[140,140,1]
+yposition=newwavecal[140,140,0]
+xposition=newwavecal[140,140,1]
 absxshift=xposition-referencex
 absyshift=yposition-referencey
 
