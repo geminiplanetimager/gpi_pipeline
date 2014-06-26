@@ -269,6 +269,7 @@ state = {                   $
         cursorpos_id_anguprof: 0L, $       ; id of cursorpos in anguprof 
         cursorpos_id_lambprof: 0L, $       ; id of cursorpos is lambprof
         centerpos_id: 0L, $                ; id of centerpos widget
+        centerpos_id_arc: 0L, $            ; id of centerpos widget in ra and dec
         centerbox_id: 0L, $                ; id of centeringboxsize widget
         radius_id: 0L, $                   ; id of radius widget
         innersky_id: 0L, $                 ; id of inner sky widget
@@ -1036,7 +1037,7 @@ IF keyword_set(nbrsatspot) THEN (*self.state).nbrsatspot=nbrsatspot
 
 modelist = ['None', 'Recenter/Color', 'Zoom', 'Blink', 'Statistics 2D/3D','Plot Cut along Vector','Measure Distance', $
             'Photometry','Spectrum Plot','Draw Region','Row/Column Plot','Gauss Row/Column Plot',$
-            'Histogram/Contour Plot','Surface Plot']
+            'Histogram/Contour Plot','Surface Plot','Move Wavecal Grid']
 ;;if (*self.state).nbrsatspot ne 0 then modelist=[modelist,'SAT-SPOT LOCALIZE']
 ;;this isn't a valid mode is it? - ds 11/21/12
 
@@ -2076,6 +2077,7 @@ pro GPItv::changemode, newmode
      11: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_gauss_rowcol_event'}
      12: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_histcont_event'}
      13: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_surf_event'}
+     14: widget_control, (*self.state).draw_widget_id, set_uvalue = {object:self, method: 'draw_wavecal_event'}
      else: self->message, msgtype = 'error', 'Unknown mouse mode!'
   endcase
 
@@ -2475,6 +2477,14 @@ pro GPItv::draw_measure_event, event
 	self->draw_vector_event, event, /measure
 end
 
+;--------------------------------------------------------------------
+; this is just a simple wrapper:
+pro GPItv::draw_wavecal_event, event
+
+@gpitv_err
+	self->draw_vector_event, event, /wavecal
+end
+
 ;---------------------
 function trnlog
 ;Dummy program so that RESOLVE_ALL will work with the ASTRON library
@@ -2489,7 +2499,7 @@ pro setlog
 end
 ;--------------------------------------------------------------------
 
-pro GPItv::draw_vector_event, event, measure=measure
+pro GPItv::draw_vector_event, event, measure=measure, wavecal=wavecal
 
 ; Check for left button press/depress, then get coords at point 1 and
 ; point 2.  Call GPItv_lineplot.  Calculate vector distance between
@@ -2509,7 +2519,7 @@ case event.type of
           (*self.state).vector_coord1[0] = (*self.state).coord[0]
           (*self.state).vector_coord1[1] = (*self.state).coord[1]	; stores X and Y locations in DATA COORDINATE PIXELS
           (*self.state).vectorstart = [event.x, event.y] 	; stores X and Y locations in DISPLAY PIXELS
-          self->drawvector, event, measure=measure
+          self->drawvector, event, measure=measure, wavecal=wavecal
           (*self.state).vectorpress = 1
         endif
     end
@@ -2518,15 +2528,15 @@ case event.type of
             (*self.state).vectorpress = 0
 			(*self.state).vector_coord2[0] = (*self.state).coord[0] ; DATA COORDINATE PIXELS again.
 			(*self.state).vector_coord2[1] = (*self.state).coord[1]
-			self->drawvector, event, measure=measure
+			self->drawvector, event, measure=measure, wavecal=wavecal
 			; for regular vector mode, on button release create a vector plot
 			; window.
-			if ~(keyword_set(measure)) then self->vectorplot, /newcoord
+			if (~(keyword_set(measure)) and ~(keyword_set(wavecal))) then self->vectorplot, /newcoord
         endif
     end
     2: begin  ; motion event
         self->draw_motion_event, event
-        if ((*self.state).vectorpress EQ 1) then self->drawvector, event, measure=measure
+        if ((*self.state).vectorpress EQ 1) then self->drawvector, event, measure=measure, wavecal=wavecal
     end
 
     5: self->keyboard_event, event     ; keyboard event
@@ -2543,7 +2553,7 @@ end
 
 ;----------------------------------------------------------------------
 
-pro GPItv::drawvector, event, measure=measure
+pro GPItv::drawvector, event, measure=measure, wavecal=wavecal
 
 @gpitv_err
 
@@ -2567,6 +2577,7 @@ if (event.type EQ 1) then begin
     ;              (*self.state).draw_window_size[1], 0, 0, (*self.state).vector_pixmap_id]
 
 	if keyword_set(measure) then self->labelmeasure,event
+        if keyword_set(wavecal) then self->shiftwavecalgrid,event
     self->resetwindow
     wdelete, (*self.state).vector_pixmap_id
     (*self.state).drawvectorpress=0
@@ -2585,6 +2596,7 @@ if (event.type EQ 2) then begin
     plots, xvector, yvector, /device, color = (*self.state).box_color
 	;print, xvector, yvector
 	if keyword_set(measure) then self->labelmeasure,event
+        if keyword_set(wavecal) then self->shiftwavecalgrid,event
 
     self->resetwindow
 endif
@@ -2653,6 +2665,49 @@ pro GPItv::labelmeasure, event
 
 
 end
+;----------------------------------------------------------------------
+
+pro GPItv::shiftwavecalgrid, event
+
+@gpitv_err
+
+  	xdistance = ((*self.state).vector_coord1[0]-(*self.state).coord[0]) 
+	ydistance = ((*self.state).vector_coord1[1]-(*self.state).coord[1])
+	; for mouse button release events, write a permanent version of the
+	; measure vector. For other events, we let drawvector handle drawing the
+	; temporary version of the vector.
+	if (event.type EQ 1) then begin
+		self->resetwindow ; needed before GPItvplot to not stomp on device.decomposed
+		;print, [(*self.state).vector_coord1[0],(*self.state).coord[0]],[(*self.state).vector_coord1[1],(*self.state).coord[1]]
+                self->erase,1,/norefresh
+                ;shift wavecal grid
+                
+	endif
+
+        self->erase,1
+	self->resetwindow ; needed before GPItvxyouts to not stomp on device.decomposed
+
+	self->xyouts,((*self.state).vector_coord1[0]+(*self.state).coord[0])/2+3,((*self.state).vector_coord1[1]+(*self.state).coord[1])/2+3,$
+		'( '+sigfig(xdistance,5)+', '+sigfig(ydistance,5)+") pixels",charsize=2
+
+        shiftx = xdistance
+        shifty = ydistance
+
+        ;include here the motion of the wavecal grid.
+	sxaddpar,  *((*self.state).head_ptr), 'SPOT_DX', shiftx
+	sxaddpar,  *((*self.state).head_ptr), 'SPOT_DY', shifty
+
+        self->wavecalgrid, gridcolor=1, tiltcolor=2, labeldisp=0,  labelcolor=7, charsize=1.0, charthick=1
+
+
+	; For Motion events, don't save annotation
+	if (event.type EQ 2) then self->erase,1,/norefresh
+
+
+
+
+end
+
 ;----------------------------------------------------------------------
 
 pro GPItv::draw_base_event, event
@@ -7848,6 +7903,8 @@ if cc gt 0 then widget_control, (*self.state).filter1_id, set_value = val else $
 if cc gt 0 then (*self.state).obsfilt=strcompress(val,/REMOVE_ALL) else (*self.state).obsfilt=''
 ;val = gpi_get_keyword(h, e, 'FILETYPE',count=cc)
 ;if cc gt 0 then (*self.state).filetype = val else (*self.state).filetype = ''
+
+
 
 val = gpi_get_keyword(h, e, 'DISPERSR',count=cc, silent=silent)
 ;; Make short prism names. Bizarre inexplicable bug where long Gemini style names make widgets get smaller?!?! WTF? -MP
@@ -15018,6 +15075,9 @@ h = ['GPItv HELP',$
 '',$
 'Surface Plot:                  Button 1: Plot 3D surface contour centered at click location',$
 '',$
+'Move Wavecal Grid:             Button 1: Press and hold while dragging across image.',$
+'                               Release to display repositioned wavecal grid.',$
+'',$
 'BUTTONS:',$
 'Invert:                        Inverts the current color table',$
 'Restretch:                     Sets min and max to preserve display colors while linearizing the color table',$
@@ -16782,11 +16842,13 @@ pro GPItv::apphot_refresh, ps=ps, enc_ener=enc_ener, sav=sav
 
   ;;update display
   (*self.state).centerpos = [x, y]
-
+  xy2ad, (*self.state).centerpos[0], (*self.state).centerpos[1],*((*self.state).astr_ptr) ,  startra, startdec
+ 
   tmp_string = string((*self.state).cursorpos[0], (*self.state).cursorpos[1], $
                       format = '("Cursor position:  x=",i4,"  y=",i4)' )
   tmp_string1 = string((*self.state).centerpos[0], (*self.state).centerpos[1], $
                        format = '("Object centroid:  x=",f6.1,"  y=",f6.1)' )
+  tmp_stringb = 'RA: '+sigfig(startra,5)+" DEC: "+sigfig(startdec,5)
   tmp_string2 = strcompress(fluxstr+string(flux, format = '(g12.6)' ))
   
   tmp_string3 = "Sky level:"+string(sky,format = '(f6.1)')+" +/- "+strtrim(string(skyerr, format='(f6.1)'),2)
@@ -16796,6 +16858,7 @@ pro GPItv::apphot_refresh, ps=ps, enc_ener=enc_ener, sav=sav
   widget_control, (*self.state).centerbox_id, set_value = (*self.state).centerboxsize
   widget_control, (*self.state).cursorpos_id_apphot, set_value = tmp_string
   widget_control, (*self.state).centerpos_id, set_value = tmp_string1
+  widget_control, (*self.state).centerpos_id_arc, set_value = tmp_stringb
   widget_control, (*self.state).radius_id, set_value = (*self.state).r
   widget_control, (*self.state).outersky_id, set_value = (*self.state).outersky
   widget_control, (*self.state).innersky_id, set_value = (*self.state).innersky
@@ -17235,6 +17298,11 @@ if (not (xregistered(self.xname+'_apphot'))) then begin
     (*self.state).centerpos_id = $
       widget_label(apphot_data_base1a, $
                    value = tmp_string1, $
+                   uvalue = 'centerpos', /align_left)
+
+    (*self.state).centerpos_id_arc = $
+      widget_label(apphot_data_base1a, $
+                   value = tmp_stringb, $
                    uvalue = 'centerpos', /align_left)
 
     (*self.state).radius_id = $
