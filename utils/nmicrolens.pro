@@ -24,10 +24,20 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
 ;Code you need to add before using gpi_highres_microlens_psf_evaluate_detector_psf
 ;declare the common variable used by gpi_highres_microlens_psf_evaluate_detector_psf()
 ;common psf_lookup_table, com_psf, com_x_grid_PSF, com_y_grid_PSF, com_triangles, com_boundary
-;common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
+common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
 ;fill the common variables with initialize_psf_interp.
 ;gpi_highres_microlens_psf_initialize_psf_interpolation, my_psf.values, my_psf.xcoords, my_psf.ycoords
 ;/////////////////////////
+
+
+; put highres psf in common block for fitting
+;c_psf = (*ptr_obj_psf).values
+; put min values in common block for fitting
+;c_x_vector_psf_min = min((*ptr_obj_psf).xcoords)
+;c_y_vector_psf_min = min((*ptr_obj_psf).ycoords)
+; determine hte sampling and put in common block
+;c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
+
 
 c_psf=my_psf.values
 c_x_vector_psf_min = min((my_psf).xcoords)
@@ -35,10 +45,10 @@ c_y_vector_psf_min = min((my_psf).ycoords)
 c_sampling = round(1.0/( ((my_psf).xcoords)[1]-((my_psf).xcoords)[0] ))
 ;print, 'psf params', size(c_psf,/dimensions),c_x_vector_psf_min, c_sampling
 
-c_psf = my_psf
-c_x_vector_psf_min = min(c_psf.xcoords)
-c_y_vector_psf_min = min(c_psf.ycoords)
-c_sampling = round(1/( (c_psf.xcoords)[1]-(c_psf.xcoords)[0] ))
+;c_psf = my_psf
+;c_x_vector_psf_min = min(c_psf.xcoords)
+;c_y_vector_psf_min = min(c_psf.ycoords)
+;c_sampling = round(1/( (c_psf.xcoords)[1]-(c_psf.xcoords)[0] ))
 
 
 

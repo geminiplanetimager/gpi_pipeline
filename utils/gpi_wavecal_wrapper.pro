@@ -40,7 +40,7 @@ FUNCTION gpi_wavecal_wrapper, xdim,ydim,refwlcal,lensletarray,badpixels,wlcalsiz
 
 common ngausscommon, numgauss, wl, flux, lambdao, my_psf
 common highrespsfstructure, myPSFs_array
-;common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
+common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
 
 nflux=size(flux,/dimensions)
 
