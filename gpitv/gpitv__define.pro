@@ -508,6 +508,7 @@ state = {                   $
         }
 
 curr = gpi_expand_path(gpi_get_setting('gpitv_startup_dir',/silent))
+if ~file_test(curr,/dir) then curr = gpi_get_directory('GPI_DATA_ROOT')
 if ~file_test(curr,/dir) then cd, curr=curr
 state.current_dir=curr
 state.output_dir = curr
