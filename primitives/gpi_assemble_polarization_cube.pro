@@ -36,16 +36,18 @@
 ;
 ; HISTORY:
 ;   2009-04-22 MDP: Created, based on DST's cubeextract_polarized.
-;   2009-09-17 JM: added DRF parameters
-;   2009-10-08 JM: add gpitv display
-;   2010-10-19 JM: split HISTORY keyword if necessary
-;   2011-07-15 MP: Code cleanup.
-;   2011-06-07 JM: added FITS/MEF compatibility
-;   2013-01-02 MP: Updated output file orientation to be consistent with
-;				   spectral mode and raw data.
-;	2013-07-17 MP: Renamed for consistency
-;   2013-11-30 MP: Clear DQ and Uncert pointers
-;   2014-02-03 MP: Code and docs cleanup
+;   2009-09-17  JM: added DRF parameters
+;   2009-10-08  JM: add gpitv display
+;   2010-10-19  JM: split HISTORY keyword if necessary
+;   2011-07-15  MP: Code cleanup.
+;   2011-06-07  JM: added FITS/MEF compatibility
+;   2013-01-02  MP: Updated output file orientation to be consistent with
+;		    spectral mode and raw data.
+;   2013-07-17  MP: Renamed for consistency
+;   2013-11-30  MP: Clear DQ and Uncert pointers
+;   2014-02-03  MP: Code and docs cleanup
+;   2014-07-01 MPF: Modified "PSF" extraction for weighting by a Gaussian
+;                   and a noise map.
 ;-
 
 function gpi_assemble_polarization_cube, DataSet, Modules, Backbone
@@ -85,6 +87,11 @@ function gpi_assemble_polarization_cube, DataSet, Modules, Backbone
   nx = sz[1+2]
   ny = sz[2+2]
   
+  ; errors
+  badpix = indq GT 0
+  im_uncert = gpi_estimate_2d_uncertainty_image(input, *dataset.headersPHU[numfile], *dataset.headersExt[numfile])
+
+
   polcube = fltarr(nx, ny, 2)+!values.f_nan
   wpangle =  strc(backbone->get_keyword( "WPANGLE"))
   backbone->Log, "WP angle is "+strc(wpangle), depth=2
@@ -117,35 +124,55 @@ function gpi_assemble_polarization_cube, DataSet, Modules, Backbone
             ;            if keyword_set(mask) then mask[spotx, spoty]=pol+1
           
           
-            ;Testing out a slightly more complicated version - Max
-            box_rad=5
+            box_rad = 5         ; extraction box half-width
             
-            ;For each spot read in the best fit parameters  
-            params=polspot_params[*,ix,iy,pol]
+            ;; For each spot read in the best fit parameters  
+            params = polspot_params[*, ix, iy, pol]
             
-            ;Set the upper and lower limits on the box that we're looking at
+            ;; Set the upper and lower limits on the box that we're looking at
             if params[0] le 0+box_rad then lowx=0 else lowx=uint(params[0]-box_rad)
             if params[0] ge 2048-box_rad then highx=2047 else highx=uint(params[0]+box_rad)
             if params[1] le 0+box_rad then lowy=0 else lowy=uint(params[1]-box_rad)
             if params[1] ge 2048-box_rad then highy=2047 else highy=uint(params[1]+box_rad)
             
-            ;Reformat the parameters for the mpfit2peak functions
-            p=[0,1.,params[3],params[4],params[0]-lowx,params[1]-lowy,params[2]*!dtor]
+            ;; Reformat the parameters for the mpfit2peak functions
+            fact = .35 ; factor for scaling gaussian width (?!)
+            p = [0, 1., params[3]*fact, params[4]*fact, params[0]-lowx, params[1]-lowy, params[2]*!dtor]
             
-            ;Extract out area of interest
-            in_box=input[lowx:highx,lowy:highy]
+            ;; Extract out area of interest
+            in_box = input[lowx:highx, lowy:highy]
+            unc_box = im_uncert[lowx:highx, lowy:highy]
+            bp_box = badpix[lowx:highx, lowy:highy]
             
-            ;Get the x,y indices of each pixel
+            ;; Get the x,y indices of each pixel
             indices, in_box, xx, yy
             
-            ;Calculate the U and a gaussian profile for the spot
+            ;; Calculate the "distance" U and a gaussian profile for the spot
             u = mpfit2dpeak_u(xx, yy, p, /tilt)
-            g = mpfit2dpeak_gauss(xx,yy,p,/tilt)
+            g = mpfit2dpeak_gauss(xx, yy, p, /tilt)
+
+
+            ;; compute weights, with bad pixels zero weight
+            w = (g^2/unc_box^2) * (1-bp_box)
             
-            ;Set a distance 
-            udist=2.
-            
-;            ;For Testing
+            ;; Set a "distance" cutoff
+            udist = 5.
+            plist = where(u le udist, ct, complement=gtu)
+            w[gtu] = 0
+
+            ;; normalize the weights
+            w /= total(w)
+            ;; apply PSF fraction correction
+            w /= g
+
+            ;; fix any divides-by-zero
+            w[where(~finite(w), /null)] = 0.
+
+            ;; compute weighted sum
+            polcube[ix, iy, pol] = total(in_box*w)
+
+            ;; debug
+;            if (ix eq 130) and (iy eq 130) then stop
 ;            window, 0
 ;            imdisp, in_box
 ;            window, 1
@@ -154,14 +181,7 @@ function gpi_assemble_polarization_cube, DataSet, Modules, Backbone
 ;            test[where(test gt udist)]=0
 ;            window, 2
 ;            imdisp, test
-            
-            ;Cut some stuff off based on distance 
-            plist=where(u le udist, ct, complement=gtu)
-            ;Set the gaussian to zero outside of the radius
-            g[gtu]=0;
-             
-            ;
-            polcube[ix,iy,pol] = total(in_box*g)
+
             
           end
           'BOX': begin
