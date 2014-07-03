@@ -71,12 +71,12 @@ For Frequently asked questions about data reduciton, see :ref:`FAQ <frequently-a
 
 Below we've briefly listed some common issues and solutions.
 
- - Checkerboard or moire pattern. Indicates wavecal is offset and needs to be updated. 
+ - Checkerboard or moire pattern. Indicates wavecal is offset due to flexure and needs to be updated. Be sure to use a wavelength calibration file created using an arc lamp taken at the same elevation as your science target. Alternatively, you can manually input the shifts due to flexure using the "Update Spot Shifts for Flexure" primitive by selecting Manual for the method and updating the manual_dx and manual_dy keywords.
 
  - Satellite spots are used for precise astrometry of the star behind the coronagraph, for PSF registration during subtraction. 
    If the pipeline is not able to locate the sat spots automatically, the user can input the locations manually. In the primitive called "Measure satellite spot locations", select loc_input = 1 and then define x1,y1,x2,y2,x3,y3,x4 and y4 by looking at one of the *_spdc FITS files with GPItv.
 
- - Be careful about the automatic contrast curves. May not be optimal, e.g. are biased if you look at a binary star
+ - Be careful about the automatic contrast curves. May not be optimal, e.g. are biased if you look at a binary star.
 
 
 
