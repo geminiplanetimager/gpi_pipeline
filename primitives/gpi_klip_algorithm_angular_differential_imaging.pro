@@ -24,7 +24,7 @@
 ; PIPELINE ARGUMENT: Name="prop" Type="float" Range="[0.8,1.0]" Default=".99999" Desc="Proportion of eigenvalues used to truncate KL transform vectors"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="5" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.2
-; PIPELINE CATEGORY: SpectralScience
+; PIPELINE CATEGORY: SpectralScience, PolarimetricScience
 ;
 ; HISTORY:
 ;        2013-10-21 - ds
@@ -116,7 +116,7 @@ function gpi_klip_algorithm_angular_differential_imaging, DataSet, Modules, Back
   rs = rth[1,*]
 
   ;;allocate output
-  final_im = dblarr(dim[0],dim[1],nlam)
+  final_im = dblarr(dim[0]*dim[1],nlam,nfiles)
 
   ;; do this by slice
   for l = 0,nlam-1 do begin
@@ -201,28 +201,38 @@ function gpi_klip_algorithm_angular_differential_imaging, DataSet, Modules, Back
            ;;restore,NANs,rotate estimate by -PA and add to output
            if countnan ne 0 then Test[naninds[0,where(naninds[1,*] eq imnum)]] = !values.d_nan
 
-           final_im[*,*,l] += rot(reform(Test,dim),PAs[imnum],/interp,cubic=-0.5)
+		   final_im[radinds,l,imnum] = Test
+           ;final_im[*,*,l] += rot(reform(Test,dim),PAs[imnum],/interp,cubic=-0.5)
         endfor
      endfor
   endfor 
   
-  final_im = final_im/nfiles
+  ;final_im = final_im/nfiles
+  final_im = reform(final_im, dim[0],dim[1],nlam,nfiles)
 
-  *(dataset.currframe[0]) = final_im
+  ;;;;*(dataset.currframe[0]) = final_im
   suffix = suffix+'-klip'
 
-  backbone->set_keyword,'HISTORY', functionname+": ADI KLIP applied.",ext_num=0
+for i=0,nfiles-1 do begin
 
+	backbone->Log, "Finished KLIP'd cube: "+strc(i+1)+" of "+strc(nfiles), depth=3
+	print, "Saving frame", i
+	accumulate_updateimage, dataset, i, newdata = final_im[*,*,*,i]
+
+endfor
+
+  ;backbone->set_keyword,'HISTORY', functionname+": ADI KLIP applied.",ext_num=0;
+  ;
   ;;update WCS info
-  gpi_update_wcs_basic,backbone,parang=0d0,imsize=dim
-
+  ;gpi_update_wcs_basic,backbone,parang=0d0,imsize=dim
+;
   ;;update satspot locations to new position and rotation
-  flocs = locs[*,*,*,numfile]
-  fcens = cens[*,*,numfile]
-  for j=0,1 do for k=0,nlam-1 do flocs[j,*,k] +=  imcent[j] - fcens[j,k]
-  gpi_rotate_header_satspots,backbone,PAs[numfile],flocs,imcent=imcent
-
-  backbone->set_keyword, "FILETYPE", "Spectral Cube ADI KLIP"
+;  flocs = locs[*,*,*,numfile]
+;  fcens = cens[*,*,numfile]
+;  for j=0,1 do for k=0,nlam-1 do flocs[j,*,k] +=  imcent[j] - fcens[j,k]
+;  gpi_rotate_header_satspots,backbone,PAs[numfile],flocs,imcent=imcent
+;
+;  backbone->set_keyword, "FILETYPE", "Spectral Cube ADI KLIP"
   @__end_primitive
 end 
 
