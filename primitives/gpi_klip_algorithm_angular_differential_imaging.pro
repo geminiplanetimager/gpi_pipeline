@@ -24,7 +24,7 @@
 ; PIPELINE ARGUMENT: Name="prop" Type="float" Range="[0.8,1.0]" Default=".99999" Desc="Proportion of eigenvalues used to truncate KL transform vectors"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="5" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.2
-; PIPELINE CATEGORY: SpectralScience, PolarimetricScience
+; PIPELINE CATEGORY: SpectralScience
 ;
 ; HISTORY:
 ;        2013-10-21 - ds
