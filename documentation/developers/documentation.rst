@@ -12,7 +12,7 @@ Quickstart
 
 The documentation source code is available as part of the pipeline source code, in the documentation subdirectory inside the pipeline root. 
 
-If you want to check only this directory out from the repository for some reason, you may do this as follows:
+If you want to check **only** this directory out from the repository for some reason, you may do this as follows:
 
   >>> svn checkout https://repos.seti.org/gpi/pipeline/trunk/documentation
 
@@ -22,7 +22,7 @@ language called `ReStructuredText (RST)
 syntax can be found `here <http://sphinx-doc.org/rest.html>`_.  The
 syntax is extremely simple and is intentionally much like the faux
 formatting you probably use in your emails without thinking about it,
-for instance using ``*asterisks around words*`` to indicate *italics* or **bold**.
+for instance using ``*asterisks around words*`` to indicate *italics* or ``**two asterisks**`` for  **bold**.
 
 Look over at the right side sidebar of this page. Near its bottom is a
 link "Show Source". You can click that on any page of these manuals
@@ -41,6 +41,8 @@ changes will be visible to everyone.
    There is also a nightly build of the latest documentation available at http://docs.planetimager.org/pipeline_dev/
 
 
+
+
 Some Sphinx Syntax Tips
 ---------------------------
 
@@ -50,10 +52,10 @@ is that you don't use dollar signs to enclose it, you use the string ":math:" an
 
 
 
-Building the docs
+Installing Sphinx
 ------------------
 
-**Requirements:** You will need the `sphinx documentation tool <http://sphinx-doc.org>`_ and 
+You will need the `sphinx documentation tool <http://sphinx-doc.org>`_ and 
 its `numpydoc extension <https://pypi.python.org/pypi/numpydoc>`_. We assume you already have
 an installation of python; if not you will need that too. See `Installing Scientific Python <http://python4astronomers.github.com/installation/python_install.html>`_ for installation advice. 
 
@@ -63,9 +65,9 @@ you can easily install the required tools from `PyPI <https://pypi.python.org/py
    >>> pip install Sphinx
    >>> pip install numpydoc
 
+Building the docs
+------------------
 
-
-**How to build**
 cd to the root directory `documentation`. If Sphinx is propery installed, you should be able to just run `make html`::
 
     >>> make html
