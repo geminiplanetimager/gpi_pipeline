@@ -27,6 +27,7 @@ Contents
    starting.rst
    tutorial.rst
    tutorial_pol.rst
+   tutorial_your_own_data.rst
    launcher.rst
    status_console.rst
    data_parser.rst

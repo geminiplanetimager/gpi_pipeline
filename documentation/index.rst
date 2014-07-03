@@ -25,13 +25,26 @@ other members of the GPI Data Analysis Team.  Please see the
 **Acknowledging the GPI Pipeline in Publications:** Users of the GPI data pipeline should cite one of the following:
 
  * `Maire et al. 'Data Reduction Pipeline for the Gemini Planet Imager', 2010, Proc. SPIE vol. 7735 <http://adsabs.harvard.edu/abs/2010SPIE.7735E.102M>`_
- * Perrin et al. 'Gemini Planet Imager Observational Calibrations I: Overview of the GPI data analysis pipeline', 2014 (in preparation, for SPIE meeting)
+ * Perrin et al. 'Gemini Planet Imager Observational Calibrations I: Overview of the GPI data analysis pipeline', 2014
 
 **Getting Help**: The main channel for support of this software is the `Gemini Data Reduction Forum <http://drforum.gemini.edu>`_. Please post questions there
 and mark them with the tag `gpi`. Members of the GPI data analysis team monitor that forum to help support the Gemini community in using GPI.  Contributions of improvements
 to the software or this documentation are very much welcomed.
 
 You may wish to see :ref:`what's new <release-notes>` in the latest version or jump to the :ref:`quick start tutorial <usage-quickstart>`.
+
+.. admonition:: New Users Start Here
+
+   If you are new to working with GPI data, the following parts of this documentation are good places to start.
+
+   * To install the pipeline, see the :ref:`Installation Manual <installation>`.
+   * You can then run through the :ref:`Tutorial <usage-quickstart>`.
+   * Then consult the :ref:`Reducing your own GPI data <usage-quickstart-yourdata>` page.
+   * To learn more about each step of the data reduction process, consult :ref:`Reducing GPI data Step by Step <processing_step_by_step>`. For more about
+     file formats, FITS headers, etc, consult the :ref:`IFS data handbook <ifs-data-handbook>`.
+
+
+
 
 .. caution:: 
    This software comes with no warranty nor guarantee of correctness. It represents the GPI
