@@ -26,7 +26,7 @@ You should then be able to select and download your data files.
     quicklook datacubes produced at the summit will also be archived. 
 
 
-Getting related calibration files from CADC 
+Getting related calibration files
 =================================================
 
 .. warning::
@@ -61,6 +61,8 @@ Once the calibration files are reduced and saved to your calibrations database, 
 
 Queue the recipe (using the Save Recipe and Queue button). It should produce some datacubes which are displayed in GPItv as they are created. 
 
+There are many primitives available in the GPI Data Reduction Pipeline for additional calibrations. The complete list of primitives is available here: :ref:`Recipe Templates <primitives>`.
+
 
 What if something goes wrong? 
 ==================================
@@ -71,9 +73,8 @@ Below we've briefly listed some common issues and solutions.
 
  - Checkerboard or moire pattern. Indicates wavecal is offset and needs to be updated. 
 
- - sat spots are not found. Describe how to deal with that.  
-   Sat spots are used for precise astrometry of the star behind the coronagraph, for PSF registration during subtraction. 
-   Simple workaround but imprecise is to manually enter an estimated coordinates for the star. 
+ - Satellite spots are used for precise astrometry of the star behind the coronagraph, for PSF registration during subtraction. 
+   If the pipeline is not able to locate the sat spots automatically, the user can input the locations manually. In the primitive called "Measure satellite spot locations", select loc_input = 1 and then define x1,y1,x2,y2,x3,y3,x4 and y4 by looking at one of the *_spdc FITS files with GPItv.
 
  - Be careful about the automatic contrast curves. May not be optimal, e.g. are biased if you look at a binary star
 
