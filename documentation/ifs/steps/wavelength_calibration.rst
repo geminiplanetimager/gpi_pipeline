@@ -1,3 +1,4 @@
+.. _wavelength_calibration:
 
 Wavelength Calibration
 ==================================
@@ -29,7 +30,7 @@ Xe or Ar. The GCAL Ar lamp is 3-10x brighter depending on wavelength so the inte
 There are two different recipes for creating wavelength calibrations:
 
 * "Wavelength Solution" will bootstrap a wavelength solution from scratch using centroids measured for the arc lamp emssion lines.  It is somewhat fragile and in particular is sensitive to any residual hot pixels in your data, and the generated wavecal is not of the highest quality.  This recipe should only be used if you're setting up a copy of the pipeline from scratch with no existing wavecal files.
-* "Wavelength Solution 2D" on the other hand fits a 2D forward model of the dispersed spectrum to each lenslet and minimizes the chi squared to derive a more accurate wavecal. It yields better results but *requires that you already have at least one prior  wavecal already to use as a starting guess* for the optimization. This is the right recipe to use the vast majority of the time.
+* "Wavelength Solution 2D" on the other hand fits a 2D forward model of the dispersed spectrum to each lenslet and minimizes the chi squared to derive a more accurate wavecal. It yields better results but *requires that you already have at least one prior wavecal already to use as a starting guess* for the optimization. This is the right recipe to use the vast majority of the time.
 
 .. note::
         The Wavelength Solution 2D recipe is computationally intensive, and will take tens of minutes to run on typical machines. The parallelized mode does not work with IDL Virtual Machine.

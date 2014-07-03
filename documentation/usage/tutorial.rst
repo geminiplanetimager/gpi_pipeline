@@ -187,15 +187,13 @@ Like the dark frames, the wavelength solution calibration files can be created u
 
 - **For step 1)** Select Xe-arc lamp files: **S20131208S0149(-151).fits**. 
 - **For step 3)** Keep selected the **Calibration** reduction type.
-- **For step 4)** Choose the **Wavelength Solution** Recipe template.
+- **For step 4)** Choose the **Wavelength Solution 2D** Recipe template.
 
-This is a more computationally intensive reduction and it may take some time to complete. 
+This is a more computationally intensive reduction and it may take some time to complete. It also requires a reference wavelength solution in the same Band as the observed arc lamp data. These can be accessed by downloading the Wavecals.zip file available on the `Gemini Public Data webpage <http://www.gemini.edu/sciops/instruments/gpi/public-data>`_. These files should be added to the calibrations directory. 
 
-.. note:: If you did not correctly copy in the files from the **files_to_go_into_calibrations_directory** then you will get warnings but it should work anyway. How to create such files is described in the :ref:`Processing GPI Data, Step by Step <processing_step_by_step>`
+.. note:: The wavelength calibration requires a complex algorithm. :ref:`Wavelength Calibration <wavelength_calibration>` describes the process in more detail and provides examples of common errors with solutions. 
 
-
-
-A sample of the 2D image with the computed calibration is given below. The green lines are the locations of the individual lenslet spectra. The coordinates of the lenslets are stored in a .fits file cube in the **calibrations** folder. Use GPItv to take a look to the result.
+A sample of the 2D image with the computed wavelength calibration is given below. The green lines are the locations of the individual lenslet spectra. The coordinates of the lenslets are stored in a .fits file cube in the **calibrations** folder. Use GPItv to take a look to the result.
 
 .. image:: wavelength-solution.png
         :scale: 100%
