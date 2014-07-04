@@ -149,156 +149,233 @@ sub_im = dblarr(dim[0]*dim[1],nlam,nfiles)
 ;;wavelength clipping
 ;waveclip = 3
 
-;; do this by slice
-for lam = 0 + waveclip,nlam-1-waveclip do begin
+;;threadpool for multithreading
+numthreads = 2
+threads = ptrarr(numthreads)
+for thread = 0, numthreads-1 do begin
+	print, "spinning up thread", thread
+	threads[thread] = ptr_new(obj_new("IDL_IDLBridge", output=''))
+	(*threads[thread])->setvar, 'index', -1
+endfor
+nextthread = 0
 
-	print, "!!!Wavelength slice", lam
-
-	R0 = dblarr(dim[0]*dim[1],nlam,nfiles)
-	
-	;;get all of the data aligned and scaled by wavelength
-	for imnum = 0,nfiles-1 do begin
-		tmp =  accumulate_getimage(dataset,imnum)
-		thislocs = locs[*,*,lam,imnum]
-		thislocs[0,*] -= cens[0,lam,imnum]-imcent[0]
-		thislocs[1,*] -= cens[1,lam,imnum]-imcent[1]
-		print, "begin align speckles and shift images for image", imnum
-		;;align images first
-		for wave=0,nlam-1 do begin
-			tmp[*,*,wave] = interpolate(tmp[*,*,wave],xs+cens[0,lam,imnum]-imcent[0],ys+cens[1,lam,imnum]-imcent[1],cubic=-0.5)
-		endfor
-		;;then do speckle align
-		tmp =  speckle_align(tmp, refslice=lam, band=band, locs=thislocs)
-		for wave=0,nlam-1 do begin
-			;;in the future let's put ADR correction in here too...
-			R0[*,wave,imnum] =  tmp[*,*,wave]
-		endfor
+;;error handling if crashes to cleanup of threads
+catch, error_status
+if error_status ne 0 then begin
+	for thread = 0, numthreads-1 do begin
+		print, "destroying thread", thread
+		(*threads[thread])->abort
+		obj_destroy, (*threads[thread])
 	endfor
-	
-	;;now that we have the images (this might be able to be moved out of the for loop)
-	R0dims = size(R0,/dim)
-	;;collapse the wavelength dimension, so basically have a bunch of slices
-	R0 = reform(R0, dim[0]*dim[1],nlam*nfiles, /overwrite)
-	;;create PA and lambda corresponding to each slice in R0
-	PAs_wv = rebin(PAs, nfiles*nlam, /sample)
-	lambda_files = reform(transpose(reform(rebin(lambda,nlam*nfiles,/sample),nfiles,nlam)),nlam*nfiles) ;stupid idl array duplication
-	lambda_moves_file  = (lambda[0]/lambda_files - 1d0) # radcents
-	waveslice_files = indgen(nfiles*nlam) mod nlam
+	message, /REISSUE_LAST
+endif else begin
+	;; do this by slice
+	for lam = 0 + waveclip,nlam-1-waveclip do begin
 
-	;;apply KLIP to each annulus
-	for radcount = 0,n_elements(rads)-2 do begin
-		;;break each annulus into subsections
-		;;;;subsections = 4
-		dphi = 2.0*!pi/subsections
-		for phi_i = 0,subsections-1 do begin
-			print, "starting on anuulus", radcount, "subsection", phi_i
-			
-			;;grad the subannuli region of each file
-			;;rad range: rads[radcount]<= R <rads[radcount+1]
-			meanrad = (rads[radcount]+rads[radcount+1])/2.
-			radinds = where( (rs ge rads[radcount]) and (rs lt rads[radcount+1]) and (phis ge phi_i*dphi-!Pi) and (phis lt (phi_i+1)*dphi-!Pi) )
-			;R = R0[radinds,*] ;;ref set
-			;
-			;;check that you haven't just grabbed a blank annulus
-			;if (total(finite(R)) eq 0) then begin 
-			;   statuswindow->set_percent,-1,double(nfiles)/totiter*100d/nummodules,/append
-			;   continue
-			;endif 
-			;
-			;;;create mean subtracted versions and get rid of NaNs
-			;mean_R_dim1=dblarr(N_ELEMENTS(R[0,*]))                        
-			;for zz=0,N_ELEMENT78S(R[0,*])-1 do mean_R_dim1[zz]=mean(R[*,zz],/double,/nan)
-			;R_bar = R-matrix_multiply(replicate(1,n_elements(radinds),1),mean_R_dim1,/btranspose)
-			;naninds = where(R_bar ne R_bar,countnan)
-			;if countnan ne 0 then begin 
-			;   R[naninds] = 0
-			;   R_bar[naninds] = 0
-			;   naninds = array_indices(R_bar,naninds)
-			;endif
-			;
-			;;;find covariance of all slices
-			;covar0 = matrix_multiply(R_bar,R_bar,/atranspose)/(n_elements(radinds)-1d0) 
+		print, "!!!Wavelength slice", lam
 
-			;;PSF subtract for each file
-			for imnum = 0,nfiles-1 do begin
-				print, "begin psf subtraction for image", imnum
-				;;update progress as needed
-				statuswindow->set_percent,-1,1d/totiter*100d/nummodules,/append
-
-				;;figure out which images are to be used
-				;;assuming a planet is in the middle of the annulus, where can we avoid self-subtraction
-				fileinds = where( (sqrt(((PAs_wv - PAs[imnum])*meanrad)^2 + (	lambda_moves_file[*,radcount] - lambda_moves[lam,radcount])^2 ) gt minsep) and (abs(PAs_wv - PAs[imnum]) ge minPA) and (waveslice_files ge waveclip) and (waveslice_files lt nlam-waveclip) , count)
-				print, "Number of files for ref PSF: ", count
-				if count lt 2 then begin 
-					logstr = 'No reference slices available for requested motion. Skipping.'
-					message,/info,logstr
-					backbone->Log,logstr
-					continue
-				endif 
-
-				;;create mean subtracted versions and get rid of NaNs
-				R = R0[radinds, *]
-				R = R[*,fileinds]
-				mean_R_dim1=dblarr(N_ELEMENTS(R[0,*]))                        
-				for zz=0,N_ELEMENTS(R[0,*])-1 do mean_R_dim1[zz]=mean(R[*,zz],/double,/nan)
-				R_bar = R-matrix_multiply(replicate(1,n_elements(radinds),1),mean_R_dim1,/btranspose)
-				naninds = where(R_bar ne R_bar,countnan)
-				if countnan ne 0 then begin 
-				   R[naninds] = 0
-				   R_bar[naninds] = 0
-				   naninds = array_indices(R_bar,naninds)
-				endif
-
-				;;find covariance of all slices
-				covar = matrix_multiply(R_bar,R_bar,/atranspose)/(n_elements(radinds)-1d0) 
-				
-				;;grab covariance submatrix
-				;covar = covar0[fileinds,*]
-				;covar = covar[*,fileinds]
-
-				;;get the eigendecomposition
-				residual = 1         ;initialize the residual
-				evals = eigenql(covar,eigenvectors=evecs,/double,residual=residual)  
-
-				;;determines which eigenalues to truncate
-				;evals_cut = where(total(evals,/cumulative) gt prop*total(evals))
-				;K = evals_cut[0]
-				;	print, "truncating at eigenvalue", K
-				;if K eq -1 then continue
-				K = min([numbasis,(size(covar,/dim))[0]-1])
-
-				;;creates mean subtracted and truncated KL transform vectors
-				;Z = evecs ## R_bar[*,fileinds]
-				Z = evecs ## R_bar
-				G = diag_matrix(sqrt(1d0/evals/(n_elements(radinds)-1)))
-
-				Z_bar = G ## Z
-				Z_bar_trunc=Z_bar[*,0:K] 
-
-				;grab the original file
-				T0 = R0[*, imnum*nlam + lam]
-				T = T0[radinds] - mean(T0[radinds],/double,/nan)
-				nanpix = where(~finite(T), num_nanpix)
-				if num_nanpix gt 0 then T[nanpix] = 0
-				;;T = R_bar[*,imnum*nlam+lam]
-				;;T = R[*,ref_value]
-
-				;;Project KL transform vectors and subtract from target
-				signal_step_1 = matrix_multiply(T,Z_bar_trunc,/atranspose)
-				signal_step_2 = matrix_multiply(signal_step_1,Z_bar_trunc,/btranspose)
-				Test = T - transpose(signal_step_2)
-			   
-				;;restore,NANs,rotate estimate by -PA and add to output
-				;;if countnan ne 0 then Test[naninds[0,where(naninds[1,*] eq imnum)]] = !values.d_nan
-				if num_nanpix gt 0 then Test[nanpix] = !values.d_nan
-				
-				sub_im[radinds,lam,imnum] = Test
-				;;if radcount eq n_elements(rads)-2 then stop
-				;;final_im[*,*,lam] += rot(reform(Test,dim),PAs[imnum],/interp,cubic=-0.5)
+		R0 = dblarr(dim[0]*dim[1],nlam,nfiles)
+		
+		;;get all of the data aligned and scaled by wavelength
+		for imnum = 0,nfiles-1 do begin
+			tmp =  accumulate_getimage(dataset,imnum)
+			thislocs = locs[*,*,lam,imnum]
+			thislocs[0,*] -= cens[0,lam,imnum]-imcent[0]
+			thislocs[1,*] -= cens[1,lam,imnum]-imcent[1]
+			print, "begin align speckles and shift images for image", imnum
+			;;align images first
+			for wave=0,nlam-1 do begin
+				tmp[*,*,wave] = interpolate(tmp[*,*,wave],xs+cens[0,lam,imnum]-imcent[0],ys+cens[1,lam,imnum]-imcent[1],cubic=-0.5)
+			endfor
+			;;then do speckle align
+			tmp =  speckle_align(tmp, refslice=lam, band=band, locs=thislocs)
+			for wave=0,nlam-1 do begin
+				;;in the future let's put ADR correction in here too...
+				R0[*,wave,imnum] =  tmp[*,*,wave]
 			endfor
 		endfor
-	endfor
-endfor 
+		
+		;;now that we have the images (this might be able to be moved out of the for loop)
+		R0dims = size(R0,/dim)
+		;;collapse the wavelength dimension, so basically have a bunch of slices
+		R0 = reform(R0, dim[0]*dim[1],nlam*nfiles, /overwrite)
+		;;create PA and lambda corresponding to each slice in R0
+		PAs_wv = rebin(PAs, nfiles*nlam, /sample)
+		lambda_files = reform(transpose(reform(rebin(lambda,nlam*nfiles,/sample),nfiles,nlam)),nlam*nfiles) ;stupid idl array duplication
+		lambda_moves_file  = (lambda[0]/lambda_files - 1d0) # radcents
+		waveslice_files = indgen(nfiles*nlam) mod nlam
+
+		;;apply KLIP to each annulus
+		for radcount = 0,n_elements(rads)-2 do begin
+			;;break each annulus into subsections
+			;;;;subsections = 4
+			dphi = 2.0*!pi/subsections
+			for phi_i = 0,subsections-1 do begin
+				print, "starting on anuulus", radcount, "subsection", phi_i
+				
+				;;grad the subannuli region of each file
+				;;rad range: rads[radcount]<= R <rads[radcount+1]
+				meanrad = (rads[radcount]+rads[radcount+1])/2.
+				radinds = where( (rs ge rads[radcount]) and (rs lt rads[radcount+1]) and (phis ge phi_i*dphi-!Pi) and (phis lt (phi_i+1)*dphi-!Pi) )
+				;R = R0[radinds,*] ;;ref set
+				;
+				;;check that you haven't just grabbed a blank annulus
+				;if (total(finite(R)) eq 0) then begin 
+				;   statuswindow->set_percent,-1,double(nfiles)/totiter*100d/nummodules,/append
+				;   continue
+				;endif 
+				;
+				;;;create mean subtracted versions and get rid of NaNs
+				;mean_R_dim1=dblarr(N_ELEMENTS(R[0,*]))                        
+				;for zz=0,N_ELEMENT78S(R[0,*])-1 do mean_R_dim1[zz]=mean(R[*,zz],/double,/nan)
+				;R_bar = R-matrix_multiply(replicate(1,n_elements(radinds),1),mean_R_dim1,/btranspose)
+				;naninds = where(R_bar ne R_bar,countnan)
+				;if countnan ne 0 then begin 
+				;   R[naninds] = 0
+				;   R_bar[naninds] = 0
+				;   naninds = array_indices(R_bar,naninds)
+				;endif
+				;
+				;;;find covariance of all slices
+				;covar0 = matrix_multiply(R_bar,R_bar,/atranspose)/(n_elements(radinds)-1d0) 
+				
+				;;PSF subtract for each file
+				for imnum = 0,nfiles-1 do begin
+					print, "begin psf subtraction for image", imnum
+					;;update progress as needed
+					statuswindow->set_percent,-1,1d/totiter*100d/nummodules,/append
+
+					;;figure out which images are to be used
+					;;assuming a planet is in the middle of the annulus, where can we avoid self-subtraction
+					fileinds = where( (sqrt(((PAs_wv - PAs[imnum])*meanrad)^2 + (	lambda_moves_file[*,radcount] - lambda_moves[lam,radcount])^2 ) gt minsep) and (abs(PAs_wv - PAs[imnum]) ge minPA) and (waveslice_files ge waveclip) and (waveslice_files lt nlam-waveclip) , count)
+					print, "Number of files for ref PSF: ", count
+					if count lt 2 then begin 
+						logstr = 'No reference slices available for requested motion. Skipping.'
+						message,/info,logstr
+						backbone->Log,logstr
+						continue
+					endif 
+
+					;grab the original file
+					T0 = R0[*, imnum*nlam + lam]
+					;T = T0[radinds] - mean(T0[radinds],/double,/nan)
+					;nanpix = where(~finite(T), num_nanpix)
+					;if num_nanpix gt 0 then T[nanpix] = 0
+					;;T = R_bar[*,imnum*nlam+lam]
+					;;T = R[*,ref_value]
+					;
+					;;create mean subtracted versions and get rid of NaNs
+					R = R0[radinds, *]
+					R = R[*,fileinds]
+					
+					;;find the next free thread
+					loopcount = 0
+					print, "checking thread", nextthread
+					while (*threads[nextthread])->status() eq 1 do begin
+						if loopcount ge numthreads then wait, 0.07*nfiles
+						nextthread += 1
+						nextthread = nextthread mod numthreads
+						loopcount += 1
+						print, "checking thread", nextthread
+					endwhile
+					
+					;;take the ouput of the job that just finished and write it
+					print, "thread status", (*threads[nextthread])->status()
+					if (*threads[nextthread])->getvar('index') ge 0 then begin
+						output = (*threads[nextthread])->getvar('image')
+						oldfile = (*threads[nextthread])->getvar('index')
+						sub_im[radinds,lam,oldfile] = output
+						(*threads[nextthread])->setvar, 'index', -1
+						print, "thread finished", nextthread, oldfile
+					endif
+					
+					;;add the new job
+					print, "add job to thread", nextthread
+					(*threads[nextthread])->setvar, 'image', T0[radinds]
+					(*threads[nextthread])->setvar, 'refs', R
+					(*threads[nextthread])->setvar, 'numbasis', numbasis
+					(*threads[nextthread])->setvar, 'index', imnum
+					(*threads[nextthread])->execute, 'image = klip_math(image, refs, numbasis)', /nowait
+					print, "thread status", (*threads[nextthread])->status()
+					
+					;mean_R_dim1=dblarr(N_ELEMENTS(R[0,*]))                        
+					;for zz=0,N_ELEMENTS(R[0,*])-1 do mean_R_dim1[zz]=mean(R[*,zz],/double,/nan)
+					;R_bar = R-matrix_multiply(replicate(1,n_elements(radinds),1),mean_R_dim1,/btranspose)
+					;naninds = where(R_bar ne R_bar,countnan)
+					;if countnan ne 0 then begin 
+					;   R[naninds] = 0
+					;   R_bar[naninds] = 0
+					;   naninds = array_indices(R_bar,naninds)
+					;endif
+					;
+					;;;find covariance of all slices
+					;covar = matrix_multiply(R_bar,R_bar,/atranspose)/(n_elements(radinds)-1d0) 
+					;
+					;;;grab covariance submatrix
+					;;covar = covar0[fileinds,*]
+					;;covar = covar[*,fileinds]
+					;
+					;;;get the eigendecomposition
+					;residual = 1         ;initialize the residual
+					;evals = eigenql(covar,eigenvectors=evecs,/double,residual=residual)  
+					;
+					;;;determines which eigenalues to truncate
+					;;evals_cut = where(total(evals,/cumulative) gt prop*total(evals))
+					;;K = evals_cut[0]
+					;;	print, "truncating at eigenvalue", K
+					;;if K eq -1 then continue
+					;K = min([numbasis,(size(covar,/dim))[0]-1])
+					;
+					;;;creates mean subtracted and truncated KL transform vectors
+					;;Z = evecs ## R_bar[*,fileinds]
+					;Z = evecs ## R_bar
+					;G = diag_matrix(sqrt(1d0/evals/(n_elements(radinds)-1)))
+					;
+					;Z_bar = G ## Z
+					;Z_bar_trunc=Z_bar[*,0:K] 
+					;
+					;;;Project KL transform vectors and subtract from target
+					;signal_step_1 = matrix_multiply(T,Z_bar_trunc,/atranspose)
+					;signal_step_2 = matrix_multiply(signal_step_1,Z_bar_trunc,/btranspose)
+					;Test = T - transpose(signal_step_2)
+					;
+					;;;restore,NANs,rotate estimate by -PA and add to output
+					;;;if countnan ne 0 then Test[naninds[0,where(naninds[1,*] eq imnum)]] = !values.d_nan
+					;if num_nanpix gt 0 then Test[nanpix] = !values.d_nan
+					;
+					;sub_im[radinds,lam,imnum] = Test
+					;;if radcount eq n_elements(rads)-2 then stop
+					;;final_im[*,*,lam] += rot(reform(Test,dim),PAs[imnum],/interp,cubic=-0.5)
+				endfor
+				print, 'waiting for the rest of the threads to finish before moving on'
+				for thread = 0, numthreads-1 do begin
+					;;find the next free thread
+					print, 'waiting for', thread
+					while (*threads[thread])->status() eq 1 do begin
+						wait, 0.1*nfiles
+					endwhile
+					
+					print, 'checking for finished jobs', thread
+					if (*threads[thread])->getvar('index') ge 0 then begin
+						;;take the ouput of the job that just finished and write it
+						output = (*threads[thread])->getvar('image')
+						fileindex = (*threads[thread])->getvar('index')
+						sub_im[radinds,lam,fileindex] = output
+						(*threads[thread])->setvar, 'index', -1
+						print, "thread finished", thread, oldfile
+					endif
+				endfor
+			endfor
+		endfor
+	endfor 
+endelse
+
+;;cleanup
+for thread = 0, numthreads-1 do begin
+	print, "destroying thread", thread
+	(*threads[thread])->abort
+	obj_destroy, (*threads[thread])
+endfor
 
 ;form datacubes again
 sub_im = reform(sub_im, dim[0],dim[1],nlam,nfiles)
