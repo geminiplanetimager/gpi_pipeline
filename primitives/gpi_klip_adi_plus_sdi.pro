@@ -150,7 +150,7 @@ sub_im = dblarr(dim[0]*dim[1],nlam,nfiles)
 ;waveclip = 3
 
 ;;threadpool for multithreading
-numthreads = 2
+numthreads = 3
 threads = ptrarr(numthreads)
 for thread = 0, numthreads-1 do begin
 	print, "spinning up thread", thread
@@ -162,6 +162,7 @@ nextthread = 0
 ;;error handling if crashes to cleanup of threads
 catch, error_status
 if error_status ne 0 then begin
+	stop
 	for thread = 0, numthreads-1 do begin
 		print, "destroying thread", thread
 		(*threads[thread])->abort
@@ -362,20 +363,19 @@ endif else begin
 						fileindex = (*threads[thread])->getvar('index')
 						sub_im[radinds,lam,fileindex] = output
 						(*threads[thread])->setvar, 'index', -1
-						print, "thread finished", thread, oldfile
+						print, "thread finished", thread, fileindex
 					endif
 				endfor
 			endfor
 		endfor
 	endfor 
+	;;cleanup
+	for thread = 0, numthreads-1 do begin
+		print, "destroying thread", thread
+		(*threads[thread])->abort
+		obj_destroy, (*threads[thread])
+	endfor
 endelse
-
-;;cleanup
-for thread = 0, numthreads-1 do begin
-	print, "destroying thread", thread
-	(*threads[thread])->abort
-	obj_destroy, (*threads[thread])
-endfor
 
 ;form datacubes again
 sub_im = reform(sub_im, dim[0],dim[1],nlam,nfiles)
