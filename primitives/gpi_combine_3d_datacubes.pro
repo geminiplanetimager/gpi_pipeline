@@ -99,9 +99,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		 backbone->set_keyword,'HISTORY', functionname+":   Only 1 file supplied, so nothing to combine.",ext_num=0
 		message,/info, "Only one frame supplied - can't really combine it with anything..."
 
-		combined_im = imtab[*,*,0]
+		combined_im = imtab
 	endelse
-
 
 
 	; store the output into the backbone datastruct
