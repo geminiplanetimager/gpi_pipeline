@@ -19,6 +19,7 @@
 ;
 ; PIPELINE COMMENT: Reduce speckle noise using the KLIP algorithm with ADI+SDI data
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
+; PIPELINE ARGUMENT: Name="numthreads" Type="int" Range="[1,10000]" Default="5" Desc="Number of parallel processes to run KLIP calculation"
 ; PIPELINE ARGUMENT: Name="annuli" Type="int" Range="[0,100]" Default="5" Desc="Number of annuli to use"
 ; PIPELINE ARGUMENT: Name="subsections" Type="int" Range="[1,10]" Default="4" Desc="Number of equal area subsections to break up each annulus into"
 ; PIPELINE ARGUMENT: Name="numbasis" Type="int" Range="[1,10000]" Default="20" Desc="Number of KL transform vectors to use"
@@ -87,6 +88,7 @@ for j = 0, nfiles - 1 do begin
 endfor
 
 ;;get user inputs
+numthreads=long(Modules[thisModuleIndex].numthreads)
 annuli=long(Modules[thisModuleIndex].annuli)
 minsep=double(Modules[thisModuleIndex].minsep)
 ;prop=double(Modules[thisModuleIndex].prop)
@@ -150,7 +152,7 @@ sub_im = dblarr(dim[0]*dim[1],nlam,nfiles)
 ;waveclip = 3
 
 ;;threadpool for multithreading
-numthreads = 3
+;;numthreads = 33
 threads = ptrarr(numthreads)
 for thread = 0, numthreads-1 do begin
 	print, "spinning up thread", thread
@@ -369,12 +371,6 @@ endif else begin
 			endfor
 		endfor
 	endfor 
-	;;cleanup
-	for thread = 0, numthreads-1 do begin
-		print, "destroying thread", thread
-		(*threads[thread])->abort
-		obj_destroy, (*threads[thread])
-	endfor
 endelse
 
 ;form datacubes again
@@ -387,7 +383,18 @@ for i=0,nfiles-1 do begin
 	backbone->Log, "Finished KLIP'd cube: "+strc(i+1)+" of "+strc(nfiles), depth=3
 	print, "Saving frame", i
 	accumulate_updateimage, dataset, i, newdata = sub_im[*,*,*,i]
+	writefits, strtrim(string(i),2) + '_kliped.fits', sub_im[*,*,*,i]
+endfor
 
+;;cleanup
+for thread = 0, numthreads-1 do begin
+	;;known bug in IDL. Using more than 15 brdiges simulatenously
+	;;on a 64bit linux system causes IDL to hang if the bridges are
+	;; not destroyed in the exact opposite order they are created
+	actual_thread = numthreads-1-thread
+	print, "destroying thread", actual_thread
+	(*threads[actual_thread])->abort
+	obj_destroy, (*threads[actual_thread])
 endfor
 
 ;sub_im = final_im/nfiles
