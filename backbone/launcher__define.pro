@@ -649,9 +649,12 @@ FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, cle
 			button_image = READ_BMP(dirpro+path_sep()+'gpi.bmp', /RGB) 
 			button_image = TRANSPOSE(button_image, [1,2,0]) 
 			sz = size(button_image)
-			logo = WIDGET_draw( baseid2,   $
-				SCR_XSIZE=sz[1] ,SCR_YSIZE=sz[2])
-		endif	
+		endif else begin
+			sz = [0,83,78]
+		endelse
+
+
+		logo = WIDGET_draw( baseid2,  SCR_XSIZE=sz[1] ,SCR_YSIZE=sz[2])
 	
 		tmp = widget_label(baseid2, value=' ')
 		frame = widget_base(baseid2,/column)
@@ -687,7 +690,7 @@ FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, cle
 
 		widget_control, logo, get_value=draw_id
 		wset, draw_id
-		tv, button_image, true=3
+		if keyword_set(button_image) then tv, button_image, true=3
 
 		self.sessions[0] = self ; just fill up the first slot so that GPItvs start with #1.
 
