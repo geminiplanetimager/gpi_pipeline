@@ -1,8 +1,28 @@
 Tutorial 4: Photometric Calibration For Coronagraphic Imaging Spectroscopy
 =============================================================================
 
+.. warning::
+   Photometric calibration for coronagraphic data can 
+   be tricky. There is more than one way to do this. As always users are responsible for
+   using their own scientific judgement, checking their results, 
+   and not relying solely on the pipeline as a black box. 
 
-Uses the sat spots, so syou have to have measured them first. 
+   We encourage users to develop their own approaches to accurately calibrating
+   their GPI data and assessing the uncertainties and biases. The following is our
+   suggestion of one possible approach to photometric calibration.
+
+   Furthermore, as soon as one adds in the complexity of PSF subtraction, 
+   that brings a lot of additional complexity in understanding the algorithm throughputs
+   and biases of that process. This issue is not described in this brief introduction.
+
+
+This uses the sat spots, so you have to have measured them first. 
+
+
+This is RELATIVE calibration - calibrating the companion relative to the
+central star. Need to provide the central star's spectral type as a parameter to the Calibrate Photometric Flux primitive. This relies also on the spectral library model in the pipeline, alhtough you can provide your own preferred stelar spectrum if you want. 
+Also relies on having the target star magnitude in the FITS header, which should be the case for all GPI science observations, for which this values is provided as an input from the OT. 
+
 
 
 
@@ -12,12 +32,6 @@ Two ways to do this:
    Can only do this for datasets with sufficient S/N. 
 2. On combined sequence outputs. 
 
-.. warning::
-   Photometric calibration for coronagraphic data can 
-   be tricky. As always users are responsible for
-   using their own scientific judgement, checking their results, 
-   and not relying solely on the pipeline as a black box. 
-
 .. warning:: 
    If you're using non-coronagraphic direct data, it doens't have sat spots
    so the following method doesn't apply. Likewise for polarimetry data the
@@ -25,12 +39,6 @@ Two ways to do this:
    yet implemented well. In these cases you can rely on the more traditional
    method of observing a photometric standard star, measuring its counts, and
    deriving a conversion factor from counts/sec to physical units. 
-
-
-This is RELATIVE calibration - calibrating the companion relative to the
-central star. Need to provide the central star's spectral type as a parameter to the Calibrate Photometric Flux primitive. This relies also on the spectral library model in the pipeline, alhtough you can provide your own preferred stelar spectrum if you want. 
-Also relies on having the target star magnitude in the FITS header, which should be the case for all GPI science observations, for which this values is provided as an input from the OT. 
-
 
 
 Calibration Cube-by-Cube

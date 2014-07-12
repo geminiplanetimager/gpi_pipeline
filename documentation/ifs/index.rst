@@ -16,6 +16,9 @@ user should be familiar with to usefully work with the data.
 See also the :ref:`Pipeline User's Guide <user-intro>`, which describes 
 the user interface and operation of the software used to process these data.
 
+The :ref:`processing_step_by_step` section of this Handbook is particularly recommended to understand 
+the details and potential pitfalls of each step of GPI data reduction.
+
 
 .. warning::
         This is a WORKING DRAFT document, which is not fully complete and may
@@ -38,11 +41,9 @@ Contents
    detector.rst
    fieldofview.rst
    filters.rst
-   satellitespots.rst
-   photometry.rst
-   polarimetry.rst
    dataformats.rst
    steps/index.rst
+   steps/polarimetry.rst
 
 .. comment
    pupilcam.rst

@@ -13,22 +13,28 @@ astrometry and spectrophotometry of detected sources.
 
 **Software and documentation by:** Marshall Perrin (STScI), Jérôme Maire
 (University of Toronto), Patrick Ingraham
-(Stanford), Dmitry Savransky (Cornell), Zack Draper (U Victoria),
+(Stanford), Dmitry Savransky (Cornell), 
+Max Millar-Blanchaer (Toronto), 
+Schuyler Wolff (JHU),
+JB Ruffio (SETI, ISAE), 
+Jason Wang (Berkeley),
+Zack Draper (U Victoria),
+Abhi Rajan (ASU), Naru Sadakuni (UCSC and Gemini),
 Michael Fitzgerald (UCLA),
 Christian Marois (NRC) ,
-Max Millar-Blanchaer (Toronto), 
-Abhi Rajan (ASU), JB Ruffio (SETI, ISAE), Naru Sadakuni (UCSC and Gemini), Jason Wang (Berkeley), Schuyler Wolff (JHU), 
 and
 other members of the GPI Data Analysis Team.  Please see the
 :ref:`development credits <sw-credits>` for a complete list of contributors, and the :ref:`release notes <release-notes>` for further details.
 
 **Acknowledging the GPI Pipeline in Publications:** Users of the GPI data pipeline should cite one of the following:
 
- * `Maire et al. 'Data Reduction Pipeline for the Gemini Planet Imager', 2010, Proc. SPIE vol. 7735 <http://adsabs.harvard.edu/abs/2010SPIE.7735E.102M>`_
- * Perrin et al. 'Gemini Planet Imager Observational Calibrations I: Overview of the GPI data analysis pipeline', 2014
+ * `Perrin et al. 2014, 'GPI Observational Calibrations I: Overview of the GPI data reduction pipeline', Proc. SPIE vol. 9147. <http://arxiv.org/abs/1407.2301>`_ 
+ * `Maire et al. 2010, 'Data Reduction Pipeline for the Gemini Planet Imager', Proc. SPIE vol. 7735 <http://adsabs.harvard.edu/abs/2010SPIE.7735E.102M>`_
+
+Please also cite appropriate references for `GPI overall <http://adsabs.harvard.edu/abs/2014arXiv1403.7520M>`_, the `AO system <http://arxiv.org/abs/1407.2278>`_ and `IFS <http://arxiv.org/abs/1407.2314>`_, and other aspects of the instrument as relevant.
 
 **Getting Help**: The main channel for support of this software is the `Gemini Data Reduction Forum <http://drforum.gemini.edu>`_. Please post questions there
-and mark them with the tag `gpi`. Members of the GPI data analysis team monitor that forum to help support the Gemini community in using GPI.  Contributions of improvements
+and mark them with the tag `gpi`. Gemini staff and members of the GPI data analysis team monitor that forum to help support the Gemini community in using GPI.  Contributions of improvements
 to the software or this documentation are very much welcomed.
 
 You may wish to see :ref:`what's new <release-notes>` in the latest version or jump to the :ref:`quick start tutorial <usage-quickstart>`.
@@ -38,7 +44,7 @@ You may wish to see :ref:`what's new <release-notes>` in the latest version or j
    If you are new to working with GPI data, the following parts of this documentation are good places to start.
 
    * To install the pipeline, see the :ref:`Installation Manual <installation>`.
-   * You can then run through the :ref:`Tutorial <usage-quickstart>`.
+   * You can then run through the :ref:`Tutorials <usage-quickstart>`.
    * Then consult the :ref:`Reducing your own GPI data <usage-quickstart-yourdata>` page.
    * To learn more about each step of the data reduction process, consult :ref:`Reducing GPI data Step by Step <processing_step_by_step>`. For more about
      file formats, FITS headers, etc, consult the :ref:`IFS data handbook <ifs-data-handbook>`.

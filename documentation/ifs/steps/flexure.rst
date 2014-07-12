@@ -4,6 +4,14 @@
 IFS Flexure
 ==================================
 
+
+.. seealso:: 
+
+        Further information may be found in `Wolff et al. 2014 "Gemini Planet Imager Observational Calibrations IV: Wavelength Calibration and Flexure Correction for the Integral Field Spectrograph" <http://arxiv.org/abs/1407.2304>`_ and also in 
+        `Ingraham et al. 2014 "Gemini Planet Imager Observational Calibrations III: Empirical Measurement Methods and Applications of High-Resolution Microlens PSFs" <http://arxiv.org/abs/1407.2303>`_
+
+
+
 Observed Effect and Relevant Physics:
 ---------------------------------------
 

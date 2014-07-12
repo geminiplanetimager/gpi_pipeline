@@ -3,6 +3,12 @@
 Satellite Spot Calibrations
 ==================================
 
+.. seealso::
+
+        Further information may be found in `Wang et al. 2014 "Gemini Planet Imager Observational Calibrations VIII:
+        Characterization and Role of Satellite Spots" <http://arxiv.org/abs/1407.2308>`_
+
+
 Observed Effect and Relevant Physics:
 ---------------------------------------
 

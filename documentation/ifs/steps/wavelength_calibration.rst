@@ -3,15 +3,23 @@
 Wavelength Calibration
 ==================================
 
+.. admonition:: Published reference
+
+        Further information may be found in `Wolff et al. 2014 "Gemini Planet Imager Observational Calibrations IV: Wavelength Calibration and Flexure Correction for the Integral Field Spectrograph" <http://arxiv.org/abs/1407.2304>`_
+
+
 Observed Effect and Relevant Physics:
 ---------------------------------------
 
-To perform GPI's exoplanet characterization science goals requires a wavelength precision of ~1%. However, the uniformity of the datacube is greatly increased with a better quality calibration. Performing a robust, high-accuracy wavelength calibration with GPI has been on of the primary challenges of the pipeline development. Similar to other near-IR spectrographs, GPI uses the well calibrated emission lines of a Xenon or Argon lamp (Argon requires more computation time to fit blended lines). The current accuracy of the wavelength calibration is below 0.5% for all bands. The new calibration based on forward modeling provides wavelength information accurate to within several hundredths of a pixel in all bands. 
+To perform GPI's exoplanet characterization science goals requires a wavelength precision of ~1%. However, the uniformity of the datacube is greatly increased with a better quality calibration. Performing a robust, high-accuracy wavelength calibration with GPI has been one of the primary challenges of the pipeline development. Similar to other near-IR spectrographs, GPI uses the well calibrated emission lines of a Xenon or Argon lamp (Argon requires more computation time to fit blended lines, but the GCAL Ar lamp is several times brighter than the Xe lamp). The current accuracy of the wavelength calibration is below 0.5% for all bands. The new calibration based on forward modeling provides wavelength information accurate to within several hundredths of a pixel in all bands. 
 
 Using Wavelength Calibrations in the GPI Pipeline
 --------------------------------------------------
 
 Most data reduction recipes for raw GPI data will begin by loading a wavelength calibration using the pipeline primitive :ref:`Load Wavelength Calibration <LoadWavelengthCalibration>`. Typically the calibration is obtained automatically from the :ref:`Calibration Database <calibdb>` based on the closest-in-time wavelength calibration file.  There are no significant user-selectable options for this step to be concerned with.
+
+If the wavelength solution was taken at a very different time than the science data in question, it is likely that internal flexure in the
+IFS results in an offset between the two. This has to be compensated for using the Update Spot Shifts for Flexure primitive.  See :ref:`ifs_flexure` for further information.
 
 Creating Calibrations:
 -----------------------

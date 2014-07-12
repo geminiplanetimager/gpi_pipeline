@@ -2,6 +2,12 @@
 Datacube Extraction
 ==================================
 
+.. seealso:: 
+
+        Further information may be found in `Maire et al. 2014 "Gemini Planet Imager Observational Calibrations IV:
+        Photometric and Spectroscopic Calibration for the Integral Field Spectrograph" <http://arxiv.org/abs/1407.2304>`_
+
+
 Observed Effect and Relevant Physics:
 ---------------------------------------
 
