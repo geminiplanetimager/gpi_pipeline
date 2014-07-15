@@ -12,7 +12,7 @@ Instrument Polarization
 
 This page still to be written. 
 
-For now, information on photometric performance of GPI can be found in the above reference.
+For now, information on instrumental polarization of GPI can be found in the above reference.
 
 
 Observed Effect and Relevant Physics:

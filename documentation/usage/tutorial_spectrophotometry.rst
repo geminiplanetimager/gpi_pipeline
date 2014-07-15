@@ -1,5 +1,5 @@
-Tutorial 4: Photometric Calibration For Coronagraphic Imaging Spectroscopy
-=============================================================================
+Tutorial 4: Spectrophotometric Calibration For Coronagraphic Imaging Spectroscopy
+======================================================================================
 
 .. warning::
    Photometric calibration for coronagraphic data can 

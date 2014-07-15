@@ -20,14 +20,17 @@ K1      1.90             2.05               2.19           61-80
 K2      2.12             2.26               2.38           63-81
 ======= =============== =================  ==============  ====================    
 
-The above table gives the 50% cut-on and cut-off wavelengths. The 10% cut-on and cut-off wavelengths are typically an additional 0.01 microns on either side. 
+The above table gives the 50% cut-on and cut-off wavelengths. The 10% cut-on and cut-off wavelengths are typically an additional 0.01 microns on either side. Spectral
+resolutions are stated for the delta wavelength that is Nyquist sampled by 2 detector pixels. The resolution varies across the field of view due to interactions between the
+dispersing prism and the chromatic behavior of the refractive collimator and camera optics in the IFS.
 
 Filter transmission profiles are distributed as part of the GPI data pipeline, in files in the ``$GPI_DRP_DIR/pipeline/config/filters`` subdirectory. These are
 vendor-provided cryogenic tests made on witness samples with identical substrate and coating produced along side the GPI IFS filters. 
 
 
 .. image:: filter_profiles_cold.png
-        :scale: 33%
+        :width: 1529px
+        :scale: 50%
         :align: center
         :alt: filter transmission profiles
 
@@ -64,5 +67,5 @@ the 'top' of the detector (i.e. maximum Y axis coordinates in the detector frame
 
 
 .. warning::
-   TODO update here with better information of dispersion vs filter band. It's not exactly cosntant.
+   TODO update here with better information of dispersion vs filter band. It's not exactly constant.
 

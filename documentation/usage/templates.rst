@@ -91,12 +91,19 @@ Template Name                                                  Expected Input   
 Polarimetry Science Mode Template Recipes
 -------------------------------------------
 
+=============================================================  ==============   =======================================================================================================
+Template Name                                                  Expected Input       Purpose
+=============================================================  ==============   =======================================================================================================
+**Quicklook Automatic Polarimetry Extraction**                  Raw files       For real-time reductions while operating the instrument. It produces decent quality datacubes without 
+                                                                                doing the full calibration process.
+**Simple Polarization Datacube Extraction**                     Raw files       Performs similar extraction to the Quicklook extraction but future versions will include a flexure 
+                                                                                corretion, a more thorough noise detector noise reduction, improved extraction algorithm, 
+                                                                                and a persistence correction
+**Basic Polarization Sequence  (From Raw Data)**                Raw files       Performs a basic reduction and computes the Muller matrix, rotates the image such that 
+                                                                                north is pointed up.
+**Basic Polarization Sequence (From podc cubes)**               Datacubes
+=============================================================  ==============   =======================================================================================================
 
-**Quicklook Automatic Polarimetry Extraction** is used for real-time reductions while operating the instrument. It produces decent quality datacubes without doing the full calibration process
-
-**Simple Polarization Datacube Extraction** Performs similar extraction to the Quicklook extraction but future versions will include a flexure corretion, a more thorough noise detector noise reduction, improved extraction algorithm, and a persistence correction
- 
-**Basic Polarization Sequence** performs a basic reduction and computes the Muller matrix, rotates the image such that north is pointed up.
 
 
 
@@ -106,6 +113,28 @@ Calibration Data Template Recipes
 ---------------------------------------
 
 Calibration Recipes are discussed in more detail in the :ref:`Step-by-Step guide to processing data<processing_step_by_step>` sections.
+
+=============================================================  ==============   =======================================================================================================
+Template Name                                                  Expected Input       Purpose
+=============================================================  ==============   =======================================================================================================
+**Dark**
+**Create Thermal/Sky Background Cubes**                         Raw files       Create background datacubes for subtraction from science data. This is most relevanta for K band 
+**Combine Thermal/Sky Background Images**
+**Generate Cold Bad Pixel Map from Flats**
+**Generate Hot Bad Pixel Map from Darks**
+**Combine Bad Pixel Maps**
+**Find satellite locations**
+**Lenslet scale and orientation**
+**Flat-field Extraction**
+**Wavelength Solution**
+**Wavelength Solution 2D**
+**Quick Wavelength Solution**
+**Create Polarized Flat-field**
+**Calibrate Polarization Spots Locations**
+**Calibrate Polarization Spots Locations - Parallel**
+=============================================================  ==============   =======================================================================================================
+
+
 
 
 .. _testing_templates:

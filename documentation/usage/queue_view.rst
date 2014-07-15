@@ -6,7 +6,8 @@ The Queue Viewer
 The Queue Viewer may be accessed from the GPI Launcher GUI window that is accessed by opening an IDL session in the GPI data directory and typing 'gpi_launch_guis'. The Queue Viewer is a rarely used tool for displaying the recipe files located in the GPI Queue directory. The window provides a table listing the directory and filename for each recipe along with the recipe type, and the number of FITS files used in each recipe. A history dialogue box near the bottom of the window gives updates when new recipes are added to the queue. 
 
 .. image:: queue_viewer.png
-        :scale: 100%
+        :width: 879 px
+        :scale: 75%
         :align: center
 
 
