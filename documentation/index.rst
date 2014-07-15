@@ -26,16 +26,11 @@ and
 other members of the GPI Data Analysis Team.  Please see the
 :ref:`development credits <sw-credits>` for a complete list of contributors, and the :ref:`release notes <release-notes>` for further details.
 
-**Acknowledging the GPI Pipeline in Publications:** Users of the GPI data pipeline should cite one of the following:
-
+**Acknowledging the GPI Pipeline in Publications:** Users of the GPI data pipeline should cite one of the following.
+Please also cite appropriate references for `GPI overall <http://adsabs.harvard.edu/abs/2014arXiv1403.7520M>`_, the `AO system <http://arxiv.org/abs/1407.2278>`_ and `IFS <http://arxiv.org/abs/1407.2314>`_, and other aspects of the instrument as relevant.
  * `Perrin et al. 2014, 'GPI Observational Calibrations I: Overview of the GPI data reduction pipeline', Proc. SPIE vol. 9147. <http://arxiv.org/abs/1407.2301>`_ 
  * `Maire et al. 2010, 'Data Reduction Pipeline for the Gemini Planet Imager', Proc. SPIE vol. 7735 <http://adsabs.harvard.edu/abs/2010SPIE.7735E.102M>`_
 
-Please also cite appropriate references for `GPI overall <http://adsabs.harvard.edu/abs/2014arXiv1403.7520M>`_, the `AO system <http://arxiv.org/abs/1407.2278>`_ and `IFS <http://arxiv.org/abs/1407.2314>`_, and other aspects of the instrument as relevant.
-
-**Getting Help**: The main channel for support of this software is the `Gemini Data Reduction Forum <http://drforum.gemini.edu>`_. Please post questions there
-and mark them with the tag `gpi`. Gemini staff and members of the GPI data analysis team monitor that forum to help support the Gemini community in using GPI.  Contributions of improvements
-to the software or this documentation are very much welcomed.
 
 You may wish to see :ref:`what's new <release-notes>` in the latest version or jump to the :ref:`quick start tutorial <usage-quickstart>`.
 
@@ -49,6 +44,10 @@ You may wish to see :ref:`what's new <release-notes>` in the latest version or j
    * To learn more about each step of the data reduction process, consult :ref:`Reducing GPI data Step by Step <processing_step_by_step>`. For more about
      file formats, FITS headers, etc, consult the :ref:`IFS data handbook <ifs-data-handbook>`.
 
+
+**Getting Help**: The main channel for support of this software is the `Gemini Data Reduction Forum <http://drforum.gemini.edu>`_. Please post questions there
+and mark them with the tag `gpi`. Gemini staff and members of the GPI data analysis team monitor that forum to help support the Gemini community in using GPI. You may also wish to consult the :ref:`FAQ <faq>`. Contributions of improvements
+to the software or this documentation are very much welcomed. 
 
 
 

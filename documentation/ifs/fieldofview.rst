@@ -1,3 +1,5 @@
+.. _ifs_fov:
+
 Field of View and Lenslet Geometry
 =====================================
 
@@ -34,6 +36,7 @@ dispersed spectra.
 Valid WCS headers are produced as part of the datacube creation process for both spectral and polarimetry modes. 
 
 
+.. _ifs_fov_rotate:
 
 Rotating Files to North Up Yourself
 ----------------------------------------
