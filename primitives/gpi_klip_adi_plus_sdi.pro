@@ -164,13 +164,15 @@ nextthread = 0
 ;;error handling if crashes to cleanup of threads
 catch, error_status
 if error_status ne 0 then begin
-	stop
 	for thread = 0, numthreads-1 do begin
 		print, "destroying thread", thread
 		(*threads[thread])->abort
 		obj_destroy, (*threads[thread])
 	endfor
+    ;;end error catching and rethrow exception
+    catch, /cancel
 	message, /REISSUE_LAST
+;;try to perform KLIP with multiply threads
 endif else begin
 	;; do this by slice
 	for lam = 0 + waveclip,nlam-1-waveclip do begin
@@ -373,22 +375,27 @@ endif else begin
 	endfor 
 endelse
 
+catch, /cancel
+
 ;form datacubes again
 sub_im = reform(sub_im, dim[0],dim[1],nlam,nfiles)
 
 suffix = suffix+'-klip'
+
+savefile =double(Modules[thisModuleIndex].Save)
 
 for i=0,nfiles-1 do begin
 
 	backbone->Log, "Finished KLIP'd cube: "+strc(i+1)+" of "+strc(nfiles), depth=3
 	print, "Saving frame", i
 	accumulate_updateimage, dataset, i, newdata = sub_im[*,*,*,i]
-	writefits, strtrim(string(i),2) + '_kliped.fits', sub_im[*,*,*,i]
+   	;;writefits, strtrim(string(i),2) + '_kliped.fits', sub_im[*,*,*,i]
+    if savefile eq 1 then return_val = save_currdata(dataset, Modules[thisModuleIndex].OutputDir, '_klip', indexFrame=i, SaveData=sub_im[*,*,*,i])
 endfor
 
 ;;cleanup
 for thread = 0, numthreads-1 do begin
-	;;known bug in IDL. Using more than 15 brdiges simulatenously
+	;;known bug in IDL. Using more than 15 bridges simulatenously
 	;;on a 64bit linux system causes IDL to hang if the bridges are
 	;; not destroyed in the exact opposite order they are created
 	actual_thread = numthreads-1-thread
