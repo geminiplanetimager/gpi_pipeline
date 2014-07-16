@@ -62,7 +62,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 			combined_im=median(imtab,/DOUBLE,DIMENSION=4) 
 		end
 		'MEAN': begin
-			combined_im=total(imtab,/DOUBLE,4) /((size(imtab))[4])
+			;combined_im=total(imtab,/DOUBLE,4) /((size(imtab))[4])
+			combined_im=mean(imtab,/double,dimension=4,/nan)
 		end
 		'SIGMACLIP': begin
                                 ; this is rather dirty but functional
