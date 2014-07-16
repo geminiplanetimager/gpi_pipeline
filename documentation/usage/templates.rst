@@ -96,12 +96,15 @@ Template Name                                                  Expected Input   
 =============================================================  ==============   =======================================================================================================
 **Quicklook Automatic Polarimetry Extraction**                  Raw files       For real-time reductions while operating the instrument. It produces decent quality datacubes without 
                                                                                 doing the full calibration process.
-**Simple Polarization Datacube Extraction**                     Raw files       Performs similar extraction to the Quicklook extraction but future versions will include a flexure 
-                                                                                corretion, a more thorough noise detector noise reduction, improved extraction algorithm, 
-                                                                                and a persistence correction
-**Basic Polarization Sequence  (From Raw Data)**                Raw files       Performs a basic reduction and computes the Muller matrix, rotates the image such that 
-                                                                                north is pointed up.
-**Basic Polarization Sequence (From podc cubes)**               Datacubes
+**Simple Polarization Datacube Extraction**                     Raw files       Performs the extraction of a polarization difference cube including dark subtraction, flexure 
+                                                                                correction, noise reduction and bad pixel correction. 
+                                                                                *Recommended*
+**Basic Polarization Sequence  (From Raw Data)**                Raw files       Performs a basic reduction to generate a Stokes datacube. This includes all the steps in the Simple 
+                                                                                Polarization Datacube Extraction, plus the least squares Mueller matrix construction of the final 
+                                                                                Datacubes. 
+**Basic Polarization Sequence (From podc cubes)**               Datacubes       Creates a Stokes Datacube from already reduced difference cubes. The data is rotated North up and 
+                                                                                several additional noise reduction techniques are performed. 
+                                                                                *Recommended*
 =============================================================  ==============   =======================================================================================================
 
 
