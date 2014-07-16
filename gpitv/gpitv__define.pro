@@ -3320,12 +3320,11 @@ pro GPItv::collapsecube
         *self.images.main_image=sqrt(((*self.images.main_image_stack)[*,*,1])^2 + ((*self.images.main_image_stack)[*,*,2]^2))
         if bpct gt 0 then (*self.images.main_image)[wn] = !values.f_nan
      end
-;     'Radial Pol. Intensity': begin
-;		 ; Radial polarized intensity - see Schmid et al. 2006.
-;        widget_control,(*self.state).curimnum_base_id,map=0
-;        *self.images.main_image=sqrt(((*self.images.main_image_stack)[*,*,1])^2 + ((*self.images.main_image_stack)[*,*,2]^2))
-;        if bpct gt 0 then (*self.images.main_image)[wn] = !values.f_nan
-;     end
+     
+     'Radial Pol. Intensity': begin
+		 ; Radial polarized intensity - see Schmid et al. 2006.
+        self->radial_stokes
+     end
 
 
      'Linear Pol. Fraction': begin
@@ -8140,7 +8139,7 @@ if naxis eq 3 then begin
             ;; set up to overplot polarization vectors
             naxis3 = gpi_get_keyword(h, e, "NAXIS3")
             if naxis3 eq 2 then modelist=[modelist, 'Total Intensity', 'Difference of Polarizations'] $
-            else modelist=[modelist, 'Linear Pol. Intensity', 'Linear Pol. Fraction']
+            else modelist=[modelist, 'Linear Pol. Intensity', 'Linear Pol. Fraction', 'Radial Pol. Intensity']
             
             widget_control, (*self.state).collapse_button, set_value = modelist
         end
@@ -18322,6 +18321,43 @@ endelse
 
 end
 
+pro GPITV::radial_stokes, status=status
+
+  ;MMB - Started 140716
+  ;TODO: Make options somewhere. e.g. manual center, phi offset
+  im=*self.images.main_image_stack
+  
+  q=im[*,*,1]
+  u=im[*,*,2]
+  
+  extheader=(*(*self.state).exthead_ptr)
+  
+  psfcentx=sxpar(extheader, 'PSFCENTX', count=ct1)
+  psfcenty=sxpar(extheader, 'PSFCENTY', count=ct2)
+  
+  if ct1+ct2 eq 2 then begin
+    indices, im[*,*,0], x,y,z
+    phi=atan((y-psfcenty)/(x-psfcentx))
+    
+    qr=Q*cos(2*phi)+U*sin(2*phi)
+    ur=-Q*sin(2*phi)+U*cos(2*phi)
+    
+    im[*,*,1]=qr
+    im[*,*,2]=ur
+    
+    *self.images.main_image_stack=im
+    *self.images.main_image=(*self.images.main_image_stack)[*,*,(*self.state).cur_image_num]
+    
+    ((*self.state).high_pass_mode) = 1
+    self->getstats
+    self->displayall
+    status=1
+  endif else begin
+    self->message, msgtype='error', "No PSFCENT keywords found"
+    status=0
+  endelse
+  
+end
 ;----------------------------------------------------------------------
 
 pro GPItv::tvangu
