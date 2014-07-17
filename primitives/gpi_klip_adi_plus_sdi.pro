@@ -4,7 +4,7 @@
 ;
 ;   This algorithm reduces PSF speckles in a datacube using the
 ;   KLIP algorithm and Angular Differential Imaging + Spectral
-;   Differential Imaging
+;   Differential Imaging. Based on Soummer et al., 2012.
 ;
 ;       Star location must have been previously measured using satellite spots.
 ;       Measure annuli out from the center of the cube and create a
@@ -31,7 +31,7 @@
 ; PIPELINE CATEGORY: SpectralScience
 ;
 ; HISTORY:
-;        2014-05 JW modified code from Dmitry
+;        2014-05 JW modified code from Dmitry and Tyler Barker
 ;-
 
 function gpi_klip_adi_plus_sdi, DataSet, Modules, Backbone

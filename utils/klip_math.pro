@@ -8,6 +8,7 @@ function klip_math, image, ref_psf, numbasis
 ; EXPLAINATION
 ;        Calculates the covariance matrix of the refernece PSFs
 ;        Finds the KLIP eigenbasis and does the PSF subtraction
+;        Based on Soummer et al. 2012
 ;
 ; CALLING SEQUENCE:
 ;        subtracted_img = klip_math(image, psf_reference)
