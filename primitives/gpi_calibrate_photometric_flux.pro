@@ -346,10 +346,10 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 
 
 
-				if finite(satflux_err_arr[s,l]) eq 0 then stop
+				if finite(satflux_err_arr[s,l]) eq 0 then return, error('found an infinite error - exiting');stop
 
 				; examine the fit - l is the cube slice
-				if 0 eq 1 and l eq 15 then begin
+				if 1 eq 1 and l eq 15 then begin
 					yfit2d=fltarr(281,281)
 					yfit2d[*,*]=!values.f_nan
 					yfit2d[finite_bkg_ind]=yfit
@@ -362,15 +362,28 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 					sz=skyrad[1]*2*3;(ceil(aperrad*2)+2)*40 
 					sz=300
 					loadct,1
-					window,0, xsize=sz*4,ysize=sz,title='satellite '+strc(s)+' background region/fit/residuals/error',xpos=0,ypos=400
-					tvdl, subarr(trans_cube_slice*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),rmin,rmax,position=0
-					tvdl, subarr(yfit2d*tmask,          ceil(skyrad[1]+1)*2,[x0,y0]),rmin,rmax,position=1
-					tvdl, subarr((trans_cube_slice-yfit2d)*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=2
-					mask[src_ind]=!values.f_nan
-					tvdl, subarr(bkg_conv*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=3
-					print, 'SNR at slice 15 = ',strc(satflux_arr[s,l]/satflux_err_arr[s,l])
+					;window,0, xsize=sz*4,ysize=sz,title='satellite '+strc(s)+' background region/fit/residuals/error',xpos=0,ypos=400
+					;tvdl, subarr(trans_cube_slice*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),rmin,rmax,position=0
+					;tvdl, subarr(yfit2d*tmask,          ceil(skyrad[1]+1)*2,[x0,y0]),rmin,rmax,position=1
+					;tvdl, subarr((trans_cube_slice-yfit2d)*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=2
+					;mask[src_ind]=!values.f_nan
+					;tvdl, subarr(bkg_conv*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=3
 
-					;stop
+
+					window,0, xsize=sz,ysize=sz,title='sat.'+strc(s)+' bkg region value',xpos=0,ypos=400
+					imdisp,subarr(trans_cube_slice*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),range=[rmin,rmax]
+					window,1, xsize=sz,ysize=sz,title='sat. '+strc(s)+' bkg region fit',xpos=sz,ypos=400
+					imdisp,subarr(yfit2d*tmask,          ceil(skyrad[1]+1)*2,[x0,y0]),range=[rmin,rmax]
+					window,2, xsize=sz,ysize=sz,title='sat. '+strc(s)+' bkg region residuals',xpos=2*sz,ypos=400
+					tmp1=subarr((trans_cube_slice-yfit2d)*tmask,ceil(skyrad[1]+1)*2,[x0,y0])
+					imdisp, tmp1,range=[min(tmp1,/nan),max(tmp1,/nan)]
+					window,3, xsize=sz,ysize=sz,title='sat. '+strc(s)+' bkg region error',xpos=3*sz,ypos=400
+					tmp1=subarr(bkg_conv*tmask,ceil(skyrad[1]+1)*2,[x0,y0])
+					imdisp, tmp1,range=[min(tmp1,/nan),max(tmp1,/nan)]
+
+					print, 'SNR at slice 15 = ',strc(satflux_arr[s,l]/satflux_err_arr[s,l])
+					wait,1
+;					stop
 
 				endif
 
@@ -437,7 +450,7 @@ endfor
 
 	legend,['mean','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/left,textcolor=cgcolor('black')
 
-	stop
+	;stop
 
 endif
 	
