@@ -117,13 +117,12 @@ ptr_free,spaxels.values[183,198],spaxels.values[199,199]
 ; this is just very weak
 ptr_free, spaxels.values[50,167]
 
-
   common psf_lookup_table, com_psf, com_x_grid_PSF, com_y_grid_PSF, com_triangles, com_boundary
   common hr_psf_common, c_psf,c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
   diff_image = fltarr(2048,2048)	; MP: difference image, output at end of calculation? PI: Yes
   model_image = fltarr(2048,2048)		; new modeled image - output at end of calculation
   
-  n_neighbors = 4               ; number on each side - so 4 gives a 9x9 box - 3 gives a 7x7 box
+  n_neighbors = 5               ; number on each side - so 4 gives a 9x9 box - 3 gives a 7x7 box
   ; set up a lenslet jump to improve speed - normally the step would be 2*n_neighbors+1
   ; so this makes it (2*n_neighbors+1)*loop_jump
 	loop_jump=1                  ; the multiple of lenslets to jump
@@ -152,7 +151,7 @@ ptr_free, spaxels.values[50,167]
 ; over the flexure loop - so the RHS of figure 8 in the Anderson paper
 ; this should probably be moved into a recipe keyword.
 ;stop
-  it_flex_max = 5				; what is this? -MP  # of iterations for flexure? Not clear what is being iterated over.
+  it_flex_max = 1				; what is this? -MP  # of iterations for flexure? Not clear what is being iterated over.
 ;   degree_of_the_polynomial_fit = 2 ; degree of the polynomial surface used for the flexure correction
 ; can't have multiple iterations if just one file - this should be a recipe failure
 
@@ -192,8 +191,8 @@ chisq_arr=fltarr(281,281,n_per_lenslet,nfiles,it_flex_max)
 ; imin_test = 190 & imax_test = 280
 ; jmin_test = 0 & jmax_test = 210
 
-; imin_test = pp_xind-21 & imax_test = pp_xind+25
-; jmin_test = pp_yind-21 & jmax_test = pp_yind+20
+ imin_test = pp_xind-21 & imax_test = pp_xind+25
+ jmin_test = pp_yind-21 & jmax_test = pp_yind+20
 
 ; imin_test = 123 & imax_test =179
 ; jmin_test = 0 & jmax_test = 83
@@ -252,9 +251,10 @@ kernel_testing:
 ; Create each highres mlens PSF
 ; ##############################
 
-;if i ne 171 then continue
-;if j ne 181 then continue
-
+;if i lt 99 or i gt 99 then continue
+;if j lt 99 or j gt 99 then continue
+;
+;flag=1
 
                      ; takes a chunk of the array to work with so you're not
                                 ; passing the entire array
@@ -492,7 +492,7 @@ if 1 eq 1 and nfiles gt 1 then begin
 	; polynomial fitting
 ;	pp_logs=gpi_highres_microlens_plot_pixel_phase(spaxels.xcentroids[pp_xind-pp_neighbors:pp_xind+pp_neighbors,pp_yind-pp_neighbors:pp_yind+pp_neighbors,*,*],(spaxels.ycentroids[pp_xind-pp_neighbors:pp_xind+pp_neighbors,pp_yind-pp_neighbors:pp_yind+pp_neighbors,*,*]),pp_neighbors,n_per_lenslet,degree_of_the_polynomial_fit=degree_of_the_polynomial_fit,xtransf_im_to_ref=xtransf_im_to_ref,ytransf_im_to_ref=ytransf_im_to_ref)
 	pp_logs=gpi_highres_microlens_plot_pixel_phase(spaxels.xcentroids[pp_xind-pp_neighbors:pp_xind+pp_neighbors,pp_yind-pp_neighbors:pp_yind+pp_neighbors,*,*],(spaxels.ycentroids[pp_xind-pp_neighbors:pp_xind+pp_neighbors,pp_yind-pp_neighbors:pp_yind+pp_neighbors,*,*]),pp_neighbors,n_per_lenslet,xtransf_im_to_ref=xtransf_im_to_ref[pp_xind-pp_neighbors:pp_xind+pp_neighbors,pp_yind-pp_neighbors:pp_yind+pp_neighbors,*],ytransf_im_to_ref=ytransf_im_to_ref[pp_xind-pp_neighbors:pp_xind+pp_neighbors,pp_yind-pp_neighbors:pp_yind+pp_neighbors,*])
-stop,'just finished pixel phase'
+;stop,'just finished pixel phase'
 endif
 
 
@@ -663,6 +663,8 @@ endif ; end flat field creation
                                 ; remove extension if need be
   base_filename = file_basename(filenm)
   extloc = strpos(base_filename,'.', /reverse_search)
+
+stop,'about to make the file'
   
   nrw_filt=strmid(strcompress(string(filter_wavelength),/rem),0,6)
   my_file_name=gpi_get_directory('GPI_REDUCED_DATA_DIR')+'highres-'+nrw_filt+'-psf_structure.fits'
@@ -684,12 +686,15 @@ endfor
 ; put into new header if it doesnt already exist 
 for h=0,N_ELEMENTS(pri_header)-1 do begin
    ; check for value in structure psf header
-   value=sxpar(psf_header,strmid(pri_header[h],0,8),count=ct)
-   if ct eq 0 then sxaddpar,psf_header,strmid(pri_header[h],0,8),value,comment_arr[h]
+   junk=sxpar(psf_header,strmid(pri_header[h],0,8),count=ct)
+; extract value from other header
+   value=sxpar(pri_header,strmid(pri_header[h],0,8),count=ct2)
+   if ct eq 0 and ct2 ne 0 and strc(strmid(pri_header[h],0,8)) ne 'COMMENT' and strc(strmid(pri_header[h],0,8)) ne 'HISTORY' then sxaddpar,psf_header,strmid(pri_header[h],0,8),value,comment_arr[h]
+
 endfor
 ; now actually update the header
 modfits,my_file_name,0,psf_header,exten_no=0
-
+stop
 ; now do this for the second extension
 psf_ext_header=headfits(my_file_name,exten=1)
 ext_header=*dataset.headersext[0]
@@ -702,9 +707,11 @@ endfor
 
 ; put into new ext header if it doesnt already exist 
 for h=0,N_ELEMENTS(ext_header)-1 do begin
-   ; check for value in structure psf header
-   value=sxpar(psf_ext_header,strmid(ext_header[h],0,8),count=ct)
-   if ct eq 0 then sxaddpar,psf_ext_header,strmid(ext_header[h],0,8),value,comment_arr[h]
+ ; check for value in structure psf header
+   junk=sxpar(psf_ext_header,strmid(ext_header[h],0,8),count=ct)
+; extract value from other header
+   value=sxpar(ext_header,strmid(ext_header[h],0,8),count=ct2)
+if ct eq 0 and ct2 ne 0 and strc(strmid(ext_header[h],0,8)) ne 'COMMENT' and strc(strmid(ext_header[h],0,8)) ne 'HISTORY' then sxaddpar,psf_ext_header,strmid(ext_header[h],0,8),value,comment_arr[h]
 endfor
 ; now actually modify the file
 modfits,my_file_name,0,psf_ext_header,exten_no=1
