@@ -214,11 +214,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     'bandshift': begin
         referencex = 1025.0
         referencey = 1008.0
-        offsetstable = [[0.909729003906,-0.230499267578],[1.11206054688,21.3256225586],[0.625366210938,-30.5368652344],[0.666259765625,-30.3093261719]] ;[x,y] offset values for H, J, K1, K2
+        offsetstable = [[0.909729003906,-0.230499267578],[1.11206054688,21.3256225586],[0.625366210938,-30.5368652344],[0.666259765625,-30.3093261719],[-1.51550292969 37.090250651]] ;[x,y] offset values for H, J, K1, K2, Y
         my_filter =  gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=c))
-        if my_filter EQ 'Y' then begin
-            return, error('FAILURE ('+functionName+'): The BandShift mode for flexure compensation is not yet implemented in Y band.')
-        endif
+      
         bandxpos = wavcal[140,140,1]
         bandypos = wavcal[140,140,0]
 
@@ -236,12 +234,14 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
            'J': bulkoffsets = offsetstable[*,1]
            'K1': bulkoffsets = offsetstable[*,2]
            'K2': bulkoffsets = offsetstable[*,3]
+           'Y': bulkoffsets = offsetstable[*,4]
         endcase
         case my_filter of
            'H': mybulkoffsets = offsetstable[*,0]
            'J': mybulkoffsets = offsetstable[*,1]
            'K1': mybulkoffsets = offsetstable[*,2]
            'K2': mybulkoffsets = offsetstable[*,3]
+           'Y': mybulkoffsets = offsetstable[*,4]
         endcase
         myxoffset = bandxpos - referencex
         myyoffset = bandypos - referencey
