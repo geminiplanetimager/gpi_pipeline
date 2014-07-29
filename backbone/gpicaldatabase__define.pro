@@ -290,6 +290,7 @@ Function gpicaldatabase::add_new_cal, filename, delaywrite=delaywrite ;, header=
 		self->Log, "   Ignoring that file!"
 		return, 0
 	endif
+
 	fits_data = gpi_load_fits(filename,/nodata) ; only read in headers, not data.
 	CATCH, /CANCEL
 
@@ -368,11 +369,7 @@ function gpicaldatabase::cal_info_from_header, fits_data
         endif
 
 	thisfile.prism= gpi_simplify_keyword_value(strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "DISPERSR", count=count3)))
-        if count3 ne 1 then begin
-                message,/info, "Missing keyword: DISPERSR. Going to assume this is SPECTRAL mode."
-                thisfile.prism = 'PRISM'
-        endif
-
+        if count3 ne 1 then message,/info, "Missing keyword: DISPERSR"
 
 	thisfile.apodizer= strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "APODIZER", count=count))
 	if count ne 1 then message,/info, "Missing keyword: APODIZER"
@@ -461,7 +458,8 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
                     ['spotloc', 'Spot Location Measurement', 'FiltOnly'], $
                     ['Gridratio', 'Grid Ratio', 'FiltOnly'], $
 			;mlenspsf should have second for pol mode too?
-                    ['mlenspsf', 'High-res Microlens PSFs', 'FiltPrism'], $
+                    ['mlenspsf', 'mlens psf', 'FiltPrism'], $
+                    ['epsf', 'epsf', 'FiltPrism'], $
                     ['Fluxconv', 'Fluxconv', 'FiltPrism'], $
                     ['telluric', 'Telluric Transmission', 'FiltPrism'], $
                     ['polcal', 'Polarimetry Spots Cal File', 'FiltPrism'], $
