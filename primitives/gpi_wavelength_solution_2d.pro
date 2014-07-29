@@ -105,16 +105,16 @@ calfiletype = 'wavecal'
 	; assume this is already present in the DQ extension.
 	badpix=*dataset.currdq GT 0
 
-        if keyword_set(Smooth) then begin
+;        if keyword_set(Smooth) then begin
 
-           smoothedw=median(refwlcal[*,*,3],5)
-           smoothedt=median(refwlcal[*,*,4],5)
-           smoothedw[where(refwlcal[*,*,0] EQ !values.f_nan )] = !values.f_nan
-           smoothedt[where(refwlcal[*,*,0] EQ !values.f_nan )] = !values.f_nan
-           refwlcal[*,*,3]=smoothedw
-           refwlcal[*,*,4]=smoothedt
+;           smoothedw=median(refwlcal[*,*,3],5)
+;           smoothedt=median(refwlcal[*,*,4],5)
+;           smoothedw[where(refwlcal[*,*,0] EQ !values.f_nan )] = !values.f_nan
+;           smoothedt[where(refwlcal[*,*,0] EQ !values.f_nan )] = !values.f_nan
+;           refwlcal[*,*,3]=smoothedw
+;           refwlcal[*,*,4]=smoothedt
 
-        endif
+;        endif
 
 
 	lamp = backbone->get_keyword('GCALLAMP', count=ct1)
@@ -502,12 +502,16 @@ endif
 
 ;Smooth out the poorly fit lenslets
 if keyword_set(Smooth) then begin
-   smoothedneww=median(newwavecal[*,*,3],5)
-   smoothednewt=median(newwavecal[*,*,4],5)
+   smoothednewx=median(newwavecal[*,*,0],5)
+   smoothednewy=median(newwavecal[*,*,1],51)
+   smoothedneww=median(newwavecal[*,*,3],31)
+   smoothednewt=median(newwavecal[*,*,4],31)
    smoothedneww[where(refwlcal[*,*,0] EQ !values.f_nan )] = !values.f_nan
    smoothednewt[where(refwlcal[*,*,0] EQ !values.f_nan )] = !values.f_nan
    newwavecal[*,*,3]=smoothedneww
    newwavecal[*,*,4]=smoothednewt
+   newwavecal[*,*,0]=smoothednewx
+   newwavecal[*,*,1]=smoothednewy
 endif
 
 

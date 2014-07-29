@@ -214,7 +214,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     'bandshift': begin
         referencex = 1025.0
         referencey = 1008.0
-        offsetstable = [[0.909729003906,-0.230499267578],[1.11206054688,21.3256225586],[0.625366210938,-30.5368652344],[0.666259765625,-30.3093261719],[-1.51550292969 37.090250651]] ;[x,y] offset values for H, J, K1, K2, Y
+        offsetstable = [[0.909729003906,-0.230499267578],[1.11206054688,21.3256225586],[0.625366210938,-30.5368652344],[0.666259765625,-30.3093261719],[-1.51550292969, 37.090250651]] ;[x,y] offset values for H, J, K1, K2, Y
         my_filter =  gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=c))
       
         bandxpos = wavcal[140,140,1]
