@@ -3,16 +3,18 @@
 ; PIPELINE PRIMITIVE DESCRIPTION: filter datacube spatially
 ;
 ;
-; Highpass box filter a datacube
+; Highpass filter each slice of a GPI datacube using a median box filter.
 ;
-; Other filters can be added later
+; This is useful for removing the halos created by uncorrected atmospheric turbulence. This is a tad slow but a useful tool. 
+;
+; Other filters can be added later. 
 ;
 ; INPUTS: raw 2D image file
 ;
 ; OUTPUTS: 2D image corrected for dark current 
 ;
 ;
-; PIPELINE COMMENT: Apply spatial filter to datacube
+; PIPELINE COMMENT: Apply spatial filter to datacubes
 ; PIPELINE ARGUMENT: Name="hp_boxsize" Type="int" Range="[0,50]" Default="0" Desc="0: no filter, 1+: Highpass filter box size"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
