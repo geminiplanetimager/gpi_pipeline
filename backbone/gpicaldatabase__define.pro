@@ -368,7 +368,11 @@ function gpicaldatabase::cal_info_from_header, fits_data
         endif
 
 	thisfile.prism= gpi_simplify_keyword_value(strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "DISPERSR", count=count3)))
-        if count3 ne 1 then message,/info, "Missing keyword: DISPERSR"
+        if count3 ne 1 then begin
+                message,/info, "Missing keyword: DISPERSR. Going to assume this is SPECTRAL mode."
+                thisfile.prism = 'PRISM'
+        endif
+
 
 	thisfile.apodizer= strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "APODIZER", count=count))
 	if count ne 1 then message,/info, "Missing keyword: APODIZER"
