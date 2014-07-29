@@ -1,3 +1,5 @@
+.. _usage-tutorial_spectrophoto:
+
 Tutorial 4: Spectrophotometric Calibration For Coronagraphic Imaging Spectroscopy
 ======================================================================================
 
