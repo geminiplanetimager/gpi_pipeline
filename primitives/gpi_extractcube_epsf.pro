@@ -55,13 +55,15 @@ c_y_vector_psf_min = min((*ptr_obj_psf).ycoords)
 c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
 
 ; define size of the ePSF array;
+;PI: why was this at 51? seems uncessarily large
 gridnbpt=51
+
 tmp=findgen(gridnbpt)-gridnbpt/2
 xgrid=rebin(tmp,gridnbpt,gridnbpt)
 ygrid=rebin(transpose(tmp),gridnbpt,gridnbpt)
 
 psf=gpi_highres_microlens_psf_evaluate_detector_psf(xgrid, ygrid, [.2,.2,1.])
-psfn=psf/total(psf)
+;psfn=psf/total(psf)
 
   ;get the 2D detector image
   det=*(dataset.currframe[0])
@@ -98,6 +100,9 @@ psfn=psf/total(psf)
 psfmlens = psf & mkhdr, HeaderCalib,psf;gpi_readfits(c_File,header=HeaderCalib)
 sizepsfmlens=size(psfmlens)
 psfDITHER = float(sxpar(HeaderCalib,"DITHER",count=cc))
+
+
+;PI: What are these? Part of the DST?
 if cc eq 0 then begin
   print, "mlens PSF DITHER keyword not found. It will be assumed that the fraction of a pixel the mlens PSF are dithering by is 1/5."
   psfDITHER = 5.  
@@ -140,6 +145,7 @@ szpsf = size(psf)
         ;use "Interpolate Wavelength Axis" to have same number 
         ; of spectral channels (37 by default) than the basic datacube extraction
         nlam=10.
+		nlam=13.
         pas=psfDITHER 
         nlamdst= psfNBchannel
          
@@ -166,36 +172,61 @@ szpsf = size(psf)
 
              
         ; define how many rows and columns of pixels to use in the raw image for the inversion of a single lenslet
-         larg=2 ; nb of columns parallel to the dispersion axis = (2*larg + 1)
+        ; PI; I think this is an issue since the microlens PSFS are only 4 pixels wide...
+		; PI: so this means that larg should be 1? can it be a non-integer?
+		; PI: I tried 1 - but it didn't make a difference - so i left it at 2
+		 larg=2 ; nb of columns parallel to the dispersion axis = (2*larg + 1)
          longu=20 ; nb of rows along the spectrum
          
-         ; do the inversion extraction for all lenslet
-  for xsi=0,nlens-1 do begin    
+         ; do the inversion extraction for all lenslets
+for xsi=0,nlens-1 do begin    
   print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
      for ysi=0,nlens-1 do begin   
+
+
+	 ; im lazy so only going ot use a small section
+;  for xsi=185,185+20 do begin    
+;  print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
+;     for ysi=95,95+20 do begin   
+
+;this is for just a single lenslet
+; for xsi=185,185 do begin    
+;  print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
+;     for ysi=95,95 do begin   
 
 
 
     ; get the locations on the image where intensities will be extracted:
      x3=xloctab[xsi,ysi,0]  ;xmini[xsi,ysi]
      y3= yloctab[xsi,ysi,0]  ;wavcal[xsi,ysi,1]+(wavcal[xsi,ysi,0]-x3)*tan(tilt[xsi,ysi])	
-  
+ 
+; PI: why is this not the entire array? is this why the top few rows are getting chopped off in the cubes?
+; PI: this is a minor detail. 
   if finite(x3) && finite(y3)&& (x3 gt 0) && (x3 lt 2030) && (y3 gt 20) && (y3 lt 2048) then begin
+
+;  if finite(x3) && finite(y3)&& (x3 gt 0) && (x3 lt 2030) && (y3 gt 20) && (y3 lt 2048) then begin
+
 
 
  ;get the corresponding psf
   ptr_obj_psf = gpi_highres_microlens_psf_get_local_highres_psf(high_res_psfs,[xsi,ysi,0],/preserve_structure, valid=valid)
 ; put highres psf in common block for fitting
 c_psf = (*ptr_obj_psf).values
+;PI: should normalize the high-res PSF, not the detector sampled one - explained below
+c_psf/=total(c_psf,/nan)
 ; put min values in common block for fitting
 c_x_vector_psf_min = min((*ptr_obj_psf).xcoords)
 c_y_vector_psf_min = min((*ptr_obj_psf).ycoords)
-; determine hte sampling and put in common block
+; determine hte sampling and ploput in common block
+;PI : I am not sure why this is rounded... it's rounded in my code as well.. but i have no idea why... 
 c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
 
-      x4=x3
-      y4=y3
-      cci=-1
+;PI: this also appears unnecessary
+;      x4=x3
+;      y4=y3
+      
+	  ; PI: what is this? it doesn't seem necessary
+;	  cci=-1
       
  
       ;choice of pixels for the inversion
@@ -227,34 +258,56 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
       endif  
 
              for nl=0,nlam-1 do begin
-                                 
-               
-                 nlval=min( abs(zemdisplamraw[*]-lambda2[nl]),minind)
-                nla=minind
+                 ; PI: what are these next two lines?
+                 ; PI: they don't seem to be used
+				 ;nlval=min( abs(zemdisplamraw[*]-lambda2[nl]),minind)
+                ; nla=minind
        
- 
-                  cci+=1
+ ; PI: what is this? it doesn't seem necessary
+;                  cci+=1
 
                   dx2L=reform(xloctab[xsi,ysi,*] )
-                  dy2L=round(reform(yloctab[xsi,ysi,*] ))
+                  ;dy2L=round(reform(yloctab[xsi,ysi,*] ))  ; original
+				  dy2L=(reform(yloctab[xsi,ysi,*] ))  ; PI: replaced original with this
+
             
-
-                  i=xsi
+					; PI: this doesn't appear necessary?
+                 ; i=xsi
            
-
+; PI: WHat is this? - the old lenslet psf from the DST?  a trick to confuse me ? :-)
 ;                  psflmens2_tmp=psfmlens[*,*,nla*pas*pas+pas*( round( (dx2L[nl]-floor(dx2L[nl])) * pas) mod pas) + $
 ;                                         (round( (dy2L[nl]-floor(dy2L[nl])) * pas) mod pas)]
 ;                
                   ;evaluate the epsf on the subpixel level and normalize it
                   psf=gpi_highres_microlens_psf_evaluate_detector_psf(xgrid, ygrid, [(dx2L[nl]-floor(dx2L[nl])) ,(dy2L[nl]-floor(dy2L[nl])) ,1.])
-                   psflmens2_tmp=psf/total(psf)                       
-                                    
+;PI: You don't want to normalize it or it will not take into account the intrapixel sensitivity 
+;PI: the proper way to do this is to normalize the high-resolution PSF  .... i think.
+;PI: this is done to first order, but i can't remember if it the psfs are normalized by the peak or the integrated total...
+
+				
+					; the psfs have residual crosstalk terms in the corners
+					; normal usage of chopping hte image into sections somewhat removes this
+					; but this isn't performed here, so i'll just set the other bits to zero
+					; this is a terribly dirty hack and must be fixed.
+					psf[0:gridnbpt/2+1-3,*]=0
+					psf[gridnbpt/2+1+3:*,*]=0
+					psf[*,0:gridnbpt/2-3]=0
+					psf[*,gridnbpt/2+1+3:*]=0
+
+
+					;stop
+	
+
+
+                  ;psflmens2_tmp=psf/total(psf) 
+				  psflmens2_tmp=psf                      
+    	                                
                      ;recenter the psf to correspond to its location onto the spectrum
                       xshift=floor(dx2L[nl])-floor(dx2L[0])
                       yshift=floor(dy2L[nl])-floor(dy2L[0])
                     
-                    if (dx2L[nl]-floor(dx2L[nl])) ge 1.-0.5*(1./float(pas)) then xshift+=1
-                    if (dy2L[nl]-floor(dy2L[nl])) ge 1.-0.5*(1./float(pas)) then yshift+=1
+;                    if (dx2L[nl]-floor(dx2L[nl])) ge 1.-0.5*(1./float(pas)) then xshift+=1
+;                    if (dy2L[nl]-floor(dy2L[nl])) ge 1.-0.5*(1./float(pas)) then yshift+=1
                  
                       psfmlens2[0,0,nl]=SHIFT(psflmens2_tmp,xshift,yshift)
                       
@@ -276,7 +329,7 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
                 bb = -(tmpy-(dimpsf-1)/2)
   
                 ; for residual purpose:
-              ;  detector_array[indxmin:indxmax,indymin:indymax]+=  spectrum[indxmin+aa: indxmax+aa, indymin+bb:indymax+bb]
+                detector_array[indxmin:indxmax,indymin:indymax]+=  spectrum[indxmin+aa: indxmax+aa, indymin+bb:indymax+bb]
                 
 
                 psfmat=fltarr(n_elements(xchoiceind),nlam)
@@ -325,9 +378,11 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
 ;                       flux=x
                         
 ;          endelse
+
+		; PI: why is the 18 hard coded here?
          cubef3D[xsi,ysi,*]=flux*(float(nlam)/18.) ;this is normalized to take into account the number of slices we considered with respect to the length of spectra
          
-         if 1 eq 0 then begin ; these 2 lines are just to check out the reconstruction
+         if 1 eq 1 then begin ; these 2 lines are just to check out the reconstruction
            reconspec=fltarr(dimpsf,dimpsf)
            for zl=0,nlam-1 do  reconspec+=flux[zl]*psfmlens2[*,*,zl]
          endif
@@ -337,7 +392,6 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
      endif
   endfor
   endfor
-
 
   suffix='-spdci'
   ; put the datacube in the dataset.currframe output structure:
