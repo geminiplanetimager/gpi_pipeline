@@ -20,18 +20,18 @@
 pro get_spectral_response, mode=mode, ifsfilt=ifsfilt, throughput_struc=throughput_struc
 
 	if ~keyword_set(ifsfilt) || (n_elements(ifsfilt) eq 0) then ifsfilt='H'
-	if ~keyword_set(mode) || (n_elements(mode) eq 0) then mode='Coronagraphic'
+	if ~keyword_set(mode) || (n_elements(mode) eq 0) then mode='coronagraphic'
 	
 	;get the transmission from config directory
-	case mode of 
-	  'Coronagraphic':	throughput_file = gpi_get_directory('DRP_CONFIG') + path_sep() + 'throughput.fits'
-    'Direct':   throughput_file = gpi_get_directory('DRP_CONFIG') + path_sep() + 'throughput_openLyot_openApod.fits'
+	case strc(strlowcase(mode)) of 
+	  'coronagraphic':	throughput_file = gpi_get_directory('DRP_CONFIG') + path_sep() + 'throughput.fits'
+      'direct':   throughput_file = gpi_get_directory('DRP_CONFIG') + path_sep() + 'throughput_openLyot_openApod.fits'
     else: begin
-      message,"Invalid/unknown value for Mode (use Lyot or Direct): "+mode
+      message,"Invalid/unknown value for Mode (use coronographic or direct): "+mode
     end
       endcase
       
-      throughput_allbands= readfits(throughput_file)
+      throughput_allbands= readfits(throughput_file,/silent)
       
       ;wav_through = {wavelength:im[*,0], throughput:im[*,1]}
       
@@ -62,7 +62,5 @@ pro get_spectral_response, mode=mode, ifsfilt=ifsfilt, throughput_struc=throughp
       endcase
  
   throughput_struc = {wavelength:wavelength, throughput:throughput}
-	;return, throughput
-
 
 end
