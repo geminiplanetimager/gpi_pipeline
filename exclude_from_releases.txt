@@ -1,5 +1,8 @@
 # filenames included here will not be included in public release branches
 
+#datacube evaluation of extraction primitive used for testing
+primitives/gpi_datacube_extraction_evaluation_calculator.pro
+
 # microlens PSF functions:
 utils/gpi_highres_microlens_psf_get_local_highres_psf.pro
 utils/gpi_highres_microlens_plot_pixel_phase.pro			
