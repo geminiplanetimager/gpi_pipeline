@@ -31,7 +31,7 @@
 function gpi_extractcube_epsf, DataSet, Modules, Backbone
 
 
-primitive_version= '$Id: gpi_extractcube_mlenspsf.pro 2511 2014-02-11 05:57:27Z mperrin $' ; get version from subversion to store in header history
+primitive_version= '$Id: gpi_extractcube_epsf.pro 2511 2014-02-11 05:57:27Z maire $' ; get version from subversion to store in header history
 ;calfiletype='mlenspsf' 
 calfiletype='epsf' 
 
@@ -174,11 +174,24 @@ szpsf = size(psf)
   print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
      for ysi=0,nlens-1 do begin   
 
+
+
     ; get the locations on the image where intensities will be extracted:
      x3=xloctab[xsi,ysi,0]  ;xmini[xsi,ysi]
      y3= yloctab[xsi,ysi,0]  ;wavcal[xsi,ysi,1]+(wavcal[xsi,ysi,0]-x3)*tan(tilt[xsi,ysi])	
   
   if finite(x3) && finite(y3)&& (x3 gt 0) && (x3 lt 2030) && (y3 gt 20) && (y3 lt 2048) then begin
+
+
+ ;get the corresponding psf
+  ptr_obj_psf = gpi_highres_microlens_psf_get_local_highres_psf(high_res_psfs,[xsi,ysi,0],/preserve_structure, valid=valid)
+; put highres psf in common block for fitting
+c_psf = (*ptr_obj_psf).values
+; put min values in common block for fitting
+c_x_vector_psf_min = min((*ptr_obj_psf).xcoords)
+c_y_vector_psf_min = min((*ptr_obj_psf).ycoords)
+; determine hte sampling and put in common block
+c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
 
       x4=x3
       y4=y3
