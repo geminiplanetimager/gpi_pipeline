@@ -32,18 +32,18 @@ ifs_rotation    24.5
 # information about this file can be found at the address below
 # http://www.stsci.edu/hst/observatory/cdbs/calspec.html
 # units of the following are are in erg/cm2/s/um
-zero_pt_flux_Y	5.1508988e-06
-zero_pt_flux_J  3.1868226e-06
-zero_pt_flux_H  1.1382920e-06
-zero_pt_flux_K1	 5.3415049e-07
-zero_pt_flux_K2	 3.7012793e-07
+zero_pt_flux_Y	4.9663811e-06
+zero_pt_flux_J  3.3749556e-06
+zero_pt_flux_H  1.1490425e-06
+zero_pt_flux_K1	 5.2028166e-07
+zero_pt_flux_K2	 3.9821396e-07
 # Central wavelengths of the filters. Determined when calculated zero point fluxes
 ; Filter        central_wavelength(um)
-cen_wave_Y  1.0473831
-cen_wave_J  1.2344508
-cen_wave_H  1.6473029
-cen_wave_K1  2.0425281
-cen_wave_K2  2.2515272
+cen_wave_Y  1.0604833
+cen_wave_J  1.2113351
+cen_wave_H  1.6392885
+cen_wave_K1  2.0567269
+cen_wave_K2  2.2032622
 
 # size of coronagraph focal plane masks, in arcseconds
 fpm_diam_y = 0.156
