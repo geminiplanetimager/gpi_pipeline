@@ -202,7 +202,7 @@ for xsi=0,nlens-1 do begin
  
 ; PI: why is this not the entire array? is this why the top few rows are getting chopped off in the cubes?
 ; PI: this is a minor detail. 
-  if finite(x3) && finite(y3)&& (x3 gt 0) && (x3 lt 2030) && (y3 gt 20) && (y3 lt 2048) then begin
+  if finite(x3) && finite(y3)&& (x3 gt 0) && (x3 lt 2048) && (y3 gt 1) && (y3 lt 2048) then begin
 
 ;  if finite(x3) && finite(y3)&& (x3 gt 0) && (x3 lt 2030) && (y3 gt 20) && (y3 lt 2048) then begin
 
@@ -295,11 +295,11 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
 					psf[*,gridnbpt/2+1+3:*]=0
 
 
-					;stop
+					
 	
 
 
-                  ;psflmens2_tmp=psf/total(psf) 
+                  psflmens2_tmp=psf/total(psf) 
 				  psflmens2_tmp=psf                      
     	                                
                      ;recenter the psf to correspond to its location onto the spectrum
