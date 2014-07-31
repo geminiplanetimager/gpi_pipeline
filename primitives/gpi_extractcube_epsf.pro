@@ -69,7 +69,6 @@ psf=gpi_highres_microlens_psf_evaluate_detector_psf(xgrid, ygrid, [.2,.2,1.])
   det=*(dataset.currframe[0])
   dim=(size(det))[1]
   detector_array=fltarr(dim,dim)
-  ;detector_array2=fltarr(dim,dim)
   nlens=(size(wavcal))[1]       ;pixel sidelength of final datacube (spatial dimensions) 
   dim=(size(det))[1]            ;detector sidelength in pixels
 
@@ -92,36 +91,37 @@ psf=gpi_highres_microlens_psf_evaluate_detector_psf(xgrid, ygrid, [.2,.2,1.])
   ;get tilts of the spectra included in the wavelength solution:
   tilt=wavcal[*,*,4]
 
-        cwv=get_cwv(filter)
-        CommonWavVect=cwv.CommonWavVect
-        lambdamin=CommonWavVect[0]
-        lambdamax=CommonWavVect[1]
-       
+  cwv=get_cwv(filter)
+  CommonWavVect=cwv.CommonWavVect
+  lambdamin=CommonWavVect[0]
+  lambdamax=CommonWavVect[1]
+  lambda=cwv.lambda 
+
 psfmlens = psf & mkhdr, HeaderCalib,psf;gpi_readfits(c_File,header=HeaderCalib)
 sizepsfmlens=size(psfmlens)
-psfDITHER = float(sxpar(HeaderCalib,"DITHER",count=cc))
+;psfDITHER = float(sxpar(HeaderCalib,"DITHER",count=cc))
 
 
 ;PI: What are these? Part of the DST?
-if cc eq 0 then begin
-  print, "mlens PSF DITHER keyword not found. It will be assumed that the fraction of a pixel the mlens PSF are dithering by is 1/5."
-  psfDITHER = 5.  
-endif
-psfLMIN=float(sxpar(HeaderCalib,"LMIN",count=cc))
-if cc eq 0 then begin
-  print, "mlens-PSF LMIN keyword not found. It will be assumed that the minimal wavelength of the mlens PSFs is the minimal wavelength of the band."
-  psfLMIN=  lambdamin  
-endif
-psfLMAX=float(sxpar(HeaderCalib,"LMAX",count=cc))
-if cc eq 0 then begin
-  print, "mlens-PSF LMAX keyword not found. It will be assumed that the maximal wavelength of the mlens PSFs is the maximal wavelength of the band."
-  psfLMAX=  lambdamax  
-endif
-psfNBchannel=float(sxpar(HeaderCalib,"NLAM",count=cc))
-if cc eq 0 then begin
-  print, "mlens-PSF NLAM keyword not found. It will be assumed that the maximal wavelength for the mlens PSFs is the maximal wavelength of the band."
-  psfNBchannel= 37.;float((sizepsfmlens)[3]) / (float(psfdither))^2
-endif
+;if cc eq 0 then begin
+;  print, "mlens PSF DITHER keyword not found. It will be assumed that the fraction of a pixel the mlens PSF are dithering by is 1/5."
+;  psfDITHER = 5.  
+;endif
+;psfLMIN=float(sxpar(HeaderCalib,"LMIN",count=cc))
+;if cc eq 0 then begin
+;  print, "mlens-PSF LMIN keyword not found. It will be assumed that the minimal wavelength of the mlens PSFs is the minimal wavelength of the band."
+;  psfLMIN=  lambdamin  
+;endif
+;psfLMAX=float(sxpar(HeaderCalib,"LMAX",count=cc))
+;if cc eq 0 then begin
+;  print, "mlens-PSF LMAX keyword not found. It will be assumed that the maximal wavelength of the mlens PSFs is the maximal wavelength of the band."
+;  psfLMAX=  lambdamax  
+;endif
+;psfNBchannel=float(sxpar(HeaderCalib,"NLAM",count=cc))
+;if cc eq 0 then begin
+;  print, "mlens-PSF NLAM keyword not found. It will be assumed that the maximal wavelength for the mlens PSFs is the maximal wavelength of the band."
+;  psfNBchannel= 37.;float((sizepsfmlens)[3]) / (float(psfdither))^2
+;endif
 ;;minimal verification
 ;if (psfNBchannel * (float(psfdither))^2 NE float((sizepsfmlens)[3]) ) then begin
 ;    return, error('FAILURE ('+functionName+'): mlens-PSF database seems corrupted. Please verify all keywords are present and properly fed.') 
@@ -131,32 +131,29 @@ endif
  ;szpsfmlens=(size(psfmlens))[1]
  szpsfmlens=(size(psf))[1]
  ;dimpsf=(size(psfmlens))[1]
-  dimpsf=(size(psf))[1]          ;PI: isn't this just the gridnbpt variable abode?
+  dimpsf=(size(psf))[1]          ;PI: isn't this just the gridnbpt variable above?
 ; szpsf = size(psfmlens)
 szpsf = size(psf)
  psftot=fltarr(szpsfmlens,szpsfmlens)
 
-
-  dl = psfLMAX - psfLMIN
-  dx = dl/psfNBchannel
- zemdisplamraw=  dindgen(psfNBchannel)/psfNBchannel*dl + psfLMIN + dx/2d
-  
         ;nlam defines how many spectral channels for the inversion 
         ;use "Interpolate Wavelength Axis" to have same number 
         ; of spectral channels (37 by default) than the basic datacube extraction
-        nlam=10.
 		nlam=13.
-        pas=psfDITHER 
-        nlamdst= psfNBchannel
          
         psfmlens2=fltarr(szpsfmlens,szpsfmlens,nlam)
-        
         lambda2=fltarr(nlam)
-        ;lambda2=lambdamin+findgen(nlam)*(lambdamax-lambdamin)/(nlam-1) 
         
-        for qq=0,nlam-1 do lambda2[qq]=zemdisplamraw[round(nlamdst / nlam)*qq]
-       
-        
+		; this uses the extremes - but this is configured using values so
+		; we can use the 50 or 80% throughput points instead
+		max_l=max(lambda)
+		min_l=min(lambda)
+
+        for qq=0,nlam-1 do lambda2[qq]=(max_l-min_l)/(nlam)*(qq+0.5)+min_l
+
+;plot,lambda,lambda,xr=[1.45,1.85],/xs
+;oplot,lambda2,lambda2,psym=2
+
           cubef3D=dblarr(nlens,nlens,nlam)+ !values.f_nan;create the datacube
         
         ;define coordinates for each spectral channel
@@ -181,9 +178,9 @@ szpsf = size(psf)
 
          
          ; do the inversion extraction for all lenslets
-;for xsi=0,nlens-1 do begin    
-;  print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
-;     for ysi=0,nlens-1 do begin   
+for xsi=0,nlens-1 do begin    
+  print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
+     for ysi=0,nlens-1 do begin   
 
 
 	 ; im lazy so only going ot use a small section
@@ -192,9 +189,9 @@ szpsf = size(psf)
 ;     for ysi=95,95+20 do begin   
 
 ;this is for just a single lenslet
- for xsi=185,186 do begin    
-  print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
-     for ysi=95,96 do begin   
+; for xsi=185,186 do begin    
+;  print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
+;     for ysi=95,96 do begin   
 
 
 
@@ -225,7 +222,7 @@ c_psf = (*ptr_obj_psf).values
 	junk=max(c_psf,/nan,ind)
 	xind=ind mod sz[1]
 	yind=ind / sz[1]
-
+; anything 3 pixels away from the peak or more is zeroed here
 	c_psf[0:(xind-3*epsf_subsamp)>0,*]=0
 	c_psf[(xind+3*epsf_subsamp)<(sz[1]-1):*,*]=0
 	c_psf[*,0:(yind-3*epsf_subsamp)>0]=0
@@ -233,6 +230,7 @@ c_psf = (*ptr_obj_psf).values
 
 ;PI: should normalize the high-res PSF, not the detector sampled one - explained below
 c_psf/=(total(c_psf,/nan)/25.0)  ; epsf is 25 times the sampling of a detector sampled psf
+
 ; put min values in common block for fitting
 c_x_vector_psf_min = min((*ptr_obj_psf).xcoords)
 c_y_vector_psf_min = min((*ptr_obj_psf).ycoords)
@@ -242,8 +240,9 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
 
  
       ;choice of pixels for the inversion
-      xchoiceind=[0.]
-      ychoiceind=[0.]
+      xchoiceind=[0.]   ; these are actually coordinates not indicies of arrays
+      ychoiceind=[0.]; these are actually coordinates not indicies of arrays
+
       for nl=0,nlam-1 do begin
         if (round(xloctab[xsi,ysi,nl])+larg lt 2048) && (round(yloctab[xsi,ysi,nl]) lt 2048) then begin
         ;avoid pairs when nlam>sdpx
@@ -254,12 +253,14 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
          endif     
                   
       endfor
-
+; why do you chop off a value here?
       xchoiceind=xchoiceind[1:(n_elements(xchoiceind)-1)]
       ychoiceind=ychoiceind[1:(n_elements(ychoiceind)-1)]
+
+
       ;do we need to add extreme pixels?
       ; PI: I don't understand this bit at all...
-	  addextremepixels=1
+	  addextremepixels=0
       if addextremepixels eq 1 then begin
          if (round(yloctab[xsi,ysi,0]) lt 2047) && (round(xloctab[xsi,ysi,0]) lt 2047) && (round(xloctab[xsi,ysi,0]) gt 0) then begin ;&& ((yloctab[xsi,ysi,0]-round(yloctab[xsi,ysi,0]) gt 0.5))  then begin
           xchoiceind=[round(xloctab[xsi,ysi,0])-1,round(xloctab[xsi,ysi,0]),round(xloctab[xsi,ysi,0])+1,xchoiceind]
@@ -384,7 +385,7 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
 		 
 		 
 		 endif
-stop
+
          ;if (xsi eq 14) && (ysi eq 188) then stop
 
      endif
