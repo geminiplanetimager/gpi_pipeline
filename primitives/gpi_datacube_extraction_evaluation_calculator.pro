@@ -30,7 +30,7 @@ function gpi_datacube_extraction_evaluation_calculator, DataSet, Modules, Backbo
 compile_opt defint32, strictarr, logical_predicate
 
 ; don't edit the following line, it will be automatically updated by subversion:
-primitive_version= '$Id: __template.pro 2878 2014-04-29 04:11:51Z mperrin $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 
 calfiletype=''   ; set this to some non-null value e.g. 'dark' if you want to load a cal file.
 
