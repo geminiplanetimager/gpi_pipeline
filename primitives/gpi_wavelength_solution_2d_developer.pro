@@ -140,11 +140,11 @@ calfiletype = 'wavecal'
 
 	if whichpsf eq 1 then begin
            case filter of
-              'H': psffn = '/Users/swolff/Dropbox (GPI)/GPI/GPI_Calibrations/lenslet_PSFs/140522b_highres-1650um-psf_structure.fits'
-              'J': psffn = '/Users/swolff/Dropbox (GPI)/GPI/GPI_Calibrations/lenslet_PSFs/140520_highres-1150um-psf_structure.fits'
-              'Y': psffn = '/Users/swolff/Dropbox (GPI)/GPI/GPI_Calibrations/lenslet_PSFs/140529_highres-1000um-psf_structure.fits'
-              'K1': psffn = '/Users/swolff/Dropbox (GPI)/GPI/GPI_Calibrations/lenslet_PSFs/140513_highres-2058um-psf_structure.fits'
-              'K2': psffn = '/Users/swolff/Dropbox (GPI)/GPI/GPI_Calibrations/lenslet_PSFs/140513_highres-2058um-psf_structure.fits';140226_highres-2058um-psf_structure.fits'
+              'H': psffn = '/Users/swolff/Dropbox (GPI)/GPI/GPI_Calibrations/lenslet_PSFs/140522b_highres-1650um-psf_structure-updatedheaders.fits'
+              'J': psffn = '/Users/swolff/Dropbox (GPI)/GPI/GPI_Calibrations/lenslet_PSFs/140520_highres-1150um-psf_structure-updatedheaders.fits'
+              'Y': psffn = '/Users/swolff/Dropbox (GPI)/GPI/GPI_Calibrations/lenslet_PSFs/140529_highres-1000um-psf_structure-updatedheaders.fits'
+              'K1': psffn = '/Users/swolff/Dropbox (GPI)/GPI/GPI_Calibrations/lenslet_PSFs/140513_highres-2058um-psf_structure-updatedheaders.fits'
+              'K2': psffn = '/Users/swolff/Dropbox (GPI)/GPI/GPI_Calibrations/lenslet_PSFs/140513_highres-2058um-psf_structure-updatedheaders.fits';140226_highres-2058um-psf_structure.fits'
            endcase
            if ~file_test(psffn) then return, error("Microlens PSF file not found: "+psffn)
            print, psffn
@@ -249,7 +249,7 @@ if keyword_set(parallel) then begin
 ;;            backbone->Log, "Applying a prelimiinary shift of (X,Y) = ("+strc(xoffset_auto)+", "+strc(yoffset_auto)+")"
          
            ;refwlcal[*,*,0]=refwlcal[*,*,0]-1
-;;           refwlcal[*,*,1]=refwlcal[*,*,1]+3
+           refwlcal[*,*,1]=refwlcal[*,*,1]+3
 ;;         endif
 
 
@@ -615,6 +615,8 @@ backbone->set_keyword, "HISTORY", " ",ext_num=0;,/blank
 
 ydummy = newwavecal[*,*,0]
 xdummy = newwavecal[*,*,1]
+wdummy = newwavecal[*,*,3]
+tdummy = newwavecal[*,*,4]
 ;for columnind=0,280 do begin
 ;   ydummy[where(newwavecal[columnind,*,0] EQ !values.f_nan)]=mean(newwavecal[columnind,*,0],/nan)
 ;   xdummy[where(newwavecal[*,columnind,1] EQ !values.f_nan)]=mean(newwavecal[*,columnind,1],/nan)
@@ -622,29 +624,48 @@ xdummy = newwavecal[*,*,1]
 
 goody = where(Finite(ydummy), ngoody, comp=bady, ncomp=nbady) 
 ; interpolate at the locations of the bad data using the good data 
-if nbady gt 0 then ydummy[bady] = interpol(ydummy[goody], goody, bady) 
+if nbady gt 0 then ydummy[bady] = interpol(ydummy[goody], goody, bady)
+ 
 goodx = where(Finite(xdummy), ngoodx, comp=badx, ncomp=nbadx) 
 ; interpolate at the locations of the bad data using the good data 
 if nbadx gt 0 then xdummy[badx] = interpol(xdummy[goodx], goodx, badx) 
 
-newwavecal[*,*,0]=ydummy
-newwavecal[*,*,1]=xdummy
+goodw = where(Finite(wdummy), ngoodw, comp=badw, ncomp=nbadw) 
+; interpolate at the locations of the bad data using the good data 
+if nbadw gt 0 then wdummy[badw] = interpol(wdummy[goodw], goodw, badw) 
+ 
+goodt = where(Finite(tdummy), ngoodt, comp=badt, ncomp=nbadt) 
+; interpolate at the locations of the bad data using the good data 
+if nbadt gt 0 then tdummy[badt] = interpol(tdummy[goodt], goodt, badt) 
+
+
+;newwavecal[*,*,0]=ydummy
+;newwavecal[*,*,1]=xdummy
+;newwavecal[*,*,3]=wdummy
+;newwavecal[*,*,4]=tdummy
 
 
         ;if keyword_set(Smoothed) then begin
 
-           smoothedw=smooth(newwavecal[*,*,3],7,/nan)
-           smoothedt=smooth(newwavecal[*,*,4],7,/nan)
-           ;smoothedx=smooth(newwavecal[*,*,1],3,/nan)
-           ;smoothedy=smooth(newwavecal[*,*,0],3,/nan)
-
-           smoothedw[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
-           smoothedt[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
+           minsm=90
+           maxsm=190
+           smoothedw=median(wdummy[*,*],6,/even)
+           smoothedt=median(tdummy[*,*],6,/even)
+           smoothedx=median(xdummy[minsm:maxsm,minsm:maxsm],6,/even)
+           smoothedy=median(ydummy[minsm:maxsm,minsm:maxsm],6,/even)
+           wdummy=smoothedw
+           tdummy=smoothedt  
+           xdummy[minsm:maxsm,minsm:maxsm]=smoothedx
+           ydummy[minsm:maxsm,minsm:maxsm]=smoothedy
+         
+           wdummy[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
+           tdummy[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
            xdummy[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
            ydummy[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
 
-           newwavecal[*,*,3]=smoothedw
-           newwavecal[*,*,4]=smoothedt
+
+           newwavecal[*,*,4]=tdummy
+           newwavecal[*,*,3]=wdummy
            newwavecal[*,*,0]=ydummy
            newwavecal[*,*,1]=xdummy
 
