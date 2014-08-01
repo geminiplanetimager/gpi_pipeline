@@ -99,29 +99,29 @@ psf=gpi_highres_microlens_psf_evaluate_detector_psf(xgrid, ygrid, [.2,.2,1.])
 
 psfmlens = psf & mkhdr, HeaderCalib,psf;gpi_readfits(c_File,header=HeaderCalib)
 sizepsfmlens=size(psfmlens)
-;psfDITHER = float(sxpar(HeaderCalib,"DITHER",count=cc))
+psfDITHER = float(sxpar(HeaderCalib,"DITHER",count=cc))
 
 
 ;PI: What are these? Part of the DST?
-;if cc eq 0 then begin
-;  print, "mlens PSF DITHER keyword not found. It will be assumed that the fraction of a pixel the mlens PSF are dithering by is 1/5."
-;  psfDITHER = 5.  
-;endif
-;psfLMIN=float(sxpar(HeaderCalib,"LMIN",count=cc))
-;if cc eq 0 then begin
-;  print, "mlens-PSF LMIN keyword not found. It will be assumed that the minimal wavelength of the mlens PSFs is the minimal wavelength of the band."
-;  psfLMIN=  lambdamin  
-;endif
-;psfLMAX=float(sxpar(HeaderCalib,"LMAX",count=cc))
-;if cc eq 0 then begin
-;  print, "mlens-PSF LMAX keyword not found. It will be assumed that the maximal wavelength of the mlens PSFs is the maximal wavelength of the band."
-;  psfLMAX=  lambdamax  
-;endif
-;psfNBchannel=float(sxpar(HeaderCalib,"NLAM",count=cc))
-;if cc eq 0 then begin
-;  print, "mlens-PSF NLAM keyword not found. It will be assumed that the maximal wavelength for the mlens PSFs is the maximal wavelength of the band."
-;  psfNBchannel= 37.;float((sizepsfmlens)[3]) / (float(psfdither))^2
-;endif
+if cc eq 0 then begin
+  print, "mlens PSF DITHER keyword not found. It will be assumed that the fraction of a pixel the mlens PSF are dithering by is 1/5."
+  psfDITHER = 5.  
+endif
+psfLMIN=float(sxpar(HeaderCalib,"LMIN",count=cc))
+if cc eq 0 then begin
+  print, "mlens-PSF LMIN keyword not found. It will be assumed that the minimal wavelength of the mlens PSFs is the minimal wavelength of the band."
+  psfLMIN=  lambdamin  
+endif
+psfLMAX=float(sxpar(HeaderCalib,"LMAX",count=cc))
+if cc eq 0 then begin
+  print, "mlens-PSF LMAX keyword not found. It will be assumed that the maximal wavelength of the mlens PSFs is the maximal wavelength of the band."
+  psfLMAX=  lambdamax  
+endif
+psfNBchannel=float(sxpar(HeaderCalib,"NLAM",count=cc))
+if cc eq 0 then begin
+  print, "mlens-PSF NLAM keyword not found. It will be assumed that the maximal wavelength for the mlens PSFs is the maximal wavelength of the band."
+  psfNBchannel= 37.;float((sizepsfmlens)[3]) / (float(psfdither))^2
+endif
 ;;minimal verification
 ;if (psfNBchannel * (float(psfdither))^2 NE float((sizepsfmlens)[3]) ) then begin
 ;    return, error('FAILURE ('+functionName+'): mlens-PSF database seems corrupted. Please verify all keywords are present and properly fed.') 
@@ -150,9 +150,14 @@ szpsf = size(psf)
 		min_l=min(lambda)
 
         for qq=0,nlam-1 do lambda2[qq]=(max_l-min_l)/(nlam)*(qq+0.5)+min_l
+        plot,lambda,lambda,xr=[1.45,1.85],/xs
+        oplot,lambda2,lambda2,psym=2
+;;
+  dl = psfLMAX - psfLMIN
+  dx = dl/psfNBchannel
+ zemdisplamraw=  dindgen(psfNBchannel)/psfNBchannel*dl + psfLMIN + dx/2d
+ for qq=0,nlam-1 do lambda2[qq]=zemdisplamraw[round(psfNBchannel / nlam)*qq]
 
-;plot,lambda,lambda,xr=[1.45,1.85],/xs
-;oplot,lambda2,lambda2,psym=2
 
           cubef3D=dblarr(nlens,nlens,nlam)+ !values.f_nan;create the datacube
         
@@ -253,10 +258,24 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
          endif     
                   
       endfor
+      
 ; why do you chop off a value here?
       xchoiceind=xchoiceind[1:(n_elements(xchoiceind)-1)]
       ychoiceind=ychoiceind[1:(n_elements(ychoiceind)-1)]
-
+      
+      ;if nlam<sdpx, some pixel might be missing, so add them
+      ;stop
+      holes=where((ychoiceind-shift(ychoiceind,1)) le -2,ch) ;are there holes ?
+      if ch ge 1 then begin
+        for chole=0,ch-1 do begin ;for each detected holes, fill it
+            nbpixhole=ychoiceind[holes[chole]-1]-ychoiceind[holes[chole]]-1
+            for eachpixhole = 0, nbpixhole-1 do begin
+              for clarg=-larg,larg do xchoiceind=[xchoiceind,round(xchoiceind[holes[chole]+larg]+((eachpixhole+1.)/(nbpixhole))*(xchoiceind[holes[chole]-larg-1]-xchoiceind[holes[chole]+larg]))+clarg>0]
+              for clarg=-larg,larg do ychoiceind=[ychoiceind,round(ychoiceind[holes[chole]-1] - eachpixhole - 1)>0]
+            endfor  
+        endfor
+      endif
+      ;stop
 
       ;do we need to add extreme pixels?
       ; PI: I don't understand this bit at all...
