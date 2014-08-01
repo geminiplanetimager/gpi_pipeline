@@ -61,10 +61,17 @@ if (backbone->get_keyword('OBSTYPE')) eq 'ARC' then begin
 		lambda=cwv.lambda
 
 		if band eq 'H' then begin
+		    if strlowcase(strc(backbone->get_keyword('OBJECT'))) eq 'xe' then begin
 			peak1=1.54226
 			peak2=1.67327
 			trough1=1.64 ; ballpark guess
-
+			endif
+			if strlowcase(strc(backbone->get_keyword('OBJECT'))) eq 'ar' then begin
+			peak1=1.6945
+			peak2=peak1
+			trough1=1.57 ; ballpark guess
+			endif
+			if keyword_set(peak1) eq 0 then return, error('This is an ARC image but the Object header is not set to Xe nor Ar')
 		; hoping Loren will do this, I'm just going to do something dirty
 
 		; do a median filter on the image slice closest to peak 2
