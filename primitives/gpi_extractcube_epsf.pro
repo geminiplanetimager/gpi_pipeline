@@ -55,7 +55,7 @@ c_y_vector_psf_min = min((*ptr_obj_psf).ycoords)
 c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
 
 ; define size of the ePSF array;
-;PI: why was this at 51? seems uncessarily large
+;PI: why was this at 51? seems uncessarily large - JEROME looking at this
 gridnbpt=51
 
 tmp=findgen(gridnbpt)-gridnbpt/2
@@ -97,49 +97,14 @@ psf=gpi_highres_microlens_psf_evaluate_detector_psf(xgrid, ygrid, [.2,.2,1.])
   lambdamax=CommonWavVect[1]
   lambda=cwv.lambda 
 
-psfmlens = psf & mkhdr, HeaderCalib,psf;gpi_readfits(c_File,header=HeaderCalib)
-sizepsfmlens=size(psfmlens)
-psfDITHER = float(sxpar(HeaderCalib,"DITHER",count=cc))
-
-
-;PI: What are these? Part of the DST?
-if cc eq 0 then begin
-  print, "mlens PSF DITHER keyword not found. It will be assumed that the fraction of a pixel the mlens PSF are dithering by is 1/5."
-  psfDITHER = 5.  
-endif
-psfLMIN=float(sxpar(HeaderCalib,"LMIN",count=cc))
-if cc eq 0 then begin
-  print, "mlens-PSF LMIN keyword not found. It will be assumed that the minimal wavelength of the mlens PSFs is the minimal wavelength of the band."
-  psfLMIN=  lambdamin  
-endif
-psfLMAX=float(sxpar(HeaderCalib,"LMAX",count=cc))
-if cc eq 0 then begin
-  print, "mlens-PSF LMAX keyword not found. It will be assumed that the maximal wavelength of the mlens PSFs is the maximal wavelength of the band."
-  psfLMAX=  lambdamax  
-endif
-psfNBchannel=float(sxpar(HeaderCalib,"NLAM",count=cc))
-if cc eq 0 then begin
-  print, "mlens-PSF NLAM keyword not found. It will be assumed that the maximal wavelength for the mlens PSFs is the maximal wavelength of the band."
-  psfNBchannel= 37.;float((sizepsfmlens)[3]) / (float(psfdither))^2
-endif
-;;minimal verification
-;if (psfNBchannel * (float(psfdither))^2 NE float((sizepsfmlens)[3]) ) then begin
-;    return, error('FAILURE ('+functionName+'): mlens-PSF database seems corrupted. Please verify all keywords are present and properly fed.') 
-;endif
-
+psfmlens = psf & mkhdr, HeaderCalib,psf
  
- ;szpsfmlens=(size(psfmlens))[1]
  szpsfmlens=(size(psf))[1]
- ;dimpsf=(size(psfmlens))[1]
   dimpsf=(size(psf))[1]          ;PI: isn't this just the gridnbpt variable above?
-; szpsf = size(psfmlens)
 szpsf = size(psf)
- psftot=fltarr(szpsfmlens,szpsfmlens)
 
         ;nlam defines how many spectral channels for the inversion 
-        ;use "Interpolate Wavelength Axis" to have same number 
-        ; of spectral channels (37 by default) than the basic datacube extraction
-		nlam=13.
+      	nlam=13.
          
         psfmlens2=fltarr(szpsfmlens,szpsfmlens,nlam)
         lambda2=fltarr(nlam)
@@ -149,30 +114,27 @@ szpsf = size(psf)
 		max_l=max(lambda)
 		min_l=min(lambda)
 
+; if you do NOT want samples on the end use this
         for qq=0,nlam-1 do lambda2[qq]=(max_l-min_l)/(nlam)*(qq+0.5)+min_l
-        plot,lambda,lambda,xr=[1.45,1.85],/xs
-        oplot,lambda2,lambda2,psym=2
-;;
-  dl = psfLMAX - psfLMIN
-  dx = dl/psfNBchannel
- zemdisplamraw=  dindgen(psfNBchannel)/psfNBchannel*dl + psfLMIN + dx/2d
- for qq=0,nlam-1 do lambda2[qq]=zemdisplamraw[round(psfNBchannel / nlam)*qq]
+; if you DO want samples on the end use this
+ for qq=0,nlam-1 do lambda2[qq]=(max_l-min_l)/(nlam-1)*(qq)+min_l
 
+;		window,2
+;        plot,lambda,lambda,xr=[1.45,1.85],/xs
+;        oplot,lambda2,lambda2,psym=2
 
-          cubef3D=dblarr(nlens,nlens,nlam)+ !values.f_nan;create the datacube
-        
-        ;define coordinates for each spectral channel
-        szwavcal=size(wavcal)
-        xloctab=fltarr(szwavcal[1],szwavcal[2],nlam)
-        yloctab=fltarr(szwavcal[1],szwavcal[2],nlam)
-         for lam=0,nlam-1 do begin
-           loctab=(change_wavcal_lambdaref( wavcal, lambda2[lam]))
-           xloctab[*,*,lam]=loctab[*,*,1]
-           yloctab[*,*,lam]=loctab[*,*,0]
-         endfor
+ cubef3D=dblarr(nlens,nlens,nlam)+ !values.f_nan;create the datacube
+      
+ ;define coordinates for each spectral channel
+ szwavcal=size(wavcal)
+ xloctab=fltarr(szwavcal[1],szwavcal[2],nlam)
+ yloctab=fltarr(szwavcal[1],szwavcal[2],nlam)
+ for lam=0,nlam-1 do begin
+      loctab=(change_wavcal_lambdaref( wavcal, lambda2[lam]))
+      xloctab[*,*,lam]=loctab[*,*,1]
+      yloctab[*,*,lam]=loctab[*,*,0]
+ endfor
          
-
-             
         ; define how many rows and columns of pixels to use in the raw image for the inversion of a single lenslet
         ; PI; I think this is an issue since the microlens PSFS are only 4 pixels wide...
 		; PI: so this means that larg should be 1? can it be a non-integer?
@@ -189,7 +151,7 @@ for xsi=0,nlens-1 do begin
 
 
 	 ; im lazy so only going ot use a small section
-;  for xsi=185,185+20 do begin    
+;for xsi=185,185+20 do begin    
 ;  print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
 ;     for ysi=95,95+20 do begin   
 
@@ -203,10 +165,16 @@ for xsi=0,nlens-1 do begin
     ; get the locations on the image where intensities will be extracted:
      x3=xloctab[xsi,ysi,0]  ;xmini[xsi,ysi]
      y3= yloctab[xsi,ysi,0]  ;wavcal[xsi,ysi,1]+(wavcal[xsi,ysi,0]-x3)*tan(tilt[xsi,ysi])	
- 
- ; PI: when is this not true ??
-  if finite(x3) && finite(y3)&& (x3 gt 0) && (x3 lt 2048) && (y3 gt 1) && (y3 lt 2048) then begin
 
+
+; This checks if there is a spectrum associated with the spaxel (takes care of oodles of NaN's in image) 
+; this can definitely be sped up
+if finite(x3) eq 0 then continue
+if finite(y3) eq 0 then continue
+if (x3 lt 0) or (x3 ge 2048) or (y3 le 1) or (y3 ge 2048) then continue
+; original
+;  if finite(x3) && finite(y3) && (x3 gt 0) && (x3 lt 2048) && (y3 gt 1) && (y3 lt 2048) then continue
+ 
 
  ;get the corresponding psf
   ptr_obj_psf = gpi_highres_microlens_psf_get_local_highres_psf(high_res_psfs,[xsi,ysi,0],/preserve_structure, valid=valid)
@@ -244,6 +212,9 @@ c_y_vector_psf_min = min((*ptr_obj_psf).ycoords)
 c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
 
  
+
+ ;;; THIS ENTIRE SECTION NEEDS TO BE REDONE
+
       ;choice of pixels for the inversion
       xchoiceind=[0.]   ; these are actually coordinates not indicies of arrays
       ychoiceind=[0.]; these are actually coordinates not indicies of arrays
@@ -258,13 +229,11 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
          endif     
                   
       endfor
-      
-; why do you chop off a value here?
+; now remove the zero at the beginning of the array
       xchoiceind=xchoiceind[1:(n_elements(xchoiceind)-1)]
       ychoiceind=ychoiceind[1:(n_elements(ychoiceind)-1)]
       
-      ;if nlam<sdpx, some pixel might be missing, so add them
-      ;stop
+      ;if nlam<sdpx, some pixels might be missing when doing the extraction, so add them
       holes=where((ychoiceind-shift(ychoiceind,1)) le -2,ch) ;are there holes ?
       if ch ge 1 then begin
         for chole=0,ch-1 do begin ;for each detected holes, fill it
@@ -275,56 +244,46 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
             endfor  
         endfor
       endif
-      ;stop
+      
 
-      ;do we need to add extreme pixels?
-      ; PI: I don't understand this bit at all...
-	  addextremepixels=0
-      if addextremepixels eq 1 then begin
-         if (round(yloctab[xsi,ysi,0]) lt 2047) && (round(xloctab[xsi,ysi,0]) lt 2047) && (round(xloctab[xsi,ysi,0]) gt 0) then begin ;&& ((yloctab[xsi,ysi,0]-round(yloctab[xsi,ysi,0]) gt 0.5))  then begin
-          xchoiceind=[round(xloctab[xsi,ysi,0])-1,round(xloctab[xsi,ysi,0]),round(xloctab[xsi,ysi,0])+1,xchoiceind]
-          ychoiceind=[round(yloctab[xsi,ysi,0])+1,round(yloctab[xsi,ysi,0])+1,round(yloctab[xsi,ysi,0])+1,ychoiceind]
-        endif
-       if (round(yloctab[xsi,ysi,nl-1]) gt 0) && (round(xloctab[xsi,ysi,nl-1]) lt 2047) && (round(xloctab[xsi,ysi,nl-1]) gt 0) then begin ;&& ((yloctab[xsi,ysi,nl-1]-round(yloctab[xsi,ysi,nl-1]) lt 0))  then begin
-          xchoiceind=[xchoiceind,round(xloctab[xsi,ysi,nl-1])-1,round(xloctab[xsi,ysi,nl-1]),round(xloctab[xsi,ysi,nl-1])+1]
-          ychoiceind=[ychoiceind,round(yloctab[xsi,ysi,nl-1])-1,round(yloctab[xsi,ysi,nl-1])-1,round(yloctab[xsi,ysi,nl-1])-1]
-        endif
-      endif  
+; now must remove the bad pixels from the array 
+ind=-1
+for v=0,N_ELEMENTS(xchoiceind)-1 do if (*dataset.currdq[0])[xchoiceind[v],ychoiceind[v]] ne 0 then ind=[ind,[v]]
+
+if N_ELEMENTS(ind) gt 1 then begin
+	;chop off the -1
+	ind=ind[1:*]
+	remove,ind,xchoiceind,ychoiceind
+endif
+	
 
 
-; the pixel positions of the chosen wavelengths?
-; this was inside the lower loop but it has nothing to do with nlam so pulled it outside
+; END SECTION THAT NEEDS REWRITE
+
+; get the pixel positions of the chosen wavelengths
     dx2L=reform(xloctab[xsi,ysi,*] )
     dy2L=(reform(yloctab[xsi,ysi,*] ))  
 				
 ; now loop over the number of chosen psfs per lenset
-             for nl=0,nlam-1 do begin            
-                  ; get the detector sampled mlens psf for the given position
-                  psf0=gpi_highres_microlens_psf_evaluate_detector_psf(xgrid, ygrid, [(dx2L[nl]-floor(dx2L[nl])) ,(dy2L[nl]-floor(dy2L[nl])) ,1.])
-				  psf=psf0   ; have psf0 only for debugging reasons
-
-;PI: You don't want to normalize it or it will not take into account the intrapixel sensitivity 
-;PI: the proper way to do this is to normalize the high-resolution PSF  .... i think.
-;PI: this is done to first order, but i can't remember if it the psfs are normalized by the peak or the integrated total...
-
-;	              psfmlens2_tmp=psf/total(psf) ; normalization taken care of above... still not perfect but within about 30% 
-				  psfmlens2_tmp=psf                      
+		for nl=0,nlam-1 do begin            
+             ; get the detector sampled mlens psf for the given position
+			psf=gpi_highres_microlens_psf_evaluate_detector_psf(xgrid, ygrid, [(dx2L[nl]-floor(dx2L[nl])) ,(dy2L[nl]-floor(dy2L[nl])) ,1.])
     	                                
-                     ;recenter the psf to correspond to its location onto the spectrum
-                  xshift=floor(dx2L[nl])-floor(dx2L[0])
-                  yshift=floor(dy2L[nl])-floor(dy2L[0])
-                  ; does this ever involve the wrapping of non-zero values to the otherside? 
-                  psfmlens2[0,0,nl]=SHIFT(psfmlens2_tmp,xshift,yshift)
+            ;recenter the psf to correspond to its location onto the spectrum
+            xshift=floor(dx2L[nl])-floor(dx2L[0])
+            yshift=floor(dy2L[nl])-floor(dy2L[0])
+            ; does this ever involve the wrapping of non-zero values to the otherside? 
+            psfmlens2[0,0,nl]=SHIFT(psf,xshift,yshift)
                       
-             endfor
-             psfmlens4=reform(psfmlens2,szpsf[1]*szpsf[2],nlam)
+        endfor
+        psfmlens4=reform(psfmlens2,szpsf[1]*szpsf[2],nlam)
                   
-             spectrum=reform(psfmlens4#(fltarr(nlam)+1.),szpsf[1],szpsf[2])  ;;Calcul d'un spectrum 
+        spectrum=reform(psfmlens4#(fltarr(nlam)+1.),szpsf[1],szpsf[2])  ;;Calcul d'un spectrum 
           
-		  		; PI: i don't understand this bit at all...
-                tmpx = floor(dx2L[0])
-                tmpy = floor(dy2L[0])
-                indxmin= (tmpx-(dimpsf-1)/2) > 0
+		; PI: i don't understand this bit at all... Jerome will fix
+        tmpx = floor(dx2L[0])
+        tmpy = floor(dy2L[0])
+          indxmin= (tmpx-(dimpsf-1)/2) > 0
                 indxmax= (tmpx+(dimpsf-1)/2-1) < (dim-1)
                 indymin= (tmpy-(dimpsf-1)/2) > 0
                 indymax= (tmpy+(dimpsf-1)/2-1) < (dim-1)
@@ -334,82 +293,53 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
                 bb = -(tmpy-(dimpsf-1)/2)
   
                 ; for residual purpose:
-				; why is this piece only a 50x50 when everything else if 51x51 ?
+				; why is this piece only a 50x50 when everything else if 51x51 ? Jerome investigating
                 detector_array[indxmin:indxmax,indymin:indymax]+=  spectrum[indxmin+aa: indxmax+aa, indymin+bb:indymax+bb]
                 
 
                 psfmat=fltarr(n_elements(xchoiceind),nlam)
-               ; psfmat2=fltarr((2*larg+1)*nlam,nlam)
-                for nelam=0,nlam-1 do begin
+         for nelam=0,nlam-1 do begin
                   
-                  for nbpix=0,n_elements(xchoiceind)-1 do $
+              for nbpix=0,n_elements(xchoiceind)-1 do $
                   psfmat[nbpix,nelam]=psfmlens2[xchoiceind[nbpix]+aa,ychoiceind[nbpix]+bb,nelam]
                   
-               endfor
+         endfor
+
+    if ((tmpx-larg) lt 0) OR  ((tmpx+larg) ge (dim-1)) OR (tmpy lt 0) OR ((tmpy+longu-1) ge (dim-1)) then  flagedge=0 else flagedge=1
+
+		; create intensity array
+        bbc=fltarr(n_elements(xchoiceind))
+        for nel=0,n_elements(xchoiceind)-1 do bbc[nel]=det[xchoiceind[nel],ychoiceind[nel]]
                 
+		; this is just to look at the pixels being used in the extraction
+		if 1 eq 1 then begin 
+		  ; want to see the pixels being used for the intensity array
+		  ; don't wnat the entire 2048x2048, so just make it smaller 
+          stamp=fltarr(dimpsf,dimpsf)
+		  for nel=0,n_elements(xchoiceind)-1 do stamp[xchoiceind[nel]-min(xchoiceind),ychoiceind[nel]-min(ychoiceind)]=det[xchoiceind[nel],ychoiceind[nel]]
+; this is where you can check 
+		endif
+        
+		
+		 ;;invert the PSF array and multiply by the intensity array to get flux
 
-               if ((tmpx-larg) lt 0) OR  ((tmpx+larg) ge (dim-1)) OR (tmpy lt 0) OR ((tmpy+longu-1) ge (dim-1)) then  flagedge=0 else flagedge=1
-
-;                    print, "create intensity vector..."
-                    bbc=fltarr(n_elements(xchoiceind))
-                    for nel=0,n_elements(xchoiceind)-1 do bbc[nel]=det[xchoiceind[nel],ychoiceind[nel]]
-                  ; want to see the pixels being used for the intensity array
-				  ; don't wnat the entire 2048x2048, so just make it smaller 
-                  stamp=fltarr(dimpsf,dimpsf)
-				  for nel=0,n_elements(xchoiceind)-1 do stamp[xchoiceind[nel]-min(xchoiceind),ychoiceind[nel]-min(ychoiceind)]=det[xchoiceind[nel],ychoiceind[nel]]
-				; PI: THIS HAS PIECES MISSING !?!?!
-     
-
-         ;;invert to get flux
-;         if 1 eq 1 then begin
-
-; PI: bah - not sure I understand how this matrix inversion works...
-; SVDV diagonalizes psfmat? (which is the P array in the paper)
-; then SVSOL inverts it and multiplies it by intensities (bbc) which then gives you an array of fluxes?
-
-              SVDC, transpose(psfmat), W, U, V , /double
+; Dmitry suggests "Depending on the machine and the array size, the LAPACK wrapper (LA_SVD) might give you a free speed boost."
+         SVDC, transpose(psfmat), W, U, V , /double
+         ; Compute the solution and print the result: 
+         if flagedge eq 1 then  flux= SVSOL(U, W, V, bbc, /double) else flux=fltarr(nlam)+!values.f_nan
           
-            ; Compute the solution and print the result: 
-            if flagedge eq 1 then  flux= SVSOL(U, W, V, bbc, /double) else flux=fltarr(nlam)+!values.f_nan
-          
-;          endif else begin
-			; Jerome wrote: "nnls.pro. It was part of my testing, using
-			; inversion with positive constraints. But so far i have been used
-			; it, it gives the same result than svd inversion excepted that
-			; negative values are zeroed.
-			; That's why i give up this part of the code which is never used.
-			; The code only uses svd."
-
-;                       ;;positive constraints
-;                       a=transpose(psfmat)
-;                       m=n_elements(xchoiceind)
-;                       n=nlam
-;                       b=bbc
-;                       x=fltarr(nlam)+1.
-;                       w2=fltarr(nlam)
-;                       indx=intarr(nlam+1)
-;                       nnls, a, m, n, b, x, rnorm, w2, indx, mode
-;                       flux=x
-                        
-;          endelse
-
 		; PI: why is the 18 hard coded here?
          cubef3D[xsi,ysi,*]=flux*(float(nlam)/18.) ;this is normalized to take into account the number of slices we considered with respect to the length of spectra
          
-         if 1 eq 1 then begin ; these 2 lines are just to check out the reconstruction
-           reconspec=fltarr(dimpsf,dimpsf)
+        ; check the reconstruction?
+		 if 1 eq 1 then begin 
+		   reconspec=fltarr(dimpsf,dimpsf)
            for zl=0,nlam-1 do  reconspec+=flux[zl]*psfmlens2[*,*,zl]
-         
-		 ; want to make it so we can subtract the determined spectrum from the actual spectrum to look at residuals
-		 
-		 
+          ; want to make it so we can subtract the determined spectrum from the actual spectrum to look at residuals
+		  
 		 endif
-
-         ;if (xsi eq 14) && (ysi eq 188) then stop
-
-     endif
-  endfor
-  endfor
+  endfor ; end loop over lenslet (ysi)
+  endfor ; end loop over lenslet (xsi)
 
   suffix='-spdci'
   ; put the datacube in the dataset.currframe output structure:
