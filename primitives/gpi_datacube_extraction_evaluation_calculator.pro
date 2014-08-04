@@ -41,7 +41,6 @@ calfiletype=''   ; set this to some non-null value e.g. 'dark' if you want to lo
 @__start_primitive
 suffix='' 		 ; set this to the desired output filename suffix
 
-
 ; the metrics used will be dependent upon the type of image
 ; at the moment, only arclamp images are supported.	
 cube=*dataset.currframe
@@ -87,20 +86,32 @@ if (backbone->get_keyword('OBSTYPE')) eq 'ARC' then begin
 				mask=finite(im)
 				low_freq=filter_image(im,median=15,/all_pixels)*mask
 			
-				print, 'median value of low_frequency slice at '+strc(lambda[slices[l]])+' = '+strc(median(low_freq))
-
-				print, 'stddev of low-frequency modulations of '+strc(lambda[slices[l]])+' = '+strc(stddev(low_freq,/nan))
-				print, 'percentage error of low-freq modulation ' +strc(stddev(low_freq,/nan)/median(low_freq))
-
-			
+					
 				; now subtract the lowfrequency component
 				tmp=im-low_freq
-			
+				print,''
+				print, 'median value of low_frequency slice at '+strc(lambda[slices[l]])+' = '+strc(median(low_freq))
+				print, 'stddev of low-frequency modulations of '+strc(lambda[slices[l]])+' = '+strc(stddev(low_freq,/nan))	
 				print, 'stddev of high-frequency modulations of '+strc(lambda[slices[l]])+' = '+strc(stddev(tmp,/nan))
+				print, 'percentage error of low-freq modulation ' +strc(stddev(low_freq,/nan)/median(low_freq))
 				print, 'percentage error of high-freq modulation ' +strc(stddev(tmp,/nan)/median(low_freq))
-
-print,''
+				print,''
 			
+				; calculation of the number of extreme events
+				
+				tmp2=im/low_freq
+				rs=robust_sigma(tmp2)
+				
+				;plothist,tmp2,/nan,bin=0.01
+				
+				med=median(tmp2); this should be 1 by definition... but we compute it anyways
+				junk=where(tmp2 gt med+5*rs,n_bright_pix)
+				print, 'Number of spaxels brighter than 5 sigma from their surroundings = '+strc(n_bright_pix)
+				junk=where(tmp2 lt med-5*rs,n_bright_pix)
+				print, 'Number of spaxels fainter than 5 sigma from their surroundings = '+strc(n_bright_pix)
+
+				print,''
+
 			endfor
 
 

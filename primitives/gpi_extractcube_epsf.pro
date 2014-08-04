@@ -37,6 +37,9 @@ calfiletype='epsf'
 
 @__start_primitive
 
+time0=systime(1,/seconds) ; this is for speed testing
+
+
 ; load in the common block for ePSF
  common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
 
@@ -143,7 +146,7 @@ szpsf = size(psf)
 		 larg=2 ; nb of columns parallel to the dispersion axis = (2*larg + 1)
          longu=20 ; nb of rows along the spectrum  ; PI: longu should be set by spdx no ?
 
-         
+bad_pix_count=0 
          ; do the inversion extraction for all lenslets
 for xsi=0,nlens-1 do begin    
   print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
@@ -246,7 +249,11 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
       endif
       
 
-; now must remove the bad pixels from the array 
+; now must remove the bad pixels from the array
+; surely there is a move clever way to do this
+; it does not appear to slow things down much (~1.5s our of 78)
+ 
+if 1 eq 1 then begin
 ind=-1
 for v=0,N_ELEMENTS(xchoiceind)-1 do if (*dataset.currdq[0])[xchoiceind[v],ychoiceind[v]] ne 0 then ind=[ind,[v]]
 
@@ -254,11 +261,11 @@ if N_ELEMENTS(ind) gt 1 then begin
 	;chop off the -1
 	ind=ind[1:*]
 	remove,ind,xchoiceind,ychoiceind
+	bad_pix_count+=N_ELEMENTS(ind)
 endif
 	
-
-
-; END SECTION THAT NEEDS REWRITE
+endif
+;;;; END SECTION THAT NEEDS REWRITE
 
 ; get the pixel positions of the chosen wavelengths
     dx2L=reform(xloctab[xsi,ysi,*] )
@@ -305,6 +312,7 @@ endif
                   
          endfor
 
+;PI: What does this do?
     if ((tmpx-larg) lt 0) OR  ((tmpx+larg) ge (dim-1)) OR (tmpy lt 0) OR ((tmpy+longu-1) ge (dim-1)) then  flagedge=0 else flagedge=1
 
 		; create intensity array
@@ -340,6 +348,10 @@ endif
 		 endif
   endfor ; end loop over lenslet (ysi)
   endfor ; end loop over lenslet (xsi)
+
+print,'bad_pix_count = '+strc(bad_pix_count)
+
+print,'Time to run extraction = '+strc(systime(1,/seconds)-time0)+' seconds)
 
   suffix='-spdci'
   ; put the datacube in the dataset.currframe output structure:
