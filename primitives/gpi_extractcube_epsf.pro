@@ -39,6 +39,26 @@ calfiletype='epsf'
 
 time0=systime(1,/seconds) ; this is for speed testing
 
+; bad pixels excluded from the extraction later - but they first must be identified here - not in the loops
+
+; DQ bit mask:
+		;   0 = bad pixel, do not use if set
+		;   1 = raw value was saturated
+		;   2 = pixel diff between consecutive frames exceeds saturation
+		;	3,4 = related to UTR calculations, do not indicated bad pixels
+		; bits 0,1,2 = 7
+		bpfromDQ = (*(dataset.currDQ) and 7) ne 0
+		wbpfromDQ = where(bpfromDQ, bpfromDQcount)
+		bad_pix_mask=bytarr(2048,2048)
+		bad_pix_mask[wbpfromDQ] = 1
+		
+		; MP (temporary?) fix for missed cold pixels: also repair anything super negative
+		negative_bad_thresh = -50 ; this is arbitrary!
+		wlow = where(*dataset.currframe lt negative_bad_thresh, lowct) ; should be an adjustible thresh, or based on read noise * n * sigma?
+		backbone->set_keyword, 'HISTORY', 'Found '+strc(lowct)+' additional very negative pixels (< -50 cts) in that image. ', ext_num=0
+		backbone->Log,  'Found '+strc(lowct)+' additional very negative pixels (< -50 cts) in that image. ', depth=2
+		bad_pix_mask[wlow] = 1 ; 1 means bad in a bad pixel mask
+
 
 ; load in the common block for ePSF
  common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
@@ -255,7 +275,9 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
  
 if 1 eq 1 then begin
 ind=-1
-for v=0,N_ELEMENTS(xchoiceind)-1 do if (*dataset.currdq[0])[xchoiceind[v],ychoiceind[v]] ne 0 then ind=[ind,[v]]
+; the DQ mask 
+
+for v=0,N_ELEMENTS(xchoiceind)-1 do if bad_pix_mask[xchoiceind[v],ychoiceind[v]] ne 0 or finite((*dataset.currframe[0])[xchoiceind[v],ychoiceind[v]]) eq 0  then ind=[ind,[v]]
 
 if N_ELEMENTS(ind) gt 1 then begin
 	;chop off the -1
