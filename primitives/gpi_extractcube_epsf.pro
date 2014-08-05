@@ -47,9 +47,11 @@ time0=systime(1,/seconds) ; this is for speed testing
 		;   2 = pixel diff between consecutive frames exceeds saturation
 		;	3,4 = related to UTR calculations, do not indicated bad pixels
 		; bits 0,1,2 = 7
+		
 		bpfromDQ = (*(dataset.currDQ) and 7) ne 0
 		wbpfromDQ = where(bpfromDQ, bpfromDQcount)
 		bad_pix_mask=bytarr(2048,2048)
+		if bpfromDQcount gt 0 then $
 		bad_pix_mask[wbpfromDQ] = 1
 		
 		; MP (temporary?) fix for missed cold pixels: also repair anything super negative
@@ -59,7 +61,13 @@ time0=systime(1,/seconds) ; this is for speed testing
 		backbone->Log,  'Found '+strc(lowct)+' additional very negative pixels (< -50 cts) in that image. ', depth=2
 		bad_pix_mask[wlow] = 1 ; 1 means bad in a bad pixel mask
 
-
+bpmapsize=size(badpixmap)
+if bpmapsize[1] eq 0 then begin
+print, "Using the DQ/negative thresh  to find bad pixels...You should consider using the bad pixel map to make it better."
+bad_pix_mask=bad_pix_mask;(*dataset.currdq[0])
+endif else begin
+bad_pix_mask=bad_pix_mask OR badpixmap ;(*dataset.currdq[0]) OR badpixmap
+endelse
 ; load in the common block for ePSF
  common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
 
@@ -127,7 +135,7 @@ psfmlens = psf & mkhdr, HeaderCalib,psf
 szpsf = size(psf)
 
         ;nlam defines how many spectral channels for the inversion 
-      	nlam=13.
+      	nlam=10.
          
         psfmlens2=fltarr(szpsfmlens,szpsfmlens,nlam)
         lambda2=fltarr(nlam)
@@ -147,6 +155,7 @@ szpsf = size(psf)
 ;        oplot,lambda2,lambda2,psym=2
 
  cubef3D=dblarr(nlens,nlens,nlam)+ !values.f_nan;create the datacube
+ cubef3Dbpix=intarr(nlens,nlens,nlam)+ !values.f_nan;create the datacube
       
  ;define coordinates for each spectral channel
  szwavcal=size(wavcal)
@@ -173,10 +182,10 @@ for xsi=0,nlens-1 do begin
      for ysi=0,nlens-1 do begin   
 
 
-	 ; im lazy so only going ot use a small section
-;for xsi=185,185+20 do begin    
+;	 ; im lazy so only going ot use a small section
+;for xsi=200,200+30 do begin    
 ;  print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
-;     for ysi=95,95+20 do begin   
+;     for ysi=70,70+30 do begin   
 
 ;this is for just a single lenslet
 ; for xsi=185,186 do begin    
@@ -248,6 +257,8 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
             if (nl eq 0) || ~( (round(xloctab[xsi,ysi,nl-1]) eq round(xloctab[xsi,ysi,nl])) && (round(yloctab[xsi,ysi,nl-1]) eq round(yloctab[xsi,ysi,nl])))  then begin
               for clarg=-larg,larg do xchoiceind=[xchoiceind,round(xloctab[xsi,ysi,nl])+clarg>0]
               for clarg=-larg,larg do ychoiceind=[ychoiceind,round(yloctab[xsi,ysi,nl])>0]
+              if bad_pix_mask[round(xloctab[xsi,ysi,nl])>0,round(yloctab[xsi,ysi,nl])>0] ne 0 or finite((*dataset.currframe[0])[round(xloctab[xsi,ysi,nl])>0,round(yloctab[xsi,ysi,nl])>0]) eq 0  then $
+                  cubef3Dbpix[xsi,ysi,nl]=1
             endif  
          endif     
                   
@@ -264,6 +275,16 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
             for eachpixhole = 0, nbpixhole-1 do begin
               for clarg=-larg,larg do xchoiceind=[xchoiceind,round(xchoiceind[holes[chole]+larg]+((eachpixhole+1.)/(nbpixhole))*(xchoiceind[holes[chole]-larg-1]-xchoiceind[holes[chole]+larg]))+clarg>0]
               for clarg=-larg,larg do ychoiceind=[ychoiceind,round(ychoiceind[holes[chole]-1] - eachpixhole - 1)>0]
+               
+               xxx=round(xchoiceind[holes[chole]+larg]+((eachpixhole+1.)/(nbpixhole))*(xchoiceind[holes[chole]-larg-1]-xchoiceind[holes[chole]+larg]))
+               yyy=round(ychoiceind[holes[chole]-1] - eachpixhole - 1)
+               if bad_pix_mask[xxx>0,yyy>0] ne 0 or finite((*dataset.currframe[0])[xxx>0,yyy>0]) eq 0  then begin
+                  
+                  nlestimate=value_locate(yloctab[xsi,ysi,*],yyy)
+                  cubef3Dbpix[xsi,ysi,nlestimate]=1
+                  cubef3Dbpix[xsi,ysi,(nlestimate+1)<nlam]=1
+               endif   
+              
             endfor  
         endfor
       endif
@@ -275,15 +296,26 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
  
 if 1 eq 1 then begin
 ind=-1
+
+;for v=0,N_ELEMENTS(xchoiceind)-1 do if (*dataset.currdq[0])[xchoiceind[v],ychoiceind[v]] ne 0 then ind=[ind,[v]]
+;for v=0,N_ELEMENTS(xchoiceind)-1 do if badpixmap[xchoiceind[v],ychoiceind[v]] ne 0 then ind=[ind,[v]]
+
 ; the DQ mask 
+
 
 for v=0,N_ELEMENTS(xchoiceind)-1 do if bad_pix_mask[xchoiceind[v],ychoiceind[v]] ne 0 or finite((*dataset.currframe[0])[xchoiceind[v],ychoiceind[v]]) eq 0  then ind=[ind,[v]]
 
 if N_ELEMENTS(ind) gt 1 then begin
+;if xsi eq 146 && ysi eq 113 then stop
+;if xsi eq 137 && ysi eq 110 then stop
 	;chop off the -1
 	ind=ind[1:*]
 	remove,ind,xchoiceind,ychoiceind
 	bad_pix_count+=N_ELEMENTS(ind)
+	
+	;choose which slice will be the most affected by the bp
+	
+
 endif
 	
 endif
@@ -371,7 +403,23 @@ endif
   endfor ; end loop over lenslet (ysi)
   endfor ; end loop over lenslet (xsi)
 
-print,'bad_pix_count = '+strc(bad_pix_count)
+;; do you want to clean for bad pixels ?
+cleaning=1
+if cleaning eq 1 then begin
+  print,'bad_pix_count = '+strc(bad_pix_count)
+  indbp=where((cubef3dbpix eq 1) OR (cubef3d lt 0),cbp)
+  szindbp=size(indbp)
+  print,'total considerd bad pix = ', szindbp[2]
+  
+  if cbp gt 0 then begin
+    print, "Interpolating bad pix..."
+    cubind=array_indices(cubef3dbpix,indbp)  
+    sizecubeind=size(cubind)  
+     ;Result = GRID3( X, Y, Z, F, cubind[*] ) [ METHOD='NearestNeighbor' | /NEAREST_NEIGHBOR, TRIANGLES=array  [, /DEGREES ] [, DELTA=vector ] [, DIMENSION=vector ] [, FAULT_POLYGONS=vector ] [, FAULT_XY=array ] [, /GRID, XOUT=vector, YOUT=vector ] [, MISSING=value ] [, /SPHERE] [, START=vector ] 
+    for bpi=0,sizecubeind[2]-1 do cubef3d[cubind[0,bpi], cubind[1,bpi], cubind[2,bpi]] = interpolatej(cubef3d, cubind[0,bpi], cubind[1,bpi], cubind[2,bpi])
+  endif
+endif
+
 
 print,'Time to run extraction = '+strc(systime(1,/seconds)-time0)+' seconds)
 
