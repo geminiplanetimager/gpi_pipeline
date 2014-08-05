@@ -135,7 +135,7 @@ psfmlens = psf & mkhdr, HeaderCalib,psf
 szpsf = size(psf)
 
         ;nlam defines how many spectral channels for the inversion 
-      	nlam=10.
+      	nlam=18.
          
         psfmlens2=fltarr(szpsfmlens,szpsfmlens,nlam)
         lambda2=fltarr(nlam)
@@ -177,20 +177,15 @@ szpsf = size(psf)
 
 bad_pix_count=0 
          ; do the inversion extraction for all lenslets
-for xsi=0,nlens-1 do begin    
-  print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
-     for ysi=0,nlens-1 do begin   
-
-
-;	 ; im lazy so only going ot use a small section
-;for xsi=200,200+30 do begin    
+;for xsi=0,nlens-1 do begin    
 ;  print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
-;     for ysi=70,70+30 do begin   
+;     for ysi=0,nlens-1 do begin   
 
 ;this is for just a single lenslet
-; for xsi=185,186 do begin    
-;  print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
-;     for ysi=95,96 do begin   
+ for xsi=103,103 do begin    
+  print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
+     for ysi=204,204 do begin   
+epsf_debug=1
 
 
 
@@ -341,10 +336,14 @@ endif
                   
         spectrum=reform(psfmlens4#(fltarr(nlam)+1.),szpsf[1],szpsf[2])  ;;Calcul d'un spectrum 
           
-		; PI: i don't understand this bit at all... Jerome will fix
-        tmpx = floor(dx2L[0])
-        tmpy = floor(dy2L[0])
-          indxmin= (tmpx-(dimpsf-1)/2) > 0
+		; PI: i don't understand this bit at all... Jerome will check/explain
+		
+		tmpx = floor(dx2L[0]) ; whole X pixel of where the first peak is
+		tmpy = floor(dy2L[0]) ; whole Y pixel of where the first peak is
+		; goal is to put down a dimpsf by dimpsf box 
+		; where the psf array is properly aligned on top ?
+
+        indxmin= (tmpx-(dimpsf-1)/2) > 0 
                 indxmax= (tmpx+(dimpsf-1)/2-1) < (dim-1)
                 indymin= (tmpy-(dimpsf-1)/2) > 0
                 indymax= (tmpy+(dimpsf-1)/2-1) < (dim-1)
@@ -357,13 +356,11 @@ endif
 				; why is this piece only a 50x50 when everything else if 51x51 ? Jerome investigating
                 detector_array[indxmin:indxmax,indymin:indymax]+=  spectrum[indxmin+aa: indxmax+aa, indymin+bb:indymax+bb]
                 
-
-                psfmat=fltarr(n_elements(xchoiceind),nlam)
+; the aa and bb come into play here - im worried they're not correct!
+         psfmat=fltarr(n_elements(xchoiceind),nlam)
          for nelam=0,nlam-1 do begin
-                  
               for nbpix=0,n_elements(xchoiceind)-1 do $
                   psfmat[nbpix,nelam]=psfmlens2[xchoiceind[nbpix]+aa,ychoiceind[nbpix]+bb,nelam]
-                  
          endfor
 
 ;PI: What does this do?
@@ -372,34 +369,72 @@ endif
 		; create intensity array
         bbc=fltarr(n_elements(xchoiceind))
         for nel=0,n_elements(xchoiceind)-1 do bbc[nel]=det[xchoiceind[nel],ychoiceind[nel]]
-                
 		; this is just to look at the pixels being used in the extraction
-		if 1 eq 1 then begin 
+		if keyword_set(epsf_debug) eq 1 then begin 
 		  ; want to see the pixels being used for the intensity array
 		  ; don't wnat the entire 2048x2048, so just make it smaller 
           stamp=fltarr(dimpsf,dimpsf)
-		  for nel=0,n_elements(xchoiceind)-1 do stamp[xchoiceind[nel]-min(xchoiceind),ychoiceind[nel]-min(ychoiceind)]=det[xchoiceind[nel],ychoiceind[nel]]
+		  for nbpix=0,n_elements(xchoiceind)-1 do $
+				stamp[xchoiceind[nbpix]+aa,ychoiceind[nbpix]+bb]=det[xchoiceind[nbpix],ychoiceind[nbpix]]
 ; this is where you can check 
+		loadct,0
+		mag=10
+		window,2,xsize=dimpsf*mag,ysize=dimpsf*mag,title='stamp of detector pixels'
+		tvdl, stamp,min(stamp,/nan),max(stamp,/nan),/log
 		endif
         
 		
 		 ;;invert the PSF array and multiply by the intensity array to get flux
+; set to 1 to use svd (fast) or 0 to use nnls (slow)
+stop
+	if 0 eq 1 then begin 	
 
 ; Dmitry suggests "Depending on the machine and the array size, the LAPACK wrapper (LA_SVD) might give you a free speed boost."
-         SVDC, transpose(psfmat), W, U, V , /double
-         ; Compute the solution and print the result: 
-         if flagedge eq 1 then  flux= SVSOL(U, W, V, bbc, /double) else flux=fltarr(nlam)+!values.f_nan
-          
+; speedtest show the svdc step is ~50 times slower than the svsol step
+  SVDC, transpose(psfmat), W, U, V , /double
+  ; Compute the solution and print the result: 
+  if flagedge eq 1 then  flux= SVSOL(U, W, V, bbc, /double) else flux=fltarr(nlam)+!values.f_nan
+       
+	    endif else begin
+
+		; try using only positive coefficients
+		; FROM JEROME
+if flagedge eq 1 then  begin
+                       a=transpose(psfmat)  ; 13 by 95
+                       m=n_elements(xchoiceind) ; 95
+                       n=nlam ; 13
+                       b=bbc ; 95
+					   ; stupid code error/formalism in nnls makes this mandatory!
+					   ;
+					   x=fltarr(N_ELEMENTS(xchoiceind))
+                       w2=fltarr(nlam)
+                       indx=intarr(nlam+1)
+
+					   mode=1 
+					   rnorm=1
+                       nnls, a, m, n, b, x, rnorm, w2, indx, mode
+                       flux=x[0:nlam-1]
+; this never flagged - so i commented it
+;if mode ne 1 then stop
+endif else flux=fltarr(nlam)+!values.f_nan
+
+endelse ; pick a matrix inversion method
+	  
 		; PI: why is the 18 hard coded here?
          cubef3D[xsi,ysi,*]=flux*(float(nlam)/18.) ;this is normalized to take into account the number of slices we considered with respect to the length of spectra
          
         ; check the reconstruction?
-		 if 1 eq 1 then begin 
+		 if keyword_set(epsf_debug) eq 1 then begin 
 		   reconspec=fltarr(dimpsf,dimpsf)
-           for zl=0,nlam-1 do  reconspec+=flux[zl]*psfmlens2[*,*,zl]
+           for nbpix=0,n_elements(xchoiceind)-1 do for zl=0,nlam-1 do $
+				   reconspec[xchoiceind[nbpix]+aa,ychoiceind[nbpix]+bb]+=flux[zl]*psfmlens2[xchoiceind[nbpix]+aa,ychoiceind[nbpix]+bb,zl]
           ; want to make it so we can subtract the determined spectrum from the actual spectrum to look at residuals
-		  
+		  	mag=10
+		window,3,xsize=dimpsf*mag,ysize=dimpsf*mag,title='reconspec'
+		tvdl, reconspec,min(stamp,/nan),max(stamp,/nan),/log
+
 		 endif
+
   endfor ; end loop over lenslet (ysi)
   endfor ; end loop over lenslet (xsi)
 
@@ -421,7 +456,7 @@ if cleaning eq 1 then begin
 endif
 
 
-print,'Time to run extraction = '+strc(systime(1,/seconds)-time0)+' seconds)
+print,'Time to run extraction = '+strc(systime(1,/seconds)-time0)+' seconds'
 
   suffix='-spdci'
   ; put the datacube in the dataset.currframe output structure:
