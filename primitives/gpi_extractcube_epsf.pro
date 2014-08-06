@@ -134,21 +134,25 @@ psfmlens = psf & mkhdr, HeaderCalib,psf
   dimpsf=(size(psf))[1]          ;PI: isn't this just the gridnbpt variable above?
 szpsf = size(psf)
 
-        ;nlam defines how many spectral channels for the inversion 
-      	nlam=18.
-         
-        psfmlens2=fltarr(szpsfmlens,szpsfmlens,nlam)
-        lambda2=fltarr(nlam)
-        
-		; this uses the extremes - but this is configured using values so
-		; we can use the 50 or 80% throughput points instead
-		max_l=max(lambda)
-		min_l=min(lambda)
+; #################################################################
+; create placements in x,y,lambda where the ePSFs should be placed
+; #################################################################
 
-; if you do NOT want samples on the end use this
-        for qq=0,nlam-1 do lambda2[qq]=(max_l-min_l)/(nlam)*(qq+0.5)+min_l
-; if you DO want samples on the end use this
- for qq=0,nlam-1 do lambda2[qq]=(max_l-min_l)/(nlam-1)*(qq)+min_l
+;nlam defines how many spectral channels for the inversion 
+nlam=18.
+         
+psfmlens2=fltarr(szpsfmlens,szpsfmlens,nlam)
+lambda2=fltarr(nlam)
+        
+; this uses the extremes of the filter - but this is configured using values so
+; we can use the 50 or 80% throughput points instead
+max_l=max(lambda)
+min_l=min(lambda)
+
+; if you do NOT want samples on the maxima of the microspectra then use this
+for qq=0,nlam-1 do lambda2[qq]=(max_l-min_l)/(nlam)*(qq+0.5)+min_l
+; if you DO want samples on the maxima of the microspectra then use this
+for qq=0,nlam-1 do lambda2[qq]=(max_l-min_l)/(nlam-1)*(qq)+min_l
 
 ;		window,2
 ;        plot,lambda,lambda,xr=[1.45,1.85],/xs
@@ -177,28 +181,25 @@ szpsf = size(psf)
 
 bad_pix_count=0 
          ; do the inversion extraction for all lenslets
-;for xsi=0,nlens-1 do begin    
-;  print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
-;     for ysi=0,nlens-1 do begin   
+for xsi=0,nlens-1 do begin    
+  print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
+     for ysi=0,nlens-1 do begin   
 
 ;this is for just a single lenslet
- for xsi=103,103 do begin    
-  print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
-     for ysi=204,204 do begin   
-epsf_debug=1
-
-
-
-    ; get the locations on the image where intensities will be extracted:
-     x3=xloctab[xsi,ysi,0]  ;xmini[xsi,ysi]
-     y3= yloctab[xsi,ysi,0]  ;wavcal[xsi,ysi,1]+(wavcal[xsi,ysi,0]-x3)*tan(tilt[xsi,ysi])	
+; for xsi=103,103 do begin    
+;  print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
+;     for ysi=204,204 do begin   
+;epsf_debug=1
 
 
 ; This checks if there is a spectrum associated with the spaxel (takes care of oodles of NaN's in image) 
 ; this can definitely be sped up
-if finite(x3) eq 0 then continue
-if finite(y3) eq 0 then continue
-if (x3 lt 0) or (x3 ge 2048) or (y3 le 1) or (y3 ge 2048) then continue
+if finite(xloctab[xsi,ysi,0]) eq 0 then continue
+if finite(yloctab[xsi,ysi,0]) eq 0 then continue
+;verify the xvalues are within range
+if (xloctab[xsi,ysi,0] lt 0) or (xloctab[xsi,ysi,0] ge 2048) then continue
+;verify the yvalues are within range
+if (yloctab[xsi,ysi,0] le 1) or (yloctab[xsi,ysi,0] ge 2048) then continue
 ; original
 ;  if finite(x3) && finite(y3) && (x3 gt 0) && (x3 lt 2048) && (y3 gt 1) && (y3 lt 2048) then continue
  
@@ -208,12 +209,13 @@ if (x3 lt 0) or (x3 ge 2048) or (y3 le 1) or (y3 ge 2048) then continue
 ; put highres psf in common block for fitting
 c_psf = (*ptr_obj_psf).values
 
-	epsf_subsamp=5.0 ; epsf is sampled 5 times higher in each direction than the detector psf
 			
 ; the psfs have residual crosstalk terms in the corners
 ; normal usage of chopping hte image into sections somewhat removes this
 ; but this isn't performed here, so i'll just set the other bits to zero
 ; this is a terribly dirty hack and must be fixed.
+
+epsf_subsamp=5.0 ; epsf is sampled 5 times higher in each direction than the detector psf
 
 ; PI: want to mask out the pixels that are too far from the peak
 ; this is horribly dirty and should actually be taken care of in the ePSF - not here
@@ -238,9 +240,13 @@ c_y_vector_psf_min = min((*ptr_obj_psf).ycoords)
 ;PI : I am not sure why this is rounded... it's rounded in my code as well.. but i have no idea why... 
 c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
 
- 
 
- ;;; THIS ENTIRE SECTION NEEDS TO BE REDONE
+; #####################################################
+;	Determine which pixels go into the intensity array
+; #####################################################
+
+; THIS ENTIRE SECTION NEEDS TO BE REDONE
+; it is sloppy and inefficient
 
       ;choice of pixels for the inversion
       xchoiceind=[0.]   ; these are actually coordinates not indicies of arrays
@@ -284,42 +290,34 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
         endfor
       endif
       
-
-; now must remove the bad pixels from the array
+; remove the bad pixels from the intensity array
 ; surely there is a move clever way to do this
-; it does not appear to slow things down much (~1.5s our of 78)
+; it does not appear to slow things down much (~1.5s our of 78s)
  
 if 1 eq 1 then begin
 ind=-1
-
-;for v=0,N_ELEMENTS(xchoiceind)-1 do if (*dataset.currdq[0])[xchoiceind[v],ychoiceind[v]] ne 0 then ind=[ind,[v]]
-;for v=0,N_ELEMENTS(xchoiceind)-1 do if badpixmap[xchoiceind[v],ychoiceind[v]] ne 0 then ind=[ind,[v]]
-
-; the DQ mask 
-
-
+; check the DQ mask for bad pixels 
 for v=0,N_ELEMENTS(xchoiceind)-1 do if bad_pix_mask[xchoiceind[v],ychoiceind[v]] ne 0 or finite((*dataset.currframe[0])[xchoiceind[v],ychoiceind[v]]) eq 0  then ind=[ind,[v]]
 
 if N_ELEMENTS(ind) gt 1 then begin
-;if xsi eq 146 && ysi eq 113 then stop
-;if xsi eq 137 && ysi eq 110 then stop
-	;chop off the -1
+	;chop off the -1 at the beginning of the array
 	ind=ind[1:*]
 	remove,ind,xchoiceind,ychoiceind
 	bad_pix_count+=N_ELEMENTS(ind)
-	
-	;choose which slice will be the most affected by the bp
-	
-
 endif
 	
 endif
 ;;;; END SECTION THAT NEEDS REWRITE
 
-; get the pixel positions of the chosen wavelengths
+; get the pixel positions of the chosen wavelengths to place the ePSFs
     dx2L=reform(xloctab[xsi,ysi,*] )
     dy2L=(reform(yloctab[xsi,ysi,*] ))  
-				
+
+
+; #################################################
+;	begin looping over the individual microspectra
+; #################################################
+
 ; now loop over the number of chosen psfs per lenset
 		for nl=0,nlam-1 do begin            
              ; get the detector sampled mlens psf for the given position
@@ -364,7 +362,15 @@ endif
          endfor
 
 ;PI: What does this do?
-    if ((tmpx-larg) lt 0) OR  ((tmpx+larg) ge (dim-1)) OR (tmpy lt 0) OR ((tmpy+longu-1) ge (dim-1)) then  flagedge=0 else flagedge=1
+; Is this checking to see if the spectrum and box goes off the detector?
+;    if ((tmpx-larg) lt 0) OR  ((tmpx+larg) ge (dim-1)) OR (tmpy lt 0) OR ((tmpy+longu-1) ge (dim-1)) then flagedge=0 else flagedge=1  ; original
+
+; if it goes off the edge we're ignoring it anyways, so might as well just set the flux to !Nan here and continue
+if ((tmpx-larg) lt 0) OR  ((tmpx+larg) ge (dim-1)) OR (tmpy lt 0) OR ((tmpy+longu-1) ge (dim-1)) then begin
+		; this spectrum runs off the detector, setting it to nan
+		cubef3D[xsi,ysi,*]=!values.f_nan
+		continue
+endif
 
 		; create intensity array
         bbc=fltarr(n_elements(xchoiceind))
@@ -383,42 +389,39 @@ endif
 		tvdl, stamp,min(stamp,/nan),max(stamp,/nan),/log
 		endif
         
-		
-		 ;;invert the PSF array and multiply by the intensity array to get flux
-; set to 1 to use svd (fast) or 0 to use nnls (slow)
-stop
-	if 0 eq 1 then begin 	
+		; #################
+		; Matrix inversion
+		; #################
+		; invert the PSF array and multiply by the intensity array to get flux
+		; can currently switch between two options svd or nnls
 
-; Dmitry suggests "Depending on the machine and the array size, the LAPACK wrapper (LA_SVD) might give you a free speed boost."
-; speedtest show the svdc step is ~50 times slower than the svsol step
-  SVDC, transpose(psfmat), W, U, V , /double
-  ; Compute the solution and print the result: 
-  if flagedge eq 1 then  flux= SVSOL(U, W, V, bbc, /double) else flux=fltarr(nlam)+!values.f_nan
-       
-	    endif else begin
+		 ; set to 1 to use svd (fast) or 0 to use nnls (slow)
+		if 1 eq 1 then begin 	
+
+			; Dmitry suggests "Depending on the machine and the array size, the LAPACK wrapper (LA_SVD) might give you a free speed boost."
+			; speedtest show the svdc step is ~50 times slower than the svsol step
+			SVDC, transpose(psfmat), W, U, V , /double
+			; Compute the solution and print the result: 
+  			flux= SVSOL(U, W, V, bbc, /double) 
+        endif else begin
 
 		; try using only positive coefficients
 		; FROM JEROME
-if flagedge eq 1 then  begin
-                       a=transpose(psfmat)  ; 13 by 95
-                       m=n_elements(xchoiceind) ; 95
-                       n=nlam ; 13
-                       b=bbc ; 95
-					   ; stupid code error/formalism in nnls makes this mandatory!
-					   ;
-					   x=fltarr(N_ELEMENTS(xchoiceind))
-                       w2=fltarr(nlam)
-                       indx=intarr(nlam+1)
-
-					   mode=1 
-					   rnorm=1
-                       nnls, a, m, n, b, x, rnorm, w2, indx, mode
-                       flux=x[0:nlam-1]
-; this never flagged - so i commented it
-;if mode ne 1 then stop
-endif else flux=fltarr(nlam)+!values.f_nan
-
-endelse ; pick a matrix inversion method
+			a=transpose(psfmat)  ; 13 by 95
+            m=n_elements(xchoiceind) ; 95
+            n=nlam ; 13
+            b=bbc ; 95
+			; stupid code error/formalism in nnls makes this mandatory!
+		    x=fltarr(N_ELEMENTS(xchoiceind))
+            w2=fltarr(nlam)
+            indx=intarr(nlam+1)
+			mode=1 
+			rnorm=1
+            nnls, a, m, n, b, x, rnorm, w2, indx, mode
+            flux=x[0:nlam-1]
+			; this never flagged - so i commented it
+			; if mode ne 1 then stop
+		endelse ; pick a matrix inversion method
 	  
 		; PI: why is the 18 hard coded here?
          cubef3D[xsi,ysi,*]=flux*(float(nlam)/18.) ;this is normalized to take into account the number of slices we considered with respect to the length of spectra
@@ -427,19 +430,27 @@ endelse ; pick a matrix inversion method
 		 if keyword_set(epsf_debug) eq 1 then begin 
 		   reconspec=fltarr(dimpsf,dimpsf)
            for nbpix=0,n_elements(xchoiceind)-1 do for zl=0,nlam-1 do $
-				   reconspec[xchoiceind[nbpix]+aa,ychoiceind[nbpix]+bb]+=flux[zl]*psfmlens2[xchoiceind[nbpix]+aa,ychoiceind[nbpix]+bb,zl]
-          ; want to make it so we can subtract the determined spectrum from the actual spectrum to look at residuals
+				   reconspec[xchoiceind[nbpix]+aa,ychoiceind[nbpix]+bb]+=$
+				   flux[zl]*psfmlens2[xchoiceind[nbpix]+aa,ychoiceind[nbpix]+bb,zl]
+          ; want to make it so we can subtract the determined spectrum from
+		  ; the actual spectrum to look at residuals
 		  	mag=10
-		window,3,xsize=dimpsf*mag,ysize=dimpsf*mag,title='reconspec'
-		tvdl, reconspec,min(stamp,/nan),max(stamp,/nan),/log
-
+			window,3,xsize=dimpsf*mag,ysize=dimpsf*mag,title='reconspec'
+			tvdl, reconspec,min(stamp,/nan),max(stamp,/nan),/log
 		 endif
 
-  endfor ; end loop over lenslet (ysi)
-  endfor ; end loop over lenslet (xsi)
+endfor ; end loop over lenslet (ysi)
+endfor ; end loop over lenslet (xsi)
 
+; ##################################
+; Bad spaxel interpolation option
+; ##################################
+; this code is meant to interpolate spaxels that were heavily affected by
+; bad pixels by interpolating over the ~9 surrounding pixels
+
+; Jerome - this needs more 
 ;; do you want to clean for bad pixels ?
-cleaning=1
+cleaning=0
 if cleaning eq 1 then begin
   print,'bad_pix_count = '+strc(bad_pix_count)
   indbp=where((cubef3dbpix eq 1) OR (cubef3d lt 0),cbp)
