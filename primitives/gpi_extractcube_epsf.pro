@@ -31,7 +31,7 @@
 function gpi_extractcube_epsf, DataSet, Modules, Backbone
 
 
-primitive_version= '$Id: gpi_extractcube_epsf.pro 2511 2014-02-11 05:57:27Z maire $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 ;calfiletype='mlenspsf' 
 calfiletype='epsf' 
 
