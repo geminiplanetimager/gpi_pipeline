@@ -35,7 +35,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	;get the datacube from the dataset.currframe
 	cubef3D=*(dataset.currframe[0])
-        
+       
 	;get the common wavelength vector
     filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
     ;error handle if extractcube not used before
@@ -58,9 +58,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	nlens=(size(wavcal))[1]
   
         ;need to check if it comes from the inversion method
-       naxis3 = gpi_simplify_keyword_value(backbone->get_keyword('NAXIS3', count=invct))
+       
+       cdelt3 = gpi_simplify_keyword_value(backbone->get_keyword('CDELT3', count=invct))
         if invct gt 0 then begin
-       cdelt3 = gpi_simplify_keyword_value(backbone->get_keyword('CDELT3', count=ct))
+       naxis3 = gpi_simplify_keyword_value(backbone->get_keyword('NAXIS3', count=ct))
         crpix3 = gpi_simplify_keyword_value(backbone->get_keyword('CRPIX3', count=ct))
         crval3 = gpi_simplify_keyword_value(backbone->get_keyword('CRVAL3', count=ct))
            lambint=CRVAL3+float(cdelt3)*(findgen((size(cubef3D))[3]))
