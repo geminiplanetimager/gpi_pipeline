@@ -30,9 +30,11 @@
 ;
 ; HISTORY:
 ;  2009-07-21: MDP Started 
-;    2009-09-17 JM: added DRF parameters
-;    2013-01-30: updated with some new keywords
-;    2014-03 MP and MM-B: Polarization coordinates and angles verification and debug
+;  2009-09-17 JM: added DRF parameters
+;  2013-01-30: updated with some new keywords
+;  2014-03 MP and MM-B: Polarization coordinates and angles verification and debug
+;  2014-08-18 MPF: some formatting cleanup, added sanity check, fixed
+;    which header was used for output file
 ;-
 
 
@@ -49,15 +51,15 @@ function gpi_combine_polarization_sequence, DataSet, Modules, Backbone
   nfiles = dataset.validframecount
 
   ;; Load the first file so we can figure out their dimensions, etc. 
-  im0 = accumulate_getimage(dataset, 0, hdr0, hdrext = hdrext)
+  im0 = accumulate_getimage(dataset, 0, hdr0, hdrext = hdrext0)
 
 
   ;; Load all files at once. 
   M = fltarr(4, nfiles*2) ; this will be the measurement matrix of coefficients for the Stokes parameters.
   Msumdiff = fltarr(4, nfiles*2) ; a similar measurement matrix, for the sum and single-difference images. 
 
-  sz = [0, sxpar(hdrext, 'NAXIS1'), sxpar(hdrext, 'NAXIS2'), sxpar(hdrext, 'NAXIS3')]
-  exptime = gpi_get_keyword( hdr0, hdrext, 'ITIME') 
+  sz = [0, sxpar(hdrext0, 'NAXIS1'), sxpar(hdrext0, 'NAXIS2'), sxpar(hdrext0, 'NAXIS3')]
+  exptime = gpi_get_keyword( hdr0, hdrext0, 'ITIME') 
   polstack = fltarr(sz[1], sz[2], sz[3]*nfiles)
 
 
@@ -96,17 +98,27 @@ function gpi_combine_polarization_sequence, DataSet, Modules, Backbone
   woll_mueller_horiz = mueller_linpol_rotated(0, /degrees)
     
   ;;Getting Filter Information
-  filter = gpi_simplify_keyword_value(sxpar(hdr0, "IFSFILT"))
+  filter0 = gpi_simplify_keyword_value(sxpar(hdr0, "IFSFILT"))
   tabband = ['Y', 'J', 'H', 'K1', 'K2']
-  if where(strcmp(tabband, filter) eq 1) lt 0 then return, error('FAILURE ('+functioname+'): IFSFILT keyword invalid. No HWP mueller matrix for that filter')
+  if where(strcmp(tabband, filter0) eq 1) lt 0 then return, error('FAILURE ('+functioname+'): IFSFILT keyword invalid. No HWP mueller matrix for that filter')
     
-  if (include_mueller eq 1) then system_mueller = DST_instr_pol(/mueller, pband = filter, port = port) else system_mueller = identity(4)
+  if (include_mueller eq 1) then system_mueller = DST_instr_pol(/mueller, pband = filter0, port = port) else system_mueller = identity(4)
+
+  bunit0 = backbone -> get_keyword('BUNIT')
+  itime0 = backbone -> get_keyword('ITIME')
 
   for i = 0L, nfiles-1 do begin
-    polstack[0, 0, i*2] = accumulate_getimage(dataset, i, hdr0, hdrext = hdrext)
+    ;; perform stack
+    polstack[0, 0, i*2] = accumulate_getimage(dataset, i, hdr, hdrext = hdrext)
+
+    ;; sanity checks
+    if gpi_simplify_keyword_value(sxpar(hdr, 'IFSFILT')) ne filter0 then return, error('Image '+strc(i+1)+' has different filter (IFSFILT keyword) than first image in sequence. Cannot combine!')
+    if sxpar(hdrext, 'BUNIT') ne bunit0 then return, error('Image '+strc(i+1)+' has different units (BUNIT keyword) than first image in sequence. Cannot combine!')
+    if sxpar(hdrext, 'ITIME') ne itime0 then return, error('Image '+strc(i+1)+' has different integration time (ITIME keyword) than first image in sequence. Cannot combine!')
+
     
-    wpangle[i] = -(float(sxpar(hdr0, "WPANGLE"))-float(Modules[thisModuleIndex].HWPOffset)) ;Include the known offset
-    parang = sxpar(hdr0, "PAR_ANG") ; we want the original, not rotated or de-rotated
+    wpangle[i] = -(float(sxpar(hdr, "WPANGLE"))-float(Modules[thisModuleIndex].HWPOffset)) ;Include the known offset
+    parang = sxpar(hdr, "PAR_ANG") ; we want the original, not rotated or de-rotated
                                 ; since that's what set's how the
                                 ; polarizations relate to the sky
                                 ; FIXME this should be updated to AVPARANG
@@ -114,12 +126,12 @@ function gpi_combine_polarization_sequence, DataSet, Modules, Backbone
     backbone -> Log, logmsg
     sxaddhist, functionname+":"+logmsg, hdr0
  
-    wp_mueller = mueller_gpi_waveplate(angle = wpangle[i], ifsfilt = filter, /degrees)
+    wp_mueller = mueller_gpi_waveplate(angle = wpangle[i], ifsfilt = filter0, /degrees)
 		
 		  
     if include_sky eq 1 then skyrotation_mueller =  mueller_rot((parang+90-18.5)*!dtor) else skyrotation_mueller = identity(4)
     
-;    object=sxpar(hdr0, 'OBJECT') 
+;    object=sxpar(hdr, 'OBJECT') 
 ;    if strcmp(strcompress(object), 'Zenith ') eq 1 and include_sky eq 1 then begin ;If we aren't tracking then don't trust the parallactic angle. 
 ;      skyrotation_mueller =  mueller_rot((90-18.5)*!dtor)
 ;      print, 'Ignoring the parallactic angles'
@@ -296,20 +308,20 @@ function gpi_combine_polarization_sequence, DataSet, Modules, Backbone
 ;
 ;	stop
 ;
-  sxaddhist, functionname+": Updating WCS header", hdrext
+  sxaddhist, functionname+": Updating WCS header", hdrext0
   ;; Assume all the rest of the WCS keywords are still OK...
   sz = size(Stokes)
-  sxaddpar, hdrext, "NAXIS", sz[0], /saveComment
-  sxaddpar, hdrext, "NAXIS1", sz[1], /saveComment
-  sxaddpar, hdrext, "NAXIS2", sz[2], /saveComment
-  sxaddpar, hdrext, "NAXIS3", sz[3], /saveComment
+  sxaddpar, hdrext0, "NAXIS", sz[0], /saveComment
+  sxaddpar, hdrext0, "NAXIS1", sz[1], /saveComment
+  sxaddpar, hdrext0, "NAXIS2", sz[2], /saveComment
+  sxaddpar, hdrext0, "NAXIS3", sz[3], /saveComment
 
-  sxaddpar, hdrext, "CTYPE3", "STOKES",  "Polarization"
-  sxaddpar, hdrext, "CUNIT3", "N/A",     "Polarizations"
-  sxaddpar, hdrext, "CRVAL3", 1,              " Stokes axis:  I Q U V "
-  sxaddpar, hdrext, "CRPIX3", 0,         "Reference pixel location"
-  sxaddpar, hdrext, "CDELT3", 1,              " Stokes axis:  I Q U V "
-  sxaddpar, hdrext, "PC3_3", 1, "Stokes axis is unrotated"
+  sxaddpar, hdrext0, "CTYPE3", "STOKES",  "Polarization"
+  sxaddpar, hdrext0, "CUNIT3", "N/A",     "Polarizations"
+  sxaddpar, hdrext0, "CRVAL3", 1,              " Stokes axis:  I Q U V "
+  sxaddpar, hdrext0, "CRPIX3", 0,         "Reference pixel location"
+  sxaddpar, hdrext0, "CDELT3", 1,              " Stokes axis:  I Q U V "
+  sxaddpar, hdrext0, "PC3_3", 1, "Stokes axis is unrotated"
 
 
 
@@ -318,7 +330,7 @@ function gpi_combine_polarization_sequence, DataSet, Modules, Backbone
 ;stop
 ; endif else begin
   *(dataset.headersPHU[numfile]) = hdr0
-  *(dataset.headersExt[numfile]) = hdrext
+  *(dataset.headersExt[numfile]) = hdrext0
 
   backbone -> set_keyword, 'DRPNFILE', nfiles, "# of files combined to produce this output file"
 
