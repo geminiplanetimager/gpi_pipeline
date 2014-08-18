@@ -14,7 +14,7 @@ mems_rotation                           <float>                         The rota
                                                                         the satellite spots, such that the rotation of the dark hole in the processed IFS cubes 
                                                                         is given by SO3(\theta) where \theta = mean(satang) - memsrot, and satang is 
                                                                         the array of the calculated rotations of the four satellite spots.  
-                                                                        This value is currently empirically determined to be 1 degree, and has units of radians.
+                                                                        This value is supplied in radians. Current empirical estimates place it at 0.01745 (1 degree).
 pix_to_ripple                           <float>                         Twice the number of pixels between the image center (defined as the center of the sat 
                                                                         spots) and the MEMS ripple (i.e., twice the distance to the highest controllable 
                                                                         frequency).  Note that this is a lateral and not radial measurement (i.e., the edge 
