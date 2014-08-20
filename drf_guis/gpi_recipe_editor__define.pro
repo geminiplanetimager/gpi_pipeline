@@ -647,8 +647,8 @@ pro gpi_recipe_editor::event,ev
 	if (tag_names(ev, /structure_name) EQ 'WIDGET_LIST') then begin
 		if ev.clicks eq 2 then begin
 			filename = (self.drf->get_datafiles(/absolute))[ev.index]
-			gpitv, ses=self.session+1,  filename
-			message, 'Opening in GPITV #'+strc(self.session+1)+" : "+filename,/info
+			gpitv, ses=self.session,  filename
+			message, 'Opening in GPITV #'+strc(self.session)+" : "+filename,/info
 		endif
 	endif
   
