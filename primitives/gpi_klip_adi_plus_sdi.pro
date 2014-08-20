@@ -22,10 +22,10 @@
 ; PIPELINE ARGUMENT: Name="numthreads" Type="int" Range="[1,10000]" Default="5" Desc="Number of parallel processes to run KLIP calculation"
 ; PIPELINE ARGUMENT: Name="annuli" Type="int" Range="[0,100]" Default="5" Desc="Number of annuli to use"
 ; PIPELINE ARGUMENT: Name="subsections" Type="int" Range="[1,10]" Default="4" Desc="Number of equal area subsections to break up each annulus into"
-; PIPELINE ARGUMENT: Name="numbasis" Type="int" Range="[1,10000]" Default="20" Desc="Number of KL transform vectors to use"
+; PIPELINE ARGUMENT: Name="prop" Type="float" Range="[0.8,1.0]" Default=".99999" Desc="Proportion of eigenvalues used to truncate KL transform vectors"
 ; PIPELINE ARGUMENT: Name="minsep" Type="float" Range="[0.0,250]" Default="3" Desc="Minimum separation between slices (pixels)"
-; PIPELINE ARGUMENT: Name="minPA" Type="float" Range="[0.0,6.284]" Default="0.0" Desc="Minimum parallactic rotation for constructing reference PSF (good for disk targets)"
-; PIPELINE ARGUMENT: Name="waveclip" Type="int" Range="[0,18]" Default="3" Desc="Number of wavelength slices at the beginning and end of each cube to ignore"
+; PIPELINE ARGUMENT: Name="minPA" Type="float" Range="[0.0,360]" Default="0.0" Desc="Minimum parallactic rotation (in degrees) for constructing reference PSF (good for disk targets)"
+; PIPELINE ARGUMENT: Name="waveclip" Type="int" Range="[0,18]" Default="2" Desc="Number of wavelength slices at the beginning and end of each cube to ignore"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="5" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.2
 ; PIPELINE CATEGORY: SpectralScience
@@ -70,7 +70,7 @@ locs = dblarr(2,4,nlam,nfiles)
 cens = dblarr(2,nlam,nfiles)
 for j = 0, nfiles - 1 do begin
 	print, "getting header keywords for file", j
- PAs[j] = double(backbone->get_keyword('AVPARANG', indexFrame=j ,count=ct))
+ PAs[j] = double(backbone->get_keyword('AVPARANG', indexFrame=j ,count=ct)) * !DtoR
  if ct eq 0 then return, error('FAILURE ('+functionName+'): Missing average parallactic angle.')
  
  if (backbone->get_keyword('NAXIS3',indexFrame=j) ne nlam) then $
@@ -91,10 +91,10 @@ endfor
 numthreads=long(Modules[thisModuleIndex].numthreads)
 annuli=long(Modules[thisModuleIndex].annuli)
 minsep=double(Modules[thisModuleIndex].minsep)
-;prop=double(Modules[thisModuleIndex].prop)
-numbasis=double(Modules[thisModuleIndex].numbasis)
+prop=double(Modules[thisModuleIndex].prop)
+;numbasis=double(Modules[thisModuleIndex].numbasis)
 subsections=double(Modules[thisModuleIndex].subsections)
-minPA=double(Modules[thisModuleIndex].minPA)
+minPA=double(Modules[thisModuleIndex].minPA) * !DtoR
 waveclip=double(Modules[thisModuleIndex].waveclip)
 
 ;;get the status console and number of modules
@@ -177,7 +177,7 @@ endif else begin
 	;; do this by slice
 	for lam = 0 + waveclip,nlam-1-waveclip do begin
 
-		print, "!!!Wavelength slice", lam
+		print, "Wavelength slice", lam
 
 		R0 = dblarr(dim[0]*dim[1],nlam,nfiles)
 		
@@ -222,27 +222,26 @@ endif else begin
 				;;rad range: rads[radcount]<= R <rads[radcount+1]
 				meanrad = (rads[radcount]+rads[radcount+1])/2.
 				radinds = where( (rs ge rads[radcount]) and (rs lt rads[radcount+1]) and (phis ge phi_i*dphi-!Pi) and (phis lt (phi_i+1)*dphi-!Pi) )
-				;R = R0[radinds,*] ;;ref set
+				R = R0[radinds,*] ;;ref set
 				;
 				;;check that you haven't just grabbed a blank annulus
-				;if (total(finite(R)) eq 0) then begin 
-				;   statuswindow->set_percent,-1,double(nfiles)/totiter*100d/nummodules,/append
-				;   continue
-				;endif 
+				if (total(finite(R)) eq 0) then begin 
+				   statuswindow->set_percent,-1,double(nfiles)/totiter*100d/nummodules,/append
+				   continue
+			    endif 
 				;
 				;;;create mean subtracted versions and get rid of NaNs
-				;mean_R_dim1=dblarr(N_ELEMENTS(R[0,*]))                        
-				;for zz=0,N_ELEMENT78S(R[0,*])-1 do mean_R_dim1[zz]=mean(R[*,zz],/double,/nan)
-				;R_bar = R-matrix_multiply(replicate(1,n_elements(radinds),1),mean_R_dim1,/btranspose)
-				;naninds = where(R_bar ne R_bar,countnan)
-				;if countnan ne 0 then begin 
-				;   R[naninds] = 0
-				;   R_bar[naninds] = 0
-				;   naninds = array_indices(R_bar,naninds)
-				;endif
-				;
+				mean_R_dim1=dblarr(N_ELEMENTS(R[0,*]))                        
+				for zz=0,N_ELEMENTS(R[0,*])-1 do mean_R_dim1[zz]=mean(R[*,zz],/double,/nan)
+				R_bar = R-matrix_multiply(replicate(1,n_elements(radinds),1),mean_R_dim1,/btranspose)
+				naninds = where(R_bar ne R_bar,countnan)
+				if countnan ne 0 then begin 
+				   R_bar[naninds] = 0
+				   naninds = array_indices(R_bar,naninds)
+				endif
+				
 				;;;find covariance of all slices
-				;covar0 = matrix_multiply(R_bar,R_bar,/atranspose)/(n_elements(radinds)-1d0) 
+				covar0 = matrix_multiply(R_bar,R_bar,/atranspose)/(n_elements(radinds)-1d0) 
 				
 				;;PSF subtract for each file
 				for imnum = 0,nfiles-1 do begin
@@ -252,7 +251,17 @@ endif else begin
 
 					;;figure out which images are to be used
 					;;assuming a planet is in the middle of the annulus, where can we avoid self-subtraction
-					fileinds = where( (sqrt(((PAs_wv - PAs[imnum])*meanrad)^2 + (	lambda_moves_file[*,radcount] - lambda_moves[lam,radcount])^2 ) gt minsep) and (abs(PAs_wv - PAs[imnum]) ge minPA) and (waveslice_files ge waveclip) and (waveslice_files lt nlam-waveclip) , count)
+                    ;;place science image section +x axis
+                    x_sci = meanrad
+                    y_sci = 0
+                    ;;calculate coordinate of center of section for each reference PSF
+                    r_ref = meanrad * (lambda[lam] / lambda_files)
+                    theta_ref = PAs_wv - PAs[imnum] 
+                    x_ref = r_ref * cos(theta_ref)
+                    y_ref = r_ref * sin(theta_ref)
+                    moves = sqrt((x_sci - x_ref)^2 + (y_sci - y_ref)^2)
+					;fileinds = where( (sqrt(( sqrt(2 * (1.0-cos(PAs_wv - PAs[imnum]))) * meanrad)^2 + (	lambda_moves_file[*,radcount] - lambda_moves[lam,radcount])^2 ) gt minsep) and (abs(PAs_wv - PAs[imnum]) ge minPA) and (waveslice_files ge waveclip) and (waveslice_files lt nlam-waveclip) , count)
+					fileinds = where( (moves ge minsep) and (abs(PAs_wv - PAs[imnum]) ge minPA) and (waveslice_files ge waveclip) and (waveslice_files lt nlam-waveclip) , count)
 					print, "Number of files for ref PSF: ", count
 					if count lt 2 then begin 
 						logstr = 'No reference slices available for requested motion. Skipping.'
@@ -269,19 +278,22 @@ endif else begin
 					;;T = R_bar[*,imnum*nlam+lam]
 					;;T = R[*,ref_value]
 					;
-					;;create mean subtracted versions and get rid of NaNs
-					R = R0[radinds, *]
-					R = R[*,fileinds]
+					;create mean subtracted versions and get rid of NaNs
+					refs = R[*,fileinds]
 					
+                    ;grab covariance submatrix
+					covar = covar0[fileinds,*]
+					covar = covar[*,fileinds]
+
 					;;find the next free thread
 					loopcount = 0
-					print, "checking thread", nextthread
+					;print, "checking thread", nextthread
 					while (*threads[nextthread])->status() eq 1 do begin
 						if loopcount ge numthreads then wait, 0.07*nfiles
 						nextthread += 1
 						nextthread = nextthread mod numthreads
 						loopcount += 1
-						print, "checking thread", nextthread
+						;print, "checking thread", nextthread
 					endwhile
 					
 					;;take the ouput of the job that just finished and write it
@@ -297,11 +309,12 @@ endif else begin
 					;;add the new job
 					print, "add job to thread", nextthread
 					(*threads[nextthread])->setvar, 'image', T0[radinds]
-					(*threads[nextthread])->setvar, 'refs', R
-					(*threads[nextthread])->setvar, 'numbasis', numbasis
+					(*threads[nextthread])->setvar, 'refs', refs
+					(*threads[nextthread])->setvar, 'prop', prop
 					(*threads[nextthread])->setvar, 'index', imnum
-					(*threads[nextthread])->execute, 'image = klip_math(image, refs, numbasis)', /nowait
-					print, "thread status", (*threads[nextthread])->status()
+					(*threads[nextthread])->setvar, 'covar', covar
+					(*threads[nextthread])->execute, 'image = klip_math(image, refs, prop, covar=covar)', /nowait
+					;print, "thread status", (*threads[nextthread])->status()
 					
 					;mean_R_dim1=dblarr(N_ELEMENTS(R[0,*]))                        
 					;for zz=0,N_ELEMENTS(R[0,*])-1 do mean_R_dim1[zz]=mean(R[*,zz],/double,/nan)
@@ -355,7 +368,7 @@ endif else begin
 				print, 'waiting for the rest of the threads to finish before moving on'
 				for thread = 0, numthreads-1 do begin
 					;;find the next free thread
-					print, 'waiting for', thread
+					;print, 'waiting for', thread
 					while (*threads[thread])->status() eq 1 do begin
 						wait, 0.1*nfiles
 					endwhile

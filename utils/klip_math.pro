@@ -1,4 +1,4 @@
-function klip_math, image, ref_psf, numbasis
+function klip_math, image, ref_psf, prop, covar=covar
 ;+
 ; NAME:
 ;        klip_math
@@ -18,12 +18,13 @@ function klip_math, image, ref_psf, numbasis
 ;        ref_psf - an p x N matrix of the N reference PSFs that 
 ;                  also contain p pixels
 ;        subtracted_img - an array of length 'p' that is the subtracted science image
-;        numbasis - number of KLIP basis vectors to use
+;        prop - proportion of KL basis vectors to use [0,1]
+;        covar - precalculated covariance matrix for these reference PSFs
 ;
 ; OPTIONAL INPUT:
 ;        None at the moment
 ; DEPENDENCIES:
-; eigenql.pro
+; la_eigenql.pro
 ;
 ; REVISION HISTORY
 ;        Wrttien 07/03/2014. Refactored for parallelization -jasonwang
@@ -45,8 +46,11 @@ if countnan ne 0 then begin
    naninds = array_indices(R_bar,naninds)
 endif
 
-;;find covariance of all slices
-covar = matrix_multiply(R_bar,R_bar,/atranspose)/(n_elements(image)-1d0) 
+;;find covariance of all slices if not passed in
+if not keyword_set(covar) then begin
+    covar = matrix_multiply(R_bar,R_bar,/atranspose)/(n_elements(image)-1d0) 
+endif
+   
 
 ;;get the eigendecomposition
 ;residual = 1         ;initialize the residual
@@ -54,12 +58,12 @@ covar = matrix_multiply(R_bar,R_bar,/atranspose)/(n_elements(image)-1d0)
 evals = la_eigenql(covar,eigenvectors=evecs,/double)  
 
 ;;determines which eigenalues to truncate
-;evals_cut = where(total(evals,/cumulative) gt prop*total(evals))
-;K = evals_cut[0]
-;	print, "truncating at eigenvalue", K
+evals_cut = where(total(evals,/cumulative) gt prop*total(evals))
+K = evals_cut[0]
+;print, "truncating at eigenvalue", K
 ;if K eq -1 then continue
 maxbasis = (size(covar,/dim))[0]-1
-K = min([numbasis,maxbasis])
+;K = min([numbasis,maxbasis])
 
 ;;creates mean subtracted and truncated KL transform vectors
 ;Z = evecs ## R_bar[*,fileinds]
