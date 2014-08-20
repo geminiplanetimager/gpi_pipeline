@@ -173,8 +173,9 @@ PRO launcher::queue, cmdstr, _extra=_extra
 	endfor
 
 	if status eq 0 then begin
-		message,/info, "ERROR: could not get a lock on the inter-IDL queue semaphore after 10 tries"
+		message,/info, "ERROR: could not get a lock on the inter-IDL queue semaphore after 10 tries."
 		message,/info, "       Failed to queue command "+cmdstr
+        message,/info, "If the lock on the inter-IDL queue is not being released properly, use the pipeline setting launcher_force_semaphore_name to pick a different lock."
         if ~gpi_get_setting('launcher_ignore_queue_failures',/bool, default=0) then begin
             message,/info, "Returning without queueing. Set launcher_ignore_queue_failures=1 if you want to continue anyway."
             return
@@ -244,7 +245,8 @@ PRO launcher::unlock_queue
 
 
     if status eq 0 then begin
-        message,/info, "ERROR: could not get a lock on the inter-IDL queue semaphore after 10 tries"
+        message,/info, "ERROR: could not get a lock on the inter-IDL queue semaphore after 10 tries."  
+        message,/info, "If the lock on the inter-IDL queue is not being released properly, use the pipeline setting launcher_force_semaphore_name to pick a different lock."
         return
     endif
 
@@ -341,6 +343,7 @@ PRO launcher::clear_queue
     if status eq 0 then begin
         message,/info, "ERROR: could not get a lock on the inter-IDL queue semaphore after 10 tries"
         message,/info, "       Unable to clear the queue."
+        message,/info, "If the lock on the inter-IDL queue is not being released properly, use the pipeline setting launcher_force_semaphore_name to pick a different lock."
         return
     endif
 
@@ -368,7 +371,11 @@ PRO launcher::check_queue, ev
 	endif
 
     status = SEM_LOCK(self.semaphore_name) 
-    if status eq 0 then return
+    if status eq 0 then begin
+        message,/info, "ERROR: could not get a lock on the inter-IDL queue semaphore after 10 tries."  
+        message,/info, "If the lock on the inter-IDL queue is not being released properly, use the pipeline setting launcher_force_semaphore_name to pick a different lock."
+        return
+    endif
 
 
     wq = where(*self.cmd_queue_flags, qct)

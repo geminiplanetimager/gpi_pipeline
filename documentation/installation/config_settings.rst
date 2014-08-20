@@ -65,6 +65,9 @@ force_rescan_caldb_on_startup           0,1                              0      
 username_in_log_filename                0,1                             0               Should the username of the user running the pipeline be included in log filename, as well
                                                                                         as the date? This is useful on shared installations on multiuser machines so that different
                                                                                         users' log files don't overwrite one another.
+launcher_force_semaphore_name           <string>                        See at right.   Name of semaphore used for the inter-IDL communication queue lock. Sometimes the lock is not 
+                                                                                        properly released so this setting should be specified with a different name so that a 
+                                                                                        different lock name can be used for the queue. Default is "GPI_DRP_$USER"
 ======================================  ==============================  =============   ==============================================================================================
 
 
