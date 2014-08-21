@@ -30,7 +30,10 @@
 ;-
 function gpi_extractcube_epsf, DataSet, Modules, Backbone
 
-
+;Profiler, /CLEAR, /SYSTEM 
+;Profiler, /CLEAR, /RESET
+;profiler
+;PROFILER, /SYSTEM
 primitive_version= '$Id$' ; get version from subversion to store in header history
 ;calfiletype='mlenspsf' 
 calfiletype='epsf' 
@@ -87,7 +90,12 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
 
 ; define size of the ePSF array;
 ;PI: why was this at 51? seems uncessarily large - JEROME looking at this
-gridnbpt=51
+gridnbpt=7 ;keep it odd; defining size of epsf to be calculated
+
+;
+dimpsfx=43 ;keep it odd; defining the size of spectrum the following code will play with
+dimpsfy=dimpsfx ; so testing showed that rectangular arrays SLOW it down !!!
+
 
 tmp=findgen(gridnbpt)-gridnbpt/2
 xgrid=rebin(tmp,gridnbpt,gridnbpt)
@@ -128,11 +136,11 @@ psf=gpi_highres_microlens_psf_evaluate_detector_psf(xgrid, ygrid, [.2,.2,1.])
   lambdamax=CommonWavVect[1]
   lambda=cwv.lambda 
 
-psfmlens = psf & mkhdr, HeaderCalib,psf
+;psfmlens = psf & mkhdr, HeaderCalib,psf
  
- szpsfmlens=(size(psf))[1]
-  dimpsf=(size(psf))[1]          ;PI: isn't this just the gridnbpt variable above?
-szpsf = size(psf)
+; szpsfmlens=(size(psf))[1]
+;  dimpsf=(size(psf))[1]          ;PI: isn't this just the gridnbpt variable above?
+;szpsf = size(psf)
 
 ; #################################################################
 ; create placements in x,y,lambda where the ePSFs should be placed
@@ -141,7 +149,7 @@ szpsf = size(psf)
 ;nlam defines how many spectral channels for the inversion 
 nlam=18.
          
-psfmlens2=fltarr(szpsfmlens,szpsfmlens,nlam)
+psfmlens2=fltarr(dimpsfx,dimpsfy,nlam)
 lambda2=fltarr(nlam)
         
 ; this uses the extremes of the filter - but this is configured using values so
@@ -258,6 +266,7 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
             if (nl eq 0) || ~( (round(xloctab[xsi,ysi,nl-1]) eq round(xloctab[xsi,ysi,nl])) && (round(yloctab[xsi,ysi,nl-1]) eq round(yloctab[xsi,ysi,nl])))  then begin
               for clarg=-larg,larg do xchoiceind=[xchoiceind,round(xloctab[xsi,ysi,nl])+clarg>0]
               for clarg=-larg,larg do ychoiceind=[ychoiceind,round(yloctab[xsi,ysi,nl])>0]
+              ;we need to keep track where the bad pixels will go in the cube for later interpolation:          
               if bad_pix_mask[round(xloctab[xsi,ysi,nl])>0,round(yloctab[xsi,ysi,nl])>0] ne 0 or finite((*dataset.currframe[0])[round(xloctab[xsi,ysi,nl])>0,round(yloctab[xsi,ysi,nl])>0]) eq 0  then $
                   cubef3Dbpix[xsi,ysi,nl]=1
             endif  
@@ -276,7 +285,8 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
             for eachpixhole = 0, nbpixhole-1 do begin
               for clarg=-larg,larg do xchoiceind=[xchoiceind,round(xchoiceind[holes[chole]+larg]+((eachpixhole+1.)/(nbpixhole))*(xchoiceind[holes[chole]-larg-1]-xchoiceind[holes[chole]+larg]))+clarg>0]
               for clarg=-larg,larg do ychoiceind=[ychoiceind,round(ychoiceind[holes[chole]-1] - eachpixhole - 1)>0]
-               
+               ;;argh, need to find which wavelength would be affected by these specific pixels
+               ;; so we can interpolate that late in the code     
                xxx=round(xchoiceind[holes[chole]+larg]+((eachpixhole+1.)/(nbpixhole))*(xchoiceind[holes[chole]-larg-1]-xchoiceind[holes[chole]+larg]))
                yyy=round(ychoiceind[holes[chole]-1] - eachpixhole - 1)
                if bad_pix_mask[xxx>0,yyy>0] ne 0 or finite((*dataset.currframe[0])[xxx>0,yyy>0]) eq 0  then begin
@@ -327,13 +337,14 @@ endif
             xshift=floor(dx2L[nl])-floor(dx2L[0])
             yshift=floor(dy2L[nl])-floor(dy2L[0])
             ; does this ever involve the wrapping of non-zero values to the otherside? 
+            psf=padarr(psf, [dimpsfx,dimpsfy])
             psfmlens2[0,0,nl]=SHIFT(psf,xshift,yshift)
                       
         endfor
-        psfmlens4=reform(psfmlens2,szpsf[1]*szpsf[2],nlam)
+        psfmlens4=reform(psfmlens2,dimpsfx*dimpsfy,nlam)
                   
-        spectrum=reform(psfmlens4#(fltarr(nlam)+1.),szpsf[1],szpsf[2])  ;;Calcul d'un spectrum 
-          
+         spectrum=reform(psfmlens4#(fltarr(nlam)+1.),dimpsfx,dimpsfy)  ;;Calcul d'un spectrum 
+  
 		; PI: i don't understand this bit at all... Jerome will check/explain
 		
 		tmpx = floor(dx2L[0]) ; whole X pixel of where the first peak is
@@ -341,14 +352,14 @@ endif
 		; goal is to put down a dimpsf by dimpsf box 
 		; where the psf array is properly aligned on top ?
 
-        indxmin= (tmpx-(dimpsf-1)/2) > 0 
-                indxmax= (tmpx+(dimpsf-1)/2-1) < (dim-1)
-                indymin= (tmpy-(dimpsf-1)/2) > 0
-                indymax= (tmpy+(dimpsf-1)/2-1) < (dim-1)
+                indxmin= (tmpx-(dimpsfx-1)/2) > 0 
+                indxmax= (tmpx+(dimpsfx-1)/2-1) < (dim-1)
+                indymin= (tmpy-(dimpsfy-1)/2) > 0
+                indymax= (tmpy+(dimpsfy-1)/2-1) < (dim-1)
 
     
-                aa = -(tmpx-(dimpsf-1)/2)
-                bb = -(tmpy-(dimpsf-1)/2)
+                aa = -(tmpx-(dimpsfx-1)/2)
+                bb = -(tmpy-(dimpsfy-1)/2)
   
                 ; for residual purpose:
 				; why is this piece only a 50x50 when everything else if 51x51 ? Jerome investigating
@@ -379,13 +390,13 @@ endif
 		if keyword_set(epsf_debug) eq 1 then begin 
 		  ; want to see the pixels being used for the intensity array
 		  ; don't wnat the entire 2048x2048, so just make it smaller 
-          stamp=fltarr(dimpsf,dimpsf)
+          stamp=fltarr(dimpsfx,dimpsfy)
 		  for nbpix=0,n_elements(xchoiceind)-1 do $
 				stamp[xchoiceind[nbpix]+aa,ychoiceind[nbpix]+bb]=det[xchoiceind[nbpix],ychoiceind[nbpix]]
 ; this is where you can check 
 		loadct,0
 		mag=10
-		window,2,xsize=dimpsf*mag,ysize=dimpsf*mag,title='stamp of detector pixels'
+		window,2,xsize=dimpsfx*mag,ysize=dimpsfy*mag,title='stamp of detector pixels'
 		tvdl, stamp,min(stamp,/nan),max(stamp,/nan),/log
 		endif
         
@@ -428,7 +439,7 @@ endif
          
         ; check the reconstruction?
 		 if keyword_set(epsf_debug) eq 1 then begin 
-		   reconspec=fltarr(dimpsf,dimpsf)
+		   reconspec=fltarr(dimpsfx,dimpsfy)
            for nbpix=0,n_elements(xchoiceind)-1 do for zl=0,nlam-1 do $
 				   reconspec[xchoiceind[nbpix]+aa,ychoiceind[nbpix]+bb]+=$
 				   flux[zl]*psfmlens2[xchoiceind[nbpix]+aa,ychoiceind[nbpix]+bb,zl]
@@ -446,9 +457,9 @@ endfor ; end loop over lenslet (xsi)
 ; Bad spaxel interpolation option
 ; ##################################
 ; this code is meant to interpolate spaxels that were heavily affected by
-; bad pixels by interpolating over the ~9 surrounding pixels
+; bad pixels by interpolating over the ~6 surrounding pixels
 
-; Jerome - this needs more 
+; Jerome - this needs more comments
 ;; do you want to clean for bad pixels ?
 cleaning=0
 if cleaning eq 1 then begin
@@ -502,7 +513,7 @@ print,'Time to run extraction = '+strc(systime(1,/seconds)-time0)+' seconds'
         sxaddpar, hdr, 'CTYPE3','WAVE'
         sxaddpar, hdr, 'CUNIT3','microms'
         sxaddpar, hdr, 'HISTORY', functionname+": Inversion datacube extraction applied."
-   
+  ;profiler,/report 
             if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
               if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
               b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, savedata=cubef3D, saveheader=hdr, display=display)
