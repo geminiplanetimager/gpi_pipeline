@@ -35,34 +35,41 @@ function gpi_extractcube_epsf, DataSet, Modules, Backbone
 ;profiler
 ;PROFILER, /SYSTEM
 primitive_version= '$Id$' ; get version from subversion to store in header history
-;calfiletype='mlenspsf' 
 calfiletype='epsf' 
 
 @__start_primitive
 
 time0=systime(1,/seconds) ; this is for speed testing
 
+; for noise estimation
+gain=3.04 ; electrons /ADU
+readnoise=12/3.04 ; 12 electrons /3.04 electrons per ADU
+
+; load in the common block for ePSF
+common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
+
+
 ; bad pixels excluded from the extraction later - but they first must be identified here - not in the loops
 
 ; DQ bit mask:
-		;   0 = bad pixel, do not use if set
-		;   1 = raw value was saturated
-		;   2 = pixel diff between consecutive frames exceeds saturation
-		;	3,4 = related to UTR calculations, do not indicated bad pixels
-		; bits 0,1,2 = 7
+;   0 = bad pixel, do not use if set
+;   1 = raw value was saturated
+;   2 = pixel diff between consecutive frames exceeds saturation
+;	3,4 = related to UTR calculations, do not indicated bad pixels
+; bits 0,1,2 = 7
 		
-		bpfromDQ = (*(dataset.currDQ) and 7) ne 0
-		wbpfromDQ = where(bpfromDQ, bpfromDQcount)
-		bad_pix_mask=bytarr(2048,2048)
-		if bpfromDQcount gt 0 then $
-		bad_pix_mask[wbpfromDQ] = 1
+bpfromDQ = (*(dataset.currDQ) and 7) ne 0
+wbpfromDQ = where(bpfromDQ, bpfromDQcount)
+bad_pix_mask=bytarr(2048,2048)
+if bpfromDQcount gt 0 then $
+bad_pix_mask[wbpfromDQ] = 1
 		
-		; MP (temporary?) fix for missed cold pixels: also repair anything super negative
-		negative_bad_thresh = -50 ; this is arbitrary!
-		wlow = where(*dataset.currframe lt negative_bad_thresh, lowct) ; should be an adjustible thresh, or based on read noise * n * sigma?
-		backbone->set_keyword, 'HISTORY', 'Found '+strc(lowct)+' additional very negative pixels (< -50 cts) in that image. ', ext_num=0
-		backbone->Log,  'Found '+strc(lowct)+' additional very negative pixels (< -50 cts) in that image. ', depth=2
-		bad_pix_mask[wlow] = 1 ; 1 means bad in a bad pixel mask
+; MP (temporary?) fix for missed cold pixels: also repair anything super negative
+negative_bad_thresh = -50 ; this is arbitrary!
+wlow = where(*dataset.currframe lt negative_bad_thresh, lowct) ; should be an adjustible thresh, or based on read noise * n * sigma?
+backbone->set_keyword, 'HISTORY', 'Found '+strc(lowct)+' additional very negative pixels (< -50 cts) in that image. ', ext_num=0
+backbone->Log,  'Found '+strc(lowct)+' additional very negative pixels (< -50 cts) in that image. ', depth=2
+bad_pix_mask[wlow] = 1 ; 1 means bad in a bad pixel mask
 
 bpmapsize=size(badpixmap)
 if bpmapsize[1] eq 0 then begin
@@ -71,9 +78,6 @@ bad_pix_mask=bad_pix_mask;(*dataset.currdq[0])
 endif else begin
 bad_pix_mask=bad_pix_mask OR badpixmap ;(*dataset.currdq[0]) OR badpixmap
 endelse
-; load in the common block for ePSF
- common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
-
 my_filename_with_the_PSFs=c_File
 
 ;get the necessary epsfs calib files
@@ -104,37 +108,34 @@ ygrid=rebin(transpose(tmp),gridnbpt,gridnbpt)
 psf=gpi_highres_microlens_psf_evaluate_detector_psf(xgrid, ygrid, [.2,.2,1.])
 ;psfn=psf/total(psf)
 
-  ;get the 2D detector image
-  det=*(dataset.currframe[0])
-  dim=(size(det))[1]
-  detector_array=fltarr(dim,dim)
-  nlens=(size(wavcal))[1]       ;pixel sidelength of final datacube (spatial dimensions) 
-  dim=(size(det))[1]            ;detector sidelength in pixels
+;get the 2D detector image
+det=*(dataset.currframe[0])
+dim=(size(det))[1]
+detector_array=fltarr(dim,dim)
+nlens=(size(wavcal))[1]       ;pixel sidelength of final datacube (spatial dimensions) 
+dim=(size(det))[1]            ;detector sidelength in pixels
 
-  ;error handle if readwavcal or not used before
-  if (nlens eq 0) || (dim eq 0)  then $
-     return, error('FAILURE ('+functionName+'): Failed to load data.') 
+;error handle if readwavcal or not used before
+if (nlens eq 0) || (dim eq 0)  then $
+	return, error('FAILURE ('+functionName+'): Failed to load data.') 
 
-
-  ;define the common wavelength vector with the FILTER1 keyword:
-   filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
+; define the common wavelength vector with the FILTER1 keyword:
+filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
   
-  ;error handle if FILTER1 keyword not found
-  if (filter eq '') then $
-     return, error('FAILURE ('+functionName+'): IFSFILT keyword not found.') 
+; error handle if FILTER1 keyword not found
+if (filter eq '') then $
+	return, error('FAILURE ('+functionName+'): IFSFILT keyword not found.') 
 
-  ;get length of spectrum
-  sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect)-2
-  if (sdpx < 0) then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
+; get length of spectrum
+sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect)-2
+if (sdpx < 0) then return, error('FAILURE ('+functionName+'): Wavelength solution is bogus! All values are NaN.')
   
-  ;get tilts of the spectra included in the wavelength solution:
-  tilt=wavcal[*,*,4]
+; get tilts of the spectra included in the wavelength solution:
+tilt=wavcal[*,*,4]
 
-  cwv=get_cwv(filter)
-  CommonWavVect=cwv.CommonWavVect
-  lambdamin=CommonWavVect[0]
-  lambdamax=CommonWavVect[1]
-  lambda=cwv.lambda 
+cwv=get_cwv(filter)
+CommonWavVect=cwv.CommonWavVect
+lambda=cwv.lambda 
 
 ;psfmlens = psf & mkhdr, HeaderCalib,psf
  
@@ -147,7 +148,8 @@ psf=gpi_highres_microlens_psf_evaluate_detector_psf(xgrid, ygrid, [.2,.2,1.])
 ; #################################################################
 
 ;nlam defines how many spectral channels for the inversion 
-nlam=18.
+nlam=20.  ; this is one psf per pixel
+nlam=18. 
          
 psfmlens2=fltarr(dimpsfx,dimpsfy,nlam)
 lambda2=fltarr(nlam)
@@ -179,25 +181,28 @@ for qq=0,nlam-1 do lambda2[qq]=(max_l-min_l)/(nlam-1)*(qq)+min_l
       yloctab[*,*,lam]=loctab[*,*,0]
  endfor
          
-        ; define how many rows and columns of pixels to use in the raw image for the inversion of a single lenslet
-        ; PI; I think this is an issue since the microlens PSFS are only 4 pixels wide...
-		; PI: so this means that larg should be 1? can it be a non-integer?
-		; PI: I tried 1 - but it didn't make a difference - so i left it at 2
+; define how many rows and columns of pixels to use in the raw image for the inversion of a single lenslet
+; PI; I think this is an issue since the microlens PSFS are only 4 pixels wide...
+; PI: so this means that larg should be 1? can it be a non-integer?
+; PI: I tried 1 - but it didn't make a difference - so i left it at 2
 		
-		 larg=2 ; nb of columns parallel to the dispersion axis = (2*larg + 1)
-         longu=20 ; nb of rows along the spectrum  ; PI: longu should be set by spdx no ?
+larg=2 ; nb of columns parallel to the dispersion axis = (2*larg + 1)
+longu=20 ; nb of rows along the spectrum  ; PI: longu should be set by sdpx no ?
+longu=sdpx
+bad_pix_count=0 ; this is just for debugging
 
-bad_pix_count=0 
-         ; do the inversion extraction for all lenslets
+; do the inversion extraction for all lenslets
 for xsi=0,nlens-1 do begin    
   print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
      for ysi=0,nlens-1 do begin   
 
 ;this is for just a single lenslet
+; 103,204 has a big bad section
+
 ; for xsi=103,103 do begin    
-;  print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
-;     for ysi=204,204 do begin   
-;epsf_debug=1
+; print, "mlens PSF invert method for datacube extraction, row #",xsi," /",nlens-1   
+;     for ysi=200,200 do begin   
+;     epsf_debug=1
 
 
 ; This checks if there is a spectrum associated with the spaxel (takes care of oodles of NaN's in image) 
@@ -352,25 +357,28 @@ endif
 		; goal is to put down a dimpsf by dimpsf box 
 		; where the psf array is properly aligned on top ?
 
-                indxmin= (tmpx-(dimpsfx-1)/2) > 0 
-                indxmax= (tmpx+(dimpsfx-1)/2-1) < (dim-1)
-                indymin= (tmpy-(dimpsfy-1)/2) > 0
-                indymax= (tmpy+(dimpsfy-1)/2-1) < (dim-1)
-
+        indxmin= (tmpx-(dimpsfx-1)/2) > 0 
+        indxmax= (tmpx+(dimpsfx-1)/2-1) < (dim-1)
+        indymin= (tmpy-(dimpsfy-1)/2) > 0
+        indymax= (tmpy+(dimpsfy-1)/2-1) < (dim-1)
     
-                aa = -(tmpx-(dimpsfx-1)/2)
-                bb = -(tmpy-(dimpsfy-1)/2)
+        aa = -(tmpx-(dimpsfx-1)/2)
+        bb = -(tmpy-(dimpsfy-1)/2)
   
-                ; for residual purpose:
-				; why is this piece only a 50x50 when everything else if 51x51 ? Jerome investigating
-                detector_array[indxmin:indxmax,indymin:indymax]+=  spectrum[indxmin+aa: indxmax+aa, indymin+bb:indymax+bb]
+        ; for residual purpose:
+		; why is this piece only a 50x50 when everything else if 51x51 ? Jerome investigating
+        detector_array[indxmin:indxmax,indymin:indymax]+= $
+			spectrum[indxmin+aa: indxmax+aa, indymin+bb:indymax+bb]
                 
-; the aa and bb come into play here - im worried they're not correct!
-         psfmat=fltarr(n_elements(xchoiceind),nlam)
-         for nelam=0,nlam-1 do begin
+		; the aa and bb come into play here - im worried they're not correct!
+
+; so psfmat is a 2-d matrix, the rows are the pixels of each individual wavelength psf (in 1d)
+; each row is a wavelength of nlam
+        psfmat=fltarr(n_elements(xchoiceind),nlam)
+        for nelam=0,nlam-1 do begin
               for nbpix=0,n_elements(xchoiceind)-1 do $
                   psfmat[nbpix,nelam]=psfmlens2[xchoiceind[nbpix]+aa,ychoiceind[nbpix]+bb,nelam]
-         endfor
+        endfor
 
 ;PI: What does this do?
 ; Is this checking to see if the spectrum and box goes off the detector?
@@ -385,7 +393,30 @@ endif
 
 		; create intensity array
         bbc=fltarr(n_elements(xchoiceind))
-        for nel=0,n_elements(xchoiceind)-1 do bbc[nel]=det[xchoiceind[nel],ychoiceind[nel]]
+		for nel=0,n_elements(xchoiceind)-1 do bbc[nel]=det[xchoiceind[nel],ychoiceind[nel]]
+			
+		
+		; create a weights array - this is the SNR of the data seen by each microlens psf
+		; we can do this by using a weighted mean on the intensities
+		; so SNR=sqrt(intensity)
+		; but we use a weighted intensity
+		; where the intensities are weighted by the psfs (which are normalized such that the integral equals 1)
+	    ; noise covariance matrix
+		noise_variance_lambda=fltarr(nlam)
+		noise_variance=fltarr(N_ELEMENTS(xchoiceind))
+		snr_arr=fltarr(nlam)
+		for nelam=0,nlam-1 do begin
+			   tmp=0.0
+
+			   for nbpix=0,n_elements(xchoiceind)-1 do tmp+=(det[xchoiceind[nbpix],ychoiceind[nbpix]]*psfmlens2[xchoiceind[nbpix]+aa,ychoiceind[nbpix]+bb,nelam])
+			  ; now get the SNR
+			  snr_arr[nelam]=(gain*tmp)/(sqrt((gain*tmp)>0) + readnoise)
+			  noise_variance_lambda[nelam]=(((gain*tmp)>0) + readnoise^2 ) / (gain^2)  ; need it in ADU
+        endfor
+
+		; just get the variance of each pixel
+		for nbpix=0,n_elements(xchoiceind)-1 do noise_variance[nbpix]=((det[xchoiceind[nbpix],ychoiceind[nbpix]]*gain)>0 + readnoise^2)/(gain^2)
+
 		; this is just to look at the pixels being used in the extraction
 		if keyword_set(epsf_debug) eq 1 then begin 
 		  ; want to see the pixels being used for the intensity array
@@ -393,11 +424,11 @@ endif
           stamp=fltarr(dimpsfx,dimpsfy)
 		  for nbpix=0,n_elements(xchoiceind)-1 do $
 				stamp[xchoiceind[nbpix]+aa,ychoiceind[nbpix]+bb]=det[xchoiceind[nbpix],ychoiceind[nbpix]]
-; this is where you can check 
-		loadct,0
-		mag=10
-		window,2,xsize=dimpsfx*mag,ysize=dimpsfy*mag,title='stamp of detector pixels'
-		tvdl, stamp,min(stamp,/nan),max(stamp,/nan),/log
+				; this is where you can check 
+				loadct,0
+				mag=10
+				window,2,xsize=dimpsfx*mag,ysize=dimpsfy*mag,title='stamp of detector pixels'
+				tvdl, stamp,min(stamp,/nan),max(stamp,/nan),/log
 		endif
         
 		; #################
@@ -407,17 +438,134 @@ endif
 		; can currently switch between two options svd or nnls
 
 		 ; set to 1 to use svd (fast) or 0 to use nnls (slow)
-		if 1 eq 1 then begin 	
+		if 1 eq 1 then begin 
+			;using SVD inversion
+			H=transpose(psfmat)  ; nlam by N_ELEMENTS(xchoiceind)
+			; just straight inversion - no weights nor penalties
+			iHH=la_invert( transpose(H)##H,status=status) 
+			if status ne 0 then begin
+				; matrix not invertable - set to nan
+				; this should never happen as H is supposed to be positive definite
+				; however if your intensity arary is screwed up, then your psf matrix will also be messed
+				; up. This is used to derive H - so H can be messed up
+				cubef3D[xsi,ysi,*]=!values.f_nan
+				continue
+			endif
 
-			; Dmitry suggests "Depending on the machine and the array size, the LAPACK wrapper (LA_SVD) might give you a free speed boost."
-			; speedtest show the svdc step is ~50 times slower than the svsol step
-			SVDC, transpose(psfmat), W, U, V , /double
+			flux=iHH## transpose(H)##bbc
+			
+			if keyword_set(epsf_debug) eq 1 then begin
+			straight_inversion_flux=la_invert( transpose(H)##H) ## transpose(H)##bbc	
+			straight_inversion_flux_norm=straight_inversion_flux/max(straight_inversion_flux,/nan)		
+	
+
+			;load in the 3 pixel box extraction for comparison
+			tmpname='/Users/patrickingraham/GPI/data/Reduced/140510/S20140510S0241_rawspdc_3pixbox.fits'
+			tmp=gpi_readfits(tmpname,priheader=priheader,header=header)
+			; get wavelengths
+			sdpx = calc_sdpx(wavcal, filter, xmini, CommonWavVect)
+			valx=double(xmini[xsi,ysi]-findgen(sdpx))
+			lambint=wavcal[xsi,ysi,2]-wavcal[xsi,ysi,3]*(valx-wavcal[xsi,ysi,0])*(1./cos(wavcal[xsi,ysi,4]))			
+
+			; weight by the variance
+			weight_arr=invert(diag_matrix(noise_variance))
+			; use no weights
+			;weight_arr=invert(diag_matrix(fltarr(N_ELEMENTS(noise_variance))+1))
+			
+			; WAFFLE REMOVAL
+			; so we need to create arrays for all of the frequecies (or modes) we don't want in the flux array
+			V=fltarr(nlam)#fltarr(nlam)
+			tmp=fltarr(nlam)
+			alpha=1.0 ; tuning factor for waffle removal
+			tmp[0]=1*alpha & tmp[1]=-1*alpha
+			for qq=0, (nlam-2) do V+= (shift(tmp,qq))#(shift(tmp,qq))   
+			for qq=0, (nlam-2) do V+= (shift(tmp,qq))#(shift(tmp,qq))   
+
+			reconstructor= la_invert( transpose(H)##H + V) ## transpose(H) 	
+			
+			flux_waffle=reconstructor##bbc
+			flux_waffle_norm=flux_waffle/max(flux_waffle)
+			; now what happens when you weight by the SNR
+			reconstructor= la_invert( transpose(H)##weight_arr##H + V/20000.) ## transpose(H)## weight_arr
+			flux_weighted_waffle=reconstructor##bbc
+			flux_weighted_waffle_norm=flux_weighted_waffle/max(flux_weighted_waffle,/nan)
+
+
+			; EIGENVECTOR WEIGHTING SCHEME
+
+			; define the matrix W
+			w=weight_arr  ;invert(diag_matrix(noise_variance))
+			P=H
+			I=bbc
+			random_normalization=1.0/20000  ; this is the value I don't understand -
+			random_normalization=1.0/40000
+			random_normalization=1.0/58000 ; snr of maximum pixel
+			random_normalization=0
+ 
+			;random_normalization=1
+			;random_normalization=0.0
+			; when using the identity matrix as the measurement noise covariance matrix, 100 is good for both
+			; when using the true measurement noise then 1/15000 is good for the non-flux conservation
+
+			; find the eigenvalues/eigenvectors of the P-matrix
+			eigenvalues=la_eigenql(transpose(P)##P,eigenvectors=eigenvectors )
+	 			
+			; Create the EIGENVECTOR Penalty matrix (V)
+			V=fltarr(nlam)#fltarr(nlam)
+			for qq=0, N_ELEMENTS(eigenvalues)-1 do V+=transpose(eigenvectors[*,qq])##diag_matrix(1./eigenvalues[qq])##eigenvectors[*,qq]
+
+			;define the matrix iPPV
+			iPPV=invert(transpose(P)##W##P+(random_normalization)*V)
+			; S = S_1 + lambda*S_0
+			; lambda = (s-s_1)/S_0
+
+			; need to define a matrix u - which is a 1-matrix of nlam elements
+			ulam=transpose(fltarr(nlam)+1.0)
+			;also need to define another 1-matrix having the number of elements of I
+			uI=transpose(fltarr(N_ELEMENTS(I))+1.0)
+
+			S_1 = transpose(ulam) ## iPPV ## (transpose(P)##W##I) 
+			S_0= transpose(ulam)##iPPV##ulam
+			;S=transpose(uI)##I ; this is the integrated signal - seems to have row/column issues?
+			; maybe not, F is a column vector, and I is a row vector... so the Ut's must be different...
+			S=transpose(uI)##transpose(I)
+			lambda=(S-S_1)/S_0
+
+			; so the new estimate of F, which uses the weights and FORCES conservation of flux
+			weighted_eigenvector_flux=iPPV ## ( transpose(P)##W##I + (lambda) ## transpose(uI) )
+			weighted_eigenvector_flux_norm=weighted_eigenvector_flux/max(weighted_eigenvector_flux,/nan)
+
+ 
+			window,2,xsize=700,ysize=400,xpos=0,ypos=50
+			plot, lambda2,weighted_eigenvector_flux_norm,yr=[-0.2,1],background=cgcolor('white'),color=cgcolor('black'),charsize=1.5,xtitle='wavelength [um]',ytitle='normalized intensity',xr=[1.48,1.82],/xs,thick=2 ; eigen vector weighted
+			oplot, lambda2,weighted_eigenvector_flux_norm,color=cgcolor('black'),psym=1,thick=2
+			oplot,lambint,tmp[xsi,ysi,*]/max(tmp[xsi,ysi,*],/nan),linestyle=2,color=cgcolor('black'),thick=2
+			oplot,lambda2,straight_inversion_flux_norm,color=cgcolor('red'),thick=2,linestyle=4
+			oplot,lambda2,flux_weighted_waffle_norm,color=cgcolor('green'),thick=2
+
+			pi_legend,['3-pixel box','straight inversion','Eigenvector weighting','inversion+weights+scaled waffle removal'],textcolor=cgcolor('black'),linestyle=[2,4,0,0],color=[cgcolor('black'),cgcolor('red'),cgcolor('black'),cgcolor('green')],charsize=1.2,line_frac=0.5
+
+			window,1,xsize=700,ysize=400,xpos=0,ypos=500
+			plot, lambda2,weighted_eigenvector_flux,background=cgcolor('white'),color=cgcolor('black'),charsize=1.5,xtitle='wavelength [um]',ytitle='normalized intensity',xr=[1.48,1.82],/xs,thick=2 ; eigen vector weighted
+			oplot, lambda2,weighted_eigenvector_flux,color=cgcolor('black'),psym=1,thick=2
+			oplot,lambint,tmp[xsi,ysi,*],linestyle=2,color=cgcolor('black'),thick=2 ; 3 pixel box
+			oplot,lambda2,straight_inversion_flux,color=cgcolor('red'),thick=2,linestyle=4
+			oplot,lambda2,flux_weighted_waffle,color=cgcolor('green'),thick=2
+
+			pi_legend,['3-pixel box','straight inversion','Eigenvector weighting','inversion+weights+scaled waffle removal'],textcolor=cgcolor('black'),linestyle=[2,4,0,0],color=[cgcolor('black'),cgcolor('red'),cgcolor('black'),cgcolor('green')],charsize=1.2,line_frac=0.5
+
+			; pick an inversion method
+			flux=weighted_eigenvector_flux
+			;flux=straight_inversion_flux
+			;flux=flux_weighted_waffle
+
+		endif ; end epsf_debug
+			;SVDC, reconstructor, W_svd, U_svd, V_svd , /double
 			; Compute the solution and print the result: 
-  			flux= SVSOL(U, W, V, bbc, /double) 
-        endif else begin
-
-		; try using only positive coefficients
-		; FROM JEROME
+	 		;flux= SVSOL(U_svd, W_svd, V_svd, bbc, /double) 
+		 endif else begin
+			; using NNLS inversion
+			; try using only positive coefficients
 			a=transpose(psfmat)  ; 13 by 95
             m=n_elements(xchoiceind) ; 95
             n=nlam ; 13
@@ -428,7 +576,7 @@ endif
             indx=intarr(nlam+1)
 			mode=1 
 			rnorm=1
-            nnls, a, m, n, b, x, rnorm, w2, indx, mode
+          	nnls, a, m, n, b, x, rnorm, w2, indx, mode
             flux=x[0:nlam-1]
 			; this never flagged - so i commented it
 			; if mode ne 1 then stop
@@ -446,8 +594,16 @@ endif
           ; want to make it so we can subtract the determined spectrum from
 		  ; the actual spectrum to look at residuals
 		  	mag=10
-			window,3,xsize=dimpsf*mag,ysize=dimpsf*mag,title='reconspec'
-			tvdl, reconspec,min(stamp,/nan),max(stamp,/nan),/log
+			zero=where(stamp eq 0, count)
+			if count gt 1 then stamp[zero]=!values.f_nan
+			loadct,0
+			window,4,xsize=dimpsf*mag*2,ysize=dimpsf*mag,title='window3 = reconspec'
+			tvdl, reconspec,min(stamp,/nan),max(stamp,/nan),/log,position=0
+			tvdl, stamp-reconspec,/med,nsig=3,position=1
+;			tvdl, (stamp-reconspec)/stamp,/med,nsig=3,position=1
+
+		 	
+stop
 		 endif
 
 endfor ; end loop over lenslet (ysi)
