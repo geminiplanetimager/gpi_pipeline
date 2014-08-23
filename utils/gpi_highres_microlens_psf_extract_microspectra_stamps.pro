@@ -152,11 +152,15 @@ case my_type of
       if width_odd then begin ; width is odd
         xcoords[0:sdpx0-1,*,*] = xcoords_cal
         ycoords[0:sdpx0-1,*,*] = ycoords_cal
-        for w=1,floor(width/2) do begin
+        for w=0,floor(width/2) do begin
+          ;ycoords[(2*w-1)*sdpx0:(2*w)*sdpx0-1,*,*] = ycoords_cal
+          ;ycoords[(2*w)*sdpx0:(2*w+1)*sdpx0-1,*,*] = ycoords_cal
+          ;xcoords[(2*w-1)*sdpx0:(2*w)*sdpx0-1,*,*] = round(xcoords_cal + w)
+          ;xcoords[(2*w)*sdpx0:(2*w+1)*sdpx0-1,*,*] = round(xcoords_cal - w)
+		  ycoords[(2*w-2)*sdpx0:(2*w-1)*sdpx0-1,*,*] = ycoords_cal
           ycoords[(2*w-1)*sdpx0:(2*w)*sdpx0-1,*,*] = ycoords_cal
-          ycoords[(2*w)*sdpx0:(2*w+1)*sdpx0-1,*,*] = ycoords_cal
-          xcoords[(2*w-1)*sdpx0:(2*w)*sdpx0-1,*,*] = round(xcoords_cal + w)
-          xcoords[(2*w)*sdpx0:(2*w+1)*sdpx0-1,*,*] = round(xcoords_cal - w)
+          xcoords[(2*w-2)*sdpx0:(2*w-1)*sdpx0-1,*,*] = round(xcoords_cal + w)
+          xcoords[(2*w-1)*sdpx0:(2*w)*sdpx0-1,*,*] = round(xcoords_cal - w)
         endfor
       endif else begin;width is even
         for w=1,floor(width/2) do begin
@@ -247,6 +251,8 @@ case my_type of
                            
               mask_image[xcoords[where(finite(xcoords[*,i,j])),i,j],ycoords[where(finite(ycoords[*,i,j])),i,j]] = 0
             endelse
+			; stop here to check stamps and masks
+
 			; now calculate the centroids - this just does a center of mass calculation
 			tmpx=xcentroids[i,j,0,it_elev]
 			tmpy=ycentroids[i,j,0,it_elev]
