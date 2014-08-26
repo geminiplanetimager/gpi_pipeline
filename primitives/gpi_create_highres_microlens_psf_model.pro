@@ -30,7 +30,7 @@ function gpi_create_highres_microlens_psf_model, DataSet, Modules, Backbone
 
 start_time=systime(1)
 ;device,decomposed=0
-;restore,'microlens_kernel_testing.sav'
+;restore,'/home/LAB/H-band-kernel-testing.sav'
 ;goto, kernel_testing  
 
 
@@ -86,7 +86,7 @@ bad_pixel_mask=abs(bad_pixel_mask-1)
   backbone->Log, "Cutting out postage stamps around each lenslet PSF"
   case disperser of
      'PRISM': begin
-        width_PSF = 4 ; orig          ; size of stamp? - MUST BE 4 - MESSES UP OTHERWISE 
+        width_PSF = 5 ; orig          ; size of stamp?  
         n_per_lenslet = 1                         ; there is only 1 PSF per lenslet in spectral mode                
         sub_pix_res_x = 5		;sub_pixel resolution of the highres ePSF
         sub_pix_res_y = 5		;sub_pixel resolution of the highres ePSF
@@ -151,14 +151,14 @@ ptr_free, spaxels.values[50,167]
 ; over the flexure loop - so the RHS of figure 8 in the Anderson paper
 ; this should probably be moved into a recipe keyword.
 ;stop
-  it_flex_max = 1				; what is this? -MP  # of iterations for flexure? Not clear what is being iterated over.
+  it_flex_max = 4				; what is this? -MP  # of iterations for flexure? Not clear what is being iterated over.
 ;   degree_of_the_polynomial_fit = 2 ; degree of the polynomial surface used for the flexure correction
 ; can't have multiple iterations if just one file - this should be a recipe failure
 
   if nfiles eq 1 then begin 
      it_flex_max=1
   endif
-; make an array to look at the stddev as a function of iterations
+; make an ar to look at the stddev as a function of iterations
 
   if flat_field eq 1 then flat_field_arr=fltarr(2048,2048,nfiles)
 
@@ -191,8 +191,8 @@ chisq_arr=fltarr(281,281,n_per_lenslet,nfiles,it_flex_max)
 ; imin_test = 190 & imax_test = 280
 ; jmin_test = 0 & jmax_test = 210
 
- imin_test = pp_xind-21 & imax_test = pp_xind+25
- jmin_test = pp_yind-21 & jmax_test = pp_yind+20
+; imin_test = pp_xind-21 & imax_test = pp_xind+25
+; jmin_test = pp_yind-21 & jmax_test = pp_yind+20
 
 ; imin_test = 123 & imax_test =179
 ; jmin_test = 0 & jmax_test = 83
@@ -218,9 +218,9 @@ kernel_testing:
 
   for it_flex=0,it_flex_max-1 do begin
 
-;if it_flex eq 1 then stop
+;if it_flex eq 2 then stop
 ; so now create a .save file that we can just load here then continue
-; save,/all,filename='microlens_kernel_testing.sav'
+; save,/all,filename='/home/LAB/H-band-kernel-testing.sav'
 
      backbone->Log, 'starting iteration '+strc(it_flex+1)+' of '+strc(it_flex_max)+' for flexure'
  
@@ -291,7 +291,7 @@ kernel_testing:
                     current_sky = (spaxels.sky_values[imin:imax,jmin:jmax,k,*])[not_null_ptrs] 
                     current_tilt=median((spaxels.tilts[imin:imax,jmin:jmax,k,*])[not_null_ptrs])
 		psf_kernel_testing:
-;if i eq 182 and j eq 196 then flag=1 else flag=0
+;if i eq 183 and j eq 186 then flag=1 else flag=0
 ;flag=1
 ;if i eq 184 and j eq 194 and it_flex ge 0 then stop,'arrived at problematic section - create save file'
 
@@ -354,12 +354,13 @@ print,'' ; just puts a space in the status line
 			weights='radial'
 
 			ncoadds = gpi_simplify_keyword_value(backbone->get_keyword('COADDS0', indexFrame=f))
+;if i eq 183 and j eq 186 then flag=1 else flag=0
 
 			ptr_fitted_PSF = gpi_highres_microlens_psf_fit_detector_psf($
 			 *spaxels.values[i,j,k,f] - spaxels.sky_values[i,j,k,f], $
 			 FIRST_GUESS = (first_guess_parameters),$
 			 mask=*spaxels.masks[i,j,k,f],$
-			 ptr_highres_psf,$
+			 ptr_highres_psf,flag=flag,$
 			 X0 = (*spaxels.xcoords[i,j,k,f])[0,0], $
 			 Y0 = (*spaxels.ycoords[i,j,k,f])[0,0], $
 			 FIT_PARAMETERS = best_parameters, $
@@ -509,7 +510,7 @@ endif
 ; determine indices of arrays to replace
 ind_arr = array_indices(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,0],valid_ctrd_ptrs)
 
-stop,"about to apply flexure correction to centroids"
+;stop,"about to apply flexure correction to centroids"
 
 
   if nfiles ne 1 then begin ; skip the flexure correction for the first run
@@ -694,7 +695,7 @@ for h=0,N_ELEMENTS(pri_header)-1 do begin
 endfor
 ; now actually update the header
 modfits,my_file_name,0,psf_header,exten_no=0
-stop
+
 ; now do this for the second extension
 psf_ext_header=headfits(my_file_name,exten=1)
 ext_header=*dataset.headersext[0]
