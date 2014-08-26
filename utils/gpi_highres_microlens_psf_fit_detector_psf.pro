@@ -62,10 +62,10 @@
 function gpi_highres_microlens_psf_fit_detector_psf, pixel_array, FIRST_GUESS = first_guess, $
                   X0 = x0, Y0 = y0, mask=mask, $
                   ;PSF, x_vector_psf, y_vector_psf, $
-                  ptr_obj_psf,$
+                  ptr_obj_psf,flag=flag,$
                   FIT_PARAMETERS = fit_parameters,$
                   ERROR_FLAG = error_flag, QUIET = quiet, ANTI_STUCK = anti_stuck, $
-			no_error_checking=no_error_checking, ncoadds=ncoadds,weights=weights,chisq=chisq
+		no_error_checking=no_error_checking, ncoadds=ncoadds,weights=weights,chisq=chisq
 
 
 error_flag = 0
@@ -196,7 +196,7 @@ if weights eq 'radial' then begin
 
 	rad_arr=sqrt((x_grid-first_guess[0])^2+(y_grid-first_guess[1])^2)
 
-	ind1=where(rad_arr gt 2,ct1)
+	ind1=where(rad_arr gt 2.5,ct1)
 	if ct1 ne 0 then weights0[ind1]=0.0
 	ind2=where(rad_arr ge 1.5 and rad_arr lt 2,ct2)
 	if ct2 ne 0 then weights0[ind2]=1.0/((rad_arr[ind2])/1.5) ; goes linearly from 1 to zero with radius
@@ -250,7 +250,7 @@ endif
                                                       WEIGHTS = final_weights, PARINFO = parinfo, $
                                                       BESTNORM = chisq, /quiet, YFIT = yfit ) 
  
- if 0 eq 1 then begin
+ if 0 eq 1 or keyword_set(flag) then begin
 	sz=size(mask)*30
 	window,2,xsize=sz[1]*3,ysize=sz[2]
 	ind=where(mask ne 0)
@@ -261,9 +261,9 @@ endif
 	tvdl,yfit*mask,dmin,dmax,position=1,/log
 	loadct,0
 	diff=pixel_array-yfit
-	my_residuals =  abs(diff) / abs(pixel_array)  
+	my_residuals =  diff / (pixel_array)  
 
-	tvdl,my_residuals*mask,0.0,0.2,position=2
+	tvdl,my_residuals*mask,-0.1,0.1,position=2
 	stop
  endif
  
