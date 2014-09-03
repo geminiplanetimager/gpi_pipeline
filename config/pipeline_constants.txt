@@ -11,8 +11,8 @@
 pix_to_ripple   122.53444
 mems_rotation   0.017453293
 #
-# lenslet scale based on measurement by Quinn Konopacky, 14.3 +- 0.15 mas/lenslet
-ifs_lenslet_scale       0.0143
+# lenslet scale based on measurement by Quinn Konopacky, 14.14 +- 0.01 mas/lenslet
+ifs_lenslet_scale       0.01414
 #
 #observatory location (deg, East lon)
 #(gemini south - WGS84) 
@@ -25,7 +25,7 @@ secondary_diam  1.32090 ;  7.7701*0.17 - projected inner diameter of secondary h
  
 #
 #Rotation of frame in IFS image (orig. measurement by Marshall Perrin)
-ifs_rotation    24.5
+ifs_rotation    23.5
 # The zero point fluxes of vega for each gpi filter
 # the values were determined by integrating the spectrum:
 # ftp://ftp.stsci.edu/cdbs/current_calspec/alpha_lyr_stis_005.fits
