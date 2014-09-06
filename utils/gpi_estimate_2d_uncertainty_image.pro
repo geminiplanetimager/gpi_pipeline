@@ -57,9 +57,11 @@ function gpi_estimate_2d_uncertainty_image, image, priheader, sciheader, dq=dq, 
 
   ;; load the UTR read noise vs. # reads curve
   readcol, gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'utr_read_noise.dat', tab_nreads, tab_rn, skipline = 1, format = ('F,F'), /silent
+
   ;; figure out what the read noise is per coadd per exposure
   rn_std_per_coadd = tab_rn[where(tab_nreads eq nreads, /null)] ; [e-]
   rn_std_per_coadd = rn_std_per_coadd[0] ; convert to scalar
+  ;rn_std_per_coadd = 2.913175
 
   ;; compute photon noise variance
   photon_noise_variance = image * effective_gain ; [e-^2]

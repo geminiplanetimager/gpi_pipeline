@@ -19,7 +19,7 @@
 
 FUNCTION nmicrolens,x,y, start_params
 
-common ngausscommon, numgauss, wl, flux, lambdao,my_psf
+common ngausscommon, numgauss, wl, flux, lambdao, my_psf
 ;/////////////////////////
 ;Code you need to add before using gpi_highres_microlens_psf_evaluate_detector_psf
 ;declare the common variable used by gpi_highres_microlens_psf_evaluate_detector_psf()
@@ -84,6 +84,7 @@ for ysize=0,szy-1 do begin
 endfor
 
 
+
 for peak = 0, numgauss-1 do begin
    lambda=wl[peak]
    coeff=start_params[9+peak]
@@ -91,7 +92,7 @@ for peak = 0, numgauss-1 do begin
    ycent=yo-cos(theta)*(lambda-lambdao)/w
 
    x_centroid = xcent 
-   y_centroid = ycent-1
+   y_centroid = ycent
    intensity = coeff
    my_eval_psf = intensity*interpolate(c_psf,(x - (x_centroid + c_x_vector_psf_min))*c_sampling,(y - (y_centroid + c_y_vector_psf_min))*c_sampling,/grid)
    ;my_eval_psf = gpi_highres_microlens_psf_evaluate_detector_psf(x_grid,y_grid,[x_centroid, y_centroid, intensity])
