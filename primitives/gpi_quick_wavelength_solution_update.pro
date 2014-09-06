@@ -86,7 +86,6 @@ calfiletype='wavecal'
 ;Define common block to be used in wrapper.pro and ngauss.pro
 common ngausscommon, numgauss, wl, flux, lambdao,my_psf
 
-
 ;Load in the image. Primitive assumes a dark,flat,badpixel,flexure, and microphonics corrected lamp image. 
 
         image=*dataset.currframe
@@ -108,6 +107,7 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
         refwlcal = gpi_readfits(c_File,header=Header)
         wlcalsize=size(refwlcal,/dimensions)
         print,wlcalsize
+        lambdao = refwlcal[140,140,2]
 
         newwavecal=dblarr(wlcalsize)
         newwavecal[*,*,2]=refwlcal[*,*,2]

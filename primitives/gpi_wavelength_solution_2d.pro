@@ -74,7 +74,7 @@ calfiletype = 'wavecal'
 ;Load in the image. Primitive assumes a dark,flat,badpixel,flexure, and microphonics corrected lamp image. 
 
         image=*dataset.currframe
-        whichpsf=0
+        whichpsf=1
 
 	;READ IN REFERENCE WAVELENGTH CALIBRATION
 ;	c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'wavecal',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
@@ -130,7 +130,7 @@ calfiletype = 'wavecal'
         ;backbone->Log, gpi_get_directory('GPI_DRP_CONFIG_DIR')
         datafn = gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+filter+lamp+'.dat'
  
-
+whichpsf=0
 		if whichpsf eq 1 then begin
 			;determine the appropriate micrlens psf file; keep the filename to load that below.
 			psffn = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'mlenspsf',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
@@ -184,6 +184,8 @@ if keyword_set(parallel) then begin
 	waveinfo = get_cwv(filter)
 	lambda_min  = waveinfo.commonwavvect[0]
 	lambda_max  = waveinfo.commonwavvect[1]
+        print, lambda_min
+        print, refwlcal[140,140,2]
 	locations_lambda_min = (change_wavcal_lambdaref( refwlcal, lambda_min) )[*,*,0:1]
 	locations_lambda_max = (change_wavcal_lambdaref( refwlcal, lambda_max) )[*,*,0:1]
 	n_valid_lenslets = long(total(finite(refwlcal[*,jstart:jend,0])))
@@ -196,13 +198,14 @@ if keyword_set(parallel) then begin
 	; the comments. 
 
 	 gpi_split_for, istart,iend, nsplit=numsplit,$ 
-		 varnames=['jstart','jend','refwlcal','image','im_uncert','badpix','newwavecal','icount',$
+		 varnames=['jstart','jend','refwlcal','image','im_uncert','badpix','newwavecal','icount','lambda_min',$
 		           'q','wlcalsize','xinterp','yinterp','wla','fluxa','nmgauss','count','lensletmodel','lensletcount',$
                            'modelparams','modelbackgrounds','locations_lambda_min','locations_lambda_max','n_valid_lenslets','boxpad'], $
 		 outvar=['newwavecal','count','lensletcount','lensletmodel','modelparams','modelbackgrounds'], commands=[$
 	'common ngausscommon, numgauss, wl, flux, lambdao, my_psf',$
         'common highrespsfstructure, myPSFs_array',$
 	'numgauss=nmgauss[0]',$
+        'lambdao=lambda_min',$
 	'wl=wla',$
 	'flux=fluxa',$
 	'count+=1',$
@@ -233,7 +236,7 @@ if keyword_set(parallel) then begin
 	'       q++',$
 	'       continue',$
 	'    endif',$
-        '    res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",modelimage=modelimage, modelbackground=modelbackground,count=icount,jcount=jcount,psffn=psffn)',$
+        '    res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",lambda_min,modelimage=modelimage, modelbackground=modelbackground,count=icount,jcount=jcount,psffn=psffn)',$
 	'    sizeres=size(res,/dimensions)',$
 	'    newwavecal[i,j,1]=res[0]+startx',$
 	'    newwavecal[i,j,0]=res[1]+starty',$

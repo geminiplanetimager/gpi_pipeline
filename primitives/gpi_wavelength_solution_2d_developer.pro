@@ -113,13 +113,18 @@ calfiletype = 'wavecal'
         ;;                         ;artifacts when plotted in gpitv, need
         ;;                         ;a solution that doesn't smooth
         ;;                         ;around edges.
-        ;;    smoothedw=smooth(refwlcal[*,*,3],5,/nan)
-        ;;    smoothedt=smooth(refwlcal[*,*,4],5,/nan)
-        ;;    smoothedw[where(refwlcal[*,*,0] EQ !values.f_nan )] = !values.f_nan
-        ;;    smoothedt[where(refwlcal[*,*,0] EQ !values.f_nan )] = !values.f_nan
-        ;;    refwlcal[*,*,3]=smoothedw
-        ;;    refwlcal[*,*,4]=smoothedt
-
+            smoothedw=smooth(refwlcal[*,*,3],5,/nan)
+            smoothedt=smooth(refwlcal[*,*,4],5,/nan)
+            smoothedw[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
+            smoothedt[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
+            minsm=80
+            maxsm=200
+            ;smoothedx=smooth(refwlcal[minsm:maxsm,minsm:maxsm,1],5,/nan)
+            ;smoothedy=smooth(refwlcal[minsm:maxsm,minsm:maxsm,0],5,/nan)
+            ;refwlcal[minsm:maxsm,minsm:maxsm,1]=smoothedx
+            ;refwlcal[minsm:maxsm,minsm:maxsm,0]=smoothedy
+            refwlcal[*,*,3]=smoothedw
+            refwlcal[*,*,4]=smoothedt
         ;; endif
 
 
@@ -248,8 +253,8 @@ if keyword_set(parallel) then begin
 
 ;;            backbone->Log, "Applying a prelimiinary shift of (X,Y) = ("+strc(xoffset_auto)+", "+strc(yoffset_auto)+")"
          
-           ;refwlcal[*,*,0]=refwlcal[*,*,0]-1
-           refwlcal[*,*,1]=refwlcal[*,*,1]+3
+;           refwlcal[*,*,0]=refwlcal[*,*,0]-1
+;           refwlcal[*,*,1]=refwlcal[*,*,1]+3
 ;;         endif
 
 
@@ -269,8 +274,12 @@ if keyword_set(parallel) then begin
 	; See the same algorithm implemented below in the single threaded code for
 	; the comments. 
 
+;print, jstart,'jend','refwlcal','image','im_uncert','badpix','newwavecal','psffn','lambda_min',$
+;		           'q','wlcalsize','xinterp','yinterp','wla','fluxa','nmgauss','count','lensletmodel','lensletcount',$
+ ;                          'modelparams','modelbackgrounds','locations_lambda_min','locations_lambda_max','n_valid_lenslets','boxpad','whichpsf'
+
 	 gpi_split_for, istart,iend, nsplit=numsplit,$ 
-		 varnames=['jstart','jend','refwlcal','image','im_uncert','badpix','newwavecal','psffn',$
+		 varnames=['jstart','jend','refwlcal','image','im_uncert','badpix','newwavecal','psffn','lambda_min',$
 		           'q','wlcalsize','xinterp','yinterp','wla','fluxa','nmgauss','count','lensletmodel','lensletcount',$
                            'modelparams','modelbackgrounds','locations_lambda_min','locations_lambda_max','n_valid_lenslets','boxpad','whichpsf'], $
 		 outvar=['newwavecal','count','lensletcount','lensletmodel','modelparams','modelbackgrounds'], commands=[$
@@ -278,6 +287,7 @@ if keyword_set(parallel) then begin
         'common highrespsfstructure, myPSFs_array',$
 	'numgauss=nmgauss[0]',$
 	'wl=wla',$
+        'lambdao=refwlcal[140,140,2]',$
 	'flux=fluxa',$
 	'count+=1',$
 	'for j = jstart,jend do begin',$
@@ -363,6 +373,7 @@ endif else begin
 	readcol, datafn,wl,flux,skipline=1,format='F,F'
 	readcol,datafn,nmgauss,numline=1,format='I'
 	numgauss=nmgauss[0]
+        lambdao = refwlcal[140,140,2]
 
 	; determine the min and max locations of each lenslet based on
 	; the prior wavecal
@@ -376,6 +387,8 @@ endif else begin
 	newwavecal[*,*,2]=refwlcal[*,*,2]
 
 	lensletcount= 0
+        boxpad = 2
+        count = 0
 
 	;debug=5 ; set this to 1 to enable a breakpoint after each row.
 	;debugall=1
@@ -385,12 +398,10 @@ endif else begin
 	;debuglenslet=[119,26]
 
 
-	boxpad=2
-        jcount=1
-        count=1
-
 	for i = istart,iend do begin
         for j = jstart,jend do begin
+           
+           count+=1
 
 			if keyword_set(debuglenslet) then begin
 				if (i ne debuglenslet[0]) or (j ne debuglenslet[1]) then continue
@@ -398,11 +409,11 @@ endif else begin
 			; compute an enlarged circumcribing rectangle around the 
 			; extreme pixels in that lenslet, based on the prior wavecal.
 
-			startx = floor(min([locations_lambda_min[i,j,1], locations_lambda_max[i,j,1]]) - boxpad) 
-			starty = floor(min([locations_lambda_min[i,j,0], locations_lambda_max[i,j,0]]) - boxpad)
+			startx = floor(min([locations_lambda_min[i,j,1], locations_lambda_max[i,j,1]]) - boxpad) > 4
+			starty = floor(min([locations_lambda_min[i,j,0], locations_lambda_max[i,j,0]]) - boxpad) > 4
 
-			stopx = ceil(max([locations_lambda_min[i,j,1], locations_lambda_max[i,j,1]]) + boxpad) 
-			stopy = ceil(max([locations_lambda_min[i,j,0], locations_lambda_max[i,j,0]]) + boxpad)
+			stopx = ceil(max([locations_lambda_min[i,j,1], locations_lambda_max[i,j,1]]) + boxpad) < 2043
+			stopy = ceil(max([locations_lambda_min[i,j,0], locations_lambda_max[i,j,0]]) + boxpad) < 2043
 
 
             if total(~finite(refwlcal[i,j,*])) gt 0 then begin
@@ -428,8 +439,8 @@ endif else begin
             ;   endif else print, 'ERROR: PSF was not valid'
             ;endif
 
-            ;catch,error_status
-			error_status=0
+            catch,error_status
+			;error_status=0
 
 ;;                                 ; Catch an error in the mpfit
 ;;                                 ; calculation and interpolate
@@ -451,18 +462,18 @@ endif else begin
 		  ; Now do an actual fit for one lenslet's spectrum! 
                   case whichpsf of
                      0: begin
-                        res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",$
-			  modelimage=modelimage, modelbackground=modelbackground, debug=keyword_set(debuglenslet) or keyword_set(debugall),psffn=psffn)
+                         res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",modelimage=modelimage, modelbackground=modelbackground,psffn=psffn)
+                        ;res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",$
+			 ; modelimage=modelimage, modelbackground=modelbackground, debug=keyword_set(debuglenslet) or keyword_set(debugall),psffn=psffn)
                      end
                      1: begin
-                        res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"nmicrolens",$
-			  modelimage=modelimage, modelbackground=modelbackground, debug=keyword_set(debuglenslet) or keyword_set(debugall),psffn=psffn)
+                         res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"nmicrolens",modelimage=modelimage, modelbackground=modelbackground,psffn=psffn)
+;res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"nmicrolens",$
+			  ;modelimage=modelimage, modelbackground=modelbackground, debug=keyword_set(debuglenslet) or keyword_set(debugall),psffn=psffn)
                      end
                   endcase
                 
                   
-                  count+=1
-                  jcount+=1
 		  lensletcount +=1
 
 		  ;take a running average of the unused
@@ -622,21 +633,50 @@ tdummy = newwavecal[*,*,4]
 ;   xdummy[where(newwavecal[*,columnind,1] EQ !values.f_nan)]=mean(newwavecal[*,columnind,1],/nan)
 ;endfor
 
+
 goody = where(Finite(ydummy), ngoody, comp=bady, ncomp=nbady) 
 ; interpolate at the locations of the bad data using the good data 
-if nbady gt 0 then ydummy[bady] = interpol(ydummy[goody], goody, bady)
+;if nbady gt 0 then ydummy[bady] = interpol(ydummy[goody], goody, bady,/LSQUADRATIC)
+ydata = dblarr(3,ngoody)
+sz = SIZE(ydummy[goody])
+print,sz
+ncol = 281
+ydata[0,*] = goody MOD ncol
+ydata[1,*] = goody / ncol
+ydata[2,*] = ydummy[goody]
+sbad = SIZE(ydummy[bady])
+ncolbad = 281
+ydatabadx = bady MOD ncolbad
+ydatabady = bady / ncolbad
+ydummyfit = SFIT( ydata, 1, kx=yplanefit, /IRREGULAR, /MAX_DEGREE)
+ydummy[bady] = yplanefit[0] + yplanefit[1]*ydatabady + yplanefit[2]*ydatabadx 
+
  
 goodx = where(Finite(xdummy), ngoodx, comp=badx, ncomp=nbadx) 
 ; interpolate at the locations of the bad data using the good data 
-if nbadx gt 0 then xdummy[badx] = interpol(xdummy[goodx], goodx, badx) 
+;if nbadx gt 0 then xdummy[badx] = interpol(xdummy[goodx], goodx, badx,/LSQUADRATIC) 
+xdata = dblarr(3,ngoodx)
+sz = SIZE(xdummy[goodx])
+ncol = 281
+xdata[0,*] = goodx MOD ncol
+xdata[1,*] = goodx / ncol
+xdata[2,*] = xdummy[goodx]
+sbad = SIZE(xdummy[badx])
+ncolbad = 281
+xdatabadx = badx MOD ncolbad
+xdatabady = badx / ncolbad
+xdummyfit = SFIT( xdata, 1, kx=xplanefit, /IRREGULAR, /MAX_DEGREE)
+xdummy[badx] = xplanefit[0] + xplanefit[1]*xdatabady + xplanefit[2]*xdatabadx; + xplanefit[3]*xdatabadx*xdatabady
+print, xplanefit, yplanefit
+stop
 
 goodw = where(Finite(wdummy), ngoodw, comp=badw, ncomp=nbadw) 
 ; interpolate at the locations of the bad data using the good data 
-if nbadw gt 0 then wdummy[badw] = interpol(wdummy[goodw], goodw, badw) 
+if nbadw gt 0 then wdummy[badw] = interpol(wdummy[goodw], goodw, badw,/LSQUADRATIC) 
  
 goodt = where(Finite(tdummy), ngoodt, comp=badt, ncomp=nbadt) 
 ; interpolate at the locations of the bad data using the good data 
-if nbadt gt 0 then tdummy[badt] = interpol(tdummy[goodt], goodt, badt) 
+if nbadt gt 0 then tdummy[badt] = interpol(tdummy[goodt], goodt, badt,/LSQUADRATIC) 
 
 
 ;newwavecal[*,*,0]=ydummy
@@ -647,16 +687,18 @@ if nbadt gt 0 then tdummy[badt] = interpol(tdummy[goodt], goodt, badt)
 
         ;if keyword_set(Smoothed) then begin
 
-           minsm=90
-           maxsm=190
-           smoothedw=median(wdummy[*,*],6,/even)
-           smoothedt=median(tdummy[*,*],6,/even)
-           smoothedx=median(xdummy[minsm:maxsm,minsm:maxsm],6,/even)
-           smoothedy=median(ydummy[minsm:maxsm,minsm:maxsm],6,/even)
-           wdummy=smoothedw
-           tdummy=smoothedt  
-           xdummy[minsm:maxsm,minsm:maxsm]=smoothedx
-           ydummy[minsm:maxsm,minsm:maxsm]=smoothedy
+           ;minsm=90
+           ;maxsm=190
+           ;smoothedw=median(wdummy[*,*],6,/even)
+           ;smoothedt=median(tdummy[*,*],6,/even)
+           ;smoothedx=smooth(xdummy[where(Finite(refwlcal[*,*,1]))],5,/nan)
+           ;smoothedy=smooth(ydummy[where(Finite(refwlcal[*,*,0]))],5,/nan)
+           smoothedx=median(xdummy,5)
+           smoothedy=median(ydummy,5)
+           ;wdummy=smoothedw
+           ;tdummy=smoothedt  
+           xdummy=smoothedx
+           ydummy=smoothedy
          
            wdummy[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
            tdummy[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
@@ -673,13 +715,15 @@ if nbadt gt 0 then tdummy[badt] = interpol(tdummy[goodt], goodt, badt)
 
 
 ;SAVE THE NEW WAVELENGTH CALIBRATION:
-
+stop
 
 suffix='wavecal'
 *dataset.currframe = newwavecal
 
 *dataset.currdq = finite(newwavecal[*,*,0])
 
+imdisp, xdummy
+stop
 ;wavecalimage=save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, "_"+filter+"_"+suffix,display=0, savedata=newwavecal,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile] ,output_filename=output_filename)
 
 	; Now the wavecal is done and ready to be saved.	
