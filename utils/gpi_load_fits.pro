@@ -109,6 +109,28 @@ FUNCTION gpi_load_fits, filename, nodata=nodata, silent=silent, fast=fast, _extr
 
 	; If user just wants the headers, then we're done and can return that here:
 	if keyword_set(nodata) then return, { pri_header: ptr_new(pri_header,/no_copy), ext_header: ptr_new(ext_header,/no_copy)} 
+
+
+	; if loading data, check for presence of subarrays, and pad out to full size
+	; if needed.
+    ;---- is the frame from the entire detector or just a subarray?
+	; TODO should we check datasec header keyword here, or the actual data array
+	; size?
+	datasec=gpi_get_keyword(pri_header, ext_header, 'DATASEC',count=ct_ds)
+	if datasec ne '[1:2048,1:2048]' then begin
+		DETSTRTX=fix(strmid(datasec, 1, stregex(datasec,':')-1))
+		DETENDX=fix(strmid(datasec, stregex(datasec,':')+1, stregex(datasec,',')-stregex(datasec,':')-1))
+		datasecy=strmid(datasec,stregex(datasec,','),strlen(datasec)-stregex(datasec,','))
+		DETSTRTY=fix(strmid(datasecy, 1, stregex(datasecy,':')-1))
+		DETENDY=fix(strmid(datasecy, stregex(datasecy,':')+1, stregex(datasecy,']')-stregex(datasecy,':')-1))
+		;;DRP will always consider [1:2048,1,2048] frames:
+		if ((DETSTRTX ne 1) || (DETENDX ne 2048) || (DETSTRTY ne 1) || (DETENDY ne 2048)) and ~keyword_set(nodata) then begin
+		  tmpframe=dblarr(2048,2048)
+		  tmpframe[(DETSTRTX-1):(DETENDX-1),(DETSTRTY-1):(DETENDY-1)]=currframe
+		  currframe=tmpframe
+		endif
+	endif else gpi_set_keyword_if_missing, pri_header, ext_header, 'DATASEC', '[1:2048,1:2048]'
+	
 	
 	; Save headers and image as a structure:
     mydata = {image: ptr_new(currframe,/no_copy), pri_header: ptr_new(pri_header,/no_copy), ext_header: ptr_new(ext_header,/no_copy)}

@@ -348,7 +348,7 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
 		DETSTRTY=fix(strmid(datasecy, 1, stregex(datasecy,':')-1))
 		DETENDY=fix(strmid(datasecy, stregex(datasecy,':')+1, stregex(datasecy,']')-stregex(datasecy,':')-1))
 		;;DRP will always consider [1:2048,1,2048] frames:
-		if (DETSTRTX ne 1) || (DETENDX ne 2048) || (DETSTRTY ne 1) || (DETENDY ne 2048) then begin
+		if ((DETSTRTX ne 1) || (DETENDX ne 2048) || (DETSTRTY ne 1) || (DETENDY ne 2048)) and ~keyword_set(nodata) then begin
 		  tmpframe=dblarr(2048,2048)
 		  tmpframe[(DETSTRTX-1):(DETENDX-1),(DETSTRTY-1):(DETENDY-1)]=currframe
 		  currframe=tmpframe
