@@ -668,7 +668,7 @@ xdatabady = badx / ncolbad
 xdummyfit = SFIT( xdata, 1, kx=xplanefit, /IRREGULAR, /MAX_DEGREE)
 xdummy[badx] = xplanefit[0] + xplanefit[1]*xdatabady + xplanefit[2]*xdatabadx; + xplanefit[3]*xdatabadx*xdatabady
 print, xplanefit, yplanefit
-stop
+;stop
 
 goodw = where(Finite(wdummy), ngoodw, comp=badw, ncomp=nbadw) 
 ; interpolate at the locations of the bad data using the good data 
@@ -689,14 +689,14 @@ if nbadt gt 0 then tdummy[badt] = interpol(tdummy[goodt], goodt, badt,/LSQUADRAT
 
            ;minsm=90
            ;maxsm=190
-           ;smoothedw=median(wdummy[*,*],6,/even)
-           ;smoothedt=median(tdummy[*,*],6,/even)
+           smoothedw=median(wdummy,6,/even)
+           smoothedt=median(tdummy,6,/even)
            ;smoothedx=smooth(xdummy[where(Finite(refwlcal[*,*,1]))],5,/nan)
            ;smoothedy=smooth(ydummy[where(Finite(refwlcal[*,*,0]))],5,/nan)
            smoothedx=median(xdummy,5)
            smoothedy=median(ydummy,5)
-           ;wdummy=smoothedw
-           ;tdummy=smoothedt  
+           wdummy=smoothedw
+           tdummy=smoothedt  
            xdummy=smoothedx
            ydummy=smoothedy
          
@@ -715,15 +715,12 @@ if nbadt gt 0 then tdummy[badt] = interpol(tdummy[goodt], goodt, badt,/LSQUADRAT
 
 
 ;SAVE THE NEW WAVELENGTH CALIBRATION:
-stop
 
 suffix='wavecal'
 *dataset.currframe = newwavecal
 
 *dataset.currdq = finite(newwavecal[*,*,0])
 
-imdisp, xdummy
-stop
 ;wavecalimage=save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, "_"+filter+"_"+suffix,display=0, savedata=newwavecal,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile] ,output_filename=output_filename)
 
 	; Now the wavecal is done and ready to be saved.	
