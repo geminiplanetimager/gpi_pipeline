@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<recipe Name="Wavelength Solution 2D (Outdated)" ReductionType="Calibration" ShortName="wavecal1">
+<recipe Name="Wavelength Solution 2D" ReductionType="Calibration" ShortName="wavecal1">
 <dataset InputDir="${GPI_RAW_DATA_DIR}" OutputDir="${GPI_REDUCED_DATA_DIR}">
 </dataset>
 <primitive name="Apply Reference Pixel Correction" Save="           0" gpitv="0" before_and_after="0" Method="INTERPOLATED" />
