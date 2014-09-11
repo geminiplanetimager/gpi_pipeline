@@ -33,8 +33,10 @@ xgrid=rebin(tmp,281,281)
 ygrid=rebin(transpose(tmp),281,281)
 time1a=systime(/seconds)
 
-xstep=1/0.2 ; stepsize in detector pixels
-ystep=1/0.2 
+ind=where(valid eq 1,ct)
+if ct eq 0 then stop,'no valid highres psfs'
+xstep=1.0/( abs( ((*high_res_PSFs[ind[0]]).xcoords)[0] - ((*high_res_PSFs[ind[0]]).xcoords)[1])) ; stepsize in detector pixels
+ystep=1.0/( abs( ((*high_res_PSFs[ind[0]]).ycoords)[0] - ((*high_res_PSFs[ind[0]]).ycoords)[1])) ; stepsize in detector pixels
 
 ; make non-valid points nans
 bad=where(valid eq 0,complement=good)
@@ -76,7 +78,7 @@ endelse
 time2=systime(/seconds)
 ;
 ; so consider the following, our lenslet of interest is P(x,y), so surrounding
-; the lenslet on all for corners (although no equidistant) we have Q11,Q12,Q21,Q22
+; the lenslet on all for corners (although not equidistant) we have Q11,Q12,Q21,Q22
 ; so what we do is determine the inbetween points (R1x R2x,R1y, R2y)
 ; then use those points to determine Pxy
 ;
