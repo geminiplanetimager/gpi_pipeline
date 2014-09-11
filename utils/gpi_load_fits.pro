@@ -129,8 +129,7 @@ FUNCTION gpi_load_fits, filename, nodata=nodata, silent=silent, fast=fast, _extr
 		  tmpframe[(DETSTRTX-1):(DETENDX-1),(DETSTRTY-1):(DETENDY-1)]=currframe
 		  currframe=tmpframe
 		endif
-	endif else gpi_set_keyword_if_missing, pri_header, ext_header, 'DATASEC', '[1:2048,1:2048]'
-	
+	endif	
 	
 	; Save headers and image as a structure:
     mydata = {image: ptr_new(currframe,/no_copy), pri_header: ptr_new(pri_header,/no_copy), ext_header: ptr_new(ext_header,/no_copy)}
