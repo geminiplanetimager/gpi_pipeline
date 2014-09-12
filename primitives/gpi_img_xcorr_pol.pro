@@ -13,7 +13,6 @@
 ;   The resulting output can be used as a flexure offset prior to flux extraction.
 ; PIPELINE ARGUMENT: Name="range" Type="float" Default="2" Range="[0,5]" Desc="Range of cross corrleation search in pixels."
 ; PIPELINE ARGUMENT: Name="resolution" Type="float" Default="0.01" Range="[0,1]" Desc="Subpixel resolution of cross correlation"
-; PIPELINE ARGUMENT: Name="psf_sep" Type="float" Default="0.01" Range="[0,1]" Desc="PSF separation in pixels"
 ; PIPELINE ARGUMENT: Name="stopidl" Type="int" Range="[0,1]" Default="1" Desc="1: stop IDL, 0: dont stop IDL"
 ; PIPELINE ARGUMENT: Name="x_off" Type="float" Default="0" Range="[-5,5]" Desc="initial guess for large offsets"
 ; PIPELINE ARGUMENT: Name="y_off" Type="float" Default="0" Range="[-5,5]" Desc="initial guess for large offsets"
@@ -83,8 +82,8 @@ suffix='' 		 ; set this to the desired output filename suffix
 		return, error('FAILURE ('+functionName+'): Failed to load microlens PSF data prior to calling this primitive.') 
 	
 	;free optimization knobs
-	xsize=16			;spectra sub image size
-	ysize=64			;	extracted for lsqr
+	xsize=32			;spectra sub image size
+	ysize=32			;	extracted for lsqr
 
 	;lens_arr=[[46,175],[178,226],[85,116],[210,170]] 	; center lens locations for sub image extraction.
 	;lens_arr=[[85,116],[210,170],[167,87],[114,190]] 
@@ -103,8 +102,6 @@ suffix='' 		 ; set this to the desired output filename suffix
 	del_x_best=0
 	del_theta_best=0
 
-	;extract stellar spectra in order to match shape of microspectra 
-	;	add more extractions to make an average? tune to lenslet at satellite spots or edge of choronograph?
 	exe_tst = execute("resolve_routine,'gpi_lsqr_mlens_extract_pol_dep',/COMPILE_FULL_FILE")
 
 	n=0
@@ -120,7 +117,7 @@ suffix='' 		 ; set this to the desired output filename suffix
 
 	pcal = polcal.spotpos
 	;stop
-	while (abs(ysft) gt (2*resolution)) or (abs(xsft) gt (resolution/2)) do begin
+	while (abs(ysft) gt (resolution/2)) or (abs(xsft) gt (resolution/2)) do begin
 
 			;stop
 
@@ -134,40 +131,28 @@ suffix='' 		 ; set this to the desired output filename suffix
 				;get psf positions from wave cal
 
 				sub_mdl_img=make_mdl_img_pol(x_lens_cen,y_lens_cen,pcal,x_off,y_off,blank2,xsize,ysize,img,mlens,0)
-					   ;make_mdl_img_pol,x_lens_cen,y_lens_cen,pcal,x_off,y_off,blank2,xsize,ysize,img,mlens,pol_flx
 
 				;stack sub images length wise
 				mdl_full[z*xsize:(z+1)*xsize-1,0:ysize-1]=sub_mdl_img[*,*,0]/total(sub_mdl_img[*,*,0])
 				sub_full[z*xsize:(z+1)*xsize-1,0:ysize-1]=sub_mdl_img[*,*,1]
 
-				;twod_img_corr,sub_mdl_img[*,*,1],sub_mdl_img[*,*,0],range,resolution,xsft,ysft,corr
-				;print,xsft,ysft
-
-				;stop
 			endfor
 
-			;mdl_full=mdl_full-median(mdl_full)
 			;non-negative model
 			ids = where_xyz(mdl_full lt 0)
 			if ids[0] ne -1 then mdl_full[ids]=0
 
-			;stop
-
-			mdl_full_save = mdl_full
-			twod_img_corr,sub_full,mdl_full,range,resolution,xsft,ysft,corr
-
-			print,xsft,ysft
-		
-			x_off=x_off+xsft
-
+			
+		twod_img_corr,sub_full,mdl_full,range,resolution,xsft,ysft,corr
 		range=min([range_start,max(abs([ysft,xsft]))])
 		range=max([range,7*resolution])
 		;range=range_start
 
-		ysft=ysft
 		y_off=y_off+ysft
+		x_off=x_off+xsft
 
-		print,x_off,y_off
+		print,"Shifted: ",xsft,ysft
+		print,"Offsets: ",x_off,y_off
 		
 		;window,1
 		;imdisp,corr,/axis
