@@ -53,7 +53,8 @@ function gpi_assemble_spectral_datacube, DataSet, Modules, Backbone
 
   ;;get length of spectrum
  ; sdpx = calc_sdpx(wavcal, filter, Ymini, CommonWavVect)
-  sdpx = calc_sdpx(wavcal, filter, CommonWavVect)
+  ;sdpx = calc_sdpx(wavcal, filter, CommonWavVect)
+  sdpx = 18.0
   print, sdpx
   
                                 ; sdpx = length in pixels of longest spectra
