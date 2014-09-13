@@ -102,7 +102,9 @@ function gpi_combine_polarization_sequence, DataSet, Modules, Backbone
   tabband = ['Y', 'J', 'H', 'K1', 'K2']
   if where(strcmp(tabband, filter0) eq 1) lt 0 then return, error('FAILURE ('+functioname+'): IFSFILT keyword invalid. No HWP mueller matrix for that filter')
     
-  if (include_mueller eq 1) then system_mueller = DST_instr_pol(/mueller, pband = filter0, port = port) else system_mueller = identity(4)
+;  if (include_mueller eq 1) then system_mueller = mueller_gpi_instr_pol(/mueller, pband = filter0, port = port) else system_mueller = identity(4)
+ if (include_mueller eq 1) then system_mueller = mueller_gpi_instr_pol(port = port, ifsfilt = filter0) else system_mueller = identity(4)
+
 
   bunit0 = backbone -> get_keyword('BUNIT')
   itime0 = backbone -> get_keyword('ITIME')
