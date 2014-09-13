@@ -251,6 +251,8 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
          radialsave = s_OutputDir
       endif 
       
+      
+
       ;;if this is a directory, then you want to save to it with the
       ;;default naming convention
       if file_test(radialsave,/dir) then begin
@@ -261,10 +263,10 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
          nm = gpi_expand_path(radialsave+path_sep()+nm+'_contrast_profile.fits')
       endif else nm = radialsave
       
-      out = dblarr(n_elements(*asecs[inds[0]]), n_elements(inds)+1)+!values.d_nan
-      out[*,0] = *asecs[inds[0]]
+      out = dblarr(n_elements(*asecs[n_elements(inds[0])-1]), n_elements(inds)+1)+!values.d_nan
+      out[*,0] = *asecs[n_elements(inds[0])-1]
       for j=0,n_elements(inds)-1 do $
-         out[where((*asecs[inds[0]]) eq (*asecs[inds[j]])[0]):n_elements(*asecs[inds[0]])-1,j+1] = $
+         out[where((*asecs[j]) eq (*asecs[j])[0]):n_elements(*asecs[j])-1,j+1] = $
          (*contrprof[inds[j]])[*,0]
 
       tmp = intarr((size(cube,/dim))[2])
