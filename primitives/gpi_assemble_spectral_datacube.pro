@@ -52,8 +52,7 @@ function gpi_assemble_spectral_datacube, DataSet, Modules, Backbone
      return, error('FAILURE ('+functionName+'): IFSFILT keyword not found.') 
 
   ;;get length of spectrum
- ; sdpx = calc_sdpx(wavcal, filter, Ymini, CommonWavVect)
-  ;sdpx = calc_sdpx(wavcal, filter, CommonWavVect)
+  sdpx = calc_sdpx(wavcal, filter, Ymini, CommonWavVect)
   sdpx = 18.0
   print, sdpx
   
