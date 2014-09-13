@@ -52,12 +52,10 @@ function gpi_assemble_spectral_datacube, DataSet, Modules, Backbone
      return, error('FAILURE ('+functionName+'): IFSFILT keyword not found.') 
 
   ;;get length of spectrum
-  sdpx = calc_sdpx(wavcal, filter, Ymini, CommonWavVect)
+ ; sdpx = calc_sdpx(wavcal, filter, Ymini, CommonWavVect)
+  sdpx = calc_sdpx(wavcal, filter, CommonWavVect)
   print, sdpx
-  print, 'filter, ymini, commonwavvect '
-  print, filter
-  print, Ymini
-  print, CommonWavVect
+  
                                 ; sdpx = length in pixels of longest spectra
                                 ; Ymini = array with Y coordinates for min wavelength for each lenslet. 
                                 ;		  (note, this is actually the *MAX* Y value since wavelength
