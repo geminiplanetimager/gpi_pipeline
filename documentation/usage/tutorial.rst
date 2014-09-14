@@ -183,13 +183,17 @@ Use the button **Remove All** to remove all the selected files. then redo the ab
 Wavelength solution
 --------------------
 
-Like the dark frames, the wavelength solution calibration files can be created using the Recipe Editor reduction steps discussed above with the following additions:
+Like the dark frames, the wavelength solution calibration files can be created using the Recipe Editor. However, the wavelength calibrations are computationally intensive and sensitive to their starting parameters. Therefore master wavelength calibrations are provided by Gemini and available for download at the `Gemini Public Data webpage <http://www.gemini.edu/sciops/instruments/gpi/public-data>`_. What we recommend is to take a master wavelength calibration, then calculate the flexure offsets between the master and the arclamp snapshot image taken with your science. 
 
+For the purposes of this tutorial, we recommend users download the Wavecals.zip file available on the `Gemini Public Data webpage <http://www.gemini.edu/sciops/instruments/gpi/public-data>`_. Then add the files to the calibration directory. The user must then update the calibration database by clicking the **Rescan Calib. DB** button, found in the lower left corner of the GPI DRP Status Console Window. 
+
+If one wishes to try to construct one on their own follow the reduction steps discussed above with the following additions:
+ 
 - **For step 1)** Select Xe-arc lamp files: **S20131208S0149(-151).fits**. 
 - **For step 3)** Keep selected the **Calibration** reduction type.
 - **For step 4)** Choose the **Wavelength Solution 2D** Recipe template.
 
-This is a more computationally intensive reduction and it may take some time to complete. It also requires a reference wavelength solution in the same Band as the observed arc lamp data. These can be accessed by downloading the Wavecals.zip file available on the `Gemini Public Data webpage <http://www.gemini.edu/sciops/instruments/gpi/public-data>`_. These files should be added to the calibrations directory. 
+This is a very computationally intensive reduction and it may take some time (>15 minutes) to complete. It also requires a reference wavelength solution in the same Band as the observed arc lamp data which is included in the Wavecals.zip file mentioned just above.
 
 .. note:: The wavelength calibration requires a complex algorithm. :ref:`Wavelength Calibration <wavelength_calibration>` describes the process in more detail and provides examples of common errors with solutions. 
 
@@ -198,6 +202,7 @@ A sample of the 2D image with the computed wavelength calibration is given below
 .. image:: wavelength-solution.png
         :scale: 100%
         :align: center
+
 
 Reducing your science data
 ==============================
