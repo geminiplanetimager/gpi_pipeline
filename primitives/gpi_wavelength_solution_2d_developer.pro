@@ -530,7 +530,7 @@ endif else begin
 endelse
 
 
-
+wherenan = where(~Finite(newwavecal))
 ;if keyword_set(debug) or keyword_set(debuglenslet) then stop
 
 
@@ -650,7 +650,8 @@ ydatabadx = bady MOD ncolbad
 ydatabady = bady / ncolbad
 ydummyfit = SFIT( ydata, 1, kx=yplanefit, /IRREGULAR, /MAX_DEGREE)
 ydummy[bady] = yplanefit[0] + yplanefit[1]*ydatabady + yplanefit[2]*ydatabadx 
-
+ydummy = filter_image(ydummy, median=35, /ALL_PIXELS)
+ydummy[bady] =  !values.f_nan
  
 goodx = where(Finite(xdummy), ngoodx, comp=badx, ncomp=nbadx) 
 ; interpolate at the locations of the bad data using the good data 
@@ -669,14 +670,22 @@ xdummyfit = SFIT( xdata, 1, kx=xplanefit, /IRREGULAR, /MAX_DEGREE)
 xdummy[badx] = xplanefit[0] + xplanefit[1]*xdatabady + xplanefit[2]*xdatabadx; + xplanefit[3]*xdatabadx*xdatabady
 print, xplanefit, yplanefit
 ;stop
+xdummy = filter_image(xdummy, median=35, /ALL_PIXELS)
+xdummy[badx] =  !values.f_nan
+
 
 goodw = where(Finite(wdummy), ngoodw, comp=badw, ncomp=nbadw) 
 ; interpolate at the locations of the bad data using the good data 
-if nbadw gt 0 then wdummy[badw] = interpol(wdummy[goodw], goodw, badw,/LSQUADRATIC) 
- 
+;if nbadw gt 0 then wdummy[badw] = interpol(wdummy[goodw], goodw, badw,/LSQUADRATIC) 
+wdummy = filter_image(wdummy, median=35, /ALL_PIXELS)
+wdummy[badw] =  !values.f_nan
+
+
 goodt = where(Finite(tdummy), ngoodt, comp=badt, ncomp=nbadt) 
 ; interpolate at the locations of the bad data using the good data 
-if nbadt gt 0 then tdummy[badt] = interpol(tdummy[goodt], goodt, badt,/LSQUADRATIC) 
+;if nbadt gt 0 then tdummy[badt] = interpol(tdummy[goodt], goodt, badt,/LSQUADRATIC) 
+tdummy = filter_image(tdummy, median=35, /ALL_PIXELS)
+tdummy[badt] =  !values.f_nan
 
 
 ;newwavecal[*,*,0]=ydummy
@@ -689,16 +698,16 @@ if nbadt gt 0 then tdummy[badt] = interpol(tdummy[goodt], goodt, badt,/LSQUADRAT
 
            ;minsm=90
            ;maxsm=190
-           smoothedw=median(wdummy,6,/even)
-           smoothedt=median(tdummy,6,/even)
+           ;smoothedw=median(wdummy,6,/even)
+           ;smoothedt=median(tdummy,6,/even)
            ;smoothedx=smooth(xdummy[where(Finite(refwlcal[*,*,1]))],5,/nan)
            ;smoothedy=smooth(ydummy[where(Finite(refwlcal[*,*,0]))],5,/nan)
-           smoothedx=median(xdummy,5)
-           smoothedy=median(ydummy,5)
-           wdummy=smoothedw
-           tdummy=smoothedt  
-           xdummy=smoothedx
-           ydummy=smoothedy
+           ;smoothedx=median(xdummy,5)
+           ;smoothedy=median(ydummy,5)
+           ;wdummy=smoothedw
+           ;tdummy=smoothedt  
+           ;xdummy=smoothedx
+           ;ydummy=smoothedy
          
            wdummy[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
            tdummy[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
@@ -710,7 +719,7 @@ if nbadt gt 0 then tdummy[badt] = interpol(tdummy[goodt], goodt, badt,/LSQUADRAT
            newwavecal[*,*,3]=wdummy
            newwavecal[*,*,0]=ydummy
            newwavecal[*,*,1]=xdummy
-
+           newwavecal[wherenan] = !values.f_nan
         ;endif
 
 
