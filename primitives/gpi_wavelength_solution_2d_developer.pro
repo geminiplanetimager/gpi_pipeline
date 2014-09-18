@@ -31,7 +31,6 @@
 ; PIPELINE ARGUMENT: Name="parallel" Type="Int" Range="[0,1]" Default="0" Desc="Option for Parallelization,  0: none, 1: parallel"
 ; PIPELINE ARGUMENT: Name="numsplit" Type="Int" Range="[0,100]" Default="0" Desc="Number of cores for parallelization. Set to 0 for autoselect."
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="Smoothed" Type="int" Range="[0,1]" Default="1" Desc="1: Smooth over poorly fit lenslets in final datacube; 0:NO, 1:YES"
 ; PIPELINE ARGUMENT: Name="Save_model_image" Type="int" Range="[0,1]" Default="0" Desc="1: save 2d detector model fit image to disk, 0:don't save"
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="wavcal" Default="AUTOMATIC" Desc="Filename of the desired reference wavelength calibration file to be read"
 ; PIPELINE ARGUMENT: Name="Save_model_params" Type="int" Range="[0,1]" Default="0" Desc="1: save model nuisance parameters to disk, 0: don't save"
@@ -68,7 +67,6 @@ calfiletype = 'wavecal'
  	if tag_exist( Modules[thisModuleIndex], "numsplit") then numsplit=fix(Modules[thisModuleIndex].numsplit) else numsplit=!CPU.TPOOL_NTHREADS*2
 	if numsplit lt 1 then numsplit=!CPU.TPOOL_NTHREADS*2
   	if tag_exist( Modules[thisModuleIndex], "Save") then Save=uint(Modules[thisModuleIndex].Save) else Save=0
-  	if tag_exist( Modules[thisModuleIndex], "Smoothed") then Smoothed=uint(Modules[thisModuleIndex].Smoothed) else Smoothed=0
   	if tag_exist( Modules[thisModuleIndex], "Save_model_image") then Save_model_image=uint(Modules[thisModuleIndex].Save_model_image) else Save_model_image=0
   	if tag_exist( Modules[thisModuleIndex], "Save_model_params") then Save_model_params=uint(Modules[thisModuleIndex].Save_model_params) else Save_model_params=0
  	if tag_exist( Modules[thisModuleIndex], "AutoOffset") then AutoOffset=uint(Modules[thisModuleIndex].AutoOffset) else AutoOffset=0
@@ -88,7 +86,6 @@ calfiletype = 'wavecal'
 	;open the reference wavecal file. Save into common block variable.
 	refwlcal = gpi_readfits(c_File,header=Header)
 
-        common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
         
 ;Use the next line to manually select a wavecal by hand until that
 ;software bug is fixed.
@@ -113,18 +110,18 @@ calfiletype = 'wavecal'
         ;;                         ;artifacts when plotted in gpitv, need
         ;;                         ;a solution that doesn't smooth
         ;;                         ;around edges.
-            smoothedw=smooth(refwlcal[*,*,3],5,/nan)
-            smoothedt=smooth(refwlcal[*,*,4],5,/nan)
-            smoothedw[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
-            smoothedt[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
-            minsm=80
-            maxsm=200
+;            smoothedw=smooth(refwlcal[*,*,3],5,/nan)
+;            smoothedt=smooth(refwlcal[*,*,4],5,/nan)
+;            smoothedw[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
+;            smoothedt[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
+;            minsm=80
+;            maxsm=200
             ;smoothedx=smooth(refwlcal[minsm:maxsm,minsm:maxsm,1],5,/nan)
             ;smoothedy=smooth(refwlcal[minsm:maxsm,minsm:maxsm,0],5,/nan)
             ;refwlcal[minsm:maxsm,minsm:maxsm,1]=smoothedx
             ;refwlcal[minsm:maxsm,minsm:maxsm,0]=smoothedy
-            refwlcal[*,*,3]=smoothedw
-            refwlcal[*,*,4]=smoothedt
+;            refwlcal[*,*,3]=smoothedw
+;            refwlcal[*,*,4]=smoothedt
         ;; endif
 
 
@@ -144,12 +141,14 @@ calfiletype = 'wavecal'
  
 
 	if whichpsf eq 1 then begin
+           basedir = gpi_get_directory('GPI_CALIBRATIONS_DIR')+path_sep()
+           basedir = '/Users/swolff/Dropbox (GPI)/GPI/GPI_Calibrations/lenslet_PSFs/'+path_sep()
            case filter of
-              'H': psffn = '/Users/swolff/Dropbox (GPI)/GPI/GPI_Calibrations/lenslet_PSFs/140522b_highres-1650um-psf_structure-updatedheaders.fits'
-              'J': psffn = '/Users/swolff/Dropbox (GPI)/GPI/GPI_Calibrations/lenslet_PSFs/140520_highres-1150um-psf_structure-updatedheaders.fits'
-              'Y': psffn = '/Users/swolff/Dropbox (GPI)/GPI/GPI_Calibrations/lenslet_PSFs/140529_highres-1000um-psf_structure-updatedheaders.fits'
-              'K1': psffn = '/Users/swolff/Dropbox (GPI)/GPI/GPI_Calibrations/lenslet_PSFs/140513_highres-2058um-psf_structure-updatedheaders.fits'
-              'K2': psffn = '/Users/swolff/Dropbox (GPI)/GPI/GPI_Calibrations/lenslet_PSFs/140513_highres-2058um-psf_structure-updatedheaders.fits';140226_highres-2058um-psf_structure.fits'
+              'H': psffn = basedir+'140522b_highres-1650um-psf_structure-updatedheaders.fits'
+              'J': psffn = basedir+'140520_highres-1150um-psf_structure-updatedheaders.fits'
+              'Y': psffn = basedir+'140529_highres-1000um-psf_structure-updatedheaders.fits'
+              'K1': psffn = basedir+'140513_highres-2058um-psf_structure-updatedheaders.fits'
+              'K2': psffn = basedir+'140513_highres-2058um-psf_structure-updatedheaders.fits'
            endcase
            if ~file_test(psffn) then return, error("Microlens PSF file not found: "+psffn)
            print, psffn
@@ -274,9 +273,6 @@ if keyword_set(parallel) then begin
 	; See the same algorithm implemented below in the single threaded code for
 	; the comments. 
 
-;print, jstart,'jend','refwlcal','image','im_uncert','badpix','newwavecal','psffn','lambda_min',$
-;		           'q','wlcalsize','xinterp','yinterp','wla','fluxa','nmgauss','count','lensletmodel','lensletcount',$
- ;                          'modelparams','modelbackgrounds','locations_lambda_min','locations_lambda_max','n_valid_lenslets','boxpad','whichpsf'
 
 	 gpi_split_for, istart,iend, nsplit=numsplit,$ 
 		 varnames=['jstart','jend','refwlcal','image','im_uncert','badpix','newwavecal','psffn','lambda_min',$
@@ -340,7 +336,7 @@ if keyword_set(parallel) then begin
 	'    lensletmodel[startx:stopx, starty:stopy] += modelimage',$
 	'    lensletcount+=1',$
  	'endfor'];,$
-	;'print,"Have now fit "+strc(lensletcount)+"/"+strc(n_valid_lenslets)+ " lenslets in process "+strc(which_bridge)']
+
 
 	backbone->Log,"Parallel process execution complete.", depth=3,/flush
 
@@ -389,13 +385,6 @@ endif else begin
 	lensletcount= 0
         boxpad = 2
         count = 0
-
-	;debug=5 ; set this to 1 to enable a breakpoint after each row.
-	;debugall=1
-	;debuglenslet = [39,138]  ; set this to debug the fit of one specific pixel only
-	;debuglenslet = [39,148]  ; set this to debug the fit of one specific pixel only
-	;debuglenslet=[15,190]
-	;debuglenslet=[119,26]
 
 
 	for i = istart,iend do begin
@@ -554,6 +543,13 @@ if keyword_set(save_model_image) then begin
 
 	lensletmodel -= smoothed_background
 
+
+referencex=1025.0  ;roughly x-position in H
+referencey=1008.0  ;roughly y-position in H
+yposition=newwavecal[140,140,0]
+xposition=newwavecal[140,140,1]
+absxshift=xposition-referencex
+absyshift=yposition-referencey
 
 
 	pheader_copy = *dataset.headersPHU[numfile]
