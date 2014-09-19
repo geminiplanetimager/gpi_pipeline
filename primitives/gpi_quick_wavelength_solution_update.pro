@@ -102,6 +102,7 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
         backbone->set_keyword, "HISTORY", functionname+": "+c_File,ext_num=0
         backbone->set_keyword, "DRPWVCLF", c_File, "DRP wavelength calibration file used.", ext_num=0
 				
+;		message,/info, 'Calculating offests from wavelength calibration file '+c_file
 
         ;open the reference wavecal file. Save into common block variable.
         refwlcal = gpi_readfits(c_File,header=Header)
@@ -310,52 +311,79 @@ for i = istart,iend,spacing do begin
 	backbone->Log, " Performed spectral fit for "+strc(counter)+" lenslets total."
 	; now we compare the properties derived for the subset of lenslets we just fit, 
 	; versus the existing properties of the prior wavecal
-	wg = where((newwavecal[*,*,0] ne 0) and finite(newwavecal[*,*,0]))
-	
-	ydiffs = (newwavecal[*,*,0])[wg] - (refwlcal[*,*,0])[wg]
-	xdiffs = (newwavecal[*,*,1])[wg] - (refwlcal[*,*,1])[wg]
 
-        ind=where(xdiffs ne 0 and ydiffs ne 0)
-        ydiffs=ydiffs[ind]
-        xdiffs=xdiffs[ind]
+; ##### BEGIN TESTING
 
 
-;	mnx = mean(xdiffs,/nan)
-;	mny = mean(ydiffs,/nan)
-;	sdx = stddev(xdiffs[xsubs],/nan)
-;	sdy = stddev(ydiffs[ysubs],/nan)
+; create mask of nans/finite values
+mask=bytarr(281,281)
+all_inds=where(finite(refwlcal[*,*,0]),complement=bad)
+mask[all_inds]=1
+
+; create a 2d image of the measured differences between the
+; original wavecal and the centroids from the argon snapshot
+ydiffs2d = (newwavecal[*,*,0]) - (refwlcal[*,*,0])
+xdiffs2d = (newwavecal[*,*,1]) - (refwlcal[*,*,1])
+
+xdiffs2d[bad]=!values.f_nan
+ydiffs2d[bad]=!values.f_nan
+
+; now mask out the indices that don't have measured
+; centroid values
+
+wg = where((newwavecal[*,*,0] ne 0) and finite(newwavecal[*,*,0] eq 1), complement=missing_ind)
+
+xdiffs2d[missing_ind]=!values.f_nan
+ydiffs2d[missing_ind]=!values.f_nan
+
+; apply a median filtering with a box that encompasses
+; several measurements - 15 pixel spacing is the default
+; so we want a box that is at LEAST 30 pixels, 
+; then smooth the image to remove the "boxs" seen from the median
+; filtering
+xim1=filter_image(xdiffs2d,median=65,/all,smooth=31)*mask
+yim1=filter_image(ydiffs2d,median=65,/all,smooth=31)*mask
+
+xim1[bad]=!values.f_nan
+yim1[bad]=!values.f_nan
+
+ydiffs = (newwavecal[*,*,0] - refwlcal[*,*,0] - yim1)[wg]
+xdiffs = (newwavecal[*,*,1] - refwlcal[*,*,1] - xim1)[wg]
 
 ; replacing with clipped values
-	meanclip,xdiffs,mnx,sdx,clipsig=2,subs=xsubs
-	meanclip,ydiffs,mny,sdy,clipsig=2,subs=ysubs
+meanclip,xim1,mnx,sdx,clipsig=2,subs=xsubs
+meanclip,yim1,mny,sdy,clipsig=2,subs=ysubs
 
+backbone->Log, "Mean shifts (X,Y) of this file vs. old wavecal: "+printcoo(mnx, mny, format='(f20.3)')+" pixels,   +- "+printcoo(sdx,sdy,format='(f20.3)')+" pixels 1 sigma"
 
-	backbone->Log, "Mean shifts (X,Y) of this file vs. old wavecal: "+printcoo(mnx, mny, format='(f20.3)')+" pixels,   +- "+printcoo(sdx,sdy,format='(f20.3)')+" pixels 1 sigma"
         if ((sdx GE 1.0) OR (sdy GE 1.0)) then backbone->Log, "WARNING: Errors in the pixel shifts are more than a pixel."
 
 	if display ne -1 then begin
 		if display eq 0 then window,/free else select_window, display
 		!p.multi=[0,1,2]
-		if n_elements(uniqvals(xdiffs)) gt 1 then begin
-			plothist, xdiffs, bin=0.01, title="X pos offset [current-old]", xtitle="Detector pixels", $
-				ytitle='# of tested lenslets'
+		if n_elements(uniqvals(xdiffs[ind])) gt 1 then begin
+			plothist, xdiffs[ind], bin=0.01, title="X pos offset [current-old]", xtitle="Detector pixels", $
+				ytitle='# of tested lenslets',/nan
 			;ver, mnx,/line
 			oplot,[mnx,mnx],[0,counter],color=100
 		endif
 
-		if n_elements(uniqvals(ydiffs)) gt 1 then begin
-			plothist, ydiffs, bin=0.01, title="Y pos offset [current-old]", xtitle="Detector pixels", $
-				ytitle='# of tested lenslets'
+		if n_elements(uniqvals(ydiffs[ind])) gt 1 then begin
+			plothist, ydiffs[ind], bin=0.01, title="Y pos offset [current-old]", xtitle="Detector pixels", $
+				ytitle='# of tested lenslets',/nan
 			oplot,[mny,mny],[0,counter],color=100
     endif
                 !p.multi=0
   endif 
 
+
+; Modify the wavecal
 	shiftedwavecal = refwlcal
-;        shiftedwavecal[*,*,0]=newwavecal[*,*,0]
-;        shiftedwavecal[*,*,1]=newwavecal[*,*,1]
-	shiftedwavecal[*,*,0] += mny
-	shiftedwavecal[*,*,1] += mnx
+	shiftedwavecal[*,*,0] += (yim1)
+	shiftedwavecal[*,*,1] += (xim1)
+
+stop
+
 ; Edit the header of the original raw data products 
 ; to include the information about the new wavelength
 ; calibration. Taken from the gpi_measure_wavelength_calibration.pro
