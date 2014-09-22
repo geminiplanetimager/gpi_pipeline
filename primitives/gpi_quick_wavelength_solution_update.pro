@@ -359,20 +359,17 @@ backbone->Log, "Mean shifts (X,Y) of this file vs. old wavecal: "+printcoo(mnx, 
         if ((sdx GE 1.0) OR (sdy GE 1.0)) then backbone->Log, "WARNING: Errors in the pixel shifts are more than a pixel."
 
 	if display ne -1 then begin
-		if display eq 0 then window,/free else select_window, display
-		!p.multi=[0,1,2]
-		if n_elements(uniqvals(xdiffs[ind])) gt 1 then begin
-			plothist, xdiffs[ind], bin=0.01, title="X pos offset [current-old]", xtitle="Detector pixels", $
-				ytitle='# of tested lenslets',/nan
-			;ver, mnx,/line
-			oplot,[mnx,mnx],[0,counter],color=100
-		endif
+		if display eq 0 then window,/free,/retain else select_window, display,retain=1
+			!p.multi=[0,1,2]
+			if n_elements(uniqvals(xdiffs)) gt 1 then begin
+				plothist, xdiffs, bin=0.01, title="X pos offset residuals [current-old]",$
+					xtitle="Detector pixels", ytitle='# of tested lenslets',/nan
+			endif
 
-		if n_elements(uniqvals(ydiffs[ind])) gt 1 then begin
-			plothist, ydiffs[ind], bin=0.01, title="Y pos offset [current-old]", xtitle="Detector pixels", $
-				ytitle='# of tested lenslets',/nan
-			oplot,[mny,mny],[0,counter],color=100
-    endif
+			if n_elements(uniqvals(ydiffs)) gt 1 then begin
+				plothist, ydiffs, bin=0.01, title="Y pos offset residual [current-old]",$
+					 xtitle="Detector pixels", ytitle='# of tested lenslets',/nan
+   			endif
                 !p.multi=0
   endif 
 
@@ -381,8 +378,6 @@ backbone->Log, "Mean shifts (X,Y) of this file vs. old wavecal: "+printcoo(mnx, 
 	shiftedwavecal = refwlcal
 	shiftedwavecal[*,*,0] += (yim1)
 	shiftedwavecal[*,*,1] += (xim1)
-
-stop
 
 ; Edit the header of the original raw data products 
 ; to include the information about the new wavelength
