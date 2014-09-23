@@ -249,10 +249,8 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
                return, error("FAILURE: Directory "+s_OutputDir+" does not exist or is not writeable.",/alert)
          endif         
          radialsave = s_OutputDir
-      endif 
+      endif    
       
-      
-
       ;;if this is a directory, then you want to save to it with the
       ;;default naming convention
       if file_test(radialsave,/dir) then begin
@@ -267,7 +265,7 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
       out[*,0] = *asecs[n_elements(inds[0])-1]
       for j=0,n_elements(inds)-1 do $
          out[where((*asecs[j]) eq (*asecs[j])[0]):n_elements(*asecs[j])-1,j+1] = $
-         (*contrprof[inds[j]])[*,0]
+         (*contrprof[j])[*,0]
 
       tmp = intarr((size(cube,/dim))[2])
       tmp[inds] = 1
