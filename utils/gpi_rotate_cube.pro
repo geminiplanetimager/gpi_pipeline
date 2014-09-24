@@ -25,12 +25,13 @@
 ;
 ;-
 
-FUNCTION gpi_rotate_cube,  backbone, dataset, cube0, center_method=center_method, rot_method=rot_method, rot_center=rot_center, $
-	indexFrame=indexFrame, noheaderupdate=noheaderupdate, pivot=pivot
+FUNCTION gpi_rotate_cube,  backbone, dataset, cube0, center_method=center_method, $
+			rot_method=rot_method, rot_center=rot_center, $
+			indexFrame=indexFrame, noheaderupdate=noheaderupdate, pivot=pivot
 
 	cube=cube0  ; make a copy
 	sz = size(cube)
-    nslice = sz[3]                ; works for either POL or SPEC modes
+	nslice = sz[3]                ; works for either POL or SPEC modes
 
 	if rot_method ne 'CUBIC' and rot_method ne 'FFT' then return, error("Invalid rotation method: "+rot_method)
 	if center_method ne 'HEADERS' and center_method ne 'MANUAL' then return, error("Invalid rotation method: "+center_method)
@@ -165,7 +166,7 @@ FUNCTION gpi_rotate_cube,  backbone, dataset, cube0, center_method=center_method
         for i=0,sz[3]-1 do begin
            ;;rot has the same stupid CW conventionas hrot2      
            interpolated = rot(reform(cube_r[*,*,i],sz[1],sz[2]), -d_PAR_ANG, 1.,centerx,centery, cubic=-0.5, missing=!values.f_nan,pivot=pivot) ; do a cubic rotation by slice, and
-           nearest =      rot(reform(cube_r[*,*,i],sz[1],sz[2]), -d_PAR_ANG, 1.,centerx,centery, interp=0, missing=!values.f_nan,pivot=pivot) ; nearest neighbor to fix any NaNs
+           nearest = rot(reform(cube_r[*,*,i],sz[1],sz[2]), -d_PAR_ANG, 1.,centerx,centery, interp=0, missing=!values.f_nan,pivot=pivot) ; nearest neighbor to fix any NaNs
            wnan = where(~finite(interpolated), nanct)
            if nanct gt 0 then interpolated[wnan] = nearest[wnan]
            cube_r[*,*,i] = interpolated
@@ -186,11 +187,25 @@ FUNCTION gpi_rotate_cube,  backbone, dataset, cube0, center_method=center_method
 
 	;;if there are satspots, rotate them as well
 	locs = gpi_satspots_from_header(*DataSet.HeadersExt[indexFrame])
+	; check for parity flip
+	if cdelt[0] gt 0 then begin
+		locs[0,*,*]=(sz[1]-1)/2+((sz[1]-1)/2-locs[0,*,*])
+	endif
+
 	if n_elements(locs) gt 1 then  begin
-		 gpi_rotate_header_satspots,backbone, d_PAR_ANG ,locs,imcent = (sz[1:2]-1)/2
+		; so rot does a translation then a rotation
+		; so we need to translate the sat spots prior to putting them in
+		; gpi_rotate_header_satspots, which does no translation
+		if pivot eq 0 then begin
+			dx=((sz[1]-1)/2)-centerx
+			dy=((sz[2]-1)/2)-centery
+			locs[0,*,*]+=dx
+			locs[1,*,*]+=dy
+			gpi_rotate_header_satspots,backbone, d_PAR_ANG ,locs,imcent = (sz[1:2]-1)/2,indexframe=indexframe
+		endif else gpi_rotate_header_satspots,backbone, d_PAR_ANG ,locs,imcent = [centerx,centery],indexframe=indexframe   
+
 	endif 
   endif
-
 
   return, cube_r
 
