@@ -406,12 +406,12 @@ wherenan = where(~Finite(newwavecal))
 ;if keyword_set(debug) or keyword_set(debuglenslet) then stop
 
 
-
+wg = where(finite(modelbackgrounds), wgcount)
+if wgcount lt 5 then return, error('FAILURE in gpi_wavelength_solution_2d: Error in parallelized computing.')
 ;OPTIONAL: SAVE THE DETECTOR MODEL IMAGE
 if keyword_set(save_model_image) then begin
 
 	;Generate 2D backgrounds, smoothed from above 
-	wg = where(finite(modelbackgrounds))
 	bkgx = (modelparams[*,*,1])[wg]
 	bkgy = (modelparams[*,*,0])[wg]
 	triangulate, bkgx, bkgy, triangles, b
@@ -537,7 +537,7 @@ ydatabadx = bady MOD ncolbad
 ydatabady = bady / ncolbad
 ydummyfit = SFIT( ydata, 1, kx=yplanefit, /IRREGULAR, /MAX_DEGREE)
 ydummy[bady] = yplanefit[0] + yplanefit[1]*ydatabady + yplanefit[2]*ydatabadx 
-ydummy = filter_image(ydummy, median=35, /ALL_PIXELS)
+ydummy = filter_image(ydummy, median=7)
 ydummy[bady] =  !values.f_nan
  
 goodx = where(Finite(xdummy), ngoodx, comp=badx, ncomp=nbadx) 
@@ -557,21 +557,21 @@ xdummyfit = SFIT( xdata, 1, kx=xplanefit, /IRREGULAR, /MAX_DEGREE)
 xdummy[badx] = xplanefit[0] + xplanefit[1]*xdatabady + xplanefit[2]*xdatabadx; + xplanefit[3]*xdatabadx*xdatabady
 print, xplanefit, yplanefit
 ;stop
-xdummy = filter_image(xdummy, median=35, /ALL_PIXELS)
+xdummy = filter_image(xdummy, median=7)
 xdummy[badx] =  !values.f_nan
 
 
 goodw = where(Finite(wdummy), ngoodw, comp=badw, ncomp=nbadw) 
 ; interpolate at the locations of the bad data using the good data 
 ;if nbadw gt 0 then wdummy[badw] = interpol(wdummy[goodw], goodw, badw,/LSQUADRATIC) 
-wdummy = filter_image(wdummy, median=35, /ALL_PIXELS)
+wdummy = filter_image(wdummy, median=7)
 wdummy[badw] =  !values.f_nan
 
 
 goodt = where(Finite(tdummy), ngoodt, comp=badt, ncomp=nbadt) 
 ; interpolate at the locations of the bad data using the good data 
 ;if nbadt gt 0 then tdummy[badt] = interpol(tdummy[goodt], goodt, badt,/LSQUADRATIC) 
-tdummy = filter_image(tdummy, median=35, /ALL_PIXELS)
+tdummy = filter_image(tdummy, median=7)
 tdummy[badt] =  !values.f_nan
 
 

@@ -53,9 +53,7 @@ function gpi_assemble_spectral_datacube, DataSet, Modules, Backbone
 
   ;;get length of spectrum
   sdpx = calc_sdpx(wavcal, filter, Ymini, CommonWavVect)
-  ;sdpx = 18.0
-  print, sdpx
-  print, CommonWavVect
+  
                                 ; sdpx = length in pixels of longest spectra
                                 ; Ymini = array with Y coordinates for min wavelength for each lenslet. 
                                 ;		  (note, this is actually the *MAX* Y value since wavelength
