@@ -758,7 +758,7 @@ pro gpi_recipe_editor::event,ev
 		else type_ok=0
 
 		if ~type_ok then begin
-			errormessage = ["Sorry, you tried to enter a value for "+argname+", but it had the wrong type ("+strupcase(typename)+").", "Please enter a value of type "+strupcase(required_type)+". The value was NOT updated; please try again."]
+			errormessage = ["Sorry, you tried to enter a value for "+argname+", but it had the wrong type ("+strupcase(typename)+").", "Please enter a value of type "+strupcase(required_type)+". The value was NOT updated; please try again.", "NOTE: If you are trying to edit the CalibrationFile keyword,", "please use the 'Choose Calibration File...' button in the lower right corner."]
 			self->log,errormessage[0]+"  "+errormessage[1] ; merge 2 lines into 1
 			res = dialog_message(errormessage,/error, title='Unable to set value')
 			self->refresh_arguments_table
