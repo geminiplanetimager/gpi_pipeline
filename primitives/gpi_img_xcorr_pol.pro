@@ -1,6 +1,6 @@
 ;+
 ; NAME: gpi_img_xcorr_pol.pro
-; PIPELINE PRIMITIVE DESCRIPTION: Flexure 2D x correlation with polcal model
+; PIPELINE PRIMITIVE DESCRIPTION: Flexure 2D x correlation with ulens and polcal models
 ;
 ;   This primitive uses the relevent microlense PSF and pol cal to generate a model detector image to cross correlate with a science image. 
 ;   The resulting output can be used as a flexure offset prior to flux extraction.
@@ -27,6 +27,7 @@
 ;
 ; HISTORY:
 ;    Began 2014-01-13 by Zachary Draper
+;          2014-10-01 MMB: Changed name to distinguish from other version that JUST uses polcal file.
 ;-  
 
 ;-----------------------------
