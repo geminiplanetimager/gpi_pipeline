@@ -18930,6 +18930,14 @@ if not(keyword_set(yrange)) or (*self.state).contr_yaxis_mode then begin
       yrange[1] = yrange[1] > max(tmp)
    endfor
 endif
+;;Tick labels don't appear if yrange less than an order
+;;of magnitude, so check for that
+if floor(alog10(max(yrange))) eq floor(alog10(min(yrange))) then begin
+  ;;As of now no labels will be drawn on Y-axis, so set them by hand
+  ytickv = 10.^floor(alog10(min(yrange))) * (findgen(10)+1)
+  ytickv = ytickv(where(ytickv ge min(yrange) and ytickv le max(yrange)))
+  yticks = n_elements(ytickv)-1
+endif
 
 ;;figure out title
 widget_control,(*self.state).contrwarning_id,get_value=warn
@@ -18940,7 +18948,7 @@ if strcmp(warn,'Warnings: Possible Misdetection: Fluxes vary >25%') then $
 ;;plot contrast
 if not(keyword_set(overplot)) then begin
    plot,[0],[0],ylog=(*self.state).contr_yaxis_type,xlog=xlog,xrange=xrange,yrange=yrange,/xstyle,/ystyle,$
-        xtitle=xtitle,ytitle=ytitle,/nodata, charsize=(*self.state).contr_font_size, title=title
+        xtitle=xtitle,ytitle=ytitle,/nodata, charsize=(*self.state).contr_font_size, title=title,ytickv=ytickv,yticks=yticks
 endif
 for j = 0, n_elements(inds)-1 do begin
    if not keyword_set(data) then asec = *(*self.satspots.asec)[inds[j]] else $
