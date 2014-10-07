@@ -39,10 +39,10 @@ function calc_sdpx, wavcal, filter, spectra_lambdamin_y, CommonWavVect, spectra_
   mom = moment(ydiff, maxmoment=2, /nan)
   amean=mom(0)
   asigma=sqrt(mom(1))
-  cliplocs = where(abs(ydiff) gt amean+(asigma*2.0))
+  cliplocs = where(abs(ydiff) gt amean+(asigma*2.0),cl)
   ;print, 'cliplocs'
   ;print, Finite(ydiff[cliplocs])
-  ydiff[cliplocs] = !values.f_nan
+  if cl ne 0 then ydiff[cliplocs] = !values.f_nan
 
   bordnan = where(~finite(ydiff),cc)
   if cc gt 0 then ydiff[bordnan] = 0.
