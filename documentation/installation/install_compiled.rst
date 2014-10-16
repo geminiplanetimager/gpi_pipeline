@@ -43,6 +43,29 @@ Obtain the desired zip file and uncompress it to a directory of your choosing. R
 
 :ref:`priorversions` can be found below if desired
 
+Initial Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Before you can start the pipeline, you will need to do some basic configuration to set up your environment. This is an abbreviated version of the full set of configuration options described in :ref:`configuring`.
+
+.. admonition:: Mac OS X, Linux
+
+      .. image:: icon_mac2.png
+      .. image:: icon_linux2.png
+
+   You must set the environment variable ``GPI_DRP_DIR`` to the path of the unzipped pipeline. I.e. ::
+
+       setenv GPI_DRP_DIR /home/myusername/gpi_pipeline_1.1.1_runtime_linux   
+
+   (using whatever is the appropriate path in your case.)  See :ref:`configuring` if you need more information on how to set an environment variable. 
+
+.. admonition:: Windows
+ 
+    .. image:: icon_windows2.png
+
+        You may need to add idl to your %PATH%, and/or run the gpi-setup-windows.bat script. 
+        ##FIXME## these instructions need to be updated. 
+
 Starting the DRP with the IDL Runtime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -74,14 +97,22 @@ How to start the compiled code varies by operating system.
 
       .. image:: icon_linux2.png
 
-   You can start compiled code from the command line ::
+   There are scripts inside the ``$GPI_DRP_DIR/executables`` directory that you can use to start the pipeline. The following two commands should start the pipeline IDL sessions::
+
+        unix%  $GPI_DRP_DIR/executables/gpi_launch_pipeline
+        unix%  $GPI_DRP_DIR/executables/gpi_launch_guis
+
+   You can also start IDL directly from the command line and supply one of the sav files::
       
         unix% idl -rt=/path/to/executables/gpi_launch_pipeline.sav
+        unix% idl -rt=/path/to/executables/gpi_launch_guis.sav
+
+   You may need to set the environment variable IDL_DIR to the ``executables\idl##`` directory for this to work.
 
    To conveniently start both required IDL sessions at once, there is a shell script ``scripts/gpi-pipeline`` which 
-   launches two xterms and starts the pipeline and GUIs sessions in them.
+   launches two xterms and starts the pipeline and GUIs sessions in them. If you encounter problems when using this, 
+   just manually start both the pipeline and GUI sessions as shown above. 
 
-   You may need to set the environment variable IDL_DIR to the ``executables\idl##`` directory.
 
 
 .. admonition:: Windows
