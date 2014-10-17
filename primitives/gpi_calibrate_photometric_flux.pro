@@ -101,7 +101,7 @@ if calib_spectrum ne '' then begin
 		if keyword_set(calib_cube_name) eq 1 then	backbone->Log,functionname+"This will result in ignoring the provided calibration cube" +string(calib_cube_name)
 		backbone->Log,functionname+ ':   WARNING- this has not been thoroughly tested and is extremely dangerous to use. Systematics can be easily introduced!'
 		; interpolate to our wavelengths
-		readcol,calib_spectrum,waves,response_curve0,response_curve_err0
+		readcol,calib_spectrum,waves,response_curve0,response_curve_err0,format='F,F,F'
 		response_curve=interpol(response_curve0,waves,lambda)
 		response_curve_err=interpol(response_curve_err0,waves,lambda)
 		for l=0, N_ELEMENTS(lambda)-1 do calibrated_cube[*,*,l]*=(1.0/response_curve[l])
@@ -308,8 +308,8 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 
 				; error check to see that not all nan's are encountered
 				if bkg_ind[0] eq -1 or total(finite(trans_cube_slice[bkg_ind])) eq 0 or total(finite(trans_cube_slice[src_ind])) eq 0 then begin
-					phot_comp[l]=!values.f_nan
-					phot_comp_err[l]=!values.f_nan
+					satflux_arr[s,l]=!values.f_nan
+					satflux_err_arr[s,l]=!values.f_nan
 					continue
 				endif
 				; fit plane to bkg
