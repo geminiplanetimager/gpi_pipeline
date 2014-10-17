@@ -30,7 +30,7 @@ Using Flexure Shifts in the GPI Pipeline
 .. note::
        The :ref:`quick start tutorial <usage-quickstart>` gives a quick example on how to apply flexure offets to wavelength calibrations, we recommend at least reading the applicable sections of the tutorial prior to this section.
 
-When reducing science data, the standard recipes, :ref:`Spectral Science <spectralscience_templates>` contain the :ref:`Update spot shifts for flexure <updatespotshiftsforflexure>` primitive. This primitive allows the user to select between a manual flexure shift, default flexure shifts from a lookup table, and no shifts. If manual flexure shifts are chosen, the x and y shifts are controlled by the ``manual_dx`` and ``manual_dy`` keywords. The Lookup method requires a calibration file with a 'shifts' extension. This table lists the shifts in x and y as a function of elevation.  This method will compensate for the repeatable flexure offsets discussed above. We recommend beginning with the lookup table option.
+When reducing science data, the standard recipes, :ref:`Spectral Science <spectralscience_templates>` contain the :ref:`Update spot shifts for flexure <updatespotshiftsforflexure>` primitive. This primitive allows the user to select between a manual flexure shift, default flexure shifts from a lookup table, no shifts, and the BandShift mode. If manual flexure shifts are chosen, the x and y shifts are controlled by the ``manual_dx`` and ``manual_dy`` keywords. The Lookup method requires a calibration file with a 'shifts' extension. This table lists the shifts in x and y as a function of elevation.  This method will compensate for the repeatable flexure offsets discussed above. The BandPass mode was developed to take advantage of the derived shifts from the quick H band arc lamp images taken at the same elevation as science targets across all bands. It uses the x and y positions from the most recent wavelength calibration and extrapolates to the bandpass of the science data. This mode is not extensively tested.  We recommend beginning with the lookup table option.
 
 If your datacube was reduced with the wrong flexure solution, the datacube will exhibit a checkerboard pattern. The figure below shows a slice of a datacube that used incorrect flexure shifts (1.5 pixels off in both x and y). 
 
@@ -38,13 +38,13 @@ If your datacube was reduced with the wrong flexure solution, the datacube will 
        :width: 400pt
        :align: center
 
-In this case, it is likely necessary to input a manual flexure since a non-repeatable flexure component has resulted in an offset to the standard flexure curves. To determine the necessary shifts, you should open the raw science frame and overplot the wavelength solution. For information on how to do this see :ref:`Displaying GPI Wavelength Calibration feature <gpitv_wavecal_grid>`. The user may change the position of the overplotted lenslet locations until they line up with the data. Sub pixel position accuracy is possible by eye. 
+In this case, it is likely necessary to input a manual flexure since a non-repeatable flexure component has resulted in an offset to the standard flexure curves. To determine the necessary shifts, you should open the raw science frame and overplot the wavelength solution. For information on how to do this see :ref:`Displaying GPI Wavelength Calibration feature <gpitv_wavecal_grid>`. The user may change the position of the overplotted lenslet locations until they line up with the data. Sub pixel position accuracy is possible by eye. Once the wavelength solution is plotted over the Raw data, the user can click and drag the wavelength solution grid using the 'Move Wavecal Grid' Mouse Mode. The offsets will be displayed in red to the nearest pixel. 
 
 
 .. note::
         The x direction shifts are easy to determine by eye, but the ability to determine the shifts in the y-direction can be dependent on the spectral features of your target. 
 
-Once an approximate solution has been determined, the user should then run the *Quick Wavelength Solution* recipe template (found under the Calibration recipe menu), on the Argon lamp image taken with the data. The user should input the approximate solutions (rounded to the nearest integer) into the ``xoffset`` and ``yoffset`` parameters into the :ref:`Quick Wavelength Solution Update <QuickWavelengthSolutionUpdate>` primitive. When running the recipe, one must be careful to ensure the proper wavelength calibration is grabbed from the database (check the output in the pipeline xterm). If the wrong one is selected, then you can manually choose the correct one using the Choose Calibration File button. By default, a new wavelength calibration corresponding to the wavelength of the Argon arc taken with the data is created. Printed on the pipeline xterm window will also be the calculated offsets and uncertainties from the master wavelength calibration.
+It has become stardard practice at Gemini South to take short exposure arc lamp images contemporary with all GPI science targets for flexure compensation. The user should then run the *Quick Wavelength Solution* recipe template (found under the Calibration recipe menu), on the Argon lamp image taken with the data. The user should input the approximate solutions (rounded to the nearest integer) into the ``xoffset`` and ``yoffset`` parameters into the :ref:`Quick Wavelength Solution Update <QuickWavelengthSolutionUpdate>` primitive. When running the recipe, one must be careful to ensure the proper wavelength calibration is grabbed from the database (check the output in the pipeline xterm). If the wrong one is selected, then you can manually choose the correct one using the Choose Calibration File button. By default, a new wavelength calibration corresponding to the wavelength of the Argon arc taken with the data is created. Printed on the pipeline xterm window will also be the calculated offsets and uncertainties from the master wavelength calibration.
 
 .. note:: 
 	The offsets calculated will apply to **ALL** master wavelength calibrations since they are all taken with the telescope at zenith. 
@@ -57,13 +57,7 @@ Things to watch out for:
 
 The :ref:`Quick Wavelength Solution Update <QuickWavelengthSolutionUpdate>` will output offsets regardless of their validity. It is very important the user checks them!
 
-If the user reduces their data using the wavelength solution created using a Quick Wavelength solution, the flexure offsets as the target moves in elevation will be applied (if the Lookup method is enabled).
-
-.. warning::
-
-	If the Argon arclamp image taken with your data is **NOT** the same wavelength, then you can ONLY apply manual offsets to your data. No additional flexure compensation (e.g. the Lookup table) can be currently applied.
-
-For short observations, the amount of elevation change will be very small and no flexure compensation will be required. Furture updates to the pipeline will allow offsets to be applied to any wavecal, regardless of the wavelength of the Argon arc.
+If the user reduces their data using the wavelength solution created using a Quick Wavelength solution, the flexure offsets as the target moves in elevation will be applied if the Lookup method is enabled. For short observations, the amount of elevation change will be very small and no flexure compensation will be required. 
 
 Relevant GPI team members
 ------------------------------------

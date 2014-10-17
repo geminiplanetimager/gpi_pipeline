@@ -227,6 +227,10 @@ Histogram/Contour Plot  Plot histogram of                                       
                         region around cursor                                    around cursor
 Surface Plot            Draw surface plot of
                         region around cursor
+Move Wavecal Grid	Reposition the 
+                        wavecal grid with
+			some integer pixel
+			offset
 ======================  ====================    =============================   ============================
 
 

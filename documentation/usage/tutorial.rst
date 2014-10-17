@@ -135,7 +135,7 @@ The numbers of each of the following steps match with the screenshot above.
 1)	Press the upper-left button **Add File(s)** and select the files to reduce.
 2)	The selected files should appear just below.
 3)	Select the reduction type in the menu.
-4)	Select a Recipe Template. You may want to change the recipe if it doesn't match exactly to your expectation. It is possible to add, move and remove any primitive and also to change various input parameters that adjust algorithm details.
+4)	Select a Recipe Template. You may want to change the recipe if it doesn't match exactly to your expectation. It is possible to add, move and remove any primitive and also to change various input parameters that adjust algorithm details. For any primitive that requires a Calibration file, this will automatically be chosen from the Calibration Database. The user can Manually select a calibration file by selecting the primitive and clicking the **Choose Calibration File...** button in the lower right hand corner. 
 5)	Press **Save Recipe and drop in queue** button. This will generate the recipe based on the selected files and the list of primitives. The recipe is automatically saved in the queue directory, meaning that it will be read as soon as the pipeline is idle. The reduction might take a while depending on the computer.
 
 In the following, these steps will be repeated several times with specific indications. 

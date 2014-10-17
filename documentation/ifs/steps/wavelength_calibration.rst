@@ -35,10 +35,11 @@ Take a series of arc lamp exposures (multiple exposures to increase S/N). Reduce
 The Xenon arc lamp spectrum has more cleanly separated emission lines, but with our updated algorithms we now believe the pipeline can derive good wavelength calibrations from either
 Xe or Ar. The GCAL Ar lamp is 3-10x brighter depending on wavelength so the integration times are favorable. In general, Gemini instrument scientists will ensure proper calibration data are taken for wavecals.  
 
-There are two different recipes for creating wavelength calibrations:
+There are three different recipes for creating wavelength calibrations:
 
 * "Wavelength Solution" will bootstrap a wavelength solution from scratch using centroids measured for the arc lamp emssion lines.  It is somewhat fragile and in particular is sensitive to any residual hot pixels in your data, and the generated wavecal is not of the highest quality.  This recipe should only be used if you're setting up a copy of the pipeline from scratch with no existing wavecal files.
 * "Wavelength Solution 2D" on the other hand fits a 2D forward model of the dispersed spectrum to each lenslet and minimizes the chi squared to derive a more accurate wavecal. It yields better results but *requires that you already have at least one prior wavecal already to use as a starting guess* for the optimization. This is the right recipe to use the vast majority of the time.
+* "Quick Wavelength Solution" is designed to work on lower signal to noise arc lamp data taken contemporary with science data to correct for flexure within the IFS. I combines multiple lenslet spectra to fit an x and y position offset to an existing wavelength calibration file. This primitive is explained in more detail in the :ref:`ifs_flexure` section.
 
 .. note::
         The Wavelength Solution 2D recipe is computationally intensive, and will take tens of minutes to run on typical machines. The parallelized mode does not work with IDL Virtual Machine.
@@ -65,8 +66,6 @@ The following image shows a zoomed in region of a bad wavelength calibration. No
 .. figure:: bad_wavecal_zoom.png
        :width: 400pt
        :align: center
-
-
 
 
 If you do experience a failed wavelength calibration, first check to make sure the correct dark and badpixel mask were used. The wavelength solution 2D primitive relies on a reference wavelength solution. If this file is not clean, this will cause errors in the final wavecal. The pipeline will automatically choose the most recent reference wavelength calibration files, but the user can manual choose a file by editing the CalibrationFile primitive keyword in the Recipe Editor. One may also change the interpolation type of the bad-pixel interpolation. 
