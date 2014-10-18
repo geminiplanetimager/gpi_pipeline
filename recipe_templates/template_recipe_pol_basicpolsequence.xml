@@ -5,14 +5,14 @@
 </dataset>
 <module name="Load Polarimetry Spot Calibration" CalibrationFile="AUTOMATIC" />
 <module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
-<module name="Update Spot Shifts for Flexure" method="Lookup" manual_dx="0" manual_dy="0" Save="0" gpitv="0" display="-1" />
+<primitive name="Flexure 2D x correlation with polcal" range="0.3" resolution="0.1" psf_sep="0.1" stopidl="0" x_off="0" y_off="0" badpix="1" iterate="1" />
 <module name="Destripe science image" method="calfile" abort_fraction="0.9" fraction="0.7" high_limit="1000" chan_offset_correction="1" Save_stripes="0" Save="0" display="-1" gpitv="0" remove_microphonics="1" method_microphonics="1" plot_micro_peaks="no" save_microphonics="no" micro_threshold="0.01" />
 <module name="Interpolate bad pixels in 2D frame" method="all8"  Save="0" gpitv="0" CalibrationFile="AUTOMATIC" before_and_after="0"/> 
 <module name="Assemble Polarization Cube" Rotate="0" Save="0" gpitv="0" Method="BOX" />
 <module name="Interpolate bad pixels in cube" Save="0" gpitv="2" before_and_after="0" />
 <module name="Measure Star Position for Polarimetry" x0="147" y0="147" search_window="5" mask_radius="50" highpass="1" lower_threshold="-100" Save="1" gpitv="0" />
 <module name="Accumulate Images" Method="OnDisk" />
-<module name="Clean Polarization Pairs via Double Difference" fix_badpix="0" Save_diffbias="0" gpitv_diffbias="10" Save="1" debug="0" />
+<module name="Clean Polarization Pairs via Double Difference" fix_badpix="1" Save_diffbias="0" gpitv_diffbias="10" Save="1" debug="0" />
 <module name="Rotate North Up" Rot_Method="CUBIC" Center_Method="HEADERS" centerx="140" centery="140" Save="0" gpitv="0" />
 <module name="Combine Polarization Sequence" HWPoffset="-29.14" IncludeSystemMueller="0" IncludeSkyRotation="1" Save="1" gpitv="10" />
 </DRF>
