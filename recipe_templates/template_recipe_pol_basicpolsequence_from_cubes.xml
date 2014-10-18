@@ -3,10 +3,8 @@
 <dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
    <fits filename=""/>
 </dataset>
-<module name="Interpolate bad pixels in cube" Save="0" gpitv="0" before_and_after="0" />
-<module name="Measure Star Position for Polarimetry" x0="147" y0="147" search_window="5" mask_radius="50" highpass="1" lower_threshold="-100" Save="0" gpitv="0" />
 <module name="Accumulate Images" Method="OnDisk" />
-<module name="Clean Polarization Pairs via Double Difference" fix_badpix="0" Save_diffbias="0" gpitv_diffbias="10" Save="1" debug="0" />
+<module name="Clean Polarization Pairs via Double Difference" fix_badpix="1" Save_diffbias="0" gpitv_diffbias="10" Save="1" debug="0" />
 <module name="Rotate North Up" Rot_Method="CUBIC" Center_Method="HEADERS" centerx="140" centery="140" Save="0" gpitv="0" />
 <module name="Combine Polarization Sequence" HWPoffset="-29.14" IncludeSystemMueller="0" IncludeSkyRotation="1" Save="1" gpitv="10" />
 </DRF>
