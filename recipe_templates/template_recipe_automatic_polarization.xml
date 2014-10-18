@@ -7,7 +7,7 @@
   <primitive name="Flag Quicklook" Save="0" />
   <primitive name="Load Polarimetry Spot Calibration" CalibrationFile="AUTOMATIC" />
   <primitive name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
-  <primitive name="Update Spot Shifts for Flexure" method="Lookup" manual_dx="0" manual_dy="0" Save="0" gpitv="0" display="-1" />
+  <primitive name="Flexure 2D x correlation with polcal" range="0.3" resolution="0.1" psf_sep="0.1" stopidl="0" x_off="0" y_off="0" badpix="1" iterate="1" />
   <primitive name="Interpolate bad pixels in 2D frame" method="vertical"  Save="0" gpitv="0" CalibrationFile="AUTOMATIC" before_and_after="0" /> 
   <primitive name="Assemble Polarization Cube" Save="1" gpitv="5" /> 
 </DRF>
