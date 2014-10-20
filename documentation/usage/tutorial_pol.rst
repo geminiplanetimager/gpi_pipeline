@@ -86,7 +86,7 @@ This step will walk through how to create polarization data cube from raw data. 
 			:scale: 75%
 			:align: center
 
-	  Automatic compensation for flexure has been implemented as of pipeline version 1.2 using a primitive named 'Flexure 2D x correlation with polcal' that replaces the previous 'Update Spot Shifts for Flexure'. If you insist on using an older version of the pipeline instructions can be found on how to manually compensate for flexure at the bottom of this page. 
+	  Automatic compensation for flexure has been implemented as of pipeline version 1.2 using a primitive named 'Flexure 2D x correlation with polcal' that replaces the previous 'Update Spot Shifts for Flexure'. If you insist on using an older version of the pipeline, instructions can be found on how to manually compensate for flexure at the bottom of this page. 
 	  
 	   Your Recipe Editor Window should now look something like this: 
 
