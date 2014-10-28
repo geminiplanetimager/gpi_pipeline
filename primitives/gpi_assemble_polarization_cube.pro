@@ -89,6 +89,7 @@ function gpi_assemble_polarization_cube, DataSet, Modules, Backbone
   
   ; errors
   badpix = indq GT 0
+  
   im_uncert = gpi_estimate_2d_uncertainty_image(input, *dataset.headersPHU[numfile], *dataset.headersExt[numfile])
 
 
@@ -138,6 +139,7 @@ function gpi_assemble_polarization_cube, DataSet, Modules, Backbone
             ;; Reformat the parameters for the mpfit2peak functions
             fact = .35 ; factor for scaling gaussian width (?!)
             p = [0, 1., params[3]*fact, params[4]*fact, params[0]-lowx, params[1]-lowy, params[2]*!dtor]
+;            p = [0, 1., params[3]*fact, params[4]*fact, params[0]-lowx, params[1]-lowy, params[2]*!dtor,params[5]]
             
             ;; Extract out area of interest
             in_box = input[lowx:highx, lowy:highy]
@@ -150,13 +152,15 @@ function gpi_assemble_polarization_cube, DataSet, Modules, Backbone
             ;; Calculate the "distance" U and a gaussian profile for the spot
             u = mpfit2dpeak_u(xx, yy, p, /tilt)
             g = mpfit2dpeak_gauss(xx, yy, p, /tilt)
-
+;            g= mpfit2dpeak_moffat(xx,yy,p,/tilt)
+            
+            g /=total(g)
 
             ;; compute weights, with bad pixels zero weight
             w = (g^2/unc_box^2) * (1-bp_box)
             
             ;; Set a "distance" cutoff
-            udist = 5.
+            udist = 20.
             plist = where(u le udist, ct, complement=gtu)
             w[gtu] = 0
 
@@ -166,10 +170,13 @@ function gpi_assemble_polarization_cube, DataSet, Modules, Backbone
             w /= g
 
             ;; fix any divides-by-zero
-            w[where(~finite(w), /null)] = 0.
+            w_nan=where(~finite(w), ct)
+            if ct gt 0 then w[w_nan] = 0.
+            
+;            stop
 
             ;; compute weighted sum
-            polcube[ix, iy, pol] = total(in_box*w)
+            polcube[ix, iy, pol] = total(in_box*w)/total(g*w)
 
             ;; debug
 ;            if (ix eq 130) and (iy eq 130) then stop
