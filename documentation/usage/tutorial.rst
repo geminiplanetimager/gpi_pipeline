@@ -4,7 +4,7 @@ Quick Start Tutorial: Diving into data reduction
 #####################################################
 
 
-This is a quick tutorial to help new users get familiar with the GPI pipeline. More detailed
+This is a quick tutorial to help new users become familiar with the GPI pipeline. More detailed
 documentation of the tools shown here can be found on subsequent pages. 
 
 
@@ -187,7 +187,7 @@ Like the dark frames, the wavelength solution calibration files can be created u
 
 For the purposes of this tutorial, we recommend users download the Wavecals.zip file available on the `Gemini Public Data webpage <http://www.gemini.edu/sciops/instruments/gpi/public-data>`_. Then add the files to the calibration directory. The user must then update the calibration database by clicking the **Rescan Calib. DB** button, found in the lower left corner of the GPI DRP Status Console Window. 
 
-If one wishes to try to construct one on their own follow the reduction steps discussed above with the following additions:
+At this point, the user may skip to the next section if they desire. However, should one wish to try to construct one on their own wavecales, follow the reduction steps below:
  
 - **For step 1)** Select Xe-arc lamp files: **S20131208S0149(-151).fits**. 
 - **For step 3)** Keep selected the **Calibration** reduction type.
@@ -218,7 +218,7 @@ All the calibration files are automatically found and the result is a final data
         :scale: 50%
         :align: center
         
-In order to correct for this, we must account for the offsets. If one opens the raw image in GPItv, then overplots the wavelength soluution (Labels -> Get Wavecal from DB, then Labels -> Plot Wavecal Grid -> Draw Grid), one will see the large offets (shown below).
+In order to correct for this, we must account for the offsets. To do this in an approximate manner, one should open the raw image in GPItv (S20131210S0025.fits), then overplot the wavelength soluution (Labels -> Get Wavecal from DB, then Labels -> Plot Wavecal Grid -> Draw Grid), one will see the large offets (shown below).
 
 .. image:: offset_wavecal.png
         :scale: 50%
@@ -231,10 +231,11 @@ As a rough approximation, one can input offsets in GPItv (in the plot wavecal gr
 3. Change the manual_dx and manual_dy keywords to the desired values.
 4. Re-run the reduction (Save Recipe and Queue)
 
+.. note:: Another more automated way to do this that is not described here utilises the "Move wavecal grid" Mouse Mode in GPItv.
 
 Because a snapshot of the Argon arclamp was taken at the same telescope position, we can use this to determine the needed offsets in a much more robust fashion.
 
-- **For step 1)** Select the Ar-arc snapshot taken with the data: **S20131210S0055.fits**. 
+- **For step 1)** Select the Ar-arc snapshot taken with the data (found in the onsky_data folder): **S20131210S0055.fits**. 
 - **For step 3)** Keep selected the **Calibration** reduction type.
 - **For step 4)** Choose the **Quick Wavelength Solution** Recipe template.
 
