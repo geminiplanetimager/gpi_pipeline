@@ -47,7 +47,7 @@ wavcalout=dblarr(szw[1],szw[2],szw[3])
 		wavcalout[*,*,1]=  d2*sin(wavcal[*,*,6])+wavcal[*,*,1] 
 	end
 	endcase
-
+        
 	wavcalout[*,*,2]=lambdaout
 	wavcalout[*,*,3]=wavcal[*,*,3]
 	wavcalout[*,*,4]=wavcal[*,*,4]

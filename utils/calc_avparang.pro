@@ -68,7 +68,7 @@ if ~keyword_set(degree) then begin
    h1 *= 15d0
 endif
 
-paint = qromb('parang_eq',h0,h1,/double)
+paint = qromb('parang_eq',h0,h1,/double,eps=1e6)
 
 return,paint/(h1-h0) * 180d0/!dpi
 

@@ -1,16 +1,25 @@
+.. _wavelength_calibration:
 
 Wavelength Calibration
 ==================================
 
+.. admonition:: Published reference
+
+        Further information may be found in `Wolff et al. 2014 "Gemini Planet Imager Observational Calibrations IV: Wavelength Calibration and Flexure Correction for the Integral Field Spectrograph" <http://arxiv.org/abs/1407.2304>`_
+
+
 Observed Effect and Relevant Physics:
 ---------------------------------------
 
-To perform GPI's exoplanet characterization science goals requires a wavelength precision of ~1%. However, the uniformity of the datacube is greatly increased with a better quality calibration. Performing a robust, high-accuracy wavelength calibration with GPI has been on of the primary challenges of the pipeline development. Similar to other near-IR spectrographs, GPI uses the well calibrated emission lines of a Xenon or Argon lamp (Argon requires more computation time to fit blended lines). The current accuracy of the wavelength calibration is below 0.5% for all bands. The new calibration based on forward modeling provides wavelength information accurate to within several hundredths of a pixel in all bands. 
+To perform GPI's exoplanet characterization science goals requires a wavelength precision of ~1%. However, the uniformity of the datacube is greatly increased with a better quality calibration. Performing a robust, high-accuracy wavelength calibration with GPI has been one of the primary challenges of the pipeline development. Similar to other near-IR spectrographs, GPI uses the well calibrated emission lines of a Xenon or Argon lamp (Argon requires more computation time to fit blended lines, but the GCAL Ar lamp is several times brighter than the Xe lamp). The current accuracy of the wavelength calibration is below 0.5% for all bands. The new calibration based on forward modeling provides wavelength information accurate to within several hundredths of a pixel in all bands. 
 
 Using Wavelength Calibrations in the GPI Pipeline
 --------------------------------------------------
 
 Most data reduction recipes for raw GPI data will begin by loading a wavelength calibration using the pipeline primitive :ref:`Load Wavelength Calibration <LoadWavelengthCalibration>`. Typically the calibration is obtained automatically from the :ref:`Calibration Database <calibdb>` based on the closest-in-time wavelength calibration file.  There are no significant user-selectable options for this step to be concerned with.
+
+If the wavelength solution was taken at a very different time than the science data in question, it is likely that internal flexure in the
+IFS results in an offset between the two. This has to be compensated for using the Update Spot Shifts for Flexure primitive.  See :ref:`ifs_flexure` for further information.
 
 Creating Calibrations:
 -----------------------
@@ -26,10 +35,11 @@ Take a series of arc lamp exposures (multiple exposures to increase S/N). Reduce
 The Xenon arc lamp spectrum has more cleanly separated emission lines, but with our updated algorithms we now believe the pipeline can derive good wavelength calibrations from either
 Xe or Ar. The GCAL Ar lamp is 3-10x brighter depending on wavelength so the integration times are favorable. In general, Gemini instrument scientists will ensure proper calibration data are taken for wavecals.  
 
-There are two different recipes for creating wavelength calibrations:
+There are three different recipes for creating wavelength calibrations:
 
 * "Wavelength Solution" will bootstrap a wavelength solution from scratch using centroids measured for the arc lamp emssion lines.  It is somewhat fragile and in particular is sensitive to any residual hot pixels in your data, and the generated wavecal is not of the highest quality.  This recipe should only be used if you're setting up a copy of the pipeline from scratch with no existing wavecal files.
-* "Wavelength Solution 2D" on the other hand fits a 2D forward model of the dispersed spectrum to each lenslet and minimizes the chi squared to derive a more accurate wavecal. It yields better results but *requires that you already have at least one prior  wavecal already to use as a starting guess* for the optimization. This is the right recipe to use the vast majority of the time.
+* "Wavelength Solution 2D" on the other hand fits a 2D forward model of the dispersed spectrum to each lenslet and minimizes the chi squared to derive a more accurate wavecal. It yields better results but *requires that you already have at least one prior wavecal already to use as a starting guess* for the optimization. This is the right recipe to use the vast majority of the time.
+* "Quick Wavelength Solution" is designed to work on lower signal to noise arc lamp data taken contemporary with science data to correct for flexure within the IFS. I combines multiple lenslet spectra to fit an x and y position offset to an existing wavelength calibration file. This primitive is explained in more detail in the :ref:`ifs_flexure` section.
 
 .. note::
         The Wavelength Solution 2D recipe is computationally intensive, and will take tens of minutes to run on typical machines. The parallelized mode does not work with IDL Virtual Machine.
@@ -56,8 +66,6 @@ The following image shows a zoomed in region of a bad wavelength calibration. No
 .. figure:: bad_wavecal_zoom.png
        :width: 400pt
        :align: center
-
-
 
 
 If you do experience a failed wavelength calibration, first check to make sure the correct dark and badpixel mask were used. The wavelength solution 2D primitive relies on a reference wavelength solution. If this file is not clean, this will cause errors in the final wavecal. The pipeline will automatically choose the most recent reference wavelength calibration files, but the user can manual choose a file by editing the CalibrationFile primitive keyword in the Recipe Editor. One may also change the interpolation type of the bad-pixel interpolation. 

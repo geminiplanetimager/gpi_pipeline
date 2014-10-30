@@ -25,6 +25,7 @@ organize_recipes_by_dates	1
 # force_rescan_caldb_on_startup		0
 # username_in_log_filename	0
 # caldb_restricts_by_cooldown	0
+# launcher_force_semaphore_name some_noconflict_sema_name
 
 ## GPItv settings
 # gpitv_default_scale	log
@@ -40,12 +41,11 @@ organize_recipes_by_dates	1
 ## Debug and development 
 # max_files_per_recipe	1000
 # parsergui_max_files     1000
-# enable_primitive_debug  1
+ enable_primitive_debug  1
 # enable_parser_debug     0
 # enable_gpitv_debug	0
 # drp_queue_poll_freq	1.0
 # drp_gui_poll_freq	10
 # prevent_multiple_instances  0
 # preprocess_fits_files	0
-
 

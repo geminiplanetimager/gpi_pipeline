@@ -19,7 +19,7 @@ Pipeline architecture design, initial algorithms development, core structure, GU
 **Dmitry Savransky** made major contributions to pipeline primitives, infrastructure, and GPItv.
 
 **Zack Draper** developed improved datacube extraction routines and tools for fitting flexure using microlens PSFs.
-**Mike Fitzgerald** contributed some improvements to gpitv. 
+**Mike Fitzgerald** contributed some improvements to gpitv and polarimetric extraction.
 **Christian Marois** contributed to improving PSF subtraction algorithms and contrast measurement code. 
 **Max Millar-Blanchaer** contributed extensively to polarization mode primitives and GPItv polarization support, and with 
 **Abhijith Rajan** found and fixed a few bugs.

@@ -71,7 +71,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	; now combine them.
 	if nfiles gt 1 then begin
-		backbone->set_keyword, 'HISTORY', functionname+":   Combining n="+strc(nfiles)+' files using method='+method,ext_num=0
+		backbone->set_keyword, 'HISTORY', "   Combining n="+strc(nfiles)+' files using method='+method,ext_num=0
 		backbone->Log, "	Combining n="+strc(nfiles)+' files using method='+method
 		backbone->set_keyword, 'DRPNFILE', nfiles, "# of files combined to produce this output file"
 		case STRUPCASE(method) of
@@ -90,7 +90,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		endcase
 	endif else begin
 
-		backbone->set_keyword, 'HISTORY', functionname+":   Only 1 file supplied, so nothing to combine.",ext_num=0
+		backbone->set_keyword, 'HISTORY', "   Only 1 file supplied, so nothing to combine.",ext_num=0
 		message,/info, "Only one frame supplied - can't really combine it with anything..."
 
 		combined_im = imtab[*,*,0]
@@ -117,10 +117,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		imtab[*,2044:2047] = !values.f_nan
 
 		stddev2 = stddev(imtab,/nan) ; this std dev should be less biased
-		rdnoise=stddev2
-		backbone->Log, 'Estimated read noise='+strc(rdnoise)+' cts from stddev across '+strc(nfiles)+' darks.'
-		backbone->set_keyword, 'HISTORY', functionname+":   Estimating read noise comparing all files: ",ext_num=0
-		backbone->set_keyword, 'HISTORY', functionname+":      rdnoise = stddev(dark_i-combined_dark) = "+sigfig(rdnoise,4),ext_num=0
+		rdnoise=stddev2[0]
+		backbone->Log, 'Estimated read noise='+sigfig(rdnoise,4)+'cts  from stddev across '+strc(nfiles)+' darks.', depth=3
+		backbone->set_keyword, 'HISTORY', "   Estimating read noise comparing all files: ",ext_num=0
+		backbone->set_keyword, 'HISTORY', "     rdnoise = stddev(dark_i-combined_dark) = "+sigfig(rdnoise,4),ext_num=0
 		backbone->set_keyword, 'EST_RDNS', rdnoise, 'Estimated read noise from stddev across '+strc(nfiles)+' darks [counts]' ,ext_num=0
 
 
@@ -135,7 +135,22 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 
 		combined_center=combined_im[4:2043,4:2043] ; ignore edges
-		med_combined = median(combined_center)
+
+		; use refpix here to subtract off median row
+		;refpix = [combined_im[0:3,4:2043], combined_im[2044:*,4:2043]]
+		;meanrefpix = mean(refpix,dim=1)
+		;combined_center -= rebin(transpose(meanrefpix), 2040, 2040)
+		; NO - the above does not work well for the curvature at the bottom from
+		; reset anomaly. 
+		;
+		; Let's just forget the overall dark level (this is negligible) and
+		; instead just subtract off row medians
+		
+		
+		rowmedians = median(combined_center, dim=1)
+		combined_center -= rebin(transpose(rowmedians), 2040, 2040)
+
+		med_combined = median(combined_center) ; this will probably now be 0.0 given the above.
 
 		nsig=5
 		whigh = where(combined_center gt (med_combined+nsig*rdnoise), highct)
@@ -144,15 +159,17 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		if keyword_set(do_plot_dark) then begin
 			plothist,combined_center,/ylog, xrange=[-3*rdnoise, 8*rdnoise] 
 		endif
-		backbone->set_keyword, 'HISTORY', functionname+":   "+strc(highct)+" pixels are high, 5 sigma above read noise" ,ext_num=0
-		backbone->set_keyword, 'HISTORY', functionname+":   "+strc(lowct)+" pixels are low, 5 sigma below read noise" ,ext_num=0
+		backbone->set_keyword, 'HISTORY', "   "+strc(highct)+" pixels are high, >  5*sigma_readnoise + median(dark)" ,ext_num=0
+		backbone->set_keyword, 'HISTORY', "   "+strc(lowct)+" pixels are low,   < -5*sigma_readnoise + median(dark)" ,ext_num=0
 
-		hotcutoff = itime/gain
-		whot = where(combined_center gt hotcutoff, hotct)
-		backbone->set_keyword, 'HISTORY', functionname+":   Hot pixels (>1 e-/sec) would have >"+sigfig(hotcutoff,5)+" counts",ext_num=0
-		backbone->set_keyword, 'HISTORY', functionname+":   "+strc(hotct)+" such pixels are present." ,ext_num=0
+		hotcutoff = itime/gain ; = 1 e-/second
+		whot = where(combined_center gt hotcutoff+med_combined, hotct)  ; hot pixel threshhold is relative to counts above the median count rate 
+																		; so that it is robust against detector bias (which is ~ 15 counts for
+																		; short exposures )
+		backbone->set_keyword, 'HISTORY', "   Hot pixels (>1 e-/sec) would have >"+sigfig(hotcutoff,5)+" counts",ext_num=0
+		backbone->set_keyword, 'HISTORY', "   "+strc(hotct)+" such pixels are present, and " ,ext_num=0
 		whot2 = where( (combined_center gt hotcutoff) and (combined_center gt (med_combined+nsig*rdnoise)), hotct2)
-		backbone->set_keyword, 'HISTORY', functionname+":   "+strc(hotct2)+" such pixels are present & >5 sigma * rdnoise" ,ext_num=0
+		backbone->set_keyword, 'HISTORY', "   "+strc(hotct2)+" of those are > 5 sigma above rdnoise" ,ext_num=0
 		backbone->set_keyword, 'ESTNHTPX', hotct2, "Estimated number of 'hot' pixels, >1 e-/sec "
 
 
@@ -167,14 +184,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 
 		wgood = where(good, goodct)
-		if goodct eq 0 then begin
-			backbone->Log, "ERROR: In the combined dark, somehow all pixels are flagged as bad."
-			return, -1
-		endif
+		if goodct eq 0 then return, error("ERROR: In the combined dark, somehow all pixels are flagged as bad.")
 		meandark = mean(combined_center[wgood])
 
-		backbone->set_keyword, 'HISTORY', functionname+":   Good pixels mean dark rate = "+sigfig(meandark/itime,3)+" counts/sec" ,ext_num=0
-		backbone->set_keyword, 'EST_DKRT', meandark/itime, "Estimated mean count rate for good pixels [counts/sec]"
+		backbone->set_keyword, 'HISTORY', "   Good pixels mean dark rate = "+sigfig(meandark/itime,3)+" counts/sec" ,ext_num=0
+		;backbone->set_keyword, 'EST_DKRT', meandark/itime, "Estimated mean count rate for good pixels [counts/sec]"
 
 
 	endif

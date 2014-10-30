@@ -313,7 +313,7 @@ for i=0,n_elements(launcher_names)-1 do begin
 
 	;delete *.app files which dont load properly due to not having access to
 	; environment variables
-	if (macint64 eq 1) then begin
+	if (!version.os eq 'darwin') then begin
 		FILE_DELETE, compile_dir+launcher_names[i]+path_sep()+launcher_names[i]+'.app',/recursive
 	endif
 

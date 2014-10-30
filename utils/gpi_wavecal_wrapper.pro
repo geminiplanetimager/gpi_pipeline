@@ -35,7 +35,7 @@
 ;+
 
 FUNCTION gpi_wavecal_wrapper, xdim,ydim,refwlcal,lensletarray,badpixels,wlcalsize,startx,starty,whichpsf,$
-	image_uncert=image_uncert, debug=debug, psffn=psffn, count=count,jcount=jcount,$
+	image_uncert=image_uncert, debug=debug, psffn=psffn,$
 	modelimage=modelimage, modelmask=modelmask, modelbackground=modelbackground
 
 common ngausscommon, numgauss, wl, flux, lambdao, my_psf
@@ -46,24 +46,29 @@ nflux=size(flux,/dimensions)
 
 ;read in my_psf
 if whichpsf EQ 'nmicrolens' then begin
-;print,count,xdim,ydim
-   if (count EQ 1 AND jcount EQ 1) then begin
-       myPSFs_array = gpi_highres_microlens_psf_read_highres_psf_structure(psffn, [281,281,1])
-       print, 'Created myPSFs array.'
-    endif
-       ptr = gpi_highres_microlens_psf_get_local_highres_psf(myPSFs_array,[xdim,ydim,0])
-       if ptr_valid(myPSFs_array[xdim,ydim]) then begin
+
+      if isa(myPSFs_array) NE 1 then begin
+         myPSFs_array = gpi_highres_microlens_psf_read_highres_psf_structure(psffn, [281,281,1])
+         print, 'Created myPSFs array.'
+      endif
+       
+      ptr = gpi_highres_microlens_psf_get_local_highres_psf(myPSFs_array,[xdim,ydim,0])
+      if ptr_valid(myPSFs_array[xdim,ydim]) then begin
           my_psf = *myPSFs_array[xdim,ydim]
 ;          print,'psf was valid'
-       endif else print, 'ERROR: PSF was not valid'
+      endif else print, 'ERROR: PSF was not valid'
+
 endif
 
 ;Pull the values for this lenslet from the reference wavelength calibration
 xo=refwlcal[xdim,ydim,1]
 yo=refwlcal[xdim,ydim,0]
-lambdao=refwlcal[xdim,ydim,2]
+;lambdao=refwlcal[xdim,ydim,2]
 w=refwlcal[xdim,ydim,3]
 theta=refwlcal[xdim,ydim,4]
+;lambdao=lambdamin
+
+
 
 ;Initialize the starting parameters to be input to mpfit2dfunc
 startparmssize=9+nflux
@@ -84,6 +89,7 @@ start_params[3]=theta
 
 start_params[0]=xo-startx
 start_params[1]=yo-starty
+;imdisp, lensletarray
 sz=size(lensletarray,/dimension)
 ;print,'test of the wrapper size',sz
 xdimension=sz[0]
@@ -198,7 +204,7 @@ parinfo[7].limits[0]=0.0
            bestres=mpfit2dfun('ngauss',x,y,lensletarray, ERR,weight=weights, start_params,parinfo=parinfo,bestnorm=bestnorm,/quiet, status=status, errmsg =errmsg)
         end
     endcase
-
+  
 	if status lt 0 then print, "ERROR: ", errmsg
  
 ;	loww=k
@@ -226,11 +232,12 @@ parinfo[7].limits[0]=0.0
 		atv,[[[lensletarray]],[[modelimage]]],/bl
 		stop
 	endif
-       
+       ; imdisp, modelimage
 ;TO DO: set bestres=0 as a flag for a failed fit, then interpolate the
 ;correct value in the wavelength solution 2d primitive
 if array_equal(start_params[0:1], bestres[0:1]) then begin
    message,/info, "WARNING - SAME START AND END POSITIONS"
+   ;bestres[*]=!values.f_nan
   ; bestres=0
 endif
 

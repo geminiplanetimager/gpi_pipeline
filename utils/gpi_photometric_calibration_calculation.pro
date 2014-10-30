@@ -75,8 +75,9 @@ if keyword_set(units) eq 0 then message,/info, 'WARNING (gpi_photometric_calibra
 ; load in the reference spectrum
 ; ################################
 ; first check to see one is specified
+
 if user_supplied_spectrum_flag eq 1 then begin
-	if file_test(ref_model_spectrum) eq 1 then return, error ('FAILURE (gpi_photometric_calibration_calculation): The file '+strc(ref_model_spectrum)+', specified by the user is not found')
+	if file_test(ref_model_spectrum) eq 0 then return, error ('FAILURE (gpi_photometric_calibration_calculation): The file '+strc(ref_model_spectrum)+', specified by the user is not found')
 
 		logarr=[logarr, '(gpi_photometric_calibration_calculation):  Loading user-specified spectrum '+ref_model_spectrum]
 		readcol,ref_model_spectrum,model_wavelengths,model_flux,format=('F,F')
@@ -94,6 +95,8 @@ if keyword_set(ref_model_spectrum) eq 0 then begin
 			ref_model_spectrum=gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'pickles'+path_sep()+pickles_fnames[i]+'.fits'
 		  if file_test(ref_model_spectrum) eq 0 then return, error ('FAILURE (gpi_photometric_calibration_calculation): The file '+strc(ref_model_spectrum)+' is not found in Pickles library. Verify all the pickles models are in the directory '+ gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'pickles')
 			; now load the spectrum
+			logarr=[logarr, '(gpi_photometric_calibration_calculation): Loaded pickles spectrum '+ref_model_spectrum]
+
 			pickles=mrdfits(ref_model_spectrum,1)
 			model_wavelengths=pickles.wavelength
 			model_flux=pickles.flux ; erg/s/cm2/A - but this is not a zero magnitude - this is whatever the magnitude difference of the star is (so if H-V=2, then its a magnitude 2 star!
@@ -151,20 +154,22 @@ endif ; if ref_model_spectrum eq 0
 
 		CASE strc(strlowcase(FILTTYPE)) OF
 			'2mass': begin 
-								; first determine the band, then load in the RSR curve
-								directory=gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'filters/2mass_filters/'
-								case filter of
-									 	 'J': readcol, directory+'2m_J_band_RSR.dat' , filt_wave0, filt_prof0
-									 	 'H': readcol, directory+'2m_H_band_RSR.dat', filt_wave0, filt_prof0
-									 	 'K1': readcol, directory+'2m_Ks_band_RSR.dat', filt_wave0, filt_prof0
-									 	 'K2': readcol, directory+'2m_Ks_band_RSR.dat', filt_wave0, filt_prof0
-									else: 	return, error('FAILURE (gpi_photometric_calibration_calculation):  No 2mass filter for the given filter')
-								endcase
-							end 
+				; first determine the band, then load in the RSR curve
+				directory=gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'filters/2mass_filters/'
+				mag_filter=filter
+				case mag_filter of
+				;'Y': readcol, directory+'2m_J_band_RSR.dat' , filt_wave0, filt_prof0
+				 'J': readcol, directory+'2m_J_band_RSR.dat' , filt_wave0, filt_prof0
+				 'H': readcol, directory+'2m_H_band_RSR.dat', filt_wave0, filt_prof0
+				 'K1': readcol, directory+'2m_Ks_band_RSR.dat', filt_wave0, filt_prof0
+				 'K2': readcol, directory+'2m_Ks_band_RSR.dat', filt_wave0, filt_prof0
+				else: 	return, error('FAILURE (gpi_photometric_calibration_calculation):  No 2mass response curve (filter) for the given filter - must give a GPI filter magnitude')
+				endcase
+				end 
 			'gpi': begin
-							logarr=[logarr, '(gpi_photometric_calibration_calculation):  GPI filter magnitude specified. No delta magnitude correction applied']
-							dmag=0.0
-						 end
+				logarr=[logarr, '(gpi_photometric_calibration_calculation):  GPI filter magnitude specified. No delta magnitude correction applied']
+				dmag=0.0
+				 end
 			else: return, error('FAILURE (gpi_photometric_calibration_calculation):  No matching filter type found for '+strc(FILTTYPE)+', options are currently: GPI, 2Mass, 2M or not defined')
 		endcase
 
@@ -223,11 +228,11 @@ unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm
 
 ; this is just a hack for transmission numbers 
 	case filter of
-			'Y':  trans_val=0.06
-	 	 'J':  trans_val=0.06
-	 	 'H': trans_val=0.07
-  	 'K1':  trans_val=0.07
-	 	 'K2': trans_val=0.07
+		'Y':  trans_val=0.06
+	 	'J':  trans_val=0.06
+	 	'H': trans_val=0.07
+		'K1':  trans_val=0.07
+	 	'K2': trans_val=0.07
 	endcase
 
       case units of

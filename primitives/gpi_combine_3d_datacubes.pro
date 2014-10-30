@@ -62,7 +62,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 			combined_im=median(imtab,/DOUBLE,DIMENSION=4) 
 		end
 		'MEAN': begin
-			combined_im=total(imtab,/DOUBLE,4) /((size(imtab))[4])
+			;combined_im=total(imtab,/DOUBLE,4) /((size(imtab))[4])
+			combined_im=mean(imtab,/double,dimension=4,/nan)
 		end
 		'SIGMACLIP': begin
                                 ; this is rather dirty but functional
@@ -99,9 +100,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		 backbone->set_keyword,'HISTORY', functionname+":   Only 1 file supplied, so nothing to combine.",ext_num=0
 		message,/info, "Only one frame supplied - can't really combine it with anything..."
 
-		combined_im = imtab[*,*,0]
+		combined_im = imtab
 	endelse
-
 
 
 	; store the output into the backbone datastruct

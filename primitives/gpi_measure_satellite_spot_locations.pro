@@ -15,14 +15,14 @@
 ; PIPELINE ARGUMENT: Name="constrain" Type="int" Range="[0,1]" Default="0" Desc="1: Constrain distance between sat spots by band; 0: Unconstrained search."
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="loc_input" Type="int" Range="[0,2]" Default="0" Desc="0: Find spots automatically; 1: Use values below as initial satellite spot location"
-; PIPELINE ARGUMENT: Name="x1" Type="int" Range="[0,300]" Default="0" Desc="approx x-location of top left spot on reference slice of the datacube in pixels (not considered if CalibrationFile is defined)"
-; PIPELINE ARGUMENT: Name="y1" Type="int" Range="[0,300]" Default="0" Desc="approx y-location of top left spot on reference slice of the datacube in pixels (not considered if CalibrationFile is defined)"
-; PIPELINE ARGUMENT: Name="x2" Type="int" Range="[0,300]" Default="0" Desc="approx x-location of bottom left spot on reference slice of the datacube in pixels (not considered if CalibrationFile is defined)"
-; PIPELINE ARGUMENT: Name="y2" Type="int" Range="[0,300]" Default="0" Desc="approx y-location of bottom left spot on reference slice of the datacube in pixels (not considered if CalibrationFile is defined)"
-; PIPELINE ARGUMENT: Name="x3" Type="int" Range="[0,300]" Default="0" Desc="approx x-location of top right spot on reference slice of the datacube in pixels (not considered if CalibrationFile is defined)"
-; PIPELINE ARGUMENT: Name="y3" Type="int" Range="[0,300]" Default="0" Desc="approx y-location of top right spot on reference slice of the datacube in pixels (not considered if CalibrationFile is defined)"
-; PIPELINE ARGUMENT: Name="x4" Type="int" Range="[0,300]" Default="0" Desc="approx x-location of bottom right spot on reference slice of the datacube in pixels (not considered if CalibrationFile is defined)"
-; PIPELINE ARGUMENT: Name="y4" Type="int" Range="[0,300]" Default="0" Desc="approx y-location of bottom right spot on reference slice of the datacube in pixels (not considered if CalibrationFile is defined)"
+; PIPELINE ARGUMENT: Name="x1" Type="int" Range="[0,300]" Default="0" Desc="approx x-location of top left spot on reference slice of the datacube in pixels"
+; PIPELINE ARGUMENT: Name="y1" Type="int" Range="[0,300]" Default="0" Desc="approx y-location of top left spot on reference slice of the datacube in pixels"
+; PIPELINE ARGUMENT: Name="x2" Type="int" Range="[0,300]" Default="0" Desc="approx x-location of bottom left spot on reference slice of the datacube in pixels"
+; PIPELINE ARGUMENT: Name="y2" Type="int" Range="[0,300]" Default="0" Desc="approx y-location of bottom left spot on reference slice of the datacube in pixels"
+; PIPELINE ARGUMENT: Name="x3" Type="int" Range="[0,300]" Default="0" Desc="approx x-location of top right spot on reference slice of the datacube in pixels"
+; PIPELINE ARGUMENT: Name="y3" Type="int" Range="[0,300]" Default="0" Desc="approx y-location of top right spot on reference slice of the datacube in pixels"
+; PIPELINE ARGUMENT: Name="x4" Type="int" Range="[0,300]" Default="0" Desc="approx x-location of bottom right spot on reference slice of the datacube in pixels"
+; PIPELINE ARGUMENT: Name="y4" Type="int" Range="[0,300]" Default="0" Desc="approx y-location of bottom right spot on reference slice of the datacube in pixels"
 ; PIPELINE ORDER: 2.44
 ; PIPELINE CATEGORY: Calibration,SpectralScience
 ;
@@ -30,6 +30,7 @@
 ; 	Originally by Jerome Maire 2009-12
 ;   2012-09-18 Offloaded functionality to common backend - ds
 ;   2013-07-17 MP Documentation updated, rename for consistency.
+;   2014-10-11 DS Added PSFCEN_XX for all slices to header
 ;- 
 
 function gpi_measure_satellite_spot_locations, DataSet, Modules, Backbone
@@ -75,22 +76,28 @@ if n_elements(cens) eq 1 then return, error ('FAILURE ('+functionName+'): Could 
 good = long(good)
 
 ;;write spot results to header
-backbone->set_keyword,"SPOTWAVE", cwv.lambda[indx], "Wavelength of ref for SPOT locations", ext_num=1
-tmp_sz=size(cens)
-PSFcenter=fltarr(tmp_sz[1],tmp_sz[2])
-for p=0,tmp_sz[1]-1 do for q=0, tmp_sz[2]-1 do PSFcenter[p,q]=mean(cens[p,q,indx])
-;PSFcenter = mean(cens[*,*,indx],dim=2) ; only works from IDL8.0
+backbone->set_keyword,"SPOTWAVE", cwv.lambda[indx],$
+                      "Wavelength of ref for SPOT locations", ext_num=1
 
-backbone->set_keyword,"PSFCENTX", mean(PSFcenter[0,*]), 'X-Locations of PSF center', ext_num=1
-backbone->set_keyword,"PSFCENTY", mean(PSFcenter[1,*]), 'Y-Locations of PSF center', ext_num=1
+PSFcens = fltarr(2,n_elements(good))
 for s=0,n_elements(good) - 1 do begin
    for j = 0,3 do begin
       backbone->set_keyword,'SATS'+strtrim(good[s],2)+'_'+strtrim(j,2),$
                             string(strtrim(cens[*,j,good[s]],2),format='(F7.3," ",F7.3)'),$
                             'Location of sat. spot '+strtrim(j,2)+' of slice '+strtrim(good[s],2),$
                             ext_num=1
-   endfor
+   endfor 
+
+   PSFcens[*,s] = [mean(cens[0,*,good[s]]),mean(cens[1,*,good[s]])]
+   backbone->set_keyword,'PSFC_'+strtrim(good[s],2),$
+                            string(strtrim(PSFcens[*,s],2),format='(F7.3," ",F7.3)'),$
+                            'PSF Center of slice '+strtrim(good[s],2),$
+                            ext_num=1
 endfor
+
+backbone->set_keyword,"PSFCENTX", mean(PSFcens[0,*]), 'Mean PSF center X', ext_num=1
+backbone->set_keyword,"PSFCENTY", mean(PSFcens[1,*]), 'Mean PSF center Y', ext_num=1
+
 ;;convert good elements to HEX
 goodcode = ulon64arr((size(cube,/dim))[2])
 goodcode[good] = 1

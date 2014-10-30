@@ -13,8 +13,9 @@
 ;-
 
 PRO gpi_launch_guis, _extra=_extra
-        currdir = gpi_get_setting('gpi_startup_dir',/silent)
-		if strc(currdir) ne "ERROR" then cd, gpi_expand_path(currdir)
+    currdir = gpi_get_setting('gpi_startup_dir',/silent)
+    if strc(currdir) eq "ERROR" then currdir = gpi_get_directory('GPI_DATA_ROOT')
+    if strc(currdir) ne "ERROR" then cd, gpi_expand_path(currdir)
 
-	o = obj_new('launcher', _extra=_extra)
+    o = obj_new('launcher', _extra=_extra)
 end

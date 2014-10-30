@@ -63,7 +63,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	   *(dataset.currframe[0])=collapsed_im
 		Modules[thisModuleIndex].Save=1 ;will save output on disk, so outputfilenames changed
 		collapsed_im=0
-		suffix+=Modules[thisModuleIndex].suffix 
+		;suffix+=Modules[thisModuleIndex].suffix 
     endif
    
     if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin

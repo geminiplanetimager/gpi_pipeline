@@ -77,7 +77,7 @@ pro gpitv, filename_or_array, header, session=session, new=new, _extra=_extra
 	common GPITV_COMM, objvars, nobj_max
 
 	if ~(keyword_set(nobj_max)) then begin
-		nobj_max = 100
+		nobj_max = 200
 		objvars = objarr(nobj_max)
 	endif
 

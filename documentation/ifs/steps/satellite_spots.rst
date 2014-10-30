@@ -3,6 +3,12 @@
 Satellite Spot Calibrations
 ==================================
 
+.. seealso::
+
+        Further information may be found in `Wang et al. 2014 "Gemini Planet Imager Observational Calibrations VIII:
+        Characterization and Role of Satellite Spots" <http://arxiv.org/abs/1407.2308>`_
+
+
 Observed Effect and Relevant Physics:
 ---------------------------------------
 
@@ -27,7 +33,6 @@ The use of these spots for photometric calibration has been challenging for seve
 
 To date, we see no evidence of variability in the satellite spectra, therefore using the satellites as a relative spectrophotometric calibrators is an acceptable practice. Difficulty in working with the satellite spots also arises from the diagonal spot pairs having slightly different PSFs. Because it is not possible to obtain an unocculted image of the star simultaneously with the satellites, comparison between the 5 PSFs is challenging. During comissioning, non-simultaneous observations have been performed and analysis is ongoing.
 
-More details regarding the :ref:`satellite spots <satellite_spots>` and their stability can be found as part of the IFS handbook.
 
 Pipeline Processing:
 ---------------------

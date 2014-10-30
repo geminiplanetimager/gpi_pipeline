@@ -173,8 +173,9 @@ PRO launcher::queue, cmdstr, _extra=_extra
 	endfor
 
 	if status eq 0 then begin
-		message,/info, "ERROR: could not get a lock on the inter-IDL queue semaphore after 10 tries"
+		message,/info, "ERROR: could not get a lock on the inter-IDL queue semaphore after 10 tries."
 		message,/info, "       Failed to queue command "+cmdstr
+        message,/info, "If the lock on the inter-IDL queue is not being released properly, use the pipeline setting launcher_force_semaphore_name to pick a different lock."
         if ~gpi_get_setting('launcher_ignore_queue_failures',/bool, default=0) then begin
             message,/info, "Returning without queueing. Set launcher_ignore_queue_failures=1 if you want to continue anyway."
             return
@@ -244,7 +245,8 @@ PRO launcher::unlock_queue
 
 
     if status eq 0 then begin
-        message,/info, "ERROR: could not get a lock on the inter-IDL queue semaphore after 10 tries"
+        message,/info, "ERROR: could not get a lock on the inter-IDL queue semaphore after 10 tries."  
+        message,/info, "If the lock on the inter-IDL queue is not being released properly, use the pipeline setting launcher_force_semaphore_name to pick a different lock."
         return
     endif
 
@@ -341,6 +343,7 @@ PRO launcher::clear_queue
     if status eq 0 then begin
         message,/info, "ERROR: could not get a lock on the inter-IDL queue semaphore after 10 tries"
         message,/info, "       Unable to clear the queue."
+        message,/info, "If the lock on the inter-IDL queue is not being released properly, use the pipeline setting launcher_force_semaphore_name to pick a different lock."
         return
     endif
 
@@ -368,7 +371,11 @@ PRO launcher::check_queue, ev
 	endif
 
     status = SEM_LOCK(self.semaphore_name) 
-    if status eq 0 then return
+    if status eq 0 then begin
+        message,/info, "ERROR: could not get a lock on the inter-IDL queue semaphore after 10 tries."  
+        message,/info, "If the lock on the inter-IDL queue is not being released properly, use the pipeline setting launcher_force_semaphore_name to pick a different lock."
+        return
+    endif
 
 
     wq = where(*self.cmd_queue_flags, qct)
@@ -649,9 +656,12 @@ FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, cle
 			button_image = READ_BMP(dirpro+path_sep()+'gpi.bmp', /RGB) 
 			button_image = TRANSPOSE(button_image, [1,2,0]) 
 			sz = size(button_image)
-			logo = WIDGET_draw( baseid2,   $
-				SCR_XSIZE=sz[1] ,SCR_YSIZE=sz[2])
-		endif	
+		endif else begin
+			sz = [0,83,78]
+		endelse
+
+
+		logo = WIDGET_draw( baseid2,  SCR_XSIZE=sz[1] ,SCR_YSIZE=sz[2])
 	
 		tmp = widget_label(baseid2, value=' ')
 		frame = widget_base(baseid2,/column)
@@ -687,7 +697,7 @@ FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, cle
 
 		widget_control, logo, get_value=draw_id
 		wset, draw_id
-		tv, button_image, true=3
+		if keyword_set(button_image) then tv, button_image, true=3
 
 		self.sessions[0] = self ; just fill up the first slot so that GPItvs start with #1.
 
@@ -696,7 +706,9 @@ FUNCTION launcher::init, pipeline=pipeline, guis=guis, exit=exit, test=test, cle
 
 		; if at Gemini, automatically launch the autoreducer always upon
 		; startup.
-		if keyword_set(gpi_get_setting('at_gemini',default=0,/silent)) then self->launch, 'automaticreducer', session=44
+		;if keyword_set(gpi_get_setting('at_gemini',default=0,/silent)) then self->launch, 'automaticreducer', session=44
+		; No longer do the above since it can cause problems if running on
+		; multiple computers at Gemini at once. 
 
 
 	endif

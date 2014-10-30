@@ -19,11 +19,14 @@
 :: for %i in (idl.exe) do set "idlwhere=%~$PATH:i"
 :: if not defined idlwhere (
 where /q idl
+:idlprompt
 if not %ERRORLEVEL%==0 (
-	:idlprompt
-	set /p "idlBool=idl was not found in your %%PATH%% variable. Please install IDL first before installing the GPI pipeline. If IDL is already installed, you will need to add IDL to your PATH or manually start GPI pipeline and GUIs on your own instead of using our launcher. Do you wish to continue installation (not recommended) (Y|N)?"
+	
+	set /p "idlBool=idl was not found in your %%PATH%% variable. If you are running this install script for the compiled version of the GPI Pipeline, please ignore this message by entering 'Y'. Otherwise, please install IDL first before installing the GPI pipeline. If IDL is already installed, you will need to add IDL to your PATH or manually start GPI pipeline and GUIs on your own instead of using our launcher. Do you wish to continue installation (not recommended) (Y|N)?"
+)
+if not %ERRORLEVEL%==0 (
 	set "idlBool=%idlBool:~0,1%"
-	call:UpCase idlBool
+	::call:UpCase idlBool
 	if "%idlBool%"=="N" (
 		exit 1
 	)

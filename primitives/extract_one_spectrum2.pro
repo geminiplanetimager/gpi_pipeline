@@ -109,6 +109,8 @@ function extract_one_spectrum2, DataSet, Modules, Backbone
         xlam=(lambda)[indf] $
      else xlam=(indgen((size(main_image_stack))[3]))[indf]
 
+
+
      ps_figure = float(Modules[thisModuleIndex].ps_figure) 
      calunits=sxpar( *(dataset.headersext[numfile]), 'CUNIT',  COUNT=cc)
      ifsunits=sxpar( *(dataset.headersext[numfile]), 'IFSUNIT',  COUNT=ci)
@@ -249,7 +251,7 @@ function extract_one_spectrum2, DataSet, Modules, Backbone
                  endif
               endfor
            endfor
-           plotc, specresfov, 30, 900,900,'micro-lens','micro-lens','Spectral resolution',valmin=30,valmax=60
+           ;plotc, specresfov, 30, 900,900,'micro-lens','micro-lens','Spectral resolution',valmin=30,valmax=60
         endif
      endif
 
@@ -257,10 +259,11 @@ function extract_one_spectrum2, DataSet, Modules, Backbone
         if strmatch(lamp, '*Ar*') then lampe='Ar'
         if strmatch(lamp, '*Xe*') then lampe='Xe'
         
-        readcol, gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+lampe+'ArcLampG.txt', wavelen, strength
-        wavelen=1.e-4*wavelen
+        readcol, gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'GCAL_ArArcLamp.txt', wavelen, strength
+        print, wavelen, strength
+        ;wavelen=1.e-4*wavelen
         spect = fltarr(n_elements(xlam))      
-        wg = where(wavelen gt min(xlam) and wavelen lt max(xlam), gct)      
+        wg = where(((wavelen gt min(xlam)) and (wavelen lt max(xlam))), gct)      
         for i=0L,gct-1 do begin 
            diff = min(abs(xlam - wavelen[wg[i]]), closest) 
            spect[closest] += strength[wg[i]] 
@@ -270,26 +273,32 @@ function extract_one_spectrum2, DataSet, Modules, Backbone
         strength=strength/msp
      endif
 
-     if (ps_figure gt 0.)  then begin
+print, 'gct, '+sigfig(gct,4)
+print, wg
+
+
+     set_plot,'ps'
+     ;if (ps_figure gt 0.)  then begin
         
                                 ; if numfile eq 0 then begin
                                 ;if ~file_test(psFilename) then begin
-        openps, psFilename
-        plot, xlam,photcomp, xtitle='Wavelength (um)', ytitle='Intensity',psym=-1, yrange=[0,1.3*max(photcomp)]
+        openps, band+"_Ar_spectrum.ps"
+
+        plot, xlam,photcomp, xtitle='Wavelength (um)', ytitle='Intensity',psym=-1, yrange=[0,1.3*max(photcomp)],charsize=1.8,xrange=[1.5,1.8]
         if strmatch(obstype, '*wavecal*') then $
            for i=0L,gct-1 do  plots, wavelen[wg[[i,i]]], max(photcomp)*[0, strength[wg[i]]], color=cgcolor('blue'), /clip
-        xyouts,xlam[3], 1.2*max(photcomp), 'Median spectrum of '+strc((size(inda))[2])+' spectra centered on mlens ['+strc(x0,format='(I3)')+','+strc(y0,format='(I3)')+']'
+ ;       xyouts,xlam[3], 1.2*max(photcomp), 'Median spectrum of '+strc((size(inda))[2])+' spectra centered on mlens ['+strc(x0,format='(I3)')+','+strc(y0,format='(I3)')+']'
         if n_elements(specres) gt 0 then xyouts,xlam[3], 1.1*max(photcomp), 'Spectral Resolution='+strc(specres, format='(g5.3)') 
 ;  endif else begin
 ;  set_plot,'ps'
-;    oplot, xlam,photcomp
+    oplot, xlam,photcomp
 ;  endelse
                                 ;if numfile eq 2 then begin
         closeps
         
                                 ; endif
         SET_PLOT, mydevice
-     endif 
+     ;endif 
      suffix+='-spec'
 
      hdr=*(dataset.headersext[numfile])
@@ -316,14 +325,14 @@ function extract_one_spectrum2, DataSet, Modules, Backbone
 
 bins=0.001
 ;H-Band
-;minp=1.5
-;maxp=1.8
+minp=1.5
+maxp=1.8
 ;Y-Band
 ;minp=0.9
 ;maxp=1.2
 ;J-Band
-minp=1.1
-maxp=1.35
+;minp=1.2
+;maxp=1.3
 ;k1-Band
 ;minp=1.95
 ;maxp=2.2
@@ -331,24 +340,26 @@ hist1=HISTOGRAM(centergauss, MIN = minp, MAX = maxp, BINSIZE = bins, locations=l
  histcum=total(hist1,/cum)
 indtheoemission = where(strength eq 1.)
 wavtheo=wavelen[indtheoemission]
-if band eq "H" then wavtheo=1.54226
+;if band eq "H" then wavtheo=1.54226
+if band eq "H" then wavtheo=1.6945
 if band eq "Y" then wavtheo=0.965778
-if band eq "J" then wavtheo=1.2626
+if band eq "J" then wavtheo=1.26268
 if band eq "K1" then wavtheo=2.02677
 void = max(hist1,indmax)
 maxwav=loc[indmax]
-openps,"emissionlineshist"+band+"band.ps",  ysize=20, xsize=20
-!P.MULTI = [0, 1, 2, 0, 0] 
- plot,loc,hist1,ytitle='# of lenslets', xtitle='Mesured wavelength of the emission line [um]',$
-linestyle=0, charsize=1.5 ,xstyle=1;,yrange=platescale*[-1.,1.];,yrange=platescale*[min(poscompy_und)-1.,max(poscompy_und)+1.]
+print, 'maxwav'+sigfig(maxwav,6)
+openps,"emissionlineshist"+band+"bandAr.ps"
+!P.MULTI = [0, 1, 1, 0, 0] 
+ plot,loc,hist1,ytitle='# of lenslets', xtitle='Mesured wavelength of emission line [um]',$
+linestyle=0, charsize=1.5 ,xrange=[1.65,1.75],xstyle=1;,ystyle=1,yrange=platescale*[-1.,1.];,yrange=platescale*[min(poscompy_und)-1.,max(poscompy_und)+1.]
 plots, [wavtheo,wavtheo], [0, max(hist1)],linestyle=1, color=cgcolor('blue'), /clip
-xyouts, 0.98*minp,1.15*max(hist1),"Difference [in detector pixel] between expected and measured emission line="+strc((maxwav-wavtheo)/(0.3/37.),format='(g7.3)'), charsize=1.1
-plot,loc,histcum/max(histcum)*100.,ytitle='Cumulative # of lenslets [%]', xtitle='Mesured wavelength of the emission line  [um]',$
-linestyle=0, charsize=1.5
-plots, [wavtheo,wavtheo], [0, 100.], color=cgcolor('blue'),linestyle=1;, /clip
+;xyouts, 0.98*minp,1.15*max(hist1),"Difference [in detector pixel] between expected and measured emission line="+strc((maxwav-wavtheo)/(0.3/37.),format='(g7.3)'), charsize=1.1
+;plot,loc,histcum/max(histcum)*100.,ytitle='Cumulative # of lenslets [%]', xtitle='Mesured wavelength of the emission line  [um]',$
+;linestyle=0, charsize=1.5
+;plots, [wavtheo,wavtheo], [0, 100.], color=cgcolor('blue'),linestyle=1;, /clip
 ;legend,['barycentric centroid','mpfit2dpeak'], linestyle=[0,1,2]
 closeps
-!P.MULTI = 0
+!P.MULTI 
 
   return, ok
 

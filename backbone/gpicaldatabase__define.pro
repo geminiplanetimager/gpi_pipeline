@@ -290,6 +290,7 @@ Function gpicaldatabase::add_new_cal, filename, delaywrite=delaywrite ;, header=
 		self->Log, "   Ignoring that file!"
 		return, 0
 	endif
+
 	fits_data = gpi_load_fits(filename,/nodata) ; only read in headers, not data.
 	CATCH, /CANCEL
 
@@ -415,7 +416,7 @@ end
 ;    See http://docs.planetimager.org/pipeline/developers/caldb.html#caldb-devel
 ;-
 function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, itime=itime, $
-	verbose=verbose, ignore_cooldown_cycles=ignore_cooldown_cycles, status=status
+	verbose=verbose, ignore_cooldown_cycles=ignore_cooldown_cycles, status=status,ignore_band=ignore_band
 	; 
 	; Keywords
 	; verbose : print more display
@@ -457,7 +458,8 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
                     ['spotloc', 'Spot Location Measurement', 'FiltOnly'], $
                     ['Gridratio', 'Grid Ratio', 'FiltOnly'], $
 			;mlenspsf should have second for pol mode too?
-                    ['mlenspsf', 'High-res Microlens PSFs', 'FiltPrism'], $
+                    ['mlenspsf', 'mlens psf', 'FiltPrism'], $
+                    ['epsf', 'epsf', 'FiltPrism'], $
                     ['Fluxconv', 'Fluxconv', 'FiltPrism'], $
                     ['telluric', 'Telluric Transmission', 'FiltPrism'], $
                     ['polcal', 'Polarimetry Spots Cal File', 'FiltPrism'], $
@@ -619,12 +621,19 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	end
 
 	'FiltPrism': begin
-		 imatches= where( strmatch(calfiles_table.type, types[itype].description,/fold) and $
+           if keyword_set(ignore_band) then begin
+              	imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
+	   		((calfiles_table.prism) eq prism) ,cc)
+                errdesc = 'with same PRISM'
+           endif else begin
+		imatches= where( strmatch(calfiles_table.type, types[itype].description,/fold) and $
 	   		((calfiles_table.filter) eq filter ) and $
 	   		((calfiles_table.prism) eq prism) ,cc)
-		 errdesc = 'with same DISPERSR and FILTER'
+		errdesc = 'with same DISPERSR and FILTER'
+           endelse
 	end
-	'FiltOnly': begin
+	
+        'FiltOnly': begin
      	imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
         ((calfiles_table.filter) eq filter )  ,cc)
      	errdesc = 'with same FILTER'

@@ -31,6 +31,8 @@
 ; HISTORY:
 ; 	initial version imported GPItv (with definition of contrast corrected) - JM
 ;-
+;       Fixed issue where y-axis values will not be printed on axis if
+;       contrast curve spans less than an order of magnitude -EN
 function gpi_measure_contrast, DataSet, Modules, Backbone
 
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -156,6 +158,14 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
    ;;plot
    if (wind ne -1) || (pngsave ne '') then begin
       if yscale eq 1 then yrange = [contr_yaxis_min, contr_yaxis_max]
+      ;;Tick labels don't appear if yrange less than an order
+      ;;of magnitude, so check for that
+      if floor(alog10(max(yrange))) eq floor(alog10(min(yrange))) then begin
+        ;;As of now no labels will be drawn on Y-axis, so set them by hand
+        ytickv = 10.^floor(alog10(min(yrange))) * (findgen(10)+1)
+        ytickv = ytickv(where(ytickv ge min(yrange) and ytickv le max(yrange)))
+        yticks = n_elements(ytickv)-1
+      endif  
       ytitle = 'Contrast '
       case contr_yunit of
          0: ytitle +=  '['+strc(uint(contrsigma))+' sigma limit]'
@@ -181,7 +191,7 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
          erase
       endelse
       plot,[0],[0],ylog=contr_yaxis_type,xrange=xrange,yrange=yrange,/xstyle,/ystyle,$
-        xtitle=xtitle,ytitle=ytitle,/nodata, charsize=1.2,background=cgcolor('white'),color = cgcolor('black')
+        xtitle=xtitle,ytitle=ytitle,/nodata, charsize=1.2,background=cgcolor('white'),color = cgcolor('black'),yticks=yticks,ytickv=ytickv
       
       for j = 0, n_elements(inds)-1 do begin
          oplot,*asecs[j],(*contrprof[j])[*,0],color=color[j],linestyle=0
@@ -249,7 +259,7 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
                return, error("FAILURE: Directory "+s_OutputDir+" does not exist or is not writeable.",/alert)
          endif         
          radialsave = s_OutputDir
-      endif 
+      endif    
       
       ;;if this is a directory, then you want to save to it with the
       ;;default naming convention
@@ -261,11 +271,11 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
          nm = gpi_expand_path(radialsave+path_sep()+nm+'_contrast_profile.fits')
       endif else nm = radialsave
       
-      out = dblarr(n_elements(*asecs[inds[0]]), n_elements(inds)+1)+!values.d_nan
-      out[*,0] = *asecs[inds[0]]
+      out = dblarr(n_elements(*asecs[n_elements(inds[0])-1]), n_elements(inds)+1)+!values.d_nan
+      out[*,0] = *asecs[n_elements(inds[0])-1]
       for j=0,n_elements(inds)-1 do $
-         out[where((*asecs[inds[0]]) eq (*asecs[inds[j]])[0]):n_elements(*asecs[inds[0]])-1,j+1] = $
-         (*contrprof[inds[j]])[*,0]
+         out[where((*asecs[j]) eq (*asecs[j])[0]):n_elements(*asecs[j])-1,j+1] = $
+         (*contrprof[j])[*,0]
 
       tmp = intarr((size(cube,/dim))[2])
       tmp[inds] = 1

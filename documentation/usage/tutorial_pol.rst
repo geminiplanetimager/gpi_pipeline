@@ -37,7 +37,7 @@ In GPI's polarization mode each lenslet creates a pair of spots on the detector 
 	1. Open the recipe editor and press the Add Files button. Select flat files taken in the same GPI filter band as your science data. In the tutorial data set select files **S20131212S0022.fits to S20131212S0024.fits**. 
 	2. In the Recipe Editor, from the drop down menus on the right select **Reduction Category -> Calibrations** and then **Recipe Template -> Calibrate Polarization Spot Locations - Parallel**. By selecting the Parallel option by default the pipeline tries to spread the computation across 4 threads. If for some reason you'd rather limit the process to one thread you can choose Calibrate Polarization Spot Locations. [#]_
 	3. Press Save Recipe and Queue. This process should take a few minutes, depending on your machine and whether or not you chose the parallel option. 
-	4. Once this is complete it's a good idea to double check that your spot calibration file is doing what it should. Open GPItv and open the raw data file. From the **Labels** menu select **Labels -> Get Wavcal/Polcal from CalDB**. Now select **Labels-> Plot Wavecal/Polcal Grid**. 
+	4. Once this is complete it's a good idea to double check that your spot calibration file is doing what it should. Open GPItv and open the file named S20131212S0022.fits. From the **Labels** menu select **Labels -> Get Wavcal/Polcal from CalDB**. Now select **Labels-> Plot Wavecal/Polcal Grid**. 
  
 	   When zoomed out it your calibration should looked like a nice evenly spaced grid: 
 
@@ -67,7 +67,7 @@ In GPI's polarization mode each lenslet creates a pair of spots on the detector 
 			:scale: 75%
 			:align: center
 
-	   If the two dim spots are not linked up then you will have to adjust the **centrXpos** and the **centrYpos** primitive parameters for the Parallelized Polarization Spot Calibration. This will offset the pipeline's starting guess for the lenslet grid position, which can be used to ensure the proper pairs of spots are linked. More details of how to choose this well are not within the scope of this tutorial. 
+	   If the two dim spots are not linked up with a green line then you will have to adjust the **centrXpos** and the **centrYpos** primitive parameters for the Parallelized Polarization Spot Calibration. This will offset the pipeline's starting guess for the lenslet grid position, which can be used to ensure the proper pairs of spots are linked. More details of how to choose this well are not within the scope of this tutorial. 
 
 	   If all is well then you have successfully created your polarization spot location calibration file. It has automatically been added to your calibration database. You are ready to begin reducing your data. 
 
@@ -78,7 +78,7 @@ This step will walk through how to create polarization data cube from raw data. 
 
 	1. In the Recipe Editor press the Add Files button and choose your Data Files. For the tutorial dataset this will be files **S20131212S0295.fits to S20131212S0298.fits**.
 	2. Select **Reduction Category-> PolarimetricScience** and **Recipe Template -> Simple Polarization Datacube Extraction**.
-	3. Because of flexure effects internal to the GPI IFS it is possible that your Pol Spot Calibration files will not properly reflect the locations of the Polarization spots in your science frame. To check this open GPItv and open one of your raw science images. Plot the Polcal spot locations as we did in Step 4 of creating our wavecal.  
+	3. Because of flexure effects internal to the GPI IFS it is possible that your Pol Spot Calibration files will not properly reflect the locations of the Polarization spots in your science frame. To check this open GPItv and open one of your raw science images (e.g. S20131212S0295.fits for the tutorial dataset). Plot the Polcal spot locations as we did in Step 4 of creating our wavecal.  
 
 	   If there are flexure effects present then you will see the spot calibration misaligned from the spot centers: 
 
@@ -86,19 +86,15 @@ This step will walk through how to create polarization data cube from raw data. 
 			:scale: 75%
 			:align: center
 
-	   At this point you should estimate (by eye) the offset [dx,dy] between the spot calibration and the centres of the pol spots. It should be on the order of 1 pixel or less. In the most extreme cases you might have offsets of up to 3 pixels. For the tutorial dataset the offsets are approximately [dx,dy]=[-0.5,0.6]. You can apply shifts to the grid display in the 'Plot Wavecal/Polcal Grid' options dialog box. 
-
-           The GPI team is working on improved automated algorithms to measure and apply the proper offsets here; you can expect this in an upcoming pipeline release. 
-
-	4. Return to the Recipe Editor window, and select the primitive named "Update Spot Shifts for Flexure". Change the Value of the method Parameter  to "manual". Enter your estimated [dx,dy] in the manual_dx and manual_dy Parameters. Don't forget to press ENTER after changing primitive parameter values. 
-
+	  Automatic compensation for flexure has been implemented as of pipeline version 1.2 using a primitive named 'Flexure 2D x correlation with polcal' that replaces the previous 'Update Spot Shifts for Flexure'. If you insist on using an older version of the pipeline, instructions can be found on how to manually compensate for flexure at the bottom of this page. 
+	  
 	   Your Recipe Editor Window should now look something like this: 
 
 		.. image:: recipe_editor_pol1.png
-			:scale: 75%
-			:align: center 
+			:align: center
+			:scale: 50%
 
-	5. Now Press "Save Recipe and Queue". The pipeline should create 4 files with suffixes "_podc". The pipeline has created one image for each orthogonal polarization. You can now view your podc files in GPItv (a window should have popped open automatically).
+	4. Now Press "Save Recipe and Queue". The pipeline should create 4 files with suffixes "_podc". The pipeline has created one image for each orthogonal polarization. You can now view your podc files in GPItv (a window should have popped open automatically).
 
 	   You can view the total intensity (the sum of the two images) or the difference of the polarizations, by selecting either option in the drop down menu highlighted in red:
 		.. image:: gpitv_podc.png
@@ -108,8 +104,7 @@ This step will walk through how to create polarization data cube from raw data. 
 	   At this step, depending on your dataset and your observing band, you may notice a moire pattern in the difference of polarizations . This is an artifact of the datacube assembly procedure [#]_ that is commonly seen, particularly for K band data with strong thermal background.
            Do not fear, it will get removed later on during the double differencing. 
 
-
-        6. If you switch between the 4 output files (for instance using the Browse Files tool from the File menu), you can see the polarization modulate. Note that for convenience the waveplate position angle is displayed alongside the Wollaston prism label in the 'Disperser' field at top center of the GPItv window. 
+        5. If you switch between the 4 output files (for instance using the Browse Files tool from the File menu), you can see the polarization modulate. Note that for convenience the waveplate position angle is displayed alongside the Wollaston prism label in the 'Disperser' field at top center of the GPItv window. 
 
 Creating Stokes Cubes from Polarization Cubes
 ============================================================
@@ -154,7 +149,7 @@ Creating Stokes Cubes from Polarization Cubes
 
 
 Creating Stokes Cubes from Raw Data
-===========================================
+============================================================
 
 	1. If you are confident that you have a good estimate of the star's location you can create a Stokes Data Cube in one step by selecting Recipe Template -> Basic Polarization Sequence (from Raw Data). 
 
@@ -162,8 +157,21 @@ Creating Stokes Cubes from Raw Data
 
 	3. Enter the estimate of the star's coordinates as parameters to the "Measure Stay Position for Polarimetry" primitive. 
 
-	4. Press "Save Recipe and Queue"
+	4. Press "Save Recipe and Queue" 
 
+Flexure compensation in older pipeline versions
+============================================================
+Automatic flexure correction has been implemented as of version 1.2 of the pipeline. If you have an older version of the pipeline you will have to manually update the spot positions to account for flexure effects. Open your data file and plot the Polcal spot locations as described above. At this point you should estimate (by eye) the offset [dx,dy] between the spot calibration and the centres of the pol spots. It should be on the order of 1 pixel or less. In the most extreme cases you might have offsets of up to 3 pixels. For the tutorial dataset the offsets are approximately [dx,dy]=[-0.5,0.6]. You can apply shifts to the grid display in GPItv using the ‘Plot Wavecal/Polcal Grid’ options dialog box.
+
+Return to the Recipe Editor window, remove the primitive named 'Flexure 2D x correlation with polcal' and replace it with the primitive named "Update Spot Shifts for Flexure" from the Available primitives list. Change the Value of the method Parameter  to "manual". Enter your estimated [dx,dy] in the manual_dx and manual_dy Parameters. Don't forget to press ENTER after changing primitive parameter values. 
+
+	   Your Recipe Editor Window should now look something like this: 
+
+		.. image:: recipe_editor_pol1_old.png
+			:scale: 75%
+			:align: center 
+
+You may now continue with the reduction by pressing 'Save Recipe and Queue' as in step 4 of the Creating Polarization Data Cubes (podc files) section. 
 
 .. rubric:: Footnotes
  

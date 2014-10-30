@@ -35,7 +35,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	;get the datacube from the dataset.currframe
 	cubef3D=*(dataset.currframe[0])
-        
+       
 	;get the common wavelength vector
     filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
     ;error handle if extractcube not used before
@@ -57,7 +57,15 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	lambdamax=CommonWavVect[1]
 	nlens=(size(wavcal))[1]
   
-  
+        ;need to check if it comes from the inversion method
+       
+       cdelt3 = gpi_simplify_keyword_value(backbone->get_keyword('CDELT3', count=invct))
+        if invct gt 0 then begin
+       naxis3 = gpi_simplify_keyword_value(backbone->get_keyword('NAXIS3', count=ct))
+        crpix3 = gpi_simplify_keyword_value(backbone->get_keyword('CRPIX3', count=ct))
+        crval3 = gpi_simplify_keyword_value(backbone->get_keyword('CRVAL3', count=ct))
+           lambint=CRVAL3+float(cdelt3)*(findgen((size(cubef3D))[3]))
+       endif 
 	;; Now we must interpolate the extracted cube onto a regular wavelength grid
 	;; common to all lenslets.
 	Result=dblarr(nlens,nlens,CommonWavVect[2])+!VALUES.F_NAN
@@ -74,7 +82,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 			  valx=double(xmini[xsi,ysi]-findgen(sdpx))
 		   ; if (valx[sdpx-1] lt (dim)) then begin
 		  
-			  lambint=wavcal[xsi,ysi,2]-wavcal[xsi,ysi,3]*(valx-wavcal[xsi,ysi,0])*(1./cos(wavcal[xsi,ysi,4]))
+
+		   if invct eq 0 then begin		    
+		      lambint=wavcal[xsi,ysi,2]-wavcal[xsi,ysi,3]*(valx-wavcal[xsi,ysi,0])*(1./cos(wavcal[xsi,ysi,4]))
+			  endif
+			  
 				;for bandpass normalization
 				bandpassmoy=mean(lambint[1:(size(lambint))[1]-1]-lambint[0:(size(lambint))[1]-2],/DOUBLE)
 				bandpassmoy_interp=mean(lambda[1:(size(lambda))[1]-1]-lambda[0:(size(lambda))[1]-2],/DOUBLE)

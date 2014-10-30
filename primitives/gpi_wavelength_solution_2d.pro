@@ -27,15 +27,12 @@
 ;
 ;
 ; PIPELINE ARGUMENT: Name="display" Type="Int" Range="[0,1]" Default="0" Desc="Whether or not to plot each lenslet spectrum model in comparison to the detector measured spectrum: 1;display, 0;no display"
-; PIPELINE ARGUMENT: Name="whichpsf" Type="Int" Range="[0,1]" Default="0" Desc="Type of lenslet PSF model, 0: gaussian, 1: microlens"
 ; PIPELINE ARGUMENT: Name="parallel" Type="Int" Range="[0,1]" Default="0" Desc="Option for Parallelization,  0: none, 1: parallel"
 ; PIPELINE ARGUMENT: Name="numsplit" Type="Int" Range="[0,100]" Default="0" Desc="Number of cores for parallelization. Set to 0 for autoselect."
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="Smooth" Type="int" Range="[0,1]" Default="1" Desc="1: Smooth over poorly fit lenslets in final datacube; 0:NO, 1:YES"
 ; PIPELINE ARGUMENT: Name="Save_model_image" Type="int" Range="[0,1]" Default="0" Desc="1: save 2d detector model fit image to disk, 0:don't save"
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="wavcal" Default="AUTOMATIC" Desc="Filename of the desired reference wavelength calibration file to be read"
 ; PIPELINE ARGUMENT: Name="Save_model_params" Type="int" Range="[0,1]" Default="0" Desc="1: save model nuisance parameters to disk, 0: don't save"
-; PIPELINE ARGUMENT: Name="AutoOffset" Type="int" Range="[0,1]" Default="0" Desc="Automatically determine x/yoffset values 0;NO, 1;YES"
 ;
 ; PIPELINE ORDER: 1.7
 ;
@@ -63,20 +60,19 @@ calfiletype = 'wavecal'
 
 ;Initialize the input parameters:
  	if tag_exist( Modules[thisModuleIndex], "display") then display=uint(Modules[thisModuleIndex].display) else display=0
- 	if tag_exist( Modules[thisModuleIndex], "whichpsf") then whichpsf=uint(Modules[thisModuleIndex].whichpsf) else whichpsf=0
+ 	;if tag_exist( Modules[thisModuleIndex], "whichpsf") then whichpsf=uint(Modules[thisModuleIndex].whichpsf) else whichpsf=0
   	if tag_exist( Modules[thisModuleIndex], "parallel") then parallel=uint(Modules[thisModuleIndex].parallel) else parallel=1
  	if tag_exist( Modules[thisModuleIndex], "numsplit") then numsplit=fix(Modules[thisModuleIndex].numsplit) else numsplit=!CPU.TPOOL_NTHREADS*2
 	if numsplit lt 1 then numsplit=!CPU.TPOOL_NTHREADS*2
   	if tag_exist( Modules[thisModuleIndex], "Save") then Save=uint(Modules[thisModuleIndex].Save) else Save=0
-  	if tag_exist( Modules[thisModuleIndex], "Smooth") then Smooth=uint(Modules[thisModuleIndex].Smooth) else Smooth=0
   	if tag_exist( Modules[thisModuleIndex], "Save_model_image") then Save_model_image=uint(Modules[thisModuleIndex].Save_model_image) else Save_model_image=0
   	if tag_exist( Modules[thisModuleIndex], "Save_model_params") then Save_model_params=uint(Modules[thisModuleIndex].Save_model_params) else Save_model_params=0
- 	if tag_exist( Modules[thisModuleIndex], "AutoOffset") then AutoOffset=uint(Modules[thisModuleIndex].AutoOffset) else AutoOffset=1
+
 
 ;Load in the image. Primitive assumes a dark,flat,badpixel,flexure, and microphonics corrected lamp image. 
 
         image=*dataset.currframe
-        
+        whichpsf=1
 
 	;READ IN REFERENCE WAVELENGTH CALIBRATION
 ;	c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'wavecal',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
@@ -88,8 +84,7 @@ calfiletype = 'wavecal'
 	;open the reference wavecal file. Save into common block variable.
 	refwlcal = gpi_readfits(c_File,header=Header)
 
-        common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
-        
+       
 ;Use the next line to manually select a wavecal by hand until that
 ;software bug is fixed.
         ;refwlcal=mrdfits('/Users/schuylerwolff/gpi/data/Reduced/calibrations/wavecals/S20130315S0059-J--wavecal.fits',1,HEADER)
@@ -108,16 +103,16 @@ calfiletype = 'wavecal'
 	; assume this is already present in the DQ extension.
 	badpix=*dataset.currdq GT 0
 
-        if keyword_set(Smooth) then begin
+;        if keyword_set(Smooth) then begin
 
-           smoothedw=median(refwlcal[*,*,3],5)
-           smoothedt=median(refwlcal[*,*,4],5)
-           smoothedw[where(refwlcal[*,*,0] EQ !values.f_nan )] = !values.f_nan
-           smoothedt[where(refwlcal[*,*,0] EQ !values.f_nan )] = !values.f_nan
-           refwlcal[*,*,3]=smoothedw
-           refwlcal[*,*,4]=smoothedt
+;           smoothedw=median(refwlcal[*,*,3],5)
+;           smoothedt=median(refwlcal[*,*,4],5)
+;           smoothedw[where(refwlcal[*,*,0] EQ !values.f_nan )] = !values.f_nan
+;           smoothedt[where(refwlcal[*,*,0] EQ !values.f_nan )] = !values.f_nan
+;           refwlcal[*,*,3]=smoothedw
+;           refwlcal[*,*,4]=smoothedt
 
-        endif
+;        endif
 
 
 	lamp = backbone->get_keyword('GCALLAMP', count=ct1)
@@ -133,13 +128,10 @@ calfiletype = 'wavecal'
         ;backbone->Log, gpi_get_directory('GPI_DRP_CONFIG_DIR')
         datafn = gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+filter+lamp+'.dat'
  
-
+whichpsf=0
 		if whichpsf eq 1 then begin
-			;determine the appropriate micrlens psf file; keep the filename to load that below.
-			psffn = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'mlenspsf',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
-			;myPSFs_array = gpi_highres_microlens_psf_read_highres_psf_structure(psffn, [281,281,1])
-			if ~file_test(psffn) then return, error("Microlens PSF file not found: "+psffn)
-        endif
+                   print, 'Microlens psf not implemented yet. Using a gaussian PSF.'
+		endif
 
 
         ;Create an array to serve as the simulated detector image
@@ -156,7 +148,7 @@ calfiletype = 'wavecal'
 
 
 istart=0
-iend=17
+iend=nlens-1
 jstart=0
 jend=nlens-1
 
@@ -174,72 +166,12 @@ if keyword_set(parallel) then begin
 	readcol,datafn,nmgauss,numline=1,format='I'
        
 	count=0 ; count of lenslet columns fit
-        icount=1
 	lensletcount = 0 ; count of individual lenslets fit
 
 	; must create these after reading # of emission lines
 	sizeres = 9+nmgauss[0]
     if ~(keyword_set(modelparams)) then modelparams=fltarr( (size(refwlcal))[1],(size(refwlcal))[2],sizeres )+!values.f_nan
     if ~(keyword_set(modelbackgrounds)) then modelbackgrounds = fltarr( (size(refwlcal))[1],(size(refwlcal))[2] ) + !values.f_nan
-
-    if AutoOffset EQ 1 then begin
-           ngausspars=dblarr(sizeres)
-           boxsizex=7
-           boxsizey=24
-           xindex=140
-           yindex=140
-           xo=refwlcal[xindex,yindex,1]
-           yo=refwlcal[xindex,yindex,0]
-           startx=floor(xo-boxsizex/2.0)
-           starty=round(yo)-20
-           stopx = startx+boxsizex
-           stopy = starty+boxsizey
-
-           rawarray=image[startx:stopx, starty:stopy] 
-
-           xposo=xo-startx
-           yposo=yo-starty
-           theta=refwlcal[xindex,yindex,3]
-           w=refwlcal[xindex,yindex,4]
-           fwhmx=1.9
-           fwhmy=1.9
-           lambdaref=refwlcal[xindex,yindex,2]
-           rotation=0
-           background=20
-           for z=0,nmgauss[0]-1 do begin
-              ngausspars[9+z]=fluxa[z]
-           endfor
-
-           x=indgen(boxsizex)
-           y=indgen(boxsizey)
-           szx=size(x,/n_elements)
-           szy=size(y,/n_elements)
-           zmod=dblarr(szx,szy)
-           xvals = make_array(szx,szy,/index,/integer) mod szx
-           yvals = make_array(szx,szy,/index,/integer) / szx
-           
-           for i=0, nmgauss[0]-1 do begin
-              lambda=wla[i]
-              coeff=ngausspars[9+i]
-              xcent=xposo+sin(theta)*(lambda-lambdaref)/w
-              ycent=yposo-cos(theta)*(lambda-lambdaref)/w
-              zmod += coeff*psf_gaussian(npixel=[szx,szy],fwhm=[fwhmx,fwhmy],centroid=[xcent,ycent],ndimen=2,/double,/normalize)
-
-;one_2d_gaussian(xvals, yvals, fwhm=[fwhmx,fwhmy],centroid=[xcent,ycent],ndimen=2,/double,/normalize,rotation=rotation)              
-           endfor
-
-;normalize this to the scale factor relative to the science image
-           zmod=zmod*total(rawarray)/total(zmod)
-; and add in constant background              
-           simarray=zmod+background
-
-
-           corrmat_analyze, CORREL_IMAGES(rawarray,simarray,xshift=3,yshift=3),xoffset_auto,yoffset_auto,/print
-
-           backbone->Log, "Applying a prelimiinary shift of (X,Y) = ("+strc(xoffset_auto)+", "+strc(yoffset_auto)+")"
-
-        endif
-
 
 
 
@@ -258,16 +190,17 @@ if keyword_set(parallel) then begin
 	; the comments. 
 
 	 gpi_split_for, istart,iend, nsplit=numsplit,$ 
-		 varnames=['jstart','jend','refwlcal','image','im_uncert','badpix','newwavecal','psffn','icount',$
+		 varnames=['jstart','jend','refwlcal','image','im_uncert','badpix','newwavecal','lambda_min',$
 		           'q','wlcalsize','xinterp','yinterp','wla','fluxa','nmgauss','count','lensletmodel','lensletcount',$
-                           'modelparams','modelbackgrounds','locations_lambda_min','locations_lambda_max','n_valid_lenslets','boxpad','whichpsf'], $
+                           'modelparams','modelbackgrounds','locations_lambda_min','locations_lambda_max','n_valid_lenslets','boxpad'], $
 		 outvar=['newwavecal','count','lensletcount','lensletmodel','modelparams','modelbackgrounds'], commands=[$
 	'common ngausscommon, numgauss, wl, flux, lambdao, my_psf',$
+        'common highrespsfstructure, myPSFs_array',$
 	'numgauss=nmgauss[0]',$
 	'wl=wla',$
+        'lambdao=refwlcal[140,140,2]',$
 	'flux=fluxa',$
 	'count+=1',$
-        'jcount=0',$
 	'for j = jstart,jend do begin',$
 	'	 startx = floor(min([locations_lambda_min[i,j,1], locations_lambda_max[i,j,1]]) - boxpad) > 4',$
 	'	 starty = floor(min([locations_lambda_min[i,j,0], locations_lambda_max[i,j,0]]) - boxpad) > 4',$
@@ -277,9 +210,9 @@ if keyword_set(parallel) then begin
 	'        newwavecal[i,j,*]=!values.f_nan' ,$
 	'        continue' ,$
 	'    endif' ,$
-        '    jcount+=1',$
 	'    if (stopx lt 4) || (stopy lt 4) || (startx gt 2040) || (starty gt 2040) then continue',$
 	'    if (startx lt 4) || (starty lt 4) || (stopx gt 2040) || (stopy gt 2040) then continue',$
+        '    if (startx eq stopx) || (starty eq stopy) then continue',$
 	'    lensletarray=image[startx:stopx, starty:stopy]',$
 	'    lensletarray_uncert=image[startx:stopx, starty:stopy]',$
 	'    badpixmap=badpix[startx:stopx, starty:stopy]',$
@@ -294,15 +227,7 @@ if keyword_set(parallel) then begin
 	'       q++',$
 	'       continue',$
 	'    endif',$
-        '    case whichpsf of',$
-        '        0: begin',$
-        '             res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",modelimage=modelimage, modelbackground=modelbackground,count=icount,jcount=jcount,psffn=psffn)',$
-        '        end',$
-        '        1: begin',$
-        '             res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"nmicrolens",modelimage=modelimage, modelbackground=modelbackground,count=icount,jcount=jcount,psffn=psffn)',$
-        '        end',$
-        '    endcase',$
-	'    sizeres=size(res,/dimensions)',$
+        '    res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",modelimage=modelimage, modelbackground=modelbackground,psffn=psffn)',$
 	'    newwavecal[i,j,1]=res[0]+startx',$
 	'    newwavecal[i,j,0]=res[1]+starty',$
 	'    newwavecal[i,j,2]=refwlcal[i,j,2]',$
@@ -314,9 +239,8 @@ if keyword_set(parallel) then begin
 	'    modelparams[i,j,0] = res[1]+starty',$
 	'    lensletmodel[startx:stopx, starty:stopy] += modelimage',$
 	'    lensletcount+=1',$
- 	'endfor',$
-        'if lensletcount GT 0 then icount+=1'];,$
-	;'print,"Have now fit "+strc(lensletcount)+"/"+strc(n_valid_lenslets)+ " lenslets in process "+strc(which_bridge)']
+ 	'endfor',$];,$
+
 
 	backbone->Log,"Parallel process execution complete.", depth=3,/flush
 
@@ -349,6 +273,7 @@ endif else begin
 	readcol, datafn,wl,flux,skipline=1,format='F,F'
 	readcol,datafn,nmgauss,numline=1,format='I'
 	numgauss=nmgauss[0]
+        lambdao = refwlcal[140,140,2]
 
 	; determine the min and max locations of each lenslet based on
 	; the prior wavecal
@@ -361,22 +286,16 @@ endif else begin
 
 	newwavecal[*,*,2]=refwlcal[*,*,2]
 
-	lensletcount= 0
-
-	;debug=5 ; set this to 1 to enable a breakpoint after each row.
-	;debugall=1
-	;debuglenslet = [39,138]  ; set this to debug the fit of one specific pixel only
-	;debuglenslet = [39,148]  ; set this to debug the fit of one specific pixel only
-	;debuglenslet=[15,190]
-	;debuglenslet=[119,26]
+	lensletcount = 0
+        boxpad = 2
+        count = 0
 
 
-	boxpad=2
-        jcount=1
-        count=1
 
 	for i = istart,iend do begin
         for j = jstart,jend do begin
+
+           count+=1
 
 			if keyword_set(debuglenslet) then begin
 				if (i ne debuglenslet[0]) or (j ne debuglenslet[1]) then continue
@@ -404,18 +323,8 @@ endif else begin
             lensletarray_uncert=im_uncert[startx:stopx, starty:stopy] 
             badpixmap=badpix[startx:stopx, starty:stopy] 
 
-
- 
-            ;if whichpsf EQ 1 then begin
-            ;   ptr = gpi_highres_microlens_psf_get_local_highres_psf(myPSFs_array,[i,j,0])
-            ;   if ptr_valid(myPSFs_array[i,j]) then begin
-            ;      my_psf = *myPSFs_array[i,j]
-            ;      print,'psf was valid
-            ;   endif else print, 'ERROR: PSF was not valid'
-            ;endif
-
-            ;catch,error_status
-			error_status=0
+            catch,error_status
+	;		error_status=0
 
 ;;                                 ; Catch an error in the mpfit
 ;;                                 ; calculation and interpolate
@@ -435,19 +344,8 @@ endif else begin
  		  endif
 
 		  ; Now do an actual fit for one lenslet's spectrum! 
-                  case whichpsf of
-                     0: begin
-                        res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",$
-						modelimage=modelimage, modelbackground=modelbackground, debug=keyword_set(debuglenslet) or keyword_set(debugall),jcount=jcount,count=count,psffn=psffn)
-                     end
-                     1: begin
-                        res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"nmicrolens",$
-			  modelimage=modelimage, modelbackground=modelbackground, debug=keyword_set(debuglenslet) or keyword_set(debugall),jcount=jcount,count=count,psffn=psffn)
-                     end
-                  endcase
-
-                  count+=1
-                  jcount+=1
+                  res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",modelimage=modelimage, modelbackground=modelbackground,psffn=psffn)
+                 
 		  lensletcount +=1
 
 		  ;take a running average of the unused
@@ -504,16 +402,16 @@ endif else begin
 endelse
 
 
-
+wherenan = where(~Finite(newwavecal))
 ;if keyword_set(debug) or keyword_set(debuglenslet) then stop
 
 
-
+wg = where(finite(modelbackgrounds), wgcount)
+if wgcount lt 5 then return, error('FAILURE in gpi_wavelength_solution_2d: Error in parallelized computing.')
 ;OPTIONAL: SAVE THE DETECTOR MODEL IMAGE
 if keyword_set(save_model_image) then begin
 
 	;Generate 2D backgrounds, smoothed from above 
-	wg = where(finite(modelbackgrounds))
 	bkgx = (modelparams[*,*,1])[wg]
 	bkgy = (modelparams[*,*,0])[wg]
 	triangulate, bkgx, bkgy, triangles, b
@@ -528,6 +426,14 @@ if keyword_set(save_model_image) then begin
 
 	lensletmodel -= smoothed_background
 
+
+
+referencex=1025.0  ;roughly x-position in H
+referencey=1008.0  ;roughly y-position in H
+yposition=newwavecal[140,140,0]
+xposition=newwavecal[140,140,1]
+absxshift=xposition-referencex
+absyshift=yposition-referencey
 
 
 	pheader_copy = *dataset.headersPHU[numfile]
@@ -577,6 +483,7 @@ if keyword_set(save_model_params) then begin
 
 endif
 
+
 ; Edit the header of the original raw data products to include the information
 ; about the new wavelength calibration. 
 
@@ -597,14 +504,111 @@ backbone->set_keyword, "HISTORY", "    Slice 3:  lambda0 [um]",ext_num=0
 backbone->set_keyword, "HISTORY", "    Slice 4:  dispersion w [um/pixel]",ext_num=0
 backbone->set_keyword, "HISTORY", "    Slice 5:  tilts of spectra [radians]",ext_num=0
 backbone->set_keyword, "HISTORY", " ",ext_num=0;,/blank
+;backbone->set_keyword, "HISTORY", " Absolute shift values using reference locaitons "+printcoo(referencex,referencey)+" in H band",ext_num=0
+;backbone->set_keyword, "HISTORY"," (X,Y):"+printcoo(absxshift,abxyshift),ext_num=0
+;backbone->set_keyword, "HISTORY", " ",ext_num=0;,/blank
 
 
-;if keyword_set(Smooth) then begin
+;SMOOTH OVER POORLY FIT LENSLETS
 
-;   newwavecal[*,*,3]=median(newwavecal[*,*,3],5)
-;   newwavecal[*,*,4]=median(newwavecal[*,*,4],5)
+ydummy = newwavecal[*,*,0]
+xdummy = newwavecal[*,*,1]
+wdummy = newwavecal[*,*,3]
+tdummy = newwavecal[*,*,4]
+;for columnind=0,280 do begin
+;   ydummy[where(newwavecal[columnind,*,0] EQ !values.f_nan)]=mean(newwavecal[columnind,*,0],/nan)
+;   xdummy[where(newwavecal[*,columnind,1] EQ !values.f_nan)]=mean(newwavecal[*,columnind,1],/nan)
+;endfor
 
-;endif
+
+goody = where(Finite(ydummy), ngoody, comp=bady, ncomp=nbady) 
+; interpolate at the locations of the bad data using the good data 
+;if nbady gt 0 then ydummy[bady] = interpol(ydummy[goody], goody, bady,/LSQUADRATIC)
+ydata = dblarr(3,ngoody)
+sz = SIZE(ydummy[goody])
+print,sz
+ncol = 281
+ydata[0,*] = goody MOD ncol
+ydata[1,*] = goody / ncol
+ydata[2,*] = ydummy[goody]
+sbad = SIZE(ydummy[bady])
+ncolbad = 281
+ydatabadx = bady MOD ncolbad
+ydatabady = bady / ncolbad
+ydummyfit = SFIT( ydata, 1, kx=yplanefit, /IRREGULAR, /MAX_DEGREE)
+ydummy[bady] = yplanefit[0] + yplanefit[1]*ydatabady + yplanefit[2]*ydatabadx 
+ydummy = filter_image(ydummy, median=7)
+ydummy[bady] =  !values.f_nan
+ 
+goodx = where(Finite(xdummy), ngoodx, comp=badx, ncomp=nbadx) 
+; interpolate at the locations of the bad data using the good data 
+;if nbadx gt 0 then xdummy[badx] = interpol(xdummy[goodx], goodx, badx,/LSQUADRATIC) 
+xdata = dblarr(3,ngoodx)
+sz = SIZE(xdummy[goodx])
+ncol = 281
+xdata[0,*] = goodx MOD ncol
+xdata[1,*] = goodx / ncol
+xdata[2,*] = xdummy[goodx]
+sbad = SIZE(xdummy[badx])
+ncolbad = 281
+xdatabadx = badx MOD ncolbad
+xdatabady = badx / ncolbad
+xdummyfit = SFIT( xdata, 1, kx=xplanefit, /IRREGULAR, /MAX_DEGREE)
+xdummy[badx] = xplanefit[0] + xplanefit[1]*xdatabady + xplanefit[2]*xdatabadx; + xplanefit[3]*xdatabadx*xdatabady
+print, xplanefit, yplanefit
+;stop
+xdummy = filter_image(xdummy, median=7)
+xdummy[badx] =  !values.f_nan
+
+
+goodw = where(Finite(wdummy), ngoodw, comp=badw, ncomp=nbadw) 
+; interpolate at the locations of the bad data using the good data 
+;if nbadw gt 0 then wdummy[badw] = interpol(wdummy[goodw], goodw, badw,/LSQUADRATIC) 
+wdummy = filter_image(wdummy, median=7)
+wdummy[badw] =  !values.f_nan
+
+
+goodt = where(Finite(tdummy), ngoodt, comp=badt, ncomp=nbadt) 
+; interpolate at the locations of the bad data using the good data 
+;if nbadt gt 0 then tdummy[badt] = interpol(tdummy[goodt], goodt, badt,/LSQUADRATIC) 
+tdummy = filter_image(tdummy, median=7)
+tdummy[badt] =  !values.f_nan
+
+
+;newwavecal[*,*,0]=ydummy
+;newwavecal[*,*,1]=xdummy
+;newwavecal[*,*,3]=wdummy
+;newwavecal[*,*,4]=tdummy
+
+
+        ;if keyword_set(Smoothed) then begin
+
+           ;minsm=90
+           ;maxsm=190
+           ;smoothedw=median(wdummy,6,/even)
+           ;smoothedt=median(tdummy,6,/even)
+           ;smoothedx=smooth(xdummy[where(Finite(refwlcal[*,*,1]))],5,/nan)
+           ;smoothedy=smooth(ydummy[where(Finite(refwlcal[*,*,0]))],5,/nan)
+           ;smoothedx=median(xdummy,5)
+           ;smoothedy=median(ydummy,5)
+           ;wdummy=smoothedw
+           ;tdummy=smoothedt  
+           ;xdummy=smoothedx
+           ;ydummy=smoothedy
+         
+           wdummy[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
+           tdummy[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
+           xdummy[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
+           ydummy[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
+
+
+           newwavecal[*,*,4]=tdummy
+           newwavecal[*,*,3]=wdummy
+           newwavecal[*,*,0]=ydummy
+           newwavecal[*,*,1]=xdummy
+           newwavecal[wherenan] = !values.f_nan
+        ;endif
+
 
 
 ;SAVE THE NEW WAVELENGTH CALIBRATION:

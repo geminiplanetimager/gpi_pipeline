@@ -55,12 +55,19 @@ function automaticreducer::refresh_file_list, count=count, init=init, _extra=_ex
 	endif
 
 
-	dateold=dblarr(n_elements(current_files))
-	for j=0L,long(n_elements(current_files)-1) do begin
-		Result = FILE_INFO(current_files[j] )
-		dateold[j]=Result.ctime
-	endfor
-	list3=current_files[(sort(dateold))]  ; descending
+	if keyword_set(self.sort_by_time) then begin
+		dateold=dblarr(n_elements(current_files))
+		for j=0L,long(n_elements(current_files)-1) do begin
+			Result = FILE_INFO(current_files[j] )
+			dateold[j]=Result.ctime
+		endfor
+		sorter = sort(dateold); sort by access time
+	endif else begin
+		sorter = sort(current_files) ; sort alphabetically
+	endelse
+	list3=current_files[sorter]
+
+
 
 	if keyword_set(init) then begin
 		if count gt 0 then $
@@ -154,7 +161,9 @@ pro automaticreducer::handle_new_files, new_filenames ;, nowait=nowait
 		endif
 
 		finfo = file_info(new_filenames[i])
-		if (finfo.size ne 20998080) and (finfo.size ne 21000960) and (finfo.size ne 16790400) then begin
+		; check the file size against the expected:
+		;     size of regular science files   size of engineering mode files      size of files w/out DQ extension 
+		if (finfo.size ne 21003840) and (finfo.size ne 21000960) and (finfo.size ne 16790400) then begin
 			message,/info, "File size is not an expected value: "+strc(finfo.size)+" bytes. Waiting 0.5 s for file write to complete?"
 			wait, 0.5
 		endif
@@ -186,9 +195,10 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 
 		info = gpi_load_fits(filenames[0], /nodata)
 		prism = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'DISPERSR', count=dispct) ))
-		obsclass = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'OBSTYPE', count=obsclassct) ))
-		gcallamp = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'GCALLAMP', count=gcallampct) ))
-                gcalfilt = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'GCALFILT', count=gcalfiltct) ))
+		obsclass = strupcase( gpi_get_keyword( *info.pri_header, *info.ext_header, 'OBSCLASS', count=obsclassct) )
+		obstype =  strupcase( gpi_get_keyword( *info.pri_header, *info.ext_header, 'OBSTYPE',  count=obsclassct) ) ; for dark 
+		gcallamp = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'GCALLAMP', count=gcallampct ,/silent)))
+        gcalfilt = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'GCALFILT', count=gcalfiltct ,/silent)))
 
 		if (dispct eq 0) or (strc(prism) eq '') then begin
 			message,/info, 'Missing or blank DISPERSR keyword! '
@@ -201,6 +211,8 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 			;if widget_info(self.b_polarization_id,/button_set) then prism = 'OPEN'
 		endif
 
+
+
 		if ((prism ne 'PRISM') and (prism ne 'WOLLASTON') and (prism ne 'OPEN')) then begin
 			message,/info, 'Unknown DISPERSR: '+prism+". Must be one of {PRISM, WOLLASTON, OPEN} or their Gemini-style equivalents."
 			;if widget_info(self.b_spectral_id,/button_set) then prism = 'PRISM'
@@ -210,27 +222,37 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 			message,/info, 'Applying default setting instead: '+prism
 		endif
 
+
+		if obstype eq 'DARK' then begin
+		   print, "AUTOMATICREDUCER skipping file since it is a dark: "+filenames[0]
+		   return ; this is a dark frame. There is no need to make a datacube
+		endif else if gcalfilt eq 'ND4-5' then begin
+		   print, "AUTOMATICREDUCER skipping file since it is a persistence cleanup frame: "+filenames[0]
+		   return ; this is a "cleanup" frame for persistence decay. There is no need to make a datacube
+		endif
+
 		case prism of
 		'PRISM': begin
-			if obsclass eq 'ARC' then begin
+			if obstype eq 'ARC' then begin
 				templatename='Quick Wavelength Solution'
+				should_apply_flexure_update=0
 			endif else begin
-				if gcalfilt eq 'ND4-5' then begin
-				   return ; this is a "cleanup" frame for persistence decay. There is no need to make a datacube
-				endif else begin
-				   templatename='Quicklook Automatic Datacube Extraction'
-				endelse
+				templatename='Quicklook Automatic Datacube Extraction'
+				should_apply_flexure_update=1
 			endelse
 		end
 		'WOLLASTON': begin
-                   if gcalfilt eq 'ND4-5' then begin
-                                   return
-                   endif else begin
-                      templatename='Quicklook Automatic Polarimetry Extraction'
-                   endelse
-                end
-
-		'OPEN':templatename='Quicklook Automatic Undispersed Extraction'
+			if gcalfilt eq 'ND4-5' then begin
+			   return ; this is a "cleanup" frame for persistence decay. There is no need to make a datacube
+			endif else begin
+                templatename='Quicklook Automatic Polarimetry Extraction'
+				should_apply_flexure_update=1
+            endelse
+		end
+		'OPEN': begin 
+			templatename='Quicklook Automatic Undispersed Extraction'
+			should_apply_flexure_update=1
+		end
 		endcase
 	endif else begin
 		ind=widget_info(self.template_id,/DROPLIST_SELECT)
@@ -248,19 +270,20 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 	drf->set_datafiles, filenames
 	drf->set_outputdir,'AUTOMATIC' ;/autodir
 
-	wupdate =  drf->find_module_by_name('Update Spot Shifts for Flexure', count)
-	if count ne 1 then begin
-		message,/info, "Can't find 'Update Spot Shifts for Flexure' primitive; can't apply settings. Continuing anyway."
-	endif else begin
+	if keyword_set(should_apply_flexure_update) then begin
+		wupdate =  drf->find_module_by_name('Update Spot Shifts for Flexure', count)
+		if count ne 1 then begin
+			message,/info, "Can't find 'Update Spot Shifts for Flexure' primitive; can't apply settings. Continuing anyway."
+		endif else begin
 
-		drf->set_module_args, wupdate, method=self.flexure_mode
-		if self.flexure_mode eq 'Manual' then begin
-			widget_control, self.shiftx_id, get_value=shiftx
-			widget_control, self.shifty_id, get_value=shifty
-			drf->set_module_args, wupdate, method=self.flexure_mode, manual_dx=shiftx,  manual_dy=shifty
-		endif
-
-	endelse
+			drf->set_module_args, wupdate, method=self.flexure_mode
+			if self.flexure_mode eq 'Manual' then begin
+				widget_control, self.shiftx_id, get_value=shiftx
+				widget_control, self.shifty_id, get_value=shifty
+				drf->set_module_args, wupdate, method=self.flexure_mode, manual_dx=shiftx,  manual_dy=shifty
+			endif
+		endelse
+	endif
 
 
 
@@ -302,6 +325,13 @@ pro automaticreducer::event, ev
 			self.view_in_gpitv = ~ self.view_in_gpitv
 			self.menubar->set_check_state, 'View new files in GPITV', self.view_in_gpitv
 		end
+		'Sort Files by Creation Time': begin
+			self.sort_by_time = ~ self.sort_by_time
+			self.menubar->set_check_state, 'Sort Files by Creation Time', self.sort_by_time
+			self.reason_for_rescan =  "change of file sort order"
+			ptr_free, self.previous_file_list ; throw away previous file list, so it will generate a new one with the desire sort
+
+		end
 		'Ignore individual UTR/CDS readout files': begin
 			self.ignore_indiv_reads = ~ self.ignore_indiv_reads
 			self.menubar->set_check_state, 'Ignore individual UTR/CDS readout files', self.ignore_indiv_reads
@@ -311,6 +341,7 @@ pro automaticreducer::event, ev
 		'None': self->set_flexure_mode, 'None'
 		'Lookup': self->set_flexure_mode, 'Lookup'
 		'Manual': self->set_flexure_mode, 'Manual'
+                'BandShift': self->set_flexure_mode, 'BandShift'
 		'Autoreducer Help...': gpi_open_help, 'usage/autoreducer.html',/dev
 		'GPI DRP Help...': gpi_open_help, '',/dev
 		endcase
@@ -335,6 +366,7 @@ pro automaticreducer::event, ev
                   'search':textinfo='Start the looping search of new FITS placed in the right-top panel directories. Restart the detection for changing search parameters.'
                   'filelist':textinfo='List of most recent detected FITS files in the watched directory. '
 				  'view_in_gpitv': textinfo='Automatically display new files in GPITV.'
+				  'sort_by_time': textinfo='Sort file display list by creation time instead of alphabetically.'
 				  'ignore_raw_reads': textinfo='Ignore any extra files for the CDS/UTR reads, if present.'
                   'one':textinfo='Parse and process new file in a one-by-one mode.'
                   'new':textinfo='Change parser queue to process when new type detected.'
@@ -488,7 +520,7 @@ pro automaticreducer::change_wildcard
       Label='Filename Wildcard (can use * and ?): ', Cancel=cancelled, XSize=200, Value=self.watch_filespec)
    	IF NOT cancelled THEN BEGIN
 		self.watch_filespec= new_wildcard
-		widget_control, self.wildcard_id, set_value=new_wildcard
+		if widget_info(self.wildcard_id,/valid_id) then widget_control, self.wildcard_id, set_value=new_wildcard
 
 		; trash the list of previous files from the old wildcard, we need to
 		; regenerate a new list for the new wildcard to ignore all existing
@@ -518,7 +550,7 @@ PRO automaticreducer::set_flexure_mode, modestr
 
 	widget_control, self.flex_base_id, map=self.flexure_mode eq 'Manual'
 
-	modes = ['None','Manual','Lookup']
+	modes = ['None','Manual','Lookup','BandShift']
 	for i=0,2 do self.menubar->set_check_state, modes[i], self.flexure_mode eq modes[i]
 	print, "Flexure handling mode is now "+self.flexure_mode
 end
@@ -550,6 +582,7 @@ function automaticreducer::init, groupleader, _extra=_extra
 	self.xname='automaticreducer'
 	self.watch_directory=self->get_default_input_dir()
     self.view_in_gpitv = 1
+    self.sort_by_time= gpi_get_setting('at_gemini', default=0,/silent)
     self.ignore_indiv_reads = 1
 	self.current_datestr = gpi_datestr(/current)
 
@@ -582,10 +615,12 @@ function automaticreducer::init, groupleader, _extra=_extra
                   {cw_pdmenu_s, 2, 'Quit Autoreducer'}, $
                   {cw_pdmenu_s, 1, 'Options'}, $
                   {cw_pdmenu_s, 8, 'View new files in GPITV'},$
+                  {cw_pdmenu_s, 8, 'Sort Files by Creation Time'},$
                   {cw_pdmenu_s, 8, 'Ignore individual UTR/CDS readout files'}, $
                   {cw_pdmenu_s, 3, 'Flexure Compensation'}, $
                   {cw_pdmenu_s, 8, 'None'},$
                   {cw_pdmenu_s, 8, 'Lookup'},$
+                  {cw_pdmenu_s, 8, 'BandShift'},$
                   {cw_pdmenu_s, 10, 'Manual'},$
                   {cw_pdmenu_s, 1, 'Help'}, $         ; help menu
                   {cw_pdmenu_s, 0, 'Autoreducer Help...'}, $
@@ -678,6 +713,7 @@ function automaticreducer::init, groupleader, _extra=_extra
 
 	self.menubar->set_check_state, 'View new files in GPITV', self.view_in_gpitv
 	self.menubar->set_check_state, 'Ignore individual UTR/CDS readout files', self.ignore_indiv_reads
+	self.menubar->set_check_state, 'Sort Files by Creation Time', self.sort_by_time
 	self->set_flexure_mode, self.flexure_mode ; null op but sets the checkboxes appropriately
 
 	;----	
@@ -759,6 +795,7 @@ stateF={  automaticreducer, $
 	previous_file_list: ptr_new(), $ ; List of files that have previously been encountered
 	view_in_gpitv: 0L, $		; Setting: View in GPITv? 
 	ignore_indiv_reads: 0L, $	; Setting: Ignore individual reads?
+	sort_by_time: 0L, $	; Setting: Sort by time?
 	reason_for_rescan: '', $	; why are we rescanning the directory? (used in log messages)
     INHERITS parsergui} ;wid for detect-new-files button
 

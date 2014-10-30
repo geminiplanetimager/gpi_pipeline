@@ -160,8 +160,6 @@ The GPI wavcal grid can be overplotted  on 2D image in order to check out:
 * spatial shifts of micro-lens PSF positions in the image for spectroscopic or
   polarimetric scientific images since the last wavcal solution measurement.
 
-Fig.10 represents a simulated DST/Zemax arc lamp image  with wavcal grid overplotted that shows detected position and tilts of spectra. 
-
 Other functions
 --------------------
 
@@ -229,6 +227,10 @@ Histogram/Contour Plot  Plot histogram of                                       
                         region around cursor                                    around cursor
 Surface Plot            Draw surface plot of
                         region around cursor
+Move Wavecal Grid	Reposition the 
+                        wavecal grid with
+			some integer pixel
+			offset
 ======================  ====================    =============================   ============================
 
 

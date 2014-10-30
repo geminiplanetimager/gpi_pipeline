@@ -3,6 +3,18 @@
 Instrument Polarization
 ==================================
 
+.. seealso:: 
+
+        Further information may be found in `Wiktorowicz et al. 2014 "Gemini Planet Imager Observational Calibrations VII:
+        On-Sky Polarimetric Performance of the Gemini Planet Imager" <http://arxiv.org/abs/1407.2307>`_
+
+
+
+This page still to be written. 
+
+For now, information on instrumental polarization of GPI can be found in the above reference.
+
+
 Observed Effect and Relevant Physics:
 ---------------------------------------
 

@@ -348,10 +348,10 @@ ygrid=temporary(ygrid2)
 				mask2[*,*]=!values.f_nan
 				mask2[good_ind]=1
 				phot_comp_err[i]=stddev(bkg_conv[good_ind],/nan,/double)
-				if finite(phot_comp_err[i]) eq 0 then stop, 'bad extraction'
+				if finite(phot_comp_err[i]) eq 0 then return, error('inifite error found - bad extraction - exiting') ;stop, 'bad extraction'
 				
 					; examine the fit
-				if 1 eq 1 and i eq 31 then begin
+				if 1 eq 1 and i eq 15 then begin
 					yfit2d=fltarr(281,281)
 					yfit2d[*,*]=!values.f_nan
 					yfit2d[finite_bkg_ind]=yfit
@@ -364,17 +364,27 @@ ygrid=temporary(ygrid2)
 					sz=skyrad[1]*2*3 
 					sz=300
 					loadct,1
-					window,0, xsize=sz*4,ysize=sz,title='companion background region/fit/residuals/error',xpos=0,ypos=400
-					tvdl, subarr(trans_cube_slice*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),rmin,rmax,position=0
-					tvdl, subarr(yfit2d*tmask,          ceil(skyrad[1]+1)*2,[x0,y0]),rmin,rmax,position=1
-					tvdl, subarr((trans_cube_slice-yfit2d)*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=2					
+					;window,0, xsize=sz*4,ysize=sz,title='companion background region/fit/residuals/error',xpos=0,ypos=400
+					;tvdl, subarr(trans_cube_slice*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),rmin,rmax,position=0
+					;tvdl, subarr(yfit2d*tmask,          ceil(skyrad[1]+1)*2,[x0,y0]),rmin,rmax,position=1
+					;tvdl, subarr((trans_cube_slice-yfit2d)*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=2					
 					
-					tmask[src_ind]=!values.f_nan
-					tvdl, subarr(bkg_conv*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=3
+					;tmask[src_ind]=!values.f_nan
+					;tvdl, subarr(bkg_conv*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=3
+				
+					window,0, xsize=sz,ysize=sz,title='comp. bkg region value',xpos=0,ypos=400
+					imdisp,subarr(trans_cube_slice*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),range=[rmin,rmax]
+					window,1, xsize=sz,ysize=sz,title='comp. bkg region fit',xpos=sz,ypos=400
+					imdisp,subarr(yfit2d*tmask,          ceil(skyrad[1]+1)*2,[x0,y0]),range=[rmin,rmax]
+					window,2, xsize=sz,ysize=sz,title='comp. bkg region residuals',xpos=2*sz,ypos=400
+					tmp1=subarr((trans_cube_slice-yfit2d)*tmask,ceil(skyrad[1]+1)*2,[x0,y0])
+					imdisp, tmp1,range=[min(tmp1,/nan),max(tmp1,/nan)]
+					window,3, xsize=sz,ysize=sz,title='comp. bkg region error',xpos=3*sz,ypos=400
+					tmp1=subarr(bkg_conv*tmask,ceil(skyrad[1]+1)*2,[x0,y0])
+					imdisp, tmp1,range=[min(tmp1,/nan),max(tmp1,/nan)]
+
 					print,phot_comp[i],phot_comp_err[i]
 					print,'SNR at slice '+strc(i)+' ('+strc(lambda[i])+' um)', phot_comp[i]/phot_comp_err[i]
-
-					;stop
 
 				endif
 

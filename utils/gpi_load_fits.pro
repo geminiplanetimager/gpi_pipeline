@@ -21,6 +21,9 @@
 ;				This is of course faster, for cases where you just need the
 ;				headers only. PHDU and first image ext HDU headers will be loaded.
 ; 	/silent		Don't display any text on screen while working.
+; 	/fast		Save speed by making assumptions this is standard GPI data, not
+;				obsolete early development files, and don't load FITS extensions 
+;				after the first one.
 ; OUTPUTS:
 ;
 ; HISTORY:
@@ -32,7 +35,7 @@
 ;--------------------------------------------------------------------------------
 
 
-FUNCTION gpi_load_fits, filename, nodata=nodata, silent=silent, _extra=_extra
+FUNCTION gpi_load_fits, filename, nodata=nodata, silent=silent, fast=fast, _extra=_extra
 
 	compile_opt defint32, strictarr, logical_predicate
 
@@ -57,7 +60,7 @@ FUNCTION gpi_load_fits, filename, nodata=nodata, silent=silent, _extra=_extra
 
 	; Read in the file, and check whether it is a single image or has
 	; extensions.
-    fits_info, filename, n_ext = numext, /silent
+	if keyword_set(fast) then numext=1 else fits_info, filename, n_ext = numext, /silent
     if (numext EQ 0) then begin
 		; No extension present: Read primary image into the data array
 		;  and copy the only header into both the primary and extension headers
@@ -106,6 +109,27 @@ FUNCTION gpi_load_fits, filename, nodata=nodata, silent=silent, _extra=_extra
 
 	; If user just wants the headers, then we're done and can return that here:
 	if keyword_set(nodata) then return, { pri_header: ptr_new(pri_header,/no_copy), ext_header: ptr_new(ext_header,/no_copy)} 
+
+
+	; if loading data, check for presence of subarrays, and pad out to full size
+	; if needed.
+    ;---- is the frame from the entire detector or just a subarray?
+	; TODO should we check datasec header keyword here, or the actual data array
+	; size?
+	datasec=gpi_get_keyword(pri_header, ext_header, 'DATASEC',count=ct_ds)
+	if datasec ne '[1:2048,1:2048]' then begin
+		DETSTRTX=fix(strmid(datasec, 1, stregex(datasec,':')-1))
+		DETENDX=fix(strmid(datasec, stregex(datasec,':')+1, stregex(datasec,',')-stregex(datasec,':')-1))
+		datasecy=strmid(datasec,stregex(datasec,','),strlen(datasec)-stregex(datasec,','))
+		DETSTRTY=fix(strmid(datasecy, 1, stregex(datasecy,':')-1))
+		DETENDY=fix(strmid(datasecy, stregex(datasecy,':')+1, stregex(datasecy,']')-stregex(datasecy,':')-1))
+		;;DRP will always consider [1:2048,1,2048] frames:
+		if ((DETSTRTX ne 1) || (DETENDX ne 2048) || (DETSTRTY ne 1) || (DETENDY ne 2048)) and ~keyword_set(nodata) then begin
+		  tmpframe=dblarr(2048,2048)
+		  tmpframe[(DETSTRTX-1):(DETENDX-1),(DETSTRTY-1):(DETENDY-1)]=currframe
+		  currframe=tmpframe
+		endif
+	endif	
 	
 	; Save headers and image as a structure:
     mydata = {image: ptr_new(currframe,/no_copy), pri_header: ptr_new(pri_header,/no_copy), ext_header: ptr_new(ext_header,/no_copy)}

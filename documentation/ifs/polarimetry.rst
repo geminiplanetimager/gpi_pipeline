@@ -1,4 +1,0 @@
-Polarimetry
-============
-
-To be documented

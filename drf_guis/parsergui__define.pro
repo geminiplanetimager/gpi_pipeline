@@ -59,6 +59,7 @@ function  parsergui::init, groupleader, parse_contents_of=parse_contents_of, _ex
 	self.name = 'GPI Data Parser'
 	if self.debug then message,/info, 'Parser init'
 	drfgui_retval = self->gpi_recipe_editor::init(groupleader, _extra=_extra)
+	self.selection = ptr_new([''])
 
 	if keyword_set(parse_contents_of) then message,"Not yet implemented"
 	return, drfgui_retval
@@ -130,8 +131,10 @@ pro parsergui::addfile, filenames, n_added = n_added
     endif
 
     for i=0,n_elements(filenames)-1 do begin   ; Check for duplicate
-        if (total(file eq filenames[i]) ne 0) then filenames[i] = ''
-		self->Log, "File is already present in the list: "+filenames[i]
+        if (total(file eq filenames[i]) ne 0) then begin
+			filenames[i] = ''
+			self->Log, "File is already present in the list: "+filenames[i]
+		endif
     endfor
 
 
@@ -210,6 +213,7 @@ pro parsergui::removefiles, filenames_to_remove, n_removed=n_removed
 end
 
 
+
 ;+-----------------------------------------
 ; parsergui::parse_current_files
 ;
@@ -224,8 +228,6 @@ end
 pro parsergui::parse_current_files
 
     widget_control,self.top_base,get_uvalue=storage  
-    ;index = (*storage.splitptr).selindex
-    ;cindex = (*storage.splitptr).findex
     file = (*storage.splitptr).filename
     pfile = (*storage.splitptr).printname
     datefile = (*storage.splitptr).datefile
@@ -240,37 +242,29 @@ pro parsergui::parse_current_files
 
     self->Log, "Loading and parsing files..."
     ;-- Update information in the structs
-    ;(*storage.splitptr).selindex = max([0,findex-1])
-    ;(*storage.splitptr).filename = file
-    ;(*storage.splitptr).printname = pfile
-    ;(*storage.splitptr).datefile = datefile 
 
-    ;;TEST DATA SANITY
-    ;;ARE THEY VALID  GEMINI & GPI & IFS DATA?
-	
+    ;;Test Validity of the data (are these GPI files and is it OK to proceed?)
     if gpi_get_setting('strict_validation',/bool, default=1,/silent)  then begin
 
 		nfiles = n_elements(file)
         valid=bytarr(nfiles)
 
         for ff=0, nfiles-1 do begin
-			;print, "time 2, file "+strc(ff)+": ", systime(/seconds) - t0
 			if self.debug then message,/info, 'Verifying keywords for file '+file[ff]
 			if self.debug then message,/info, '  This code needs to be made more efficient...'
-              widget_control,self.textinfo_id,set_value='Verifying keywords for file '+file[ff]
-
+            widget_control,self.textinfo_id,set_value='Verifying keywords for file '+file[ff]
             valid[ff]=gpi_validate_file( file[ff] ) 
         endfor  
 
         indnonvalid=where(valid eq 0, cnv, complement=wvalid, ncomplement=countvalid)
         if cnv gt 0 then begin
-            self->Log,'WARNING: invalid files (based on FITS keywords) have been detected and removed:' + strjoin(file[indnonvalid],",")
+            self->Log, 'WARNING: invalid files (based on FITS keywords) have been detected and removed: ' 
+			self->Log, "      "+strjoin(file[indnonvalid],", ")
 
             if countvalid eq 0 then file=''
             if countvalid gt 0 then file=file[wvalid]
 			nfiles = n_elements(file)
 
-			;(*storage.splitptr).selindex = max([0,countvalid-1])
 			(*storage.splitptr).findex = countvalid
 			(*storage.splitptr).filename = file
 			(*storage.splitptr).printname = file
@@ -279,7 +273,7 @@ pro parsergui::parse_current_files
 			self->Log, "All "+strc(n_elements(file))+" files pass basic FITS keyword validity check."
 		endelse
       
-    endif else begin ;if data are test data don't remove them but inform a bit
+    endif else begin ;if strict_validation is disabled (ie. data are test data) don't remove them but inform a bit
 
 		nfiles = n_elements(file) ;edited by SGW 
 
@@ -288,7 +282,7 @@ pro parsergui::parse_current_files
 			valid = gpi_validate_file(file[ff]) ;Changed index from i to ff, SGW
 		endfor
     endelse
-    ;(*self.currModSelec)=strarr(5)
+
     (*self.recipes_table)=strarr(10)
 
     for i=0,nfiles-1 do pfile[i] = file_basename(file[i]) 
@@ -303,9 +297,6 @@ pro parsergui::parse_current_files
 
         for jj=0,nfiles-1 do begin
             finfo[jj] = self->get_obs_keywords(file[jj])
-            ;;we want Xenon&Argon considered as the same 'lamp' object for Y,K1,K2bands (for H&J, better to do separately to keep only meas. from Xenon)
-            ;if (~strmatch(finfo[jj].filter,'[HJ]')) && (strmatch(finfo[jj].object,'Xenon') || strmatch(finfo[jj].object,'Argon')) then $
-                    ;finfo[jj].object='Lamp'
             pfile[jj] = finfo[jj].summary
 			(*storage.splitptr).printname[jj] = finfo[jj].summary ; save for use if we redisplay
         endfor
@@ -332,20 +323,30 @@ pro parsergui::parse_current_files
 		wdark = where(strlowcase(finfo.obstype) eq 'dark', dct)
 		if dct gt 0 then finfo[wdark].filter='-'
 
+		timeit1=systime(/seconds)
         if (n_elements(file) gt 0) && (strlen(file[0]) gt 0) then begin
 
-            ; save starting date and time for use in DRF filenames
-            ;caldat,systime(/julian),month,day,year, hour,minute,second
-            ;datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
-            ;hourstr = string(hour,minute,format='(i2.2,i2.2)')  
           
             current = {gpi_obs}
 
             ;categorize by filter
             uniqfilter  = uniqvals(finfo.filter, /sort)
             ;uniqfilter = ['H', 'Y', 'J', "K1", "K2"] ; H first since it's primary science wvl?
+			uniqfilter = ['-', 'Y','J','H','K1','K2'] ; just always do this in wavelength order
             uniqobstype = uniqvals(strlowcase(finfo.obstype), /sort)
 
+            ;categorize by Gemini datalabel
+            tmpdatalabels = finfo.datalab
+            numdatalabs = n_elements(tmpdatalabels)
+            datalabels = tmpdatalabels
+            for dlbls=0,numdatalabs-1 do begin
+               datalabs = strsplit(tmpdatalabels[dlbls],'-',/EXTRACT)
+               datalabels[dlbls] = strjoin(datalabs[0:-2],'-')
+            endfor
+
+            uniqdatalab = uniqvals(strlowcase(datalabels), /sort)
+            if self.debug then print, 'number of uniqdatalabels', n_elements(uniqdatalab)
+            if self.debug then print, uniqdatalab
                 ; TODO - sort right order for obstype 
            ; uniqobstype = uniqvals(finfo.obstype, /sort)
 
@@ -374,7 +375,7 @@ pro parsergui::parse_current_files
             message,/info, "Now adding "+strc(n_elements(finfo))+" files. "
             message,/info, "Input files include data from these FILTERS: "+strjoin(uniqfilter, ", ")
             
-            ;for each filter category, categorize by obstype
+            ;for each filter, categorize by obstype, and so on
             for ff=0,nbfilter-1 do begin
                 current.filter = uniqfilter[ff]
                 indffilter =  where(finfo.filter eq current.filter)
@@ -383,14 +384,6 @@ pro parsergui::parse_current_files
                 ;categorize by obstype
                 uniqsortedobstype = uniqvals(strlowcase((finfo.obstype)[indffilter]))
 
-                ;add  wav solution if not present and if flat-field should be reduced as wav sol
-                ;void=where(strmatch(uniqsortedobstype,'*arc*',/fold),cwv)
-                ;void=where(strmatch(uniqsortedobstype,'flat*',/fold),cflat)
-                ;if ( cwv eq 0) && (cflat eq 1) && (self.flatreduc eq 1) then begin
-                    ;indfobstypeflat =  where(strmatch((finfo.obstype)[indffilter],'flat*',/fold)) 
-                    ;uniqsortedobstype = [uniqsortedobstype ,'wavecal']
-                ;endif
-                   
                 nbobstype=n_elements(uniqsortedobstype)
                     
                 ;;here we have to sequence the drf queue: 
@@ -407,13 +400,26 @@ pro parsergui::parse_current_files
                 if cnd ge 1  then sequenceorder[indnotdefined]=nbobstype-1
                 indsortseq=sort(sequenceorder)
 
-                
-                ;;for each filter and each obstype, create a drf
                 for fc=0,nbobstype-1 do begin
                     ;get files corresponding to one filt and one obstype
                     current.obstype = uniqsortedobstype[indsortseq[fc]]
 
-                    ;categorize by PRISM
+                  for fdl=0,n_elements(uniqdatalab)-1 do begin
+                     current.datalab = uniqdatalab[fdl]
+
+					;--- added for faster parsing of large datasets
+					; for efficiency's sake, before proceeding any further check
+					; if there exist files in this combination 
+					wmatch = where( finfo.filter eq current.filter and $
+									strmatch(finfo.obstype, current.obstype,/fold) and $
+						            strmatch(finfo.datalab, current.datalab+"*",/fold), matchct)
+					if matchct eq 0 then begin
+						if self.debug then message,/info, "No match for current obstype/datalabel - skipping ahead"
+						continue
+					endif
+					;--- end of faster parsing efficiency code
+
+
                     for fd=0,n_elements(uniqprisms)-1 do begin
                         current.dispersr = uniqprisms[fd]
                      
@@ -422,28 +428,35 @@ pro parsergui::parse_current_files
                             
                             for fobs=0,n_elements(uniqobsclass)-1 do begin
                                 current.obsclass=uniqobsclass[fobs]
+								
+								;--- added for faster parsing of large datasets
+								; for efficiency's sake, before proceeding any further check
+								; if there exist files in this combination 
+								wmatch = where( finfo.filter eq current.filter and $
+												strmatch(finfo.obstype, current.obstype,/fold) and $
+												strmatch(finfo.datalab, current.datalab+"-*",/fold) and $
+                                                strmatch(finfo.dispersr,current.dispersr+"*",/fold) and $
+                                                strmatch(finfo.occulter,current.occulter+"*",/fold) and $
+                                                finfo.obsclass eq current.obsclass, matchct)
+								if matchct eq 0 then begin
+									if self.debug then message,/info, "No match for current obstype/datalabel/disperser/occulter/obsclass - skipping ahead"
+									continue
+								endif
+								;--- end of faster parsing efficiency code
+
+
  
                                 for fitime=0,n_elements(uniqitimes)-1 do begin
-
                                     current.itime = uniqitimes[fitime]    ; in seconds, now
-                                ;current.exptime =
-                                ;uniqitimes[fitime] ; in seconds
                                     
-                                   ;for ffilt=0,n_elements(uniqgcalfilt)-1 do begin
-                                   ;    current.gcalfilt=uniqgcalfilt[ffilt]
-                                   ;    print,'TEST:', current.gcalfilt,n_elements(uniqgcalfilt)
                                     
                                     for fobj=0,n_elements(uniqobjects)-1 do begin
 										continue_after_case = 0 ; reset if this was set before.
                                         current.object = uniqobjects[fobj]
-                                        ;these following 2 lines for adding Y-band flat-field in wav.solution measurement
-                                        currobstype=current.obstype
-                                        ;if (self.flatreduc eq 1)  && (current.filter eq 'Y') &&$
-                                        ;(current.obstype eq 'Wavecal')  then currobstype='[WF][al][va][et]*'
                           
                                         indfobject = where(finfo.filter eq current.filter and $
-                                                    ;finfo.obstype eq current.obstype and $
-                                                    strmatch(finfo.obstype, currobstype,/fold) and $  
+                                                    strmatch(finfo.obstype, current.obstype,/fold) and $
+                                                    strmatch(finfo.datalab,current.datalab+"*",/fold) and $
                                                     strmatch(finfo.dispersr,current.dispersr+"*",/fold) and $
                                                     strmatch(finfo.occulter,current.occulter+"*",/fold) and $
                                                     finfo.obsclass eq current.obsclass and $
@@ -451,8 +464,7 @@ pro parsergui::parse_current_files
                                                     finfo.object eq current.object, cobj)
                                                     
 										if self.debug then begin
-											message,/info, 'Now testing the following parameters: ('+strc(cobj)+' files help) '
-										;	match, current,/str
+											message,/info, 'Now testing the following parameters: ('+strc(cobj)+' files match) '
 										endif
 
                       
@@ -467,7 +479,7 @@ pro parsergui::parse_current_files
 										current.lyotmask= finfo[indfobject[0]].lyotmask
                                                              
                                         ;identify which templates to use
-                                        print,  current.obstype ; uniqsortedobstype[indsortseq[fc]]
+                                        if self.debug then print,  current.obstype ; uniqsortedobstype[indsortseq[fc]]
                                         self->Log, "Found sequence of OBSTYPE="+current.obstype+", OBSMODE="+current.obsmode+", DISPERSR="+current.dispersr+", IFSFILT="+current.filter+ " with "+strc(cobj)+" files targeting "+current.object
 
                                         case strupcase(current.obstype) of
@@ -530,22 +542,22 @@ pro parsergui::parse_current_files
                                         end
                                         'OBJECT': begin
                                            case strupcase(current.dispersr) of 
-						'WOLLASTON': begin 
-							templatename='Basic Polarization Sequence'
+                                                'WOLLASTON': begin 
+                                                     templatename='Basic Polarization Sequence (From Raw Data)'
                                                      end 
                                                 'SPECTRAL': begin 
-                                                if  current.occulter eq 'SCIENCE'  then begin ;'Science fold' means no occulter
-                                                    ;if binaries:
-                                                    if strmatch(current.obsclass, 'AstromSTD',/fold) then begin
-													   templatename="Lenslet scale and orientation"
-                                                    endif
-                                                    if strmatch(current.obsclass, 'Science',/fold) then begin
-													   templatename="Create Datacubes, Rotate, and Combine unocculted sequence"
-                                                    endif
-                                                    if ~strmatch(current.obsclass, 'AstromSTD',/fold) && ~strmatch(current.obsclass, 'Science',/fold) then begin
-													   templatename='Satellite Flux Ratios'
-                                                    endif
-                                                endif else begin 
+                                                    if  current.occulter eq 'SCIENCE'  then begin ;'Science fold' means no occulter
+                                                      ;if binaries:
+                                                      if strmatch(current.obsclass, 'AstromSTD',/fold) then begin
+													     templatename="Lenslet scale and orientation"
+                                                      endif
+                                                      if strmatch(current.obsclass, 'Science',/fold) then begin
+							  						     templatename="Create Datacubes, Rotate, and Combine unocculted sequence"
+                                                      endif
+                                                      if ~strmatch(current.obsclass, 'AstromSTD',/fold) && ~strmatch(current.obsclass, 'Science',/fold) then begin
+								  					     templatename='Satellite Flux Ratios'
+                                                      endif
+                                                  endif else begin 
                                                     if n_elements(file_filt_obst_disp_occ_obs_itime_object) GE 5 then begin
 														templatename='Basic ADI + Simple SDI reduction (From Raw Data)'
                                                     endif else begin
@@ -581,8 +593,9 @@ pro parsergui::parse_current_files
                                     endfor ;loop on object
                                 endfor ;loop on itime
                             endfor ;loop on obsclass
-                        endfor ;loop on fo occulteur    
+                        endfor ;loop on fo occulteur
                     endfor  ;loop on fd disperser
+                  endfor   ;loop for datalab
                 endfor ;loop on fc obstype
             endfor ;loop on ff filter
         endif ;cond on n_elements(file) 
@@ -638,9 +651,12 @@ pro parsergui::parse_current_files
 
     endif ;condition on findex>0, assure there are data to process
 
+	timeit2=systime(/seconds)
+
     void=where(file ne '',cnz)
     self->Log,'Data Parsed: '+strtrim(cnz,2)+' FITS files.'
     self->Log,'             '+strtrim(self.num_recipes_in_table,2)+' recipe files created.'
+    self->Log,'             Complete in '+sigfig(timeit2-timeit1,3)+' seconds.'
     ;self->Log,'resolved FILTER band: '+self.filter
 
 
@@ -881,7 +897,7 @@ pro parsergui::event,ev
               'DRFGUI': textinfo='Click to load currently selected Recipe into the Recipe Editor'
               'Delete': textinfo='Click to delete the currently selected Recipe. (Cannot be undone!)'
               'QueueAll': textinfo='Click to add all DRFs to the execution queue.'
-              'QueueOne': textinfo='Click to add the currently selected Recipe to the execution queue.'
+              'QueueSelected': textinfo='Click to add the currently selected Recipe to the execution queue.'
               'QUIT': textinfo='Click to close this window.'
               else:
               endcase
@@ -908,14 +924,16 @@ pro parsergui::event,ev
 
     'tableselec':begin      
             IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_TABLE_CELL_SEL') && (ev.sel_top ne -1) THEN BEGIN  ;LEFT CLICK
-                selection = WIDGET_INFO((self.table_recipes_id), /TABLE_SELECT) 
+                selection = WIDGET_INFO((self.table_recipes_id), /TABLE_SELECT)  ; returns [LEFT, TOP, RIGHT, BOTTOM]
+
                 ;;uptade arguments tab
                 if n_elements((*self.recipes_table)) eq 0 then return
                 self.num_recipes_in_table=n_elements((*self.recipes_table)[0,*])
                 ;print, self.num_recipes_in_table
                 ; FIXME check error condition for nothing selected here. 
-                indselected=selection[1]
-                if indselected lt self.num_recipes_in_table then self.selection =(*self.recipes_table)[0,indselected]
+                startselected=selection[1]
+                endselected=selection[3] < self.num_recipes_in_table
+                if startselected lt self.num_recipes_in_table then *self.selection =reform((*self.recipes_table)[0,startselected:endselected])
                 ;if indselected lt self.num_recipes_in_table then begin 
                     ;print, "Starting DRFGUI with "+ (*self.recipes_table)[0,indselected]
                     ;gpidrfgui, drfname=(*self.recipes_table)[0,indselected], self.top_base
@@ -1131,25 +1149,41 @@ pro parsergui::event,ev
         endif
     end
     'Delete': begin
-        selection = WIDGET_INFO((self.table_recipes_id), /TABLE_SELECT) 
-        indselected=selection[1] ; FIXME allow multiple selections here?
-        if indselected lt 0 or indselected ge self.num_recipes_in_table then return ; nothing selected
-        self.selection=(*self.recipes_table)[0,indselected]
+		; we can assume the self.selection array already contains the selected
+		; recipe(s)
+        ;selection = WIDGET_INFO((self.table_recipes_id), /TABLE_SELECT) 
+        ;indselected=selection[1] ; FIXME allow multiple selections here?
+        ;if indselected lt 0 or indselected ge self.num_recipes_in_table then return ; nothing selected
+        ;*self.selection=(*self.recipes_table)[0,indselected]
+
+		if n_elements(*self.selection) eq 1 then begin
+			query = ['Are you sure you want to delete the recipe','', *self.selection+"?"]
+		endif else begin
+			query = ['Are you sure you want to delete the following recipes?','', *self.selection]
+		endelse
 
 
-        if confirm(group=self.top_base,message=['Are you sure you want to delete the file ',self.selection+"?"], label0='Cancel',label1='Delete', title="Confirm Delete") then begin
-            self->Log, 'Deleted file '+self.selection
-            file_delete, self.selection,/allow_nonexist
+        if confirm(group=self.top_base,message=query, label0='Cancel',label1='Delete', title="Confirm Delete") then begin
 
-            if self.num_recipes_in_table gt 1 then begin
-                indices = indgen(self.num_recipes_in_table)
-                new_indices = indices[where(indices ne indselected)]
+			keep_rows = bytarr(self.num_recipes_in_table)+1
+			for i=0,n_elements(*self.selection)-1 do begin
+		        file_delete, (*self.selection)[i],/allow_nonexist
+	            self->Log, 'Deleted file '+(*self.selection)[i]
+				wm = where((*self.recipes_table)[0,*] eq (*self.selection)[i])
+				keep_rows[wm]=0
+			endfor
+
+			if total(keep_rows) gt 0 then begin
+                ;indices = indgen(self.num_recipes_in_table)
+                new_indices = where(keep_rows)
                 (*self.recipes_table) = (*self.recipes_table)[*, new_indices]
-                self.num_recipes_in_table-=1
+                self.num_recipes_in_table= total(keep_rows)
             endif else begin
                 self.num_recipes_in_table=0
                 (*self.recipes_table)[*] = ''
             endelse
+
+			*self.selection= ['']
                   
             widget_control,   self.table_recipes_id,  set_value=(*self.recipes_table)[*,*] 
 			; no - don't set the selection to zero and reset the view, keep
@@ -1160,8 +1194,9 @@ pro parsergui::event,ev
         endif
     end
     'DRFGUI': begin
-        if self.selection eq '' then return
-            rec_editor = obj_new('gpi_recipe_editor', drfname=self.selection, self.top_base)
+		; Open the recipe editor for the FIRST selected recipe only
+        if (*self.selection)[0] eq '' then return
+            rec_editor = obj_new('gpi_recipe_editor', drfname=(*self.selection)[0], self.top_base)
     end
 
 
@@ -1174,13 +1209,16 @@ pro parsergui::event,ev
                 endfor      
                 self->Log,'All DRFs have been succesfully added to the queue.'
     end
-    'QueueOne'  : begin
-        if self.selection eq '' then begin
+    'QueueSelected'  : begin
+        if (*self.selection)[0] eq '' then begin
               self->Log, "Nothing is currently selected!"
               return ; nothing selected
         endif else begin
-            self->queue, self.selection
-            self->Log,'Queued '+self.selection
+			nselected = n_elements(*self.selection)
+			for i=0,nselected-1 do begin
+	            self->queue, (*self.selection)[i]
+		        self->Log,'Queued '+(*self.selection)[i]
+			endfor
         endelse
     end
     'QUIT'    : self->confirm_close
@@ -1439,7 +1477,7 @@ function parsergui::init_widgets,  _extra=_Extra
     ;-----------------------------------------
     top_baseexec=widget_base(parserbase,/BASE_ALIGN_LEFT,/row)
     button2b=widget_button(top_baseexec,value="Queue all Recipes",uvalue="QueueAll", /tracking_events)
-    button2b=widget_button(top_baseexec,value="Queue selected Recipes only",uvalue="QueueOne", /tracking_events)
+    button2b=widget_button(top_baseexec,value="Queue selected Recipes only",uvalue="QueueSelected", /tracking_events)
     directbase = Widget_Base(top_baseexec, UNAME='directbase' ,COLUMN=1 ,/NONEXCLUSIVE, frame=0)
     self.autoqueue_id =    Widget_Button(directbase, UNAME='direct'  $
 		,/ALIGN_LEFT ,VALUE='Queue all generated recipes automatically',uvalue='direct' )
@@ -1509,7 +1547,7 @@ PRO parsergui__define
 			  table_recipes_id: 0, $	; widget ID for recipes table
               sortfileid :0L,$		    ; widget ID for file list sort options 
               num_recipes_in_table:0,$	; # of recipes listed in the table
-              selection: '', $			; current selection in recipes table
+              selection: ptr_new(), $			; current selection in recipes table
               recipes_table: ptr_new(), $   ; pointer to resizeable string array, the data for the recipes table
 			  DEBUG:0, $				; debug flag, set by pipeline setting enable_parser_debug
               sorttab:strarr(3),$       ; table for sort options 

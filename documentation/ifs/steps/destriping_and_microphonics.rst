@@ -3,6 +3,12 @@
 Destriping and Microphonics
 ============================
 
+.. seealso:: 
+
+        Further information may be found in `Ingraham et al. 2014 "Gemini Planet Imager Observational Calibrations II:
+        Detector Performance and Characterization" <http://arxiv.org/abs/1407.2302>`_
+
+
 Observed Effect and Relevant Physics:
 ---------------------------------------
 

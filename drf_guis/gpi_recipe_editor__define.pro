@@ -64,8 +64,8 @@ function gpi_recipe_editor::get_obs_keywords, filename
 	endif
 
 
-	; Load FITS file, preprocessing as needed for I&T lack of keywords
-	fits_data = gpi_load_fits(filename,/nodata,/silent)
+	; Load FITS file
+	fits_data = gpi_load_fits(filename,/nodata,/silent,/fast)
 	head = *fits_data.pri_header
 	ext_head = *fits_data.ext_header
 	ptr_free, fits_data.pri_header, fits_data.ext_header
@@ -647,8 +647,8 @@ pro gpi_recipe_editor::event,ev
 	if (tag_names(ev, /structure_name) EQ 'WIDGET_LIST') then begin
 		if ev.clicks eq 2 then begin
 			filename = (self.drf->get_datafiles(/absolute))[ev.index]
-			gpitv, ses=self.session+1,  filename
-			message, 'Opening in GPITV #'+strc(self.session+1)+" : "+filename,/info
+			gpitv, ses=self.session,  filename
+			message, 'Opening in GPITV #'+strc(self.session)+" : "+filename,/info
 		endif
 	endif
   
@@ -758,7 +758,7 @@ pro gpi_recipe_editor::event,ev
 		else type_ok=0
 
 		if ~type_ok then begin
-			errormessage = ["Sorry, you tried to enter a value for "+argname+", but it had the wrong type ("+strupcase(typename)+").", "Please enter a value of type "+strupcase(required_type)+". The value was NOT updated; please try again."]
+			errormessage = ["Sorry, you tried to enter a value for "+argname+", but it had the wrong type ("+strupcase(typename)+").", "Please enter a value of type "+strupcase(required_type)+". The value was NOT updated; please try again.", "NOTE: If you are trying to edit the CalibrationFile keyword,", "please use the 'Choose Calibration File...' button in the lower right corner."]
 			self->log,errormessage[0]+"  "+errormessage[1] ; merge 2 lines into 1
 			res = dialog_message(errormessage,/error, title='Unable to set value')
 			self->refresh_arguments_table

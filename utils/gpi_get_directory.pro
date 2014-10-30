@@ -105,6 +105,7 @@ function gpi_get_directory, dirname,expand_path=expand_path,method=method
      'GPI_RECIPE_OUTPUT_DIR': 	result = gpi_get_directory("GPI_REDUCED_DATA_DIR")+path_sep()+"recipes"
      'GPI_DRF_OUTPUT_DIR':		result = gpi_get_directory("GPI_RECIPE_OUTPUT_DIR") ; back compatible alias
      'GPI_CALIBRATIONS_DIR': 	result = gpi_get_directory("GPI_REDUCED_DATA_DIR")+path_sep()+"calibrations"
+	 'GPI_DATA_ROOT':			result = file_dirname(gpi_get_directory("GPI_REDUCED_DATA_DIR")) ; if not explicitly set, put this 1 level above reduced data.
      'GPI_DST_DIR': begin
         findpro, 'dst', dir=dir,/noprint
         if dir[0] ne '' then result = dir else result = file_basename(gpi_get_directory("GPI_DRP_DIR"))+path_sep()+"dst" ; optional, may not be present...

@@ -24,9 +24,9 @@ Setting Name                            Possible Values                 Default 
 organize_raw_data_by_dates              0,1                             1               Should we expect raw data to be organized in directories by date underneath 
                                                                                         $GPI_RAW_DATA_DIR? If so, data should be in directories named 
                                                                                         according to YYMMDD such as 130401 for 2013 April 01.
-organize_reduced_data_by_dates          0,1                             1               Should reduced data be output in directories organized by data under 
+organize_reduced_data_by_dates          0,1                             1               Should reduced data be output in directories organized by date under 
                                                                                         $GPI_DRP_OUTPUT_DIR? Such directories will be created if needed. 
-organize_recipes_by_dates               0,1                             1               Should saved DRFs be output in directories organized by data under 
+organize_recipes_by_dates               0,1                             1               Should saved DRFs be output in directories organized by date under 
                                                                                         $GPI_DRP_OUTPUT_DIR? Such directories will be created if needed. 
 prompt_user_for_outputdir_creation      0,1                             0               If set to zero, whenever you need to create a directory to save some requested 
                                                                                         filename (e.g. for storing output files or DRFs), just go ahead and do so without 
@@ -65,6 +65,9 @@ force_rescan_caldb_on_startup           0,1                              0      
 username_in_log_filename                0,1                             0               Should the username of the user running the pipeline be included in log filename, as well
                                                                                         as the date? This is useful on shared installations on multiuser machines so that different
                                                                                         users' log files don't overwrite one another.
+launcher_force_semaphore_name           <string>                        See at right.   Name of semaphore used for the inter-IDL communication queue lock. Sometimes the lock is not 
+                                                                                        properly released so this setting should be specified with a different name so that a 
+                                                                                        different lock name can be used for the queue. Default is "GPI_DRP_$USER"
 ======================================  ==============================  =============   ==============================================================================================
 
 
@@ -105,7 +108,7 @@ change any of the following very often.
 Setting Name                            Possible Values                 Default Value   Meaning
 ======================================  ==============================  =============   ==============================================================================================
 max_files_per_recipe                       <integer>                    1000            Maximum number of input FITS files allowed in a single data reduction recipe. 
-                                                                                        This is used to allocate some internal arrays. Default is 200, but can be made 
+                                                                                        This is used to allocate some internal arrays. Default is 1000, but can be made 
                                                                                         arbitrarily larger if needed, memory permitting.
 parsergui_max_files                       <integer>                     1000            Maximum number of files that can be loaded in the data parser at one time.
                                                                                         This is used to allocate some internal arrays. Default is 1000, but can be made 

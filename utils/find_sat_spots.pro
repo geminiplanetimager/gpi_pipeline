@@ -1,5 +1,6 @@
 function find_sat_spots,s0,leg=leg,locs=locs0, winap = winap,$
-                        highpass=highpass,constrain=constrain
+                        highpass=highpass,constrain=constrain,$
+                        maxcounter=maxcounter
 ;+
 ; NAME:
 ;       find_sat_spots
@@ -24,6 +25,8 @@ function find_sat_spots,s0,leg=leg,locs=locs0, winap = winap,$
 ;       highpass - If 1, apply highpass filter with default box size
 ;                  of 9, otherwise apply with given box size.
 ;       constrain - Size of leg must be within 10 pixels of this value
+;       maxcounter - Maximum number of iterations to look for sat
+;                    spots (defaults to 50)
 ;
 ;       res - 2x4 array of satellite spot pixel locations
 ;
@@ -47,6 +50,7 @@ function find_sat_spots,s0,leg=leg,locs=locs0, winap = winap,$
 ;       08.27.12 - Upgrade to auto-find algorithm that significantly
 ;                  speeds up processing in the case where sat spots
 ;                  are dim compared to other pixels - ds
+;       09.09.14 - Added maxcounter keyword - ds
 ;-
 
 ;;get dimensions and set defaults
@@ -58,14 +62,14 @@ refpix = hh*2+1  ;search window size
 generate_grids, fx, fy, refpix, /whole
 fr = sqrt(fx^2 + fy^2)
 ref = exp(-0.5*fr^2)
+if ~keyword_set(maxcounter) then maxcounter = 50
 
-; run the highpass filter if desired
-   s0i = s0  
+;; run the highpass filter if desired
+s0i = s0  
 if keyword_set(highpass) then begin
    if highpass eq 1 then s0i -= filter_image(s0i,median=9) $
-	else s0i -= filter_image(s0i,median=highpass)	
+   else s0i -= filter_image(s0i,median=highpass)	
 endif
-
 
 ;;if not given initial centers, need to hunt for them
 if not keyword_set(locs0) then begin
@@ -81,7 +85,6 @@ if not keyword_set(locs0) then begin
    ;;initialize loop & go   
    val = max(out,ind)
    counter = 0
-   maxcounter = 50
    while counter lt maxcounter do begin
       ;;grab newest spot candidate and add to list of locations
       inds = array_indices(out,ind)

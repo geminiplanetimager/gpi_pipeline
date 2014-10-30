@@ -167,7 +167,7 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 
     endif
 
-
+badpixmap= bpmask
 	;==================   Actual repair code begins here    ====================
 	
 	case strlowcase(method) of

@@ -6,6 +6,16 @@
 Frequently Asked Questions
 =============================
 
+
+ * :ref:`faq_installation`
+ * :ref:`faq_errors`
+ * :ref:`faq_less_common`
+ * :ref:`faq_gpitv`
+ * :ref:`faq_data_reduction`
+ 
+
+.. _faq_installation:
+
 Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -84,24 +94,44 @@ your environment variables won't be defined in the child process. The fix is to 
 
 On my Mac, the GUI windows pop up with their title bars hidden under the Mac OS menu bar, so I can't move them around or see the very top of them. Why, and how do I stop this?
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-This appears to be due to a bug in X11 on Macs running Mavericks with multi-monitor support. See `this discussion at Stackexchange <http://apple.stackexchange.com/questions/111465/is-there-a-way-to-move-a-window-without-the-mouse>`. The workaround is to turn off the feature that displays the Mac OS menu bar on all monitors. Sorry, this is an Apple problem we can't do anything about!
+This appears to be due to a bug in X11 on Macs running Mavericks with multi-monitor support. See `this discussion at Stackexchange <http://apple.stackexchange.com/questions/111465/is-there-a-way-to-move-a-window-without-the-mouse>`_. The workaround is to turn off the feature that displays the Mac OS menu bar on all monitors. Sorry, this is an Apple problem we can't do anything about!
 
+.. _faq_errors:
 
-Common pipeline errors
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Common pipeline software issues
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Variable is undefined: STR_SEP.
 --------------------------------
-For users having IDL 8.2+, the str_sep.pro program is now an obsolete command. Although no pipeline source code calls this function, it is still used in other external dependencies. For the time being, users should add the `idl/lib/obsolete` folder to their `$IDL_PATH` to remedy this issue. This can be done in the last line of the configuration scripts (e.g `setenv_GPI_custom.csh` or `setenv_GPI_custom.bash` - as discussed :ref:`here <configuring>`)
+For users having IDL 8.2+, the str_sep.pro program is now an obsolete command. Although no pipeline source code calls this function, it is still used in some other external dependencies. For the time being, users should add the `idl/lib/obsolete` folder to their `$IDL_PATH` to remedy this issue. This can be done in the last line of the configuration scripts (e.g `setenv_GPI_custom.csh` or `setenv_GPI_custom.bash` - as discussed :ref:`here <configuring>`)
 
-Mac OSX Time machine issues
---------------------------------
+Mac OSX Time machine warnings about permissions 
+----------------------------------------------------
 Mac OSX Lion and Mountain Lion users running IDL 8.2 have been known to see the following error:
 
 ``2011-07-21 12:12:39.649 idl[11368:1603] This process is attempting to exclude an item from Time Machine by path without administrator privileges. This is not supported.``
 
 Although a nuisance, this error should have no affect on pipeline operation. Possible workarounds exist; details can be found `here <http://www.exelisvis.com/Support/HelpArticlesDetail/TabId/219/ArtMID/900/ArticleID/5251/5251.aspx>`_
 
+
+.. _faq_less_common:
+
+Less common software issues
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+I'm trying to reduce data from multiple different days in one recipe, and the output directory is behaving unexpectedly. What's going on?
+-------------------------------------------------------------------------------------------------------------------------------------------
+
+
+The output directory for a recipe is set once when the recipe is loaded in, not individually for each file. Thus all output files from a 
+recipe should be output to the same directory. (The one exception to this is of course reduced calibration files which are always written to the
+calibration database directory.)
+
+If the output directory is set to 'AUTOMATIC' and ``organize_reduced_data_by_dates`` is set to 1 (true), then the output directory is determined based on
+the YYMMDD date string for the first FITS file in that recipe. 
+
+.. _faq_gpitv:
 
 GPItv
 ^^^^^^^^^
@@ -124,24 +154,37 @@ The fix is simple: make sure that you set
 in your `.idlstartup` file. 
 
 
-
-Less common issues
-^^^^^^^^^^^^^^^^^^^
-
-
-I'm trying to reduce data from multiple different days in one recipe, and the output directory is behaving unexpectedly. What's going on?
--------------------------------------------------------------------------------------------------------------------------------------------
-
-
-The output directory for a recipe is set once when the recipe is loaded in, not individually for each file. Thus all output files from a 
-recipe should be output to the same directory. (The one exception to this is of course reduced calibration files which are always written to the
-calibration database directory.)
-
-If the output directory is set to 'AUTOMATIC' and ``organize_reduced_data_by_dates`` is set to 1 (true), then the output directory is determined based on
-the YYMMDD date string for the first FITS file in that recipe. 
-
-
 GPITV is crashing on startup, and/or colors are behaving weirdly.
 ---------------------------------------------------------------------
 
 GPItv requires a 24-bit (millions of colors) display. Check if your X11 or other graphics system settings are for some reason set to 8-bit (256 color) mode. If so, you should change them to 24 bit color before running the GPI pipeline. 
+
+
+
+.. _faq_data_reduction:
+
+Data Reduction Questions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For guidance on data reduction, please consult the :ref:`ifs-data-handbook`.
+
+What pre-reduced calibration files are available for download?
+------------------------------------------------------------------
+
+See `this discussion at the Gemini Data Reduction Forum <http://drforum.gemini.edu/topic/gpi-wavelength-calibration/>`_.
+
+Some reduced calibration files are available from the Gemini `GPI Public Data <http://www.gemini.edu/sciops/instruments/gpi/public-data>`_ page.
+
+There are also files available in the :ref:`tutorial <usage-quickstart>` data sets.
+
+
+The satellite spots cannot be found in my coronagraphic data. What should I do?
+--------------------------------------------------------------------------------
+
+See `this discussion at the Gemini Data Reduction Forum <http://drforum.gemini.edu/topic/gpi-satellite-spot-not-found/>`_.
+
+How do I de-rotate my data to have north up and east left?
+-------------------------------------------------------------------
+
+See :ref:`this part of the Data Handbook <ifs_fov_rotate>`.
+

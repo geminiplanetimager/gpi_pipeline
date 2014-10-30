@@ -5,25 +5,25 @@
 ;	This primitive applies a spectrophotometric calibrations to the datacube that is determined either 
 ;	from the satellite spots of the supplied cube, the satellite spots of a
 ;	user-indicated cube, or any user-supplied spectral response function (e.g. derived 
-;	from an open loop image of a standard star). 
+;	from an open loop image of a standard star). Use of this primitive is complicated, therefore a 
+;	tutorial has been written to guide the user through it's use. The tutorial can be found as part
+;	of the online documentation under the User's guide (http://docs.planetimager.org/pipeline/usage/index.html). 
 ;
 ; The user may also specify the extraction and sky radii used in performing the aperture photometry. Note that the 'annuli' only represent the radial size of the extraction. The background is extracted by fitting a constant to an annulus surrounding the central star at the same radius as the planet. The inner width of the annulus is equal to the inner_sky_radius, the outer annulus describes the distance from the companion to the edges of the annulus that should be considered when fitting the constant. If the user wishes to examine the section being fit, they should modify line 350 accordingly.
 ;
 ; Error bars are calculated and put into the headers to be used with future primitives such as gpi_extract_1d_spectrum. They are determined by convolving the sky annulus with the extraction aperture then taking the standard deviation. 
 ;
-;	
 ;
 ; INPUTS: 
-;	1: datacube that requires calibration (loaded as an Input FITS file)
-;	AND
-;	2a: datacube or to be used to determine the calibration (with or without a accompanying model spectrum of the star)
+;	1: (REQUIRED) datacube that requires calibration (loaded as an Input FITS file). The satellites of this image are used to determine the spectrophotometry calibration unless one of the options below are used.
+;	2a (OPTIONAL): datacube or to be used to determine the calibration - this should be entered into the calib_cube_name parameter. This is meant to be used when the satellites of a single cube are too low SNR and a stack of cubes must be used to get the SNR to high enough levels (which naturally blurs the companion). 
 ;	OR
-;	2b: a 2D spectrum (in ADU per COADD, where the COADD corresponds to input #1). The file format must be three columns, the first being wavelength in microns, the second being the flux in erg/s/cm2/A, the third being the uncertainty
+;	2b (OPTIONAL): a 2D spectrum (in ADU per COADD, where the COADD corresponds to input #1) - this should be entered using the calib_spectrum keyword. The file format must be three columns, the first being wavelength in microns, the second being flux in ADU per COADD, and third being the uncertainty. THis is useful to calibrate a cube if the calibration uses a different star as a calibrator.
+
+; The spectral type of the star and it's magnitude must be defined in the SPECTYPE and HMAG header keywords. These should be set by default but sometimes are not (or are not set correctly). One can modify them using the <Add Gemini and GPI keywords> primitive. Note that this primitive is only visible when <Show all primitives> is selected from the <Options> dropdown menu in the recipe editor. Based on these values, the primitive searches for an appropropriate pickles model for the spectral type and uses this to perform the calibration. If the pickles model is not appropriate, or you wish to provide a different model, this model can be input using the 'calib_model_spectrum' keyword.  The file format must be three columns, the first being wavelength in microns, the second being the flux in erg/s/cm2/A, the third being the uncertainty. 
 ;
-; if neither 2a nor 2b or defined, the satellites of the input file are used.
 ;
-; calib_cube_name and calib_model_spectrum require the entire directory+filename unless they are in the output directory
-; calib_spectrum requires the full filename
+; Note that the calib_cube_name,calib_spectrum, and calib_model_spectrum require the entire directory+filename unless they are in the output directory
 ;
 ;
 ; GEM/GPI KEYWORDS:FILTER,IFSUNIT
@@ -34,12 +34,12 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ARGUMENT: Name="extraction_radius" Type="float" Range="[0,1000]" Default="3." Desc="Aperture radius at middle wavelength (in spaxels i.e. mlens) to extract photometry for each wavelength. "
 ; PIPELINE ARGUMENT: Name="inner_sky_radius" Type="float" Range="[1,100]" Default="10." Desc="Inner aperture radius at middle wavelength (in spaxels i.e. mlens) to extract sky for each wavelength. "
-; PIPELINE ARGUMENT: Name="outer_sky_radius" Type="float" Range="[1,100]" Default="15." Desc="Outer aperture radius at middle wavelength (in spaxels i.e. mlens) to extract sky for each wavelength. "
+; PIPELINE ARGUMENT: Name="outer_sky_radius" Type="float" Range="[1,100]" Default="25." Desc="Outer aperture radius at middle wavelength (in spaxels i.e. mlens) to extract sky for each wavelength. "
 ; PIPELINE ARGUMENT: Name="c_ap_scaling" Type="int" Range="[0,1]" Default="1" Desc="Perform aperture scaling with wavelength?"
 ; PIPELINE ARGUMENT: Name="calib_cube_name" Type="string" Default="" Desc="Leave blank to use satellites of this cube, or enter a file to use those satellites"
 ; PIPELINE ARGUMENT: Name="calib_model_spectrum" Type="string" Default="" Desc="Leave blank to use satellites of this cube, or enter a file to use with the spectrum for the satellites"
 ; PIPELINE ARGUMENT: Name="calib_spectrum" Type="string" Default="" Desc="Leave blank to use satellites of this cube, or enter calibrated spectrum file"
-; PIPELINE ARGUMENT: Name="FinalUnits" Type="int" Range="[0,10]" Default="1" Desc="0: ADU per coadd, 1: ADU/s, 2: ph/s/nm/m^2, 3: Jy, 4: 'W/m^2/um, 5: ergs/s/cm^2/A, 6: ergs/s/cm^2/Hz'"
+; PIPELINE ARGUMENT: Name="FinalUnits" Type="int" Range="[0,10]" Default="5" Desc="0: ADU per coadd, 1: ADU/s, 2: ph/s/nm/m^2, 3: Jy, 4: 'W/m^2/um, 5: ergs/s/cm^2/A, 6: ergs/s/cm^2/Hz'"
 
 ; PIPELINE ORDER: 2.51
 ; PIPELINE CATEGORY: SpectralScience
@@ -101,7 +101,7 @@ if calib_spectrum ne '' then begin
 		if keyword_set(calib_cube_name) eq 1 then	backbone->Log,functionname+"This will result in ignoring the provided calibration cube" +string(calib_cube_name)
 		backbone->Log,functionname+ ':   WARNING- this has not been thoroughly tested and is extremely dangerous to use. Systematics can be easily introduced!'
 		; interpolate to our wavelengths
-		readcol,waves,response_curve0,response_curve_err0
+		readcol,calib_spectrum,waves,response_curve0,response_curve_err0,format='F,F,F'
 		response_curve=interpol(response_curve0,waves,lambda)
 		response_curve_err=interpol(response_curve_err0,waves,lambda)
 		for l=0, N_ELEMENTS(lambda)-1 do calibrated_cube[*,*,l]*=(1.0/response_curve[l])
@@ -308,8 +308,8 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 
 				; error check to see that not all nan's are encountered
 				if bkg_ind[0] eq -1 or total(finite(trans_cube_slice[bkg_ind])) eq 0 or total(finite(trans_cube_slice[src_ind])) eq 0 then begin
-					phot_comp[l]=!values.f_nan
-					phot_comp_err[l]=!values.f_nan
+					satflux_arr[s,l]=!values.f_nan
+					satflux_err_arr[s,l]=!values.f_nan
 					continue
 				endif
 				; fit plane to bkg
@@ -341,15 +341,14 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 				kernel=subarr(kernel0,ceil(aperrad*2)+2,[x0,y0])
 				bkg_conv=convol(bkg,kernel,/nan)
 				mask2=convol(mask,kernel,/nan)
-				good_ind=where(mask2 eq N_ELEMENTS(src_ind))
+				good_ind=where(mask2 eq N_ELEMENTS(src_ind),ct)
 				satflux_err_arr[s,l]=stddev(bkg_conv[good_ind],/nan,/double)
 
-
-
-				if finite(satflux_err_arr[s,l]) eq 0 then stop
-
+				if ct lt 3 then return,error('FAILURE ('+functionName+'): Insufficient background size to determine error for slice '+strc(l)+'. Try increasing the backgound annulus size')
+ 
+ 
 				; examine the fit - l is the cube slice
-				if 0 eq 1 and l eq 15 then begin
+				if 1 eq 1 and l eq 15 then begin
 					yfit2d=fltarr(281,281)
 					yfit2d[*,*]=!values.f_nan
 					yfit2d[finite_bkg_ind]=yfit
@@ -362,15 +361,28 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 					sz=skyrad[1]*2*3;(ceil(aperrad*2)+2)*40 
 					sz=300
 					loadct,1
-					window,0, xsize=sz*4,ysize=sz,title='satellite '+strc(s)+' background region/fit/residuals/error',xpos=0,ypos=400
-					tvdl, subarr(trans_cube_slice*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),rmin,rmax,position=0
-					tvdl, subarr(yfit2d*tmask,          ceil(skyrad[1]+1)*2,[x0,y0]),rmin,rmax,position=1
-					tvdl, subarr((trans_cube_slice-yfit2d)*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=2
-					mask[src_ind]=!values.f_nan
-					tvdl, subarr(bkg_conv*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=3
-					print, 'SNR at slice 15 = ',strc(satflux_arr[s,l]/satflux_err_arr[s,l])
+					;window,0, xsize=sz*4,ysize=sz,title='satellite '+strc(s)+' background region/fit/residuals/error',xpos=0,ypos=400
+					;tvdl, subarr(trans_cube_slice*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),rmin,rmax,position=0
+					;tvdl, subarr(yfit2d*tmask,          ceil(skyrad[1]+1)*2,[x0,y0]),rmin,rmax,position=1
+					;tvdl, subarr((trans_cube_slice-yfit2d)*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=2
+					;mask[src_ind]=!values.f_nan
+					;tvdl, subarr(bkg_conv*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),position=3
 
-					;stop
+
+					window,0, xsize=sz,ysize=sz,title='sat.'+strc(s)+' bkg region value',xpos=0,ypos=400
+					imdisp,subarr(trans_cube_slice*tmask,ceil(skyrad[1]+1)*2,[x0,y0]),range=[rmin,rmax]
+					window,1, xsize=sz,ysize=sz,title='sat. '+strc(s)+' bkg region fit',xpos=sz,ypos=400
+					imdisp,subarr(yfit2d*tmask,          ceil(skyrad[1]+1)*2,[x0,y0]),range=[rmin,rmax]
+					window,2, xsize=sz,ysize=sz,title='sat. '+strc(s)+' bkg region residuals',xpos=2*sz,ypos=400
+					tmp1=subarr((trans_cube_slice-yfit2d)*tmask,ceil(skyrad[1]+1)*2,[x0,y0])
+					imdisp, tmp1,range=[min(tmp1,/nan),max(tmp1,/nan)]
+					window,3, xsize=sz,ysize=sz,title='sat. '+strc(s)+' bkg region error',xpos=3*sz,ypos=400
+					tmp1=subarr(bkg_conv*tmask,ceil(skyrad[1]+1)*2,[x0,y0])
+					imdisp, tmp1,range=[min(tmp1,/nan),max(tmp1,/nan)]
+
+					print, 'SNR at slice 15 = ',strc(satflux_arr[s,l]/satflux_err_arr[s,l])
+					wait,1
+;					stop
 
 				endif
 
@@ -399,8 +411,6 @@ for l=0,n_elements(lambda)-1 do begin
 	photom_noise=sqrt(total(satflux_err_arr[*,l]^2))
 	if stddev_sat_flux[l] eq -1 then stddev_sat_flux[l]=(stddev([sat1flux[l]/norm1, sat2flux[l]/norm2, sat3flux[l]/norm3, sat4flux[l]/norm4]))>(photom_noise/mean_norm)
 	mean_sat_flux[l]=mean([sat1flux[l]/norm1, sat2flux[l]/norm2, sat3flux[l]/norm3, sat4flux[l]/norm4])*mean_norm ; counts/slice
-	; new error analysis
-
 
 
 	stddev_sat_flux[l]*=(mean_norm)
@@ -437,7 +447,7 @@ endfor
 
 	legend,['mean','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/left,textcolor=cgcolor('black')
 
-	stop
+	;
 
 endif
 	
@@ -466,7 +476,7 @@ endif
 ; aso have to pass a variable with the calib_model_spectrum
 
 converted_model_spectrum = gpi_photometric_calibration_calculation(lambda,*(dataset.headersPHU[numfile]),*(dataset.headersExt[numfile]),units=FinalUnits,ref_model_spectrum=calib_model_spectrum,ref_star_magnitude=star_mag, ref_filter_type=ref_filter_type, ref_SpType=SpType,logarr=logarr)
-; now print out the log - this is due to some stupid bug that causes bus errors/segementation faults using the message,/info program
+; now print out the log - this is due to some bug that causes bus errors/segementation faults using the message,/info program
 for zz=0,N_ELEMENTS(logarr)-1 do backbone->Log,logarr[zz] 
 
 if converted_model_spectrum[0] eq -1 then return, error('FAILURE ('+functionName+'): Could not perform photometric calibration, incorrect keywords and/or input to the gpi_photometric_calibration_calculation function ') 
@@ -476,9 +486,8 @@ calibrated_cube=fltarr(281,281,N_ELEMENTS(lambda))
 cube=*(dataset.currframe[0]) ; in ADU/coadd normally , but not always!!
 
 	; HIGHPASS FILTER FOR TESTING ONLY
-;for l=0, N_ELEMENTS(lambda)-1 do cube[*,*,l] -= filter_image(cube[*,*,l],median=15)	
-
-
+;	filtered_data=fltarr(281,281,N_ELEMENTS(lambda))
+;	for l=0, N_ELEMENTS(lambda)-1 do filtered_data[*,*,l]=filter_image(cube[*,*,l],median=11)	
 
 conv_fact= 1.0/mean_sat_flux * converted_model_spectrum ; mean sat flux is also in ADU/coadd
 for l=0, N_ELEMENTS(lambda)-1 do calibrated_cube[*,*,l]=cube[*,*,l] * conv_fact[l]
