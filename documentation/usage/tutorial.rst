@@ -189,7 +189,7 @@ For the purposes of this tutorial, we recommend users download the Wavecals.zip 
 
 At this point, the user may skip to the next section if they desire. However, should one wish to try to construct one on their own wavecales, follow the reduction steps below:
  
-- **For step 1)** Select Xe-arc lamp files: **S20131208S0149(-151).fits**. 
+- **For step 1)** Select Xe-arc lamp files: **S20131208S0149(-151).fits** (located in the onsky folder). 
 - **For step 3)** Keep selected the **Calibration** reduction type.
 - **For step 4)** Choose the **Wavelength Solution 2D** Recipe template.
 
