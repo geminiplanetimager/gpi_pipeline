@@ -27,8 +27,8 @@ other members of the GPI Data Analysis Team.  Please see the
 :ref:`development credits <sw-credits>` for a complete list of contributors, and the :ref:`release notes <release-notes>` for further details.
 
 **Acknowledging the GPI Pipeline in Publications:** Users of the GPI data pipeline should cite one of the following.
-Please also cite appropriate references for `GPI overall <http://adsabs.harvard.edu/abs/2014arXiv1403.7520M>`_, the `AO system <http://arxiv.org/abs/1407.2278>`_ and `IFS <http://arxiv.org/abs/1407.2314>`_, and other aspects of the instrument as relevant.
- * `Perrin et al. 2014, 'GPI Observational Calibrations I: Overview of the GPI data reduction pipeline', Proc. SPIE vol. 9147. <http://arxiv.org/abs/1407.2301>`_ 
+Please also cite appropriate references for `GPI overall <http://adsabs.harvard.edu/abs/2014PNAS..11112661M>`_, the `AO system <http://adsabs.harvard.edu/abs/2014SPIE.9148E..0KP>`_ and `IFS <http://adsabs.harvard.edu/abs/2014SPIE.9147E..1KL>`_, and other aspects of the instrument as relevant.
+ * `Perrin et al. 2014, 'GPI Observational Calibrations I: Overview of the GPI data reduction pipeline', Proc. SPIE vol. 9147. <http://adsabs.harvard.edu/abs/2014SPIE.9147E..3JP>`_ 
  * `Maire et al. 2010, 'Data Reduction Pipeline for the Gemini Planet Imager', Proc. SPIE vol. 7735 <http://adsabs.harvard.edu/abs/2010SPIE.7735E.102M>`_
 
 

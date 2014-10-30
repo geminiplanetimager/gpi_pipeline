@@ -8,6 +8,105 @@ You may wish to skip ahead to  :ref:`configuring`.
 
 The next release of the GPI pipeline will probably be sometime September-ish after the final commissioning run, for use in 2014B. 
 
+Version 1.2
+=========================================
+Released 2014 October 31. 
+
+This release incorporates updates and enhancements for 2014B. Thanks to the users in 2014A and members of the GPI and Gemini team who contributed improvements.
+
+.. note:: 
+
+      The World Coordinate System calibration for GPI was updated in accordance
+      with the results of Konopacky et al. (2014). This changes the pixel scale
+      and orientation of north that are written into datacube FITS headers. Datacubes
+      reduced with the current version of the pipeline should have more
+      accurate orientations than prior versions. However, please bear in mind
+      that if you compare datacubes reduced with older versions of the pipeline
+      to datacubes reduced with the new one, you may find a spurious offset in position angle 
+      or separation.  Users should take care and perform their own calibrations when
+      doing high precision astrometry. 
+
+
+
+* Enhancements/Additions to primitives and recipes:	
+  
+  * New primitive: "Correct ADR Shift" applies a software correction for atmospheric differential refraction (ADR).
+  * New primitive: "Filter Datacube Spatially" applies high pass filter to datacubes, similar to the GPItv display option.
+  * New primitive: "Flexure 2D x correlation with polcal" uses cross correlation to automatically derive flexure corrections for polarimetry mode.
+
+  * Destriping for Darks primitive now preserves the mean bias level of reduced dark files, to better subtract that bias from science images. Dark generation and hot pixel identification primitives updated for compatibility. (Perrin)
+  * Distortion correction primitive can now work either before Accumulate Images (undistorts one image at a time) or after it (undistorts all previously accumulated images) (Perrin)
+  * Update Spot Shifts for Flexure gains a new mode, "bandshift", which takes into account the known offsets between spectral bands to calculate a flexure-corrected wavelength solution for any filter based on H band argon lamp images. (Wolff)
+  * Update Spot Shifts for Flexure also now can apply spatially-variable offsets across the field of view, to account for the second order flexure correction.
+  * Improvements in wavecal solution code to accomodate microlens PSF option as well as Gaussian PSFs. Improvements to smooth and filter the derived wavelength solutions to improve S/N and better handle lenslets at edge of FOV. (Wolff)
+  * Improvements to Sat Spot measurements in polarization mode (Wang, Millar-Blanchaer)
+  * Subtract Stellar Polarization primitive uses star position from sat spots. Can also be applied to a single polarization datacube (podc file) instead of Stokes datacube (stokesdc file).  (Millar-Blanchaer). 
+  * Significant improvements to detector persistence model and persistence correction (Ingraham).
+  * Improved polarization datacube extraction using empirical Gaussian model lenslet PSFs for weighted extraction (Millar-Blanchaer, Fitzgerald)
+  * Algorithm improvements to photometric calibration calculation. (Ingraham)
+  * Measure Satellite Spot Locations now writes PSFC_x header values to the SCI header for *each slice* where sat spots were found (Savransky)
+
+* Enhancements to instrument characterization
+
+  * Updated zero point fluxes in pipeline_constants to values calculated using the instrument response curves and not the filter profiles - differences are very minor (Ingraham).
+  * Updated plate scale and rotation angle in accordance with the measurements of Konopacky et al. (2014, Proc. SPIE).
+
+* GPItv enhancements and bug fixes:
+
+  * Minor bug fix to histogram window (Perrin)
+  * GPItv display of wavelength solution has gained a mouse mode enabling dragging the solution around interactively. This updates the dx and dy parameters displayed in gpitv, which can then be copied into the autoreducer or recipe editor for use when creating datacubes. (Wolff)
+  * For polarimetry files, GPItv can now compute and display radial stokes vectors, and also a normalized differences display (Millar-Blanchaer).
+  * GPItv contrast plot display bug fix for cases with small Y axis range (Nielsen)
+
+* Recipe Editor, Data Parser, Autoreducer GUIs: 
+
+  * Data parser ignores aborted files (Perrin)
+  * Substantial speedup to data code parser code. Also bug fix to avoid major slowdown when working on fits.gz files.  (Perrin)
+  * Data parser now lets you select, queue, or delete multiple recipes at once. (Perrin)
+  * Autoreducer GUI now displays options for the improved flexure correction in Update Spot Shifts.  (Wolff)
+  * Autoreducer no longer makes unnecessary datacubes for darks, or for persistence cleanup frames after calibration lamps. (Perrin)
+  * More informative error messages in Recipe Editor (Wolff)
+
+* Improved documentation and tutorials
+
+  * Clarified and simplified installation instructions (Wang, Long, Ingraham, Perrin)
+  * Improved tutorials for spectral and polarization reductions (Wolff, Millar-Blanchaer, Long, Savransky, Nielsen)
+  * New tutorial on reducing your own GPI data (Perrin, Hibon, Wolff)
+  * New tutorial on spectrophotometric calibration and companion spectral extraction (Ingraham)
+  * Documentation links to papers by the GPI team presented at the SPIE meeting (team)
+  * Added helpful error messages and a line in the pipeline settings documentation about how to work around a rare bug with semaphore locking (Wang)
+  * Updated documentation for several of the new features listed above (team)
+
+* Installation and infrastructure improvements
+
+  * Backend process improvements for building compiled versions (Wang, Perrin)
+  * IDL7 compatibility bug fix in contrast measurement code (Maire)
+  * Improved Windows installation script and instructions (Wang)
+
+* Miscellaneous bug fixes and minor tasks:
+
+  * Precision improvement bug fix in calc_avparang. (Maire)
+  * Minor bug fixes to wavelength solution code. (Wolff)
+  * Minor bug fix to Data Parser's Gemini data label parsing code. (Perrin)
+  * Autoreducer no longer automatically starts at Gemini (Perrin, Hibon)
+  * Bug fixes for startup directory for gpitv and other GUIs.  (Wang, Perrin)
+  * Improvements in 2D detector + photon noise model code for estimating per-pixel S/N. (Fitzgerald)
+  * Clean up some obsolete templates (Perrin)
+  * Minor bug fix in combine_3d_datacubes primitive and calibrate_photometric_flux (Ingraham)
+  * Added NaN support for mean combine images (Wang)
+  * Some recipe templates updates to reflect changes in the primitives (Wang)
+  * Improve robustness of CalDB (Wang)
+  * Improve plotting tools in extract_one_spectrum (Wolff) 
+  * Minor bug fixes in get_spectral_response (Ingraham)
+  * Minor bug fixes in handling of files taken with the GPI IFS in its unsupported engineering-only subarray mode (Perrin)
+  * Minor bug fix to PNG plotting in contrast measurement tool (Wolff)
+  * Datacube assembly code made more robust against unexpected input values (Wolff)
+  * Rotate Cube North now updates satellite spot positions correctly (Ingraham)
+
+
+* Other
+
+  * Continued development of next-generation datacube reconstruction algorithms (Ingraham, Maire, Draper, Wolff). These are not yet ready for production use and are not yet included in this release; however substantial progress is being made. Stay tuned for future pipeline releases. 
 
 Version 1.1.1
 =========================================
