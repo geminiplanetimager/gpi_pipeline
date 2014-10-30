@@ -13,16 +13,15 @@ pipeline development.
     license, please refer to  :ref:`this page <installing-from-compiled>` for 
     installing compiled executables instead.
 
-.. comments
-    ## DO NOT EDIT THIS LINE ## Marker for automated editing of this file by gpi_release.py
-
-**Version 1.1** (2014 May 6):
- * `gpi_pipeline_1.1.1_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1.1_source.zip>`_ -  GPI pipeline source code 
+**Version 1.2.0** (2014 Oct 30):
+ * `gpi_pipeline_1.2.0_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.0_source.zip>`_ -  GPI pipeline source code 
 
 
 See :ref:`here <priorversions>` to download earlier versions of the pipeline, if desired.
 
 .. comment:
+ **Version 1.1** (2014 May 6):
+ * `gpi_pipeline_1.1.1_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1.1_source.zip>`_ -  GPI pipeline source code 
     **Version 1.0.0** (2014 Feb 14):
      * `gpi_pipeline_1.0_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.0_source.zip>`_ -  GPI pipeline source code 
     **Version 0.9.4** (2014 Jan 7):
