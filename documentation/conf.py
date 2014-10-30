@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# JWST-PSFs documentation build configuration file, created by
+# GPI pipeline documentation build configuration file, created by
 # sphinx-quickstart on Mon Nov 29 15:57:01 2010.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -48,7 +48,7 @@ copyright = u'2008-2014, Marshall Perrin, Jerome Maire & the GPI Data Analysis T
 #
 # The short X.Y version.
 #import gpidata
-version = '1.1.1'
+version = '1.2.0'
 # The full version, including alpha/beta/rc tags.
 release = version+''
 
