@@ -73,9 +73,6 @@ PRO launcher::event, ev
                 'autoreducer':begin
                       textinfo='Click to start simple automatic ' & textinfo2='reduction of incoming data files.'
                       end 
-                ;'makedatalogfile': begin
-                      ;textinfo='Click to create a text logfile of' & textinfo2='FITS files in a chosen directory.' 
-                      ;end
                 'quit':         begin
                    textinfo='Click to close this window.'
                    end

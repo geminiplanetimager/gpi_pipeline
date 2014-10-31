@@ -239,7 +239,7 @@ if keyword_set(parallel) then begin
 	'    modelparams[i,j,0] = res[1]+starty',$
 	'    lensletmodel[startx:stopx, starty:stopy] += modelimage',$
 	'    lensletcount+=1',$
- 	'endfor',$];,$
+ 	'endfor'];,$
 
 
 	backbone->Log,"Parallel process execution complete.", depth=3,/flush
