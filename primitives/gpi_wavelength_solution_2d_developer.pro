@@ -142,7 +142,7 @@ calfiletype = 'wavecal'
 
 	if whichpsf eq 1 then begin
            basedir = gpi_get_directory('GPI_CALIBRATIONS_DIR')+path_sep()
-           basedir = '/Users/swolff/Dropbox (GPI)/GPI/GPI_Calibrations/lenslet_PSFs/'
+           basedir = '/Users/swolff/Dropbox (GPI)/GPIDATA-Calibrations/lenslet_PSFs/'
            case filter of
               'H': psffn = basedir+'140522b_highres-1650um-psf_structure-updatedheaders.fits'
               'J': psffn = basedir+'140520_highres-1150um-psf_structure-updatedheaders.fits'
