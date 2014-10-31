@@ -1,0 +1,104 @@
+;+
+; NAME: gpi_add_geminigpikeywords
+; PIPELINE PRIMITIVE DESCRIPTION: Add Gemini and GPI keywords.
+; Useful for test data,...
+;
+; OUTPUTS:
+; PIPELINE ARGUMENT: Name="overwrite" Type="int" Range="[0.0,1.0]" Default="0" Desc="0:do not overwrite already existent keyword; 1:overwrite"
+; PIPELINE ARGUMENT: Name="exten" Type="int" Range="[0.0,1.0]" Default="0" Desc="Choose the extension num to place your keyword(s). 0 for FITS or MEF-PHU. 1 for extension1."
+; PIPELINE ARGUMENT: Name="keyword1" Type="string"  Default="FILTER" Desc="Enter keyword name to add."
+; PIPELINE ARGUMENT: Name="value1" Type="string"  Default="H" Desc="Enter value of the keyword to add."
+; PIPELINE ARGUMENT: Name="keyword2" Type="string"  Default="OBSTYPE" Desc="Enter keyword name to add."
+; PIPELINE ARGUMENT: Name="value2" Type="string"  Default="wavecal" Desc="Enter value of the keyword to add."
+; PIPELINE ARGUMENT: Name="keyword3" Type="string"  Default="GCALLAMP" Desc="Enter keyword name to add."
+; PIPELINE ARGUMENT: Name="value3" Type="string"  Default="Xenon" Desc="Enter value of the keyword to add."
+; PIPELINE ARGUMENT: Name="keyword4" Type="string"  Default="PRISM" Desc="Enter keyword name to add."
+; PIPELINE ARGUMENT: Name="value4" Type="string"  Default="Spectral" Desc="Enter value of the keyword to add."
+; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
+; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-keyw" Desc="Enter output suffix"
+; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
+; PIPELINE COMMENT: Add GPI and Gemini missing keywords. 
+; PIPELINE ORDER: 0.1
+; PIPELINE CATEGORY: Testing
+;
+; HISTORY:
+;    Jerome Maire 2010-02
+;   
+;-
+
+function gpi_add_geminigpikeywords,  DataSet, Modules, Backbone
+
+primitive_version= '$Id$' ; get version from subversion to store in header history
+   ; getmyname, functionname
+   @__start_primitive
+ 
+ overwrite=0.  
+   thisModuleIndex = Backbone->GetCurrentModuleIndex()  
+ if tag_exist( Modules[thisModuleIndex], "overwrite") then overwrite=float(Modules[thisModuleIndex].overwrite)
+ if tag_exist( Modules[thisModuleIndex], "exten") then exten=float(Modules[thisModuleIndex].exten)
+
+ tag = tag_names(Modules[thisModuleIndex])
+ nkeyw = n_elements(where(strmatch(tag,'keywo*', /fold)))
+ for i=0,nkeyw-1 do begin
+     keyw="keyword"+strc(i+1)
+     val="value"+strc(i+1)
+     indkey=where(strmatch(tag, keyw, /fold))
+     keyword=Modules[thisModuleIndex].(indkey)
+		 indval=where(strmatch(tag, val, /fold))
+     value=Modules[thisModuleIndex].(indval)
+		;ignore if nothing is present
+     if strc(keyword) eq '' or strc(value) eq '' then continue
+
+;    if numext eq 0 then begin
+;      hdr= *(dataset.headers)[numfile] 
+;    endif else begin
+;      if exten eq 0 then hdr= *(dataset.headersPHU)[numfile]
+;      if exten eq 1 then hdr= *(dataset.headers)[numfile]
+;    endelse
+void=backbone->get_keyword(keyword, count=cc) ;sxpar( hdr,keyword, count=cc)
+     if ( cc ne 0)  then begin
+        if overwrite eq 1. then begin 
+           if tag_exist( Modules[thisModuleIndex], keyw) && tag_exist( Modules[thisModuleIndex], val) then $
+           backbone->set_keyword,keyword, value
+					 backbone->Log, functionname+":  Overwrote the header keyword "+string(keyword)+' with a value of '+string(value)
+
+	
+           ;FXADDPAR, hdr, keyword, value
+        endif
+     endif else begin
+            if tag_exist( Modules[thisModuleIndex], keyw) && tag_exist( Modules[thisModuleIndex], val) then $
+            backbone->set_keyword,keyword, value
+						backbone->Log, functionname+":  Added the header keyword "+string(keyword)+' with a value of '+string(value)
+           ;FXADDPAR, hdr, keyword, value
+     endelse 
+     
+  endfor
+  
+;    if numext eq 0 then begin
+;      *(dataset.headers)[numfile] =hdr
+;    endif else begin
+;      if exten eq 0 then *(dataset.headersPHU)[numfile]=hdr
+;      if exten eq 1 then *(dataset.headers)[numfile]=hdr
+;    endelse
+    
+    
+    if tag_exist( Modules[thisModuleIndex], "suffix") then suffix=Modules[thisModuleIndex].suffix
+  
+  
+@__end_primitive
+    
+;    if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
+;      if tag_exist( Modules[thisModuleIndex], "gpitv") then display=fix(Modules[thisModuleIndex].gpitv) else display=0 
+;      b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix, display=display)
+;      if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save dataset.')
+;    endif else begin
+;      if tag_exist( Modules[thisModuleIndex], "gpitv") && ( fix(Modules[thisModuleIndex].gpitv) ne 0 ) then $
+;          ;gpitvms, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv),head=*(dataset.headers)[numfile]
+;          Backbone_comm->gpitv, double(*DataSet.currFrame), ses=fix(Modules[thisModuleIndex].gpitv)
+;    endelse
+
+   
+ ;  return, ok
+;writefits, fname, specpos,h
+
+end
