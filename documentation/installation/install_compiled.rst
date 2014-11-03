@@ -50,11 +50,23 @@ Before you can start the pipeline, you will need to do some basic configuration 
       .. image:: icon_mac2.png
       .. image:: icon_linux2.png
 
-   You must set the environment variable ``GPI_DRP_DIR`` to the path of the unzipped pipeline. I.e. ::
+   After downloading and unzipping, set up your shell for the pipeline (update the pipeline version number, 1.2.0_r3401, with the version you downloaded) ::
 
-       setenv GPI_DRP_DIR /home/myusername/gpi_pipeline_1.2.0_runtime_linux   
+        unix% cd [Location of the pipeline]/gpi_pipeline_1.2.0_r3401/scripts/
+	unix% ./gpi_setup_nix
+	unix% cd ../executables/
+	unix% cp -r idl83 idl81
 
-   (using whatever is the appropriate path in your case.)  See :ref:`configuring` if you need more information on how to set an environment variable. 
+   This will set up most of what's needed in the file .gpienv (in your home directory), and provide the copy of IDL in the directory expected by the pipeline, but the following changes are also needed.  Enter these lines into\
+ your copy of .gpienv ::
+
+ export GPI_DRP_DIR="[Location of the pipeline]/gpi_pipeline_1.2.0_r3401"
+        export IDL_DIR="[Location of the pipeline]/gpi_pipeline_1.2.0_r3401/executables/idl81"
+        alias idl="[Location of the pipeline]/gpi_pipeline_1.2.0_r3401/executables/idl81/bin/idl"
+
+   Remember to restart your terminal for these changes to go into effect.
+
+   See :ref:`configuring` if you need more information on how to set an environment variable. 
 
 .. admonition:: Windows
  
