@@ -57,8 +57,7 @@ Before you can start the pipeline, you will need to do some basic configuration 
 	unix% cd ../executables/
 	unix% cp -r idl83 idl81
 
-   This will set up most of what's needed in the file .gpienv (in your home directory), and provide the copy of IDL in the directory expected by the pipeline, but the following changes are also needed.  Enter these lines into\
- your copy of .gpienv ::
+   This will set up most of what's needed in the file .gpienv (in your home directory), and provide the copy of IDL in the directory expected by the pipeline, but the following changes are also needed.  Enter these lines into your copy of .gpienv ::
 
  export GPI_DRP_DIR="[Location of the pipeline]/gpi_pipeline_1.2.0_r3401"
         export IDL_DIR="[Location of the pipeline]/gpi_pipeline_1.2.0_r3401/executables/idl81"
