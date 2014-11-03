@@ -315,6 +315,9 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 				; fit plane to bkg
 				weights=0
 				finite_bkg_ind=bkg_ind[where(finite(trans_cube_slice[bkg_ind]) eq 1)]
+
+				if N_ELEMENTS(finite_bkg_ind) lt 3 then return,error('FAILURE ('+functionName+'): Insufficient background size to determine error for slice '+strc(l)+'. Try increasing the backgound annulus size and check the satellite positions are correct')
+				
 				; fits and subtracts a plane to get proper error estimation
 				coef = PLANEFIT( finite_bkg_ind mod 281 ,finite_bkg_ind / 281,trans_cube_slice[finite_bkg_ind],weights, yfit )
 
@@ -344,7 +347,7 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 				good_ind=where(mask2 eq N_ELEMENTS(src_ind),ct)
 				satflux_err_arr[s,l]=stddev(bkg_conv[good_ind],/nan,/double)
 
-				if ct lt 3 then return,error('FAILURE ('+functionName+'): Insufficient background size to determine error for slice '+strc(l)+'. Try increasing the backgound annulus size')
+				if ct lt 3 then return,error('FAILURE ('+functionName+'): Insufficient background size to determine error for slice '+strc(l)+'. Try increasing the backgound annulus size and check the satellite positions are correct')
  
  
 				; examine the fit - l is the cube slice
@@ -426,7 +429,7 @@ endfor
 	oplot, lambda,sat2flux/norm2*mean_norm, color=cgcolor('teal'),linestyle=3,thick=2
 	oplot, lambda,sat3flux/norm3*mean_norm, color=cgcolor('red'),linestyle=4,thick=2
 	oplot, lambda,sat4flux/norm4*mean_norm, color=cgcolor('green'),linestyle=5,thick=2
-	legend,['mean','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/right,textcolor=cgcolor('black')
+	al_legend,['mean','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/right,textcolor=cgcolor('black')
 
 	window,20,xsize=700,ysize=400
 	device,decomposed=0
@@ -435,7 +438,7 @@ endfor
 	oplot, lambda,sat2flux/norm2*mean_norm/mean_sat_flux, color=cgcolor('teal'),linestyle=3,thick=2
 	oplot, lambda,sat3flux/norm3*mean_norm/mean_sat_flux, color=cgcolor('red'),linestyle=4,thick=2
 	oplot, lambda,sat4flux/norm4*mean_norm/mean_sat_flux, color=cgcolor('green'),linestyle=5,thick=2
-	legend,['mean','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/right,textcolor=cgcolor('black')
+	al_legend,['mean','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/right,textcolor=cgcolor('black')
 
 	window,21,xsize=700,ysize=400
 	device,decomposed=0
@@ -445,7 +448,7 @@ endfor
 	oploterror, lambda,sat3flux/norm3*mean_norm/mean_sat_flux, satflux_err_arr[2,*]/sat3flux, color=cgcolor('red'),linestyle=4,thick=2
 	oploterror, lambda,sat4flux/norm4*mean_norm/mean_sat_flux, satflux_err_arr[3,*]/sat4flux, color=cgcolor('green'),linestyle=5,thick=2
 
-	legend,['mean','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/left,textcolor=cgcolor('black')
+	al_legend,['mean','UL sat','LL sat','UR sat','LR sat'],color=[cgcolor('black'),cgcolor('blue'),cgcolor('teal'),cgcolor('red'),cgcolor('green')],linestyle=[0,2,3,4,5],box=0,/top,/left,textcolor=cgcolor('black')
 
 	;
 

@@ -42,7 +42,7 @@ This cryptic message means that you are trying to start the gpi-pipeline script 
 in your path. Perhaps you have it aliased instead, but that's not detected by the gpi-pipeline starter script. 
 You can either (1) change your ``$PATH`` to include the directory with idl, (2) put a symlink pointing to idl in some
 directory already in your path, or (3) edit your local copy of the gpi-pipeline script to explicitly set the full
-path to the idl executable.
+path to the idl executable. 
 
 If you are using the compiled IDL runtime version of the pipeline, note that a copy of the IDL runtime is included in
 the 'idl81/bin/' directory included with the pipeline. 
@@ -178,10 +178,16 @@ Some reduced calibration files are available from the Gemini `GPI Public Data <h
 There are also files available in the :ref:`tutorial <usage-quickstart>` data sets.
 
 
+The GPI pipeline crashes when trying to do the wavelength calibration with error:  error in starting GPI_LOAD_WAVELENGTH_CALIBRATION: calibration file  -1 not found.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+This most likely is due to missing calibration files. To check if the files are being correctly seen within the code, press the "Rescan Calib. DB" on the GPI GUI. This will scan all the calibration files.
+
+
 The satellite spots cannot be found in my coronagraphic data. What should I do?
 --------------------------------------------------------------------------------
 
-See `this discussion at the Gemini Data Reduction Forum <http://drforum.gemini.edu/topic/gpi-satellite-spot-not-found/>`_.
+See the `discussion at the Gemini Data Reduction Forum <http://drforum.gemini.edu/topic/gpi-satellite-spot-not-found/>`_.
 
 How do I de-rotate my data to have north up and east left?
 -------------------------------------------------------------------

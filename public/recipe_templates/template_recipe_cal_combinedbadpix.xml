@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<DRF ReductionType="Calibration" name='Combine Bad Pixel Maps' ShortName="combinebadpix">
-<dataset InputDir="${GPI_CALIBRATIONS_DIR}" OutputDir="${GPI_REDUCED_DATA_DIR}">
-   <fits FileName="" />
-</dataset>
-<module name="Generate Combined Bad Pixel Map" Save="1" gpitv="2" />
-</DRF>
