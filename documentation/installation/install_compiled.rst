@@ -69,10 +69,10 @@ Before you can start the pipeline, you will need to do some basic configuration 
 
 .. admonition:: Windows
  
-    .. image:: icon_windows2.png
+      .. image:: icon_windows2.png
 
-        You may need to add idl to your %PATH%, and/or run the gpi-setup-windows.bat script. 
-        ##FIXME## these instructions need to be updated. 
+   You may need to add idl to your %PATH%, and/or run the gpi-setup-windows.bat script. 
+   ##FIXME## These instructions probably need to be updated. 
 
 Starting the DRP with the IDL Runtime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
