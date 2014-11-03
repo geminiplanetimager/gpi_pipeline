@@ -177,13 +177,15 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 		!p.multi=[0,2,1]
 		elevs = findgen(90)
-		plot, sortedelev, sortedxshift, xtitle='Elevation [deg]', ytitle='X shift [pixel]', xrange=[-10,100], yrange=[-0.9, 0.1], psym=1, charsize=1.5
-		oplot, elevs, poly(elevs, shiftpolyx), /line
+		plot, sortedelev, sortedxshift, xtitle='Elevation [deg]', ytitle='X shift [pixel]', xrange=[-10,100], yrange=[-0.9, 0.1], $
+										psym=1, charsize=1.5,background=cgcolor('white'),color=cgcolor('black')
+		oplot, elevs, poly(elevs, shiftpolyx), /line,color=cgcolor('black')
 
-		plot, sortedelev, sortedyshift, xtitle='Elevation [deg]', ytitle='Y shift [pixel]', xrange=[-10,100], yrange=[-0.9, 0.1], psym=1, charsize=1.5
-		oplot, elevs, poly(elevs, shiftpolyy), /line
+		plot, sortedelev, sortedyshift, xtitle='Elevation [deg]', ytitle='Y shift [pixel]', xrange=[-10,100], yrange=[-0.9, 0.1], $
+										psym=1, charsize=1.5,background=cgcolor('white'),color=cgcolor('black')
+		oplot, elevs, poly(elevs, shiftpolyy), /line, color=cgcolor('black')
 
-		legend,/bottom,/right, ['Shifts in lookup table','Model'], color=[!p.color, !p.color, fsc_color('yellow')], line=[0,1,1], psym=[1,0,2], charsize=1.5
+		al_legend,/bottom,/right, ['Shifts in lookup table','Model'], color=[cgcolor('black'), cgcolor('black'), cgcolor('yellow')], line=[0,1,1], psym=[1,0,2], charsize=1.5, textcolor=cgcolor('black')
 
                 !p.multi = 0
 	endif
