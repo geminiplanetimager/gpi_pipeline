@@ -26,7 +26,7 @@ The distribution ZIP files for the GPI pipeline come in two flavors:
    These contain everything you will need to start the GPI pipeline on that OS.
 
 
-**Version 1.1.1** (2014 May 6): 
+**Version 1.2.1** (2014 Nov 3): 
  * `gpi_pipeline_1.2.0_compiled.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.0_compiled.zip>`_ -  GPI pipeline compiled code only
  * `gpi_pipeline_1.2.0_runtime_macosx.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.0_runtime_macosx.zip>`_ - GPI pipeline compiled code plus IDL runtime for Mac OS X
  * `gpi_pipeline_1.2.0_runtime_linux.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.0_runtime_linux.zip>`_ - GPI pipeline compiled code plus IDL runtime for Linux
@@ -59,9 +59,9 @@ Before you can start the pipeline, you will need to do some basic configuration 
 
    This will set up most of what's needed in the file .gpienv (in your home directory), and provide the copy of IDL in the directory expected by the pipeline, but the following changes are also needed.  Enter these lines into your copy of .gpienv ::
 
- export GPI_DRP_DIR="[Location of the pipeline]/gpi_pipeline_1.2.0_r3401"
-        export IDL_DIR="[Location of the pipeline]/gpi_pipeline_1.2.0_r3401/executables/idl81"
-        alias idl="[Location of the pipeline]/gpi_pipeline_1.2.0_r3401/executables/idl81/bin/idl"
+	export GPI_DRP_DIR="[Location of the pipeline]/gpi_pipeline_1.2.0_r3401"
+	export IDL_DIR="[Location of the pipeline]/gpi_pipeline_1.2.0_r3401/executables/idl81"
+	alias idl="[Location of the pipeline]/gpi_pipeline_1.2.0_r3401/executables/idl81/bin/idl"
 
    Remember to restart your terminal for these changes to go into effect.
 
