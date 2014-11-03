@@ -68,24 +68,25 @@ function gpi_flexure_model, flexuretable, elevation, wavecal_elevation=wavecal_e
 	if display ne -1 then begin
 		if display eq 0 then window,/free else select_window, display
 		!p.multi=[0,2,1]
-		charsize = 1.2
+		charsize = 1.5
 		elevs = findgen(90)
-		plot, sortedelev, sortedxshift, xtitle='Elevation [deg]', ytitle='X shift from Flexure [pixel]', xrange=[-10,100], yrange=[-0.9, 0.1], psym=1, charsize=charsize
-		oplot, elevs, poly(elevs, shiftpolyx), /line
-		oplot, [wavecal_elevation+1, wavecal_elevation+1], [wcshiftx, my_shiftx], psym=-2, color=fsc_color('yellow'), symsize=2
-		oplot, [elevation,elevation],[-1,1], color=fsc_color("blue"), linestyle=2
-		oplot, [wavecal_elevation,wavecal_elevation],[-1,1], color=fsc_color("red"), linestyle=2
-		xyouts, wavecal_elevation+5, my_shiftx+0.05, 'DX = '+sigfig(shiftx, 3), color=cgColor('yellow')
+		plot, sortedelev, sortedxshift, xtitle='Elevation [deg]', ytitle='X shift from Flexure [pixel]', xrange=[-10,100], yrange=[-0.9, 0.1], psym=1, charsize=charsize,background=cgcolor('white'),color=cgcolor('black')
+		oplot, elevs, poly(elevs, shiftpolyx), /line,color=cgcolor('black')
+		oplot, [wavecal_elevation+1, wavecal_elevation+1], [wcshiftx, my_shiftx], psym=-2, color=cgcolor('green'), symsize=2
+		oplot, [elevation,elevation],[-1,1], color=cgcolor("blue"), linestyle=2
+		oplot, [wavecal_elevation,wavecal_elevation],[-1,1], color=cgcolor("red"), linestyle=2
+		xyouts, wavecal_elevation-5, my_shiftx+0.05, 'DX = '+sigfig(shiftx, 3), color=cgColor('green'), charsize=charsize
 
-		plot, sortedelev, sortedyshift, xtitle='Elevation [deg]', ytitle='Y shift from Flexure [pixel]', xrange=[-10,100], yrange=[-0.9, 0.1], psym=1, charsize=charsize
-		oplot, elevs, poly(elevs, shiftpolyy), /line
-		oplot, [wavecal_elevation+1, wavecal_elevation+1], [wcshifty, my_shifty], psym=-2, color=fsc_color('yellow'), symsize=2
-		oplot, [elevation,elevation],[-0.6,1], color=fsc_color("blue"), linestyle=2
-  		oplot, [wavecal_elevation,wavecal_elevation],[-0.6,1], color=fsc_color("red"), linestyle=2
-		xyouts, wavecal_elevation+5, my_shifty+0.05, 'DY = '+sigfig(shifty, 3), color=cgColor('yellow')
+		plot, sortedelev, sortedyshift, xtitle='Elevation [deg]', ytitle='Y shift from Flexure [pixel]', xrange=[-10,100], yrange=[-0.9, 0.1], psym=1, charsize=charsize,background=cgcolor('white'),color=cgcolor('black')
 
-		legend,/bottom,/right, ['Shifts in lookup table','Model','Applied shift','Data Elevation','Wavecal Elevation'], $
-			color=[!p.color, !p.color, fsc_color('yellow'), fsc_color('blue'), fsc_color('red')], line=[0,1,1,2,2], psym=[1,0,2,0,0], charsize=charsize
+		oplot, elevs, poly(elevs, shiftpolyy), /line,color=cgcolor('black')
+		oplot, [wavecal_elevation+1, wavecal_elevation+1], [wcshifty, my_shifty], psym=-2, color=cgcolor('green'), symsize=2
+		oplot, [elevation,elevation],[-0.6,1], color=cgcolor("blue"), linestyle=2
+  		oplot, [wavecal_elevation,wavecal_elevation],[-0.6,1], color=cgcolor("red"), linestyle=2
+		xyouts, wavecal_elevation-5, my_shifty+0.05, 'DY = '+sigfig(shifty, 3), color=cgColor('green'), charsize=charsize
+
+		al_legend,/bottom,/right, ['Shifts in lookup table','Model','Applied shift','Data Elevation','Wavecal Elevation'], textcolor=cgcolor('black'),$
+			color=[cgcolor('black'), cgcolor('black'), cgcolor('green'), cgcolor('blue'), cgcolor('red')], line=[0,1,1,2,2], psym=[1,0,2,0,0], charsize=charsize
 		if obj_valid(backbone) then xyouts, 0.5, 0.96, /normal, "Flexure Shift Model for "+backbone->get_keyword('DATAFILE'), charsize=1.8, alignment=0.5
 		!p.multi = 0
 
