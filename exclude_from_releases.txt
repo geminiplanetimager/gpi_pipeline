@@ -1,4 +1,6 @@
 # filenames included here will not be included in public release branches
+# this file should also be excluded!
+exclude_from_releases.txt
 
 #datacube evaluation of extraction primitive used for testing
 primitives/gpi_datacube_extraction_evaluation_calculator.pro
@@ -43,3 +45,5 @@ utils/nmicrolens.pro
 primitives/gpi_klip_adi_plus_sdi.pro
 utils/klip_math.pro
 
+# TLOCI
+primitives/gpi_tloci.pro
