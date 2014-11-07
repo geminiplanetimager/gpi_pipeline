@@ -36,6 +36,7 @@
 ;   2011-07-30 MP: Updated for multi-extension FITS
 ;   2013-07-12 MP: Rename for consistency
 ;	2013-12-15 MP: Implemented SIGMACLIP, doc header updates. 
+;   2014-11-04 MP: Avoid trying to run parallelized sigmaclip if in IDL runtime.
 ;-
 function gpi_combine_2d_dark_images, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -82,7 +83,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 			combined_im=total(imtab,/DOUBLE,3) /((size(imtab))[3])
 		end
 		'SIGMACLIP': begin
-			combined_im = gpi_sigma_clip_image_stack( imtab, sigma=sigma_cut,/parallelize)
+			can_parallelize = ~ LMGR(/runtime)  ; cannot parallelize if you are in runtime compiled IDL
+			combined_im = gpi_sigma_clip_image_stack( imtab, sigma=sigma_cut,parallelize=can_parallelize)
 		end
 		else: begin
 			return, error('FAILURE ('+functionName+"): Invalid combination method '"+method+"' in call to Combine 2D Dark Frames.")
