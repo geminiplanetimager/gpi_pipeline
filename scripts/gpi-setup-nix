@@ -35,6 +35,7 @@ function promptUser	()
 }
 
 
+
 #Making some guesses of where the GPI directories should be.. should work for default setup from zip file
 #this script should be inside GPI Pipeline script folder. Find the location of the folder.
 SCRIPTDIR=$(dirname "$0")/
@@ -83,7 +84,8 @@ if [ ! IS_COMPILED ] ; then
 fi
 
 DATADIR="$BASEDIR/data"
-printf "\n Looking up default directory to set up a GPI Data directory. Please change this to a folder you intend in store GPI data in.\n\n"
+
+printf "\n Looking up default directory to set up a GPI Data directory. \n Please change this to a folder you intend in store GPI data in. This script \n will automatically create subdirectories for Raw data, Reduced data, log files, \n and so on. If you wish to adjust these paths later, you may do so by editing \n the \$HOME/.gpienv file. \n\n"
 promptUser "DATADIR"
 
 printf "\nGPI Pipeline directory will be $GPI_PIPELINE_DIR\n"
@@ -172,11 +174,23 @@ then
 	    printf "export IDL_PATH=\"$IDL_PATH_APPEND\"\n" >> "$GPIENV"
 	fi
 	#source into bashrc file if ncessary:
-	if !(grep -Fxq "source \"$GPIENV\"" "$HOME/.bashrc")
+	if !(grep -Fxq "source \$HOME/.gpienv" "$HOME/.bashrc")
 	then
-	        printf "Modifying $HOME/.bashrc to automatically run $GPIENV\n"
-		printf "\n# GPI Pipeline Environment Configuration\n" >> "$HOME/.bashrc"
-		printf "source \"$GPIENV\"\n" >> "$HOME/.bashrc"
+	    printf " The .gpienv file needs to be executed to set environment variables each\n time you start a new terminal. Would you like this setup script to\n modify your .bashrc file to automatically source .gpienv when you\n open a terminal?\n\n"
+	    while true; do
+		read -p "Should this script edit your .bashrc to source \$HOME/.gpienv? (y|n) " yn
+		case $yn in
+			[Yy]* ) 
+			    printf "Modifying $HOME/.bashrc to automatically run $GPIENV\n"
+			    printf "\n# GPI Pipeline Environment Configuration\n" >> "$HOME/.bashrc"
+			    printf "source \$HOME/.gpienv\n" >> "$HOME/.bashrc"
+			    break;;
+			[Nn]* ) 
+			    printf "Your .bashrc file will be left as-is. Please edit it manually to source .gpienv. \n"
+			    break;;
+			* ) printf "\nPlease answer yes or no.\n\n";;
+		esac
+	   done
 	fi
 	#reset shell with new environment, this sometimes doesn't work correctly..
 	#exec bash
@@ -186,7 +200,7 @@ then
 	#write GPI environment file
 	printf "\n\nWriting GPI Settings to $GPIENV\n\n"
 	printf "# Set up environment variables for the GPI IFS Software\n# csh Version\n# Source this file from your .cshrc file\n\n" > "$GPIENV" #erase any previous incarnation
-	printf "#----- Required paths -----------------\n# GPI_DATA_ROOT is a helper path only.\n# If desired you can set all paths independently\n# NOTE: do not put your queue and reduced directories on VOSpace\n" >> "$GPIENV"
+	printf "#----- Required paths -----------------\n# GPI_DATA_ROOT is a helper path only.\n# If desired you can set all paths independently\n" >> "$GPIENV"
 	if [ IS_COMPILED ] ; then 
 	    # figure out the version-number-dependent path for IDL
 	    IDL_DIR=$(echo "$GPI_PIPELINE_DIR"/executables/idl* )
@@ -204,11 +218,23 @@ then
 	    printf "setenv IDL_PATH \"$IDL_PATH_APPEND\"\n" >> "$GPIENV"
 	fi
 	#source into cshrc file if necessary
-	if !(grep -Fxq "source \"$GPIENV\"" "$HOME/.cshrc")
+	if !(grep -Fxq "source \$HOME/.gpienv" "$HOME/.cshrc")
 	then
-	        printf "Modifying $HOME/.bashrc to automatically run $GPIENV\n"
-		printf "\n# GPI Pipeline Environment Configuration\n" >> "$HOME/.cshrc"
-		printf "source \"$GPIENV\"\n" >> "$HOME/.cshrc"
+	    printf " The .gpienv file needs to be executed to set environment variables each\n time you start a new terminal. Would you like this setup script to\n modify your .cshrc file to automatically source .gpienv when you\n open a terminal?\n\n"
+	    while true; do
+		read -p "Should this script edit your .cshrc to source \$HOME/.gpienv? (y|n) " yn
+		case $yn in
+			[Yy]* ) 
+			    printf "Modifying $HOME/.cshrc to automatically run $GPIENV\n"
+			    printf "\n# GPI Pipeline Environment Configuration\n" >> "$HOME/.cshrc"
+			    printf "source \$HOME/.gpienv\n" >> "$HOME/.cshrc"
+			    break;;
+			[Nn]* ) 
+			    printf "Your .cshrc file will be left as-is. Please edit it manually to source .gpienv. \n"
+			    break;;
+			* ) printf "\nPlease answer yes or no.\n\n";;
+		esac
+	   done
 	fi
 	#reset shell with new environment, may not work correctly sometimes..
 	#printf "\nInstallation Complete!\n"

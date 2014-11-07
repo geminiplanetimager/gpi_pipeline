@@ -25,13 +25,12 @@ The distribution ZIP files for the GPI pipeline come in two flavors:
  * Platform specific ZIP files that contain the compiled pipeline code *plus* the IDL runtime virtual machine for a given operating system.
    These contain everything you will need to start the GPI pipeline on that OS.
 
-
 **Version 1.2.1** (2014 Nov 3): 
- * `gpi_pipeline_1.2.0_compiled.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.0_compiled.zip>`_ -  GPI pipeline compiled code only
- * `gpi_pipeline_1.2.0_runtime_macosx.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.0_runtime_macosx.zip>`_ - GPI pipeline compiled code plus IDL runtime for Mac OS X
- * `gpi_pipeline_1.2.0_runtime_linux.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.0_runtime_linux.zip>`_ - GPI pipeline compiled code plus IDL runtime for Linux
- * `gpi_pipeline_1.2.0_runtime_windows.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.0_runtime_windows.zip>`_ - GPI pipeline compiled code plus IDL runtime for Windows
- * `gpi_pipeline_1.2.0_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.0_source.zip>`_ -  GPI pipeline source code (available for reference)
+ * `gpi_pipeline_1.2.1_compiled.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.1_compiled.zip>`_ -  GPI pipeline compiled code only
+ * `gpi_pipeline_1.2.1_runtime_macosx.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.1_runtime_macosx.zip>`_ - GPI pipeline compiled code plus IDL runtime for Mac OS X
+ * `gpi_pipeline_1.2.1_runtime_linux.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.1_runtime_linux.zip>`_ - GPI pipeline compiled code plus IDL runtime for Linux
+ * `gpi_pipeline_1.2.1_runtime_windows.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.1_runtime_windows.zip>`_ - GPI pipeline compiled code plus IDL runtime for Windows
+ * `gpi_pipeline_1.2.1_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.1_source.zip>`_ -  GPI pipeline source code (available for reference)
 
 
 
@@ -43,26 +42,19 @@ Obtain the desired zip file and uncompress it to a directory of your choosing. R
 Initial Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Before you can start the pipeline, you will need to do some basic configuration to set up your environment. This is an abbreviated version of the full set of configuration options described in :ref:`configuring`.
+Before you can start the pipeline, you will need to do some basic configuration to set up your environment. There is a script to automate this process. The following is an abbreviated version of the full set of configuration options described in :ref:`configuring`.
 
 .. admonition:: Mac OS X, Linux
 
       .. image:: icon_mac2.png
       .. image:: icon_linux2.png
 
-   After downloading and unzipping, set up your shell for the pipeline (update the pipeline version number, 1.2.0_r3401, with the version you downloaded) ::
+   After downloading and unzipping, set up your shell for the pipeline. To do so, enter the following command (in which you should update the pipeline version number, 1.2.0_r3401, with the version you downloaded, and replace "[Location of the pipeline]" with the path to where-ever you unzipped that file.) ::
 
         unix% cd [Location of the pipeline]/gpi_pipeline_1.2.0_r3401/scripts/
 	unix% ./gpi_setup_nix
-	unix% cd ../executables/
-	unix% cp -r idl83 idl81
 
-   This will set up most of what's needed in the file .gpienv (in your home directory), and provide the copy of IDL in the directory expected by the pipeline, but the following changes are also needed.  Enter these lines into your copy of .gpienv ::
-
-	export GPI_DRP_DIR="[Location of the pipeline]/gpi_pipeline_1.2.0_r3401"
-	export IDL_DIR="[Location of the pipeline]/gpi_pipeline_1.2.0_r3401/executables/idl81"
-	alias idl="[Location of the pipeline]/gpi_pipeline_1.2.0_r3401/executables/idl81/bin/idl"
-
+   This will set up most of what's needed in the file ``.gpienv`` (in your home directory). As of version 1.2.1, this script should properly set paths for the runtime copy of IDL included with the pipeline. 
    Remember to restart your terminal for these changes to go into effect.
 
    See :ref:`configuring` if you need more information on how to set an environment variable. 
@@ -72,7 +64,7 @@ Before you can start the pipeline, you will need to do some basic configuration 
       .. image:: icon_windows2.png
 
    You may need to add idl to your %PATH%, and/or run the gpi-setup-windows.bat script. 
-   ##FIXME## These instructions probably need to be updated. 
+   ##FIXME## Windows install script for compiled version probably needs to be updated. 
 
 Starting the DRP with the IDL Runtime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -85,37 +77,16 @@ The zip file contains, among other things, a directory called ``executables`` wh
 
 How to start the compiled code varies by operating system.
 
-.. admonition:: Mac OS X
+.. admonition:: Mac OS X, Linux
 
       .. image:: icon_mac2.png
-
-   On Mac OS X, the ``executables`` directory contains three Applescript files corresponding to the above named .sav files. 
-   Double click any of these to start that component of the pipeline.  You can also start compiled code
-   from the command line ::
-      
-        unix% idl -rt=/path/to/executables/gpi_launch_pipeline.sav
-
-   To conveniently start both required IDL sessions at once, there is a shell script ``scripts/gpi-pipeline`` which 
-   launches two xterms and starts the pipeline and GUIs sessions in them.
-
-   You may need to set the environment variable IDL_DIR to the ``executables\idl##`` directory.
-
-
-.. admonition:: Linux
-
       .. image:: icon_linux2.png
 
-   There are scripts inside the ``$GPI_DRP_DIR/executables`` directory that you can use to start the pipeline. The following two commands should start the pipeline IDL sessions::
-
-        unix%  $GPI_DRP_DIR/executables/gpi_launch_pipeline
-        unix%  $GPI_DRP_DIR/executables/gpi_launch_guis
-
-   You can also start IDL directly from the command line and supply one of the sav files::
+   On Unix-like operating systems, you can start the compiled code
+   from the command line. The following commands assume that the environment variables ``$IDL_DIR`` and ``$GPI_DRP_DIR`` have been set, either by the ``gpi-setup-nix`` script or :ref:`manually <configuring>`::
       
-        unix% idl -rt=/path/to/executables/gpi_launch_pipeline.sav
-        unix% idl -rt=/path/to/executables/gpi_launch_guis.sav
-
-   You may need to set the environment variable IDL_DIR to the ``executables\idl##`` directory for this to work.
+        unix% $IDL_DIR/bin/idl -rt=$GPI_DRP_DIR/executables/gpi_launch_pipeline.sav
+        unix% $IDL_DIR/bin/idl -rt=$GPI_DRP_DIR/executables/gpi_launch_guis.sav
 
    To conveniently start both required IDL sessions at once, there is a shell script ``scripts/gpi-pipeline`` which 
    launches two xterms and starts the pipeline and GUIs sessions in them. If you encounter problems when using this, 
@@ -159,6 +130,15 @@ Proceed now to :ref:`configuring`.
 
 Download Links for Prior Versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Version 1.2.0** (2014 Nov 3): 
+ * `gpi_pipeline_1.2.0_compiled.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.0_compiled.zip>`_ -  GPI pipeline compiled code only
+ * `gpi_pipeline_1.2.0_runtime_macosx.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.0_runtime_macosx.zip>`_ - GPI pipeline compiled code plus IDL runtime for Mac OS X
+ * `gpi_pipeline_1.2.0_runtime_linux.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.0_runtime_linux.zip>`_ - GPI pipeline compiled code plus IDL runtime for Linux
+ * `gpi_pipeline_1.2.0_runtime_windows.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.0_runtime_windows.zip>`_ - GPI pipeline compiled code plus IDL runtime for Windows
+ * `gpi_pipeline_1.2.0_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.0_source.zip>`_ -  GPI pipeline source code (available for reference)
+
+
 
 **Version 1.1** (2014 May 1): 
  * `gpi_pipeline_1.1_compiled.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.1_compiled.zip>`_ -  GPI pipeline compiled code only
