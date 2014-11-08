@@ -20,9 +20,10 @@
 ; PIPELINE ARGUMENT: Name="y_off" Type="float" Default="0" Range="[-5,5]" Desc="initial guess for large offsets"
 ; PIPELINE ARGUMENT: Name="badpix" Type="float" Default="1" Range="[0,1]" Desc="Weight by bad pixel map?"
 ; PIPELINE ARGUMENT: Name="iterate" Type="int" Default="1" Range="[0,1]" Desc="Take the first result? Or iterate"
+; PIPELINE ARGUMENT: Name="max_iter" Type='int' Default="15" Range="[1,100]" Desc="The maximum number of iterations"
 ;
 ; where in the order of the primitives should this go by default?
-; PIPELINE ORDER: 5.0
+; PIPELINE ORDER: 1.34
 ;
 ; pick one of the following options for the primitive type:
 ; PIPELINE NEWTYPE: PolarimetricScience
@@ -56,6 +57,7 @@ function gpi_img_xcorr_polcal, DataSet, Modules, Backbone
   if tag_exist(Modules[thisModuleIndex],"x_off") then x_off=float(Modules[thisModuleIndex].x_off) else x_off=0
   if tag_exist(Modules[thisModuleIndex],"y_off") then y_off=float(Modules[thisModuleIndex].y_off) else y_off=0
   if tag_exist(Modules[thisModuleIndex],"iterate") then iterate=float(Modules[thisModuleIndex].iterate) else iterate=0
+  if tag_exist(Modules[thisModuleIndex],"max_iter") then max_iter=float(Modules[thisModuleIndex].max_iter) else max_iter=15
   
   ;Get the current image
   img = *dataset.currframe
@@ -163,14 +165,24 @@ function gpi_img_xcorr_polcal, DataSet, Modules, Backbone
     
   endfor
   
-  ;atv, img_reform, /block
+;  atv, img_reform, /block
   
   ;Some matrix and index setup
   model_reform=fltarr(xwidth*nlens,ywidth)
   tmpbox=fltarr(xwidth,ywidth)
   indices, tmpbox, xx, yy
   
+  nit=0 ; Number of iterations
+  
   while (abs(ysft) gt (resolution/2)) or (abs(xsft) gt (resolution/2)) do begin
+  
+    if nit gt max_iter then begin
+       backbone->Log, "Flexure cross correlation failed after "+string(nit)+" iterations. Resetting offset to 0"
+       backbone->Log, "Try setting the inital guess parameters x_off and y_ff"
+       xoff=0
+       yoff=0
+       break
+    endif
   
     model_reform *= 0
     
@@ -235,8 +247,9 @@ function gpi_img_xcorr_polcal, DataSet, Modules, Backbone
     ;cgColorbar,/fit, /vertical, position=[0.10, 0.90, 0.90, 0.91]
     
     ;    stop
-    
+    nit++
     if ~iterate then break
+    
   endwhile
   
   ;atv, dummy,/block
