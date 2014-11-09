@@ -7,6 +7,14 @@
 ;   TODO - should we revise this to call the same contrast measurement backend
 ;   as GPItv? 
 ;
+;   By default, the sat spots information are saved to the FITS header keywords
+;   of the current file in memory, and will only be saved if you subsequently
+;   save that datacube (i.e. using 'save=1' on this primitive or a subsequent
+;   one). The 'update_prev_fits_header' option will, in addition, also let you
+;   write the same keyword information to the header of the most recently saved
+;   file. This is useful if you have just already saved the datacube, and you
+;   only now want to update this metadata. 
+;
 ; INPUTS: Spectral mode datacube
 ; OUTPUTS: 	Contrast datacube, plot of contrast curve
 ;
@@ -14,6 +22,7 @@
 ; PIPELINE COMMENT: Measure the contrast. Save as PNG or FITS table.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="Display" Type="int" Range="[-1,100]" Default="-1" Desc="-1 = No display; 0 = New (unused) window; else = Window number to display in."
+; PIPELINE ARGUMENT: Name="update_prev_fits_header" Type="int" Range="[0,1]" Default="0" Desc="Update FITS metadata in the most recently saved datacube?"
 ; PIPELINE ARGUMENT: Name="SaveProfile" Type="string" Default="" Desc="Save radial profile to filename as FITS (blank for no save, dir name for default naming, AUTO for auto full path)"
 ; PIPELINE ARGUMENT: Name="SavePNG" Type="string" Default="" Desc="Save plot to filename as PNG (blank for no save, dir name for default naming, AUTO for auto full path) "
 ; PIPELINE ARGUMENT: Name="contrsigma" Type="float" Range="[0.,20.]" Default="5." Desc="Contrast sigma limit"
@@ -104,6 +113,7 @@ contr_yaxis_type = fix(Modules[thisModuleIndex].contr_yaxis_type)
 contr_yaxis_min=float(Modules[thisModuleIndex].contr_yaxis_min)
 contr_yaxis_max=float(Modules[thisModuleIndex].contr_yaxis_max)
 yscale = fix(Modules[thisModuleIndex].yscale)
+update_prev_fits_header = fix(Modules[thisModuleIndex].update_prev_fits_header)
 
 ;;we're going to do the copsf for all the slices
 copsf = cube
@@ -130,6 +140,7 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
    contrprof = ptrarr(n_elements(inds),/alloc)
    asecs = ptrarr(n_elements(inds),/alloc)
 
+   ;----- actually measure the contrast here -----
    for j = 0, n_elements(inds)-1 do begin
       ;; get the radial profile desired
       case contr_yunit of
@@ -146,7 +157,7 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
       outval *= sclunit
       *contrprof[j] = outval
       if contr_xunit eq 1 then $
-         asec *= 1d/3600d*!dpi/180d*gpi_get_constant('primary_diam',default=7.7701d0)/(cwv[inds[j]]*1d-6)
+         asec *= 1d/3600d*!dpi/180d*gpi_get_constant('primary_diam',default=7.7701d0)/(cwv[inds[j]]*1d-6) ; convert to lambda/D
       *asecs[j] = asec
 
       xrange[0] = xrange[0] < min(asec,/nan)
@@ -155,7 +166,50 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
       yrange[1] = yrange[1] > max(outval,/nan)
    endfor
 
-   ;;plot
+   ;;------ assess contrast at fiducial radii ------
+
+   fiducial_radii = [0.25, 0.4, 0.8]
+   fiducial_contrasts = fltarr(n_elements(fiducial_radii))
+   fiducial_keywords = ['CONTR025', 'CONTR040','CONTR080']
+
+
+   for r =0,2 do begin
+		radius = fiducial_radii[r]
+		if contr_xunit eq 1 then $
+			radius *= 1d/3600d*!dpi/180d*gpi_get_constant('primary_diam',default=7.7701d0)/(cwv[inds[j]]*1d-6) ; convert to lambda/D
+		mindiff = min(abs(asec-radius), /nan, closest_radius_subscript)
+
+		if slice ne -1 then begin
+		   ; we only measured contrast for one wavelength slice so we just use that
+		   contrast_at_radius = (*contrprof[0])[closest_radius_subscript]
+		endif else begin
+			; if we measured contrast on multiple wavelength slices, use the
+			; median contrast over the central 75% of the bandpass
+			middle_range = [round(0.25*n_elements(inds)), round(0.75*n_elements(inds))]
+			pts = fltarr(middle_range[1]-middle_range[0]+1)
+			for ri=middle_range[0], middle_range[1] do pts[ri-middle_range[0]] = (*contrprof[ri])[closest_radius_subscript]
+			contrast_at_radius = mean(pts)
+		endelse
+		fiducial_contrasts[r] = contrast_at_radius
+		backbone->set_keyword,fiducial_keywords[r], fiducial_contrasts[r],$
+                      " Estimated contrast at "+sigfig(radius,2)+"'' from sat spots", ext_num=0
+
+   endfor
+   if keyword_set(update_prev_fits_header) then begin
+		; update the same fits keyword information into a prior saved version of
+		; this datacube. 
+		; this is somewhat inelegant code to repeat all these keywords here, but
+		; it's more efficient in execution time than trying to integrate this header
+		; update into backbone->set_keyword since that would unnecessarily read and
+		; write the file from disk each time, which is no good. -mp
+		prevheader = gpi_get_prev_saved_header()
+		for r =0,2 do sxaddpar, prevheader, fiducial_keywords[r], fiducial_contrasts[r],$
+			                      " estimated contrast at "+sigfig(fiducial_radii[r],2)+"'' from sat spots"
+		gpi_update_prev_saved_header, prevheader
+	endif
+
+
+   ;;------ plot ------
    if (wind ne -1) || (pngsave ne '') then begin
       if yscale eq 1 then yrange = [contr_yaxis_min, contr_yaxis_max]
       ;;Tick labels don't appear if yrange less than an order
@@ -192,11 +246,19 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
       endelse
       plot,[0],[0],ylog=contr_yaxis_type,xrange=xrange,yrange=yrange,/xstyle,/ystyle,$
         xtitle=xtitle,ytitle=ytitle,/nodata, charsize=1.2,background=cgcolor('white'),color = cgcolor('black'),yticks=yticks,ytickv=ytickv
+
+
       
       for j = 0, n_elements(inds)-1 do begin
          oplot,*asecs[j],(*contrprof[j])[*,0],color=color[j],linestyle=0
          if doouter then oplot,*asecs[j],(*contrprof[j])[*,1], color=color[j],linestyle=2
       endfor
+
+
+	  for r=0,2 do begin
+		  xyouts, 0.6, 0.9-0.05*r, "Contrast = "+sigfig(fiducial_contrasts[r],2,/sci)+" at "+sigfig(fiducial_radii[r],2)+" arcsec",$
+			  /norm, charsize=1.5, color=cgcolor('red')
+	  endfor
       
       if pngsave ne '' then begin
          ;;if user set AUTO then synthesize entire path
