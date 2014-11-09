@@ -97,7 +97,6 @@ backbone->set_keyword,'SATSWARN',warnhex,'HEX->binary mask for slices with varyi
 
 
 	update_prev_fits_header = fix(Modules[thisModuleIndex].update_prev_fits_header)
-	stop
     if keyword_set(update_prev_fits_header) then begin
 		; update the same fits keyword information into a prior saved version of
 		; this datacube. 
