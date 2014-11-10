@@ -5856,6 +5856,8 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
      self->high_pass_filter,/forcestack
   endif 
   self->collapsecube
+  tmp = widget_info((*self.state).collapse_button,/droplist_select)
+  if tmp ne (*self.state).collapse then widget_control, (*self.state).collapse_button,set_droplist_select = (*self.state).collapse
   self->setcubeslicelabel
   
   ;; if asked, autoscale now
