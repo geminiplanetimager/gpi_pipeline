@@ -1,8 +1,0 @@
-GPI_RAW_DATA_DIR Z:\2011-10d\GPIdatabase\USC\
-GPI_REDUCED_DATA_DIR Z:\2011-10d\GPIdatabase\USCreduced\
-GPI_DRP_DIR Z:\testcomp\pipeline\
-GPI_DRP_CONFIG_DIR Z:\testcomp\pipeline\config\
-GPI_DRP_TEMPLATES_DIR Z:\testcomp\pipeline\recipe_templates\
-GPI_DRP_LOG_DIR Z:\testcomp\pipeline\log\
-GPI_CALIBRATIONS_DIR Z:\2011-10d\GPIdatabase\USCcalib\
-GPI_DRP_QUEUE_DIR Z:\testcomp\pipeline\drfqueue\

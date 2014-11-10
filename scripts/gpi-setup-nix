@@ -7,8 +7,13 @@
 # History
 # 12/30/13 - Created (jasonwang)
 
-#Check to make sure IDL is in the path first. Make the user set up IDL before running this.
-command -v idl >/dev/null && printf "\nIDL Found In \$PATH\n" || { printf "\nWARNING: IDL is not in \$PATH. Please make sure IDL is installed and not aliased. An aliased IDL may not work with the gpi-pipeline shortcut, but you can still launch the pipeline manually.\n\n"; }
+printf "\n"
+printf "**************************************************************************************\n"
+printf "******* GPI Data Pipeline Environment Setup Script for Unix (Mac OS X) & Linux *******\n"
+printf "**************************************************************************************\n"
+
+
+
 
 #Function for verifying filepaths are correct. Will only update filepath if user supplies a different one.
 #Requires one input, the name of the envrionment variable that you want to check.
@@ -20,7 +25,7 @@ function promptUser	()
 	while true; do
 		#check current state of the variable
 		eval currpath="\$$var"
-		read -p "For $var, is $currpath the correct path (y|n)?" yn
+		read -p "For $var, is '$currpath' the correct path (y|n)? " yn
 		case $yn in
 			[Yy]* ) break;;
 			[Nn]* ) read -p "Please enter a new path for $var (absolute path please):" "$var";;
@@ -28,6 +33,8 @@ function promptUser	()
 		esac
 	done
 }
+
+
 
 #Making some guesses of where the GPI directories should be.. should work for default setup from zip file
 #this script should be inside GPI Pipeline script folder. Find the location of the folder.
@@ -39,32 +46,59 @@ cd "$CURRDIR"
 #$SCRIPTDIR=$(readlink -f "$SCRIPTDIR") #change to absolute path (probably unncessary)
 #echo "DEBUG: current directory is $SCRIPTDIR"
 
-printf "\n\nWe will need to set up some directories. Please provide the correct directory (absolute paths!) for each of the following environment variables. This program will attempt to guess a location that may or may not be right. PLEASE CHECK\n\n"
+
+GPI_PIPELINE_DIR=$(dirname "$SCRIPTDIR")
+
+# Are we installing the compiled version or the source code version?
+if [ -d "$GPI_PIPELINE_DIR/executables" ]
+then
+    IS_COMPILED=1
+    printf " This appears to be an installation of the compiled version.\n"
+else
+    IS_COMPILED=0
+    printf " This appears to be an installation from source code.\n"
+fi
+
+if [ ! $IS_COMPILED ] 
+then 
+#Check to make sure IDL is in the path first. Make the user set up IDL before running this.
+command -v idl >/dev/null && printf "\nIDL Found In \$PATH\n" || { printf "\nWARNING: IDL is not in \$PATH. Please make sure IDL is installed\n and not aliased. An aliased IDL may not work with the gpi-pipeline\n shortcut, but you can still launch the pipeline manually. \n (If you are installing the compiled runtime version, this warning\n is expected and\n may be ignored.)\n\n"; }
+fi
+
+
+
+printf "\n We will need to set up some directories. Please provide the\n correct directory (absolute paths!) for each of the following\n environment variables. This program will attempt to guess a location\n that may or may not be right. PLEASE CHECK AND ADJUST THESE AS DESIRED\n FOR YOUR COMPUTER.\n\n"
 
 #Get the GPI Pipeline base directory and begin prompting using to confirm/change environment variables
-printf "\nFinding the location of the GPI pipeline directory. This directory should contain folders such as gpitv, primitives, scripts, untils among others.\n\n"
-PIPELINEDIR=$(dirname "$SCRIPTDIR")
-#Check with user to ensure correctly directory
-promptUser "PIPELINEDIR"
+printf " Finding the location of the GPI pipeline directory. This should be the\n top-level directory of the downloaded and unzipped pipeline, containing\n contain folders such as 'scripts', 'config', & 'recipe_remplates'\n among others.\n\n"
+#Check with user to ensure correct directory
+promptUser "GPI_PIPELINE_DIR"
 
-BASEDIR="$(dirname $PIPELINEDIR)" #hopefully where both pipeline and external are
-printf "\nFinding the location of the GPI external libraries directory. This directory should contain gpilib_deps and pipeline_deps.\n\n"
-EXTERNDIR="$BASEDIR/external"
-promptUser "EXTERNDIR"
+
+BASEDIR="$(dirname $GPI_PIPELINE_DIR)" #hopefully where both pipeline and external are
+
+if [ ! IS_COMPILED ] ; then
+    printf "\nFinding the location of the GPI external libraries directory. This directory should contain gpilib_deps and pipeline_deps.\n\n"
+    EXTERNDIR="$BASEDIR/external"
+    promptUser "EXTERNDIR"
+fi
 
 DATADIR="$BASEDIR/data"
-printf "\nLooking up default directory to set up a GPI Data directory. Please change this to a folder you intend in store GPI data in.\n\n"
+
+printf "\n Looking up default directory to set up a GPI Data directory. \n Please change this to a folder you intend in store GPI data in. This script \n will automatically create subdirectories for Raw data, Reduced data, log files, \n and so on. If you wish to adjust these paths later, you may do so by editing \n the \$HOME/.gpienv file. \n\n"
 promptUser "DATADIR"
 
-printf "\n\nGPI Pipeline directory will be $PIPELINEDIR\n"
-printf "GPI External Libraries directory will be $EXTERNDIR\n"
-printf "GPI Data directory will be $DATADIR\n\n"
+printf "\nGPI Pipeline directory will be $GPI_PIPELINE_DIR\n"
+if [ ! IS_COMPILED ] ; then 
+    printf "GPI External Libraries directory will be $EXTERNDIR\n"
+fi
+printf "GPI Data directory will be $DATADIR\n"
 
 #location of the environment settings file we will create
 GPIENV="$HOME/.gpienv"
 printf "Creating GPI configuration file in $HOME/.gpienv\n"
 
-printf "\nSetting up folders in your GPI Data Directory if necessary\n\n"
+printf "Setting up folders inside your GPI Data Directory (if necessary)...\n"
 # Create Data directories if they don't already exist
 if [ ! -d "$DATADIR" ]
 then
@@ -102,36 +136,61 @@ then
 	mkdir "$DATADIR/Raw"
 fi
 
-#append to IDL_PATH varabile if it exists, otherwise create the IDL PATH variable
-if [ -z "$IDL_PATH" ];
+if [ ! IS_COMPILED ]
 then
-	#if it doesn't exist, make it with the standard idl libraries appended
-	IDL_PATH_APPEND="+$PIPELINEDIR/:+$EXTERNDIR/:<IDL_DEFAULT>"
-else
-	#prepend GPI pipeline to IDL Path
-	IDL_PATH_APPEND="+$PIPELINEDIR/:+$EXTERNDIR/:\${IDL_PATH}"
+    #append to IDL_PATH varabile if it exists, otherwise create the IDL PATH variable
+    if [ -z "$IDL_PATH" ];
+    then
+	    #if it doesn't exist, make it with the standard idl libraries appended
+	    IDL_PATH_APPEND="+$GPI_PIPELINE_DIR/:+$EXTERNDIR/:<IDL_DEFAULT>"
+    else
+	    #prepend GPI pipeline to IDL Path
+	    IDL_PATH_APPEND="+$GPI_PIPELINE_DIR/:+$EXTERNDIR/:\${IDL_PATH}"
+    fi
 fi
-
 
 #Write configuration files depending on the shell
 if [ "$SHELL" == "/bin/bash" ];
 then
 	#write GPI environment file
-	printf "\n\nWriting GPI Settings to $GPIENV\n\n"
+	printf "\nWriting GPI Settings to $GPIENV\n\n"
 	printf "# Set up environment variables for the GPI IFS Software\n# Bash Version\n# Source this file from your .bashrc file\n\n" > "$GPIENV" #erase any previous incarnation
-	printf "#----- Required paths -----------------\n# GPI_DATA_ROOT is a helper path only.\n# If desired you can set all paths independently\n# NOTE: do not put your queue and reduced directories on VOSpace\n" >> "$GPIENV"
-	printf "export GPI_DATA_ROOT=\"$DATADIR/\"\n" >> "$GPIENV"
+	printf "#----- Required paths -----------------\n# GPI_DATA_ROOT is a helper path only.\n# If desired you can set all paths independently\n" >> "$GPIENV"
+	if [ IS_COMPILED ] ; then 
+
+	    # figure out the version-number-dependent path for IDL
+	    IDL_DIR="$GPI_PIPELINE_DIR/executables/idl*"
+	    printf "IDL_DIR: $IDL_DIR\n"
+	    printf "export IDL_DIR=\"$GPI_PIPELINE_DIR/executables/idl*\"\n" >> "$GPIENV"
+	    printf "export GPI_DRP_DIR=\"$GPI_PIPELINE_DIR/\"\n\n" >> "$GPIENV"
+	fi
+	printf "export GPI_DATA_ROOT=\"$DATADIR/\"\n" >> "$GPIENV" 
 	printf "export GPI_DRP_QUEUE_DIR=\"\${GPI_DATA_ROOT}queue/\"\n" >> "$GPIENV"
 	printf "export GPI_RAW_DATA_DIR=\"\${GPI_DATA_ROOT}Raw/\"\n" >> "$GPIENV"
 	printf "export GPI_REDUCED_DATA_DIR=\"\${GPI_DATA_ROOT}Reduced/\"\n" >> "$GPIENV"
 	printf "\n#----- \$PATH and \$IDL_PATH Configuration ---------------\n" >> "$GPIENV"
 	printf "export PATH=\"\${PATH}:$SCRIPTDIR/\"\n" >> "$GPIENV"
-	printf "export IDL_PATH=\"$IDL_PATH_APPEND\"\n" >> "$GPIENV"
+	if [ ! IS_COMPILED ]; then 
+	    printf "export IDL_PATH=\"$IDL_PATH_APPEND\"\n" >> "$GPIENV"
+	fi
 	#source into bashrc file if ncessary:
-	if !(grep -Fxq "source \"$GPIENV\"" "$HOME/.bashrc")
+	if !(grep -Fxq "source \$HOME/.gpienv" "$HOME/.bashrc")
 	then
-		printf "\n# GPI Pipeline Environment Configuration\n" >> "$HOME/.bashrc"
-		printf "source \"$GPIENV\"\n" >> "$HOME/.bashrc"
+	    printf " The .gpienv file needs to be executed to set environment variables each\n time you start a new terminal. Would you like this setup script to\n modify your .bashrc file to automatically source .gpienv when you\n open a terminal?\n\n"
+	    while true; do
+		read -p "Should this script edit your .bashrc to source \$HOME/.gpienv? (y|n) " yn
+		case $yn in
+			[Yy]* ) 
+			    printf "Modifying $HOME/.bashrc to automatically run $GPIENV\n"
+			    printf "\n# GPI Pipeline Environment Configuration\n" >> "$HOME/.bashrc"
+			    printf "source \$HOME/.gpienv\n" >> "$HOME/.bashrc"
+			    break;;
+			[Nn]* ) 
+			    printf "Your .bashrc file will be left as-is. Please edit it manually to source .gpienv. \n"
+			    break;;
+			* ) printf "\nPlease answer yes or no.\n\n";;
+		esac
+	   done
 	fi
 	#reset shell with new environment, this sometimes doesn't work correctly..
 	#exec bash
@@ -141,19 +200,41 @@ then
 	#write GPI environment file
 	printf "\n\nWriting GPI Settings to $GPIENV\n\n"
 	printf "# Set up environment variables for the GPI IFS Software\n# csh Version\n# Source this file from your .cshrc file\n\n" > "$GPIENV" #erase any previous incarnation
-	printf "#----- Required paths -----------------\n# GPI_DATA_ROOT is a helper path only.\n# If desired you can set all paths independently\n# NOTE: do not put your queue and reduced directories on VOSpace\n" >> "$GPIENV"
+	printf "#----- Required paths -----------------\n# GPI_DATA_ROOT is a helper path only.\n# If desired you can set all paths independently\n" >> "$GPIENV"
+	if [ IS_COMPILED ] ; then 
+	    # figure out the version-number-dependent path for IDL
+	    IDL_DIR=$(echo "$GPI_PIPELINE_DIR"/executables/idl* )
+
+	    printf "setenv IDL_DIR \"$IDL_DIR\"\n" >> "$GPIENV"
+	    printf "setenv GPI_DRP_DIR \"$GPI_PIPELINE_DIR/\"\n\n" >> "$GPIENV"
+	fi
 	printf "setenv GPI_DATA_ROOT \"$DATADIR/\"\n" >> "$GPIENV"
 	printf "setenv GPI_DRP_QUEUE_DIR \"\${GPI_DATA_ROOT}queue/\"\n" >> "$GPIENV"
 	printf "setenv GPI_RAW_DATA_DIR \"\${GPI_DATA_ROOT}Raw/\"\n" >> "$GPIENV"
 	printf "setenv GPI_REDUCED_DATA_DIR \"\${GPI_DATA_ROOT}Reduced/\"\n" >> "$GPIENV"
 	printf "\n#----- \$PATH and \$IDL_PATH Configuration ---------------\n" >> "$GPIENV"
 	printf "setenv PATH \"\${PATH}:$SCRIPTDIR/\"\n" >> "$GPIENV"
-	printf "setenv IDL_PATH \"$IDL_PATH_APPEND\"\n" >> "$GPIENV"
+	if [ ! IS_COMPILED ]; then 
+	    printf "setenv IDL_PATH \"$IDL_PATH_APPEND\"\n" >> "$GPIENV"
+	fi
 	#source into cshrc file if necessary
-	if !(grep -Fxq "source \"$GPIENV\"" "$HOME/.cshrc")
+	if !(grep -Fxq "source \$HOME/.gpienv" "$HOME/.cshrc")
 	then
-		printf "\n# GPI Pipeline Environment Configuration\n" >> "$HOME/.cshrc"
-		printf "source \"$GPIENV\"\n" >> "$HOME/.cshrc"
+	    printf " The .gpienv file needs to be executed to set environment variables each\n time you start a new terminal. Would you like this setup script to\n modify your .cshrc file to automatically source .gpienv when you\n open a terminal?\n\n"
+	    while true; do
+		read -p "Should this script edit your .cshrc to source \$HOME/.gpienv? (y|n) " yn
+		case $yn in
+			[Yy]* ) 
+			    printf "Modifying $HOME/.cshrc to automatically run $GPIENV\n"
+			    printf "\n# GPI Pipeline Environment Configuration\n" >> "$HOME/.cshrc"
+			    printf "source \$HOME/.gpienv\n" >> "$HOME/.cshrc"
+			    break;;
+			[Nn]* ) 
+			    printf "Your .cshrc file will be left as-is. Please edit it manually to source .gpienv. \n"
+			    break;;
+			* ) printf "\nPlease answer yes or no.\n\n";;
+		esac
+	   done
 	fi
 	#reset shell with new environment, may not work correctly sometimes..
 	#printf "\nInstallation Complete!\n"
@@ -165,4 +246,4 @@ then
 	#fi
 fi
 
-printf "\nInstallation Complete! You will need to restart your terminal to run gpi-pipeline.\n"
+printf "\n*******  Installation Complete!    ******\n You will need to restart your terminal to run gpi-pipeline.\n\n"

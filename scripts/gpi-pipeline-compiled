@@ -17,10 +17,10 @@ endif
 # Colors and sizes of xterms are purely cosmetic, change the below as you desire.
 
 # start the GUIs:
-\xterm -bg \#000033 -fg \#CCCC00 -geometry 80x30+20+20  -sb +ls -T 'idl: GPI DRP GUIs' -e $GPI_DRP_DIR/executables/idl81/bin/idl -rt=$GPI_DRP_DIR/executables/gpi_launch_guis.sav &
+\xterm -bg \#000033 -fg \#CCCC00 -geometry 80x30+20+20  -sb +ls -T 'idl: GPI DRP GUIs' -e $GPI_DRP_DIR/executables/idl*/bin/idl -rt=$GPI_DRP_DIR/executables/gpi_launch_guis.sav &
 
 # Start the pipeline:
-\xterm -bg \#000033 -fg \#FFFFAA -geometry 80x30+20+450 -sb +ls -T 'idl: GPI Pipeline' -e $GPI_DRP_DIR/executables/idl81/bin/idl -rt=$GPI_DRP_DIR/executables/gpi_launch_pipeline.sav &
+\xterm -bg \#000033 -fg \#FFFFAA -geometry 80x30+20+450 -sb +ls -T 'idl: GPI Pipeline' -e $GPI_DRP_DIR/executables/idl*/bin/idl -rt=$GPI_DRP_DIR/executables/gpi_launch_pipeline.sav &
 
 
 

@@ -15,16 +15,18 @@ function gpi_drp_about_message
               'Copyright 2008-2014, by the GPI Team & AURA', $
 			  'Released under a BSD 3-clause license', $
               '', $
+              'See http://adsabs.harvard.edu/abs/2014SPIE.9147E..3JP ', $
+              '', $
               '--------- Development: ---------', $
               '', $
               '    Marshall Perrin, Jerome Maire   ', $
 			  '    Patrick Ingraham, Dmitry Savransky, Rene Doyon,  ', $ 
 			  '', $  
 			  '    Jeff Chilcote, Zack Draper, Michael Fitzgerald,', $
-			  '    Alex Greenbaum, Quinn Konopacky, Franck Marchis,', $
-			  '    Christian Marois, Max Millar-Blanchaer, Laurent Pueyo, ', $
-			  '    Jean-Baptiste Ruffio, Naru Sadakuni, Jason Wang, ', $
-			  '    Schuyler Wolff, Sloane Wiktorowicz',$
+			  '    Alex Greenbaum, Pascale Hibon, Quinn Konopacky, Doug Long,', $
+			  '    Franck Marchis, Christian Marois, Max Millar-Blanchaer,', $
+			  '    Eric Nielsen, Laurent Pueyo, Jean-Baptiste Ruffio, Naru Sadakuni,', $
+			  '    Jason Wang, Schuyler Wolff, Sloane Wiktorowicz',$
               '', $
               '-------- Acknowledgements: --------', $
               '', $

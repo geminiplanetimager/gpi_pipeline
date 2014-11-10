@@ -28,6 +28,7 @@
 ;   2013-07-10 MP: Minor documentation cleanup
 ;   2013-07-12 MP: file rename for consistency
 ;   2014-01-02 MP: Copied SIGMACLIP implementation from gpi_combine_2d_dark_images
+;   2014-11-04 MP: Avoid trying to run parallelized sigmaclip if in IDL runtime.
 ;
 ;-
 function gpi_combine_2D_images, DataSet, Modules, Backbone
@@ -73,7 +74,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 			combined_im=total(imtab,/DOUBLE,3) /((size(imtab))[3])
 		end
 		'SIGMACLIP': begin
-			combined_im = gpi_sigma_clip_image_stack( imtab, sigma=sigma_cut,/parallelize)
+			can_parallelize = ~ LMGR(/runtime)  ; cannot parallelize if you are in runtime compiled IDL
+			combined_im = gpi_sigma_clip_image_stack( imtab, sigma=sigma_cut,parallelize=can_parallelize)
 		end
 		else: begin
 			message,"Invalid combination method '"+method+"' in call to Combine 2D Frames."
