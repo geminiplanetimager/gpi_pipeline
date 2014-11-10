@@ -100,8 +100,6 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 				
 				; interpolate the cube onto a regular grid.
 				Result[xsi,ysi,*] = norma*INTERPOL( cubef3D[xsi,ysi,*], lambint, lambda )
-
-
 		 ;  endif
 	  endif
 	  endfor

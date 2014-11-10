@@ -73,43 +73,6 @@ endif else begin
   ptr_calibrations = calibration
 endelse
 
-;if gaussians is set - set the parinfo to enable a speedup
-if keyword_set(gaussians) then begin
-parinfo = replicate({value:0.D, fixed:0, limited:[0,0], limits:[0.D,0],parname:''},7)
-
-; Fit the function
-;      GAUSSIAN      A[0] + A[1]*exp(-0.5*u)
-;      MOFFAT        A[0] + A[1]/(u + 1)^A[7]
-;      u = ( (x-A[4])/A[2] )^2 + ( (y-A[5])/A[3] )^2
-;
-
-parinfo[0].parname='A0' ; zeropt offset
-parinfo[0].fixed=0
-parinfo[0].limited[0]=1 & parinfo[0].limits[0]=0
-
-parinfo[1].parname='A1' ; normalization
-parinfo[1].fixed=0
-parinfo[1].limited[0]=1 & parinfo[0].limits[0]=0
-
-; A2 - sigmax
-parinfo[2].parname='A2' ; sigmax
-parinfo[2].fixed=0
-; A3 - sigmax
-parinfo[3].parname='A3' ; sigmay
-parinfo[3].fixed=0
-; A4 - xpos
-parinfo[4].parname='A4' ; xpos
-parinfo[4].fixed=0
-; A5 - ypos
-parinfo[5].parname='A5' ; ypos
-parinfo[5].fixed=0
-;A6 - tilt
-parinfo[6].parname='A6' ; tilt
-parinfo[6].fixed=1
-
-endif
-
-
 
 ;if ~keyword_set(centroid_mode) then begin
 ;  centroid_mode = "CALIB"
@@ -213,15 +176,14 @@ case my_type of
       
       ;get the values
       values = image[xcoords,ycoords]
-	  values[coords_not_good] = !values.f_nan
+      values[coords_not_good] = !values.f_nan
       
       ;get the intensities
 ;      tmp_values = values
 ;      tmp_values[where(~finite(values))] = 0.0
 ;      intensities = total(tmp_values,1)
-
       intensities[*,*,0,it_elev] = total(values,1,/nan)
-
+      
       ;get the centroids
 ;      ycentroids = wavcal[*,*,0]
 ;      xcentroids = wavcal[*,*,1]
@@ -303,11 +265,9 @@ case my_type of
 				mask=masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j]
 				ind=where(mask eq 0)
 				stamp*=mask;[ind]=!values.f_nan
-				test=mpfit2dpeak(stamp*mask,A,xarr,yarr,weights=mask,/no_covar,/circular)
+				test=mpfit2dpeak(stamp*mask,A,xarr,yarr,mask=mask,/tilt)
 				xcentroids[i,j,0,it_elev]=A[4]
 				ycentroids[i,j,0,it_elev]=A[5]
-				intensities[i,j,0,it_elev]=A[5]
-
 			endif else begin
 			xcentroids[i,j,0,it_elev]= total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
 										xcoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$ 
@@ -318,8 +278,6 @@ case my_type of
 										ycoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
 										masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])/$ 
 										total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
-										masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])
-			intensities[i,j,0,it_elev]= total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
 										masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])
 			endelse
 

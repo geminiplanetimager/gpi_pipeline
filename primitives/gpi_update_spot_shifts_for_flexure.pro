@@ -64,8 +64,8 @@ function update_shifts_for_flexure_auto_optimize, det, wavcal, filter, coarse=co
 	compile_opt defint32, strictarr, logical_predicate
 	
     if keyword_set(coarse) then begin
-        xsteps = [    -2,-1.5,-1, -0.5, 0, 0.5,  1,1.5,2]
-        ysteps = [-3, -2.5, -2, -1, -0.5, 0, 0.5,1.0,2.0, 3]
+        xsteps = [    -1, -0.5, 0, 0.5,  1]
+        ysteps = [-3, -2.5, -2, -1, -0.5, 0, 0.5 ]
     endif else begin
         if ~(keyword_set(nsteps)) then nsteps=5
         if ~(keyword_set(guess)) then guess=[0,0]

@@ -41,11 +41,10 @@ common hr_psf_common
 
 ;return, p[2]*interpolate(c_psf,xgrid2,ygrid2)
 
-;stop
+
 ; now for speed
 
-return, p[2]*interpolate(c_psf,(x - (p[0] + c_x_vector_psf_min))*c_sampling,(y - (p[1] + c_y_vector_psf_min))*c_sampling,cubic=-0.5);,missing=median(c_psf[where(c_psf ne 0)]) )
-;return, p[2]*interpolate(c_psf,(x - (p[0] + c_x_vector_psf_min))*c_sampling,(y - (p[1] + c_y_vector_psf_min))*c_sampling);,missing=median(c_psf[where(c_psf ne 0)]) )
+return, p[2]*interpolate(c_psf,(x - (p[0] + c_x_vector_psf_min))*c_sampling,(y - (p[1] + c_y_vector_psf_min))*c_sampling)
 
 
 end

@@ -200,7 +200,6 @@ if weights eq 'radial' then begin
 	if ct1 ne 0 then weights0[ind1]=0.0
 	ind2=where(rad_arr ge 1.5 and rad_arr lt 2.5,ct2)
 	if ct2 ne 0 then weights0[ind2]=1.0/((rad_arr[ind2])/1.5) ; goes linearly from 1 to zero with radius
-	
 	ind3=where(rad_arr lt 1.5 and mask ne 0,ct3)
 	if ct3 ne 0 then weights0[ind3]=1.0  ; sets the core to 1
 	weights0*=mask
@@ -208,16 +207,16 @@ if weights eq 'radial' then begin
 	; now add the poisson error component
 	gain=3.04
 	if keyword_set(ncoadds) eq 0 then ncoadds=1
-	data_variance=mask*pixel_array*gain/(ncoadds) / (gain^2) ; so this is intensity in electrons - the converted to ADU
+	data_variance=mask*pixel_array*gain/ncoadds / (gain^2) ; so this is intensity in electrons - the converted to ADU
 	; noise is sqrt(pixel_array*gain)/sqrt(coadds) - this is in electrons - so variance is electrons squared
 	; if negative, set it to be consistent with zero 
 	ind=where(pixel_array lt 0,ct)
-	if ct ne 0 then data_variance[ind]=abs(mask*pixel_array[ind]*gain/(ncoadds) /(gain^2))
+	if ct ne 0 then data_variance[ind]=abs(mask*pixel_array[ind]*gain/ncoadds /(gain^2))
 
 	; 1/data_variance will give nans
-	final_weights=(weights0/data_variance)
+	final_weights=weights0/data_variance
 	; the paper says the weights should be weights=radial_weighting/variance
-	;stop	
+		
 	ind=where(finite(final_weights) eq 0,ct)
 	if ct ne 0 then final_weights[ind]=0
 	
@@ -249,10 +248,9 @@ endif
  parameters = MPFIT2DFUN("gpi_highres_microlens_psf_evaluate_detector_psf", x_grid, y_grid, pixel_array[*,*,i_slice],0, $
                                                       first_guess[*,i_slice], $
                                                       WEIGHTS = final_weights, PARINFO = parinfo, $
-                                                      BESTNORM = chisq, /quiet, YFIT = yfit,/nocovar ) 
+                                                      BESTNORM = chisq, /quiet, YFIT = yfit ) 
 
-passing=final_weights
- 
+passing=final_weights 
  if 0 eq 1 or keyword_set(flag) then begin
 	sz=size(mask)*30
 	window,2,xsize=sz[1]*3,ysize=sz[2]

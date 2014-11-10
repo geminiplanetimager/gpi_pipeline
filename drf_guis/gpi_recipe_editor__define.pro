@@ -540,17 +540,17 @@ end
 ;    ;					save multiple repeats of this.
 ;    ;
 ;    ;-
-    pro gpi_recipe_editor::removefile, file, norefresh=norefresh
-    
-    
-    	self.drf->remove_datafile, file
-    
-    	if ~keyword_set(norefresh) then begin
-    		self->refresh_filenames_display ; update the filenames display
-    		self->update_available_primitives, self.reductiontype ; why do we do this after removing a file?
-    	endif
-    
-    end
+;    pro gpi_recipe_editor::removefile, file, norefresh=norefresh
+;    
+;    
+;    	self.drf->remove_datafile, file
+;    
+;    	if ~keyword_set(norefresh) then begin
+;    		self->refresh_filenames_display ; update the filenames display
+;    		self->update_available_primitives, self.reductiontype ; why do we do this after removing a file?
+;    	endif
+;    
+;    end
     
 ;+-----------------------------------------
 ; gpi_recipe_editor::queue
