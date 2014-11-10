@@ -487,7 +487,8 @@ pro GPItv::initcommon
     rgb_mode: 0, $
     activator: 0, $                   ; is "activator" mode on?
     retain_current_slice: 1, $       ; toggles stickiness of current image when loading new file
-    retain_current_view: 1, $         ; align next image by default?
+    retain_current_view: 1, $  ; align next image by default?
+    retain_collapse_mode: 0, $       ; keep collapse mode if possible      
     retain_current_stretch: 0 ,$      ; use previous minmax for new image?
     isfirstimage: 1, $                ; is this the first image?
     ;default_autoscale: 1, $          ; autoscale images by default?
@@ -739,6 +740,7 @@ pro GPItv::startup, nbrsatspot=nbrsatspot
     {cw_pdmenu_s, 12, 'Retain Current Slice'}, $
     {cw_pdmenu_s, 8, 'Retain Current Stretch'}, $
     {cw_pdmenu_s, 8, 'Retain Current View'}, $
+    {cw_pdmenu_s, 8, 'Retain Collapse Mode'}, $
     ;                {cw_pdmenu_s, 8, 'Auto Align'}, $
     {cw_pdmenu_s, 8, 'Auto Handedness'}, $
     {cw_pdmenu_s, 8, 'Suppress Information Messages'}, $
@@ -791,6 +793,11 @@ pro GPItv::startup, nbrsatspot=nbrsatspot
   if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (tmp eq 1) ) then (*self.state).retain_current_view = tmp
   widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Retain Current View")],$
     set_button = (*self.state).retain_current_view
+
+  tmp = gpi_get_setting('gpitv_retain_collapse_mode',/silent,/int)
+  if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (tmp eq 1) ) then (*self.state).retain_collapse_mode = tmp
+  widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Retain Collapse Mode")],$
+    set_button = (*self.state).retain_collapse_mode
     
   tmp = gpi_get_setting('gpitv_auto_handedness',/silent,/int)
   if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (tmp eq 1) ) then (*self.state).autohandedness = tmp
@@ -1646,7 +1653,11 @@ pro GPItv::topmenu_event, event
       widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Retain Current View")],$
         set_button = (*self.state).retain_current_view
     end
-    
+    "Retain Collapse Mode": begin
+      (*self.state).retain_collapse_mode = 1 - (*self.state).retain_collapse_mode
+      widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Retain Collapse Mode")],$
+        set_button = (*self.state).retain_collapse_mode
+    end
     "Auto Handedness": begin
       (*self.state).autohandedness = ~ (*self.state).autohandedness
       widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Auto Handedness")],$
@@ -5636,15 +5647,6 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   ;  max - Maximum value for stretch
   ;  /linear,/log,/sqrt,/histeq,/asinh - Set image scaling
     
-  ;;since we can't always expect to be coming from the same
-  ;;type of image, its best to default to the zero collapse mode.
-  ;;if we want to change this to have the collapse mode be persistent,
-  ;;changes will need to be made in setheadinfo
-  (*self.state).specalign_mode = 0
-  (*self.state).collapse = 0
-  (*self.state).klip_mode = 0
-  (*self.state).high_pass_mode = 0
-  
   ;; make us look busy
   widget_control, /hourglass
   
@@ -5670,6 +5672,7 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   case (size(*self.images.main_image))[0] of
     2: begin                   ; 2D image
       (*self.state).image_size = [(size(*self.images.main_image_stack))[1:2], 1]
+      tmp = where((*self.state).prev_image_size ne (*self.state).image_size,coordupdate) 
       (*self.state).imagename = imname
       (*self.state).title_extras = ''
       
@@ -5682,15 +5685,19 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
     
     3: begin                   ; case of 3-d imagecube
       (*self.state).image_size = (size(*self.images.main_image_stack))[1:3]
+      tmp = where((*self.state).prev_image_size ne (*self.state).image_size,coordupdate) 
       
       ;;if we didn't have an image before, or sticky is
       ;;unset, default display image to 1/4 of the cube to
       ;;avoid showing "bad first frame" otherwise, keep the current
       ;;slice
-      if ((*self.state).prev_image_2D eq 1) || ((*self.state).retain_current_slice eq 0) || (*self.state).isfirstimage then $
-        (*self.state).cur_image_num=round((*self.state).image_size[2]/4.)
+      if ((*self.state).prev_image_2D eq 1) || ((*self.state).retain_current_slice eq 0) || $
+         (*self.state).isfirstimage || (coordupdate ne 0) then $
+            (*self.state).cur_image_num=round((*self.state).image_size[2]/4.)
+      
       ;; but update the current slice if necessary if it's out of range
-      if (*self.state).cur_image_num ge (*self.state).image_size[2] then (*self.state).cur_image_num = (*self.state).image_size[2]-1
+      if (*self.state).cur_image_num ge (*self.state).image_size[2] then $
+         (*self.state).cur_image_num = (*self.state).image_size[2]-1
       if (*self.state).cur_image_num lt 0 then (*self.state).cur_image_num = 0
       
       *self.images.main_image = (*self.images.main_image_stack)[*, *, (*self.state).cur_image_num]
@@ -5732,8 +5739,17 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   
   ;; if image dimensionality has changed from previously loaded one,
   ;; set cursor coords to center
-  tmp = where((*self.state).prev_image_size ne (*self.state).image_size,coordupdate)
   if coordupdate ne 0 then (*self.state).coord = round((*self.state).image_size[0:1] / 2.)
+
+  ;; we default to the zero collapse mode unless retain collapse mode
+  ;; is set and the new image appears to be of the same type as the
+  ;; previous one (image size matches)
+  (*self.state).specalign_mode = 0
+  (*self.state).klip_mode = 0
+  if ~(*self.state).retain_collapse_mode || (coordupdate ne 0) then begin
+     (*self.state).high_pass_mode = 0
+     (*self.state).collapse = 0
+  endif 
   
   ;; clean up anything left from previous image
   ;; remove any existing satellite spots, and allocate proper size for
@@ -5755,7 +5771,6 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   
   ;; remove any existing CWV_ptrs
   if (ptr_valid((*self.state).CWV_ptr)) then ptr_free, (*self.state).CWV_ptr
-  
   
   ;; discard any previously loaded polcal or wavecal file for overplotting.
   (*self.state).wcfilename=''
@@ -5833,6 +5848,13 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   
   self->settitle
   self->set_minmax
+
+  ;;if high_pass is flagged and current collapse mode is not high
+  ;;pass, do a high pass before applying the mode
+  widget_control, (*self.state).collapse_button, get_value=modelist
+  if (*self.state).high_pass_mode && (modelist[(*self.state).collapse] ne 'High Pass Filter') then begin
+     self->high_pass_filter,/forcestack
+  endif 
   self->collapsecube
   self->setcubeslicelabel
   
@@ -18223,11 +18245,13 @@ pro GPItv::alignspeckle, status=status
 end
 
 ;;----------------------------------------------------------------------
-pro GPItv::high_pass_filter, status=status
+pro GPItv::high_pass_filter, status=status, forcestack=forcestack
   ;;; routine to remove low frequency structure from cubes
   ;;; PI - 2013-07-24
   ;;; JW - 2014-02-03 Added capability to do stacked images and 2d cubes
-
+  ;;; ds - 2014-11-10 /forcestack forces operation on image_stack
+  ;;;      regardless of visibility of slicer
+  
   widget_control, /hourglass
   
   if (n_elements((*self.state).image_size) eq 3) or (n_elements((*self.state).image_size) eq 2) then begin
@@ -18240,7 +18264,7 @@ pro GPItv::high_pass_filter, status=status
     
     ; if the widget is visible, we are looking slices so we should filter all
     ; of the slices for consistency
-    if visibility eq 1 then begin
+    if (visibility eq 1) || keyword_set(forcestack) then begin
       im=*self.images.main_image_stack
       for s=0,N_ELEMENTS(im[0,0,*])-1 do im[*,*,s]=im[*,*,s]-filter_image(im[*,*,s],median=medboxsize)
       
