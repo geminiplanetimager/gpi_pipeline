@@ -114,52 +114,44 @@ How to run a .sav file in the IDL Virtual Machine depends on your operating syst
     
 
   Mac and Linux users can launch the IDL virtual machine and then tell it to launch a particular .sav file. You'll need to repeat this for the two GPI pipeline IDL sessions. 
+  The following commands assume that the environment variables ``$IDL_DIR`` and ``$GPI_DRP_DIR`` have been set, either by the ``gpi-setup-nix`` script or :ref:`manually <configuring>`::
+      
+  1. Enter the following at the command line to start an IDL session for the pipeline backbone::
 
-  To run a .sav file in the IDL Virtual Machine from the command line: 
-  
-  1. Enter the following at the UNIX command line::
+        unix% $IDL_DIR/bin/idl -rt=$GPI_DRP_DIR/executables/gpi_launch_pipeline.sav
 
-       >>> <path_to_idl_runtime>/idl -vm=<path_to_sav_files><filename>  
+  2.  The IDL Virtual Machine logo window will be displayed with a "Click to continue" message.  Click anywhere in the IDL logo window to continue and run the .sav file.
 
-     where <path_to_sav_files> is the complete path to the .sav file and <filename> is the name of the .sav file. 
-     The idl runtime is included with the compiled GPI pipeline files for each platform, in the subdirectory ``executables/idl81/bin``.
-     So for instance you might enter here the command 
+  3. Repeat the above process to start a second IDL session for the pipeline GUIs::
 
-       >>> ~/gpi_pipeline_1.1/executables/idl81/bin/idl -vm= ~/gpi_pipeline_1.1/executables/gpi_launch_pipeline.sav
-     
-  2.  The IDL Virtual Machine logo window will be displayed.  Click anywhere in the IDL Virtual Machine window to close the window and run the .sav file.
+        unix% $IDL_DIR/bin/idl -rt=$GPI_DRP_DIR/executables/gpi_launch_guis.sav
+
+
 
   You may also launch the IDL Virtual Machine and use its file selection menu to locate the .sav file to run. 
   
   1. Enter the following at the UNIX command line::
 
-       >>>  <path_to_idl_runtime>/idl -vm  
+       >>>  $IDL_DIR/bin/idl -vm  
     
-     The idl runtime is included with the compiled GPI pipeline files, in the subdirectory ``executables/idl81/bin`` so for instance you might enter here the command 
-     
-       >>> ~/gpi_pipeline_1.1/executables/idl81/bin/idl -vm 
-  
-  2. The IDL Virtual Machine window will be displayed. Click anywhere in the IDL Virtual Machine window to display the file selection menu.
+  2. The IDL Virtual Machine logo will be displayed. Click anywhere in the IDL Virtual Machine window to display a file selection dialog box.
 
-  3.  Locate and select the .sav file and click OK.
+  3. Locate and select the desired .sav file and click OK to open that file.
 
- 
+   If in the first IDL session you see a line reading "Now polling for
+   data in such-and-such directory", and the Status Console and
+   Launcher windows are displayed as :ref:`shown below <itsworking>`, then the pipeline has launched successfully.
+
+
 .. admonition:: Mac OS and Linux startup script
 
     .. image:: ../shared_images/icon_mac2.png
     .. image:: ../shared_images/icon_linux2.png
  
    Just like for the source code install, a script is provided in ``pipeline/scripts`` that launches 2 IDL sessions, and starts the pipeline code. 
-   While the under the hood implementation is slightly different, the script name and effective functionality are identical. You must define the ``$GPI_DRP_DIR`` environment variable to point to the 
-   root directory of your GPI pipeline installation for this script to work.
-
-    ::
+   While the under the hood implementation is slightly different, the script name and effective functionality are identical.  ::
 
       shell> gpi-pipeline
-
-   If in the first IDL session you see a line reading "Now polling for
-   data in such-and-such directory", and the Status Console and
-   Launcher windows are displayed as :ref:`shown below <itsworking>`, then the pipeline has launched successfully.
 
    If you encounter problems with the startup script, just start the IDL sessions manually as described above. 
 

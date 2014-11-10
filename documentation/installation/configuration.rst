@@ -35,11 +35,14 @@ be changed if desired).
 
 Automated Setup
 -----------------------------------
-For most users, the automated setup should be sufficient and there should be no need to configure things manually.
+For most users, the automated setup should be sufficient and there should be no need to configure things manually. 
 
-These installation scripts will guide you through the setup process and will automatically configure most of the settings for you. It does require you to verify/change three filepaths to ensure they point to the correct directories. 
+These installation scripts will guide you through the setup process and will automatically configure most of the settings for you. It does require you to verify or enter a few filepaths to ensure they point to the correct directories. The setup script writes out a configuration file to your home directory to save these settings. If you wish to change the file paths after running the setup script, simply edit that text file.
 
-All installation scripts are located in the pipeline/scripts directory.
+The setup script will ask you where you would like to store your GPI data. This can be any directory path. The script will automatically create some subdirectories inside the data directory for raw files, reduced files, log files, and so on. 
+
+The setup script appropriate for your OS will be located in the ``pipeline/scripts`` directory.
+
 
 .. admonition:: Mac OS and Linux
 
@@ -51,7 +54,7 @@ All installation scripts are located in the pipeline/scripts directory.
 
  > bash gpi-setup-nix
 
- Follow the instructions given by the installation script. You will need to restart your terminal application for the installation to take effect.
+ Follow the instructions given by the installation script. The relevant settings are written to a file ``.gpienv`` in your home directory. You will need to restart your terminal application for the installation to take effect.
 
  If everything went well, you can proceed to starting up the pipeline: :ref:`first-startup`.
 
@@ -67,15 +70,24 @@ All installation scripts are located in the pipeline/scripts directory.
 
  If the automated setup did not work properly, you may need to install the pipeline manually: :ref:`config-manual`.
 
- **For Windows XP users**, the automated installation script will work with some changes to the script itself. Open up ``gpi-setup-windows.bat`` in a text editor and follow the instructions inside to modify the script for Windows XP.  Alternatively, Windows XP and older users can configure the pipeline manually: :ref:`config-manual`.
+ **For Windows XP users**, the automated installation script will work with some changes to the script itself. Open up ``gpi-setup-windows.bat`` in a text editor and follow the instructions inside to modify the script for Windows XP.  Alternatively, Windows XP and older users can configure the pipeline manually: :ref:`config-manual`. (But you should upgrade to a more recent version of Windows in any case!)
 
+
+If you have successfully ran the automated setup script, you can skip ahead to  :ref:`first-startup`, or read on to understand what the automated setup is doing under the hood, and/or how you can manually adjust file paths if you want to customize your installation.
 
 .. _config-manual:
 
 How to Set Environment Variables Manually
 -----------------------------------------------
-The pipeline includes helpful example scripts to ease the setup process, located in the ``scripts`` subdirectory of the
-pipeline installation. Most users will simply want to take the example script for their selected shell and modify it for their local directory paths.
+
+.. note::
+  The example scripts described in the following section are now mostly obsolete due to the automated setup script.
+  The following text is kept here just for reference right now, and to describe how to set up environment variables
+  manually for users who do not know how to do so. But really, most people should can let the automated setup script
+  take care of this all. 
+
+The pipeline includes some example scripts demonstrating how to set environment variables, located in the ``scripts`` subdirectory of the
+pipeline installation.  As an alternate to using the automated setups script,  users may take the example script for their selected shell and modify it for their local directory paths.
 
  * ``setenv_GPI_sample.bash``: Example environment variable setup script for sh or bash Unix shells
  * ``setenv_GPI_sample.csh``: Example environment variable setup script for csh or tcsh Unix shells
@@ -168,7 +180,7 @@ If you already know how to set environment variables on your computer, skip to :
 Setting directory paths via environment variables
 ---------------------------------------------------
 The following path variables are **required** to be defined.
-Edit your shell configuration files (e.g. by editing the ``setenv_gpi_*`` script template discussed in the previous section)
+Edit your shell configuration files (e.g. by editing the ``.gpienv`` file created by the automatic setup script, or editing the ``setenv_gpi_*`` templates discussed in the previous section)
 to set the variables equal to your chosen installation paths. 
 
 
@@ -182,6 +194,20 @@ GPI_DRP_QUEUE_DIR       Path to queue directory                 ``/home/username
 
 Note that the user must have write permissions to the ``$GPI_DRP_QUEUE_DIR`` and ``$GPI_REDUCED_DATA_DIR``. The raw data dir may be read-only.   
 
+
+If you are running the **compiled** version of the pipeline, you must also set two additional environment variables
+to indicate where you have installed the pipeline. This should be the directory path of the unzipped pipeline
+download file.
+
+=====================  ====================================  ================================================================
+Variable                Contains                                Example
+=====================  ====================================  ================================================================
+IDL_DIR                Location of the IDL runtime library.  ``/home/username/gpi/gpi_pipeline_1.2.0/executables/idl/idl83``
+GPI_DRP_DIR            Location of installed pipeline        ``/home/username/gpi/gpi_pipeline_1.2.0/``
+=====================  ====================================  ================================================================
+
+
+
 The following are paths are **optional** to define as environment variables. If not set explicitly, the pipeline will automatically use reasonable default values: 
 
 ======================  =======================================  ===========================================================
@@ -190,7 +216,8 @@ Variable                  Contains                                   Default Val
 GPI_DRP_DIR             Root dir of pipeline software             Determined automatically, location of
                                                                   the IDL pipeline code. Contains 
                                                                   subdirectories: backbone, config, 
-                                                                  gpitv etc
+                                                                  gpitv etc. (Optional for source code installs, required
+                                                                  for compiled code installs.)
 GPI_DRP_CONFIG_DIR      Path to directory containing pipeline    ``$GPI_DRP_DIR/config``
                         config files and ancillary data.           
 GPI_DRP_TEMPLATES_DIR   Path to recipe templates                 ``$GPI_DRP_DIR/recipe_templates``

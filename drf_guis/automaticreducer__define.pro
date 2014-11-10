@@ -205,19 +205,12 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 		    prism = 'PRISM' ; this used to be user selectable but the keywords are now robust,
 							    ; so there is no need to clutter up the GUI with
 								; this option any more. 
-
-			;if widget_info(self.b_spectral_id,/button_set) then prism = 'PRISM'
-			;if widget_info(self.b_undispersed_id,/button_set) then prism='WOLLASTON'
-			;if widget_info(self.b_polarization_id,/button_set) then prism = 'OPEN'
 		endif
 
 
 
 		if ((prism ne 'PRISM') and (prism ne 'WOLLASTON') and (prism ne 'OPEN')) then begin
 			message,/info, 'Unknown DISPERSR: '+prism+". Must be one of {PRISM, WOLLASTON, OPEN} or their Gemini-style equivalents."
-			;if widget_info(self.b_spectral_id,/button_set) then prism = 'PRISM'
-			;if widget_info(self.b_undispersed_id,/button_set) then prism='WOLLASTON'
-			;if widget_info(self.b_polarization_id,/button_set) then prism = 'OPEN'
 		    prism = 'PRISM' ; this used to be user selectable but see above note.
 			message,/info, 'Applying default setting instead: '+prism
 		endif

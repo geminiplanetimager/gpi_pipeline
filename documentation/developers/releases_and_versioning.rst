@@ -20,8 +20,11 @@ make their way into ``public`` once they're working properly.)
 Creating a New Release Version
 -------------------------------
 
-This is a methodical process with lots of steps - eventually there will be a script to automate this better.  Once your pipeline codebase is ready to release: 
+This is a methodical process with lots of steps - eventually there may be a script to automate this better.  Once your pipeline codebase is ready to release: 
 
+
+Creating a public branch and release tag in subversion
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The first step in making a new release version is to increment the version number. This needs to be changed in two places. ::
 
@@ -53,12 +56,27 @@ This is done by svn copying the relevant trunk directories into appropriate tags
         svn copy https://repos.seti.org/gpi/external/trunk https://repos.seti.org/gpi/external/tags/${VER} -m "Release copy of pipeline external dependencies version ${VER}"
 
 This does the update on the *server* only. To update your local copy of the release directory, you can do an ``svn update`` in your tags directory. 
-        
 
-To create the compiled executables ('sav files' in IDL speak), run the ``gpi_compiler`` routine in IDL, and when prompted enter the desired output directory.
+.. warning::
+   If you need to do this again after making some more changes, *don't* just repeat the above command, since that won't overwrite the first copy, it will make a second copy as a subdirectory of the first, which is almost certainly NOT what you want. 
+   See also this article on `"Why caution is advised when svn copying directories" <http://kera.name/articles/2012/08/why-caution-is-advised-when-svn-copying-directories/>`_
+
+        
+Now to make the distribution zip files
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Before starting IDL, you should adjust your IDL ``$IDL_PATH`` so that it points at the ``public`` directory, and is free of any of 
 your personal routines or other IDL code. This will ensure that you're compiling 
-the versions in the pipeline directory. You should also make sure that your ``$IDL_PATH`` is pointing toward the public directory::
+the versions in the pipeline directory.  For the ``external`` directory, either (1) update your existing copy to the latest trunk, or (2) check out a copy of the tagged version to make sure you have the latest.::
+    
+        shell> cd external
+        shell> svn update
+        % OR
+        shell> svn checkout https://repos.seti.org/gpi/external/tags/${VER}
+
+
+To create the compiled executables ('sav files' in IDL speak), run the ``gpi_compiler`` routine in IDL, and when prompted enter the desired output directory.
+Thus in the end, after appropriately adjusting your ``$IDL_PATH``, you're ready to run ``gpi_compiler``::
 
         shell ~ > setenv IDL_PATH "+/home/username/public_pipeline:+/home/username/external:+/Applications/itt/idl/idl81/lib"
         IDL> gpi_compiler
@@ -92,6 +110,14 @@ If you are compiling on Mac or Linux, gpi_compiler will automatically zip up the
 Upload the resulting zip files to the desired download locations.
 Update the documentation source to have the proper ZIP file locations, if needed, and recompile using Sphinx.
 Email Franck to update the official documentation on http://docs.planetimager.org/pipeline/
+
+
+If you find (as is often the case) that you need to make some last minute fixes after testing the release, you should: 
+
+ * Make the fixes in `trunk`
+ * Re-merge from `trunk` to `public` (hopefully fast and easy)
+ * It may be easiest to just `delete the tag for that release <http://www.coderelic.com/2011/12/how-to-delete-a-tag-or-branch-in-subversion/>`_ and re-do the `svn copy` the public branch to that tag again. (You can also merge from the public branch into the tag.)
+
 
 Switching to a given release on subversion
 -----------------------------------------------

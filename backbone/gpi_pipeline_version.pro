@@ -39,12 +39,13 @@
 ;	2014-04-26		Release candidate for 1.1
 ;	2014-05-01		Release 1.1.0
 ;	2014-05-06		Release 1.1.1
-;   2014-10-30		Release 1.2.0 
+;   2014-10-30		Release 1.2.0
+;   2014-11-10		Release 1.2.1  
 ;-
 
 function gpi_pipeline_version, svn=svn
 
-version = '1.2.0'
+version = '1.2.1'
 
 if keyword_set(svn) then begin
 	; append svn version ID also
