@@ -96,6 +96,9 @@ if tag_exist( Modules[thisModuleIndex], "outer_sky_radius") then outer_sky_radiu
 if xcenter le 0 or xcenter ge 280 then return, error('FAILURE ('+functionName+'): xcenter not defined or out of range ') 
 if ycenter le 0 or ycenter ge 280 then return, error('FAILURE ('+functionName+'): ycenter not defined or out of range ') 
 
+suffix='-spectrum-x'+strc(round(xcenter))+'-y'+strc(round(ycenter))
+
+
 band = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=cc))
 cwv=get_cwv(band)
 CommonWavVect=cwv.CommonWavVect
@@ -106,7 +109,7 @@ contained_flux_ratio = (backbone->get_keyword('EFLUXRAT',count=count,ext_num=0))
 if count eq 0 then begin
 	backbone->Log,functionname+":  This is not a calibrated cube, assuming all flux is contained in the extraction aperture"
 	backbone->Log,functionname+":   Using user-specified extraction and sky annuli. Override being set to 1"
-	fscale=fltarr(N_ELEMENTS(lambda))+1
+	fscale_arr=fltarr(N_ELEMENTS(lambda))+1
 	contained_flux_ratio=1.0
 	override=1.0
 	; set error to zero
@@ -290,7 +293,7 @@ ygrid=temporary(ygrid2)
 				rad_arr gt sep-dr and rad_arr lt sep+dr )
 
 				; just to check bkg region
-				if 0 eq 1 and i eq 15 then begin
+				if 0 eq 1 and i eq 15 then begin	
 					tmp=fltarr(281,281)
 					tmp[bkg_ind0]=1
 					window,13,xsize=300,ysize=300,title='companion bkg region'
@@ -401,6 +404,7 @@ ygrid=temporary(ygrid2)
 for l=0, N_ELEMENTS(lambda)-1 do phot_comp[l]*=fscale_arr[l]
 for l=0, N_ELEMENTS(lambda)-1 do phot_comp_err[l]*=fscale_arr[l]
 
+
 ;window,3,retain=2,xsize=600,ysize=400
 ;ploterror,lambda,phot_comp,phot_comp_err
 ;stop
@@ -436,7 +440,7 @@ endif
 
 if save_ps_plot eq 1 then begin
 mydevice=!d.name
-	filename=strmid(dataset.filenames[0],0,strlen(dataset.filenames[0])-5)+'-spectrum-x'+strc(round(xcenter))+'-y'+strc(round(ycenter))+'.ps'
+	filename=strmid(dataset.filenames[numfile],0,strlen(dataset.filenames[numfile])-5)+'-spectrum-x'+strc(round(xcenter))+'-y'+strc(round(ycenter))+'.ps'
 	openps,Modules[thisModuleIndex].OutputDir+path_sep()+filename, xsize=6, ysize=4,/inches
 	units=(backbone->get_keyword('BUNIT'))
 	phot_comp_err_total=phot_comp*sqrt((cal_percent_err/100.)^2+(phot_comp_err/phot_comp)^2)
@@ -452,17 +456,18 @@ thisModuleIndex = Backbone->GetCurrentModuleIndex()
 if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Save eq 1 ) then begin
 
 	backbone->set_keyword, 'xcenter', xcenter, 'x-pixel in datacube where extraction has been made', ext_num=0
-	backbone->set_keyword, 'ycenter', ycenter,"x-pixel in datacube where extraction has been made", ext_num=0
+	backbone->set_keyword, 'ycenter', ycenter, 'y-pixel in datacube where extraction has been made', ext_num=0
 
-	suffix='-spectrum-x'+strc(round(xcenter))+'-y'+strc(round(ycenter))
-    wav_spec=[[lambda],[phot_comp],[phot_comp_err_total]]
+	wav_spec=[[lambda],[phot_comp],[phot_comp_err_total]]
 	b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, suffix ,savedata=wav_spec,display=0) ;saveheader=hdr,
   if ( b_Stat ne OK ) then  return, error ('FAILURE ('+functionName+'): Failed to save .fits dataset.')
+endif
 
 	; write ascii file?
-		
 	if write_ascii_file eq 1 then begin
-		  openw,funit,Modules[thisModuleIndex].OutputDir+path_sep()+strmid(dataset.filenames[0],0,strlen(dataset.filenames[0])-5)+suffix+'.dat',/get_lun
+			message,/info,'Writing ascii file to '+Modules[thisModuleIndex].OutputDir+path_sep()+strmid(dataset.filenames[numfile],0,strlen(dataset.filenames[numfile])-5)+suffix+'.dat'
+
+		  openw,funit,Modules[thisModuleIndex].OutputDir+path_sep()+strmid(dataset.filenames[numfile],0,strlen(dataset.filenames[numfile])-5)+suffix+'.dat',/get_lun
 			for i=0, N_ELEMENTS(lambda)-1 do begin		
 			if i eq 0 then printf,funit,'# wavelength [um] flux ['+units+'] flux_err ['+units+']'
 		      printf,funit,lambda[i],phot_comp[i],phot_comp_err_total[i], format='(A,A,A)'
@@ -472,7 +477,7 @@ if tag_exist( Modules[thisModuleIndex], "Save") && ( Modules[thisModuleIndex].Sa
 	close,funit
 	endif
 
-endif
+
 
 display=0 ; ensure no gpitv is invoked to display
 gpitv=0

@@ -33,6 +33,27 @@ start_time=systime(1)
 ;restore,'/home/LAB/H-band-kernel-testing.sav'
 ;goto, kernel_testing  
 
+;filename='/Users/patrickingraham/GPI/tmp/H-band-psf_creating_testing_with_gaussians.sav'
+;restore,filename
+;goto,kernel_testing
+
+;filename='/Users/patrickingraham/GPI/tmp/H-band-psf_creating_testing_with_gaussians_full.sav'
+;print, ' loading the save file - H-band-psf_creating_testing_with_gaussians_full.sav'
+;restore,filename
+
+filename='/Users/patrickingraham/GPI/tmp/H-band-psf_creating_testing_with_gaussians_full_it2.sav'
+print, ' loading the save file - '+filename
+restore,filename
+
+;imin_test = pp_xind-22 & imax_test = pp_xind+25
+;jmin_test = pp_yind-22 & jmax_test = pp_yind+20
+;it_flex_max=4
+;imin_test = pp_xind-21 & imax_test = pp_xind+25
+;jmin_test = pp_yind-21 & jmax_test = pp_yind+20
+stop
+
+goto,kernel_testing
+
 
 ;restore,'flexure_testing.sav'
 ;goto, transform_section
@@ -95,7 +116,7 @@ bad_pixel_mask=abs(bad_pixel_mask-1)
         if filter_wavelength ne -1 then cent_mode="MAX"
                                 ; Create raw data stamps
         spaxels = gpi_highres_microlens_psf_extract_microspectra_stamps(disperser, dataset.frames[0:(nfiles-1)],$
-				dataset.wavcals[0:(nfiles-1)], width_PSF, bad_pixel_mask=bad_pixel_mask, /STAMPS_MODE);,/gaussians) 
+				dataset.wavcals[0:(nfiles-1)], width_PSF, bad_pixel_mask=bad_pixel_mask, /STAMPS_MODE,/gaussians) 
 
      end
      'WOLLASTON': begin
@@ -142,16 +163,25 @@ ptr_free, spaxels.values[50,167]
   ;                id: [0,0,0] }		; lenslet indices
   
  ;replace the 281 by variables 
-  PSFs = ptrarr(281, 281, n_per_lenslet)
-  fitted_spaxels = replicate(spaxels,1)
-  fit_error_flag = intarr(281, 281, n_per_lenslet)
+ nlens=281
+  PSFs = ptrarr(nlens, nlens, n_per_lenslet)
+
+  fitted_spaxels= {values: ptrarr(nlens,nlens,1,n_diff_elev),$
+          xcoords: ptrarr(nlens,nlens,1,n_diff_elev),$
+          ycoords: ptrarr(nlens,nlens,1,n_diff_elev),$
+          xcentroids: fltarr(nlens,nlens,1,n_diff_elev) + !values.f_nan,$
+          ycentroids: fltarr(nlens,nlens,1,n_diff_elev) + !values.f_nan,$
+          intensities: fltarr(nlens,nlens,1,n_diff_elev) + !values.f_nan,$
+          sky_values: fltarr(nlens,nlens,1,n_diff_elev),$
+          masks: ptrarr(nlens,nlens,1,n_diff_elev),$
+          tilts: fltarr(nlens,nlens,1,n_diff_elev) + !values.f_nan}
   
 ; start the iterations
 ; the following (it_flex_max) declares the number of iterations
 ; over the flexure loop - so the RHS of figure 8 in the Anderson paper
 ; this should probably be moved into a recipe keyword.
 ;stop
-  it_flex_max = 4				; what is this? -MP  # of iterations for flexure? Not clear what is being iterated over.
+  it_flex_max = 5				; what is this? -MP  # of iterations for flexure? Not clear what is being iterated over.
 ;   degree_of_the_polynomial_fit = 2 ; degree of the polynomial surface used for the flexure correction
 ; can't have multiple iterations if just one file - this should be a recipe failure
 
@@ -181,7 +211,7 @@ chisq_arr=fltarr(281,281,n_per_lenslet,nfiles,it_flex_max)
 ;
 
 ; the following is for pixel phase plotting only - it has no effect on any results
-  pp_xind=182 & pp_yind=196
+  pp_xind=165 & pp_yind=198
   pp_neighbors=n_neighbors
 
 
@@ -191,8 +221,9 @@ chisq_arr=fltarr(281,281,n_per_lenslet,nfiles,it_flex_max)
 ; imin_test = 190 & imax_test = 280
 ; jmin_test = 0 & jmax_test = 210
 
- imin_test = pp_xind-21 & imax_test = pp_xind+25
- jmin_test = pp_yind-21 & jmax_test = pp_yind+20
+;imin_test = pp_xind-21 & imax_test = pp_xind+25
+;jmin_test = pp_yind-21 & jmax_test = pp_yind+20
+
 
 ; imin_test = 123 & imax_test =179
 ; jmin_test = 0 & jmax_test = 83
@@ -213,14 +244,18 @@ chisq_arr=fltarr(281,281,n_per_lenslet,nfiles,it_flex_max)
 	kernel[1:2*n_neighbors+1+1+2-2,1:2*n_neighbors+1+1+2-2]=1
 	sample_map=convol(tmp,kernel) ; shows which ones have full sampling
 
-kernel_testing: 
+kernel_testing:
+
 ;it_flex_max=2
+
+; save,/all,filename='/Users/patrickingraham/GPI/tmp/H-band-psf_creating_testing_with_gaussians_full_it2.sav'
 
   for it_flex=0,it_flex_max-1 do begin
 
-;if it_flex eq 2 then stop
+if it_flex eq 2 then stop
 ; so now create a .save file that we can just load here then continue
 ; save,/all,filename='/home/LAB/H-band-kernel-testing.sav'
+; save,/all,filename='/Users/patrickingraham/GPI/tmp/H-band-psf_creating_testing_with_gaussians.sav'
 
      backbone->Log, 'starting iteration '+strc(it_flex+1)+' of '+strc(it_flex_max)+' for flexure'
  
@@ -265,27 +300,48 @@ kernel_testing:
                     jmin = max([0,(j-n_neighbors)])
                     jmax = min([280,(j+n_neighbors)])
                     nspaxels = (imax-imin+1)*(jmax-jmin+1)*n_diff_elev
-					iarr=findgen(imax-imin+1)+imin
-					jarr=findgen(jmax-jmin+1)+jmin
+		    iarr=findgen(imax-imin+1)+imin
+		    jarr=findgen(jmax-jmin+1)+jmin
+	
 					; now only want to use the psfs of interest (~6) surrouding a given psf
-					coords=[[0,0],[0,1],[1,1],[-1,-1],[1,0],[-1,0]]
-					iarr=i+coords[0,*]
-					jarr=j+coords[1,*]
-                    nspaxels = (N_ELEMENTS(coords[0,*]))*(N_ELEMENTS(coords[1,*]))*n_diff_elev                     
-                    ; reforms the arrays to be 1D 
+		;coords0=[[0,0],[0,1],[1,1],[-1,-1],[1,0],[-1,0]]
+		; not enough PSFs, need doubles
+		;dy=2 & dx=0
+		;coords2=[[0+dx,0+dy],[0+dx,1+dy],[1+dx,1+dy],[-1+dx,-1+dy],[1+dx,0+dy],[-1+dx,0+dy]]
+		;dy=-2 & dx=0
+		;coords3=[[0+dx,0+dy],[0+dx,1+dy],[1+dx,1+dy],[-1+dx,-1+dy],[1+dx,0+dy],[-1+dx,0+dy]]
+		;dy=0 & dx=-3
+		;coords4=[[0+dx,0+dy],[0+dx,1+dy],[1+dx,1+dy],[-1+dx,-1+dy],[1+dx,0+dy],[-1+dx,0+dy]]
+		;dy=0 & dx=3
+		;coords5=[[0+dx,0+dy],[0+dx,1+dy],[1+dx,1+dy],[-1+dx,-1+dy],[1+dx,0+dy],[-1+dx,0+dy]]
+		;
+		;coords=[[coords0],[coords2],[coords3],[coords4],[coords5]]
+	        ;    iarr=i+coords[0,*]
+		;    jarr=j+coords[1,*]
+                ;    nspaxels = (N_ELEMENTS(coords[0,*]))*(N_ELEMENTS(coords[1,*]))*n_diff_elev                     
+                
+; so create an indice array	
+
+
+		    ; reforms the arrays to be 1D 
                     ptrs_current_stamps = reform(spaxels.values[[iarr],[jarr],k,*],nspaxels)
+					ptrs_current_fitted_stamps = reform(fitted_spaxels.values[[iarr],[jarr],k,*],nspaxels)
                     ptrs_current_xcoords = reform(spaxels.xcoords[[iarr],[jarr],k,*],nspaxels)
                     ptrs_current_ycoords = reform(spaxels.ycoords[[iarr],[jarr],k,*],nspaxels)
                     ptrs_current_masks = reform(spaxels.masks[[iarr],[jarr],k,*],nspaxels)
 		    ; find the defined pointers in the range
                     not_null_ptrs = where(ptr_valid(ptrs_current_stamps), n_not_null_ptrs) ; n_not_null_pts
                     current_stamps = fltarr(nx_pix,ny_pix,n_not_null_ptrs)
+					current_fitted_stamps = fltarr(nx_pix,ny_pix,n_not_null_ptrs)
+
                     current_x0 = fltarr(n_not_null_ptrs)
                     current_y0 = fltarr(n_not_null_ptrs)
                     current_masks = fltarr(nx_pix,ny_pix,n_not_null_ptrs)
 		    ; create small arrays to pass in/out of functions
                     for it_ptr = 0,n_not_null_ptrs-1 do begin
                        current_stamps[*,*,it_ptr] = *ptrs_current_stamps[not_null_ptrs[it_ptr]]
+						if ptr_valid(ptrs_current_fitted_stamps[not_null_ptrs[it_ptr]]) then $
+					  		 current_fitted_stamps[*,*,it_ptr] = *ptrs_current_fitted_stamps[not_null_ptrs[it_ptr]]
                        current_x0[it_ptr] = (*ptrs_current_xcoords[not_null_ptrs[it_ptr]])[0]
                        current_y0[it_ptr] = (*ptrs_current_ycoords[not_null_ptrs[it_ptr]])[0] 
                        current_masks[*,*,it_ptr] = *ptrs_current_masks[not_null_ptrs[it_ptr]]
@@ -296,16 +352,19 @@ kernel_testing:
                     current_flux = (spaxels.intensities[[iarr],[jarr],k,*])[not_null_ptrs]
                     current_sky = (spaxels.sky_values[[iarr],[jarr],k,*])[not_null_ptrs] 
                     current_tilt=median((spaxels.tilts[[iarr],[jarr],k,*])[not_null_ptrs])
+					current_indices0=array_indices([N_ELEMENTS(iarr),N_ELEMENTS(jarr),n_per_lenslet,nfiles],not_null_ptrs,/dimensions)
+					; the issue is that these indices are from the iarr and jarr
+					current_indices=fltarr(4,n_not_null_ptrs)
+					for it_ptr = 0,n_not_null_ptrs-1 do current_indices[*,it_ptr]=$
+							[iarr[current_indices0[0,it_ptr]],jarr[current_indices0[0,it_ptr]],k,it_ptr]
 
+					;current_lenslet_samplings=
 		psf_kernel_testing:
-if i eq 183 and j eq 186 then flag=1 else flag=0
+if i eq 165 and j eq 198 then flag=1 else flag=0
 ;flag=1
-;if i eq 184 and j eq 194 and it_flex ge 0 then stop,'arrived at problematic section - create save file'
-
-;if i eq 183 and j eq 186 then flag=1 else flag=0
-
-ptr_current_PSF = gpi_highres_microlens_psf_create_highres_psf($
-                                      temporary(current_stamps), $
+ptr_current_PSF = gpi_highres_microlens_psf_create_highres_psf(PSFs,$
+                                      temporary(current_stamps), temporary(current_fitted_stamps),$
+									  current_indices, $
                                       temporary(current_xcen - current_x0), $
                                       temporary(current_ycen - current_y0), $
                                       temporary(current_flux), $
@@ -445,7 +504,7 @@ transform_section:
 ; !!!!!! WARNING !!!!!!!
 ;THIS IS tested TO WORK IN SPECTRAL MODE FOR NOW!
 ; although the code SHOULD work and combine both polarization states
-med_box=[40,30,30,20,10]
+med_box=[40,30,30,20,10,8,6,6,6]
     for f = 0,nfiles-1 do begin
  	; xtransform array
 	xtrans_tmp=xcen_ref-(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,f])
@@ -498,7 +557,7 @@ endfor
 
 ; a stupid idl problem that naturally collapses arrays makes this only usable when f gt 1 at the moment
 if 1 eq 1 and nfiles gt 1 then begin
-		stop,'at pixel phase'
+		;stop,'at pixel phase'
 		pixel_phase:
 	; pp_logs is just a dump variable at the moment, but can be used to track pp over iterations
 	; polynomial fitting

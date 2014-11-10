@@ -18,7 +18,7 @@
 ; PIPELINE COMMENT: Fit the lamp spectrum and remove it (for delivering flat field cubes)
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
-; PIPELINE ARGUMENT: Name="method" Type="string" Range="polyfit|linfit|blackbody|none" Default="blackbody" Desc="Method to use for removing lamp spectrum"
+; PIPELINE ARGUMENT: Name="method" Type="string" Range="polyfit|linfit|blackbody|medfit|none" Default="blackbody" Desc="Method to use for removing lamp spectrum"
 
 ; PIPELINE ORDER: 2.25
 ; PIPELINE CATEGORY: Calibration
@@ -37,7 +37,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	suffix='specflat'
 
 	cubef3D=*dataset.currframe
-
+sz=size(cubef3d)
 
 	my_lamp = backbone->get_keyword('GCALLAMP')
 	if strc(my_lamp) ne "QH" then return,  error('FAILURE ('+functionName+'): Expected quartz halogen flat lamp images as input, but GCALLAMP != QH.')
@@ -58,8 +58,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	lambda=cwv.lambda
 
 	meth=Modules[thisModuleIndex].method
-  	Result=dblarr(nlens,nlens,sdpx)+!VALUES.F_NAN
-  
+  	result=dblarr(nlens,nlens,sdpx)+!VALUES.F_NAN
+ 	result=dblarr(nlens,nlens,sz[3])+!VALUES.F_NAN 
   	;for rescaling, keep median value of each spectrum
   	medianspectrum=median(cubef3D[*,*,5:12], dimension=3)
   	indNan=where(~FINITE(cubef3D[*,*,0]),cc)
@@ -67,6 +67,13 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   	;calculate median of median values
   	medtot=median(medianspectrum)
   
+if meth eq 'medfit' then begin
+		med_cube=fltarr(nlens,nlens,N_ELEMENTS(cubef3d[0,0,*]))
+		box=10
+		for l=0, N_ELEMENTS(cubef3d[0,0,*])-1 do med_cube[*,*,l]=cubef3D[*,*,l]/filter_image(cubef3D[*,*,l],median=box)
+		med_spec=median(median(cubef3D,dim=2),dim=1)
+endif
+
   	message,/info, 'Extracting flat-field; Removing lamp spectrum...'
   	for xsi=0,nlens-1 do begin	
     	for ysi=0,nlens-1 do begin
@@ -90,23 +97,36 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 							res=linfit(lambint[indforfit], (spectrum)[indforfit] )
 						  lampspec=res[0]+res[1]*lambint
 							end
-				  'polyfit':begin
+			 	  'polyfit':begin
 						  res=POLY_FIT(lambint[indforfit], (spectrum)[indforfit], 2, MEASURE_ERRORS=measure_errors, SIGMA=sigma) 
 						  lampspec=res[0]+res[1]*lambint+res[2]*(lambint)^2.                
 						  end
-				'blackbody':begin
+			    'blackbody':begin
 						  tempelampe = 1100
 						  lampspec=(planck(10000*lambint,tempelampe)/mean(planck(10000*lambint,tempelampe)))*medianspectrum[xsi,ysi] ;mean((spectrum)[indforfit])
 							end
+				'medfit':begin
+							box=10 ; actually box+1
+							; median filter the 
+						  ;lampspec=median(median(cubef3D[xsi-box/2:xsi+box/2,ysi-box/2:ysi+box/2,*],dim=2),dim=1)
+							lampspec=median(median(med_cube[xsi-box/2:xsi+box/2,ysi-box/2:ysi+box/2,*],dim=2),dim=1)* $
+									med_spec
+						 end
 				;else:   lampspec=replicate(median((spectrum)[indforfit]), n_elements(lambint))
 				else:   lampspec=replicate(medianspectrum[xsi,ysi], n_elements(lambint))
 			   endcase        
 	  
-	  
+	  		 if xsi eq 100 and ysi eq 100 then stop 
 			  
 				;toDO:implement other methods
 			  ; remove the linear fit.
-			  Result[xsi,ysi,*] = reform(( spectrum/lampspec) *medianspectrum[xsi,ysi] /medtot, 1,1,sz)
+			 ; if meth eq 'medfit' then Result[xsi,ysi,*]=reform(( spectrum/lampspec), 1,1,sz) $
+			;		  else Result[xsi,ysi,*] = reform(( spectrum/lampspec) *medianspectrum[xsi,ysi] /medtot, 1,1,sz)
+			
+			  if meth eq 'medfit' then Result[xsi,ysi,*]=cubef3D[xsi,ysi,*]/med_spec $
+					  					  else Result[xsi,ysi,*] = reform(( spectrum/lampspec) *medianspectrum[xsi,ysi] /medtot, 1,1,sz)
+			 
+			  
 			  ;Result[xsi,ysi,*] = reform(( spectrum0/lampspec) *medianspectrum[xsi,ysi] /medtot, 1,1,sz)
 	 ; 		  if (xsi gt 140) && (ysi gt 140) then stop
 			endif
