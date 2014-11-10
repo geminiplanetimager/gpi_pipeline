@@ -336,7 +336,7 @@ pro GPItv::initcommon
     contrap:7L,$
     contr_yaxis_type: 1, $              ; 0=linear or 1=log axis
     contr_yaxis_mode: 1, $              ; 0=manual, 1= auto axis
-    contr_yaxis_min: 1.e-8, $           ;  axis scale
+    contr_yaxis_min: 1.e-6, $           ;  axis scale
     contr_yaxis_max: 1.e-3, $           ;  axis scale
     contr_font_size: 1.4, $             ;  for plot annotations
     contr_plotmult: 0, $                ; plot contrasts for single slice/all slices
@@ -19531,10 +19531,129 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
         
       ;;clear windows before replotting
       self->clear_contrprof_windows
-      if ((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) || $
-        ((*self.state).high_pass_mode eq 1) || ((*self.state).klip_mode eq 1) then $
-        self->statvsr, yr=yr, xtitle=xtitle, ytitle=ytitle else $
-        self->statvsr, yr=yr, xtitle=xtitle, ytitle=ytitle, dat = {asec:asec,contrprof:outval}
+
+
+	  ;;------------- do the actual plotting here (code formerly in the ::statvsr function) -----
+
+      if ~ (((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) || $
+        ((*self.state).high_pass_mode eq 1) || ((*self.state).klip_mode eq 1)  ) then $
+		data = {asec:asec,contrprof:outval}
+
+        ;self->statvsr, yr=yr, xtitle=xtitle, ytitle=ytitle else $
+        ;self->statvsr, yr=yr, xtitle=xtitle, ytitle=ytitle, data = {asec:asec,contrprof:outval}
+
+    
+  if not keyword_set(data) then begin
+    ;;check to make sure that we actually have a valid contour profile in
+    ;;memory
+    if (*self.state).contr_plotmult then inds = (*self.satspots.good) else $
+      inds = (*self.state).cur_image_num
+    if n_elements(*(*self.satspots.contrprof)[inds[0],(*self.state).contr_yunit]) eq 0 then begin
+      self->message, msgtype='error', 'No valid contour profile exists.'
+      return
+    endif
+  endif else inds = 0
+  
+  ;;set up graphs
+  self->setwindow, (*self.state).contrplot_window_id
+  erase
+  
+  ;;set proper scale unit
+  if (*self.state).contr_yunit eq 0 then sclunit = (*self.state).contrsigma else sclunit = 1d
+
+  self->initcolors
+  if ~(*self.state).contr_plotmult then color = cgcolor('red') else begin
+      color = round(findgen((*self.state).image_size[2])/$
+        ((*self.state).image_size[2]-1)*100.+100.)
+  endelse
+  ;;other plot stuff
+  if (not keyword_set(linestyle)) then linestyle=[0,2,3,5]
+  if (not keyword_set(psym)) then psym = [4,1,2,5,6]
+  if (not keyword_set(symsize)) then symsize=1.
+
+
+  ;;get plot ranges, if none given
+  if (not keyword_set(xrange)) then begin
+  
+    if not keyword_set(data) then asec = *(*self.satspots.asec)[inds[0]] else $
+      asec = data.asec
+    if (*self.state).contr_xunit eq 1 then $
+      asec *= 1d/3600d*!dpi/180d*gpi_get_constant('primary_diam',default=7.7701d0)/((*(*self.state).CWV_ptr)[inds[0]]*1d-6)
+    xrange=[min(asec),max(asec)]
+    for j=1,n_elements(inds)-1 do begin
+      asec = *(*self.satspots.asec)[inds[j]]
+      if (*self.state).contr_xunit eq 1 then $
+        asec *= 1d/3600d*!dpi/180d*gpi_get_constant('primary_diam',default=7.7701d0)/((*(*self.state).CWV_ptr)[inds[j]]*1d-6)
+      xrange[0] = xrange[0] < min(asec)
+      xrange[1] = xrange[1] > max(asec)
+    endfor
+  endif
+
+  if not(keyword_set(yrange)) or (*self.state).contr_yaxis_mode then begin
+    if not keyword_set(data) then tmp = *(*self.satspots.contrprof)[inds[0],(*self.state).contr_yunit] else $
+      tmp = data.contrprof
+    tmp = tmp[where(finite(tmp) and tmp gt 0)] * sclunit
+    yrange = [min(tmp),max(tmp)]
+    for j=1,n_elements(inds)-1 do begin
+      tmp = *(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit]
+      tmp = tmp[where(finite(tmp) and tmp gt 0)] * sclunit
+      yrange[0] = yrange[0] < min(tmp)
+      yrange[1] = yrange[1] > max(tmp)
+    endfor
+  endif
+
+  ;;Tick labels don't automatically appear if yrange less than an order
+  ;;of magnitude, so check for that
+  if floor(alog10(max(yrange))) eq floor(alog10(min(yrange))) then begin
+    ;;As of now no labels will be drawn on Y-axis, so set them by hand
+    ytickv = 10.^floor(alog10(min(yrange))) * (findgen(10)+1)
+    ytickv = ytickv(where(ytickv ge min(yrange) and ytickv le max(yrange)))
+    yticks = n_elements(ytickv)-1
+  endif
+  
+  ;;figure out title
+  widget_control,(*self.state).contrwarning_id,get_value=warn
+  if strcmp(warn,'Warnings: Possible Misdetection: Fluxes vary >25%') then $
+    title='Warning: Possible Misdetection: Fluxes vary >25%' else $
+    title = ''
+
+
+  ;;plot contrast
+  ;; and while doing so, keep track of contrast at 0.4 arcsec fiducial radius
+
+  if not(keyword_set(overplot)) then begin
+    plot,[0],[0],ylog=(*self.state).contr_yaxis_type,xlog=xlog,xrange=xrange,yrange=yrange,/xstyle,/ystyle,$
+      xtitle=xtitle,ytitle=ytitle,/nodata, charsize=(*self.state).contr_font_size, title=title,ytickv=ytickv,yticks=yticks
+  endif
+ 
+  radius=0.4
+  contr_at_04=fltarr(n_elements(inds))
+  for j = 0, n_elements(inds)-1 do begin
+    if not keyword_set(data) then asec = *(*self.satspots.asec)[inds[j]] else $
+      asec = data.asec
+    
+	mindiff = min(abs(asec-radius), /nan, closest_radius_subscript)
+    
+    if (*self.state).contr_xunit eq 1 then $
+      asec *= 1d/3600d*!dpi/180d*gpi_get_constant('primary_diam',default=7.7701d0)/((*(*self.state).CWV_ptr)[inds[j]]*1d-6)
+      
+    if not keyword_set(data) then tmp = *(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit] else $
+      tmp = data.contrprof
+     
+    contr_at_04[j] = tmp[closest_radius_subscript]
+    
+    oplot,asec,tmp[*,0] * sclunit, color=color[j], linestyle=linestyle[0]
+    if (*self.state).contr_plotouter then oplot,asec,tmp[*,1] * sclunit, color=color[j],linestyle=linestyle[1]
+  endfor
+
+  xyouts, /normal,0.55,0.8,'Star Magnitude = '+strtrim(strmid(*self.satspots.mags,0,10),2),charsize=1.2
+
+  if n_elements(contr_at_04) gt 1 then contr_at_04 = median(contr_at_04)
+  sigma = '!7r!X'
+  xyouts, /normal,0.55,0.7,strc(fix(round(sclunit)))+sigma+' Contrast = '+sigfig(sclunit*contr_at_04,2,/sci)+' at 0.4"',charsize=1.2
+  oplot, [0.4], [contr_at_04]*sclunit, psym=1, color=cgcolor('white'), symsize=2
+
+	  ;;------------- end of code merged from ::starvsr -----------------------------------------
         
       ;;update window
       if not(keyword_set(ps)) then self->tvcontr
