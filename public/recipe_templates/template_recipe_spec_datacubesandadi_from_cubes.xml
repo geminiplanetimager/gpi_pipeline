@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DRF  ReductionType="SpectralScience" name='Basic ADI + Simple SDI reduction (From Reduced Cubes)' ShortName="adifromcubes">
+<dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
+   <fits filename=""/>
+</dataset>
+<module name="Accumulate Images" Method="OnDisk" />
+<module name="Basic ADI" numimmed="3" nfwhm="1.5" Save="       1" gpitv="10" />
+<module name="Median Combine ADI datacubes" Save="       1" gpitv="10" />
+<module name="Simple SDI of post ADI residual" L1Min="1.55" L1Max="1.57" L2Min="1.60" L2Max="1.65" k="1.0" Save="       1" gpitv="5" ReuseOutput="1"/>
+</DRF>
