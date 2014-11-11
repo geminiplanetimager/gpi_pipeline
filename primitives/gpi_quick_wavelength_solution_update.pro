@@ -101,6 +101,8 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
 	backbone->set_keyword, "HISTORY", functionname+": get wav. calibration file",ext_num=0
         backbone->set_keyword, "HISTORY", functionname+": "+c_File,ext_num=0
         backbone->set_keyword, "DRPWVCLF", c_File, "DRP wavelength calibration file used.", ext_num=0
+
+		backbone->Log, "Using reference wavecal: "+c_File, depth=3
 				
 ;		message,/info, 'Calculating offests from wavelength calibration file '+c_file
 
