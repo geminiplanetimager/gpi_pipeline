@@ -61,7 +61,7 @@ compile_opt defint32, strictarr, logical_predicate
 ; don't edit the following line, it will be automatically updated by subversion:
 primitive_version= '$Id$' ; get version from subversion to store in header history
 
-calfiletype='wavecal'
+calfiletype='wavecal_deep'
 
 ; the following line sources a block of code common to all primitives
 ; It loads some common blocks, records the primitive version in the header for
@@ -396,7 +396,7 @@ xposition=shiftedwavecal[140,140,1]
 absxshift=xposition-referencex
 absyshift=yposition-referencey
 
-backbone->set_keyword, "FILETYPE", "Wavelength Solution Cal File"
+backbone->set_keyword, "FILETYPE", "Wavelength Solution Cal File (Quick)"
 backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
 
 sxaddpar,*dataset.headersExt[numfile],'NAXIS',3
