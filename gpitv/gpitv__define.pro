@@ -80,20 +80,20 @@ pro GPItv::initcommon
   ; Routine to initialize the GPItv common blocks.  Use common blocks so
   ; that other IDL programs can access the GPItv internal data easily.
 
-  self.images.main_image = ptr_new(/alloc)
-  self.images.main_image_stack = ptr_new(/alloc)
-  self.images.main_image_backup = ptr_new(/alloc)
-  self.images.names_stack = ptr_new(/alloc)
-  self.images.display_image = ptr_new(/alloc)
-  self.images.scaled_image = ptr_new(/alloc)
-  self.images.blink_image1 = ptr_new(/alloc)
+  self.images.main_image = ptr_new(/alloc)			; current active image, or slice if datacube
+  self.images.main_image_stack = ptr_new(/alloc)	; full datacube stack
+  self.images.main_image_backup = ptr_new(/alloc)	; full datacube (unmodified, in case we high pass filter etc)
+  self.images.names_stack = ptr_new(/alloc)			; descriptive names for each slice of stack
+  self.images.display_image = ptr_new(/alloc)		; the image which is actually displayed on screen (subarrayed and/or zoomed to the relevant piece from the scaled image)
+  self.images.scaled_image = ptr_new(/alloc)		; byte scaled for display copy of the full main image.
+  self.images.blink_image1 = ptr_new(/alloc)		; saved image 1 for blinking
   self.images.blink_image2 = ptr_new(/alloc)
   self.images.blink_image3 = ptr_new(/alloc)
   self.images.unblink_image = ptr_new(/alloc)
-  self.images.bmask_image_stack = ptr_new(/alloc)
-  self.images.bmask_image = ptr_new(/alloc)
-  self.images.pan_image = ptr_new(/alloc)
-  self.images.klip_image = ptr_new(/alloc)
+  self.images.dq_image_stack = ptr_new(/alloc)		; data quality cube extension, if present
+  self.images.dq_image = ptr_new(/alloc)			; data quality image or slice of cube, if present
+  self.images.pan_image = ptr_new(/alloc)			; the little mini image in the top corner
+  self.images.klip_image = ptr_new(/alloc)			; the result of processing via KLIP
   
   ;;this replaces the state.contrcens var
   self.satspots.cens = ptr_new(/alloc)
@@ -152,7 +152,6 @@ pro GPItv::initcommon
     location_bar_id: 0L, $             ; id of (x,y,value) label
     value_bar_id: 0L, $                ; id of (x,y,value) label
     wave_bar_id: 0L, $                 ; id of wavelength label
-    bmask_bar_id: 0L, $                ; id of the bmask label
     coord_bar_id: 0L, $                ; id of coordinate label
     ;;woffset_bar_id: 0L, $            ; id of wavesamp offset label
     wcs_bar_id: 0L, $                  ; id of WCS label widget
@@ -189,12 +188,12 @@ pro GPItv::initcommon
     pan_window_size: 121L, $           ; size of pan window
     pan_scale: 0.0, $                  ; magnification of pan image
     image_size: [0L,0L,0L], $          ; [0:1] gives size of *self.images.main_image
-    ; [0:2] gives size of *self.images.main_image_stack
+                                       ; [0:2] gives size of *self.images.main_image_stack
     prev_image_size: [0L,0L,0L], $     ; dimensions of previous image
     prev_image_2d: 1,$                 ; Boolean - whether previous image was 2D
     collapse_button: 0L,$              ; id of collapse button
     cur_image_num: 0L, $               ; gives current image number in
-    ; *self.images.main_image_stack
+                                       ; *self.images.main_image_stack
     curimnum_base_id0: 0L, $           ; id of cur_image_num base widget
     curimnum_base_id: 0L, $            ; id of cur_image_num base widget
     curimnum_text_id: 0L, $            ; id of cur_image_num textbox widget
@@ -204,7 +203,7 @@ pro GPItv::initcommon
     cube_mode: 	'', $				   ; {Unknown, WAVE, STOKES}
     scale_mode_droplist_id: 0L, $      ; id of scale droplist widget
     curimnum_minmaxmode: 'Constant', $ ; mode for determining min/max
-    ; of display when changing curimnum
+                                       ; of display when changing curimnum
     invert_colormap: 0L, $             ; 0=normal, 1=inverted
     coord: [0L, 0L],  $                ; cursor position in image coords
     plot_coord: [0L, 0L], $            ; cursor position when a plot
@@ -433,7 +432,9 @@ pro GPItv::initcommon
     wavsamp: 0 ,$                       ; whether to draw wavsamp?
     oplot: 0, $                         ; whether to overplot
     wavsampfile: '', $                  ; location of wavsampfile
-    bmask:0S, $                         ; If a bmask is passed
+    has_dq_mask:0S, $                   ; If a DQ mask is present
+	dq_bit_mask: (1b or 2 or 4 or 8 or 16 or 32), $       ; Binary bit mask of which bits in DQ count as 'bad'
+	dq_display_color: 1b, $             ; color to display 'bad' pix from DQ
     mosaic: 0S, $                       ; whether the 3D stack is viewed as mosaic
     im_slider1: 0L, $                   ; widget id of image 1 slider
     im_slider2: 0L, $                   ; widget id of image 2 slider
@@ -484,12 +485,13 @@ pro GPItv::initcommon
     klip_arcsec: 0.4, $               ; Area of interest for single annulus
     subwindow_headerviewer: obj_new(), $        ; handle to FITS header viewer window, if open
     subwindow_dirviewer: obj_new(), $           ; handle to file directory viewer/scanner window, if open
-    rgb_mode: 0, $
+    rgb_mode: 0, $					  ; are we displaying an RGB image made from collapsing a datacube?
     activator: 0, $                   ; is "activator" mode on?
     retain_current_slice: 1, $       ; toggles stickiness of current image when loading new file
     retain_current_view: 1, $  ; align next image by default?
     retain_collapse_mode: 0, $       ; keep collapse mode if possible      
     retain_current_stretch: 0 ,$      ; use previous minmax for new image?
+    flag_bad_pix_from_dq: 0 ,$        ; Display saturated pixels from DQ ext in contrasting color?
     isfirstimage: 1, $                ; is this the first image?
     ;default_autoscale: 1, $          ; autoscale images by default?
     ;autozoom: 1 ,$                      ; zoom images to fit window on open?
@@ -743,6 +745,8 @@ pro GPItv::startup, nbrsatspot=nbrsatspot
     {cw_pdmenu_s, 8, 'Retain Collapse Mode'}, $
     ;                {cw_pdmenu_s, 8, 'Auto Align'}, $
     {cw_pdmenu_s, 8, 'Auto Handedness'}, $
+    {cw_pdmenu_s, 12, 'Flag Bad Pix from DQ'}, $
+    {cw_pdmenu_s, 8, 'DQ bitmask Settings...'}, $
     {cw_pdmenu_s, 8, 'Suppress Information Messages'}, $
     {cw_pdmenu_s, 8, 'Suppress Warning Messages'}, $
     ;                {cw_pdmenu_s, 8, 'Always Autoscale'}, $
@@ -798,6 +802,11 @@ pro GPItv::startup, nbrsatspot=nbrsatspot
   if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (tmp eq 1) ) then (*self.state).retain_collapse_mode = tmp
   widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Retain Collapse Mode")],$
     set_button = (*self.state).retain_collapse_mode
+
+  tmp = gpi_get_setting('gpitv_flag_bad_pix_from_dq',/silent,/int)
+  if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (tmp eq 1) ) then (*self.state).flag_bad_pix_from_dq = tmp
+  widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Flag Bad Pix from DQ")],$
+    set_button = (*self.state).flag_bad_pix_from_dq
     
   tmp = gpi_get_setting('gpitv_auto_handedness',/silent,/int)
   if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (tmp eq 1) ) then (*self.state).autohandedness = tmp
@@ -1017,13 +1026,6 @@ pro GPItv::startup, nbrsatspot=nbrsatspot
     uvalue = ' ',  frame = 0)
     
   ;widget_control, (*self.state).minimaIma_id,  xsize=250
-    
-    
-  ;tmp_string = string("",-1, $
-  ;                   format = '("Bmask: ", a10, "   ", g10.5)' )
-  ;(*self.state).bmask_bar_id = widget_label((*self.state).info_base_id, $
-  ;                                      value = tmp_string,  $
-  ;                                      uvalue = 'bmask_bar',  frame = 1)
     
   tmp_string = string(12, 12, 12.001, -60, 60, 60.01, ' J2000', $
     format = '("WCS coord: ", i2,":",i2,":",f6.3,"  ",i3,":",i2,":",f5.2," ",a6)' )
@@ -1366,8 +1368,8 @@ pro gpitv::cleanup
   ptr_free, self.images.blink_image2
   ptr_free, self.images.blink_image3
   ptr_free, self.images.unblink_image
-  ptr_free, self.images.bmask_image_stack
-  ptr_free, self.images.bmask_image
+  ptr_free, self.images.dq_image_stack
+  ptr_free, self.images.dq_image
   ptr_free, self.images.pan_image
   ptr_free, self.images.klip_image
   ptr_free, self.state
@@ -1658,6 +1660,15 @@ pro GPItv::topmenu_event, event
       widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Retain Collapse Mode")],$
         set_button = (*self.state).retain_collapse_mode
     end
+
+    'Flag Bad Pix from DQ': BEGIN
+      (*self.state).flag_bad_pix_from_dq = 1 - (*self.state).flag_bad_pix_from_dq
+      widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Flag Bad Pix from DQ")],$
+        set_button = (*self.state).flag_bad_pix_from_dq
+	  self->displayall
+    END
+	'DQ bitmask Settings...': self->dq_mask_settings
+
     "Auto Handedness": begin
       (*self.state).autohandedness = ~ (*self.state).autohandedness
       widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Auto Handedness")],$
@@ -2253,6 +2264,7 @@ pro GPItv::draw_blink_event, event
       endcase
     end
     2: self->draw_motion_event, event ; motion event
+	else: message,/info, 'Unknown event type received in draw_blink_event; ignoring it.'
   endcase
   
   widget_control, (*self.state).keyboard_text_id, /sensitive, /input_focus
@@ -3280,12 +3292,20 @@ pro GPItv::collapsecube
       endif
       
       *self.images.main_image=(*self.images.main_image_stack)[*,*,(*self.state).cur_image_num]
+	  if (*self.state).has_dq_mask then $
+	      *self.images.dq_image=(*self.images.dq_image_stack)[*,*,(*self.state).cur_image_num]
     end
     
     'Collapse by Mean': begin
       widget_control,(*self.state).curimnum_base_id,map=0
       *self.images.main_image=total(*self.images.main_image_stack,3,/NAN) / (pixel_mask>1)
       if bpct gt 0 then (*self.images.main_image)[wn] = !values.f_nan
+
+	  ; Still to be implemented:
+	  ;if (*self.state).has_dq_mask then begin
+		  ;*self.images.dq_mask = *self.images.main_image_stack[*,*,0
+		  ; do something here with bitwise_and_collapse_cube, once implemented
+	  ; endif
     end
     
     'Collapse by Median': begin
@@ -4502,6 +4522,12 @@ pro GPItv::changeimage,imagenum,next=next,previous=previous, nocheck=nocheck,$
   self->settitle
   
   *self.images.main_image = (*self.images.main_image_stack)[*, *, (*self.state).cur_image_num]
+
+  ; If we have a valid DQ extension stack, then we should update the
+  ; DQ current image with the appropriate slice. 
+  if (*self.state).has_dq_mask then if (size(*self.images.dq_image_stack))[0] eq 3 then  $
+	*self.images.dq_image = (*self.images.dq_image_stack)[*, *, (*self.state).cur_image_num]
+
   self->getstats
   case (*self.state).curimnum_minmaxmode of
     'Min/Max': begin
@@ -5271,9 +5297,19 @@ pro GPItv::scaleimage,imin=imin,imout=imout, use_full_255=use_full_255
       return
     end
   endcase
+ 
+  if (*self.state).has_dq_mask and (*self.state).flag_bad_pix_from_dq then begin
+	  ; FIXME - right now anything with nonzero DQ is marked as bad. This is
+	  ; probably oversimplifying and needs to be improved, a la JWST NIRCam
+	  ; quicklook tool.
+	wbadpix = where(*self.images.dq_image and (*self.state).dq_bit_mask, badpixct)
+	if badpixct gt 0 then imout[wbadpix] = (*self.state).dq_display_color
+
+  endif
   
   if not keyword_set(imin) then *self.images.scaled_image = imout
-  
+
+ 
   ; discard any floating point underflows that may have just happened
   !except=0
   res = check_math()
@@ -5552,7 +5588,7 @@ pro GPItv::readfits, fitsfilename=fitsfilename, imname=imname, _extra=_extra
   endif
   
   ;; Find out if this is a fits extension file, and how many extensions
-  fits_info, fitsfile, n_ext = numext, /silent
+  fits_info, fitsfile, n_ext = numext, extname=extnames, /silent
   if numext eq 0 then $
     head = headfits(fitsfile)
   if numext gt 0 then begin
@@ -5600,13 +5636,15 @@ pro GPItv::readfits, fitsfilename=fitsfilename, imname=imname, _extra=_extra
   endif
   
   (*self.state).title_extras = ''
+
+
   
   ;; Now call the subroutine that knows how to read in this particular
   ;; data format:
   if (numext eq 0) then begin   ;if instrume eq 'GPIIFSDST' then begin
     self->plainfits_read, fitsfile, head, cancelled
   endif else if ((numext GT 0) AND (instrume EQ 'GPI')) then begin
-    self->fitsext_read_GPI, fitsfile, numext, head, cancelled, extensionhead=extensionhead
+    self->fitsext_read_GPI, fitsfile, numext, head, cancelled, extensionhead=extensionhead, extname=extnames, DQext=DQext
   endif else if ((numext GT 0) AND (instrume NE 'GPI') ) then begin
     self->fitsext_read_ask_extension, fitsfile, numext, head, cancelled
   endif else if ((instrume EQ 'WFPC2') AND (naxis EQ 3)) then begin
@@ -5622,7 +5660,7 @@ pro GPItv::readfits, fitsfilename=fitsfilename, imname=imname, _extra=_extra
   ;beceuase GPItv will actually use imname as a filename to try to open headers, we cant set it as some fancy string
   imname=fitsfile
   
-  self->setup_new_image, header=head, imname=imname, extensionhead=extensionhead, _extra=_extra
+  self->setup_new_image, header=head, imname=imname, extensionhead=extensionhead, DQext=DQext, _extra=_extra
   
 end
 
@@ -5632,6 +5670,7 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
     min = minimum, max = maximum, $
     linear = linear, log = log, sqrt = sqrt, $
     histeq = histeq, asinh = asinh, $
+	DQext=DQext, $
     _extra=_extra
     
   ; This routine, called right after a new image has been loaded into
@@ -5655,6 +5694,18 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   *self.images.main_image_stack = *self.images.main_image
   ;;the image backup is the main image stack
   *self.images.main_image_backup = *self.images.main_image_stack
+
+  ;; if we got a DQ extension, save it to the appropriate place, otherwise zero out that part.
+  if keyword_set(DQext) then begin
+	  (*self.state).has_dq_mask = 1
+	  if (size(DQext))[0] eq 2 then *self.images.dq_image = DQext $
+		                       else *self.images.dq_image_stack = DQext
+  endif else begin
+	  (*self.state).has_dq_mask = 0
+	  *self.images.dq_image_stack = 0 
+	  *self.images.dq_image = 0 
+  endelse
+
   ;;handle missing headers
   if ~(keyword_set(header)) then begin
     ; if we're loading a dummy header for a null image because the
@@ -5701,6 +5752,9 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
       if (*self.state).cur_image_num lt 0 then (*self.state).cur_image_num = 0
       
       *self.images.main_image = (*self.images.main_image_stack)[*, *, (*self.state).cur_image_num]
+
+	  ; Select appropriate slice from DQ array, if present.
+	  if (*self.state).has_dq_mask then *self.images.dq_image = (*self.images.dq_image_stack)[*, *, (*self.state).cur_image_num]
       
       ;;draw the image slicer
       widget_control,(*self.state).curimnum_base_id0,map=1, xsize=(*self.state).draw_window_size[0], ysize=45
@@ -6171,7 +6225,7 @@ pro GPItv::fitsext_read_ask_extension, fitsfile, numext, head, cancelled
 end
 
 ;----------------------------------------------------------------
-pro GPItv::fitsext_read_GPI, fitsfile, numext, head, cancelled, extensionhead=extensionhead
+pro GPItv::fitsext_read_GPI, fitsfile, numext, head, cancelled, extensionhead=extensionhead, extnames=extnames, DQext=DQext
 
   ; Fits reader for fits extension files - assumes extensions for GPI
 
@@ -6206,6 +6260,17 @@ pro GPItv::fitsext_read_GPI, fitsfile, numext, head, cancelled, extensionhead=ex
   *self.images.main_image = float(mrdfits(fitsfile, extension, extensionhead, /silent, /fscale))
   ;head=[headPHU,head]
   head = headPHU
+
+  ; Special functionality for GPI files only: 
+  ; Read in DQ extension if present!
+  if n_elements(extnames) gt 1 then begin
+	dq_extnum = where(strmatch(extnames, 'DQ*'), mct)
+	if mct eq 1 then begin
+		DQext = mrdfits(fitsfile, dq_extnum[0], dq_header, /silent)
+		message,/info, 'Found and loaded DQ extension for that FITS file.'
+	endif
+  endif
+
 end
 
 ;---------------------------------------------------------------
@@ -7461,9 +7526,9 @@ pro GPItv::initcolors
   ; 8 entries of the color table.  Also set top color to white.
 
 
-  rtiny   = [0, 1, 0, 0, 0, 1, 1, 1]
+  rtiny = [0, 1, 0, 0, 0, 1, 1, 1]
   gtiny = [0, 0, 1, 0, 1, 0, 1, 1]
-  btiny  = [0, 0, 0, 1, 1, 1, 0, 1]
+  btiny = [0, 0, 0, 1, 1, 1, 0, 1]
   tvlct, 255*rtiny, 255*gtiny, 255*btiny
   
   tvlct, [255],[255],[255], !d.table_size-1
@@ -7958,33 +8023,7 @@ pro GPItv::setheadinfo, noresize=noresize
     
     widget_control, (*self.state).filter2_id, set_value = strc(val)
   endif else widget_control, (*self.state).filter2_id, set_value = 'No info'
-  
-  ;; Display 'ABORTED IMAGE' in bold red letters on top of GPItv when
-  ;; aborted flag eq true
-  abort = gpi_get_keyword(h,e,'ABORTED',count=cc, silent=silent)
-  if (cc eq 1) AND (abort eq 1) then begin
-    thisdevice=!D.name
-    set_plot,'Z'
-    device, set_resolution=[165,20], z_buffer=0
-    erase
-    xyouts, 0.12,.2,'ABORTED IMAGE',color=fsc_color('red'),/normal,charthick=3,charsize=1.2
-    snapshot=tvrd()
-    tvlct,r,g,b,/get
-    image=bytarr(165,20,3)
-    tmp = bytarr(165,20)
-    tmp[where(r[snapshot] eq 0)] = 255
-    image[*,*,0]=255
-    image[*,*,1]=tmp
-    image[*,*,2]=tmp
-    widget_control, (*self.state).aborted_base_id,map=1
-    widget_control, (*self.state).aborted_id, set_value=image,/bitmap,pushbutton_events=0
-    device, z_buffer=1
-    set_plot, thisdevice
-  endif else begin
-    widget_control, (*self.state).aborted_base_id,map=0
-    widget_control, (*self.state).aborted_id, set_value=''
-  endelse
-  
+
   ;; actual exposure time
   itime = gpi_get_keyword(h, e, 'ITIME',count=cce, silent=silent)
   if cce gt 0 then  (*self.state).itime = itime else  (*self.state).itime = 0
@@ -8191,6 +8230,8 @@ pro GPItv::setheadinfo, noresize=noresize
 endif else (*self.state).cube_mode='UNKNOWN'
 
 
+self->update_DQ_warnings
+
 if keyword_set(prior_retained_units) then $
   if ((prior_retained_units ne 'Unknown') and ((*self.state).current_units ne 'Unknown')) then begin
   self->message, "Retaining prior units: "+prior_retained_units
@@ -8199,6 +8240,74 @@ endif
 if ~keyword_set(noresize) then self->resize ; MDP addition 2008-10-20
 
 end
+;----------------------------------------------------------------------
+
+pro GPITv::update_DQ_warnings
+  ;; Display image warnings - for Aborted or overexposed images.
+  ;;   This is called from setheadinfo, or if you adjust the DQ bitmask
+  ;;   interactively
+
+  h = *((*self.state).head_ptr)
+  if ptr_valid( (*self.state).exthead_ptr ) then e = *((*self.state).exthead_ptr) else e = ['']
+
+  ;; how many pixels are saturated, if we have a DQ extension?
+  if (*self.state).has_dq_mask then begin
+	 n_bad_from_dq = total(*self.images.dq_image and  (*self.state).dq_bit_mask)  
+  endif else n_bad_from_dq = 0
+  
+  ;; Display 'ABORTED IMAGE' in bold red letters on top of GPItv when
+  ;; aborted flag eq true
+  abort = gpi_get_keyword(h,e,'ABORTED',count=cc, silent=silent)
+  if (cc eq 1) AND (abort eq 1) then begin
+    thisdevice=!D.name
+    set_plot,'Z'
+    device, set_resolution=[165,20], z_buffer=0
+    erase
+    xyouts, 0.12,.2,'ABORTED IMAGE',color=fsc_color('red'),/normal,charthick=3,charsize=1.2
+    snapshot=tvrd()
+    tvlct,r,g,b,/get
+    image=bytarr(165,20,3)
+    tmp = bytarr(165,20)
+    tmp[where(r[snapshot] eq 0)] = 255
+    image[*,*,0]=255
+    image[*,*,1]=tmp
+    image[*,*,2]=tmp
+    widget_control, (*self.state).aborted_base_id,map=1
+    widget_control, (*self.state).aborted_id, set_value=image,/bitmap,pushbutton_events=0
+    device, z_buffer=1
+    set_plot, thisdevice
+	message,/info, 'WARNING: Image is ABORTED'
+  ; Or display '> 2k PIX SATURATED' if that is the case.
+  endif else if n_bad_from_dq gt 2000 then  begin
+	  res_x = 165
+	  res_y = 18
+    thisdevice=!D.name
+    set_plot,'Z'
+    device, set_resolution=[res_x,res_y], z_buffer=0
+    erase
+    xyouts, 0.03,.2,'> 2K PIX BAD DQ',color=fsc_color('red'),/normal,charthick=1.0,charsize=1.1
+    snapshot=tvrd()
+    tvlct,r,g,b,/get
+    image=bytarr(res_x,res_y,3)
+    tmp = bytarr(res_x,res_y)
+    tmp[where(r[snapshot] eq 0)] = 255
+    image[*,*,0]=255
+    image[*,*,1]=tmp
+    image[*,*,2]=tmp
+    widget_control, (*self.state).aborted_base_id,map=1
+    widget_control, (*self.state).aborted_id, set_value=image,/bitmap,pushbutton_events=0
+    device, z_buffer=1
+    set_plot, thisdevice
+	message,/info, 'WARNING: Image has > 2000 pixels which FAIL THE DATA QUALITY CHECK'
+ 
+  endif else begin
+    widget_control, (*self.state).aborted_base_id,map=0
+    widget_control, (*self.state).aborted_id, set_value=''
+  endelse
+ 
+
+end
+
 ;----------------------------------------------------------------------
 
 pro GPItv::update_child_windows, noheader=noheader,update=update
@@ -15063,6 +15172,7 @@ pro GPItv::help
     '                              (if next image is a data cube)',$
     'Options->Retain Current Stretch: Current stretch settings will be applied to next image loaded',$
     'Options->Retain Current View: Current zoom + position settings will be applied to next image loaded',$
+    'Options->Flag Bad Pix from DQ: Display saturated or otherwise bad pixels in a contrasting color',$
     ;'Options->Auto Align:          Center image on load',$
     ;'Options->Auto Zoom:           ZoomFit on load',$
     'Options->Supress Information Messages: Do not print out information messages',$
@@ -19985,7 +20095,58 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
         
       self->contrprof_refresh
     end
+
+ ;--------------------------------------------------------------------------------
+pro GPItv::dq_mask_settings
+
+  ;; Routine to get user input on which data quality flag pixels to flag. 
+  ;; Hard coded for GPI IFS DQ right now - should be generalized?
+  bit_descriptions = ['Bit 0: Permanent Bad Pixel from detector server',  $
+  'Bit 1: Raw pixel read exceeds saturation value',  $
+  'Bit 2: UTR step exceeds saturation value',  $
+  'Bit 3: UTR calculation removed minimum delta',  $
+  'Bit 4: UTR calculation removed maximum delta',  $
+  'Bit 5: Flagged bad by data pipeline badpix mask', $
+  'Bit 6: TBD/Unused', $
+  'Bit 7: TBD/Unused']
+
+  
+  bit_current_settings = bytarr(8)
+  for i=0,7 do bit_current_Settings[i] = (*self.state).dq_bit_mask and 2^i
+
+
+  bit_options = '2, button, '+strjoin(bit_descriptions,'|')+',' + $
+    ' set_value = [' + strjoin(strc(fix(bit_current_settings ne 0)),'$\,') +'], tag=selected_bits'
     
+  formdesc = ['0, label, Select options for which DQ bit flags indicate, Center', $
+	  '0, label, that a given pixel should be considered "Bad", Center',$
+	  '1, base, , frame, ', $
+	  bit_options,$
+	  '0, droplist, Black|Red|Green|Blue|Cyan|Magenta|Yellow|White, set_value='+strc(fix((*self.state).dq_display_color))+', tag=color, label_left=Color to display bad pixels', $
+    '0, button, Apply Settings, quit, tag=OK', $
+    '0, button, Cancel, quit, tag=Cancel']
+    
+  textform = cw_form(formdesc, /column, $
+    title = 'GPItv DQ Bitmask Settings')
+    
+  if (textform.cancel EQ 1) then return ; cancelled (tag# = # of inputs above+2)
+  
+  new_bitmask = 0b
+  for i=0,7 do new_bitmask = new_bitmask or (2^i)*textform.selected_bits[i]
+
+  message,/info,'New DQ bitmask: '+strc(new_bitmask)
+  (*self.state).dq_bit_mask = new_bitmask
+
+  ; color indices defined in initcolors are
+  ; black, red, green, blue, cyan, magenta, yellow, white
+  
+  (*self.state).dq_display_color = textform.color
+  self->update_DQ_warnings
+  self->displayall
+  
+end
+
+   
     ;----------------------------------------------------------------------
     
     function gpitv::get_session
@@ -20015,8 +20176,7 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
         multises=multises, session=session, $ ;session keywords headed in init
         block = block, exit = exit, $
         nbrsatspot=nbrsatspot, $              ;handled by startup
-        _extra = _extra,$                     ;all other keywords
-        bmask = bmask
+        _extra = _extra                     ;all other keywords
         
         
       ;; can't work in z-buffer or something equally silly
@@ -20047,23 +20207,12 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
       ;;If there is no image, create one here, then proceed normally.
       if ~keyword_set(image) then begin
         gridsize = 281
-        bmask = fltarr(gridsize, gridsize)
         image = fltarr(gridsize, gridsize)
         image[0] = 1.0
         if ~(keyword_set(imname)) then imname = "NO IMAGE LOADED   "
       endif
       
       self->open,image, header,imname=imname, _extra=_extra
-      
-      ;;this block does nothing.  keeping around in case we decide to do
-      ;;something with bmask
-      if keyword_set(bmask) then begin
-        (*self.state).bmask=1
-        if ((size(bmask))[0]) lt 2 then bmask = fltarr((size(image))[1],(size(image))[2])
-      endif else begin
-        if ((size(image))[0]) eq 2 then bmask = fltarr((size(image))[1],(size(image))[2])
-        if ((size(image))[0]) eq 3 then bmask = fltarr((size(image))[1],(size(image))[2],(size(image))[2])
-      endelse
       
       ;; Register the widget with xmanager if it's not already registered
       nb = ~keyword_set(block)
@@ -20107,8 +20256,8 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
         blink_image2: ptr_new(), $
         blink_image3: ptr_new(), $
         unblink_image: ptr_new(), $
-        bmask_image_stack: ptr_new(), $
-        bmask_image: ptr_new(), $
+        dq_image_stack: ptr_new(), $
+        dq_image: ptr_new(), $
         pan_image: ptr_new(),$
         klip_image: ptr_new()}
         
