@@ -445,8 +445,10 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
         types_str =[['dark', 'Dark', 'ApproxItimeReadmode'], $  ;  dark with scaling of inttime allowed 
                     ['dark_before', 'Dark', 'ApproxItimeReadmodeBefore'], $  ;  dark with scaling of inttime allowed, PRIOR TO science frame
                     ['dark_after', 'Dark', 'ApproxItimeReadmodeAfter'], $  ;  dark with scaling of inttime allowed, AFTER science frame
-					['dark_exact', 'Dark', 'itimeReadmode'],  $ ;  dark with exact match required
+                    ['dark_exact', 'Dark', 'itimeReadmode'],  $            ;  dark with exact match required
                     ['wavecal', 'Wavelength Solution Cal File', 'FiltPrism'], $
+                    ['wavecal_deep', 'Wavelength Solution Cal File (Deep)', 'FiltPrism'], $
+                    ['wavecal_quick', 'Wavelength Solution Cal File (Quick)', 'FiltPrism'], $
                     ['flat', 'Flat Field', 'FiltPrism'], $
                     ['lensletflat', 'Lenslet Flat Field', 'PrismOnly'], $ ; was filtprism
                                 ;['flat', 'Flat field', 'FiltPrism'], $
@@ -469,7 +471,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
                     ['shifts', 'Flexure shift Cal File', 'typeonly'], $
                     ['micro', 'Micro Model', 'typeonly'], $
                     ['persis', 'Persistence Parameters', 'typeonly'], $
-										['background_cube', 'Thermal/Sky Background Cube', 'FiltPrism'], $
+                    ['background_cube', 'Thermal/Sky Background Cube', 'FiltPrism'], $
                    ['', '', '']]
 	; reformat the above into a struct array.
 	aa = {type_struct, name: 'dark', description:'Dark', match_on:"itimeReadmode"}
