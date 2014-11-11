@@ -13,6 +13,11 @@
 ;       transform vector. Subtract the projected image from the
 ;       original and repeat for all slices 
 ; 
+;	*** Development code, not intended for public release ***
+;	*** Does not work in compiled mode, but that's OK since not intended for
+;	public release ****
+;
+;
 ; INPUTS: Multiple spectral datacubes, ADR corrected
 ; OUTPUTS: A reduced datacube with reduced PSF speckle halo
 ;
