@@ -182,9 +182,11 @@ PRO gpiPipelineBackbone::Cleanup
     OBJ_DESTROY, Self.ConfigParser
     OBJ_DESTROY, self.statuswindow
 
-
-    if obj_valid(self.launcher) then begin
-        self.launcher->queue, 'quit' ; kill the other side of the link, too
+	if obj_valid(self.launcher) then begin
+		; Let's no longer automatically shutdown the GUIs session. 
+		; Requested by users to keep the other session up.
+		; See issue https://rm.planetimager.org/issues/453
+		;    self.launcher->queue, 'quit' ; kill the other side of the link, too
         obj_destroy, self.launcher ; kill this side.
     endif
 
