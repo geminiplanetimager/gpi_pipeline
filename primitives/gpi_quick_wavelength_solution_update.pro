@@ -195,12 +195,19 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
 
            simarray=ngauss(x,y,ngausspars)
 
-           corrmat_analyze, CORREL_IMAGES(rawarray,simarray,xshift=3,yshift=3),xoffset_auto,yoffset_auto,/print
+           corrmat_analyze, CORREL_IMAGES(rawarray,simarray,xshift=5,yshift=5),xoffset_auto,yoffset_auto,/print
 
            backbone->Log, "Applying a prelimiinary shift of (X,Y) = ("+strc(xoffset_auto)+", "+strc(yoffset_auto)+")"
 
         endif
 
+     if AutoOffset EQ 1 then begin
+         refwlcal[*,*,1]+=xoffset_auto
+         refwlcal[*,*,0]+=yoffset_auto
+     endif else begin
+         refwlcal[*,*,1]+=xoffset
+         refwlcal[*,*,0]+=yoffset
+     endelse 
 
 
 istart=0
@@ -218,16 +225,12 @@ numiterations = float(iend-istart)*(iend-istart)/(spacing^2)
 
 for i = istart,iend,spacing do begin
 	for j = jstart,jend,spacing do begin
+
            xo=refwlcal[i,j,1]
            yo=refwlcal[i,j,0]
 
-           if AutoOffset EQ 1 then begin
-              startx=floor(xo-boxsizex/2.0)+xoffset_auto
-              starty=round(yo)-20+yoffset_auto
-           endif else begin
-              startx=floor(xo-boxsizex/2.0)+xoffset
-              starty=round(yo)-20+yoffset
-           endelse 
+           startx=floor(xo-boxsizex/2.0)
+           starty=round(yo)-20
            stopx = startx+boxsizex
            stopy = starty+boxsizey
 
@@ -324,6 +327,19 @@ mask[all_inds]=1
 
 ; create a 2d image of the measured differences between the
 ; original wavecal and the centroids from the argon snapshot
+
+; Now remove the auto-offset to make the shifts reflect the correct
+; values.
+
+if AutoOffset EQ 1 then begin
+      refwlcal[*,*,1]-=xoffset_auto
+      refwlcal[*,*,0]-=yoffset_auto
+endif else begin
+      refwlcal[*,*,1]-=xoffset
+      refwlcal[*,*,0]-=yoffset
+endelse 
+
+
 ydiffs2d = (newwavecal[*,*,0]) - (refwlcal[*,*,0])
 xdiffs2d = (newwavecal[*,*,1]) - (refwlcal[*,*,1])
 
@@ -356,9 +372,11 @@ xdiffs = (newwavecal[*,*,1] - refwlcal[*,*,1] - xim1)[wg]
 meanclip,xim1,mnx,sdx,clipsig=2,subs=xsubs
 meanclip,yim1,mny,sdy,clipsig=2,subs=ysubs
 
+
+
 backbone->Log, "Mean shifts (X,Y) of this file vs. old wavecal: "+printcoo(mnx, mny, format='(f20.3)')+" pixels,   +- "+printcoo(sdx,sdy,format='(f20.3)')+" pixels 1 sigma"
 
-        if ((sdx GE 1.0) OR (sdy GE 1.0)) then backbone->Log, "WARNING: Errors in the pixel shifts are more than a pixel."
+        if ((sdx GE 0.3) OR (sdy GE 0.3)) then backbone->Log, "WARNING: Errors in the pixel shifts are more than a pixel."
 
 	if display ne -1 then begin
 		if display eq 0 then window,/free,/retain else select_window, display,retain=1
