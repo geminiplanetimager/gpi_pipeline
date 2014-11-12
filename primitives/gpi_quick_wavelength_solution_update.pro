@@ -42,7 +42,7 @@
 ; PIPELINE ARGUMENT: Name="xoffset" Type="Int" Range="[-10,10]" Default="0" Desc="x offset guess from prior wavecal."
 ; PIPELINE ARGUMENT: Name="yoffset" Type="Int" Range="[-20,20]" Default="0" Desc="y offset guess from prior wavecal."
 ; PIPELINE ARGUMENT: Name="whichpsf" Type="Int" Range="[0,1]" Default="0" Desc="Type of psf 0;gaussian, 1;microlens"
-; PIPELINE ARGUMENT: Name="high_order_correction" Type="Int" Range="[0,1]" Default="0" Desc="Higher order flexure offsets? 0; No, 1; Yes"
+; PIPELINE ARGUMENT: Name="high_order_correction" Type="Int" Range="[0,1]" Default="1" Desc="Higher order flexure offsets? 0; No, 1; Yes"
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type='String' CalFileType="wavecal" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="AutoOffset" Type="int" Range="[0,1]" Default="0" Desc="Automatically determine x/yoffset values 0;NO, 1;YES"
