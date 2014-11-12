@@ -628,10 +628,10 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	   		((calfiles_table.prism) eq prism) ,cc)
                 errdesc = 'with same PRISM'
            endif else begin
-		imatches= where( strmatch(calfiles_table.type, types[itype].description,/fold) and $
+				imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
 	   		((calfiles_table.filter) eq filter ) and $
 	   		((calfiles_table.prism) eq prism) ,cc)
-		errdesc = 'with same DISPERSR and FILTER'
+				errdesc = 'with same DISPERSR and FILTER'
            endelse
 	end
 	
