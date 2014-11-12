@@ -433,7 +433,7 @@ pro GPItv::initcommon
     oplot: 0, $                         ; whether to overplot
     wavsampfile: '', $                  ; location of wavsampfile
     has_dq_mask:0S, $                   ; If a DQ mask is present
-	dq_bit_mask: (1b or 2 or 4 or 8 or 16 or 32), $       ; Binary bit mask of which bits in DQ count as 'bad'
+	dq_bit_mask: 0b, $  ; (1b or 2 or 4 or 8 or 16 or 32), $       ; Binary bit mask of which bits in DQ count as 'bad'
 	dq_display_color: 1b, $             ; color to display 'bad' pix from DQ
     mosaic: 0S, $                       ; whether the 3D stack is viewed as mosaic
     im_slider1: 0L, $                   ; widget id of image 1 slider
@@ -2547,10 +2547,36 @@ pro GPItv::draw_vector_event, event, measure=measure, wavecal=wavecal
         (*self.state).vectorstart = [event.x, event.y] 	; stores X and Y locations in DISPLAY PIXELS
         self->drawvector, event, measure=measure, wavecal=wavecal
         (*self.state).vectorpress = 1
-      endif
+      endif else if (event.press EQ 2) and keyword_set(measure) then begin
+		  ; Measure from star center location, if present
+		  ;; if not data cube, bail
+		  if (n_elements((*self.state).image_size) ne 3) || (((*self.state).image_size)[2] lt 2) then return
+		  ;;if no satspots in memory, calculate them
+		  if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
+			self->update_sat_spots
+			;;if failed, need to return
+			if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then return
+		  endif
+		  ;;calculate center locations
+		  ;  cents = mean(*self.satspots.cens,dim=2) ; not idl 7.0 compatible
+		  tmp=*self.satspots[*].cens
+		  cents=fltarr(2)
+		  for q=0, 1 do cents[q]=mean(tmp[q,*,*])
+	      (*self.state).vector_coord1[*] = cents 
+
+		;center_coord = $
+		;round( (0.5 >  (([event.x, event.y]/ (*self.state).zoom_factor) + (*self.state).offset) $
+		;< ((*self.state).image_size[0:1] - 0.5) ) - 0.5)
+    	center_device_coord = (cents -  (*self.state).offset)* (*self.state).zoom_factor
+	  	  (*self.state).vectorstart = center_device_coord ; (convert_coord( [cents[0]], [cents[1]], /data, /to_device))[0:1]  	; stores X and Y locations in DISPLAY PIXELS
+		  self->drawvector, event, measure=measure, wavecal=wavecal
+		  (*self.state).vectorpress = 1
+		;stop
+
+	  endif
     end
     1: begin           ; button release
-      if (event.release EQ 1) then begin  ; left button release
+      if (event.release EQ 1) or (event.release EQ 2) then begin  ; left button release
         (*self.state).vectorpress = 0
         (*self.state).vector_coord2[0] = (*self.state).coord[0] ; DATA COORDINATE PIXELS again.
         (*self.state).vector_coord2[1] = (*self.state).coord[1]
@@ -18379,6 +18405,11 @@ pro GPItv::high_pass_filter, status=status, forcestack=forcestack
     if (visibility eq 1) || keyword_set(forcestack) then begin
       im=*self.images.main_image_stack
       for s=0,N_ELEMENTS(im[0,0,*])-1 do im[*,*,s]=im[*,*,s]-filter_image(im[*,*,s],median=medboxsize)
+	  ;stop
+
+	  ;split_for, 0, N_ELEMENTS(im[0,0,*])-1, varnames=['im'],  outvar=['filtered'], $
+		  ;commands=['im[*,*,i] = im[*,*,i] - filter_image(im[*,*,i], median='+strc(medboxsize)]+")"
+
       
       ; sigmas of sat spot are 1.39 and 1.46 in H
       ;npix=5
