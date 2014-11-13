@@ -831,6 +831,7 @@ PRO dirviewer::Update,file,fileInfo,r,g,b,previewsize,image,info, directory=dire
 		 ;IF ok THEN 
 		 image = Readfits(directory+file,/silent, header) 
 
+		 instrume = sxpar(header, 'INSTRUME')
 		 if n_elements(image) eq 1 then begin
 			 ; try extension?
 			image = Readfits(directory+file,/silent, ext=1, header) 
@@ -886,7 +887,7 @@ PRO dirviewer::Update,file,fileInfo,r,g,b,previewsize,image,info, directory=dire
 
 
 	; Update the display with what you have.
-	Widget_Control, info.labelnaxesID, Set_Value="NAXES: " + strcompress(string(fileinfo.naxes),/remove_all) +"        NAXIS: " + (fileinfo.naxis)
+	Widget_Control, info.labelnaxesID, Set_Value='INSTRUME: '+instrume+"        NAXES: " + strcompress(string(fileinfo.naxes),/remove_all) +"        NAXIS: " + (fileinfo.naxis)
 	;Widget_Control, info.labelnaxisID, Set_Value="NAXIS: " + (fileinfo.naxis)
 	(*self.state).min_value = Min(image,/NAN)
 	(*self.state).max_value = Max(image,/NAN)
@@ -908,7 +909,7 @@ PRO dirviewer::Update,file,fileInfo,r,g,b,previewsize,image,info, directory=dire
 		cgImage, scaled_image, /Keep_Aspect, /NoInterpolation
 
 		;if keyword_set(self.live_view) then 
-		self->view_in_gpitv
+		if strc(instrume) eq 'GPI' then self->view_in_gpitv
 	endif
 	catch,/cancel
 
