@@ -52,7 +52,7 @@ Before you can start the pipeline, you will need to do some basic configuration 
    After downloading and unzipping, set up your shell for the pipeline. To do so, enter the following command (in which you should update the pipeline version number, 1.2.0_r3401, with the version you downloaded, and replace "[Location of the pipeline]" with the path to where-ever you unzipped that file.) ::
 
         unix% cd [Location of the pipeline]/gpi_pipeline_1.2.0_r3401/scripts/
-	unix% ./gpi_setup_nix
+	unix% ./gpi-setup-nix
 
    This will set up most of what's needed in the file ``.gpienv`` (in your home directory). As of version 1.2.1, this script should properly set paths for the runtime copy of IDL included with the pipeline. 
    Remember to restart your terminal for these changes to go into effect.

@@ -8,7 +8,18 @@ You may wish to skip ahead to  :ref:`configuring`.
 
 The next release of the GPI pipeline will probably be sometime September-ish after the final commissioning run, for use in 2014B. 
 
-Version 1.2
+
+Version 1.2.1
+=========================================
+Released 2014 Novenber 10. 
+
+This is a minor bugfix release for v1.2.0 
+
+* Added a missing primitive (gpi_lsqr_mlens_extract_dep.pro)
+* Updated the installation scripts (Perrin)
+
+
+Version 1.2.0
 =========================================
 Released 2014 October 31. 
 

@@ -64,6 +64,13 @@ calfiletype = 'wavecal'
   	if tag_exist( Modules[thisModuleIndex], "parallel") then parallel=uint(Modules[thisModuleIndex].parallel) else parallel=1
  	if tag_exist( Modules[thisModuleIndex], "numsplit") then numsplit=fix(Modules[thisModuleIndex].numsplit) else numsplit=!CPU.TPOOL_NTHREADS*2
 	if numsplit lt 1 then numsplit=!CPU.TPOOL_NTHREADS*2
+	can_parallelize = ~ LMGR(/runtime)  ; cannot parallelize if you are in runtime compiled IDL
+	if (~ can_parallelize) and (parallel) then begin
+		backbone->Log, "Can't parallelize when running using the IDL runtime. Overriding numthreads to 1."
+		parallel=0
+		numsplit=1
+	endif 
+   
   	if tag_exist( Modules[thisModuleIndex], "Save") then Save=uint(Modules[thisModuleIndex].Save) else Save=0
   	if tag_exist( Modules[thisModuleIndex], "Save_model_image") then Save_model_image=uint(Modules[thisModuleIndex].Save_model_image) else Save_model_image=0
   	if tag_exist( Modules[thisModuleIndex], "Save_model_params") then Save_model_params=uint(Modules[thisModuleIndex].Save_model_params) else Save_model_params=0
