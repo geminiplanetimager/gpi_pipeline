@@ -111,7 +111,7 @@ Description and preview
 Adding pre-created Calibration Files to your Calibrations Directory
 ================================================================================
         
-The **files_to_go_into_calibrations_directory** directory contains files that must be copied over into your calibrations directory, as defined by the environment variable ``$GPI_CALIBRATIONS_DIR`` that was set up during pipeline configuration.  Files in this directory include a bad pixel map, a microphonics model, and a flexure shifts lookup table.  
+The **files_to_go_into_calibrations_directory** directory contains files that must be copied over into your :ref:`calibrations directory <config-envvars>`. By default this is the path ``$GPI_REDUCED_DATA_DIR/calibrations``.   Files in this directory include a bad pixel map, a microphonics model, and a flexure shifts lookup table.  
 
 After copying these files into the calibration directory, the user *must* click on **Rescan Calib. DB** button, located in the bottom left hand corner of the GPI DRP Status Console.  Whenever you manually put some file into (or remove a file from) the calibrations directory, you need to make the pipeline aware of this change.  The **Rescan Calib. DB.** function  will reindex all the FITS files in that directory and register any new files in the calibration file database. That enables the pipeline to find them during subsequent reductions.  
 
