@@ -155,9 +155,9 @@ Darks
 
 The dark calibration files for a given integration time can be combined using these amendments to the Recipe Editor usage steps above:
 
-- **For step 1)** Select the 60s darks: **S20131208S0016(-20).fits**.
-- **For step 3)** Choose the **Calibration** Reduction type.
-- **For step 4)** Choose the **Dark** Recipe template.
+- **For step 1)** Select the 60s darks using the Add File(s) button: **S20131208S0016(-20).fits**
+- **For step 3)** Change the reduction category to **Calibration** 
+- **For step 4)** Select the **Dark** Recipe template from the dropdown menu
 
 The 60s darks correspond to the science data and will be used in the following section.
 
@@ -169,7 +169,7 @@ The selected primitives are then:
 
 The GPI DRP Status Console will display a progress bar and log messages while reducing the files.
 
-When reducing calibration files the result is automatically saved in the Calibrations folder. The path to this folder was defined when installing the pipeline and should normally be in the reduced folder (See :ref:`configuring`; the default ``$GPI_CALIBRATIONS_DIR`` is  ``$GPI_REDUCED_DATA/calibrations``).
+When reducing calibration files the result is automatically saved in the Calibrations folder. By default, the path to this folder is ``$GPI_REDUCED_DATA/calibrations`` (note that one may have changed it manually using the ``$GPI_CALIBRATIONS_DIR`` system variable see :ref:`configuring` for details).
 
 
 The pipeline will look for calibration files automatically by reading the text file **GPI_Calibs_DB.txt** in the calibration folder (see :ref:`calibdb`). There is a button at the bottom of the **GPI DRP Status Console** called **Rescan Calib. DB** to create or refresh this text file. 
@@ -181,23 +181,23 @@ Use the button **Remove All** to remove all the selected files. then redo the ab
 
 	
 Wavelength solution
---------------------
+-----------------------
 
 Like the dark frames, the wavelength solution calibration files can be created using the Recipe Editor. However, the wavelength calibrations are computationally intensive and sensitive to their starting parameters. Therefore master wavelength calibrations are provided by Gemini and available for download at the `Gemini Public Data webpage <http://www.gemini.edu/sciops/instruments/gpi/public-data>`_. What we recommend is to take a master wavelength calibration, then calculate the flexure offsets between the master and the arclamp snapshot image taken with your science. 
 
 For the purposes of this tutorial, we recommend users download the Wavecals.zip file available on the `Gemini Public Data webpage <http://www.gemini.edu/sciops/instruments/gpi/public-data>`_. Then add the files to the calibration directory. The user must then update the calibration database by clicking the **Rescan Calib. DB** button, found in the lower left corner of the GPI DRP Status Console Window. 
 
-At this point, the user may skip to the next section if they desire. However, should one wish to try to construct one on their own wavecales, follow the reduction steps below:
+At this point, the user may skip to the next section. However, should one wish to try to construct one on their own wavecales, follow the reduction steps below. Note that:
  
-- **For step 1)** Select Xe-arc lamp files: **S20131208S0149(-151).fits** (located in the onsky folder). 
-- **For step 3)** Keep selected the **Calibration** reduction type.
-- **For step 4)** Choose the **Wavelength Solution 2D** Recipe template.
+- **For step 1)** Select Xe-arc lamp files using the Add File(s) button: **S20131208S0149(-151).fits** (located in the wavelength_cal folder) 
+- **For step 3)** Keep selected the **Calibration** reduction category
+- **For step 4)** Select the **Wavelength Solution 2D** Recipe template
 
-This is a very computationally intensive reduction and it may take some time (>15 minutes) to complete. It also requires a reference wavelength solution in the same Band as the observed arc lamp data which is included in the Wavecals.zip file mentioned just above.
+This is a very computationally intensive reduction and it may take some time (>15 minutes) to complete. It also requires a reference wavelength solution in the same band as the observed arc lamp data which is included in the Wavecals.zip file mentioned just above. Upon completion, it will ask if you would like to overwrite the file, for the purpose of this exercise one should rename the file so it can be recognized from the original (e.g. S20131208S0150_H_wavecal2.fits). An error will then pop up saying the wavelength calibration failed the quality check, this is a piece of code that will be fixed for version 1.3. For the moment, save the image (which will put it in the calibrations directory) and continue.
 
 .. note:: The wavelength calibration requires a complex algorithm. :ref:`Wavelength Calibration <wavelength_calibration>` describes the process in more detail and provides examples of common errors with solutions. 
 
-A sample of the 2D image with the computed wavelength calibration is given below. The green lines are the locations of the individual lenslet spectra. The coordinates of the lenslets are stored in a .fits file cube in the **calibrations** folder. Use GPItv to take a look to the result.
+A sample of the 2D image with the computed wavelength calibration is given below. In order to see how your wavelength solution compares with the data, one can open an image (e.g. S20131208S0150.fits) in GPItv (this is done either from the GPI Launcher or from just double clicking on the file name in the Recipe Editor). The user then selects their wavecal by selecting "Labels"->Select Wavecal/Polcal file, then selecting the desired wavelength calibration from the list. The user then selects "Labels" -> Plot Wavcal/Polcal Grid. The green lines are the locations of the individual lenslet spectra. The coordinates of the lenslets are stored in a .fits file cube in the **calibrations** folder. 
 
 .. image:: wavelength-solution.png
         :scale: 100%
@@ -207,12 +207,13 @@ A sample of the 2D image with the computed wavelength calibration is given below
 Reducing your science data
 ==============================
 
-The following is an example of how to reduce science data. 
-- **For step 1)** Select your science data **S20131210S0025.fits**.
-- **For step 3)** Select the **SpectralScience** reduction type.
-- **For step 4)** Choose the **Quicklook Automatic Datacube Extraction** Recipe template.
+The following is an example of how to reduce science data. Start by creating a new recipe (File -> New Recipe)
 
-All the calibration files are automatically found and the result is a final data cube. The result should be plotted in GPItv at the end of the reduction. Feel free to look at the different wavelengths by changing the selected slice. Note that we have not yet accounted for the flexure offsets between the wavelength calibration derived above, and the current spectral positions, therefore the reduced cube will be rather ugly and have a large Moire pattern in the data.
+- **For step 1)** Select your science data files from the onsky folder using the Add File(s) button **S20131210S0025.fits**
+- **For step 3)** Change the reduction category to **SpectralScience** 
+- **For step 4)** Select the **Quicklook Automatic Datacube Extraction** Recipe template
+
+All the calibration files are automatically found and the result is a final data cube that should be plotted in GPItv at the end of the reduction. Note that the recipe may fail due to an inability to find the satellite spots. We'll just ignore this for the time being. Feel free to look at the different wavelengths by changing the selected slice. Note that we have not yet accounted for the flexure offsets between the wavelength calibration derived above, and the current spectral positions, therefore the reduced cube will be rather ugly and have a large Moire pattern in the data.
 
 .. image:: bad_data_cube.png
         :scale: 50%
@@ -233,11 +234,11 @@ As a rough approximation, one can input offsets in GPItv (in the plot wavecal gr
 
 .. note:: Another more automated way to do this that is not described here utilises the "Move wavecal grid" Mouse Mode in GPItv.
 
-Because a snapshot of the Argon arclamp was taken at the same telescope position, we can use this to determine the needed offsets in a much more robust fashion.
+Because a snapshot of the Argon arclamp was taken at the same telescope position, we can use this to determine the needed offsets in a much more robust fashion. So start a new recipe (File -> New Recipe) and perform the following steps:
 
 - **For step 1)** Select the Ar-arc snapshot taken with the data (found in the onsky_data folder): **S20131210S0055.fits**. 
-- **For step 3)** Keep selected the **Calibration** reduction type.
-- **For step 4)** Choose the **Quick Wavelength Solution** Recipe template.
+- **For step 3)** Change the reduction category to **Calibration** 
+- **For step 4)** Select the **Quick Wavelength Solution** Recipe template from the dropdown menu
 
 This primitive will use every 20th lenslet in the frame to calculate the net shift from the desired wavelength calibration. One must be careful to ensure the proper wavelength calibration is grabbed from the database (check the output in the pipeline xterm). If the wrong one is selected, then you can manually choose the correct one (S20131210S0055_H_wavecal.fits) using the Choose Calibration File button. A new wavecal (S20131210S0055_H_wavecal.fits) will then be added to the database, which is merely the old wavecal with new x-y spectral positions.
 
