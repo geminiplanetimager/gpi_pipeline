@@ -57,14 +57,15 @@ Before you can start the pipeline, you will need to do some basic configuration 
    This will set up most of what's needed in the file ``.gpienv`` (in your home directory). As of version 1.2.1, this script should properly set paths for the runtime copy of IDL included with the pipeline. 
    Remember to restart your terminal for these changes to go into effect.
 
+   For bash users, some operating systems use login shells. Run the command ``shopt login_shell`` to check whether you are using a login shell. If you are using one, you will need to source your ``.bashrc`` file into your ``.bash_profile`` file. `Read this for more information about the difference between login and non login shells <http://dghubble.com/blog/posts/.bashprofile-.profile-and-.bashrc-conventions/>`_. 
+  
    See :ref:`configuring` if you need more information on how to set an environment variable. 
 
 .. admonition:: Windows
  
       .. image:: icon_windows2.png
 
-   You may need to add idl to your %PATH%, and/or run the gpi-setup-windows.bat script. 
-   ##FIXME## Windows install script for compiled version probably needs to be updated. 
+   To configure the pipeline, run the gpi-setup-windows.bat script. While this install script was written for the non-compiled version of the pipeline, it should also work for the compiled version. Ignore the warning that IDL is not in the ``PATH`` and you will end up setting a few environment variables you will not use.
 
 Starting the DRP with the IDL Runtime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

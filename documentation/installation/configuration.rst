@@ -56,6 +56,8 @@ The setup script appropriate for your OS will be located in the ``pipeline/scrip
 
  Follow the instructions given by the installation script. The relevant settings are written to a file ``.gpienv`` in your home directory. You will need to restart your terminal application for the installation to take effect.
 
+ For bash users, some operating systems use login shells. Run the command ``shopt login_shell`` to check whether you are using a login shell. If you are using one, you will need to source your ``.bashrc`` file into your ``.bash_profile`` file. `Read this for more information about the difference between login and non login shells <http://dghubble.com/blog/posts/.bashprofile-.profile-and-.bashrc-conventions/>`_. 
+
  If everything went well, you can proceed to starting up the pipeline: :ref:`first-startup`.
 
  If the automated setup did not work properly, you may need to install the pipeline manually: :ref:`config-manual`.
