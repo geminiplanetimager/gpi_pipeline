@@ -38,9 +38,9 @@ pipeline, which can also modify bit 0.
 
 
 * bit 0: bad pixel, do not use if set. Values initially marked by bad pixel
-  mask in detector server bit 1: raw pixel (read from detector) exceeds
+  mask in detector server 
+* bit 1: raw pixel (read from detector) exceeds
   saturation value (specified in configuration file)
-
 * bit 2: pixel value difference between consecutive reads exceeds saturation
   value 
 * bit 3: maximum delta for pixel removed during UTR calculation 
