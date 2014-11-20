@@ -75,6 +75,71 @@ The setup script appropriate for your OS will be located in the ``pipeline/scrip
  **For Windows XP users**, the automated installation script will work with some changes to the script itself. Open up ``gpi-setup-windows.bat`` in a text editor and follow the instructions inside to modify the script for Windows XP.  Alternatively, Windows XP and older users can configure the pipeline manually: :ref:`config-manual`. (But you should upgrade to a more recent version of Windows in any case!)
 
 
+
+Here is an example of a session using the automated installation script to install from source code on a Mac. Some of the prompts will be slightly different depending on OS, and source vs. compiled installations. ::
+
+    **************************************************************************************
+    ******* GPI Data Pipeline Environment Setup Script for Unix (Mac OS X) & Linux *******
+    **************************************************************************************
+     This appears to be an installation from source code.
+
+    WARNING: IDL is not in $PATH. Please make sure IDL is installed
+     and not aliased. An aliased IDL may not work with the gpi-pipeline
+     shortcut, but you can still launch the pipeline manually.
+
+
+     We will need to set up some directories. Please provide the
+     correct directory (absolute paths!) for each of the following
+     environment variables. This program will attempt to guess a location
+     that may or may not be right. PLEASE CHECK AND ADJUST THESE AS DESIRED
+     FOR YOUR COMPUTER.
+
+     Finding the location of the GPI pipeline directory. This should be the
+     top-level directory of the downloaded and unzipped pipeline, containing
+     contain folders such as 'scripts', 'config', & 'recipe_remplates'
+     among others.
+
+    For GPI_PIPELINE_DIR, is '/Users/myusername/GPI/gpi_pipeline_1.2.1_r3478_source/pipeline' the correct path (y|n)? y
+
+     Finding the location of the GPI external libraries directory.
+     This directory should contain the pipeline dependencies ('pipeline_deps').
+     EXTERNDIR automatically located at /Users/myusername/GPI/gpi_pipeline_1.2.1_r3478_source/external. No user input needed.
+
+
+     Looking up default directory to set up a GPI Data directory.
+     Please change this to a folder you intend in store GPI data in. This script
+     will automatically create subdirectories for Raw data, Reduced data, log files,
+     and so on. If you wish to adjust these paths later, you may do so by editing
+     the $HOME/.gpienv file.
+
+    For DATADIR, is '/Users/myusername/GPI/gpi_pipeline_1.2.1_r3478_source/data' the correct path (y|n)? y
+
+    GPI Pipeline directory will be /Users/myusername/GPI/gpi_pipeline_1.2.1_r3478_source/pipeline
+    GPI External Libraries directory will be /Users/myusername/GPI/gpi_pipeline_1.2.1_r3478_source/external
+    GPI Data directory will be /Users/myusername/GPI/gpi_pipeline_1.2.1_r3478_source/data
+    Creating GPI configuration file in /Users/myusername/.gpienv
+    Setting up folders inside your GPI Data Directory (if necessary)...
+
+
+    Writing GPI Settings to /Users/myusername/.gpienv
+
+     The .gpienv file needs to be executed to set environment variables each
+     time you start a new terminal. Would you like this setup script to
+     modify your .cshrc file to automatically source .gpienv when you
+     open a terminal?
+
+    Should this script edit your .cshrc to source $HOME/.gpienv? (y|n) y
+    Modifying /Users/myusername/.cshrc to automatically run /Users/myusername/.gpienv
+
+    ****************    Installation Complete!    ***************
+     You will need to restart your terminal to run gpi-pipeline.
+    *************************************************************
+
+
+
+
+
+
 If you have successfully ran the automated setup script, you can skip ahead to  :ref:`first-startup`, or read on to understand what the automated setup is doing under the hood, and/or how you can manually adjust file paths if you want to customize your installation.
 
 .. _config-manual:

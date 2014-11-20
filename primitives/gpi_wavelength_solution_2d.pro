@@ -163,6 +163,11 @@ jend=nlens-1
 im_uncert = gpi_estimate_2d_uncertainty_image( *dataset.currframe , *dataset.headersPHU[numfile], *dataset.headersExt[numfile])
 
 
+; check if this is the runtime version of IDL. If so then parallelization is not possible.
+if LMGR(/runtime) eq 1 then begin
+	backbone->Log,"Cannot perform parallization using the IDL runtime, setting the parallel keyword to 0", depth=3
+	parallel=0
+endif
 
 
 if keyword_set(parallel) then begin

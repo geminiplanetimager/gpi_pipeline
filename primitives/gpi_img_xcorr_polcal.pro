@@ -123,7 +123,9 @@ function gpi_img_xcorr_polcal, DataSet, Modules, Backbone
   
   ;extract stellar spectra in order to match shape of microspectra
   ; add more extractions to make an average? tune to lenslet at satellite spots or edge of choronograph?
-  exe_tst = execute("resolve_routine,'gpi_lsqr_mlens_extract_pol_dep',/COMPILE_FULL_FILE")
+  
+  ;This code is no longer needed
+  ;exe_tst = execute("resolve_routine,'gpi_lsqr_mlens_extract_pol_dep',/COMPILE_FULL_FILE")
   
   n=0
   b=0
@@ -212,7 +214,7 @@ function gpi_img_xcorr_polcal, DataSet, Modules, Backbone
     ;atv, model_reform,/block
     
     model_save = model_reform
-    twod_img_corr, model_reform, img_reform,range,resolution,xsft,ysft,corr
+    gpi_twod_img_corr, model_reform, img_reform,range,resolution,xsft,ysft,corr
     
     print,xsft,ysft
     

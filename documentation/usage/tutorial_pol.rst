@@ -34,8 +34,8 @@ you will run into errors because the pipeline doesn't know about those new files
 Making a Polarization Spot Calibration File
 ============================================================
 In GPI's polarization mode each lenslet creates a pair of spots on the detector plane: one for each orthogonal polarization state. A polarization spot calibration file tells the data pipeline where to find the two spots corresponding to each lenslet. Creating a polarization spot calibration file is done in much the same way as a wavelength calibration file for spectral mode. 
-	1. Open the recipe editor and press the Add Files button. Select flat files taken in the same GPI filter band as your science data. In the tutorial data set select files **S20131212S0022.fits to S20131212S0024.fits**. 
-	2. In the Recipe Editor, from the drop down menus on the right select **Reduction Category -> Calibrations** and then **Recipe Template -> Calibrate Polarization Spot Locations - Parallel**. By selecting the Parallel option by default the pipeline tries to spread the computation across 4 threads. If for some reason you'd rather limit the process to one thread you can choose Calibrate Polarization Spot Locations. [#]_
+	1. Open the recipe editor and press the Add Files button. Select flat files taken in the same GPI filter band as your science data. In the tutorial data set select files **S20131212S0022.fits to S20131212S0024.fits** from the lamps directory. 
+	2. In the Recipe Editor, from the drop down menus on the right select **Reduction Category -> Calibration** and then **Recipe Template -> Calibrate Polarization Spot Locations - Parallel**. By selecting the Parallel option by default the pipeline tries to spread the computation across 4 threads. If for some reason you'd rather limit the process to one thread you can choose Calibrate Polarization Spot Locations. [#]_
 	3. Press Save Recipe and Queue. This process should take a few minutes, depending on your machine and whether or not you chose the parallel option. 
 	4. Once this is complete it's a good idea to double check that your spot calibration file is doing what it should. Open GPItv and open the file named S20131212S0022.fits. From the **Labels** menu select **Labels -> Get Wavcal/Polcal from CalDB**. Now select **Labels-> Plot Wavecal/Polcal Grid**. 
  
@@ -76,7 +76,7 @@ Creating Polarization Data Cubes (podc files)
 ============================================================
 This step will walk through how to create polarization data cube from raw data. A polarization cube is a 3D data cube, where the third dimension holds two slices: one for each polarization orthogonal state as split by the Wollaston prism in the IFS. 
 
-	1. In the Recipe Editor press the Add Files button and choose your Data Files. For the tutorial dataset this will be files **S20131212S0295.fits to S20131212S0298.fits**.
+	1. In the Recipe Editor press the Add Files button and choose your Data Files. For the tutorial dataset this will be files **S20131212S0295.fits to S20131212S0298.fits** in the on_sky_data folder.
 	2. Select **Reduction Category-> PolarimetricScience** and **Recipe Template -> Simple Polarization Datacube Extraction**.
 	3. Because of flexure effects internal to the GPI IFS it is possible that your Pol Spot Calibration files will not properly reflect the locations of the Polarization spots in your science frame. To check this open GPItv and open one of your raw science images (e.g. S20131212S0295.fits for the tutorial dataset). Plot the Polcal spot locations as we did in Step 4 of creating our wavecal.  
 
