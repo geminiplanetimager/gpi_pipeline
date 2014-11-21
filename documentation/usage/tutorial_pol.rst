@@ -37,7 +37,7 @@ In GPI's polarization mode each lenslet creates a pair of spots on the detector 
 	1. Open the recipe editor and press the Add Files button. Select flat files taken in the same GPI filter band as your science data. In the tutorial data set select files **S20131212S0022.fits to S20131212S0024.fits** from the lamps directory. 
 	2. In the Recipe Editor, from the drop down menus on the right select **Reduction Category -> Calibration** and then **Recipe Template -> Calibrate Polarization Spot Locations - Parallel**. By selecting the Parallel option by default the pipeline tries to spread the computation across 4 threads. If for some reason you'd rather limit the process to one thread you can choose Calibrate Polarization Spot Locations. [#]_
 	3. Press Save Recipe and Queue. This process should take a few minutes, depending on your machine and whether or not you chose the parallel option. 
-	4. Once this is complete it's a good idea to double check that your spot calibration file is doing what it should. Open GPItv and open the file named S20131212S0022.fits. From the **Labels** menu select **Labels -> Get Wavcal/Polcal from CalDB**. Now select **Labels-> Plot Wavecal/Polcal Grid**. 
+	4. Once this is complete it's a good idea to double check that your spot calibration file is doing what it should. Open GPItv and open the file named S20131212S0022.fits. From the **Labels** menu select **Labels -> Get Wavcal/Polcal from CalDB**. Now select **Labels-> Plot Wavecal/Polcal Grid** and use the default options in the dialog box that pops up. 
  
 	   When zoomed out it your calibration should looked like a nice evenly spaced grid: 
 
@@ -88,15 +88,17 @@ This step will walk through how to create polarization data cube from raw data. 
 
 	  Automatic compensation for flexure has been implemented as of pipeline version 1.2 using a primitive named 'Flexure 2D x correlation with polcal' that replaces the previous 'Update Spot Shifts for Flexure'. If you insist on using an older version of the pipeline, instructions can be found on how to manually compensate for flexure at the bottom of this page. 
 	  
-	   Your Recipe Editor Window should now look something like this: 
+	  The offsets found by the automatic flexure compensation will be printed out to the IDL terminal corresponding to the GPI DRP Status Console. To check that these offsets are appropriate for your data you can manually enter these offsets in the dialog box that pops up when you select **Labels-> Plot Wavecal/Polcal Grid** in GPItv. 
+	  
+	  Your Recipe Editor Window should now look something like this: 
 
 		.. image:: recipe_editor_pol1.png
 			:align: center
 			:scale: 50%
 
-	4. Now Press "Save Recipe and Queue". The pipeline should create 4 files with suffixes "_podc". The pipeline has created one image for each orthogonal polarization. You can now view your podc files in GPItv (a window should have popped open automatically).
+	4. Now Press "Save Recipe and Queue". The pipeline should create 4 files with suffixes "_podc". For each raw data file the pipeline has created a 3D data cube with one image for each orthogonal polarization. You can now view your podc files in GPItv (a window should have popped open automatically).
 
-	   You can view the total intensity (the sum of the two images) or the difference of the polarizations, by selecting either option in the drop down menu highlighted in red:
+	   You can view the total intensity (the sum of the two images), the difference of the polarizations or the normalized difference (the difference divided by the total intensity), by selecting either option in the drop down menu highlighted in red:
 		.. image:: gpitv_podc.png
 			:scale: 75%
 			:align: center
@@ -115,13 +117,18 @@ Creating Stokes Cubes from Polarization Cubes
 
 	2. Select **Reduction Category-> PolarimetryScience** and **Recipe Template -> Basic Polarization Sequence (from podc cubes)**. 
 
-	3. An important step in the combining a polarization sequence is rotating the images to the same position angle. This is done by the Rotate North Up primitive, which looks for the pivot point of the rotation in the header keywords [PSFCENTX, PSFCENTY]. These keywords are created by the Measure Star Position for Polarimetry primitive. This primitive relies on an estimate of the centre position, provided as a primitive parameter, which it refines into a more precise estimate via a Radon transform based algorithm. Open one of your podc files in GPItv and estimate the location of the centre of the occulting spot. For the tutorial dataset the centre is roughly at [147,147]: 
+	3. An important step in combining a polarization sequence is rotating the images to the same position angle. This is done by the Rotate North Up primitive, which looks for the pivot point of the rotation in the header keywords [PSFCENTX, PSFCENTY]. These keywords are created by the Measure Star Position for Polarimetry primitive that was run while creating the polarization data cubes. This primitive relies on an estimate of the centre position, provided as a primitive parameter, which it refines into a more precise estimate via a Radon transform based algorithm. If the star was well centred on the detector during your observations then the primitive should have successfully found a centre close to [140,140]. In general it is worth double checking that this was done correctly. 
+
+	   Open one of your podc files in GPItv and check the Science header extension for the PSFCENTX and PSFCENTY keywords. Check that this is consistent with the centre of the image in GPItv. For the tutorial dataset the centre is roughly at [139,140]: 
 		
 		.. image:: gpitv_psfcent.png
 			:scale: 75%
 			:align: center
 
-	   Enter these values into the Measure Star Position for Polarimetry primitive. Your recipe editor should now look roughly like this:
+	   (If the keyword positions do not match with the image location then you should include the Measure Star Position primitive in recipe below before the Accumulate Images primitive. Make sure to update the x0 and y0 primitive parameters with an updated initial guess for the centre location.)
+
+
+	   Your recipe editor should now look roughly like this:
 		.. image:: recipe_editor_pol2.png
 			:scale: 75%
 			:align: center
@@ -153,11 +160,9 @@ Creating Stokes Cubes from Raw Data
 
 	1. If you are confident that you have a good estimate of the star's location you can create a Stokes Data Cube in one step by selecting Recipe Template -> Basic Polarization Sequence (from Raw Data). 
 
-	2. Enter the offsets due to flexure as parameters to the "Update Spot Shifts for Flexure" primitive. 
+	2. Enter the estimate of the star's coordinates as parameters to the "Measure Star Position for Polarimetry" primitive (or leave them as the default values). 
 
-	3. Enter the estimate of the star's coordinates as parameters to the "Measure Stay Position for Polarimetry" primitive. 
-
-	4. Press "Save Recipe and Queue" 
+	3. Press "Save Recipe and Queue" 
 
 Flexure compensation in older pipeline versions
 ============================================================
