@@ -25,7 +25,7 @@ primitives/gpi_lsqr_mlens_extract.pro
 primitives/gpi_lsqr_mlens_extract_pol.pro
 primitives/gpi_img_xcorr.pro
 utils/gpi_lsqr_mlens_extract_dep.pro
-gpi_lsqr_mlens_extract_pol_dep.pro
+utils/gpi_lsqr_mlens_extract_pol_dep.pro
 
 # Parallelization utility used by the above
 utils/parallelize
@@ -47,3 +47,4 @@ utils/klip_math.pro
 
 # TLOCI
 primitives/gpi_tloci.pro
+utils/TLOCI
