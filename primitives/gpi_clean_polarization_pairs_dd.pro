@@ -106,7 +106,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	; systematic biases between the e- and o- channels which are consistent
 	; between exposures. We measure that here and subtract it off. 
 	
-	median_diff = median(diffstack,dim=3) 				; Median of the differences. Should be mostly systematics
+	median_diff = median(diffstack,dim=3)				; Median of the differences. Should be mostly systematics
 														; i.e. the difference between the e- and o-
 														; rays which is due to polarization cube
 														; extraction imperfections
