@@ -47,6 +47,7 @@
 ;				 2013 and the creation of a public branch.
 ; 2014-02-04 MP: Removed deprecated docdir option
 ; 2014-02-06 MP: Debugged /nodocs option
+; 2014-11-21 MP: Exclude .svn files from zips
 ;
 ;-
 
@@ -431,8 +432,9 @@ if !version.os_family eq 'unix' then begin
 
 
 	; Create zip of the source code directories
+	;   don't include the svn history hidden subdirectory
 	zipfilename_source =  'gpi_pipeline_'+version_string+'_source.zip'
-	zipcmd = 'zip -r '+zipfilename_source+' gpi_pipeline_'+version_string+'_source '
+	zipcmd = 'zip -r '+zipfilename_source+' gpi_pipeline_'+version_string+'_source -x "*/.svn/*"'
 	message,/info, zipcmd
 	spawn, zipcmd
 

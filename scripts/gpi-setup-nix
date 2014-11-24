@@ -167,9 +167,9 @@ then
 	printf "#----- Required paths -----------------\n# GPI_DATA_ROOT is a helper path only.\n# If desired you can set all paths independently\n" >> "$GPIENV"
 	if [ $IS_COMPILED == 1 ] ; then 
 	    # figure out the version-number-dependent path for IDL
-	    IDL_DIR="$GPI_PIPELINE_DIR/executables/idl*"
-	    printf "IDL_DIR: $IDL_DIR\n"
-	    printf "export IDL_DIR=\"$GPI_PIPELINE_DIR/executables/idl*\"\n" >> "$GPIENV"
+	    IDL_DIR=$(echo "$GPI_PIPELINE_DIR"/executables/idl* )
+	    #printf "IDL_DIR: $IDL_DIR\n"
+	    printf "export IDL_DIR=\"$IDL_DIR\"\n" >> "$GPIENV"
 	    printf "export GPI_DRP_DIR=\"$GPI_PIPELINE_DIR/\"\n\n" >> "$GPIENV"
 	fi
 	printf "export GPI_DATA_ROOT=\"$DATADIR/\"\n" >> "$GPIENV" 
@@ -184,7 +184,7 @@ then
 	#source into bashrc file if ncessary:
 	if !(grep -Fxq "source \$HOME/.gpienv" "$HOME/.bashrc")
 	then
-        printf " The .gpienv file needs to be executed to set environment variables each\n time you start a new terminal. This setup script would like to\n source your .gpienv file into your .bashrc so the\n GPI Pipeline is configured when you open a new bash shell.\n Note that if you are using a login shell (this includes MacOS users),\n you will want to make sure your .bashrc file is sourced into your\n .bash_profile file. For users with complicated bash configurations,\n you may want to check that this will not mess up your IDL_PATH and\n PATH variables.\n\n"
+        printf " The .gpienv file needs to be executed to set environment variables each\n time you start a new terminal. This setup script would like to\n source your .gpienv file in your .bashrc so the\n GPI Pipeline is configured when you open a new bash shell.\n Note that if you are using a login shell (this includes MacOS users),\n you will want to make sure your .bashrc file is sourced into your\n .bash_profile file. For users with complicated bash configurations,\n you may want to check that this will not mess up your IDL_PATH and\n PATH variables.\n\n If you are unfamiliar with .bashrc and .bash_profile, please see:\n    http://dghubble.com/blog/posts/.bashprofile-.profile-and-.bashrc-conventions/\n\n"
 	    while true; do
 		read -p "Should this script edit your .bashrc to source \$HOME/.gpienv? (y|n) " yn
 		case $yn in
@@ -204,8 +204,7 @@ then
 	fi
 	#reset shell with new environment, this sometimes doesn't work correctly..
 	#exec bash
-fi
-if [ "$SHELL" == "/bin/csh" ] || [ "$SHELL" == "/bin/tcsh" ]
+elif [ "$SHELL" == "/bin/csh" ] || [ "$SHELL" == "/bin/tcsh" ]
 then	
 	#write GPI environment file
 	printf "\n\nWriting GPI Settings to $GPIENV\n\n"
@@ -214,7 +213,8 @@ then
 	if [ $IS_COMPILED == 1 ] ; then 
 	    # figure out the version-number-dependent path for IDL
 	    IDL_DIR=$(echo "$GPI_PIPELINE_DIR"/executables/idl* )
-
+	    #printf "IDL_DIR: $IDL_DIR\n"
+	
 	    printf "setenv IDL_DIR \"$IDL_DIR\"\n" >> "$GPIENV"
 	    printf "setenv GPI_DRP_DIR \"$GPI_PIPELINE_DIR/\"\n\n" >> "$GPIENV"
 	fi
@@ -256,6 +256,20 @@ then
 	#else
 	#	exec tcsh
 	#fi
+else
+    printf "\nXXXXXXXXXXXXXXXXXXXXXXXX        ERROR         XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
+    printf "X                                                                          X\n"
+    printf "X    Your selected Unix shell ('$SHELL') is not supported by this script.  X\n"
+    printf "X    Must be one of:   /bin/bash   /bin/csh   /bin/tcsh                    X\n"
+    printf "X                                                                          X\n"
+    printf "X    You must be doing something nonstandard. Hopefully if you are         X\n"
+    printf "X    technically skilled enough to change your shell to that, you are      X\n"
+    printf "X    also capable of figuring out how to set environment variables in it.  X\n"
+    printf "X    Please consult the GPI pipeline documentation for descriptions        X\n"
+    printf "X    of the variables that need to be set.                                 X\n"
+    printf "X                                                                          X\n"
+    printf "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n\n"
+    exit
 fi
 
 printf "\n****************    Installation Complete!    ***************\n You will need to restart your terminal to run gpi-pipeline.\n*************************************************************\n\n"

@@ -180,49 +180,6 @@ function gpi_combine_polarization_sequence, DataSet, Modules, Backbone
   ;; at this point we should have properly computed the system response matrix M.
   ;; We can now iterate over each position in the FOV and compute the derived
   ;; Stokes vector at that position.
-
-
-	;--------- Experimental development code here
-
-	; ignoring rotation - partially hard coded for HR 4796A - 
-	sumstack = sumdiffstack[*,*,indgen(nfiles)*2]
-	diffstack = sumdiffstack[*,*,indgen(nfiles)*2+1]
-
-
-	; subtract off median difference to reduce systematics
-	mdiff = median(diffstack,dim=3)
-	skysub, diffstack, mdiff, subdiffstack
-	subdiffstack = ns_fixpix(subdiffstack)
-	lpi =  total(abs(subdiffstack),3) / nfiles
-	sum =  total(abs(sumstack),3) / nfiles
-
-	;stop
-
-	; for HD 100546 the above doesn't work well since the disk is TOO visible.
-	; Instead:
-	cleandiff = ns_fixpix(diffstack)
-	cleandiff = ns_fixpix(cleandiff)
-
-	cleansum = ns_fixpix(sumstack)
-	cleansum = ns_fixpix(cleansum)
-
-	
-
-
-	cleandiff2= cleandiff
-	for k=0,3 do cleandiff2[*,*,k] = median(cleandiff2[*,*,k],3)
-	cleansum2= cleansum
-	for k=0,3 do cleansum2[*,*,k] = median(cleansum2[*,*,k],3)
-	
-	lpi = sqrt(total(cleandiff2^2, 3)/2)
-
-	sum = total(cleansum2,3)/4
-
-	stop
-
-	;--------- End of experimental section
-
-
   
   for x = 0L, sz[1]-1 do begin
     for y = 0L, sz[2]-1 do begin
@@ -421,16 +378,6 @@ function gpi_combine_polarization_sequence, DataSet, Modules, Backbone
 ;  close, lun
 
 
-  ; save the 'quick and dirty' pol code version
-  real_currframe = *dataset.currframe
-  *dataset.currframe = [[[sum]],[[lpi]]]
-
-   save_suffix = 'quickpol'
-   b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, save_suffix, display=3)
-
-   ; now save the 'real' code version.
-  *dataset.currframe = real_currframe
-   save_suffix = 'stokesdc'
 	@__end_primitive
 end
 

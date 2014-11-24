@@ -41,25 +41,33 @@
 ;	2014-05-06		Release 1.1.1
 ;   2014-10-30		Release 1.2.0
 ;   2014-11-10		Release 1.2.1  
+;   2014-11-21		an update to this function itself, not just the release
+;                   number! Don't try to read svn version id if /runtime 
+;                   or if there is no .svn subdirectory
 ;-
 
 function gpi_pipeline_version, svn=svn
 
 version = '1.2.1'
 
+
+
 if keyword_set(svn) then begin
-	; append svn version ID also
+	; append svn version ID also, if possible
 	codepath = gpi_get_directory('GPI_DRP_DIR')
-	cd, curr=curr
-	catch, myerror
-	if myerror eq 0 then begin
-		cd, codepath
-		spawn, 'svnversion', results,/noshell
-		svnid = results[n_elements(results)-1] ; take the last line of the result
-			; this is in case we get multi-line output because e.g. the user
-		version += ", rev "+strc(svnid)
+
+	if  file_test(codepath+path_sep()+".svn",/directory) and ~lmgr(/runtime) then begin
+		cd, curr=curr
+		catch, myerror
+		if myerror eq 0 then begin
+			cd, codepath
+			spawn, 'svnversion', results,/noshell
+			svnid = results[n_elements(results)-1] ; take the last line of the result
+				; this is in case we get multi-line output because e.g. the user
+			version += ", rev "+strc(svnid)
+		endif
+		cd, curr
 	endif
-	cd, curr
 
 endif
 
