@@ -196,8 +196,10 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
  mask = bytarr(sz[1],sz[2])
 
  ; load in bad pixel map if it exists
- if keyword_set(badpixmap) then mask[where(badpixmap eq 1)]=1
-
+ if keyword_set(badpixmap) then begin
+		 ind=where(badpixmap eq 1,ct)
+		 if ct ne 0 then mask[ind]=1
+	endif
  backbone->set_keyword, "HISTORY", "Destriping, using spectral masking + median across channels"
  backbone->set_keyword, "HISTORY", "   (This does not work on flat fields in spectral mode!)"
 
@@ -290,7 +292,7 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 			if high_ind[0] ne -1 then begin 			
 			for yy=0, N_ELEMENTS(dy_arr)-1 do begin
 				for xx=0, N_ELEMENTS(dx_arr)-1 do begin
-					mask[y3[high_ind]+dy_arr[yy],x3[high_ind]+dx_arr[xx]] = 1
+					mask[(y3[high_ind]+dy_arr[yy])>0<2047,(x3[high_ind]+dx_arr[xx])>0<2047] = 1
 				endfor
 			endfor
 			endif
@@ -304,7 +306,7 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 			if very_high_ind[0] ne -1 then begin
 				for yy=0, N_ELEMENTS(dy_arr)-1 do begin
 					for xx=0, N_ELEMENTS(dx_arr)-1 do begin
-					mask[y3[very_high_ind]+dy_arr[yy],x3[very_high_ind]+dx_arr[xx]] = 1
+					mask[(y3[very_high_ind]+dy_arr[yy])>0<2047,(x3[very_high_ind]+dx_arr[xx])>0<2047] = 1
 					endfor
 					endfor
 				endif
@@ -335,8 +337,8 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 			  ;spoty = polspot_coords[1,wg,ix,iy,pol]
 			  
 			  ;mask[spotx,spoty]= 1
-			  if strcmp(filter,'K1') then mask[cenx-boxsize:cenx+boxsize,ceny-boxsize-1:ceny+boxsize] = 1 $
-			  else mask[cenx-boxsize:cenx+boxsize,ceny-boxsize:ceny+boxsize] = 1 
+			  if strcmp(filter,'K1') then mask[(cenx-boxsize)>0<2047:(cenx+boxsize)>0<2047,(ceny-boxsize-1)>0<2047:(ceny+boxsize)>0<2047] = 1 $
+			  else mask[(cenx-boxsize)>0<2047:(cenx+boxsize)>0<2047,(ceny-boxsize)>0<2047:(ceny+boxsize)>0<2047] = 1 
 			   
 			  endfor 
 			endfor 
@@ -363,7 +365,8 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 ;////////////////////////////////////////////////////////////////////////////////
 
     im=image
-    im[where(mask eq 1)]=!values.f_nan
+	ind=where(mask eq 1,ct)
+    if ct ne 0 then im[ind]=!values.f_nan
 
     if keyword_set(chan_offset_correction) then begin
        backbone->set_keyword, "HISTORY", " Also applying optional channel offset correction."
@@ -534,7 +537,8 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 ;////////////////////////////////////////////////////////////////////////////////
 
     im = image
-		im[where(mask eq 1)]=!values.f_nan
+	ind=where(mask eq 1,ct)
+	if ct ne 0 then	im[ind]=!values.f_nan
 
 		; write the mask?
 		if keyword_set(write_mask) eq 1 then begin
@@ -761,14 +765,16 @@ gpitvsess = fix(Modules[thisModuleIndex].gpitv)
 
   if keyword_set(save_stripes) then b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, 'stripes', display=gpitvsess,savedata=full_noise_model,saveheader=*dataset.headersExt[numfile], savePHU=*dataset.headersPHU[numfile])
   
-  logstr = 'Robust sigma of unmasked pixels BEFORE destriping: '+strc(robust_sigma(image[where(~mask)]))
+  ind=where(~mask,ct)
+  if ct ne 0 then begin
+  logstr = 'Robust sigma of unmasked pixels BEFORE destriping: '+strc(robust_sigma(image[ind]))
   backbone->set_keyword, "HISTORY", logstr
   backbone->Log, logstr
 
-  logstr = 'Robust sigma of unmasked pixels AFTER destriping: '+strc(robust_sigma(imout[where(~mask)]))
+  logstr = 'Robust sigma of unmasked pixels AFTER destriping: '+strc(robust_sigma(imout[ind]))
   backbone->set_keyword, "HISTORY", logstr
   backbone->Log, logstr
-
+endif
 
 @__end_primitive
 end
