@@ -384,7 +384,7 @@ satflux_err_arr=fltarr(4,N_ELEMENTS(lambda))
 					imdisp, tmp1,range=[min(tmp1,/nan),max(tmp1,/nan)]
 
 					print, 'SNR at slice 15 = ',strc(satflux_arr[s,l]/satflux_err_arr[s,l])
-					wait,1
+					;wait,1
 ;					stop
 
 				endif
