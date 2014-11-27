@@ -74,7 +74,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     ;if (size(im))[0] eq 0 then im=readfits(filename,h)
     szim=size(im)
 
-    ;szbp=size(badpixelmap)
+    szbp=size(badpixmap)
     ; version 1 sketch: We model each peak as a 2D rotated Gaussian. 
     ;
     ; for each peak, we store
@@ -100,23 +100,25 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     
     ; Setting up the shared memory
     shmmap, 'spotpos', /double, 5,nlens,nlens,2
+;    shmmap, 'spotpos', /double, 6,nlens,nlens,2
     shmmap, 'spotpos_pixels', /integer, 2, nspot_pixels,nlens,nlens,2
     shmmap, 'spotpos_pixvals', /double, nspot_pixels,nlens,nlens,2
     shmmap, 'imshr',type=szim[0], szim[1],szim[2] ;2d array
-    ;shmmap, 'badpixmap', type=szbp[0], szbp[1],szbp[2] 
+    shmmap, 'bpshr', type=szbp[0], szbp[1],szbp[2] 
     
     spotpos=shmvar('spotpos')
     spotpos_pixels=shmvar('spotpos_pixels')
     spotpos_pixvals=shmvar('spotpos_pixvals')
     imshr=shmvar('imshr')
-    ;bpshr=shmvar('bpshr')
+    bpshr=shmvar('bpshr')
     
     spotpos[*]+=!values.d_nan
     spotpos_pixvals[*]+=!values.f_nan
     imshr[0,0]=im
     
     
-    ;bpshr[0,0]=badpixmap
+    bpshr[0,0]=badpixmap
+    
     ; Create the SPOTPOS array, which stores the Gaussian-fit 
     ; spot locations. 
     ;
@@ -195,10 +197,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		;(*bridges[ipar])->Setvar,'display_flag', display_flag
 		
 		(*bridges[ipar])->Execute, "SHMMap, 'spotpos', /double, 5,"+string(nlens)+","+string(nlens)+",2"
+;		(*bridges[ipar])->Execute, "SHMMap, 'spotpos', /double, 6,"+string(nlens)+","+string(nlens)+",2"
 		(*bridges[ipar])->Execute, "SHMMap, 'spotpos_pixels', /integer, 2,"+string(nspot_pixels)+","+string(nlens)+","+string(nlens)+",2"
 		(*bridges[ipar])->Execute, "SHMMap, 'spotpos_pixvals', /double,"+string(nspot_pixels)+","+string(nlens)+","+string(nlens)+",2"
 		;(*bridges[ipar])->Execute, "SHMMap, 'imshr', type="+string(szim[0])+","+string(szim[1])+","+string(szim[2])
-		;(*bridges[ipar])->Execute, "SHMMap, 'bpshr', type="+szbp[0]+","+szbp[1]+","+szbp[2]
+		(*bridges[ipar])->Execute, "SHMMap, 'bpshr', type="+string(szbp[0])+","+string(szbp[1])+","+string(szbp[2])
 		
 		
 		(*bridges[ipar])->Execute, "spotpos=shmvar('spotpos')"
@@ -206,9 +209,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		(*bridges[ipar])->Execute, "spotpos_pixvals=shmvar('spotpos_pixvals')"
 		;(*bridges[ipar])->Execute, "im=shmvar('imshr')"
 		;(*bridges[ipar])->Execute, ";=shmvar('imshr')"
+		(*bridges[ipar])->Execute, "bpshr=shmvar('bpshr')"
+		;(*bridges[ipar])->Execute, "bpshr[0,0]=badpixmap
+		
 
     ;The orginal called for a badpixelmap, but this is now dealt with earlier in the pipeline
-		(*bridges[ipar])->Execute, "find_pol_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,spotpos,im, spotpos_pixels, spotpos_pixvals, tight_pos, boxwidth, display=display_flag", /nowait
+		(*bridges[ipar])->Execute, "find_pol_positions_quadrant, quadrant,wcst,Pcst,nlens,idx,jdy,cen1,wx,wy,hh,szim,spotpos,im, spotpos_pixels, spotpos_pixvals, tight_pos, boxwidth, display=display_flag, badpixmap=bpshr", /nowait
 		;wait, 5
 		;
 		; The above should automatically write the output into the shared memory, I think,
