@@ -244,8 +244,10 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
          device,set_resolution=[800,600],z_buffer = 0
          erase
       endelse
+
       plot,[0],[0],ylog=contr_yaxis_type,xrange=xrange,yrange=yrange,/xstyle,/ystyle,$
-        xtitle=xtitle,ytitle=ytitle,/nodata, charsize=1.2,background=cgcolor('white'),color = cgcolor('black'),yticks=yticks,ytickv=ytickv
+        xtitle=xtitle,ytitle=ytitle,/nodata, charsize=1.2,background=cgcolor('white'),color = cgcolor('black'),yticks=yticks,ytickv=ytickv, $
+		title="Contrast for "+dataset.filenames[numfile]
 
 
       
@@ -256,7 +258,7 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
 
 
 	  for r=0,2 do begin
-		  xyouts, 0.6, 0.9-0.05*r, "Contrast = "+sigfig(fiducial_contrasts[r],2,/sci)+" at "+sigfig(fiducial_radii[r],2)+" arcsec",$
+		  xyouts, 0.6, 0.85-0.07*r, "Contrast = "+sigfig(fiducial_contrasts[r],2,/sci)+" at "+sigfig(fiducial_radii[r],2)+" arcsec",$
 			  /norm, charsize=1.5, color=cgcolor('red')
 	  endfor
       
