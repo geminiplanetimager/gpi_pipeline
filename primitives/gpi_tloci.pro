@@ -27,7 +27,7 @@
 ; 	 ZHD: Intial creation.
 ;-
 
-function gpi_adi_with_loci, DataSet, Modules, Backbone
+function gpi_tloci, DataSet, Modules, Backbone
 
 primitive_version= '$Id: gpi_adi_with_loci.pro 2511 2014-02-11 05:57:27Z mperrin $' ; get version from subversion to store in header history
 @__start_primitive
@@ -45,14 +45,14 @@ if tag_exist( Modules[thisModuleIndex], "Lambda") eq 1 then Lambda=long(Modules[
 ;use varible names to get at a file stored in pipe, adopt some naming convention for ease of parameter selection (mass, age, composition)?
 planet_model_filename=gpi_get_directory('DRP_CONFIG')+'/planet_models/'+p_spec
 if not FILE_TEST(planet_model_filename) then begin
-	backbone->Log, "Planet spectrum not found."
-	return 
+	backbone->Log, "ERROR: Planet spectrum file "+planet_model_filename+"not found."
+	return, NOT_OK
 endif
 
 star_model_filename=gpi_get_directory('DRP_CONFIG')+'/planet_models/'+s_spec
 if not FILE_TEST(star_model_filename) then begin
-	backbone->Log, "Stellar spectrum not found."
-	return 
+	backbone->Log, "ERROR: Stellar spectrum file "+star_model_filename+" not found."
+	return, NOT_OK
 endif
 
 ;determine runtime enviroment
