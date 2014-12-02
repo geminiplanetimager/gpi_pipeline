@@ -167,8 +167,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	sm_clean_diffstack = clean_diffstack *0
 
 	; the runtime version of IDL does not support the execute function that is called in filter_image if the no_ft keyword is not set.
-	if LMGR(/runtime) eq 1 then for i=0L,nfiles-1 do sm_clean_diffstack[*,*,i] = filter_image(clean_diffstack[*,*,i],fwhm=3,/all,/no_ft)
-else for i=0L,nfiles-1 do sm_clean_diffstack[*,*,i] = filter_image(clean_diffstack[*,*,i],fwhm=3,/all)
+	if LMGR(/runtime) eq 1 then for i=0L,nfiles-1 do sm_clean_diffstack[*,*,i] = filter_image(clean_diffstack[*,*,i],fwhm=3,/all,/no_ft) $
+			 else for i=0L,nfiles-1 do sm_clean_diffstack[*,*,i] = filter_image(clean_diffstack[*,*,i],fwhm=3,/all)
 
 	if keyword_set(mydebug) then atv, [diffstack, clean_diffstack, sm_clean_diffstack],/bl
 
