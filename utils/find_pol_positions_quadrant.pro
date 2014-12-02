@@ -64,6 +64,8 @@ function localizepeak_mpfitpeak,  im, cenx, ceny,wx,wy, hh, pixels=pixels, pixva
 	; TBD here. 
 	;
 	; return [X, Y, rotangle, width_X, width_Y] where widths are at 25% max?
+	; default values will be [cenx, ceny, 0,1.5,1.5] 
+	
 	if wx eq 0 or wy eq 0 then message, "Input parameters wx or wy are 0 - can't localize a size-zero box!"
 	szim=size(im)
 	x1=floor(cenx-wx)>0 & x2=ceil(cenx+wx)<szim[1]-1
@@ -71,6 +73,7 @@ function localizepeak_mpfitpeak,  im, cenx, ceny,wx,wy, hh, pixels=pixels, pixva
 
 	; find the maximum location inside the specified box
 	; and get the corresponding coordinates in the full array
+	
 	array=im[x1:x2,y1:y2]
 	if keyword_set(badpixmap) && total(badpixmap[x1:x2 , y1:y2 ]) ne 0. then begin
 	      weights=replicate(1.,x2-x1+1,y2-y1+1)
@@ -80,7 +83,8 @@ function localizepeak_mpfitpeak,  im, cenx, ceny,wx,wy, hh, pixels=pixels, pixva
 	      fixpix, array,0, outim, /nan, /silent
 	      array=outim
 	      endif
-	endif 
+	endif
+	 
 	if total(finite(array)) gt n_elements(array)/2 then begin
 		yfit = mpfit2dpeak(float(array), A,x, y,/gaussian,/tilt) 
 		;stop
@@ -89,11 +93,12 @@ function localizepeak_mpfitpeak,  im, cenx, ceny,wx,wy, hh, pixels=pixels, pixva
 				; mpfit2dpeak is slow here, but not terribly slow. And besides this
 				; could easily be parallelized...
 		a = float(a)
-
-		; figure out the half-width at some chosen fraction of the maximum.
-		; e.g. set frac=0.5 to get the half-width at half max. 
+    
+    ; figure out the half-width at some chosen fraction of the maximum.
+		; e.g. set frac=0.5 to get the half-width at half max.
 		frac = 0.02
 		hwxm_coeff = sqrt(2*alog(1./frac))
+
 
 		if arg_present(pixels) then begin
 			; find pixels which are 
@@ -173,13 +178,20 @@ function localizepeak_mpfitpeak,  im, cenx, ceny,wx,wy, hh, pixels=pixels, pixva
 
 
 	endif
+  ;Check for nans
+ 
+  if ~finite(total(a)) then begin 
+    print, "Bad lenslet fit near "+string(cenx, ceny)+" setting to default values"
+    A=[1,1.5/hwxm_coeff,1.5/hwxm_coeff,cenx, ceny, 0]
+  endif
 
-
-	vals =  [A[4]+x1, A[5]+y1, A[6]*!radeg, hwxm_coeff*A[2], hwxm_coeff*A[3]]
+	vals = [A[4]+x1, A[5]+y1, A[6]*!radeg, hwxm_coeff*A[2], hwxm_coeff*A[3]]
 	return, vals
 
 endif else begin
-    return,replicate(!values.f_nan, 5)
+    print, "Too few pixels near "+string(cenx, ceny)+" to get a good fit, setting to default values"
+    vals=[cenx, ceny, 0, 1.5,1.5]
+    return, vals
 endelse
 
 end
