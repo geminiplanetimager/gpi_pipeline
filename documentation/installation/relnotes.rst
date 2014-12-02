@@ -11,12 +11,16 @@ The next release of the GPI pipeline will probably be sometime September-ish aft
 
 Version 1.2.1
 =========================================
-Released 2014 Novenber 10. 
+Released 2014 December 2. 
 
-This is a minor bugfix release for v1.2.0 
+This is a minor bugfix release for v1.2.0 based on testing from Kathleen Labrie at Gemini and input from the Gemini community. 
 
-* Added a missing primitive (gpi_lsqr_mlens_extract_dep.pro)
-* Updated the installation scripts (Perrin)
+* Improved the installation scripts (Perrin)
+* Updated data reduction Tutorials (Millar-Blanchaer, Wolff, Ingraham)
+* Added error handling in primitives to ensure no parallelization is invoked when using the runtime (Perrin, Ingraham, Millar-Blanchaer, Wolff)
+* More robust polarization spot calibration code in the presence of uncorrected hot pixels (Millar-Blanchaer)
+* Improved boundary checking in gpi_destripe_science_image primitive (Ingraham)
+* Added a missing utility (gpi_lsqr_mlens_extract_dep.pro)
 
 
 Version 1.2.0
