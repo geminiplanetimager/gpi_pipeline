@@ -428,8 +428,8 @@ if keyword_set(save_model_image) then begin
 	bkgy = (modelparams[*,*,0])[wg]
 	triangulate, bkgx, bkgy, triangles, b
 	smoothed_background =griddata(bkgx, bkgy, modelbackgrounds[wg], xout=findgen(2048), yout=findgen(2048),/grid, /nearest, triangles=triangles)
-	smoothed_background = filter_image(smoothed_background,fwhm=30)
-
+	; the runtime version of IDL does not support the execute function that is called in filter_image if the no_ft keyword is not set.
+	if LMGR(/runtime) eq 1 then	smoothed_background = filter_image(smoothed_background,fwhm=30,/no_ft) else smoothed_background = filter_image(smoothed_background,fwhm=30,/no_ft) 
 	smoothed_background = trigrid(  bkgx, bkgy, modelbackgrounds[wg], triangles, xout=indgen(2048), yout=indgen(2048) )
 	smoothed_background[*,0:3] = 0
 	smoothed_background[0:3,*] = 0
