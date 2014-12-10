@@ -477,8 +477,9 @@ pro GPItv::initcommon
     specalign_mode: 0, $              ; boolean indicating whether you're in specalign mode
     klip_mode: 0, $                   ; boolean indicating whether you're in KLIP mode
     high_pass_mode: 0,$               ; boolean indicating whether you're in high pass filter mode
-    high_pass_size: 15,$               ; high pass filter size of median box
-    specalign_to: 0L, $               ; index of slice you're aligned to
+    high_pass_size: 15,$              ; high pass filter size of median box
+    low_pass_mode: 0,$                ; boolean indicating whether you're in low pass filter mode
+	specalign_to: 0L, $               ; index of slice you're aligned to
     klip_annuli: 5L, $                ; default # of KLIP annuli to use
     klip_movmt: 2.0, $                ; default minimum pixels to move for KLIP ref set
     klip_prop: 0.99999, $             ; default truncation for KLIP
@@ -3276,7 +3277,7 @@ pro GPItv::collapsecube
     'Show Cube Slices': begin  ; show slices
     
       ;;if you were previously klip aligned or high-pass filtered, kill the contrast profile
-      if ((*self.state).klip_mode eq 1) || ((*self.state).high_pass_mode eq 1) then begin
+      if ((*self.state).klip_mode eq 1) || ((*self.state).high_pass_mode eq 1) || ((*self.state).low_pass_mode eq 1) then begin
         heap_free,self.satspots.asec
         heap_free,self.satspots.contrprof
         self.satspots.contrprof = ptr_new(/alloc) ;contour profile (will be Z x 3 pointer array with first dimension being stdev,median,mean)
@@ -3288,11 +3289,14 @@ pro GPItv::collapsecube
       ;; if you were previously speckle aligned, kliped or
       ;; high-passed, restore the backup cube before doing anything else
       if ((*self.state).specalign_mode eq 1) || ((*self.state).high_pass_mode eq 1) $
-        || ((*self.state).klip_mode eq 1) || ((*self.state).stokesdc_im_mode eq 1)  then begin
+        || ((*self.state).klip_mode eq 1) || ((*self.state).stokesdc_im_mode eq 1) $
+		|| ((*self.state).low_pass_mode eq 1)  then begin
         (*self.images.main_image_stack)=(*self.images.main_image_backup)
         (*self.state).specalign_mode = 0
         (*self.state).klip_mode = 0
         (*self.state).high_pass_mode = 0
+		(*self.state).low_pass_mode = 0
+
         (*self.state).stokesdc_im_mode = 0
         
         ;; restoring has just zeroed out the prior invert and rotation
@@ -3351,10 +3355,16 @@ pro GPItv::collapsecube
     *self.images.main_image=(*self.images.main_image_stack)[*,*,(*self.state).cur_image_num]
   end
   
-  'High Pass Filter':begin
-  ; image updating now goes on inside the function
-  self->high_pass_filter
-end
+  	'High Pass Filter':begin
+  	; image updating now goes on inside the function
+  	self->high_pass_filter
+	end
+
+  	'Low Pass Filter':begin
+  	; image updating now goes on inside the function
+  	self->low_pass_filter
+	end
+
 
 'Run KLIP':begin
 widget_control,(*self.state).curimnum_base_id,map=1
@@ -4508,7 +4518,8 @@ pro GPItv::changeimage,imagenum,next=next,previous=previous, nocheck=nocheck,$
   
   ; do nothing if the cube is collapsed somehow
   if ((*self.state).collapse ne 0) && ((*self.state).specalign_mode ne 1)$
-    && ((*self.state).high_pass_mode ne 1)   && ((*self.state).klip_mode ne 1) && ((*self.state).stokesdc_im_mode ne 1) then return
+    && ((*self.state).high_pass_mode ne 1)  && ((*self.state).low_pass_mode ne 1) $
+	&& ((*self.state).klip_mode ne 1) && ((*self.state).stokesdc_im_mode ne 1) then return
     
     
   ; if we've got a 3d image stack this lets us move between
@@ -4585,7 +4596,7 @@ pro GPItv::setcubeslicelabel
   ;; do nothing if the cube is collapsed somehow
   if  ((*self.state).collapse ne 0) && ((*self.state).specalign_mode ne 1) $
     && ((*self.state).high_pass_mode ne 1) && ((*self.state).klip_mode ne 1) $
-    && ((*self.state).stokesdc_im_mode ne 1) then return
+    && ((*self.state).low_pass_mode ne 1) && ((*self.state).stokesdc_im_mode ne 1) then return
     
   case (*self.state).cube_mode of
     'WAVE': begin
@@ -5723,6 +5734,11 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
 
   ;; if we got a DQ extension, save it to the appropriate place, otherwise zero out that part.
   if keyword_set(DQext) then begin
+		; saw a bug here that I can't reproduce but it might be prudent to
+		;check to make sure the DQext is the same size as the image
+		; there was a time where the DQext was not properly being removed
+		; when creating datacubes, so this will take care of that
+
 	  (*self.state).has_dq_mask = 1
 	  if (size(DQext))[0] eq 2 then *self.images.dq_image = DQext $
 		                       else *self.images.dq_image_stack = DQext
@@ -5780,7 +5796,7 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
       *self.images.main_image = (*self.images.main_image_stack)[*, *, (*self.state).cur_image_num]
 
 	  ; Select appropriate slice from DQ array, if present.
-	  if (*self.state).has_dq_mask then *self.images.dq_image = (*self.images.dq_image_stack)[*, *, (*self.state).cur_image_num]
+	  if ((*self.state).has_dq_mask) then *self.images.dq_image = (*self.images.dq_image_stack)[*, *, (*self.state).cur_image_num]
       
       ;;draw the image slicer
       widget_control,(*self.state).curimnum_base_id0,map=1, xsize=(*self.state).draw_window_size[0], ysize=45
@@ -5828,6 +5844,7 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   (*self.state).klip_mode = 0
   if ~(*self.state).retain_collapse_mode || (coordupdate ne 0) then begin
      (*self.state).high_pass_mode = 0
+	 (*self.state).low_pass_mode = 0
      (*self.state).collapse = 0
   endif 
   
@@ -5934,7 +5951,13 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   widget_control, (*self.state).collapse_button, get_value=modelist
   if (*self.state).high_pass_mode && (modelist[(*self.state).collapse] ne 'High Pass Filter') then begin
      self->high_pass_filter,/forcestack
-  endif 
+  endif
+  ;;if low_pass is flagged and current collapse mode is not low
+  ;;pass, do a low pass before applying the mode
+  widget_control, (*self.state).collapse_button, get_value=modelist
+  if (*self.state).low_pass_mode && (modelist[(*self.state).collapse] ne 'Low Pass Filter') then begin
+     self->low_pass_filter,/forcestack
+  endif  
   self->collapsecube
   tmp = widget_info((*self.state).collapse_button,/droplist_select)
   if tmp ne (*self.state).collapse then widget_control, (*self.state).collapse_button,set_droplist_select = (*self.state).collapse
@@ -8220,7 +8243,7 @@ pro GPItv::setheadinfo, noresize=noresize
         
         widget_control, (*self.state).curimnum_lambLabel_id, set_value="Wavelen[um]="
         
-        modelist = ['Show Cube Slices', 'Collapse by Mean', 'Collapse by Median', 'Collapse by SDI', 'Collapse to RGB Color','Align speckles','High Pass Filter','Run KLIP']
+        modelist = ['Show Cube Slices', 'Collapse by Mean', 'Collapse by Median', 'Collapse by SDI', 'Collapse to RGB Color','Align speckles','High Pass Filter','Low Pass Filter','Run KLIP']
         widget_control, (*self.state).collapse_button, set_value = modelist
         (*self.state).cube_mode='WAVE'
         
@@ -8237,7 +8260,7 @@ pro GPItv::setheadinfo, noresize=noresize
         self->message, msgtype = 'information', "Configuring GPItv for STOKES MODE"
         widget_control, (*self.state).curimnum_lambLabel_id, set_value="Polariz.="
         
-        modelist = ['Show Cube Slices', 'Collapse by Mean', 'Collapse by Median', 'High Pass Filter']
+        modelist = ['Show Cube Slices', 'Collapse by Mean', 'Collapse by Median', 'High Pass Filter','Low Pass Filter']
         ;; do we have a 2-Slice pol stack, or a 4-slice cube?
         ;; set up to overplot polarization vectors
         naxis3 = gpi_get_keyword(h, e, "NAXIS3")
@@ -15281,6 +15304,8 @@ pro GPItv::help
     'Align speckles:                Re-project image so that speckles are aligned to current slice',$
     'Run KLIP:                      Perform KLIP processing on all image slices',$
     'High Pass Filter:              Remove low-frequency structure',$
+    'Low Pass Filter:               Remove high-frequency structure',$
+
     '',$
     'KEYBOARD SHORTCUTS:',$
     'Numeric keypad (with NUM LOCK on) moves cursor',$
@@ -18383,6 +18408,72 @@ pro GPItv::alignspeckle, status=status
 end
 
 ;;----------------------------------------------------------------------
+pro GPItv::low_pass_filter, status=status, forcestack=forcestack
+  ;;; routine to remove high frequency structure from cubes
+  ;;; PI - 2014-12-10
+  
+  widget_control, /hourglass
+  
+  if (n_elements((*self.state).image_size) eq 3) or (n_elements((*self.state).image_size) eq 2) then begin
+
+
+	  hd = *((*self.state).head_ptr)
+	  if ptr_valid((*self.state).exthead_ptr) then exthd = *((*self.state).exthead_ptr) else exthd = ['', 'END']
+  
+ 
+ 	; get the filter and determine the FWHM
+	filter = gpi_simplify_keyword_value(gpi_get_keyword(hd, exthd, 'IFSFILT',count=cc, silent=silent))
+ 
+	case filter of
+ 	 'Y':fwhm=1.4
+ 	 'J':fwhm=1.5
+ 	 'H':fwhm=1.6
+ 	 'K1':fwhm=1.7
+ 	 'K2':fwhm=1.8
+	 else:	begin
+				self->message, msgtype='error', "No filter keyword in the header, assuming H-band"
+				fwhm=1.6
+			end
+	endcase
+
+    ; visibility of the cube slice widget is a proxy for whether we are
+    ; looking at a cube slice or a combined image (e.g. averaged, medianed)
+    visibility = widget_info((*self.state).curimnum_base_id,/map)
+    
+    ; if the widget is visible, we are looking slices so we should filter all
+    ; of the slices for consistency
+    if (visibility eq 1) || keyword_set(forcestack) then begin
+      im=*self.images.main_image_stack
+	  ; careful to smooth using the proper call of filter_image
+	  ; the runtime doesn't support convolution in fourier space
+     if LMGR(/runtime) eq 0 then for s=0,N_ELEMENTS(im[0,0,*])-1 do $
+			 im[*,*,s]=filter_image(im[*,*,s],fwhm=fwhm,/all) $
+			 else im[*,*,s]=filter_image(im[*,*,s],fwhm=fwhm, /no_ft,/all) 
+      *self.images.main_image_stack=im
+      *self.images.main_image=(*self.images.main_image_stack)[*,*,(*self.state).cur_image_num]
+    endif else begin
+      ; we are looking at a collapsed image of some sort so save time by not
+      ; filtering all the slices, just the current combined image
+      im = *self.images.main_image
+      if LMGR(/runtime) eq 0 then im = filter_image(im, fwhm=fwhm,/all) else im = filter_image(im, fwhm=fwhm, /no_ft,/all) 
+      *self.images.main_image = im
+    endelse
+    
+    ((*self.state).low_pass_mode) = 1
+    self->getstats
+    self->displayall
+    
+    status=1
+  endif else begin
+    self->message, msgtype='error', "Low pass filter only works with 2D or 3D datacubes"
+    status=0
+  endelse
+  
+end
+
+;----------------------------------------------------------------------
+
+
 pro GPItv::high_pass_filter, status=status, forcestack=forcestack
   ;;; routine to remove low frequency structure from cubes
   ;;; PI - 2013-07-24
@@ -19631,8 +19722,9 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
   ;;contrprof pointer has been reset (has zero dim)  or the total value of
   ;;the slice's entry is zero (has been allocated but not
   ;;filled in yet)
-  if ((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) ||$
-    ((*self.state).klip_mode eq 1) || ((*self.state).high_pass_mode eq 1) then begin
+  if ((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) || $
+    ((*self.state).klip_mode eq 1) || ((*self.state).high_pass_mode eq 1) || $
+	((*self.state).low_pass_mode eq 1)  then begin
       if (*self.state).contr_plotmult then inds = (*self.satspots.good) else $
         inds = (*self.state).cur_image_num
       copsf = (*self.images.main_image_stack)[*,*,inds]
@@ -19675,8 +19767,9 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
             /dointerp,doouter=(*self.state).contr_plotouter
         endcase
         
-        if ((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) ||$
-          ((*self.state).klip_mode eq 1) || ((*self.state).high_pass_mode eq 1)  then begin
+        if ((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) || $
+          ((*self.state).klip_mode eq 1) || ((*self.state).high_pass_mode eq 1) || $
+		  ((*self.state).low_pass_mode eq 1) then begin
             ;;write asec and radial profile to proper array
             *(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit] = outval
             *(*self.satspots.asec)[inds[j]] = asec
@@ -19703,8 +19796,8 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
 	  ;;------------- do the actual plotting here (code formerly in the ::statvsr function) -----
 
       if ~ (((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) || $
-        ((*self.state).high_pass_mode eq 1) || ((*self.state).klip_mode eq 1)  ) then $
-		data = {asec:asec,contrprof:outval}
+        ((*self.state).high_pass_mode eq 1) || ((*self.state).low_pass_mode eq 1) || $
+		((*self.state).klip_mode eq 1)  ) then data = {asec:asec,contrprof:outval}
 
         ;self->statvsr, yr=yr, xtitle=xtitle, ytitle=ytitle else $
         ;self->statvsr, yr=yr, xtitle=xtitle, ytitle=ytitle, data = {asec:asec,contrprof:outval}
@@ -19875,8 +19968,9 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
           return
         ENDIF
         
-        if ((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) ||$
-          ((*self.state).klip_mode eq 1) || ((*self.state).high_pass_mode eq 1) then begin
+        if ((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) || $
+          ((*self.state).klip_mode eq 1) || ((*self.state).high_pass_mode eq 1) || $
+		  ((*self.state).low_pass_mode eq 1)  then begin
             out = dblarr(n_elements(*(*self.satspots.asec)[inds[0]]), n_elements(inds)+1)+!values.d_nan
             out[*,0] = *(*self.satspots.asec)[inds[0]]
             for j=0,n_elements(inds)-1 do $
