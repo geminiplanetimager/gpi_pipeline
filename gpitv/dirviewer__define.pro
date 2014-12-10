@@ -831,8 +831,14 @@ PRO dirviewer::Update,file,fileInfo,r,g,b,previewsize,image,info, directory=dire
 		 ;IF ok THEN 
 		 image = Readfits(directory+file,/silent, header) 
 
-		 instrume = sxpar(header, 'INSTRUME')
-		 if n_elements(image) eq 1 then begin
+		 instrume = sxpar(header, 'INSTRUME',count=count)
+		; if no instrume keyword is returned, this means the file is NOT a GPI image (and is probably something that just resembles one
+		if count eq 0 then begin
+			message,/info, "ERROR: "+file+ " is does not have a INSTRUME keyword in it's header. This is probably not a GPI image. Can't display"
+			return
+		endif
+
+		if n_elements(image) eq 1 then begin
 			 ; try extension?
 			image = Readfits(directory+file,/silent, ext=1, header) 
 			 
