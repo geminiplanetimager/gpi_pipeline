@@ -18423,16 +18423,17 @@ pro GPItv::low_pass_filter, status=status, forcestack=forcestack
  
  	; get the filter and determine the FWHM
 	filter = gpi_simplify_keyword_value(gpi_get_keyword(hd, exthd, 'IFSFILT',count=cc, silent=silent))
- 
+
+; these are just rough approximations from images. The real values change wrt seeing etc. 
 	case filter of
- 	 'Y':fwhm=1.4
- 	 'J':fwhm=1.5
- 	 'H':fwhm=1.6
- 	 'K1':fwhm=1.7
- 	 'K2':fwhm=1.8
+ 	 'Y':fwhm=3.0
+ 	 'J':fwhm=3.5
+ 	 'H':fwhm=4.1
+ 	 'K1':fwhm=4.5
+ 	 'K2':fwhm=5.0
 	 else:	begin
 				self->message, msgtype='error', "No filter keyword in the header, assuming H-band"
-				fwhm=1.6
+				fwhm=3.5
 			end
 	endcase
 
