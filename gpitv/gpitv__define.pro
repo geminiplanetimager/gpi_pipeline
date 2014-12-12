@@ -479,6 +479,7 @@ pro GPItv::initcommon
     high_pass_mode: 0,$               ; boolean indicating whether you're in high pass filter mode
     high_pass_size: 15,$              ; high pass filter size of median box
     low_pass_mode: 0,$                ; boolean indicating whether you're in low pass filter mode
+	snr_map_mode: 0,$		              ; boolean indicating whether you're in snr map mode
 	specalign_to: 0L, $               ; index of slice you're aligned to
     klip_annuli: 5L, $                ; default # of KLIP annuli to use
     klip_movmt: 2.0, $                ; default minimum pixels to move for KLIP ref set
@@ -3277,7 +3278,8 @@ pro GPItv::collapsecube
     'Show Cube Slices': begin  ; show slices
     
       ;;if you were previously klip aligned or high-pass filtered, kill the contrast profile
-      if ((*self.state).klip_mode eq 1) || ((*self.state).high_pass_mode eq 1) || ((*self.state).low_pass_mode eq 1) then begin
+      if ((*self.state).klip_mode eq 1) || ((*self.state).high_pass_mode eq 1) $
+			  || ((*self.state).snr_map_mode eq 1) || ((*self.state).low_pass_mode eq 1) then begin
         heap_free,self.satspots.asec
         heap_free,self.satspots.contrprof
         self.satspots.contrprof = ptr_new(/alloc) ;contour profile (will be Z x 3 pointer array with first dimension being stdev,median,mean)
@@ -3290,13 +3292,13 @@ pro GPItv::collapsecube
       ;; high-passed, restore the backup cube before doing anything else
       if ((*self.state).specalign_mode eq 1) || ((*self.state).high_pass_mode eq 1) $
         || ((*self.state).klip_mode eq 1) || ((*self.state).stokesdc_im_mode eq 1) $
-		|| ((*self.state).low_pass_mode eq 1)  then begin
+		|| ((*self.state).low_pass_mode eq 1) || ((*self.state).snr_map_mode eq 1)  then begin
         (*self.images.main_image_stack)=(*self.images.main_image_backup)
         (*self.state).specalign_mode = 0
         (*self.state).klip_mode = 0
         (*self.state).high_pass_mode = 0
 		(*self.state).low_pass_mode = 0
-
+		(*self.state).snr_map_mode = 0
         (*self.state).stokesdc_im_mode = 0
         
         ;; restoring has just zeroed out the prior invert and rotation
@@ -3365,6 +3367,10 @@ pro GPItv::collapsecube
   	self->low_pass_filter
 	end
 
+  	'Create SNR Map':begin
+  	; image updating now goes on inside the function
+  	self->create_snr_map
+	end
 
 'Run KLIP':begin
 widget_control,(*self.state).curimnum_base_id,map=1
@@ -4519,7 +4525,8 @@ pro GPItv::changeimage,imagenum,next=next,previous=previous, nocheck=nocheck,$
   ; do nothing if the cube is collapsed somehow
   if ((*self.state).collapse ne 0) && ((*self.state).specalign_mode ne 1)$
     && ((*self.state).high_pass_mode ne 1)  && ((*self.state).low_pass_mode ne 1) $
-	&& ((*self.state).klip_mode ne 1) && ((*self.state).stokesdc_im_mode ne 1) then return
+	&& ((*self.state).klip_mode ne 1) && ((*self.state).stokesdc_im_mode ne 1) $
+	&& ((*self.state).snr_map_mode ne 1) then return
     
     
   ; if we've got a 3d image stack this lets us move between
@@ -4596,7 +4603,8 @@ pro GPItv::setcubeslicelabel
   ;; do nothing if the cube is collapsed somehow
   if  ((*self.state).collapse ne 0) && ((*self.state).specalign_mode ne 1) $
     && ((*self.state).high_pass_mode ne 1) && ((*self.state).klip_mode ne 1) $
-    && ((*self.state).low_pass_mode ne 1) && ((*self.state).stokesdc_im_mode ne 1) then return
+    && ((*self.state).low_pass_mode ne 1) && ((*self.state).stokesdc_im_mode ne 1) $
+	&& ((*self.state).snr_map_mode ne 1) then return
     
   case (*self.state).cube_mode of
     'WAVE': begin
@@ -5845,6 +5853,7 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   if ~(*self.state).retain_collapse_mode || (coordupdate ne 0) then begin
      (*self.state).high_pass_mode = 0
 	 (*self.state).low_pass_mode = 0
+	 (*self.state).snr_map_mode = 0
      (*self.state).collapse = 0
   endif 
   
@@ -5957,7 +5966,13 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   widget_control, (*self.state).collapse_button, get_value=modelist
   if (*self.state).low_pass_mode && (modelist[(*self.state).collapse] ne 'Low Pass Filter') then begin
      self->low_pass_filter,/forcestack
+  endif 
+  
+  widget_control, (*self.state).collapse_button, get_value=modelist
+  if (*self.state).low_pass_mode && (modelist[(*self.state).collapse] ne 'Create SNR Map') then begin
+     self->create_snr_map
   endif  
+   
   self->collapsecube
   tmp = widget_info((*self.state).collapse_button,/droplist_select)
   if tmp ne (*self.state).collapse then widget_control, (*self.state).collapse_button,set_droplist_select = (*self.state).collapse
@@ -8243,7 +8258,7 @@ pro GPItv::setheadinfo, noresize=noresize
         
         widget_control, (*self.state).curimnum_lambLabel_id, set_value="Wavelen[um]="
         
-        modelist = ['Show Cube Slices', 'Collapse by Mean', 'Collapse by Median', 'Collapse by SDI', 'Collapse to RGB Color','Align speckles','High Pass Filter','Low Pass Filter','Run KLIP']
+        modelist = ['Show Cube Slices', 'Collapse by Mean', 'Collapse by Median', 'Collapse by SDI', 'Collapse to RGB Color','Align speckles','High Pass Filter','Low Pass Filter','Run KLIP', 'Create SNR Map']
         widget_control, (*self.state).collapse_button, set_value = modelist
         (*self.state).cube_mode='WAVE'
         
@@ -15305,7 +15320,7 @@ pro GPItv::help
     'Run KLIP:                      Perform KLIP processing on all image slices',$
     'High Pass Filter:              Remove low-frequency structure',$
     'Low Pass Filter:               Remove high-frequency structure',$
-
+    'Create SNR Map:                Create SNR Map using contrast profile',$
     '',$
     'KEYBOARD SHORTCUTS:',$
     'Numeric keypad (with NUM LOCK on) moves cursor',$
@@ -18408,6 +18423,97 @@ pro GPItv::alignspeckle, status=status
 end
 
 ;;----------------------------------------------------------------------
+pro GPItv::create_snr_map, status=status
+  ;;; routine to create SNR maps from contrast+data
+  ;;; PI - 2014-12-10
+  
+  widget_control, /hourglass
+  
+  if (n_elements((*self.state).image_size) eq 3) or (n_elements((*self.state).image_size) eq 2) then begin
+
+
+	  hd = *((*self.state).head_ptr)
+	  if ptr_valid((*self.state).exthead_ptr) then exthd = *((*self.state).exthead_ptr) else exthd = ['', 'END']
+
+; are there sat spots declared?
+;*self.satspots[*].cens
+;if N_ELEMENTS(*self.satspots.cens) eq 0 then begin
+;self->message, msgtype='info', 'No satellite spot information loaded yet, finding satellite spots'
+;		self->update_sat_spots
+;endif
+; is there any contrast information?
+;  self.satspots.contrprof ;contour profile (will be Z x 3 pointer array with second dimension being stdev,median,mean)
+
+ ((*self.state).snr_map_mode) = 1
+
+if N_ELEMENTS( *(*self.satspots.contrprof)[0,0]) eq 0 then begin
+	self->message, msgtype='info', 'No contrast information calculated yet, calculating contrast'
+	self->contrast
+endif
+
+;;check to make sure that we actually have a valid contour profile in memory
+;; maybe the sat spot finding failed? not sure if this is necessary in the long run
+
+if (*self.state).contr_plotmult then inds = (*self.satspots.good) else $
+      inds = (*self.state).cur_image_num
+if n_elements(*(*self.satspots.contrprof)[inds[0],(*self.state).contr_yunit]) eq 0 then begin
+      self->message, msgtype='error', 'No valid contour profile exists, cannot create SNR map.'
+	  return
+endif
+
+; get satellits and calculate image center
+cens = (*self.satspots.cens)
+cent = [mean(cens[0,*]),mean(cens[1,*])]
+; create a radial distance array
+dimx=281 & dimy=281
+xc= cent[0] & yc=cent[1]
+distarr=sqrt((findgen(dimx)#replicate(1.,dimy)-xc)^2+$
+    	(replicate(1.,dimx)#findgen(dimy)-yc)^2)
+distarr=float(round(distarr)) ; this has to be float of the flagging as Nan doesn't work... not sure why.
+im=*self.images.main_image_stack
+; mask out the regions in the distarr were not interested in
+ind=where(finite(im[*,*,0]) eq 0, count)
+if count ge 1 then distarr[ind]=!values.f_nan
+; need a contrast for all elements, so find the unique ones
+all_rad_vals = distarr[UNIQ(distarr, SORT(distarr))]
+
+all_rad_vals=all_rad_vals[where(finite(all_rad_vals) eq 1)]
+; calculate the contrast for all elements
+sz=size(im)
+im=*self.images.main_image_stack
+; now need to take the contrast measurements and the center of the image, then create a 2d image for contrast centered on the star and divide by it.
+contr_arr=fltarr(281,281,sz[3])+!values.f_nan
+
+; this next loop is slow (~5 seconds)
+; loop over radii values
+for p=0, N_ELEMENTS(all_rad_vals)-1 do begin
+	ind=where(distarr eq all_rad_vals[p], count)
+	if count gt 1 then begin
+		; loop over slices
+		for s=0, sz[3]-1 do begin
+			slice=contr_arr[*,*,s]
+			slice[ind]=robust_sigma((im[*,*,s])[ind])
+			contr_arr[*,*,s]=slice
+			;((contr_arr[*,*,s])[ind])=stddev((im[*,*,s])[ind],/nan)
+		endfor
+	endif 
+endfor
+	
+*self.images.main_image_stack=(im/contr_arr)
+*self.images.main_image=(*self.images.main_image_stack)[*,*,(*self.state).cur_image_num]
+
+self->getstats
+self->displayall
+    
+status=1
+endif else begin
+	self->message, msgtype='error', "SNR map only works with 2D or 3D datacubes"
+    status=0
+endelse
+  
+end
+
+;;----------------------------------------------------------------------
 pro GPItv::low_pass_filter, status=status, forcestack=forcestack
   ;;; routine to remove high frequency structure from cubes
   ;;; PI - 2014-12-10
@@ -19725,7 +19831,7 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
   ;;filled in yet)
   if ((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) || $
     ((*self.state).klip_mode eq 1) || ((*self.state).high_pass_mode eq 1) || $
-	((*self.state).low_pass_mode eq 1)  then begin
+	((*self.state).low_pass_mode eq 1) || ((*self.state).snr_map_mode eq 1) then begin
       if (*self.state).contr_plotmult then inds = (*self.satspots.good) else $
         inds = (*self.state).cur_image_num
       copsf = (*self.images.main_image_stack)[*,*,inds]
@@ -19770,7 +19876,7 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
         
         if ((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) || $
           ((*self.state).klip_mode eq 1) || ((*self.state).high_pass_mode eq 1) || $
-		  ((*self.state).low_pass_mode eq 1) then begin
+		  ((*self.state).low_pass_mode eq 1) || ((*self.state).snr_map_mode eq 1) then begin
             ;;write asec and radial profile to proper array
             *(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit] = outval
             *(*self.satspots.asec)[inds[j]] = asec
@@ -19798,7 +19904,7 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
 
       if ~ (((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) || $
         ((*self.state).high_pass_mode eq 1) || ((*self.state).low_pass_mode eq 1) || $
-		((*self.state).klip_mode eq 1)  ) then data = {asec:asec,contrprof:outval}
+		((*self.state).klip_mode eq 1) || ((*self.state).snr_map_mode eq 1)  ) then data = {asec:asec,contrprof:outval}
 
         ;self->statvsr, yr=yr, xtitle=xtitle, ytitle=ytitle else $
         ;self->statvsr, yr=yr, xtitle=xtitle, ytitle=ytitle, data = {asec:asec,contrprof:outval}
@@ -19971,7 +20077,7 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
         
         if ((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) || $
           ((*self.state).klip_mode eq 1) || ((*self.state).high_pass_mode eq 1) || $
-		  ((*self.state).low_pass_mode eq 1)  then begin
+		  ((*self.state).low_pass_mode eq 1) || ((*self.state).snr_map_mode eq 1) then begin
             out = dblarr(n_elements(*(*self.satspots.asec)[inds[0]]), n_elements(inds)+1)+!values.d_nan
             out[*,0] = *(*self.satspots.asec)[inds[0]]
             for j=0,n_elements(inds)-1 do $
