@@ -128,26 +128,28 @@ if keyword_set(update_prev_fits_header) then begin
 	; update into backbone->set_keyword since that would unnecessarily read and
 	; write the file from disk each time, which is no good. -MP
 
-	prevheader = gpi_get_prev_saved_header(ext_num=1)
+	prevheader = gpi_get_prev_saved_header(ext_num=1, status=status)
 
-	sxaddpar,prevheader, "SPOTWAVE", cwv.lambda[indx], "Wavelength of ref for SPOT locations"
-	for s=0,n_elements(good) - 1 do begin
-	   for j = 0,3 do begin
-		   sxaddpar,prevheader, 'SATS'+strtrim(good[s],2)+'_'+strtrim(j,2),$
-								string(strtrim(cens[*,j,good[s]],2),format='(F7.3," ",F7.3)'),$
-								'Location of sat. spot '+strtrim(j,2)+' of slice '+strtrim(good[s],2)
-	   endfor 
-	   PSFcens[*,s] = [mean(cens[0,*,good[s]]),mean(cens[1,*,good[s]])]
-	   sxaddpar,prevheader, 'PSFC_'+strtrim(good[s],2),$
-								string(strtrim(PSFcens[*,s],2),format='(F7.3," ",F7.3)'),$
-								'PSF Center of slice '+strtrim(good[s],2)
-	endfor
-	sxaddpar,prevheader, "PSFCENTX", mean(PSFcens[0,*]), 'Mean PSF center X'
-	sxaddpar,prevheader, "PSFCENTY", mean(PSFcens[1,*]), 'Mean PSF center Y'
-	sxaddpar,prevheader, 'SATSMASK',goodhex,'HEX->binary mask for slices with found sats'
+	if status eq OK then begin
+		sxaddpar,prevheader, "SPOTWAVE", cwv.lambda[indx], "Wavelength of ref for SPOT locations"
+		for s=0,n_elements(good) - 1 do begin
+		   for j = 0,3 do begin
+			   sxaddpar,prevheader, 'SATS'+strtrim(good[s],2)+'_'+strtrim(j,2),$
+									string(strtrim(cens[*,j,good[s]],2),format='(F7.3," ",F7.3)'),$
+									'Location of sat. spot '+strtrim(j,2)+' of slice '+strtrim(good[s],2)
+		   endfor 
+		   PSFcens[*,s] = [mean(cens[0,*,good[s]]),mean(cens[1,*,good[s]])]
+		   sxaddpar,prevheader, 'PSFC_'+strtrim(good[s],2),$
+									string(strtrim(PSFcens[*,s],2),format='(F7.3," ",F7.3)'),$
+									'PSF Center of slice '+strtrim(good[s],2)
+		endfor
+		sxaddpar,prevheader, "PSFCENTX", mean(PSFcens[0,*]), 'Mean PSF center X'
+		sxaddpar,prevheader, "PSFCENTY", mean(PSFcens[1,*]), 'Mean PSF center Y'
+		sxaddpar,prevheader, 'SATSMASK',goodhex,'HEX->binary mask for slices with found sats'
 
-	gpi_update_prev_saved_header, prevheader, ext_num=1
+		gpi_update_prev_saved_header, prevheader, ext_num=1
 
+	endif 
 endif
 
 @__end_primitive

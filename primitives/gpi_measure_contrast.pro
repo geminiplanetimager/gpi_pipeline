@@ -202,10 +202,12 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
 		; it's more efficient in execution time than trying to integrate this header
 		; update into backbone->set_keyword since that would unnecessarily read and
 		; write the file from disk each time, which is no good. -mp
-		prevheader = gpi_get_prev_saved_header()
-		for r =0,2 do sxaddpar, prevheader, fiducial_keywords[r], fiducial_contrasts[r],$
-			                      " estimated contrast at "+sigfig(fiducial_radii[r],2)+"'' from sat spots"
-		gpi_update_prev_saved_header, prevheader
+		prevheader = gpi_get_prev_saved_header(status=status)
+		if status eq OK then begin
+			for r =0,2 do sxaddpar, prevheader, fiducial_keywords[r], fiducial_contrasts[r],$
+									  " estimated contrast at "+sigfig(fiducial_radii[r],2)+"'' from sat spots"
+			gpi_update_prev_saved_header, prevheader
+		endif
 	endif
 
 
