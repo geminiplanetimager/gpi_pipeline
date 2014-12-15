@@ -106,7 +106,7 @@ contained_flux_ratio = (backbone->get_keyword('EFLUXRAT',count=count,ext_num=0))
 if count eq 0 then begin
 	backbone->Log,functionname+":  This is not a calibrated cube, assuming all flux is contained in the extraction aperture"
 	backbone->Log,functionname+":   Using user-specified extraction and sky annuli. Override being set to 1"
-	fscale=fltarr(N_ELEMENTS(lambda))+1
+	fscale_arr=fltarr(N_ELEMENTS(lambda))+1
 	contained_flux_ratio=1.0
 	override=1.0
 	; set error to zero
