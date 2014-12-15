@@ -48,3 +48,7 @@ utils/klip_math.pro
 # TLOCI
 primitives/gpi_tloci.pro
 utils/TLOCI
+
+# gpitv db integration
+gpitv/gpitv_obsnotes.pro
+

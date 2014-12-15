@@ -727,14 +727,36 @@ pro GPItv::startup, nbrsatspot=nbrsatspot
     {cw_pdmenu_s, 0, 'Statistics'}, $
     {cw_pdmenu_s, 0, 'Histogram / Exposure'}, $
     {cw_pdmenu_s, 0, 'Pixel Table'}, $
-    {cw_pdmenu_s, 0, 'Star Position'}, $
+    {cw_pdmenu_s, 0, 'Star Position'}]
+
+  ;;if gpitv_obsnotes.pro exists, create menu item for it
+  obsnotes = 0
+  tmp = file_which('gpitv__define.pro')
+  if tmp ne '' then begin
+     tmp2 = file_dirname(tmp)+path_sep()+'gpitv_obsnotes.pro'
+     if file_test(tmp2) then obsnotes = 1
+  endif
+
+  if obsnotes then $
+     top_menu_desc = [top_menu_desc,$
+                      {cw_pdmenu_s, 1, 'Display Coordinate System'}] $
+  else $
+     top_menu_desc = [top_menu_desc,$
+                      {cw_pdmenu_s, 7, 'Display Coordinate System'}]
+  top_menu_desc = [top_menu_desc,$
     {cw_pdmenu_s, 7, 'Display Coordinate System'}, $
     {cw_pdmenu_s, 0, 'RA,dec (J2000)'}, $
     {cw_pdmenu_s, 0, 'RA,dec (B1950)'}, $
     {cw_pdmenu_s, 0, 'RA,dec (J2000) deg'}, $
     {cw_pdmenu_s, 0, 'Galactic'}, $
     {cw_pdmenu_s, 0, 'Ecliptic (J2000)'}, $
-    {cw_pdmenu_s, 2, 'Native'}, $
+    {cw_pdmenu_s, 2, 'Native'} ]
+
+  if obsnotes then $
+     top_menu_desc = [ top_menu_desc,$
+                       {cw_pdmenu_s, 6, 'Mark File Status'}]
+  
+    top_menu_desc = [ top_menu_desc,$
     {cw_pdmenu_s, 1, 'Options'}, $ ;options menu
     {cw_pdmenu_s, 0, 'Contrast Settings...'}, $
     {cw_pdmenu_s, 0, 'High pass filter Settings...'}, $
@@ -1630,6 +1652,7 @@ pro GPItv::topmenu_event, event
         self->gettrack         ; refresh coordinate window
       ENDIF
     END
+    'Mark File Status':              self->obsnotes
     
     ;;Options options
     'Contrast Settings...':          self->contrast_settings
@@ -19621,6 +19644,35 @@ end
 else:
 endcase
 
+end
+
+;--------------------------------------------------------------------------------
+pro GPItv::obsnotes
+
+  if (*self.state).imagename eq "NO IMAGE LOADED   " then begin
+     self->message, msgtype='warning', 'No image loaded - nothing to mark.'
+     return
+  end 
+  ;; Frontend for bad file marking in files database
+  
+  mark = strcompress('0, button, Mark OK|Mark Bad, exclusive, set_value = 0') ;1
+  notes = strcompress('0, text, ,label_left = Notes:,width = 50,') ;2
+    
+  formdesc = ['0, label, Write To Files Database', $
+              mark,notes,$
+              '0, button, Send, quit', $
+              '0, button, Cancel, quit']
+    
+  textform = cw_form(formdesc, /column, $
+    title = 'GPItv Mark File Status')
+    
+  if (textform.tag4 EQ 1) then return ; cancelled (tag# = # of inputs above+2)
+  
+  mrkval  = textform.tag1
+  msgval = textform.tag2
+
+  gpitv_obsnotes,(*self.state).imagename,mrkval,msgval
+  
 end
 
 
