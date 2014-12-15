@@ -1,10 +1,13 @@
 pro gpitv_obsnotes,fname,mark,msg
 
   ;;who is doing this?
-  spawn,'echo "`whoami`@`hostname`"',res,err
-
-  if err[0] eq '' and res[0] ne '' then username = res[0] else username = 'unknown'
-
+  if strmatch(!VERSION.OS_FAMILY , 'Windows',/fold) then $
+     username = getenv('USERNAME')+'@'+getenv('COMPUTERNAME') $
+  else begin
+     spawn,'echo "`whoami`@`hostname`"',res,err
+     if err[0] eq '' and res[0] ne '' then username = res[0] else username = 'unknown'
+  endelse 
+     
   dbdir = getenv('GPI_DROPBOX_DIR')
   if dbdir eq '' then begin
      message,/cont,'Dropbox dir environment variable not set.'
