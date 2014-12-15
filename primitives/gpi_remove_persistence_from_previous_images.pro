@@ -38,7 +38,7 @@
 ;
 ;	WARNING: Persistence removal does not (yet) work with COADDED images!
 ;
-;
+;	The manual_UTEND keyword allows the user to manually set the UTEND keyword in the image that is taken in closest time to the image being reduced. This is important because sometimes when changing modes or exposure times quickly, the CAL exit shutter can remain open so light will continue hitting the detector past the UTEND time. Users should note that this is generally occurs only for polarimetry snapshots after long spectral sequences (taken in the same band).
 ;
 ; INPUTS: Raw or destriped 2D image
 ; OUTPUTS: 2D image corrected for persistence of previous non-saturated images
@@ -48,6 +48,7 @@
 ;
 ; PIPELINE COMMENT: Determines/Removes persistence of previous images
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="String" CalFileType="persis" Default="AUTOMATIC" Desc="Filename of the persistence_parameter file to be read"
+; PIPELINE ARGUMENT: Name="manual_dt" Type="float" Range="[0,600]" Default="0" Desc="Manual input for time (in seconds) since last persisting file - see help for details"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display " 
 ; PIPELINE ORDER: 1.2
@@ -64,10 +65,15 @@ primitive_version= '$Id$'  ; get version from subversion to store in header hist
 calfiletype = 'persis'
 @__start_primitive
 
-; make sure hte image is not-coadded
+if tag_exist( Modules[thisModuleIndex], "manual_dt") then manual_dt=float(Modules[thisModuleIndex].manual_dt) else manual_dt=0
+
+
+; check if the image is coadded
 ncoadds=backbone->get_keyword('COADDS0')
 
-if ncoadds ne 1 then return, error('No persistence correction can (currently) be applied to images with coadds')
+;if ncoadds ne 1 then return, error('No persistence correction can (currently) be applied to images with coadds')
+
+if ncoadds ne 1 then message, /info, 'WARNING - IMAGE HAS COADDS code will not output the correct correction'
 
 
 ; determine when the image of interest started
@@ -86,9 +92,9 @@ ITIME=backbone->get_keyword('ITIME')
 UTSTART_sec=UTSTART_sec-float(itime)-1.45479
 
 ; look for previous images 
-        filetypes = '*.{fts,fits}'
-    searchpattern = dataset.inputdir + path_sep() + filetypes
-    current_files =FILE_SEARCH(searchpattern,/FOLD_CASE, count=count)
+filetypes = '*.{fts,fits}'
+searchpattern = dataset.inputdir + path_sep() + filetypes
+current_files =FILE_SEARCH(searchpattern,/FOLD_CASE, count=count)
 
 ; only want to consider images in the last 600 seconds
 ; but need time stamps - must be a better way to do this!
@@ -124,9 +130,16 @@ UTEND_arr-=UTSTART_sec
 ind=where(UTEND_arr lt 0 and UTEND_arr gt -600)
 ; determine if correction is necessary
 if ind[0] eq -1 then begin
-   backbone->set_keyword, "HISTORY", "No persistence correction applied, no previous files found"
-   message,/info, "No persistence correction applied, no previous files found"
+   backbone->set_keyword, "HISTORY", "No persistence correction applied, no images taken within 600s are found in the same directory"
+   message,/info, "No persistence correction applied, no images taken within 600s are found in the same directory"
    return, ok
+endif
+
+; manually adjust UTEND for last file if desired
+if keyword_set(manual_dt) then begin
+; adjust the most recent UTEND time (which is now a delta time since the current exposure) to the user defined value
+junk=min(abs(UTEND_arr[ind]),min_ind,/nan)
+UTEND_arr[ind[min_ind]]=-abs(manual_dt)
 endif
 
 ; apply correction
