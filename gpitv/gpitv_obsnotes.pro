@@ -11,7 +11,7 @@ pro gpitv_obsnotes,fname,mark,msg
      return
   endif
 
-  notesfile = dbdir+path_sep()+'obsnotes.txt'
+  notesfile = dbdir+path_sep()+'GPIDATA-Calibrations'+path_sep()+'obsnotes.txt'
   if file_test(notesfile) then $
      openu,lun,notesfile,/get_lun,/append else $
         openw,lun,notesfile,/get_lun
