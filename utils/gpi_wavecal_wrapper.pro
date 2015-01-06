@@ -236,7 +236,7 @@ parinfo[7].limits[0]=0.0
 ;TO DO: set bestres=0 as a flag for a failed fit, then interpolate the
 ;correct value in the wavelength solution 2d primitive
 if array_equal(start_params[0:1], bestres[0:1]) then begin
-   message,/info, "WARNING - SAME START AND END POSITIONS"
+   ;message,/info, "WARNING - SAME START AND END POSITIONS"
    ;bestres[*]=!values.f_nan
   ; bestres=0
 endif
