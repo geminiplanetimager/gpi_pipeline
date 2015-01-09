@@ -87,6 +87,10 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
   dec =     double(backbone->get_keyword( 'DEC',count=ct)) & totcount += ct
   if n_elements(parang) eq 0 then begin
      par_ang = double(backbone->get_keyword( 'PAR_ANG',count=ct))
+ 	 ; this angle in the header is an inaccurate approximation since the
+	 ; field is rotating during the image. Adding a comment to say it's 
+	 ; inaccurate in the header comment
+	 backbone->set_keyword, "PAR_ANG", par_ang, "Parallactic Angle (Inaccurate. Use AVPARANG)"
      totcount += ct 
   endif else begin
      backbone->set_keyword, "PAR_ANG", parang, "average parallactic angle during exposure"
