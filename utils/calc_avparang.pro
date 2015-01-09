@@ -68,7 +68,28 @@ if ~keyword_set(degree) then begin
    h1 *= 15d0
 endif
 
-paint = qromb('parang_eq',h0,h1,/double,eps=1e6)
+;the next step sometimes fails when crossing transit, so first check
+;if it crosses transit
+
+test4transit = h1 * h0 ;negative if the two have different signs
+if test4transit lt 0 then begin
+;We crossed transit, so split the integral in two around 0, this
+;bypasses the underflow problem that causes the step to fail
+
+paint1 = qromb('parang_eq',h0,0d0,/double,eps=1e-8)
+paint2 = qromb('parang_eq',0d0,h1,/double,eps=1e-8)
+
+paint = paint1+paint2
+
+endif else begin
+
+;Not crossing transit, so do what we like
+paint = qromb('parang_eq',h0,h1,/double,eps=1e-8)
+
+endelse
+;This is accurate to 0.0001 degrees.  Our target astrometric accuracy
+;is 1 mas, which at the edge of the field (1.4") is 0.04
+;degrees.
 
 return,paint/(h1-h0) * 180d0/!dpi
 
