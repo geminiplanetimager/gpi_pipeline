@@ -96,7 +96,7 @@ function gpi_subtract_mean_stellar_polarization_podc, DataSet, Modules, Backbone
       if ct1+ct2 ne 2 then $
         return, error('FAILURE ('+functionName+'): Star Position Not Found in file'+string(*(dataset.filenames[0])))
 
-      pa = backbone->get_keyword('PAR_ANG', indexFrame=indexFrame, count=ct);Set up some data arrays
+      pa = backbone->get_keyword('AVPARANG', indexFrame=indexFrame, count=ct);Set up some data arrays
       if ct lt 1 then $
         return, error('FAILURE ('+functionName+'): Parallactic Angle Not Found in file'+string(i))
 
@@ -154,7 +154,7 @@ function gpi_subtract_mean_stellar_polarization_podc, DataSet, Modules, Backbone
         if ct1+ct2 ne 2 then $
           return, error('FAILURE ('+functionName+'): Star Position Not Found in file'+string(i))
 
-        pa=sxpar(hdr, 'PAR_ANG', count=ct)
+        pa=sxpar(hdrext, 'AVPARANG', count=ct)
         if ct lt 1 then $
           return, error('FAILURE ('+functionName+'): Parallactic Angle Not Found in file'+string(i))
 
