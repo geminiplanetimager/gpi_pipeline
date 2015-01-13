@@ -152,7 +152,26 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
      if expend lt 0d then begin
         expend += 24d0
         dateline = 0
+                                ;if we're in this condition we didn't
+                                ;really cross the dateline,
+                                ;integration ended before midnight and
+                                ;it was just the file write time that
+                                ;was afterward
      endif 
+     if expstart lt 0d then begin
+        expstart += 24d0
+                                ;If dateline is 1 we should be in this 
+                                ;condition.  If not,
+                                ;the exposure started after midnight,
+                                ;and we have to change both dates
+      endif else if dateline eq 1 then dateline = 2
+      ;dateline = 0: normal conditions, we're not near midnight
+      ;dateline = 1: less-normal, we cross midnight while we're
+                                ;collecting light
+      ;dateline = 2: least-normal, we cross midnight after the fits 
+                                ;header has been written (and so UT
+                                ;Start date is set to yesterday), but
+                                ;the integration starts after midnight.
 
      ;;sanity checks
                                 ;if (abs(itime/3600d - (expend-expstart)) gt 1d-6) || (expstart lt utstartd) then begin
@@ -165,17 +184,31 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
      ymd0 = double(strsplit(dateobs,'-',/extract))
      ;;account for dateline, if needed
      if dateline then begin
+                                ;This condition is if the fits header was
+                                ;written just before midnight and the
+                                ;exposure ended just after midnight
         jd0 = julday(ymd0[1],ymd0[2],ymd0[0])
         caldat, jd0+1d0, m1, d1, y1
         ymd1 = double([y1,m1,d1])
+        if dateline eq 2 then begin
+                                ;This condition is if the fits header
+                                ;was written just before midnight and
+                                ;the exposure started just after
+                                ;midnight (very rare, that's a
+                                ;3-second window)
+          jd1 = julday(ymd0[1],ymd0[2],ymd0[0])
+          caldat, jd0+1d0, m1, d1, y1
+          ymd0 = double([y1,m1,d1])
+        endif
      endif else ymd1 = ymd0
+
      hms0 = sixty(expstart)
      hms1 = sixty(expend)
      jd0 = julday(ymd0[1], ymd0[2], ymd0[0],hms0[0],hms0[1],hms0[2])
      jd1 = julday(ymd1[1], ymd1[2], ymd1[0],hms1[0],hms1[1],hms1[2])
      epoch0 = (jd0 - 2451545d0)/365.25d0 + 2000d0 
      epoch1 = (jd1 - 2451545d0)/365.25d0 + 2000d0 
-     
+
      ;;grab longitude of observatory
      lon = gpi_get_constant('observatory_lon',default=-70.73669333333333d0)/15d0 ;East lon (dec. hr)
      
