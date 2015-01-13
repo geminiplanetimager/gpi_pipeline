@@ -117,10 +117,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 		wpangle[i] =-(float(sxpar(hdr_i, "WPANGLE"))-float(Modules[thisModuleIndex].HWPOffset)) ;Include the known offset
 		
-		parang = sxpar(hdr_i, "PAR_ANG") ; we want the original, not rotated or de-rotated
+		parang = sxpar(hdrext_i, "AVPARANG") ; we want the original, not rotated or de-rotated
 										; since that's what set's how the
-										; polarizations relate to the sky
-										; FIXME this should be updated to AVPARANG
+                                ; polarizations relate to the sky
+                                ; This has been updated to AVPARANG
 		backbone->Log, "   File "+strc(i)+ ": WP="+sigfig(wpangle[i],4)+ "     PA="+sigfig(parang, 4)
 		sxaddhist, functionname+":  File "+strc(i)+ ": WP="+sigfig(wpangle[i],4)+ "     PA="+sigfig(parang, 4), hdr0
  
