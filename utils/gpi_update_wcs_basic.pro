@@ -111,35 +111,9 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
   backbone->set_keyword, 'CRVAL1', ra, 'Right ascension at ref point' 
   backbone->set_keyword, 'CRVAL2', dec, 'Declination at ref point' ;TODO should see gemini type convention
 
-  ifs_rotation = gpi_get_constant('ifs_rotation')
-  vert_angle = -(360-PAR_ANG) + ifs_rotation  -90 ; 90 deg is rotation of the H2RG w.r.t. where the (0,0) corner is
-
-  ;;; CLockwise rotation of negative PA
-  pc = [[cos(vert_angle*!dtor), -sin(vert_angle*!dtor)], $
-        [sin(vert_angle*!dtor), cos(vert_angle*!dtor)]]
-  cdmatrix = pc * pixelscale / 3600d0
-
-  ;; flip sign of X axis?  ; Not necessary if GPI is on bottom port!
-  ;cdmatrix[0, *] *= -1
-  
-  backbone->set_keyword, "CD1_1", cdmatrix[0,0], "partial of first axis coordinate w.r.t. x"
-  backbone->set_keyword, "CD1_2", cdmatrix[0,1], "partial of first axis coordinate w.r.t. y"
-  backbone->set_keyword, "CD2_1", cdmatrix[1,0], "partial of second axis coordinate w.r.t. x"
-  backbone->set_keyword, "CD2_2", cdmatrix[1,1], "partial of second axis coordinate w.r.t. y"
-
-
-  ;; enforce standard convention preferred by Gemini of using the CD instead of
-  ;; PC + CDELT matrices
-  backbone->del_keyword, 'PC1_1' 
-  backbone->del_keyword, 'PC1_2' 
-  backbone->del_keyword, 'PC2_1' 
-  backbone->del_keyword, 'PC2_2' 
-  backbone->del_keyword, 'PC3_3'
-  backbone->del_keyword, 'PC1_1',ext_num=1 
-  backbone->del_keyword, 'PC1_2',ext_num=1 
-  backbone->del_keyword, 'PC2_1',ext_num=1 
-  backbone->del_keyword, 'PC2_2',ext_num=1  
-  backbone->del_keyword, 'PC3_3',ext_num=1 
+;Remainder of CD matrix update takes place at the end of the file
+;after AVPARANG is calculated.  PAR_ANG is from the start of the
+;exposure, and can be off by up to 10 degrees.
 
   ;;specify coord sys - Gemini standard is FK5 J2000.0
   backbone->set_keyword, "RADESYS", "FK5", "RA and Dec are in FK5"
@@ -234,6 +208,39 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
      backbone->set_keyword, "AVPARANG", avparang, "average parallactic angle during exposure"
      backbone->set_keyword, "MJD-AVG", avmjd, "MJD at midpoint of exposure"
   endelse 
+
+  ;Now using AVPARANG to compute CD matrix.
+
+  ifs_rotation = gpi_get_constant('ifs_rotation')
+  vert_angle = -(360-avparang) + ifs_rotation  -90 ; 90 deg is rotation of the H2RG w.r.t. where the (0,0) corner is
+
+  ;;; CLockwise rotation of negative PA
+  pc = [[cos(vert_angle*!dtor), -sin(vert_angle*!dtor)], $
+        [sin(vert_angle*!dtor), cos(vert_angle*!dtor)]]
+  cdmatrix = pc * pixelscale / 3600d0
+
+  ;; flip sign of X axis?  ; Not necessary if GPI is on bottom port!
+  ;cdmatrix[0, *] *= -1
+  
+  backbone->set_keyword, "CD1_1", cdmatrix[0,0], "partial of first axis coordinate w.r.t. x"
+  backbone->set_keyword, "CD1_2", cdmatrix[0,1], "partial of first axis coordinate w.r.t. y"
+  backbone->set_keyword, "CD2_1", cdmatrix[1,0], "partial of second axis coordinate w.r.t. x"
+  backbone->set_keyword, "CD2_2", cdmatrix[1,1], "partial of second axis coordinate w.r.t. y"
+
+
+  ;; enforce standard convention preferred by Gemini of using the CD instead of
+  ;; PC + CDELT matrices
+  backbone->del_keyword, 'PC1_1' 
+  backbone->del_keyword, 'PC1_2' 
+  backbone->del_keyword, 'PC2_1' 
+  backbone->del_keyword, 'PC2_2' 
+  backbone->del_keyword, 'PC3_3'
+  backbone->del_keyword, 'PC1_1',ext_num=1 
+  backbone->del_keyword, 'PC1_2',ext_num=1 
+  backbone->del_keyword, 'PC2_1',ext_num=1 
+  backbone->del_keyword, 'PC2_2',ext_num=1  
+  backbone->del_keyword, 'PC3_3',ext_num=1 
+
 end
 
 
