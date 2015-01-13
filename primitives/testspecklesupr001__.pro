@@ -126,7 +126,7 @@ LowSpec = CONVOL( (reform(Spec2)), gaus , /EDGE_TRUNCATE )
   endfor
 
 ;;get info about simulated companions
-val=sxpar( *(dataset.headers[0]),"PAR_ANG",count=ck)
+val=sxpar( *(dataset.headers[0]),"AVPARANG",count=ck)
 if ck eq 1 then parangle=float(val)
 script=SXPAR( header, 'DSTSCRIP',count=cscr)
           nbcomp=0
