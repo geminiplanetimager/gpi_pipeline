@@ -19939,13 +19939,14 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
       ;;update the plot/write postscript
       yr=[(*self.state).contr_yaxis_min, (*self.state).contr_yaxis_max]
       ytitle = 'Contrast '
+		sigma = '!7r!X'
       case (*self.state).contr_yunit of
-        0: ytitle +=  '['+strc(uint((*self.state).contrsigma))+' sigma limit]'
+        0: if ((*self.state).collapse eq 0) then ytitle ='Single Slice Contrast ['+strc(uint((*self.state).contrsigma))+sigma+' limit]' else ytitle ='Contrast ['+strc(uint((*self.state).contrsigma))+sigma+' limit]' 
         1: ytitle += '[Median]'
         2: ytitle += '[Mean]'
       endcase
       xtitle =  'Angular separation '
-      if (*self.state).contr_xunit eq 0 then xtitle += '[Arcsec]' else $
+      if (*self.state).contr_xunit eq 0 then xtitle += '["]' else $
         xtitle += '['+'!4' + string("153B) + '!X/D]' ;;"just here to keep emacs from flipping out
         
       ;;clear windows before replotting
@@ -20065,11 +20066,13 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
     if (*self.state).contr_plotouter then oplot,asec,tmp[*,1] * sclunit, color=color[j],linestyle=linestyle[1]
   endfor
 
-  xyouts, /normal,0.55,0.8,'Star Magnitude = '+strtrim(strmid(*self.satspots.mags,0,10),2),charsize=1.2
+  xyouts, /normal,0.55,0.83,'Star Magnitude = '+strtrim(strmid(*self.satspots.mags,0,10),2),charsize=1.2
 
   if n_elements(contr_at_04) gt 1 then contr_at_04 = median(contr_at_04)
   sigma = '!7r!X'
-  xyouts, /normal,0.55,0.7,strc(fix(round(sclunit)))+sigma+' Contrast = '+sigfig(sclunit*contr_at_04,2,/sci)+' at 0.4"',charsize=1.2
+  xyouts, /normal,0.55,0.75,strc(fix(round(sclunit)))+sigma+' Contrast = '+sigfig(sclunit*contr_at_04,2,/sci)+' at 0.4"',charsize=1.2
+  if ((*self.state).collapse eq 0) then xyouts, /normal,0.75,0.71,"at "+sigfig((*(*self.state).CWV_ptr)[inds[0]],4)+" um",charsize=1.2
+
   oplot, [0.4], [contr_at_04]*sclunit, psym=1, color=cgcolor('white'), symsize=2
 
 	  ;;------------- end of code merged from ::starvsr -----------------------------------------
