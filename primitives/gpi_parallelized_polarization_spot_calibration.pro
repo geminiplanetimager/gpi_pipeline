@@ -303,6 +303,8 @@ if tag_exist( Modules[thisModuleIndex], "stopidl") then if keyword_set( Modules[
     shmunmap, 'spotpos_pixels'
     shmunmap, 'spotpos_pixvals'
     shmunmap, 'imshr'
+    shmunmap, 'bpshr'
+
 
 return, ok
 
