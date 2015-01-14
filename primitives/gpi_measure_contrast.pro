@@ -26,7 +26,7 @@
 ; PIPELINE ARGUMENT: Name="SaveProfile" Type="string" Default="" Desc="Save radial profile to filename as FITS (blank for no save, dir name for default naming, AUTO for auto full path)"
 ; PIPELINE ARGUMENT: Name="SavePNG" Type="string" Default="" Desc="Save plot to filename as PNG (blank for no save, dir name for default naming, AUTO for auto full path) "
 ; PIPELINE ARGUMENT: Name="contrsigma" Type="float" Range="[0.,20.]" Default="5." Desc="Contrast sigma limit"
-; PIPELINE ARGUMENT: Name="slice" Type="int" Range="[-1,50]" Default="0" Desc="Slice to plot. -1 for all"
+; PIPELINE ARGUMENT: Name="slice" Type="int" Range="[-1,50]" Default="-1" Desc="Slice to plot. -1 for all"
 ; PIPELINE ARGUMENT: Name="DarkHoleOnly" Type="int" Range="[0,1]" Default="1" Desc="0: Plot profile in dark hole only; 1: Plot outer profile as well."
 ; PIPELINE ARGUMENT: Name="contr_yunit" Type="int" Range="[0,2]" Default="0" Desc="0: Standard deviation; 1: Median; 2: Mean."
 ; PIPELINE ARGUMENT: Name="contr_xunit" Type="int" Range="[0,1]" Default="0" Desc="0: Arcsec; 1: lambda/D."
@@ -259,7 +259,9 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
 ; load in a color table, while saving the original
       tvlct, user_r, user_g, user_b, /get
 	  loadct, 13
-      for j = 0, n_elements(inds)-1 do begin
+      ; if it's just a single slice, plot it in red
+	  if N_ELEMENTS(inds) eq 1 then color=cgcolor('red')
+	  for j = 0, n_elements(inds)-1 do begin
          oplot,*asecs[j],(*contrprof[j])[*,0],color=color[j],linestyle=0
          if doouter then oplot,*asecs[j],(*contrprof[j])[*,1], color=color[j],linestyle=2
       endfor
@@ -272,11 +274,15 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
 	oplot,fiducial_radii,fiducial_contrasts,psym=8
 
 	; put in the labels for contrasts
-	  for r=0,2 do begin
-			  if slice ne -1 then label = "Contrast at "+sigfig(cwv[slice],4)+" um = "+sigfig(fiducial_contrasts[r],2,/sci)+" at "+sigfig(fiducial_radii[r],2)+'"'$
-					  else label = "Median (75% band) contrast = "+sigfig(fiducial_contrasts[r],2,/sci)+" at "+sigfig(fiducial_radii[r],2)+'"' 
-		  xyouts, 0.45, 0.85-0.05*r, label, /norm, charsize=1.5, color=cgcolor('red')
-		 	  endfor
+	  if slice ne -1 then label = "Contrast at "+sigfig(cwv[slice],4)+" um:" $
+					  else label = "Median (75% band) contrasts: "
+	   xyouts, 0.65, 0.85, label, /norm, charsize=1.5, color=cgcolor('red')
+
+
+	for r=0,2 do begin
+		label = sigfig(fiducial_contrasts[r],2,/sci)+" at "+sigfig(fiducial_radii[r],2)+'"'
+		xyouts, 0.7, 0.85-0.04*(r+1), label, /norm, charsize=1.5, color=cgcolor('red')
+	endfor
 
       if pngsave ne '' then begin
          ;;if user set AUTO then synthesize entire path
