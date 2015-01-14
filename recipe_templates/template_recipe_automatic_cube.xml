@@ -14,8 +14,8 @@
 <primitive name="Assemble Spectral Datacube" Save="0" gpitv="0" />
 <primitive name="Interpolate Wavelength Axis" Spectralchannels="37" Save="1" gpitv="5" />
 <primitive name="Check for closed-loop coronagraphic image" err_on_false="0" />
-<primitive name="Filter datacube spatially" hp_boxsize="15" high_or_lowpass="high" save="0" gpitv="0" />
-<primitive name="Measure satellite spot locations" refine_fits="1" reference_index="-1" search_window="20" highpass="0" constrain="0" Save="0" loc_input="0" x1="0" y1="0" x2="0" y2="0" x3="0" y3="0" x4="0" y4="0" update_prev_fits_header="1"  />
+<primitive name="Measure satellite spot locations" refine_fits="1" reference_index="-1" search_window="20" highpass="15" constrain="0" Save="0" loc_input="0" x1="0" y1="0" x2="0" y2="0" x3="0" y3="0" x4="0" y4="0" update_prev_fits_header="1"  />
 <primitive name="Measure satellite spot peak fluxes" gauss_fit="1" reference_index="0" ap_rad="7" Save="0"  update_prev_fits_header="1"  />
+<primitive name="Filter datacube spatially" hp_boxsize="15" high_or_lowpass="high" save="0" gpitv="0" />
 <primitive name="Measure Contrast" Save="0" Display="1" SaveProfile="AUTO" SavePNG="" contrsigma="5." slice="-1" DarkHoleOnly="1" contr_yunit="0" contr_xunit="0" yscale="0" contr_yaxis_type="1" contr_yaxis_min="0.00000001" contr_yaxis_max="1."  update_prev_fits_header="1" />
 </DRF>
