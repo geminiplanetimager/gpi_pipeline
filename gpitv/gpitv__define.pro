@@ -11807,7 +11807,7 @@ pro GPItv::wavecalgridlabel
     wchd = headfits((*self.state).wcfilename)
     wc_elevation = sxpar(wchd, 'ELEVATIO')
     lookuptable = gpi_readfits(shiftsFile)
-    recommended_shifts = gpi_flexure_model( lookuptable, elevation, wavecal_elevation=wc_elevation)
+    recommended_shifts = gpi_flexure_model( lookuptable, elevation, wavecal_elevation=wc_elevation,display=-1)
   endif else begin
     recommended_shifts = [0.0, 0.0]
   endelse
