@@ -3353,7 +3353,7 @@ pro GPItv::collapsecube
     
     'Collapse by Mean': begin
 		; warn if in SNR mode that incorrect results will occur
-		if ((*self.state).snr_map_mode eq 1) then self->message,msgtype='warning',' Collasping a cube of SNR maps results in untrustworthy results. Users should collapse the cube then create the SNR map.',/window
+		if ((*self.state).snr_map_mode eq 1) then self->message,msgtype='warning',' Collapsing a cube of SNR maps results in untrustworthy results. Users should collapse the cube then create the SNR map.',/window
 
       widget_control,(*self.state).curimnum_base_id,map=0
       *self.images.main_image=total(*self.images.main_image_stack,3,/NAN) / (pixel_mask>1)
@@ -3368,7 +3368,7 @@ pro GPItv::collapsecube
     
     'Collapse by Median': begin
 		; warn if in SNR mode that incorrect results will occur
-		if ((*self.state).snr_map_mode eq 1) then self->message,msgtype='warning',' Collasping a cube of SNR maps results in untrustworthy results. Users should collapse the cube then create the SNR map.',/window
+		if ((*self.state).snr_map_mode eq 1) then self->message,msgtype='warning',' Collapsing a cube of SNR maps results in untrustworthy results. Users should collapse the cube then create the SNR map.',/window
 
       widget_control,(*self.state).curimnum_base_id,map=0
       *self.images.main_image=median(*self.images.main_image_stack,dim=3)
@@ -3377,7 +3377,7 @@ pro GPItv::collapsecube
     
     'Collapse by SDI': begin
 		; warn if in SNR mode that incorrect results will occur
-		if ((*self.state).snr_map_mode eq 1) then self->message,msgtype='warning',' Collasping a cube of SNR maps results in untrustworthy results. Users should collapse the cube then create the SNR map.',/window
+		if ((*self.state).snr_map_mode eq 1) then self->message,msgtype='warning',' Collapsing a cube of SNR maps results in untrustworthy results. Users should collapse the cube then create the SNR map.',/window
 
     	widget_control,(*self.state).curimnum_base_id,map=0
     	self->sdi
