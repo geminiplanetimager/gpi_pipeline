@@ -151,6 +151,8 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 	bpmask[*,0:4] = 0
 	bpmask[*,2043:2047] = 0
 
+        ; convert all bad pixels > 1 to 1:
+        bpmask[WHERE(bpmask GT 1, /NULL)] = 1
 
 	wbad = where(bpmask ne 0, count)
     ; Check for a reasonable total number of bad pixels, <1% of the total array.
@@ -235,6 +237,8 @@ badpixmap= bpmask
 
 		; 1 row is 2048 pixels, so we can add or subtract 2048 to get to
 		; adjacent rows
+                
+
 
 
 		backbone->Log, 'Masking out '+strc(count)+' bad pixels;  replacing with interpolated values between each 8 neighbor pixels', depth=3
