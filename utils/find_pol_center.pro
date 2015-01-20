@@ -59,7 +59,7 @@ if keyword_set(pixupperbound) then begin
 endif
 
 ;filter image to remove background
-if keyword_set(highpass) then img -= filter_image(img,median=9)
+if keyword_set(highpass) then img -= filter_image(img,median=15)
 
 ;mask out the center psf because it is too bright
 if not keyword_set(maskrad) then maskrad = 50

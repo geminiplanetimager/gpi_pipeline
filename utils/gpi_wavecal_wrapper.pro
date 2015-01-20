@@ -205,7 +205,7 @@ parinfo[7].limits[0]=0.0
         end
     endcase
   
-	if status lt 0 then print, "ERROR: ", errmsg
+;	if status lt 0 then print, "ERROR: ", errmsg
  
 ;	loww=k
 
