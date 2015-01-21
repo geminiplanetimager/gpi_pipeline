@@ -18,7 +18,7 @@
 ; PIPELINE ARGUMENT: Name="micphn" Type="int" Default="0" Range="[0,1]" Desc="Solve for microphonics?"
 ; PIPELINE ARGUMENT: Name="iter" Type="int" Default="0" Range="[0,1]" Desc="Run iterative solver of wavecal?"
 ; PIPELINE ARGUMENT: Name="badpix" Type="float" Default="0" Range="[0,1]" Desc="Weight by bad pixel map?"
-; PIPELINE ARGUMENT: Name="del_x_best" Type="float" Default="0" Range="[-5,5]" Desc="Best initial guess for flexure perpandicular to dispersion shift (pixels)"
+; PIPELINE ARGUMENT: Name="del_x_best" Type="float" Default="0" Range="[-5,5]" Desc="Best initial guess for flexure perpendicular to dispersion shift (pixels)"
 ; PIPELINE ARGUMENT: Name="del_theta_best" Type="float" Default="0" Range="[-5,5]" Desc="Best initial guess for rotation angle shift (degrees)"
 ; PIPELINE ARGUMENT: Name="del_lam_best" Type="float" Default="0" Range="[-5,5]" Desc="Best initial guess for flexure parrallel to dispersion shift (pixels)"
 ; PIPELINE ARGUMENT: Name="x_off" Type="float" Default="0" Range="[-5,5]" Desc="Offset from wavecal in x pixels"
