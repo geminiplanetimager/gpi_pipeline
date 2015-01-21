@@ -26,7 +26,7 @@
 ; PIPELINE ARGUMENT: Name="suffix" Type="string"  Default="-spec" Desc="Enter output suffix (fits)"
 ; PIPELINE ORDER: 2.51
 ; PIPELINE TYPE: ALL-SPEC
-; PIPELINE NEWTYPE: SpectralScience
+; PIPELINE NEWTYPE: SpectralScience HIDDEN
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:

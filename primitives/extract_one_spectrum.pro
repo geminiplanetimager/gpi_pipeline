@@ -23,8 +23,8 @@
 ; PIPELINE ARGUMENT: Name="ps_figure" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose # of saved fig suffix name, 0: no ps figure "
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output (fits) on disk, 0: don't save"
 ; PIPELINE ORDER: 2.51
-; PIPELINE TYPE: ALL-SPEC
-; PIPELINE NEWTYPE: SpectralScience
+; PIPELINE TYPE: ALL-SPEC 
+; PIPELINE NEWTYPE: SpectralScience HIDDEN
 ; PIPELINE SEQUENCE: 
 ;
 ; HISTORY:
