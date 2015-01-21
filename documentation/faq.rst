@@ -134,6 +134,27 @@ calibration database directory.)
 If the output directory is set to 'AUTOMATIC' and ``organize_reduced_data_by_dates`` is set to 1 (true), then the output directory is determined based on
 the YYMMDD date string for the first FITS file in that recipe. 
 
+
+I've gotten an error that the pipeline could not open its log file. What's going on?
+-----------------------------------------------------------------------------------------
+
+This error might look something like the following::
+
+    ERROR in OPENLOG:
+    could not open file /Users/username/Documents/Projects/gpi_reduced/logs/gpi_drp_150121.log
+    Please check your path settings and try restarting the pipeline.
+
+
+One possibility is that your disk is actually full or otherwise unwriteable (or your network file server is down, etc).
+
+The other possibility is that your computer is having trouble connecting to a
+network IDL license manager, if it's configured to use one. In such cases, if
+IDL can't get a license, it will still start, but in *demo mode* -- in which case
+it does not have permissions to write any files.  You'll need to fix your IDL
+licensing issues before continuing (or install the compiled version of the
+pipeline!).
+
+
 .. _faq_gpitv:
 
 GPItv
