@@ -35,33 +35,33 @@
 
 function gpi_correct_distortion_one, image, parms
 
-	sz=(size(image))
-	x0 = 140.  ;center of cube slice
-	y0 = 140.  ; center of cube slice
+  sz = (size(image))
+  x0 = 140.                     ; center of cube slice
+  y0 = 140.                     ; center of cube slice
 	
     
-    a=parms[*,0]
-    b=parms[*,1]
+  a = parms[*, 0]
+  b = parms[*, 1]
     
     
-    ;;; 3. Set up x and y coordinate arrays
-  xobs = REBIN(FINDGEN(sz[1],1),sz[1],sz[2])
+  ;; 3. Set up x and y coordinate arrays
+  xobs = REBIN(FINDGEN(sz[1], 1), sz[1], sz[2])
   x1 = xobs - x0
-  yobs = REBIN(FINDGEN(1,sz[2]),sz[1],sz[2])
+  yobs = REBIN(FINDGEN(1, sz[2]), sz[1], sz[2])
   y1 = yobs - y0
 
-;;; 4. Perform forward transformation (x -> x')
+  ;; 4. Perform forward transformation (x -> x')
   xp = 140.+POLYSOL(x1,y1,a)
   yp = 140.+POLYSOL(x1,y1,b)
 
-;;; 5. Bilinearly interpolate output image at negative offset locations
+  ;; 5. Bilinearly interpolate output image at negative offset locations
   ix = 2*xobs - xp
   jy = 2*yobs - yp
   
-  for ii=0, sz[3]-1 do begin
-    im_in=image[*,*,ii]
-    im_out = BILINEAR(im_in,ix,jy)
-    image[*,*,ii]=im_out
+  for ii = 0, sz[3]-1 do begin
+    im_in = image[*, *, ii]
+    im_out = BILINEAR(im_in, ix, jy)
+    image[*, *, ii] = im_out
   endfor
 
   return, image
