@@ -18585,9 +18585,12 @@ pro GPItv::low_pass_filter, status=status, forcestack=forcestack
       im=*self.images.main_image_stack
 	  ; careful to smooth using the proper call of filter_image
 	  ; the runtime doesn't support convolution in fourier space
-     if LMGR(/runtime) eq 0 then for s=0,N_ELEMENTS(im[0,0,*])-1 do $
-			 im[*,*,s]=filter_image(im[*,*,s],fwhm=fwhm,/all) $
-			 else im[*,*,s]=filter_image(im[*,*,s],fwhm=fwhm, /no_ft,/all) 
+	     ;if LMGR(/runtime) eq 0 then for s=0,N_ELEMENTS(im[0,0,*])-1 do $
+			 ;im[*,*,s]=filter_image(im[*,*,s],fwhm=fwhm,/all) $
+			 ;else im[*,*,s]=filter_image(im[*,*,s],fwhm=fwhm, /no_ft,/all) 
+   
+	 for s=0,N_ELEMENTS(im[0,0,*])-1 do $
+			 im[*,*,s]=filter_image(im[*,*,s],fwhm=fwhm,/all, no_ft = LMGR(/runtime))
       *self.images.main_image_stack=im
       *self.images.main_image=(*self.images.main_image_stack)[*,*,(*self.state).cur_image_num]
     endif else begin
@@ -18633,27 +18636,10 @@ pro GPItv::high_pass_filter, status=status, forcestack=forcestack
     ; if the widget is visible, we are looking slices so we should filter all
     ; of the slices for consistency
     if (visibility eq 1) || keyword_set(forcestack) then begin
-      im=*self.images.main_image_stack
-      for s=0,N_ELEMENTS(im[0,0,*])-1 do im[*,*,s]=im[*,*,s]-filter_image(im[*,*,s],median=medboxsize)
-	  ;stop
-
-	  ;split_for, 0, N_ELEMENTS(im[0,0,*])-1, varnames=['im'],  outvar=['filtered'], $
-		  ;commands=['im[*,*,i] = im[*,*,i] - filter_image(im[*,*,i], median='+strc(medboxsize)]+")"
-
-      
-      ; sigmas of sat spot are 1.39 and 1.46 in H
-      ;npix=5
-      ;psf=psf_gaussian(npixel=npix,FWHM=(2.355*1.43))
-      ;
-      ;iden_kernel=fltarr(npix,npix)
-      ;iden_kernel[npix/2,npix/2]=1
-      ;kernel=iden_kernel-psf
-      ;kernel=psf
-      ; normalize such that the total is equal to 1
-      ;kernel/=total(kernel)
-      ;   for s=0,N_ELEMENTS(im[0,0,*])-1 do im[*,*,s]=convol(im[*,*,s],kernel)
-      
-      *self.images.main_image_stack=im
+      ;im=*self.images.main_image_stack
+	  ;im = gpi_highpass_filter_cube(im, boxsize=medboxsize)
+   
+      *self.images.main_image_stack= gpi_highpass_filter_cube( *self.images.main_image_stack, boxsize=medboxsize)
       *self.images.main_image=(*self.images.main_image_stack)[*,*,(*self.state).cur_image_num]
     endif else begin
       ; we are looking at a collapsed image of some sort so save time by not
