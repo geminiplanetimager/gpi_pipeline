@@ -837,9 +837,18 @@ PRO dirviewer::Update,file,fileInfo,r,g,b,previewsize,image,info, directory=dire
 
 		 instrume = sxpar(header, 'INSTRUME',count=count)
 		; if no instrume keyword is returned, this means the file is NOT a GPI image (and is probably something that just resembles one
+		
+		; Special case: pupil viewer images have no useful FITS keywords, but we
+		; know they are 320x240
+
 		if count eq 0 then begin
-			message,/info, "ERROR: "+file+ " is does not have a INSTRUME keyword in it's header. This is probably not a GPI image. Can't display"
-			return
+			is_pupil_viewer = ( fix(sxpar(header,'NAXIS1')) eq 320 and fix(sxpar(header,'NAXIS2')) eq 240)
+			if is_pupil_viewer then instrume='GPI'
+
+			if ~is_pupil_viewer then begin
+				message,/info, "ERROR: "+file+ " is does not have a INSTRUME keyword in it's header. This is probably not a GPI image. Can't display"
+				return
+			endif
 		endif
 
 		if n_elements(image) eq 1 then begin
