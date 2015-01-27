@@ -173,7 +173,10 @@ pro dirviewer::event, ev
 			self->changedir,dir
 	   endif
  	   	if uname eq 'changedir_today' then begin
-            dir = gpi_get_directory('GPI_RAW_DATA_DIR')+path_sep() + gpi_datestr(/current)
+			if keyword_set(gpi_get_setting('at_gemini', default=0,/silent)) eq 1 then $
+					dir = gpi_get_directory('GPI_RAW_DATA_DIR')+path_sep()  $
+					else dir = gpi_get_directory('GPI_RAW_DATA_DIR')+path_sep() + gpi_datestr(/current)
+
 			if dir ne '' then if file_test(dir,/dir) then begin
 				(*self.state).directory=dir
 				Widget_Control, self.top_base, Get_UValue=info
@@ -182,7 +185,10 @@ pro dirviewer::event, ev
 			endif
 	   endif
   	   	if uname eq 'changedir_today_red' then begin
-            dir = gpi_get_directory('GPI_REDUCED_DATA_DIR')+path_sep() + gpi_datestr(/current)
+			if keyword_set(gpi_get_setting('at_gemini', default=0,/silent)) eq 1 then $
+					dir = gpi_get_directory('GPI_REDUCED_DATA_DIR')+path_sep() $
+					else dir = gpi_get_directory('GPI_REDUCED_DATA_DIR')+path_sep() + gpi_datestr(/current)
+
 			if dir ne '' then if file_test(dir,/dir) then begin
 				(*self.state).directory=dir
 				Widget_Control, self.top_base, Get_UValue=info
