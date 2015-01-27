@@ -801,10 +801,14 @@ pro gpi_recipe_editor::event,ev
 	ENDIF
   end
   'ADDFILE' : begin
-     
-		result=dialog_pickfile(path=self.last_used_input_dir,/multiple,/must_exist,$
+     	
+		if keyword_set(gpi_get_setting('at_gemini', default=0,/silent)) eq 1 then result=dialog_pickfile(path=self.last_used_input_dir,/multiple,/must_exist,$
+								   title='Select Raw Data File(s)', $
+								  	filter=['S20'+gpi_datestr(/current)+'*.fits;'+'S20'+gpi_datestr(/current)+'*.fits.gz',$
+											'S20'+gpi_datestr(/current)+'*.fits'],get_path=getpath) $
+			else result=dialog_pickfile(path=self.last_used_input_dir,/multiple,/must_exist,$
 								   title='Select Raw Data File(s)', filter=['*.fits;*.fits.gz', '*.fits'],get_path=getpath)
-		 
+				
 		if n_elements(result) eq 1 then if strc(result) eq '' then return ; user cancelled in the dialog box. 
 
 		self.drf->add_datafiles, result
