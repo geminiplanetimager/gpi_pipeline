@@ -58,76 +58,79 @@ compile_opt DEFINT32, STRICTARR
 ;     return as a structure.
 ;-
 function gpi_recipe_editor::get_obs_keywords, filename
-	if ~file_test(filename) then begin
-		self->Log, "ERROR can't find file: "+filename
-		return, -1
-	endif
 
+	return, gpi_get_obs_keywords(filename, where_to_log=self)
 
-	; Load FITS file
-	fits_data = gpi_load_fits(filename,/nodata,/silent,/fast)
-	head = *fits_data.pri_header
-	ext_head = *fits_data.ext_header
-	ptr_free, fits_data.pri_header, fits_data.ext_header
-
-	obsstruct = {gpi_obs, $
-				FILENAME: filename,$
-				ASTROMTC: strc(  gpi_get_keyword(head, ext_head,  'ASTROMTC', count=ct0)), $
-				OBSCLASS: strc(  gpi_get_keyword(head, ext_head,  'OBSCLASS', count=ct1)), $
-				obstype:  strc(  gpi_get_keyword(head, ext_head,  'OBSTYPE',  count=ct2)), $
-				obsmode:  strc(  gpi_get_keyword(head, ext_head,  'OBSMODE',  count=ctobsmode)), $
-				OBSID:    strc(  gpi_get_keyword(head, ext_head,  'OBSID',    count=ct3)), $
-				filter:   strc(gpi_simplify_keyword_value(strc(   gpi_get_keyword(head, ext_head,  'IFSFILT',   count=ct4)))), $
-				dispersr: strc(gpi_simplify_keyword_value(gpi_get_keyword(head, ext_head,  'DISPERSR', count=ct5))), $
-				OCCULTER: strc(gpi_simplify_keyword_value(gpi_get_keyword(head, ext_head,  'OCCULTER', count=ct6))), $
-				LYOTMASK: strc(  gpi_get_keyword(head, ext_head,  'LYOTMASK',     count=ct7)), $
-				APODIZER: strc(  gpi_get_keyword(head, ext_head,  'APODIZER',     count=ct8)), $
-				DATALAB:  strc(  gpi_get_keyword(head, ext_head,  'DATALAB',     count=ct11)), $
-				ITIME:    float( gpi_get_keyword(head, ext_head,  'ITIME',    count=ct9)), $
-				COADDS:   fix( gpi_get_keyword(head, ext_head,  'COADDS',    count=ctcoadd)), $
-				OBJECT:   string(  gpi_get_keyword(head, ext_head,  'OBJECT',   count=ct10)), $
-      				ELEVATIO: float(  gpi_get_keyword(head, ext_head,  'ELEVATIO',   count=ct12)), $
-				summary: '',$
-				valid: 0}
-
-	; some are OK to be missing without making it impossible to parse
-	if ct11 eq 0 then obsstruct.datalab = 'no DATALAB'
-	if ct10 eq 0 then obsstruct.object = 'no OBJECT'
-	if ct3 eq 0 then obsstruct.obsid = 'no OBSID'
-	if ct0 eq 0 then obsstruct.astromtc= 'F'
-        if ct12 eq 0 then obsstruct.elevatio = 'no elevation'
-;        if ct13 eq 0 then obsstruct.gcalfilt = 'no gcalfilt'
-;print,'counts',ct1,ct2,ct4,ct5,ct6,ct7,ct8,ct9,ctobsmode
-	; some we need to have in order to be able to parse.
-	vec=[ct1,ct2,ct4,ct5,ct6,ct7,ct8,ct9,  ctobsmode]
-	if total(vec) lt n_elements(vec) then begin
-		obsstruct.valid=0
-		;give some info on missing keyw:
-		keytab=['OBSCLASS','OBSTYPE', 'IFSFILT','DISPERSR','OCCULTER','LYOTMASK','APODIZER', 'ITIME', 'OBSMODE']
-		indzero=where(vec eq 0, cc)
-		;print, "Invalid/missing keywords for file "+filename
-		logmsg = 'Missing keyword(s): '+strjoin(keytab[indzero]," ")+" for "+filename
-		if cc gt 0 then self->Log, logmsg
-		;message,/info, logmsg
-
-		if ct1 eq 0 then obsstruct.obsclass = 'no OBSCLASS'
-		if ct2 eq 0 then obsstruct.obstype = 'no OBSTYPE'
-		if ctobsmode eq 0 then obsstruct.obsmode = 'no OBSMODE'
-
-	endif else begin
-		obsstruct.valid=1
-	endelse
-
-	if obsstruct.dispersr eq 'PRISM' then obsstruct.dispersr='Spectral'	 ; preferred display nomenclature is as Spectral/Wollaston. Both are prisms!
-	if obsstruct.object eq 'GCALflat' then obsstruct.object+= " "+gpi_get_keyword(head, ext_head,  'GCALLAMP')
-
-	if obsstruct.coadds eq 1 then coaddstr = "     " else coaddstr = "*"+string(obsstruct.coadds,format='(I-4)')
-    obsstruct.summary = file_basename(filename)+"     "+string(obsstruct.obsmode,format='(A-10)')+" "+string(obsstruct.dispersr,format='(A-10)') +" "+string(obsstruct.obstype, format='(A-10)')+$
-				" "+string(obsstruct.itime,format='(F5.1)')+coaddstr+"  "+string(obsstruct.object,format='(A-15)')+"       "+obsstruct.datalab+" "+string(obsstruct.elevatio,format='(F3.5)')
- 
-	
-	return, obsstruct
-
+;	if ~file_test(filename) then begin
+;		self->Log, "ERROR can't find file: "+filename
+;		return, -1
+;	endif
+;
+;
+;	; Load FITS file
+;	fits_data = gpi_load_fits(filename,/nodata,/silent,/fast)
+;	head = *fits_data.pri_header
+;	ext_head = *fits_data.ext_header
+;	ptr_free, fits_data.pri_header, fits_data.ext_header
+;
+;	obsstruct = {gpi_obs, $
+;				FILENAME: filename,$
+;				ASTROMTC: strc(  gpi_get_keyword(head, ext_head,  'ASTROMTC', count=ct0)), $
+;				OBSCLASS: strc(  gpi_get_keyword(head, ext_head,  'OBSCLASS', count=ct1)), $
+;				obstype:  strc(  gpi_get_keyword(head, ext_head,  'OBSTYPE',  count=ct2)), $
+;				obsmode:  strc(  gpi_get_keyword(head, ext_head,  'OBSMODE',  count=ctobsmode)), $
+;				OBSID:    strc(  gpi_get_keyword(head, ext_head,  'OBSID',    count=ct3)), $
+;				filter:   strc(gpi_simplify_keyword_value(strc(   gpi_get_keyword(head, ext_head,  'IFSFILT',   count=ct4)))), $
+;				dispersr: strc(gpi_simplify_keyword_value(gpi_get_keyword(head, ext_head,  'DISPERSR', count=ct5))), $
+;				OCCULTER: strc(gpi_simplify_keyword_value(gpi_get_keyword(head, ext_head,  'OCCULTER', count=ct6))), $
+;				LYOTMASK: strc(  gpi_get_keyword(head, ext_head,  'LYOTMASK',     count=ct7)), $
+;				APODIZER: strc(  gpi_get_keyword(head, ext_head,  'APODIZER',     count=ct8)), $
+;				DATALAB:  strc(  gpi_get_keyword(head, ext_head,  'DATALAB',     count=ct11)), $
+;				ITIME:    float( gpi_get_keyword(head, ext_head,  'ITIME',    count=ct9)), $
+;				COADDS:   fix( gpi_get_keyword(head, ext_head,  'COADDS',    count=ctcoadd)), $
+;				OBJECT:   string(  gpi_get_keyword(head, ext_head,  'OBJECT',   count=ct10)), $
+;      				ELEVATIO: float(  gpi_get_keyword(head, ext_head,  'ELEVATIO',   count=ct12)), $
+;				summary: '',$
+;				valid: 0}
+;
+;	; some are OK to be missing without making it impossible to parse
+;	if ct11 eq 0 then obsstruct.datalab = 'no DATALAB'
+;	if ct10 eq 0 then obsstruct.object = 'no OBJECT'
+;	if ct3 eq 0 then obsstruct.obsid = 'no OBSID'
+;	if ct0 eq 0 then obsstruct.astromtc= 'F'
+;        if ct12 eq 0 then obsstruct.elevatio = 'no elevation'
+;;        if ct13 eq 0 then obsstruct.gcalfilt = 'no gcalfilt'
+;;print,'counts',ct1,ct2,ct4,ct5,ct6,ct7,ct8,ct9,ctobsmode
+;	; some we need to have in order to be able to parse.
+;	vec=[ct1,ct2,ct4,ct5,ct6,ct7,ct8,ct9,  ctobsmode]
+;	if total(vec) lt n_elements(vec) then begin
+;		obsstruct.valid=0
+;		;give some info on missing keyw:
+;		keytab=['OBSCLASS','OBSTYPE', 'IFSFILT','DISPERSR','OCCULTER','LYOTMASK','APODIZER', 'ITIME', 'OBSMODE']
+;		indzero=where(vec eq 0, cc)
+;		;print, "Invalid/missing keywords for file "+filename
+;		logmsg = 'Missing keyword(s): '+strjoin(keytab[indzero]," ")+" for "+filename
+;		if cc gt 0 then self->Log, logmsg
+;		;message,/info, logmsg
+;
+;		if ct1 eq 0 then obsstruct.obsclass = 'no OBSCLASS'
+;		if ct2 eq 0 then obsstruct.obstype = 'no OBSTYPE'
+;		if ctobsmode eq 0 then obsstruct.obsmode = 'no OBSMODE'
+;
+;	endif else begin
+;		obsstruct.valid=1
+;	endelse
+;
+;	if obsstruct.dispersr eq 'PRISM' then obsstruct.dispersr='Spectral'	 ; preferred display nomenclature is as Spectral/Wollaston. Both are prisms!
+;	if obsstruct.object eq 'GCALflat' then obsstruct.object+= " "+gpi_get_keyword(head, ext_head,  'GCALLAMP')
+;
+;	if obsstruct.coadds eq 1 then coaddstr = "     " else coaddstr = "*"+string(obsstruct.coadds,format='(I-4)')
+;    obsstruct.summary = file_basename(filename)+"     "+string(obsstruct.obsmode,format='(A-10)')+" "+string(obsstruct.dispersr,format='(A-10)') +" "+string(obsstruct.obstype, format='(A-10)')+$
+;				" "+string(obsstruct.itime,format='(F5.1)')+coaddstr+"  "+string(obsstruct.object,format='(A-15)')+"       "+obsstruct.datalab+" "+string(obsstruct.elevatio,format='(F3.5)')
+; 
+;	
+;	return, obsstruct
+;
 end
 
 
@@ -428,44 +431,50 @@ end
 PRO  gpi_recipe_editor::Scan_Templates
     compile_opt DEFINT32, STRICTARR
 
+	common GPI_TEMPLATES, templates, templatetype
+
     ptr_free, self.templates
+    ptr_free, self.template_types
 
-	templatedir = 	gpi_get_directory('GPI_DRP_TEMPLATES_DIR')
-
-    message,/info, "Scanning for templates in "+ templatedir
-    template_file_list = file_search(templatedir + path_sep() + "*.xml")
+	tmp = gpi_lookup_template_filename(/scanonly,/verbose)
 
 
-    first_drf = obj_new('drf', template_file_list[0],/quick,/silent)
-    templates = replicate(first_drf->get_summary(), n_elements(template_file_list))
-
-    for i=0,n_elements(template_file_list)-1 do begin
-        message,/info, 'scanning '+template_file_list[i]
-		template = obj_new('drf', template_file_list[i],/quick,/silent)
-        templates[i] = template->get_summary()
-    endfor
-
-    types = uniqvals(templates.reductiontype)
-
-    ; What order should the template types be listed in, in the GUI?
-	type_order  = ['SpectralScience','PolarimetricScience','Calibration','Testing']
-    
-    ; FIXME check if there are any new types not specified in the above list but
-    ; present in the templates?
-    
-    ; conveniently, these filenames will already be in alphabetical order from
-    ; the above.
-    print, "----- Templates located: ----- "
-    for it=0, n_elements(type_order)-1 do begin
-        print, " -- "+type_order[it]+" -- "
-        wm = where(templates.reductiontype eq type_order[it], mct)
-        for im=0,mct-1 do begin
-            print, "    "+templates[wm[im]].name+"     "+ templates[wm[im]].filename
-        endfor
-    endfor
-
+ ; 	templatedir = 	gpi_get_directory('GPI_DRP_TEMPLATES_DIR')
+ ; 
+ ;     message,/info, "Scanning for templates in "+ templatedir
+ ;     template_file_list = file_search(templatedir + path_sep() + "*.xml")
+ ; 
+ ; 
+ ;     first_drf = obj_new('drf', template_file_list[0],/quick,/silent)
+ ;     templates = replicate(first_drf->get_summary(), n_elements(template_file_list))
+ ; 
+ ;     for i=0,n_elements(template_file_list)-1 do begin
+ ;         message,/info, 'scanning '+template_file_list[i]
+ ; 		template = obj_new('drf', template_file_list[i],/quick,/silent)
+ ;         templates[i] = template->get_summary()
+ ;     endfor
+ ; 
+ ;     types = uniqvals(templates.reductiontype)
+ ; 
+ ;     ; What order should the template types be listed in, in the GUI?
+ ; 	type_order  = ['SpectralScience','PolarimetricScience','Calibration','Testing']
+ ;     
+ ;     ; FIXME check if there are any new types not specified in the above list but
+ ;     ; present in the templates?
+ ;     
+ ;     ; conveniently, these filenames will already be in alphabetical order from
+ ;     ; the above.
+ ;     print, "----- Templates located: ----- "
+ ;     for it=0, n_elements(type_order)-1 do begin
+ ;         print, " -- "+type_order[it]+" -- "
+ ;         wm = where(templates.reductiontype eq type_order[it], mct)
+ ;         for im=0,mct-1 do begin
+ ;             print, "    "+templates[wm[im]].name+"     "+ templates[wm[im]].filename
+ ;         endfor
+ ;     endfor
+ ; 
     self.templates = ptr_new(templates)
-    self.template_types = ptr_new(type_order)
+    self.template_types = ptr_new(templatetype)
 
     print, "----- Above templates added to catalog ----- "
 	msg = "List of "+strc(n_elements(*self.templates))+" available templates reloaded"
@@ -802,12 +811,13 @@ pro gpi_recipe_editor::event,ev
   end
   'ADDFILE' : begin
      	
-		if keyword_set(gpi_get_setting('at_gemini', default=0,/silent)) eq 1 then result=dialog_pickfile(path=self.last_used_input_dir,/multiple,/must_exist,$
+		if keyword_set(gpi_get_setting('at_gemini', /bool, default=0,/silent)) eq 1 then $
+			result=dialog_pickfile(path=self.last_used_input_dir,/multiple,/must_exist,$
 								   title='Select Raw Data File(s)', $
 								  	filter=['S20'+gpi_datestr(/current)+'*.fits;'+'S20'+gpi_datestr(/current)+'*.fits.gz',$
 											'S20'+gpi_datestr(/current)+'*.fits'],get_path=getpath) $
-			else result=dialog_pickfile(path=self.last_used_input_dir,/multiple,/must_exist,$
-								   title='Select Raw Data File(s)', filter=['*.fits;*.fits.gz', '*.fits'],get_path=getpath)
+		else result=dialog_pickfile(path=self.last_used_input_dir,/multiple,/must_exist,$
+								   title='Select Raw Data File(s)', filter=filter,get_path=getpath)
 				
 		if n_elements(result) eq 1 then if strc(result) eq '' then return ; user cancelled in the dialog box. 
 
