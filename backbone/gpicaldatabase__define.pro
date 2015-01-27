@@ -429,7 +429,10 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	OK = 0
 	NOT_OK=-1
 
-	if self.nfiles eq 0 then message, "ERROR: --NO CAL FILES IN DB--"
+	if self.nfiles eq 0 then begin
+	  message, "ERROR: --NO CAL FILES IN DB--",/info
+	  return, NOT_OK
+	end
 
 	;---- Organize a catalog of different types of calibration files ----	
 	; Build a structure defining all the potential calibrator types, specifying
