@@ -607,7 +607,7 @@ function automaticreducer::init, groupleader, _extra=_extra
                   {cw_pdmenu_s, 0, 'Change Filename Wildcard...'}, $
                   {cw_pdmenu_s, 2, 'Quit Autoreducer'}, $
                   {cw_pdmenu_s, 1, 'Options'}, $
-                  {cw_pdmenu_s, 8, 'View new files in GPITV'},$
+                  {cw_pdmenu_s, 8, 'View new raw files in GPITV'},$
                   {cw_pdmenu_s, 8, 'Sort Files by Creation Time'},$
                   {cw_pdmenu_s, 8, 'Ignore individual UTR/CDS readout files'}, $
                   {cw_pdmenu_s, 3, 'Flexure Compensation'}, $
@@ -704,7 +704,7 @@ function automaticreducer::init, groupleader, _extra=_extra
 	widget_control, self.flex_base_id, map= (self.flexure_mode eq 'Manual')
 
 
-	self.menubar->set_check_state, 'View new files in GPITV', self.view_in_gpitv
+	self.menubar->set_check_state, 'View new raw files in GPITV', self.view_in_gpitv
 	self.menubar->set_check_state, 'Ignore individual UTR/CDS readout files', self.ignore_indiv_reads
 	self.menubar->set_check_state, 'Sort Files by Creation Time', self.sort_by_time
 	self->set_flexure_mode, self.flexure_mode ; null op but sets the checkboxes appropriately
