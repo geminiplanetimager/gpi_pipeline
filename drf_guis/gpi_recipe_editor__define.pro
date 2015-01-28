@@ -59,7 +59,7 @@ compile_opt DEFINT32, STRICTARR
 ;-
 function gpi_recipe_editor::get_obs_keywords, filename
 
-	return, gpi_get_obs_keywords(filename, where_to_log=self)
+	return, gpi_get_obs_keywords(gpi_expand_path(filename), where_to_log=self)
 
 ;	if ~file_test(filename) then begin
 ;		self->Log, "ERROR can't find file: "+filename
