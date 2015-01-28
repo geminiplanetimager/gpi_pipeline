@@ -618,65 +618,23 @@ end
 ; parsergui::create_recipe_from_template
 ; 	Creates a recipe from a template and a list of FITS files. 
 ;
-; 	KEYWORDS:
-; 	index=		index to use when inserting this into the GUI table for display
+; INPUTS:
+;   templatename :	filename of template
+;   fitsfiles :		str array of filenames
+;   current :		structure with current settings from file parsing for the 
+;					files in this recipe (filter, obstype, disperser etc)
 ;
+; KEYWORDS:
+; 	index=		index to use when inserting this into the GUI table for display
 ;
 ;-
 pro parsergui::create_recipe_from_template, templatename, fitsfiles, current,  index=index
 
-	; load the DRF, save with new filenames
-    if keyword_set(templatename) then self.LoadedRecipeFile=templatename
-    if self.LoadedRecipeFile eq '' then return
 
-
-	if ~file_test(self.LoadedRecipeFile, /read) then begin
-        message, "Requested recipe file does not exist: "+self.LoadedRecipeFile,/info
-		return
-	endif
-
-	catch, parse_error
-	parse_error=0
-	if parse_error eq 0 then begin
-		drf = obj_new('drf', self.LoadedRecipeFile,/silent)
-	endif else begin
-        message, "Could not parse Recipe File: "+self.LoadedRecipeFile,/info
-		;stop
-        return
-	endelse
-	catch,/cancel
-
-
-	; set the data files in that recipe to the requested ones
-	drf->set_datafiles, fitsfiles 
-
-	drf->set_outputdir, self.outputdir
-
-	; Generate output file name
-	recipe=drf->get_summary() 
-
-    first_file=strsplit(fitsfiles[0],path_sep(),/extract) ; split filename apart from other parts of path 
-    first_file=strsplit(first_file[size(first_file,/n_elements)-1],'S.',/extract) ; split on letter S or period
-
-	last_file=strsplit(fitsfiles[size(fitsfiles,/n_elements)-1],path_sep(),/extract)
-    last_file=strsplit(last_file[size(last_file,/n_elements)-1],'S.',/extract)
-
-	prefixname=string(self.num_recipes_in_table+1, format="(I03)")
-
-	if n_elements(first_file) gt 2 then begin
-		; normal Gemini style filename
-        outputfilename='S'+first_file[0]+'S'+first_file[1]+'-'+last_file[1]+'_'+recipe.shortname+'_drf.waiting.xml'
-	endif else begin
-		; something else? e.g. temporary workaround for engineering or other
-		; data with nonstandard filenames
-        outputfilename=file_basename(first_file[0])+'-'+file_basename(last_file[0])+'_'+recipe.shortname+'_recipe.waiting.xml'
-	endelse
-
-
-	outputfilename = self.drfpath + path_sep() + outputfilename
-	message,/info, 'Writing recipe file to :' + outputfilename
-
-	drf->save, outputfilename, comment=" Created by the Data Parser GUI"
+	drf = gpi_create_recipe_from_template( templatename, fitsfiles,  $
+		recipedir=self.drfpath, outputdir=self.outputdir, $
+		filename_counter=self.num_recipes_in_table+1, $
+		outputfilename=outputfilename)
 
 	if widget_info(self.autoqueue_id ,/button_set)  then begin
 		message,/info, 'Automatically Queueing recipes is enabled.'
