@@ -757,6 +757,23 @@ pro drf::save, outputfile0, autodir=autodir,silent=silent, status=status, $
 end
 
 ;-------------
+; Rename DRF file to something else.
+pro drf::rename, newfilename
+
+	if self.last_saved_filename eq '' then begin
+		self->Log, "Recipe has not yet been saved; can't rename a nonexistent file."
+		return
+	endif
+
+	; TODO add error handling?
+	file_move, self.last_saved_filename, newfilename,/allow_same
+	self->Log, 'Moved '+self.last_saved_filename+" to"+ newfilename
+	self.last_saved_filename = newfilename
+
+end
+
+
+;-------------
 PRO drf::queue, filename=filename, queued_filename=queued_filename, status=status, _extra=_extra
 	; save a DRF into the queue
 
@@ -1059,6 +1076,23 @@ function drf::get_contents
 end
 
 
+
+
+;--------------------------------------------------------------------------------
+pro drf::attach_extra_metadata, extra_metadata
+    ; Add arbitrary user-defined metadata to your recipe. 
+	; Use this however you'd like. 
+	; It's used to pass some data from ParserCore back to ParserGUI that would
+	; otherwise not be retained in the XML files.
+	ptr_free, self.extra_metadata
+	self.extra_metadata = ptr_new(extra_metadata)
+end
+
+function drf::retrieve_extra_metadata
+	if ptr_valid(self.extra_metadata) then return,*self.extra_metadata else return, 0
+end
+
+
 ;--------------------------------------------------------------------------------
 pro drf::cleanup
 
@@ -1099,8 +1133,9 @@ PRO drf__define
         where_to_log: obj_new(),$   ; optional target object for log messages
         ;inputdir: '', $            ; Deprecated, may still be present in XML but 
                                     ; automatically gets folded in to datafilenames
-        outputdir: '', $	    ; Output directory for the contents of this recipe
+        outputdir: '', $			; Output directory for the contents of this recipe
         outputoverride: 0, $        ; whether the outputdir has been set manually
+		extra_metadata: ptr_new(), $		; optional, arbitrary user-defined metadata for this recipe
         datafilenames: ptr_new(), $
         primitives: ptr_new(), $
         configDRS: ptr_new() $  ; DRS modules configuration info
