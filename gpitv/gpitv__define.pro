@@ -18660,220 +18660,324 @@ pro GPItv::high_pass_filter, status=status, forcestack=forcestack
   endelse
   
 end
+
+;----------------------------------------------------------------------
+
+pro GPItv::runKLIP, status=status
+
+  ;; front end for KLIP - added 06.19.2013 ds
+
+  widget_control, /hourglass
+  
+  if n_elements((*self.state).image_size) eq 3 then begin
+  
+    ;;only recalculate klip image if necessary
+    if n_elements(*self.images.klip_image) le 1 then begin
+      ;;if no satspots in memory, calculate them
+      if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
+        self->update_sat_spots
+        
+        ;;if failed, need to return
+        if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
+          self->message, msgtype='error', "Cannot align speckles because we cannot determine the center without satellite spots."
+          status=0
+          return
+        endif
+      endif
+      
+      self->message,msgtype='Information','KLIP processing takes a while, please be patient.'
+      
+      Ima2 = speckle_align(*self.images.main_image_stack,$
+        band=(*self.state).obsfilt,$
+        refslice=(*self.state).cur_image_num,$
+        locs=(*self.satspots.cens)[*,*,(*self.state).cur_image_num])
+        
+      res =  klip(Ima2, refslice=(*self.state).cur_image_num,$
+        band=(*self.state).obsfilt,$
+        locs=(*self.satspots.cens),$
+        annuli=(*self.state).klip_annuli,$
+        movmt=(*self.state).klip_movmt, $
+        prop=(*self.state).klip_prop, $
+        arcsec=(*self.state).klip_arcsec)
+      *self.images.klip_image = res
+    endif
+    
+    *self.images.main_image_stack = *self.images.klip_image
+    (*self.state).specalign_mode = 0
+    (*self.state).klip_mode = 1
+    (*self.state).specalign_to = (*self.state).cur_image_num
+    
+    self->getstats
+    self->displayall
+    status=1
+    
+  endif else begin
+    self->message, msgtype='error', "KLIP only works with 3D datacube"
+    status=0
+  endelse
+  
+end
+
+pro GPITV::radial_stokes, status=status
+
+  ;MMB - Started 140716
+
+  im=*self.images.main_image_stack
+  
+  ;If we've already transformed the stokes then don't do it again (unless we've rotated the image within radial mode)!
+  if ((*self.state).stokesdc_im_mode eq 0) || ((*self.state).rot_angle ne (*self.state).radial_stokes_rot_angle) then begin
+  
+    q=im[*,*,1]
+    u=im[*,*,2]
+    
+    extheader=(*(*self.state).exthead_ptr)
+    
+    psfcentx=sxpar(extheader, 'PSFCENTX', count=ct1)
+    psfcenty=sxpar(extheader, 'PSFCENTY', count=ct2)
+    
+    if ct1+ct2 eq 2 then begin
+      indices, im[*,*,0], x,y,z
+      
+      ;Get the angle from each pixel to the center (compensating for any any image rotation in GPItv)
+      phi=atan((y-psfcenty)/(x-psfcentx))-(*self.state).rot_angle*!dtor
+      
+      ;Perform the Transformation
+      qr=Q*cos(2*phi)+U*sin(2*phi)
+      ur=-Q*sin(2*phi)+U*cos(2*phi)
+      
+      ;Put things back in the cube
+      im[*,*,1]=qr
+      im[*,*,2]=ur
+      
+      ;Two new states just for this mode
+      (*self.state).stokesdc_im_mode = 1
+      (*self.state).radial_stokes_rot_angle = (*self.state).rot_angle
+      
+      status=1
+    endif else begin
+      self->message, msgtype='error', "No PSFCENT keywords found"
+      status=0
+    endelse
+  endif
+  
+  *self.images.main_image_stack=im
+  *self.images.main_image=(*self.images.main_image_stack)[*,*,(*self.state).cur_image_num]
+  
+end
 ;----------------------------------------------------------------------
 
 pro GPItv::tvangu
 
-; Routine to display the zoomed region around radial profil center,
-; with circles showing the radius.
+  ; Routine to display the zoomed region around radial profil center,
+  ; with circles showing the radius.
 
 
-self->setwindow, (*self.state).anguzoom_window_id
-erase
-
-x = round((*self.state).cursorpos[0])
-y = round((*self.state).cursorpos[1])
-	imacenter= WIDGET_INFO((*self.state).anguprof_imacenter_button, /BUTTON_SET)
-	if imacenter then begin
-		x=((size(*self.images.main_image))[1])/2
-		y=((size(*self.images.main_image))[2])/2
-	endif
-;boxsize = round((*self.state).outersky * 1.2)
-radi=(*self.state).angur
-;print, 'x=',x,'y=',y,'r',radi
-boxsize = radi
-if radi eq 0 then boxsize=1
-xsize = (2 * boxsize) + 1
-ysize = (2 * boxsize) + 1
-image = bytarr(xsize,ysize)
-
-xmin = (0 > (x - boxsize))
-xmax = ((x + boxsize) < ((*self.state).image_size[0] - 1) )
-ymin = (0 > (y - boxsize) )
-ymax = ((y + boxsize) < ((*self.state).image_size[1] - 1))
-
-startx = abs( (x - boxsize) < 0 )
-starty = abs( (y - boxsize) < 0 )
-
-image[startx, starty] = (*self.images.scaled_image)[xmin:xmax, ymin:ymax]
-
-xs = indgen(xsize) + xmin - startx
-ys = indgen(ysize) + ymin - starty
-
-xs_delta = (xs[xsize-1] - xs[0]) / float(xsize - 1.0)
-ys_delta = (ys[ysize-1] - ys[0]) / float(ysize - 1.0)
-x_ran = [xs[0]-xs_delta/2.0,xs[xsize-1]+xs_delta/2.0]
-y_ran = [ys[0]-ys_delta/2.0,ys[ysize-1]+ys_delta/2.0]
-
-dev_width = 0.8 * (*self.state).photzoom_size
-dev_pos = [0.15 * (*self.state).photzoom_size, $
-           0.15 * (*self.state).photzoom_size, $
-           0.95 * (*self.state).photzoom_size, $
-           0.95 * (*self.state).photzoom_size]
-
-x_factor = dev_width / xsize
-y_factor = dev_width / ysize
-x_offset = (x_factor - 1.0) / x_factor / 2.0
-y_offset = (y_factor - 1.0) / y_factor / 2.0
-xi = findgen(dev_width) / x_factor - x_offset ;x interp index
-yi = findgen(dev_width) / y_factor - y_offset ;y interp index
-
-image = Poly_2D(image, [[0,0],[1.0/x_factor,0]], $
-             [[0,1.0/y_factor],[0,0]], $
-             0, dev_width, dev_width)
-
-xsize = (size(image))[1]
-ysize = (size(image))[2]
-out_xs = xi * xs_delta + xs[0]
-out_ys = yi * ys_delta + ys[0]
-
-sz = size(image)
-xsize = Float(sz[1])       ;image width
-ysize = Float(sz[2])       ;image height
-dev_width = dev_pos[2] - dev_pos[0] + 1
-dev_width = dev_pos[3] - dev_pos[1] + 1
-
-tv, image, /device, dev_pos[0], dev_pos[1], $
-  xsize=dev_pos[2]-dev_pos[0], $
-  ysize=dev_pos[3]-dev_pos[1]
-
-plot, [0, 1], /noerase, /nodata, xstyle = 1, ystyle = 1, $
-  /device, position = dev_pos, color=7, $
-  xrange = x_ran, yrange = y_ran
-
-tvcircle, /data, radi, x, y, $
-  color=2, thick=2, psym=0
-;if ((*self.state).skytype NE 2) then begin
-;    tvcircle, /data, (*self.state).innersky, (*self.state).centerpos[0], (*self.state).centerpos[1], $
-;      color=4, thick=2, psym=0
-;    tvcircle, /data, (*self.state).outersky, (*self.state).centerpos[0], (*self.state).centerpos[1], $
-;      color=5, thick=2, psym=0
-;endif
-
-self->resetwindow
+  self->setwindow, (*self.state).anguzoom_window_id
+  erase
+  
+  x = round((*self.state).cursorpos[0])
+  y = round((*self.state).cursorpos[1])
+  imacenter= WIDGET_INFO((*self.state).anguprof_imacenter_button, /BUTTON_SET)
+  if imacenter then begin
+    x=((size(*self.images.main_image))[1])/2
+    y=((size(*self.images.main_image))[2])/2
+  endif
+  ;boxsize = round((*self.state).outersky * 1.2)
+  radi=(*self.state).angur
+  ;print, 'x=',x,'y=',y,'r',radi
+  boxsize = radi
+  if radi eq 0 then boxsize=1
+  xsize = (2 * boxsize) + 1
+  ysize = (2 * boxsize) + 1
+  image = bytarr(xsize,ysize)
+  
+  xmin = (0 > (x - boxsize))
+  xmax = ((x + boxsize) < ((*self.state).image_size[0] - 1) )
+  ymin = (0 > (y - boxsize) )
+  ymax = ((y + boxsize) < ((*self.state).image_size[1] - 1))
+  
+  startx = abs( (x - boxsize) < 0 )
+  starty = abs( (y - boxsize) < 0 )
+  
+  image[startx, starty] = (*self.images.scaled_image)[xmin:xmax, ymin:ymax]
+  
+  xs = indgen(xsize) + xmin - startx
+  ys = indgen(ysize) + ymin - starty
+  
+  xs_delta = (xs[xsize-1] - xs[0]) / float(xsize - 1.0)
+  ys_delta = (ys[ysize-1] - ys[0]) / float(ysize - 1.0)
+  x_ran = [xs[0]-xs_delta/2.0,xs[xsize-1]+xs_delta/2.0]
+  y_ran = [ys[0]-ys_delta/2.0,ys[ysize-1]+ys_delta/2.0]
+  
+  dev_width = 0.8 * (*self.state).photzoom_size
+  dev_pos = [0.15 * (*self.state).photzoom_size, $
+    0.15 * (*self.state).photzoom_size, $
+    0.95 * (*self.state).photzoom_size, $
+    0.95 * (*self.state).photzoom_size]
+    
+  x_factor = dev_width / xsize
+  y_factor = dev_width / ysize
+  x_offset = (x_factor - 1.0) / x_factor / 2.0
+  y_offset = (y_factor - 1.0) / y_factor / 2.0
+  xi = findgen(dev_width) / x_factor - x_offset ;x interp index
+  yi = findgen(dev_width) / y_factor - y_offset ;y interp index
+  
+  image = Poly_2D(image, [[0,0],[1.0/x_factor,0]], $
+    [[0,1.0/y_factor],[0,0]], $
+    0, dev_width, dev_width)
+    
+  xsize = (size(image))[1]
+  ysize = (size(image))[2]
+  out_xs = xi * xs_delta + xs[0]
+  out_ys = yi * ys_delta + ys[0]
+  
+  sz = size(image)
+  xsize = Float(sz[1])       ;image width
+  ysize = Float(sz[2])       ;image height
+  dev_width = dev_pos[2] - dev_pos[0] + 1
+  dev_width = dev_pos[3] - dev_pos[1] + 1
+  
+  tv, image, /device, dev_pos[0], dev_pos[1], $
+    xsize=dev_pos[2]-dev_pos[0], $
+    ysize=dev_pos[3]-dev_pos[1]
+    
+  plot, [0, 1], /noerase, /nodata, xstyle = 1, ystyle = 1, $
+    /device, position = dev_pos, color=7, $
+    xrange = x_ran, yrange = y_ran
+    
+  tvcircle, /data, radi, x, y, $
+    color=2, thick=2, psym=0
+  ;if ((*self.state).skytype NE 2) then begin
+  ;    tvcircle, /data, (*self.state).innersky, (*self.state).centerpos[0], (*self.state).centerpos[1], $
+  ;      color=4, thick=2, psym=0
+  ;    tvcircle, /data, (*self.state).outersky, (*self.state).centerpos[0], (*self.state).centerpos[1], $
+  ;      color=5, thick=2, psym=0
+  ;endif
+    
+  self->resetwindow
 end
 
 ;----------------------------------------------------------------------
 pro GPItv::anguprof_event, event
 
-@gpitv_err
-
-widget_control, event.id, get_uvalue = uvalue
-
-case uvalue of
-
+  @gpitv_err
+  
+  widget_control, event.id, get_uvalue = uvalue
+  
+  case uvalue of
+  
     'radius': begin
-    	 widget_control,(*self.state).anguradius_id,get_value=xx
- 		xxx=uint(xx)
-        (*self.state).angur = 1 > xxx < ((size(*self.images.main_image))[1])/2
-        self->anguprof_refresh
+      widget_control,(*self.state).anguradius_id,get_value=xx
+      xxx=uint(xx)
+      (*self.state).angur = 1 > xxx < ((size(*self.images.main_image))[1])/2
+      self->anguprof_refresh
     end
+    
+    'maxr':begin
+    maxr= WIDGET_INFO((*self.state).anguprof_maxr_button, /BUTTON_SET)
+    if maxr then begin
+      widget_control,(*self.state).basemaxr,sensitive=0
+      (*self.state).angur=((size(*self.images.main_image))[1])/2
+    endif else begin
+      widget_control,(*self.state).basemaxr,sensitive=1
+      widget_control,(*self.state).anguradius_id,get_value=xx
+      (*self.state).angur=uint(xx)
+    endelse
+    
+    self->anguprof_refresh
+  end
+  
+  'Imacenter':begin
+  x = (*self.state).cursorpos[0]
+  y = (*self.state).cursorpos[1]
+  imacenter= WIDGET_INFO((*self.state).anguprof_imacenter_button, /BUTTON_SET)
+  if imacenter then begin
+    x=((size(*self.images.main_image))[1])/2
+    y=((size(*self.images.main_image))[2])/2
+  endif
+  tmp_string = $
+    string(x, y, $
+    format = '("Cursor position:  x=",i4,"  y=",i4)' )
+  widget_control,(*self.state).cursorpos_id_anguprof,set_value =tmp_string
+  self->anguprof_refresh
+end
 
-	'maxr':begin
-		maxr= WIDGET_INFO((*self.state).anguprof_maxr_button, /BUTTON_SET)
-		if maxr then begin
-			widget_control,(*self.state).basemaxr,sensitive=0
-			(*self.state).angur=((size(*self.images.main_image))[1])/2
-		endif else begin
-			 widget_control,(*self.state).basemaxr,sensitive=1
-			 widget_control,(*self.state).anguradius_id,get_value=xx
-			 (*self.state).angur=uint(xx)
-		endelse
-
-		self->anguprof_refresh
-	end
-
-	'Imacenter':begin
-		x = (*self.state).cursorpos[0]
-		y = (*self.state).cursorpos[1]
-		imacenter= WIDGET_INFO((*self.state).anguprof_imacenter_button, /BUTTON_SET)
-		if imacenter then begin
-			x=((size(*self.images.main_image))[1])/2
-			y=((size(*self.images.main_image))[2])/2
-		endif
-		tmp_string = $
-		  string(x, y, $
-				 format = '("Cursor position:  x=",i4,"  y=",i4)' )
-		 widget_control,(*self.state).cursorpos_id_anguprof,set_value =tmp_string
-		  self->anguprof_refresh
-	end
-
-	'reso':begin
-		widget_control,(*self.state).angureso_id,get_value=tmp
-		(*self.state).angureso=tmp
-		self->anguprof_refresh
-	end
+'reso':begin
+widget_control,(*self.state).angureso_id,get_value=tmp
+(*self.state).angureso=tmp
+self->anguprof_refresh
+end
 
 
 
-    'showanguplot': begin
-        widget_control, (*self.state).showanguplot_id, get_value=val
-        case val of
-            'Show Angular Profile': begin
-                ysize = 350 < ((*self.state).screen_ysize - 350)
-                widget_control, (*self.state).anguplot_widget_id, $
-                  xsize=500, ysize=ysize
-                widget_control, (*self.state).showanguplot_id, $
-                  set_value='Hide Angular Profile'
-            end
-            'Hide Angular Profile': begin
-                widget_control, (*self.state).anguplot_widget_id, $
-                  xsize=1, ysize=1
-                widget_control, (*self.state).showanguplot_id, $
-                  set_value='Show Angular Profile'
-             end
-         endcase
-         self->anguprof_refresh
+'showanguplot': begin
+  widget_control, (*self.state).showanguplot_id, get_value=val
+  case val of
+    'Show Angular Profile': begin
+      ysize = 350 < ((*self.state).screen_ysize - 350)
+      widget_control, (*self.state).anguplot_widget_id, $
+        xsize=500, ysize=ysize
+      widget_control, (*self.state).showanguplot_id, $
+        set_value='Hide Angular Profile'
     end
-
-
-    'anguplot_save': self->anguprof_refresh, /sav
-
-    'angu_ps': begin
-		fname = strcompress((*self.state).current_dir + 'GPItv_prad.ps', /remove_all)
-        forminfo = cmps_form(cancel = canceled, create = create, $
-                     /preserve_aspect, $
-                     /color, $
-                     /nocommon, papersize='Letter', $
-                     filename = fname, $
-                     button_names = ['Create PS File'])
-
-        if (canceled) then return
-        if (forminfo.filename EQ '') then return
-
-        tmp_result = findfile(forminfo.filename, count = nfiles)
-
-        result = ''
-        if (nfiles GT 0) then begin
-          mesg = strarr(2)
-          mesg[0] = 'Overwrite existing file:'
-          tmp_string = strmid(forminfo.filename, strpos(forminfo.filename, $
-                              '/') + 1)
-          mesg[1] = strcompress(tmp_string + '?', /remove_all)
-          result =  dialog_message(mesg, $
-                             /default_no, $
-                             dialog_parent = (*self.state).base_id, $
-                             /question)
-        endif
-
-        if (strupcase(result) EQ 'NO') then return
-
-        widget_control, /hourglass
-
-        screen_device = !d.name
-
-        set_plot, 'ps'
-        device, _extra = forminfo
-
-        self->anguprof_refresh, /ps
-
-        device, /close
-        set_plot, screen_device
-
+    'Hide Angular Profile': begin
+      widget_control, (*self.state).anguplot_widget_id, $
+        xsize=1, ysize=1
+      widget_control, (*self.state).showanguplot_id, $
+        set_value='Show Angular Profile'
     end
+  endcase
+  self->anguprof_refresh
+end
 
-    'anguprof_done': widget_control, event.top, /destroy
-    else:
+
+'anguplot_save': self->anguprof_refresh, /sav
+
+'angu_ps': begin
+  fname = strcompress((*self.state).current_dir + 'GPItv_prad.ps', /remove_all)
+  forminfo = cmps_form(cancel = canceled, create = create, $
+    /preserve_aspect, $
+    /color, $
+    /nocommon, papersize='Letter', $
+    filename = fname, $
+    button_names = ['Create PS File'])
+    
+  if (canceled) then return
+  if (forminfo.filename EQ '') then return
+  
+  tmp_result = findfile(forminfo.filename, count = nfiles)
+  
+  result = ''
+  if (nfiles GT 0) then begin
+    mesg = strarr(2)
+    mesg[0] = 'Overwrite existing file:'
+    tmp_string = strmid(forminfo.filename, strpos(forminfo.filename, $
+      '/') + 1)
+    mesg[1] = strcompress(tmp_string + '?', /remove_all)
+    result =  dialog_message(mesg, $
+      /default_no, $
+      dialog_parent = (*self.state).base_id, $
+      /question)
+  endif
+  
+  if (strupcase(result) EQ 'NO') then return
+  
+  widget_control, /hourglass
+  
+  screen_device = !d.name
+  
+  set_plot, 'ps'
+  device, _extra = forminfo
+  
+  self->anguprof_refresh, /ps
+  
+  device, /close
+  set_plot, screen_device
+  
+end
+
+'anguprof_done': widget_control, event.top, /destroy
+else:
 endcase
 
 end
@@ -18884,85 +18988,85 @@ pro GPItv::anguprof_refresh, ps=ps,  sav=sav
 
   ;; Do aperture photometry using idlastro daophot routines.
 
-  
+
   x = (*self.state).cursorpos[0]
   y = (*self.state).cursorpos[1]
-
+  
   imacenter= WIDGET_INFO((*self.state).anguprof_imacenter_button, /BUTTON_SET)
   if imacenter then begin
-     x=((size(*self.images.main_image))[1])/2
-     y=((size(*self.images.main_image))[2])/2
+    x=((size(*self.images.main_image))[1])/2
+    y=((size(*self.images.main_image))[2])/2
   endif
   tmp_string =  string(x, y,  format = '("Cursor position:  x=",i4,"  y=",i4)' )
-
+  
   widget_control,(*self.state).cursorpos_id_anguprof,set_value =tmp_string
-
+  
   maxr= WIDGET_INFO((*self.state).anguprof_maxr_button, /BUTTON_SET)
   if maxr then begin
-     (*self.state).angur=((size(*self.images.main_image))[1])/2
+    (*self.state).angur=((size(*self.images.main_image))[1])/2
   endif
   ;; Run self->radplotf and plot the results
   prof_image=subarr(*self.images.main_image,2*(*self.state).angur+1,[[x],[y]],/nanout)
   ;;if (not (keyword_set(ps))) then begin
   self->setwindow, (*self.state).anguplot_window_id
   profrad, prof_image, (*self.state).angureso, p1d=p1d, rayon=(*self.state).angur
-
+  
   ;; overplot the phot apertures on radial plot
   if (not (keyword_set(ps))) then begin
-     xx=(*self.state).angureso*(indgen((size(p1d))[1]))
-     plot, xx,p1d,ytitle='Flux ['+(*self.state).current_units+']', xtitle='pixel', psym=-1
-     self->resetwindow
-
+    xx=(*self.state).angureso*(indgen((size(p1d))[1]))
+    plot, xx,p1d,ytitle='Flux ['+(*self.state).current_units+']', xtitle='pixel', psym=-1
+    self->resetwindow
+    
   endif else begin
-     xx=(*self.state).angureso*(indgen((size(p1d))[1]))
-     plot, xx,p1d,ytitle='Flux ['+(*self.state).current_units+']', xtitle='pixel', psym=-1
-
+    xx=(*self.state).angureso*(indgen((size(p1d))[1]))
+    plot, xx,p1d,ytitle='Flux ['+(*self.state).current_units+']', xtitle='pixel', psym=-1
+    
   endelse
   if (not (keyword_set(ps))) then  self->tvangu
-
+  
   ;;write fits file
   if (keyword_set(sav)) then begin
-     ;;synthesize name
-     nm = (*self.state).imagename
-     strps = strpos(nm,'/',/reverse_search)
-     strpe = strpos(nm,'.fits',/reverse_search)
-     nm = strmid(nm,strps+1,strpe-strps-1)
-
-     angu_outfile = dialog_pickfile(filter='*.fits', $
-                                    file=nm+'-radial_profile.fits', get_path = tmp_dir, $
-                                    path=(*self.state).current_dir,$
-                                    title='Please Select File to save radial profile')
-     
-     IF (strcompress(angu_outfile, /remove_all) EQ '') then RETURN
-     
-     IF (angu_outfile EQ tmp_dir) then BEGIN
-        self->message, 'Must indicate filename to save.', $
-                       msgtype = 'error', /window
-        return
-     ENDIF
-
-     ;;output & header
-     out = [[xx],[p1d]]
-     mkhdr,hdr,out
-     sxaddpar,hdr,'CENTER_X',x,'x coord of aperture center'
-     sxaddpar,hdr,'CENTER_Y',y,'y coord of aperture center'
-     sxaddpar,hdr,'RADIUS',(*self.state).angur,'Radius of aperture'
-     sxaddpar,hdr,'PIX_RES',(*self.state).angureso,'Pixel resolution'
-
-     ;;write
-     writefits,angu_outfile,out,hdr
-  endif 
-
-; Uncomment next lines if you want GPItv to output the WCS coords of
-; the centroid for the photometry object:
-;if ((*self.state).wcstype EQ 'angle') then begin
-;    xy2ad, (*self.state).centerpos[0], (*self.state).centerpos[1], *((*self.state).astr_ptr), $
-;      clon, clat
-;    wcsstring = GPItv_wcsstring(clon, clat, (*(*self.state).astr_ptr).ctype,  $
-;                (*self.state).equinox, (*self.state).display_coord_sys, (*self.state).display_equinox)
-;    print, 'Centroid WCS coords: ', wcsstring
-;endif
-
+    ;;synthesize name
+    nm = (*self.state).imagename
+    strps = strpos(nm,'/',/reverse_search)
+    strpe = strpos(nm,'.fits',/reverse_search)
+    nm = strmid(nm,strps+1,strpe-strps-1)
+    
+    angu_outfile = dialog_pickfile(filter='*.fits', $
+      file=nm+'-radial_profile.fits', get_path = tmp_dir, $
+      path=(*self.state).current_dir,$
+      title='Please Select File to save radial profile')
+      
+    IF (strcompress(angu_outfile, /remove_all) EQ '') then RETURN
+    
+    IF (angu_outfile EQ tmp_dir) then BEGIN
+      self->message, 'Must indicate filename to save.', $
+        msgtype = 'error', /window
+      return
+    ENDIF
+    
+    ;;output & header
+    out = [[xx],[p1d]]
+    mkhdr,hdr,out
+    sxaddpar,hdr,'CENTER_X',x,'x coord of aperture center'
+    sxaddpar,hdr,'CENTER_Y',y,'y coord of aperture center'
+    sxaddpar,hdr,'RADIUS',(*self.state).angur,'Radius of aperture'
+    sxaddpar,hdr,'PIX_RES',(*self.state).angureso,'Pixel resolution'
+    
+    ;;write
+    writefits,angu_outfile,out,hdr
+  endif
+  
+  ; Uncomment next lines if you want GPItv to output the WCS coords of
+  ; the centroid for the photometry object:
+  ;if ((*self.state).wcstype EQ 'angle') then begin
+  ;    xy2ad, (*self.state).centerpos[0], (*self.state).centerpos[1], *((*self.state).astr_ptr), $
+  ;      clon, clat
+  ;    wcsstring = GPItv_wcsstring(clon, clat, (*(*self.state).astr_ptr).ctype,  $
+  ;                (*self.state).equinox, (*self.state).display_coord_sys, (*self.state).display_equinox)
+  ;    print, 'Centroid WCS coords: ', wcsstring
+  ;endif
+  
   self->resetwindow
 end
 
@@ -18970,144 +19074,144 @@ end
 ;----------------------------------------------------------------------
 pro GPItv::anguprof
 
-; aperture radial profil front end
+  ; aperture radial profil front end
 
 
-(*self.state).cursorpos = (*self.state).coord
-
-if (not (xregistered(self.xname+'_anguprof'))) then begin
-
+  (*self.state).cursorpos = (*self.state).coord
+  
+  if (not (xregistered(self.xname+'_anguprof'))) then begin
+  
     anguprof_base = $
       widget_base(/base_align_center, $
-                  group_leader = (*self.state).base_id, $
-                  /column, $
-                  title = 'GPItv angular profile', $
-                  uvalue = 'anguprof_base')
-
+      group_leader = (*self.state).base_id, $
+      /column, $
+      title = 'GPItv angular profile', $
+      uvalue = 'anguprof_base')
+      
     anguprof_top_base = widget_base(anguprof_base, /row, /base_align_center)
-
+    
     anguprof_data_base1 = widget_base( $
-            anguprof_top_base, /column, frame=0)
-
+      anguprof_top_base, /column, frame=0)
+      
     anguprof_data_base2 = widget_base( $
-            anguprof_top_base, /column, frame=0)
-
-	anguzoom_widget_id = widget_draw( $
-         anguprof_data_base2, $
-         scr_xsize=(*self.state).photzoom_size, scr_ysize=(*self.state).photzoom_size)
-
+      anguprof_top_base, /column, frame=0)
+      
+    anguzoom_widget_id = widget_draw( $
+      anguprof_data_base2, $
+      scr_xsize=(*self.state).photzoom_size, scr_ysize=(*self.state).photzoom_size)
+      
     anguprof_draw_base = widget_base( $
-            anguprof_base, /row, /base_align_center, frame=0)
-
+      anguprof_base, /row, /base_align_center, frame=0)
+      
     anguprof_data_base1a = widget_base(anguprof_data_base1, /column, frame=1)
-	anguprof_data_base1a0 = widget_base(anguprof_data_base1a, /row)
+    anguprof_data_base1a0 = widget_base(anguprof_data_base1a, /row)
     tmp_string = $
       string(1000, 1000, $
-             format = '("Cursor position:  x=",i4,"  y=",i4)' )
-
+      format = '("Cursor position:  x=",i4,"  y=",i4)' )
+      
     (*self.state).cursorpos_id_anguprof = $
       widget_label(anguprof_data_base1a0, $
-                   value = tmp_string, $
-                   uvalue = 'cursorpos', /align_left)
-	basecenter = Widget_Base(anguprof_data_base1a0,   $
-       COLUMN=1 ,/NONEXCLUSIVE)
-
-
-  	(*self.state).anguprof_imacenter_button = Widget_Button(basecenter,   $
+      value = tmp_string, $
+      uvalue = 'cursorpos', /align_left)
+    basecenter = Widget_Base(anguprof_data_base1a0,   $
+      COLUMN=1 ,/NONEXCLUSIVE)
+      
+      
+    (*self.state).anguprof_imacenter_button = Widget_Button(basecenter,   $
       /ALIGN_LEFT ,VALUE='Image center',uvalue = 'Imacenter')
-     ; Widget_control,(*self.state).anguprof_imacenter_button,/SET_BUTTON
-
-	anguprof_data_base1a1 = widget_base(anguprof_data_base1a, /row)
-
-	(*self.state).basemaxr = Widget_Base(anguprof_data_base1a1, /ROW,$
-               sensitive=1)
-	void=WIDGET_LABEL((*self.state).basemaxr,value='Aperture radius:', /ALIGN_LEFT,/DYNAMIC_RESIZE )
-	(*self.state).anguradius_id = $
+    ; Widget_control,(*self.state).anguprof_imacenter_button,/SET_BUTTON
+      
+    anguprof_data_base1a1 = widget_base(anguprof_data_base1a, /row)
+    
+    (*self.state).basemaxr = Widget_Base(anguprof_data_base1a1, /ROW,$
+      sensitive=1)
+    void=WIDGET_LABEL((*self.state).basemaxr,value='Aperture radius:', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+    (*self.state).anguradius_id = $
       WIDGET_TEXT((*self.state).basemaxr, $
-               /editable, $
-               uvalue = 'radius', $
-               value = strcompress(string((*self.state).angur)),xsize=8)
-
-     basecenter2 = Widget_Base(anguprof_data_base1a1,   $
-       COLUMN=1 ,/NONEXCLUSIVE)
-  	(*self.state).anguprof_maxr_button = Widget_Button(basecenter2,   $
+      /editable, $
+      uvalue = 'radius', $
+      value = strcompress(string((*self.state).angur)),xsize=8)
+      
+    basecenter2 = Widget_Base(anguprof_data_base1a1,   $
+      COLUMN=1 ,/NONEXCLUSIVE)
+    (*self.state).anguprof_maxr_button = Widget_Button(basecenter2,   $
       /ALIGN_LEFT ,VALUE='max radius',uvalue = 'maxr')
-	;Widget_control,(*self.state).anguprof_maxr_button,/SET_BUTTON
-
-	anguprof_data_base1a2 = Widget_Base(anguprof_data_base1a,  /row)
-	void=WIDGET_LABEL(anguprof_data_base1a2,value='Pixel resolution:', /ALIGN_LEFT,/DYNAMIC_RESIZE )
-	(*self.state).angureso_id = $
+    ;Widget_control,(*self.state).anguprof_maxr_button,/SET_BUTTON
+      
+    anguprof_data_base1a2 = Widget_Base(anguprof_data_base1a,  /row)
+    void=WIDGET_LABEL(anguprof_data_base1a2,value='Pixel resolution:', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+    (*self.state).angureso_id = $
       WIDGET_TEXT(anguprof_data_base1a2, $
-               /editable, $
-               uvalue = 'reso', $
-               value = strcompress(string((*self.state).angureso)),xsize=8)
-
-	anguplot_log_save = $
+      /editable, $
+      uvalue = 'reso', $
+      value = strcompress(string((*self.state).angureso)),xsize=8)
+      
+    anguplot_log_save = $
       widget_button(anguprof_data_base1, $
-                    value = 'Save Angular Profile', $
-                    uvalue = 'anguplot_save')
-
-;    angu_ps = $
-;      widget_button(anguprof_data_base1, $
-;                    value = 'Create Profile PS', $
-;                    uvalue = 'angu_ps')
-
+      value = 'Save Angular Profile', $
+      uvalue = 'anguplot_save')
+      
+    ;    angu_ps = $
+    ;      widget_button(anguprof_data_base1, $
+    ;                    value = 'Create Profile PS', $
+    ;                    uvalue = 'angu_ps')
+      
     (*self.state).showanguplot_id = $
       widget_button(anguprof_data_base1, $
-                    value = 'Hide Angular Profile', $
-                    uvalue = 'showanguplot')
-
+      value = 'Hide Angular Profile', $
+      uvalue = 'showanguplot')
+      
     (*self.state).anguplot_widget_id = widget_draw( $
-         anguprof_draw_base, scr_xsize=500, $
-           scr_ysize=(350 < ((*self.state).screen_ysize - 350)))
-
+      anguprof_draw_base, scr_xsize=500, $
+      scr_ysize=(350 < ((*self.state).screen_ysize - 350)))
+      
     anguprof_done = $
       widget_button(anguprof_data_base2, $
-                    value = 'Done', $
-                    uvalue = 'anguprof_done')
-
+      value = 'Done', $
+      uvalue = 'anguprof_done')
+      
     widget_control, anguprof_base, /realize
-
-	widget_control, anguzoom_widget_id, get_value=tmp_value
+    
+    widget_control, anguzoom_widget_id, get_value=tmp_value
     (*self.state).anguzoom_window_id = tmp_value
-	widget_control, (*self.state).anguplot_widget_id, get_value=tmp_value
+    widget_control, (*self.state).anguplot_widget_id, get_value=tmp_value
     (*self.state).anguplot_window_id = tmp_value
-
-  ;  xmanager, 'GPItv_anguprof', anguprof_base, /no_block
-      xmanager, self.xname+'_anguprof', anguprof_base, /no_block
-      widget_control, anguprof_base, set_uvalue={object:self, method: 'anguprof_event'}
-      widget_control, anguprof_base, event_pro = 'GPItvo_subwindow_event_handler'
+    
+    ;  xmanager, 'GPItv_anguprof', anguprof_base, /no_block
+    xmanager, self.xname+'_anguprof', anguprof_base, /no_block
+    widget_control, anguprof_base, set_uvalue={object:self, method: 'anguprof_event'}
+    widget_control, anguprof_base, event_pro = 'GPItvo_subwindow_event_handler'
     self->resetwindow
-endif
-
-self->anguprof_refresh
+  endif
+  
+  self->anguprof_refresh
 end
 
 ;--------------------------------------------------------------------------------
 pro GPItv::KLIP_settings
-  
+
   ;; Routine to get user input on various KLIP settings
   annuli_line = strcompress('0, float,'+string((*self.state).klip_annuli) + $ ;1
-                            ',label_left = # of Annuli:,' + $
-                            'width = 10')
+    ',label_left = # of Annuli:,' + $
+    'width = 10')
   movmt_line = strcompress('0, float,'+string((*self.state).klip_movmt) + $ ;2
-                           ',label_left = Min pix move:,' + $
-                           'width = 10')
+    ',label_left = Min pix move:,' + $
+    'width = 10')
   prop_line= strcompress('0, float,'+string((*self.state).klip_prop) + $ ;3
-                         ',label_left = Trunc. ratio:,' + $
-                        'width = 10')
+    ',label_left = Trunc. ratio:,' + $
+    'width = 10')
   arcsec_line= strcompress('0, float,'+string((*self.state).klip_arcsec) + $ ;4
-                           ',label_left = Targ Radius (as):,' + $
-                           'width = 10')
-  
+    ',label_left = Targ Radius (as):,' + $
+    'width = 10')
+    
   formdesc = ['0, label, Select options for KLIP', $
-              annuli_line,movmt_line,prop_line,arcsec_line,$
-              '0, button, Save Settings, quit', $ ;5
-              '0, button, Cancel, quit']          ;6
-  
+    annuli_line,movmt_line,prop_line,arcsec_line,$
+    '0, button, Save Settings, quit', $ ;5
+    '0, button, Cancel, quit']          ;6
+    
   textform = cw_form(formdesc, /column, $
-                     title = 'GPItv KLIP settings')
-  
+    title = 'GPItv KLIP settings')
+    
   if (textform.tag6 EQ 1) then return ; cancelled (tag# = # of inputs above+2)
   
   (*self.state).klip_annuli = textform.tag1
@@ -19123,25 +19227,25 @@ end
 ;----------------------------------------------------------------------
 
 pro GPItv::high_pass_filter_settings
-  
+
   ;; Routine to get user input on various high pass settings
   box_line = strcompress('0, float,'+string((*self.state).high_pass_size) + $ ;1
-                            ',label_left = Median Box Size:,' + $
-                            'width = 10')
-  
+    ',label_left = Median Box Size:,' + $
+    'width = 10')
+    
   formdesc = ['0, label, Select options for high pass filter', $
-              box_line,$
-              '0, button, Save Settings, quit', $ ;5
-              '0, button, Cancel, quit']          ;6
-  
-	if (*self.state).multisess GT 0 then title = "GPItv #"+strc((*self.state).multisess) else title="GPItv"
-	title += " High pass filter settings"
+    box_line,$
+    '0, button, Save Settings, quit', $ ;5
+    '0, button, Cancel, quit']          ;6
+    
+  if (*self.state).multisess GT 0 then title = "GPItv #"+strc((*self.state).multisess) else title="GPItv"
+  title += " High pass filter settings"
   textform = cw_form(formdesc, /column,  title = title)
   
   if (textform.tag3 EQ 1) then return ; cancelled (tag# = # of inputs above+2)
   
   (*self.state).high_pass_size = textform.tag1
-
+  
   
 end
 
@@ -19149,117 +19253,123 @@ end
 ;----------------------------------------------------------------------
 
 pro GPItv::statvsr,color=color,linestyle=linestyle,xrange=xrange,yrange=yrange,$
-                   overplot=overplot,xlog=xlog,$
-                   silent=silent,xtitle=xtitle,ytitle=ytitle,psym=psym,$
-                   symsize=symsize,mapsig=mapsig, data = data
-
-;; as of 08/07/12 this is just a plotting frontend.  All calculations
-;; are done in radial_profile.pro, which is called from
-;; contrprof_refresh
-;; all inputs are now optional, as the actual contour profile is
-;; stored in the common pointer heap.  However, x & y data can be
-;; passed in via the data keyword
-
-
-;Optional inputs
-;-------------------------------
-;color: determine la couleur des courbes, vecteur, les courbes sont
-;       plottees dans l'ordre, dot, med, sig
-;linestyle: determine le style du trait des courbes, vecteur, les courbes sont
-;           plottees dans l'ordre, med, sig
-;xrange:
-;yrange:
-;overplot: pour faire un oplot
-;/xlog:
-;
-
-if not keyword_set(data) then begin 
-   ;;check to make sure that we actually have a valid contour profile in
-   ;;memory
-   if (*self.state).contr_plotmult then inds = (*self.satspots.good) else $
+    overplot=overplot,xlog=xlog,$
+    silent=silent,xtitle=xtitle,ytitle=ytitle,psym=psym,$
+    symsize=symsize,mapsig=mapsig, data = data
+    
+  ;; as of 08/07/12 this is just a plotting frontend.  All calculations
+  ;; are done in radial_profile.pro, which is called from
+  ;; contrprof_refresh
+  ;; all inputs are now optional, as the actual contour profile is
+  ;; stored in the common pointer heap.  However, x & y data can be
+  ;; passed in via the data keyword
+    
+    
+  ;Optional inputs
+  ;-------------------------------
+  ;color: determine la couleur des courbes, vecteur, les courbes sont
+  ;       plottees dans l'ordre, dot, med, sig
+  ;linestyle: determine le style du trait des courbes, vecteur, les courbes sont
+  ;           plottees dans l'ordre, med, sig
+  ;xrange:
+  ;yrange:
+  ;overplot: pour faire un oplot
+  ;/xlog:
+  ;
+    
+  if not keyword_set(data) then begin
+    ;;check to make sure that we actually have a valid contour profile in
+    ;;memory
+    if (*self.state).contr_plotmult then inds = (*self.satspots.good) else $
       inds = (*self.state).cur_image_num
-   if n_elements(*(*self.satspots.contrprof)[inds[0],(*self.state).contr_yunit]) eq 0 then begin
+    if n_elements(*(*self.satspots.contrprof)[inds[0],(*self.state).contr_yunit]) eq 0 then begin
       self->message, msgtype='error', 'No valid contour profile exists.'
       return
-   endif
-endif else inds = 0
-
-;;set up graphs
-self->setwindow, (*self.state).contrplot_window_id
-erase
-
-;;set proper scale unit
-if (*self.state).contr_yunit eq 0 then sclunit = (*self.state).contrsigma else sclunit = 1d
-
-;;set color
-if (not keyword_set(color)) then begin
-   if ~(*self.state).contr_plotmult then color = [1] else begin
+    endif
+  endif else inds = 0
+  
+  ;;set up graphs
+  self->setwindow, (*self.state).contrplot_window_id
+  erase
+  
+  ;;set proper scale unit
+  if (*self.state).contr_yunit eq 0 then sclunit = (*self.state).contrsigma else sclunit = 1d
+  
+  ;;set color
+  if (not keyword_set(color)) then begin
+    if ~(*self.state).contr_plotmult then color = [1] else begin
       color = round(findgen((*self.state).image_size[2])/$
-                    ((*self.state).image_size[2]-1)*100.+100.)
-   endelse
-endif
-
-;;other plot stuff
-if (not keyword_set(linestyle)) then linestyle=[0,2,3,5]
-if (not keyword_set(psym)) then psym = [4,1,2,5,6]
-if (not keyword_set(symsize)) then symsize=1.
-
-;;get plot ranges, if none given
-if (not keyword_set(xrange)) then begin
-
-   if not keyword_set(data) then asec = *(*self.satspots.asec)[inds[0]] else $
+        ((*self.state).image_size[2]-1)*100.+100.)
+    endelse
+  endif
+  
+  ;;other plot stuff
+  if (not keyword_set(linestyle)) then linestyle=[0,2,3,5]
+  if (not keyword_set(psym)) then psym = [4,1,2,5,6]
+  if (not keyword_set(symsize)) then symsize=1.
+  
+  ;;get plot ranges, if none given
+  if (not keyword_set(xrange)) then begin
+  
+    if not keyword_set(data) then asec = *(*self.satspots.asec)[inds[0]] else $
       asec = data.asec
-   if (*self.state).contr_xunit eq 1 then $
+    if (*self.state).contr_xunit eq 1 then $
       asec *= 1d/3600d*!dpi/180d*gpi_get_constant('primary_diam',default=7.7701d0)/((*(*self.state).CWV_ptr)[inds[0]]*1d-6)
-   xrange=[min(asec),max(asec)]
-   for j=1,n_elements(inds)-1 do begin
+    xrange=[min(asec),max(asec)]
+    for j=1,n_elements(inds)-1 do begin
       asec = *(*self.satspots.asec)[inds[j]]
       if (*self.state).contr_xunit eq 1 then $
-         asec *= 1d/3600d*!dpi/180d*gpi_get_constant('primary_diam',default=7.7701d0)/((*(*self.state).CWV_ptr)[inds[j]]*1d-6)
+        asec *= 1d/3600d*!dpi/180d*gpi_get_constant('primary_diam',default=7.7701d0)/((*(*self.state).CWV_ptr)[inds[j]]*1d-6)
       xrange[0] = xrange[0] < min(asec)
       xrange[1] = xrange[1] > max(asec)
-   endfor
-endif
-if not(keyword_set(yrange)) or (*self.state).contr_yaxis_mode then begin
-   if not keyword_set(data) then tmp = *(*self.satspots.contrprof)[inds[0],(*self.state).contr_yunit] else $
+    endfor
+  endif
+  if not(keyword_set(yrange)) or (*self.state).contr_yaxis_mode then begin
+    if not keyword_set(data) then tmp = *(*self.satspots.contrprof)[inds[0],(*self.state).contr_yunit] else $
       tmp = data.contrprof
-   tmp = tmp[where(finite(tmp) and tmp gt 0)] * sclunit
-   yrange = [min(tmp),max(tmp)]
-   for j=1,n_elements(inds)-1 do begin
+    tmp = tmp[where(finite(tmp) and tmp gt 0)] * sclunit
+    yrange = [min(tmp),max(tmp)]
+    for j=1,n_elements(inds)-1 do begin
       tmp = *(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit]
       tmp = tmp[where(finite(tmp) and tmp gt 0)] * sclunit
       yrange[0] = yrange[0] < min(tmp)
       yrange[1] = yrange[1] > max(tmp)
-   endfor
-endif
-
-;;figure out title
-widget_control,(*self.state).contrwarning_id,get_value=warn
-if strcmp(warn,'Warnings: Possible Misdetection: Fluxes vary >25%') then $
-   title='Warning: Possible Misdetection: Fluxes vary >25%' else $
-      title = ''
-
-;;plot contrast
-if not(keyword_set(overplot)) then begin
-   plot,[0],[0],ylog=(*self.state).contr_yaxis_type,xlog=xlog,xrange=xrange,yrange=yrange,/xstyle,/ystyle,$
-        xtitle=xtitle,ytitle=ytitle,/nodata, charsize=(*self.state).contr_font_size, title=title
-endif
-for j = 0, n_elements(inds)-1 do begin
-   if not keyword_set(data) then asec = *(*self.satspots.asec)[inds[j]] else $
+    endfor
+  endif
+  ;;Tick labels don't appear if yrange less than an order
+  ;;of magnitude, so check for that
+  if floor(alog10(max(yrange))) eq floor(alog10(min(yrange))) then begin
+    ;;As of now no labels will be drawn on Y-axis, so set them by hand
+    ytickv = 10.^floor(alog10(min(yrange))) * (findgen(10)+1)
+    ytickv = ytickv(where(ytickv ge min(yrange) and ytickv le max(yrange)))
+    yticks = n_elements(ytickv)-1
+  endif
+  
+  ;;figure out title
+  widget_control,(*self.state).contrwarning_id,get_value=warn
+  if strcmp(warn,'Warnings: Possible Misdetection: Fluxes vary >25%') then $
+    title='Warning: Possible Misdetection: Fluxes vary >25%' else $
+    title = ''
+    
+  ;;plot contrast
+  if not(keyword_set(overplot)) then begin
+    plot,[0],[0],ylog=(*self.state).contr_yaxis_type,xlog=xlog,xrange=xrange,yrange=yrange,/xstyle,/ystyle,$
+      xtitle=xtitle,ytitle=ytitle,/nodata, charsize=(*self.state).contr_font_size, title=title,ytickv=ytickv,yticks=yticks
+  endif
+  for j = 0, n_elements(inds)-1 do begin
+    if not keyword_set(data) then asec = *(*self.satspots.asec)[inds[j]] else $
       asec = data.asec
-   if (*self.state).contr_xunit eq 1 then $
+    if (*self.state).contr_xunit eq 1 then $
       asec *= 1d/3600d*!dpi/180d*gpi_get_constant('primary_diam',default=7.7701d0)/((*(*self.state).CWV_ptr)[inds[j]]*1d-6)
-
-   if not keyword_set(data) then tmp = *(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit] else $
+      
+    if not keyword_set(data) then tmp = *(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit] else $
       tmp = data.contrprof
-   
-   oplot,asec,tmp[*,0] * sclunit, color=color[j],linestyle=linestyle[0]
-   if (*self.state).contr_plotouter then oplot,asec,tmp[*,1] * sclunit, color=color[j],linestyle=linestyle[1]
-endfor
-xyouts, /normal,0.6,0.8,'Star Magnitude = '+strtrim(strmid(*self.satspots.mags,0,10),2),charsize=1.2
-if ((*self.state).contr_plotmult ne 1) then xyouts, /normal,0.6,0.75,'Wavelength (um) = '+sigfig((*(*self.state).CWV_ptr)[((*self.state).cur_image_num)[0]],5),charsize=1.2
-
-
+      
+    oplot,asec,tmp[*,0] * sclunit, color=color[j],linestyle=linestyle[0]
+    if (*self.state).contr_plotouter then oplot,asec,tmp[*,1] * sclunit, color=color[j],linestyle=linestyle[1]
+  endfor
+  xyouts, /normal,0.6,0.8,'Star Magnitude = '+strtrim(strmid(*self.satspots.mags,0,10),2),charsize=1.2
+  
 end
 
 ;;-------------------------------------------------------------
@@ -19272,129 +19382,129 @@ pro GPItv::tvcontr, nosat=nosat, ps3=ps3, nodh=nodh
 
   self->setwindow, (*self.state).contrzoom_window_id
   erase
-
+  
   x=((size(*self.images.main_image))[1])/2
   y=((size(*self.images.main_image))[2])/2
-
-                                ;boxsize = round((*self.state).outersky * 1.2)
+  
+  ;boxsize = round((*self.state).outersky * 1.2)
   radi=((size(*self.images.main_image))[1])/2
-                                ;print, 'x=',x,'y=',y,'r',radi
+  ;print, 'x=',x,'y=',y,'r',radi
   boxsize = radi
   if radi eq 0 then boxsize=1
   xsize = (2 * boxsize) + 1
   ysize = (2 * boxsize) + 1
   image = bytarr(xsize,ysize)
-
+  
   xmin = (0 > (x - boxsize))
   xmax = ((x + boxsize) < ((*self.state).image_size[0] - 1) )
   ymin = (0 > (y - boxsize) )
   ymax = ((y + boxsize) < ((*self.state).image_size[1] - 1))
-
+  
   startx = abs( (x - boxsize) < 0 )
   starty = abs( (y - boxsize) < 0 )
-
+  
   image[startx, starty] = (*self.images.scaled_image)[xmin:xmax, ymin:ymax]
-
+  
   xs = indgen(xsize) + xmin - startx
   ys = indgen(ysize) + ymin - starty
-
+  
   xs_delta = (xs[xsize-1] - xs[0]) / float(xsize - 1.0)
   ys_delta = (ys[ysize-1] - ys[0]) / float(ysize - 1.0)
   x_ran = [xs[0]-xs_delta/2.0,xs[xsize-1]+xs_delta/2.0]
   y_ran = [ys[0]-ys_delta/2.0,ys[ysize-1]+ys_delta/2.0]
-
+  
   dev_width = 0.8 * (*self.state).photzoom_size
   dev_pos = [0.15 * (*self.state).photzoom_size, $
-             0.15 * (*self.state).photzoom_size, $
-             0.95 * (*self.state).photzoom_size, $
-             0.95 * (*self.state).photzoom_size]
-
+    0.15 * (*self.state).photzoom_size, $
+    0.95 * (*self.state).photzoom_size, $
+    0.95 * (*self.state).photzoom_size]
+    
   x_factor = dev_width / xsize
   y_factor = dev_width / ysize
   x_offset = (x_factor - 1.0) / x_factor / 2.0
   y_offset = (y_factor - 1.0) / y_factor / 2.0
   xi = findgen(dev_width) / x_factor - x_offset       ;x interp index
   yi = findgen(dev_width) / y_factor - y_offset       ;y interp index
-
+  
   image = Poly_2D(image, [[0,0],[1.0/x_factor,0]], $
-                  [[0,1.0/y_factor],[0,0]], $
-                  0, dev_width, dev_width)
-
+    [[0,1.0/y_factor],[0,0]], $
+    0, dev_width, dev_width)
+    
   xsize = (size(image))[1]
   ysize = (size(image))[2]
   out_xs = xi * xs_delta + xs[0]
   out_ys = yi * ys_delta + ys[0]
-
+  
   sz = size(image)
   xsize = Float(sz[1])          ;image width
   ysize = Float(sz[2])          ;image height
   dev_width = dev_pos[2] - dev_pos[0] + 1
   dev_width = dev_pos[3] - dev_pos[1] + 1
-
+  
   tv, image, /device, dev_pos[0], dev_pos[1], $
-      xsize=dev_pos[2]-dev_pos[0], $
-      ysize=dev_pos[3]-dev_pos[1]
-
+    xsize=dev_pos[2]-dev_pos[0], $
+    ysize=dev_pos[3]-dev_pos[1]
+    
   plot, [0, 1], /noerase, /nodata, xstyle = 1, ystyle = 1, $
-        /device, position = dev_pos, color=7, $
-        xrange = x_ran, yrange = y_ran
-
+    /device, position = dev_pos, color=7, $
+    xrange = x_ran, yrange = y_ran
+    
   if  not(keyword_set(ps3)) then begin
-     ;;determine which index to use
-     if (*self.state).specalign_mode eq 1 then ind = (*self.state).specalign_to else $
-        ind = (*self.state).cur_image_num
-     
-     ;;find center
-     xc = mean( (*self.satspots.cens)[0,*,ind] )
-     yc = mean( (*self.satspots.cens)[1,*,ind] )
-
-     ;;circle sat spots
-     if not(keyword_set(nosat)) then begin
-        for i=0,3 do $
-           tvcircle, /data, (*self.state).contrap+10, $
-                     (*self.satspots.cens)[0,i,ind],$
-                     (*self.satspots.cens)[1,i,ind],$
-                     color=2, thick=2, psym=0
-        oplot, [xc], [yc], psym=1, symsize=3, color=0, thick=2 
-     endif
-     
-     ;;highlight the dark hole edge
-     if not(keyword_set(nodh)) then begin
-        lambda = (*(*self.state).CWV_ptr)[ind]
-        pixscl = gpi_get_ifs_lenslet_scale(*(*self.state).exthead_ptr,res=res)
-        if res lt 0 then self->message, msgtype = 'information', 'Missing valid WCS: using constant file value.'
+    ;;determine which index to use
+    if (*self.state).specalign_mode eq 1 then ind = (*self.state).specalign_to else $
+      ind = (*self.state).cur_image_num
+      
+    ;;find center
+    xc = mean( (*self.satspots.cens)[0,*,ind] )
+    yc = mean( (*self.satspots.cens)[1,*,ind] )
+    
+    ;;circle sat spots
+    if not(keyword_set(nosat)) then begin
+      for i=0,3 do $
+        tvcircle, /data, (*self.state).contrap+10, $
+        (*self.satspots.cens)[0,i,ind],$
+        (*self.satspots.cens)[1,i,ind],$
+        color=2, thick=2, psym=0
+      oplot, [xc], [yc], psym=1, symsize=3, color=0, thick=2
+    endif
+    
+    ;;highlight the dark hole edge
+    if not(keyword_set(nodh)) then begin
+      lambda = (*(*self.state).CWV_ptr)[ind]
+      pixscl = gpi_get_ifs_lenslet_scale(*(*self.state).exthead_ptr,res=res)
+      if res lt 0 then self->message, msgtype = 'information', 'Missing valid WCS: using constant file value.'
+      
+      pix_to_ripple = gpi_get_constant('pix_to_ripple',default = $
+        44d0*1d-6/gpi_get_constant('primary_diam',default=7.7701d0)*$
+        180d0/!dpi*3600d0/pixscl*1.5040541d)
+      pix_to_ripple *= lambda/1.5040541d
+      
+      memsrot = gpi_get_constant('mems_rotation',default=1d0)
+      memsrot *= !dpi/180d
+      
+      satang = atan(((*self.satspots.cens)[1,*,ind] - yc)/$
+        ((*self.satspots.cens)[0,*,ind] - xc))
+      binds = where(satang lt 0, ct)
+      if ct gt 0 then satang[binds] += !dpi/2d
+      rotang = mean(satang) - memsrot - 45d0*!dpi/180d0
+      rotMat = [[cos(rotang),-sin(rotang)],$
+        [sin(rotang),cos(rotang)]]
         
-        pix_to_ripple = gpi_get_constant('pix_to_ripple',default = $
-                                         44d0*1d-6/gpi_get_constant('primary_diam',default=7.7701d0)*$
-                                         180d0/!dpi*3600d0/pixscl*1.5040541d)
-        pix_to_ripple *= lambda/1.5040541d
-        
-        memsrot = gpi_get_constant('mems_rotation',default=1d0)
-        memsrot *= !dpi/180d
-
-        satang = atan(((*self.satspots.cens)[1,*,ind] - yc)/$
-                      ((*self.satspots.cens)[0,*,ind] - xc))
-        binds = where(satang lt 0, ct)
-        if ct gt 0 then satang[binds] += !dpi/2d
-        rotang = mean(satang) - memsrot - 45d0*!dpi/180d0
-        rotMat = [[cos(rotang),-sin(rotang)],$
-                  [sin(rotang),cos(rotang)]]
-        
-        dhl = ceil(pix_to_ripple/2)
-        x = [-dhl,dhl,dhl,-dhl,-dhl]
-        y = [-dhl,-dhl,dhl,dhl,-dhl]
-        dh_inds = rotMat ## [[x],[y]]
-        oplot, dh_inds[*,0]+xc, dh_inds[*,1]+yc, psym=0, color=2, thick=2 
-     endif
+      dhl = ceil(pix_to_ripple/2)
+      x = [-dhl,dhl,dhl,-dhl,-dhl]
+      y = [-dhl,-dhl,dhl,dhl,-dhl]
+      dh_inds = rotMat ## [[x],[y]]
+      oplot, dh_inds[*,0]+xc, dh_inds[*,1]+yc, psym=0, color=2, thick=2
+    endif
   endif
-
+  
   ;;if ((*self.state).skytype NE 2) then begin
   ;;    tvcircle, /data, (*self.state).innersky, (*self.state).centerpos[0], (*self.state).centerpos[1], $
   ;;      color=4, thick=2, psym=0
   ;;    tvcircle, /data, (*self.state).outersky, (*self.state).centerpos[0], (*self.state).centerpos[1], $
   ;;      color=5, thick=2, psym=0
   ;;endif
-
+  
   self->resetwindow
 end
 
@@ -19402,186 +19512,215 @@ end
 ;----------------------------------------------------------------------
 pro GPItv::contrprof_event, event
 
-@gpitv_err
-
+  @gpitv_err
+  
   widget_control, event.id, get_uvalue = uvalue
-
+  
   case uvalue of
-     'gridfac':begin
-        widget_control,(*self.state).contrgridfac_id,get_value=xx
-        (*self.state).gridfac=double(xx)
-        self->contrprof_refresh,/forcecalc
-     end
+    'gridfac':begin
+    widget_control,(*self.state).contrgridfac_id,get_value=xx
+    (*self.state).gridfac=double(xx)
+    self->contrprof_refresh,/forcecalc
+  end
+  
+  'cent1':self->contrprof_refresh
+  
+  'radius': begin
+    widget_control,(*self.state).contrradius_id,get_value=xx
+    xxx=uint(xx)
+    (*self.state).contrr = 1 > xxx < ((size(*self.images.main_image))[1])/2
+    self->contrprof_refresh
+  end
+  
+  'maxr':begin
+  maxr= WIDGET_INFO((*self.state).contrprof_maxr_button, /BUTTON_SET)
+  if maxr then begin
+    widget_control,(*self.state).basemaxr,sensitive=0
+    (*self.state).contrr=((size(*self.images.main_image))[1])/2
+  endif else begin
+    widget_control,(*self.state).basemaxr,sensitive=1
+    widget_control,(*self.state).contrradius_id,get_value=xx
+    (*self.state).contrr=uint(xx)
+  endelse
+  self->contrprof_refresh
+end
 
-     'cent1':self->contrprof_refresh
+'Imacenter':begin
+x = (*self.state).cursorpos[0]
+y = (*self.state).cursorpos[1]
+imacenter= WIDGET_INFO((*self.state).contrprof_imacenter_button, /BUTTON_SET)
+if imacenter then begin
+  x=((size(*self.images.main_image))[1])/2
+  y=((size(*self.images.main_image))[2])/2
+endif
+tmp_string = $
+  string(x, y, $
+  format = '("Cursor position:  x=",i4,"  y=",i4)' )
+widget_control,(*self.state).cursorpos_id,set_value =tmp_string
+self->contrprof_refresh
+end
 
-     'radius': begin
-        widget_control,(*self.state).contrradius_id,get_value=xx
-        xxx=uint(xx)
-        (*self.state).contrr = 1 > xxx < ((size(*self.images.main_image))[1])/2
-        self->contrprof_refresh
-     end
+'reso':begin
+widget_control,(*self.state).contrreso_id,get_value=(*self.state).contrreso
+self->contrprof_refresh
+end
 
-     'maxr':begin
-        maxr= WIDGET_INFO((*self.state).contrprof_maxr_button, /BUTTON_SET)
-        if maxr then begin
-           widget_control,(*self.state).basemaxr,sensitive=0
-           (*self.state).contrr=((size(*self.images.main_image))[1])/2
-        endif else begin
-           widget_control,(*self.state).basemaxr,sensitive=1
-           widget_control,(*self.state).contrradius_id,get_value=xx
-           (*self.state).contrr=uint(xx)
-        endelse
-        self->contrprof_refresh
-     end
-
-     'Imacenter':begin
-        x = (*self.state).cursorpos[0]
-        y = (*self.state).cursorpos[1]
-        imacenter= WIDGET_INFO((*self.state).contrprof_imacenter_button, /BUTTON_SET)
-        if imacenter then begin
-           x=((size(*self.images.main_image))[1])/2
-           y=((size(*self.images.main_image))[2])/2
-        endif
-        tmp_string = $
-           string(x, y, $
-                  format = '("Cursor position:  x=",i4,"  y=",i4)' )
-        widget_control,(*self.state).cursorpos_id,set_value =tmp_string
-        self->contrprof_refresh
-     end
-
-     'reso':begin
-        widget_control,(*self.state).contrreso_id,get_value=(*self.state).contrreso
-        self->contrprof_refresh
-     end
-
-     'showcontrplot': begin
-        widget_control, (*self.state).showcontrplot_id, get_value=val
-        case val of
-           'Show contrast Profile': begin
-              ysize = 350 < ((*self.state).screen_ysize - 350)
-              widget_control, (*self.state).contrplot_widget_id, $
-                              xsize=500, ysize=ysize
-              widget_control, (*self.state).showcontrplot_id, $
-                              set_value='Hide contrast Profile'
-           end
-           'Hide contrast Profile': begin
-              widget_control, (*self.state).contrplot_widget_id, $
-                              xsize=1, ysize=1
-              widget_control, (*self.state).showcontrplot_id, $
-                              set_value='Show contrast Profile'
-           end
-        endcase
-        self->contrprof_refresh
-     end
+'showcontrplot': begin
+  widget_control, (*self.state).showcontrplot_id, get_value=val
+  case val of
+    'Show contrast Profile': begin
+      ysize = 350 < ((*self.state).screen_ysize - 350)
+      widget_control, (*self.state).contrplot_widget_id, $
+        xsize=500, ysize=ysize
+      widget_control, (*self.state).showcontrplot_id, $
+        set_value='Hide contrast Profile'
+    end
+    'Hide contrast Profile': begin
+      widget_control, (*self.state).contrplot_widget_id, $
+        xsize=1, ysize=1
+      widget_control, (*self.state).showcontrplot_id, $
+        set_value='Show contrast Profile'
+    end
+  endcase
+  self->contrprof_refresh
+end
 
 
-     'contrplot_save': self->contrprof_refresh, /sav
-     'contr_plot_refresh': self->contrprof_refresh
-     'satellite_refresh': self->contrprof_refresh,/forcesat
-     'contr_radial': self->contrprof_refresh, /radialsav
+'contrplot_save': self->contrprof_refresh, /sav
+'contr_plot_refresh': self->contrprof_refresh
+'satellite_refresh': self->contrprof_refresh,/forcesat
+'contr_radial': self->contrprof_refresh, /radialsav
 
-     'contr_ps': begin
-        fname = strcompress((*self.state).current_dir + path_sep()+ 'GPItv_contr.ps', /remove_all)
-        forminfo = cmps_form(cancel = canceled, create = create, $
-                             /preserve_aspect, $
-                             /color, $
-                             /nocommon, papersize='Letter', $
-                             filename = fname, $
-                             button_names = ['Create PS File'])
+'contr_ps': begin
+  fname = strcompress((*self.state).current_dir + path_sep()+ 'GPItv_contr.ps', /remove_all)
+  forminfo = cmps_form(cancel = canceled, create = create, $
+    /preserve_aspect, $
+    /color, $
+    /nocommon, papersize='Letter', $
+    filename = fname, $
+    button_names = ['Create PS File'])
+    
+  if (canceled) then return
+  if (forminfo.filename EQ '') then return
+  
+  tmp_result = findfile(forminfo.filename, count = nfiles)
+  
+  result = ''
+  if (nfiles GT 0) then begin
+    mesg = strarr(2)
+    mesg[0] = 'Overwrite existing file:'
+    tmp_string = strmid(forminfo.filename, strpos(forminfo.filename, $
+      '/') + 1)
+    mesg[1] = strcompress(tmp_string + '?', /remove_all)
+    result =  dialog_message(mesg, $
+      /default_no, $
+      dialog_parent = (*self.state).base_id, $
+      /question)
+  endif
+  
+  if (strupcase(result) EQ 'NO') then return
+  
+  widget_control, /hourglass
+  
+  screen_device = !d.name
+  
+  set_plot, 'ps'
+  device, _extra = forminfo
+  
+  self->contrprof_refresh, /ps
+  
+  device, /close
+  set_plot, screen_device
+  self->message, msgtype = 'information', 'Postscript plot saved to '+forminfo.filename
+end
 
-        if (canceled) then return
-        if (forminfo.filename EQ '') then return
+'contr_plot_options': self->contrast_settings
+'contrprof_done': widget_control, event.top, /destroy
+else:
+endcase
 
-        tmp_result = findfile(forminfo.filename, count = nfiles)
+end
 
-        result = ''
-        if (nfiles GT 0) then begin
-           mesg = strarr(2)
-           mesg[0] = 'Overwrite existing file:'
-           tmp_string = strmid(forminfo.filename, strpos(forminfo.filename, $
-                                                         '/') + 1)
-           mesg[1] = strcompress(tmp_string + '?', /remove_all)
-           result =  dialog_message(mesg, $
-                                    /default_no, $
-                                    dialog_parent = (*self.state).base_id, $
-                                    /question)
-        endif
+;--------------------------------------------------------------------------------
+pro GPItv::obsnotes
 
-        if (strupcase(result) EQ 'NO') then return
+  if (*self.state).imagename eq "NO IMAGE LOADED   " then begin
+     self->message, msgtype='warning', 'No image loaded - nothing to mark.'
+     return
+  end 
+  ;; Frontend for bad file marking in files database
+  
+  mark = strcompress('0, button, Mark OK|Mark Bad, exclusive, set_value = 0') ;1
+  notes = strcompress('0, text, ,label_left = Notes:,width = 50,') ;2
+    
+  formdesc = ['0, label, Write To Files Database', $
+              mark,notes,$
+              '0, button, Send, quit', $
+              '0, button, Cancel, quit']
+    
+  textform = cw_form(formdesc, /column, $
+    title = 'GPItv Mark File Status')
+    
+  if (textform.tag4 EQ 1) then return ; cancelled (tag# = # of inputs above+2)
+  
+  mrkval  = textform.tag1
+  msgval = textform.tag2
 
-        widget_control, /hourglass
-
-        screen_device = !d.name
-
-        set_plot, 'ps'
-        device, _extra = forminfo
-
-        self->contrprof_refresh, /ps
-
-        device, /close
-        set_plot, screen_device
-        self->message, msgtype = 'information', 'Postscript plot saved to '+forminfo.filename
-     end
-
-     'contr_plot_options': self->contrast_settings
-     'contrprof_done': widget_control, event.top, /destroy
-     else:
-  endcase 
-
+  gpitv_obsnotes,(*self.state).imagename,mrkval,msgval
+  
 end
 
 
 ;--------------------------------------------------------------------------------
 pro GPItv::contrast_settings
 
-  
+
   ;; Routine to get user input on various contrast plot settings
   plotline = strcompress('0, button, Linear|Log, exclusive,' + $      ;1
-                         'label_left = Select Plot Scale: , set_value =' + $
-                         string( (*self.state).contr_yaxis_type))
+    'label_left = Select Plot Scale: , set_value =' + $
+    string( (*self.state).contr_yaxis_type))
   yrange = strcompress('1, button, Manual|Auto, exclusive,' + $       ;2
-                         'label_left = Y Range:, set_value =' + $
-                         string( (*self.state).contr_yaxis_mode))
+    'label_left = Y Range:, set_value =' + $
+    string( (*self.state).contr_yaxis_mode))
   yminline= strcompress('0, float,'+string((*self.state).contr_yaxis_min) + $  ;3
-                        ',label_left = Y axis minimum:,' + $
-                        'width = 12')
+    ',label_left = Y axis minimum:,' + $
+    'width = 12')
   ymaxline = strcompress('2, float,'+string((*self.state).contr_yaxis_max) + $  ;4
-                         ',label_left = Y axis maximum:,' + $
-                         'width = 12')
+    ',label_left = Y axis maximum:,' + $
+    'width = 12')
   fontline = strcompress('0, float,'+string((*self.state).contr_font_size) + $  ;5
-                         ',label_left = Font size:,' + $
-                         'width = 12')
+    ',label_left = Font size:,' + $
+    'width = 12')
   plotmult = strcompress('1, button, Current|All, exclusive,' + $              ;6
-                         'label_left = Select Image Slice: , set_value =' + $
-                         string( (*self.state).contr_plotmult))
+    'label_left = Select Image Slice: , set_value =' + $
+    string( (*self.state).contr_plotmult))
   plotouter = strcompress('2, button, Dark Hole Only|All Image, exclusive,' + $  ;7
-                         'label_left = Plot Contrast In:, set_value =' + $
-                         string( (*self.state).contr_plotouter))
+    'label_left = Plot Contrast In:, set_value =' + $
+    string( (*self.state).contr_plotouter))
   autocent = strcompress('0, button, Auto Locate Sat Spots|Use Highpass Filter|Constrain Spot Locs,' + $ ;8
-                         ' set_value = ' + $
-                         '['+strtrim((*self.state).contr_autocent,2)+'\,'+strtrim((*self.state).contr_highpassspots,2)+'\,'+strtrim((*self.state).contr_constspots,2)+']')
+    ' set_value = ' + $
+    '['+strtrim((*self.state).contr_autocent,2)+'\,'+strtrim((*self.state).contr_highpassspots,2)+'\,'+strtrim((*self.state).contr_constspots,2)+']')
   yunits = strcompress('1, button, Sigma|Median|Mean, exclusive,' + $ ;9
-                       'label_left = Contrast Y units:, set_value =' + $
-                       string( (*self.state).contr_yunit))
+    'label_left = Contrast Y units:, set_value =' + $
+    string( (*self.state).contr_yunit))
   xunits = strcompress('2, button, Arcseconds|l/D, exclusive,' + $ ;10
-                       'label_left = Contrast X units:, set_value =' + $
-                       string( (*self.state).contr_xunit))
+    'label_left = Contrast X units:, set_value =' + $
+    string( (*self.state).contr_xunit))
   ftype = strcompress('0, button, FITS|TXT|FITS TABLE, exclusive,' + $ ;11
-                       'label_left = Profile Filetype:, set_value =' + $
-                       string( (*self.state).contr_prof_filetype))
-
+    'label_left = Profile Filetype:, set_value =' + $
+    string( (*self.state).contr_prof_filetype))
+    
   formdesc = ['0, label, Select options for contrast plot display', $
-              plotline, yrange, yminline, ymaxline, fontline,$
-              plotmult, plotouter,autocent, yunits, xunits, ftype,$
-              '0, button, Apply Settings, quit', $
-              '0, button, Cancel, quit']
-
+    plotline, yrange, yminline, ymaxline, fontline,$
+    plotmult, plotouter,autocent, yunits, xunits, ftype,$
+    '0, button, Apply Settings, quit', $
+    '0, button, Cancel, quit']
+    
   textform = cw_form(formdesc, /column, $
-                     title = 'GPItv Contrast Plot settings')
-
+    title = 'GPItv Contrast Plot settings')
+    
   if (textform.tag13 EQ 1) then return ; cancelled (tag# = # of inputs above+2)
-
+  
   (*self.state).contr_yaxis_type = textform.tag1
   (*self.state).contr_yaxis_mode = textform.tag2
   (*self.state).contr_yaxis_min = textform.tag3
@@ -19595,15 +19734,15 @@ pro GPItv::contrast_settings
   (*self.state).contr_yunit = textform.tag9
   (*self.state).contr_xunit = textform.tag10
   (*self.state).contr_prof_filetype = textform.tag11
-
+  
   if not xregistered(self.xname+'_contrprof',/noshow) then return
-
+  
   ;;update sensitivity of sat spot inputs
   for j=0,3 do if (*self.state).contrcen_base_ids[j] ne 0 then $
-     widget_control,(*self.state).contrcen_base_ids[j], sensitive = 1 - (*self.state).contr_autocent
-  
+    widget_control,(*self.state).contrcen_base_ids[j], sensitive = 1 - (*self.state).contr_autocent
+    
   self->contrprof_refresh
-
+  
 end
 
 ;----------------------------------------------------------------------
@@ -19615,71 +19754,71 @@ pro GPItv::clear_contrprof_windows
   erase
   self->setwindow, (*self.state).contrzoom_window_id
   erase
-
+  
 end
 
 
 ;----------------------------------------------------------------------
 
 pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot, $
-                              forcesat=forcesat,forcecalc=forcecalc
+    forcesat=forcesat,forcecalc=forcecalc
   ;; Plot contrast relative to PSF peak using satellite spots.
-  
+    
   ;;if no image lodaed, nothing to do
   if n_elements(*self.images.names_stack) eq 0 then return
-
+  
   ;;don't support non-cubes
   if (*self.state).image_size[2] lt 2 then return
-
+  
   if ~strcmp((*self.state).cube_mode, 'WAVE') then begin
-     self->message, msgtype='warning', 'Contrast calculation currently only supported for spectral cubes.'
-     self->clear_contrprof_windows
-     return
-  endif 
-
+    self->message, msgtype='warning', 'Contrast calculation currently only supported for spectral cubes.'
+    self->clear_contrprof_windows
+    return
+  endif
+  
   ;;if this is image doesn't look like it has sat spots, don't waste
   ;;time on it (unless forced or a special case)
   if ~(keyword_set(forcesat))  && ((*self.state).collapse eq 0)  && $
-     ((*self.state).current_units ne 'Contrast')  && $
-     (strpos(strupcase((*self.state).filetype),'ADI') eq -1) then begin
-     apod = gpi_simplify_keyword_value(sxpar((*(*self.state).head_ptr),'APODIZER'))
-     if (median((*self.images.main_image)[where(finite(*self.images.main_image))]) lt 1.) || (strlen(strtrim(apod,2)) gt 2) then begin
-        self->message, msgtype='warning', 'This image does not appear to have satellite spots.'
-        self->message, msgtype='warning', 'If you disagree, press Find Sat Spots.'
-        self->clear_contrprof_windows
-        return
-     endif
+    ((*self.state).current_units ne 'Contrast')  && $
+    (strpos(strupcase((*self.state).filetype),'ADI') eq -1) then begin
+    apod = gpi_simplify_keyword_value(sxpar((*(*self.state).head_ptr),'APODIZER'))
+    if (median((*self.images.main_image)[where(finite(*self.images.main_image))]) lt 1.) || (strlen(strtrim(apod,2)) gt 2) then begin
+      self->message, msgtype='warning', 'This image does not appear to have satellite spots.'
+      self->message, msgtype='warning', 'If you disagree, press Find Sat Spots.'
+      self->clear_contrprof_windows
+      return
+    endif
   endif
-
+  
   ;;if gridfac is nan, bail out
   if ~finite((*self.state).gridfac) then begin
-     self->message,msgtype='warning','The sat spot flux ratio is currently NaN, indicating that the apodizer for this image could not be matched.  To generate the contrast curve, please enter the proper value in the contrast profile window.'
-     self->clear_contrprof_windows
-     return
-  endif 
+    self->message,msgtype='warning','The sat spot flux ratio is currently NaN, indicating that the apodizer for this image could not be matched.  To generate the contrast curve, please enter the proper value in the contrast profile window.'
+    self->clear_contrprof_windows
+    return
+  endif
   
   ;; if we're not auto-centering, get the user input for
   ;; initial sat spot locations
   if ~(*self.state).contr_autocent && ~keyword_set(noplot) then begin
-     widget_control,(*self.state).contrcen1x_id,get_value=xx
-     (*self.state).contrcen_x[0]=uint(xx)
-     widget_control,(*self.state).contrcen1y_id,get_value=xx
-     (*self.state).contrcen_y[0]=uint(xx)
-     widget_control,(*self.state).contrcen2x_id,get_value=xx
-     (*self.state).contrcen_x[1]=uint(xx)
-     widget_control,(*self.state).contrcen2y_id,get_value=xx
-     (*self.state).contrcen_y[1]=uint(xx)
-     widget_control,(*self.state).contrcen3x_id,get_value=xx
-     (*self.state).contrcen_x[2]=uint(xx)
-     widget_control,(*self.state).contrcen3y_id,get_value=xx
-     (*self.state).contrcen_y[2]=uint(xx)
-     widget_control,(*self.state).contrcen4x_id,get_value=xx
-     (*self.state).contrcen_x[3]=uint(xx)
-     widget_control,(*self.state).contrcen4y_id,get_value=xx
-     (*self.state).contrcen_y[3]=uint(xx)
-
-     locs0 = dblarr(2,4)
-     for j=0,3 do locs0[*,j] = double([(*self.state).contrcen_x[j],(*self.state).contrcen_y[j]])
+    widget_control,(*self.state).contrcen1x_id,get_value=xx
+    (*self.state).contrcen_x[0]=uint(xx)
+    widget_control,(*self.state).contrcen1y_id,get_value=xx
+    (*self.state).contrcen_y[0]=uint(xx)
+    widget_control,(*self.state).contrcen2x_id,get_value=xx
+    (*self.state).contrcen_x[1]=uint(xx)
+    widget_control,(*self.state).contrcen2y_id,get_value=xx
+    (*self.state).contrcen_y[1]=uint(xx)
+    widget_control,(*self.state).contrcen3x_id,get_value=xx
+    (*self.state).contrcen_x[2]=uint(xx)
+    widget_control,(*self.state).contrcen3y_id,get_value=xx
+    (*self.state).contrcen_y[2]=uint(xx)
+    widget_control,(*self.state).contrcen4x_id,get_value=xx
+    (*self.state).contrcen_x[3]=uint(xx)
+    widget_control,(*self.state).contrcen4y_id,get_value=xx
+    (*self.state).contrcen_y[3]=uint(xx)
+    
+    locs0 = dblarr(2,4)
+    for j=0,3 do locs0[*,j] = double([(*self.state).contrcen_x[j],(*self.state).contrcen_y[j]])
   endif
   
   widget_control,(*self.state).contrwinap_id,get_value=xx
@@ -19689,208 +19828,330 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
   
   widget_control,(*self.state).contrsigma_id,get_value=xx
   (*self.state).contrsigma=float(xx)
- 
+  
   widget_control, /hourglass
-
+  
   ;;if none exist in memory (or are the wrong size), get the sat spot
   ;;locations
   ;;also, do this always if you're in manual mode (i.e., user
   ;;wants to override)
   if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) || $
-     keyword_set(forcesat) || $
-     (~(*self.state).contr_autocent and not(keyword_set(ps)) and not(keyword_set(sav)) and not(keyword_set(radial_sav))) $
-  then begin
-      self->update_sat_spots,locs0=locs0
-      ;;if failed, bail
-      if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
-         self->clear_contrprof_windows
-         return
-      endif 
+    keyword_set(forcesat) || $
+    (~(*self.state).contr_autocent and not(keyword_set(ps)) and not(keyword_set(sav)) and not(keyword_set(radial_sav))) $
+    then begin
+    self->update_sat_spots,locs0=locs0
+    ;;if failed, bail
+    if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
+      self->clear_contrprof_windows
+      return
+    endif
   endif
-
+  
   ;;check for warnings
   case (*self.satspots.warns)[(*self.state).cur_image_num] of
-     0: widget_control,(*self.state).contrwarning_id,set_value='Warnings: none'
-     1: widget_control,(*self.state).contrwarning_id,set_value='Warnings: Possible Misdetection: Fluxes vary >25%'
-     -1: begin
-        if ~(*self.state).contr_plotmult then begin
-           widget_control,(*self.state).contrwarning_id,set_value='Warnings: **** Satellite PSF '+strc(i+1)+' not well detected ****'
-           self->clear_contrprof_windows
-           self->tvcontr, /nosat
-           return
-        endif
-     end
+    0: widget_control,(*self.state).contrwarning_id,set_value='Warnings: none'
+    1: widget_control,(*self.state).contrwarning_id,set_value='Warnings: Possible Misdetection: Fluxes vary >25%'
+    -1: begin
+      if ~(*self.state).contr_plotmult then begin
+        widget_control,(*self.state).contrwarning_id,set_value='Warnings: **** Satellite PSF '+strc(i+1)+' not well detected ****'
+        self->clear_contrprof_windows
+        self->tvcontr, /nosat
+        return
+      endif
+    end
   endcase
-
+  
   ;;update display
-  for i=0,3 do begin 
-     tmp_string = string( (*self.satspots.cens)[0,i,(*self.state).cur_image_num],$
-                          (*self.satspots.cens)[1,i,(*self.state).cur_image_num],$
-                          format = '("Sat'+strc(i+1)+' position:  x=",g14.7,"  y=",g14.7)' )
-     widget_control,(*self.state).satpos_ids[i],set_value=tmp_string
+  for i=0,3 do begin
+    tmp_string = string( (*self.satspots.cens)[0,i,(*self.state).cur_image_num],$
+      (*self.satspots.cens)[1,i,(*self.state).cur_image_num],$
+      format = '("Sat'+strc(i+1)+' position:  x=",g14.7,"  y=",g14.7)' )
+    widget_control,(*self.state).satpos_ids[i],set_value=tmp_string
   endfor
-
+  
   ;;if we're showing slices, do the usual thing.  However, if you're
   ;;in a collapse mode, we're going to do a one-off for that mode only
-
+  
   ;;we only need to update a given slice's profile if the
   ;;contrprof pointer has been reset (has zero dim)  or the total value of
   ;;the slice's entry is zero (has been allocated but not
   ;;filled in yet)
-  if ((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) ||$
-     ((*self.state).klip_mode eq 1) || ((*self.state).high_pass_mode eq 1) then begin 
-     if (*self.state).contr_plotmult then inds = (*self.satspots.good) else $
+  if ((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) || $
+    ((*self.state).klip_mode eq 1) || ((*self.state).high_pass_mode eq 1) || $
+	((*self.state).low_pass_mode eq 1) || ((*self.state).snr_map_mode eq 1) then begin
+      if (*self.state).contr_plotmult then inds = (*self.satspots.good) else $
         inds = (*self.state).cur_image_num
-     copsf = (*self.images.main_image_stack)[*,*,inds]
-  endif else begin
-     copsf = *self.images.main_image
-     inds = (*self.state).cur_image_num
-  endelse
-  ;;if you're specaligned, all of the sat spots will be at
-  ;;the locations of the ones in the slice you're aligned
-  ;;to.  otherwise, just use the stored satspot locations
-  if ((*self.state).specalign_mode eq 1) then begin
-     cens = dblarr(2,4,n_elements(inds))
-     for j = 0,n_elements(inds)-1 do cens[*,*,j] = (*self.satspots.cens)[*,*,(*self.state).specalign_to] 
-  endif else cens = (*self.satspots.cens)[*,*,inds]
-
-  for j = 0, n_elements(inds)-1 do begin
-     ;;scale by sat spot mean
-     copsf[*,*,j] = copsf[*,*,j]/((1./(*self.state).gridfac)*mean((*self.satspots.satflux)[*,inds[j]]))
-     
-     ;;conditions in which you would re-calculate the profile:
-
-     if keyword_set(forcecalc) || $                                                              ;/forcecalc set
+      copsf = (*self.images.main_image_stack)[*,*,inds]
+    endif else begin
+      copsf = *self.images.main_image
+      inds = (*self.state).cur_image_num
+    endelse
+    ;;if you're specaligned, all of the sat spots will be at
+    ;;the locations of the ones in the slice you're aligned
+    ;;to.  otherwise, just use the stored satspot locations
+    if ((*self.state).specalign_mode eq 1) then begin
+      cens = dblarr(2,4,n_elements(inds))
+      for j = 0,n_elements(inds)-1 do cens[*,*,j] = (*self.satspots.cens)[*,*,(*self.state).specalign_to]
+    endif else cens = (*self.satspots.cens)[*,*,inds]
+    
+    for j = 0, n_elements(inds)-1 do begin
+      ;;scale by sat spot mean
+      copsf[*,*,j] = copsf[*,*,j]/((1./(*self.state).gridfac)*mean((*self.satspots.satflux)[*,inds[j]]))
+      
+      ;;conditions in which you would re-calculate the profile:
+      
+      if keyword_set(forcecalc) || $                                                              ;/forcecalc set
         (((*self.state).collapse ne 0) && ((*self.state).specalign_mode ne 1)) || $              ;this is a collapse mode
         (n_elements(*(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit]) eq 0) || $   ;pointers have been reset
         (total((*(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit])[*,0]) eq 0) || $ ;allocated but not filled
         (((*self.state).contr_plotouter eq 1) && $                                               ;need to do profile outside the darkhole
-         (((size(*(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit]))[0] eq 1) || $  ;second dim never allocated
-          (total((*(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit])[*,1]) eq 0))) then begin
+        (((size(*(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit]))[0] eq 1) || $  ;second dim never allocated
+        (total((*(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit])[*,1]) eq 0))) then begin
         
         ;; get the radial profile desired
         case (*self.state).contr_yunit of
-           0: radial_profile,copsf[*,*,j],cens[*,*,j],$
-                             lambda=(*(*self.state).CWV_ptr)[inds[j]],asec=asec,isig=outval,$
-                             /dointerp,doouter=(*self.state).contr_plotouter
-           1: radial_profile,copsf[*,*,j],cens[*,*,j],$
-                             lambda=(*(*self.state).CWV_ptr)[inds[j]],asec=asec,imed=outval,$
-                             /dointerp,doouter=(*self.state).contr_plotouter
-           2: radial_profile,copsf[*,*,j],cens[*,*,j],$
-                             lambda=(*(*self.state).CWV_ptr)[inds[j]],asec=asec,imn=outval,$
-                             /dointerp,doouter=(*self.state).contr_plotouter
+          0: radial_profile,copsf[*,*,j],cens[*,*,j],$
+            lambda=(*(*self.state).CWV_ptr)[inds[j]],asec=asec,isig=outval,$
+            /dointerp,doouter=(*self.state).contr_plotouter
+          1: radial_profile,copsf[*,*,j],cens[*,*,j],$
+            lambda=(*(*self.state).CWV_ptr)[inds[j]],asec=asec,imed=outval,$
+            /dointerp,doouter=(*self.state).contr_plotouter
+          2: radial_profile,copsf[*,*,j],cens[*,*,j],$
+            lambda=(*(*self.state).CWV_ptr)[inds[j]],asec=asec,imn=outval,$
+            /dointerp,doouter=(*self.state).contr_plotouter
         endcase
-
-;print, 'lambda:'
-;print, (*(*self.state).CWV_ptr)[inds[j]]
         
-        if ((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) ||$
-	 ((*self.state).klip_mode eq 1) || ((*self.state).high_pass_mode eq 1)  then begin 
-           ;;write asec and radial profile to proper array
-           *(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit] = outval
-           *(*self.satspots.asec)[inds[j]] = asec
+        if ((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) || $
+          ((*self.state).klip_mode eq 1) || ((*self.state).high_pass_mode eq 1) || $
+		  ((*self.state).low_pass_mode eq 1) || ((*self.state).snr_map_mode eq 1) then begin
+            ;;write asec and radial profile to proper array
+            *(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit] = outval
+            *(*self.satspots.asec)[inds[j]] = asec
+          endif
         endif
-     endif
+      endfor
+      
+      ;;update the plot/write postscript
+      yr=[(*self.state).contr_yaxis_min, (*self.state).contr_yaxis_max]
+      ytitle = 'Contrast '
+		sigma = '!7r!X'
+      case (*self.state).contr_yunit of
+        0: if ((*self.state).collapse eq 0) then ytitle ='Single Slice Contrast ['+strc(uint((*self.state).contrsigma))+sigma+' limit]' else ytitle ='Contrast ['+strc(uint((*self.state).contrsigma))+sigma+' limit]' 
+        1: ytitle += '[Median]'
+        2: ytitle += '[Mean]'
+      endcase
+      xtitle =  'Angular separation '
+      if (*self.state).contr_xunit eq 0 then xtitle += '["]' else $
+        xtitle += '['+'!4' + string("153B) + '!X/D]' ;;"just here to keep emacs from flipping out
+        
+      ;;clear windows before replotting
+      self->clear_contrprof_windows
+
+
+	  ;;------------- do the actual plotting here (code formerly in the ::statvsr function) -----
+
+      if ~ (((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) || $
+        ((*self.state).high_pass_mode eq 1) || ((*self.state).low_pass_mode eq 1) || $
+		((*self.state).klip_mode eq 1) || ((*self.state).snr_map_mode eq 1)  ) then data = {asec:asec,contrprof:outval}
+
+        ;self->statvsr, yr=yr, xtitle=xtitle, ytitle=ytitle else $
+        ;self->statvsr, yr=yr, xtitle=xtitle, ytitle=ytitle, data = {asec:asec,contrprof:outval}
+
+    
+  if not keyword_set(data) then begin
+    ;;check to make sure that we actually have a valid contour profile in
+    ;;memory
+    if (*self.state).contr_plotmult then inds = (*self.satspots.good) else $
+      inds = (*self.state).cur_image_num
+    if n_elements(*(*self.satspots.contrprof)[inds[0],(*self.state).contr_yunit]) eq 0 then begin
+      self->message, msgtype='error', 'No valid contour profile exists.'
+      return
+    endif
+  endif else inds = 0
+  
+  ;;set up graphs
+  self->setwindow, (*self.state).contrplot_window_id
+  erase
+  
+  ;;set proper scale unit
+  if (*self.state).contr_yunit eq 0 then sclunit = (*self.state).contrsigma else sclunit = 1d
+
+  self->initcolors
+  if ~(*self.state).contr_plotmult then color = cgcolor('red') else begin
+      color = round(findgen((*self.state).image_size[2])/$
+        ((*self.state).image_size[2]-1)*100.+100.)
+  endelse
+  ;;other plot stuff
+  if (not keyword_set(linestyle)) then linestyle=[0,2,3,5]
+  if (not keyword_set(psym)) then psym = [4,1,2,5,6]
+  if (not keyword_set(symsize)) then symsize=1.
+
+
+  ;;get plot ranges, if none given
+  if (not keyword_set(xrange)) then begin
+  
+    if not keyword_set(data) then asec = *(*self.satspots.asec)[inds[0]] else $
+      asec = data.asec
+    if (*self.state).contr_xunit eq 1 then $
+      asec *= 1d/3600d*!dpi/180d*gpi_get_constant('primary_diam',default=7.7701d0)/((*(*self.state).CWV_ptr)[inds[0]]*1d-6)
+    xrange=[min(asec),max(asec)]
+    for j=1,n_elements(inds)-1 do begin
+      asec = *(*self.satspots.asec)[inds[j]]
+      if (*self.state).contr_xunit eq 1 then $
+        asec *= 1d/3600d*!dpi/180d*gpi_get_constant('primary_diam',default=7.7701d0)/((*(*self.state).CWV_ptr)[inds[j]]*1d-6)
+      xrange[0] = xrange[0] < min(asec)
+      xrange[1] = xrange[1] > max(asec)
+    endfor
+  endif
+
+  if not(keyword_set(yrange)) or (*self.state).contr_yaxis_mode then begin
+    if not keyword_set(data) then tmp = *(*self.satspots.contrprof)[inds[0],(*self.state).contr_yunit] else $
+      tmp = data.contrprof
+    tmp = tmp[where(finite(tmp) and tmp gt 0)] * sclunit
+    yrange = [min(tmp),max(tmp)]
+    for j=1,n_elements(inds)-1 do begin
+      tmp = *(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit]
+      tmp = tmp[where(finite(tmp) and tmp gt 0)] * sclunit
+      yrange[0] = yrange[0] < min(tmp)
+      yrange[1] = yrange[1] > max(tmp)
+    endfor
+  endif
+
+  ;;Tick labels don't automatically appear if yrange less than an order
+  ;;of magnitude, so check for that
+  if floor(alog10(max(yrange))) eq floor(alog10(min(yrange))) then begin
+    ;;As of now no labels will be drawn on Y-axis, so set them by hand
+    ytickv = 10.^floor(alog10(min(yrange))) * (findgen(10)+1)
+    ytickv = ytickv(where(ytickv ge min(yrange) and ytickv le max(yrange)))
+    yticks = n_elements(ytickv)-1
+  endif
+  
+  ;;figure out title
+  widget_control,(*self.state).contrwarning_id,get_value=warn
+  if strcmp(warn,'Warnings: Possible Misdetection: Fluxes vary >25%') then $
+    title='Warning: Possible Misdetection: Fluxes vary >25%' else $
+    title = ''
+
+
+  ;;plot contrast
+  ;; and while doing so, keep track of contrast at 0.4 arcsec fiducial radius
+
+  if not(keyword_set(overplot)) then begin
+    plot,[0],[0],ylog=(*self.state).contr_yaxis_type,xlog=xlog,xrange=xrange,yrange=yrange,/xstyle,/ystyle,$
+      xtitle=xtitle,ytitle=ytitle,/nodata, charsize=(*self.state).contr_font_size, title=title,ytickv=ytickv,yticks=yticks
+  endif
+ 
+  radius=0.4
+  contr_at_04=fltarr(n_elements(inds))
+  for j = 0, n_elements(inds)-1 do begin
+    if not keyword_set(data) then asec = *(*self.satspots.asec)[inds[j]] else $
+      asec = data.asec
+    
+	mindiff = min(abs(asec-radius), /nan, closest_radius_subscript)
+    
+    if (*self.state).contr_xunit eq 1 then $
+      asec *= 1d/3600d*!dpi/180d*gpi_get_constant('primary_diam',default=7.7701d0)/((*(*self.state).CWV_ptr)[inds[j]]*1d-6)
+      
+    if not keyword_set(data) then tmp = *(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit] else $
+      tmp = data.contrprof
+     
+    contr_at_04[j] = tmp[closest_radius_subscript]
+    
+    oplot,asec,tmp[*,0] * sclunit, color=color[j], linestyle=linestyle[0]
+    if (*self.state).contr_plotouter then oplot,asec,tmp[*,1] * sclunit, color=color[j],linestyle=linestyle[1]
   endfor
 
-  ;;update the plot/write postscript
-  yr=[(*self.state).contr_yaxis_min, (*self.state).contr_yaxis_max]
-  ytitle = 'Contrast '
-  case (*self.state).contr_yunit of
-     0: ytitle +=  '['+strc(uint((*self.state).contrsigma))+' sigma limit]'
-     1: ytitle += '[Median]'
-     2: ytitle += '[Mean]'
-  endcase
-  xtitle =  'Angular separation '
-  if (*self.state).contr_xunit eq 0 then xtitle += '[Arcsec]' else $
-     xtitle += '['+'!4' + string("153B) + '!X/D]' ;;"just here to keep emacs from flipping out
+  xyouts, /normal,0.55,0.83,'Star Magnitude = '+strtrim(strmid(*self.satspots.mags,0,10),2),charsize=1.2
 
-  ;;clear windows before replotting
-  self->clear_contrprof_windows
-  if ((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) || $
-	((*self.state).high_pass_mode eq 1) || ((*self.state).klip_mode eq 1) then $
-     self->statvsr, yr=yr, xtitle=xtitle, ytitle=ytitle else $
-        self->statvsr, yr=yr, xtitle=xtitle, ytitle=ytitle, dat = {asec:asec,contrprof:outval}
-  
-  ;;update window
-  if not(keyword_set(ps)) then self->tvcontr
+  if n_elements(contr_at_04) gt 1 then contr_at_04 = median(contr_at_04)
+  sigma = '!7r!X'
+  xyouts, /normal,0.55,0.75,strc(fix(round(sclunit)))+sigma+' Contrast = '+sigfig(sclunit*contr_at_04,2,/sci)+' at 0.4"',charsize=1.2
+  if ((*self.state).collapse eq 0) then xyouts, /normal,0.75,0.71,"at "+sigfig((*(*self.state).CWV_ptr)[inds[0]],4)+" um",charsize=1.2
 
-  if keyword_set(sav) or keyword_set(radialsav) then begin
-     ;if ptr_valid((*self.state).head_ptr) then hdr = *((*self.state).head_ptr) else mkhdr,hdr,copsf
-     nm = (*self.state).imagename
-     strps = strpos(nm,'/',/reverse_search)
-     strpe = strpos(nm,'.fits',/reverse_search)
-     nm = strmid(nm,strps+1,strpe-strps-1)
+  oplot, [0.4], [contr_at_04]*sclunit, psym=1, color=cgcolor('white'), symsize=2
 
-     tmp = intarr((*self.state).image_size[2])
-     tmp[inds] = 1
-     slices = string(strtrim(tmp,2),format='('+strtrim(n_elements(tmp),2)+'(A))')
-  endif
-  ;;save whole contrast image
-  if (keyword_set(sav)) then begin
-     contr_outfile = dialog_pickfile(filter='*.fits', $
-                                     file=nm+'-contrast.fits', get_path = tmp_dir, $
-                                     path=(*self.state).current_dir,$
-                                     title='Please Select File to save contrast image')
-     
-     IF (strcompress(contr_outfile, /remove_all) EQ '') then RETURN
-     
-     IF (contr_outfile EQ tmp_dir) then BEGIN
-        self->message, 'Must indicate filename to save.', $
-                       msgtype = 'error', /window
-        return
-     ENDIF
-
-     mkhdr,hdr,copsf
-     sxaddpar,hdr,'SLICES',slices,'Cube slices used.'
-     sxaddpar,hdr,'WINAP',(*self.state).contrwinap,'Search window size'
-     sxaddpar,hdr,'GAUSSAP',(*self.state).contrap,'Gaussian window size'
-
-     writefits,contr_outfile,copsf,hdr
-  endif
-
-  ;;save radial contrast as fits
-  if (keyword_set(radialsav)) then begin
-     ftype = (['fits','txt','fits'])[(*self.state).contr_prof_filetype]
-     contr_outfile = dialog_pickfile(filter='*.'+ftype, $
-                                     file=nm+'-contrast_profile.'+ftype, get_path = tmp_dir, $
-                                     path=(*self.state).current_dir,$
-                                     title='Please Select File to save contrast radial profile')
-     
-     IF (strcompress(contr_outfile, /remove_all) EQ '') then RETURN
-     
-     IF (contr_outfile EQ tmp_dir) then BEGIN
-        self->message, 'Must indicate filename to save.', $
-                       msgtype = 'error', /window
-        return
-     ENDIF
-
-     if ((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) ||$
-	 ((*self.state).klip_mode eq 1) || ((*self.state).high_pass_mode eq 1) then begin
-        out = dblarr(n_elements(*(*self.satspots.asec)[inds[0]]), n_elements(inds)+1)+!values.d_nan
-        out[*,0] = *(*self.satspots.asec)[inds[0]]
-        for j=0,n_elements(inds)-1 do $
-           out[where((*(*self.satspots.asec)[inds[0]]) eq (*(*self.satspots.asec)[inds[j]])[0]):-1,j+1] = $
-           (*(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit])[*,0]
-     endif else out = [[asec],[outval[*,0]]]
-
-     case (*self.state).contr_prof_filetype of
-           0: begin
+	  ;;------------- end of code merged from ::starvsr -----------------------------------------
+        
+      ;;update window
+      if not(keyword_set(ps)) then self->tvcontr
+      
+      if keyword_set(sav) or keyword_set(radialsav) then begin
+        ;if ptr_valid((*self.state).head_ptr) then hdr = *((*self.state).head_ptr) else mkhdr,hdr,copsf
+        nm = (*self.state).imagename
+        strps = strpos(nm,'/',/reverse_search)
+        strpe = strpos(nm,'.fits',/reverse_search)
+        nm = strmid(nm,strps+1,strpe-strps-1)
+        
+        tmp = intarr((*self.state).image_size[2])
+        tmp[inds] = 1
+        slices = string(strtrim(tmp,2),format='('+strtrim(n_elements(tmp),2)+'(A))')
+      endif
+      ;;save whole contrast image
+      if (keyword_set(sav)) then begin
+        contr_outfile = dialog_pickfile(filter='*.fits', $
+          file=nm+'-contrast.fits', get_path = tmp_dir, $
+          path=(*self.state).current_dir,$
+          title='Please Select File to save contrast image')
+          
+        IF (strcompress(contr_outfile, /remove_all) EQ '') then RETURN
+        
+        IF (contr_outfile EQ tmp_dir) then BEGIN
+          self->message, 'Must indicate filename to save.', $
+            msgtype = 'error', /window
+          return
+        ENDIF
+        
+        mkhdr,hdr,copsf
+        sxaddpar,hdr,'SLICES',slices,'Cube slices used.'
+        sxaddpar,hdr,'WINAP',(*self.state).contrwinap,'Search window size'
+        sxaddpar,hdr,'GAUSSAP',(*self.state).contrap,'Gaussian window size'
+        
+        writefits,contr_outfile,copsf,hdr
+      endif
+      
+      ;;save radial contrast as fits
+      if (keyword_set(radialsav)) then begin
+        ftype = (['fits','txt','fits'])[(*self.state).contr_prof_filetype]
+        contr_outfile = dialog_pickfile(filter='*.'+ftype, $
+          file=nm+'-contrast_profile.'+ftype, get_path = tmp_dir, $
+          path=(*self.state).current_dir,$
+          title='Please Select File to save contrast radial profile')
+          
+        IF (strcompress(contr_outfile, /remove_all) EQ '') then RETURN
+        
+        IF (contr_outfile EQ tmp_dir) then BEGIN
+          self->message, 'Must indicate filename to save.', $
+            msgtype = 'error', /window
+          return
+        ENDIF
+        
+        if ((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) || $
+          ((*self.state).klip_mode eq 1) || ((*self.state).high_pass_mode eq 1) || $
+		  ((*self.state).low_pass_mode eq 1) || ((*self.state).snr_map_mode eq 1) then begin
+            out = dblarr(n_elements(*(*self.satspots.asec)[inds[0]]), n_elements(inds)+1)+!values.d_nan
+            out[*,0] = *(*self.satspots.asec)[inds[0]]
+            for j=0,n_elements(inds)-1 do $
+              out[where((*(*self.satspots.asec)[inds[0]]) eq (*(*self.satspots.asec)[inds[j]])[0]):-1,j+1] = $
+              (*(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit])[*,0]
+          endif else out = [[asec],[outval[*,0]]]
+          
+          case (*self.state).contr_prof_filetype of
+            0: begin
               mkhdr,hdr,out
               sxaddpar,hdr,'SLICES',slices,'Cube slices used.'
               sxaddpar,hdr,'YUNITS',(['Std Dev','Median','Mean'])[(*self.state).contr_yunit],'Contrast units'
               sxaddpar,hdr,'WINAP',(*self.state).contrwinap,'Search window size'
               sxaddpar,hdr,'GAUSSAP',(*self.state).contrap,'Gaussian window size'
               writefits,contr_outfile,out,hdr
-           end
-           1: begin
+            end
+            1: begin
               openw,lun,contr_outfile,/get_lun
               printf,lun,transpose(out),format='('+strtrim((size(out,/dim))[1],2)+'(F))'
               free_lun,lun
-           end 
-           2: begin
+            end
+            2: begin
               hdr = ['',string('END',format='(A-80)')]
-
+              
               sxaddpar,hdr,'SLICES',slices,'Cube slices used.'
               sxaddpar,hdr,'YUNITS',(['Std Dev','Median','Mean'])[(*self.state).contr_yunit],'Contrast units'
               sxaddpar,hdr,'WINAP',(*self.state).contrwinap,'Search window size'
@@ -19898,368 +20159,407 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
               names = ['Angle']
               fmt = 'D'
               for j=0,n_elements(inds)-1 do begin &$
-                 names = [names,'Slice_'+strtrim(fix(inds[j]),2)] &$
-                 fmt = fmt+',D' &$
+                names = [names,'Slice_'+strtrim(fix(inds[j]),2)] &$
+                fmt = fmt+',D' &$
               end
-              create_struct,out1,'',names,fmt
-              out1 = replicate(out1,  (size(out,/dim))[0])
-              for j = 0,n_elements(names)-1 do out1.(j) = out[*,j]
-              mwrfits,out1,contr_outfile,hdr,/create
-           end 
+            create_struct,out1,'',names,fmt
+            out1 = replicate(out1,  (size(out,/dim))[0])
+            for j = 0,n_elements(names)-1 do out1.(j) = out[*,j]
+            mwrfits,out1,contr_outfile,hdr,/create
+          end
         endcase
-  endif 
+      endif
+      
+      self->resetwindow
+    end
+    
+    ;----------------------------------------------------------------------
+    pro GPItv::contrast
+    
+      ;; contrast radial profile front end
+    
+    
+      (*self.state).cursorpos = (*self.state).coord
+      
+      if (not (xregistered(self.xname+'_contrprof'))) then begin
+      
+        if (*self.state).multisess GT 0 then title_base = "GPItv #"+strc((*self.state).multisess) else title_base = 'GPItv '
+        contrprof_base = $
+          widget_base(/base_align_center, $
+          group_leader = (*self.state).base_id, $
+          /column, $
+          title = title_base+' contrast profile', $
+          uvalue = 'contrprof_base')
+          
+        contrprof_top_base = widget_base(contrprof_base, /row, /base_align_center)
+        
+        contrprof_data_base1 = widget_base( contrprof_top_base, /column, frame=0)
+        
+        contrprof_data_base2 = widget_base( contrprof_top_base, /column, frame=0)
+        
+        contrzoom_widget_id = widget_draw( $
+          contrprof_data_base2, $
+          scr_xsize=(*self.state).photzoom_size, scr_ysize=(*self.state).photzoom_size)
+          
+          
+        contrprof_draw_base = widget_base( contrprof_base, /row, /base_align_center, frame=0)
+        
+        contrprof_data_base1a = widget_base(contrprof_data_base1, /column, frame=1)
+        contrprof_data_base1a2 = Widget_Base(contrprof_data_base1a,  /row)
+        
+        void=WIDGET_LABEL(contrprof_data_base1a2,value='Sat spot flux ratio=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+        (*self.state).contrgridfac_id = $
+          WIDGET_TEXT(contrprof_data_base1a2, $
+          /editable, $
+          uvalue = 'gridfac', $
+          value = strcompress(string((*self.state).gridfac)),xsize=8)
+          
+        void=WIDGET_LABEL(contrprof_data_base1a2,value='Sigma limit=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+        (*self.state).contrsigma_id = $
+          WIDGET_TEXT(contrprof_data_base1a2, $
+          /editable, $
+          uvalue = 'contrsigma', $
+          value = strcompress(string((*self.state).contrsigma)),xsize=8)
+          
+        contrprof_data_base1a4 = widget_base(contrprof_data_base1a, /row)
+        sat_bases = make_array(4,type=size(contrprof_data_base1a4,/type))
+        sat_bases[0] = contrprof_data_base1a4
+        
+        void=WIDGET_LABEL(contrprof_data_base1a4,value='Sat1 detec. window center x=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+        (*self.state).contrcen1x_id = $
+          WIDGET_TEXT(contrprof_data_base1a4, $
+          /editable, $
+          uvalue = 'cent1', $
+          value = strcompress(string((*self.state).contrcen1x)),xsize=8)
+        void=WIDGET_LABEL(contrprof_data_base1a4,value='  y=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+        (*self.state).contrcen1y_id = $
+          WIDGET_TEXT(contrprof_data_base1a4, $
+          /editable, $
+          uvalue = 'cent1', $
+          value = strcompress(string((*self.state).contrcen1y)),xsize=8)
+          
+        contrprof_data_base1a4 = widget_base(contrprof_data_base1a, /row)
+        sat_bases[1] = contrprof_data_base1a4
+        void=WIDGET_LABEL(contrprof_data_base1a4,value='Sat2 detec. window center x=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+        (*self.state).contrcen2x_id = $
+          WIDGET_TEXT(contrprof_data_base1a4, $
+          /editable, $
+          uvalue = 'cent1', $
+          value = strcompress(string((*self.state).contrcen2x)),xsize=8)
+        void=WIDGET_LABEL(contrprof_data_base1a4,value='  y=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+        (*self.state).contrcen2y_id = $
+          WIDGET_TEXT(contrprof_data_base1a4, $
+          /editable, $
+          uvalue = 'cent1', $
+          value = strcompress(string((*self.state).contrcen2y)),xsize=8)
+          
+        contrprof_data_base1a4 = widget_base(contrprof_data_base1a, /row)
+        sat_bases[2] = contrprof_data_base1a4
+        void=WIDGET_LABEL(contrprof_data_base1a4,value='Sat3 detec. window center x=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+        (*self.state).contrcen3x_id = $
+          WIDGET_TEXT(contrprof_data_base1a4, $
+          /editable, $
+          uvalue = 'cent1', $
+          value = strcompress(string((*self.state).contrcen3x)),xsize=8)
+          
+        void=WIDGET_LABEL(contrprof_data_base1a4,value='  y=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+        (*self.state).contrcen3y_id = $
+          WIDGET_TEXT(contrprof_data_base1a4, $
+          /editable, $
+          uvalue = 'cent1', $
+          value = strcompress(string((*self.state).contrcen3y)),xsize=8)
+          
+        contrprof_data_base1a4 = widget_base(contrprof_data_base1a, /row)
+        sat_bases[3] = contrprof_data_base1a4
+        void=WIDGET_LABEL(contrprof_data_base1a4,value='Sat4 detec. window center x=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+        (*self.state).contrcen4x_id = $
+          WIDGET_TEXT(contrprof_data_base1a4, $
+          /editable, $
+          uvalue = 'cent1', $
+          value = strcompress(string((*self.state).contrcen4x)),xsize=8)
+        void=WIDGET_LABEL(contrprof_data_base1a4,value='  y=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+        (*self.state).contrcen4y_id = $
+          WIDGET_TEXT(contrprof_data_base1a4, $
+          /editable, $
+          uvalue = 'cent1', $
+          value = strcompress(string((*self.state).contrcen4y)),xsize=8)
+          
+        (*self.state).contrcen_base_ids = sat_bases
+        
+        contrprof_data_base1a5 = widget_base(contrprof_data_base1a, /row)
+        void=WIDGET_LABEL(contrprof_data_base1a5,value='Half-length of max box (pix)=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+        (*self.state).contrwinap_id = $
+          WIDGET_TEXT(contrprof_data_base1a5, $
+          /editable, $
+          uvalue = 'cent1', $
+          value = strcompress(string((*self.state).contrwinap)),xsize=8)
+          
+        contrprof_data_base1a6 = widget_base(contrprof_data_base1a, /row)
+        void=WIDGET_LABEL(contrprof_data_base1a6,value='Half-length of Gauss. box (pix)=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+        (*self.state).contrap_id = $
+          WIDGET_TEXT(contrprof_data_base1a6, $
+          /editable, $
+          uvalue = 'cent1', $
+          value = strcompress(string((*self.state).contrap)),xsize=8)
+          
+        for i=0,3 do begin
+          tmp_string = $
+            string(0., 0., $
+            format = '("Sat'+strc(i+1)+' position:  x=",g14.7,"  y=",g14.7)' )
+          (*self.state).satpos_ids[i] = $
+            widget_label(contrprof_data_base1, $
+            value = tmp_string, $
+            uvalue = 'cursorpos', /align_left)
+        endfor
+        
+        (*self.state).contrwarning_id = $
+          widget_label(contrprof_data_base1, $
+          value = 'Warnings: None.', $
+          uvalue = 'cursorpos', /align_left,xsize=300)
+          
+        refreshplot = $
+          widget_button(contrprof_data_base2, $
+          value = 'Refresh Plot', $
+          uvalue = 'contr_plot_refresh')
+          
+        refreshsats = $
+          widget_button(contrprof_data_base2, $
+          value = 'Find Sat Spots', $
+          uvalue = 'satellite_refresh')
+          
+        plotoptions = $
+          widget_button(contrprof_data_base2, $
+          value = 'Plot Options...', $
+          uvalue = 'contr_plot_options')
+        contrplot_log_save = $
+          widget_button(contrprof_data_base2, $
+          value = 'Save contrast image', $
+          uvalue = 'contrplot_save')
+          
+        contr_ps = $
+          widget_button(contrprof_data_base2, $
+          value = 'Save contrast profile plot', $
+          uvalue = 'contr_ps')
+          
+        contr_radial = $
+          widget_button(contrprof_data_base2, $
+          value = 'Save contrast profile', $
+          uvalue = 'contr_radial')
+          
+        (*self.state).contrplot_widget_id = $
+          widget_draw(contrprof_draw_base, scr_xsize=500, $
+          scr_ysize=(350 < ((*self.state).screen_ysize - 350)))
+          
+        contrprof_done = $
+          widget_button(contrprof_data_base2, $
+          value = 'Done', $
+          uvalue = 'contrprof_done')
+          
+        widget_control, contrprof_base, /realize
+        
+        widget_control, contrzoom_widget_id, get_value=tmp_value
+        (*self.state).contrzoom_window_id = tmp_value
+        widget_control, (*self.state).contrplot_widget_id, get_value=tmp_value
+        (*self.state).contrplot_window_id = tmp_value
+        
+        ;		xmanager, 'GPItv_contrprof', contrprof_base, /no_block
+        ;		widget_control, contrprof_base, set_uvalue=self
+        
+        xmanager, self.xname+'_contrprof', contrprof_base, /no_block
+        widget_control, contrprof_base, set_uvalue={object:self, method: 'contrprof_event'}
+        widget_control, contrprof_base, event_pro = 'GPItvo_subwindow_event_handler'
+        self->resetwindow
+      endif
+      
+      ;;update sensitivity of sat spot inputs
+      for j=0,3 do widget_control,(*self.state).contrcen_base_ids[j],$
+        sensitive = 1 - (*self.state).contr_autocent
+        
+      self->contrprof_refresh
+    end
 
-  self->resetwindow
-end
+ ;--------------------------------------------------------------------------------
+pro GPItv::dq_mask_settings
 
-;----------------------------------------------------------------------
-pro GPItv::contrast
+  ;; Routine to get user input on which data quality flag pixels to flag. 
+  ;; Hard coded for GPI IFS DQ right now - should be generalized?
+  bit_descriptions = ['Bit 0: Permanent Bad Pixel from detector server',  $
+  'Bit 1: Raw pixel read exceeds saturation value',  $
+  'Bit 2: UTR step exceeds saturation value',  $
+  'Bit 3: UTR calculation removed minimum delta',  $
+  'Bit 4: UTR calculation removed maximum delta',  $
+  'Bit 5: Flagged bad by data pipeline badpix mask', $
+  'Bit 6: TBD/Unused', $
+  'Bit 7: TBD/Unused']
 
-  ;; contrast radial profile front end
   
+  bit_current_settings = bytarr(8)
+  for i=0,7 do bit_current_Settings[i] = (*self.state).dq_bit_mask and 2^i
+
+
+  bit_options = '2, button, '+strjoin(bit_descriptions,'|')+',' + $
+    ' set_value = [' + strjoin(strc(fix(bit_current_settings ne 0)),'$\,') +'], tag=selected_bits'
+    
+  formdesc = ['0, label, Select options for which DQ bit flags indicate, Center', $
+	  '0, label, that a given pixel should be considered "Bad", Center',$
+	  '1, base, , frame, ', $
+	  bit_options,$
+	  '0, droplist, Black|Red|Green|Blue|Cyan|Magenta|Yellow|White, set_value='+strc(fix((*self.state).dq_display_color))+', tag=color, label_left=Color to display bad pixels', $
+    '0, button, Apply Settings, quit, tag=OK', $
+    '0, button, Cancel, quit, tag=Cancel']
+    
+  textform = cw_form(formdesc, /column, $
+    title = 'GPItv DQ Bitmask Settings')
+    
+  if (textform.cancel EQ 1) then return ; cancelled (tag# = # of inputs above+2)
   
-  (*self.state).cursorpos = (*self.state).coord
+  new_bitmask = 0b
+  for i=0,7 do new_bitmask = new_bitmask or (2^i)*textform.selected_bits[i]
+
+  message,/info,'New DQ bitmask: '+strc(new_bitmask)
+  (*self.state).dq_bit_mask = new_bitmask
+
+  ; color indices defined in initcolors are
+  ; black, red, green, blue, cyan, magenta, yellow, white
   
-  if (not (xregistered(self.xname+'_contrprof'))) then begin
-     
-     if (*self.state).multisess GT 0 then title_base = "GPItv #"+strc((*self.state).multisess) else title_base = 'GPItv '
-     contrprof_base = $
-        widget_base(/base_align_center, $
-                    group_leader = (*self.state).base_id, $
-                    /column, $
-                    title = title_base+' contrast profile', $
-                    uvalue = 'contrprof_base')
-     
-     contrprof_top_base = widget_base(contrprof_base, /row, /base_align_center)
-     
-     contrprof_data_base1 = widget_base( contrprof_top_base, /column, frame=0)
-     
-     contrprof_data_base2 = widget_base( contrprof_top_base, /column, frame=0)
-     
-     contrzoom_widget_id = widget_draw( $
-                           contrprof_data_base2, $
-                           scr_xsize=(*self.state).photzoom_size, scr_ysize=(*self.state).photzoom_size)
-     
-     
-     contrprof_draw_base = widget_base( contrprof_base, /row, /base_align_center, frame=0)
-     
-     contrprof_data_base1a = widget_base(contrprof_data_base1, /column, frame=1)
-     contrprof_data_base1a2 = Widget_Base(contrprof_data_base1a,  /row)
-     
-     void=WIDGET_LABEL(contrprof_data_base1a2,value='Sat spot flux ratio=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
-     (*self.state).contrgridfac_id = $
-        WIDGET_TEXT(contrprof_data_base1a2, $
-                    /editable, $
-                    uvalue = 'gridfac', $
-                    value = strcompress(string((*self.state).gridfac)),xsize=8)
-     
-     void=WIDGET_LABEL(contrprof_data_base1a2,value='Sigma limit=', /ALIGN_LEFT,/DYNAMIC_RESIZE )		   
-     (*self.state).contrsigma_id = $
-        WIDGET_TEXT(contrprof_data_base1a2, $
-                    /editable, $
-                    uvalue = 'contrsigma', $
-                    value = strcompress(string((*self.state).contrsigma)),xsize=8)
-     
-     contrprof_data_base1a4 = widget_base(contrprof_data_base1a, /row)
-     sat_bases = make_array(4,type=size(contrprof_data_base1a4,/type))
-     sat_bases[0] = contrprof_data_base1a4
-
-     void=WIDGET_LABEL(contrprof_data_base1a4,value='Sat1 detec. window center x=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
-     (*self.state).contrcen1x_id = $
-        WIDGET_TEXT(contrprof_data_base1a4, $
-                    /editable, $
-                    uvalue = 'cent1', $
-                    value = strcompress(string((*self.state).contrcen1x)),xsize=8)
-     void=WIDGET_LABEL(contrprof_data_base1a4,value='  y=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
-     (*self.state).contrcen1y_id = $
-        WIDGET_TEXT(contrprof_data_base1a4, $
-                    /editable, $
-                    uvalue = 'cent1', $
-                    value = strcompress(string((*self.state).contrcen1y)),xsize=8)
-     
-     contrprof_data_base1a4 = widget_base(contrprof_data_base1a, /row)
-     sat_bases[1] = contrprof_data_base1a4
-     void=WIDGET_LABEL(contrprof_data_base1a4,value='Sat2 detec. window center x=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
-     (*self.state).contrcen2x_id = $
-        WIDGET_TEXT(contrprof_data_base1a4, $
-                    /editable, $
-                    uvalue = 'cent1', $
-                    value = strcompress(string((*self.state).contrcen2x)),xsize=8)
-     void=WIDGET_LABEL(contrprof_data_base1a4,value='  y=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
-     (*self.state).contrcen2y_id = $
-        WIDGET_TEXT(contrprof_data_base1a4, $
-                    /editable, $
-                    uvalue = 'cent1', $
-                    value = strcompress(string((*self.state).contrcen2y)),xsize=8)
-     
-     contrprof_data_base1a4 = widget_base(contrprof_data_base1a, /row)
-     sat_bases[2] = contrprof_data_base1a4
-     void=WIDGET_LABEL(contrprof_data_base1a4,value='Sat3 detec. window center x=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
-     (*self.state).contrcen3x_id = $
-        WIDGET_TEXT(contrprof_data_base1a4, $
-                    /editable, $
-                    uvalue = 'cent1', $
-                    value = strcompress(string((*self.state).contrcen3x)),xsize=8)
-     
-     void=WIDGET_LABEL(contrprof_data_base1a4,value='  y=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
-     (*self.state).contrcen3y_id = $
-        WIDGET_TEXT(contrprof_data_base1a4, $
-                    /editable, $
-                    uvalue = 'cent1', $
-                    value = strcompress(string((*self.state).contrcen3y)),xsize=8)
-     
-     contrprof_data_base1a4 = widget_base(contrprof_data_base1a, /row)
-     sat_bases[3] = contrprof_data_base1a4
-     void=WIDGET_LABEL(contrprof_data_base1a4,value='Sat4 detec. window center x=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
-     (*self.state).contrcen4x_id = $
-        WIDGET_TEXT(contrprof_data_base1a4, $
-                    /editable, $
-                    uvalue = 'cent1', $
-                    value = strcompress(string((*self.state).contrcen4x)),xsize=8)
-     void=WIDGET_LABEL(contrprof_data_base1a4,value='  y=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
-     (*self.state).contrcen4y_id = $
-        WIDGET_TEXT(contrprof_data_base1a4, $
-                    /editable, $
-                    uvalue = 'cent1', $
-                    value = strcompress(string((*self.state).contrcen4y)),xsize=8)
-
-     (*self.state).contrcen_base_ids = sat_bases
-     
-     contrprof_data_base1a5 = widget_base(contrprof_data_base1a, /row)
-     void=WIDGET_LABEL(contrprof_data_base1a5,value='Half-length of max box (pix)=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
-     (*self.state).contrwinap_id = $
-        WIDGET_TEXT(contrprof_data_base1a5, $
-                    /editable, $
-                    uvalue = 'cent1', $
-                    value = strcompress(string((*self.state).contrwinap)),xsize=8)
-     
-     contrprof_data_base1a6 = widget_base(contrprof_data_base1a, /row)
-     void=WIDGET_LABEL(contrprof_data_base1a6,value='Half-length of Gauss. box (pix)=', /ALIGN_LEFT,/DYNAMIC_RESIZE )
-     (*self.state).contrap_id = $
-        WIDGET_TEXT(contrprof_data_base1a6, $
-                    /editable, $
-                    uvalue = 'cent1', $
-                    value = strcompress(string((*self.state).contrap)),xsize=8)
-     
-     for i=0,3 do begin
-        tmp_string = $
-           string(0., 0., $
-                  format = '("Sat'+strc(i+1)+' position:  x=",g14.7,"  y=",g14.7)' )
-        (*self.state).satpos_ids[i] = $
-           widget_label(contrprof_data_base1, $
-                        value = tmp_string, $
-                        uvalue = 'cursorpos', /align_left)
-     endfor
-     
-     (*self.state).contrwarning_id = $
-        widget_label(contrprof_data_base1, $
-                     value = 'Warnings: None.', $
-                     uvalue = 'cursorpos', /align_left,xsize=300)
-     
-     refreshplot = $
-        widget_button(contrprof_data_base2, $
-                      value = 'Refresh Plot', $
-                      uvalue = 'contr_plot_refresh')
-
-     refreshsats = $
-        widget_button(contrprof_data_base2, $
-                      value = 'Find Sat Spots', $
-                      uvalue = 'satellite_refresh')
-     
-     plotoptions = $
-        widget_button(contrprof_data_base2, $
-                      value = 'Plot Options...', $
-                      uvalue = 'contr_plot_options')
-     contrplot_log_save = $
-        widget_button(contrprof_data_base2, $
-                      value = 'Save contrast image', $
-                      uvalue = 'contrplot_save')
-     
-     contr_ps = $
-        widget_button(contrprof_data_base2, $
-                      value = 'Save contrast profile plot', $
-                      uvalue = 'contr_ps')
-     
-     contr_radial = $
-        widget_button(contrprof_data_base2, $
-                      value = 'Save contrast profile', $
-                      uvalue = 'contr_radial')
-     
-     (*self.state).contrplot_widget_id = $
-        widget_draw(contrprof_draw_base, scr_xsize=500, $
-                    scr_ysize=(350 < ((*self.state).screen_ysize - 350)))
-     
-     contrprof_done = $
-        widget_button(contrprof_data_base2, $
-                      value = 'Done', $
-                      uvalue = 'contrprof_done')
-     
-     widget_control, contrprof_base, /realize
-     
-     widget_control, contrzoom_widget_id, get_value=tmp_value
-     (*self.state).contrzoom_window_id = tmp_value
-     widget_control, (*self.state).contrplot_widget_id, get_value=tmp_value
-     (*self.state).contrplot_window_id = tmp_value
-     
-;		xmanager, 'GPItv_contrprof', contrprof_base, /no_block
-;		widget_control, contrprof_base, set_uvalue=self
-     
-     xmanager, self.xname+'_contrprof', contrprof_base, /no_block
-     widget_control, contrprof_base, set_uvalue={object:self, method: 'contrprof_event'}
-     widget_control, contrprof_base, event_pro = 'GPItvo_subwindow_event_handler'
-     self->resetwindow
-  endif
+  (*self.state).dq_display_color = textform.color
+  self->update_DQ_warnings
+  self->displayall
   
-  ;;update sensitivity of sat spot inputs
-  for j=0,3 do widget_control,(*self.state).contrcen_base_ids[j],$
-                              sensitive = 1 - (*self.state).contr_autocent
-
-  self->contrprof_refresh
 end
 
-;----------------------------------------------------------------------
-
-function gpitv::get_session
-  ;;accessor function for session number, for use by external programs
-    return, (*self.state).multisess
-end
-
-function gpitv::xname
-  ;;accessor function for xname, for use by external programs
-    return, self.xname
-end
-
-
-;-------------------------------------------------------------------
-;-------------------------------------------------------------------
-;--------------------------------------------------------------------
-;    GPItv main program.  needs to be last in order to compile.
-;---------------------------------------------------------------------
-;-------------------------------------------------------------------
-;--------------------------------------------------------------------
-
-; Main program routine for GPItv.  If there is no current GPItv session,
-; then run GPItv_startup to create the widgets.  If GPItv already exists,
-; then display the new image to the current GPItv window.
-
-function GPItv::init, image, header, $                      ;main inputs
-                      multises=multises, session=session, $ ;session keywords headed in init
-                      block = block, exit = exit, $  
-                      nbrsatspot=nbrsatspot, $              ;handled by startup
-                      _extra = _extra,$                     ;all other keywords
-                      bmask = bmask
-
-
-;; can't work in z-buffer or something equally silly
-if (!d.name NE 'X' AND !d.name NE 'WIN' AND !d.name NE 'MAC') then begin
-    self->message, msgtype='error', 'Graphics device must be set to X, WIN, or MAC for GPItv to work.'
-    retall
-endif
-
-;; if exiting, you're done
-if (keyword_set(exit)) then begin
-   self->shutdown
-   return, 0
-endif
-
-; Before starting up GPItv, get the user's external window id.  We can't
-; use the GPItv::getwindow routine yet because we haven't run GPItv
-; startup.  A subtle issue: self->resetwindow won't work the first time
-; through because xmanager doesn't get called until the end of this
-; routine.  So we have to deal with the external window explicitly in
-; this routine.
-userwindow = !d.window
-self->startup, nbrsatspot=nbrsatspot
-
-;;determine session multiplicity
-if keyword_set(session) then multises=session ; synonyms for back compatibility
-if (keyword_set(multises)) then (*self.state).multisess=multises
-
-;;If there is no image, create one here, then proceed normally.
-if ~keyword_set(image) then begin
-   gridsize = 281
-   bmask = fltarr(gridsize, gridsize)
-   image = fltarr(gridsize, gridsize)
-   image[0] = 1.0
-   if ~(keyword_set(imname)) then imname = "NO IMAGE LOADED   "
-endif
-
-self->open,image, header,imname=imname, _extra=_extra
-
-;;this block does nothing.  keeping around in case we decide to do
-;;something with bmask
-if keyword_set(bmask) then begin
-   (*self.state).bmask=1
-   if ((size(bmask))[0]) lt 2 then bmask = fltarr((size(image))[1],(size(image))[2])
-endif else begin
-   if ((size(image))[0]) eq 2 then bmask = fltarr((size(image))[1],(size(image))[2])
-   if ((size(image))[0]) eq 3 then bmask = fltarr((size(image))[1],(size(image))[2],(size(image))[2])
-endelse
-
-;; Register the widget with xmanager if it's not already registered
-nb = ~keyword_set(block)
-block = keyword_set(block)
-self.xname = 'GPItv'+strc((*self.state).multisess)
-xmanager, self.xname, (*self.state).base_id, no_block = nb, cleanup = 'GPItvo_shutdown', event_handler ='gpitvo_event'
-wset, userwindow
-
-;; if blocking mode is set, then when the procedure reaches this
-;; line GPItv has already been terminated.  If non-blocking, then
-;; the procedure continues below.  If blocking, then the state
-;; structure doesn't exist any more so don't set active window.
-if (block EQ 0) then (*self.state).active_window_id = userwindow
-
-return, 1
-
-end
-
-;------------------------------------------------
-
-pro GPItv__define
-
-ncolors = 256L-9; !d.table_size - 9
-
-colors = {gpitv_color, r_vector: bytarr(ncolors), $
-	g_vector: bytarr(ncolors), $
-	b_vector: bytarr(ncolors), $
-	user_r: bytarr(256), $
-	user_g: bytarr(256), $
-	user_b: bytarr(256)}
-
-pdata = { gpitv_pdata, nplot: 0, maxplot:50, plot_ptr: ptrarr(51)}
-
-images= { gpitv_image, main_image: ptr_new(), $
-  main_image_stack: ptr_new(), $
-  main_image_backup: ptr_new(), $
-  names_stack: ptr_new(), $
-  display_image: ptr_new(), $
-  scaled_image: ptr_new(), $
-  blink_image1: ptr_new(), $
-  blink_image2: ptr_new(), $
-  blink_image3: ptr_new(), $
-  unblink_image: ptr_new(), $
-  bmask_image_stack: ptr_new(), $
-  bmask_image: ptr_new(), $
-  pan_image: ptr_new(),$
-  klip_image: ptr_new()}
-
-satspots = {gpitv_satspots,$
-            cens: ptr_new(), $
-            warns: ptr_new(), $
-            good: ptr_new(), $
-            satflux: ptr_new(), $
-            contrprof: ptr_new(), $
-            asec: ptr_new(), $
-            mags: ptr_new()}
-
-
-gpitv = {gpitv, $
-         xname: '', $
-         state: ptr_new(), $
-         colors: colors, $
-         pdata: pdata, $
-         images: images,$
-         satspots:satspots}
-
-
-end
+   
+    ;----------------------------------------------------------------------
+    
+    function gpitv::get_session
+      ;;accessor function for session number, for use by external programs
+      return, (*self.state).multisess
+    end
+    
+    function gpitv::xname
+      ;;accessor function for xname, for use by external programs
+      return, self.xname
+    end
+    
+    
+    ;-------------------------------------------------------------------
+    ;-------------------------------------------------------------------
+    ;--------------------------------------------------------------------
+    ;    GPItv main program.  needs to be last in order to compile.
+    ;---------------------------------------------------------------------
+    ;-------------------------------------------------------------------
+    ;--------------------------------------------------------------------
+    
+    ; Main program routine for GPItv.  If there is no current GPItv session,
+    ; then run GPItv_startup to create the widgets.  If GPItv already exists,
+    ; then display the new image to the current GPItv window.
+    
+    function GPItv::init, image, header, $                      ;main inputs
+        multises=multises, session=session, $ ;session keywords headed in init
+        block = block, exit = exit, $
+        nbrsatspot=nbrsatspot, $              ;handled by startup
+        _extra = _extra                     ;all other keywords
+        
+        
+      ;; can't work in z-buffer or something equally silly
+      if (!d.name NE 'X' AND !d.name NE 'WIN' AND !d.name NE 'MAC') then begin
+        self->message, msgtype='error', 'Graphics device must be set to X, WIN, or MAC for GPItv to work.'
+        retall
+      endif
+      
+      ;; if exiting, you're done
+      if (keyword_set(exit)) then begin
+        self->shutdown
+        return, 0
+      endif
+      
+      ; Before starting up GPItv, get the user's external window id.  We can't
+      ; use the GPItv::getwindow routine yet because we haven't run GPItv
+      ; startup.  A subtle issue: self->resetwindow won't work the first time
+      ; through because xmanager doesn't get called until the end of this
+      ; routine.  So we have to deal with the external window explicitly in
+      ; this routine.
+      userwindow = !d.window
+      self->startup, nbrsatspot=nbrsatspot
+      
+      ;;determine session multiplicity
+      if keyword_set(session) then multises=session ; synonyms for back compatibility
+      if (keyword_set(multises)) then (*self.state).multisess=multises
+      
+      ;;If there is no image, create one here, then proceed normally.
+      if ~keyword_set(image) then begin
+        gridsize = 281
+        image = fltarr(gridsize, gridsize)
+        image[0] = 1.0
+        if ~(keyword_set(imname)) then imname = "NO IMAGE LOADED   "
+      endif
+      
+      self->open,image, header,imname=imname, _extra=_extra
+      
+      ;; Register the widget with xmanager if it's not already registered
+      nb = ~keyword_set(block)
+      block = keyword_set(block)
+      self.xname = 'GPItv'+strc((*self.state).multisess)
+      xmanager, self.xname, (*self.state).base_id, no_block = nb, cleanup = 'GPItvo_shutdown', event_handler ='gpitvo_event'
+      wset, userwindow
+      
+      ;; if blocking mode is set, then when the procedure reaches this
+      ;; line GPItv has already been terminated.  If non-blocking, then
+      ;; the procedure continues below.  If blocking, then the state
+      ;; structure doesn't exist any more so don't set active window.
+      if (block EQ 0) then (*self.state).active_window_id = userwindow
+      
+      return, 1
+      
+    end
+    
+    ;------------------------------------------------
+    
+    pro GPItv__define
+    
+      ncolors = 256L-9; !d.table_size - 9
+      
+      colors = {gpitv_color, r_vector: bytarr(ncolors), $
+        g_vector: bytarr(ncolors), $
+        b_vector: bytarr(ncolors), $
+        user_r: bytarr(256), $
+        user_g: bytarr(256), $
+        user_b: bytarr(256)}
+        
+      pdata = { gpitv_pdata, nplot: 0, maxplot:50, plot_ptr: ptrarr(51)}
+      
+      images= { gpitv_image, main_image: ptr_new(), $
+        main_image_stack: ptr_new(), $
+        main_image_backup: ptr_new(), $
+        names_stack: ptr_new(), $
+        display_image: ptr_new(), $
+        scaled_image: ptr_new(), $
+        blink_image1: ptr_new(), $
+        blink_image2: ptr_new(), $
+        blink_image3: ptr_new(), $
+        unblink_image: ptr_new(), $
+        dq_image_stack: ptr_new(), $
+        dq_image: ptr_new(), $
+        pan_image: ptr_new(),$
+        klip_image: ptr_new()}
+        
+      satspots = {gpitv_satspots,$
+        cens: ptr_new(), $
+        warns: ptr_new(), $
+        good: ptr_new(), $
+        satflux: ptr_new(), $
+        contrprof: ptr_new(), $
+        asec: ptr_new(), $
+        mags: ptr_new()}
+        
+        
+      gpitv = {gpitv, $
+        xname: '', $
+        state: ptr_new(), $
+        colors: colors, $
+        pdata: pdata, $
+        images: images,$
+        satspots:satspots}
+        
+        
+    end
