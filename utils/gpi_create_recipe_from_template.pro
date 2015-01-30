@@ -17,14 +17,14 @@
 
 function gpi_create_recipe_from_template, templateFilename, fitsfilenames, recipedir=recipedir, $
 	outputdir=outputdir, filename_counter=filename_counter, $
-	outputfilename=outputfilename
+	outputfilename=outputfilename, silent=silent
 
 	; load the template, save with new filenames
 
 	if ~(keyword_set(filename_counter)) then filename_counter=1
 
 	if ~file_test(TemplateFilename, /read) then begin
-        message, "Requested recipe file does not exist: "+TemplateFilename,/info
+        if ~(keyword_set( silent)) then message, "Requested recipe file does not exist: "+TemplateFilename,/info
 		return, -1
 	endif
 
@@ -33,7 +33,7 @@ function gpi_create_recipe_from_template, templateFilename, fitsfilenames, recip
 	if parse_error eq 0 then begin
 		drf = obj_new('drf', TemplateFilename,/silent)
 	endif else begin
-        message, "Could not parse Recipe File: "+TemplateFilename,/info
+        if ~(keyword_set( silent)) then message, "Could not parse Recipe File: "+TemplateFilename,/info
         return, -1
 	endelse
 	catch,/cancel
@@ -71,7 +71,7 @@ function gpi_create_recipe_from_template, templateFilename, fitsfilenames, recip
 
 	if keyword_set(recipedir) then drfsavepath = recipedir else cd, curr=drfsavepath
 	outputfilename = drfsavepath + path_sep() + outputfilename
-	message,/info, 'Writing recipe file to :' + outputfilename
+	if ~(keyword_set( silent)) then message,/info, 'Writing recipe file to :' + outputfilename
 
 	drf->save, outputfilename, comment=" Created by gpi_create_recipe_from_template based on "+file_basename(templateFilename)
 
