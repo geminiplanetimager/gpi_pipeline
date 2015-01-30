@@ -197,7 +197,7 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
 
            simarray=ngauss(x,y,ngausspars)
 
-           corrmat_analyze, CORREL_IMAGES(rawarray,simarray,xshift=5,yshift=5),xoffset_auto,yoffset_auto,/print
+           corrmat_analyze, CORREL_IMAGES(rawarray,simarray,xshift=3,yshift=3),xoffset_auto,yoffset_auto,/print
 
            backbone->Log, "Applying a prelimiinary shift of (X,Y) = ("+strc(xoffset_auto)+", "+strc(yoffset_auto)+")"
 
