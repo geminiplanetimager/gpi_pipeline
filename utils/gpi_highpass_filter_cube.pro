@@ -22,7 +22,10 @@ function gpi_highpass_filter_cube, datacube, boxsize=boxsize, verbose=verbose, f
 	return_array = fltarr(sz[1],sz[2],sz[3])
 
 	;--- Avoid disallowed parallelization for Runtime IDL
-	if lmgr(/runtime) or keyword_set(force_skip) then begin
+	; Also the summit computer is really slow to start IDL sessions
+	; since it has to hit a license server somewhere far away, so 
+	; don't parallelize there either.
+	if lmgr(/runtime) or keyword_set(force_skip) or gpi_get_setting('at_gemini') then begin
 		if keyword_set(verbose) then message,/info,"Can't start parallel IDL processes for IDL runtime"
 		if keyword_set(verbose) then message,/info," Just going to run regular high pass in this process."
 		for s=0,sz[3]-1 do return_array[*,*,s]=datacube[*,*,s]-filter_image(datacube[*,*,s],median=boxsize)
