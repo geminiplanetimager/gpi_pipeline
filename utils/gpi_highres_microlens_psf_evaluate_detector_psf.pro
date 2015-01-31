@@ -43,8 +43,6 @@ common hr_psf_common
 
 
 ; now for speed
-
 return, p[2]*interpolate(c_psf,(x - (p[0] + c_x_vector_psf_min))*c_sampling,(y - (p[1] + c_y_vector_psf_min))*c_sampling)
-
 
 end

@@ -190,7 +190,10 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
 ; we want to follow the format of Anderson et al.
 ; he uses a radial weighting scheme combined with a poisson distribution
 ; he can do this because he is looking for astrometry not intensity
-if weights eq 'radial' then begin 
+if keyword_set(weights) eq 0 then stop, 'No weights set - set the weights keyword to radial or mask'
+
+
+if weights eq 'radial' then begin
 	; find peak in mask space
 	weights0=mask ; just makes the array 
 
@@ -203,7 +206,7 @@ if weights eq 'radial' then begin
 	ind3=where(rad_arr lt 1.5 and mask ne 0,ct3)
 	if ct3 ne 0 then weights0[ind3]=1.0  ; sets the core to 1
 	weights0*=mask
-
+endif else weights0=mask
 	; now add the poisson error component
 	gain=3.04
 	if keyword_set(ncoadds) eq 0 then ncoadds=1
@@ -220,7 +223,7 @@ if weights eq 'radial' then begin
 	ind=where(finite(final_weights) eq 0,ct)
 	if ct ne 0 then final_weights[ind]=0
 	
-endif
+;	endif else final_weights=mask/data_variance
 
 
 
@@ -248,9 +251,10 @@ endif
  parameters = MPFIT2DFUN("gpi_highres_microlens_psf_evaluate_detector_psf", x_grid, y_grid, pixel_array[*,*,i_slice],0, $
                                                       first_guess[*,i_slice], $
                                                       WEIGHTS = final_weights, PARINFO = parinfo, $
-                                                      BESTNORM = chisq, /quiet, YFIT = yfit ) 
+                                                      BESTNORM = chisq, YFIT = yfit, /quiet ) 
 
 passing=final_weights 
+
  if 0 eq 1 or keyword_set(flag) then begin
 	sz=size(mask)*30
 	window,2,xsize=sz[1]*3,ysize=sz[2]
