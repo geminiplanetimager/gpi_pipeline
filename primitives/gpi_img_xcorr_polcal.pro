@@ -82,6 +82,8 @@ function gpi_img_xcorr_polcal, DataSet, Modules, Backbone
   ;;error handle if readpolcal or not used before
   if ~(keyword_set(polcal.coords)) then return, error("You must use Load Polarization Calibration before Assemble Polarization Cube")
   
+  if (size(img))[0] gt 2 then return, error("You must cross-correlate with a raw detector image. This is not a raw detector image.")
+  
   ;;OLD - from microlens version
   ; get mlens PSF filename
   ;  if (total(size(mlens_file)) eq 0) then $
