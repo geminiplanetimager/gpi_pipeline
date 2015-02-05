@@ -11,8 +11,6 @@
 ;  read noise is estimated, and a list of hot pixels is derived.
 ;  The read noise and number of significantly hot pixels are written
 ;  as keywords to the FITS header for use in trending analyses. 
-;  CAUTION FIXME: this code does not take into account coadds properly 
-;  and thus is underestimating the actual read noise per frame. 
 ;
 ;
 ; INPUTS:  several dark frames
@@ -37,6 +35,7 @@
 ;   2013-07-12 MP: Rename for consistency
 ;	2013-12-15 MP: Implemented SIGMACLIP, doc header updates. 
 ;   2014-11-04 MP: Avoid trying to run parallelized sigmaclip if in IDL runtime.
+;   2015-02-05 KBF: Fix readnoise estimation
 ;-
 function gpi_combine_2d_dark_images, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -119,11 +118,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		imtab[*,2044:2047] = !values.f_nan
 
 		stddev2 = stddev(imtab,/nan) ; this std dev should be less biased
-		rdnoise=stddev2[0]
-		backbone->Log, 'Estimated read noise='+sigfig(rdnoise,4)+'cts  from stddev across '+strc(nfiles)+' darks.', depth=3
+		rdnoise=stddev2[0]/sqrt(float(nfiles))    ;readnoise in master dark frame taking into account number of darks in the cube
+		backbone->Log, 'Estimated master dark read noise='+sigfig(rdnoise,4)+'cts  from stddev across '+strc(nfiles)+' darks.', depth=3
 		backbone->set_keyword, 'HISTORY', "   Estimating read noise comparing all files: ",ext_num=0
-		backbone->set_keyword, 'HISTORY', "     rdnoise = stddev(dark_i-combined_dark) = "+sigfig(rdnoise,4),ext_num=0
-		backbone->set_keyword, 'EST_RDNS', rdnoise, 'Estimated read noise from stddev across '+strc(nfiles)+' darks [counts]' ,ext_num=0
+		backbone->set_keyword, 'HISTORY', "     rdnoise = stddev(dark_i-combined_dark)/sqrt(nfiles) = "+sigfig(rdnoise,4),ext_num=0
+		backbone->set_keyword, 'EST_RDNS', rdnoise, 'Estimated master dark read noise from stddev across '+strc(nfiles)+' darks [counts]' ,ext_num=0
 
 
 
