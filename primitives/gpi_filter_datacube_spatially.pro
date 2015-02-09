@@ -7,6 +7,8 @@
 ;
 ; This is useful for removing the halos created by uncorrected atmospheric turbulence. This is a tad slow but a useful tool.
 ;
+; Skip_parallelization should be used when opening IDL sessions is slow (when using floating license servers etc)
+;
 ; Other filters may be added later.
 ;
 ; INPUTS: raw 2D image file
@@ -17,6 +19,7 @@
 ; PIPELINE COMMENT: Apply spatial filter to datacubes
 ; PIPELINE ARGUMENT: Name="hp_boxsize" Type="int" Range="[0,50]" Default="0" Desc="0: no filter, 1+: Filter box size"
 ; PIPELINE ARGUMENT: Name="high_or_lowpass" Type="string" Range="[high|low]" Default="high" Desc="High pass or lowpass filter?"
+; PIPELINE ARGUMENT: Name="skip_parallelization" Type="string" Range="[0,1]" Default="0" Desc="Skip parallelization?"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 2.1
@@ -33,7 +36,9 @@ function gpi_filter_datacube_spatially, DataSet, Modules, Backbone
   
   thisModuleIndex = Backbone->GetCurrentModuleIndex()
   if tag_exist( Modules[thisModuleIndex], "hp_boxsize") then hp_boxsize=uint(Modules[thisModuleIndex].hp_boxsize) else hp_boxsize=0
-  
+  if tag_exist( Modules[thisModuleIndex], "skip_parallelization") then force_skip=fix(Modules[thisModuleIndex].skip_parallelization) else force_skip=0
+
+
   @__start_primitive
   
   ; apply hp box filter
@@ -68,7 +73,7 @@ function gpi_filter_datacube_spatially, DataSet, Modules, Backbone
     if sz[1] eq 2048 then return, error('Can only apply filter to cubes, not detector images')
     
     
-	filtered_data = gpi_highpass_filter_cube( data0, boxsize=hp_boxsize)
+	filtered_data = gpi_highpass_filter_cube( data0, boxsize=hp_boxsize,force_skip=force_skip)
 
     ;filtered_data=fltarr(sz[1],sz[2],nlam)
     ;for l=0, nlam-1 do filtered_data[*,*,l]=filter_image(data0[*,*,l],median=hp_boxsize)
