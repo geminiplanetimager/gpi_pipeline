@@ -18582,15 +18582,20 @@ pro GPItv::low_pass_filter, status=status, forcestack=forcestack
     ; if the widget is visible, we are looking slices so we should filter all
     ; of the slices for consistency
     if (visibility eq 1) || keyword_set(forcestack) then begin
-      im=*self.images.main_image_stack
+      im0=*self.images.main_image_stack
+	  im=*self.images.main_image_stack
 	  ; careful to smooth using the proper call of filter_image
 	  ; the runtime doesn't support convolution in fourier space
 	     ;if LMGR(/runtime) eq 0 then for s=0,N_ELEMENTS(im[0,0,*])-1 do $
 			 ;im[*,*,s]=filter_image(im[*,*,s],fwhm=fwhm,/all) $
 			 ;else im[*,*,s]=filter_image(im[*,*,s],fwhm=fwhm, /no_ft,/all) 
-   
-	 for s=0,N_ELEMENTS(im[0,0,*])-1 do $
-			 im[*,*,s]=filter_image(im[*,*,s],fwhm=fwhm,/all, no_ft = LMGR(/runtime))
+
+	; note that setting the no_ft to zero is bad! it should either be 1 or not declared at all
+	; leaving it as 0 causes the image to fill with nans sometimes (not sure when)
+	if LMGR(/runtime) eq 1 then no_ft=1 else no_ft=[]
+
+	for s=0,N_ELEMENTS(im[0,0,*])-1 do $
+			 im[*,*,s]=filter_image(im[*,*,s],fwhm=fwhm,/all, no_ft = no_ft)
       *self.images.main_image_stack=im
       *self.images.main_image=(*self.images.main_image_stack)[*,*,(*self.state).cur_image_num]
     endif else begin
@@ -18600,7 +18605,6 @@ pro GPItv::low_pass_filter, status=status, forcestack=forcestack
       if LMGR(/runtime) eq 0 then im = filter_image(im, fwhm=fwhm,/all) else im = filter_image(im, fwhm=fwhm, /no_ft,/all) 
       *self.images.main_image = im
     endelse
-    
     ((*self.state).low_pass_mode) = 1
     self->getstats
     self->displayall
@@ -20040,7 +20044,7 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
     plot,[0],[0],ylog=(*self.state).contr_yaxis_type,xlog=xlog,xrange=xrange,yrange=yrange,/xstyle,/ystyle,$
       xtitle=xtitle,ytitle=ytitle,/nodata, charsize=(*self.state).contr_font_size, title=title,ytickv=ytickv,yticks=yticks
   endif
- 
+
   radius=0.4
   contr_at_04=fltarr(n_elements(inds))
   for j = 0, n_elements(inds)-1 do begin
