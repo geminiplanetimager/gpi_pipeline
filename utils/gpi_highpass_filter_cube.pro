@@ -2,13 +2,16 @@
 ; NAME:  gpi_highpass_filter_cube
 ;
 ;	highpass filter a cube, parallelized if that's allowed
+; when at_gemini parallelization is skipped because finding the new IDL
+; license takes a long time. Only when using a local license should 
+; parallelization be invoked
 ;
 ; INPUTS:
 ;	datacube		a datacube
 ; KEYWORDS:
 ;	boxsize			size of box to use. Default is 15
 ;	/verbose		Be more talkative while working.
-;	/force_skip		Skip parallelizing - this is for debugging only.
+;	/force_skip		Skip parallelizing - this useful when it takes a long time to open new IDL sessions.
 ; OUTPUTS:
 ;
 ; HISTORY:
@@ -27,6 +30,7 @@ function gpi_highpass_filter_cube, datacube, boxsize=boxsize, verbose=verbose, f
 	; don't parallelize there either.
 	if lmgr(/runtime) or keyword_set(force_skip) or gpi_get_setting('at_gemini') then begin
 		if keyword_set(verbose) then message,/info,"Can't start parallel IDL processes for IDL runtime"
+		if keyword_set(force_skip) then message,/info,"Forcing non-parallelized high-pass filtering"
 		if keyword_set(verbose) then message,/info," Just going to run regular high pass in this process."
 		for s=0,sz[3]-1 do return_array[*,*,s]=datacube[*,*,s]-filter_image(datacube[*,*,s],median=boxsize)
 		return, return_array
