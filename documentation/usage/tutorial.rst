@@ -187,13 +187,15 @@ Like the dark frames, the wavelength solution calibration files can be created u
 
 For the purposes of this tutorial, we recommend users download the Wavecals.zip file available on the `Gemini Public Data webpage <http://www.gemini.edu/sciops/instruments/gpi/public-data>`_. Then add the files to the calibration directory. The user must then update the calibration database by clicking the **Rescan Calib. DB** button, found in the lower left corner of the GPI DRP Status Console Window. 
 
-At this point, the user may skip to the next section. However, should one wish to try to construct one on their own wavecales, follow the reduction steps below. Note that:
+At this point, the user may (and probably should) skip to the next section, where the wavecals are discussed a little further down. However, should one wish to try to construct one on their own wavecales, follow the reduction steps below.
+
+Note that his is a very computationally intensive reduction and it may take some time (>15 minutes) to complete. It also requires a reference wavelength solution in the same band as the observed arc lamp data which is included in the Wavecals.zip file mentioned just above. Upon completion, it will ask if you would like to overwrite the file, for the purpose of this exercise one should rename the file so it can be recognized from the original (e.g. S20131208S0150_H_wavecal2.fits). An error will then pop up saying the wavelength calibration failed the quality check, this is due to lower signal-to-noise arc lamp images than what is used to derive the more recent wavecals. The quality of the solution is still adequate so you may save the image (which will put it in the calibrations directory) and continue.
+
  
 - **For step 1)** Select Xe-arc lamp files using the Add File(s) button: **S20131208S0149(-151).fits** (located in the wavelength_cal folder) 
 - **For step 3)** Keep selected the **Calibration** reduction category
 - **For step 4)** Select the **Wavelength Solution 2D** Recipe template
 
-This is a very computationally intensive reduction and it may take some time (>15 minutes) to complete. It also requires a reference wavelength solution in the same band as the observed arc lamp data which is included in the Wavecals.zip file mentioned just above. Upon completion, it will ask if you would like to overwrite the file, for the purpose of this exercise one should rename the file so it can be recognized from the original (e.g. S20131208S0150_H_wavecal2.fits). An error will then pop up saying the wavelength calibration failed the quality check, this is a piece of code that will be fixed for version 1.3. For the moment, save the image (which will put it in the calibrations directory) and continue.
 
 .. note:: The wavelength calibration requires a complex algorithm. :ref:`Wavelength Calibration <wavelength_calibration>` describes the process in more detail and provides examples of common errors with solutions. 
 
