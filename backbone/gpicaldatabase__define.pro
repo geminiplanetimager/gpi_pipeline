@@ -39,6 +39,7 @@ calfile = { $
 			readoutmode: "", $
 			other: "", $
 			drpversion: "", $
+                        elevation: "", $
 			nfiles: 0, $
 			valid: 1b}
 
@@ -193,10 +194,10 @@ PRO gpicaldatabase::write
 	mlen_p = max(strlen(d.path))+3
 	mlen_f = max(strlen(d.filename))+3
 
-	firstline = string("#PATH", "FILENAME", "TYPE", "DISPERSR", "IFSFILT", "APODIZER", "LYOTMASK", "INPORT", "ITIME", "READMODE", "JD", "NFILES",  "DRPVERSION", "OTHER", $
-			format="(A-"+strc(mlen_p)+", A-"+strc(mlen_f)+", A-30,  A-10,     A-5     , A-8,         A-8,       A-6,     A-15,    A-15,   A-15, A-7, A-10,  A-10)")
-	forprint2, textout=calfile_txt, d.path, d.filename,  d.type, d.prism, d.filter, d.apodizer, d.lyot, d.inport, d.itime, d.readoutmode, d.jd, d.nfiles, d.drpversion, d.other, $
-			format="(A-"+strc(mlen_p)+", A-"+strc(mlen_f)+", A-30,  A-10,     A-5     , A-8,         A-8,       A-6,     D-15.5,  D-15.5, A-15, A-7, A-10,  A-10 )", /silent, $
+	firstline = string("#PATH", "FILENAME", "TYPE", "DISPERSR", "IFSFILT", "APODIZER", "LYOTMASK", "INPORT", "ITIME", "READMODE", "JD", "NFILES",  "DRPVERSION", "ELEVATION", "OTHER", $
+			format="(A-"+strc(mlen_p)+", A-"+strc(mlen_f)+", A-30,  A-10,     A-5     , A-8,         A-8,       A-6,     A-15,    A-15,   A-15, A-7, A-10, A-15, A-10)")
+	forprint2, textout=calfile_txt, d.path, d.filename,  d.type, d.prism, d.filter, d.apodizer, d.lyot, d.inport, d.itime, d.readoutmode, d.jd, d.nfiles, d.drpversion, d.elevation, d.other, $
+			format="(A-"+strc(mlen_p)+", A-"+strc(mlen_f)+", A-30,  A-10,     A-5     , A-8,         A-8,       A-6,     D-15.5,  D-15.5, A-15, A-7, A-10, D-15.5,  A-10 )", /silent, $
 			comment=firstline
 	message,/info, " Writing to "+calfile_txt
 
@@ -394,7 +395,7 @@ function gpicaldatabase::cal_info_from_header, fits_data
 	dateobs =  strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "DATE-OBS"))+$
 		   "T"+strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header,"UTSTART"))
 	thisfile.jd = date_conv(dateobs, "J")
-
+        thisfile.elevation = strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "ELEVATIO",/silent))
 	thisfile.drpversion = strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "DRPVER", /silent))
 	thisfile.nfiles = strc(gpi_get_keyword(*fits_data.pri_header, *fits_data.ext_header, "DRPNFILE", /silent))
 
@@ -506,6 +507,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	filter=newfile.filter
 	prism=newfile.prism
 	itime=newfile.itime
+        elevation=newfile.elevation
 	readoutmode=newfile.readoutmode ;self->get_readoutmode_as_string(fits_data)
 
 	;---- optional: restrict based on dates of IFS cooldown runs (so 
@@ -662,13 +664,23 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	; Find the single closest in time calibration file.
 	timediff=min(abs( (calfiles_table.JD)[imatches] - date ),minind)
 	if keyword_set(verbose) then self->Log, "Closest date offset is "+strc(timediff),depth=3
+        
 
 
 	; If we are matching a wavecal, always return the closest in time without
 	; any other considerations. This is because we may be trying to match
 	; multiple wavecals taken during the night to measure the IFS internal flexure.
 	if strlowcase(type) eq 'wavecal' then begin
-  		ibest = imatches[minind]
+                                ; Choose all wavecals taken within two
+                                ; hours and choose the one with the
+                                ; closes elevation
+                within2hr = where(abs( (calfiles_table.JD)[imatches] - ((calfiles_table.JD)[imatches])[minind] ) le 0.08333, datecount)
+                elevations =  float(((calfiles_table[imatches])[within2hr]).elevation)
+              
+                closest_elev_diff = min( abs(elevations-float(elevation)), eclosest)
+		closest_elev = elevations[eclosest]
+              
+		ibest = (imatches[within2hr])[eclosest]
 		bestcalib=(calfiles_table.PATH)[ibest]+path_sep()+(calfiles_table.FILENAME)[ibest]
 		;print, bestcalib
 		self->Log, "Returning best cal file= "+bestcalib,depth=3
