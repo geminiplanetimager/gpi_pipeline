@@ -18582,7 +18582,6 @@ pro GPItv::low_pass_filter, status=status, forcestack=forcestack
     ; if the widget is visible, we are looking slices so we should filter all
     ; of the slices for consistency
     if (visibility eq 1) || keyword_set(forcestack) then begin
-      im0=*self.images.main_image_stack
 	  im=*self.images.main_image_stack
 	  ; careful to smooth using the proper call of filter_image
 	  ; the runtime doesn't support convolution in fourier space
