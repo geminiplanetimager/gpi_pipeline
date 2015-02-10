@@ -12,6 +12,7 @@
 ; PIPELINE COMMENT: This primitive uses the relevent pol cal file to generate a model detector image to cross correlate with a science image and find the flexure offset.
 ;   The resulting output can be used as a flexure offset prior to flux extraction.
 ;
+; PIPELINE ARGUMENT: Name="method" Type="string" Range="[None|Manual|Auto]" Default="Auto" Desc='How to correct spot shifts due to flexure? [None|Manual|Auto]'
 ; PIPELINE ARGUMENT: Name="range" Type="float" Default="0.3" Range="[0,5]" Desc="Range of cross corrleation search in pixels."
 ; PIPELINE ARGUMENT: Name="resolution" Type="float" Default="0.1" Range="[0,1]" Desc="Subpixel resolution of cross correlation"
 ; PIPELINE ARGUMENT: Name="psf_sep" Type="float" Default="0.1" Range="[0,1]" Desc="PSF separation in pixels"
@@ -51,18 +52,19 @@ function gpi_img_xcorr_polcal, DataSet, Modules, Backbone
 
     @__start_primitive
   suffix=''      ; set this to the desired output filename suffix
-  
-  
+
+
   ;Get the polcal files
   polspot_params=polcal.spotpos
   polspot_coords=polcal.coords
   polspot_pixvals=polcal.pixvals
- 
+
 
   ;Get the primitive keywords
   if tag_exist(Modules[thisModuleIndex],"range") then range=float(Modules[thisModuleIndex].range) else range=2.0
   if tag_exist(Modules[thisModuleIndex],"resolution") then resolution=float(Modules[thisModuleIndex].resolution) else resolution=0.01
   if tag_exist(Modules[thisModuleIndex],"configuration") then config=Modules[thisModuleIndex].configuration else config='tight'
+  if tag_exist(Modules[thisModuleIndex],"method") then method=Modules[thisModuleIndex].method else method='auto'
   if tag_exist(Modules[thisModuleIndex],"psf_sep") then steps=float(Modules[thisModuleIndex].psf_sep) else steps=0.01
   if tag_exist(Modules[thisModuleIndex],"stopidl") then stopidl=long(Modules[thisModuleIndex].stopidl) else save=0
   if tag_exist(Modules[thisModuleIndex],"x_off") then x_off=float(Modules[thisModuleIndex].x_off) else x_off=0
@@ -74,10 +76,15 @@ function gpi_img_xcorr_polcal, DataSet, Modules, Backbone
 
 
   ;If the manual keywords are set then don't do any cross correlation
-  if manual_dx ne 0 or manual_dy ne 0 then begin
+  if strlowcase(method) eq 'none' then begin
+    backbone->Log, "No flexure compensation applied"
+    backbone->set_keyword, 'SPOT_DX', 0., ' No PSFX offsets appplied'
+    backbone->set_keyword, 'SPOT_DY', 0., ' No PSFY offsets appplied'
+
+  endif else if strlowcase(method) eq 'manual' then begin
     x_off=manual_dx
     y_off=manual_dy
-    
+
     backbone->Log, "Flexure offset manually set to to be; X: "+string(x_off)+" Y: "+string(y_off)
     backbone->set_keyword, 'SPOT_DX', x_off, ' PSFX shift set manually'
     backbone->set_keyword, 'SPOT_DY', y_off, ' PSFY shift set manually'
@@ -296,7 +303,7 @@ function gpi_img_xcorr_polcal, DataSet, Modules, Backbone
   polcal.coords = polspot_coords
   polcal.spotpos = polspot_params
 
-  
+
 
   @__end_primitive
 
