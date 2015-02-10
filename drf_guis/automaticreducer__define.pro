@@ -264,7 +264,12 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 	drf->set_outputdir,'AUTOMATIC' ;/autodir
 
 	if keyword_set(should_apply_flexure_update) then begin
-		wupdate =  drf->find_module_by_name('Update Spot Shifts for Flexure', count)
+	 
+	 if prism eq 'WOLLASTON' then $
+	    wupdate =  drf->find_module_by_name('Flexure 2D x correlation with polcal', count) $
+	  else $
+	    wupdate =  drf->find_module_by_name('Update Spot Shifts for Flexure', count)
+
 		if count ne 1 then begin
 			message,/info, "Can't find 'Update Spot Shifts for Flexure' primitive; can't apply settings. Continuing anyway."
 		endif else begin
