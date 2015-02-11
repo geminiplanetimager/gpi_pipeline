@@ -1036,6 +1036,15 @@ pro drf::set_loaded_filename,in
   self.loaded_filename = in
 end
 ;--------------------------------------------------------------------------------
+function drf::get_name
+  return, self.name 
+end
+;--------------------------------------------------------------------------------
+pro drf::set_name,in,shortname=shortname
+  self.name = in
+  if n_elements(shortname) ne 0 then self.shortname = shortname else self.shortname = ''
+end
+;--------------------------------------------------------------------------------
 function drf::get_last_saved_filename
   return,self.last_saved_filename
 end
