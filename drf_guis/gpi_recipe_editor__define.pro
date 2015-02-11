@@ -1693,7 +1693,8 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
 ;    self->log, "Add files to be processed and create a recipe"
 ;    self->log, " with primitives to reduce data."
 
-    self->changetype, 0 ; set to ASTR-SPEC type by default.
+    self->changetype, 0         ; set to ASTR-SPEC type by default.
+    self->change_current_template, self.reductiontype, 0
 
 	self.widgets_for_modes = ptr_new( {normal: [base_primitive_args, top_basemoduleavailable], advanced: [top_base_filebutt_advanced, top_right_advanced_base]})
 
