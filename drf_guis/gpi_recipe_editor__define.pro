@@ -229,32 +229,31 @@ pro gpi_recipe_editor::change_current_template, typestring,seqnum, notemplate=no
   wm = where((*self.templates).reductiontype eq typestring, mct)
   if mct eq 0 then begin
      message, 'Requested reduction type "'+typestring+'" is invalid/unknown. Cannot load any Recipes!',/info
-     widget_control, self.template_name_id,SET_DROPLIST_SELECT=0
      return
   endif
   
   
   ;; Now we can switch to that template
   if ~(keyword_set(notemplate)) then begin
-    chosen_template = wm[seqnum]
-    widget_control, self.template_name_id,SET_DROPLIST_SELECT=seqnum
-    print, "Chosen template filename:"+((*self.templates)[chosen_template]).filename
+     chosen_template = wm[seqnum]
+     print, "Chosen template filename:"+((*self.templates)[chosen_template]).filename
      
-    ;; Load the new template, preserving the data files of the current recipe
-    if obj_valid(self.drf) then datafiles = self.drf->get_datafiles()
-    
-    self->open, ((*self.templates)[chosen_template]).filename,  /template
+     ;; Load the new template, preserving the data files of the current recipe
+     if obj_valid(self.drf) then datafiles = self.drf->get_datafiles()
+     
+     self->open, ((*self.templates)[chosen_template]).filename,  /template
+     
+     if ~(keyword_set(cleardata)) then begin
+        if n_elements(datafiles) gt 0 then begin
+           self.drf->set_datafiles, datafiles
+        endif
+     endif else begin
+        ;;clear all loaded files
+        self.drf->clear_datafiles
+     endelse
 
-	if ~(keyword_set(cleardata)) then begin
-		if n_elements(datafiles) gt 0 then begin
-			self.drf->set_datafiles, datafiles
-		endif
-	endif else begin
-		;clear all loaded files
-		self.drf->clear_datafiles
-	endelse
-	
-    self->refresh_filenames_display
+     widget_control, self.current_template_name_id, set_value=((*self.templates)[chosen_template]).name
+     self->refresh_filenames_display
      
   endif
   
@@ -519,22 +518,32 @@ end
 ;-
 pro gpi_recipe_editor::changetype, type_num, notemplate=notemplate, force_update=force_update
 
-    if ~(keyword_set(force_update)) then if self.reductiontype eq (*self.template_types)[type_num] then return ; do nothing if no change
+  if ~(keyword_set(force_update)) then if self.reductiontype eq (*self.template_types)[type_num] then return ; do nothing if no change
     
-    ; set the reduction type as requested
-    self.reductiontype = (*self.template_types)[type_num]         
+  ;; set the reduction type as requested
+  self.reductiontype = (*self.template_types)[type_num]         
 
-    wm = where(strmatch((*self.templates).reductiontype, self.reductiontype, /fold_case), mct)
-    if mct eq 0 then begin
-		message, "Invalid template type, or no known templates for that type: "+self.reductiontype,/info
-	    widget_control, self.template_name_id, set_value= ['                ']
-	endif else begin
-	    widget_control, self.template_name_id, set_value= ((*self.templates)[wm]).name
-	endelse
+  wm = where(strmatch((*self.templates).reductiontype, self.reductiontype, /fold_case), mct)
+  if mct eq 0 then begin
+     message, "Invalid template type, or no known templates for that type: "+self.reductiontype,/info
+     return
+  endif
 
-    self->update_available_primitives, self.reductiontype
+  ;;destroy and recreate the template name dropdown
+  widget_control, self.template_name_id, /Destroy
+  desc = REPLICATE({ flags:0, name:'' }, n_elements((*self.templates)[wm])+1)
+  desc[0].flags = 1
+  desc[n_elements((*self.templates)[wm])].flags = 2
+  desc[0].name = 'Select Recipe Template'
+  for j = 1,n_elements((*self.templates)[wm]) do desc[j].name = ((*self.templates)[wm].name)[j-1]
+  self.template_name_id = CW_PDMENU(self.rowbase_template, desc, ids = template_name_ids, /return_index,uvalue='template_name')
+  
+  
+  self->update_available_primitives, self.reductiontype
 
-    self->change_current_template, self.reductiontype, 0, notemplate=notemplate
+  ;;not clear why a change in type has to require a change in the
+  ;;template - ds
+  ;;self->change_current_template, self.reductiontype, 0, notemplate=notemplate
 
   
 end
@@ -591,433 +600,436 @@ end
 ;-
 pro gpi_recipe_editor::event,ev
 
-	OK = 0
-	NOT_OK = -1
-	
-    ;get type of event
-    widget_control,ev.id,get_uvalue=uval
+  OK = 0
+  NOT_OK = -1
+  
+  ;;get type of event
+  widget_control,ev.id,get_uvalue=uval
+  
+  ;;get storage
+  widget_control,ev.top,get_uvalue=storage
 
-    ;get storage
-    widget_control,ev.top,get_uvalue=storage
-
-    if size(uval,/TNAME) eq 'STRUCT' then begin
-        ; TLB event, either resize or kill_request
-        ;print, 'Recipe Editor TLB event'
-        case tag_names(ev, /structure_name) of
-
+  if size(uval,/TNAME) eq 'STRUCT' then begin
+     ;; TLB event, either resize or kill_request
+     case tag_names(ev, /structure_name) of
+        
         'WIDGET_KILL_REQUEST': begin ; kill request
-            if confirm(group=ev.top,message='Are you sure you want to close the Recipe Editor?',$
-                label0='Cancel',label1='Close') then begin
-				obj_destroy, self
-            endif
+           if confirm(group=ev.top,message='Are you sure you want to close the Recipe Editor?',$
+                      label0='Cancel',label1='Close') then begin
+              obj_destroy, self
+           endif
         end
-        'WIDGET_BASE': begin ; resize event
-            print, "RESIZE not yet supported - will be eventually "
-
+        'WIDGET_BASE': begin    ; resize event
+           print, "RESIZE not yet supported - will be eventually "
+           
         end
         else: print, tag_names(ev, /structure_name)
+     endcase
+     return
+  endif
+
+  ;; Mouse-over help text display:
+  if (tag_names(ev, /structure_name) EQ 'WIDGET_TRACKING') then begin 
+     if (ev.ENTER EQ 1) then begin 
+        case uval of 
+           'FNAME':textinfo='Press "Add Files" or "Wildcard" buttons to add FITS files to process.'
+           'available_primitives': textinfo='Left-click for Primitve Desciption | Right-click to add the selected primitive to the current Recipe.'
+           'RecipePrimitivesTable_id':textinfo='Left-click to see argument parameters of the module | Right-click to remove the selected module from the current Recipe.'
+           'arguments_table':textinfo='Left-click on Value cell to change the value. Press Enter to validate.'
+           'mod_desc':textinfo='Click on a module in the Available Primitives list to display its description here.'
+           'text_status':textinfo='Status log message display window.'
+           'ADDFILE': textinfo='Click to add files to current input list'
+           'WILDCARD': textinfo='Click to add files to input list using a wildcard ("*.fits" etc)'
+           'REMOVE': textinfo='Click to remove currently highlighted file from the input list'
+           'REMOVEALL': textinfo='Click to remove all files from the input list'
+           'Remove primitive': textinfo='Remove the selected module from the execution list'
+           'Add primitive': textinfo='Add the selected module from "Available Primitives" into the execution list'
+           'Choose Calibration File...': textinfo='Toggle Auto/Manual calibration file selection, and select specific file if Manual.'
+           "Save Recipe as...": textinfo='Save Recipe to a filename of your choosing'
+           "Drop": textinfo="Queue & execute the last saved Recipe"
+           'Save&Drop': textinfo="Save the file, then queue it"
+           'Close Recipe Editor': textinfo="Close and exit this program"
+           "Move primitive up": textinfo='Move the currently-selected module one position earlier in the execution list'
+           "Move primitive down": textinfo='Move the currently-selected module one position later in the execution list'
+           else:
         endcase
-        return
-    endif
-
-    ; Mouse-over help text display:
-    if (tag_names(ev, /structure_name) EQ 'WIDGET_TRACKING') then begin 
-        if (ev.ENTER EQ 1) then begin 
-              case uval of 
-              'FNAME':textinfo='Press "Add Files" or "Wildcard" buttons to add FITS files to process.'
-              'available_primitives': textinfo='Left-click for Primitve Desciption | Right-click to add the selected primitive to the current Recipe.'
-              'RecipePrimitivesTable_id':textinfo='Left-click to see argument parameters of the module | Right-click to remove the selected module from the current Recipe.'
-              'arguments_table':textinfo='Left-click on Value cell to change the value. Press Enter to validate.'
-              'mod_desc':textinfo='Click on a module in the Available Primitives list to display its description here.'
-              'text_status':textinfo='Status log message display window.'
-              'ADDFILE': textinfo='Click to add files to current input list'
-              'WILDCARD': textinfo='Click to add files to input list using a wildcard ("*.fits" etc)'
-              'REMOVE': textinfo='Click to remove currently highlighted file from the input list'
-              'REMOVEALL': textinfo='Click to remove all files from the input list'
-              'Remove primitive': textinfo='Remove the selected module from the execution list'
-              'Add primitive': textinfo='Add the selected module from "Available Primitives" into the execution list'
-              'Choose Calibration File...': textinfo='Toggle Auto/Manual calibration file selection, and select specific file if Manual.'
-              "Save Recipe as...": textinfo='Save Recipe to a filename of your choosing'
-              "Drop": textinfo="Queue & execute the last saved Recipe"
-              'Save&Drop': textinfo="Save the file, then queue it"
-              'Close Recipe Editor': textinfo="Close and exit this program"
-              "Move primitive up": textinfo='Move the currently-selected module one position earlier in the execution list'
-              "Move primitive down": textinfo='Move the currently-selected module one position later in the execution list'
-              else:
-              endcase
-              widget_control,self.textinfo_id,set_value=textinfo
-        endif else begin 
-              widget_control,self.textinfo_id,set_value=''
-        endelse 
-        return
-    endif 
+        widget_control,self.textinfo_id,set_value=textinfo
+     endif else begin 
+        widget_control,self.textinfo_id,set_value=''
+     endelse 
+     return
+  endif 
 	
-	; Double clicks in the list widget should launch a gpitv for that file.
-	if (tag_names(ev, /structure_name) EQ 'WIDGET_LIST') then begin
-		if ev.clicks eq 2 then begin
-			filename = (self.drf->get_datafiles(/absolute))[ev.index]
-			gpitv, ses=self.session,  filename
-			message, 'Opening in GPITV #'+strc(self.session)+" : "+filename,/info
-		endif
-	endif
+  ;; Double clicks in the list widget should launch a gpitv for that file.
+  if (tag_names(ev, /structure_name) EQ 'WIDGET_LIST') then begin
+     if ev.clicks eq 2 then begin
+        filename = (self.drf->get_datafiles(/absolute))[ev.index]
+        gpitv, ses=self.session,  filename
+        message, 'Opening in GPITV #'+strc(self.session)+" : "+filename,/info
+     endif
+  endif
+
+
+  if uval eq 'template_name' then begin
+     self->change_current_template, self.reductiontype, ev.value-1
+     return
+  endif 
   
-
-	if uval eq 'top_menu' then uval=ev.value ; respond to menu selections from event, not uval
-
-    ; Menu and button events: 
-    case uval of 
-	'reduction_type_dropdown':begin
+  if uval eq 'top_menu' then uval=ev.value ; respond to menu selections from event, not uval
+  ;; Menu and button events: 
+  case uval of 
+     'reduction_type_dropdown':begin
         selectype=widget_info(self.reduction_type_id,/DROPLIST_SELECT)
         self->changetype, selectype
-    end
-   
-	'template_name_dropdown':begin
-        selecseq=widget_info(self.template_name_id,/DROPLIST_SELECT)
-        self->change_current_template, self.reductiontype, selecseq
-	end
-
-    'available_primitives':begin
-        IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_TABLE_CELL_SEL') THEN BEGIN  ;LEFT CLICK
-            ; Update displayed module comment
-               selection = WIDGET_INFO(self.tableAvailable_id, /TABLE_SELECT) 
-               ; get all descriptions for modules currently displayed:
-               currdescs = ((*self.PrimitiveInfo).comment)[(*self.indmodtot2avail)[(*self.curr_mod_indsort)]]
-               ; and get the one description corresponding to the selected
-               ; module:
-               indselected=selection[1] < (n_elements(currdescs)-1)
-               comment=currdescs[indselected]
-               if comment eq '' then comment=(*self.curr_mod_avai)[indselected]
-               comment = $
-                  '('+((*self.PrimitiveInfo).idlfuncs)[(*self.indmodtot2avail)[(*self.curr_mod_indsort)[indselected]]]+$
-                  '.pro) '+comment
-
-               widget_control,   self.descr_id,  set_value=comment
+     end
+     
+     'available_primitives':begin
+        IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_TABLE_CELL_SEL') THEN BEGIN ;LEFT CLICK
+           ;; Update displayed module comment
+           selection = WIDGET_INFO(self.tableAvailable_id, /TABLE_SELECT) 
+           ;; get all descriptions for modules currently displayed:
+           currdescs = ((*self.PrimitiveInfo).comment)[(*self.indmodtot2avail)[(*self.curr_mod_indsort)]]
+           ;; and get the one description corresponding to the
+           ;; selected module:
+           indselected=selection[1] < (n_elements(currdescs)-1)
+           comment=currdescs[indselected]
+           if comment eq '' then comment=(*self.curr_mod_avai)[indselected]
+           comment = $
+              '('+((*self.PrimitiveInfo).idlfuncs)[(*self.indmodtot2avail)[(*self.curr_mod_indsort)[indselected]]]+$
+              '.pro) '+comment
+           
+           widget_control,   self.descr_id,  set_value=comment
         ENDIF 
-        IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_CONTEXT') THEN BEGIN  ;RIGHT CLICK
+        IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_CONTEXT') THEN BEGIN ;RIGHT CLICK
            self->AddPrimitive
-     	ENDIF 
-
-    end
-    'RecipePrimitivesTable_id':begin     ; Table of currently selected modules (i.e. those in the recipe) 
-        IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_TABLE_CELL_SEL') THEN BEGIN  ;LEFT CLICK
-				selection = WIDGET_INFO((self.RecipePrimitivesTable_id), /TABLE_SELECT) 
-
-				if gpi_get_setting('enable_editor_debug', default=0,/bool,/silent) then $
-					print, "prim. table selection: ", selection
-
-				;update arguments table
-				indselected=selection[1]
-
-				self->refresh_arguments_table, indselected
+        ENDIF 
+        
+     end
+     'RecipePrimitivesTable_id':begin                                             ; Table of currently selected modules (i.e. those in the recipe) 
+        IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_TABLE_CELL_SEL') THEN BEGIN ;LEFT CLICK
+           selection = WIDGET_INFO((self.RecipePrimitivesTable_id), /TABLE_SELECT) 
+           
+           if gpi_get_setting('enable_editor_debug', default=0,/bool,/silent) then $
+              print, "prim. table selection: ", selection
+           
+           ;;update arguments table
+           indselected=selection[1]
+           
+           self->refresh_arguments_table, indselected
         ENDIF ; end of left click
     	IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_CONTEXT') THEN BEGIN  ;RIGHT CLICK
            self->RemovePrimitive
      	ENDIF  
     end      
-    'arguments_table': begin
-      IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_TABLE_CH') THEN BEGIN 
-        selected_cell = WIDGET_INFO(self.tableArgs_id, /TABLE_SELECT)
+     'arguments_table': begin
+        IF (TAG_NAMES(ev, /STRUCTURE_NAME) EQ 'WIDGET_TABLE_CH') THEN BEGIN 
+           selected_cell = WIDGET_INFO(self.tableArgs_id, /TABLE_SELECT)
 
-		priminfo = self.drf->get_primitive_args(self.selected_primitive_index)
-		n_args = n_elements(priminfo.names)
-	
-		priminfo = self.drf->get_primitive_args(self.selected_primitive_index)
-		n_args=N_ELEMENTS(priminfo.names)
-		if selected_cell[0] ne 1 then return ; user has tried to edit something other than the Value field
-		if selected_cell[1] gt n_args -1 then return ; user has tried to select an empty cell
-			WIDGET_CONTROL, self.tableArgs_id, GET_VALUE=selection_value,USE_TABLE_SELECT= selected_cell
+           priminfo = self.drf->get_primitive_args(self.selected_primitive_index)
+           n_args = n_elements(priminfo.names)
+           
+           priminfo = self.drf->get_primitive_args(self.selected_primitive_index)
+           n_args=N_ELEMENTS(priminfo.names)
+           if selected_cell[0] ne 1 then return              ; user has tried to edit something other than the Value field
+           if selected_cell[1] gt n_args -1 then return      ; user has tried to select an empty cell
+           WIDGET_CONTROL, self.tableArgs_id, GET_VALUE=selection_value,USE_TABLE_SELECT= selected_cell
 
-		; figure out what type, range, etc is allowed for this primitive argument
-		argname=  priminfo.names[selected_cell[1]]
-		required_type=  priminfo.types[selected_cell[1]]
-		range= priminfo.ranges[selected_cell[1]]
+                                ; figure out what type, range, etc is allowed for this primitive argument
+           argname=  priminfo.names[selected_cell[1]]
+           required_type=  priminfo.types[selected_cell[1]]
+           range= priminfo.ranges[selected_cell[1]]
 
-		; figure out what type of value the user has tried to enter
-		;leave the possib. to enter a blank string:
-		if (selection_value[0] eq '') then begin
-			typeName='STRING'
-		endif else begin
-			isnum=str2num(selection_value[0],type=typenum)
-			case typenum of
-			  1:typeName ='INT'
-			  2:typeName ='INT'
-			  3:typeName ='INT'
-			  4:typeName ='FLOAT'
-			  5:typeName ='FLOAT'
-			  7:typeName ='STRING'
-			  12:typeName ='INT'
-				else:typeName ='INVALID'
-			endcase    
-		endelse
+                                ; figure out what type of value the user has tried to enter
+                                ;leave the possib. to enter a blank string:
+           if (selection_value[0] eq '') then begin
+              typeName='STRING'
+           endif else begin
+              isnum=str2num(selection_value[0],type=typenum)
+              case typenum of
+                 1:typeName ='INT'
+                 2:typeName ='INT'
+                 3:typeName ='INT'
+                 4:typeName ='FLOAT'
+                 5:typeName ='FLOAT'
+                 7:typeName ='STRING'
+                 12:typeName ='INT'
+                 else:typeName ='INVALID'
+              endcase    
+           endelse
 
-		;compare required type and user's new value type 
-		type_ok = 1 & range_ok = 1
-		; Check to ensure the argument has the proper type. 
-		  ; Special case: it is acceptable to enter an INT type into an
-		  ; argument expecting a FLOAT, because of course the set of
-		  ; integers is a subset of the set of floats. 
-		  ; And of course we also allow numeric types as a subset of STRING
-		if (strcmp(typeName,required_type,/fold))  $
-		  or (strlowcase(required_type) eq 'float' and strlowcase(typename) eq 'int')  $
-		  or (strlowcase(required_type) eq 'enum' and strlowcase(typename) eq 'string')  $
-			or (strlowcase(required_type) eq 'string' and strlowcase(typename) eq 'float')  $
-			or (strlowcase(required_type) eq 'string' and strlowcase(typename) eq 'int')  $
-		  then $
-		  type_ok=1 $
-		else type_ok=0
+                                ;compare required type and user's new value type 
+           type_ok = 1 & range_ok = 1
+                                ; Check to ensure the argument has the proper type. 
+                                ; Special case: it is acceptable to enter an INT type into an
+                                ; argument expecting a FLOAT, because of course the set of
+                                ; integers is a subset of the set of floats. 
+                                ; And of course we also allow numeric types as a subset of STRING
+           if (strcmp(typeName,required_type,/fold))  $
+              or (strlowcase(required_type) eq 'float' and strlowcase(typename) eq 'int')  $
+              or (strlowcase(required_type) eq 'enum' and strlowcase(typename) eq 'string')  $
+              or (strlowcase(required_type) eq 'string' and strlowcase(typename) eq 'float')  $
+              or (strlowcase(required_type) eq 'string' and strlowcase(typename) eq 'int')  $
+           then $
+              type_ok=1 $
+           else type_ok=0
 
-		if ~type_ok then begin
-			errormessage = ["Sorry, you tried to enter a value for "+argname+", but it had the wrong type ("+strupcase(typename)+").", "Please enter a value of type "+strupcase(required_type)+". The value was NOT updated; please try again.", "NOTE: If you are trying to edit the CalibrationFile keyword,", "please use the 'Choose Calibration File...' button in the lower right corner."]
-			self->log,errormessage[0]+"  "+errormessage[1] ; merge 2 lines into 1
-			res = dialog_message(errormessage,/error, title='Unable to set value')
-			self->refresh_arguments_table
-			return
-		endif
-	
+           if ~type_ok then begin
+              errormessage = ["Sorry, you tried to enter a value for "+argname+", but it had the wrong type ("+strupcase(typename)+").", "Please enter a value of type "+strupcase(required_type)+". The value was NOT updated; please try again.", "NOTE: If you are trying to edit the CalibrationFile keyword,", "please use the 'Choose Calibration File...' button in the lower right corner."]
+              self->log,errormessage[0]+"  "+errormessage[1] ; merge 2 lines into 1
+              res = dialog_message(errormessage,/error, title='Unable to set value')
+              self->refresh_arguments_table
+              return
+           endif
+           
 
-		;;verify user-value: range 
-		if (strcmp('string',required_type,/fold) ne 1) && (strcmp('string',typeName,/fold) ne 1) && (required_type ne '') then begin
-			; if not a string, check min and max
-			ranges=strsplit(range,'[,]',/extract)
-			if (float(ranges[0]) le float(selection_value[0])) && (float(ranges[1]) ge float(selection_value[0])) then range_ok=1 else range_ok=0
-		endif
-		if ((strcmp('enum',required_type,/fold) eq 1) && (strcmp('string',typeName,/fold) eq 1)) || $
-		   ((strcmp('string', required_type,/fold) eq 1) && (range ne "")) then begin
-			; if an ENUM, or a STRING with a non-null range, then check value
-			ranges=strsplit(range,'[,|]',/extract)
-			matches = strmatch(ranges,selection_value[0],/fold)
-			wm = where(matches, mct)
-			if mct gt 0 then range_ok=1 else range_ok=0
-		endif
+           ;;verify user-value: range 
+           if (strcmp('string',required_type,/fold) ne 1) && (strcmp('string',typeName,/fold) ne 1) && (required_type ne '') then begin
+                                ; if not a string, check min and max
+              ranges=strsplit(range,'[,]',/extract)
+              if (float(ranges[0]) le float(selection_value[0])) && (float(ranges[1]) ge float(selection_value[0])) then range_ok=1 else range_ok=0
+           endif
+           if ((strcmp('enum',required_type,/fold) eq 1) && (strcmp('string',typeName,/fold) eq 1)) || $
+              ((strcmp('string', required_type,/fold) eq 1) && (range ne "")) then begin
+                                ; if an ENUM, or a STRING with a non-null range, then check value
+              ranges=strsplit(range,'[,|]',/extract)
+              matches = strmatch(ranges,selection_value[0],/fold)
+              wm = where(matches, mct)
+              if mct gt 0 then range_ok=1 else range_ok=0
+           endif
 
-		;print, required_type
-		;print, "range:|"+range+"|"
+                                ;print, required_type
+                                ;print, "range:|"+range+"|"
 
-		if ~range_ok then begin
-			errormessage = ["Sorry, you tried to enter a value for "+argname+", "+selection_value[0]+", but it wasn't within the allowable range.", "Please enter a value within "+range+ ".  The value was NOT updated; please try again."]
-			self->log,errormessage[0]+"  "+errormessage[1] ; merge 2 lines into 1
-			res = dialog_message(errormessage,/error, title='Unable to set value')
-			self->refresh_arguments_table
-			return
-		endif
-	
-		; if we get here, the type and range are OK, so set the value
-		  
-		new_arg_info = create_struct(argname,selection_value[0])
-		self.drf->set_primitive_args, self.selected_primitive_index, _extra=new_arg_info
-		self->refresh_arguments_table
-		if argname eq 'CalibrationFile' then self->refresh_primitives_table
-	ENDIF
-  end
-  'ADDFILE' : begin
-     	
-		if keyword_set(gpi_get_setting('at_gemini', /bool, default=0,/silent)) eq 1 then $
-			result=dialog_pickfile(path=self.last_used_input_dir,/multiple,/must_exist,$
-								   title='Select Raw Data File(s)', $
-								  	filter=['S20'+gpi_datestr(/current)+'*.fits;'+'S20'+gpi_datestr(/current)+'*.fits.gz',$
-											'S20'+gpi_datestr(/current)+'*.fits'],get_path=getpath) $
-		else result=dialog_pickfile(path=self.last_used_input_dir,/multiple,/must_exist,$
-								   title='Select Raw Data File(s)', filter=filter,get_path=getpath)
-				
-		if n_elements(result) eq 1 then if strc(result) eq '' then return ; user cancelled in the dialog box. 
+           if ~range_ok then begin
+              errormessage = ["Sorry, you tried to enter a value for "+argname+", "+selection_value[0]+", but it wasn't within the allowable range.", "Please enter a value within "+range+ ".  The value was NOT updated; please try again."]
+              self->log,errormessage[0]+"  "+errormessage[1] ; merge 2 lines into 1
+              res = dialog_message(errormessage,/error, title='Unable to set value')
+              self->refresh_arguments_table
+              return
+           endif
+           
+                                ; if we get here, the type and range are OK, so set the value
+           
+           new_arg_info = create_struct(argname,selection_value[0])
+           self.drf->set_primitive_args, self.selected_primitive_index, _extra=new_arg_info
+           self->refresh_arguments_table
+           if argname eq 'CalibrationFile' then self->refresh_primitives_table
+        ENDIF
+     end
+     'ADDFILE' : begin
+        
+        if keyword_set(gpi_get_setting('at_gemini', /bool, default=0,/silent)) eq 1 then $
+           result=dialog_pickfile(path=self.last_used_input_dir,/multiple,/must_exist,$
+                                  title='Select Raw Data File(s)', $
+                                  filter=['S20'+gpi_datestr(/current)+'*.fits;'+'S20'+gpi_datestr(/current)+'*.fits.gz',$
+                                          'S20'+gpi_datestr(/current)+'*.fits'],get_path=getpath) $
+        else result=dialog_pickfile(path=self.last_used_input_dir,/multiple,/must_exist,$
+                                    title='Select Raw Data File(s)', filter=filter,get_path=getpath)
+        
+        if n_elements(result) eq 1 then if strc(result) eq '' then return ; user cancelled in the dialog box. 
 
-		self.drf->add_datafiles, result
-		self->refresh_filenames_display ; update the filenames display
-		self.last_used_input_dir = file_dirname(result[0]) ; for use next time we open files
+        self.drf->add_datafiles, result
+        self->refresh_filenames_display                            ; update the filenames display
+        self.last_used_input_dir = file_dirname(result[0])         ; for use next time we open files
 
 
-		self->log,strtrim(n_elements(result),2)+' files added.'
-		widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
+        self->log,strtrim(n_elements(result),2)+' files added.'
+        widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
 
-  end
+     end
 
-  'WILDCARD' : begin
-		datestr= gpi_datestr(/current)
+     'WILDCARD' : begin
+        datestr= gpi_datestr(/current)
 
-		command=textbox(title='Input a Wildcard-listing Command (*,?,[..-..])',$
-			group_leader=ev.top,label='',cancel=cancelled,xsize=500,$
-			value=self.last_used_input_dir+path_sep()+'*'+datestr+'*')
+        command=textbox(title='Input a Wildcard-listing Command (*,?,[..-..])',$
+                        group_leader=ev.top,label='',cancel=cancelled,xsize=500,$
+                        value=self.last_used_input_dir+path_sep()+'*'+datestr+'*')
         if cancelled then return
 
         self->log,' Performing wildcard match using regular expression: '+command
-		
+        
         result=file_search(command, count=count)
 
-		if count eq 0 then begin
-			self->log,' No files matched.'
-			return
-		endif else self->log,strc(count)+' files added.'
+        if count eq 0 then begin
+           self->log,' No files matched.'
+           return
+        endif else self->log,strc(count)+' files added.'
 
-		self.drf->add_datafiles, result
-		self->refresh_filenames_display ; update the filenames display
-		widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
+        self.drf->add_datafiles, result
+        self->refresh_filenames_display ; update the filenames display
+        widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
 
-    end
-    'REMOVE' : begin
-		widget_control,self.top_base,get_uvalue=storage  
-		selected_index = widget_info(storage.fname,/list_select) ; 
-		n_selected_index = n_elements(selected_index)
-		if (n_selected_index eq 1 ) then if (selected_index eq -1) then begin
-			ret=dialog_message("ERROR: You have to click to select one or more files before you can remove anything.",/error,/center,dialog_parent=self.top_base)
-			self->Log, 'You have to click to select a file before you can remove anything.'
-			return ; nothing is selected so do nothing
-		endif
-
-		filelist = self.drf->get_datafiles() ; Note: must save this prior to starting the for loop since that will
-											; confuse the list indices, and make us have to bookkeep things as the
-											; list changes during a deletion of multiple files. 
-		;if n_selected_index gt n_elements(filelist)-1 then n_selected_index = n_elements(filelist)-1
-		for i=0,n_selected_index-1 do begin
-			; sanity check indices:
-			if selected_index[i] lt 0 or selected_index[i] gt n_elements(filelist)-1 then continue
-			;self->removefile, filelist[selected_index[i]]
-		    self.drf->remove_datafile, filelist[selected_index[i]]
-			self->Log, "Removed "+filelist[selected_index[i]]
-
-		endfor
-
-		self->refresh_filenames_display ; update the filenames display
-		;self->update_available_primitives, self.reductiontype ; why do we do this after removing a file?
-		; I don't remember why we do the following here after removing files? -MP
-		; I suppose because the default behavior is organize by date and that
-		; depends on the files present.
-		widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
-    end
-    'REMOVEALL' : begin
-        if confirm(group=ev.top,message='Remove all filenames from the list?',$
-            label0='Cancel',label1='Proceed') then begin
-
-			self.drf->clear_datafiles
-			self->refresh_filenames_display ; update the filenames display
-			self->log,'All filenames removed.'
+     end
+     'REMOVE' : begin
+        widget_control,self.top_base,get_uvalue=storage  
+        selected_index = widget_info(storage.fname,/list_select) ; 
+        n_selected_index = n_elements(selected_index)
+        if (n_selected_index eq 1 ) then if (selected_index eq -1) then begin
+           ret=dialog_message("ERROR: You have to click to select one or more files before you can remove anything.",/error,/center,dialog_parent=self.top_base)
+           self->Log, 'You have to click to select a file before you can remove anything.'
+           return               ; nothing is selected so do nothing
         endif
-    end
-    
-    'outputdir': begin
-       widget_control, self.outputdir_id, get_value=tmp
-       if gpi_check_dir_exists(tmp) eq OK then begin
-          self.drf->set_outputdir, tmp
-          self->log,'Output Directory changed to:'+self.drf->get_outputdir()
-          self.drf->set_outputoverride
-          widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
-       endif 
-       
-       if strcmp(tmp,'AUTO',4,/fold_case) then begin
-          self.drf->clear_outputoverride
-          self.drf->update_outputdir
-          widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
-       endif 
-    end
-   
-    'outputdir_browse': begin
-       result = DIALOG_PICKFILE(TITLE='Select an Output Directory', /DIRECTORY,/MUST_EXIST, path=gpi_expand_path(self.drf->get_outputdir()))
-       if result ne '' then begin
-          self.drf->set_outputdir, result
-          self.drf->set_outputoverride
-          widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
-          self->log,'Output Directory changed to:'+self.drf->get_outputdir()
-       endif
-    end
-    'Save Recipe': begin
+
+        filelist = self.drf->get_datafiles() ; Note: must save this prior to starting the for loop since that will
+                                ; confuse the list indices, and make us have to bookkeep things as the
+                                ; list changes during a deletion of multiple files. 
+                                ;if n_selected_index gt n_elements(filelist)-1 then n_selected_index = n_elements(filelist)-1
+        for i=0,n_selected_index-1 do begin
+                                ; sanity check indices:
+           if selected_index[i] lt 0 or selected_index[i] gt n_elements(filelist)-1 then continue
+                                ;self->removefile, filelist[selected_index[i]]
+           self.drf->remove_datafile, filelist[selected_index[i]]
+           self->Log, "Removed "+filelist[selected_index[i]]
+
+        endfor
+
+        self->refresh_filenames_display ; update the filenames display
+                                ;self->update_available_primitives, self.reductiontype ; why do we do this after removing a file?
+                                ; I don't remember why we do the following here after removing files? -MP
+                                ; I suppose because the default behavior is organize by date and that
+                                ; depends on the files present.
+        widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
+     end
+     'REMOVEALL' : begin
+        if confirm(group=ev.top,message='Remove all filenames from the list?',$
+                   label0='Cancel',label1='Proceed') then begin
+
+           self.drf->clear_datafiles
+           self->refresh_filenames_display ; update the filenames display
+           self->log,'All filenames removed.'
+        endif
+     end
+     
+     'outputdir': begin
+        widget_control, self.outputdir_id, get_value=tmp
+        if gpi_check_dir_exists(tmp) eq OK then begin
+           self.drf->set_outputdir, tmp
+           self->log,'Output Directory changed to:'+self.drf->get_outputdir()
+           self.drf->set_outputoverride
+           widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
+        endif 
+        
+        if strcmp(tmp,'AUTO',4,/fold_case) then begin
+           self.drf->clear_outputoverride
+           self.drf->update_outputdir
+           widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
+        endif 
+     end
+     
+     'outputdir_browse': begin
+        result = DIALOG_PICKFILE(TITLE='Select an Output Directory', /DIRECTORY,/MUST_EXIST, path=gpi_expand_path(self.drf->get_outputdir()))
+        if result ne '' then begin
+           self.drf->set_outputdir, result
+           self.drf->set_outputoverride
+           widget_control, self.outputdir_id, set_value=self.drf->get_outputdir()
+           self->log,'Output Directory changed to:'+self.drf->get_outputdir()
+        endif
+     end
+     'Save Recipe': begin
         self->save, /nopickfile
-    end
-    'Save Recipe as...': begin
+     end
+     'Save Recipe as...': begin
         self->save  
-    end
-    'Create Recipe Template and Save as...'    : begin
+     end
+     'Create Recipe Template and Save as...'    : begin
         self->save, /template
-    end
-    'Queue'  : begin
+     end
+     'Queue'  : begin
         if self.drffilename ne '' then begin
-              self->queue, self.drfpath+path_sep()+self.drffilename
+           self->queue, self.drfpath+path_sep()+self.drffilename
         endif else begin
-              self->log,'Sorry, save Recipe before queueing or use "Save & Queue" button.'
+           self->log,'Sorry, save Recipe before queueing or use "Save & Queue" button.'
         endelse
-    end
-    'Save&Queue'  : begin
-        ;file = (*storage.splitptr).filename
+     end
+     'Save&Queue'  : begin
+                                ;file = (*storage.splitptr).filename
         self->save, /nopickfile
         self->queue, self.drfpath+path_sep()+self.drffilename
      end
-    'New Recipe':begin
-       selecseq=widget_info(self.template_name_id,/DROPLIST_SELECT)
-       self->change_current_template, self.reductiontype, selecseq, /cleardata
-	   self.customdrffilename = 0
-    end
-    'Open Recipe...':begin
+     'New Recipe':begin
+        widget_control,self.current_template_name_id,get_value=tmp
+        wm = where(strmatch((*self.templates).reductiontype, self.reductiontype, /fold_case), mct)
+        if mct eq 0 then selecseq = 0 else begin
+           tmp2 = where(strmatch(((*self.templates)[wm]).name,tmp),mct2)
+           if mct2 eq 0 then selecseq = 0 else selecseq = tmp2
+        endelse 
+        self->change_current_template, self.reductiontype, selecseq, /cleardata
+        self.customdrffilename = 0
+     end
+     'Open Recipe...':begin
         newDRF =  DIALOG_PICKFILE(TITLE='Select a Recipe File', filter='*.xml',/MUST_EXIST,path=self.drfpath)
         if newDRF ne '' then self->open, newDRF
-    end
-    'Open Recipe as Template...':begin
+     end
+     'Open Recipe as Template...':begin
         newDRF =  DIALOG_PICKFILE(TITLE='Select a Recipe File', filter='*.xml',/MUST_EXIST,path=self.drfpath)
         if newDRF ne '' then self->open, newDRF,  /template
-    end
+     end
 
-    'Close Recipe Editor'    : begin
+     'Close Recipe Editor'    : begin
         if confirm(group=ev.top,message='Are you sure you want to close the Recipe Editor?',$
-            label0='Cancel',label1='Close') then obj_destroy, self
-    end
-	'Add primitive': self->AddPrimitive
-	'Remove primitive': self->RemovePrimitive
-	'Choose Calibration File': self->ChooseCalibrationFile
-    'Reload Available Primitives':	self->reload_primitives_list
-    'Reload Templates':	self->scan_templates
-	'Basic View':			self->set_view_mode, 1
-	'Normal View':			self->set_view_mode, 2
-	'Advanced View':		self->set_view_mode, 3 
-    'Move primitive up': begin
-          selection = WIDGET_INFO((self.RecipePrimitivesTable_id), /TABLE_SELECT) 
-          ind_selected=selection[1]
-          if ind_selected ne 0 then begin ; can't move up
-              new_indices = indgen(self.num_primitives)
-              new_indices[ind_selected-1:ind_selected] = reverse(new_indices[ind_selected-1:ind_selected])
-			  self.drf->reorder_primitives, new_indices
-              self->refresh_primitives_table, new_selected=ind_selected-1
-          endif
-    end
-    'Move primitive down': begin
-          selection = WIDGET_INFO((self.RecipePrimitivesTable_id), /TABLE_SELECT) 
-          ind_selected=selection[1]
-          if ind_selected ne self.num_primitives-1 then begin ; can't move up
-              new_indices = indgen(self.num_primitives)
-              new_indices[ind_selected:ind_selected+1] = reverse(new_indices[ind_selected:ind_selected+1])
-			  self.drf->reorder_primitives, new_indices
-              self->refresh_primitives_table, new_selected=ind_selected+1
-          endif
-    end
-	'Show default Primitives': begin
-		self.showhidden = 0
-    	self->update_available_primitives, self.reductiontype
-	end
+                   label0='Cancel',label1='Close') then obj_destroy, self
+     end
+     'Add primitive': self->AddPrimitive
+     'Remove primitive': self->RemovePrimitive
+     'Choose Calibration File': self->ChooseCalibrationFile
+     'Reload Available Primitives':	self->reload_primitives_list
+     'Reload Templates':	self->scan_templates
+     'Basic View':			self->set_view_mode, 1
+     'Normal View':			self->set_view_mode, 2
+     'Advanced View':		self->set_view_mode, 3 
+     'Move primitive up': begin
+        selection = WIDGET_INFO((self.RecipePrimitivesTable_id), /TABLE_SELECT) 
+        ind_selected=selection[1]
+        if ind_selected ne 0 then begin ; can't move up
+           new_indices = indgen(self.num_primitives)
+           new_indices[ind_selected-1:ind_selected] = reverse(new_indices[ind_selected-1:ind_selected])
+           self.drf->reorder_primitives, new_indices
+           self->refresh_primitives_table, new_selected=ind_selected-1
+        endif
+     end
+     'Move primitive down': begin
+        selection = WIDGET_INFO((self.RecipePrimitivesTable_id), /TABLE_SELECT) 
+        ind_selected=selection[1]
+        if ind_selected ne self.num_primitives-1 then begin ; can't move up
+           new_indices = indgen(self.num_primitives)
+           new_indices[ind_selected:ind_selected+1] = reverse(new_indices[ind_selected:ind_selected+1])
+           self.drf->reorder_primitives, new_indices
+           self->refresh_primitives_table, new_selected=ind_selected+1
+        endif
+     end
+     'Show default Primitives': begin
+        self.showhidden = 0
+        self->update_available_primitives, self.reductiontype
+     end
 
-	'Show default + hidden Primitives': begin
-		self.showhidden = 1
-    	self->update_available_primitives, self.reductiontype
-	end
- 	'Show all Primitives': begin
-    	self->update_available_primitives, self.reductiontype, /all
-        end
-       'Dump DRF to Main': begin
-          (scope_varfetch('drf',  level=1, /enter)) = self.drf
-       end 
- 
-    'About': begin
-		tmpstr=gpi_drp_about_message()
-		ret=dialog_message(tmpstr,/information,/center,dialog_parent=ev.top)
-    end
-	'FNAME': begin
-		; user has clicked on filename display text widget
-		; this should launch a gpitv, which is handled elsewhere so nothing
-		; needs to happen here
-	end
-	'Recipe Editor Help...':  gpi_open_help,'usage/recipe_editor.html'
-	'Recipe Templates Help...': gpi_open_help, 'usage/templates.html'
-	'GPI DRP Help...': gpi_open_help, ''
-    
-    else: begin
-		print, 'Unknown event: '+uval
-		if gpi_get_setting('enable_editor_debug', default=0,/bool,/silent) then stop
-	endelse
+     'Show default + hidden Primitives': begin
+        self.showhidden = 1
+        self->update_available_primitives, self.reductiontype
+     end
+     'Show all Primitives': begin
+        self->update_available_primitives, self.reductiontype, /all
+     end
+     'Dump DRF to Main': begin
+        (scope_varfetch('drf',  level=1, /enter)) = self.drf
+     end 
+     
+     'About': begin
+        tmpstr=gpi_drp_about_message()
+        ret=dialog_message(tmpstr,/information,/center,dialog_parent=ev.top)
+     end
+     'FNAME': begin
+                                ; user has clicked on filename display text widget
+                                ; this should launch a gpitv, which is handled elsewhere so nothing
+                                ; needs to happen here
+     end
+     'Recipe Editor Help...':  gpi_open_help,'usage/recipe_editor.html'
+     'Recipe Templates Help...': gpi_open_help, 'usage/templates.html'
+     'GPI DRP Help...': gpi_open_help, ''
+     
+     else: begin
+        print, 'Unknown event: '+uval
+        if gpi_get_setting('enable_editor_debug', default=0,/bool,/silent) then stop
+     endelse
 endcase
 
 end
@@ -1176,8 +1188,11 @@ pro gpi_recipe_editor::save, template=template, nopickfile=nopickfile
   endif else begin
      templatesflag=0
      drfpath=self.drfpath
-  endelse  
-  
+  endelse
+
+  ;;update the recipe name as necessary
+  widget_control, self.current_template_name_id, get_value = tmp
+  if self.drf->get_name() ne tmp then self.drf->set_name,tmp
 
   ;; Generate a default output filename
   files= self.drf->get_datafiles()
@@ -1284,13 +1299,16 @@ pro gpi_recipe_editor::open, filename, template=template, silent=silent, log=log
        self->update_title_bar, filename ; don't update title bar if this is a template
     endelse
 	
-    ;;if necessary, update reduction type to match whatever is in that DRF (and update available modules list too)
+    ;;if necessary, update reduction type to match whatever is in that
+    ;;DRF (and update available modules list too) and then update the
+    ;;current recipe name
     if self.reductiontype ne drf_summary.reductiontype then begin
        selectype=where(strmatch(*self.template_types, strc(drf_summary.reductiontype),/fold_case), matchct)
        if matchct ne 1 then message,"ERROR: no match for "+self.reductiontype
        if self.reduction_type_id ne 0 then  widget_control, self.reduction_type_id, SET_DROPLIST_SELECT=selectype
        self->changetype, selectype[0], /notemplate
     endif
+    widget_control, self.current_template_name_id, set_value=drf_summary.NAME
     
     if ~(keyword_set(template)) then begin
        self->refresh_filenames_display ; update the filenames display
@@ -1544,11 +1562,26 @@ function gpi_recipe_editor::init_widgets, _extra=_Extra, session=session
 						
 	;self.resolvetypeseq_id = Widget_Button(base_radio, UNAME='RESOLVETYPESEQBUTTON' ,/ALIGN_LEFT ,VALUE='Resolve type/seq. when adding file(s)',UVALUE='autoresolvetypeseq')
 
+        
 	rowbase_template = widget_base(top_baseidentseq,row=1)
-	self.reduction_type_id = WIDGET_DROPLIST( rowbase_template, title= 'Reduction category: ', frame=0, Value=*self.template_types,uvalue='reduction_type_dropdown',resource_name='XmDroplistButton')
-	rowbase_template2 = widget_base(top_baseidentseq,row=1)
-    self.template_name_id  = WIDGET_DROPLIST( rowbase_template2, title='Recipe Template:    ', frame=0, Value=['Simple Data-cube extraction','Calibrated Data-cube extraction','Calibrated Data-cube extraction, ADI reduction'],uvalue='template_name_dropdown',resource_name='XmDroplistButton')
+        self.reduction_type_id = WIDGET_DROPLIST( rowbase_template, title= 'Reduction category:', frame=0, Value=*self.template_types,uvalue='reduction_type_dropdown',resource_name='XmDroplistButton')
 
+        desc = REPLICATE({ flags:0, name:'' }, 3)
+        desc.flags = [ 1, 0, 2 ]
+        desc.name = [ 'Select Recipe Template', 'Template 1', 'Template 2']
+        self.template_name_id = CW_PDMENU(rowbase_template,desc, ids = template_name_ids, /return_index,uvalue='template_name')
+
+        ;self.template_name_id  = WIDGET_DROPLIST( rowbase_template, title='Select Recipe Template: ', frame=0, Value=['Simple Data-cube extraction','Calibrated Data-cube extraction','Calibrated Data-cube extraction, ADI reduction'],uvalue='template_name_dropdown',resource_name='XmDroplistButton')
+
+        self.rowbase_template = rowbase_template
+        
+        rowbase_template1 = widget_base(top_baseidentseq,row=1)
+        tmp = widget_label(rowbase_template1,Value='Current Recipe Name: ')
+        self.current_template_name_id = WIDGET_TEXT(rowbase_template1, $
+				xsize=max(strlen((*self.templates).name)),ysize=1,$
+				/editable,units=0,value='', uvalue='current_template_name' ) 
+        
+	
 	;one nice logo 
 	button_image = READ_BMP(gpi_get_directory('GPI_DRP_DIR')+path_sep()+'gpi.bmp', /RGB) 
 	button_image = TRANSPOSE(button_image, [1,2,0]) 
@@ -1703,12 +1736,14 @@ pro gpi_recipe_editor__define
               descr_id: 0L,$					; widget ID for primitive description
               textinfo_id: 0L,$					; widget ID for status bar for mouseover text
               RecipePrimitivesTable_id: 0L,$	; widget ID for primitives list table
-              tableArgs_id: 0L,$				; widget ID for paramters/arguments table
+              tableArgs_id: 0L,$                ; widget ID for paramters/arguments table
+              rowbase_template: 0L,$           ; ID of base for template button
               reduction_type_id: 0L,$			; widget ID for reduction type dropdown
               template_name_id: 0L,$			; widget ID for template name dropdown
+              current_template_name_id: 0L,$			; widget ID for template name textbox
               button_calfile_id: 0L,$			; widget ID for Choose Calibration File button
               widgets_for_modes: ptr_new(), $	; widget IDs for basic/normal/advanced modes. see set_view_mode.
-			  selected_primitive_index: 0L, $	; index of current primitive whose arguments are shown in the args table
+              selected_primitive_index: 0L, $	; index of current primitive whose arguments are shown in the args table
               showhidden: 0, $					; should primitives marked 'hidden' be displayed?
               reductiontypes: ['SpectralScience','PolarimetricScience','Calibration','Testing'], $
               table_background_colors: ptr_new(), $	; ptr to RGB triplets for table cell colors
