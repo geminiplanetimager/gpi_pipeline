@@ -10,7 +10,7 @@ from IPython.core.debugger import Tracer; stop = Tracer()
 import logging
 _log = logging.getLogger('t')
 
-import gpi_pipeline
+import gpipy.pipeline as gpi_pipeline
 
 """ Generate documentation for primitives
 
