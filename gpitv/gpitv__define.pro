@@ -3444,6 +3444,13 @@ end
 end
 
 
+'Divide by Total Intensity': begin
+ (*self.images.main_image_stack)[*,*,1] = (*self.images.main_image_stack)[*,*,1]/(*self.images.main_image_stack)[*,*,0]
+ (*self.images.main_image_stack)[*,*,2] = (*self.images.main_image_stack)[*,*,2]/(*self.images.main_image_stack)[*,*,0]
+ *self.images.main_image=(*self.images.main_image_stack)[*,*,(*self.state).cur_image_num]
+  if bpct gt 0 then (*self.images.main_image)[wn] = !values.f_nan
+end
+
 'Linear Pol. Fraction': begin
   widget_control,(*self.state).curimnum_base_id,map=0
   *self.images.main_image=sqrt(((*self.images.main_image_stack)[*,*,1])^2 + ((*self.images.main_image_stack)[*,*,2])^2) / (*self.images.main_image_stack)[*,*,0]
@@ -8312,7 +8319,7 @@ pro GPItv::setheadinfo, noresize=noresize
         ;; set up to overplot polarization vectors
         naxis3 = gpi_get_keyword(h, e, "NAXIS3")
         if naxis3 eq 2 then modelist=[modelist, 'Total Intensity', 'Difference of Polarizations', "Normalized Difference"] $
-        else modelist=[modelist, 'Linear Pol. Intensity', 'Linear Pol. Fraction', 'Radial Pol. Intensity']
+        else modelist=[modelist,'Divide by Total Intensity', 'Linear Pol. Intensity', 'Linear Pol. Fraction', 'Radial Pol. Intensity']
         
         widget_control, (*self.state).collapse_button, set_value = modelist
       end
