@@ -49,6 +49,8 @@ Selecting one of these templates causes that template to be
 loaded into the primitives editing area.  Changing the reduction category changes the templates and primitives that 
 are available for selection.
 
+The name of the current recipe is shown in a textbox below the category dropdown and template select button.  This field is editable and its contents are used when saving a recipe.  If you create a custom recipe, it is a good idea to update the name to reflect the differences from the template you started from.
+
 **Primitives and Arguments**: 
 The bottom two thirds of the window are devoted to several tables for editing the contents of the current recipe.
 
