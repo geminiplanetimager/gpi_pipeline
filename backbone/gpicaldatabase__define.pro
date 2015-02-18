@@ -450,6 +450,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
                     ['dark_before', 'Dark', 'ApproxItimeReadmodeBefore'], $  ;  dark with scaling of inttime allowed, PRIOR TO science frame
                     ['dark_after', 'Dark', 'ApproxItimeReadmodeAfter'], $  ;  dark with scaling of inttime allowed, AFTER science frame
                     ['dark_exact', 'Dark', 'itimeReadmode'],  $            ;  dark with exact match required
+                    ['linearization', 'Detector linear coeffs', 'typeonly'], $
                     ['wavecal', 'Wavelength Solution Cal File', 'FiltPrism'], $
                     ['wavecal_deep', 'Wavelength Solution Cal File (Deep)', 'FiltPrism'], $
                     ['wavecal_quick', 'Wavelength Solution Cal File (Quick)', 'FiltPrism'], $
