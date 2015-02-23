@@ -5781,20 +5781,33 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   ;;the image backup is the main image stack
   *self.images.main_image_backup = *self.images.main_image_stack
 
+
   ;; if we got a DQ extension, save it to the appropriate place, otherwise zero out that part.
   if keyword_set(DQext) then begin
-    ; saw a bug here that I can't reproduce but it might be prudent to
-    ;check to make sure the DQext is the same size as the image
-    ; there was a time where the DQext was not properly being removed
-    ; when creating datacubes, so this will take care of that
+	; the dq frames for things such as wavecals sometimes have a dq mask that is not
+	; the same size as an image - check for this then dump the dq frame if this is the case
+	sz_dq=size(dqext)
+	sz_im=size(*self.images.main_image)
 
-    (*self.state).has_dq_mask = 1
-    if (size(DQext))[0] eq 2 then *self.images.dq_image = DQext $
-    else *self.images.dq_image_stack = DQext
+	; check that the first three dimensions are the same
+	if total(sz_dq[0:2]-sz_im[0:2]) eq 0 then begin	
+
+	  (*self.state).has_dq_mask = 1
+	  if (size(DQext))[0] eq 2 then *self.images.dq_image = DQext $
+		                       else *self.images.dq_image_stack = DQext
+	endif else begin; end dimension check
+	; if dimensions are bad - kill the extension
+	self->message,msgtype='information',"DQ extension has wrong dimensions and will be ignored"
+	delvarx,dqext
+	  (*self.state).has_dq_mask = 0
+	  *self.images.dq_image_stack = 0 
+	  *self.images.dq_image = 0 
+	endelse
+
   endif else begin
-    (*self.state).has_dq_mask = 0
-    *self.images.dq_image_stack = 0
-    *self.images.dq_image = 0
+	  (*self.state).has_dq_mask = 0
+	  *self.images.dq_image_stack = 0 
+	  *self.images.dq_image = 0 
   endelse
 
   ;;handle missing headers
