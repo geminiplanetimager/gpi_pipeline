@@ -160,446 +160,20 @@ end
 ;-
 pro parsergui::parse_current_files
 
-  ;R     ;widget_control,self.top_base,get_uvalue=storage
-  ;R     file = (*storage.splitptr).filename
-  ;R     pfile = (*storage.splitptr).printname
-  ;R     ;datefile = (*storage.splitptr).datefile
-  t0 = systime(/seconds)
 
+pc = obj_new('parsercore', where_to_log=self)
+results = pc.parse_fileset_to_recipes(self.fileset)
 
-  file = self.fileset->get_filenames()
-  finfo = self.fileset->get_info(nfiles=nfiles_to_parse)
+nr  = pc.num_recipes()
 
+for i=0,nr-1 do begin
+	drf = results[i]
+	self->add_recipe_to_table, drf->get_last_saved_filename(), drf, 0
+endfor
 
-  ;R
-  ;R 	; discard any blanks.
-  ;R 	wnotblank = where(file ne '')
-  ;R 	file=file[wnotblank]
-  ;R
 
-  ;R     ;-- Update information in the structs
-  ;R
-  ;R     ;;Test Validity of the data (are these GPI files and is it OK to proceed?)
-  ;R     if gpi_get_setting('strict_validation',/bool, default=1,/silent)  then begin
-  ;R
-  ;R 		nfiles = n_elements(file)
-  ;R         valid=bytarr(nfiles)
-  ;R
-  ;R         for ff=0, nfiles-1 do begin
-  ;R 			if self.debug then message,/info, 'Verifying keywords for file '+file[ff]
-  ;R 			if self.debug then message,/info, '  This code needs to be made more efficient...'
-  ;R             widget_control,self.textinfo_id,set_value='Verifying keywords for file '+file[ff]
-  ;R             valid[ff]=gpi_validate_file( file[ff] )
-  ;R         endfor
-  ;R
-  ;R         indnonvalid=where(valid eq 0, cnv, complement=wvalid, ncomplement=countvalid)
-  ;R         if cnv gt 0 then begin
-  ;R             self->Log, 'WARNING: invalid files (based on FITS keywords) have been detected and removed: '
-  ;R 			self->Log, "      "+strjoin(file[indnonvalid],", ")
-  ;R
-  ;R             if countvalid eq 0 then file=''
-  ;R             if countvalid gt 0 then file=file[wvalid]
-  ;R 			nfiles = n_elements(file)
-  ;R
-  ;R 			(*storage.splitptr).findex = countvalid
-  ;R 			(*storage.splitptr).filename = file
-  ;R 			(*storage.splitptr).printname = file
-  ;R 			;(*storage.splitptr).datefile = datefile
-  ;R         endif else begin
-  ;R 			self->Log, "All "+strc(n_elements(file))+" files pass basic FITS keyword validity check."
-  ;R 		endelse
-  ;R
-  ;R     endif else begin ;if strict_validation is disabled (ie. data are test data) don't remove them but inform a bit
-  ;R
-  ;R 		nfiles = n_elements(file) ;edited by SGW
-  ;R
-  ;R                 for ff=0, nfiles-1 do begin
-  ;R 			if self.debug then message,/info, 'Checking for valid headers: '+file[ff]
-  ;R 			valid = gpi_validate_file(file[ff]) ;Changed index from i to ff, SGW
-  ;R 		endfor
-  ;R     endelse
-  ;R
-  ;R     (*self.recipes_table)=strarr(10)
-  ;R
-  ;R     ;for i=0,nfiles-1 do pfile[i] = file_basename(file[i])
-  ;R     widget_control,storage.file_table_id, set_value=pfile ; update displayed filename information - temporary, just show filenames
-  ;R
 
 
-  timeit1=systime(/seconds)
-  if nfiles_to_parse gt 0 then begin ;assure that data are selected
-    ;R 		self->Log,'Now reading in keywords for all files...'
-    ;R
-    ;R         self.num_recipes_in_table=0
-    ;R         tmp = self->get_obs_keywords(file[0])
-    ;R         finfo = replicate(tmp,nfiles)
-    ;R
-    ;R         for jj=0,nfiles-1 do begin
-    ;R             finfo[jj] = self->get_obs_keywords(file[jj])
-    ;R             pfile[jj] = finfo[jj].summary
-    ;R 			(*storage.splitptr).printname[jj] = finfo[jj].summary ; save for use if we redisplay
-    ;R         endfor
-    ;R 		wnz = where(pfile ne '')
-    ;R         widget_control,storage.file_table_id,set_value=pfile[wnz] ; update displayed filename information - filenames plus parsed keywords
-    ;R
-    ;R 		wvalid = where(finfo.valid, nvalid, complement=winvalid, ncomplement=ninvalid)
-
-    wvalid = where(finfo.valid, nvalid, complement=winvalid, ncomplement=ninvalid)
-    if ninvalid gt 0 then begin
-      self->Log, "Some files are lacking valid required FITS keywords: "
-      self->Log, strjoin(file[winvalid], ", ")
-      self->Log, "These will be ignored in all further parsing steps."
-      if wvalid[0] eq -1 then begin
-        ret=dialog_message("ERROR: All files rejected",/error,/center,dialog_parent=self.top_base)
-        return
-      endif
-      finfo = finfo[wvalid]
-    endif
-
-
-    self->Log,'Now analyzing data based on keywords...'
-
-
-    ; Mark filter as irrelevant for Dark exposures
-    wdark = where(strlowcase(finfo.obstype) eq 'dark', dct)
-    if dct gt 0 then finfo[wdark].filter='-'
-
-    if (n_elements(file) gt 0) && (strlen(file[0]) gt 0) then begin
-
-
-      current = {struct_obs_keywords}
-
-      ;categorize by filter
-      uniqfilter  = uniqvals(finfo.filter, /sort)
-      ;uniqfilter = ['H', 'Y', 'J', "K1", "K2"] ; H first since it's primary science wvl?
-      uniqfilter = ['-', 'Y','J','H','K1','K2'] ; just always do this in wavelength order
-      uniqobstype = uniqvals(strlowcase(finfo.obstype), /sort)
-
-      ;categorize by Gemini datalabel
-      tmpdatalabels = finfo.datalab
-      numdatalabs = n_elements(tmpdatalabels)
-      datalabels = tmpdatalabels
-      for dlbls=0,numdatalabs-1 do begin
-        datalabs = strsplit(tmpdatalabels[dlbls],'-',/EXTRACT)
-        datalabels[dlbls] = strjoin(datalabs[0:-2],'-')
-      endfor
-
-      uniqdatalab = uniqvals(strlowcase(datalabels), /sort)
-      if self.debug then print, 'number of uniqdatalabels', n_elements(uniqdatalab)
-      if self.debug then print, uniqdatalab
-      ; TODO - sort right order for obstype
-      ; uniqobstype = uniqvals(finfo.obstype, /sort)
-
-      uniqprisms = uniqvals(finfo.dispersr)
-      ;uniqprisms = ['Spectral', 'Wollaston', 'Open']
-      ;uniqocculters = ['blank','fpm']
-      uniqocculters = uniqvals(finfo.occulter)
-      ;update for new keyword conventions:
-      tmpobsclass=finfo.obsclass
-      for itmp=0,n_elements(tmpobsclass)-1 do begin
-        if strmatch((finfo.obstype)[itmp],'*Object*',/fold) then (finfo[itmp].obsclass) = 'Science'
-        if strmatch((finfo.obstype)[itmp],'*Standard*',/fold) then begin
-          if strmatch((finfo.dispersr)[itmp],'*SPEC*',/fold) then (finfo[itmp].obsclass) = 'SPECSTD'
-          if strmatch((finfo.dispersr)[itmp],'*POL*',/fold) or strmatch((finfo.dispersr)[itmp],'*WOLL*',/fold)  then $
-            (finfo[itmp].obsclass) = 'POLARSTD'
-        endif
-        if strmatch((finfo.astromtc)[itmp],'*TRUE*',/fold) then (finfo[itmp].obsclass) = 'Astromstd'
-      endfor
-      uniqobsclass = uniqvals(finfo.obsclass, /sort)
-      uniqitimes = uniqvals(finfo.itime, /sort)
-      uniqobjects = uniqvals(finfo.object, /sort)
-      ;uniqelevation = uniqvals(finfo.elevatio, /sort)
-      ;            uniqgcalfilt = uniqvals(finfo.gcalfilt,/sort)
-
-      nbfilter=n_elements(uniqfilter)
-      message,/info, "Now adding "+strc(n_elements(finfo))+" files. "
-      message,/info, "Input files include data from these FILTERS: "+strjoin(uniqfilter, ", ")
-
-      ;for each filter, categorize by obstype, and so on
-      for ff=0,nbfilter-1 do begin
-        current.filter = uniqfilter[ff]
-        indffilter =  where(finfo.filter eq current.filter)
-        filefilt = file[indffilter]
-
-        ;categorize by obstype
-        uniqsortedobstype = uniqvals(strlowcase((finfo.obstype)[indffilter]))
-
-        nbobstype=n_elements(uniqsortedobstype)
-
-        ;;here we have to sequence the drf queue:
-        ;; assign to each obstype an order:
-        sequenceorder=intarr(nbobstype)
-        sortedsequencetab=['Dark', 'Arc', 'Flat','Object']
-
-        for fc=0,nbobstype-1 do begin
-          wm = where(strmatch(sortedsequencetab, uniqsortedobstype[fc]+'*',/fold),mct)
-          ;if mct eq 1 then sequenceorder[fc]= mct[0]
-          if mct eq 1 then sequenceorder[fc]= wm[0]
-        endfor
-        indnotdefined=where(sequenceorder eq -1,cnd)
-        if cnd ge 1  then sequenceorder[indnotdefined]=nbobstype-1
-        indsortseq=sort(sequenceorder)
-
-        for fc=0,nbobstype-1 do begin
-          ;get files corresponding to one filt and one obstype
-          current.obstype = uniqsortedobstype[indsortseq[fc]]
-
-          for fdl=0,n_elements(uniqdatalab)-1 do begin
-            current.datalab = uniqdatalab[fdl]
-
-            ;--- added for faster parsing of large datasets
-            ; for efficiency's sake, before proceeding any further check
-            ; if there exist files in this combination
-            wmatch = where( finfo.filter eq current.filter and $
-              strmatch(finfo.obstype, current.obstype,/fold) and $
-              strmatch(finfo.datalab, current.datalab+"*",/fold), matchct)
-            if matchct eq 0 then begin
-              if self.debug then message,/info, "No match for current obstype/datalabel - skipping ahead"
-              continue
-            endif
-            ;--- end of faster parsing efficiency code
-
-
-            for fd=0,n_elements(uniqprisms)-1 do begin
-              current.dispersr = uniqprisms[fd]
-
-              for fo=0,n_elements(uniqocculters)-1 do begin
-                current.occulter=uniqocculters[fo]
-
-                for fobs=0,n_elements(uniqobsclass)-1 do begin
-                  current.obsclass=uniqobsclass[fobs]
-
-                  ;--- added for faster parsing of large datasets
-                  ; for efficiency's sake, before proceeding any further check
-                  ; if there exist files in this combination
-                  wmatch = where( finfo.filter eq current.filter and $
-                    strmatch(finfo.obstype, current.obstype,/fold) and $
-                    strmatch(finfo.datalab, current.datalab+"-*",/fold) and $
-                    strmatch(finfo.dispersr,current.dispersr+"*",/fold) and $
-                    strmatch(finfo.occulter,current.occulter+"*",/fold) and $
-                    finfo.obsclass eq current.obsclass, matchct)
-                  if matchct eq 0 then begin
-                    if self.debug then message,/info, "No match for current obstype/datalabel/disperser/occulter/obsclass - skipping ahead"
-                    continue
-                  endif
-                  ;--- end of faster parsing efficiency code
-
-
-
-                  for fitime=0,n_elements(uniqitimes)-1 do begin
-                    current.itime = uniqitimes[fitime]    ; in seconds, now
-
-
-                    for fobj=0,n_elements(uniqobjects)-1 do begin
-                      continue_after_case = 0 ; reset if this was set before.
-                      current.object = uniqobjects[fobj]
-
-                      indfobject = where(finfo.filter eq current.filter and $
-                        strmatch(finfo.obstype, current.obstype,/fold) and $
-                        strmatch(finfo.datalab,current.datalab+"*",/fold) and $
-                        strmatch(finfo.dispersr,current.dispersr+"*",/fold) and $
-                        strmatch(finfo.occulter,current.occulter+"*",/fold) and $
-                        finfo.obsclass eq current.obsclass and $
-                        finfo.itime eq current.itime and $
-                        finfo.object eq current.object, cobj)
-
-                      if self.debug then begin
-                        message,/info, 'Now testing the following parameters: ('+strc(cobj)+' files match) '
-                      endif
-
-
-
-                      if cobj eq 0 then continue ; this particular combination of filter, obstype, dispersr, occulter, class, time, object has no files.
-
-                      ; otherwise, try to match it:
-                      file_filt_obst_disp_occ_obs_itime_object = finfo[indfobject].filename
-
-
-                      current.obsmode = finfo[indfobject[0]].obsmode
-                      current.lyotmask= finfo[indfobject[0]].lyotmask
-
-                      ;identify which templates to use
-                      if self.debug then print,  current.obstype ; uniqsortedobstype[indsortseq[fc]]
-                      self->Log, "Found sequence of OBSTYPE="+current.obstype+", OBSMODE="+current.obsmode+", DISPERSR="+current.dispersr+", IFSFILT="+current.filter+ " with "+strc(cobj)+" files targeting "+current.object
-
-                      case strupcase(current.obstype) of
-                        'DARK':begin
-                        templatename='Dark'
-                      end
-                      'ARC': begin
-                        if  current.dispersr eq 'WOLLASTON' then begin
-                          templatename='Create Polarized Flat-field'
-                        endif else begin
-                          objelevation = finfo[indfobject[0]].elevatio
-                          if (objelevation lt 91.0) AND (objelevation gt 89.0) then begin
-                            templatename='Wavelength Solution 2D'
-                          endif else begin
-                            templatename='Quick Wavelength Solution'
-                          endelse
-                        endelse
-                      end
-                      'FLAT': begin
-
-                        fits_data = gpi_load_fits(finfo[indfobject[0]].filename,/nodata,/silent)
-                        head = *fits_data.pri_header
-                        ext_head = *fits_data.ext_header
-                        ptr_free, fits_data.pri_header, fits_data.ext_header
-                        gcalfilter =  strc(  gpi_get_keyword(head, ext_head,  'GCALFILT',   count=ct13))
-
-                        if  current.dispersr eq 'WOLLASTON' then begin
-                          ; handle polarization flats
-                          ; differently: compute **both**
-                          ; extraction files and flat
-                          ; fields from these data, in two
-                          ; passes
-
-                          ;gcalfilter = finfo[indfobject[0]].gcalfilt
-                          if gcalfilter EQ 'ND4-5' then begin
-                            self->Log, "    Those data have GCALFILT=ND4-5, which indicates they are throwaway exposures for persistence decay. Ignoring them."
-                            continue_after_case=1
-                          endif else begin
-                            templatename1 = self->lookup_template_filename("Calibrate Polarization Spots Locations")
-                            templatename2 = self->lookup_template_filename('Create Polarized Flat-field')
-                            templatename3 = self->lookup_template_filename('Create Low Spatial Frequency Polarized Flat-field')
-                            self->create_recipe_from_template, templatename1, file_filt_obst_disp_occ_obs_itime_object, current
-                            self->create_recipe_from_template, templatename2, file_filt_obst_disp_occ_obs_itime_object, current
-                            self->create_recipe_from_template, templatename3, file_filt_obst_disp_occ_obs_itime_object, current
-                          endelse
-
-                          ;continue        aaargh can't continue inside a case. stupid IDL
-                          continue_after_case=1
-                        endif else begin
-
-
-                          ;gcalfilter = finfo[indfobject[0]].gcalfilt
-                          if gcalfilter EQ 'ND4-5' then begin
-                            continue_after_case=1
-                            self->Log, "    Those data have GCALFILT=ND4-5, which indicates they are throwaway exposures for persistence decay. Ignoring them."
-                          endif else begin
-                            templatename='Flat-field Extraction'
-                          endelse
-
-
-                        endelse
-                      end
-                      'OBJECT': begin
-                        case strupcase(current.dispersr) of
-                          'WOLLASTON': begin
-                            templatename='Basic Polarization Sequence (From Raw Data)'
-                          end
-                          'SPECTRAL': begin
-                            if  current.occulter eq 'SCIENCE'  then begin ;'Science fold' means no occulter
-                              ;if binaries:
-                              if strmatch(current.obsclass, 'AstromSTD',/fold) then begin
-                                templatename="Lenslet scale and orientation"
-                              endif
-                              if strmatch(current.obsclass, 'Science',/fold) then begin
-                                templatename="Create Datacubes, Rotate, and Combine unocculted sequence"
-                              endif
-                              if ~strmatch(current.obsclass, 'AstromSTD',/fold) && ~strmatch(current.obsclass, 'Science',/fold) then begin
-                                templatename='Satellite Flux Ratios'
-                              endif
-                            endif else begin
-                              if n_elements(file_filt_obst_disp_occ_obs_itime_object) GE 5 then begin
-                                templatename='Basic ADI + Simple SDI reduction (From Raw Data)'
-                              endif else begin
-                                templatename="Simple Datacube Extraction"
-                              endelse
-                            endelse
-                          end
-                          'OPEN': begin
-                            templatename="Simple Undispersed Image Extraction"
-                          end
-                        endcase
-                      end
-                      else: begin
-                        ; Unknown or nonstandard OBSTYPE if you get here to this else statement...
-                        if strmatch(uniqsortedobstype[indsortseq[fc]], '*laser*') then begin
-                          templatename="Simple Datacube Extraction"
-                        endif else begin
-                          self->Log, "Not sure what to do about obstype '"+uniqsortedobstype[indsortseq[fc]]+"'. Going to try the 'Fix Keywords' recipe but that's just a guess."
-                          templatename='Add set of missing keywords'
-                        endelse
-                      end
-                    endcase
-
-                    if keyword_set(continue_after_case) then begin
-                      continue
-                    endif
-
-                    ; Now create the actual DRF based on a
-                    ; template:
-                    templatename = self->lookup_template_filename(templatename)
-                    self->create_recipe_from_template, templatename, file_filt_obst_disp_occ_obs_itime_object, current
-
-                  endfor ;loop on object
-                endfor ;loop on itime
-              endfor ;loop on obsclass
-            endfor ;loop on fo occulteur
-          endfor  ;loop on fd disperser
-        endfor   ;loop for datalab
-      endfor ;loop on fc obstype
-    endfor ;loop on ff filter
-  endif ;cond on n_elements(file)
-
-  if self.num_recipes_in_table gt 0 then begin
-    ; ******  Second stage of parsing: *****
-    ; Generate additional recipes for various special
-    ; cases such as bad pixel map generation.
-
-    ; 1. Generate hot bad pixel map recipe if we have any > 60 s darks.
-    ;    Insert this at the end of the darks
-
-    ; First retrieve the names, itimes, and nfiles from the current list of recipes
-    DRFnames = (*self.recipes_table)[1,*]
-    ITimes= (*self.recipes_table)[8,*]
-    Nfiles= (*self.recipes_table)[10,*]
-    wdark = where(DRFnames eq 'Dark' and (itimes gt 60) and (nfiles ge 10), darkcount)
-    if darkcount gt 0 then begin
-      ; take the DRF of the longest available dark sequence and read all of
-      ; the FITS files in it
-      longestdarktime = max(itimes[wdark], wlongestdark)
-      ilongdark = wdark[wlongestdark]
-      self->clone_recipe_and_swap_template, ilongdark,  'Generate Hot Bad Pixel Map from Darks',   insert_index=insertindex
-    endif
-
-    ; 2. If we have added some (how many? At least 3? ) different flat field
-    ; recipes, then combine those all together to generate cold pixel maps
-
-    DRFnames = (*self.recipes_table)[1,*]
-    wflat = where(DRFnames eq 'Flat-field Extraction', flatcount)
-    ; do we need to check distinct filters here?
-    if flatcount ge 4 then begin
-      ; generate a list of all the files
-      ; merge them into one list
-      ; edit clone_recipe routine to allow you to pass in a list of filenames
-      ; clone a new instance of 'Generate Cold Bad Pixel Map from Flats'
-      ; recipe using those. Add at the end of all the flats.
-
-    endif
-
-
-    ; 3. If we have added either the Hot bad pixel or cold bad pixel update
-    ; recipes, we should update the overall bad pixel map too.
-    DRFnames = (*self.recipes_table)[1,*]
-    wbp = where(DRFnames eq 'Generate Hot Bad Pixel Map from Darks' or DRFnames eq 'Generate Cold Bad Pixel Map from Flats' , bpcount)
-    if bpcount gt 0 then begin
-      ilastbp = max(wbp)
-      self->clone_recipe_and_swap_template, ilastbp,  'Combine Bad Pixel Maps',   insert_index=ilastbp+1, /lastfileonly
-
-    endif
-  endif
-
-
-endif ;condition on findex>0, assure there are data to process
-
-timeit2=systime(/seconds)
-
-;void=where(file ne '',cnz)
-self->Log,'Data Parsed: '+strtrim(nfiles_to_parse,2)+' FITS files.'
-self->Log,'             '+strtrim(self.num_recipes_in_table,2)+' recipe files created.'
-self->Log,'             Complete in '+sigfig(timeit2-timeit1,3)+' seconds.'
-;self->Log,'resolved FILTER band: '+self.filter
 
 
 end
@@ -638,13 +212,13 @@ pro parsergui::create_recipe_from_template, templatename, fitsfiles, current,  i
     filename_counter=self.num_recipes_in_table+1, $
     outputfilename=outputfilename)
 
-  if widget_info(self.autoqueue_id ,/button_set)  then begin
-    message,/info, 'Automatically Queueing recipes is enabled.'
-    drf->queue , queued_filename=queued_filename, comment=" Created by the Data Parser GUI"
-    message,/info, ' Therefore also wrote file to :' + queued_filename
-  endif
-
   self->add_recipe_to_table, outputfilename, drf, current, index=index
+
+  if widget_info(self.autoqueue_id ,/button_set)  then begin
+  	message,/info, 'Automatically Queueing recipes is enabled.'
+  	drf->queue , queued_filename=queued_filename, comment=" Created by the Data Parser GUI"
+  	message,/info, ' Therefore also wrote file to :' + queued_filename
+  endif
 
 end
 
@@ -700,10 +274,26 @@ end
 
 pro parsergui::add_recipe_to_table, filename, drf, current, index=index
 
-  drf_summary = drf->get_summary()
+  short_filename = gpi_shorten_path(filename)
+  ; First let's find out if this recipe is already present in the table, in
+  ; which case we don't need to add anything. 
+  if self.num_recipes_in_table ge 1 then begin
+	current_recipes = (*self.recipes_table)[0,*]
+	wm = where(current_recipes eq short_filename, mct)
+	if mct gt 0 then begin
+		self->Log, "Recipe already in table: "+gpi_shorten_path(filename)
+		return
+	endif
+  endif
 
-  new_recipe_row = [gpi_shorten_path(filename), drf_summary.name,   drf_summary.reductiontype, $
-    current.filter, current.obstype, current.dispersr, current.obsmode, current.obsclass, string(current.itime,format='(F7.1)'), current.object, strc(drf_summary.nfiles)]
+  ; Otherwise we need to go ahead and add the relevant info to the table. 
+
+  drf_summary = drf->get_summary()
+  current=drf->retrieve_extra_metadata()
+
+  new_recipe_row = [short_filename, drf_summary.name,   drf_summary.reductiontype, current.filter, $
+	current.obstype, current.dispersr, current.obsmode, current.obsclass, $
+	string(current.itime,format='(F7.1)'), current.object, strc(drf_summary.nfiles)]
 
   ; what I wouldn't give here to be able to use a Python List, or even just to
   ; use IDL 8.0 with its list function and null lists... argh!
@@ -737,6 +327,33 @@ pro parsergui::add_recipe_to_table, filename, drf, current, index=index
   widget_control, self.table_recipes_id, background_color=rebin(*self.table_BACKground_colors,3,2*11,/sample)
 
 end
+
+
+
+;+-----------------------------------------
+; parsergui::AskReparseAll
+;-
+pro parsergui::AskReparseAll, extramessage=extramessage
+	
+	messagetext = ["Please confirm whether you want to re-parse the current list of input FITS files,", $
+		"and generate all new recipes? ", "This will discard and/or overwrite all recipes currently present in the recipe list.", "", "Re-parse all files now?"]
+
+	if keyword_set(extramessage) then messagetext = [extramessage, messagetext]
+	
+    res =  dialog_message(messagetext , $
+      title="Re-parse the updated list of files?", dialog_parent=self.top_base, /question)
+
+    if res eq 'Yes' then begin
+      self->Log,'User requested re-parsing all files.'
+	  self->DeleteAllRecipes,/noconfirm
+      self->parse_current_files
+    endif
+
+end
+
+
+
+
 
 ;+-----------------------------------------
 ; parsergui::QueueAll
@@ -806,12 +423,15 @@ end
 
 ;+-----------------------------------------
 ; parsergui::DeleteAllRecipes
-;
+;    Deletes all recipes, like the name says
+;    The /noconfirm option should only be used as part of reparsing the files
+;    after the user has already confirmed that the reparsing is desired. 
 ;-
-pro parsergui::DeleteAllRecipes
+pro parsergui::DeleteAllRecipes, noconfirm=noconfirm
 
 
-  if confirm(group=self.top_base,message="Are you sure you want to delete ALL the recipes?", label0='Cancel',label1='Delete', title="Confirm Delete") then begin
+  if keyword_set(noconfirm) || $
+	  confirm(group=self.top_base,message="Are you sure you want to delete ALL the recipes?", label0='Cancel',label1='Delete', title="Confirm Delete") then begin
 
     for i=0,self.num_recipes_in_table-1 do begin
       file_delete, (*self.recipes_table)[0,i],/allow_nonexist
@@ -928,7 +548,7 @@ pro parsergui::event,ev
     ENDIF
   end
   'ADDFILE' : self->ask_add_files
-  'WILDCARD...' : self->ask_add_files_wildcard
+  'WILDCARD' : self->ask_add_files_wildcard
   'FNAME' : begin
     ;(*storage.splitptr).selindex = ev.index
   end
@@ -943,7 +563,8 @@ pro parsergui::event,ev
       return ; nothing is selected so do nothing
     endif
 
-    filelist = (*storage.splitptr).filename    ; Note: must save this prior to starting the for loop since that will
+    filelist = self.fileset->get_filenames() 
+	; Note: must save this prior to starting the for loop since that will
     ; confuse the list indices, and make us have to bookkeep things as the
     ; list changes during a deletion of multiple files.
     ; not sure this next section is needed?
@@ -956,45 +577,23 @@ pro parsergui::event,ev
       filenames_to_remove = filelist[selected_index]
       self->removefiles, filenames_to_remove, n_removed=n_removed
 
-
       if n_removed gt 0 then begin
-        res =  dialog_message(["Files have been removed from the list ("+strc(n_removed)+" in total).","", "Do you want to re-parse the current list and generate "+$
-          "new recipes?","This will discard and/or overwrite any current recipes below."], $
-          title="Re-parse the updated list of files?", dialog_parent=self.top_base, /question)
-
-        if res eq 'Yes' then begin
-          self->parse_current_files
-        endif
+		  self->AskReparseAll, extramessage = "Files have been removed from the list ("+strc(n_removed)+" in total)."
       endif
-
 
     endif
 
-    ;; update the filenames display
-    ;widget_control,storage.fname, set_value=(*storage.splitptr).pfile
-
-
-
-
   end
   'REMOVEALL' : begin
-    if confirm(group=ev.top,message='Remove all items from the list?',$
+    if confirm(group=ev.top,message='Remove all FITS files from the list of files to parse?',$
       label0='Cancel',label1='Proceed') then begin
       self.fileset->remove_files,/all
       self->refresh_filenames_display
-
-      ;R             (*storage.splitptr).findex = 0
-      ;R             ;(*storage.splitptr).selindex = 0
-      ;R             (*storage.splitptr).filename[*] = ''
-      ;R             (*storage.splitptr).printname[*] = ''
-      ;R             ;(*storage.splitptr).datefile[*] = ''
-      ;R             widget_control,storage.file_table_id,set_value=(*storage.splitptr).printname
       self->Log,'All items removed.'
     endif
   end
   'REPARSE': begin
-    self->Log,'User requested re-parsing all files.'
-    self->parse_current_files
+    self->AskReparseAll
   end
   'sortmethod': begin
     sortfieldind=widget_info(self.sortfileid,/DROPLIST_SELECT)
@@ -1202,7 +801,7 @@ pro parsergui::ask_add_files_wildcard
   datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
 
   command=textbox(title='Input a Wildcard-listing Command (*,?,[..-..])',$
-    group_leader=ev.top,label='',cancel=cancelled,xsize=500,$
+    group_leader=self.top_base,label='',cancel=cancelled,xsize=500,$
     value=self.last_used_input_dir+path_sep()+'*'+datestr+'*')
 
   if cancelled then begin
@@ -1408,7 +1007,7 @@ col_labels = ['Recipe File','Recipe Name','Recipe Type','IFSFILT','OBSTYPE','DIS
 xsize=n_elements(col_labels)
 self.table_recipes_id = WIDGET_TABLE(parserbase, $; VALUE=data, $ ;/COLUMN_MAJOR, $
   COLUMN_LABELS=col_labels,/resizeable_columns, $
-  xsize=xsize,ysize=20,uvalue='tableselec',value=(*self.recipes_table), /TRACKING_EVENTS,$
+  xsize=xsize,ysize=100,uvalue='tableselec',value=(*self.recipes_table), /TRACKING_EVENTS,$
   /NO_ROW_HEADERS, /SCROLL,y_SCROLL_SIZE =nlines_modules,scr_xsize=table_xsize, $
   COLUMN_WIDTHS=[520,200,100,50,62,62,72,72,62,82, 50],frame=1,/ALL_EVENTS,/CONTEXT_EVENTS, $
   background_color=rebin(*self.table_BACKground_colors,3,2*11,/sample)    ) ;,/COLUMN_MAJOR
