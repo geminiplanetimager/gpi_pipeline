@@ -18593,7 +18593,7 @@ pro GPItv::low_pass_filter, status=status, forcestack=forcestack
       'K2':fwhm=5.0
       else:	begin
         self->message, msgtype='error', "No filter keyword in the header, assuming H-band"
-        fwhm=3.5
+        fwhm=4.1
       end
     endcase
 
