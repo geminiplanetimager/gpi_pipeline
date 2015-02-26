@@ -19,6 +19,29 @@
 ;   If you want to clean up afterwards just call the ::delete_all_recipes()
 ;   function.
 ;
+; EXAMPLE CODE: 
+;
+;        
+;        ; first step is to build up a list of which files we care about
+;        myfiles = obj_new('fileset')
+;        myfiles.add_files, ['S20150202S0001.fits.gz''S20150202S0002.fits.gz']
+;        myfiles.add_files_from_wildcard, '/some/path/GPIDATA-Readonly/Campaign/Raw/150202/S2015*S*.fits'
+;        
+;        ; then hand that list to the parser core
+;        parser = obj_new('parsercore')
+;        recipes = parser.parse_fileset_to_recipes(myfiles)
+;        
+;        ; optional: let's say we only want to run certain types of recipes so let’s get a subset
+;        recipes = parser.get_recipe_subset(ifsfilt='H', recipetype='Calibration')
+;        
+;        ; now we can run those recipes
+;        nr = n_elements(recipes)
+;        for i=0,nr-1 do begin
+;        	print, 'Recipe file:', recipes[i].get_last_saved_filename()  
+;        	; we want the saved filename as opposed to the filename of the template it was created from
+;        	recipes[i].queue  
+;        endfor 
+;
 ;
 ; OUTPUTS:
 ;
