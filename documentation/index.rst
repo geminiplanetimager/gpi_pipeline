@@ -15,13 +15,16 @@ astrometry and spectrophotometry of detected sources.
 (University of Toronto), Patrick Ingraham
 (Stanford), Dmitry Savransky (Cornell), 
 Max Millar-Blanchaer (Toronto), 
+Eric Nielsen (Stanford/SETI), 
 Schuyler Wolff (JHU),
-JB Ruffio (SETI, ISAE), 
+JB Ruffio (Stanford), 
 Jason Wang (Berkeley),
 Zack Draper (U Victoria),
 Abhi Rajan (ASU), Naru Sadakuni (UCSC and Gemini),
 Michael Fitzgerald (UCLA),
-Christian Marois (NRC) ,
+Christian Marois (NRC),
+Kate Follette (Stanford)
+Li-Wei Hung (UCLA)
 and
 other members of the GPI Data Analysis Team.  Please see the
 :ref:`development credits <sw-credits>` for a complete list of contributors, and the :ref:`release notes <release-notes>` for further details.

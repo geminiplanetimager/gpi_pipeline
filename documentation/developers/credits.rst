@@ -15,13 +15,17 @@ Pipeline architecture design, initial algorithms development, core structure, GU
 
 
 
-**Patrick Ingraham** developed many of the primitives, led major aspects of IFS calibration and testing, and extensively contributed to analyses and documentation.
+**Patrick Ingraham** developed many primitives, led major aspects of IFS calibration and testing, and extensively contributed to analyses and documentation.
 **Dmitry Savransky** made major contributions to pipeline primitives, infrastructure, and GPItv.
 
+
 **Zack Draper** developed improved datacube extraction routines and tools for fitting flexure using microlens PSFs.
-**Mike Fitzgerald** contributed some improvements to gpitv and polarimetric extraction.
+**Mike Fitzgerald** contributed improvements to gpitv and polarimetric extraction, and to distortion correction. 
+**Kate Follette** contributed fixes and improvements to several primitives. 
+**Li-Wei Hung** contributed improvements to polarization related primitives.
 **Christian Marois** contributed to improving PSF subtraction algorithms and contrast measurement code. 
-**Max Millar-Blanchaer** contributed extensively to polarization mode primitives and GPItv polarization support, and with 
+**Max Millar-Blanchaer** contributed extensively to polarization mode primitives and GPItv polarization support, along with calibration of polarimetric performance. 
+**Eric Nielsen** improved parallactic angle calculations, updated documentation, and contributed improvements to gpitv. 
 **Abhijith Rajan** found and fixed a few bugs.
 **Jean-Baptiste "JB" Ruffio** vanquished many bugs, enhanced the destriping and microphonics removal primitives, and wrote portions of the documentation.
 **Naru Sarakuni** extensively supported integration and test, and contributed improvements to GPItv.
@@ -32,7 +36,7 @@ Pipeline architecture design, initial algorithms development, core structure, GU
 **Alexandra Greenbaum** is leading development of nonredundant aperture masking interferometry algorithms applied to GPI, and also contributed to this documentation.
 **Tyler Barker** implemented the KLIP algorithm, under guidance from Dmitry.
 **Steven Beckwith** analyzed detector testing data to assess optimal readout modes. 
-**Quinn Konopacky** developed the distortion correction primitive along with Jerome.
+**Quinn Konopacky** developed the distortion correction primitive along with Jerome and Mike.
 **Franck Marchis** oversees the computer infrastructure at the SETI Institute hosting software repositories and documentation, and supervised visiting student JB Ruffio.
 **Laurent Pueyo** contributed to data analyses and algorithms development. 
 **Sloane Wiktorowicz** worked with Max to calibrate the instrumental polarization.
