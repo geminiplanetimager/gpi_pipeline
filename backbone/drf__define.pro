@@ -1091,8 +1091,11 @@ end
 pro drf::attach_extra_metadata, extra_metadata
     ; Add arbitrary user-defined metadata to your recipe. 
 	; Use this however you'd like. 
-	; It's used to pass some data from ParserCore back to ParserGUI that would
-	; otherwise not be retained in the XML files.
+	; The main reason this exists in the pipeline is that 
+	; it's used to pass some data from ParserCore back to ParserGUI that would
+	; otherwise not be retained in the XML files, in particular the
+	; struct_obs_keywords structure that retains metadata about some FITS keyword
+	; values of the files in this recipe. 
 	ptr_free, self.extra_metadata
 	self.extra_metadata = ptr_new(extra_metadata)
 end
