@@ -19698,9 +19698,10 @@ pro GPItv::obsnotes
   ;; Frontend for bad file marking in files database
 
   mark = strcompress('0, button, Mark OK|Mark Bad, exclusive, set_value = 0') ;1
-  notes = strcompress('0, text, ,label_left = Notes:,width = 50,') ;2
+  notes = strcompress('0, text, ,label_left = Notes:,width = 70,') ;2
 
-  formdesc = ['0, label, Write To Files Database', $
+  formdesc = ['0, label, Write To GPIES Files Database', $
+	  '0, label, (this will do nothing if you lack GPIES campaign database access)', $
     mark,notes,$
     '0, button, Send, quit', $
     '0, button, Cancel, quit']
@@ -19708,10 +19709,10 @@ pro GPItv::obsnotes
   textform = cw_form(formdesc, /column, $
     title = 'GPItv Mark File Status')
 
-  if (textform.tag4 EQ 1) then return ; cancelled (tag# = # of inputs above+2)
+  if (textform.tag5 EQ 1) then return ; cancelled (tag# = # of inputs above+2)
 
-  mrkval  = textform.tag1
-  msgval = textform.tag2
+  mrkval  = textform.tag2
+  msgval = textform.tag3
 
   gpitv_obsnotes,(*self.state).imagename,mrkval,msgval
 
