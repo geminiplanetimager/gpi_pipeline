@@ -8,8 +8,8 @@ GPI IFS Data Handbook
 ################################
 
 This document describes the GPI Integral Field Spectrograph (IFS), the
-properties of its output data, including various systematics and noise 
-sources that one may encounter, and how these data should be calibrated. 
+properties of its output data, including :ref:`various systematics and noise 
+sources <ifs_data_gallery>` that one may encounter, and how these data should be calibrated. 
 Its goal is to summarize in one place all the properties of GPI data that a new
 user should be familiar with to usefully work with the data. 
 
@@ -44,6 +44,7 @@ Contents
    dataformats.rst
    steps/index.rst
    steps/polarimetry.rst
+   gallery.rst
 
 .. comment
    pupilcam.rst
