@@ -15,6 +15,43 @@ For pipeline processed outputs as of 2014A, for datacubes that have been process
 
 Distortion is small, with an average positional residual of 0.26 pixels over the field of view, and can be corrected using a 5th order polynomial. See the :ref:`CorrectDistortion` primitive.
 
+
+Dependence on Filter and Prism
+----------------------------------------
+
+**Q: Does the field of view depend on which filter I choose?**
+
+The size of the field of view is constant with wavelength, but the specific set
+of lenslets that make up the FOV varies slightly with filter.  This is
+because, near the edges of the FOV, the spectral dispersion
+causes different lenslets to have their reimaged spectra fall off the edge of
+the detector differently depending on wavelength. For instance, if you move
+from say H band to K1 band, since longer wavelengths are further toward the
+'bottom' of the detector, the lenslets right next to the bottom edge of the FOV in H have
+their spectra fall off the detector in K1.  Conversely, a row or two of lenslets
+at the top of the detector which are just off in H band instead move into the
+FOV in K1. And so forth for the other filters. 
+Similarly between spectral and pol modes, the set of lenslets which is imaged
+onto the detector varies slightly around the edges due to the difference in
+spectral dispersion between the spectral and Wollaston prisms. 
+
+The GPI data pipeline takes these offsets into account when assembling
+datacubes: *a given physical lenslet should always map to the same (x,y)
+coordinates in an unrotated raw datacube regardless of filter and  spectral or polarization
+modes.* For an example of this, see the HD 70931 astrometric calibrator data from 
+January 2015; both components of the binary star stay fixed in detector
+coordinates while the boundary of the FOV shifts slightly around them. 
+
+A particular consequence of this is that if the Cal-IFS pointing and centering
+mirrors are aligned such that the coronagraph is centered in the FOV
+in spectral mode, it will not necessarily be centered in the FOV in polarization
+mode. This is *not* a shift or misalignment of the coronagraph with respect to
+the lenslet array, rather it's a change in which lenslets are imaged onto the
+detector. In other words it's the outer boundary of the FOV which shifts around,
+not the contents of the FOV. 
+
+
+
 Polarimetry vs Spectral Modes
 --------------------------------
 
