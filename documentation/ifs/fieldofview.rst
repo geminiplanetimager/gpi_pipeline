@@ -13,7 +13,7 @@ The lenslet spaxel (pixel) scale is estimated to be 14.14 ± 0.01 milliarcseconds
 
 For pipeline processed outputs as of 2014A, for datacubes that have been processed by the 'Rotate North Up' primitive,  the north angle is offset by -1.00±0.03 degrees.  A future version of the pipeline will compensate for this offset.
 
-Distortion is small, with an average positional residual of 0.26 pixels over the field of view, and can be corrected using a 5th order polynomial. 
+Distortion is small, with an average positional residual of 0.26 pixels over the field of view, and can be corrected using a 5th order polynomial. See the :ref:`CorrectDistortion` primitive.
 
 Polarimetry vs Spectral Modes
 --------------------------------
@@ -45,12 +45,26 @@ Rotating Files to North Up Yourself
 **Q: I want to derotate cubes to north up myself, rather than relying on the pipeline primitive or gpitv. How do I do this?**
 
 
-It's a little more complicated than just rotating by the parallatic angle (``PAR_ANG`` keyword) because there is also the ~ 24.5 degree rotation of the lenslet array in order to prevent overlap of the spectra in spectral mode.  Also don't forget that you have to flip the raw cubes left-to-right if you want to get east counterclockwise of north. 
+It's a little more complicated than just rotating by the parallatic angle (``PAR_ANG`` or ``AVPARANG`` keywords) because there is also the ~ 24.5 degree rotation of the lenslet array in order to prevent overlap of the spectra in spectral mode.  Also don't forget that you have to flip the raw cubes left-to-right if you want to get east counterclockwise of north. 
 
 The relevant code is in two places::
 
  pipeline/utils/gpi_update_wcs_basic.pro            This updates the WCS keywords whenever a cube is created
  pipeline/utils/gpi_rotate_cube.pro                 This is what does the actual rotation, based on those WCS keywords.
 
-It does use PAR_ANG for the time variable part, then adds in the offsets for the IFS orientation with respect to Gemini.
+It uses ``AVPARANG`` for the time variable part, then adds in the offsets for the IFS orientation with respect to Gemini.
+
+Note that the ``PAR_ANG`` keyword gives the instantaneous parallactic angle at
+the time that the Gemini Data System saves state for the FITS header, which
+occurs when the exposure is triggered (i.e. the ``PAR_ANG`` actually gives the
+parallactic angle a couple seconds before the start of integration!) The GPI
+pipeline computes an ``AVPARANG`` keyword that is the time-averaged parallactic
+angle over the course of the exposure.  For targets that cross very close to
+zenith and thus have high maximum rotation rates, ``PAR_ANG`` can be offset by
+several degrees for exposures taken right at transit.  
+
+The GPI pipeline as of version 1.3 uses ``AVPARANG`` for all astrometric and
+rotation calculations, and you should too if you're doing any rotations in your
+own code outside of the pipeline. 
+
 
