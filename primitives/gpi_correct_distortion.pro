@@ -230,7 +230,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 calfiletype='distor' 
 @__start_primitive
 
-  cubef3D = *(dataset.currfresame)
+  cubef3D = *(dataset.currframe)
 
   parms = gpi_readfits(c_File, header = Headercal)
   distsol_ver = sxpar(Headercal, 'DISTVER', count = ct)
