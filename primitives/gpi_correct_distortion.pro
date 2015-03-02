@@ -230,68 +230,66 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 calfiletype='distor' 
 @__start_primitive
 
-	cubef3D=*(dataset.currframe)
+  cubef3D = *(dataset.currfresame)
 
-    parms= gpi_readfits(c_File, header=Headercal)
-    distsol_ver = sxpar(Headercal, 'DISTVER', count = ct)
-    if ct eq 0 then begin
-      distsol_ver = '0'
-      message, /info, "No version code found in distortion solution calibration file header.  Assuming version"+distsol_ver
-    endif
-      
+  parms = gpi_readfits(c_File, header = Headercal)
+  distsol_ver = sxpar(Headercal, 'DISTVER', count = ct)
+  if ct eq 0 then begin
+    distsol_ver = '0'
+    message, /info, "No version code found in distortion solution calibration file header.  Assuming version"+distsol_ver
+  endif
       
     
-    
-	suffix+='_distorcorr'
+  suffix += '_distorcorr'
 
-	; are we reducing one file at a time, or are we dealing with a set of
-	; multiple files?
-	reduction_level = backbone->get_current_reduction_level() 
+  ;; are we reducing one file at a time, or are we dealing with a set of
+  ;; multiple files?
+  reduction_level = backbone -> get_current_reduction_level() 
 
-	case reduction_level of
-	1: begin ;---------  Rotate one single file ----------
-		cube=*(dataset.currframe)
+  case reduction_level of
+    1: begin                    ;---------  Rotate one single file ----------
+      cube = *(dataset.currframe)
 		
-		; check to make sure that no satellite locations exist
-		; this primitive must be run BEFORE satellite locations are determined
-		test=(backbone->get_keyword('SPOTWAVE', count=c))
-		if c ne 0 then return, error('FAILURE ('+functionName+'): Satellite spot locations have been determined previously. This primitive must be run BEFORE measuring the satellite spot locations.') 
+      ;; check to make sure that no satellite locations exist
+      ;; this primitive must be run BEFORE satellite locations are determined
+      test = (backbone -> get_keyword('SPOTWAVE', count = c))
+      if c ne 0 then return, error('FAILURE ('+functionName+'): Satellite spot locations have been determined previously. This primitive must be run BEFORE measuring the satellite spot locations.') 
 
-		*(dataset.currframe) = gpi_correct_distortion_one(cube, parms)
+      *(dataset.currframe) = gpi_correct_distortion_one(cube, parms)
 
-		backbone->set_keyword, "HISTORY", "Applied distortion correction"
-		backbone->set_keyword, "DRPDSTCR", "Yes", 'Distortion correction applied?'
+      backbone -> set_keyword, "HISTORY", "Applied distortion correction"
+      backbone -> set_keyword, "DRPDSTCR", "Yes", 'Distortion correction applied?'
+      
+      @__end_primitive
+    end
+    2: begin           ;----- Rotate all files stored in the accumulator ------
 
-		@__end_primitive
-	end
-	2: begin ;----- Rotate all files stored in the accumulator ------
+      backbone -> Log, "This primitive is after Accumulate Images so this is a Level 2 step", depth = 3
+      backbone -> Log, "Therefore all currently accumulated cubes will be undistorted.", depth = 3
+      nfiles = dataset.validframecount
+      for i = 0, nfiles-1 do begin
 
-		backbone->Log, "This primitive is after Accumulate Images so this is a Level 2 step", depth=3
-		backbone->Log, "Therefore all currently accumulated cubes will be undistorted.", depth=3
-		nfiles=dataset.validframecount
-		for i=0,nfiles-1 do begin
-
-			backbone->Log, "Undistorting cube "+strc(i+1)+" of "+strc(nfiles), depth=3
-			original_cube =  accumulate_getimage(dataset,i,hdr,hdrext=hdrext)
+        backbone -> Log, "Undistorting cube "+strc(i+1)+" of "+strc(nfiles), depth = 3
+        original_cube =  accumulate_getimage(dataset, i, hdr, hdrext = hdrext)
 			
-			; check to make sure that no satellite locations exist
-			; this primitive must be run BEFORE satellite locations are determined
+        ;; check to make sure that no satellite locations exist
+        ;; this primitive must be run BEFORE satellite locations are determined
 
-			test=sxpar(hdrext, 'SPOTWAVE', count=c)
-			if c ne 0 then return, error('FAILURE ('+functionName+'): Satellite spot locations have been determined previously. This primitive must be run BEFORE measuring the satellite spot locations.') 
+        test = sxpar(hdrext, 'SPOTWAVE', count = c)
+        if c ne 0 then return, error('FAILURE ('+functionName+'): Satellite spot locations have been determined previously. This primitive must be run BEFORE measuring the satellite spot locations.') 
 
-			undistorted_cube = gpi_correct_distortion_one(original_cube, parms)
+        undistorted_cube = gpi_correct_distortion_one(original_cube, parms)
 
-			backbone->set_keyword, "HISTORY", "Applied distortion correction", indexFrame=i
-			backbone->set_keyword, "DRPDSTCR", "Yes", 'Distortion correction applied?', indexFrame=i
+        backbone -> set_keyword, "HISTORY", "Applied distortion correction", indexFrame = i
+        backbone -> set_keyword, "DRPDSTCR", "Yes", 'Distortion correction applied?', indexFrame = i
 
-			accumulate_updateimage, dataset, i, newdata = undistorted_cube
+        accumulate_updateimage, dataset, i, newdata = undistorted_cube
 
-		endfor
+      endfor
 
 
-	end
-	endcase
+    end
+  endcase
 
 
 ;
