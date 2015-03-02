@@ -422,6 +422,14 @@ for thread = 0, numthreads-1 do begin
 	obj_destroy, (*threads[actual_thread])
 endfor
 
+
+	 backbone->set_keyword, 'PSFSUB', 'GPI DRP KLIP ADI+SDI', 'PSF subtraction via KLIP ADI+SDI'
+	 backbone->set_keyword, 'PSFPARAM', "annuli"+strc(annuli)+" subsections="+strc(subsections)+" prop="+strc(prop)+" minsep="+strc(minsep)+$
+										"minPA="+strc(minPA)+" waveclip="+strc(waveclip)+" numthreads="+strc(numthreads)., "PSF sub. parameters"
+
+
+
+
 ;sub_im = final_im/nfiles
 ;final_im = dblarray(dim[0],dim[1],nlam)
 ;for filenum=0,nfiles do begin
