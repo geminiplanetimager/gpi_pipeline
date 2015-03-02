@@ -179,16 +179,17 @@ function gpi_correct_distortion_one, image, parms
 
   ;; compute Jacobian determinant
   detJ = get_Jacobian_det(x, y, ca, cb)
+  absdetJ = abs(detJ)
   
   ;; interpolate each image
   for ii = 0, sz[3]-1 do begin
     im_in = image[*, *, ii]
     ;im_out = bilinear(im_in, u, v) ; bilinear interpolation
     im_out = interpolate(im_in, u, v, cubic = -0.5, missing = 0.0)
-    image[*, *, ii] = im_out
+    image[*, *, ii] = im_out*absdetJ
   endfor
 
-  return, image*abs(detJ)
+  return, image
 
 end
 
