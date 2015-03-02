@@ -259,6 +259,7 @@ calfiletype='distor'
       *(dataset.currframe) = gpi_correct_distortion_one(cube, parms)
 
       backbone -> set_keyword, "HISTORY", "Applied distortion correction"
+      backbone -> set_keyword, "HISTORY", "Using distortion solution version "+distsol_ver
       backbone -> set_keyword, "DRPDSTCR", "Yes", 'Distortion correction applied?'
       
       @__end_primitive
@@ -282,6 +283,7 @@ calfiletype='distor'
         undistorted_cube = gpi_correct_distortion_one(original_cube, parms)
 
         backbone -> set_keyword, "HISTORY", "Applied distortion correction", indexFrame = i
+        backbone -> set_keyword, "HISTORY", "Using distortion solution version "+distsol_ver
         backbone -> set_keyword, "DRPDSTCR", "Yes", 'Distortion correction applied?', indexFrame = i
 
         accumulate_updateimage, dataset, i, newdata = undistorted_cube
