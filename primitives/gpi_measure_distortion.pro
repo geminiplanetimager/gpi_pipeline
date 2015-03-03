@@ -94,6 +94,9 @@ suffix+='-distor'
 backbone->set_keyword, "FILETYPE", "Distortion Measurement", "What kind of IFS file is this?"
 backbone->set_keyword,  "ISCALIB", "YES", 'This is a reduced calibration file of some type.'
 
+;FIXME  implement DISTVER keyword
+
+
 @__end_primitive
 
 end
