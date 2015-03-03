@@ -19957,17 +19957,17 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
       (total((*(*self.satspots.contrprof)[inds[j],(*self.state).contr_yunit])[*,1]) eq 0))) then begin
 
       ;; get the radial profile desired
-      case (*self.state).contr_yunit of
-        0: radial_profile,copsf[*,*,j],cens[*,*,j],$
-          lambda=(*(*self.state).CWV_ptr)[inds[j]],asec=asec,isig=outval,$
-          /dointerp,doouter=(*self.state).contr_plotouter
-        1: radial_profile,copsf[*,*,j],cens[*,*,j],$
-          lambda=(*(*self.state).CWV_ptr)[inds[j]],asec=asec,imed=outval,$
-          /dointerp,doouter=(*self.state).contr_plotouter
-        2: radial_profile,copsf[*,*,j],cens[*,*,j],$
-          lambda=(*(*self.state).CWV_ptr)[inds[j]],asec=asec,imn=outval,$
-          /dointerp,doouter=(*self.state).contr_plotouter
-      endcase
+		case (*self.state).contr_yunit of
+			0: radial_profile,copsf[*,*,j],cens[*,*,j],$
+					lambda=(*(*self.state).CWV_ptr)[inds[j]],asec=asec,isig=outval,$
+					/dointerp,doouter=(*self.state).contr_plotouter
+			1: radial_profile,copsf[*,*,j],cens[*,*,j],$
+					lambda=(*(*self.state).CWV_ptr)[inds[j]],asec=asec,imed=outval,$
+					/dointerp,doouter=(*self.state).contr_plotouter
+			2: radial_profile,copsf[*,*,j],cens[*,*,j],$
+					lambda=(*(*self.state).CWV_ptr)[inds[j]],asec=asec,imn=outval,$
+					/dointerp,doouter=(*self.state).contr_plotouter
+		endcase
 
       if ((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) || $
         ((*self.state).klip_mode eq 1) || ((*self.state).high_pass_mode eq 1) || $
@@ -20117,6 +20117,16 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
   if ((*self.state).collapse eq 0) then xyouts, /normal,0.75,0.71,"at "+sigfig((*(*self.state).CWV_ptr)[inds[0]],4)+" um",charsize=1.2
 
   oplot, [0.4], [contr_at_04]*sclunit, psym=1, color=cgcolor('white'), symsize=2
+
+	; in in SNR map mode - the contrast plot is extremely difficult to understand - so lets just erase it
+	if ((*self.state).snr_map_mode eq 1) then begin
+	  ;;set up graphs
+	  self->setwindow, (*self.state).contrplot_window_id
+	  erase
+	  xyouts, /normal,0.30,0.5,'Contrast plot not available',charsize=1.7
+	  xyouts,/normal,0.28,0.43,' when using SNR Map mode',charsize=1.7
+ 	endif
+
 
   ;;------------- end of code merged from ::starvsr -----------------------------------------
 
