@@ -16,10 +16,13 @@ Anatomy of a GPI Coronagraphic PSF
 
 This is what your data *ought* to look like...
 
-
 Example PSFs for each filter under decent conditions? 
 
 Butterfly from wind
+
+.. image:: badimg_02_Buttefly.png
+        :scale: 75%
+        :align: center
 
 
 Artifacts from AO, Coronagraph, and Telescope Systematics
@@ -28,11 +31,33 @@ Artifacts from AO, Coronagraph, and Telescope Systematics
 
 Misaligned coronagraph
 
+.. image:: badimg_03_MisalignedMask.png
+        :scale: 75%
+        :align: center
+
 Bad AOWFS darks
+
+.. image:: badimg_04_WFSBias.png
+        :scale: 75%
+        :align: center
 
 Misaligned observatory dome
 
+.. image:: badimg_05_Dome.png
+        :scale: 75%
+        :align: center
+
 37 Hz secondary vibration
+
+.. image:: badimg_06_37Hz.png
+        :scale: 75%
+        :align: center
+
+Star temporarily moving from behind mask
+
+.. image:: badimg_07_Peeking.png
+        :scale: 75%
+        :align: center
 
 
 Artifacts from IFS and Detector Systematics
