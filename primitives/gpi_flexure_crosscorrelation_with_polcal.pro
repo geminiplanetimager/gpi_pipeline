@@ -41,7 +41,7 @@
 ;-----------------------------
 ;
 
-function gpi_img_xcorr_polcal, DataSet, Modules, Backbone
+function gpi_flexure_crosscorrelation_with_polcal, DataSet, Modules, Backbone
 
   ; enforce modern IDL compiler options:
   compile_opt defint32, strictarr, logical_predicate
