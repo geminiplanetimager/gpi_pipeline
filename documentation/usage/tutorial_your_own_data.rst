@@ -82,9 +82,11 @@ After you have created cubes and done some PSF subtraction, now depending on you
 What if something goes wrong? 
 ==================================
 
+For examples of oddities you might encounter in your data, see :ref:`ifs_data_gallery`.
+
+
 Below we've briefly listed some common issues and solutions.
 For more Frequently Asked Questions about data reduction, see :ref:`FAQ <frequently-asked-questions>`.
-
 
  - **Checkerboard or moire pattern**. Indicates wavecal is offset due to flexure and needs to be updated. Be sure to use a wavelength calibration file created using an arc lamp taken at the same elevation as your science target. Alternatively, you can manually input the shifts due to flexure using the "Update Spot Shifts for Flexure" primitive by selecting Manual for the method and updating the manual_dx and manual_dy keywords.
 
