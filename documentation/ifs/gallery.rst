@@ -18,6 +18,10 @@ This is what your data *ought* to look like...
 
 Example PSFs for each filter under decent conditions? 
 
+.. image:: badimg_01_Good_Hband.png
+        :scale: 75%
+        :align: center
+
 Butterfly from wind
 
 .. image:: badimg_02_Buttefly.png
