@@ -289,7 +289,11 @@ PRO gpiPipelineBackbone::SetRecipeQueueStatus, drfstruct, newstatus
 
     ; TODO debugging / error checking on the file move?
     file_move, oldfilename, newfilename,/overwrite
-    drfstruct.status=newstatus
+	; check to see if file has been written
+	if file_test(newfilename) eq 0 then wait,0.1
+    
+
+	drfstruct.status=newstatus
     drfstruct.name = newfilename
 
 
@@ -541,15 +545,17 @@ function gpiPipelineBackbone::Run_One_Recipe, CurrentRecipe
 
 	self->Log, "------------------------------ Starting Recipe Processing ------------------------------"
 	self->log, 'Reading file: ' + CurrentRecipe.name
+
 	if obj_valid(self.statuswindow) then self.statuswindow->set_DRF, CurrentRecipe
 	self->SetRecipeQueueStatus, CurrentRecipe, 'working'
-	wait, 0.05   ; Wait 0.05 seconds to make sure file rename is fully completed.
+	wait, 0.1   ; Wait 0.1 seconds to make sure file rename is fully completed.
 
 	if ~(keyword_set(debug)) then CATCH, parserError else parserError=0 ; only catch if DEBUG is not set.
 	message,/reset_error_state ; clear any prior errors before parsing
 	IF parserError EQ 0 THEN BEGIN
 		if obj_valid(self.statuswindow) then self.statuswindow->set_action, "Parsing Recipe"
 		(*self.PipelineConfig).continueAfterRecipeXMLParsing = 1    ; Assume it will be Ok to continue
+
 		Self.Parser = OBJ_NEW('gpiDRFParser', backbone=self)
 		Self.Parser -> ParseFile, CurrentRecipe.name,  Self.ConfigParser, backbone=self, status=status
         if status ne OK then begin
@@ -568,7 +574,6 @@ function gpiPipelineBackbone::Run_One_Recipe, CurrentRecipe
 				!error_state.msg =  "Could not load data files specified in recipe "+CurrentRecipe.name
 			endif
 		endelse
-
 		CATCH, /CANCEL
 	ENDIF
 
