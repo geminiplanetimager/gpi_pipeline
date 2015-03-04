@@ -76,12 +76,17 @@ spec into pol, pol into spec, flat field into data, etc.
 
 Lenslet 30x50 grid
 
+.. image:: badimg_08_LensletGrid.png
+        :scale: 75%
+        :align: center
 
 Artifacts from Data Pipeline Systematics
 -----------------------------------------
 
-
 Moire from datacube assembly
 
+.. image:: badimg_09_Moire.png
+        :scale: 75%
+        :align: center
 
 
