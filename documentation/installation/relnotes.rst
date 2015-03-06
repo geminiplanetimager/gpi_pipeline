@@ -8,7 +8,9 @@ You may wish to skip ahead to  :ref:`configuring`.
 
 The next release of the GPI pipeline will probably be sometime September-ish after the final commissioning run, for use in 2014B. 
 
-Version 1.3
+.. _version1.3.0:
+
+Version 1.3.0
 =========================================
 Released 2015 March, for Gemini 2015A
 
@@ -114,6 +116,7 @@ Released 2015 March, for Gemini 2015A
   * GPItv gained a GPIES-campaign specific tool for marking file status (good/bad) and adding comments to the GPIES campaign database (ImageInfo menu, "Mark File Status"). This option will do nothing and be quietly ignored for users who do not have GPIES-campaign Dropbox access.  (Savransky)
 
 
+.. _version1.2.1:
 
 Version 1.2.1
 =========================================
@@ -128,6 +131,8 @@ This is a minor bugfix release for v1.2.0 based on testing from Kathleen Labrie 
 * Improved boundary checking in gpi_destripe_science_image primitive (Ingraham)
 * Added a missing utility (gpi_lsqr_mlens_extract_dep.pro)
 
+
+.. _version1.2.0:
 
 Version 1.2.0
 =========================================
