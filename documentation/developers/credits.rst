@@ -49,7 +49,7 @@ Contributions to data analyses and public data releases have been made by many a
 
 **Rene Doyon** was subsystem PI for the GPI DRP as part of the GPI project, and provided top-level guidance in overall pipeline design. 
 **James Graham** developed core algorithm concepts for the polarization reduction, which were subsequently implemented by Marshall and enhanced by Max. 
-**Bruce Macintosh** maintained overall coherence of the GPI project wavefront. 
+**Bruce Macintosh** maintained overall coherence of the GPI project wavefront with crucial contributions by **Dave Palmer** and **Les Saddlemyer**. 
 
 From Gemini, **Stephen Goodsell** kept the project on track. **Carlos Quiroz** and **Fredrik Rantakyro** supported 
 the Gemini Data System, including establishment of interfaces and extensive implementation and testing.
