@@ -8,12 +8,14 @@ Field of View and Lenslet Geometry
         For further information please see the paper `GPI Observational Calibrations V: Astrometry and Distortion by Konopacky et al. (2014) <http://arxiv.org/abs/1407.2305>`_
 
 
-The lenslet spaxel (pixel) scale is estimated to be 14.14 ± 0.01 milliarcseconds/spaxel.
-
-
-For pipeline processed outputs as of 2014A, for datacubes that have been processed by the 'Rotate North Up' primitive,  the north angle is offset by -1.00±0.03 degrees.  A future version of the pipeline will compensate for this offset.
+The lenslet spaxel (pixel) scale is estimated to be 14.14 ± 0.01 milliarcseconds/spaxel. 
 
 Distortion is small, with an average positional residual of 0.26 pixels over the field of view, and can be corrected using a 5th order polynomial. See the :ref:`CorrectDistortion` primitive.
+
+
+The orientation of north varies continuously due to field rotation but is encoded in the World Coordinate System headers for each datacube produced by the pipeline. These make use of a time-averaged parallactic angle (keyword AVPARANG) that is recomputed by the pipeline more accurately than the PAR_ANG keyword provided by Gemini. The north angle encoded in the WCS is accurate with no offset to within our current calibration measurement uncertainty. 
+(For pipeline processed outputs using version 1.1 (2014A) or earlier, the north angle was offset by -1.00±0.03 degrees.   Pipeline version 1.2 (2014B) and later have compensated for this offset. See :ref:`here <version1.2.0>` for more details.)
+
 
 
 Dependence on Filter and Prism
