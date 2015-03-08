@@ -579,7 +579,7 @@ end
 ;	Clean up by deleting all the recipes. 
 ;-
 
-function parsercore::num_recipes
+pro parsercore::delete_all_recipes
 	self->Log, "User requested deleting all recipes"
 
 	nr = self->num_recipes()
@@ -596,7 +596,7 @@ function parsercore::num_recipes
 		endfor
 		ptr_free, self.recipes
 		self->Log, "All recipes have been deleted."
-	endfor
+	endelse
 end
 
 
