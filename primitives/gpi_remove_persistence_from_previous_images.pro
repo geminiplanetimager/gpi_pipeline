@@ -38,14 +38,14 @@
 ;
 ;	WARNING: Persistence removal does not (yet) work with COADDED images!
 ;
-;
-;	The manual_UTEND keyword allows the user to manually set the UTEND keyword
-;	in the image that is taken in closest time to the image being reduced. This
-;	is important because sometimes when changing modes or exposure times
-;	quickly, the CAL exit shutter can remain open so light will continue hitting
-;	the detector past the UTEND time. Users should note that this is generally
-;	occurs only for polarimetry snapshots after long spectral sequences (taken
-;	in the same band).
+;	The manual_dt keyword allows the user to manually offset the UTEND keyword in 
+;	the image that is taken in closest time to the image being reduced 
+;	(and therefore probably the dominent persisting image). This is 
+;	important because sometimes when changing modes or exposure times quickly, 
+;	the CAL exit shutter can remain open so light will continue hitting the
+;	detector past the UTEND time. Users should note that this is generally
+;	occurs only for polarimetry snapshots after long spectral sequences
+;	(taken in the same band).
 ;
 ; INPUTS: Raw or destriped 2D image
 ; OUTPUTS: 2D image corrected for persistence of previous non-saturated images
@@ -55,7 +55,7 @@
 ;
 ; PIPELINE COMMENT: Determines/Removes persistence of previous images
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="String" CalFileType="persis" Default="AUTOMATIC" Desc="Filename of the persistence_parameter file to be read"
-; PIPELINE ARGUMENT: Name="manual_dt" Type="float" Range="[0,600]" Default="0" Desc="Manual input for time (in seconds) since last persisting file - see help for details"
+; PIPELINE ARGUMENT: Name="manual_dt" Type="float" Range="[0,600]" Default="0" Desc="Manual offset for time (in seconds) since last persisting file - see help for details"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display " 
 ; PIPELINE ORDER: 1.2
@@ -227,6 +227,8 @@ for f=0, N_ELEMENTS(ind)-1 do begin
 	
 	endfor
 
+;	 ###################
+; this is the original C? script that was translated...
     ; Calculate the UTR with weights
     ;    #For this document, weights are how much the frame is multipied times. The "weigted effect" of any individual
     ;    ## group becomes W{i} / W{total}. This is done to correspond to the C# code for easier understanding.
