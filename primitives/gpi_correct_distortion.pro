@@ -233,14 +233,18 @@ calfiletype='distor'
 
   cubef3D = *(dataset.currframe)
 
-  parms = gpi_readfits(c_File, header = Headercal)
-  distsol_ver = sxpar(Headercal, 'DISTVER', count = ct)
+  parms = gpi_readfits(c_File, header = Headercal, priheader = Priheadercal)
+  distsol_verstr = sxpar(Priheadercal, 'DISTVER', count = ct)
   if ct eq 0 then begin
-    distsol_ver = '0'
-    message, /info, "No version code found in distortion solution calibration file header.  Assuming version"+distsol_ver
+    distsol_verstr = '0'
+    message, /info, "No version code found in distortion solution calibration file header.  Assuming version "+distsol_verstr
   endif
       
-    
+  distsol_ver = strsplit(distsol_verstr, '.', /extract)
+  if fix(distsol_ver[0]) lt 1 then $
+     return, error('FAILURE ('+functionName+'): Distortion solution version '+distsol_ver+' found, but require at least version 1')
+  
+  
   suffix += '_distorcorr'
 
   ;; are we reducing one file at a time, or are we dealing with a set of
@@ -259,7 +263,7 @@ calfiletype='distor'
       *(dataset.currframe) = gpi_correct_distortion_one(cube, parms)
 
       backbone -> set_keyword, "HISTORY", "Applied distortion correction"
-      backbone -> set_keyword, "HISTORY", "Using distortion solution version "+distsol_ver
+      backbone -> set_keyword, "HISTORY", "Using distortion solution version "+distsol_verstr
       backbone -> set_keyword, "DRPDSTCR", "Yes", 'Distortion correction applied?'
       
       @__end_primitive
@@ -283,7 +287,7 @@ calfiletype='distor'
         undistorted_cube = gpi_correct_distortion_one(original_cube, parms)
 
         backbone -> set_keyword, "HISTORY", "Applied distortion correction", indexFrame = i
-        backbone -> set_keyword, "HISTORY", "Using distortion solution version "+distsol_ver
+        backbone -> set_keyword, "HISTORY", "Using distortion solution version "+distsol_verstr
         backbone -> set_keyword, "DRPDSTCR", "Yes", 'Distortion correction applied?', indexFrame = i
 
         accumulate_updateimage, dataset, i, newdata = undistorted_cube
