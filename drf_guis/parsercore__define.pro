@@ -48,9 +48,11 @@
 ; HISTORY:
 ;    Began 2015-01-28 by Marshall Perrin, splitting code formerly in parsergui__define
 ;    into its own standalone class. 
+;    2015-03-14 Added outputdir keyword to parse_fileset_to_recipe   
+; 
 ;-
 
-function parsercore::parse_fileset_to_recipes, fileset, recipedir=recipedir
+function parsercore::parse_fileset_to_recipes, fileset, recipedir=recipedir, outputdir=outputdir
 
     t0 = systime(/seconds)
 
@@ -60,7 +62,7 @@ function parsercore::parse_fileset_to_recipes, fileset, recipedir=recipedir
     self.fileset->scan_headers ; in case this has not already been done
 
     if keyword_set(recipedir) then self.recipedir=recipedir
-
+    if keyword_set(outputdir) then self.outputdir=outputdir
 
 
     file = self.fileset->get_filenames()
@@ -556,7 +558,8 @@ pro parsercore::create_recipe_from_template, templatename, fitsfiles, current_me
     drf = gpi_create_recipe_from_template( templatename, fitsfiles,  $
         recipedir=self.recipedir, $ 
         filename_counter=filename_counter, $
-        outputfilename=outputfilename)
+        outputfilename=outputfilename, $
+        outputdir=self.outputdir)
 
     if keyword_set(current_metadata) then drf->attach_extra_metadata, current_metadata
 
@@ -632,8 +635,8 @@ function parsercore::init, debug=debug, $
     if obj_valid(where_to_log) then self.where_to_log = where_to_log
     if keyword_set(gui_parent_wid) then self.gui_parent_wid=gui_parent_wid
 
-
     self.recipedir = gpi_get_directory('RECIPE_OUTPUT_DIR')
+
     if gpi_get_setting('organize_recipes_by_dates',/bool) then begin
         self.recipedir +=  path_sep() + gpi_datestr(/current)
     endif
