@@ -48,7 +48,7 @@ copyright = u'2008-2014, Marshall Perrin, Jerome Maire & the GPI Data Analysis T
 #
 # The short X.Y version.
 #import gpidata
-version = '1.2.1'
+version = '1.3.0'
 # The full version, including alpha/beta/rc tags.
 release = version+''
 
