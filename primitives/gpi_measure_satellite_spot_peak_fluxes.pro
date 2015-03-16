@@ -9,6 +9,14 @@
 ;	Spot fluxes are measured and then saved to SATF1_1, SATF1_2 etc keywords
 ;	in the header.
 ;
+;   By default, the sat spots information are saved to the FITS header keywords
+;   of the current file in memory, and will only be saved if you subsequently
+;   save that datacube (i.e. using 'save=1' on this primitive or a subsequent
+;   one). The 'update_prev_fits_header' option will, in addition, also let you
+;   write the same keyword information to the header of the most recently saved
+;   file. This is useful if you have just already saved the datacube, and you
+;   only now want to update this metadata. 
+;
 ; INPUTS: spectral datacube with spot locations in the header
 ; OUTPUTS:  datacube with measured spot fluxes
 ;
@@ -19,6 +27,7 @@
 ; PIPELINE ARGUMENT: Name="reference_index" Type="int" Range="[0,50]" Default="0" Desc="Index of slice to use for initial satellite detection."
 ; PIPELINE ARGUMENT: Name="ap_rad" Type="int" Range="[1,50]" Default="7" Desc="Radius of aperture used for finding peaks."
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
+; PIPELINE ARGUMENT: Name="update_prev_fits_header" Type="int" Range="[0,1]" Default="0" Desc="Update FITS metadata in the most recently saved datacube?"
 ; PIPELINE ORDER: 2.45
 ; PIPELINE CATEGORY: Calibration,SpectralScience
 ;
@@ -33,6 +42,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 cube = *(dataset.currframe[0])
 band = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
+
 ;;error handle if extractcube not used before
 if ((size(cube))[0] ne 3) || (strlen(band) eq 0)  then $
    return, error('FAILURE ('+functionName+'): Datacube or filter not defined. Use "Assemble Datacube" before this one.')   
@@ -84,6 +94,32 @@ warndec = ulong64(0)
 for j=n_elements(warncode)-1,0,-1 do warndec += warncode[j]*ulong64(2)^ulong64(n_elements(warncode)-j-1)
 warnhex = strtrim(string(warndec,format='((Z))'),2)
 backbone->set_keyword,'SATSWARN',warnhex,'HEX->binary mask for slices with varying sat fluxes.',ext_num=1
+
+
+	update_prev_fits_header = fix(Modules[thisModuleIndex].update_prev_fits_header)
+    if keyword_set(update_prev_fits_header) then begin
+		; update the same fits keyword information into a prior saved version of
+		; this datacube. 
+		; this is somewhat inelegant code to repeat all these keywords here, but
+		; it's more efficient in execution time than trying to integrate this header
+		; update into backbone->set_keyword since that would unnecessarily read and
+		; write the file from disk each time, which is no good. -mp
+		prevheader = gpi_get_prev_saved_header(ext=1)
+		for s=0,n_elements(good) - 1 do begin
+		   for j = 0,3 do begin
+			  sxaddpar, prevheader, 'SATF'+strtrim(good[s],2)+'_'+strtrim(j,2),$
+                            fluxes[j,good[s]],$
+                            'Peak flux of sat. spot '+strtrim(j,2)+' of slice '+strtrim(good[s],2)
+		   endfor
+		endfor
+		sxaddpar, prevheader, 'SATSWARN',warnhex,'HEX->binary mask for slices with varying sat fluxes.'
+
+
+		gpi_update_prev_saved_header, prevheader, ext=1
+	endif
+
+
+
 
 @__end_primitive
 end
