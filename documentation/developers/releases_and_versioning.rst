@@ -34,8 +34,8 @@ The first step in making a new release version is to increment the version numbe
 
 Even though zip files do not yet exist at this point, you may wish to add placeholder links to the downloads pages. ::
 
-        shell>  emacs documentation/install/install_from_zips.rst
-        shell>  emacs documentation/install/install_from_source.rst
+        shell>  emacs documentation/installation/install_from_zips.rst
+        shell>  emacs documentation/installation/install_from_repos.rst
         shell>  svn commit documentation -m "add download links for version XX.YY"
 
 Then update the public branch::
