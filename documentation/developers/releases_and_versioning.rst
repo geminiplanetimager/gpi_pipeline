@@ -38,8 +38,7 @@ Even though zip files do not yet exist at this point, you may wish to add placeh
         shell>  emacs documentation/installation/install_from_repos.rst
         shell>  svn commit documentation -m "add download links for version XX.YY"
 
-If you haven't already, check out the public branch to your computer,
-and copy the external directory into the same place so that you can
+If you haven't already, check out the public branch to your computer, and copy the external directory into the same place so that you can
 easily package it::
 
         shell>svn checkout https://repos.seti.org/gpi/pipeline/branches/public public/pipeline
@@ -52,14 +51,12 @@ Then, update the public release to the current version::
 
 You may possibly have to deal with and resolve conflicts if there are any at this point. Any file that has been updated since the last
 release AND is not included in the public directory will probably appear as a conflict. You will have to resolve these before
-proceeding. Check the conflicts against the list of files in YOUR (not
-public) trunk exclude_from_releases.txt. If the file is on the exclude
+proceeding. Check the conflicts against the list of files in exclude_from_releases.txt. If the file is on the exclude
 list and is appearing as a conflict try::
 
        shell>svn resolve --accept working filename
 
-where filename is the file in conflict. This will accept the
-(nonexisting) file in your local public directory.
+where filename is the file in conflict. This will accept the (nonexistant) file in your local public directory.
 
 After resolving conflicts, you should double check that none of the files in the exclude list remain in the public directory. It's painstaking, but necessary as sometimes one or two slip through. Then commit the public branch::
 
