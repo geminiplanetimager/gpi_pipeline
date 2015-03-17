@@ -242,7 +242,7 @@ calfiletype='distor'
       
   distsol_ver = strsplit(distsol_verstr, '.', /extract)
   if fix(distsol_ver[0]) lt 1 then $
-     return, error('FAILURE ('+functionName+'): Distortion solution version '+distsol_ver+' found, but require at least version 1')
+     return, error('FAILURE ('+functionName+'): Distortion solution version '+distsol_ver+' found, but require at least version 1. Please download updated file from Gemini GPI public data web page.')
   
   
   suffix += '_distorcorr'

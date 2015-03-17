@@ -15,23 +15,41 @@ Version 1.3.0
 Released 2015 March, for Gemini 2015A
 
 
-.. note:: 
 
-    Prior versions of the pipeline have been subject to some biases in parallactic angle calculation 
-    for targets that transit very close to zenith, for whcih the field rotation rate gets up to several degrees per exposure. 
-    This version of the pipeline more carefully compensates for the time offset between FITS header writing 
-    and the midpoint of the frame exposure time, and as a result yields more accurate astrometry for exposures very close to zenith. 
-    We recommend reprocessing earlier data with this current version of the pipeline if your target passes within 5-10 deg of zenith. 
+.. admonition:: After upgrading, you must reindex your calibration database
+
+    The Calibration Database now indexes some additional fields, in particular
+    telescope elevation which is now used when matching wavelength calibration
+    files. As a result, *after upgrading to version 1.3 of the pipeline you
+    must rescan the calibration database to reindex the FITS headers*, or the
+    pipeline will not operate properly.  Just press the "Rescan Calibration
+    Database" button in the Status Console after you have updated and restarted
+    the pipeline. 
+
+.. admonition:: After upgrading, you must download an updated distortion correction calibration file
+
+    Improvements in the distortion correction algorithm necessitated an
+    accompanying update to the file of polynomial coefficients used to describe
+    the measured distortion. *Users will need to download an updated distortion
+    correction file for use with version 1.3*.  The Correct Distortion
+    primitive will not work with the older calibration file and will raise an
+    error. The updated file should be obtainable from the `Gemini GPI public
+    data page <http://www.gemini.edu/sciops/instruments/gpi/public-data>`_.
+
+.. admonition:: Improvements in astrometry near zenith 
+
+    Prior versions of the pipeline have been subject to some biases in
+    parallactic angle calculation for targets that transit very close to
+    zenith, for which the field rotation rate can be up to several degrees per
+    exposure.  This version of the pipeline more carefully compensates for the
+    time offset between FITS header writing and the midpoint of the frame
+    exposure time, and as a result yields more accurate astrometry for
+    exposures very close to zenith.  *We recommend reprocessing earlier data
+    with this current version of the pipeline if your target passes within 5-10
+    deg of zenith, particularly if you are comparing astrometry across multiple
+    epochs for e.g. proper motion confirmation.* 
 
 
-.. note::
-
-    The Calibration Database now indexes some additional fields, in particular telescope elevation which is now used when matching
-    wavelength calibration files. As a result, after upgrading to version 1.3 of the pipeline you **must** rescan 
-    the calibration database to reindex the database, or the pipeline will not operate properly. 
-    Just press the "Rescan Calibration Database" button in the Status Console after you have updated and restarted pipeline. 
-
- 
 * Enhancements/Additions to primitives and recipes:
 
   * Remove Persistence primitive algorithm improvements to better handle UTR mode and coadds.  (Ingraham)
