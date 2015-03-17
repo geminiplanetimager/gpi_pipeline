@@ -6,7 +6,7 @@ Release Notes
 
 You may wish to skip ahead to  :ref:`configuring`.  
 
-The next release of the GPI pipeline will probably be sometime September-ish after the final commissioning run, for use in 2014B. 
+The next release of the GPI pipeline will probably be in Fall 2015. 
 
 .. _version1.3.0:
 
@@ -68,8 +68,6 @@ Released 2015 March, for Gemini 2015A
   * Updated parallelization options to "Filter Datacube Spatially" (Ingraham)
   * New recipe to make low-frequency filtered flat fields in polarization mode. (Millar-Blanchaer)
 
-
-
 * Enhancements to instrument characterization
 
   * Improved algorithms for calculating time-averaged parallactic angles very near zenith, where fields are very rapidly rotating. 
@@ -88,7 +86,8 @@ Released 2015 March, for Gemini 2015A
   * Updated the gpitv contrast plot to display the wavelength of the slice when only one slice's contrast is plotted. (Wolff)
   * New display mode for Q and U Stokes parameters normalized by total intensity (Millar-Blanchaer)
   * For at Gemini South, fix Browse Files window's buttons for "Today's Raw Data" and "Today's Reduced Data" (Ingraham)
-  * For at Gemini South, fix GPItv file dialogs to avoid trying to list the tens of thousands of files in the /dhs/perm directory. 
+  * For at Gemini South, fix GPItv file dialogs to avoid trying to list the tens of thousands of files in the /dhs/perm directory.
+  * Removed contrast plots from SNR map mode for clarity (Ingraham)
 
 * Recipe Editor, Data Parser, Autoreducer GUIs: 
 
@@ -111,6 +110,8 @@ Released 2015 March, for Gemini 2015A
   * Additions to FAQ: Answer question about pipeline log problems due to IDL license server issues (Perrin)
   * Added documentation for new Save Accumulated Stack primitive (Millar-Blanchaer)
   * Updated recipe editor docs to reflect UI changes (Savransky)
+  * Improved documentation about flux-conserving distortion correction (Perrin)
+  * Added gallery of example artifacts in GPI data (De Rosa, Perrin)
 
 * Miscellaneous bug fixes and minor tasks:
 
@@ -127,7 +128,8 @@ Released 2015 March, for Gemini 2015A
   * Fix spelling mistakes in a few primitives (Ingraham)
   * Added parallelized version of high pass filter algorithm, which can save a few seconds in some circumstances for GPItv or 
     Filter Datacube Spatially primitive (Perrin). But also avoid trying the parallelized version at the Gemini South summit since the IDL license
-    server there is very slow to start parallel sessions so it's actually slower  (Perrin). 
+    server there is very slow to start parallel sessions so it's actually slower  (Perrin).
+  * Added wait when copying xml files to ensure that copy completes before loading file (Ingraham)
 
 * Other
 
