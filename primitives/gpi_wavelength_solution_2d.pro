@@ -500,7 +500,7 @@ endif
 ; about the new wavelength calibration. 
 
 
-backbone->set_keyword, "FILETYPE", "Wavelength Solution Cal File"
+backbone->set_keyword, "FILETYPE", "Wavelength Solution Cal File (Deep)"
 backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
 
 sxaddpar,*dataset.headersExt[numfile],'NAXIS',3

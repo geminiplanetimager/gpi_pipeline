@@ -182,9 +182,11 @@ PRO gpiPipelineBackbone::Cleanup
     OBJ_DESTROY, Self.ConfigParser
     OBJ_DESTROY, self.statuswindow
 
-
-    if obj_valid(self.launcher) then begin
-        self.launcher->queue, 'quit' ; kill the other side of the link, too
+	if obj_valid(self.launcher) then begin
+		; Let's no longer automatically shutdown the GUIs session. 
+		; Requested by users to keep the other session up.
+		; See issue https://rm.planetimager.org/issues/453
+		;    self.launcher->queue, 'quit' ; kill the other side of the link, too
         obj_destroy, self.launcher ; kill this side.
     endif
 
@@ -1247,9 +1249,14 @@ pro gpiPipelineBackbone::rescan_Config
 		endif else begin
 			self->Log, "Compilation error encountered for "+config.names[i]+" in file "+config.idlfuncs[i]
 		endelse
+		catch,/cancel
 	endfor
 	statusmessage = 'Refreshed all '+strc(n_elements(config.idlfuncs))+' available pipeline primitive procedures.'
 	self->Log, statusmessage
+
+	tmp = gpi_lookup_template_filename('placeholder',/scanonly,/verbose)
+	self->Log, "Rescanned available recipe templates"
+
 	if obj_valid(self.statuswindow) then self.statuswindow->update, [{name:statusmessage}], 0, n_elements(config.idlfuncs), 0, ""
 
 

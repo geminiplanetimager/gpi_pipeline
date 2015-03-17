@@ -42,6 +42,7 @@
 ; PIPELINE ARGUMENT: Name="xoffset" Type="Int" Range="[-10,10]" Default="0" Desc="x offset guess from prior wavecal."
 ; PIPELINE ARGUMENT: Name="yoffset" Type="Int" Range="[-20,20]" Default="0" Desc="y offset guess from prior wavecal."
 ; PIPELINE ARGUMENT: Name="whichpsf" Type="Int" Range="[0,1]" Default="0" Desc="Type of psf 0;gaussian, 1;microlens"
+; PIPELINE ARGUMENT: Name="high_order_correction" Type="Int" Range="[0,1]" Default="1" Desc="Higher order flexure offsets? 0; No, 1; Yes"
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type='String' CalFileType="wavecal" Default="AUTOMATIC" Desc="Filename of the desired wavelength calibration file to be read"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="AutoOffset" Type="int" Range="[0,1]" Default="0" Desc="Automatically determine x/yoffset values 0;NO, 1;YES"
@@ -61,7 +62,7 @@ compile_opt defint32, strictarr, logical_predicate
 ; don't edit the following line, it will be automatically updated by subversion:
 primitive_version= '$Id$' ; get version from subversion to store in header history
 
-calfiletype='wavecal'
+calfiletype='wavecal_deep'
 
 ; the following line sources a block of code common to all primitives
 ; It loads some common blocks, records the primitive version in the header for
@@ -80,6 +81,7 @@ calfiletype='wavecal'
  	if tag_exist( Modules[thisModuleIndex], "xoffset") then xoffset=float(Modules[thisModuleIndex].xoffset) else xoffset=0
  	if tag_exist( Modules[thisModuleIndex], "yoffset") then yoffset=float(Modules[thisModuleIndex].yoffset) else yoffset=0
  	if tag_exist( Modules[thisModuleIndex], "whichpsf") then whichpsf=uint(Modules[thisModuleIndex].whichpsf) else whichpsf=0
+	if tag_exist( Modules[thisModuleIndex], "higher_order_correction") then higher_order_correction=uint(Modules[thisModuleIndex].higher_order_correction) else higher_order_correction=1
  	if tag_exist( Modules[thisModuleIndex], "AutoOffset") then AutoOffset=uint(Modules[thisModuleIndex].AutoOffset) else AutoOffset=0
 
 
@@ -101,6 +103,8 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
 	backbone->set_keyword, "HISTORY", functionname+": get wav. calibration file",ext_num=0
         backbone->set_keyword, "HISTORY", functionname+": "+c_File,ext_num=0
         backbone->set_keyword, "DRPWVCLF", c_File, "DRP wavelength calibration file used.", ext_num=0
+
+		backbone->Log, "Using reference wavecal: "+c_File, depth=3
 				
 ;		message,/info, 'Calculating offests from wavelength calibration file '+c_file
 
@@ -193,12 +197,19 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
 
            simarray=ngauss(x,y,ngausspars)
 
-           corrmat_analyze, CORREL_IMAGES(rawarray,simarray,xshift=3,yshift=3),xoffset_auto,yoffset_auto,/print
+           corrmat_analyze, CORREL_IMAGES(rawarray,simarray,xshift=5,yshift=5),xoffset_auto,yoffset_auto,/print
 
            backbone->Log, "Applying a prelimiinary shift of (X,Y) = ("+strc(xoffset_auto)+", "+strc(yoffset_auto)+")"
 
         endif
 
+     if AutoOffset EQ 1 then begin
+         refwlcal[*,*,1]+=xoffset_auto
+         refwlcal[*,*,0]+=yoffset_auto
+     endif else begin
+         refwlcal[*,*,1]+=xoffset
+         refwlcal[*,*,0]+=yoffset
+     endelse 
 
 
 istart=0
@@ -216,16 +227,12 @@ numiterations = float(iend-istart)*(iend-istart)/(spacing^2)
 
 for i = istart,iend,spacing do begin
 	for j = jstart,jend,spacing do begin
+
            xo=refwlcal[i,j,1]
            yo=refwlcal[i,j,0]
 
-           if AutoOffset EQ 1 then begin
-              startx=floor(xo-boxsizex/2.0)+xoffset_auto
-              starty=round(yo)-20+yoffset_auto
-           endif else begin
-              startx=floor(xo-boxsizex/2.0)+xoffset
-              starty=round(yo)-20+yoffset
-           endelse 
+           startx=floor(xo-boxsizex/2.0)
+           starty=round(yo)-20
            stopx = startx+boxsizex
            stopy = starty+boxsizey
 
@@ -312,9 +319,6 @@ for i = istart,iend,spacing do begin
 	; now we compare the properties derived for the subset of lenslets we just fit, 
 	; versus the existing properties of the prior wavecal
 
-; ##### BEGIN TESTING
-
-
 ; create mask of nans/finite values
 mask=bytarr(281,281)
 all_inds=where(finite(refwlcal[*,*,0]),complement=bad)
@@ -322,6 +326,19 @@ mask[all_inds]=1
 
 ; create a 2d image of the measured differences between the
 ; original wavecal and the centroids from the argon snapshot
+
+; Now remove the auto-offset to make the shifts reflect the correct
+; values.
+
+if AutoOffset EQ 1 then begin
+      refwlcal[*,*,1]-=xoffset_auto
+      refwlcal[*,*,0]-=yoffset_auto
+endif else begin
+      refwlcal[*,*,1]-=xoffset
+      refwlcal[*,*,0]-=yoffset
+endelse 
+
+
 ydiffs2d = (newwavecal[*,*,0]) - (refwlcal[*,*,0])
 xdiffs2d = (newwavecal[*,*,1]) - (refwlcal[*,*,1])
 
@@ -341,8 +358,14 @@ ydiffs2d[missing_ind]=!values.f_nan
 ; so we want a box that is at LEAST 30 pixels, 
 ; then smooth the image to remove the "boxs" seen from the median
 ; filtering
+
+if keyword_set(higher_order_correction) eq 1 then begin
 xim1=filter_image(xdiffs2d,median=65,/all,smooth=31)*mask
 yim1=filter_image(ydiffs2d,median=65,/all,smooth=31)*mask
+endif else begin
+xim1=median(xdiffs2d*mask)*mask
+yim1=median(ydiffs2d*mask)*mask
+endelse
 
 xim1[bad]=!values.f_nan
 yim1[bad]=!values.f_nan
@@ -350,13 +373,16 @@ yim1[bad]=!values.f_nan
 ydiffs = (newwavecal[*,*,0] - refwlcal[*,*,0] - yim1)[wg]
 xdiffs = (newwavecal[*,*,1] - refwlcal[*,*,1] - xim1)[wg]
 
+
 ; replacing with clipped values
 meanclip,xim1,mnx,sdx,clipsig=2,subs=xsubs
 meanclip,yim1,mny,sdy,clipsig=2,subs=ysubs
 
+
+
 backbone->Log, "Mean shifts (X,Y) of this file vs. old wavecal: "+printcoo(mnx, mny, format='(f20.3)')+" pixels,   +- "+printcoo(sdx,sdy,format='(f20.3)')+" pixels 1 sigma"
 
-        if ((sdx GE 1.0) OR (sdy GE 1.0)) then backbone->Log, "WARNING: Errors in the pixel shifts are more than a pixel."
+        if ((sdx GE 0.3) OR (sdy GE 0.3)) then backbone->Log, "WARNING: Errors in the pixel shifts are more than a pixel."
 
 	if display ne -1 then begin
 		if display eq 0 then window,/free,/retain else select_window, display,retain=1
@@ -394,7 +420,7 @@ xposition=shiftedwavecal[140,140,1]
 absxshift=xposition-referencex
 absyshift=yposition-referencey
 
-backbone->set_keyword, "FILETYPE", "Wavelength Solution Cal File"
+backbone->set_keyword, "FILETYPE", "Wavelength Solution Cal File (Quick)"
 backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
 
 sxaddpar,*dataset.headersExt[numfile],'NAXIS',3
