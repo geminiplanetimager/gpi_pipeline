@@ -535,6 +535,11 @@ if numfile  eq ((dataset.validframecount)-1) then begin
     endfor
 suffix=suffix0 
       *(dataset.currframe[0])=imt
+
+	 backbone->set_keyword, 'PSFSUB', 'GPI DRP ADI+LOCI', 'PSF subtraction via ADI with LOCI'
+	 backbone->set_keyword, 'PSFPARAM', 'nfwhm='+strc(nfwhm)+' coeff_type='+strc(coeff_type)
+
+
     ;  *(dataset.headers[n])=header
 ;    if ( Modules[thisModuleIndex].Save eq 1 ) then begin
 ;        numfile=n

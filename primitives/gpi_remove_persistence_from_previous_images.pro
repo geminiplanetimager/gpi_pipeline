@@ -38,7 +38,14 @@
 ;
 ;	WARNING: Persistence removal does not (yet) work with COADDED images!
 ;
-;	The manual_UTEND keyword allows the user to manually set the UTEND keyword in the image that is taken in closest time to the image being reduced. This is important because sometimes when changing modes or exposure times quickly, the CAL exit shutter can remain open so light will continue hitting the detector past the UTEND time. Users should note that this is generally occurs only for polarimetry snapshots after long spectral sequences (taken in the same band).
+;	The manual_dt keyword allows the user to manually offset the UTEND keyword in 
+;	the image that is taken in closest time to the image being reduced 
+;	(and therefore probably the dominent persisting image). This is 
+;	important because sometimes when changing modes or exposure times quickly, 
+;	the CAL exit shutter can remain open so light will continue hitting the
+;	detector past the UTEND time. Users should note that this is generally
+;	occurs only for polarimetry snapshots after long spectral sequences
+;	(taken in the same band).
 ;
 ; INPUTS: Raw or destriped 2D image
 ; OUTPUTS: 2D image corrected for persistence of previous non-saturated images
@@ -48,7 +55,7 @@
 ;
 ; PIPELINE COMMENT: Determines/Removes persistence of previous images
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="String" CalFileType="persis" Default="AUTOMATIC" Desc="Filename of the persistence_parameter file to be read"
-; PIPELINE ARGUMENT: Name="manual_dt" Type="float" Range="[0,600]" Default="0" Desc="Manual input for time (in seconds) since last persisting file - see help for details"
+; PIPELINE ARGUMENT: Name="manual_dt" Type="float" Range="[0,600]" Default="0" Desc="Manual offset for time (in seconds) since last persisting file - see help for details"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display " 
 ; PIPELINE ORDER: 1.2
@@ -108,18 +115,18 @@ current_files =FILE_SEARCH(searchpattern,/FOLD_CASE, count=count)
 time0=systime(1,/seconds)
 UTEND_arr=strarr(N_ELEMENTS(current_files))
 for f=0, N_ELEMENTS(current_files)-1 do begin
-; check to make sure its actually a fits file with 2 extensions
-fits_info,current_files[f],n_ext=n_ext,/silent
-if n_ext[0] eq -1 then continue
+    ; check to make sure its actually a fits file with 2 extensions
+    fits_info,current_files[f],n_ext=n_ext,/silent
+    if n_ext[0] eq -1 then continue
 
-   tmp_hdr=headfits(current_files[f],ext=0)
-   ; incase there is some header issue or it grabbed some weird file
-   if string(tmp_hdr[0]) eq '-1' then continue
-   time_str=sxpar(tmp_hdr,'UTEND')
-	; incase there is no UTEND keyword
-   if string(time_str[0]) eq 0 then continue
-   ; put UTEND in seconds
-   UTEND_arr[f]=float(strmid(time_str,0,2))*3600+$ ; UTEND in seconds
+    tmp_hdr=headfits(current_files[f],ext=0)
+    ; incase there is some header issue or it grabbed some weird file
+    if string(tmp_hdr[0]) eq '-1' then continue
+    time_str=sxpar(tmp_hdr,'UTEND')
+ 	; incase there is no UTEND keyword
+    if string(time_str[0]) eq 0 then continue
+    ; put UTEND in seconds
+    UTEND_arr[f]=float(strmid(time_str,0,2))*3600+$ ; UTEND in seconds
                 float(strmid(time_str,3,2))*60+$
                    float(strmid(time_str,6,2))
 endfor
@@ -136,17 +143,17 @@ UTEND_arr-=UTSTART_sec
 ind=where(UTEND_arr lt 0 and UTEND_arr gt -600)
 ; determine if correction is necessary
 if ind[0] eq -1 then begin
-   backbone->set_keyword, "HISTORY", "No persistence correction applied, no images taken within 600s are found in the same directory"
-   message,/info, "No persistence correction applied, no images taken within 600s are found in the same directory"
-   return, ok
+    backbone->set_keyword, "HISTORY", "No persistence correction applied, no images taken within 600s are found in the same directory"
+    message,/info, "No persistence correction applied, no images taken within 600s are found in the same directory"
+    return, ok
 endif
 
 ; manually adjust UTEND for last file if desired
 if keyword_set(manual_dt) then begin
-; adjust the most recent UTEND time (which is now a delta time since the current exposure) to the user defined value
-junk=min(abs(UTEND_arr[ind]),min_ind,/nan)
-message,/info,"Forcing the manual time offset between science image and "+strc(current_files[ind[min_ind]])
-UTEND_arr[ind[min_ind]]=-abs(manual_dt)
+    ; adjust the most recent UTEND time (which is now a delta time since the current exposure) to the user defined value
+    junk=min(abs(UTEND_arr[ind]),min_ind,/nan)
+    message,/info,"Forcing the manual time offset between science image and "+strc(current_files[ind[min_ind]])
+    UTEND_arr[ind[min_ind]]=-abs(manual_dt)
 endif
 
 ; apply correction
@@ -155,43 +162,43 @@ persis_params = gpi_readfits(c_File,header=Header)
 persis=fltarr(2048,2048)
 tmp_model=fltarr(2048,2048)
 for f=0, N_ELEMENTS(ind)-1 do begin
-   ; skip if the file is itself
-   if current_files[ind[f]] eq filename then continue 
-   im=mrdfits(current_files[ind[f]],1,tmp_hdr,/silent)
-   ; get gain and itime
-   gain=sxpar(tmp_hdr,'SYSGAIN')
-   itime=sxpar(tmp_hdr,'ITIME')
-; input must be in electrons, time in seconds
-; we care about how many electrons were on the detector between
-; resets, not the reads. time between resets and reads is 1.45479
-; seconds
-; for the amount of time since exposure to stimulus
-
-; regarding the amount of time since stimulus, we actually want the
-; time since the stimulus, plus an amount of time such that the
-; persistence function at that time corresponds to the average
-; persistence  over the exposure time
-
-; Unfortunately, the time that signifies the rate is not necessarily in
-; the middle, but is dependent upon the exponent, one can determine
-; this time using the following equation
-
-; this is derived from (t2-t1)*P(tx)=integral(P(t)*dt) evaluated from
-; t1 to t2, where P(t)=N*(t/1000)^(-a), where a is the exponential decline
-
-; t1 is the time of the first read, t2 the last read
-; so T1=UTSTART+0.964(reset time?)+clock_time
-
-T1 =abs(UTEND_arr[ind[f]])	; UTEND (time of last read of the loaded persisting 
-							; file since the RESET for this science image)
-
-T2=T1+itime
-gamma=median(persis_params[*,*,4])
-; this is the average persistence over a time interval
-tx= 1000.0d0*([1000/(1.0-gamma)* [ (t2/1000)^(1.0-gamma) - ((t1/1000)^(1.0-gamma))]/(t2-t1)])^(-1d0/gamma)
-
-tmp_model=persistence_model(im*gain/itime*(itime+2*1.454790),tx[0],persis_params)
-
+    ; skip if the file is itself
+    if current_files[ind[f]] eq filename then continue 
+    im=mrdfits(current_files[ind[f]],1,tmp_hdr,/silent)
+    ; get gain and itime
+    gain=sxpar(tmp_hdr,'SYSGAIN')
+    itime=sxpar(tmp_hdr,'ITIME')
+    ; input must be in electrons, time in seconds
+    ; we care about how many electrons were on the detector between
+    ; resets, not the reads. time between resets and reads is 1.45479
+    ; seconds
+    ; for the amount of time since exposure to stimulus
+    
+    ; regarding the amount of time since stimulus, we actually want the
+    ; time since the stimulus, plus an amount of time such that the
+    ; persistence function at that time corresponds to the average
+    ; persistence  over the exposure time
+    
+    ; Unfortunately, the time that signifies the rate is not necessarily in
+    ; the middle, but is dependent upon the exponent, one can determine
+    ; this time using the following equation
+    
+    ; this is derived from (t2-t1)*P(tx)=integral(P(t)*dt) evaluated from
+    ; t1 to t2, where P(t)=N*(t/1000)^(-a), where a is the exponential decline
+    
+    ; t1 is the time of the first read, t2 the last read
+    ; so T1=UTSTART+0.964(reset time?)+clock_time
+    
+    T1 =abs(UTEND_arr[ind[f]])	; UTEND (time of last read of the loaded persisting 
+    							; file since the RESET for this science image)
+    
+    T2=T1+itime
+    gamma=median(persis_params[*,*,4])
+    ; this is the average persistence over a time interval
+    tx= 1000.0d0*([1000/(1.0-gamma)* [ (t2/1000)^(1.0-gamma) - ((t1/1000)^(1.0-gamma))]/(t2-t1)])^(-1d0/gamma)
+    
+    tmp_model=persistence_model(im*gain/itime*(itime+2*1.454790),tx[0],persis_params)
+    
 
 
 	; ##################################
@@ -220,28 +227,30 @@ tmp_model=persistence_model(im*gain/itime*(itime+2*1.454790),tx[0],persis_params
 	
 	endfor
 
-; Calculate the UTR with weights
-;    #For this document, weights are how much the frame is multipied times. The "weigted effect" of any individual
-;    ## group becomes W{i} / W{total}. This is done to correspond to the C# code for easier understanding.
-;    w_total = 0
-;    result = numpy.zeros((2048,2048))
-;    #Make sure the array is a numpy.array
-;    #if type(image_array) != numpy.array:
-;    #    image_array = numpy.array(image_array)
-;    #Calculate the total weights
-;    for i in range(0,len(image_array)):
-;        w_total += (i*(len(image_array)-i))
-;    #Calculate a group, then multipy by the weight for that frame / total weight
-;    for i in range(1,len(image_array)):
-;        if destripe == True:
-;            raise Excpetion("Not Implimented")
-;            result += refHorizonDeStripe(refVertChanMedian(image_array[i] - image_array[i-1])*(i*(len(image_array)-i)))/w_total*(len(image_array)-1)
-;        else:
-;            result += (image_array[i] - image_array[i-1])*(i*(len(image_array)-i))/w_total*(len(image_array)-1)
-;	    return refVertChanMedian(result)
-
-; #################
-
+;	 ###################
+; this is the original C? script that was translated...
+    ; Calculate the UTR with weights
+    ;    #For this document, weights are how much the frame is multipied times. The "weigted effect" of any individual
+    ;    ## group becomes W{i} / W{total}. This is done to correspond to the C# code for easier understanding.
+    ;    w_total = 0
+    ;    result = numpy.zeros((2048,2048))
+    ;    #Make sure the array is a numpy.array
+    ;    #if type(image_array) != numpy.array:
+    ;    #    image_array = numpy.array(image_array)
+    ;    #Calculate the total weights
+    ;    for i in range(0,len(image_array)):
+    ;        w_total += (i*(len(image_array)-i))
+    ;    #Calculate a group, then multipy by the weight for that frame / total weight
+    ;    for i in range(1,len(image_array)):
+    ;        if destripe == True:
+    ;            raise Excpetion("Not Implimented")
+    ;            result += refHorizonDeStripe(refVertChanMedian(image_array[i] - image_array[i-1])*(i*(len(image_array)-i)))/w_total*(len(image_array)-1)
+    ;        else:
+    ;            result += (image_array[i] - image_array[i-1])*(i*(len(image_array)-i))/w_total*(len(image_array)-1)
+    ;	    return refVertChanMedian(result)
+    
+    ; #################
+    
 
 	; new way finds the rates for every read - then subtracts the mean rate from the rate in the image
 	;dtime=findgen(round(itime/1.45479))*1.45479

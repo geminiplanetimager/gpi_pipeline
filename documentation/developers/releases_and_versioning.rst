@@ -34,19 +34,33 @@ The first step in making a new release version is to increment the version numbe
 
 Even though zip files do not yet exist at this point, you may wish to add placeholder links to the downloads pages. ::
 
-        shell>  emacs documentation/install/install_from_zips.rst
-        shell>  emacs documentation/install/install_from_source.rst
+        shell>  emacs documentation/installation/install_from_zips.rst
+        shell>  emacs documentation/installation/install_from_repos.rst
         shell>  svn commit documentation -m "add download links for version XX.YY"
 
-Then update the public branch::
+If you haven't already, check out the public branch to your computer, and copy the external directory into the same place so that you can
+easily package it::
 
-        shell> cd repository/pipeline/branches/public
-        shell> svn merge https://repos.seti.org/gpi/pipeline/trunk
+        shell>svn checkout https://repos.seti.org/gpi/pipeline/branches/public public/pipeline
+	shell>svn checkout https://repos.seti.org/gpi/external/trunk public/external
 
-You may possibly have to deal with and resolve conflicts if there are any at this point. Hopefully not. Any files that should be excluded from
-the public release can be removed from the public branch at this point.  Then commit the public branch::
+Then, update the public release to the current version::	
 
-        shell> svn commit -m "Merged changes from trunk to public branch"
+        shell>cd public/pipeline
+	shell>svn merge https://repos.seti.org/gpi/pipeline/trunk
+
+You may possibly have to deal with and resolve conflicts if there are any at this point. Any file that has been updated since the last
+release AND is not included in the public directory will probably appear as a conflict. You will have to resolve these before
+proceeding. Check the conflicts against the list of files in exclude_from_releases.txt. If the file is on the exclude
+list and is appearing as a conflict try::
+
+       shell>svn resolve --accept working filename
+
+where filename is the file in conflict. This will accept the (nonexistant) file in your local public directory.
+
+After resolving conflicts, you should double check that none of the files in the exclude list remain in the public directory. It's painstaking, but necessary as sometimes one or two slip through. Then commit the public branch::
+
+        shell> svn commit -m "Merged changes from trunk to public branch for version XX.YY"
  
 The next step is to tag the released version in subversion. 
 This is done by svn copying the relevant trunk directories into appropriate tags  directories, under both ``pipeline`` and ``external``::

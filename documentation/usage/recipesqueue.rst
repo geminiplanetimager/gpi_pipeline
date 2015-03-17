@@ -139,5 +139,6 @@ It's of course possible come up with nonsensical combinations of primitives,
 for instance trying to use an ADI primitive before accumulating multiple input images. 
 Such recipes will almost certainly fail. 
 
+Typically the final product of your recipe will be a single datacube that is the result of some sort of combination of your accumulated images. If, however,  you would like to save the intermittent results of primitives applied to the accumulated images before this combination you may use the primitive :ref:`Save Accumulated Stack <SaveAccumulatedStack>`. Place this primitive after the primitive whose results you wish to save and it will save to disk the current state of the accumulated images. 
 
 

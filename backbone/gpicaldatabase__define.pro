@@ -450,6 +450,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
                     ['dark_before', 'Dark', 'ApproxItimeReadmodeBefore'], $  ;  dark with scaling of inttime allowed, PRIOR TO science frame
                     ['dark_after', 'Dark', 'ApproxItimeReadmodeAfter'], $  ;  dark with scaling of inttime allowed, AFTER science frame
                     ['dark_exact', 'Dark', 'itimeReadmode'],  $            ;  dark with exact match required
+                    ['linearization', 'Detector linear coeffs', 'typeonly'], $
                     ['wavecal', 'Wavelength Solution Cal File', 'FiltPrism'], $
                     ['wavecal_deep', 'Wavelength Solution Cal File (Deep)', 'FiltPrism'], $
                     ['wavecal_quick', 'Wavelength Solution Cal File (Quick)', 'FiltPrism'], $
@@ -666,7 +667,6 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	if keyword_set(verbose) then self->Log, "Closest date offset is "+strc(timediff),depth=3
         
 
-
 	; If we are matching a wavecal, always return the closest in time without
 	; any other considerations. This is because we may be trying to match
 	; multiple wavecals taken during the night to measure the IFS internal flexure.
@@ -674,13 +674,17 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
                                 ; Choose all wavecals taken within two
                                 ; hours and choose the one with the
                                 ; closes elevation
-                within2hr = where(abs( (calfiles_table.JD)[imatches] - ((calfiles_table.JD)[imatches])[minind] ) le 0.08333, datecount)
-                elevations =  float(((calfiles_table[imatches])[within2hr]).elevation)
+                within2hr = where(abs( (calfiles_table.JD)[imatches] - date) le 0.08333, datecount)
+                if datecount gt 1 then begin
+                     elevations =  float(((calfiles_table[imatches])[within2hr]).elevation)
               
-                closest_elev_diff = min( abs(elevations-float(elevation)), eclosest)
-		closest_elev = elevations[eclosest]
-              
-		ibest = (imatches[within2hr])[eclosest]
+                     closest_elev_diff = min( abs(elevations-float(elevation)), eclosest)
+                     closest_elev = elevations[eclosest]
+                     self->Log, "Closest wavecal elevation: "+sigfig(closest_elev,3),depth=3
+                     ibest = (imatches[within2hr])[eclosest]
+                  endif else begin
+                     ibest = imatches[minind]
+                  endelse
 		bestcalib=(calfiles_table.PATH)[ibest]+path_sep()+(calfiles_table.FILENAME)[ibest]
 		;print, bestcalib
 		self->Log, "Returning best cal file= "+bestcalib,depth=3

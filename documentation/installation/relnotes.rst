@@ -6,8 +6,137 @@ Release Notes
 
 You may wish to skip ahead to  :ref:`configuring`.  
 
-The next release of the GPI pipeline will probably be sometime September-ish after the final commissioning run, for use in 2014B. 
+The next release of the GPI pipeline will probably be in Fall 2015. 
 
+.. _version1.3.0:
+
+Version 1.3.0
+=========================================
+Released 2015 March, for Gemini 2015A
+
+
+
+.. admonition:: After upgrading, you must reindex your calibration database
+
+    The Calibration Database now indexes some additional fields, in particular
+    telescope elevation which is now used when matching wavelength calibration
+    files. As a result, *after upgrading to version 1.3 of the pipeline you
+    must rescan the calibration database to reindex the FITS headers*, or the
+    pipeline will not operate properly.  Just press the "Rescan Calibration
+    Database" button in the Status Console after you have updated and restarted
+    the pipeline. 
+
+.. admonition:: After upgrading, you must download an updated distortion correction calibration file
+
+    Improvements in the distortion correction algorithm necessitated an
+    accompanying update to the file of polynomial coefficients used to describe
+    the measured distortion. *Users will need to download an updated distortion
+    correction file for use with version 1.3*.  The Correct Distortion
+    primitive will not work with the older calibration file and will raise an
+    error. The updated file should be obtainable from the `Gemini GPI public
+    data page <http://www.gemini.edu/sciops/instruments/gpi/public-data>`_.
+
+.. admonition:: Improvements in astrometry near zenith 
+
+    Prior versions of the pipeline have been subject to some biases in
+    parallactic angle calculation for targets that transit very close to
+    zenith, for which the field rotation rate can be up to several degrees per
+    exposure.  This version of the pipeline more carefully compensates for the
+    time offset between FITS header writing and the midpoint of the frame
+    exposure time, and as a result yields more accurate astrometry for
+    exposures very close to zenith.  *We recommend reprocessing earlier data
+    with this current version of the pipeline if your target passes within 5-10
+    deg of zenith, particularly if you are comparing astrometry across multiple
+    epochs for e.g. proper motion confirmation.* 
+
+
+* Enhancements/Additions to primitives and recipes:
+
+  * Remove Persistence primitive algorithm improvements to better handle UTR mode and coadds.  (Ingraham)
+  * Remove Persistence primitive gains keyword parameter to manually override the end time of the previous exposure, if necessary. (Ingraham)
+  * updated contrasts in GPITV and the Measure Contrast to use precisely the same algorithm for individual slices. Also modified the plotting 
+    colors and labels for clarity. Also updated default slice in Measure Contrast changed plot legend to make it easier to read. (Ingraham)
+  * New primitive "Save Accumulated Stack" to save all images at once in a batch, for instance after PSF subtraction. (Millar-Blanchaer)
+  * Updates to high pass filtering in quicklook spectral recipe (Ingraham)
+  * Bug fix to "Interpolate Bad Pixels in 2D frames" to avoid dividing by zero causing NANs in final image products under some circumstances (Wolff).
+  * Improved algorithm for "Correct Distortion" primitive that conserves flux when resampling (Fitzgerald, Konopacky). 
+  * For "Quick Wavelength Solution", better constrained the allowed x/y shifts in the initial cross correlation of old and new wavecals. (Wolff)
+  * Added error checking for suitable input files to "Flexure Cross Correlation with Polcal" (Millar-Blanchaer)
+  * Updated "Contrast Measurement" recipe template to measure contrast from all wavelengths (Follette)
+  * Algorithm improvement to "Combine 2D Dark Images" for better read noise estimation on coadded images (Follette)
+  * Added keywords to "Subtract Mean Stellar Polarization" to allow fine-tuning the region used for estimating stellar polarization. (Hung)
+  * Updated parallelization options to "Filter Datacube Spatially" (Ingraham)
+  * New recipe to make low-frequency filtered flat fields in polarization mode. (Millar-Blanchaer)
+
+* Enhancements to instrument characterization
+
+  * Improved algorithms for calculating time-averaged parallactic angles very near zenith, where fields are very rapidly rotating. 
+    Provides improved astrometric precision for exposures on objects transiting near zenith as noted above. (Nielsen)
+  * Rotation matrices for World Coordinate System headers and other uses are now all derived from 
+    AVPARANG (the time-averaged parallactic angle over the course of the exposure computed by this pipeline)
+    instead of PAR_ANG (the instantaneous parallactic angle at the time when the Gemini Data System saved state 
+    for the FITS header, several seconds before the exposure actually started). (Nielsen)
+
+
+* GPItv enhancements and bug fixes:
+
+  * New "Create SNR Map" option added to cube display drop-down menu. This normalizes the displayed image by the measured contrast curve, with the goal of making point sources equally visually apparent on a single image stretch regardless of separation from the central star. Note this is a quick convenience mode only, and is not intended as a publication-quality assessment of the significance of any particular detection!  (Ingraham)
+  * Low pass filter option added to enable smoothing of background noise. Select "Low Pass Filter" option from the cube display drop-down menu. Right now the low pass filter size is hard-coded to use the typical GPI PSF FWHM for each of the filters. (Ingraham)
+  * Avoid displaying unnecessary flexure plot when overplotting wavecals in GPItv (Ingraham)
+  * Updated the gpitv contrast plot to display the wavelength of the slice when only one slice's contrast is plotted. (Wolff)
+  * New display mode for Q and U Stokes parameters normalized by total intensity (Millar-Blanchaer)
+  * For at Gemini South, fix Browse Files window's buttons for "Today's Raw Data" and "Today's Reduced Data" (Ingraham)
+  * For at Gemini South, fix GPItv file dialogs to avoid trying to list the tens of thousands of files in the /dhs/perm directory.
+  * Removed contrast plots from SNR map mode for clarity (Ingraham)
+
+* Recipe Editor, Data Parser, Autoreducer GUIs: 
+
+  * Data Parser code split in two (parsergui for the widget user interface, parsercore for the actual recipe generation logic), to better enable the
+    data parsing algorithms to be called as a subroutine from other codes. See example code in parsercore__define for usage. Added infrastructure 
+    classes for file sets and added functionality to Recipe/DRF class to support this. (Perrin)
+  * Data Parser now also outputs Low Frequency Flat Field recipe for polarization flats (Millar-Blanchaer)
+  * Bug fix for an unusual edge-case issue with FITS keywords when loading reduced files from the Calibrations directory directly into the Recipe Editor (Ingraham)
+  * Autoreducer options for manually adjusting wavecal position now can also be used to adjust polcals (Millar-Blanchaer)
+  * Improvements to Recipe Editor GUI to better display template names when opening existing recipes, and generally improve the user interface for selecting a new recipe template (Savransky)
+
+* Infrastructure improvements
+
+  * Improved calibration database algorithm for selection of wavecal to choose wavecals that are closest in both
+    time and telescope elevation, preferring the quick wavecals taken just before each science sequence (Wolff). 
+  * Added detector linearization calibration file type to Calibraton DB
+
+* Improved documentation and tutorials
+
+  * Additions to FAQ: Answer question about pipeline log problems due to IDL license server issues (Perrin)
+  * Added documentation for new Save Accumulated Stack primitive (Millar-Blanchaer)
+  * Updated recipe editor docs to reflect UI changes (Savransky)
+  * Improved documentation about flux-conserving distortion correction (Perrin)
+  * Added gallery of example artifacts in GPI data (De Rosa, Perrin)
+
+* Miscellaneous bug fixes and minor tasks:
+
+  * GPITV's Browse Files window does better at ignoring non-GPI files (Ingraham) but will still open GPI pupil viewer files that lack INSTRUME keyword anyway (Perrin)
+  * Better error checking for update_prev_saved_fits_header functionality in Measure Sat Spots Location, Flux, and Contrast primitives (Perrin)
+  * Typo bug fix in gpi_extract_1d_spectrum (Ingraham)
+  * Minor fixes to Wavelength Solution code output error messages and warnings. Improved error handling in wavecal algorithm utility functions. (Wolff)
+  * Now correctly computes average parallactic angle in the rare case that UT midnight occurs during the exposure, as well as the even-rarer 
+    case where UT midnight occurs in the 3 seconds after the FITS header is written but before the exposure starts. (Nielsen)
+  * Bug fix for use of shared memory in Parallelized Polarization Spot Calibration (Millar-Blanchaer)
+  * Deprecated the gpi_assemble_datacube wrapper primitive; use Assemble Spectral Datacube or Assemble Polarization Datacube instead. 
+  * Removed old deprecated test* primitives, left over from pre-first-light pipeline development. Removed old deprecated primitives with 
+    alternate algorithms (not recommended, from pre-first-light) for telluric calibration, photometric calibration. (Ingraham, Maire)
+  * Fix spelling mistakes in a few primitives (Ingraham)
+  * Added parallelized version of high pass filter algorithm, which can save a few seconds in some circumstances for GPItv or 
+    Filter Datacube Spatially primitive (Perrin). But also avoid trying the parallelized version at the Gemini South summit since the IDL license
+    server there is very slow to start parallel sessions so it's actually slower  (Perrin).
+  * Added wait when copying xml files to ensure that copy completes before loading file (Ingraham)
+
+* Other
+
+  * GPItv gained a GPIES-campaign specific tool for marking file status (good/bad) and adding comments to the GPIES campaign database (ImageInfo menu, "Mark File Status"). This option will do nothing and be quietly ignored for users who do not have GPIES-campaign Dropbox access.  (Savransky)
+
+
+.. _version1.2.1:
 
 Version 1.2.1
 =========================================
@@ -22,6 +151,8 @@ This is a minor bugfix release for v1.2.0 based on testing from Kathleen Labrie 
 * Improved boundary checking in gpi_destripe_science_image primitive (Ingraham)
 * Added a missing utility (gpi_lsqr_mlens_extract_dep.pro)
 
+
+.. _version1.2.0:
 
 Version 1.2.0
 =========================================

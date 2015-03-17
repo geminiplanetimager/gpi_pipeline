@@ -14,14 +14,26 @@ astrometry and spectrophotometry of detected sources.
 **Software and documentation by:** Marshall Perrin (STScI), Jérôme Maire
 (University of Toronto), Patrick Ingraham
 (Stanford), Dmitry Savransky (Cornell), 
-Max Millar-Blanchaer (Toronto), 
-Schuyler Wolff (JHU),
-JB Ruffio (SETI, ISAE), 
-Jason Wang (Berkeley),
+Jeff Chilcote (Toronto),
 Zack Draper (U Victoria),
-Abhi Rajan (ASU), Naru Sadakuni (UCSC and Gemini),
 Michael Fitzgerald (UCLA),
-Christian Marois (NRC) ,
+Kate Follette (Stanford),
+Alex Greenbaum (JHU),
+Pascale Hibon (Gemini),
+Li-Wei Hung (UCLA),
+Quinn Konopacky (UCSD),
+Doug Long (STScI),
+Franck Marchis (SETI),
+Christian Marois (NRC),
+Max Millar-Blanchaer (Toronto), 
+Eric Nielsen (Stanford/SETI), 
+Laurent Pueyo (STScI),
+Abhi Rajan (ASU), 
+Jean-Baptiste Ruffio (Stanford), 
+Naru Sadakuni (UCSC and Gemini),
+Jason Wang (Berkeley),
+Schuyler Wolff (JHU),
+Sloane Wiktorowicz (UCSC),
 and
 other members of the GPI Data Analysis Team.  Please see the
 :ref:`development credits <sw-credits>` for a complete list of contributors, and the :ref:`release notes <release-notes>` for further details.

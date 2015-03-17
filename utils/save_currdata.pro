@@ -182,7 +182,8 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 
 	  	if ~( keyword_set( saveheader ) ) then saveheader = *(dataset.headersExt[numfile])
 		if ~( keyword_set( savePHU ) ) then savePHU = *(dataset.headersPHU[numfile])
-		fxaddpar, savePHU, 'DRPVER', version, ' Version number of GPI DRP software', after='TLCVER'
+		fxaddpar, savePHU, 'CREATOR', "GPI DRP, v"+strc(version), ' This file created by GPI Data Reduction Pipeline', after='TLCVER'
+		fxaddpar, savePHU, 'DRPVER', version, ' Version number of GPI DRP software', after='CREATOR'
 		fxaddpar, savePHU, 'DRPDATE', datestr+' '+hourstr, ' UT creation time of this reduced data file', after='UTEND'
 		; update Gemini DATALABel keyword if present
 		datalab = sxpar(savePHU, 'DATALAB', count=ctdatalab)
@@ -194,7 +195,8 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 		;curr_hdr = savePHU
 		;curr_ext_hdr = saveheader
 	endif else begin
-      	fxaddpar, *DataSet.HeadersPHU[i], 'DRPVER', version, ' Version number of GPI DRP software', after='TLCVER'
+		fxaddpar, *DataSet.HeadersPHU[i], 'CREATOR', "GPI DRP, v"+strc(version), ' This file created by GPI Data Reduction Pipeline', after='TLCVER'
+      	fxaddpar, *DataSet.HeadersPHU[i], 'DRPVER', version, ' Version number of GPI DRP software', after='CREATOR'
       	fxaddpar, *DataSet.HeadersPHU[i], 'DRPDATE', datestr+'T'+hourstr, ' UT creation time of this reduced data file', after='UTEND'
 		; update the header if we're writing out VAR or DQ extensions.
 		FXADDPAR,  *(dataset.headersPHU[i]),'NEXTEND',1+ptr_valid(dataSet.CurrDQ)+ptr_valid(dataset.CurrUncert)

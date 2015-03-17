@@ -36,11 +36,20 @@ The main sections of the Recipe Editor screen are as follows:
 along with buttons for adding or removing them.  
 Double clicking on any file name in this list will bring up a gpitv viewer displaying that file.
 
-**Selecting Recipes Templates**: To the right are
-two dropdown lists for selecting (a) a reduction type and (b) one of several
-predefined reduction templates available for the chosen reduction
-type. Selecting one of these templates causes that template to be
-loaded into the primitives editing area.
+**Selecting Recipes Templates**: To the right is a dropdown list for selecting the reduction type
+and a button that allows you to load a predefined recipe template.  Clicking this button will produce
+a menu of template options as in the figure below:
+
+.. image:: fig_recipeeditor_templateselect.png
+        :width: 1309 px
+        :scale: 40%
+        :align: center
+
+Selecting one of these templates causes that template to be
+loaded into the primitives editing area.  Changing the reduction category changes the templates and primitives that 
+are available for selection.
+
+The name of the current recipe is shown in a textbox below the category dropdown and template select button.  This field is editable and its contents are used when saving a recipe.  If you create a custom recipe, it is a good idea to update the name to reflect the differences from the template you started from.
 
 **Primitives and Arguments**: 
 The bottom two thirds of the window are devoted to several tables for editing the contents of the current recipe.
@@ -55,7 +64,7 @@ clicked.  To add a primitive to the current recipe, select it and press the 'Add
 Primitive' button, or as a short cut you can right click on it.  Similarly,
 selecting a primitive in the recipe and pressing the 'Remove Primitive' button will do so. 
 
-For primitives with adjustible parameters, when that primitive is selected in the Primitives table, its parameters will be shown in the lower right table.
+For primitives with adjustable parameters, when that primitive is selected in the Primitives table, its parameters will be shown in the lower right table.
 Values for the arguments can be set by double-clicking on a value to
 edit it. The Range column displays the range of allowable values. After entering a new value, don't forget to press enter to validate and apply the input.
 

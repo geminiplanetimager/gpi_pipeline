@@ -8,10 +8,10 @@ Frequently Asked Questions
 
 
  * :ref:`faq_installation`
+ * :ref:`faq_data_reduction`
  * :ref:`faq_errors`
  * :ref:`faq_less_common`
  * :ref:`faq_gpitv`
- * :ref:`faq_data_reduction`
  
 
 .. _faq_installation:
@@ -75,6 +75,48 @@ your environment variables won't be defined in the child process. The fix is to 
 On my Mac, the GUI windows pop up with their title bars hidden under the Mac OS menu bar, so I can't move them around or see the very top of them. Why, and how do I stop this?
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 This appears to be due to a bug in X11 on Macs running Mavericks with multi-monitor support. See `this discussion at Stackexchange <http://apple.stackexchange.com/questions/111465/is-there-a-way-to-move-a-window-without-the-mouse>`_. The workaround is to turn off the feature that displays the Mac OS menu bar on all monitors. Sorry, this is an Apple problem we can't do anything about!
+
+
+
+
+.. _faq_data_reduction:
+
+Data Reduction Questions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For guidance on data reduction, please consult the :ref:`ifs-data-handbook`.
+
+What pre-reduced calibration files are available for download?
+------------------------------------------------------------------
+
+See `this discussion at the Gemini Data Reduction Forum <http://drforum.gemini.edu/topic/gpi-wavelength-calibration/>`_.
+
+Some reduced calibration files are available from the Gemini `GPI Public Data <http://www.gemini.edu/sciops/instruments/gpi/public-data>`_ page.
+
+There are also files available in the :ref:`tutorial <usage-quickstart>` data sets.
+
+
+The GPI pipeline crashes when trying to do the wavelength calibration with error:  error in starting GPI_LOAD_WAVELENGTH_CALIBRATION: calibration file  -1 not found.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+This most likely is due to missing calibration files. To check if the files are being correctly seen within the code, press the "Rescan Calib. DB" on the GPI GUI. This will re-index all the available calibration files.
+
+
+The satellite spots cannot be found in my coronagraphic data. What should I do?
+--------------------------------------------------------------------------------
+
+See the `discussion at the Gemini Data Reduction Forum <http://drforum.gemini.edu/topic/gpi-satellite-spot-not-found/>`_.
+
+How do I de-rotate my data to have north up and east left?
+-------------------------------------------------------------------
+
+See :ref:`this part of the Data Handbook <ifs_fov_rotate>`.
+
+Hey, what's this weird thing in my data?  Can I see some examples of known artifacts and systematics I might encounter? 
+----------------------------------------------------------------------------------------------------------------------------
+
+Yes, yes you can. See :ref:`this gallery of example data and occasional artifacts <ifs_data_gallery>`.
+
 
 .. _faq_errors:
 
@@ -185,36 +227,4 @@ GPItv requires a 24-bit (millions of colors) display. Check if your X11 or other
 
 
 
-.. _faq_data_reduction:
-
-Data Reduction Questions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-For guidance on data reduction, please consult the :ref:`ifs-data-handbook`.
-
-What pre-reduced calibration files are available for download?
-------------------------------------------------------------------
-
-See `this discussion at the Gemini Data Reduction Forum <http://drforum.gemini.edu/topic/gpi-wavelength-calibration/>`_.
-
-Some reduced calibration files are available from the Gemini `GPI Public Data <http://www.gemini.edu/sciops/instruments/gpi/public-data>`_ page.
-
-There are also files available in the :ref:`tutorial <usage-quickstart>` data sets.
-
-
-The GPI pipeline crashes when trying to do the wavelength calibration with error:  error in starting GPI_LOAD_WAVELENGTH_CALIBRATION: calibration file  -1 not found.
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-This most likely is due to missing calibration files. To check if the files are being correctly seen within the code, press the "Rescan Calib. DB" on the GPI GUI. This will re-index all the available calibration files.
-
-
-The satellite spots cannot be found in my coronagraphic data. What should I do?
---------------------------------------------------------------------------------
-
-See the `discussion at the Gemini Data Reduction Forum <http://drforum.gemini.edu/topic/gpi-satellite-spot-not-found/>`_.
-
-How do I de-rotate my data to have north up and east left?
--------------------------------------------------------------------
-
-See :ref:`this part of the Data Handbook <ifs_fov_rotate>`.
 

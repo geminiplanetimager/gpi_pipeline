@@ -22,11 +22,11 @@ function gpi_drp_about_message
               '    Marshall Perrin, Jerome Maire   ', $
 			  '    Patrick Ingraham, Dmitry Savransky, Rene Doyon,  ', $ 
 			  '', $  
-			  '    Jeff Chilcote, Zack Draper, Michael Fitzgerald,', $
-			  '    Alex Greenbaum, Pascale Hibon, Quinn Konopacky, Doug Long,', $
+			  '    Jeff Chilcote, Zack Draper, Michael Fitzgerald, Kate Follette, ', $
+			  '    Alex Greenbaum, Pascale Hibon, Li-Wei Hung, Quinn Konopacky, Doug Long,', $
 			  '    Franck Marchis, Christian Marois, Max Millar-Blanchaer,', $
-			  '    Eric Nielsen, Laurent Pueyo, Jean-Baptiste Ruffio, Naru Sadakuni,', $
-			  '    Jason Wang, Schuyler Wolff, Sloane Wiktorowicz',$
+			  '    Eric Nielsen, Laurent Pueyo, Abhi Rajan, Jean-Baptiste Ruffio,', $
+			  '    Naru Sadakuni, Jason Wang, Schuyler Wolff, Sloane Wiktorowicz',$
               '', $
               '-------- Acknowledgements: --------', $
               '', $
