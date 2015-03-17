@@ -41,13 +41,21 @@ Even though zip files do not yet exist at this point, you may wish to add placeh
 If you haven't already, check out the public branch to your computer, and copy the external directory into the same place so that you can
 easily package it::
 
-        shell>svn checkout https://repos.seti.org/gpi/pipeline/branches/public public/pipeline
-	shell>svn checkout https://repos.seti.org/gpi/external/trunk public/external
+        shell>  svn checkout https://repos.seti.org/gpi/pipeline/branches/public public/pipeline
+	shell>  svn checkout https://repos.seti.org/gpi/external/trunk public/external
 
 Then, update the public release to the current version::	
 
-        shell>cd public/pipeline
-	shell>svn merge https://repos.seti.org/gpi/pipeline/trunk
+        shell>  cd public/pipeline
+	shell>  svn merge https://repos.seti.org/gpi/pipeline/trunk
+
+
+
+Optionally, you may wish to select only a single commit or range of commits to merge. This can be useful for "cherry-picking" some features to include in a minor release (e.g. high priority bug fixes) but should not in general be used for major releases (for which we want to include all changes since the last major release)::
+
+        shell>  svn merge -r 3567 https://repos.seti.org/gpi/pipeline/trunk
+        shell>  svn merge -r 3700:3784 https://repos.seti.org/gpi/pipeline/trunk
+
 
 You may possibly have to deal with and resolve conflicts if there are any at this point. Any file that has been updated since the last
 release AND is not included in the public directory will probably appear as a conflict. You will have to resolve these before

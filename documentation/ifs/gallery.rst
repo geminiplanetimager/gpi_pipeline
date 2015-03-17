@@ -22,8 +22,9 @@ This is a single wavelength slice of H band data.
 You can see the 4 satellite spots, then the 4 more diffuse waffle spots, and then just visible near the upper left and lower right corners you can see two of the second order satellite spots. The waffle spots appear at the 4 corners of the AO dark hole.  These are all entirely normal features (changing in position with wavelength of course).
 
 .. image:: badimg_01_Good_Hband.png
-        :scale: 75%
+        :width: 500px
         :align: center
+
 
 
 **"Butterfly" from wind**:
@@ -31,7 +32,7 @@ You can see the 4 satellite spots, then the 4 more diffuse waffle spots, and the
 The so-called butterfly pattern originates from wind speed defining a preferred direction in the PSF halo. The orientation of the butterfly will depending on which way the wind is blowing across the telescope pupil. 
 
 .. image:: badimg_02_Butterfly.png
-        :scale: 75%
+        :width: 500px
         :align: center
 
 **Other Wavelengths:**
@@ -39,7 +40,7 @@ The so-called butterfly pattern originates from wind speed defining a preferred 
 Here's one in J band. Now you can also see the diffractive spots from the DM actuator print-through, right at the outer edge of the field. These appear at twice the size of the AO dark hole and waffle spots.   You can also see the butterfly in this one too. 
 
 .. image:: goodimg_Jband.png
-        :scale: 75%
+        :width: 500px
         :align: center
 
 
@@ -55,7 +56,7 @@ If you see any of the following in your data, there is little the pipeline can d
 If you're operating the instrument, you should use the pointing offsets tool to recenter the star back onto the occulting mask. 
 
 .. image:: badimg_03_MisalignedMask.png
-        :scale: 75%
+        :width: 500px
         :align: center
 
 **Bad AOWFS darks:**
@@ -63,7 +64,7 @@ If you're operating the instrument, you should use the pointing offsets tool to 
 This creates an extended pattern in the "vertical" direction on the IFS, due to the orientation of the readout channels of the AOWFS. Fix by opening loops and taking new AOWFS darks. 
 
 .. image:: badimg_04_WFSBias.png
-        :scale: 75%
+        :width: 500px
         :align: center
 
 **Misaligned observatory dome:**
@@ -71,7 +72,7 @@ This creates an extended pattern in the "vertical" direction on the IFS, due to 
 The dome controller has crashed and you're clipping the telescope pupil on one side. Time to reboot the dome.   (Or else you started taking data before the dome finished rotating into position on the new target. Slow down!)
 
 .. image:: badimg_05_Dome.png
-        :scale: 75%
+        :width: 500px
         :align: center
 
 **37 Hz secondary vibration:**
@@ -79,14 +80,14 @@ The dome controller has crashed and you're clipping the telescope pupil on one s
 This problem appeared in January 2015 and intermittently affected observations. Sometimes it made the diffraction spikes start to reappear on either side of the occulter. Note the extended satellite spots, too. 
 
 .. image:: badimg_06_37Hz.png
-        :scale: 75%
+        :width: 500px
         :align: center
 
 
 And sometimes it smeared the data out into an unusable mess: 
 
 .. image:: badimg_10_more_37Hz.png
-        :scale: 75%
+        :width: 500px
         :align: center
 
 
@@ -95,7 +96,7 @@ And sometimes it smeared the data out into an unusable mess:
 Probably it's very windy. 
 
 .. image:: badimg_07_Peeking.png
-        :scale: 75%
+        :width: 500px
         :align: center
 
 
@@ -122,7 +123,7 @@ Applying a suitable flat field should correct for
 this effect in your data (but unless you're trying for <1% photometry on individual lenslets, this is likely to be negligible in practice.) 
 
 .. image:: badimg_08_LensletGrid.png
-        :scale: 75%
+        :width: 500px
         :align: center
 
 Artifacts from Data Pipeline Systematics
@@ -135,7 +136,7 @@ If you try to create a datacube with a wavecal that is substantially offset
 from the spectra (due to e.g. not correcting for flexure) then you can get some entertaining results.  Adjust the wavecal offset to get better cubes. 
 
 .. image:: badimg_09_Moire.png
-        :scale: 75%
+        :width: 500px
         :align: center
 
 
