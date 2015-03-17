@@ -87,6 +87,10 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
   dec =     double(backbone->get_keyword( 'DEC',count=ct)) & totcount += ct
   if n_elements(parang) eq 0 then begin
      par_ang = double(backbone->get_keyword( 'PAR_ANG',count=ct))
+ 	 ; this angle in the header is an inaccurate approximation since the
+	 ; field is rotating during the image. Adding a comment to say it's 
+	 ; inaccurate in the header comment
+	 backbone->set_keyword, "PAR_ANG", par_ang, "Parallactic Angle (Inaccurate. Use AVPARANG)"
      totcount += ct 
   endif else begin
      backbone->set_keyword, "PAR_ANG", parang, "average parallactic angle during exposure"
@@ -107,35 +111,9 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
   backbone->set_keyword, 'CRVAL1', ra, 'Right ascension at ref point' 
   backbone->set_keyword, 'CRVAL2', dec, 'Declination at ref point' ;TODO should see gemini type convention
 
-  ifs_rotation = gpi_get_constant('ifs_rotation')
-  vert_angle = -(360-PAR_ANG) + ifs_rotation  -90 ; 90 deg is rotation of the H2RG w.r.t. where the (0,0) corner is
-
-  ;;; CLockwise rotation of negative PA
-  pc = [[cos(vert_angle*!dtor), -sin(vert_angle*!dtor)], $
-        [sin(vert_angle*!dtor), cos(vert_angle*!dtor)]]
-  cdmatrix = pc * pixelscale / 3600d0
-
-  ;; flip sign of X axis?  ; Not necessary if GPI is on bottom port!
-  ;cdmatrix[0, *] *= -1
-  
-  backbone->set_keyword, "CD1_1", cdmatrix[0,0], "partial of first axis coordinate w.r.t. x"
-  backbone->set_keyword, "CD1_2", cdmatrix[0,1], "partial of first axis coordinate w.r.t. y"
-  backbone->set_keyword, "CD2_1", cdmatrix[1,0], "partial of second axis coordinate w.r.t. x"
-  backbone->set_keyword, "CD2_2", cdmatrix[1,1], "partial of second axis coordinate w.r.t. y"
-
-
-  ;; enforce standard convention preferred by Gemini of using the CD instead of
-  ;; PC + CDELT matrices
-  backbone->del_keyword, 'PC1_1' 
-  backbone->del_keyword, 'PC1_2' 
-  backbone->del_keyword, 'PC2_1' 
-  backbone->del_keyword, 'PC2_2' 
-  backbone->del_keyword, 'PC3_3'
-  backbone->del_keyword, 'PC1_1',ext_num=1 
-  backbone->del_keyword, 'PC1_2',ext_num=1 
-  backbone->del_keyword, 'PC2_1',ext_num=1 
-  backbone->del_keyword, 'PC2_2',ext_num=1  
-  backbone->del_keyword, 'PC3_3',ext_num=1 
+;Remainder of CD matrix update takes place at the end of the file
+;after AVPARANG is calculated.  PAR_ANG is from the start of the
+;exposure, and can be off by up to 10 degrees.
 
   ;;specify coord sys - Gemini standard is FK5 J2000.0
   backbone->set_keyword, "RADESYS", "FK5", "RA and Dec are in FK5"
@@ -174,7 +152,26 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
      if expend lt 0d then begin
         expend += 24d0
         dateline = 0
+                                ;if we're in this condition we didn't
+                                ;really cross the dateline,
+                                ;integration ended before midnight and
+                                ;it was just the file write time that
+                                ;was afterward
      endif 
+     if expstart lt 0d then begin
+        expstart += 24d0
+                                ;If dateline is 1 we should be in this 
+                                ;condition.  If not,
+                                ;the exposure started after midnight,
+                                ;and we have to change both dates
+      endif else if dateline eq 1 then dateline = 2
+      ;dateline = 0: normal conditions, we're not near midnight
+      ;dateline = 1: less-normal, we cross midnight while we're
+                                ;collecting light
+      ;dateline = 2: least-normal, we cross midnight after the fits 
+                                ;header has been written (and so UT
+                                ;Start date is set to yesterday), but
+                                ;the integration starts after midnight.
 
      ;;sanity checks
                                 ;if (abs(itime/3600d - (expend-expstart)) gt 1d-6) || (expstart lt utstartd) then begin
@@ -187,17 +184,31 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
      ymd0 = double(strsplit(dateobs,'-',/extract))
      ;;account for dateline, if needed
      if dateline then begin
+                                ;This condition is if the fits header was
+                                ;written just before midnight and the
+                                ;exposure ended just after midnight
         jd0 = julday(ymd0[1],ymd0[2],ymd0[0])
         caldat, jd0+1d0, m1, d1, y1
         ymd1 = double([y1,m1,d1])
+        if dateline eq 2 then begin
+                                ;This condition is if the fits header
+                                ;was written just before midnight and
+                                ;the exposure started just after
+                                ;midnight (very rare, that's a
+                                ;3-second window)
+          jd1 = julday(ymd0[1],ymd0[2],ymd0[0])
+          caldat, jd0+1d0, m1, d1, y1
+          ymd0 = double([y1,m1,d1])
+        endif
      endif else ymd1 = ymd0
+
      hms0 = sixty(expstart)
      hms1 = sixty(expend)
      jd0 = julday(ymd0[1], ymd0[2], ymd0[0],hms0[0],hms0[1],hms0[2])
      jd1 = julday(ymd1[1], ymd1[2], ymd1[0],hms1[0],hms1[1],hms1[2])
      epoch0 = (jd0 - 2451545d0)/365.25d0 + 2000d0 
      epoch1 = (jd1 - 2451545d0)/365.25d0 + 2000d0 
-     
+
      ;;grab longitude of observatory
      lon = gpi_get_constant('observatory_lon',default=-70.73669333333333d0)/15d0 ;East lon (dec. hr)
      
@@ -230,6 +241,39 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
      backbone->set_keyword, "AVPARANG", avparang, "average parallactic angle during exposure"
      backbone->set_keyword, "MJD-AVG", avmjd, "MJD at midpoint of exposure"
   endelse 
+
+  ;Now using AVPARANG to compute CD matrix.
+
+  ifs_rotation = gpi_get_constant('ifs_rotation')
+  vert_angle = -(360-avparang) + ifs_rotation  -90 ; 90 deg is rotation of the H2RG w.r.t. where the (0,0) corner is
+
+  ;;; CLockwise rotation of negative PA
+  pc = [[cos(vert_angle*!dtor), -sin(vert_angle*!dtor)], $
+        [sin(vert_angle*!dtor), cos(vert_angle*!dtor)]]
+  cdmatrix = pc * pixelscale / 3600d0
+
+  ;; flip sign of X axis?  ; Not necessary if GPI is on bottom port!
+  ;cdmatrix[0, *] *= -1
+  
+  backbone->set_keyword, "CD1_1", cdmatrix[0,0], "partial of first axis coordinate w.r.t. x"
+  backbone->set_keyword, "CD1_2", cdmatrix[0,1], "partial of first axis coordinate w.r.t. y"
+  backbone->set_keyword, "CD2_1", cdmatrix[1,0], "partial of second axis coordinate w.r.t. x"
+  backbone->set_keyword, "CD2_2", cdmatrix[1,1], "partial of second axis coordinate w.r.t. y"
+
+
+  ;; enforce standard convention preferred by Gemini of using the CD instead of
+  ;; PC + CDELT matrices
+  backbone->del_keyword, 'PC1_1' 
+  backbone->del_keyword, 'PC1_2' 
+  backbone->del_keyword, 'PC2_1' 
+  backbone->del_keyword, 'PC2_2' 
+  backbone->del_keyword, 'PC3_3'
+  backbone->del_keyword, 'PC1_1',ext_num=1 
+  backbone->del_keyword, 'PC1_2',ext_num=1 
+  backbone->del_keyword, 'PC2_1',ext_num=1 
+  backbone->del_keyword, 'PC2_2',ext_num=1  
+  backbone->del_keyword, 'PC3_3',ext_num=1 
+
 end
 
 

@@ -26,7 +26,7 @@
 ; PIPELINE ARGUMENT: Name="SaveProfile" Type="string" Default="" Desc="Save radial profile to filename as FITS (blank for no save, dir name for default naming, AUTO for auto full path)"
 ; PIPELINE ARGUMENT: Name="SavePNG" Type="string" Default="" Desc="Save plot to filename as PNG (blank for no save, dir name for default naming, AUTO for auto full path) "
 ; PIPELINE ARGUMENT: Name="contrsigma" Type="float" Range="[0.,20.]" Default="5." Desc="Contrast sigma limit"
-; PIPELINE ARGUMENT: Name="slice" Type="int" Range="[-1,50]" Default="0" Desc="Slice to plot. -1 for all"
+; PIPELINE ARGUMENT: Name="slice" Type="int" Range="[-1,50]" Default="-1" Desc="Slice to plot. -1 for all"
 ; PIPELINE ARGUMENT: Name="DarkHoleOnly" Type="int" Range="[0,1]" Default="1" Desc="0: Plot profile in dark hole only; 1: Plot outer profile as well."
 ; PIPELINE ARGUMENT: Name="contr_yunit" Type="int" Range="[0,2]" Default="0" Desc="0: Standard deviation; 1: Median; 2: Mean."
 ; PIPELINE ARGUMENT: Name="contr_xunit" Type="int" Range="[0,1]" Default="0" Desc="0: Arcsec; 1: lambda/D."
@@ -181,20 +181,24 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
 
 		if slice ne -1 then begin
 		   ; we only measured contrast for one wavelength slice so we just use that
-		   contrast_at_radius = (*contrprof[0])[closest_radius_subscript]
+			contrast_at_radius = (*contrprof[0])[closest_radius_subscript]
+			fiducial_contrasts[r] = contrast_at_radius
+			backbone->set_keyword,fiducial_keywords[r], fiducial_contrasts[r],$
+                      " Contrast at "+sigfig(cwv[slice],4)+" um, "+sigfig(radius,2)+"'' from sat spots", ext_num=0
 		endif else begin
 			; if we measured contrast on multiple wavelength slices, use the
 			; median contrast over the central 75% of the bandpass
 			middle_range = [round(0.25*n_elements(inds)), round(0.75*n_elements(inds))]
+			; note that GPItv only looks at individual slices
 			pts = fltarr(middle_range[1]-middle_range[0]+1)
 			for ri=middle_range[0], middle_range[1] do pts[ri-middle_range[0]] = (*contrprof[ri])[closest_radius_subscript]
-			contrast_at_radius = mean(pts)
+			; This was a mean and changed to median by PI Jan 14, 2015
+			contrast_at_radius = median(pts)
+			fiducial_contrasts[r] = contrast_at_radius
+			backbone->set_keyword,fiducial_keywords[r], fiducial_contrasts[r],$
+                      " Median (75% band) contrast at "+sigfig(radius,2)+"'' from sat spots", ext_num=0
 		endelse
-		fiducial_contrasts[r] = contrast_at_radius
-		backbone->set_keyword,fiducial_keywords[r], fiducial_contrasts[r],$
-                      " Estimated contrast at "+sigfig(radius,2)+"'' from sat spots", ext_num=0
-
-   endfor
+	   endfor
    if keyword_set(update_prev_fits_header) then begin
 		; update the same fits keyword information into a prior saved version of
 		; this datacube. 
@@ -202,10 +206,12 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
 		; it's more efficient in execution time than trying to integrate this header
 		; update into backbone->set_keyword since that would unnecessarily read and
 		; write the file from disk each time, which is no good. -mp
-		prevheader = gpi_get_prev_saved_header()
-		for r =0,2 do sxaddpar, prevheader, fiducial_keywords[r], fiducial_contrasts[r],$
-			                      " estimated contrast at "+sigfig(fiducial_radii[r],2)+"'' from sat spots"
-		gpi_update_prev_saved_header, prevheader
+		prevheader = gpi_get_prev_saved_header(status=status)
+		if status eq OK then begin
+			for r =0,2 do sxaddpar, prevheader, fiducial_keywords[r], fiducial_contrasts[r],$
+									  " Median (75% band) contrast at "+sigfig(fiducial_radii[r],2)+"'' from sat spots"
+			gpi_update_prev_saved_header, prevheader
+		endif
 	endif
 
 
@@ -221,18 +227,19 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
         yticks = n_elements(ytickv)-1
       endif  
       ytitle = 'Contrast '
+	  sigma = '!7r!X'
       case contr_yunit of
-         0: ytitle +=  '['+strc(uint(contrsigma))+' sigma limit]'
+         0: ytitle +=  '['+strc(uint(contrsigma))+sigma+' limit]'
          1: ytitle += '[Median]'
          2: ytitle += '[Mean]'
       endcase
       xtitle =  'Angular separation '
-      if contr_xunit eq 0 then xtitle += '[Arcsec]' else $
+      if contr_xunit eq 0 then xtitle += '["]' else $
          xtitle += '['+'!4' + string("153B) + '!X/D]' ;;"just here to keep emacs from flipping out
 
       if slice ne -1 then color = cgcolor('red') else begin
          color = round(findgen((size(cube,/dim))[2])/$
-                       ((size(cube,/dim))[2]-1)*100.+100.)
+                       ((size(cube,/dim))[2]-1)*200.+10.)
       endelse
 
       if wind ne -1 then begin
@@ -244,22 +251,39 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
          device,set_resolution=[800,600],z_buffer = 0
          erase
       endelse
+
       plot,[0],[0],ylog=contr_yaxis_type,xrange=xrange,yrange=yrange,/xstyle,/ystyle,$
-        xtitle=xtitle,ytitle=ytitle,/nodata, charsize=1.2,background=cgcolor('white'),color = cgcolor('black'),yticks=yticks,ytickv=ytickv
+        xtitle=xtitle,ytitle=ytitle,/nodata, charsize=1.5,background=cgcolor('white'),color = cgcolor('black'),yticks=yticks,ytickv=ytickv, $
+		title="Contrast for "+dataset.filenames[numfile]
 
-
-      
-      for j = 0, n_elements(inds)-1 do begin
+; load in a color table, while saving the original
+      tvlct, user_r, user_g, user_b, /get
+	  loadct, 13
+      ; if it's just a single slice, plot it in red
+	  if N_ELEMENTS(inds) eq 1 then color=cgcolor('red')
+	  for j = 0, n_elements(inds)-1 do begin
          oplot,*asecs[j],(*contrprof[j])[*,0],color=color[j],linestyle=0
          if doouter then oplot,*asecs[j],(*contrprof[j])[*,1], color=color[j],linestyle=2
       endfor
+	  ; revert to original colors
+	tvlct, user_r, user_g, user_b
+		
+
+	; plot indicators where the contrasts are measured
+	plotsym,0,2,/fill,color=cgcolor('red')
+	oplot,fiducial_radii,fiducial_contrasts,psym=8
+
+	; put in the labels for contrasts
+	  if slice ne -1 then label = "Contrast at "+sigfig(cwv[slice],4)+" um:" $
+					  else label = "Median (75% band) contrasts: "
+	   xyouts, 0.65, 0.85, label, /norm, charsize=1.5, color=cgcolor('red')
 
 
-	  for r=0,2 do begin
-		  xyouts, 0.6, 0.9-0.05*r, "Contrast = "+sigfig(fiducial_contrasts[r],2,/sci)+" at "+sigfig(fiducial_radii[r],2)+" arcsec",$
-			  /norm, charsize=1.5, color=cgcolor('red')
-	  endfor
-      
+	for r=0,2 do begin
+		label = sigfig(fiducial_contrasts[r],2,/sci)+" at "+sigfig(fiducial_radii[r],2)+'"'
+		xyouts, 0.7, 0.85-0.04*(r+1), label, /norm, charsize=1.5, color=cgcolor('red')
+	endfor
+
       if pngsave ne '' then begin
          ;;if user set AUTO then synthesize entire path
          if strcmp(strupcase(pngsave),'AUTO') then begin 

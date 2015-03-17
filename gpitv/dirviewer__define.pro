@@ -173,7 +173,10 @@ pro dirviewer::event, ev
 			self->changedir,dir
 	   endif
  	   	if uname eq 'changedir_today' then begin
-            dir = gpi_get_directory('GPI_RAW_DATA_DIR')+path_sep() + gpi_datestr(/current)
+			if keyword_set(gpi_get_setting('at_gemini', default=0,/silent)) eq 1 then $
+					dir = gpi_get_directory('GPI_RAW_DATA_DIR')+path_sep()  $
+					else dir = gpi_get_directory('GPI_RAW_DATA_DIR')+path_sep() + gpi_datestr(/current)
+
 			if dir ne '' then if file_test(dir,/dir) then begin
 				(*self.state).directory=dir
 				Widget_Control, self.top_base, Get_UValue=info
@@ -182,7 +185,8 @@ pro dirviewer::event, ev
 			endif
 	   endif
   	   	if uname eq 'changedir_today_red' then begin
-            dir = gpi_get_directory('GPI_REDUCED_DATA_DIR')+path_sep() + gpi_datestr(/current)
+			 dir = gpi_get_directory('GPI_REDUCED_DATA_DIR')+path_sep() + gpi_datestr(/current)
+
 			if dir ne '' then if file_test(dir,/dir) then begin
 				(*self.state).directory=dir
 				Widget_Control, self.top_base, Get_UValue=info
@@ -831,8 +835,23 @@ PRO dirviewer::Update,file,fileInfo,r,g,b,previewsize,image,info, directory=dire
 		 ;IF ok THEN 
 		 image = Readfits(directory+file,/silent, header) 
 
-		 instrume = sxpar(header, 'INSTRUME')
-		 if n_elements(image) eq 1 then begin
+		 instrume = sxpar(header, 'INSTRUME',count=count)
+		; if no instrume keyword is returned, this means the file is NOT a GPI image (and is probably something that just resembles one
+		
+		; Special case: pupil viewer images have no useful FITS keywords, but we
+		; know they are 320x240
+
+		if count eq 0 then begin
+			is_pupil_viewer = ( fix(sxpar(header,'NAXIS1')) eq 320 and fix(sxpar(header,'NAXIS2')) eq 240)
+			if is_pupil_viewer then instrume='GPI'
+
+			if ~is_pupil_viewer then begin
+				message,/info, "ERROR: "+file+ " is does not have a INSTRUME keyword in it's header. This is probably not a GPI image. Can't display"
+				return
+			endif
+		endif
+
+		if n_elements(image) eq 1 then begin
 			 ; try extension?
 			image = Readfits(directory+file,/silent, ext=1, header) 
 			 

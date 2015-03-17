@@ -120,10 +120,11 @@ function gpi_combine_polarization_sequence, DataSet, Modules, Backbone
 
     
     wpangle[i] = -(float(sxpar(hdr, "WPANGLE"))-float(Modules[thisModuleIndex].HWPOffset)) ;Include the known offset
-    parang = sxpar(hdr, "PAR_ANG") ; we want the original, not rotated or de-rotated
+    parang = sxpar(hdrext, "AVPARANG") ; we want the original, not rotated or de-rotated
                                 ; since that's what set's how the
-                                ; polarizations relate to the sky
-                                ; FIXME this should be updated to AVPARANG
+                                ; polarizations relate to the sky.
+                                ; This has been updated to AVPARANG
+
     logmsg =  "   File "+strc(i)+ ": WP="+sigfig(wpangle[i], 4)+ "     PA="+sigfig(parang, 4)
     backbone -> Log, logmsg
     sxaddhist, functionname+":"+logmsg, hdr0

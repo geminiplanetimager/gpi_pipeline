@@ -104,18 +104,19 @@ backbone->set_keyword,'SATSWARN',warnhex,'HEX->binary mask for slices with varyi
 		; it's more efficient in execution time than trying to integrate this header
 		; update into backbone->set_keyword since that would unnecessarily read and
 		; write the file from disk each time, which is no good. -mp
-		prevheader = gpi_get_prev_saved_header(ext=1)
-		for s=0,n_elements(good) - 1 do begin
-		   for j = 0,3 do begin
-			  sxaddpar, prevheader, 'SATF'+strtrim(good[s],2)+'_'+strtrim(j,2),$
-                            fluxes[j,good[s]],$
-                            'Peak flux of sat. spot '+strtrim(j,2)+' of slice '+strtrim(good[s],2)
-		   endfor
-		endfor
-		sxaddpar, prevheader, 'SATSWARN',warnhex,'HEX->binary mask for slices with varying sat fluxes.'
+		prevheader = gpi_get_prev_saved_header(ext=1, status=status)
+		if status eq OK then begin
+			for s=0,n_elements(good) - 1 do begin
+			   for j = 0,3 do begin
+				  sxaddpar, prevheader, 'SATF'+strtrim(good[s],2)+'_'+strtrim(j,2),$
+								fluxes[j,good[s]],$
+								'Peak flux of sat. spot '+strtrim(j,2)+' of slice '+strtrim(good[s],2)
+			   endfor
+			endfor
+			sxaddpar, prevheader, 'SATSWARN',warnhex,'HEX->binary mask for slices with varying sat fluxes.'
 
-
-		gpi_update_prev_saved_header, prevheader, ext=1
+			gpi_update_prev_saved_header, prevheader, ext=1
+		endif
 	endif
 
 

@@ -50,7 +50,8 @@ if numfile  eq ((dataset.validframecount)-1) then begin
   for n=0,dataset.validframecount-1 do begin
     ;header=*(dataset.headers[n])
     haall[n]=double(ten_string(backbone->get_keyword('HA', indexFrame=n)))
-    paall[n]=double(backbone->get_keyword('PAR_ANG', indexFrame=n ,count=ct))
+    paall[n]=double(backbone->get_keyword('AVPARANG', indexFrame=n ,count=ct))
+    ;Now using AVPARANG instead of PAR_ANG
     lat = ten_string('-30 14 26.700') ; Gemini South
     dec=double(backbone->get_keyword('DEC'))
     if ct eq 0 then paall[n]=parangle(haall[n],dec,lat)

@@ -1,6 +1,6 @@
 ;+
 ; NAME: gpi_img_xcorr_perp.pro
-; PIPELINE PRIMITIVE DESCRIPTION: Flexure 2D x correlation with wavecal model (perpandicular)
+; PIPELINE PRIMITIVE DESCRIPTION: Flexure 2D x correlation with wavecal model (perpendicular)
 ;
 ;   This primitive uses the relevent microlense PSF and wave cal to generate a model detector image to cross correlate with a science image. 
 ;   The resulting output can be used as a flexure offset prior to flux extraction.
@@ -15,7 +15,7 @@
 ; PIPELINE ARGUMENT: Name="resolution" Type="float" Default="0.01" Range="[0,1]" Desc="Subpixel resolution of cross correlation convergence"
 ; PIPELINE ARGUMENT: Name="psf_sep" Type="float" Default="0.01" Range="[0,1]" Desc="PSF separation in pixels"
 ; PIPELINE ARGUMENT: Name="stopidl" Type="int" Range="[0,1]" Default="1" Desc="1: stop IDL, 0: dont stop IDL"
-; PIPELINE ARGUMENT: Name="del_x_best" Type="float" Default="0" Range="[-5,5]" Desc="Best initial guess for flexure perpandicular to dispersion shift (pixels)"
+; PIPELINE ARGUMENT: Name="del_x_best" Type="float" Default="0" Range="[-5,5]" Desc="Best initial guess for flexure perpendicular to dispersion shift (pixels)"
 ; PIPELINE ARGUMENT: Name="badpix" Type="float" Default="0" Range="[0,1]" Desc="Weight by bad pixel map?"
 ; 
 ; 

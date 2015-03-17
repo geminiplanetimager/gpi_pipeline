@@ -49,6 +49,8 @@
 ;    object initialization routine for parsergui. Just calls the parent one, and sets
 ;    the debug flag as needed. 
 ;
+;    See also the ::init_data and ::post_init procedures below. 
+;
 ;    KEYWORDS:
 ;		parse_contents_of=		Provide a directory path and it will parse all
 ;								the contents of that directory. 
@@ -90,14 +92,19 @@ pro parsergui::init_data, _extra=_extra
 
 end
 
+
 ;+--------------------------------------------------------------------------------
-; parsergui::extractparam
-;   Extract parameters from a given primitive in a recipe
+; parsergui::refresh_filenames_display
+;	Refresh display of loaded files
 ;-
-pro parsergui::extractparam, modnum 
-;   modnum is the index of the selected module in the CURRENTLY ACTIVE LIST for
-;   this mode
-    *self.indarg=where(   ((*self.PrimitiveInfo).argmodnum) eq ([(*self.indmodtot2avail)[(*self.curr_mod_indsort)[modnum]]]+1)[0], carg)
+pro parsergui::refresh_filenames_display 
+
+	; TODO - option to just display filenames if called before the headers are
+	; read in?
+    widget_control,self.top_base,get_uvalue=storage  
+	info = self.fileset->get_info()
+	if  size(info,/tname) eq 'STRING' then summary=info else summary=info.summary
+    widget_control,storage.file_table_id, set_value=summary
 end
 
 
@@ -105,69 +112,18 @@ end
 ; parsergui::addfile
 ;
 ;     This adds a list of files to the current list
+;     See ::ask_add_file for the GUI code that interacts with users for this.
 ;
 ;     Add one or more new file(a) to the Input FITS files list, validate them
 ;     and check keywords, and then apply the parsing rules to generate recipes.
 ;
 ;-
 pro parsergui::addfile, filenames, n_added = n_added
+    self->Log, "Loading files and reading headers..."
 
-
-    widget_control,self.top_base,get_uvalue=storage  
-    ;index = (*storage.splitptr).selindex
-    findex = (*storage.splitptr).findex
-    file = (*storage.splitptr).filename
-    pfile = (*storage.splitptr).printname
-    datefile = (*storage.splitptr).datefile
-
-	t0 = systime(/seconds)
-
-    ;-- can we add more files now?
-    if (file[n_elements(file)-1] ne '') then begin
-		msgtext='Sorry, maximum number of files reached. You cannot add any additional files/directories. Edit max_files_per_recipe in pipeline config if you want to add more.'
-        self->Log, msgtext
-        res = dialog_message(msgtxt,/error,dialog_parent=self.top_base)
-        return
-    endif
-
-    for i=0,n_elements(filenames)-1 do begin   ; Check for duplicate
-        if (total(file eq filenames[i]) ne 0) then begin
-			filenames[i] = ''
-			self->Log, "File is already present in the list: "+filenames[i]
-		endif
-    endfor
-
-
-    w = where(filenames ne '', wcount) ; avoid blanks
-    if wcount eq 0 then begin 
-		void=dialog_message(['No new files found. Please add new files that were not already in the list.',$
-				'No changes made to recipes.'], title='No new files found', dialog_parent=self.top_base )
-		n_added = 0
-		return
-	endif
-
-    filenames = filenames[w]
-	n_added = wcount
-
-    if ((findex+n_elements(filenames)) gt n_elements(file)) then begin
-        nover = findex+n_elements(filenames)-n_elements(file)
-        self->Log,'WARNING: You tried to add more files than the file number limit, currently '+strc(n_elements(file))+". Adjust pipeline setting 'max_files_per_recipe' in your config file if you want to load larger datasets at once." +$
-            strtrim(nover,2)+' files ignored.'
-        filenames = filenames[0:n_elements(filenames)-1-nover]
-		n_added -= nover
-    endif
-
-    file[findex:findex+n_elements(filenames)-1] = filenames
-
-    ;(*storage.splitptr).selindex = max([0,findex-1])
-    (*storage.splitptr).findex += n_elements(filenames)
-    (*storage.splitptr).filename = file
-    (*storage.splitptr).printname = pfile
-    (*storage.splitptr).datefile = datefile 
-
-
-
-
+    self.fileset->add_files, filenames, count_added=n_added
+	self.fileset->scan_headers
+	self->refresh_filenames_display
 end
 
 ;+-----------------------------------------
@@ -180,36 +136,13 @@ end
 ;
 ;-
 pro parsergui::removefiles, filenames_to_remove, n_removed=n_removed
+    self->Log, "Removing files..."
 
-		n_to_remove =n_elements(filenames_to_remove)
-		if n_to_remove eq 0 then return ; nothing to do
+	n_to_remove =n_elements(filenames_to_remove)
+	if n_to_remove eq 0 then return ; nothing to do
 
-		widget_control,self.top_base,get_uvalue=storage  
-		filelist = (*storage.splitptr).filename    ; Note: must save this prior to starting the for loop since that will
-												; confuse the list indices, and make us have to bookkeep things as the
-												; list changes during a deletion of multiple files. 
-		n_removed = 0	
-		for i=0,n_to_remove-1 do begin
-			if strc(filenames_to_remove[i]) eq '' then continue
-			;print, filenames_to_remove[i]
-			wm = where( (*storage.splitptr).filename ne filenames_to_remove[i], keepcount)
-
-			(*storage.splitptr).filename = ((*storage.splitptr).filename)[wm]
-			(*storage.splitptr).printname= ((*storage.splitptr).printname)[wm]
-			self->Log, "Removed "+filenames_to_remove[i]
-			n_removed += 1
-			;stop
-			;self->removefile, filelist[selected_index[i]]
-		endfor
-		
-		
-		; update the filenames display
-		widget_control,storage.file_table_id, set_value=(*storage.splitptr).printname
-
-	
-    ;self->Log, "Removing files from data parser needs to be implemented"
-
-	;stop
+	self.fileset->remove_files, filenames_to_remove, count_removed=n_removed
+	self->refresh_filenames_display
 end
 
 
@@ -227,81 +160,89 @@ end
 ;-
 pro parsergui::parse_current_files
 
-    widget_control,self.top_base,get_uvalue=storage  
-    file = (*storage.splitptr).filename
-    pfile = (*storage.splitptr).printname
-    datefile = (*storage.splitptr).datefile
-
+;R     ;widget_control,self.top_base,get_uvalue=storage  
+;R     file = (*storage.splitptr).filename
+;R     pfile = (*storage.splitptr).printname
+;R     ;datefile = (*storage.splitptr).datefile
 	t0 = systime(/seconds)
 
 
-	; discard any blanks. 
-	wnotblank = where(file ne '')
-	file=file[wnotblank]
+	file = self.fileset->get_filenames()
+	finfo = self.fileset->get_info(nfiles=nfiles_to_parse)
 
 
-    self->Log, "Loading and parsing files..."
-    ;-- Update information in the structs
+;R 
+;R 	; discard any blanks. 
+;R 	wnotblank = where(file ne '')
+;R 	file=file[wnotblank]
+;R 
 
-    ;;Test Validity of the data (are these GPI files and is it OK to proceed?)
-    if gpi_get_setting('strict_validation',/bool, default=1,/silent)  then begin
+;R     ;-- Update information in the structs
+;R 
+;R     ;;Test Validity of the data (are these GPI files and is it OK to proceed?)
+;R     if gpi_get_setting('strict_validation',/bool, default=1,/silent)  then begin
+;R 
+;R 		nfiles = n_elements(file)
+;R         valid=bytarr(nfiles)
+;R 
+;R         for ff=0, nfiles-1 do begin
+;R 			if self.debug then message,/info, 'Verifying keywords for file '+file[ff]
+;R 			if self.debug then message,/info, '  This code needs to be made more efficient...'
+;R             widget_control,self.textinfo_id,set_value='Verifying keywords for file '+file[ff]
+;R             valid[ff]=gpi_validate_file( file[ff] ) 
+;R         endfor  
+;R 
+;R         indnonvalid=where(valid eq 0, cnv, complement=wvalid, ncomplement=countvalid)
+;R         if cnv gt 0 then begin
+;R             self->Log, 'WARNING: invalid files (based on FITS keywords) have been detected and removed: ' 
+;R 			self->Log, "      "+strjoin(file[indnonvalid],", ")
+;R 
+;R             if countvalid eq 0 then file=''
+;R             if countvalid gt 0 then file=file[wvalid]
+;R 			nfiles = n_elements(file)
+;R 
+;R 			(*storage.splitptr).findex = countvalid
+;R 			(*storage.splitptr).filename = file
+;R 			(*storage.splitptr).printname = file
+;R 			;(*storage.splitptr).datefile = datefile 
+;R         endif else begin
+;R 			self->Log, "All "+strc(n_elements(file))+" files pass basic FITS keyword validity check."
+;R 		endelse
+;R       
+;R     endif else begin ;if strict_validation is disabled (ie. data are test data) don't remove them but inform a bit
+;R 
+;R 		nfiles = n_elements(file) ;edited by SGW 
+;R 
+;R                 for ff=0, nfiles-1 do begin
+;R 			if self.debug then message,/info, 'Checking for valid headers: '+file[ff]
+;R 			valid = gpi_validate_file(file[ff]) ;Changed index from i to ff, SGW
+;R 		endfor
+;R     endelse
+;R 
+;R     (*self.recipes_table)=strarr(10)
+;R 
+;R     ;for i=0,nfiles-1 do pfile[i] = file_basename(file[i]) 
+;R     widget_control,storage.file_table_id, set_value=pfile ; update displayed filename information - temporary, just show filenames
+;R 
 
-		nfiles = n_elements(file)
-        valid=bytarr(nfiles)
-
-        for ff=0, nfiles-1 do begin
-			if self.debug then message,/info, 'Verifying keywords for file '+file[ff]
-			if self.debug then message,/info, '  This code needs to be made more efficient...'
-            widget_control,self.textinfo_id,set_value='Verifying keywords for file '+file[ff]
-            valid[ff]=gpi_validate_file( file[ff] ) 
-        endfor  
-
-        indnonvalid=where(valid eq 0, cnv, complement=wvalid, ncomplement=countvalid)
-        if cnv gt 0 then begin
-            self->Log, 'WARNING: invalid files (based on FITS keywords) have been detected and removed: ' 
-			self->Log, "      "+strjoin(file[indnonvalid],", ")
-
-            if countvalid eq 0 then file=''
-            if countvalid gt 0 then file=file[wvalid]
-			nfiles = n_elements(file)
-
-			(*storage.splitptr).findex = countvalid
-			(*storage.splitptr).filename = file
-			(*storage.splitptr).printname = file
-			(*storage.splitptr).datefile = datefile 
-        endif else begin
-			self->Log, "All "+strc(n_elements(file))+" files pass basic FITS keyword validity check."
-		endelse
-      
-    endif else begin ;if strict_validation is disabled (ie. data are test data) don't remove them but inform a bit
-
-		nfiles = n_elements(file) ;edited by SGW 
-
-                for ff=0, nfiles-1 do begin
-			if self.debug then message,/info, 'Checking for valid headers: '+file[ff]
-			valid = gpi_validate_file(file[ff]) ;Changed index from i to ff, SGW
-		endfor
-    endelse
-
-    (*self.recipes_table)=strarr(10)
-
-    for i=0,nfiles-1 do pfile[i] = file_basename(file[i]) 
-    widget_control,storage.file_table_id, set_value=pfile ; update displayed filename information - temporary, just show filenames
-
-    if nfiles gt 0 then begin ;assure that data are selected
-		self->Log,'Now reading in keywords for all files...'
-
-        self.num_recipes_in_table=0
-        tmp = self->get_obs_keywords(file[0])
-        finfo = replicate(tmp,nfiles)
-
-        for jj=0,nfiles-1 do begin
-            finfo[jj] = self->get_obs_keywords(file[jj])
-            pfile[jj] = finfo[jj].summary
-			(*storage.splitptr).printname[jj] = finfo[jj].summary ; save for use if we redisplay
-        endfor
-		wnz = where(pfile ne '')
-        widget_control,storage.file_table_id,set_value=pfile[wnz] ; update displayed filename information - filenames plus parsed keywords
+	
+	timeit1=systime(/seconds)
+     if nfiles_to_parse gt 0 then begin ;assure that data are selected
+;R 		self->Log,'Now reading in keywords for all files...'
+;R 
+;R         self.num_recipes_in_table=0
+;R         tmp = self->get_obs_keywords(file[0])
+;R         finfo = replicate(tmp,nfiles)
+;R 
+;R         for jj=0,nfiles-1 do begin
+;R             finfo[jj] = self->get_obs_keywords(file[jj])
+;R             pfile[jj] = finfo[jj].summary
+;R 			(*storage.splitptr).printname[jj] = finfo[jj].summary ; save for use if we redisplay
+;R         endfor
+;R 		wnz = where(pfile ne '')
+;R         widget_control,storage.file_table_id,set_value=pfile[wnz] ; update displayed filename information - filenames plus parsed keywords
+;R 
+;R 		wvalid = where(finfo.valid, nvalid, complement=winvalid, ncomplement=ninvalid)
 
 		wvalid = where(finfo.valid, nvalid, complement=winvalid, ncomplement=ninvalid)
 		if ninvalid gt 0 then begin
@@ -323,11 +264,10 @@ pro parsergui::parse_current_files
 		wdark = where(strlowcase(finfo.obstype) eq 'dark', dct)
 		if dct gt 0 then finfo[wdark].filter='-'
 
-		timeit1=systime(/seconds)
         if (n_elements(file) gt 0) && (strlen(file[0]) gt 0) then begin
 
           
-            current = {gpi_obs}
+            current = {struct_obs_keywords}
 
             ;categorize by filter
             uniqfilter  = uniqvals(finfo.filter, /sort)
@@ -653,8 +593,8 @@ pro parsergui::parse_current_files
 
 	timeit2=systime(/seconds)
 
-    void=where(file ne '',cnz)
-    self->Log,'Data Parsed: '+strtrim(cnz,2)+' FITS files.'
+    ;void=where(file ne '',cnz)
+    self->Log,'Data Parsed: '+strtrim(nfiles_to_parse,2)+' FITS files.'
     self->Log,'             '+strtrim(self.num_recipes_in_table,2)+' recipe files created.'
     self->Log,'             Complete in '+sigfig(timeit2-timeit1,3)+' seconds.'
     ;self->Log,'resolved FILTER band: '+self.filter
@@ -669,20 +609,8 @@ end
 function parsergui::lookup_template_filename, requestedname
     if not ptr_valid(self.templates) then self->scan_templates
 
-	wm = where(  strmatch( (*self.templates).name, requestedname,/fold_case), ct)
-
-	if ct eq 0 then begin
-        ret=dialog_message("ERROR: Could not find any matching template file for name='"+requestedname+"'. Cannot load template.",/error,/center,dialog_parent=self.top_base)
-		return, ""
-	endif else if ct gt 1 then begin
-        ret=dialog_message("WARNING: Found multiple matching template files for name='"+requestedname+"'. Going to load the first one, from file="+((*self.templates)[wm[0]]).filename,/information,/center,dialog_parent=self.top_base)
-	endif
-	wm = wm[0]
-
-	return, ((*self.templates)[wm[0]]).filename
-
-
-
+	return, gpi_lookup_template_filename( requestedname, parent_window=self.top_base)
+	
 end
 
 
@@ -690,64 +618,23 @@ end
 ; parsergui::create_recipe_from_template
 ; 	Creates a recipe from a template and a list of FITS files. 
 ;
-; 	KEYWORDS:
-; 	index=		index to use when inserting this into the GUI table for display
+; INPUTS:
+;   templatename :	filename of template
+;   fitsfiles :		str array of filenames
+;   current :		structure with current settings from file parsing for the 
+;					files in this recipe (filter, obstype, disperser etc)
 ;
+; KEYWORDS:
+; 	index=		index to use when inserting this into the GUI table for display
 ;
 ;-
 pro parsergui::create_recipe_from_template, templatename, fitsfiles, current,  index=index
 
-	; load the DRF, save with new filenames
 
-    if keyword_set(templatename) then self.LoadedRecipeFile=templatename
-    if self.LoadedRecipeFile eq '' then return
-
-
-	if ~file_test(self.LoadedRecipeFile, /read) then begin
-        message, "Requested recipe file does not exist: "+self.LoadedRecipeFile,/info
-		return
-	endif
-
-	;catch, parse_error
-	parse_error=0
-	if parse_error eq 0 then begin
-		drf = obj_new('drf', self.LoadedRecipeFile,/silent)
-	endif else begin
-        message, "Could not parse Recipe File: "+self.LoadedRecipeFile,/info
-		;stop
-        return
-	endelse
-	catch,/cancel
-
-
-	; set the data files in that recipe to the requested ones
-	drf->set_datafiles, fitsfiles 
-
-	drf->set_outputdir, self.outputdir
-
-	; Generate output file name
-	recipe=drf->get_summary() 
-        first_file=strsplit(fitsfiles[0],path_sep(),/extract) ; split on letter S or period
-        first_file=strsplit(first_file[size(first_file,/n_elements)-1],'S.',/extract) ; split on letter S or period
-	last_file=strsplit(fitsfiles[size(fitsfiles,/n_elements)-1],path_sep(),/extract)
-        last_file=strsplit(last_file[size(last_file,/n_elements)-1],'S.',/extract)
-	prefixname=string(self.num_recipes_in_table+1, format="(I03)")
-
-	if n_elements(first_file) gt 2 then begin
-		; normal Gemini style filename
-        outputfilename='S'+first_file[0]+'S'+first_file[1]+'-'+last_file[1]+'_'+recipe.shortname+'_drf.waiting.xml'
-	endif else begin
-		; something else? e.g. temporary workaround for engineering or other
-		; data with nonstandard filenames
-        outputfilename=file_basename(first_file[0])+'-'+file_basename(last_file[0])+'_'+recipe.shortname+'_recipe.waiting.xml'
-	endelse
-
-
-
-	outputfilename = self.drfpath + path_sep() + outputfilename
-	message,/info, 'Writing recipe file to :' + outputfilename
-
-	drf->save, outputfilename, comment=" Created by the Data Parser GUI"
+	drf = gpi_create_recipe_from_template( templatename, fitsfiles,  $
+		recipedir=self.drfpath, outputdir=self.outputdir, $
+		filename_counter=self.num_recipes_in_table+1, $
+		outputfilename=outputfilename)
 
 	if widget_info(self.autoqueue_id ,/button_set)  then begin
 		message,/info, 'Automatically Queueing recipes is enabled.'
@@ -849,6 +736,102 @@ pro parsergui::add_recipe_to_table, filename, drf, current, index=index
 
 end
 
+;+-----------------------------------------
+; parsergui::QueueAll
+;
+;-
+pro parsergui::QueueAll
+	self->Log, "Adding all Recipes to queue in "+gpi_get_directory('GPI_DRP_QUEUE_DIR')
+	for ii=0,self.num_recipes_in_table-1 do begin
+		if (*self.recipes_table)[0,ii] ne '' then begin
+			  self->queue, (*self.recipes_table)[0,ii]
+		  endif
+	endfor      
+	self->Log,'All Recipes have been succesfully added to the queue.'
+end
+
+
+;+-----------------------------------------
+; parsergui::DeleteSelectedRecipe
+;
+;-
+pro parsergui::DeleteSelectedRecipe
+		; we can assume the self.selection array already contains the selected
+		; recipe(s)
+
+		if n_elements(*self.selection) eq 1 then begin
+			query = ['Are you sure you want to delete the recipe','', *self.selection+"?"]
+		endif else begin
+			query = ['Are you sure you want to delete the following recipes?','', *self.selection]
+		endelse
+
+
+        if confirm(group=self.top_base,message=query, label0='Cancel',label1='Delete', title="Confirm Delete") then begin
+
+			keep_rows = bytarr(self.num_recipes_in_table)+1
+			for i=0,n_elements(*self.selection)-1 do begin
+		        file_delete, (*self.selection)[i],/allow_nonexist
+	            self->Log, 'Deleted file '+(*self.selection)[i]
+				wm = where((*self.recipes_table)[0,*] eq (*self.selection)[i])
+				keep_rows[wm]=0
+			endfor
+
+			if total(keep_rows) gt 0 then begin
+                ;indices = indgen(self.num_recipes_in_table)
+                new_indices = where(keep_rows)
+                (*self.recipes_table) = (*self.recipes_table)[*, new_indices]
+                self.num_recipes_in_table= total(keep_rows)
+            endif else begin
+                self.num_recipes_in_table=0
+                (*self.recipes_table)[*] = ''
+            endelse
+
+			*self.selection= ['']
+                  
+            widget_control,   self.table_recipes_id,  set_value=(*self.recipes_table)[*,*] 
+			; no - don't set the selection to zero and reset the view, keep
+			; those the same if possible. 
+			;, SET_TABLE_SELECT =[-1,-1,-1,-1] ; no selection
+            ;widget_control,   self.table_recipes_id, SET_TABLE_VIEW=[0,0]
+
+        endif
+
+
+
+end
+
+
+
+;+-----------------------------------------
+; parsergui::DeleteAllRecipes
+;
+;-
+pro parsergui::DeleteAllRecipes
+
+
+	if confirm(group=self.top_base,message="Are you sure you want to delete ALL the recipes?", label0='Cancel',label1='Delete', title="Confirm Delete") then begin
+
+		for i=0,self.num_recipes_in_table-1 do begin
+			file_delete, (*self.recipes_table)[0,i],/allow_nonexist
+			self->Log, 'Deleted file '+ (*self.recipes_table)[0,i]
+		endfor
+
+		self.num_recipes_in_table=0
+		(*self.recipes_table)[*] = ''
+
+		*self.selection= ['']
+			  
+		widget_control,   self.table_recipes_id,  set_value=(*self.recipes_table)[*,*], set_table_view=[0,0]
+
+	endif
+
+
+end
+
+
+
+
+
 
 ;+-----------------------------------------
 ; parsergui::event
@@ -914,8 +897,9 @@ pro parsergui::event,ev
     ; Double clicks in the list widget should launch a gpitv for that file.
 	if (tag_names(ev, /structure_name) EQ 'WIDGET_LIST') then begin
 		if ev.clicks eq 2 then begin
-			gpitv, ses=self.session+1,  (*storage.splitptr).filename[ev.index]
-			message, 'Opening in GPITV #'+strc(self.session+1)+" : "+(*storage.splitptr).filename[ev.index],/info
+			fn = (self.fileset->get_filenames())[ev.index]
+			gpitv, ses=self.session+1,  fn
+			message, 'Opening in GPITV #'+strc(self.session+1)+" : "+fn, /info
 		endif
 	endif
  
@@ -942,50 +926,7 @@ pro parsergui::event,ev
             ENDIF 
     end      
     'ADDFILE' : self->ask_add_files
-    ;'flatreduction':begin
-         ;self.flatreduc=widget_info(self.calibflatid,/DROPLIST_SELECT)
-    ;end
-    'WILDCARD' : begin
-        ;index = (*storage.splitptr).selindex
-        findex = (*storage.splitptr).findex
-        file = (*storage.splitptr).filename
-        pfile = (*storage.splitptr).printname
-        datefile = (*storage.splitptr).datefile
-    
-        defdir=self->get_input_dir()
-
-        caldat,systime(/julian),month,day,year
-        datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
-        
-        if (file[n_elements(file)-1] eq '') then begin
-            command=textbox(title='Input a Wildcard-listing Command (*,?,[..-..])',$
-                group_leader=ev.top,label='',cancel=cancelled,xsize=500,$
-                value=defdir+'*'+datestr+'*')
-        endif else begin
-            self->Log,'Sorry, you cannot add files/directories any more.'
-            cancelled = 1
-        endelse
-
-        if cancelled then begin
-            result = ''
-        endif else begin
-            result=file_search(command)
-        endelse
-        result = strtrim(result,2)
-        for i=0,n_elements(result)-1 do $
-            if (total(file eq result[i]) ne 0) then result[i] = ''
-
-        w = where(result ne '')
-        if (w[0] ne -1) then begin
-            result = result[w]
-        endif else begin
-            self->Log,'search failed (no match).'
-        endelse
-        
-        self->AddFile, result
-		self->parse_current_files
-        
-    end
+    'WILDCARD...' : self->ask_add_files_wildcard
     'FNAME' : begin
         ;(*storage.splitptr).selindex = ev.index
     end
@@ -1037,12 +978,15 @@ pro parsergui::event,ev
     'REMOVEALL' : begin
         if confirm(group=ev.top,message='Remove all items from the list?',$
             label0='Cancel',label1='Proceed') then begin
-            (*storage.splitptr).findex = 0
-            ;(*storage.splitptr).selindex = 0
-            (*storage.splitptr).filename[*] = ''
-            (*storage.splitptr).printname[*] = '' 
-            (*storage.splitptr).datefile[*] = '' 
-            widget_control,storage.file_table_id,set_value=(*storage.splitptr).printname
+			self.fileset->remove_files,/all
+			self->refresh_filenames_display
+
+;R             (*storage.splitptr).findex = 0
+;R             ;(*storage.splitptr).selindex = 0
+;R             (*storage.splitptr).filename[*] = ''
+;R             (*storage.splitptr).printname[*] = '' 
+;R             ;(*storage.splitptr).datefile[*] = '' 
+;R             widget_control,storage.file_table_id,set_value=(*storage.splitptr).printname
             self->Log,'All items removed.'
         endif
     end
@@ -1059,7 +1003,8 @@ pro parsergui::event,ev
         file = (*storage.splitptr).filename
         printname = (*storage.splitptr).printname
         findex = (*storage.splitptr).findex 
-        datefile = (*storage.splitptr).datefile 
+        ;datefile = (*storage.splitptr).datefile 
+		datefile=(self.fileset->get_info() ).mjdobs
 
         wgood = where(strc(file) ne '',goodct)
         if goodct eq 0 then begin
@@ -1110,9 +1055,12 @@ pro parsergui::event,ev
                     indsort=sort(ctime)
                 end
         endcase
+
+		self.fileset->sort, indsort
+
         file[0:n_elements(indsort)-1]= file[indsort]
         printname[0:n_elements(indsort)-1]= printname[indsort]
-        datefile[0:n_elements(indsort)-1]= datefile[indsort]
+        ;datefile[0:n_elements(indsort)-1]= datefile[indsort]
         (*storage.splitptr).filename = file
         (*storage.splitptr).printname = printname
         (*storage.splitptr).datefile = datefile
@@ -1148,67 +1096,13 @@ pro parsergui::event,ev
             self->log,'Log path changed to: '+self.logdir
         endif
     end
-    'Delete': begin
-		; we can assume the self.selection array already contains the selected
-		; recipe(s)
-        ;selection = WIDGET_INFO((self.table_recipes_id), /TABLE_SELECT) 
-        ;indselected=selection[1] ; FIXME allow multiple selections here?
-        ;if indselected lt 0 or indselected ge self.num_recipes_in_table then return ; nothing selected
-        ;*self.selection=(*self.recipes_table)[0,indselected]
+    'Delete': self->DeleteSelectedRecipe
+    'DRFGUI': begin ; Open the recipe editor for the FIRST selected recipe only
+        if (*self.selection)[0] eq '' then return else rec_editor = obj_new('gpi_recipe_editor', drfname=(*self.selection)[0], self.top_base)
+	end
 
-		if n_elements(*self.selection) eq 1 then begin
-			query = ['Are you sure you want to delete the recipe','', *self.selection+"?"]
-		endif else begin
-			query = ['Are you sure you want to delete the following recipes?','', *self.selection]
-		endelse
+    'QueueAll'  : self->QueueAll
 
-
-        if confirm(group=self.top_base,message=query, label0='Cancel',label1='Delete', title="Confirm Delete") then begin
-
-			keep_rows = bytarr(self.num_recipes_in_table)+1
-			for i=0,n_elements(*self.selection)-1 do begin
-		        file_delete, (*self.selection)[i],/allow_nonexist
-	            self->Log, 'Deleted file '+(*self.selection)[i]
-				wm = where((*self.recipes_table)[0,*] eq (*self.selection)[i])
-				keep_rows[wm]=0
-			endfor
-
-			if total(keep_rows) gt 0 then begin
-                ;indices = indgen(self.num_recipes_in_table)
-                new_indices = where(keep_rows)
-                (*self.recipes_table) = (*self.recipes_table)[*, new_indices]
-                self.num_recipes_in_table= total(keep_rows)
-            endif else begin
-                self.num_recipes_in_table=0
-                (*self.recipes_table)[*] = ''
-            endelse
-
-			*self.selection= ['']
-                  
-            widget_control,   self.table_recipes_id,  set_value=(*self.recipes_table)[*,*] 
-			; no - don't set the selection to zero and reset the view, keep
-			; those the same if possible. 
-			;, SET_TABLE_SELECT =[-1,-1,-1,-1] ; no selection
-            ;widget_control,   self.table_recipes_id, SET_TABLE_VIEW=[0,0]
-
-        endif
-    end
-    'DRFGUI': begin
-		; Open the recipe editor for the FIRST selected recipe only
-        if (*self.selection)[0] eq '' then return
-            rec_editor = obj_new('gpi_recipe_editor', drfname=(*self.selection)[0], self.top_base)
-    end
-
-
-    'QueueAll'  : begin
-                self->Log, "Adding all DRFs to queue in "+gpi_get_directory('GPI_DRP_QUEUE_DIR')
-                for ii=0,self.num_recipes_in_table-1 do begin
-                    if (*self.recipes_table)[0,ii] ne '' then begin
-                          self->queue, (*self.recipes_table)[0,ii]
-                      endif
-                endfor      
-                self->Log,'All DRFs have been succesfully added to the queue.'
-    end
     'QueueSelected'  : begin
         if (*self.selection)[0] eq '' then begin
               self->Log, "Nothing is currently selected!"
@@ -1237,7 +1131,12 @@ pro parsergui::event,ev
 	'top_menu': begin
 		case ev.value of
 		'Add Files...': self->ask_add_files
+		'Add Files via Wildcard...': self->ask_add_files_wildcard
+		'Open in Recipe Editor': if (*self.selection)[0] eq '' then return else rec_editor = obj_new('gpi_recipe_editor', drfname=(*self.selection)[0], self.top_base)
+		'Queue all Recipes': self->QueueAll
 		'Quit Data Parser': self->confirm_close
+		'Delete selected Recipe': self->DeleteSelectedRecipe
+		'Delete All Recipes': self->DeleteAllRecipes
 		'Data Parser Help...': gpi_open_help, 'usage/data_parser.html'
 		'Recipe Templates Help...': gpi_open_help, 'usage/templates.html'
 		'GPI DRP Help...': gpi_open_help, ''
@@ -1257,8 +1156,13 @@ pro parsergui::event,ev
 endcase
 
 end
+
 ;+------------------------------------------------
-; Ask the user what new files to add, then add them.
+; parsergui::ask_add_files
+;
+;	Ask the user what new files to add, then add them.
+;	See ::addfile for the code that actually adds the files
+;
 pro parsergui::ask_add_files
 	;-- Ask the user to select more input files:
 	if self.last_used_input_dir eq '' then self.last_used_input_dir = self->get_default_input_dir()
@@ -1266,7 +1170,7 @@ pro parsergui::ask_add_files
 	if keyword_set(gpi_get_setting('at_gemini', default=0,/silent)) then begin
 		filespec = 'S20'+gpi_datestr(/current)+'*.fits'
 	endif else begin
-		filespec = ['*.fits','*.fits.gz']
+		filespec = '*.fits;*.fits.gz'
 	endelse
 
 	result=dialog_pickfile(path=self.last_used_input_dir,/multiple,/must_exist,$
@@ -1280,6 +1184,40 @@ pro parsergui::ask_add_files
 	endif
 
 end
+
+;+------------------------------------------------
+; parsergui::ask_add_files_wildcard
+;
+;	Ask the user what filname wildcard to add, then add them.
+;
+;	See ::addfile for the code that actually adds the files
+;
+pro parsergui::ask_add_files_wildcard
+		
+		if self.last_used_input_dir eq '' then self.last_used_input_dir = self->get_default_input_dir()
+    
+        caldat,systime(/julian),month,day,year
+        datestr = string(year,month,day,format='(i4.4,i2.2,i2.2)')
+        
+        command=textbox(title='Input a Wildcard-listing Command (*,?,[..-..])',$
+                group_leader=ev.top,label='',cancel=cancelled,xsize=500,$
+                value=self.last_used_input_dir+path_sep()+'*'+datestr+'*')
+
+        if cancelled then begin
+			self->log, "User cancelled adding files"
+			return
+        endif else begin
+			self->Log, "Adding files using: "+command
+			self.fileset->add_files_from_wildcard, command, count_added=count_added
+			self->Log, "Added "+strc(count_added)+" files."
+			self.fileset->scan_headers
+			self->refresh_filenames_display
+        endelse
+
+		self->parse_current_files
+   
+end
+
 
 ;+-----------------------------------------
 ; parsergui::queue
@@ -1370,6 +1308,12 @@ function parsergui::init_widgets,  _extra=_Extra
 	top_menu_desc = [ $
                   {cw_pdmenu_s, 1, 'File'}, $ ; file menu;
                   {cw_pdmenu_s, 0, 'Add Files...'}, $
+                  {cw_pdmenu_s, 0, 'Add Files via Wildcard...'}, $
+                  {cw_pdmenu_s, 4, 'Open in Recipe Editor'}, $
+                  {cw_pdmenu_s, 0, 'Queue all Recipes'}, $
+                  {cw_pdmenu_s, 0, 'Queue selected Recipe only'}, $
+                  {cw_pdmenu_s, 4, 'Delete selected Recipe'}, $
+                  {cw_pdmenu_s, 0, 'Delete All Recipes'}, $
                   {cw_pdmenu_s, 6, 'Quit Data Parser'}, $
                   {cw_pdmenu_s, 1, 'Help'}, $         ; help menu
                   {cw_pdmenu_s, 0, 'Data Parser Help...'}, $
@@ -1396,7 +1340,7 @@ function parsergui::init_widgets,  _extra=_Extra
     label = widget_label(top_basefilebutt, value="Input FITS Files:")
     button=widget_button(top_basefilebutt,value="Add File(s)",uvalue="ADDFILE", $
         xsize=90,ysize=30, /tracking_events);,xoffset=10,yoffset=115)
-    button=widget_button(top_basefilebutt,value="Wildcard",uvalue="WILDCARD", $
+    button=widget_button(top_basefilebutt,value="Wildcard...",uvalue="WILDCARD", $
         xsize=90,ysize=30, /tracking_events);,xoffset=110,yoffset=115)
     button=widget_button(top_basefilebutt,value="Remove",uvalue="REMOVE", $
         xsize=90,ysize=30, /tracking_events);,xoffset=210,yoffset=115)
@@ -1496,12 +1440,12 @@ function parsergui::init_widgets,  _extra=_Extra
     maxfilen=gpi_get_setting('parsergui_max_files',/int, default=1000,/silent) 
     filename=strarr(maxfilen)
     printname=strarr(maxfilen)
-    datefile=lonarr(maxfilen)
+    ;datefile=lonarr(maxfilen)
     splitptr=ptr_new({filename:filename,$ ; array for FITS filenames loaded
 		printname:printname,$	; array for printname
 		findex:0,$				; current index to write filename
 		;selindex:0,$			; 
-		datefile:datefile, $	; date of each FITS file (for sort-by-date)
+		;datefile:datefile, $	; date of each FITS file (for sort-by-date)
 		maxfilen:maxfilen})		; max allowed number of files
 
     storage={info:info,$	; widget ID for information text box
@@ -1519,10 +1463,11 @@ end
 
 ;-----------------------
 ; parsergui::post_init
-;    nothing needed here - null routine to override the parent class' routine
+;	Last stage of initialization, runs after GUI widgets are created
 ;-
 pro parsergui::post_init, _extra=_extra
-	; pass
+	; create this in post_init so the GUI widgets are already instantiated
+	self.fileset = obj_new('fileset',where_to_log=self, gui_parent_wid=self.top_base)
 end
 ;-----------------------
 ; parsergui::log
@@ -1549,6 +1494,7 @@ PRO parsergui__define
               num_recipes_in_table:0,$	; # of recipes listed in the table
               selection: ptr_new(), $			; current selection in recipes table
               recipes_table: ptr_new(), $   ; pointer to resizeable string array, the data for the recipes table
+			  fileset: obj_new(),$      ; Set of loaded files to parse
 			  DEBUG:0, $				; debug flag, set by pipeline setting enable_parser_debug
               sorttab:strarr(3),$       ; table for sort options 
            INHERITS gpi_recipe_editor}

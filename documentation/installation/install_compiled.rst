@@ -25,7 +25,7 @@ The distribution ZIP files for the GPI pipeline come in two flavors:
  * Platform specific ZIP files that contain the compiled pipeline code *plus* the IDL runtime virtual machine for a given operating system.
    These contain everything you will need to start the GPI pipeline on that OS.
 
-**Version 1.2.1** (2014 Nov 3): 
+**Version 1.2.1** (2014 Dec 2): 
  * `gpi_pipeline_1.2.1_compiled.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.1_compiled.zip>`_ -  GPI pipeline compiled code only
  * `gpi_pipeline_1.2.1_runtime_macosx.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.1_runtime_macosx.zip>`_ - GPI pipeline compiled code plus IDL runtime for Mac OS X
  * `gpi_pipeline_1.2.1_runtime_linux.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.2.1_runtime_linux.zip>`_ - GPI pipeline compiled code plus IDL runtime for Linux
