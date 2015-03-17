@@ -114,7 +114,7 @@ How to run a .sav file in the IDL Virtual Machine depends on your operating syst
     
 
   Mac and Linux users can launch the IDL virtual machine and then tell it to launch a particular .sav file. You'll need to repeat this for the two GPI pipeline IDL sessions. 
-  The following commands assume that the environment variables ``$IDL_DIR`` and ``$GPI_DRP_DIR`` have been set, either by the ``gpi-setup-nix`` script or :ref:`manually <configuring>`::
+  The following commands assume that the environment variables ``$IDL_DIR`` and ``$GPI_DRP_DIR`` have been set, either by the ``gpi-setup-nix`` script or :ref:`manually <configuring>`:
       
   1. Enter the following at the command line to start an IDL session for the pipeline backbone::
 
