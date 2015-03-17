@@ -284,14 +284,16 @@ end
 PRO gpiPipelineBackbone::SetRecipeQueueStatus, drfstruct, newstatus
 
     oldfilename = drfstruct.name
-    filebase = stregex(oldfilename, "(.+)\."+drfstruct.status+".xml",/extract,/subexpr)
+	; issue that if drfstruct.status is not set the expression is not parsed correctly
+	; this is primarily an issue only in single recipe mode
+    if drfstruct.status ne '' then filebase = stregex(oldfilename, "(.+)\."+drfstruct.status+".xml",/extract,/subexpr)$
+			else  filebase=stregex(oldfilename, "(.+)\.xml",/extract,/subexpr) 
     newfilename = filebase[1]+"."+newstatus+".xml"
 
     ; TODO debugging / error checking on the file move?
     file_move, oldfilename, newfilename,/overwrite
 	; check to see if file has been written
 	if file_test(newfilename) eq 0 then wait,0.1
-    
 
 	drfstruct.status=newstatus
     drfstruct.name = newfilename
