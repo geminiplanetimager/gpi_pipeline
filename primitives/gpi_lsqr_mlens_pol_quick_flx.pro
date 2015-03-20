@@ -23,6 +23,7 @@
 ; PIPELINE ARGUMENT: Name="del_y" Type="float" Default="0" Range="[-5,5]" Desc="Best initial guess for flexure in detector y (pixels)"
 ; PIPELINE ARGUMENT: Name="x_off" Type="float" Default="0" Range="[-5,5]" Desc="Offset from wavecal in x pixels (used only if xcorrelariotn wasn't run!)"
 ; PIPELINE ARGUMENT: Name="y_off" Type="float" Default="0" Range="[-5,5]" Desc="Offset from wavecal in y pixels"
+; PIPELINE ARGUMENT: Name="badpix" Type="float" Default="0" Range="[0,1]" Desc="Offset from wavecal in y pixels"
 ;
 ; 
 ; where in the order of the primitives should this go by default?
@@ -89,7 +90,19 @@ suffix='' 		 ; set this to the desired output filename suffix
 		return, error('FAILURE ('+functionName+'): Failed to load microlens PSF data prior to calling this primitive.') 
 
 	;calimg = gpi_readfits(wlcal_file,header=Header)
-	stop
+	
+	;run badpixel suppresion
+	if tag_exist(Modules[thisModuleIndex],"badpix") then $
+		badpix=float(Modules[thisModuleIndex].badpix) else badpix=0
+
+	if (badpix eq 1) then begin
+		badpix_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header('badpix',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile])
+		if ((size(badpix_file))[1] eq 0) then $
+			return, error('FAILURE ('+functionName+'): Failed to find badpixel map, set to 0 or make badpixel map prior.') 
+		badpix = gpi_READFITS(badpix_file)
+		ones = bytarr(2048,2048)+1
+		badpix=ones-badpix
+	endif
 	
 	id = where_xyz(finite(reform(polcal.spotpos[0,*,*,0])),XIND=xarr,YIND=yarr)
   	nlens_tot = n_elements(xarr)
@@ -128,20 +141,16 @@ suffix='' 		 ; set this to the desired output filename suffix
 	lens=lens[*,1:*]
 
 	exe_tst = execute("resolve_routine,'gpi_lsqr_mlens_extract_pol_dep',/COMPILE_FULL_FILE")	
-		img_ext_pol_para,0,(n_elements(lens)/2)-1,99,img,pcal_off_cube,pol_cube,mic_cube,gpi_pol,polcal.spotpos,mlens_file,resid=resid,micphn=micphn,iter=iter,del_x=del_x,del_y=del_y,x_off=x_off,y_off=y_off,lens=lens
+		img_ext_pol_para,0,(n_elements(lens)/2)-1,99,img,pcal_off_cube,pol_cube,mic_cube,gpi_pol,polcal.spotpos,mlens_file,resid=resid,micphn=micphn,iter=iter,del_x=del_x,del_y=del_y,x_off=x_off,y_off=y_off,lens=lens,badpix=badpix
 	
-
 	id = where_xyz(pcal_off_cube[*,*,0] ne 0,XIND=xarr,YIND=yarr)
 	if (id ne -1) then begin
 		x = pcal_off_cube[*,*,id]
     		y = pcal_off_cube[*,*,id]	
 
 		backbone->Log, string(string(mean(x))+string(mean(y)))
-
+		tst=gpi_pol[xarr,yarr,*]
 	endif
-
-	tst=gpi_cube[xarr,yarr,*]
-
 
 @__end_primitive
 
