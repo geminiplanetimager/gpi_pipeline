@@ -12,7 +12,7 @@ Persistence
 Observed Effect and Relevant Physics:
 ---------------------------------------
 
-Image persistence is effect of the observed flux of previous images impacting the following observations as an elevated dark current (see Figure 1). Persistence has always been a constant problem of HgCdTe arrays and although the GPI array was chosen in part due to it's low persistence, a correction is still required in order to obtain high-precision photometry. It should be noted that many misconceptions exist regarding persistence including that it can be attenuated with resets, or that it is a response due to detector saturation, when in fact every previous image, saturated or not, will leave persistence in the following images. The amount of persistence and whether or not a correction is necessary, is dependent upon the previous images and the exposure times of the science images of interest.
+Image persistence is effect of the observed flux of previous images impacting the following observations as an elevated dark current (see Figure 1). Persistence has always been a constant problem of HgCdTe arrays and although the GPI array was chosen in part due to its low persistence, a correction is still required in order to obtain high-precision photometry. It should be noted that many misconceptions exist regarding persistence including that it can be attenuated with resets, or that it is a response due to detector saturation, when in fact every previous image, saturated or not, will leave persistence in the following images. The amount of persistence and whether or not a correction is necessary, is dependent upon the previous images and the exposure times of the science images of interest.
 
 .. figure:: persistence_mod.png
 	:width: 150pt
