@@ -14,11 +14,12 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="stopidl" Type="int" Range="[0,1]" Default="0" Desc="1: stop IDL, 0: dont stop IDL"
 ; PIPELINE ARGUMENT: Name="np" Type="float" Default="2" Range="[0,100]" Desc="Number of processors to use in reduction (double check enviroment before running)"
-; PIPELINE ARGUMENT: Name="resid" Type="int" Default="1" Range="[0,1]" Desc="Save residual detector image?"
+; PIPELINE ARGUMENT: Name="resid" Type="int" Default="0" Range="[0,1]" Desc="Save residual detector image?"
 ; PIPELINE ARGUMENT: Name="micphn" Type="int" Default="0" Range="[0,1]" Desc="Solve for microphonics?"
-; PIPELINE ARGUMENT: Name="iter" Type="int" Default="1" Range="[0,1]" Desc="Run iterative solver of polcal?"
+; PIPELINE ARGUMENT: Name="iter" Type="int" Default="0" Range="[0,1]" Desc="Run iterative solver of polcal?"
 ; PIPELINE ARGUMENT: Name="x_off" Type="float" Default="0" Range="[-5,5]" Desc="Offset from wavecal in x pixels"
 ; PIPELINE ARGUMENT: Name="y_off" Type="float" Default="0" Range="[-5,5]" Desc="Offset from wavecal in y pixels"
+; PIPELINE ARGUMENT: Name="badpix" Type="float" Default="0" Range="[0,1]" Desc="Offset from wavecal in y pixels"
 ;
 ; 
 ; where in the order of the primitives should this go by default?
@@ -123,8 +124,8 @@ suffix='-podc' 		 ; set this to the desired output filename suffix
 	mic_cube_pol[0,0]=mic_cube_pol
 
 	gpi_pol=fltarr(nlens,nlens,2)
-	shmmap,'gpi_pol',type=4,nlens,nlens,2,/sysv
-	gpi_pol=shmvar('gpi_pol')
+	;shmmap,'gpi_pol',type=4,nlens,nlens,2,/sysv
+	;gpi_pol=shmvar('gpi_pol')
 	gpi_pol[0,0,0]=gpi_pol
   
   ;Copied from the spectral mode equivalent
@@ -138,7 +139,7 @@ suffix='-podc' 		 ; set this to the desired output filename suffix
 	pcal = polcal.spotpos
 	del_x=0
 	del_y=0
-
+stop
 	;if lmgr(/runtime) and np gt 1 then begin
 	if (0 eq 1) then begin
 		backbone->Log, "Cannot use parallelization in IDL runtime. Switching to single thread only."
