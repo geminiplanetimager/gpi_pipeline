@@ -27,6 +27,10 @@ primitives/gpi_img_xcorr.pro
 utils/gpi_lsqr_mlens_extract_dep.pro
 utils/gpi_lsqr_mlens_extract_pol_dep.pro
 
+# parallel code primitives:
+primitives/gpi_idl_bridges_end.pro
+primitives/gpi_idl_bridges_start.pro
+
 # Parallelization utility used by the above
 utils/parallelize
 utils/parallelize/gpi_obridgekill.pro
