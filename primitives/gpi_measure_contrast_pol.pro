@@ -223,7 +223,7 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
           lambda=cwv[inds[j]],asec=asec,imed=outval,$
           /dointerp,doouter = doouter
 ;        2: radial_profile,copsf[*,*,inds[j]],(*self.satspots.cens)[*,*,inds[j]],$
-        2: radial_profile_pol,copsf[*,*,inds[j]],cense[*,*,inds[j]],$
+        2: radial_profile_pol,copsf[*,*,inds[j]],cens[*,*,inds[j]],$
           lambda=cwv[inds[j]],asec=asec,imn=outval,$
           /dointerp,doouter = doouter
       endcase
