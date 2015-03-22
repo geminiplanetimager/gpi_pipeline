@@ -79,7 +79,8 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
   ; polmode=0 for podc cubes
   ; polmode=1 for stokesdc
   ; polmode=2 for radial stokes
-  if sz[3] eq 2 then begin
+  
+  if sz[3] eq 2 then begin ; If podc cube
     polmode=0
     ctr_cube[*,*,0]=cube[*,*,0]+cube[*,*,1]
     ctr_cube[*,*,1]=cube[*,*,0]-cube[*,*,1] ;For podc cube we look at the difference
@@ -89,17 +90,20 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
     if ct lt 1 then polmode=1 else begin
       case type of
         'STOKES': begin
+          print, "Found a Stokes Cube"
           polmode=1
           ctr_cube[*,*,0]=cube[*,*,0]
           ctr_cube[*,*,1]=sqrt(cube[*,*,1]^2+cube[*,*,2]^2) ;For normal stokes cube we look at the linear polarized intensity
         end
         'RADIAL': begin
+          print, "Found a Radial Stokes Cube"
           polmode=2
           ctr_cube[*,*,0]=cube[*,*,0]
           ctr_cube[*,*,1]=cube[*,*,2] ;For radial stokes cube we look at the radial stokes values
         end
         else: begin
           ;Something weird has happened, but let's assume it's normal stokes
+          print, "Couldn't find STKESTYP keyword, assuming Stokes cube"
           polmode=1
           ctr_cube[*,*,0]=cube[*,*,0]
           ctr_cube[*,*,1]=sqrt(cube[*,*,1]^2+cube[*,*,2]^2) ;For normal stokes cube we look at the linear polarized intensity
@@ -145,7 +149,7 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
   for s=0,n_elements(good) - 1 do begin
     for j = 0,3 do begin
       satflux[j,s] = backbone->get_keyword('SATF0_'+strtrim(j,2)+hdr_suff,ext_num=1)
-;      print, backbone->get_keyword('SATF0e_'+strtrim(j,2)+hdr_suff,ext_num=1) 
+;      print,'SATF0_'+strtrim(j,2)+hdr_suff,backbone->get_keyword('SATF0_'+strtrim(j,2)+hdr_suff,ext_num=1) 
     endfor
   endfor
  
@@ -207,18 +211,19 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
     contrprof = ptrarr(n_elements(inds),/alloc)
     asecs = ptrarr(n_elements(inds),/alloc)
 
+    
     ;----- actually measure the contrast here -----
     for j = 0, n_elements(inds)-1 do begin
       ;; get the radial profile desired
       case contr_yunit of
-        0: radial_profile,copsf[*,*,inds[j]],cens[*,*,inds[j]],$
+        0: radial_profile_pol,copsf[*,*,inds[j]],cens[*,*,inds[j]],$
           lambda=cwv[inds[j]],asec=asec,isig=outval,$
           /dointerp,doouter = doouter
-        1: radial_profile,copsf[*,*,inds[j]],cens[*,*,inds[j]],$
+        1: radial_profile_pol,copsf[*,*,inds[j]],cens[*,*,inds[j]],$
           lambda=cwv[inds[j]],asec=asec,imed=outval,$
           /dointerp,doouter = doouter
 ;        2: radial_profile,copsf[*,*,inds[j]],(*self.satspots.cens)[*,*,inds[j]],$
-        2: radial_profile,copsf[*,*,inds[j]],cense[*,*,inds[j]],$
+        2: radial_profile_pol,copsf[*,*,inds[j]],cense[*,*,inds[j]],$
           lambda=cwv[inds[j]],asec=asec,imn=outval,$
           /dointerp,doouter = doouter
       endcase
