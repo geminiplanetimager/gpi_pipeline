@@ -553,13 +553,13 @@ pro parsercore::create_recipe_from_template, templatename, fitsfiles, current_me
     filename_counter=filename_counter, index=index
 
     if ~(keyword_set(filename_counter)) then filename_counter=self->num_recipes()+1
-
+	outputdir=gpi_get_directory('REDUCED_DATA')
     ; create the recipe
     drf = gpi_create_recipe_from_template( templatename, fitsfiles,  $
         recipedir=self.recipedir, $ 
         filename_counter=filename_counter, $
         outputfilename=outputfilename, $
-        outputdir=self.outputdir)
+        outputdir=outputdir)
 
     if keyword_set(current_metadata) then drf->attach_extra_metadata, current_metadata
 
