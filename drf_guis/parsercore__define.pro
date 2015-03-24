@@ -555,11 +555,20 @@ pro parsercore::create_recipe_from_template, templatename, fitsfiles, current_me
     if ~(keyword_set(filename_counter)) then filename_counter=self->num_recipes()+1
 	outputdir=gpi_get_directory('REDUCED_DATA')
     ; create the recipe
-    drf = gpi_create_recipe_from_template( templatename, fitsfiles,  $
-        recipedir=self.recipedir, $ 
-        filename_counter=filename_counter, $
-        outputfilename=outputfilename, $
-        outputdir=outputdir)
+    if self.outputdir NE '' then begin 
+        drf = gpi_create_recipe_from_template( templatename, fitsfiles,  $
+                                              recipedir=self.recipedir, $ 
+                                              filename_counter=filename_counter, $
+                                              outputfilename=outputfilename, $
+                                              outputdir=self.outputdir)
+    endif else begin
+       drf = gpi_create_recipe_from_template( templatename, fitsfiles,  $
+                                              recipedir=self.recipedir, $ 
+                                              filename_counter=filename_counter, $
+                                              outputfilename=outputfilename)
+    endelse
+
+
 
     if keyword_set(current_metadata) then drf->attach_extra_metadata, current_metadata
 
@@ -659,6 +668,7 @@ PRO parsercore__define
               where_to_log: obj_new(), $ ; object handle to something with a Log function we can use.
               gui_parent_wid: 0,            $ ; optional, GUI widget ID of parent window for dialog boxes
               recipedir: '', $            ; Output dir for recipes
+              outputdir: '' , $
               DEBUG:0}                 ; debug flag, set by pipeline setting enable_parser_debug
 
 end
