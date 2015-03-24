@@ -1,4 +1,4 @@
-function gpi_highres_microlens_psf_get_local_highres_psf, high_res_PSFs, lcoords,preserve_structure=preserve_structure,valid=valid
+function gpi_highres_microlens_psf_get_local_highres_psf, high_res_PSFs, lcoords,preserve_structure=preserve_structure,valid=valid,flag2=flag2
 ; this function returns the highres psf for a local lenslet coordinate 
 ; it reads the large structure then interpolates between the closest four positions in order to determine 
 ; an average local psf
@@ -302,6 +302,8 @@ endif
 new_psf/=total(new_psf,/nan) ; this is dangerous due to goofy edge effects
 
 if keyword_set(new_psf) eq 0 then stop,'this should never happen! '
+
+if keyword_set(flag2) then stop
 
 ; now we have the new PSF, so we have to put it into a structure which is the same as high_res_psfs
 obj_PSF = {values: new_psf, $
