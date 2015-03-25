@@ -272,19 +272,19 @@ case my_type of
 		if finite(wavcal[i,j,4]) eq 0 then continue
 		; depends on the tilt - so if the tilt gt 0
 		if wavcal[i,j,4] ge 0.0 then begin
-			xlim = round(wavcal[i,j,1]+(wavcal[i,j,0]-xmini[i,j])*tan(wavcal[i,j,4]) - float((width-1))/2.)
+			xlim = round(wavcal[i,j,1]+(wavcal[i,j,0]-xmini[i,j])*tan(wavcal[i,j,4]) - float((width-1))/2.) 
+			xmin= xlim>0			; max([0,xlim])
+			xmax = (xlim+nx-1)<2047		; min([2047,(xlim+nx-1)])
 		endif else begin
 			xlim = round(wavcal[i,j,1]+(wavcal[i,j,0]-xmini[i,j])*tan(wavcal[i,j,4]) + float((width-1))/2.)
+		        xmin = (xlim-nx+1)>0 			; max([0,(xlim-nx+1)])
+		        xmax = (xlim)<2047 			;min([2047,xlim])
 		endelse
 		;x_indices of interest for masking
 		x_mask_inds=where(finite(xcoords[*,i,j]))
 		y_mask_inds=where(finite(ycoords[*,i,j]))
 	        mask_image[xcoords[x_mask_inds,i,j],ycoords[y_mask_inds,i,j]] = 1
-	    
-	        xmin = (xlim-nx+1)>0 			; max([0,(xlim-nx+1)])
-	        xmax = (xlim)<2047 			;min([2047,xlim])
-		
-		;ylim = xmini[i,j]-ny+1  ; ny=sdpx0
+	   		;ylim = xmini[i,j]-ny+1  ; ny=sdpx0
 		;ymin = max([0,ylim])
 	        ;ymax = min([2047,(ylim+ny-1)])
        	       
@@ -300,7 +300,7 @@ case my_type of
        	       	ycoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = ycoords_image[xmin:xmax,ymin:ymax]
              
 		; stop here to check stamps and masks
-		;if i[0] eq 140 and j[0] eq 140 then stop, 'at 140,140 check'	
+		;if i[0] eq 55 and j[0] eq 121 then stop, 'at 140,140 check'	
 		;set the mask back to zeros for the next lenslet 
 		mask_image[xcoords[x_mask_inds,i,j],ycoords[y_mask_inds,i,j]] = 0
 
