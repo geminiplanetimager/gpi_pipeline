@@ -154,11 +154,11 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
  ;loop over all the slice of the pixel_array cube. It fit the same PSF to all of them.
 
   for i_slice = 0L,long(nz-1) do begin
-; statusline, "Fit PSF: "+strc(i_slice+1) +" of "+strc(long(nz)) + " slices fitted"
     
     if keyword_set(x0) then x_grid = x_grid0 + x0[i_slice] else x_grid = x_grid0
     if keyword_set(y0) then y_grid = y_grid0 + y0[i_slice] else y_grid = y_grid0
-    
+   
+   data= pixel_array[*,*,i_slice]
  
   ;   WEIGHTS - Array of weights to be used in calculating the
   ;             chi-squared value.  If WEIGHTS is specified then the ERR
@@ -179,19 +179,18 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
 ; Once polarimetry mode is setup in get_spaxels2.pro to do masks as well
 ; this should be deleted!
 
-	if keyword_set(mask) then my_weights = mask else begin
-		; mask must be the same size as the stamp
-		sz=size(x_grid)
-		my_weights=fltarr(sz[1],sz[2])+1
-	endelse
-
-
 
 ; we want to follow the format of Anderson et al.
 ; he uses a radial weighting scheme combined with a poisson distribution
 ; he can do this because he is looking for astrometry not intensity
 if keyword_set(weights) eq 0 then stop, 'No weights set - set the weights keyword to radial or mask'
 
+;add any non-finite pixels to the mask - then remove it from the stamp.
+nan_inds=where(finite(data) eq 0, ct)
+if ct ne 0 then begin
+		data[nan_inds]=0
+		mask[nan_inds]=0
+endif
 
 if weights eq 'radial' then begin
 	; find peak in mask space
@@ -207,31 +206,28 @@ if weights eq 'radial' then begin
 	if ct3 ne 0 then weights0[ind3]=1.0  ; sets the core to 1
 	weights0*=mask
 endif else weights0=mask
+
 	; now add the poisson error component
 	gain=3.04
 	if keyword_set(ncoadds) eq 0 then ncoadds=1
-	data_variance=mask*pixel_array*gain/ncoadds / (gain^2) ; so this is intensity in electrons - the converted to ADU
-	; noise is sqrt(pixel_array*gain)/sqrt(coadds) - this is in electrons - so variance is electrons squared
+	data_variance=mask*data*gain/ncoadds / (gain^2) ; so this is intensity in electrons - the converted to ADU
+	; noise is sqrt(data*gain)/sqrt(coadds) - this is in electrons - so variance is electrons squared
 	; if negative, set it to be consistent with zero 
-	ind=where(pixel_array lt 0,ct)
-	if ct ne 0 then data_variance[ind]=abs(mask*pixel_array[ind]*gain/ncoadds /(gain^2))
+	ind=where(data lt 0,ct)
+	if ct ne 0 then data_variance[ind]=abs(mask*data[ind]*gain/ncoadds /(gain^2))
 
-	; 1/data_variance will give nans
-	final_weights=weights0/data_variance
+	;declare final weights array
+	final_weights=weights0
+	final_weights[*]=0.0
+
+	; 1/data_variance will give nans - so just use certain indicies
+	ind=where(data_variance ne 0,ct)
+	if ct gt 0 then final_weights[ind]=weights0[ind]/data_variance[ind] else stop,'in fit_detector_psf, no good pixels?'
 	; the paper says the weights should be weights=radial_weighting/variance
 		
 	ind=where(finite(final_weights) eq 0,ct)
-	if ct ne 0 then final_weights[ind]=0
+	if ct ne 0 then stop, 'you should never hit this' ;final_weights[ind]=0
 	
-;	endif else final_weights=mask/data_variance
-
-
-
-  ;  my_weights = double(pixel_array[*,*,i_slice]
-  ;  my_weights = 1D/pixel_array[*,*,i_slice]
-  ;  weights_not_finite = where(~finite(my_weights))
-  ;  if weights_not_finite[0] ne -1 then my_weights[weights_not_finite] = 0.0
-  
 ; set centroid limits as the edges of the array
     parinfo[0].limits  = [x0[i_slice],x0[i_slice]+nx]
     parinfo[1].limits  = [y0[i_slice],y0[i_slice]+ny]
@@ -248,7 +244,7 @@ if keyword_set(rad_arr) eq 1 then begin
 endif
 
     ;Fit the result of gpi_highres_microlens_psf_evaluate_detector_psf to the current slice. gpi_highres_microlens_psf_evaluate_detector_psf uses the common psf_lookup_table to get the PSF to fit. Then it shifts and scales it according to the parameters (centroid and intensity).
- parameters = MPFIT2DFUN("gpi_highres_microlens_psf_evaluate_detector_psf", x_grid, y_grid, pixel_array[*,*,i_slice],0, $
+ parameters = MPFIT2DFUN("gpi_highres_microlens_psf_evaluate_detector_psf", x_grid, y_grid, data,0, $
                                                       first_guess[*,i_slice], $
                                                       WEIGHTS = final_weights, PARINFO = parinfo, $
                                                       BESTNORM = chisq, YFIT = yfit, /quiet ) 
@@ -259,14 +255,14 @@ passing=final_weights
 	sz=size(mask)*30
 	window,2,xsize=sz[1]*3,ysize=sz[2]
 	ind=where(mask ne 0)
-	dmax=max(pixel_array[ind],/nan)
-	dmin=min(pixel_array[ind],/nan)
+	dmax=max(data[ind],/nan)
+	dmin=min(data[ind],/nan)
 	loadct,1
-	tvdl, pixel_array*mask,dmin,dmax,position=0,/log
+	tvdl, data*mask,dmin,dmax,position=0,/log
 	tvdl,yfit*mask,dmin,dmax,position=1,/log
 	loadct,0
-	diff=pixel_array-yfit
-	my_residuals =  diff / (pixel_array)  
+	diff=data-yfit
+	my_residuals =  diff / (data)  
 
 	tvdl,my_residuals*mask,-0.1,0.1,position=2
 	stop
@@ -279,7 +275,7 @@ passing=final_weights
 ; improvised red chisq - 
 ;`	junk=where(final_weights ne 0, ct)
 ;	chisq0=chisq
-; chisq=( total( weights *(pixel_array-fitted_psf)^2) / (total(final_weights)) ) / (dof-3-1)
+; chisq=( total( weights *(data-fitted_psf)^2) / (total(final_weights)) ) / (dof-3-1)
 
 
 if chisq lt 0 then stop
