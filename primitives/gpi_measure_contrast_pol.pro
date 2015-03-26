@@ -58,7 +58,8 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
 
   sz=size(cube)
   dim=size(cube, /dim)
-
+  
+  ncoadd=backbone->get_keyword("COADDS0")
 
   ;;error handle if extractcube not used before
   if ((sz)[0] ne 3) || (strlen(band) eq 0)  then $
@@ -211,6 +212,11 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
     contrprof = ptrarr(n_elements(inds),/alloc)
     asecs = ptrarr(n_elements(inds),/alloc)
 
+    ;The PSF centers
+    centx = backbone->get_keyword("PSFCENTX")
+    centy = backbone->get_keyword("PSFCENTY")
+    cent=[centx,centy]
+;    backbone->set_keyword,"PSFCENTX", cent[0], 'X-Location of PSF center', ext_num=1
     
     ;----- actually measure the contrast here -----
     for j = 0, n_elements(inds)-1 do begin
@@ -218,14 +224,14 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
       case contr_yunit of
         0: radial_profile_pol,copsf[*,*,inds[j]],cens[*,*,inds[j]],$
           lambda=cwv[inds[j]],asec=asec,isig=outval,$
-          /dointerp,doouter = doouter
+          /dointerp,doouter = doouter, cent=cent
         1: radial_profile_pol,copsf[*,*,inds[j]],cens[*,*,inds[j]],$
           lambda=cwv[inds[j]],asec=asec,imed=outval,$
-          /dointerp,doouter = doouter
+          /dointerp,doouter = doouter, cent=cent
 ;        2: radial_profile,copsf[*,*,inds[j]],(*self.satspots.cens)[*,*,inds[j]],$
         2: radial_profile_pol,copsf[*,*,inds[j]],cens[*,*,inds[j]],$
           lambda=cwv[inds[j]],asec=asec,imn=outval,$
-          /dointerp,doouter = doouter
+          /dointerp,doouter = doouter, cent=cent
       endcase
       outval *= sclunit
       *contrprof[j] = outval
@@ -456,6 +462,8 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
       sxaddpar,hdr,'YUNITS',(['Std Dev','Median','Mean'])[contr_yunit],'Contrast units'
 
       writefits,nm,out,hdr
+      
+      print, "Radial Profile output to ", nm
     endif
 
   endif
