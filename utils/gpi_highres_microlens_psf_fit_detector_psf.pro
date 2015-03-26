@@ -153,12 +153,12 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
 
  ;loop over all the slice of the pixel_array cube. It fit the same PSF to all of them.
 
-  for i_slice = 0L,long(nz-1) do begin
+for i_slice = 0L,long(nz-1) do begin
     
-    if keyword_set(x0) then x_grid = x_grid0 + x0[i_slice] else x_grid = x_grid0
-    if keyword_set(y0) then y_grid = y_grid0 + y0[i_slice] else y_grid = y_grid0
+	if keyword_set(x0) then x_grid = x_grid0 + x0[i_slice] else x_grid = x_grid0
+	if keyword_set(y0) then y_grid = y_grid0 + y0[i_slice] else y_grid = y_grid0
    
-   data= pixel_array[*,*,i_slice]
+	data= pixel_array[*,*,i_slice]
  
   ;   WEIGHTS - Array of weights to be used in calculating the
   ;             chi-squared value.  If WEIGHTS is specified then the ERR
@@ -183,29 +183,39 @@ c_sampling=round(1/( ((*ptr_obj_psf).xcoords)[1]-((*ptr_obj_psf).xcoords)[0] ))
 ; we want to follow the format of Anderson et al.
 ; he uses a radial weighting scheme combined with a poisson distribution
 ; he can do this because he is looking for astrometry not intensity
-if keyword_set(weights) eq 0 then stop, 'No weights set - set the weights keyword to radial or mask'
+	if keyword_set(weights) eq 0 then stop, 'No weights set - set the weights keyword to radial or mask'
 
-;add any non-finite pixels to the mask - then remove it from the stamp.
-nan_inds=where(finite(data) eq 0, ct)
-if ct ne 0 then begin
+	;add any non-finite pixels to the mask - then remove it from the stamp.
+	nan_inds=where(finite(data) eq 0, ct)
+	if ct ne 0 then begin
 		data[nan_inds]=0
 		mask[nan_inds]=0
-endif
+	endif
 
-if weights eq 'radial' then begin
-	; find peak in mask space
-	weights0=mask ; just makes the array 
+	if weights eq 'radial' then begin
+		; find peak in mask space
+		weights0=mask ; just makes the array 
 
-	rad_arr=(sqrt((x_grid-first_guess[0])^2+(y_grid-first_guess[1])^2))
-
-	ind1=where(rad_arr gt 2.5,ct1)
-	if ct1 ne 0 then weights0[ind1]=0.0
-	ind2=where(rad_arr ge 1.5 and rad_arr lt 2.5,ct2)
-	if ct2 ne 0 then weights0[ind2]=1.0/((rad_arr[ind2])/1.5) ; goes linearly from 1 to zero with radius
-	ind3=where(rad_arr lt 1.5 and mask ne 0,ct3)
-	if ct3 ne 0 then weights0[ind3]=1.0  ; sets the core to 1
-	weights0*=mask
-endif else weights0=mask
+		rad_arr=(sqrt((x_grid-first_guess[0])^2+(y_grid-first_guess[1])^2))
+	; in andersen at al, they set the weights to 1 from 0-1.5 pixels 
+	; this is for a FWHM of ~0.9-1.1
+	; in our case the FWHM is ~1.5 for H - so we should be going to ~2.25
+	; from 1.5 to 2 then receive from 1 to 0
+	; so that's 2 times the fwhm = so 3 pixels
+		ind1=where(rad_arr gt 3.0,ct1)
+		if ct1 ne 0 then weights0[ind1]=0.0
+		ind2=where(rad_arr ge 2.25 and rad_arr le 3.0,ct2)
+		; get a slope by fitting a line
+		; y=mx+b  m=(1.0-0.0)/(2.25-3.0) = -1.333
+		; solve for b  using y=0,x=3  --- so b=-4
+	
+	;orig	if ct2 ne 0 then weights0[ind2]=1.0/((rad_arr[ind2])/1.5) ; goes linearly from 1 to zero with radius
+		if ct2 ne 0 then weights0[ind2]=(-1.333)*(rad_arr[ind2])-4.0 ; goes linearly from 1 to zero with radius
+		
+		ind3=where(rad_arr lt 2.25 and mask ne 0,ct3)
+		if ct3 ne 0 then weights0[ind3]=1.0  ; sets the core to 1
+		weights0*=mask
+	endif else weights0=mask
 
 	; now add the poisson error component
 	gain=3.04
@@ -215,7 +225,7 @@ endif else weights0=mask
 	; if negative, set it to be consistent with zero 
 	ind=where(data lt 0,ct)
 	if ct ne 0 then data_variance[ind]=abs(mask*data[ind]*gain/ncoadds /(gain^2))
-
+	
 	;declare final weights array
 	final_weights=weights0
 	final_weights[*]=0.0
@@ -224,7 +234,7 @@ endif else weights0=mask
 	ind=where(data_variance ne 0,ct)
 	if ct gt 0 then final_weights[ind]=weights0[ind]/data_variance[ind] else stop,'in fit_detector_psf, no good pixels?'
 	; the paper says the weights should be weights=radial_weighting/variance
-		
+	;stop	
 	ind=where(finite(final_weights) eq 0,ct)
 	if ct ne 0 then stop, 'you should never hit this' ;final_weights[ind]=0
 	
@@ -247,9 +257,9 @@ endif
  parameters = MPFIT2DFUN("gpi_highres_microlens_psf_evaluate_detector_psf", x_grid, y_grid, data,0, $
                                                       first_guess[*,i_slice], $
                                                       WEIGHTS = final_weights, PARINFO = parinfo, $
-                                                      BESTNORM = chisq, YFIT = yfit, /quiet ) 
-
-passing=final_weights 
+                                                      BESTNORM = chisq, /quiet, YFIT = yfit,/nocovar ) 
+passing=final_weights
+ 
 
  if 0 eq 1 or keyword_set(flag) then begin
 	sz=size(mask)*30
