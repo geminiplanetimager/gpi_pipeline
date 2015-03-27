@@ -17115,7 +17115,7 @@ pro GPItv::apphot_refresh, ps=ps, enc_ener=enc_ener, sav=sav
   tmp_string = string((*self.state).cursorpos[0], (*self.state).cursorpos[1], $
     format = '("Cursor position:  x=",i4,"  y=",i4)' )
   tmp_string1 = string((*self.state).centerpos[0], (*self.state).centerpos[1], $
-    format = '("Object centroid:  x=",f6.1,"  y=",f6.1)' )
+    format = '("Object centroid:  x=",f7.2,"  y=",f7.2)' )
   tmp_stringb = 'RA: '+sigfig(startra,5)+" DEC: "+sigfig(startdec,5)
   tmp_string2 = strcompress(fluxstr+string(flux, format = '(g12.6)' ))
 
@@ -17561,7 +17561,7 @@ pro GPItv::apphot
 
     tmp_string1 = $
       string(99999.0, 99999.0, $
-      format = '("Object centroid:  x=",f7.1,"  y=",f7.1)' )
+      format = '("Object centroid:  x=",f7.2,"  y=",f7.2)' )
 
     (*self.state).centerpos_id = $
       widget_label(apphot_data_base1a, $
