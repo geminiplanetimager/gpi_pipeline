@@ -255,11 +255,14 @@ endif
 
     ;Fit the result of gpi_highres_microlens_psf_evaluate_detector_psf to the current slice. gpi_highres_microlens_psf_evaluate_detector_psf uses the common psf_lookup_table to get the PSF to fit. Then it shifts and scales it according to the parameters (centroid and intensity).
  parameters = MPFIT2DFUN("gpi_highres_microlens_psf_evaluate_detector_psf", x_grid, y_grid, data,0, $
-                                                      first_guess[*,i_slice], $
+                                                      first_guess[*,i_slice],status=status,  $
                                                       WEIGHTS = final_weights, PARINFO = parinfo, $
-                                                      BESTNORM = chisq, /quiet, YFIT = yfit,/nocovar ) 
+                                                      BESTNORM = chisq, /quiet, YFIT = yfit,/nocovar) 
+
+if status[0] eq 0 then stop, 'bad input parameters in fit line 261'
+
+; pass out weights - for troubleshooting
 passing=final_weights
- 
 
  if 0 eq 1 or keyword_set(flag) then begin
 	sz=size(mask)*30
