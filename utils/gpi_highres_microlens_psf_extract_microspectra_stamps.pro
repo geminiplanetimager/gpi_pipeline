@@ -280,11 +280,7 @@ case my_type of
 		        xmin = (xlim-nx+1)>0 			; max([0,(xlim-nx+1)])
 		        xmax = (xlim)<2047 			;min([2047,xlim])
 		endelse
-		;x_indices of interest for masking
-		x_mask_inds=where(finite(xcoords[*,i,j]))
-		y_mask_inds=where(finite(ycoords[*,i,j]))
-	        mask_image[xcoords[x_mask_inds,i,j],ycoords[y_mask_inds,i,j]] = 1
-	   		;ylim = xmini[i,j]-ny+1  ; ny=sdpx0
+			;ylim = xmini[i,j]-ny+1  ; ny=sdpx0
 		;ymin = max([0,ylim])
 	        ;ymax = min([2047,(ylim+ny-1)])
        	       
@@ -292,19 +288,38 @@ case my_type of
 		; xmini gives the top of the array - (so the maximum y pixel) 
 		
 		ymin = (xmini[i,j]-max(stamp_length_offsets_from_xmini))>0		; max([0,ylim-bottom_adjustment])
-	        ymax = (xmini[i,j]-min(stamp_length_offsets_from_xmini))<2047		; min([2047,(ylim+ny+top_adjustment-1)])
-       	       ;stop
+		ymax = (xmini[i,j]-min(stamp_length_offsets_from_xmini))<2047		; min([2047,(ylim+ny+top_adjustment-1)])
+       	
+		
+		;x and y indices of interest for masking
+		x_mask_inds=where(finite(xcoords[*,i,j]),xct)
+		y_mask_inds=where(finite(ycoords[*,i,j]),yct)
+
+		if xct eq 0 then stop,'this should never happen - line 298'
+		; check to see that there are enough pixels of useful data.
+		; arbitrarily define 50% of the pixels as necessary
+		; if not enough - toss the spaxel
+		total_pixels=(xmax-xmin)*(ymax-ymin)
+
+		mask_image[xcoords[x_mask_inds,i,j],ycoords[y_mask_inds,i,j]] = 1
+		tmp_mask_stamp=mask_image[xmin:xmax,ymin:ymax]*(bad_pixel_mask)[xmin:xmax,ymin:ymax]
+
+		if total(tmp_mask_stamp,/nan) lt 0.5*stamp_length*width then continue
+	
+	    	   		
 		values_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = image[xmin:xmax,ymin:ymax]
-		masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = mask_image[xmin:xmax,ymin:ymax]*(bad_pixel_mask)[xmin:xmax,ymin:ymax]
-       	       	xcoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = xcoords_image[xmin:xmax,ymin:ymax]
-       	       	ycoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = ycoords_image[xmin:xmax,ymin:ymax]
+		
+		masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = tmp_mask_stamp
+		xcoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = xcoords_image[xmin:xmax,ymin:ymax]
+		ycoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j] = ycoords_image[xmin:xmax,ymin:ymax]
              
 		; stop here to check stamps and masks
-		;if i[0] eq 55 and j[0] eq 121 then stop, 'at 140,140 check'	
+		;if i[0] eq 14 and j[0] eq 190 then stop, 'at 140,140 check'	
+		
 		;set the mask back to zeros for the next lenslet 
 		mask_image[xcoords[x_mask_inds,i,j],ycoords[y_mask_inds,i,j]] = 0
 
-	
+			
 		; now calculate the centroids - this just does a center of mass calculation
 		tmpx=xcentroids[i,j,0,it_elev]
 		tmpy=ycentroids[i,j,0,it_elev]
@@ -336,16 +351,16 @@ case my_type of
 			endif else begin
 			xcentroids[i,j,0,it_elev]= total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
 							xcoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$ 
-							masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])/$ 
+							masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j],/nan)/$ 
 							total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
-							masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])
+							masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j],/nan)
 			ycentroids[i,j,0,it_elev]= total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
 							ycoords_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
-							masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])/$ 
+							masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j],/nan)/$ 
 							total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
-							masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])
+							masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j],/nan)
 			intensities[i,j,0,it_elev]= total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
-							masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j])
+							masks_stamps[0:xmax-xmin,0:ymax-ymin,i,j],/nan)
 			
 			; the following just flags if the offset is too large?
 			; PI: Rare flag - only weird edge effects
