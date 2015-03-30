@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DRF ReductionType="Testing" name="Wavelength Solution#2" ShortName="wavecal2">
+ <!-- Alternate wavecal algorithms. Not recommended for general use. 
+      Deprecated?   -MP  -->
+<dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
+   <fits filename=""/>
+</dataset>
+<module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0"  gpitv="0" />
+<module name="Measure locations of Emission Lines" nlens="281" centrXpos="1024" centrYpos="1024" w="4.8" P="-1.8" wav_of_centrXYpos="2" maxpos="2." maxtilt="10." medfilter="1" Save="       1"  gpitvim_dispgrid="0" gpitv="0" tests="0" />
+<module name="Accumulate Images" Method="InMemory" />
+<module name="Combine Wavelength Calibrations locations" polydegree="1" Save="       1" gpitv="0" />
+</DRF>
