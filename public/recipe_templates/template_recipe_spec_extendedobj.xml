@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DRF ReductionType="SpectralScience" name="Create datacubes, Rotate, and Combine unocculted sequence" ShortName="extendedobj">
+  <dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
+    <fits FileName="" />
+  </dataset>
+  <module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
+  <module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
+  <module name="Update Spot Shifts for Flexure" method="Lookup" manual_dx="0" manual_dy="0" Save="0" gpitv="0" display="-1" />
+  <module name="Destripe science image" method="calfile" abort_fraction="0.9" fraction="0.7" high_limit="1000" chan_offset_correction="0" Save_stripes="0" Save="0" display="-1" gpitv="0" remove_microphonics="0" method_microphonics="1" plot_micro_peaks="no" save_microphonics="no" micro_threshold="0.01" />
+  <module name="Interpolate bad pixels in 2D frame" method="vertical"  Save="0" gpitv="0" CalibrationFile="AUTOMATIC" before_and_after="0" /> 
+  <module name="Assemble Spectral Datacube" Save="0" />
+  <module name="Interpolate Wavelength Axis" Spectralchannels="37" Save="1" gpitv="5" />
+  <module name="Rotate North Up" Method="CUBIC" Center_Method="MANUAL" centerx="140" centery="140" Show="0" Save="1" gpitv="7" />
+  <module name="Accumulate Images" Method="OnDisk" />
+  <module name="Combine 3D Datacubes" method='MEAN' sig_clip="3" Save="1" gpitv="10" />
+  <!--  <module name="Collapse datacube" Method="TOTAL" Save="0"  gpitv="2" ReuseOutput="1" /> -->
+</DRF>
+

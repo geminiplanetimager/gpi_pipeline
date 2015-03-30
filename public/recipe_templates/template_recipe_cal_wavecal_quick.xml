@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<recipe ReductionType="Calibration" name="Quick Wavelength Solution" ShortName="quickwavecal">
+<dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
+   <fits filename=""/>
+</dataset>
+<primitive name="Flag Quicklook" Save="0" />
+<primitive name="Add DISPERSR keyword if missing" Value="DISP_PRISM_G6262" />
+<primitive name="Apply Reference Pixel Correction" before_and_after="0" Method="INTERPOLATED" Save="0" gpitv="0" />
+<primitive name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0"  gpitv="0" />
+<primitive name="Subtract Thermal/Sky Background if K band" CalibrationFile="AUTOMATIC" Save="0"  gpitv="10" />
+<primitive name="Interpolate bad pixels in 2D frame" method="vertical"  Save="0" gpitv="0" CalibrationFile="AUTOMATIC" />
+<primitive name="Quick Wavelength Solution Update" Display="-1" spacing="20" boxsizex="7" boxsizey="24" xoffset="0" yoffset="0" whichpsf="0" high_order_correction="1" CalibrationFile="AUTOMATIC" Save="1" AutoOffset="1" gpitvim_dispgrid="10" />
+<primitive name="Quality Check Wavelength Calibration" error_action="Ask_user" Display="-1" Save="1" />
+</recipe>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DRF ReductionType="SpectralScience" name='Microlens PSF Flexure offset from Wavecal' ShortName="mpsf_lsqr_xcorr_calibratedcube">
+<dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
+   <fits filename=""/>
+</dataset>
+<module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
+<module name="Load High-Res PSFs" CalibrationFile="AUTOMATIC" />
+<module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0"  gpitv="0" />
+<module name="Flexure 2D x correlation with wavecal model" Save="0" gpitv="0" />
+</DRF>

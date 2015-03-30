@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- simplest possible DRF, just makes a simple data cube w/ no calibrations for Undispersed mode -->
+<DRF ReductionType="Calibration" name="Quicklook Automatic Undispersed Extraction" ShortName="quickundispersed">
+<dataset InputDir="$(GPI_RAW_DATA_DIR)" OutputDir="AUTOMATIC">
+   <fits filename=""/>
+</dataset>
+<primitive name="Flag Quicklook" Save="0" />
+<primitive name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
+<primitive name="Update Spot Shifts for Flexure" method="Lookup" manual_dx="0" manual_dy="0" Save="0" gpitv="0" display="-1" />
+<primitive name="Interpolate bad pixels in 2D frame" method="vertical"  Save="0" gpitv="0" CalibrationFile="AUTOMATIC" before_and_after="0" />  
+<primitive name="Assemble Undispersed Image" xshift='-2.363' yshift='-2.6134' boxsize="5" suffix="extu" Save="1" gpitv='5'  />
+</DRF>

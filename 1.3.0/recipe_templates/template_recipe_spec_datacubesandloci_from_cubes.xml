@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DRF  ReductionType="SpectralScience" name='LOCI ADI reduction (From Reduced Cubes)' ShortName="locifromcubes">
+<dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
+   <fits filename=""/>
+</dataset>
+<module name="Accumulate Images" Method="OnDisk" />
+<module name="ADI with LOCI" nfwhm="2.5" Save="1" suffix="-loci" gpitv="10" />
+<module name="Median Combine ADI datacubes" Save="       1" gpitv="11" />
+</DRF>

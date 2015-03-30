@@ -1,0 +1,53 @@
+#constants file for GPI Data Reduction Pipeline
+# This file format is just
+# SETTING_NAME<tab>SETTING_VALUE
+# settings are case insensitive
+# values are all returned as doubles by default, unless user overrides
+
+# For a description of what each option means, 
+# See http://docs.planetimager.org/pipeline_dev/installation/config_settings.html
+
+#image plane geometry based on measurement by Savransky & Thomas
+pix_to_ripple   122.53444
+mems_rotation   0.017453293
+#
+# lenslet scale based on measurement by Quinn Konopacky, 14.14 +- 0.01 mas/lenslet
+ifs_lenslet_scale       0.01414
+#
+#observatory location (deg, East lon)
+#(gemini south - WGS84) 
+observatory_lat     -30.24075
+observatory_lon     -70.73669333333333
+#
+#primary and secondary diameters (m) from http://dms.hia.nrc.ca/view.php?fDocumentId=2164
+primary_diam    7.7701
+secondary_diam  1.32090 ;  7.7701*0.17 - projected inner diameter of secondary hole
+ 
+#
+#Rotation of frame in IFS image (orig. measurement by Marshall Perrin)
+ifs_rotation    23.5
+# The zero point fluxes of vega for each gpi filter
+# the values were determined by integrating the spectrum:
+# ftp://ftp.stsci.edu/cdbs/current_calspec/alpha_lyr_stis_005.fits
+# information about this file can be found at the address below
+# http://www.stsci.edu/hst/observatory/cdbs/calspec.html
+# units of the following are are in erg/cm2/s/um
+zero_pt_flux_Y	4.9663811e-06
+zero_pt_flux_J  3.3749556e-06
+zero_pt_flux_H  1.1490425e-06
+zero_pt_flux_K1	 5.2028166e-07
+zero_pt_flux_K2	 3.9821396e-07
+# Central wavelengths of the filters. Determined when calculated zero point fluxes
+; Filter        central_wavelength(um)
+cen_wave_Y  1.0604833
+cen_wave_J  1.2113351
+cen_wave_H  1.6392885
+cen_wave_K1  2.0567269
+cen_wave_K2  2.2032622
+
+# size of coronagraph focal plane masks, in arcseconds
+fpm_diam_y = 0.156
+fpm_diam_j = 0.184
+fpm_diam_h = 0.246
+fpm_diam_k1 = 0.306
+fpm_diam_k2 = 0.306
