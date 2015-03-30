@@ -151,19 +151,20 @@ stop
 	
 	wavestep = (para[1]-para[0])/(para[2])
 	
-	id = where_xyz(wcal_off_cube[*,*,4] ne 0.001,XIND=xarr,YIND=yarr)
+	;id = where_xyz(wcal_off_cube[*,*,4] ne 0.001,XIND=xarr,YIND=yarr)
 
-	sft = wcal_off_cube[xarr,yarr,1]
-	deg = wcal_off_cube[xarr,yarr,2]
-	lam = wcal_off_cube[xarr,yarr,3]
-	chi = wcal_off_cube[xarr,yarr,4]
+	stop
+	sft = wcal_off_cube[*,*,1]
+	deg = wcal_off_cube[*,*,2]
+	lam = wcal_off_cube[*,*,3]
+	chi = wcal_off_cube[*,*,4]
 
-	x = wcal_off_cube[xarr,yarr,5]
-    	y = wcal_off_cube[xarr,yarr,6]
+	x = wcal_off_cube[*,*,5]
+    	y = wcal_off_cube[*,*,6]
 
 	backbone->Log, string(mean(sft))+string(mean(deg))+string(mean(lam))+string(mean(x))+string(mean(y))
 
-	tst=gpi_cube[xarr,yarr,*]
+	tst=gpi_cube[*,*,*]
 
 	;plot histograms of fits
 	;window,0
