@@ -90,11 +90,11 @@ if (backbone->get_keyword('OBSTYPE')) eq 'ARC' then begin
 				; now subtract the lowfrequency component
 				tmp=im-low_freq
 				print,''
-				print, 'median value of low_frequency slice at '+strc(lambda[slices[l]])+' = '+strc(median(low_freq))
+				print, 'mean value of low_frequency slice at '+strc(lambda[slices[l]])+' = '+strc(mean(low_freq,/nan))
 				print, 'stddev of low-frequency modulations of '+strc(lambda[slices[l]])+' = '+strc(stddev(low_freq,/nan))	
 				print, 'stddev of high-frequency modulations of '+strc(lambda[slices[l]])+' = '+strc(stddev(tmp,/nan))
-				print, 'percentage error of low-freq modulation ' +strc(stddev(low_freq,/nan)/median(low_freq))
-				print, 'percentage error of high-freq modulation ' +strc(stddev(tmp,/nan)/median(low_freq))
+				print, 'percentage error of low-freq modulation ' +strc(stddev(low_freq,/nan)/mean(low_freq,/nan))
+				print, 'percentage error of high-freq modulation ' +strc(stddev(tmp,/nan)/mean(low_freq,/nan))
 				print,''
 			
 				; calculation of the number of extreme events
@@ -104,7 +104,7 @@ if (backbone->get_keyword('OBSTYPE')) eq 'ARC' then begin
 				
 				;plothist,tmp2,/nan,bin=0.01
 				
-				med=median(tmp2); this should be 1 by definition... but we compute it anyways
+				med=mean(tmp2); this should be 1 by definition... but we compute it anyways (ZHD median resulted in zero once and caused infinity, switch to mean?)
 				junk=where(tmp2 gt med+5*rs,n_bright_pix)
 				print, 'Number of spaxels brighter than 5 sigma from their surroundings = '+strc(n_bright_pix)
 				junk=where(tmp2 lt med-5*rs,n_bright_pix)
@@ -114,11 +114,35 @@ if (backbone->get_keyword('OBSTYPE')) eq 'ARC' then begin
 
 			endfor
 
+			;stop
 
-
-
+		
 
 		endif
+
+	;Adding a "checkerboard metric"
+
+	id = where_xyz(finite(cube[*,*,0]),XIND=xarr,YIND=yarr)
+	lens = [transpose(xarr),transpose(yarr)]
+
+	;buffer a pixel column, falls out as -NaN
+	cube = [cube[0:*,*,*],MAKE_ARRAY(1, 281, 37)]
+
+	cms = [0]
+	for i=0,n_elements(id)-1 do begin
+		spec1 = cube[lens[0,i],lens[1,i],*]
+		spec2 = cube[lens[0,i]+1,lens[1,i],*]
+		cm = total(abs(spec1/total(spec1)-spec2/total(spec2)))
+		if (finite(cm) EQ 1) then cms = [cms,cm]
+	endfor
+	
+	bsize = 0.0025
+	window,1
+	cgHistoplot, cms, BINSIZE=0.0025, /FILL,xtitle="Checkerboard Metric",ytitle="# of lenslets",xrange=[0,0.15]
+	print,'Checkerboard metric for full datacube"
+	print,'Mean: ',mean(cms),'  STDDEV: ',stddev(cms)
+
+	stop
 
 endif ; end evaluation for arcs
 	
