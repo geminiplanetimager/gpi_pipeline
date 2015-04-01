@@ -12,7 +12,7 @@ The next release of the GPI pipeline will probably be in Fall 2015.
 
 Version 1.3.0
 =========================================
-Released 2015 March, for Gemini 2015A
+Released 2015 April 1, for Gemini 2015A
 
 
 
