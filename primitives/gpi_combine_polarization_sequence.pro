@@ -21,6 +21,7 @@
 ; PIPELINE ARGUMENT: Name="HWPoffset" Type="float" Range="[-360.,360.]" Default="-29.14" Desc="The internal offset of the HWP. If unknown set to 0"
 ; PIPELINE ARGUMENT: Name="IncludeSystemMueller" Type="int" Range="[0,1]" Default="0" Desc="1: Include, 0: Don't"
 ; PIPELINE ARGUMENT: Name="IncludeSkyRotation" Type="int" Range="[0,1]" Default="1" Desc="1: Include, 0: Don't"
+; PIPELINE ARGUMENT: Name="PerfectHWP" Type="int" Range="[0,1]" Default="0" Desc="1: Perfect, 0: Use lab measured retardance"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="10" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 
@@ -47,6 +48,7 @@ function gpi_combine_polarization_sequence, DataSet, Modules, Backbone
 
   if tag_exist( Modules[thisModuleIndex], "includesystemmueller") then Include_Mueller = uint(Modules[thisModuleIndex].IncludeSystemMueller) else Include_Mueller = 1
   if tag_exist( Modules[thisModuleIndex], "includeskyrotation") then   Include_sky =  uint(Modules[thisModuleIndex].Includeskyrotation)   else Include_sky = 1
+  if tag_exist( Modules[thisModuleIndex], "PerfectHWP") then   perfect_hwp =  uint(Modules[thisModuleIndex].PerfectHWP)   else perfect_hwp = 1
 
   nfiles = dataset.validframecount
 
@@ -145,6 +147,9 @@ function gpi_combine_polarization_sequence, DataSet, Modules, Backbone
     backbone -> Log, logmsg
     sxaddhist, functionname+":"+logmsg, hdr0
 
+    if perfect_hwp eq 1 then $
+    wp_mueller = mueller_gpi_waveplate(angle = wpangle[i], ifsfilt = filter0, /degrees,/perfect) $
+    else $
     wp_mueller = mueller_gpi_waveplate(angle = wpangle[i], ifsfilt = filter0, /degrees)
 
 
@@ -344,8 +349,10 @@ function gpi_combine_polarization_sequence, DataSet, Modules, Backbone
   sxaddpar, hdrext0, "PC3_3", 1, "Stokes axis is unrotated"
 
   ;Set the Stokes type in the header
-  sxaddpar, hdrext0, 'STKESTYP', 'STOKES', "Stokes cube type (Stokes or Radial)"
+  sxaddpar, hdrext0, 'STKESTYP', 'CLASSICAL', "Stokes cube type (Stokes or Radial), as defined in paper blah"
 
+  ;Calculate the mean satellite spot fluxes across the PODC
+  
   for j = 0,3 do begin
     sxaddpar, hdrext0,'SATF0_'+strtrim(j,2)+'S',$
       mean(sat_spot_fluxes[*,j],/nan), 'Mean flux of sat. spot '+strtrim(j,2)
