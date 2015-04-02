@@ -332,7 +332,7 @@ pro GPItv::initcommon
     contrwinap_id:0L,$
     contrwinap:20L,$
     contrap_id:0L,$
-    contrap:7L,$
+    contrap:7L,$						; Contrast aperture size
     contr_yaxis_type: 1, $              ; 0=linear or 1=log axis
     contr_yaxis_mode: 1, $              ; 0=manual, 1= auto axis
     contr_yaxis_min: 1.e-6, $           ;  axis scale
@@ -489,6 +489,7 @@ pro GPItv::initcommon
     subwindow_dirviewer: obj_new(), $           ; handle to file directory viewer/scanner window, if open
     rgb_mode: 0, $					  ; are we displaying an RGB image made from collapsing a datacube?
     activator: 0, $                   ; is "activator" mode on?
+	mark_sat_spots: 0, $			 ; should we overplot the location of GPI's satellite spots? 
     retain_current_slice: 1, $       ; toggles stickiness of current image when loading new file
     retain_current_view: 1, $  ; align next image by default?
     retain_collapse_mode: 0, $       ; keep collapse mode if possible
@@ -763,6 +764,7 @@ pro GPItv::startup, nbrsatspot=nbrsatspot
     {cw_pdmenu_s, 0, 'SDI Settings...'}, $
     {cw_pdmenu_s, 0, 'KLIP Settings...'}, $
     {cw_pdmenu_s, 0, 'Clear KLIP Data'}, $
+    {cw_pdmenu_s, 8, 'Mark Sat Spots'}, $
     {cw_pdmenu_s, 12, 'Retain Current Slice'}, $
     {cw_pdmenu_s, 8, 'Retain Current Stretch'}, $
     {cw_pdmenu_s, 8, 'Retain Current View'}, $
@@ -1662,6 +1664,13 @@ pro GPItv::topmenu_event, event
     'Clear KLIP Data': BEGIN
       ptr_free,self.images.klip_image
       self.images.klip_image = ptr_new(/allocate_heap)
+    END
+
+    'Mark Sat Spots': BEGIN
+      (*self.state).mark_sat_spots = 1 - (*self.state).mark_sat_spots
+      widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Mark Sat Spots")],$
+        set_button = (*self.state).mark_sat_spots
+	  self->refresh
     END
 
     'Retain Current Slice': BEGIN
@@ -9578,7 +9587,9 @@ pro GPItv::plotall
 
   ; Routine to overplot all line, text, and contour plots
 
-  if (self.pdata.nplot EQ 0) then return
+  if ((self.pdata.nplot + (*self.state).mark_sat_spots)  EQ 0) then return
+
+  self->setwindow, (*self.state).draw_window_id
 
   self->plotwindow
 
@@ -9598,6 +9609,14 @@ pro GPItv::plotall
       else      : self->message, msgtype='error','Problem in self->plotall!'
     endcase
   endfor
+
+  ; special case: sat spots
+  ; This is handled via a menu state toggle rather than an 
+  ; annotation, because that's a nicer user interface, and
+  ; lets the setting persist when switching cubes.
+  if (*self.state).mark_sat_spots then self->plot1satspots
+
+  self->resetwindow
 
 end
 
@@ -14615,6 +14634,66 @@ pro GPItv::lineplot_event, event
   endcase
 
 end
+
+;--------------------------------------------------------------------------------
+
+pro GPITv::plot1satspots, iplot
+; Draw satellite spot indicators on the main window
+
+
+; First make sure we have sat spot info
+  if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
+    self->update_sat_spots,locs0=locs0
+    ;;if failed, bail
+    if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
+		self->Log, "Can't mark sat spots because no sat spot info available."
+      return
+    endif
+  endif
+
+	ind = (*self.state).cur_image_num
+
+	;;check for warnings
+	case (*self.satspots.warns)[ind] of
+		0: color='cyan'
+		1: color="orange"
+		-1: color="red"
+	endcase
+
+
+    ;;find center
+    xc = mean( (*self.satspots.cens)[0,*,ind] )
+    yc = mean( (*self.satspots.cens)[1,*,ind] )
+
+	;self->plotwindow
+
+	oplot, (*self.satspots.cens)[0,*,ind],$
+		(*self.satspots.cens)[1,*,ind],psym=1, color=cgcolor(color)
+
+     for i=0,3 do begin
+
+		; Mark position at current wavelength
+        tvcircle, /data, (*self.state).contrap, $
+			(*self.satspots.cens)[0,i,ind],$
+			(*self.satspots.cens)[1,i,ind],$
+			color=cgcolor(color), thick=2, psym=0
+
+		; mark trace over all wavelengths
+		oplot, (*self.satspots.cens)[0,i,*], (*self.satspots.cens)[1,i,*], psym=-3, color=cgcolor(color), thick=1, lines=2
+	endfor
+
+	; mark any that are flagged with warnings
+	for j=0,(*self.state).image_size[2]-1 do begin
+		if (*self.satspots.warns)[j] ne 0 then $
+			oplot, (*self.satspots.cens)[0,*,j],$
+				   (*self.satspots.cens)[1,*,j],psym=1, color=cgcolor('red')
+	endfor
+
+	
+    oplot, [xc], [yc], psym=1, symsize=3, color=0, thick=2
+ 
+end
+
 
 ;--------------------------------------------------------------------------------
 pro GPItv::polarim_from_cube, status=status, $
