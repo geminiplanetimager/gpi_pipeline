@@ -152,7 +152,8 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 	bpmask[*,2043:2047] = 0
 
         ; convert all bad pixels > 1 to 1:
-        bpmask[WHERE(bpmask GT 1, /NULL)] = 1
+        ind = WHERE(bpmask GT 1,cnt)
+        if cnt gt 0 then bpmask[ind] = 1
 
 	wbad = where(bpmask ne 0, count)
     ; Check for a reasonable total number of bad pixels, <1% of the total array.
