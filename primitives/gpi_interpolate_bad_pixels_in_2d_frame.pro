@@ -66,7 +66,6 @@
 ;	2013-12-16 MP: Update to allow bad pixel map files to have values other than
 ;					1, with any nonzero value being interpreted as bad. 
 ;   2013-12-16 MP: CalibrationFile argument syntax update. 
-;  2015-04-05 JM: fixed the code only compatible with IDL8. As a reminder, Gemini has made strong request in the past for the pipeline to be IDL6.4 and more compatible.
 ;-
 function gpi_interpolate_bad_pixels_in_2d_frame, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -153,8 +152,7 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 	bpmask[*,2043:2047] = 0
 
         ; convert all bad pixels > 1 to 1:
-        ind=WHERE(bpmask GT 1)
-        if ind ne -1 then bpmask[ind] = 1
+        bpmask[WHERE(bpmask GT 1, /NULL)] = 1
 
 	wbad = where(bpmask ne 0, count)
     ; Check for a reasonable total number of bad pixels, <1% of the total array.
