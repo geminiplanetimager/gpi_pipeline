@@ -129,6 +129,18 @@ wavelength slice changes.
         :align: center
 
 
+Here's another image, now showing what persistence can look like in a
+relatively unprocessed datacube before PSF subtraction. The horizontal striping
+is still distinctly visible on top of the usual PSF halo:
+
+.. image:: badimg_14_persistence.png
+        :width: 500px
+        :align: center
+
+
+
+
+
 The amount of persistence varies strongly across the detector. Here is a 2D image taken as a dark immediately after a very bright flat exposure, intentionally to highlight the persistence pattern:
 
 
