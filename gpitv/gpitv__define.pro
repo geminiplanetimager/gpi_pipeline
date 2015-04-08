@@ -346,6 +346,15 @@ pro GPItv::initcommon
     contr_yunit:0, $                    ; 0 = sigma, 1 = median, 2 = mean
     contr_xunit:0, $                    ; 0 = as, 1 = l/D
     contr_prof_filetype:0, $            ; 0 = fits, 1 = txt
+	fpmoffset_fpmpos: fltarr(2), $		; Measured center of focal plane mask
+	fpmoffset_califilename: '', $		; Filename for source of that FPM position
+	fpmoffset_psfcentx_id: 0L, $		; widget id
+	fpmoffset_psfcenty_id: 0L, $		; widget id
+	fpmoffset_fpmcentx_id: 0L, $		; widget id
+	fpmoffset_fpmcenty_id: 0L, $		; widget id
+	fpmoffset_offsetx_id: 0L, $			; widget id
+	fpmoffset_offsety_id: 0L, $			; widget id
+	fpmoffset_statuslabel_id: 0L, $          ; widget id
     lambplot_widget_id: 0L, $           ; id of radial profile widget
     lambplot_window_id: 0L, $           ; id of radial profile window
     showlambplot_id: 0L, $              ;
@@ -728,7 +737,8 @@ pro GPItv::startup, nbrsatspot=nbrsatspot
     {cw_pdmenu_s, 0, 'Statistics'}, $
     {cw_pdmenu_s, 0, 'Histogram / Exposure'}, $
     {cw_pdmenu_s, 0, 'Pixel Table'}, $
-    {cw_pdmenu_s, 0, 'Star Position'}]
+    {cw_pdmenu_s, 0, 'Star Position'},$
+    {cw_pdmenu_s, 0, 'FPM Offset'}]
 
   ;;if gpitv_obsnotes.pro exists, create menu item for it
   obsnotes = 0
@@ -745,7 +755,6 @@ pro GPItv::startup, nbrsatspot=nbrsatspot
     top_menu_desc = [top_menu_desc,$
     {cw_pdmenu_s, 7, 'Display Coordinate System'}]
   top_menu_desc = [top_menu_desc,$
-    {cw_pdmenu_s, 7, 'Display Coordinate System'}, $
     {cw_pdmenu_s, 0, 'RA,dec (J2000)'}, $
     {cw_pdmenu_s, 0, 'RA,dec (B1950)'}, $
     {cw_pdmenu_s, 0, 'RA,dec (J2000) deg'}, $
@@ -1615,6 +1624,7 @@ pro GPItv::topmenu_event, event
     'Histogram / Exposure': self->showhist
     'Pixel Table': self->pixtable
     'Star Position': self->centerplot
+    'FPM Offset': self->show_fpmoffset
 
     'Archive Image': self->getimage
 
@@ -8444,6 +8454,7 @@ pro GPItv::update_child_windows, noheader=noheader,update=update
   if xregistered(self.xname+'_apphot', /noshow) then self->apphot_refresh
   if xregistered(self.xname+'_anguprof', /noshow) then self->anguprof_refresh
   if xregistered(self.xname+'_contrprof',/noshow) then self->contrprof_refresh
+  if xregistered(self.xname+'_fpmoffset',/noshow) then self->fpmoffset_refresh
   if xregistered(self.xname+'_pixtable', /noshow) then self->pixtable_update
   if xregistered(self.xname+'_lineplot', /noshow) then self->lineplot_update,update=update
   if xregistered(self.xname+'_stats', /noshow) then self->stats_refresh
@@ -14646,7 +14657,7 @@ pro GPITv::plot1satspots, iplot
     self->update_sat_spots,locs0=locs0
     ;;if failed, bail
     if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
-		self->Log, "Can't mark sat spots because no sat spot info available."
+		self->message, "Can't mark sat spots because no sat spot info available."
       return
     endif
   endif
@@ -20514,6 +20525,194 @@ pro GPItv::contrast
 
   self->contrprof_refresh
 end
+
+;----------------------------------------------------------------------
+pro GPItv::show_fpmoffset
+
+  ;; FPM offset/centering tool front end
+
+  (*self.state).cursorpos = (*self.state).coord
+
+  if (not (xregistered(self.xname+'_fpmoffset'))) then begin
+
+    if (*self.state).multisess GT 0 then title_base = "GPItv #"+strc((*self.state).multisess) else title_base = 'GPItv '
+    fpmoffset_base = $
+      widget_base(/base_align_center, $
+      group_leader = (*self.state).base_id, $
+      /column, $
+      title = title_base+' FPM Offset', $
+      uvalue = 'fpmoffset_base')
+
+    fpmoffset_top_base = widget_base(fpmoffset_base, /column, /base_align_center)
+
+    fpmoffset_data_base1  = widget_base(fpmoffset_top_base, /column, frame=0)
+    void=WIDGET_LABEL(fpmoffset_data_base1,value='Star Position from Sat Spots: ', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+    fpmoffset_data_base1a = widget_base(fpmoffset_data_base1, /row, frame=0)
+
+    fpmoffset_data_base2 = widget_base( fpmoffset_top_base, /column, frame=0)
+    void=WIDGET_LABEL(fpmoffset_data_base2,value='FPM Position from Wavecal: ', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+    fpmoffset_data_base2a = widget_base(fpmoffset_data_base2, /row, frame=0)
+
+    fpmoffset_data_base3 = widget_base( fpmoffset_top_base, /column, frame=1)
+    void=WIDGET_LABEL(fpmoffset_data_base3,value='Offset to Align: ', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+    fpmoffset_data_base3a = widget_base(fpmoffset_data_base3, /row, frame=0)
+
+    (*self.state).fpmoffset_psfcentx_id = $
+      cw_field(fpmoffset_data_base1a, $
+      /floating, $
+	  title="  X:",$
+      uvalue = 'psfcentx', $
+	  /noedit, tab_mode=0,$
+      value = '0.0',xsize=8)
+
+    (*self.state).fpmoffset_psfcenty_id = $
+      cw_field(fpmoffset_data_base1a, $
+      /floating, $
+	  title="   Y:",$
+      uvalue = 'psfcenty', $
+	  /noedit,$
+      value = '0.0',xsize=8)
+    void=WIDGET_LABEL(fpmoffset_data_base1a,value=' pixels', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+
+    (*self.state).fpmoffset_fpmcentx_id = $
+      cw_field(fpmoffset_data_base2a, $
+      /floating, $
+	  title="  X:",$
+      uvalue = 'fpmcentx', $
+	  /noedit,$
+      value = '0.0',xsize=8)
+
+    (*self.state).fpmoffset_fpmcenty_id = $
+      cw_field(fpmoffset_data_base2a, $
+      /floating, $
+	  title="   Y:",$
+      uvalue = 'fpmcenty', $
+	  /noedit,$
+      value = '0.0',xsize=8)
+    void=WIDGET_LABEL(fpmoffset_data_base2a,value=' pixels', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+
+    (*self.state).fpmoffset_statuslabel_id=WIDGET_LABEL(fpmoffset_data_base2,value='    FPM position not available. ', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+
+    (*self.state).fpmoffset_offsetx_id = $
+      cw_field(fpmoffset_data_base3a, $
+	  title="Tip:",$
+      uvalue = 'offsetx', $
+	  /noedit,$
+      value = '0',xsize=8)
+
+    (*self.state).fpmoffset_offsety_id = $
+      cw_field(fpmoffset_data_base3a, $
+	  title="Tilt:",$
+      uvalue = 'offsety', $
+	  /noedit,$
+      value = '0',xsize=8)
+    void=WIDGET_LABEL(fpmoffset_data_base3a,value=' mas   ', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+
+
+    widget_control, fpmoffset_base, /realize
+
+    xmanager, self.xname+'_fpmoffset', fpmoffset_base, /no_block
+    widget_control, fpmoffset_base, set_uvalue={object:self, method: 'fpmoffset_event'}
+    widget_control, fpmoffset_base, event_pro = 'GPItvo_subwindow_event_handler'
+    self->resetwindow
+  endif
+
+  self->fpmoffset_refresh
+end
+
+;--------------------------------------------------------------------------------
+pro GPItv::fpmoffset_refresh
+  ;; Plot star position relative to FPM  using satellite spots.
+
+  ;;if no image lodaed, nothing to do
+  if n_elements(*self.images.names_stack) eq 0 then return
+
+  ;;don't support non-cubes
+  if (*self.state).image_size[2] lt 2 then return
+
+  ;;-- Get PSF location --
+  ;;if no satspots in memory, calculate them
+  if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
+    self->update_sat_spots
+
+    ;;if failed, need to return
+    if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
+      self->message, msgtype='error', "Cannot plot star location because we cannot determine the center without satellite spots."
+      return
+    endif
+  endif
+  ; compute mean 
+  ;;calculate center locations
+  tmp=*self.satspots[*].cens
+  cents=fltarr(2,N_ELEMENTS(tmp[0,0,*]))
+  for p=0, N_ELEMENTS(tmp[0,0,*]) -1 do begin
+    for q=0, 1 do cents[q,p]=mean(tmp[q,*,p])
+  endfor
+  psfcentx= mean(cents[0,*])
+  psfcenty = mean(cents[1,*])
+
+
+  ;;-- Get FPM location--
+
+  if (*self.state).fpmoffset_fpmpos[0] eq 0 and (*self.state).fpmoffset_fpmpos[1] eq 0 then begin
+	; Attempt to get FPM position data from a calibration file
+    caldb = obj_new('gpicaldatabase')
+    bestfile = caldb->get_best_cal_from_header( 'fpm_position', *((*self.state).head_ptr), (*self.state).exthead_ptr) )
+
+    if strc(bestfile) eq '-1' then begin
+		 (*self.state).fpmoffset_fpmpos = [-1,-1] ; record that we don't have one so it doesn't try again on every refresh
+	endif else
+		header = headfits(bestfile)
+		FPMCENTX = sxpar(header, 'FPMCENTX', count=ct1)
+		FPMCENTY = sxpar(header, 'FPMCENTY', count=ct2)
+		if ct1+ct2 eq 2 then begin
+			(*self.state).fpmoffset_fpmpos = [fpmcentx,fpmcenty] 
+		endif else begin
+			(*self.state).fpmoffset_fpmpos = [-1,-1] ; record that we don't have one so it doesn't try again on every refresh
+		endelse
+	endelse
+
+
+  endif
+
+
+
+  ;;--update display--
+
+
+  if (*self.state).fpmpos[0] le 0 then begin
+	  self->message, "No FPM position available."
+	  fpmcentx=0.0
+	  fpmcenty=0.0
+	  offsetx_text = ""
+	  offsety_text = ""
+	  statuslabel ='    FPM position not available. '
+  endif else begin
+	  pixscale = gpi_get_constant('ifs_lenslet_scale') ; arcsec per pixel
+      fpmcentx = (*self.state).fpmpos[0]
+      fpmcenty = (*self.state).fpmpos[1]
+
+      offsetx = (psfcentx-fpmcentx) *pixscale*1000 ; convert to mas
+      offsety = (psfcenty-fpmcenty) *pixscale*1000 ; convert to mas
+	  offsetx_text = string(round(offsetx),format="(i+7)")
+	  offsety_text = string(round(offsety),format="(i+7)")
+      statuslabel = "  FPM pos from "+file_basename(bestfile)
+
+  endelse
+
+
+  widget_control,(*self.state).fpmoffset_psfcentx_id,set_value=string(psfcentx,format="(f7.2)")
+  widget_control,(*self.state).fpmoffset_psfcenty_id,set_value=string(psfcenty,format="(f7.2)")
+  widget_control,(*self.state).fpmoffset_fpmcentx_id,set_value=string(fpmcentx,format="(f7.2)")
+  widget_control,(*self.state).fpmoffset_fpmcenty_id,set_value=string(fpmcenty,format="(f7.2)")
+
+  widget_control,(*self.state).fpmoffset_offsetx_id,set_value=offsetx_text
+  widget_control,(*self.state).fpmoffset_offsety_id,set_value=offsety_text
+
+  widget_control,(*self.state).fpmoffset_statuslabel_id,set_value=statuslabel
+
+end
+
 
 ;--------------------------------------------------------------------------------
 pro GPItv::dq_mask_settings
