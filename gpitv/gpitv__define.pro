@@ -14651,6 +14651,10 @@ end
 pro GPITv::plot1satspots, iplot
 ; Draw satellite spot indicators on the main window
 
+  if (*self.state).cube_mode ne 'WAVE' then begin
+	  self::message,"Can't plot sat spots in pol mode yet - still to be implemented"
+	  return
+  endif
 
 ; First make sure we have sat spot info
   if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
