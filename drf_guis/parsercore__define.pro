@@ -252,6 +252,18 @@ function parsercore::parse_fileset_to_recipes, fileset, recipedir=recipedir, out
                         case strupcase(current.obstype) of
                         'DARK':begin
                           templatename='Dark'
+						  if cobj eq 80 and abs(current.itime -60) lt 1 then begin
+							  ; special case handling for the nightly dark monitor
+							  ; at Gemini South. For these we take 80 x 60 s
+							  ; exposures. The first 20 should be discarded to set
+							  ; aside any persistence from the end of the night's
+							  ; science observations. 
+							  self->Log, "Found sequence of 80 x 60 s dark exposures. Skipping the first 20 (for persistence decay) and only reducing the last 60"
+							  indfobject = indfobject[20:*]
+							  cobj = n_elements(indfobject)
+							  file_filt_obst_disp_occ_obs_itime_object = finfo[indfobject].filename
+
+						  endif
                         end
                         'ARC': begin
                           if  current.dispersr eq 'WOLLASTON' then begin
