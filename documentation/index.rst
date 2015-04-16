@@ -84,6 +84,7 @@ Contents
    gpitv/index.rst
    ifs/index.rst
    developers/index.rst
+   gpireference/index.rst
    faq.rst
    license.rst
 
