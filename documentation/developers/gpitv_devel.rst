@@ -221,6 +221,32 @@ which center the image, set the main window title, update the displayed min/max 
 
 ``GPItv::setheader`` handles the ``extensionhead`` keyword.  All other keyword inputs are ignored (but will not produce errors).
 
+
+The call sequence for redisplaying new images in GPItv
+======================================================
+
+This is also regrettably complicated. 
+
+Let's say you change the datacube slice display via the slider. What happens then? 
+
+``GPITV::changeimage`` first performs the actions needed to update internal variables to the
+newly selected slice, and updates label text accordingly on the GUI slider index and wavelength. This then calls ``GPItv::getstats`` and ``set_minmax`` to update the displayed min/max counts in the slice. Then ``GPItv::displayall`` is called. 
+
+``GPItv::displayall`` in turn calls:
+
+  * ``GPItv->scaleimage``  (applies selected display scale and stretch to image)
+  * ``GPItv->makepan``   (make mini version of scaled image for showing full image at top of gpitv)
+  * ``GPItv->settitle``  (Updates title bar label with filename or slice)
+  * ``GPItv->refresh``
+
+
+``GPItv->refresh`` in turn calls: 
+  * ``self->getoffset``
+  * ``self->getdisplay``
+  * ``self->displaymain``
+  * ``self->plotall``
+
+
 .. _gpitv-subwindows:
 
 GPItv Subwindows and Event Handlers

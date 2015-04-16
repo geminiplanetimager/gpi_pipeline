@@ -93,6 +93,12 @@ The relevant code is in two places::
 
 It uses ``AVPARANG`` for the time variable part, then adds in the offsets for the IFS orientation with respect to Gemini.
 
+
+One way to do this is:
+
+1. clock wise rotation by - AVPARANG + 90 - IFSRotAngle 
+2. mirror image with respect to the vertical axis.
+
 Note that the ``PAR_ANG`` keyword gives the instantaneous parallactic angle at
 the time that the Gemini Data System saves state for the FITS header, which
 occurs when the exposure is triggered (i.e. the ``PAR_ANG`` actually gives the
