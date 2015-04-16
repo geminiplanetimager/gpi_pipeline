@@ -6148,63 +6148,72 @@ pro GPItv::update_sat_spots,locs0=locs0
 
   filter = (*self.state).obsfilt
 
-  ;;get wavelengths of cube
-  cube_waves = *((*self.state).CWV_ptr)
 
-  ;;get vega flux
-  ;; vega zero points and filter central wavelenghts stored in gpi_constants config file
-  filt_cen_wave=gpi_get_constant('cen_wave_'+filter)       ; in um
-  zero_vega=gpi_get_constant('zero_pt_flux_'+filter)       ; in erg/cm2/s/um
+  if (*self.state).cube_mode eq 'WAVE' then begin
 
-  ;;#####
-  ;;must convert to photons
-  ;;#####
-  h=6.626068d-27                      ; erg / s
-  c=2.99792458d14                     ; um / s
-  zero_vega*=(filt_cen_wave/(h*c))    ; ph/cm2/s/um
+	  ;;get wavelengths of cube
+	  cube_waves = *((*self.state).CWV_ptr)
 
-  ;; get the pupil area (cm^2)
-  primary_diam = gpi_get_constant('primary_diam',default=7.7701d0)*100d ; cm
-  secondary_diam = gpi_get_constant('secondary_diam',default=1.02375d0)*100d ; cm
-  area=(!pi*(primary_diam/2.0)^2.0 - !pi*(secondary_diam/2.0)^2.0 )
-  zero_vega*=area               ; ph/s/um
-  ;; multiply by instrument throughput (18.6%) in H-band
-  ;; assumes H-band PPM and 080m12_04  Lyot, and H-filter
+	  ;;get vega flux
+	  ;; vega zero points and filter central wavelenghts stored in gpi_constants config file
+	  filt_cen_wave=gpi_get_constant('cen_wave_'+filter)       ; in um
+	  zero_vega=gpi_get_constant('zero_pt_flux_'+filter)       ; in erg/cm2/s/um
+
+	  ;;#####
+	  ;;must convert to photons
+	  ;;#####
+	  h=6.626068d-27                      ; erg / s
+	  c=2.99792458d14                     ; um / s
+	  zero_vega*=(filt_cen_wave/(h*c))    ; ph/cm2/s/um
+
+	  ;; get the pupil area (cm^2)
+	  primary_diam = gpi_get_constant('primary_diam',default=7.7701d0)*100d ; cm
+	  secondary_diam = gpi_get_constant('secondary_diam',default=1.02375d0)*100d ; cm
+	  area=(!pi*(primary_diam/2.0)^2.0 - !pi*(secondary_diam/2.0)^2.0 )
+	  zero_vega*=area               ; ph/s/um
+	  ;; multiply by instrument throughput (18.6%) in H-band
+	  ;; assumes H-band PPM and 080m12_04  Lyot, and H-filter
 
 
-  ;; get instrument transmission (and resolution)
-  ;; corrections for lyot, PPM, and filter transmission
-  pupil_mask_string=gpi_simplify_keyword_value(sxpar(header,'APODIZER'))
-  lyot_mask_string=sxpar(header,'LYOTMASK')
-  transmission=calc_transmission(filter, pupil_mask_string, lyot_mask_string, resolution=resolution, without_filter=1)
+	  ;; get instrument transmission (and resolution)
+	  ;; corrections for lyot, PPM, and filter transmission
+	  pupil_mask_string=gpi_simplify_keyword_value(sxpar(header,'APODIZER'))
+	  lyot_mask_string=sxpar(header,'LYOTMASK')
+	  transmission=calc_transmission(filter, pupil_mask_string, lyot_mask_string, resolution=resolution, without_filter=1)
 
-  if transmission[0] eq -1 then begin
-    self->message,msgtype='error',['Failed to calculate transmission']
-    return
-  endif
+	  if transmission[0] eq -1 then begin
+		self->message,msgtype='error',['Failed to calculate transmission']
+		return
+	  endif
 
-  ;; no filter transmission included - instead we will integrate the vega spectrum over the filter profile
-  zero_vega*=transmission       ; ph/s/um
+	  ;; no filter transmission included - instead we will integrate the vega spectrum over the filter profile
+	  zero_vega*=transmission       ; ph/s/um
 
-  ;; multiply by the integration time
-  zero_vega*=sxpar(extheader,'ITIME')   ; ph/um
-  ;; now the unit wavelength
-  ; calculate the width of a wavelength slice
-  dlambda=cube_waves[1]-cube_waves[0]
-  zero_vega*=dlambda ; now in ph/slice
-  ;; load filters for integration
-  filt_prof0=mrdfits( gpi_get_directory('GPI_DRP_CONFIG')+'/filters/GPI-filter-'+filter+'.fits',1,/silent)
-  filt_prof=interpol(filt_prof0.transmission,filt_prof0.wavelength,cube_waves)
+	  ;; multiply by the integration time
+	  zero_vega*=sxpar(extheader,'ITIME')   ; ph/um
+	  ;; now the unit wavelength
+	  ; calculate the width of a wavelength slice
+	  dlambda=cube_waves[1]-cube_waves[0]
+	  zero_vega*=dlambda ; now in ph/slice
+	  ;; load filters for integration
+	  filt_prof0=mrdfits( gpi_get_directory('GPI_DRP_CONFIG')+'/filters/GPI-filter-'+filter+'.fits',1,/silent)
+	  filt_prof=interpol(filt_prof0.transmission,filt_prof0.wavelength,cube_waves)
 
-  ;; note that Naru measured the photometry using a 3 pixel radius - he calculated later that the sum of the entire spot is equal to 0.57*3pixel photometry
-  ;; i did this in one slice and got 0.63 - not far off
-  sat_mag=-2.5*alog10(total( (gain*mean_sat_flux/0.57) )$
-    /total(zero_vega*filt_prof))
+	  ;; note that Naru measured the photometry using a 3 pixel radius - he calculated later that the sum of the entire spot is equal to 0.57*3pixel photometry
+	  ;; i did this in one slice and got 0.63 - not far off
+	  sat_mag=-2.5*alog10(total( (gain*mean_sat_flux/0.57) )$
+		/total(zero_vega*filt_prof))
 
-  ;; need to use satellite intensity flux calibration to get magnitude of star
-  ;;msat-mstar=-2.5log(Fsat/Fstar)
-  mags=sat_mag+2.5*alog10(((*self.state).gridfac))
-  ;;update sat spots to account for any inversion/rotation
+	  ;; need to use satellite intensity flux calibration to get magnitude of star
+	  ;;msat-mstar=-2.5log(Fsat/Fstar)
+	  mags=sat_mag+2.5*alog10(((*self.state).gridfac))
+	  ;;update sat spots to account for any inversion/rotation
+  endif else begin
+	  ; TODO - add photometric calibration support for pol mode
+	  self->message,'sat spot photometry not supported in pol mode yet'
+	  mags = dblarr(2)
+  endelse
+
   ichange = (*self.state).invert_image
   if strmatch(ichange,'x*') then cens[0,*,*] = (*self.state).image_size[0] - cens[0,*,*]
   if strmatch(ichange,'*y') then cens[1,*,*] = (*self.state).image_size[1] - cens[1,*,*]
@@ -14651,10 +14660,10 @@ end
 pro GPITv::plot1satspots, iplot
 ; Draw satellite spot indicators on the main window
 
-  if (*self.state).cube_mode ne 'WAVE' then begin
-	  self::message,"Can't plot sat spots in pol mode yet - still to be implemented"
-	  return
-  endif
+  ;if (*self.state).cube_mode ne 'WAVE' then begin
+	  ;self->message,"Can't plot sat spots in pol mode yet - still to be implemented"
+	  ;return
+  ;endif
 
 ; First make sure we have sat spot info
   if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
@@ -20661,11 +20670,11 @@ pro GPItv::fpmoffset_refresh
   if (*self.state).fpmoffset_fpmpos[0] eq 0 and (*self.state).fpmoffset_fpmpos[1] eq 0 then begin
 	; Attempt to get FPM position data from a calibration file
     caldb = obj_new('gpicaldatabase')
-    bestfile = caldb->get_best_cal_from_header( 'fpm_position', *((*self.state).head_ptr), (*self.state).exthead_ptr) )
+    bestfile = caldb->get_best_cal_from_header( 'fpm_position', *((*self.state).head_ptr), (*self.state).exthead_ptr) 
 
     if strc(bestfile) eq '-1' then begin
 		 (*self.state).fpmoffset_fpmpos = [-1,-1] ; record that we don't have one so it doesn't try again on every refresh
-	endif else
+	endif else begin 
 		header = headfits(bestfile)
 		FPMCENTX = sxpar(header, 'FPMCENTX', count=ct1)
 		FPMCENTY = sxpar(header, 'FPMCENTY', count=ct2)
