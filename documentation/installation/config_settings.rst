@@ -68,6 +68,8 @@ username_in_log_filename                0,1                             0       
 launcher_force_semaphore_name           <string>                        See at right.   Name of semaphore used for the inter-IDL communication queue lock. Sometimes the lock is not 
                                                                                         properly released so this setting should be specified with a different name so that a 
                                                                                         different lock name can be used for the queue. Default is "GPI_DRP_$USER"
+override_writing_to_calibration_dir     0,1                             0               If set to 1, calibration files will be saved to the outputdir as specified in the recipe file
+                                                                                        instead of being forced to be saved to the calibration directory (as is the default).
 ======================================  ==============================  =============   ==============================================================================================
 
 

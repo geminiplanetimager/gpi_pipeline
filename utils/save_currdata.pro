@@ -74,14 +74,26 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	; in its own headers to be written out instead of the ones in the backbone
 	is_calib_pri=0 & is_calib_ext=0
     if keyword_set(savePHU) then is_calib_pri = strc(strupcase(fxpar(savePHU, "ISCALIB"))) eq 'YES' else $
-      is_calib_pri = strc(strupcase(fxpar(*(dataset.headersPHU[numfile]), "ISCALIB"))) eq 'YES'
+      is_calib_pri = strc(strupcase(fxpar(*(dataset.headersPHU[numfile]), "Ind.pro
+gpi_tloci.pro
+gpi_update_spot_shifts_for_flexure.pro
+gpi_update_world_coordinates.pro
+gpi_wavelength_solution_2d_developer.pro
+gpi_wavelength_solution_2d.pro
+fSCALIB"))) eq 'YES'
     if keyword_set(saveheader) then is_calib_ext = strc(strupcase(fxpar(saveheader, "ISCALIB"))) eq 'YES' else $
       is_calib_ext = strc(strupcase(fxpar(*(dataset.headersExt[numfile]), "ISCALIB"))) eq 'YES' 
 
     if is_calib_pri or is_calib_ext then begin
-      gpicaldb = Backbone_comm->Getgpicaldb()
-      s_OutputDir = gpicaldb->get_calibdir()
-	  message,/info, ' Output file is calibration data; therefore writing to calibration dir.'
+      ; write to calibration dir unless overriden
+      calfile_override = gpi_get_setting('override_writing_to_calibration_dir', default='0', /int, /silent)
+      if calfile_override eq 1 then begin
+        message, /info, ' Output File is calibration data; Calibration file directory override is on; Writing to user specified directory'
+      endif else begin
+        gpicaldb = Backbone_comm->Getgpicaldb()
+        s_OutputDir = gpicaldb->get_calibdir()
+	    message,/info, ' Output file is calibration data; therefore writing to calibration dir.'
+      endelse
     endif
 
 
