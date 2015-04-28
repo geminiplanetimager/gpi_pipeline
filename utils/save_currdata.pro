@@ -74,13 +74,7 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	; in its own headers to be written out instead of the ones in the backbone
 	is_calib_pri=0 & is_calib_ext=0
     if keyword_set(savePHU) then is_calib_pri = strc(strupcase(fxpar(savePHU, "ISCALIB"))) eq 'YES' else $
-      is_calib_pri = strc(strupcase(fxpar(*(dataset.headersPHU[numfile]), "Ind.pro
-gpi_tloci.pro
-gpi_update_spot_shifts_for_flexure.pro
-gpi_update_world_coordinates.pro
-gpi_wavelength_solution_2d_developer.pro
-gpi_wavelength_solution_2d.pro
-fSCALIB"))) eq 'YES'
+      is_calib_pri = strc(strupcase(fxpar(*(dataset.headersPHU[numfile]), "ISCALIB"))) eq 'YES' 
     if keyword_set(saveheader) then is_calib_ext = strc(strupcase(fxpar(saveheader, "ISCALIB"))) eq 'YES' else $
       is_calib_ext = strc(strupcase(fxpar(*(dataset.headersExt[numfile]), "ISCALIB"))) eq 'YES' 
 
