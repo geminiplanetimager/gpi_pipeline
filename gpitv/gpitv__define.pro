@@ -4684,6 +4684,10 @@ pro GPItv::setcubeslicelabel
       stokesindex = (*self.state).cur_image_num-crpix3+crval3
       currlabel = modelabels[stokesindex+8]
     end
+	'KLMODES': begin
+		label = sxpar(*(*self.state).exthead_ptr,"KLMODE"+strc((*self.state).cur_image_num), ct)
+		currlabel = "n="+strc(label)
+	end
     else:begin
     currlabel="Unknown"
   end
@@ -8338,7 +8342,7 @@ pro GPItv::setheadinfo, noresize=noresize
         ;(((*self.state).CWV_lmax-(*self.state).CWV_lmin)/((*self.state).CWV_NLam-1))[0]
         (*self.state).CWV_ptr=ptr_new(CWV)
 
-        widget_control, (*self.state).curimnum_lambLabel_id, set_value="Wavelen[um]="
+        widget_control, (*self.state).curimnum_lambLabel_id, set_value="Wavelen[um]:"
 
         modelist = ['Show Cube Slices', 'Collapse by Mean', 'Collapse by Median', 'Collapse by SDI', 'Collapse to RGB Color','Align speckles','High Pass Filter','Low Pass Filter','Run KLIP', 'Create SNR Map']
         widget_control, (*self.state).collapse_button, set_value = modelist
@@ -8355,7 +8359,7 @@ pro GPItv::setheadinfo, noresize=noresize
         (*self.state).cube_mode='STOKES'
         ;; set display stuff
         self->message, msgtype = 'information', "Configuring GPItv for STOKES MODE"
-        widget_control, (*self.state).curimnum_lambLabel_id, set_value="Polariz.="
+        widget_control, (*self.state).curimnum_lambLabel_id, set_value="Polariz.:"
 
         modelist = ['Show Cube Slices', 'Collapse by Mean', 'Collapse by Median', 'High Pass Filter','Low Pass Filter']
         ;; do we have a 2-Slice pol stack, or a 4-slice cube?
@@ -8366,12 +8370,21 @@ pro GPItv::setheadinfo, noresize=noresize
 
         widget_control, (*self.state).collapse_button, set_value = modelist
       end
+	  'KLMODES': begin
+        (*self.state).cube_mode='KLMODES'
+        ;; set display stuff
+        self->message, msgtype = 'information', "Configuring GPItv for K-L PSF Subtraction Residuals Mode"
+        modelist = ['Show Cube Slices', 'High Pass Filter','Low Pass Filter']
+        widget_control, (*self.state).collapse_button, set_value = modelist
+		widget_control, (*self.state).curimnum_lamblabel_id, set_value="K-L Modes:  "
+
+	  end
       else:begin
-      self->message, msgtype = 'warning', "Unknown file mode: "+mode
-      (*self.state).cube_mode='UNKNOWN'
-      modelist = ['Show Cube Slices', 'Collapse by Mean', 'Collapse by Median', 'Collapse to RGB Color']
-      widget_control, (*self.state).collapse_button, set_value = modelist
-    end
+        self->message, msgtype = 'warning', "Unknown file mode: "+mode
+        (*self.state).cube_mode='UNKNOWN'
+        modelist = ['Show Cube Slices', 'Collapse by Mean', 'Collapse by Median', 'Collapse to RGB Color']
+        widget_control, (*self.state).collapse_button, set_value = modelist
+      end
   endcase
 endif else (*self.state).cube_mode='UNKNOWN'
 
