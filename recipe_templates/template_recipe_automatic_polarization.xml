@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- simplest possible DRF, just makes a simple data cube w/ no calibrations for Polarization mode -->
-<DRF ReductionType="PolarimetricScience" name="Quicklook Automatic Polarimetry Extraction" ShortName="quickpol">
-  <dataset InputDir="$(GPI_RAW_DATA_DIR)" OutputDir="AUTOMATIC">
-    <fits filename=""/>
-  </dataset>
-  <primitive name="Flag Quicklook" Save="0" />
-  <primitive name="Load Polarimetry Spot Calibration" CalibrationFile="AUTOMATIC" />
-  <primitive name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
-  <primitive name="Flexure 2D x correlation with polcal" range="0.3" resolution="0.1" psf_sep="0.1" stopidl="0" x_off="0" y_off="0" badpix="1" iterate="1" />
-  <primitive name="Interpolate bad pixels in 2D frame" method="vertical"  Save="0" gpitv="0" CalibrationFile="AUTOMATIC" before_and_after="0" /> 
-  <primitive name="Assemble Polarization Cube" Save="1" gpitv="5" /> 
-</DRF>
+<recipe Name="Quicklook Automatic Polarimetry Extraction" ReductionType="PolarimetricScience" ShortName="quickpol">
+<!-- recipe written by max on  at 2015-04-29T18:10:55 UTC -->
+<!-- created with the Recipe Editor GUI -->
+<dataset InputDir="${GPI_RAW_DATA_DIR}150423/TW Hya" OutputDir="${GPI_REDUCED_DATA_DIR}150423">
+</dataset>
+<primitive name="Flag Quicklook" Save="0" />
+<primitive name="Load Polarimetry Spot Calibration" CalibrationFile="AUTOMATIC" />
+<primitive name="Subtract Dark Background" CalibrationFile="AUTOMATIC" RequireExactMatch="0" Interpolate="0" Save="0" gpitv="0" />
+<primitive name="Flexure 2D x correlation with polcal" method="Auto" range="0.3" resolution="0.1" psf_sep="0.1" stopidl="0" configuration="tight" x_off="0" y_off="0" badpix="1" iterate="1" max_iter="15" manual_dx="0." manual_dy="0." />
+<primitive name="Interpolate bad pixels in 2D frame" CalibrationFile="AUTOMATIC" method="vertical" Save="0" gpitv="0" negative_bad_thresh="-50" before_and_after="0" />
+<primitive name="Assemble Polarization Cube" Save="1" gpitv="5" Method="BOX" />
+<primitive name="Measure Star Position for Polarimetry" x0="147" y0="147" search_window="5" mask_radius="50" highpass="1" lower_threshold="-100" Save="0" gpitv="0" />
+<primitive name="Measure Satellite Spot Flux in Polarimetry" Save="0" Aperture="4" Inskyrad="6" Outskyrad="9" ShowAperture="0" FindPSFCENT="0" STARXCEN="145" STARYCEN="148" Companion="0" StarXPos="98" StarYPos="121" StarAperture="8" StarInnerSkyRad="12" StarOuterSkyRad="16" />
+<primitive name="Measure Contrast in Pol Mode" Save="0" Display="1" update_prev_fits_header="0" SaveProfile="AUTO" SavePNG="" contrsigma="5." slice="-1" SurfaceBrightness="0" DarkHoleOnly="1" contr_yunit="0" contr_xunit="0" yscale="0" contr_yaxis_type="1" contr_yaxis_min="0.00000001" contr_yaxis_max="1." />
+</recipe>
+
