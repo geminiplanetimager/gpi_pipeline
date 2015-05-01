@@ -80,11 +80,11 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 
     if is_calib_pri or is_calib_ext then begin
       ; write to calibration dir unless overriden
+      gpicaldb = Backbone_comm->Getgpicaldb()
       calfile_override = gpi_get_setting('override_writing_to_calibration_dir', default='0', /int, /silent)
       if calfile_override eq 1 then begin
         message, /info, ' Output File is calibration data; Calibration file directory override is on; Writing to user specified directory'
       endif else begin
-        gpicaldb = Backbone_comm->Getgpicaldb()
         s_OutputDir = gpicaldb->get_calibdir()
 	    message,/info, ' Output file is calibration data; therefore writing to calibration dir.'
       endelse
