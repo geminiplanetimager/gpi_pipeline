@@ -10,7 +10,7 @@
 ; OUTPUTS: No change in data; reduction either continues or is terminated.
 ;
 ; PIPELINE COMMENT: Check quality of data based on header keywords. For bad data, can fail the reduction or simply alert the user.
-; PIPELINE ARGUMENT: Name="Data_type" Type="string" Range="Range="[wavecal|specflat|polflat]"" Default="wavecal" Desc="What type of data are we expecting?. "
+; PIPELINE ARGUMENT: Name="Data_type" Type="string" Range="[wavecal|specflat|polflat]" Default="wavecal" Desc="What type of data are we expecting?. "
 ; PIPELINE ARGUMENT: Name="Action" Type="int" Range="[0,10]" Default="1" Desc="0:Simple alert and continue reduction, 1:Reduction fails"
 ; PIPELINE ORDER: 0.0001
 ; PIPELINE CATEGORY: Calibration
@@ -36,60 +36,59 @@ primitive_version= '$Id: gpi_check_data_quality.pro 2511 2014-02-11 05:57:27Z mp
 
 	; Check keywords
 	case data_type of
-	'wavecal':
-		gcallamp = backbone->get_keyword('GCALLAMP',count=cc)
-		if strc(gcallamp) ne 'Ar' and strc(gcallamp) ne 'Xe' then begin
-			backbone->Log, "Unexpected GCALLAMP (should be Xe or Ar): "+gcallamp
-			shouldfail=1
-		endif
-		gcalfilt = backbone->get_keyword('GCALFILT',count=cc)
-		if strc(gcalfilt) ne 'CLEAR' then begin
-			backbone->Log, "Unexpected GCALFILT (should be CLEAR): "+gcalfilt
-			shouldfail=1
-		endif
-		disperser = backbone->get_keyword('DISPERSR',count=cc)
-		if strc(disperser) ne 'DISP_PRISM_G6262' then begin
-			backbone->Log, "Unexpected disperser (should be DISP_PRISM_G6262): "+disperser
-			shouldfail=1
-		endif
-
-	end
-	'specflat':
-		gcallamp = backbone->get_keyword('GCALLAMP',count=cc)
-		if strc(gcallamp) ne 'QH' then begin
-			backbone->Log, "Unexpected GCALLAMP (should be QH): "+gcallamp
-			shouldfail=1
-		endif
-		gcalfilt = backbone->get_keyword('GCALFILT',count=cc)
-		if strc(gcalfilt) ne 'ND2.0' then begin
-			backbone->Log, "Unexpected GCALFILT (should be ND2.0): "+gcalfilt
-			shouldfail=1
-		endif
-		disperser = backbone->get_keyword('DISPERSR',count=cc)
-		if strc(disperser) ne 'DISP_PRISM_G6262' then begin
-			backbone->Log, "Unexpected disperser (should be DISP_PRISM_G6262): "+disperser
-			shouldfail=1
-		endif
-
-	end
-	'polflat':
-		gcallamp = backbone->get_keyword('GCALLAMP',count=cc)
-		if strc(gcallamp) ne 'QH' then begin
-			backbone->Log, "Unexpected GCALLAMP (should be QH): "+gcallamp
-			shouldfail=1
-		endif
-		gcalfilt = backbone->get_keyword('GCALFILT',count=cc)
-		if strc(gcalfilt) ne 'ND2.0' then begin
-			backbone->Log, "Unexpected GCALFILT (should be ND2.0): "+gcalfilt
-			shouldfail=1
-		endif
-		disperser = backbone->get_keyword('DISPERSR',count=cc)
-		if strc(disperser) ne 'DISP_WOLLASTON_G6261' then begin
-			backbone->Log, "Unexpected disperser (should be DISP_WOLLASTON_G6261): "+disperser
-			shouldfail=1
-		endif
-	end
-
+	    'wavecal': begin
+    		gcallamp = backbone->get_keyword('GCALLAMP',count=cc)
+    		if strc(gcallamp) ne 'Ar' and strc(gcallamp) ne 'Xe' then begin
+    			backbone->Log, "Unexpected GCALLAMP (should be Xe or Ar): "+gcallamp
+    			shouldfail=1
+    		endif
+    		gcalfilt = backbone->get_keyword('GCALFILT',count=cc)
+    		if strc(gcalfilt) ne 'CLEAR' then begin
+    			backbone->Log, "Unexpected GCALFILT (should be CLEAR): "+gcalfilt
+    			shouldfail=1
+    		endif
+    		disperser = backbone->get_keyword('DISPERSR',count=cc)
+    		if strc(disperser) ne 'DISP_PRISM_G6262' then begin
+    			backbone->Log, "Unexpected disperser (should be DISP_PRISM_G6262): "+disperser
+    			shouldfail=1
+    		endif
+    	end
+    	'specflat': begin
+    		gcallamp = backbone->get_keyword('GCALLAMP',count=cc)
+    		if strc(gcallamp) ne 'QH' then begin
+    			backbone->Log, "Unexpected GCALLAMP (should be QH): "+gcallamp
+    			shouldfail=1
+    		endif
+    		gcalfilt = backbone->get_keyword('GCALFILT',count=cc)
+    		if strc(gcalfilt) ne 'ND2.0' then begin
+    			backbone->Log, "Unexpected GCALFILT (should be ND2.0): "+gcalfilt
+    			shouldfail=1
+    		endif
+    		disperser = backbone->get_keyword('DISPERSR',count=cc)
+    		if strc(disperser) ne 'DISP_PRISM_G6262' then begin
+    			backbone->Log, "Unexpected disperser (should be DISP_PRISM_G6262): "+disperser
+    			shouldfail=1
+    		endif
+    
+    	end
+    	'polflat': begin
+    		gcallamp = backbone->get_keyword('GCALLAMP',count=cc)
+    		if strc(gcallamp) ne 'QH' then begin
+    			backbone->Log, "Unexpected GCALLAMP (should be QH): "+gcallamp
+	    		shouldfail=1
+       		endif
+    		gcalfilt = backbone->get_keyword('GCALFILT',count=cc)
+    		if strc(gcalfilt) ne 'ND2.0' then begin
+    			backbone->Log, "Unexpected GCALFILT (should be ND2.0): "+gcalfilt
+    			shouldfail=1
+    		endif
+    		disperser = backbone->get_keyword('DISPERSR',count=cc)
+    		if strc(disperser) ne 'DISP_WOLLASTON_G6261' then begin
+    			backbone->Log, "Unexpected disperser (should be DISP_WOLLASTON_G6261): "+disperser
+    			shouldfail=1
+    		endif
+    	end
+    endcase
 
 	
 	; Check there is actually some flux
