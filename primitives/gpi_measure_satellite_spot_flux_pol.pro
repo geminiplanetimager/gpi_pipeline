@@ -5,6 +5,7 @@
 ; PIPELINE COMMENT:  Measure Flux in Polarimetry
 ; PIPELINE CATEGORY: Calibration, PolarimetricScience
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: Save Flux Value in Header, 0: don't save"
+; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="5" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ARGUMENT: Name="Aperture" Type="int" Range="[1,5]" Default="4" Desc="Aperture value used in Racetrack, Default: 4pix"
 ; PIPELINE ARGUMENT: Name="Inskyrad" Type="int" Range="[4,8]" Default="6" Desc="Inner Sky Aperture Radius in Racetrack"
 ; PIPELINE ARGUMENT: Name="Outskyrad" Type="int" Range="[6,14]" Default="9" Desc="Outer Sky Aperture Radius in Racetrack"
