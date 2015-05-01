@@ -74,12 +74,13 @@ calfiletype = 'wavecal'
   	if tag_exist( Modules[thisModuleIndex], "Save") then Save=uint(Modules[thisModuleIndex].Save) else Save=0
   	if tag_exist( Modules[thisModuleIndex], "Save_model_image") then Save_model_image=uint(Modules[thisModuleIndex].Save_model_image) else Save_model_image=0
   	if tag_exist( Modules[thisModuleIndex], "Save_model_params") then Save_model_params=uint(Modules[thisModuleIndex].Save_model_params) else Save_model_params=0
+; 	if tag_exist( Modules[thisModuleIndex], "AutoOffset") then AutoOffset=uint(Modules[thisModuleIndex].AutoOffset) else AutoOffset=0
 
 
 ;Load in the image. Primitive assumes a dark,flat,badpixel,flexure, and microphonics corrected lamp image. 
 
         image=*dataset.currframe
-        whichpsf=1
+        whichpsf=0
 
 	;READ IN REFERENCE WAVELENGTH CALIBRATION
 ;	c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'wavecal',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /verbose) 
@@ -136,6 +137,7 @@ calfiletype = 'wavecal'
         datafn = gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+filter+lamp+'.dat'
  
 whichpsf=0
+psffn=''
 		if whichpsf eq 1 then begin
                    print, 'Microlens psf not implemented yet. Using a gaussian PSF.'
 		endif
@@ -202,7 +204,7 @@ if keyword_set(parallel) then begin
 	; the comments. 
 
 	 gpi_split_for, istart,iend, nsplit=numsplit,$ 
-		 varnames=['jstart','jend','refwlcal','image','im_uncert','badpix','newwavecal','lambda_min',$
+		 varnames=['jstart','jend','refwlcal','image','im_uncert','badpix','newwavecal','psffn','lambda_min',$
 		           'q','wlcalsize','xinterp','yinterp','wla','fluxa','nmgauss','count','lensletmodel','lensletcount',$
                            'modelparams','modelbackgrounds','locations_lambda_min','locations_lambda_max','n_valid_lenslets','boxpad'], $
 		 outvar=['newwavecal','count','lensletcount','lensletmodel','modelparams','modelbackgrounds'], commands=[$
