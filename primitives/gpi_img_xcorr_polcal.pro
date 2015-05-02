@@ -1,6 +1,6 @@
 ;+
-; NAME: gpi_img_xcorr_pol.pro
-; PIPELINE PRIMITIVE DESCRIPTION: Flexure 2D x correlation with polcal
+; NAME: gpi_flexure_crosscorrelation_with_polcal.pro
+; PIPELINE PRIMITIVE DESCRIPTION: Flexure 2D x correlation with polcal - OLD
 ;
 ;   This primitive uses the relevent microlense PSF and pol cal to generate a model detector image to cross correlate with a science image.
 ;   The resulting output can be used as a flexure offset prior to flux extraction.
@@ -35,6 +35,7 @@
 ; HISTORY:
 ;    Began 2014-01-13 by Zachary Draper
 ;          2014-09-12 MMB: Branched to a version that cross correlates with the polcal file rather than use the microlens
+;          2015-02-27 MMB: Renamed to follow standard naming conventions
 ;-
 
 ;-----------------------------
@@ -129,7 +130,7 @@ function gpi_img_xcorr_polcal, DataSet, Modules, Backbone
       lensx=[120,130,140,120,130,140,120,130,140]
       lensy=[120,120,120,130,130,130,140,140,140]
 
-      ;The actual wi
+      ;The actual wide configuration. Need to debug still. 
       ;    lensx=[100,150,200,85,130,185,230,60,100,175,190,60, 100,150,180]
       ;    lensy=[30,50,70,100,85,100,125,140,150,175,200,210,180,200,230,240]
     endif else return, error("You must choose either tight or wide configurations")
