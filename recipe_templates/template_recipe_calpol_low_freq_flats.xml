@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<DRF ReductionType="Calibration" name='Create Low Spatial Frequency Polarized Flat-field' ShortName="lowpolflats">
-<dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
-   <fits filename=""/>
+<recipe Name="Create Low Spatial Frequency Polarized Flat-field" ReductionType="Calibration" ShortName="lowpolflats">
+<!-- recipe written by max on  at 2015-05-03T04:08:14 UTC -->
+<!-- created with the Recipe Editor GUI -->
+<dataset InputDir="${GPI_REDUCED_DATA_DIR}131212" OutputDir="${GPI_REDUCED_DATA_DIR}131212">
 </dataset>
-<module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
-<module name="Load Polarimetry Spot Calibration" CalibrationFile="AUTOMATIC" />
-<module name="Update Spot Shifts for Flexure" method="Lookup" manual_dx="0" manual_dy="0" Save="0" gpitv="0" display="-1" />
-<module name="Destripe science image" method="calfile" abort_fraction="0.9" fraction="0.7" high_limit="1000" chan_offset_correction="1" Save_stripes="0" Save="0" display="-1" gpitv="0" remove_microphonics="1" method_microphonics="1" plot_micro_peaks="no" save_microphonics="no" micro_threshold="0.01" />
-<!-- <module name="Interpolate bad pixels in 2D frame" CalibrationFile="AUTOMATIC" method="all8" before_and_after="0" /> -->
-<module name="Accumulate Images" Method="InMemory" />
-<module name="Combine 2D images" Method="Mean"  Save="0" gpitv="0" />
-<module name="Assemble Polarization Cube" Method='PSF' Save="0" gpitv="2" />
-<module name="Divide by Polarized Flat Field" Save="0" gpitv="2" />
-<module name="Normalize polarimetry flat field" Save="1" gpitv="2" />
-</DRF>
+<primitive name="Subtract Dark Background" CalibrationFile="AUTOMATIC" RequireExactMatch="0" Interpolate="0" Save="0" gpitv="0" />
+<primitive name="Load Polarimetry Spot Calibration" CalibrationFile="AUTOMATIC" />
+<primitive name="Smooth polarization calibration" Boxsize="10" />
+<primitive name="Flexure 2D x correlation with polcal" method="Auto" range="0.3" resolution="0.1" psf_sep="0.1" stopidl="0" configuration="tight" x_off="0" y_off="0" badpix="1" iterate="1" max_iter="15" manual_dx="0." manual_dy="0." />
+<primitive name="Destripe science image" method="calfile" abort_fraction="0.9" chan_offset_correction="1" readnoise_floor="0.0" Save_stripes="0" Display="-1" remove_microphonics="1" method_microphonics="1" CalibrationFile="AUTOMATIC" Plot_micro_peaks="no" save_microphonics="no" micro_threshold="0.01" write_mask="0" fraction="0.7" Save="0" gpitv="0" />
+<primitive name="Accumulate Images" Method="InMemory" />
+<primitive name="Combine 2D images" Method="Mean" Sigma_cut="3" Save="0" gpitv="0" />
+<primitive name="Assemble Polarization Cube" Save="0" gpitv="2" Method="PSF" />
+<primitive name="Filter datacube spatially" hp_boxsize="10" high_or_lowpass="low" skip_parallelization="0" Save="0" gpitv="0" />
+<primitive name="Normalize polarimetry flat field" Save="1" gpitv="2" type="lsf" />
+</recipe>
+
