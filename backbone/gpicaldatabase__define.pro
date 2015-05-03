@@ -470,6 +470,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
                     ['Fluxconv', 'Fluxconv', 'FiltPrism'], $
                     ['telluric', 'Telluric Transmission', 'FiltPrism'], $
                     ['polcal', 'Polarimetry Spots Cal File', 'FiltPrism'], $
+                    ['lsf_polflat', 'Low Spatial Frequency Polarimetry flat field', 'FiltPrism'], $ 
                     ['instpol', 'Instrumental Polarization', 'FiltPrism'], $
                     ['distor', 'Distortion Measurement', 'typeonly'], $
                     ['background', 'Thermal/Sky Background', 'FiltPrism'], $
