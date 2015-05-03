@@ -186,12 +186,13 @@ function gpi_subtract_mean_stellar_polarization_podc, DataSet, Modules, Backbone
         accumulate_updateimage, dataset, i, newdata = modified_podc
         
         if uint(Modules[thisModuleIndex].WriteToFile) eq 1 then begin
-          wpangle = backbone->get_keyword('WPANGLE', count=ct1, indexFrame=indexFrame)
+;          wpangle=backbone->get_keyword('WPANGLE', count=ct1, indexFrame=indexFrame)
+          wpangle = sxpar(hdr, 'WPANGLE')
           openw, lun, Modules[thisModuleIndex].Filename, /get_lun, /append, width=200
           ;    printf, lun, "#Inner Radius: "+strcompress(inner)
           ;    printf, lun, "#Outer Radius: "+strcompress(outer)
           ;    printf, lun, "#Filename  p_frac  wpangle PA"
-          printf, lun, string(dataset.filenames[i]), mean_stellar_diff, wpangle,pa, inner, outer
+          printf, lun, string(dataset.filenames[i]), mean_stellar_diff, wpangle, stddev,pa, inner, outer
           close, lun
           free_lun, lun
         endif
@@ -202,6 +203,7 @@ function gpi_subtract_mean_stellar_polarization_podc, DataSet, Modules, Backbone
 
   if uint(Modules[thisModuleIndex].WriteToFile) eq 1 then begin
     wpangle = backbone->get_keyword('WPANGLE', count=ct1, indexFrame=indexFrame)
+    print, "Writing the measured polarization to ", Modules[thisModuleIndex].Filename
     openw, lun, Modules[thisModuleIndex].Filename, /get_lun, /append, width=200
     ;    printf, lun, "#Inner Radius: "+strcompress(inner)
     ;    printf, lun, "#Outer Radius: "+strcompress(outer)
