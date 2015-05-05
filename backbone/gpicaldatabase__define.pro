@@ -195,9 +195,9 @@ PRO gpicaldatabase::write
 	mlen_f = max(strlen(d.filename))+3
 
 	firstline = string("#PATH", "FILENAME", "TYPE", "DISPERSR", "IFSFILT", "APODIZER", "LYOTMASK", "INPORT", "ITIME", "READMODE", "JD", "NFILES",  "DRPVERSION", "ELEVATION", "OTHER", $
-			format="(A-"+strc(mlen_p)+", A-"+strc(mlen_f)+", A-30,  A-10,     A-5     , A-8,         A-8,       A-6,     A-15,    A-15,   A-15, A-7, A-10, A-15, A-10)")
+			format="(A-"+strc(mlen_p)+", A-"+strc(mlen_f)+", A-35,  A-10,     A-5     , A-8,         A-8,       A-6,     A-15,    A-15,   A-15, A-7, A-10, A-15, A-10)")
 	forprint2, textout=calfile_txt, d.path, d.filename,  d.type, d.prism, d.filter, d.apodizer, d.lyot, d.inport, d.itime, d.readoutmode, d.jd, d.nfiles, d.drpversion, d.elevation, d.other, $
-			format="(A-"+strc(mlen_p)+", A-"+strc(mlen_f)+", A-30,  A-10,     A-5     , A-8,         A-8,       A-6,     D-15.5,  D-15.5, A-15, A-7, A-10, D-15.5,  A-10 )", /silent, $
+			format="(A-"+strc(mlen_p)+", A-"+strc(mlen_f)+", A-35,  A-10,     A-5     , A-8,         A-8,       A-6,     D-15.5,  D-15.5, A-15, A-7, A-10, D-15.5,  A-10 )", /silent, $
 			comment=firstline
 	message,/info, " Writing to "+calfile_txt
 
