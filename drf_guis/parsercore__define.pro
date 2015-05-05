@@ -308,8 +308,13 @@ function parsercore::parse_fileset_to_recipes, fileset, recipedir=recipedir, out
                             continue_after_case=1
                           endif else begin    ; Spectral mode
                             if gcalfilter EQ 'ND4-5' then begin
-                              continue_after_case=1
-                              self->Log, "    Those data have GCALFILT=ND4-5, which indicates they are throwaway exposures for persistence decay. Ignoring them."
+                               objexptime = finfo[indfobject[0]].itime
+                               if objexptime GT 60.0 then begin
+                                  templatename='Combine Thermal/Sky Background Images'
+                               endif else begin
+                                  continue_after_case=1
+                                  self->Log, "    Those data have GCALFILT=ND4-5, which indicates they are throwaway exposures for persistence decay. Ignoring them."
+                              endelse
                             endif else begin
                               templatename='Flat-field Extraction'
                             endelse
