@@ -63,6 +63,9 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
 ;	2013-11-12 M. P: Modified to account for IFS internal rotations as
 ;					 determined by Perrin, Thomas, Chilcote, & Savransky
 ;-
+;       2015-5-4 E. Nielsen: modified to wrap around LST when passing
+;       through GMST midnight.  Otherwise going from LST 23.9 to 0.1
+;       causes calc_avparang to crash.
 
   compile_opt defint32, strictarr, logical_predicate
 
@@ -219,6 +222,14 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
      ;;GMST -> LST
      lst0 = gmst0 + lon
      lst1 = gmst1 + lon
+     ;Did midnight happen between the two?
+     if lst0 gt lst1 then begin
+       ;This should only happen if GMST midnight was between the two
+                                ;If we don't wrap around the
+                                ;avparang calculation will fail as it
+                                ;tries to cover too large an HA range.
+       lst1 = lst1 + 24d0
+     endif
 
      ;;precess RA/DEC to current epoch
      ra0 = ra
@@ -228,7 +239,7 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
      ;; get hour angles
      ha0 = lst0 - ra0/15d0
      ha1 = lst1 - ra0/15d0
-     
+
      ;; calcualte average parang
      avparang = calc_avparang(ha0,ha1,dec0)
 
