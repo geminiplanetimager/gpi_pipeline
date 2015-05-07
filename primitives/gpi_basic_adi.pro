@@ -181,7 +181,7 @@ if numfile  lt ((dataset.validframecount)-1) then return,0
     ;save the difference
     
 	 backbone->set_keyword, 'PSFSUB', 'GPI DRP Basic ADI', 'PSF subtraction via Basic ADI'
-	 backbone->set_keyword, 'PSFPARAM', 'numimmed='+strc(numimmed)+', nfwhm='+strc(nfwhm)
+	 backbone->set_keyword, 'PSFPARAM', 'numimmed='+strc(nimmed)+', nfwhm='+strc(nfwhm)
 
     subsuffix='-adim'  ;this the suffix that will be added to the name of the ADI residual  
 	  fname=strmid(fn,0,strpos(fn,suffix)-1)+suffix+subsuffix+'.fits'
