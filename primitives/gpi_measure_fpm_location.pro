@@ -14,7 +14,7 @@
 ; OUTPUTS: a calibration FITS file with the FPM location recorded in header
 ;
 ; PIPELINE COMMENT: Measures the location of the FPM and saves the result to the header of the output calibration FITS file.
-; PIPELINE ARGUMENT: Name="method" Type="string" Range="[Auto|HCircle|SCircle|CoordinateMean]" Default="Auto" Desc='How to measure the FPM location? [Auto|HCircle|SCircle|CoordinateMean]'
+; PIPELINE ARGUMENT: Name="method" Type="string" Range="[Auto|HCircle|SCircle|CoordinateMean]" Default="Auto" Desc='How to measure the FPM location? [HCircle|SCircle|CoordinateMean]'
 ; PIPELINE ARGUMENT: Name="x0" Type="int" Range="[0,300]" Default="145" Desc="initial guess for FPM x position"
 ; PIPELINE ARGUMENT: Name="y0" Type="int" Range="[0,300]" Default="145" Desc="initial guess for FPM y position"
 ; PIPELINE ARGUMENT: Name="r0" Type="float" Range="[0,300]" Default="8.7" Desc="initial guess for FPM radius in pixels."
@@ -27,6 +27,7 @@
 ; HISTORY:
 ;    2015-03-01 LWH: Created.
 ;    2015-05-11 LWH: Added the model (c) described above.
+;    2015-05-16 LWH: Made the code prettier.
 ;-
 
 
@@ -55,14 +56,18 @@ primitive_version= '' ; get version from subversion to store in header history
 
 cube = *(dataset.currframe[0]) 
 
-
-; verify image is a FLAT FIELD cube or an ARC cube.
+; verify the image is a FLAT cube or an ARC.
+; verify the image is a reduced data cube
+; verify the image is observed with the coronagraph in position
 obstype  = backbone->get_keyword('OBSTYPE')
-filetype = backbone->get_keyword('FILETYPE') 
+filetype = backbone->get_keyword('FILETYPE')
+obsmode =  backbone->get_keyword('OBSMODE')
 if(~strmatch(obstype,'*arc*',/fold_case)) && (~strmatch(obstype,'*flat*',/fold_case)) then $
     return, error('FAILURE ('+functionName+'): Invalid input -- The OBSTYPE keyword does not mark this data as a FLAT or ARC image.') 
 if(~strmatch(filetype,'*Spectral Cube*',/fold_case)) && (~strmatch(filetype,'*Stokes Cube*',/fold_case)) then $
     return, error('FAILURE ('+functionName+'): Invalid input -- The FILETYPE keyword does not mark this data as a Spectral or Stokes cube.') 
+if ~strmatch(obsmode,'*coron*',/fold_case) then $
+    return, error('FAILURE ('+functionName+'): Invalid input -- The OBSMODE keyword does not mark this data as observed with the coronagraph.') 
 
 
 ;;Get user inputs
@@ -116,32 +121,18 @@ best_fit_fpm_x2 = pbest[0]
 best_fit_fpm_y2 = pbest[1]
 
 
-;;Check that the FPM locations found by all three methods are within one pixel
-best_x = [mean_coordinate_fpm_x, best_fit_fpm_x1, best_fit_fpm_x2]
-best_y = [mean_coordinate_fpm_y, best_fit_fpm_y1, best_fit_fpm_y2]
-dx = max(best_x) - min(best_x)
-dy = max(best_y) - min(best_y)
-if (dx gt 1) or (dy gt 1) then $
-    print, 'Warning: the FPM locations estimated by three different methods differ by more than 1 pixel. The measured FPM location might not be accurate!'
-
-
 ;;Select which measured FPM centers as the output
 Method = strupcase(Modules[thisModuleIndex].method)
 case strlowcase(Method) of
   'auto': begin
-    if (dx gt 1) or (dy gt 1) then begin
-        return, error('FAILURE ('+functionName+'): Measurement can not be trusted -- The FPM locations estimated by two different methods differ by more than 1 pixel.')
-    endif else begin 
       fpm_x = best_fit_fpm_x1 
       fpm_y = best_fit_fpm_y1 
-      backbone->Log, "The FPM location is measured on the collapsed cube by fitting it to the model with a circular depressed area.",depth=3
-      backbone->Log, "This best fit agrees with the measurement within 1 pixel from taking the average of the coordinates of the depressed pixels.",depth=3
-    endelse
+      backbone->Log, "The FPM location is measured on the collapsed cube by fitting it to the model with a circular depressed area with hard edge.",depth=3
   end
   'hcircle': begin
       fpm_x = best_fit_fpm_x1 
       fpm_y = best_fit_fpm_y1 
-      backbone->Log, "The FPM location is measured on the collapsed cube by fitting it to the model with a circular depressed area.",depth=3
+      backbone->Log, "The FPM location is measured on the collapsed cube by fitting it to the model with a circular depressed area with hard edge.",depth=3
   end
   'scircle': begin
       fpm_x = best_fit_fpm_x2 
@@ -160,8 +151,27 @@ print, 'Best-fit hard-circular FPM (x,y) location:', best_fit_fpm_x1, best_fit_f
 print, 'Best-fit soft-circular FPM (x,y) location:', best_fit_fpm_x2, best_fit_fpm_y2
 print, 'Adopted FPM (x,y) location:', fpm_x, fpm_y
 
-*(dataset.currframe) = [0]
+
+;;Check that the FPM locations found by all three methods are within one pixel
+best_x = [mean_coordinate_fpm_x, best_fit_fpm_x1, best_fit_fpm_x2]
+best_y = [mean_coordinate_fpm_y, best_fit_fpm_y1, best_fit_fpm_y2]
+
+dx = max(best_x) - min(best_x)
+dy = max(best_y) - min(best_y)
+
+if (dx gt 1) or (dy gt 1) then begin
+    backbone->Log, "***WARNING***: The FPM locations estimated by three different methods differ by more than 1 pixel. The measurement might be bad."
+    backbone->set_keyword,'HISTORY',functionname+ "  ***WARNING***: The FPM locations estimated by three different methods differ by more than 1 pixel. The measurement might be bad."
+
+    if Modules[thisModuleIndex].Save and (Method eq 'AUTO') then begin
+        return, error('FAILURE ('+functionName+'): File not saved -- To save the file, select a specific measuring method.') 
+    endif
+
+endif
+
 ;;Save to the header of a calibration file
+*(dataset.currframe) = [0]
+
 backbone->set_keyword, "FPMCENTX", fpm_x
 backbone->set_keyword, "FPMCENTY", fpm_y
 backbone->set_keyword, "FILETYPE", 'FPM Position', 'What kind of IFS file is this?'
