@@ -50,7 +50,7 @@ end
 function gpi_measure_fpm_location, DataSet, Modules, Backbone
 
 ; don't edit the following line, it will be automatically updated by subversion:
-primitive_version= '$Id:' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 
 @__start_primitive
 
