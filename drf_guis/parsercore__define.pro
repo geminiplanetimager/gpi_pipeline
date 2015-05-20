@@ -271,7 +271,7 @@ function parsercore::parse_fileset_to_recipes, fileset, recipedir=recipedir, out
                           endif else begin
                             objelevation = finfo[indfobject[0]].elevatio
                             if (objelevation lt 91.0) AND (objelevation gt 89.0) then begin
-                              templatename='Wavelength Solution 2D'
+                              templatename='Wavelength Solution 2D Developer'
                             endif else begin
                               templatename='Quick Wavelength Solution'
                             endelse
