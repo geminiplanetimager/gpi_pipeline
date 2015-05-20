@@ -30,7 +30,10 @@
 ; PIPELINE ARGUMENT: Name="whichpsf" Type="Int" Range="[0,1]" Default="0" Desc="Type of lenslet PSF model, 0: gaussian, 1: microlens"
 ; PIPELINE ARGUMENT: Name="parallel" Type="Int" Range="[0,1]" Default="0" Desc="Option for Parallelization,  0: none, 1: parallel"
 ; PIPELINE ARGUMENT: Name="numsplit" Type="Int" Range="[0,100]" Default="0" Desc="Number of cores for parallelization. Set to 0 for autoselect."
-; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
+; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1"
+; Desc="1: save output on disk, 0: don't save"
+; PIPELINE ARGUMENT: Name="Smooth" Type="int" Range="[0,1]"
+; Default="1" Desc="1: smooth final wavelength solution, 0: don't smooth"
 ; PIPELINE ARGUMENT: Name="Save_model_image" Type="int" Range="[0,1]" Default="0" Desc="1: save 2d detector model fit image to disk, 0:don't save"
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="wavcal" Default="AUTOMATIC" Desc="Filename of the desired reference wavelength calibration file to be read"
 ; PIPELINE ARGUMENT: Name="Save_model_params" Type="int" Range="[0,1]" Default="0" Desc="1: save model nuisance parameters to disk, 0: don't save"
@@ -67,6 +70,7 @@ calfiletype = 'wavecal'
  	if tag_exist( Modules[thisModuleIndex], "numsplit") then numsplit=fix(Modules[thisModuleIndex].numsplit) else numsplit=!CPU.TPOOL_NTHREADS*2
 	if numsplit lt 1 then numsplit=!CPU.TPOOL_NTHREADS*2
   	if tag_exist( Modules[thisModuleIndex], "Save") then Save=uint(Modules[thisModuleIndex].Save) else Save=0
+  	if tag_exist( Modules[thisModuleIndex], "Smooth") then Smooth=uint(Modules[thisModuleIndex].Smooth) else Smooth=0
   	if tag_exist( Modules[thisModuleIndex], "Save_model_image") then Save_model_image=uint(Modules[thisModuleIndex].Save_model_image) else Save_model_image=0
   	if tag_exist( Modules[thisModuleIndex], "Save_model_params") then Save_model_params=uint(Modules[thisModuleIndex].Save_model_params) else Save_model_params=0
  	if tag_exist( Modules[thisModuleIndex], "AutoOffset") then AutoOffset=uint(Modules[thisModuleIndex].AutoOffset) else AutoOffset=0
@@ -141,18 +145,19 @@ calfiletype = 'wavecal'
  
 
 	if whichpsf eq 1 then begin
-           basedir = gpi_get_directory('GPI_CALIBRATIONS_DIR')+path_sep()
-           basedir = '/Users/swolff/Dropbox (GPI)/GPIDATA-Calibrations/lenslet_PSFs/'
-           basedir = '/astro/4/mperrin/gpi/data/Reduced/calibrations/'
            case filter of
-              'H': psffn = basedir+'140522b_highres-1650um-psf_structure-updatedheaders.fits'
-              'J': psffn = basedir+'140520_highres-1150um-psf_structure-updatedheaders.fits'
-              'Y': psffn = basedir+'140529_highres-1000um-psf_structure-updatedheaders.fits'
-              'K1': psffn = basedir+'140524_highres-2058um-psf_structure-updatedheaders.fits'
-              'K2': psffn = basedir+'140524_highres-2058um-psf_structure-updatedheaders.fits'
+              'H': psfn = '140522b_highres-1650um-psf_structure-updatedheaders.fits'
+              'J': psfn = '140520_highres-1150um-psf_structure-updatedheaders.fits'
+              'Y': psfn = '140529_highres-1000um-psf_structure-updatedheaders.fits'
+              'K1': psfn = '140524_highres-2058um-psf_structure-updatedheaders.fits'
+              'K2': psfn = '140524_highres-2058um-psf_structure-updatedheaders.fits'
            endcase
-           if ~file_test(psffn) then return, error("Microlens PSF file not found: "+psffn)
-           print, psffn
+
+           cal_dir = gpi_get_directory('GPI_DRP_CALIBRATIONS_DIR')
+           wherefile = file_search(cal_dir,psfn)
+           psffn = wherefile[0]
+           if ~file_test(psffn) then return, error("Microlens PSF file not found. File must be in your calibrations directory (or subdir) and cannot be accessed via a symbolic link. "+psfn)
+           print, psfn
         endif
 
 
@@ -178,8 +183,9 @@ jend=nlens-1
 
 im_uncert = gpi_estimate_2d_uncertainty_image( *dataset.currframe , *dataset.headersPHU[numfile], *dataset.headersExt[numfile])
 
-
-
+;Add an offset to the reference wavelength solution manually. 
+;refwlcal[*,*,1]=refwlcal[*,*,1]+4.0
+;refwlcal[*,*,0]=refwlcal[*,*,0]+5.0
 
 if keyword_set(parallel) then begin
 
@@ -647,7 +653,7 @@ ydatabadx = bady MOD ncolbad
 ydatabady = bady / ncolbad
 ydummyfit = SFIT( ydata, 1, kx=yplanefit, /IRREGULAR, /MAX_DEGREE)
 ydummy[bady] = yplanefit[0] + yplanefit[1]*ydatabady + yplanefit[2]*ydatabadx 
-ydummy = filter_image(ydummy, median=5)
+ydummy = filter_image(ydummy, median=3)
 ydummy[bady] =  !values.f_nan
  
 goodx = where(Finite(xdummy), ngoodx, comp=badx, ncomp=nbadx) 
@@ -667,21 +673,21 @@ xdummyfit = SFIT( xdata, 1, kx=xplanefit, /IRREGULAR, /MAX_DEGREE)
 xdummy[badx] = xplanefit[0] + xplanefit[1]*xdatabady + xplanefit[2]*xdatabadx; + xplanefit[3]*xdatabadx*xdatabady
 print, xplanefit, yplanefit
 ;stop
-xdummy = filter_image(xdummy, median=5)
+xdummy = filter_image(xdummy, median=3)
 xdummy[badx] =  !values.f_nan
 
 
 goodw = where(Finite(wdummy), ngoodw, comp=badw, ncomp=nbadw) 
 ; interpolate at the locations of the bad data using the good data 
 ;if nbadw gt 0 then wdummy[badw] = interpol(wdummy[goodw], goodw, badw,/LSQUADRATIC) 
-wdummy = filter_image(wdummy, median=7)
+wdummy = filter_image(wdummy, median=5)
 wdummy[badw] =  !values.f_nan
 
 
 goodt = where(Finite(tdummy), ngoodt, comp=badt, ncomp=nbadt) 
 ; interpolate at the locations of the bad data using the good data 
 ;if nbadt gt 0 then tdummy[badt] = interpol(tdummy[goodt], goodt, badt,/LSQUADRATIC) 
-tdummy = filter_image(tdummy, median=7)
+tdummy = filter_image(tdummy, median=5)
 tdummy[badt] =  !values.f_nan
 
 
@@ -691,7 +697,7 @@ tdummy[badt] =  !values.f_nan
 ;newwavecal[*,*,4]=tdummy
 
 
-        ;if keyword_set(Smoothed) then begin
+        if keyword_set(Smooth) then begin
 
            ;minsm=90
            ;maxsm=190
@@ -717,7 +723,7 @@ tdummy[badt] =  !values.f_nan
            newwavecal[*,*,0]=ydummy
            newwavecal[*,*,1]=xdummy
            newwavecal[wherenan] = !values.f_nan
-        ;endif
+        endif
 
 
 ;SAVE THE NEW WAVELENGTH CALIBRATION:
