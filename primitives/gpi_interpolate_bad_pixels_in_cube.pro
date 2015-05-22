@@ -45,10 +45,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	if tag_exist( Modules[thisModuleIndex], "Threshold") then threshold= strupcase(Modules[thisModuleIndex].threshold) else threshold=1.2
 
-  backbone->set_keyword, 'DRPFLEX', Method, ' Selected method for handling flexure-induced shifts'
+  	backbone->set_keyword, 'DRPFLEX', Method, ' Selected method for handling flexure-induced shifts'
 
-    backbone->set_keyword,'HISTORY',functionname+": Heuristically locating and interpolating"
-    backbone->set_keyword,'HISTORY',functionname+": bad pixels in the data cube."
+    	backbone->set_keyword,'HISTORY',functionname+": Heuristically locating and interpolating"
+    	backbone->set_keyword,'HISTORY',functionname+": bad pixels in the data cube."
+	disperser = gpi_simplify_keyword_value(backbone->get_keyword('DISPERSR', indexFrame=nfiles))
 
 	print,"Method ",method
 	CASE strupcase(method) OF
@@ -69,32 +70,60 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 				slice = img[*,*,n]
 				lowfrq = median(slice,3)
 				tst = abs(slice-lowfrq)
-				ids = where(tst gt threshold*lowfrq)
+				ids = where(tst gt threshold*lowfrq,count)
+				if count eq 0 then break
 				bad = MAKE_ARRAY(sz[1], sz[2], /INTEGER, VALUE = 0)
 				bad[ids] = 1
 				badcube[*,*,n] = bad 
 			endfor
 			print,"Number of bad pixels: ",n_elements(ids)
 			;median neighbors
-			ids = where_xyz(badcube,xind=xind,yind=yind,zind=zind)
-			for i=0,n_elements(ids)-1 do begin
-				xl = xind[i]-1
-				xh = xind[i]+1
-				;boundary conditions check
-				if xl lt 0 then xl=0
-				if xh ge sz[1] then xh=sz[1]-1
-				yl = yind[i]-1
-				yh = yind[i]+1
-				if yl lt 0 then yl=0
-				if yh ge sz[2] then yh=sz[2]-1
-				zl = zind[i]-1
-				zh = zind[i]+1
-				if zl lt 0 then zl=0
-				if zh ge sz[3] then zh=sz[3]-1
-				img[xind[i],yind[i],zind[i]] = median(img[xl:xh,yl:yh,zl:zh])
-				ii=strcompress(string(i,f='(F4)'),/rem) 
-  				print,f='(%"\33[1M %s \33[1A")',ii				
-			endfor
+			ids = where_xyz(badcube,count,xind=xind,yind=yind,zind=zind)
+			;mask bad pixels out before interpolation
+			if count eq 0 then break 
+			img[ids] = !values.F_NAN
+			case disperser of
+				"PRISM": begin
+					for i=0,n_elements(ids)-1 do begin
+						x = xind[i]
+						xl = x-1
+						xh = x+1
+						;boundary conditions check
+						if xl lt 0 then xl=0
+						if xh ge sz[1] then xh=sz[1]-1
+						y = yind[i]
+						yl = y-1
+						yh = y+1
+						if yl lt 0 then yl=0
+						if yh ge sz[2] then yh=sz[2]-1
+						z = zind[i]
+						zl = z-1
+						zh = z+1
+						if zl lt 0 then zl=0
+						if zh ge sz[3] then zh=sz[3]-1
+						img[xind[i],yind[i],zind[i]] = median(img[xl:xh,yl:yh,z])
+						ii=strcompress(string(i,f='(F4)'),/rem) 
+		  				print,f='(%"\33[1M %s \33[1A")',ii				
+					endfor
+				end
+				"WOLLASTON": begin
+					for i=0,n_elements(ids)-1 do begin
+						xl = xind[i]-1
+						xh = xind[i]+1
+						;boundary conditions check
+						if xl lt 0 then xl=0
+						if xh ge sz[1] then xh=sz[1]-1
+						yl = yind[i]-1
+						yh = yind[i]+1
+						if yl lt 0 then yl=0
+						if yh ge sz[2] then yh=sz[2]-1
+						z = zind[i]
+						img[xind[i],yind[i],zind[i]] = median(img[xl:xh,yl:yh,z])
+						ii=strcompress(string(i,f='(F4)'),/rem) 
+		  				print,f='(%"\33[1M %s \33[1A")',ii				
+					endfor
+				end
+			endcase
 			*dataset.currframe = img
 		end
 		ELSE: print,"Parameter Failed"
