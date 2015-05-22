@@ -24,7 +24,7 @@ The spectrophotometric calibration on coronagraphic data described here uses the
 
 .. math::
 
-        datacube [flux\  units] = \frac{datacube[ADU]}{Avg.\ Satellite\  spectrum [ADU]} * \frac{Host\  Star\  Spectrum\  [flux\  units]}{Satellite:Star\ Flux\ ratio [unitless]}
+        datacube [flux\  units] = \frac{datacube[ADU]}{Avg.\ Satellite\  spectrum [ADU]} * \frac{Host\  Star\  Spectrum\  [flux\  units]}{Star:Satellite\ Flux\ ratio [unitless]}
 
 This calibration is done using the pipeline primitive :ref:`Calibrate Photometric Flux <CalibratePhotometricFlux>` primitive. This primitive measures the average satellite spectrum, uses the stellar magnitude and spectral type to determine a flux-calibrated star spectrum, and uses the satellite flux ratios from the $GPI_DRP_CONFIG_DIR/apodizer_spec.txt file (see :ref:`here <processing_step_by_step_flat_fielding_satellite_spot_calibrations>` for more information on the satellite spots) in order to use the above formula to derive a calibrated datacube.
 
