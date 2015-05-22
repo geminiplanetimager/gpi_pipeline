@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DRF ReductionType="PolarimetricScience" name="Basic NRM Polarization Datacube Extraction" ShortName="nrmpolsequence">
+<dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
+   <fits filename=""/>
+</dataset>
+<module name="Load Polarimetry Spot Calibration" CalibrationFile="AUTOMATIC" />
+<module name="Smooth Polarization Calibration" Boxsize="10" />
+<module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
+<module name="Flexure 2D x correlation with polcal" range="0.3" resolution="0.01" psf_sep="0.01" stopidl="0" x_off="0" y_off="0" badpix="1" iterate="1" />
+<module name="Destripe science image" method="calfile" abort_fraction="0.9" fraction="0.7" high_limit="1000" chan_offset_correction="1" Save_stripes="0" Save="0" display="-1" gpitv="0" remove_microphonics="1" method_microphonics="1" plot_micro_peaks="no" save_microphonics="no" micro_threshold="0.01" />
+<module name="Interpolate bad pixels in 2D frame" method="all8"  Save="0" gpitv="0" CalibrationFile="AUTOMATIC" before_and_after="0"/> 
+<module name="Assemble Polarization Cube" Rotate="0" Save="0" gpitv="0" Method="PSF" />
+<module name="Divide by Low Spatial Freq. Polarization Flat Field" CalibrationFile="AUTOMATIC" Save="0" gpitv="2"/>
+<module name="Interpolate bad pixels in cube" Save="0" gpitv="2" before_and_after="0" />
+<module name="Measure Star Position for Polarimetry" x0="140" y0="140" search_window="5" mask_radius="50" highpass="1" lower_threshold="-100" Save="1" gpitv="0" />
+<module name="Accumulate Images" Method="OnDisk" />
+<module name="Clean Polarization Pairs via Double Difference" fix_badpix="1" Save_diffbias="0" gpitv_diffbias="10" Save="1" debug="0" />
+</DRF>
