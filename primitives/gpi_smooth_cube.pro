@@ -73,7 +73,12 @@ function gpi_smooth_cube, DataSet, Modules, Backbone
       cube=accumulate_getimage(dataset,i, hdr, hdrext=hdrext)
       
       ;Smooth
-      for j=0, nlam-1 do cube[*,*,j]=filter_image(cube[*,*,j], fwhm_gaussian=fwhm)
+      for j=0, nlam-1 do begin
+        nanlist=where(~finite(cube[*,*,j]),nct)
+        tmp=filter_image(cube[*,*,j], fwhm_gaussian=fwhm)
+        if nct gt 1 then tmp[nanlist]=!values.f_nan
+        cube[*,*,j]=tmp
+      endfor
       
       ;Update
       accumulate_updateimage, dataset, i, newdata=cube
