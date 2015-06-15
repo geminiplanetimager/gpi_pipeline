@@ -40,7 +40,8 @@
 ; PIPELINE ARGUMENT: Name="calib_model_spectrum" Type="string" Default="" Desc="Leave blank to use satellites of this cube, or enter a file to use with the spectrum for the satellites"
 ; PIPELINE ARGUMENT: Name="calib_spectrum" Type="string" Default="" Desc="Leave blank to use satellites of this cube, or enter calibrated spectrum file"
 ; PIPELINE ARGUMENT: Name="FinalUnits" Type="int" Range="[0,10]" Default="5" Desc="0: ADU per coadd, 1: ADU/s, 2: ph/s/nm/m^2, 3: Jy, 4: 'W/m^2/um, 5: ergs/s/cm^2/A, 6: ergs/s/cm^2/Hz'"
-
+; PIPELINE ARGUMENT: Name="Surface_brightness_units" Type="int" Range="[0,1]" Default="0" Desc="0:absolute flux units, 1:Surface brighness units (your final units will be per arcsec^2)"
+; 
 ; PIPELINE ORDER: 2.51
 ; PIPELINE CATEGORY: SpectralScience
 ;
@@ -50,6 +51,7 @@
 ;   2012-10-17 MP: Removed deprecated suffix keyword. needs major cleanup!
 ;   2013-08-07 ds: idl2 compiler compatible 
 ;	2014-01-07 PI: Created new gpi_calibrate_photometric_flux - big overhaul from the original apply_photometric_calibration 	
+;  2015-06 JM: added surface brightness units
 ;-
 
 function gpi_calibrate_photometric_flux, DataSet, Modules, Backbone
@@ -69,6 +71,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	if tag_exist( Modules[thisModuleIndex], "outer_sky_radius") then outer_sky_radius=float(Modules[thisModuleIndex].outer_sky_radius) else outer_sky_radius=15
 	if tag_exist( Modules[thisModuleIndex], "c_ap_scaling") then c_ap_scaling=float(Modules[thisModuleIndex].c_ap_scaling) else c_ap_scaling=1
 	if tag_exist( Modules[thisModuleIndex], "FinalUnits") then FinalUnits=long(Modules[thisModuleIndex].FinalUnits) else FinalUnits=5
+	if tag_exist( Modules[thisModuleIndex], "Surface_brightness_units") then Surface_brightness_units=long(Modules[thisModuleIndex].Surface_brightness_units) else Surface_brightness_units=0
 	if tag_exist( Modules[thisModuleIndex], "gpitv") then gpitv=long(Modules[thisModuleIndex].gpitv) else gpitv=5
 	if tag_exist( Modules[thisModuleIndex], "save") then save=long(Modules[thisModuleIndex].save) else save=0
 
@@ -478,7 +481,7 @@ endif
 ; should actually put in the data from the calibration cube!
 ; aso have to pass a variable with the calib_model_spectrum
 
-converted_model_spectrum = gpi_photometric_calibration_calculation(lambda,*(dataset.headersPHU[numfile]),*(dataset.headersExt[numfile]),units=FinalUnits,ref_model_spectrum=calib_model_spectrum,ref_star_magnitude=star_mag, ref_filter_type=ref_filter_type, ref_SpType=SpType,logarr=logarr)
+converted_model_spectrum = gpi_photometric_calibration_calculation(lambda,*(dataset.headersPHU[numfile]),*(dataset.headersExt[numfile]),units=FinalUnits,ref_model_spectrum=calib_model_spectrum,ref_star_magnitude=star_mag, ref_filter_type=ref_filter_type, ref_SpType=SpType,logarr=logarr,surface_brightness_units=surface_brightness_units)
 ; now print out the log - this is due to some bug that causes bus errors/segementation faults using the message,/info program
 for zz=0,N_ELEMENTS(logarr)-1 do backbone->Log,logarr[zz] 
 
@@ -502,8 +505,20 @@ endif ; if keyword_set(calib_cube_name)
 
 
 
+
+ 
 ; now we should write the cube
 unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A','ergs/s/cm^2/Hz']
+ if Surface_brightness_units eq 1 then begin
+    platescale=0.01414; GPI plate scale
+    for l=0, N_ELEMENTS(lambda)-1 do conv_surf=1./(platescale^2)
+    surface_brightness='/arcsec^2'
+endif else begin
+  surface_brightness=''
+  conv_surf=1.
+ endelse
+unitslist =unitslist +surface_brightness
+
   	if keyword_set(calib_spectrum) then begin
 			backbone->set_keyword,'HISTORY',functionname+ 'WARNING- this has not been thoroughly tested and is extremely dangerous to use. Systematics can be easily introduced!'
 			backbone->set_keyword, 'CUNIT', "User_specified", "Data units", ext_num=1
@@ -545,6 +560,7 @@ unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm
 
 		endelse
 
+ 
  	; must write calibration percent error (sat flux and sat error) in the header for proper error handling in spectral extraction
 		for l=0, N_ELEMENTS(lambda)-1 do backbone->set_keyword, 'FSCALE'+strc(l), conv_fact[l],"scale to convert counts to "+strc(unitslist[FinalUnits]), ext_num=1
 		for l=0, N_ELEMENTS(lambda)-1 do backbone->set_keyword, 'CERR_'+strc(l), cal_percent_err[l],"Cal percent error for slice "+strc(l), ext_num=1
