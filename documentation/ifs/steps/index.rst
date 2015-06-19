@@ -26,6 +26,7 @@ This page takes the alternate approach, of describing what you need to know in o
    darks.rst
    thermal_background.rst
    badpixels.rst
+   interpixel_capacitance.rst
    destriping_and_microphonics.rst
    nonlinearity.rst
    persistence.rst
