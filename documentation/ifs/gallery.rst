@@ -51,11 +51,19 @@ Artifacts from AO, Coronagraph, and Telescope Systematics
 If you see any of the following in your data, there is little the pipeline can do about them. These are all problems that the observer at the telescope should notice and try to fix in real time.
 
 
-**Misaligned coronagraph:**
+**Misaligned Focal Plane Mask:**
 
 If you're operating the instrument, you should use the pointing offsets tool to recenter the star back onto the occulting mask. 
 
 .. image:: badimg_03_MisalignedMask.png
+        :width: 500px
+        :align: center
+
+**Misaligned Lyot Stop:**
+
+This can only be corrected with the IDL engineering interface.  See: http://docs.planetimager.org/gpilib/calibrations.html#lyot-alignment
+
+.. image:: badimg_15_misaligned_lyot.png
         :width: 500px
         :align: center
 
