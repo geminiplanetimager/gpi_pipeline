@@ -1,0 +1,169 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Appendix: Improving window appearance via xdefaults &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../index.html" />
+    <link rel="up" title="GPI Data Pipeline Installation &amp; Configuration" href="index.html" />
+    <link rel="next" title="GPI Data Pipeline User’s Guide" href="../usage/index.html" />
+    <link rel="prev" title="Appendix: GPI Constants" href="constants.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../usage/index.html" title="GPI Data Pipeline User’s Guide"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="constants.html" title="Appendix: GPI Constants"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">GPI Data Pipeline Installation &amp; Configuration</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="constants.html"
+                        title="previous chapter">Appendix: GPI Constants</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="../usage/index.html"
+                        title="next chapter">GPI Data Pipeline User&#8217;s Guide</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/installation/xdefaults.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="appendix-improving-window-appearance-via-xdefaults">
+<h1>Appendix: Improving window appearance via xdefaults<a class="headerlink" href="#appendix-improving-window-appearance-via-xdefaults" title="Permalink to this headline">¶</a></h1>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>This page is about an entirely <strong>optional</strong> and <strong>purely cosmetic</strong> tweak to the pipeline. Feel free to ignore this page entirely. It only applies to Macs and Linux computers.</p>
+<blockquote class="last">
+<div><img alt="../_images/icon_mac2.png" src="../_images/icon_mac2.png" />
+<img alt="../_images/icon_linux2.png" src="../_images/icon_linux2.png" />
+</div></blockquote>
+</div>
+<p>The graphics windows produced by IDL are pretty basic and dated by modern computing standards. Particularly on Macs and Linux computers running X11, GUI windows are entirely
+gray on gray. This is kind of boring, and bad from a user interface design standpoint, but we&#8217;re mostly stuck with it.  IDL does not provide any real ability for programs to control their appearance for instance by adjusting fonts or colors. It just can&#8217;t be done from inside IDL code!</p>
+<p>However, it is possible to slightly tweak the appearance of IDL graphics windows using an &#8221;.Xdefaults&#8221; file in your home directory, and get slightly improvements to appearance
+and legibility.</p>
+<a class="reference internal image-reference" href="../_images/windows_idldefaults.png"><img alt="../_images/windows_idldefaults.png" class="align-center" src="../_images/windows_idldefaults.png" style="width: 414.0px; height: 472.0px;" /></a>
+<p>Above: Default appearance. Click for larger.</p>
+<a class="reference internal image-reference" href="../_images/windows_xdefaults.png"><img alt="../_images/windows_xdefaults.png" class="align-center" src="../_images/windows_xdefaults.png" style="width: 413.5px; height: 464.0px;" /></a>
+<p>Above: Slightly improved appearance. Click for larger.</p>
+<p>If you would like this, please create a file <tt class="docutils literal"><span class="pre">.Xdefaults</span></tt> in your home directory, and paste the following text into it:</p>
+<div class="highlight-python"><div class="highlight"><pre>!---- Customization of Xdefaults values for GPI widgets
+!  Purely cosmetic, no functional changes at all!
+!  Feel free to tweak and adjust as desired.
+!  developed by Marshall Perrin
+!
+!  Copy or append this file to your ~/.Xdefaults to install
+
+
+!-- Launcher and status console --
+Idl*GPI_DRP*fontList: *helvetica-bold-r-*--11*
+Idl*GPI_DRP*Table*fontList: *helvetica-medium-r-*--10*
+Idl*GPI_DRP*XmPushButton*background: lightblue
+Idl*GPI_DRP*red_button*background: pink
+Idl*GPI_DRP*Status*red_button*background: pink
+!Idl*GPI_DRP*background: #E9E9F5
+
+
+!--- Data Parser ---
+Idl*GPI_DRP_Parser*XmCascadeButton*background: lightblue
+Idl*GPI_DRP_Parser*XmText*background: #F7F7F0
+Idl*GPI_DRP_Parser*XmPushButton*background: #CBE0DF
+Idl*GPI_DRP_Parser*red_button*background: pink
+!Idl*GPI_DRP_Parser*fontList:  *helvetica-bold-r-*--11*
+!Idl*GPI_DRP_Parser*background: #F1E9C8
+
+!--- Recipe Editor ---
+Idl*GPI_DRP_RecipeEditor*XmText*background: #F7F7F0
+Idl*GPI_DRP_RecipeEditor*XmPushButton*background: #CBE0DF
+Idl*GPI_DRP_RecipeEditor*red_button*background: pink
+!Idl*GPI_DRP_RecipeEditor*fontList:  *helvetica-bold-r-*--11*
+!Idl*GPI_DRP_RecipeEditor*background: #F1E9C8
+</pre></div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../usage/index.html" title="GPI Data Pipeline User’s Guide"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="constants.html" title="Appendix: GPI Constants"
+             >previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" >GPI Data Pipeline Installation &amp; Configuration</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

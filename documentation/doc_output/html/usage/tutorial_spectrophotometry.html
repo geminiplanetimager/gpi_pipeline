@@ -1,0 +1,217 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Tutorial 4: Spectrophotometric Calibration For Coronagraphic Imaging Spectroscopy &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../index.html" />
+    <link rel="up" title="GPI Data Pipeline User’s Guide" href="index.html" />
+    <link rel="next" title="The Launcher" href="launcher.html" />
+    <link rel="prev" title="Tutorial 3: Reducing your own GPI data" href="tutorial_your_own_data.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="launcher.html" title="The Launcher"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tutorial_your_own_data.html" title="Tutorial 3: Reducing your own GPI data"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">GPI Data Pipeline User&#8217;s Guide</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Tutorial 4: Spectrophotometric Calibration For Coronagraphic Imaging Spectroscopy</a><ul>
+<li><a class="reference internal" href="#calibration-cube-by-cube">Calibration Cube-by-Cube</a></li>
+<li><a class="reference internal" href="#calibration-on-combined-sequences">Calibration on combined sequences</a></li>
+<li><a class="reference internal" href="#extracting-a-1-d-spectrum-of-a-companion">Extracting a 1-D spectrum of a companion</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="tutorial_your_own_data.html"
+                        title="previous chapter">Tutorial 3: Reducing your own GPI data</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="launcher.html"
+                        title="next chapter">The Launcher</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/usage/tutorial_spectrophotometry.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="tutorial-4-spectrophotometric-calibration-for-coronagraphic-imaging-spectroscopy">
+<span id="usage-tutorial-spectrophoto"></span><h1>Tutorial 4: Spectrophotometric Calibration For Coronagraphic Imaging Spectroscopy<a class="headerlink" href="#tutorial-4-spectrophotometric-calibration-for-coronagraphic-imaging-spectroscopy" title="Permalink to this headline">¶</a></h1>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p>Photometric calibration for coronagraphic data can
+be tricky. There is more than one way to do this. As always users are responsible for
+using their own scientific judgement, checking their results,
+and not relying solely on the pipeline as a black box.</p>
+<p>We encourage users to develop their own approaches to accurately calibrating
+their GPI data and assessing the uncertainties and biases. The following is our
+suggestion of one possible approach to photometric calibration.</p>
+<p class="last">Furthermore, as soon as one adds in the complexity of PSF subtraction,
+that brings a lot of additional complexity in understanding the algorithm throughputs
+and biases of that process. This issue is not described in this brief introduction.</p>
+</div>
+<p>Applying a spectrophotometric calibration to your reduced GPI datacubes transforms the units of extracted spectra from intensity in ADU (aka counts or data numbers) into a physical flux unit (e.g. ergs/s/cm2/A or Jy). The GPI Data Reduction Pipeline (DRP) includes functionality (in the form of primitives) to help a user extract a calibrated spectrum with relative ease. However, as mentioned above, we encourage users to develope their own approaches to ensure no biases are introduced into the data. That being said, the procedure described here provides a good background to the problem and a quick way to create calibrated data that can be used as initial comparisons to models or as a metric for evaluating the quality of your own extraction algorithm.</p>
+<p>The spectrophotometric calibration on coronagraphic data described here uses the the spectra extracted from the satellite spots in the image, combined with the spectral type and apparent magnitude of the host star. Because the light from the host star and companion experience the same atmospheric and instrumental transmission functions, if we know the luminosity (magnitude) of the host star and it&#8217;s spectrum, we can calibrate the datacube using the following equation:</p>
+<div class="math">
+<p><img src="../_images/math/577d5964553a6cf26e5298c5ce254248f5e543f9.png" alt="datacube [flux\  units] = \frac{datacube[ADU]}{Avg.\ Satellite\  spectrum [ADU]} * \frac{Host\  Star\  Spectrum\  [flux\  units]}{Star:Satellite\ Flux\ ratio [unitless]}"/></p>
+</div><p>This calibration is done using the pipeline primitive <a class="reference internal" href="primitives.html#calibratephotometricflux"><em>Calibrate Photometric Flux</em></a> primitive. This primitive measures the average satellite spectrum, uses the stellar magnitude and spectral type to determine a flux-calibrated star spectrum, and uses the satellite flux ratios from the $GPI_DRP_CONFIG_DIR/apodizer_spec.txt file (see <a class="reference internal" href="../ifs/steps/satellite_spots.html#processing-step-by-step-flat-fielding-satellite-spot-calibrations"><em>here</em></a> for more information on the satellite spots) in order to use the above formula to derive a calibrated datacube.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">If you&#8217;re using non-coronagraphic direct data, it doens&#8217;t have sat spots
+so the following method doesn&#8217;t apply. Likewise for polarimetry data the
+calibration is more complex since the spots are extended, and this is not
+yet well implemented. In these cases, you can rely on the more traditional
+method of observing a photometric standard star, measuring its counts, and
+deriving a conversion factor from counts/sec to physical units.</p>
+</div>
+<p>Naturally, this relative calibration (companion flux relative to the host star) is very sensitive to the assigned characteristics of the host star. Under normal observing scenarios, the host star spectral type and magnitude is transferred into the image headers from the values entered into the Gemini Observing Tool (OT) during the Phase II process of the observation planning, however, these values may correspond to (slightly) different filters and often have a mildly incorrect spectral type. Users can update these values (or add them if for some reason they do not appear in the headers) by updating the <em>SPECTYPE</em> and <em>HMAG</em> in the primary header using the <tt class="docutils literal"><span class="pre">Add</span> <span class="pre">Gemini</span> <span class="pre">and</span> <span class="pre">GPI</span> <span class="pre">keywords</span></tt> primitive. Note that this primitive is only visible when <cite>Show all primitives</cite> is selected from the <cite>Options</cite> dropdown menu in the recipe editor.</p>
+<p>The <em>SPECTYPE</em> header keyword is used to automatically select a Pickles stellar model to be used as the star spectrum. Note that not all spectral types have associated models, if one wishes to see which models are available, they can look at the following file $GPI_DRP_CONFIG_DIR/pickles/AA_README. <strong>Note that these models are not always perfect and if incorrect, will imprint a systematic error in your data.</strong> For this reason, the primitive also supports a user-defined spectrum for the host star which is declared using the &#8216;calib_model_spectrum&#8217; keyword (note that the directory must also be included). The input file must consist of 3 columns: wavelength, flux [erg/s/cm2/A], and the uncertainty. The spectrum is interpolated to the GPI filter wavelengths and therefore must already be binned to the GPI spectral resolution.</p>
+<p>Because the filter type of the magnitude is often based on the 2MASS filter system, the <a class="reference internal" href="primitives.html#calibratephotometricflux"><em>Calibrate Photometric Flux</em></a> automatically calculates and applies to conversion to the GPI filters based on the Pickles model.  If the <em>SPECTYPE</em> keyword is set to <cite>GPI</cite> instead of <cite>2MASS</cite>, then no filter conversion is applied. A correction for the star colors variation with spectral type is also applied (e.g. calculation of J-band magnitude based on an H-band magnitude for a given spectral type. Should the user supply a host-star spectrum using the &#8216;calib_model_spectrum&#8217; described in the paragraph above, these corrections are skipped.</p>
+<p>The spectral extraction of the satellites in the <a class="reference internal" href="primitives.html#calibratephotometricflux"><em>Calibrate Photometric Flux</em></a> primitive is performed using aperture photometry where the circular extraction aperture radius is set using the <cite>extraction_radius</cite> keyword. The value inserted is used for the central slice of the datacube, and then scaled with wavelength (by default). The scaling of the aperture with wavelength can be removed by setting the <cite>c_ap_scaling</cite> keyword to &#8216;0&#8217;. The area to be used to measure the sky subtraction is defined using the <cite>inner_sky_radius</cite> and <cite>outer_sky_radius</cite> keywords. Admittedly, these keywords are misnomers as the sky is not extracted using a circular annulus around each satellite. The sky is measured from an partial annulus at the radius of the star-planet separation measured along an arc, where the width of the arc is defined by the <cite>extraction_radius</cite>. The <cite>inner_sky_radius</cite> sets the size of the mask over the satellite and the <cite>outer_sky_radius</cite> sets the distance from the satellite to the edge of the annulus in consideration. Because it is non-trivial to conceptualize this shape, the extraction aperture for slice 15 (approximately the central wavelength slice) is always displayed, as shown in the following figure.</p>
+<div class="figure">
+<img alt="../_images/fig_extraction_background.png" src="../_images/fig_extraction_background.png" />
+<p class="caption">The displayed output from extracting a single wavelength of the spectrum of a satellite spot. This display is useful for determining where the background is being measured.</p>
+</div>
+<p>The leftmost image in the above figure shows a cutout of the extraction annulus including the satellite spot, as well as the region used for measuring the background and determining the error. The second image from the left shows the calculated value of the background (the median pixel), the third window from the left shows background-subtracted pixels. The rightmost image shows the convolution of the background pixels with the extraction aperture (note that the convolution uses pixels from the datacube slice that appear masked in the above image). The standard deviation of this area is used as the errorbar on the extracted datapoint.</p>
+<p>The individual satellite spectra are normalized to mean integrated intensity of the four spots. For each wavelength slice, the mean of the four satellites is used, whereas the error is the standard deviation of the four spots. A future version of the pipeline will incorporate a weighted mean and standard deviation.</p>
+<dl class="docutils">
+<dt>Applying the spectrophotometric correction can be accomplished in two ways:</dt>
+<dd><ol class="first last arabic simple">
+<li>On a cube by cube basis. This is only feasible if you have a good SNR on each satellite spot.</li>
+<li>On a combined sequence. This is useful if the SNR of the satellites is low.</li>
+</ol>
+</dd>
+</dl>
+<div class="section" id="calibration-cube-by-cube">
+<h2>Calibration Cube-by-Cube<a class="headerlink" href="#calibration-cube-by-cube" title="Permalink to this headline">¶</a></h2>
+<p>This method uses the satellites in a single cube to perform the calibration and is the method assumed when using the <em>Calibrated Datacube extraction</em> recipe. This requires a high SNR of the satellite spots (and subsequently the companion if one wants to extract a spectrum). The user creates their normal (uncalibrated cube) then uses the <a class="reference internal" href="primitives.html#measuresatellitespotlocations"><em>Measure satellite spot locations</em></a> and <a class="reference internal" href="primitives.html#measuresatellitespotpeakfluxes"><em>Measure satellite spot peak fluxes</em></a> to characterize the satellites. Susequently, the user calls the <a class="reference internal" href="primitives.html#calibratephotometricflux"><em>Calibrate Photometric Flux</em></a> primitive to create a calibrated cube. At this point, the user can either combine multiple calibrated cubes, or simply use the <a class="reference internal" href="primitives.html#extract1dspectrumfromadatacube"><em>Extract 1d spectrum</em></a> to obtain a flux calibrated spectrum of the companion (addressed below).</p>
+</div>
+<div class="section" id="calibration-on-combined-sequences">
+<h2>Calibration on combined sequences<a class="headerlink" href="#calibration-on-combined-sequences" title="Permalink to this headline">¶</a></h2>
+<p>In cases where the satellite spots and or companion is faint, it is often wise to combine the images to obtain a higher signal-to-noise ratio (SNR) prior to extracting the spectra. This increase in the SNR is also important for improving the position accuracy of the satellites and companion prior to their extraction. The challenge with stacking the cubes is that the field is constantly rotating, therefore, a median stack of all the cubes does provide an increase in the SNR of the satellite spots and speckles, but this results in a blurring-out of the planet. Therefore, one must make a second median combined stack of datacubes, where each cube is rotated to have north up (using the <a class="reference internal" href="primitives.html#rotatenorthup"><em>Rotate North Up</em></a>  primitive) prior to the median combine. This results in an increase in the SNR of the planet, while blurring out the speckles and satellite spots. Once these cubes are made, they can be inserted into the <a class="reference internal" href="primitives.html#calibratephotometricflux"><em>Calibrate Photometric Flux</em></a> primitive to obtain a proper flux calibration.</p>
+<div class="figure align-center">
+<a class="reference internal image-reference" href="../_images/fig_median_stack.png"><img alt="alternate text" src="../_images/fig_median_stack.png" style="width: 300px;" /></a>
+<p class="caption">A single wavelength slice from stacking several datacubes of a well-known system of companions. Note that no companions are visible but the SNR of the satellites is decent.</p>
+</div>
+<p>To create this stack, the following recipe of primitives was used.</p>
+<div class="figure align-center">
+<a class="reference internal image-reference" href="../_images/fig_median_stack_recipe.png"><img alt="../_images/fig_median_stack_recipe.png" src="../_images/fig_median_stack_recipe.png" style="width: 300px;" /></a>
+<p class="caption">The recipe used to create the median stack of several datacubes (shown above).</p>
+</div>
+<p>Note that in the case below the satellite spot locations were measured BEFORE doing a median of the stack. It is also possible to place them AFTER the Combine 3d Datacubes primitive. However, if this is done, one must be sure that the SAVE parameters in the <a class="reference internal" href="primitives.html#measuresatellitespotlocations"><em>Measure satellite spot locations</em></a> and <a class="reference internal" href="primitives.html#measuresatellitespotpeakfluxes"><em>Measure satellite spot peak fluxes</em></a> primitives are set to 1. In this example, I&#8217;ve also modified the <em>SPECTYPE</em> and <em>HMAG</em> keywords using the <tt class="docutils literal"><span class="pre">Add</span> <span class="pre">Gemini</span> <span class="pre">and</span> <span class="pre">GPI</span> <span class="pre">keywords</span></tt> primitive mentioned above.</p>
+<p>One should note that the file produced by this recipe should be MANUALLY changed to something such as &#8216;S20131118S0012_median_stack.fits&#8217; or else it will be overwritten in the next step, where we create a stack of derotated cubes.</p>
+<div class="figure align-center">
+<a class="reference internal image-reference" href="../_images/fig_derotated_stack.png"><img alt="../_images/fig_derotated_stack.png" src="../_images/fig_derotated_stack.png" style="width: 300px;" /></a>
+<p class="caption">A single wavelength slice from stacking several datacubes of a well-known system of companions AFTER having rotated each individual cube to have North in the &#8216;up&#8217; direction. Note that the companions are now visible but the satellites have been blurred out.</p>
+</div>
+<p>Now that we have a cube with high-SNR satellites, we need to create a cube where the companion has a higher SNR, this is done by rotating each individual cube using the <a class="reference internal" href="primitives.html#rotatenorthup"><em>Rotate North Up</em></a>  primitive, which is the placed before combining the cubes, as shown in the following recipe.</p>
+<div class="figure align-center">
+<a class="reference internal image-reference" href="../_images/fig_median_derotated_stack_recipe.png"><img alt="../_images/fig_median_derotated_stack_recipe.png" src="../_images/fig_median_derotated_stack_recipe.png" style="width: 300px;" /></a>
+<p class="caption">The recipe used to create the median derotated stack of several datacubes (shown above).</p>
+</div>
+<p>The cube produced by this receipe is the cube that users will want to flux calibrate, since it will contain the signal from the companions. However, the satellites used to calibrate the cube, are contained in the previous cube. The <a class="reference internal" href="primitives.html#calibratephotometricflux"><em>Calibrate Photometric Flux</em></a> primitive handles this by allowing the user to input the directory+filename of the satellite cube (the median stack) in the <cite>calib_cube_name</cite> keyword. The derotated cube should loaded by the recipe editor, as is seen in the figure below.</p>
+<div class="figure align-center">
+<a class="reference internal image-reference" href="../_images/fig_two_cube_calibration_recipe.png"><img alt="../_images/fig_two_cube_calibration_recipe.png" src="../_images/fig_two_cube_calibration_recipe.png" style="width: 600px;" /></a>
+<p class="caption">The recipe used to calibrate a derotated median stack (high SNR of companions) using the satellites for a standard median stack (high SNR satellites).</p>
+</div>
+<p>Note that the user should choose the type of units they desire using the &#8216;FinalUnits&#8217; keyword. Note that if the user desires the final units in ADU/coadd, this relies on a instrumental response function which is not yet implemented. Currently, the filter profile normalized to the level of the approximate broadband instrument transmission is used instead. Therefore, one should approach these values with extreme caution.</p>
+<p>Upon completion of the <a class="reference internal" href="primitives.html#calibratephotometricflux"><em>Calibrate Photometric Flux</em></a> primitive, a calibrated cube will be output. Note that in order to eliminate any systematics introduced by the primitive (e.g. flux loss due to the chosen extraction aperture), one MUST extract any spectra using the <a class="reference internal" href="primitives.html#extract1dspectrumfromadatacube"><em>Extract 1d spectrum</em></a>.</p>
+</div>
+<div class="section" id="extracting-a-1-d-spectrum-of-a-companion">
+<h2>Extracting a 1-D spectrum of a companion<a class="headerlink" href="#extracting-a-1-d-spectrum-of-a-companion" title="Permalink to this headline">¶</a></h2>
+<p>The extraction of a 1-D spectrum from a calibrated datacube is accomplished using the <a class="reference internal" href="primitives.html#extract1dspectrumfromadatacube"><em>Extract 1d spectrum</em></a> primitive. The units of the spectrum will be in the same units that was used to calibrate the datacube (discussed above).</p>
+<p>The only mandatory inputs to the primitive are the <cite>xcenter</cite> and <cite>ycenter</cite> keywords. If the atmospheric dispersion corrector (ADC) was not used for the observation, it is best to input approximate positions from the central slice of the datacube. If the ADC was used then the centroid from any slice should be sufficiently accurate. A proper centroiding on the object is performed by the primitive.</p>
+<p>By default, the same extraction aperture  will be used to ensure any systematics introduced by the extraction are cancelled out. This can be overrided by setting the <cite>override</cite> keyword to &#8216;1&#8217;, only then will the <cite>extraction_radius</cite> and <cite>c_ap_scaling</cite> keywords be active.</p>
+<p>The sky subtraction is performed in exactly the same manner as described above, using the <cite>inner_sky_radius</cite> and <cite>outer_sky_radius</cite> keywords. A window will pop-up showing the user where the background is calculated for the slice 15. The errorbars on the final spectrum are a combination of the error from the satellite extraction AND the background surrounding the companion.</p>
+<p>Lastly, one can override the centroiding algorithm on a source if they choose. This may be desired for extremely low SNR objects, or if one wishes to extract a region of sky (useful to for determining if your background source is speckle noise dominated or not).</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="launcher.html" title="The Launcher"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tutorial_your_own_data.html" title="Tutorial 3: Reducing your own GPI data"
+             >previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" >GPI Data Pipeline User&#8217;s Guide</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

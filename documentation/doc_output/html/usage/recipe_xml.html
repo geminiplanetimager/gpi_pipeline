@@ -1,0 +1,250 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Appendix: Recipe File XML Format &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../index.html" />
+    <link rel="up" title="GPI Data Pipeline User’s Guide" href="index.html" />
+    <link rel="next" title="Appendix: Rarely-Used and/or Nonsupported Advanced Features" href="appendix_other.html" />
+    <link rel="prev" title="Logging and History records" href="logging.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="appendix_other.html" title="Appendix: Rarely-Used and/or Nonsupported Advanced Features"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="logging.html" title="Logging and History records"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">GPI Data Pipeline User&#8217;s Guide</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Appendix: Recipe File XML Format</a><ul>
+<li><a class="reference internal" href="#recipe-drf-xml-tags">Recipe &#8220;DRF&#8221; XML tags</a></li>
+<li><a class="reference internal" href="#common-parameters">Common parameters</a></li>
+<li><a class="reference internal" href="#example-drf">Example DRF</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="logging.html"
+                        title="previous chapter">Logging and History records</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="appendix_other.html"
+                        title="next chapter">Appendix: Rarely-Used and/or Nonsupported Advanced Features</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/usage/recipe_xml.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="appendix-recipe-file-xml-format">
+<h1>Appendix: Recipe File XML Format<a class="headerlink" href="#appendix-recipe-file-xml-format" title="Permalink to this headline">¶</a></h1>
+<p>In normal usage, recipes are typically created using the GUI, but they may be
+edited by hand. We describe here the XML file format adopted for this.</p>
+<p>This file format is based on and extremely similar to, but not exactly identical with,
+the format of Keck OSIRIS data reduction files (&#8220;DRFs&#8221;).
+The following explanatory text is derived in large part
+from the OSIRIS manual by Larkin et al., with a few modifications for
+GPI.</p>
+<p>In general, an XML document is a simple ASCII file composed of markup tags. For
+OSIRIS DRFs, the most common tag is used to specify the operation of a
+particular module such as:</p>
+<div class="highlight-python"><div class="highlight"><pre>&lt;module Name=&quot;Adjust Channel Levels&quot; Skip=&quot;0&quot;/&gt;
+</pre></div>
+</div>
+<p>In this example, the tag is enclosed in a &lt; and /&gt; to indicate the start and
+end of the tag. Alternatively, we could have used a &lt; and a &gt; around the tag
+contents, but then the complete tag would require an additional &lt;/module&gt; to
+specify the end of the tag. This would look like:</p>
+<div class="highlight-python"><div class="highlight"><pre>&lt;module Name=&quot;Adjust Channel Levels&quot; Skip=&quot;0&quot;&gt;&lt;/module&gt;
+</pre></div>
+</div>
+<p>The module is the element start tag and specifies the type of tag, in this case
+a module call. Then Name and Skip specify &#8220;attributes&#8221; of the tag. It is up to
+the pipeline to interpret these attributes. In many cases, tags can be nested,
+and in fact a DRF is really just one &lt;DRF&gt; tag with many sub-tags. Generally
+white space such as spaces and carriage returns are ignored.</p>
+<dl class="docutils">
+<dt>To add a comment to an xml file surround the text in a &lt;!&#8211; and a &#8211;&gt; such as in this example::</dt>
+<dd>&lt;!&#8211;This is a comment &#8211;&gt;</dd>
+</dl>
+<div class="section" id="recipe-drf-xml-tags">
+<h2>Recipe &#8220;DRF&#8221; XML tags<a class="headerlink" href="#recipe-drf-xml-tags" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>Now we&#8221;ll begin looking at DRF specific XML tags. All DRFs must start with a header specifying the flavor of xml to use::</dt>
+<dd>&lt;?xml version=&#8221;1.0&#8221; encoding=&#8221;UTF-8&#8221;?&gt;</dd>
+<dt>This is then followed by a DRF tag which must include the ReductionType attribute. So an example DRF tag might look like::</dt>
+<dd>&lt;DRF ReductionType=&#8221;SpectralScience&#8221;&gt;</dd>
+</dl>
+<p>Note that the &gt; does not end the tag and future tags are really attributes
+within the DRF tag. At the end of the file, you must close the DRF tag with a
+&lt;/DRF&gt;. See below for examples.</p>
+<p>After the DRF tag, you need to define the data frames that should be processed.
+This is done with the DATASET tag. It must include an InputDir attribute and
+then a series of FITS attributes that list the filenames. Optionally you can
+include a Name attribute and an outputdir tag, although name is completely
+optional, and the outputdir is more commonly specified in the specific output
+modules. So an example of the DATASET tag might be:</p>
+<div class="highlight-python"><div class="highlight"><pre>&lt;dataset InputDir=&quot;/archive/osiris/051123/SPEC/raw&quot; &gt;
+      &lt;fits FileName=&quot;s051123_a013001.fits&quot; /&gt;
+      &lt;fits FileName=&quot;s051123_a013003.fits&quot; /&gt;
+      &lt;fits FileName=&quot;s051123_a014001.fits&quot; /&gt;
+      &lt;fits FileName=&quot;s051123_a014003.fits&quot; /&gt;
+      &lt;fits FileName=&quot;s051123_a015001.fits&quot; /&gt;
+&lt;/dataset&gt;
+</pre></div>
+</div>
+<p>The typical DRF is then composed of a series of items specifying the order of the reduction steps as well as any calibration files and parameters that are needed. The name of the module must be specified using the Name attribute. These names are not negotiable and the exact name must be used. Examples:</p>
+<div class="highlight-python"><div class="highlight"><pre>&lt;module name=&quot;Extract Spectral Datacube&quot; Save=&quot;0&quot; /&gt;
+&lt;module name=&quot;Simple SSDI&quot; L1Min=&quot;1.55&quot; L1Max=&quot;1.57&quot; L2Min=&quot;1.60&quot; L2Max=&quot;1.65&quot; k=&quot;1.0&quot; Save=&quot;1&quot; gpitv=&quot;5&quot; /&gt;
+</pre></div>
+</div>
+</div>
+<div class="section" id="common-parameters">
+<h2>Common parameters<a class="headerlink" href="#common-parameters" title="Permalink to this headline">¶</a></h2>
+<p>Each module can have an arbitrary list of parameters, just like keywords in
+IDL. However, due to the required way the XML file is parsed, all attributes
+must be strings enclosed in quotes. This is true even for simple integer
+values.</p>
+<p>If the step needs a calibration file (i.e., Subtract Dark Frame, Extract
+Spectra) the attribute will look like:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">CalibrationFile</span><span class="o">=</span><span class="s">&quot;/directory/SPEC/calib/calibration_file.fits&quot;</span>
+</pre></div>
+</div>
+<p>Typically, you want calibration files to be retrieved automatically from the <a class="reference internal" href="calibdb.html#calibdb"><em>The Calibration Database</em></a>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">CalibrationFile</span><span class="o">=</span><span class="s">&quot;AUTOMATIC&quot;</span>
+</pre></div>
+</div>
+<p>If you decide to re-run a DRF and would like to skip a particular module, the
+easiest way is with the Skip attribute. Set it to &#8220;1&#8221; in order to skip the
+file, and set it back to &#8220;0&#8221; to execute the file. The default is &#8220;0&#8221; and is not
+required.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">Skip</span><span class="o">=</span><span class="s">&quot;1&quot;</span>
+</pre></div>
+</div>
+<p>Many modules allow the output data to be piped to a GPItv window for immediate display. Just set the gpitv argument equal to the session number of the window to display in:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">gpitv</span><span class="o">=</span><span class="s">&quot;3&quot;</span>
+</pre></div>
+</div>
+<p>Others allow the user to save the results of this step (distinct from saving the final output at the end of the whole list of steps):</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">save</span><span class="o">=</span><span class="s">&quot;1&quot;</span>
+</pre></div>
+</div>
+<p>Other attributes are used by a subset of modules, providing specific parameters for each step, and are described <a class="reference internal" href="primitives.html#primitives"><em>elsewhere</em></a>.</p>
+</div>
+<div class="section" id="example-drf">
+<h2>Example DRF<a class="headerlink" href="#example-drf" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><div class="highlight"><pre>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;DRF LogPath=&quot;/Users/mperrin/projects/GPI/pipnew/drp_code&quot; ReductionType=&quot;Final&quot;&gt;
+&lt;dataset InputDir=&quot;/Users/mperrin/projects/GPI/data&quot; Name=&quot;&quot; OutputDir=&quot;/Users/mperrin/projects/GPI/pipnew/drp_code&quot;&gt;
+   &lt;fits FileName=&quot;Ima10_H.fits&quot; /&gt;
+   &lt;fits FileName=&quot;Ima11_H.fits&quot; /&gt;
+   &lt;fits FileName=&quot;Ima12_H.fits&quot; /&gt;
+   &lt;fits FileName=&quot;Ima13_H.fits&quot; /&gt;
+   &lt;fits FileName=&quot;Ima14_H.fits&quot; /&gt;
+   &lt;fits FileName=&quot;Ima15_H.fits&quot; /&gt;
+   &lt;fits FileName=&quot;Ima16_H.fits&quot; /&gt;
+  &lt;fits FileName=&quot;Ima17_H.fits&quot; /&gt;
+   &lt;fits FileName=&quot;Ima18_H.fits&quot; /&gt;
+&lt;/dataset&gt;
+&lt;module name=&quot;Read Wavelength Calibration&quot; CalibrationFile=&quot;/Users/mperrin/GPI/pipnew/drp_code/Ima2_HH-wavcal-comb.fits&quot; /&gt;
+&lt;module name=&quot;Display Data with GPITV&quot; gpitv=&quot;1&quot; /&gt;
+&lt;module name=&quot;Extract Spectral Datacube&quot; Save=&quot;0&quot; /&gt;
+&lt;module name=&quot;Divide spectral data by flat&quot; CalibrationFile=&quot;/Users/mperrin/projects/GPI/pipnew/drp_code/Ima4_Hflat.fits&quot; Save=&quot;1&quot; gpitv=&quot;2&quot; /&gt;
+&lt;module name=&quot;Interpolate Wavelength Axis&quot; Save=&quot;1&quot; gpitv=&quot;2&quot; /&gt;
+&lt;module name=&quot;Simple SSDI&quot; L1Min=&quot;1.55&quot; L1Max=&quot;1.57&quot; L2Min=&quot;1.60&quot; L2Max=&quot;1.65&quot; k=&quot;1.0&quot; Save=&quot;1&quot; gpitv=&quot;5&quot; /&gt;
+&lt;module name=&quot;Accumulate Images&quot; Method=&quot;OnDisk&quot; /&gt;
+&lt;module name=&quot;ADI based on Marois et al&quot; numimmed=&quot;3&quot; nfwhm=&quot;1.5&quot; Save=&quot;0&quot; gpitv=&quot;10&quot; /&gt;
+&lt;module name=&quot;Median ADI data-cubes&quot; Save=&quot;1&quot; gpitv=&quot;10&quot; /&gt;
+&lt;/DRF&gt;
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="appendix_other.html" title="Appendix: Rarely-Used and/or Nonsupported Advanced Features"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="logging.html" title="Logging and History records"
+             >previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" >GPI Data Pipeline User&#8217;s Guide</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

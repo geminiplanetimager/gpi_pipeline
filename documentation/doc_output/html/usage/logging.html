@@ -1,0 +1,147 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Logging and History records &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../index.html" />
+    <link rel="up" title="GPI Data Pipeline User’s Guide" href="index.html" />
+    <link rel="next" title="Appendix: Recipe File XML Format" href="recipe_xml.html" />
+    <link rel="prev" title="Primitives, Listed by Category" href="primitives.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="recipe_xml.html" title="Appendix: Recipe File XML Format"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="primitives.html" title="Primitives, Listed by Category"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">GPI Data Pipeline User&#8217;s Guide</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="primitives.html"
+                        title="previous chapter">Primitives, Listed by Category</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="recipe_xml.html"
+                        title="next chapter">Appendix: Recipe File XML Format</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/usage/logging.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="logging-and-history-records">
+<span id="logging"></span><h1>Logging and History records<a class="headerlink" href="#logging-and-history-records" title="Permalink to this headline">¶</a></h1>
+<p>To ensure scientific reproducibility and aid in comparisons of results, the GPI data pipeline carefully logs its actions.</p>
+<p><strong>Log files:</strong>
+The GPI data pipeline writes a log of all activities to text files in the <tt class="docutils literal"><span class="pre">$GPI_DRP_LOG_DIR</span></tt> directory.
+A new file is created for each date, with filenames following the format <tt class="docutils literal"><span class="pre">gpi_drp_YYMMDD.log</span></tt> where <tt class="docutils literal"><span class="pre">YYMMDD</span></tt> gives the current year, month, and date
+numbers in standard Gemini fashion.  Log messages are also viewable on screen in the Status Console GUI, and printed to the console in the Pipeline IDL session.</p>
+<p><strong>FITS header history:</strong> Provenance information is also written to FITS headers of all output files, in several forms.</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li>A copy of the entire reduction recipe used to reduce a given file is pasted into the header, in a block of COMMENT lines. This block
+also includes comments giving the values of any environment variables used in that recipe. If an output file from one recipe is then used as
+input to a subsequent recipe, then both recipes will be recorded in the headers cumulatively.</li>
+<li>HISTORY lines in the FITS headers record actions as each recipe is processed, including which primitives are run and what the results are
+of various calculations. For each Primitive used in the recipe, a HISTORY line
+states the specific revision id of that primitive.  HISTORY keywords also record the date and time of reduction, the
+computer hostname, and the username of the pipeline user.</li>
+<li>Some values of particular interest such as the names of calibration files used to reduce a given data set are also written as
+additional header keywords. For instance the keyword DRPWVCLF (DRP Wavecal File) records the name of the wavelength calibration file
+used when reducing a given observation.</li>
+</ol>
+</div></blockquote>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Of particular note, the keyword <tt class="docutils literal"><span class="pre">QUIKLOOK</span> <span class="pre">=</span> <span class="pre">T</span></tt> indicates that a given file
+is the result of a &#8220;quicklook&#8221; quality reduction, typically in real time at the
+telescope. These may not have made use of optimal calibration files, are not
+likely to be as good as more careful re-analyses, and should
+generally not be used directly for publications.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="recipe_xml.html" title="Appendix: Recipe File XML Format"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="primitives.html" title="Primitives, Listed by Category"
+             >previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" >GPI Data Pipeline User&#8217;s Guide</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

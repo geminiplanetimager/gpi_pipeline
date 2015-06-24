@@ -1,0 +1,165 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Starting GPItv &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../index.html" />
+    <link rel="up" title="GPItv Viewer User’s Guide" href="index.html" />
+    <link rel="next" title="Example Usage Cases" href="examples.html" />
+    <link rel="prev" title="Summary of Functionality" href="intro.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="examples.html" title="Example Usage Cases"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="intro.html" title="Summary of Functionality"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">GPItv Viewer User&#8217;s Guide</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Starting GPItv</a></li>
+<li><a class="reference internal" href="#quick-overview">Quick Overview</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="intro.html"
+                        title="previous chapter">Summary of Functionality</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="examples.html"
+                        title="next chapter">Example Usage Cases</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/gpitv/getting_started.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="starting-gpitv">
+<h1>Starting GPItv<a class="headerlink" href="#starting-gpitv" title="Permalink to this headline">¶</a></h1>
+<p>GPItv can be started from a script or from the IDL command-line prompt.
+Start IDL and type</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">GPItv</span>
+</pre></div>
+</div>
+<p>It will display a default 2-d image.</p>
+<p>To display an array that is in memory, pass its name to GPItv like this:</p>
+<div class="highlight-python"><div class="highlight"><pre>GPItv, array_name [, options]
+</pre></div>
+</div>
+<p>where array_name  is a two- or three-dimensional array to be displayed.</p>
+<p>Similarly, to pass a FITS filename to GPItv, use the command:</p>
+<div class="highlight-python"><div class="highlight"><pre>GPItv, &quot;fitsfile_name&quot; [, options]
+</pre></div>
+</div>
+<p>where fitsfile_name is a string (enclosed in quotes) containing the name of the
+FITS file  (including extension) to be read.   If the filename has a &#8221;.gz&#8221;
+extension, it will be treated as a gzip compressed file and be automatically decompressed before being read.</p>
+<p>For instance, the command</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">GPItv</span><span class="p">,</span> <span class="s">&#39;test.fits&#39;</span>
+</pre></div>
+</div>
+<p>will display  the file &#8216;test.fits&#8217; if  it exists in the current directory.</p>
+<p>GPItv can be started from a script or from the IDL command-line prompt. If
+starting from within a script, you may wish to specify the &#8220;/block&#8221; option to
+pause the script while the user works with GPItv, or else use Multi-Session
+mode to allow concurrent execution.</p>
+</div>
+<div class="section" id="quick-overview">
+<h1>Quick Overview<a class="headerlink" href="#quick-overview" title="Permalink to this headline">¶</a></h1>
+<p>Figure 1: Overview of the main GPItv window.</p>
+<p>In addition to menu functions and mouse modes described below, GPItv has several functions directly available from the main window:</p>
+<ul class="simple">
+<li>A status area which displays the most important identification header information (such as keywords filename, dateobs,...) and current cursor position and related pixel intensity;</li>
+<li>color map contrast and brightness</li>
+<li>pan windows to view a zoomed region around the cursor. The mouse can be used to drag the image-view box around, or you can recenter by clicking in the main window.</li>
+<li>a multi-plane slice slider available for data-cubes</li>
+<li>choice of available units (depending on pipeline processing)</li>
+<li>box for choice of mouse modes</li>
+</ul>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="examples.html" title="Example Usage Cases"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="intro.html" title="Summary of Functionality"
+             >previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" >GPItv Viewer User&#8217;s Guide</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

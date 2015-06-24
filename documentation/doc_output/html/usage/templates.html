@@ -1,0 +1,394 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Recipe Templates &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../index.html" />
+    <link rel="up" title="GPI Data Pipeline User’s Guide" href="index.html" />
+    <link rel="next" title="The Calibration Database" href="calibdb.html" />
+    <link rel="prev" title="The Queue Viewer" href="queue_view.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="calibdb.html" title="The Calibration Database"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="queue_view.html" title="The Queue Viewer"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">GPI Data Pipeline User&#8217;s Guide</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Recipe Templates</a><ul>
+<li><a class="reference internal" href="#spectral-science-mode-template-recipes">Spectral Science Mode Template Recipes</a></li>
+<li><a class="reference internal" href="#polarimetry-science-mode-template-recipes">Polarimetry Science Mode Template Recipes</a></li>
+<li><a class="reference internal" href="#calibration-data-template-recipes">Calibration Data Template Recipes</a></li>
+<li><a class="reference internal" href="#software-testing-template-recipes">Software Testing Template Recipes</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="queue_view.html"
+                        title="previous chapter">The Queue Viewer</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="calibdb.html"
+                        title="next chapter">The Calibration Database</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/usage/templates.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="recipe-templates">
+<span id="templates"></span><h1>Recipe Templates<a class="headerlink" href="#recipe-templates" title="Permalink to this headline">¶</a></h1>
+<p>Template recipes are provided for most common data processing tasks, including
+analyses of calibration data and science data. In many cases, to reduce your data
+you just need to select the relevant FITS files and choose which template recipe
+should be applied (or, for common tasks, the <a class="reference internal" href="data_parser.html#data-parser"><em>Data Parser</em></a> may automatically select the right template for you).</p>
+<p>For convenience, template recipes are divided into several different reduction types:</p>
+<ul class="simple">
+<li><a class="reference internal" href="#spectralscience-templates"><em>Spectral Science</em></a></li>
+<li><a class="reference internal" href="#polarimetryscience-templates"><em>Polarimetry Science</em></a></li>
+<li><a class="reference internal" href="#calibration-templates"><em>Calibration</em></a></li>
+<li><a class="reference internal" href="#testing-templates"><em>Testing</em></a></li>
+</ul>
+<p>These different types simply provide a convenient way of restricting which subset of
+templates are displayed on screen to choose from, based on the recipes that are
+most likely to be of use for the data at hand. <a class="footnote-reference" href="#footnote1" id="id1">[1]</a> Also, when editing a given recipe, the list of available primitives
+is optionally filtered to only display primitives appropriate for the current type of recipe. This is mostly just a convenience to keep
+spectral and polarimetry primitives from cluttering the interface unnecessarily when not in use.</p>
+<p>Some recipes are designed to start from raw data files and produce datacubes from each raw file and/or combined results from an entire sequence.
+Other recipes are designed to start from already-existing datacubes and just do the sequence combination. In general we recommend
+first creating datacubes only, and not trying to combine sequences right away.  Once you have datacubes you are satisfied with then you can do the
+sequence combination using the recipes that start from datacubes. The problems of creating datacubes and combining sequences for PSF subtraction are
+mostly separable, so it makes sense to consider each step one at a time and iterate on them separately.</p>
+<div class="section" id="spectral-science-mode-template-recipes">
+<span id="spectralscience-templates"></span><h2>Spectral Science Mode Template Recipes<a class="headerlink" href="#spectral-science-mode-template-recipes" title="Permalink to this headline">¶</a></h2>
+<p>Here are the available recipe templates for spectral mode reductions. This list intentionally includes a wide range
+of options, and some recipes are more recommended than others. These are indicated below.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="34%" />
+<col width="8%" />
+<col width="58%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Template Name</th>
+<th class="head">Expected Input</th>
+<th class="head">Purpose</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><strong>Quicklook Automatic Datacube Extraction</strong></td>
+<td>Raw files</td>
+<td>Used for real-time reductions while observing, to produce decent quality &#8220;quick look&#8221; datacubes
+without doing the full calibration process.</td>
+</tr>
+<tr class="row-odd"><td><strong>Create Clean 2D Detector Image</strong></td>
+<td>Raw files</td>
+<td>Cleans up detector artifacts (dark subtraction, bad pixel repair, etc) but stops before
+making a datacube. Outputs a 2D image.</td>
+</tr>
+<tr class="row-even"><td><strong>Simple Datacube Extraction</strong></td>
+<td>Raw files</td>
+<td>Create a basic datacube with the minimal amount of processing.  This is a good starting point
+for making your own first datacubes before adding additional calibration steps.
+<em>Recommended</em></td>
+</tr>
+<tr class="row-odd"><td><strong>Calibrated Datacube Extraction</strong></td>
+<td>&nbsp;</td>
+<td>Aimed at performing a better reduction including more rejection of detector artifacts,
+flux-calibration based on satellite spots, and updates to world coordinates information.
+<em>Recommended</em></td>
+</tr>
+<tr class="row-even"><td><strong>Contrast Measurement</strong></td>
+<td>Raw files</td>
+<td>Used to obtain a contrast measurement and evaluate AO performance. This same calculation
+can also be performed using GPItv</td>
+</tr>
+<tr class="row-odd"><td><strong>Simple Extraction, ADI+SSDI reduction</strong></td>
+<td>Raw files</td>
+<td>Performs simple reduction and an ADI+SSDI reduction.</td>
+</tr>
+<tr class="row-even"><td><strong>Simple Extraction, ADI+LOCI reduction</strong></td>
+<td>Raw files</td>
+<td>Performs simple reduction and an ADI+LOCI reduction.</td>
+</tr>
+<tr class="row-odd"><td><strong>Rotate and combine extended object</strong></td>
+<td>&nbsp;</td>
+<td>For a simple extraction and ADI reduction of extended objects</td>
+</tr>
+<tr class="row-even"><td><strong>KLIP ADI reduction (From Reduced Cubes)</strong></td>
+<td>Raw files</td>
+<td>Starting from a series of already-reduced datacubes, combine the sequence using ADI and the
+KLIP algorithm (Soummer et al. 2012). This is a good choice for PSF subtraction since
+the KLIP algorithm is relatively fast.
+<em>Recommended</em></td>
+</tr>
+<tr class="row-odd"><td><strong>Contrast measurement (From Raw Data)</strong></td>
+<td>Raw files</td>
+<td>Create datacubes and then use the satellite spots to measure the
+contrast. The contrast profile will be saved to a file.</td>
+</tr>
+<tr class="row-even"><td><strong>&#8216;Contrast measurement (From Reduced Cubes)&#8217;</strong></td>
+<td>Datacubes</td>
+<td>From a series of already-reduced datacubes, use the satellite spots to measure the
+contrast. The contrast profile will be saved to a file.</td>
+</tr>
+<tr class="row-odd"><td><strong>Basic ADI + Simple SDI reduction (From Raw Data)</strong></td>
+<td>Raw files</td>
+<td>Make datacubes and then combine them using ADI and SDI for PSF
+subtraction. This is not a recommended recipe for the reasons noted above, that it&#8217;s better to
+break up reduction into smaller chunks, but this recipe still exists for historical reasons.</td>
+</tr>
+<tr class="row-even"><td><strong>Basic ADI + Simple SDI reduction (From Reduced Cubes)</strong></td>
+<td>Datacubes</td>
+<td>From already-reduced cubes, perform PSF subtraction using basic ADI and simple SDI.  This
+is an OK recipe, but the Basic ADI algorithm does not perform as well as LOCI or KLIP.</td>
+</tr>
+<tr class="row-odd"><td><strong>LOCI ADI reduction (From Raw Data)</strong></td>
+<td>Raw files</td>
+<td>Starting from raw files, create datacubes and perform PSF subtraction using
+LOCI (Lafreniere et al. 2007)</td>
+</tr>
+<tr class="row-even"><td><strong>LOCI ADI reduction (From Reduced Cubes)</strong></td>
+<td>Datacubes</td>
+<td>Starting from already-reduced datacubes, perform PSF subtraction using LOCI
+(Lafreniere et al. 2007)
+<em>Recommended</em></td>
+</tr>
+<tr class="row-odd"><td><strong>Create datacubes, Rotate, and Combine unocculted sequence</strong></td>
+<td>Raw files</td>
+<td>Starting from raw data, create datacubes, and then rotate, align, and sum them without doing
+any PSF subtraction. This is intended for observations of unocculted targets, for instance
+solar system objects.
+<em>Recommended</em></td>
+</tr>
+<tr class="row-even"><td><strong>KLIP SDI (From Raw Data)</strong></td>
+<td>Raw files</td>
+<td>Starting from raw data</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="polarimetry-science-mode-template-recipes">
+<span id="polarimetryscience-templates"></span><h2>Polarimetry Science Mode Template Recipes<a class="headerlink" href="#polarimetry-science-mode-template-recipes" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="34%" />
+<col width="8%" />
+<col width="58%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Template Name</th>
+<th class="head">Expected Input</th>
+<th class="head">Purpose</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><strong>Quicklook Automatic Polarimetry Extraction</strong></td>
+<td>Raw files</td>
+<td>For real-time reductions while operating the instrument. It produces decent quality datacubes without
+doing the full calibration process.</td>
+</tr>
+<tr class="row-odd"><td><strong>Simple Polarization Datacube Extraction</strong></td>
+<td>Raw files</td>
+<td>Performs the extraction of a polarization difference cube including dark subtraction, flexure
+correction, noise reduction and bad pixel correction.
+<em>Recommended</em></td>
+</tr>
+<tr class="row-even"><td><strong>Basic Polarization Sequence  (From Raw Data)</strong></td>
+<td>Raw files</td>
+<td>Performs a basic reduction to generate a Stokes datacube. This includes all the steps in the Simple
+Polarization Datacube Extraction, plus the least squares Mueller matrix construction of the final
+Datacubes.</td>
+</tr>
+<tr class="row-odd"><td><strong>Basic Polarization Sequence (From podc cubes)</strong></td>
+<td>Datacubes</td>
+<td>Creates a Stokes Datacube from already reduced difference cubes. The data is rotated North up and
+several additional noise reduction techniques are performed.
+<em>Recommended</em></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="calibration-data-template-recipes">
+<span id="calibration-templates"></span><h2>Calibration Data Template Recipes<a class="headerlink" href="#calibration-data-template-recipes" title="Permalink to this headline">¶</a></h2>
+<p>Calibration Recipes are discussed in more detail in the <a class="reference internal" href="../ifs/steps/index.html#processing-step-by-step"><em>Step-by-Step guide to processing data</em></a> sections.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="34%" />
+<col width="8%" />
+<col width="58%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Template Name</th>
+<th class="head">Expected Input</th>
+<th class="head">Purpose</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><strong>Dark</strong></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td><strong>Create Thermal/Sky Background Cubes</strong></td>
+<td>Raw files</td>
+<td>Create background datacubes for subtraction from science data. This is most relevanta for K band</td>
+</tr>
+<tr class="row-even"><td><strong>Combine Thermal/Sky Background Images</strong></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td><strong>Generate Cold Bad Pixel Map from Flats</strong></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td><strong>Generate Hot Bad Pixel Map from Darks</strong></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td><strong>Combine Bad Pixel Maps</strong></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td><strong>Find satellite locations</strong></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td><strong>Lenslet scale and orientation</strong></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td><strong>Flat-field Extraction</strong></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td><strong>Wavelength Solution</strong></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td><strong>Wavelength Solution 2D</strong></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td><strong>Quick Wavelength Solution</strong></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td><strong>Create Polarized Flat-field</strong></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td><strong>Calibrate Polarization Spots Locations</strong></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td><strong>Calibrate Polarization Spots Locations - Parallel</strong></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="software-testing-template-recipes">
+<span id="testing-templates"></span><h2>Software Testing Template Recipes<a class="headerlink" href="#software-testing-template-recipes" title="Permalink to this headline">¶</a></h2>
+<p>This is a section for template recipes that are used in testing and debugging
+the pipeline itself. There are several recipes of this type. Don&#8217;t try to use these for science reductions directly.</p>
+<p class="rubric">Footnotes</p>
+<table class="docutils footnote" frame="void" id="footnote1" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td>But that said, there is nothing stopping you from choosing to apply a
+Calibration type template to your science data, or vice versa, if
+for some reason you wish to do so.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="calibdb.html" title="The Calibration Database"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="queue_view.html" title="The Queue Viewer"
+             >previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" >GPI Data Pipeline User&#8217;s Guide</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,162 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Persistence &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../../index.html" />
+    <link rel="up" title="Processing GPI Data, Step by Step" href="index.html" />
+    <link rel="next" title="Flat Fielding" href="flat_fielding_detector.html" />
+    <link rel="prev" title="Saturation and Nonlinearity" href="nonlinearity.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="flat_fielding_detector.html" title="Flat Fielding"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="nonlinearity.html" title="Saturation and Nonlinearity"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >GPI IFS Data Handbook</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Processing GPI Data, Step by Step</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3><a href="../../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Persistence</a><ul>
+<li><a class="reference internal" href="#observed-effect-and-relevant-physics">Observed Effect and Relevant Physics:</a></li>
+<li><a class="reference internal" href="#pipeline-processing">Pipeline Processing:</a></li>
+<li><a class="reference internal" href="#things-to-watch-out-for">Things to watch out for:</a></li>
+<li><a class="reference internal" href="#relevant-gpi-team-members">Relevant GPI team members</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="nonlinearity.html"
+                        title="previous chapter">Saturation and Nonlinearity</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="flat_fielding_detector.html"
+                        title="next chapter">Flat Fielding</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../../_sources/ifs/steps/persistence.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="persistence">
+<span id="processing-step-by-step-persistence"></span><h1>Persistence<a class="headerlink" href="#persistence" title="Permalink to this headline">¶</a></h1>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last">Further information may be found in <a class="reference external" href="http://arxiv.org/abs/1407.2302">Ingraham et al. 2014 &#8220;Gemini Planet Imager Observational Calibrations II:
+Detector Performance and Characterization&#8221;</a></p>
+</div>
+<div class="section" id="observed-effect-and-relevant-physics">
+<h2>Observed Effect and Relevant Physics:<a class="headerlink" href="#observed-effect-and-relevant-physics" title="Permalink to this headline">¶</a></h2>
+<p>Image persistence is effect of the observed flux of previous images impacting the following observations as an elevated dark current (see Figure 1). Persistence has always been a constant problem of HgCdTe arrays and although the GPI array was chosen in part due to its low persistence, a correction is still required in order to obtain high-precision photometry. It should be noted that many misconceptions exist regarding persistence including that it can be attenuated with resets, or that it is a response due to detector saturation, when in fact every previous image, saturated or not, will leave persistence in the following images. The amount of persistence and whether or not a correction is necessary, is dependent upon the previous images and the exposure times of the science images of interest.</p>
+<div class="figure align-center" style="width: 15cm">
+<a class="reference internal image-reference" href="../../_images/persistence_mod.png"><img alt="alternate text" src="../../_images/persistence_mod.png" style="width: 150pt;" /></a>
+<p class="caption">The persistence of the PSF from the two previous 1.5-second exposures are indicated by the black lines. Attenuating this effect requires a model of how the persistence decays over time.</p>
+</div>
+<p>The physics behind the effect of persistence is still not fully understood, however, a detailed qualitative model by Smith et al, 2008 (Proc. SPIE, 7021, 70210j) exists that offers an accurate description of the effect. In short, persistence results due to charge being trapped in the depleted negative portion of the PN junction of the array. The amount of charge captured is dependent upon the charge accumulated on the pixel and the amount of time the pixel is subject to this flux. The amount of persistence is also observed to vary between pixels and various arrays. When the detector is reset, the trapped charge begins to release, acting as an increased dark current decaying slowly over time. In highly saturated cases, persistence has been observed well above the readnoise level for over 10 minutes after saturation.</p>
+<p>Fortunately, deriving a correction for the persistence does not fully rely on an understanding of the physical processes behind its existence. Using the observed properties, it is possible to obtain a numerical model predicting its behaviour over time. For GPI, we have opted to follow the model derived for the Hubble Space Telescope&#8217;s Wide Field Camera 3 (WFC3, their characterization of their persistence can be found <a class="reference external" href="http://www.stsci.edu/hst/wfc3/ins_performance/persistence/">here</a>). The rate of Persistence (<em>P</em>) of pixel <em>i,j</em>, is characterized using equation <a href="#equation-eq_persis">(1)</a>, where <em>N</em> indicates the normalization of the pixel, <em>x</em> indicates the maximum depth of a the well for the pixel (in electrons), <img class="math" src="../../_images/math/7583bd67b9c0a3880e53a7bd15ce980540c3e5cb.png" alt="x_{0}"/> is the midpoint of the region where the persistence is rapidly rising, <img class="math" src="../../_images/math/f072b0d6f64949e4571f28aadf3e5949682f5fc1.png" alt="\delta x"/> is the width of the region that is rapidly rising, <img class="math" src="../../_images/math/ad59b6e24a4a00ac621801f8d7513d68be654ab5.png" alt="\alpha"/> is the slow power-law increase of persistence at high levels of saturation, and <img class="math" src="../../_images/math/0ebb67342b546ca42a1c634b1ef03c893c4cdedb.png" alt="\gamma"/> is the power-slope decay in time (<em>t</em>).</p>
+<div class="math" id="equation-eq_persis">
+<p><span class="eqno">(1)</span><img src="../../_images/math/0ee8bfa3af0b995a37d3bbad2d5008ef108d2c57.png" alt="P=N_{ij} \Bigl(\frac{1}{ e^{(x-x_{0})/\delta x}+1 }\Bigr) \Bigl( \frac{x}{x_{0}}\Bigr)^{\alpha} \Bigl( \frac{t}{1000}\Bigr)^{\gamma}"/></p>
+</div><p>In reality, this function currently over-parameterizes our current data set as we have no information on pixels that have exceeded the ~2% non-linear regime of the detector (~50000 electrons), or have gone into the saturated regime. For this reason, the <img class="math" src="../../_images/math/ad59b6e24a4a00ac621801f8d7513d68be654ab5.png" alt="\alpha"/> parameter has been set to zero when determining the persistence function parameters. Future datasets will be able to incorporate this regime. Similarily, the current dataset limits the precision of the determination of <em>N</em> and <img class="math" src="../../_images/math/0ebb67342b546ca42a1c634b1ef03c893c4cdedb.png" alt="\gamma"/> due to the long (7.5 second) sampling rate. As a result of this, the effectiveness of the persistence removal is only at the ~75% level.</p>
+</div>
+<div class="section" id="pipeline-processing">
+<h2>Pipeline Processing:<a class="headerlink" href="#pipeline-processing" title="Permalink to this headline">¶</a></h2>
+<p>Persistence removal is performed using the &#8216;Persistence Removal of previous images&#8217; primitive. By default, the persistence correction is not performed when using the autoreducer, nor when performing a reduction using the &#8216;Calibrated Datacube Extraction&#8217; recipe. Usage of this primitive is currently at the users discretion. The parameterization file contained in the calibrations directory and is automatically called by the pipeline therefore no user-interaction is required.</p>
+</div>
+<div class="section" id="things-to-watch-out-for">
+<h2>Things to watch out for:<a class="headerlink" href="#things-to-watch-out-for" title="Permalink to this headline">¶</a></h2>
+<p>This primitive must not be run on flexure-corrected data as the persistence is derived from the previous image and will not change with elevation. As mentioned above, images that have been saturated will not be properly corrected and large residuals will result.</p>
+</div>
+<div class="section" id="relevant-gpi-team-members">
+<h2>Relevant GPI team members<a class="headerlink" href="#relevant-gpi-team-members" title="Permalink to this headline">¶</a></h2>
+<p>Patrick Ingraham, Marshall Perrin</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="flat_fielding_detector.html" title="Flat Fielding"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="nonlinearity.html" title="Saturation and Nonlinearity"
+             >previous</a> |</li>
+        <li><a href="../../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >GPI IFS Data Handbook</a> &raquo;</li>
+          <li><a href="index.html" >Processing GPI Data, Step by Step</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

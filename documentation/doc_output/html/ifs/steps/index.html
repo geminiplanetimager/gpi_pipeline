@@ -1,0 +1,153 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Processing GPI Data, Step by Step &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../../index.html" />
+    <link rel="up" title="GPI IFS Data Handbook" href="../index.html" />
+    <link rel="next" title="Darks" href="darks.html" />
+    <link rel="prev" title="GPI Data Formats" href="../dataformats.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="darks.html" title="Darks"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../dataformats.html" title="GPI Data Formats"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">GPI IFS Data Handbook</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="../dataformats.html"
+                        title="previous chapter">GPI Data Formats</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="darks.html"
+                        title="next chapter">Darks</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../../_sources/ifs/steps/index.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="processing-gpi-data-step-by-step">
+<span id="processing-step-by-step"></span><h1>Processing GPI Data, Step by Step<a class="headerlink" href="#processing-gpi-data-step-by-step" title="Permalink to this headline">¶</a></h1>
+<p>Let&#8217;s consider in turn each major topic that must be addressed during the
+processing of GPI data.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last"><em>Our goal here is not to document pipeline software (though that will be discussed) but rather to document our understanding of the properties and performance of the instrument itself, in terms of their effects on data processing. This document is not intended as a complete guide to achieving science-grade calibrations of your GPI science data! Not yet anyway. For now this is just a first draft discussion of what the different calibration files are, why they are required, and how you might go about generating them.</em></p>
+</div>
+<p>In many cases, the Data Parser will automatically generate a good set of recipes for reducing some/all of your calibration files.</p>
+<p>This page takes the alternate approach, of describing what you need to know in order to perform the process yourself, understand how it all works, etc.</p>
+<div class="admonition caution">
+<p class="first admonition-title">Caution</p>
+<p class="last">This documentation is still incomplete and a work in progress!</p>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="darks.html">Darks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thermal_background.html">Thermal/Sky Backgrounds</a></li>
+<li class="toctree-l1"><a class="reference internal" href="badpixels.html">Bad Pixels</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interpixel_capacitance.html">Interpixel Capacitance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="destriping_and_microphonics.html">Destriping and Microphonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nonlinearity.html">Saturation and Nonlinearity</a></li>
+<li class="toctree-l1"><a class="reference internal" href="persistence.html">Persistence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="flat_fielding_detector.html">Flat Fielding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="flat_fielding_lenslets.html">Flat Fielding: Lenslet Array Flat</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wavelength_calibration.html">Wavelength Calibration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="flexure.html">IFS Flexure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="datacube_extraction.html">Datacube Extraction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="satellite_spots.html">Satellite Spot Calibrations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distortion.html">Astrometric Calibration and Distortion Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="photometric_calib.html">Photometric Calibration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="psf_subtraction.html">PSF Subtractions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="companion_spectra.html">Spectral Extraction of Companions</a></li>
+</ul>
+</div>
+<p>If you&#8217;re interested in GPI polarimetry, then you should also consult <a class="reference internal" href="polarimetry.html#processing-polarimetry"><em>Processing GPI Data, Step by Step: Polarimetry</em></a>.</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="darks.html" title="Darks"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="../dataformats.html" title="GPI Data Formats"
+             >previous</a> |</li>
+        <li><a href="../../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >GPI IFS Data Handbook</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 19, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

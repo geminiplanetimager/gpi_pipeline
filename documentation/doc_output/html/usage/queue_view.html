@@ -1,0 +1,127 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>The Queue Viewer &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../index.html" />
+    <link rel="up" title="GPI Data Pipeline User’s Guide" href="index.html" />
+    <link rel="next" title="Recipe Templates" href="templates.html" />
+    <link rel="prev" title="Autoreducer" href="autoreducer.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="templates.html" title="Recipe Templates"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="autoreducer.html" title="Autoreducer"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">GPI Data Pipeline User&#8217;s Guide</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="autoreducer.html"
+                        title="previous chapter">Autoreducer</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="templates.html"
+                        title="next chapter">Recipe Templates</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/usage/queue_view.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="the-queue-viewer">
+<span id="queue-viewer"></span><h1>The Queue Viewer<a class="headerlink" href="#the-queue-viewer" title="Permalink to this headline">¶</a></h1>
+<p>The Queue Viewer may be accessed from the GPI Launcher GUI window that is accessed by opening an IDL session in the GPI data directory and typing &#8216;gpi_launch_guis&#8217;. The Queue Viewer is a rarely used tool for displaying the recipe files located in the GPI Queue directory. The window provides a table listing the directory and filename for each recipe along with the recipe type, and the number of FITS files used in each recipe. A history dialogue box near the bottom of the window gives updates when new recipes are added to the queue.</p>
+<a class="reference internal image-reference" href="../_images/queue_viewer.png"><img alt="../_images/queue_viewer.png" class="align-center" src="../_images/queue_viewer.png" style="width: 659.25px; height: 525.75px;" /></a>
+<p>Recipes are color coded for progress: green for completed recipes with a filename ending in &#8216;.done.xml&#8217;, blue for recipes in progress with a filename ending in &#8216;.working.xml&#8217;, and red for recipes that have failed with filenames ending in &#8216;.failed.xml&#8217;. If a recipe is created using the Recipe Editor and not by the user alone, the filenames provide the date and time the recipe was written. For example, a file created on August 24th, 2012 at 5:13:50 pm will be given the filename &#8216;20120824_171350_drf.waiting.xml&#8217;.</p>
+<p>From the Queue Viewer, the user has some control over the recipes via a row of buttons along the bottom of the window. The user may &#8216;Rescan&#8217; the queue directory, clear all recipes with file names ending in &#8216;.done.xml&#8217; (Clear Completed button), Re-queue a selected recipe, View/Edit a recipe in the Data Parser gui (View EDIT in DRFGUI button), Delete a selected recipe, delete all recipes, and, of course, close the gueue viewer.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">The queue viewer can become pretty slow if there are hundreds or thousands of files in your queue directory. In practice most users won&#8217;t need to use this tool that much, or at all, so we haven&#8217;t bothered to optimize it yet.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="templates.html" title="Recipe Templates"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="autoreducer.html" title="Autoreducer"
+             >previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" >GPI Data Pipeline User&#8217;s Guide</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>
