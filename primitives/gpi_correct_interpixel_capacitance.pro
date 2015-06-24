@@ -15,9 +15,6 @@
 ; PIPELINE ARGUMENT: Name="beta" Type="float" Range="[0,1]" Default="0.014" Desc="Fraction of charge in adjacent pixels along rows"
 ; PIPELINE ORDER: 0.1
 
-; HISTORY:
-; 2015-01-23 DRL First version for general pipeline testing
-
 function gpi_correct_interpixel_capacitance,  DataSet, Modules, Backbone
 	
 primitive_version= '$Id: gpi_apply_reference_pixel_correction.pro 2511 2014-02-11 05:57:27Z mperrin $' ; get version from subversion to store in header history
