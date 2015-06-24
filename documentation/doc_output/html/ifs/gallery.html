@@ -119,9 +119,12 @@ You can see the 4 satellite spots, then the 4 more diffuse waffle spots, and the
 <div class="section" id="artifacts-from-ao-coronagraph-and-telescope-systematics">
 <h2>Artifacts from AO, Coronagraph, and Telescope Systematics<a class="headerlink" href="#artifacts-from-ao-coronagraph-and-telescope-systematics" title="Permalink to this headline">¶</a></h2>
 <p>If you see any of the following in your data, there is little the pipeline can do about them. These are all problems that the observer at the telescope should notice and try to fix in real time.</p>
-<p><strong>Misaligned coronagraph:</strong></p>
+<p><strong>Misaligned Focal Plane Mask:</strong></p>
 <p>If you&#8217;re operating the instrument, you should use the pointing offsets tool to recenter the star back onto the occulting mask.</p>
 <a class="reference internal image-reference" href="../_images/badimg_03_MisalignedMask.png"><img alt="../_images/badimg_03_MisalignedMask.png" class="align-center" src="../_images/badimg_03_MisalignedMask.png" style="width: 500px;" /></a>
+<p><strong>Misaligned Lyot Stop:</strong></p>
+<p>This can only be corrected with the IDL engineering interface.  See: <a class="reference external" href="http://docs.planetimager.org/gpilib/calibrations.html#lyot-alignment">http://docs.planetimager.org/gpilib/calibrations.html#lyot-alignment</a></p>
+<a class="reference internal image-reference" href="../_images/badimg_15_misaligned_lyot.png"><img alt="../_images/badimg_15_misaligned_lyot.png" class="align-center" src="../_images/badimg_15_misaligned_lyot.png" style="width: 500px;" /></a>
 <p><strong>Bad AOWFS darks:</strong></p>
 <p>This creates an extended pattern in the &#8220;vertical&#8221; direction on the IFS, due to the orientation of the readout channels of the AOWFS. Fix by opening loops and taking new AOWFS darks.</p>
 <a class="reference internal image-reference" href="../_images/badimg_04_WFSBias.png"><img alt="../_images/badimg_04_WFSBias.png" class="align-center" src="../_images/badimg_04_WFSBias.png" style="width: 500px;" /></a>
@@ -203,7 +206,7 @@ from the spectra (due to e.g. not correcting for flexure) then you can get some 
     </div>
     <div class="footer">
         &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
-      Last updated on Jun 18, 2015.
+      Last updated on Jun 24, 2015.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
   </body>
