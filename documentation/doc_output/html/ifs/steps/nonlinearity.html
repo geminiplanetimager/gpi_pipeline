@@ -1,0 +1,156 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Saturation and Nonlinearity &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../../index.html" />
+    <link rel="up" title="Processing GPI Data, Step by Step" href="index.html" />
+    <link rel="next" title="Persistence" href="persistence.html" />
+    <link rel="prev" title="Destriping and Microphonics" href="destriping_and_microphonics.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="persistence.html" title="Persistence"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="destriping_and_microphonics.html" title="Destriping and Microphonics"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >GPI IFS Data Handbook</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Processing GPI Data, Step by Step</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3><a href="../../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Saturation and Nonlinearity</a><ul>
+<li><a class="reference internal" href="#observed-effect-and-relevant-physics">Observed Effect and Relevant Physics:</a></li>
+<li><a class="reference internal" href="#pipeline-processing">Pipeline Processing:</a></li>
+<li><a class="reference internal" href="#relevant-gpi-team-members">Relevant GPI team members</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="destriping_and_microphonics.html"
+                        title="previous chapter">Destriping and Microphonics</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="persistence.html"
+                        title="next chapter">Persistence</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../../_sources/ifs/steps/nonlinearity.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="saturation-and-nonlinearity">
+<h1>Saturation and Nonlinearity<a class="headerlink" href="#saturation-and-nonlinearity" title="Permalink to this headline">¶</a></h1>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last">Further information may be found in <a class="reference external" href="http://arxiv.org/abs/1407.2302">Ingraham et al. 2014 &#8220;Gemini Planet Imager Observational Calibrations II:
+Detector Performance and Characterization&#8221;</a></p>
+</div>
+<div class="section" id="observed-effect-and-relevant-physics">
+<h2>Observed Effect and Relevant Physics:<a class="headerlink" href="#observed-effect-and-relevant-physics" title="Permalink to this headline">¶</a></h2>
+<p>The sensitivity of a given pixel is a function of the fraction of its well depth which is filled. Although the full-well depth of the detector is 116,000 electrons (corresponding to ~38000 ADU using a gain of 3.04 electrons/ADU), the detector begins to have a non-linear response at the ~1% level when the well depth is ~16000 ADU (or ~49 000 electrons). It should be noted that the linearity response of the detector was performed for a different gain and with the detector readout electronics tuned differently then they are presently.</p>
+<p>Until a new linearity measurement can be performed, users are advised to keep the pixel intensities below ~16000 ADU.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Updating these measurements is a work in progress as of 2014A. Consult Naru Sadakuni for details.</p>
+</div>
+</div>
+<div class="section" id="pipeline-processing">
+<h2>Pipeline Processing:<a class="headerlink" href="#pipeline-processing" title="Permalink to this headline">¶</a></h2>
+<p>At this time there is no primitive to apply a non-linearity correction in the pipeline. Instead there is support for correcting
+nonlinearity in real time during the detector readout (this is a better approach since it enables the correction to be used when
+deriving the slope from the up-the-ramp readout.) The expectation is that once we have a better calibration of this, we will enable
+this correction on the detector server.</p>
+</div>
+<div class="section" id="relevant-gpi-team-members">
+<h2>Relevant GPI team members<a class="headerlink" href="#relevant-gpi-team-members" title="Permalink to this headline">¶</a></h2>
+<p>Patrick Ingraham, Naru Sadakuni</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="persistence.html" title="Persistence"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="destriping_and_microphonics.html" title="Destriping and Microphonics"
+             >previous</a> |</li>
+        <li><a href="../../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >GPI IFS Data Handbook</a> &raquo;</li>
+          <li><a href="index.html" >Processing GPI Data, Step by Step</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

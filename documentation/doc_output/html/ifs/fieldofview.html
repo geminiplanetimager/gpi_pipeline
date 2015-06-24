@@ -1,0 +1,207 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Field of View and Lenslet Geometry &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../index.html" />
+    <link rel="up" title="GPI IFS Data Handbook" href="index.html" />
+    <link rel="next" title="Filters and Spectra" href="filters.html" />
+    <link rel="prev" title="GPI IFS Detector Properties" href="detector.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="filters.html" title="Filters and Spectra"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="detector.html" title="GPI IFS Detector Properties"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">GPI IFS Data Handbook</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Field of View and Lenslet Geometry</a><ul>
+<li><a class="reference internal" href="#dependence-on-filter-and-prism">Dependence on Filter and Prism</a></li>
+<li><a class="reference internal" href="#polarimetry-vs-spectral-modes">Polarimetry vs Spectral Modes</a></li>
+<li><a class="reference internal" href="#world-coordinate-system-metadata">World Coordinate System Metadata</a></li>
+<li><a class="reference internal" href="#rotating-files-to-north-up-yourself">Rotating Files to North Up Yourself</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="detector.html"
+                        title="previous chapter">GPI IFS Detector Properties</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="filters.html"
+                        title="next chapter">Filters and Spectra</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/ifs/fieldofview.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="field-of-view-and-lenslet-geometry">
+<span id="ifs-fov"></span><h1>Field of View and Lenslet Geometry<a class="headerlink" href="#field-of-view-and-lenslet-geometry" title="Permalink to this headline">¶</a></h1>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last">For further information please see the paper <a class="reference external" href="http://arxiv.org/abs/1407.2305">GPI Observational Calibrations V: Astrometry and Distortion by Konopacky et al. (2014)</a></p>
+</div>
+<p>The lenslet spaxel (pixel) scale is estimated to be 14.14 ± 0.01 milliarcseconds/spaxel.</p>
+<p>Distortion is small, with an average positional residual of 0.26 pixels over the field of view, and can be corrected using a 5th order polynomial. See the <a class="reference internal" href="../usage/primitives.html#correctdistortion"><em>Correct Distortion</em></a> primitive.</p>
+<p>The orientation of north varies continuously due to field rotation but is encoded in the World Coordinate System headers for each datacube produced by the pipeline. These make use of a time-averaged parallactic angle (keyword AVPARANG) that is recomputed by the pipeline more accurately than the PAR_ANG keyword provided by Gemini. The north angle encoded in the WCS is accurate with no offset to within our current calibration measurement uncertainty.
+(For pipeline processed outputs using version 1.1 (2014A) or earlier, the north angle was offset by -1.00±0.03 degrees.   Pipeline version 1.2 (2014B) and later have compensated for this offset. See <a class="reference internal" href="../installation/relnotes.html#version1-2-0"><em>here</em></a> for more details.)</p>
+<div class="section" id="dependence-on-filter-and-prism">
+<h2>Dependence on Filter and Prism<a class="headerlink" href="#dependence-on-filter-and-prism" title="Permalink to this headline">¶</a></h2>
+<p><strong>Q: Does the field of view depend on which filter I choose?</strong></p>
+<p>The size of the field of view is constant with wavelength, but the specific set
+of lenslets that make up the FOV varies slightly with filter.  This is
+because, near the edges of the FOV, the spectral dispersion
+causes different lenslets to have their reimaged spectra fall off the edge of
+the detector differently depending on wavelength. For instance, if you move
+from say H band to K1 band, since longer wavelengths are further toward the
+&#8216;bottom&#8217; of the detector, the lenslets right next to the bottom edge of the FOV in H have
+their spectra fall off the detector in K1.  Conversely, a row or two of lenslets
+at the top of the detector which are just off in H band instead move into the
+FOV in K1. And so forth for the other filters.
+Similarly between spectral and pol modes, the set of lenslets which is imaged
+onto the detector varies slightly around the edges due to the difference in
+spectral dispersion between the spectral and Wollaston prisms.</p>
+<p>The GPI data pipeline takes these offsets into account when assembling
+datacubes: <em>a given physical lenslet should always map to the same (x,y)
+coordinates in an unrotated raw datacube regardless of filter and  spectral or polarization
+modes.</em> For an example of this, see the HD 70931 astrometric calibrator data from
+January 2015; both components of the binary star stay fixed in detector
+coordinates while the boundary of the FOV shifts slightly around them.</p>
+<p>A particular consequence of this is that if the Cal-IFS pointing and centering
+mirrors are aligned such that the coronagraph is centered in the FOV
+in spectral mode, it will not necessarily be centered in the FOV in polarization
+mode. This is <em>not</em> a shift or misalignment of the coronagraph with respect to
+the lenslet array, rather it&#8217;s a change in which lenslets are imaged onto the
+detector. In other words it&#8217;s the outer boundary of the FOV which shifts around,
+not the contents of the FOV.</p>
+</div>
+<div class="section" id="polarimetry-vs-spectral-modes">
+<h2>Polarimetry vs Spectral Modes<a class="headerlink" href="#polarimetry-vs-spectral-modes" title="Permalink to this headline">¶</a></h2>
+<p><strong>Q: What about the polarimetry mode? Does the pixel scale vary significantly from the nominal 0.014?</strong></p>
+<p>There&#8217;s not a plausible physical mechanism to change the pixel scale between the two modes, since the prism swap is downstream of the lenslet array and thus cannot in any way affect the lenslet pixel scale.  The wave plate goes into collimated space and likewise is not expected to have a big effect.</p>
+<p>Jason Wang checked this in March 2014 based on a binary star observed in both spectral and polarization modes, and as expected there&#8217;s no evidence that the pixel scale changes between modes.</p>
+</div>
+<div class="section" id="world-coordinate-system-metadata">
+<h2>World Coordinate System Metadata<a class="headerlink" href="#world-coordinate-system-metadata" title="Permalink to this headline">¶</a></h2>
+<p>While raw 2D files do inclue WCS keywords, these are incorrect and should not be used. The WCS system does not at present support an image of thousands of
+dispersed spectra.</p>
+<p>Valid WCS headers are produced as part of the datacube creation process for both spectral and polarimetry modes.</p>
+</div>
+<div class="section" id="rotating-files-to-north-up-yourself">
+<span id="ifs-fov-rotate"></span><h2>Rotating Files to North Up Yourself<a class="headerlink" href="#rotating-files-to-north-up-yourself" title="Permalink to this headline">¶</a></h2>
+<p><strong>Q: I want to derotate cubes to north up myself, rather than relying on the pipeline primitive or gpitv. How do I do this?</strong></p>
+<p>It&#8217;s a little more complicated than just rotating by the parallatic angle (<tt class="docutils literal"><span class="pre">PAR_ANG</span></tt> or <tt class="docutils literal"><span class="pre">AVPARANG</span></tt> keywords) because there is also the ~ 23.5 degree rotation of the lenslet array in order to prevent overlap of the spectra in spectral mode.  Also don&#8217;t forget that you have to flip the raw cubes left-to-right if you want to get east counterclockwise of north.</p>
+<p>The relevant code is in two places:</p>
+<div class="highlight-python"><div class="highlight"><pre>pipeline/utils/gpi_update_wcs_basic.pro            This updates the WCS keywords whenever a cube is created
+pipeline/utils/gpi_rotate_cube.pro                 This is what does the actual rotation, based on those WCS keywords.
+</pre></div>
+</div>
+<p>It uses <tt class="docutils literal"><span class="pre">AVPARANG</span></tt> for the time variable part, then adds in the offsets for the IFS orientation with respect to Gemini.</p>
+<p>One way to do this is:</p>
+<ol class="arabic simple">
+<li>clock wise rotation by - AVPARANG + 90 - IFSRotAngle</li>
+<li>mirror image with respect to the vertical axis.</li>
+</ol>
+<p>Note that the <tt class="docutils literal"><span class="pre">PAR_ANG</span></tt> keyword gives the instantaneous parallactic angle at
+the time that the Gemini Data System saves state for the FITS header, which
+occurs when the exposure is triggered (i.e. the <tt class="docutils literal"><span class="pre">PAR_ANG</span></tt> actually gives the
+parallactic angle a couple seconds before the start of integration!) The GPI
+pipeline computes an <tt class="docutils literal"><span class="pre">AVPARANG</span></tt> keyword that is the time-averaged parallactic
+angle over the course of the exposure.  For targets that cross very close to
+zenith and thus have high maximum rotation rates, <tt class="docutils literal"><span class="pre">PAR_ANG</span></tt> can be offset by
+several degrees for exposures taken right at transit.</p>
+<p>The GPI pipeline as of version 1.3 uses <tt class="docutils literal"><span class="pre">AVPARANG</span></tt> for all astrometric and
+rotation calculations, and you should too if you&#8217;re doing any rotations in your
+own code outside of the pipeline.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="filters.html" title="Filters and Spectra"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="detector.html" title="GPI IFS Detector Properties"
+             >previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" >GPI IFS Data Handbook</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

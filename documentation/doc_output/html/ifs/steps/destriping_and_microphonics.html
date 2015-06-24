@@ -1,0 +1,210 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Destriping and Microphonics &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../../index.html" />
+    <link rel="up" title="Processing GPI Data, Step by Step" href="index.html" />
+    <link rel="next" title="Saturation and Nonlinearity" href="nonlinearity.html" />
+    <link rel="prev" title="Bad Pixels" href="badpixels.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="nonlinearity.html" title="Saturation and Nonlinearity"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="badpixels.html" title="Bad Pixels"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >GPI IFS Data Handbook</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Processing GPI Data, Step by Step</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3><a href="../../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Destriping and Microphonics</a><ul>
+<li><a class="reference internal" href="#observed-effect-and-relevant-physics">Observed Effect and Relevant Physics:</a></li>
+<li><a class="reference internal" href="#using-the-destriping-algorithms-in-gpi-data-reduction">Using the Destriping Algorithms in GPI Data Reduction</a></li>
+<li><a class="reference internal" href="#things-to-watch-out-for">Things to watch out for:</a></li>
+<li><a class="reference internal" href="#relevant-gpi-team-members">Relevant GPI team members</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="badpixels.html"
+                        title="previous chapter">Bad Pixels</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="nonlinearity.html"
+                        title="next chapter">Saturation and Nonlinearity</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../../_sources/ifs/steps/destriping_and_microphonics.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="destriping-and-microphonics">
+<span id="processing-step-by-step-destriping"></span><h1>Destriping and Microphonics<a class="headerlink" href="#destriping-and-microphonics" title="Permalink to this headline">¶</a></h1>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last">Further information may be found in <a class="reference external" href="http://arxiv.org/abs/1407.2302">Ingraham et al. 2014 &#8220;Gemini Planet Imager Observational Calibrations II:
+Detector Performance and Characterization&#8221;</a></p>
+</div>
+<div class="section" id="observed-effect-and-relevant-physics">
+<h2>Observed Effect and Relevant Physics:<a class="headerlink" href="#observed-effect-and-relevant-physics" title="Permalink to this headline">¶</a></h2>
+<p>Beyond the standard Gaussian readnoise, the GPI detector is subject to 3 types of noise, each of which are referred to here as <em>horizontal striping</em>, <em>vertical striping</em>, and <em>microphonic noise</em>. All three of these patterns are easily identifiable in a standard 1.5 second dark frame, shown in figure below.
+Each of the noise types are caused by different physical phenomena.</p>
+<div class="figure align-center" style="width: 15cm">
+<a class="reference internal image-reference" href="../../_images/raw_dark_mod.png"><img alt="alternate text" src="../../_images/raw_dark_mod.png" style="width: 350pt;" /></a>
+<p class="caption">The red circles indicate sections of the detector heavily affected by the microphonic noise. The purple dashed lines indicate regions of horizontal detector striping and the green dashed lines indicate example of the vertical striping.</p>
+</div>
+<p><strong>Horizontal striping:</strong> The horizontal striping is due to noise in the readout electronics, specifically the SIDECAR ASIC. During the early days of the integration and test of the IFS, the level of the noise was ~8x higher than it is today. This was determined to be an issue with the grounding of the detector. Although the striping appears to be broad stripes across the entire detector, the stripes are in fact repeated in every detector channel (alternating in direction due to the H2RG readout pattern). This repetition across channels is used in deriving the correction as a median across channels.</p>
+<div class="figure align-center" style="width: 15cm">
+<a class="reference internal image-reference" href="../../_images/horizontal_striping_correction.png"><img alt="alternate text" src="../../_images/horizontal_striping_correction.png" style="width: 350pt;" /></a>
+<p class="caption">The horizontal stripe correction derived for the image shown in the previous figure. The microphonics and detector channel offset correction is not shown.</p>
+</div>
+<p><strong>Vertical striping:</strong> The vertical striping is caused by bias offsets of each of the 32 individual detector channels. This can be roughly modeled as a constant for the entire 64x2048 pixel channel, which is how the pipeline primitive derives its current correction. Like the horizontal striping, the pattern appears random between adjacent images, but long sequences show that the noise does possess a correlated component and that systematics are present in both cases. Due to the changing nature of this noise, a noise model must be derived for each individual image.</p>
+<p><strong>Microphonics:</strong> The microphonic noise is induced by vibrations from the Cryo-cooler motors. As the two motors move in and out of phase on a ~7 minute timescale, the pattern is observed to oscillate in intensity. The repeatability of the pattern and its affect at only certain frequencies allows for it to be filtered in Fourier space, so long as there is not a large amount of structure in the image (e.g. flat fields and arc-lamp images).</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">With the CCRs now synchronized as of Jan 2014, they should no longer beat and microphonics noise should be minimized hopefully.  Also note that microphonics noise decrease with 1/sqrt(nreads) so for any moderately long exposure image (&gt; 30 seconds) this effect is small.</p>
+</div>
+<p>See below different examples of microphonics in Fourier space (Note: the lowest frequencies are in the bottom right, the negative values are not shown). The blue circle indicated the area in Fourier space where the microphonics noise frequencies seems to be localized (see lower right panel in particular). The upper right panel shows how the spatial frequencies present in a science frame are well separated from the microphonics frequencies. However the spatial frequencies of flat and arc lamp images (with microspectra filling the whole array) do not permit clean separation from any microphonics present.</p>
+<div class="figure align-center">
+<a class="reference internal image-reference" href="../../_images/microphonicsFourierSapce.png"><img alt="alternate text" src="../../_images/microphonicsFourierSapce.png" style="width: 500pt;" /></a>
+</div>
+</div>
+<div class="section" id="using-the-destriping-algorithms-in-gpi-data-reduction">
+<h2>Using the Destriping Algorithms in GPI Data Reduction<a class="headerlink" href="#using-the-destriping-algorithms-in-gpi-data-reduction" title="Permalink to this headline">¶</a></h2>
+<p>The effectiveness of the pipeline to remove the striping is dependent upon the observation type. The ability to correct the striping is inversely proportional to the spatial distribution of light in the image. For example, a dark frame has no light in the image, therefore the entire detector can be used in deriving the striping correction. This is done using the pipeline primitive <a class="reference internal" href="../../usage/primitives.html#destripefordarksonly"><em>Destripe for Darks Only</em></a>.</p>
+<p>In the case of science data (e.g. coronagraphic data), all of the microspectra are masked, leaving only the space between to derive the correction. This is done in the primitive <a class="reference internal" href="../../usage/primitives.html#destripescienceimage"><em>Destripe science image</em></a>. There are selectable options for also removing microphonics and channel offsets as well as the basic horizontal striping.</p>
+<p>For frames exhibiting large amounts of flux filling the entire field of view (e.g. flats, arclamp images) then the amount of masking is too large, and the detector striping cannot be derived from the image itself. However, a partial correction can be applied by capitalizing on the four reference pixels on either side of the detector (note that reference pixels are photo-insensitive but exhibit the same readnoise). This is performed using the primitive <a class="reference internal" href="../../usage/primitives.html#applyreferencepixelcorrection"><em>Apply Reference Pixel Correction</em></a>. This primitive is safe to use in all cases should the other methods fail.</p>
+<ul>
+<li><dl class="first docutils">
+<dt><a class="reference internal" href="../../usage/primitives.html#destripescienceimage"><em>Destripe science image</em></a>:</dt>
+<dd><p class="first">Different methods are available for Microphonics removal:</p>
+<blockquote class="last">
+<div><ul class="simple">
+<li>This algorithm is based on a fixed precomputed model (see <a class="reference internal" href="../../usage/primitives.html#createmicrophonicsnoisemodel"><em>Create microphonics noise model</em></a> and below). This model is the normalized absolute value of the Fourier coefficients. The filtering consist of diminishing the intensity of the frequencies corresponding to the noise in the image proportionaly to the dot product of the image witht the noise model. The phase remains unchanged. This algorithm partially works and will succeed in removing a lot of the microphonics noise without jeopardize too much the image even in case of a structured image with overlapping frequencies with the noise.</li>
+<li>Setting all the frequencies to zero in the aera of the microphonics frequencies peaks. (Dangerous algorithm even if it might be fine regarding the different Fourier transforms, see image above.). This algorithm is the one used for dark images in <a class="reference internal" href="../../usage/primitives.html#destripefordarksonly"><em>Destripe for Darks Only</em></a>.</li>
+<li>Removal of 3 gaussian fits located to the 3 microphonics peaks. (Probably useless, it was only for testing but it is not as good)</li>
+</ul>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+</ul>
+<div class="figure align-center">
+<a class="reference internal image-reference" href="../../_images/EfficiencyMicroRemoval.png"><img alt="alternate text" src="../../_images/EfficiencyMicroRemoval.png" style="width: 500pt;" /></a>
+</div>
+<p>The effect of the first algorithm in absolute Fourier space is shown below. The axes are not visible but you can clearly see the three peaks and how the algoritm diminish the amplitude to a level where you can see the background variations.</p>
+<div class="figure align-center">
+<a class="reference internal image-reference" href="../../_images/AlgorithmFourier.png"><img alt="alternate text" src="../../_images/AlgorithmFourier.png" style="width: 500pt;" /></a>
+</div>
+<ul>
+<li><dl class="first docutils">
+<dt><a class="reference internal" href="../../usage/primitives.html#createmicrophonicsnoisemodel"><em>Create microphonics noise model</em></a>:</dt>
+<dd><p class="first">Build a microphonics noise model that will be used to quantity the noise in an image (using the dot product of the image on this model) and to remove it if necessary. There is no existing recipe template right now. The dependencies of the microphonics frequencies with other parameter has not been yet studied but it is unlikely to change very much. Therefore, one model for each cooldown should be enough. In order to build that model, this primitive extracts from dark images (with short integration time and visible strong microphonics noise) the absolute value of the Fourier coefficients in the aera of the identified peaks. No destripping should be done prior to this primitive. If there is more than one calibration file in the calibration database, the automatic selection will not work.</p>
+<ul class="last simple">
+<li><strong>Calibration DB File Type:</strong>  Micro Model</li>
+<li><strong>File Suffix:</strong> microModel</li>
+<li><strong>Generate with Recipe:</strong>  None. The user has to build it himself with this primitive.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="section" id="things-to-watch-out-for">
+<h2>Things to watch out for:<a class="headerlink" href="#things-to-watch-out-for" title="Permalink to this headline">¶</a></h2>
+<p>The primary concern of the destriping algorithm is the possibility of it inserting systematic features into images due to a large amount of structure in the image that increases the region that is masked and therefore decreases the amount of detector available to derive the correction. For typical coronagraphic observations this is not a concern, but with extended objects this may become a concern. Because we have no data with spatially resolved objects, the destriping algorithms will be re-evaluated once on sky.</p>
+</div>
+<div class="section" id="relevant-gpi-team-members">
+<h2>Relevant GPI team members<a class="headerlink" href="#relevant-gpi-team-members" title="Permalink to this headline">¶</a></h2>
+<p>Patrick Ingraham, J.B. Ruffio, Marshall Perrin</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="nonlinearity.html" title="Saturation and Nonlinearity"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="badpixels.html" title="Bad Pixels"
+             >previous</a> |</li>
+        <li><a href="../../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >GPI IFS Data Handbook</a> &raquo;</li>
+          <li><a href="index.html" >Processing GPI Data, Step by Step</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

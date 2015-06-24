@@ -1,0 +1,400 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>GPItv Development &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../index.html" />
+    <link rel="up" title="GPI Data Pipeline Developer’s Guide" href="index.html" />
+    <link rel="next" title="Editing Documentation (Including this Website)" href="documentation.html" />
+    <link rel="prev" title="Primitives" href="new_primitives.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="documentation.html" title="Editing Documentation (Including this Website)"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="new_primitives.html" title="Primitives"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">GPI Data Pipeline Developer&#8217;s Guide</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">GPItv Development</a><ul>
+<li><a class="reference internal" href="#overview">Overview</a></li>
+<li><a class="reference internal" href="#design-principles-and-dependencies">Design Principles and Dependencies</a></li>
+<li><a class="reference internal" href="#value-storage">Value Storage</a></li>
+<li><a class="reference internal" href="#image-storage">Image Storage</a></li>
+<li><a class="reference internal" href="#satellite-spots-and-contour-profiles">Satellite Spots and Contour Profiles</a></li>
+<li><a class="reference internal" href="#collapse-modes">Collapse Modes</a></li>
+<li><a class="reference internal" href="#scaling">Scaling</a></li>
+<li><a class="reference internal" href="#message-output">Message Output</a></li>
+<li><a class="reference internal" href="#the-call-sequence-for-loading-new-images-in-gpitv">The call sequence for loading new images in GPItv</a></li>
+<li><a class="reference internal" href="#the-call-sequence-for-redisplaying-new-images-in-gpitv">The call sequence for redisplaying new images in GPItv</a></li>
+<li><a class="reference internal" href="#gpitv-subwindows-and-event-handlers">GPItv Subwindows and Event Handlers</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="new_primitives.html"
+                        title="previous chapter">Primitives</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="documentation.html"
+                        title="next chapter">Editing Documentation (Including this Website)</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/developers/gpitv_devel.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="gpitv-development">
+<h1>GPItv Development<a class="headerlink" href="#gpitv-development" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>GPItv is derived from <a class="reference external" href="http://www.physics.uci.edu/~barth/atv/">atv by Aaron Barth et al.</a>, but with very, very substantial
+modifications. In particular, it was re-cast into an object-oriented IDL
+program by Marshall Perrin, and all use of common blocks eliminated. This lets
+one open many independent copies of GPItv at once, something that is not
+possible with ATV.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">GPItv is a very large, very complex program with lots of internal dependencies and complex data structures,
+extensive use of IDL&#8217;s object orientation, pointers, and widget programming techniques. If you&#8217;re not already a
+black-belt IDL guru, you will be soon!</p>
+</div>
+</div>
+<div class="section" id="design-principles-and-dependencies">
+<h2>Design Principles and Dependencies<a class="headerlink" href="#design-principles-and-dependencies" title="Permalink to this headline">¶</a></h2>
+<p>While GPItv is intended as a quick-look tool, it also contains a large amount of advanced functionality geared specifically towards GPI data.  In cases where the functionality mirrors that of the GPI data pipeline, the pipeline backend functions and configuration files are used in order to ensure consistent results.  This means that the GPItv installation is dependent on a working pipeline installation.  Both GPItv and the pipeline use a wide variety of routines from the IDL Astronomy User&#8217;s Library (<a class="reference external" href="http://idlastro.gsfc.nasa.gov/">http://idlastro.gsfc.nasa.gov/</a>) and the Coyote Library (<a class="reference external" href="http://www.idlcoyote.com/documents/programs.php">http://www.idlcoyote.com/documents/programs.php</a>).</p>
+</div>
+<div class="section" id="value-storage">
+<h2>Value Storage<a class="headerlink" href="#value-storage" title="Permalink to this headline">¶</a></h2>
+<p>The vast majority of internal information in GPItv is stored in a top level state structure, which is referenced via a pointer <tt class="docutils literal"><span class="pre">state</span></tt> in the GPItv object instance.  Internal GPItv programs can access this structure as:</p>
+<div class="highlight-python"><div class="highlight"><pre>*self.state
+</pre></div>
+</div>
+<p>The state structure is initialized in <tt class="docutils literal"><span class="pre">GPItv::initcommon</span></tt> and contains all of the default (and user set) values used by GPItv&#8217;s subfunctions along with pointers to subwindows and child GUIs.</p>
+<p>To aid in debugging, it is possible to dump the top level state structure by hitting ctrl+d with the main GPItv window in focus.  The state structure is written to the MAIN level variable <tt class="docutils literal"><span class="pre">state</span></tt>, overwriting any previous data stored there.  This is accomplished by issuing the command:</p>
+<div class="highlight-python"><div class="highlight"><pre>(scope_varfetch(&#39;state&#39;,  level=1, /enter)) = *self.state
+</pre></div>
+</div>
+<p>Two additional top level structures, <tt class="docutils literal"><span class="pre">images</span></tt> and <tt class="docutils literal"><span class="pre">satspots</span></tt> are used for image-specific data storage and are described below.</p>
+</div>
+<div class="section" id="image-storage">
+<span id="id1"></span><h2>Image Storage<a class="headerlink" href="#image-storage" title="Permalink to this headline">¶</a></h2>
+<p>All image data is stored in the top level structure <tt class="docutils literal"><span class="pre">images</span></tt>, with pointers to various data values.  These are:</p>
+<dl class="docutils">
+<dt><tt class="docutils literal"><span class="pre">images.main_image</span></tt></dt>
+<dd>The image currently being displayed in its native units (unscaled)</dd>
+<dt><tt class="docutils literal"><span class="pre">images.main_image_stack</span></tt></dt>
+<dd>The image cube (equal to main_image for 2D images)</dd>
+<dt><tt class="docutils literal"><span class="pre">images.main_image_backup</span></tt></dt>
+<dd>The original image cube</dd>
+<dt><tt class="docutils literal"><span class="pre">images.names_stack</span></tt></dt>
+<dd>Image names (if available)</dd>
+<dt><tt class="docutils literal"><span class="pre">images.display_image</span></tt></dt>
+<dd>Scaled and stretched version of image currently being displayed</dd>
+<dt><tt class="docutils literal"><span class="pre">images.scaled_image</span></tt></dt>
+<dd>Bytscaled version of image</dd>
+<dt><tt class="docutils literal"><span class="pre">images.blink_image1-3</span></tt></dt>
+<dd>Blink images (also used as RGB channels)</dd>
+<dt><tt class="docutils literal"><span class="pre">images.unblink_image</span></tt></dt>
+<dd>Image being displayed before blink mode is entered</dd>
+<dt><tt class="docutils literal"><span class="pre">images.bmask_image_stack</span></tt></dt>
+<dd>Largely unused (maybe should be deprecated?)</dd>
+<dt><tt class="docutils literal"><span class="pre">images.bmask_image</span></tt></dt>
+<dd>bit mask image</dd>
+<dt><tt class="docutils literal"><span class="pre">images.pan_image</span></tt></dt>
+<dd>Miniature version of full image used for panning</dd>
+<dt><tt class="docutils literal"><span class="pre">images.klip_image</span></tt></dt>
+<dd>Backup of KLIP cube (cleared when KLIP settings are changed)</dd>
+</dl>
+<p>The main image backup is set only when a new image is loaded (in
+<tt class="docutils literal"><span class="pre">GPItv::setup_new_image</span></tt>).  It should not be overwritten anywhere else in the
+code.  The main image and main image stack, however, are changed whenever
+required, such as when units are changed, or a collapse mode is applied.</p>
+<p>All pointers in this structure must be freed on cleanup.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">In order to expand the <tt class="docutils literal"><span class="pre">images</span></tt> structure changes must be made in 3 locations:  The new field must be added to the <tt class="docutils literal"><span class="pre">images</span></tt> structure in <tt class="docutils literal"><span class="pre">GPItv__define</span></tt>, the pointer must be initialized in <tt class="docutils literal"><span class="pre">GPItv::initcommon</span></tt> and the pointer must be freed in <tt class="docutils literal"><span class="pre">GPItv::cleanup</span></tt>.  Most data in this structure should also be cleared/updated when new files are loaded in <tt class="docutils literal"><span class="pre">GPItv::setup_new_image</span></tt>.</p>
+</div>
+</div>
+<div class="section" id="satellite-spots-and-contour-profiles">
+<h2>Satellite Spots and Contour Profiles<a class="headerlink" href="#satellite-spots-and-contour-profiles" title="Permalink to this headline">¶</a></h2>
+<p>Satellite spots and derived quantities (such as contrast profiles) are stored in the top level structure <tt class="docutils literal"><span class="pre">satspots</span></tt>, with pointers to data values or pointer arrays.  These are:</p>
+<dl class="docutils">
+<dt><tt class="docutils literal"><span class="pre">satspots.cens</span></tt></dt>
+<dd>2x4xZ array of sat spot centers (subpixel coordinates)</dd>
+<dt><tt class="docutils literal"><span class="pre">satspots.warns</span></tt></dt>
+<dd>Zx1 array of warnings (0: no warning; 1: fluxes vary by more than 25%; -1: no spots found)</dd>
+<dt><tt class="docutils literal"><span class="pre">satspots.good</span></tt></dt>
+<dd>Indices of slices where all spots were found</dd>
+<dt><tt class="docutils literal"><span class="pre">satspots.satflux</span></tt></dt>
+<dd>4xZ array of sat spot fluxes</dd>
+<dt><tt class="docutils literal"><span class="pre">satspots.contrprof</span></tt></dt>
+<dd>Contour profile (will be Z x 3 pointer array with second dimension being stdev,median,mean)</dd>
+<dt><tt class="docutils literal"><span class="pre">satspots.asec</span></tt></dt>
+<dd>Zx1 pointer array of angular separation values associated with each contrast profile (arcsec)</dd>
+</dl>
+<p>where Z is the number of cube slices (1 for 2D images).  Satellite spots should
+only need to be detected once per image (unless the original detection was
+bad).   Therefore they are kept in memory and reused by a variety of
+subfunctions.  To check whether they exist for the current image, you can
+compare their size to the expected one:</p>
+<div class="highlight-python"><div class="highlight"><pre>n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]
+</pre></div>
+</div>
+<p>To update the locations, use <tt class="docutils literal"><span class="pre">GPItv::update_sat_spots</span></tt>.  This takes an optional
+keyword <tt class="docutils literal"><span class="pre">locs0</span></tt> of initial guesses as to the locations in the currently displayed
+slice (otherwise, these are automatically detected).  Satellite spot locations
+are always determined by using the main image backup, so the values will point
+to the pixel locations in the original, uncollapsed image cube.</p>
+<p>Contrast profiles are similarly calculated on the fly and stored in memory
+against future use.  This is done in <tt class="docutils literal"><span class="pre">GPItv::contrprof_refresh</span></tt>. Note that
+contrast profiles are only stored for uncollapsed cubes (i.e., when operating
+either in &#8220;Show Cube Slices&#8221; or &#8220;Align Speckle&#8221; modes).  If in any other
+collapse mode, contrast profiles are generated on the fly and not stored.</p>
+<p>All pointers in the satspots structure must be freed on cleanup.  Furthermore, satpot locations and contour profile pointers are freed and re-initialized upon loading a new image (in load_new_image) so that old values are not accidentally used.</p>
+<p>Expanding the satspots structure requires edits in multiple locations.  See the note for Image Storage, above.</p>
+</div>
+<div class="section" id="collapse-modes">
+<span id="id2"></span><h2>Collapse Modes<a class="headerlink" href="#collapse-modes" title="Permalink to this headline">¶</a></h2>
+<p>The current set of available collapse modes is stored in the value of the collapse button and can be retrieved via:</p>
+<div class="highlight-python"><div class="highlight"><pre>widget_control, (*self.state).collapse_button, get_value=modelist
+</pre></div>
+</div>
+<p>The index of the current collapse mode is stored in state variable <tt class="docutils literal"><span class="pre">collapse</span></tt>.
+Note that the zeroeth mode always corresponds to the original image (cube).
+For spectral cubes, all collapse modes produce 2D images with three exceptions: Speckle Alignment, KLIP and High-Pass Filtering.
+These are tracked with three boolean state variables: <tt class="docutils literal"><span class="pre">specalign_mode</span></tt>, <tt class="docutils literal"><span class="pre">klip_mode</span></tt>, and <tt class="docutils literal"><span class="pre">high_pass_mode</span></tt> respectively.
+Thus, the only time you are operating on a 3D cube is when state variable
+<tt class="docutils literal"><span class="pre">collapse</span></tt> equals 0 or <tt class="docutils literal"><span class="pre">specalign_mode</span></tt>, <tt class="docutils literal"><span class="pre">klip_mode</span></tt> or <tt class="docutils literal"><span class="pre">high_pass_mode</span></tt> do not equal zero.
+To check for an uncollapsed cube, use:</p>
+<div class="highlight-python"><div class="highlight"><pre>((*self.state).collapse eq 0) || ((*self.state).specalign_mode eq 1) || ((*self.state).klip_mode eq 1) || ((*self.state).high_pass_mode eq 1)
+</pre></div>
+</div>
+<p>To check for a collapsed cube, use:</p>
+<div class="highlight-python"><div class="highlight"><pre>((*self.state).collapse ne 0) &amp;&amp; ((*self.state).specalign_mode ne 1)  &amp;&amp; ((*self.state).klip_mode ne 1) &amp;&amp; ((*self.state).hgih_pass_mode ne 1)
+</pre></div>
+</div>
+<p>All of the collapse modes overwrite the main image var with a collapsed image,
+except for Speckle Alignment and KLIP, which replace both <tt class="docutils literal"><span class="pre">main_image</span></tt> and <tt class="docutils literal"><span class="pre">main_image_stack</span></tt>.
+To revert back to the original image, the main image stack is restored from the main image backup.  When a new image
+is loaded, the collapse mode is automatically set to 0 (Show Cube Slices for spectral cubes).</p>
+</div>
+<div class="section" id="scaling">
+<h2>Scaling<a class="headerlink" href="#scaling" title="Permalink to this headline">¶</a></h2>
+<p>GPItv currently offers five scaling modes: linear, logarithmic, histogram
+equalized, square root and asinh.  These (and any new ones to be added) are
+stored in the state variable <tt class="docutils literal"><span class="pre">scalings</span></tt> (string array).  The current scaling is
+stored in the state variable <tt class="docutils literal"><span class="pre">scaling</span></tt> (string - note that this used to be an
+integer indexing the above array, but was changed for easier parseability).
+The scalings may be set via the Scale menu, or by passing the corresponding
+keyword to a call to GPItv.</p>
+<p>The current scaling is updated with a call to <tt class="docutils literal"><span class="pre">GPItv::setscaling</span></tt> which updates
+the state variable and checks (and unchecks) the appropriate menu items.  It
+then calls <tt class="docutils literal"><span class="pre">GPItv::displayall</span></tt>, which is simply a wrapper calling
+<tt class="docutils literal"><span class="pre">GPItv::scaleimage</span></tt>, <tt class="docutils literal"><span class="pre">GPItv::makepan</span></tt>, <tt class="docutils literal"><span class="pre">GPItv::settitle</span></tt>, and <tt class="docutils literal"><span class="pre">GPItv::refresh</span></tt>.</p>
+<p>The only other routine affected by the scaling mode is <tt class="docutils literal"><span class="pre">GPItv::restretch</span></tt>.
+This one currently has dummy code (cloned from the linear case) for a few of
+the modes and so still needs more work.</p>
+</div>
+<div class="section" id="message-output">
+<h2>Message Output<a class="headerlink" href="#message-output" title="Permalink to this headline">¶</a></h2>
+<p>All user messaging should be done via <tt class="docutils literal"><span class="pre">GPItv::message</span></tt> (i.e., <tt class="docutils literal"><span class="pre">self-&gt;message</span></tt>
+internally).  This function takes in a message string and two optional
+parameters: <tt class="docutils literal"><span class="pre">msgtype</span></tt> and <tt class="docutils literal"><span class="pre">window</span></tt>.  <tt class="docutils literal"><span class="pre">msgtype</span></tt> can be &#8220;information&#8221;, &#8220;warning&#8221;, or
+&#8220;error&#8221; and defaults to &#8220;information&#8221; if not set.  If <tt class="docutils literal"><span class="pre">/window</span></tt> is set, the
+message will appear in a dialog box, otherwise it will be printed to the
+command line.  Use of this function allows user control over the number of
+messages printed by giving the option of suppressing information and/or warning
+messages.  Errors may not be suppressed.</p>
+</div>
+<div class="section" id="the-call-sequence-for-loading-new-images-in-gpitv">
+<h2>The call sequence for loading new images in GPItv<a class="headerlink" href="#the-call-sequence-for-loading-new-images-in-gpitv" title="Permalink to this headline">¶</a></h2>
+<p>Loading new images in GPItv is regrettably complicated. The call stack is
+enormous and, at times, convoluted. Here are some notes on what gets called inside
+each function to help interested readers keep the sequence of events straight.</p>
+<p>In an attempt to ensure a single path for new data through the code, we use a top-level management function: <tt class="docutils literal"><span class="pre">GPItv::open</span></tt>. This takes in two inputs and passes through all keywords.  If the first input is a string, it is assumed to be a filename and passed to <tt class="docutils literal"><span class="pre">GPItv::readfits</span></tt>, which in turn calls one of <tt class="docutils literal"><span class="pre">GPItv::plainfits_read,</span> <span class="pre">fitsext_read_GPI,</span> <span class="pre">fitsext_read_ask_extension,</span> <span class="pre">wpfc2_read,</span> <span class="pre">twomass_read</span></tt> and then calls <tt class="docutils literal"><span class="pre">GPItv::setup_new_image</span></tt>.  <tt class="docutils literal"><span class="pre">GPItv::readfits</span></tt> handles input keyword <tt class="docutils literal"><span class="pre">imname</span></tt>, appending the filename read in to any user input, and passes through all other keywords.</p>
+<p>If the first input to <tt class="docutils literal"><span class="pre">GPItv::open</span></tt> is not a string, it is assumed to be a data array, is assigned to the <tt class="docutils literal"><span class="pre">main_image</span></tt> variable in the <tt class="docutils literal"><span class="pre">images</span></tt> structure (see <a class="reference internal" href="#image-storage"><em>Image Storage</em></a>) and then calls <tt class="docutils literal"><span class="pre">GPItv::setup_new_image</span></tt>.  The second input (if it exists) is assumed to be the header (string) array or an array of pointers to the primary and extension headers, and is assigned to keywords <tt class="docutils literal"><span class="pre">header</span></tt> and <tt class="docutils literal"><span class="pre">extensionhead</span></tt>, respectively.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">For historical reasons, the primary header is passed to GPItv as an input, but processed internally as a keyword (along with a separate keyword for the science extension header).  Because all keywords are passed through the main calling level and the <tt class="docutils literal"><span class="pre">open</span></tt> function, there is a possibility of collision between the header input and keyword.  To prevent this from happening, any header and extensionheader keyword entries are stripped from the input in the case when a filename is passed in, and the header input is used to overwrite any keywords in the case when data is passed in.</p>
+</div>
+<p>Finally, <tt class="docutils literal"><span class="pre">GPItv::switchextension</span></tt>, which can load different extensions when the file GPItv is currently displaying was read from disk, also calls <tt class="docutils literal"><span class="pre">GPItv::setup_new_image</span></tt>.</p>
+<p><tt class="docutils literal"><span class="pre">GPItv::setup_new_image</span></tt> is responsible for clearing any information related to any previously loaded image and populating as many internal values and storage locations as possible from the new inputs.  It defaults to the 0 index collapse mode (see <a class="reference internal" href="#collapse-modes"><em>Collapse Modes</em></a>) and clears any data related to KLIP processing, satellite spots and contour profiles.  It stores the input data to the main image array and stack and creates the backup in the main image backup (see <a class="reference internal" href="#image-storage"><em>Image Storage</em></a>).  It assigns any header information to the proper header pointers via <tt class="docutils literal"><span class="pre">GPItv::setheader</span></tt> and then calls <tt class="docutils literal"><span class="pre">GPItv::setheadinfo</span></tt> which parses the headers and extracts details about the data.  Finally, it calls:</p>
+<div class="highlight-python"><div class="highlight"><pre>GPItv::recenter
+GPItv::settitle
+GPItv::set_minmax
+GPItv::collapsecube
+GPItv::setcubeslicelabel
+GPItv::displayall
+GPItv::autozoom (if autozoom is set)
+GPItv::update_child_windows
+</pre></div>
+</div>
+<p>which center the image, set the main window title, update the displayed min/max values, set the collapse mode, set the label of the current slice (if the image is a cube), update all main window displays, and update any subwindow displays (see <a class="reference internal" href="#gpitv-subwindows"><em>GPItv Subwindows and Event Handlers</em></a>).</p>
+<p><tt class="docutils literal"><span class="pre">GPItv::setup_new_image</span></tt> explicitly handles the following keywords:</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">imname</span></tt> Image name</li>
+<li><tt class="docutils literal"><span class="pre">dispwavecalgrid</span></tt> Wavelength solution to overlay on image</li>
+<li><tt class="docutils literal"><span class="pre">min</span> <span class="pre">=</span> <span class="pre">minimum,</span> <span class="pre">max</span> <span class="pre">=</span> <span class="pre">maximum</span></tt> Image scaling values (overrides autoscale)</li>
+<li><tt class="docutils literal"><span class="pre">\linear,</span> <span class="pre">\log,</span> <span class="pre">\sqrt,</span> <span class="pre">\histeq,</span> <span class="pre">\asinh</span></tt> Stretch to use (overrides default stretch).</li>
+</ul>
+<p><tt class="docutils literal"><span class="pre">GPItv::setheader</span></tt> handles the <tt class="docutils literal"><span class="pre">extensionhead</span></tt> keyword.  All other keyword inputs are ignored (but will not produce errors).</p>
+</div>
+<div class="section" id="the-call-sequence-for-redisplaying-new-images-in-gpitv">
+<h2>The call sequence for redisplaying new images in GPItv<a class="headerlink" href="#the-call-sequence-for-redisplaying-new-images-in-gpitv" title="Permalink to this headline">¶</a></h2>
+<p>This is also regrettably complicated.</p>
+<p>Let&#8217;s say you change the datacube slice display via the slider. What happens then?</p>
+<p><tt class="docutils literal"><span class="pre">GPITV::changeimage</span></tt> first performs the actions needed to update internal variables to the
+newly selected slice, and updates label text accordingly on the GUI slider index and wavelength. This then calls <tt class="docutils literal"><span class="pre">GPItv::getstats</span></tt> and <tt class="docutils literal"><span class="pre">set_minmax</span></tt> to update the displayed min/max counts in the slice. Then <tt class="docutils literal"><span class="pre">GPItv::displayall</span></tt> is called.</p>
+<p><tt class="docutils literal"><span class="pre">GPItv::displayall</span></tt> in turn calls:</p>
+<blockquote>
+<div><ul class="simple">
+<li><tt class="docutils literal"><span class="pre">GPItv-&gt;scaleimage</span></tt>  (applies selected display scale and stretch to image)</li>
+<li><tt class="docutils literal"><span class="pre">GPItv-&gt;makepan</span></tt>   (make mini version of scaled image for showing full image at top of gpitv)</li>
+<li><tt class="docutils literal"><span class="pre">GPItv-&gt;settitle</span></tt>  (Updates title bar label with filename or slice)</li>
+<li><tt class="docutils literal"><span class="pre">GPItv-&gt;refresh</span></tt></li>
+</ul>
+</div></blockquote>
+<dl class="docutils">
+<dt><tt class="docutils literal"><span class="pre">GPItv-&gt;refresh</span></tt> in turn calls:</dt>
+<dd><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">self-&gt;getoffset</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">self-&gt;getdisplay</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">self-&gt;displaymain</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">self-&gt;plotall</span></tt></li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="gpitv-subwindows-and-event-handlers">
+<span id="gpitv-subwindows"></span><h2>GPItv Subwindows and Event Handlers<a class="headerlink" href="#gpitv-subwindows-and-event-handlers" title="Permalink to this headline">¶</a></h2>
+<p>Because of GPItv&#8217;s complexity and large number of sub-programs and child windows, it is useful to utilize generic event handling as much as possible (thereby avoiding needless code replication and confusion).  This is achieved with a set of programs called <tt class="docutils literal"><span class="pre">GPItvo_generic_event_handler</span></tt>, <tt class="docutils literal"><span class="pre">GPItvo_subwindow_event_handler</span></tt>, and <tt class="docutils literal"><span class="pre">GPItvo_menu_event</span></tt>.</p>
+<p>The generic and subwindow even handlers are essentially identical, the only difference being the inclusion of a check for object validity which avoids errors when events come from objects as they are being destroyed.  Otherwise, both handlers look up the information structure associated with the object which spawned the event, and then execute the handling method specified in this structure:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">WIDGET_CONTROL</span><span class="p">,</span> <span class="n">ev</span><span class="o">.</span><span class="n">top</span><span class="p">,</span> <span class="n">get_Uvalue</span> <span class="o">=</span> <span class="n">myInfo</span>
+<span class="n">CALL_METHOD</span><span class="p">,</span> <span class="n">myInfo</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="n">myInfo</span><span class="o">.</span><span class="n">object</span><span class="p">,</span> <span class="n">ev</span>
+</pre></div>
+</div>
+<p>The generic event handler is used for subfunctions whose events are generated in the main GUI, while the subwindow event handler is used for all child windows.  The menu event handler is used only for the main GUI top menu, and thus explicitly calls subfunction <tt class="docutils literal"><span class="pre">GPItv::topmenu_event</span></tt>.</p>
+<p>When defining a new GPItv subwindow, the procedure is as follows:</p>
+<ol class="arabic">
+<li><p class="first">Create the widget base and assign to and identification variable in the <tt class="docutils literal"><span class="pre">state</span></tt> structure (in this example we will call our subwindow &#8216;new&#8217;):</p>
+<div class="highlight-python"><div class="highlight"><pre>(*self.state).new_base_id = widget_base(...)
+</pre></div>
+</div>
+</li>
+<li><p class="first">Populate the base with content</p>
+</li>
+<li><p class="first">Generate the window and register with the xmanager:</p>
+<div class="highlight-python"><div class="highlight"><pre>widget_control, (*self.state).new_base_id, /realize
+xmanager, self.xname+&#39;_new&#39;, (*self.state).new_base_id, /no_block
+</pre></div>
+</div>
+</li>
+<li><p class="first">Assign the event function to the information structure for the new object and set the event handler:</p>
+<div class="highlight-python"><div class="highlight"><pre>widget_control, (*self.state).new_base_id, set_uvalue={object: self, method: &#39;new_event&#39;}
+widget_control, (*self.state).new_base_id,event_pro = &#39;GPItvo_subwindow_event_handler&#39;
+</pre></div>
+</div>
+</li>
+<li><p class="first">Write the event handling code for your new subwindow in <tt class="docutils literal"><span class="pre">GPItv::new_event</span></tt>.</p>
+</li>
+</ol>
+<p>This framework minimizes repeated code while retaining complete flexibility in event handling for all child windows.  It also makes it trivial to check whether a subwindow already exists, thereby minimizing redrawing time, by using:</p>
+<div class="highlight-python"><div class="highlight"><pre>xregistered(self.xname+&#39;_new&#39;, /noshow)
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">More complex subwindows, such as the contrast profile display, will often use multiple separate subfunctions, with a simple event handler that then calls specialized code, as needed.</p>
+</div>
+<p>This approach is based on design principles described by Michael Galloy at <a class="reference external" href="http://michaelgalloy.com/2006/06/14/object-widgets.html">http://michaelgalloy.com/2006/06/14/object-widgets.html</a></p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="documentation.html" title="Editing Documentation (Including this Website)"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="new_primitives.html" title="Primitives"
+             >previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" >GPI Data Pipeline Developer&#8217;s Guide</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

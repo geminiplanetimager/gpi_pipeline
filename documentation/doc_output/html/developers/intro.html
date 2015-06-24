@@ -1,0 +1,180 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Introduction for New Developers &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../index.html" />
+    <link rel="up" title="GPI Data Pipeline Developer’s Guide" href="index.html" />
+    <link rel="next" title="Pipeline Code Internal Organization" href="organization.html" />
+    <link rel="prev" title="GPI Data Pipeline Developer’s Guide" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="organization.html" title="Pipeline Code Internal Organization"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="GPI Data Pipeline Developer’s Guide"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">GPI Data Pipeline Developer&#8217;s Guide</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Introduction for New Developers</a><ul>
+<li><a class="reference internal" href="#best-steps-for-getting-started">Best Steps for Getting Started</a></li>
+<li><a class="reference internal" href="#subversion-repository-organization">Subversion Repository Organization</a></li>
+<li><a class="reference internal" href="#terminology">Terminology</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">GPI Data Pipeline Developer&#8217;s Guide</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="organization.html"
+                        title="next chapter">Pipeline Code Internal Organization</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/developers/intro.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="introduction-for-new-developers">
+<h1>Introduction for New Developers<a class="headerlink" href="#introduction-for-new-developers" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="best-steps-for-getting-started">
+<h2>Best Steps for Getting Started<a class="headerlink" href="#best-steps-for-getting-started" title="Permalink to this headline">¶</a></h2>
+<p>The GPI data pipeline is a large complex code base with a lot of legacy code. The best way to get started is probably
+to read through existing primitives and see how they operate on the data and which utility functions they make use of. Subsequent pages
+describe how to create your own primitive.</p>
+<p>The GPI instrument team welcomes contributions of code enhancements and fixes
+from members of the community. The preferred method for submitting new code is
+to post to the <a class="reference external" href="http://drforum.gemini.edu">Gemini Data Reduction forum</a>
+for initial discussion there. Access to the subversion repository for
+non-members of the GPI instrument team may be considered on a case by case
+basis, particulary for anyone with a track record of useful contributions.</p>
+</div>
+<div class="section" id="subversion-repository-organization">
+<h2>Subversion Repository Organization<a class="headerlink" href="#subversion-repository-organization" title="Permalink to this headline">¶</a></h2>
+<p>The subversion repository for the GPI pipeline is organized following the
+common Subversion pattern of having &#8216;trunk&#8217;, &#8216;tags&#8217;, and &#8216;branches&#8217;
+subdirectories.  If you&#8217;re not familiar with what each of these means, here are
+some <a class="reference external" href="http://svnbook.red-bean.com/en/1.6/svn-book.html#svn.reposadmin.projects.chooselayout">explanatory</a>
+<a class="reference external" href="http://stackoverflow.com/questions/16142/what-do-branch-tag-and-trunk-mean-in-subversion-repositories">references</a>.</p>
+<p>There are separate &#8216;trunk&#8217;, &#8216;tags&#8217;, and &#8216;branches&#8217; directories inside both the <cite>pipeline</cite> and <cite>external</cite> repository root directories.</p>
+<p>The <cite>trunk</cite> directory contains the main, current development of the pipeline. For most developers, this is all you will want to check out:</p>
+<div class="highlight-sh"><div class="highlight"><pre>svn checkout https://repos.seti.org/gpi/pipeline/trunk pipeline
+svn checkout https://repos.seti.org/gpi/external/trunk external
+</pre></div>
+</div>
+<p>The <cite>tags</cite> directory contains a tagged copy of each numbered public release of the pipeline.</p>
+<p>Starting in early 2014, the <cite>branches</cite> directory contains one branch named <cite>public</cite>. This is the code base for public
+release of the pipeline, allowing for differences between the GPI instrument team&#8217;s internal development and the code that&#8217;s released.
+The main purpose for this is to separate out any new developmental/experimental code that&#8217;s &#8220;not yet ready for prime time&#8221; use in production.</p>
+</div>
+<div class="section" id="terminology">
+<h2>Terminology<a class="headerlink" href="#terminology" title="Permalink to this headline">¶</a></h2>
+<p>There are some vocabulary items that you should be familiar with if you&#8217;re
+going to hack on pipeline internals. These in part reflect usage in the Keck
+OSIRIS data pipeline, from which the core architecture of the GPI pipeline was
+originally derived.</p>
+<dl class="docutils">
+<dt><strong>DRF</strong></dt>
+<dd>&#8220;Data Reduction File&#8221; = an XML file containing a series of reduction
+steps and their options.  Generally referred to as a &#8220;Recipe&#8221; or &#8220;Recipe file&#8221;
+for GPI and in general Gemini usage, but pipeline internals in many places
+still uses the DRF vocabulary.</dd>
+<dt><strong>module</strong></dt>
+<dd>Likewise, the legacy OSIRIS term for an individual reduction task,
+generally called a &#8220;primitive&#8221; in GPI/Gemini contexts.</dd>
+</dl>
+<p>All end-user-facing code (including all GUIs etc) should use the
+recipe/primitive nomenclature that is standard for Gemini, while internal code is allowed to still use the
+Keck legacy terms (but can be updated to use the Gemini vocabulary, at developers&#8217;
+convenience)</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="organization.html" title="Pipeline Code Internal Organization"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="GPI Data Pipeline Developer’s Guide"
+             >previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" >GPI Data Pipeline Developer&#8217;s Guide</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

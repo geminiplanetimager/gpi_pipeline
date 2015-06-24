@@ -1,0 +1,205 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Darks &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../../index.html" />
+    <link rel="up" title="Processing GPI Data, Step by Step" href="index.html" />
+    <link rel="next" title="Thermal/Sky Backgrounds" href="thermal_background.html" />
+    <link rel="prev" title="Processing GPI Data, Step by Step" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="thermal_background.html" title="Thermal/Sky Backgrounds"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Processing GPI Data, Step by Step"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >GPI IFS Data Handbook</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Processing GPI Data, Step by Step</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3><a href="../../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Darks</a><ul>
+<li><a class="reference internal" href="#observed-effects-and-relevant-physics">Observed Effects and Relevant Physics:</a></li>
+<li><a class="reference internal" href="#using-darks-in-gpi-pipeline-reduction">Using Darks in GPI Pipeline Reduction:</a></li>
+<li><a class="reference internal" href="#creating-calibrations">Creating Calibrations:</a></li>
+<li><a class="reference internal" href="#what-to-watch-out-for">What to Watch Out For</a></li>
+<li><a class="reference internal" href="#relevant-gpi-team-members">Relevant GPI team members</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Processing GPI Data, Step by Step</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="thermal_background.html"
+                        title="next chapter">Thermal/Sky Backgrounds</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../../_sources/ifs/steps/darks.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="darks">
+<span id="processing-step-by-step-darks"></span><h1>Darks<a class="headerlink" href="#darks" title="Permalink to this headline">¶</a></h1>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last">Further information may be found in <a class="reference external" href="http://arxiv.org/abs/1407.2302">Ingraham et al. 2014 &#8220;Gemini Planet Imager Observational Calibrations II:
+Detector Performance and Characterization&#8221;</a></p>
+</div>
+<div class="section" id="observed-effects-and-relevant-physics">
+<h2>Observed Effects and Relevant Physics:<a class="headerlink" href="#observed-effects-and-relevant-physics" title="Permalink to this headline">¶</a></h2>
+<p>Like all IR detectors, the Hawaii 2-RG detector in GPI has nonzero dark current. Typical values are much less than 1 count per second per pixel, but some &#8220;hot&#8221; pixels have much higher dark rates.
+For GPI, dark files operate in the typical manner for IR detectors and are used to subtract dark current, the detector bias, and other background (e.g. light leaks) from types of science and calibration observations. Darks are taken by setting the Lyot stop to Blank (an opaque mask). Because of the possible presence of various nonlinear detector effects (saturated hot pixels, reset anomaly, etc), it is generally considered better to use a reference dark that is relatively similar in integration time.</p>
+<p>The GPI team and Gemini have established a standard set of dark integration times ranging from 1.5 s to 300 s in steps of ~3x. These are taken periodically (planned to be weekly) and
+are taken with enough coadds and exposure to achieve good S/N. (Coadds increase efficiency for short integration times. 10 coadds * 10 exposures is a recommended approach. )</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Typical observations with GPI will be hour-long sequences of exposures. For these to not be systematically limited by the dark frame that is identically subtracted from each individual exposure, that dark frame must be significantly deeper than your science observations. You probably will want to take several hours of darks.</p>
+</div>
+<p>Periodic dark observations taken during GPI I&amp;T at UCSC show that the detector&#8217;s complement of hot pixels evolves slightly but noticeably on two week timescales. Using darks more than a week or two different in time from your science data results in visibly more residual hot pixels in the final datacubes. (The dark current for the large majority of normal pixels is in comparison very stable, as are indeed most of the hot pixels - only some outliers have been observed to evolve.)</p>
+<p>Artifacts observed in dark frames but specifically addressed in other sections section include: <a class="reference internal" href="badpixels.html#processing-step-by-step-badpixels"><em>Bad Pixels</em></a>, <a class="reference internal" href="destriping_and_microphonics.html#processing-step-by-step-destriping"><em>Destriping and Microphonics</em></a> and <a class="reference internal" href="persistence.html#processing-step-by-step-persistence"><em>Persistence</em></a>.  Regions of elevated dark current are visible near the detector corners in deep exposures, due to scattered light within the IFS leaking around the detector housing baffle, but the count rates here are still very small.</p>
+<p><strong>Light leak:</strong> There is a very low level light leak visible in 3 corners of the detector, where light is leaking around a small gap in the detector housing between the detector itself and the field flattener lens. This is visible on high S/N long exposure darks, but in practice has completely negligible impact on science.</p>
+<div class="figure align-center">
+<a class="reference internal image-reference" href="../../_images/dark-S20130419S0490.jpg"><img alt="../../_images/dark-S20130419S0490.jpg" src="../../_images/dark-S20130419S0490.jpg" style="width: 400pt;" /></a>
+<p class="caption">Example dark image. This is a 120 s dark, shown on a log stretch from 0-0.05 counts/second. The median dark count rate for normal pixels is negligible, ~ 0.006 counts/sec/pixel. The
+brighter regions in three corners are due to light leaks around the IFS detector housing. This stretch highlights them but in fact they are very faint, with a
+peak count rate ~ 0.03 counts/sec/pixel.  Many scattered hot pixels are visible across the field.  In practice only these hot pixels are likely to significantly
+affect your GPI data. The dark count in typical good pixels and even the light leak regions is just too small to have an impact.</p>
+</div>
+</div>
+<div class="section" id="using-darks-in-gpi-pipeline-reduction">
+<h2>Using Darks in GPI Pipeline Reduction:<a class="headerlink" href="#using-darks-in-gpi-pipeline-reduction" title="Permalink to this headline">¶</a></h2>
+<p>Most data reduction recipes for raw GPI data will begin by subtracting a dark frame using the pipeline primitive <a class="reference internal" href="../../usage/primitives.html#subtractdarkbackground"><em>Subtract Dark Background</em></a>. Typically that dark is obtained automatically from the <a class="reference internal" href="../../usage/calibdb.html#calibdb"><em>Calibration Database</em></a> based on the closest-in-time dark file with a matching integration time.  There are no significant user-selectable options for this step to be concerned with.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>The GPI data pipeline will search for the closest-in-time available darks, and
+from those find the one with the closest match in exposure time. The dark counts
+will be rescaled by the ratio of integration times to match the science image.</p>
+<p class="last">By default it
+will allow scaling exposure up or down by a factor of 3x; if no darks are found
+within that range an error will be raised.  This is a very conservative approach and
+you may find that good results can be obtained with larger scalings. The threshold can
+be adjusted in the  <a class="reference internal" href="../../usage/primitives.html#subtractdarkbackground"><em>Subtract Dark Background</em></a> primitive&#8217;s arguments.</p>
+</div>
+</div>
+<div class="section" id="creating-calibrations">
+<h2>Creating Calibrations:<a class="headerlink" href="#creating-calibrations" title="Permalink to this headline">¶</a></h2>
+<p><strong>Generate with Recipe:</strong> &#8220;Dark&#8221;</p>
+<p><strong>Calibration DB File Type:</strong> Dark</p>
+<p><strong>File Suffix:</strong> dark</p>
+<p>To create dark calibrations, take a set of many dark files (with the Lyot set to Blank). As mentioned above, ideally one would want enough images (typically &gt; 100) to ensure that noise in the reduced darks is a order of magnitude less than noise in the science frames, but that will not always be feasible.  Process them using the &#8220;Dark&#8221; recipe found the Calibration reduction section.</p>
+<p>Repeat the above process for all exposure times of interest. For large numbers of integration times, this is most easily accomplished using the Data Parser to generate suitable recipes .</p>
+<p>Dark frames are also used to determine hot pixels. This is described further in the <a class="reference internal" href="badpixels.html"><em>Bad Pixels</em></a> section.</p>
+</div>
+<div class="section" id="what-to-watch-out-for">
+<h2>What to Watch Out For<a class="headerlink" href="#what-to-watch-out-for" title="Permalink to this headline">¶</a></h2>
+<p>The standard pipeline processsing to create dark frames is a straightforward process involving 2 steps:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li>Destripe and remove microphonics</li>
+<li>Combine 2d images</li>
+</ol>
+</div></blockquote>
+<p>The image below shows the three dominant artifacts seen in dark images. The solid red circles show the regions where the majority of the microphonics is observed. The dashed green line shows examples of strong channel bias offsets (32-pixel wide vertical stripes). The dotted purple lines indicate regions of large horizontal striping. These effects, discussed in detail in <a class="reference internal" href="destriping_and_microphonics.html"><em>Destriping and Microphonics</em></a>, are removed using the <a class="reference internal" href="../../usage/primitives.html#destripefordarksonly"><em>Destripe for Darks Only</em></a> primitive.</p>
+<a class="reference internal image-reference" href="../../_images/raw_dark_mod.png"><img alt="../../_images/raw_dark_mod.png" class="align-center" src="../../_images/raw_dark_mod.png" style="width: 328.0px; height: 403.5px;" /></a>
+<p>The 2-d files are then combined using a median or mean, using the <a class="reference internal" href="../../usage/primitives.html#combine2dimages"><em>Combine 2D images</em></a> primitive. A reduced stack of 30-1.5 second dark images is shown below.</p>
+<blockquote>
+<div><a class="reference internal image-reference" href="../../_images/reduced_dark.png"><img alt="../../_images/reduced_dark.png" class="align-center" src="../../_images/reduced_dark.png" style="width: 328.0px; height: 403.5px;" /></a>
+</div></blockquote>
+<p>The remaining artifacts are bad-pixels, seen as the white pixels and small channel bias offsets. At the moment, no channel bias correction is performed, but the noise from the offsets is seen to reduce by the square root of the number of detector reads.</p>
+<p>Note that no persistence is present in the above images. If persistence is present in the darks, it can be attenuated by inserting the &#8216;Remove Persistence&#8217; primitive after the destripe primitive. Persistence is discussed in detail in the <a class="reference internal" href="persistence.html"><em>Persistence</em></a> section.</p>
+</div>
+<div class="section" id="relevant-gpi-team-members">
+<h2>Relevant GPI team members<a class="headerlink" href="#relevant-gpi-team-members" title="Permalink to this headline">¶</a></h2>
+<p>Marshall Perrin, Patrick Ingraham, Naru Sadakuni</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="thermal_background.html" title="Thermal/Sky Backgrounds"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Processing GPI Data, Step by Step"
+             >previous</a> |</li>
+        <li><a href="../../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >GPI IFS Data Handbook</a> &raquo;</li>
+          <li><a href="index.html" >Processing GPI Data, Step by Step</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

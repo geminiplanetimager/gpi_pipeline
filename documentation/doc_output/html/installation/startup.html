@@ -1,0 +1,360 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Starting the GPI Data Pipeline &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../index.html" />
+    <link rel="up" title="GPI Data Pipeline Installation &amp; Configuration" href="index.html" />
+    <link rel="next" title="Appendix: Configuration File Settings" href="config_settings.html" />
+    <link rel="prev" title="Configuring the Pipeline" href="configuration.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="config_settings.html" title="Appendix: Configuration File Settings"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="configuration.html" title="Configuring the Pipeline"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">GPI Data Pipeline Installation &amp; Configuration</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Starting the GPI Data Pipeline</a><ul>
+<li><a class="reference internal" href="#starting-from-source-code-either-from-the-repository-or-zip-files">Starting from source code (either from the repository or zip files)</a></li>
+<li><a class="reference internal" href="#starting-compiled-code-with-the-idl-virtual-machine">Starting compiled code with the IDL Virtual Machine</a></li>
+<li><a class="reference internal" href="#pipeline-idl-session">Pipeline IDL Session</a></li>
+<li><a class="reference internal" href="#gui-idl-session">GUI IDL Session</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="configuration.html"
+                        title="previous chapter">Configuring the Pipeline</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="config_settings.html"
+                        title="next chapter">Appendix: Configuration File Settings</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/installation/startup.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="starting-the-gpi-data-pipeline">
+<span id="starting-pipeline"></span><span id="first-startup"></span><h1>Starting the GPI Data Pipeline<a class="headerlink" href="#starting-the-gpi-data-pipeline" title="Permalink to this headline">¶</a></h1>
+<p>The pipeline software is designed to run in two different IDL sessions:</p>
+<ul class="simple">
+<li>one for the data processing,</li>
+<li>and one for the graphical interfaces.</li>
+</ul>
+<p>Splitting these tasks between two processes enables the GUIs to remain responsive even while
+long computations are running.</p>
+<p>Exactly how you start up those two IDL sessions varies with operating system, and with whether you have installed from source or compiled code.</p>
+<div class="section" id="starting-from-source-code-either-from-the-repository-or-zip-files">
+<h2>Starting from source code (either from the repository or zip files)<a class="headerlink" href="#starting-from-source-code-either-from-the-repository-or-zip-files" title="Permalink to this headline">¶</a></h2>
+<div class="admonition-starting-the-pipeline-manually admonition">
+<p class="first admonition-title">Starting the pipeline manually</p>
+<blockquote>
+<div><img alt="../_images/icon_mac21.png" src="../_images/icon_mac21.png" />
+<img alt="../_images/icon_linux21.png" src="../_images/icon_linux21.png" />
+<img alt="../_images/icon_windows21.png" src="../_images/icon_windows21.png" />
+</div></blockquote>
+<p>On any OS you can simply start up the pipeline manually.</p>
+<p>Start an IDL session. Run</p>
+<blockquote>
+<div><div class="highlight-idl"><div class="highlight"><pre>IDL<span class="o">&gt;</span> gpi_launch_pipeline
+</pre></div>
+</div>
+</div></blockquote>
+<p>Start a second IDL session. Run</p>
+<blockquote>
+<div><div class="highlight-idl"><div class="highlight"><pre>IDL<span class="o">&gt;</span> gpi_launch_guis
+</pre></div>
+</div>
+</div></blockquote>
+<p class="last">If in the first IDL session you see a line reading &#8220;Now polling for
+data in such-and-such directory&#8221;, and the Status Console and
+Launcher windows are displayed as <a class="reference internal" href="../usage/starting.html#itsworking"><em>shown below</em></a>, then the pipeline has launched successfully.</p>
+</div>
+<div class="admonition-mac-os-and-linux-startup-script admonition">
+<p class="first admonition-title">Mac OS and Linux startup script</p>
+<blockquote>
+<div><img alt="../_images/icon_mac21.png" src="../_images/icon_mac21.png" />
+<img alt="../_images/icon_linux21.png" src="../_images/icon_linux21.png" />
+</div></blockquote>
+<p>On Linux or Mac, a convenient shell script is provided in <tt class="docutils literal"><span class="pre">pipeline/scripts</span></tt> that starts 2 xterms, each with an IDL session, and runs the above two commands. This script is called <tt class="docutils literal"><span class="pre">gpi-pipeline</span></tt>:</p>
+<blockquote>
+<div><div class="highlight-python"><div class="highlight"><pre><span class="n">shell</span><span class="o">&gt;</span> <span class="n">gpi</span><span class="o">-</span><span class="n">pipeline</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>You should see two xterms appear, both launch IDL sessions, and various
+commands run and status messages display.</p>
+<p class="last">If in the second xterm you see a line reading &#8220;Now polling for
+data in such-and-such directory&#8221;, and the Status Console and
+Launcher windows are displayed as <a class="reference internal" href="../usage/starting.html#itsworking"><em>shown below</em></a>, then the pipeline has launched successfully.</p>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p>In order for the <tt class="docutils literal"><span class="pre">gpi-pipeline</span></tt> script to work, your system must be set up such that IDL can be launched from the command line by running <tt class="docutils literal"><span class="pre">idl</span></tt>.  The script will not execute correctly if you use an alias to start IDL rather than having the IDL executable in your path. In this case you will probably get an error in the xterms along the lines lines of: &#8216;xterm: Can&#8217;t execvp idl: No such file or directory&#8217;. To check on how you start IDL, run:</p>
+<div class="highlight-python"><div class="highlight"><pre>shell&gt; which idl
+</pre></div>
+</div>
+<p>A blank output (or an output that says &#8216;aliased&#8217;) means that idl is not in your path.  To add it, either edit your <tt class="docutils literal"><span class="pre">$PATH</span></tt> variable, or go to a user-writeable directory in your path (you can check which directories are in your path by running <tt class="docutils literal"><span class="pre">echo</span> <span class="pre">$PATH</span></tt>).  Then create a symbolic link in the directory by running:</p>
+<div class="highlight-python"><div class="highlight"><pre>shell&gt; ln -s /path/to/idl idl
+</pre></div>
+</div>
+<p class="last">If you encounter problems with the startup script, just start the IDL sessions manually as described above.</p>
+</div>
+<div class="admonition-windows-startup-script admonition">
+<p class="first admonition-title">Windows startup script</p>
+<blockquote>
+<div><img alt="../_images/icon_windows21.png" src="../_images/icon_windows21.png" />
+</div></blockquote>
+<p>On Windows, there is a batch script in the <tt class="docutils literal"><span class="pre">pipeline/scripts</span></tt> directory called <tt class="docutils literal"><span class="pre">gpi-pipeline-windows.bat</span></tt>. Double click it to start the GPI pipeline.</p>
+<p>If in the first IDL session you see a line reading &#8220;Now polling for
+data in such-and-such directory&#8221;, and the Status Console and
+Launcher windows are displayed as <a class="reference internal" href="../usage/starting.html#itsworking"><em>shown below</em></a>, then the pipeline has launched successfully.</p>
+<p>For convenience, you can create a shortcut of <tt class="docutils literal"><span class="pre">gpi-pipeline-windows.bat</span></tt> by right clicking on the file and selecting the option to create a shortcut. You can then place this on your desktop, start menu, or start screen to launch the pipeline from where it is convenient for you.</p>
+<p class="last">If you encounter problems with the startup script, just start the IDL sessions manually as described above.</p>
+</div>
+</div>
+<div class="section" id="starting-compiled-code-with-the-idl-virtual-machine">
+<h2>Starting compiled code with the IDL Virtual Machine<a class="headerlink" href="#starting-compiled-code-with-the-idl-virtual-machine" title="Permalink to this headline">¶</a></h2>
+<p>The compiled binary versions of DRP applications that can be started with the
+IDL Virtual Machine are:</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">gpi_launch_pipeline.sav</span></tt> starts the pipeline controller and the status console</li>
+<li><tt class="docutils literal"><span class="pre">gpi_launch_guis.sav</span></tt> starts the Launcher and other GUIs.</li>
+</ul>
+<p>These files are located in the <tt class="docutils literal"><span class="pre">executables</span></tt> subdirectory of the distributed zip files.</p>
+<p>How to run a .sav file in the IDL Virtual Machine depends on your operating system.  Please see <a class="reference external" href="http://www.exelisvis.com/docs/StartingVirtualMachineApplication.html">Exelis&#8217; page on Starting a Virtual Machine Application</a> for more details.</p>
+<div class="admonition-mac-os-and-linux-manual-startup-of-the-virtual-machine admonition">
+<p class="first admonition-title">Mac OS and Linux manual startup of the Virtual Machine</p>
+<blockquote>
+<div><img alt="../_images/icon_mac21.png" src="../_images/icon_mac21.png" />
+<img alt="../_images/icon_linux21.png" src="../_images/icon_linux21.png" />
+</div></blockquote>
+<p>Mac and Linux users can launch the IDL virtual machine and then tell it to launch a particular .sav file. You&#8217;ll need to repeat this for the two GPI pipeline IDL sessions.
+The following commands assume that the environment variables <tt class="docutils literal"><span class="pre">$IDL_DIR</span></tt> and <tt class="docutils literal"><span class="pre">$GPI_DRP_DIR</span></tt> have been set, either by the <tt class="docutils literal"><span class="pre">gpi-setup-nix</span></tt> script or <a class="reference internal" href="configuration.html#configuring"><em>manually</em></a>:</p>
+<ol class="arabic">
+<li><p class="first">Enter the following at the command line to start an IDL session for the pipeline backbone:</p>
+<div class="highlight-python"><div class="highlight"><pre>unix% $IDL_DIR/bin/idl -rt=$GPI_DRP_DIR/executables/gpi_launch_pipeline.sav
+</pre></div>
+</div>
+</li>
+<li><p class="first">The IDL Virtual Machine logo window will be displayed with a &#8220;Click to continue&#8221; message.  Click anywhere in the IDL logo window to continue and run the .sav file.</p>
+</li>
+<li><p class="first">Repeat the above process to start a second IDL session for the pipeline GUIs:</p>
+<div class="highlight-python"><div class="highlight"><pre>unix% $IDL_DIR/bin/idl -rt=$GPI_DRP_DIR/executables/gpi_launch_guis.sav
+</pre></div>
+</div>
+</li>
+</ol>
+<p>You may also launch the IDL Virtual Machine and use its file selection menu to locate the .sav file to run.</p>
+<ol class="arabic">
+<li><p class="first">Enter the following at the UNIX command line:</p>
+<div class="highlight-python"><div class="highlight"><pre>&gt;&gt;&gt;  $IDL_DIR/bin/idl -vm
+</pre></div>
+</div>
+</li>
+<li><p class="first">The IDL Virtual Machine logo will be displayed. Click anywhere in the IDL Virtual Machine window to display a file selection dialog box.</p>
+</li>
+<li><p class="first">Locate and select the desired .sav file and click OK to open that file.</p>
+</li>
+</ol>
+<blockquote class="last">
+<div>If in the first IDL session you see a line reading &#8220;Now polling for
+data in such-and-such directory&#8221;, and the Status Console and
+Launcher windows are displayed as <a class="reference internal" href="../usage/starting.html#itsworking"><em>shown below</em></a>, then the pipeline has launched successfully.</div></blockquote>
+</div>
+<div class="admonition-mac-os-and-linux-startup-script admonition">
+<p class="first admonition-title">Mac OS and Linux startup script</p>
+<blockquote>
+<div><img alt="../_images/icon_mac21.png" src="../_images/icon_mac21.png" />
+<img alt="../_images/icon_linux21.png" src="../_images/icon_linux21.png" />
+</div></blockquote>
+<p>Just like for the source code install, a script is provided in <tt class="docutils literal"><span class="pre">pipeline/scripts</span></tt> that launches 2 IDL sessions, and starts the pipeline code.
+While the under the hood implementation is slightly different, the script name and effective functionality are identical.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">shell</span><span class="o">&gt;</span> <span class="n">gpi</span><span class="o">-</span><span class="n">pipeline</span>
+</pre></div>
+</div>
+<p class="last">If you encounter problems with the startup script, just start the IDL sessions manually as described above.</p>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<blockquote>
+<div><img alt="../_images/icon_mac21.png" src="../_images/icon_mac21.png" />
+</div></blockquote>
+<p>On Mac OS, in theory it ought to be possible to start the pipeline by double clicking the .sav files or .app bundles produced by the IDL compiler. However, if you start them from the Finder, then they will not have access to any environment variables that define paths, since those are set in your shell configuration files, which the Finder knows nothing about.</p>
+<p>We recommend you start the IDL virtual machine settings from inside Terminal or an xterm, as described above.</p>
+<p class="last">If you really do want to start from double clicking in the Finder, you will need to define all the pipeline file paths using your <tt class="docutils literal"><span class="pre">.gpi_pipeline_settings</span></tt> file instead of via environment variables. See <a class="reference internal" href="configuration.html#configuring"><em>Configuring the Pipeline</em></a>.</p>
+</div>
+<div class="admonition-windows-manual-startup-of-the-virtual-machine admonition">
+<p class="first admonition-title">Windows manual startup of the Virtual Machine</p>
+<blockquote>
+<div><img alt="../_images/icon_windows21.png" src="../_images/icon_windows21.png" />
+</div></blockquote>
+<p>Most simply, if your installation of Windows has file extensions configured to associate .sav files with IDL, you can just double click.</p>
+<p>To open a .sav file from the IDL Virtual Machine icon:</p>
+<ol class="arabic simple">
+<li>Launch the IDL Virtual Machine in the usual manner for Windows programs, either by
+selecting the IDL Virtual Machine from your Start Menu, or double clicking a desktop icon for
+the IDL Virtual Machine.</li>
+<li>Click anywhere in the IDL Virtual Machine window to display the file
+selection menu.</li>
+<li>Locate and select the .sav file, and double-click or click Open to run it.</li>
+</ol>
+<p>To run a .sav file from the command line prompt:</p>
+<ol class="last arabic">
+<li><p class="first">Open a command line prompt. Select Run from the Start menu, and enter cmd.</p>
+</li>
+<li><p class="first">Change directory (cd) to the <tt class="docutils literal"><span class="pre">IDL_DIR\bin\bin.platform</span></tt> directory, where
+platform is the platform-specific bin directory.</p>
+</li>
+<li><p class="first">Enter the following at the command line prompt:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">idlrt</span> <span class="o">-</span><span class="n">vm</span><span class="o">=&lt;</span><span class="n">path</span><span class="o">&gt;&lt;</span><span class="n">filename</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>where <tt class="docutils literal"><span class="pre">&lt;path&gt;</span></tt> is the path to the .sav file, and <tt class="docutils literal"><span class="pre">&lt;filename&gt;</span></tt> is the name of the .sav file.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="section" id="pipeline-idl-session">
+<span id="itsworking"></span><h2>Pipeline IDL Session<a class="headerlink" href="#pipeline-idl-session" title="Permalink to this headline">¶</a></h2>
+<p>The IDL session running the pipeline should immediately begin to look for new recipes in the queue directory. A status
+window will be displayed on screen (see below). On startup, the pipeline will
+display status text that looks like:</p>
+<div class="highlight-python"><div class="highlight"><pre>% Compiled module: [Lots of startup messages]
+[...]
+01:26:22.484  Now polling and waiting for Recipe files in /Users/mperrin/data/GPI/queue/
+
+   *****************************************************
+   *                                                   *
+   *          GPI DATA REDUCTION PIPELINE              *
+   *                                                   *
+   *             VERSION 1.0                           *
+   *                                                   *
+   *         By the GPI Data Analysis Team             *
+   *                                                   *
+   *   Perrin, Maire, Ingraham, Savransky, Doyon,      *
+   *   Marois, Chilcote, Draper, Fitzgerald, Greenbaum *
+   *   Konopacky, Marchis, Millar-Blanchaer, Pueyo,    *
+   *   Ruffio, Sadakuni, Wang, Wolff, &amp; Wiktorowicz    *
+   *                                                   *
+   *      For documentation &amp; full credits, see        *
+   *      http://docs.planetimager.org/pipeline/       *
+   *                                                   *
+   *****************************************************
+
+
+ Now polling for Recipe files in /Users/mperrin/data/GPI/queue/ at 1 Hz
+</pre></div>
+</div>
+<p>If you see the &#8220;Now polling&#8221; line at the bottom, then the pipeline has launched
+successfully.</p>
+<p>The pipeline will create a status display console window (see screen shot
+below). This window provides the user with progress bar indicators for ongoing
+actions, a summary of the most recently completed recipes, and
+a view of log messages. It also has a button for exiting the DRP (though you
+can always just control-C or quit the IDL window too).  This is currently the
+only one of the graphical tools that runs in the same IDL session as the main
+reduction process.</p>
+<a class="reference internal image-reference" href="../_images/GPI-DRP-Status-Console.png"><img alt="../_images/GPI-DRP-Status-Console.png" class="align-center" src="../_images/GPI-DRP-Status-Console.png" style="width: 390.75px; height: 368.25px;" /></a>
+<p>Above: Snapshot of the administration console.</p>
+</div>
+<div class="section" id="gui-idl-session">
+<h2>GUI IDL Session<a class="headerlink" href="#gui-idl-session" title="Permalink to this headline">¶</a></h2>
+<p>Several GUIs are available to select your data to be processed and to decide
+which processes and primitives will be applied to the data.</p>
+<p>The <tt class="docutils literal"><span class="pre">gpi_launch_guis</span></tt> commands starts the GUI Launcher window:</p>
+<a class="reference internal image-reference" href="../_images/GPI-launcher.png"><img alt="../_images/GPI-launcher.png" class="align-center" src="../_images/GPI-launcher.png" style="width: 174.0px; height: 226.0px;" /></a>
+<p>These are described in detail in the <a class="reference internal" href="../usage/index.html#user-intro"><em>GPI Data Pipeline User&#8217;s Guide</em></a>.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="config_settings.html" title="Appendix: Configuration File Settings"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="configuration.html" title="Configuring the Pipeline"
+             >previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" >GPI Data Pipeline Installation &amp; Configuration</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

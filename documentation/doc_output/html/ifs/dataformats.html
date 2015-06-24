@@ -1,0 +1,248 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>GPI Data Formats &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../index.html" />
+    <link rel="up" title="GPI IFS Data Handbook" href="index.html" />
+    <link rel="next" title="Processing GPI Data, Step by Step" href="steps/index.html" />
+    <link rel="prev" title="Filters and Spectra" href="filters.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="steps/index.html" title="Processing GPI Data, Step by Step"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="filters.html" title="Filters and Spectra"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">GPI IFS Data Handbook</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">GPI Data Formats</a><ul>
+<li><a class="reference internal" href="#multi-extension-fits-format">Multi-Extension FITS format</a></li>
+<li><a class="reference internal" href="#main-image-extension-sci">Main Image Extension &#8220;SCI&#8221;</a></li>
+<li><a class="reference internal" href="#data-quality-flags-extension-dq">Data quality flags extension &#8220;DQ&#8221;</a></li>
+<li><a class="reference internal" href="#types-of-gpi-ifs-files">Types of GPI IFS Files</a></li>
+<li><a class="reference internal" href="#fits-keywords">FITS Keywords</a></li>
+<li><a class="reference internal" href="#time-formats-in-fits-headers">Time Formats in FITS Headers</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="filters.html"
+                        title="previous chapter">Filters and Spectra</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="steps/index.html"
+                        title="next chapter">Processing GPI Data, Step by Step</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/ifs/dataformats.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="gpi-data-formats">
+<h1>GPI Data Formats<a class="headerlink" href="#gpi-data-formats" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="multi-extension-fits-format">
+<h2>Multi-Extension FITS format<a class="headerlink" href="#multi-extension-fits-format" title="Permalink to this headline">¶</a></h2>
+<p>GPI raw and reduced files are Gemini-style Multi Extension FITS
+(&#8220;MEF&#8221;) files. The primary HDU contains only a header; image data is always
+stored in a first image extension named &#8220;SCI&#8221;. Optional extensions for
+uncertainty estimates (&#8220;ERR&#8221;) and data quality flags (&#8220;DQ&#8221;) may be present.</p>
+<ul class="simple">
+<li>The data quality extension &#8220;DQ&#8221; is present on all raw files since July 2012.</li>
+<li>The uncertainty image extension remains turned off at this time. In practice,
+for high contrast imaging, reliable sensitivity estimates should be computed
+by inserting mock point sources into data, not relying on error propagation
+using an ERR extension.</li>
+</ul>
+<p>FITS keywords are split between the primary header (for keywords about overall instrument state) and the image extension header (for keywords about the IFS detector readout and image data contents), again in keeping with Gemini standards.</p>
+</div>
+<div class="section" id="main-image-extension-sci">
+<h2>Main Image Extension &#8220;SCI&#8221;<a class="headerlink" href="#main-image-extension-sci" title="Permalink to this headline">¶</a></h2>
+<p>This is where your science data is. For a raw frame, it&#8217;s a 2048x2048 float
+array. For most reduced data products, it will be some other format, typically a
+datacube. Units of raw data are by default <em>total counts per coadd for that exposure time</em>, not
+counts/second. Units will always be identified in the BUNIT keyword.</p>
+</div>
+<div class="section" id="data-quality-flags-extension-dq">
+<h2>Data quality flags extension &#8220;DQ&#8221;<a class="headerlink" href="#data-quality-flags-extension-dq" title="Permalink to this headline">¶</a></h2>
+<p>This extension will contain a 8-bit integer flag for each pixel in the
+main image array. Their meanings are as follows for 2D detector images. Bits
+0-4 are written by the IFS detector readout software. Bit 5 may be written by the data
+pipeline, which can also modify bit 0.</p>
+<ul class="simple">
+<li>bit 0: bad pixel, do not use if set. Values initially marked by bad pixel
+mask in detector server</li>
+<li>bit 1: raw pixel (read from detector) exceeds
+saturation value (specified in configuration file)</li>
+<li>bit 2: pixel value difference between consecutive reads exceeds saturation
+value</li>
+<li>bit 3: maximum delta for pixel removed during UTR calculation</li>
+<li>bit 4: minimum delta for pixel removed during UTR calculation</li>
+<li>bit 5: [work in progress] flagged as bad pixel by data pipeline using
+time-dependent bad pixel map from calibration database.</li>
+</ul>
+<p>Bits 3 and 4 are a bit complicated, but have to do with calculating up-the-ramp (UTR) slopes. In
+order to remove glitches like cosmic ray hits, if the difference between UTR
+samples for a pixel exceeds a specified amount, the difference is removed from
+the UTR calculation. Only the largest jump in either direction is removed. Bits
+3 and 4 indicate if this has happened. This only can occur if there are more
+then 3 UTR samples (groups).</p>
+<p>Pixel which have bit 5 set to 1, but bit 0 set to 0 (indicating &#8220;usable pixel&#8221;
+but also &#8220;flagged as bad pixel by pipeline&#8221;) indicated the common case of bad
+pixels being detected and then repaired by interpolation based on neighboring
+pixel values.</p>
+</div>
+<div class="section" id="types-of-gpi-ifs-files">
+<h2>Types of GPI IFS Files<a class="headerlink" href="#types-of-gpi-ifs-files" title="Permalink to this headline">¶</a></h2>
+<p>There are many different types of GPI data files. The type of a given file may
+be indicated by the FILETYPE keyword.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Insert here table of possible file types and FILETYPE keyword values, and typical filename extensions</p>
+</div>
+</div>
+<div class="section" id="fits-keywords">
+<h2>FITS Keywords<a class="headerlink" href="#fits-keywords" title="Permalink to this headline">¶</a></h2>
+<p>See documentation in Fredrik&#8217;s official document SCI-OCS-GPI-SRD.doc, or
+(perhaps more conveniently) in the copy maintained in the GPI FITS Keywords
+spreadsheet in the data team shared folder.</p>
+<p>For reduced data cubes, the wavelength solution is given by the 3rd WCS axis:
+CTYPE3, CUNIT3, CCRPIX3, CRVAL3, CDELT3, in compliance with the FITS standard,
+specifically Calabretta et al. 2002 &#8220;Representation of Spectral Coordinates in
+FITS&#8221;, available from <a class="reference external" href="http://fits.gsfc.nasa.gov/fits_wcs.html">http://fits.gsfc.nasa.gov/fits_wcs.html</a> .</p>
+<p>It&#8217;s actually just the same equation as for RA or Dec in the simplest case:</p>
+<p>wavelength = CRVALx + CDELTx*(pixel coordinate ? CRPIXx)</p>
+<p>For polarimetry datacubes, the FITS convention for polarimetry is given in
+Griesen et al. 2002, &#8220;Representation of World Coordinates in FITS&#8221;. GPI files
+comply with that standard.</p>
+</div>
+<div class="section" id="time-formats-in-fits-headers">
+<h2>Time Formats in FITS Headers<a class="headerlink" href="#time-formats-in-fits-headers" title="Permalink to this headline">¶</a></h2>
+<p>The header in the primary extension of GPI FITS files contains four keywords that determine the time of the observation:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="21%" />
+<col width="13%" />
+<col width="66%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Keyword</th>
+<th class="head">Format</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>DATE-OBS</td>
+<td>YYYY-MM-DD</td>
+<td>UT date at start of exposure</td>
+</tr>
+<tr class="row-odd"><td>UTSTART</td>
+<td>HH:MM:SS.SSS</td>
+<td>UT time at start of exposure</td>
+</tr>
+<tr class="row-even"><td>UTEND</td>
+<td>HH:MM:SS.SSS</td>
+<td>UT time at end of exposure (after last read)</td>
+</tr>
+<tr class="row-odd"><td>MJD-OBS</td>
+<td>DOUBLE</td>
+<td>Modified Julian Date of observation start (equivalent to DATE-OBS + UTSTART)</td>
+</tr>
+</tbody>
+</table>
+<p>Due to overheads for resetting the array before the readout stars, the actual period of photointegration will not begin until on average 1.5 read times after UTSTART.
+Users who care about exposure time accuracy at the 1-second level should consult the GPI instrument team (particularly Chilcote &amp; Savransky).</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Because DATE-OBS is always the date of the observation start, observations that cross the UT dateline will have a UTSTART time corresponding to the DATE-OBS value, but a UTEND time corresponding to the following day.  When trying to reconstruct the exact timestamp for the end time of these observations it is necessary to increment the date by one day before adding UTEND.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="steps/index.html" title="Processing GPI Data, Step by Step"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="filters.html" title="Filters and Spectra"
+             >previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" >GPI IFS Data Handbook</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

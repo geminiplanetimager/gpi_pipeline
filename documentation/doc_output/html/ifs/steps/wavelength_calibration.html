@@ -1,0 +1,186 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Wavelength Calibration &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../../index.html" />
+    <link rel="up" title="Processing GPI Data, Step by Step" href="index.html" />
+    <link rel="next" title="IFS Flexure" href="flexure.html" />
+    <link rel="prev" title="Flat Fielding: Lenslet Array Flat" href="flat_fielding_lenslets.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="flexure.html" title="IFS Flexure"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="flat_fielding_lenslets.html" title="Flat Fielding: Lenslet Array Flat"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >GPI IFS Data Handbook</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Processing GPI Data, Step by Step</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3><a href="../../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Wavelength Calibration</a><ul>
+<li><a class="reference internal" href="#observed-effect-and-relevant-physics">Observed Effect and Relevant Physics:</a></li>
+<li><a class="reference internal" href="#using-wavelength-calibrations-in-the-gpi-pipeline">Using Wavelength Calibrations in the GPI Pipeline</a></li>
+<li><a class="reference internal" href="#creating-calibrations">Creating Calibrations:</a></li>
+<li><a class="reference internal" href="#things-to-watch-out-for">Things to Watch Out For</a></li>
+<li><a class="reference internal" href="#relevant-gpi-team-members">Relevant GPI team members</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="flat_fielding_lenslets.html"
+                        title="previous chapter">Flat Fielding: Lenslet Array Flat</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="flexure.html"
+                        title="next chapter">IFS Flexure</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../../_sources/ifs/steps/wavelength_calibration.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="wavelength-calibration">
+<span id="id1"></span><h1>Wavelength Calibration<a class="headerlink" href="#wavelength-calibration" title="Permalink to this headline">¶</a></h1>
+<div class="admonition-published-reference admonition">
+<p class="first admonition-title">Published reference</p>
+<p class="last">Further information may be found in <a class="reference external" href="http://arxiv.org/abs/1407.2304">Wolff et al. 2014 &#8220;Gemini Planet Imager Observational Calibrations IV: Wavelength Calibration and Flexure Correction for the Integral Field Spectrograph&#8221;</a></p>
+</div>
+<div class="section" id="observed-effect-and-relevant-physics">
+<h2>Observed Effect and Relevant Physics:<a class="headerlink" href="#observed-effect-and-relevant-physics" title="Permalink to this headline">¶</a></h2>
+<p>To perform GPI&#8217;s exoplanet characterization science goals requires a wavelength precision of ~1%. However, the uniformity of the datacube is greatly increased with a better quality calibration. Performing a robust, high-accuracy wavelength calibration with GPI has been one of the primary challenges of the pipeline development. Similar to other near-IR spectrographs, GPI uses the well calibrated emission lines of a Xenon or Argon lamp (Argon requires more computation time to fit blended lines, but the GCAL Ar lamp is several times brighter than the Xe lamp). The current accuracy of the wavelength calibration is below 0.5% for all bands. The new calibration based on forward modeling provides wavelength information accurate to within several hundredths of a pixel in all bands.</p>
+</div>
+<div class="section" id="using-wavelength-calibrations-in-the-gpi-pipeline">
+<h2>Using Wavelength Calibrations in the GPI Pipeline<a class="headerlink" href="#using-wavelength-calibrations-in-the-gpi-pipeline" title="Permalink to this headline">¶</a></h2>
+<p>Most data reduction recipes for raw GPI data will begin by loading a wavelength calibration using the pipeline primitive <a class="reference internal" href="../../usage/primitives.html#loadwavelengthcalibration"><em>Load Wavelength Calibration</em></a>. Typically the calibration is obtained automatically from the <a class="reference internal" href="../../usage/calibdb.html#calibdb"><em>Calibration Database</em></a> based on the closest-in-time wavelength calibration file.  There are no significant user-selectable options for this step to be concerned with.</p>
+<p>If the wavelength solution was taken at a very different time than the science data in question, it is likely that internal flexure in the
+IFS results in an offset between the two. This has to be compensated for using the Update Spot Shifts for Flexure primitive.  See <a class="reference internal" href="flexure.html#ifs-flexure"><em>IFS Flexure</em></a> for further information.</p>
+</div>
+<div class="section" id="creating-calibrations">
+<h2>Creating Calibrations:<a class="headerlink" href="#creating-calibrations" title="Permalink to this headline">¶</a></h2>
+<p><strong>Calibration DB File Type:</strong> Wavelength Solution Cal File</p>
+<p><strong>File Suffix:</strong> wavecal</p>
+<p><strong>Generate with Recipe:</strong> &#8220;Wavelength Solution&#8221; or &#8220;Wavelength Solution 2D&#8221;</p>
+<p>Take a series of arc lamp exposures (multiple exposures to increase S/N). Reduce these using one of the two wavelength solution recipes discussed below. This will create a references datacube (&#8220;wavecal file&#8221;)  that provides the starting x and y positions, the wavelength at those positions, the wavelength dispersion, and the tilt angle for each lenslet spectrum. This wavecal may then be used to extract full spectral data cubes from science data.</p>
+<p>The Xenon arc lamp spectrum has more cleanly separated emission lines, but with our updated algorithms we now believe the pipeline can derive good wavelength calibrations from either
+Xe or Ar. The GCAL Ar lamp is 3-10x brighter depending on wavelength so the integration times are favorable. In general, Gemini instrument scientists will ensure proper calibration data are taken for wavecals.</p>
+<p>There are three different recipes for creating wavelength calibrations:</p>
+<ul class="simple">
+<li>&#8220;Wavelength Solution&#8221; will bootstrap a wavelength solution from scratch using centroids measured for the arc lamp emssion lines.  It is somewhat fragile and in particular is sensitive to any residual hot pixels in your data, and the generated wavecal is not of the highest quality.  This recipe should only be used if you&#8217;re setting up a copy of the pipeline from scratch with no existing wavecal files.</li>
+<li>&#8220;Wavelength Solution 2D&#8221; on the other hand fits a 2D forward model of the dispersed spectrum to each lenslet and minimizes the chi squared to derive a more accurate wavecal. It yields better results but <em>requires that you already have at least one prior wavecal already to use as a starting guess</em> for the optimization. This is the right recipe to use the vast majority of the time.</li>
+<li>&#8220;Quick Wavelength Solution&#8221; is designed to work on lower signal to noise arc lamp data taken contemporary with science data to correct for flexure within the IFS. I combines multiple lenslet spectra to fit an x and y position offset to an existing wavelength calibration file. This primitive is explained in more detail in the <a class="reference internal" href="flexure.html#ifs-flexure"><em>IFS Flexure</em></a> section.</li>
+</ul>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The Wavelength Solution 2D recipe is computationally intensive, and will take tens of minutes to run on typical machines. The parallelized mode does not work with IDL Virtual Machine.</p>
+</div>
+</div>
+<div class="section" id="things-to-watch-out-for">
+<h2>Things to Watch Out For<a class="headerlink" href="#things-to-watch-out-for" title="Permalink to this headline">¶</a></h2>
+<p>Performing the wavelength calibrations are quite simple but ensuring that the determination was successful does require examination of the solution in GPItv (see the <a class="reference internal" href="../../gpitv/features.html#gpitv-wavecal-grid"><em>Displaying GPI Wavelength Calibration feature</em></a> documentation). As the Gaussian fitting routines that determine the locations of the of spots are sensitive to bad pixels, it is recommended that a recent badpixel mask is used. The following figure shows the successful completion of a wavelength calibration.</p>
+<div class="figure align-center">
+<a class="reference internal image-reference" href="../../_images/good_wavecal.png"><img alt="../../_images/good_wavecal.png" src="../../_images/good_wavecal.png" style="width: 400pt;" /></a>
+</div>
+<p>If we zoom in on this figure, you can see two sets of grid lines. A successful determination of the calibration will show a clean grid of centroids (intersection of the red lines) with identical length dispersion axes (shown as green lines). The grid and dispersion lines appear uniform in the image below.</p>
+<div class="figure align-center">
+<a class="reference internal image-reference" href="../../_images/good_wavecal_zoom.png"><img alt="../../_images/good_wavecal_zoom.png" src="../../_images/good_wavecal_zoom.png" style="width: 400pt;" /></a>
+</div>
+<p>The following image shows a zoomed in region of a bad wavelength calibration. Note that the grid has become uneven. In this case, the S/N was not high enough and bad pixels adversely effect the fit.</p>
+<div class="figure align-center">
+<a class="reference internal image-reference" href="../../_images/bad_wavecal_zoom.png"><img alt="../../_images/bad_wavecal_zoom.png" src="../../_images/bad_wavecal_zoom.png" style="width: 400pt;" /></a>
+</div>
+<p>If you do experience a failed wavelength calibration, first check to make sure the correct dark and badpixel mask were used. The wavelength solution 2D primitive relies on a reference wavelength solution. If this file is not clean, this will cause errors in the final wavecal. The pipeline will automatically choose the most recent reference wavelength calibration files, but the user can manual choose a file by editing the CalibrationFile primitive keyword in the Recipe Editor. One may also change the interpolation type of the bad-pixel interpolation.</p>
+</div>
+<div class="section" id="relevant-gpi-team-members">
+<h2>Relevant GPI team members<a class="headerlink" href="#relevant-gpi-team-members" title="Permalink to this headline">¶</a></h2>
+<p>Schuyler Wolff, Zack Draper, Marshall Perrin</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="flexure.html" title="IFS Flexure"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="flat_fielding_lenslets.html" title="Flat Fielding: Lenslet Array Flat"
+             >previous</a> |</li>
+        <li><a href="../../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >GPI IFS Data Handbook</a> &raquo;</li>
+          <li><a href="index.html" >Processing GPI Data, Step by Step</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

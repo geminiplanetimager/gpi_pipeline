@@ -1,0 +1,150 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Installation Overview &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../index.html" />
+    <link rel="up" title="GPI Data Pipeline Installation &amp; Configuration" href="index.html" />
+    <link rel="next" title="Installing from Software Release Zip Files" href="install_from_zips.html" />
+    <link rel="prev" title="GPI Data Pipeline Installation &amp; Configuration" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="install_from_zips.html" title="Installing from Software Release Zip Files"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="GPI Data Pipeline Installation &amp; Configuration"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">GPI Data Pipeline Installation &amp; Configuration</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Installation Overview</a><ul>
+<li><a class="reference internal" href="#requirements">Requirements</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">GPI Data Pipeline Installation &amp; Configuration</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="install_from_zips.html"
+                        title="next chapter">Installing from Software Release Zip Files</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/installation/overview.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="installation-overview">
+<span id="id1"></span><h1>Installation Overview<a class="headerlink" href="#installation-overview" title="Permalink to this headline">¶</a></h1>
+<p>There are three different general methods by which the pipeline can be
+installed. These are described on the next three pages of this manual.</p>
+<ol class="arabic simple">
+<li><a class="reference internal" href="install_from_zips.html#installing-from-zips"><em>Installing from Software Release Zip Files</em></a> available from the GPI team web site, for users who have their own
+licensed copies of IDL.</li>
+<li><a class="reference internal" href="install_from_repos.html#installing-from-repos"><em>Installing from the Source Code Repository</em></a> directly. This provides direct access to the latest development code from the team&#8217;s Subversion version control
+repository, appropriate for GPI team members and Gemini staff who may be
+editing pipeline code. Users must also have a licensed copy of IDL.</li>
+<li><a class="reference internal" href="install_compiled.html#installing-from-compiled"><em>Installing Compiled Executables for use with the IDL Runtime</em></a> virtual machine,
+for users who do not have their own copies of IDL.</li>
+</ol>
+<p>Once the pipeline is installed, one must <a class="reference internal" href="configuration.html#configuring"><em>configure it</em></a> by setting a few items such as file paths. Additional optional
+configuration parameters can modify pipeline behavior or set user preferences.</p>
+<div class="section" id="requirements">
+<h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline">¶</a></h2>
+<p>The GPI Data Pipeline is written in IDL, so all users will need to have a copy
+of IDL, either the full IDL program or the IDL runtime environment (which is included as part of the compiled executables).</p>
+<p>The pipeline is supported on IDL version 7.0 or more recent at present, but may
+at some future point require IDL 8.  While it may be possible to run some of
+the pipeline code on IDL 6, this is not supported.   IDL 8 is recommended.</p>
+<p>Mac, Linux and Windows platforms are all supported. There are no particular
+dependencies on operating system versions.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="install_from_zips.html" title="Installing from Software Release Zip Files"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="GPI Data Pipeline Installation &amp; Configuration"
+             >previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" >GPI Data Pipeline Installation &amp; Configuration</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,161 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Installing from the Source Code Repository &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../index.html" />
+    <link rel="up" title="GPI Data Pipeline Installation &amp; Configuration" href="index.html" />
+    <link rel="next" title="Installing Compiled Executables for use with the IDL Runtime" href="install_compiled.html" />
+    <link rel="prev" title="Installing from Software Release Zip Files" href="install_from_zips.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="install_compiled.html" title="Installing Compiled Executables for use with the IDL Runtime"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="install_from_zips.html" title="Installing from Software Release Zip Files"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">GPI Data Pipeline Installation &amp; Configuration</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="install_from_zips.html"
+                        title="previous chapter">Installing from Software Release Zip Files</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="install_compiled.html"
+                        title="next chapter">Installing Compiled Executables for use with the IDL Runtime</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/installation/install_from_repos.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="installing-from-the-source-code-repository">
+<span id="installing-from-repos"></span><h1>Installing from the Source Code Repository<a class="headerlink" href="#installing-from-the-source-code-repository" title="Permalink to this headline">¶</a></h1>
+<p>This section describes how to install the pipeline in development mode, for
+members of the GPI team and Gemini staff.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This method requires you have an IDL license. If you do not have an IDL
+license, please refer to  <a class="reference internal" href="install_compiled.html#installing-from-compiled"><em>this page</em></a> for
+installing compiled executables instead.</p>
+</div>
+<p>The GPI Pipeline souce code is developed using a Subversion version control
+repository hosted at the SETI Institute.  GPI team members should see the <a class="reference external" href="https://docs.google.com/document/d/1-d6bnsL7Ax7JD6dwoyJijBBRO0rQIei16HgHff2J9Zc/">GPI
+Computer Account Setup document</a> for instructions to obtain an account on this
+repository.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If you are not familiar with version control, you may wish to see <a class="reference external" href="http://betterexplained.com/articles/a-visual-guide-to-version-control/">this intro to version control</a>.</p>
+</div>
+<p>Once you have that account, in a directory of your choosing (preferably
+somewhere inside your <tt class="docutils literal"><span class="pre">$IDL_PATH</span></tt>) execute the commands:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">svn</span> <span class="n">checkout</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">repos</span><span class="o">.</span><span class="n">seti</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">gpi</span><span class="o">/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">trunk</span> <span class="n">pipeline</span> <span class="o">--</span><span class="n">username</span> <span class="o">&lt;</span><span class="n">yourusername</span><span class="o">&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">svn</span> <span class="n">checkout</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">repos</span><span class="o">.</span><span class="n">seti</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">gpi</span><span class="o">/</span><span class="n">external</span><span class="o">/</span><span class="n">trunk</span> <span class="n">external</span> <span class="o">--</span><span class="n">username</span> <span class="o">&lt;</span><span class="n">yourusername</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>The above commands will download the GPI data pipeline and associated tools, plus a
+directory containing external dependencies of the code, for instance the
+Goddard IDL library, the Coyote library, etc. You may already have copies of
+many of these external routines in your own IDL library, in which case you can
+delete the excess copies from this directory if you so desire. Two folders (pipeline and external) will be created in the directory from which you performed the command.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">All code has been tested using the versions of external program in the repository.  Error-free operation is not guaranteed for other versions of these libraries. The usual caveats about name collisions between different versions of IDL routines apply.   If you have old versions of e.g. the Goddard IDL library functions in your <tt class="docutils literal"><span class="pre">$IDL_PATH</span></tt>, you may encounter difficulties. We suggest placing the data pipeline code first in your <tt class="docutils literal"><span class="pre">$IDL_PATH</span></tt>.</p>
+</div>
+<div class="admonition-mac-os-and-linux admonition">
+<p class="first admonition-title">Mac OS and Linux</p>
+<blockquote>
+<div><img alt="../_images/icon_mac2.png" src="../_images/icon_mac2.png" />
+<img alt="../_images/icon_linux2.png" src="../_images/icon_linux2.png" />
+</div></blockquote>
+<p class="last">On Mac OS and Linux, you will likely want to add the <tt class="docutils literal"><span class="pre">pipeline/scripts</span></tt> subdirectory
+to your shell&#8217;s <tt class="docutils literal"><span class="pre">$PATH</span></tt>.</p>
+</div>
+<p>For users having IDL 8.2+, the str_sep.pro program is now an obsolete command. Although no pipeline source code calls this function, it is still used in other external dependencies. For the time being, users should add the <tt class="docutils literal"><span class="pre">idl/lib/obsolete</span> <span class="pre">folder</span> <span class="pre">to</span> <span class="pre">their</span></tt> <tt class="docutils literal"><span class="pre">$IDL_PATH</span></tt> to remedy this issue.</p>
+<p>Proceed now to <a class="reference internal" href="configuration.html#configuring"><em>Configuring the Pipeline</em></a>.</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="install_compiled.html" title="Installing Compiled Executables for use with the IDL Runtime"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="install_from_zips.html" title="Installing from Software Release Zip Files"
+             >previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" >GPI Data Pipeline Installation &amp; Configuration</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

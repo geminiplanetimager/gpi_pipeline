@@ -1,0 +1,156 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>GPI Data Pipeline User’s Guide &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../index.html" />
+    <link rel="next" title="Pipeline Conceptual Overview" href="overview.html" />
+    <link rel="prev" title="Appendix: Improving window appearance via xdefaults" href="../installation/xdefaults.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="overview.html" title="Pipeline Conceptual Overview"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../installation/xdefaults.html" title="Appendix: Improving window appearance via xdefaults"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">GPI Data Pipeline User&#8217;s Guide</a><ul>
+<li><a class="reference internal" href="#contents">Contents</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="../installation/xdefaults.html"
+                        title="previous chapter">Appendix: Improving window appearance via xdefaults</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="overview.html"
+                        title="next chapter">Pipeline Conceptual Overview</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/usage/index.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="gpi-data-pipeline-user-s-guide">
+<span id="user-intro"></span><h1>GPI Data Pipeline User&#8217;s Guide<a class="headerlink" href="#gpi-data-pipeline-user-s-guide" title="Permalink to this headline">¶</a></h1>
+<p>This chapter describes how to use the GPI data pipeline software to reduce and
+calibrate data from GPI.</p>
+<p>See also the <a class="reference internal" href="../ifs/index.html#ifs-data-handbook"><em>IFS Data Handbook</em></a>, which
+describes the characteristics of GPI IFS data in terms of hardware performance, known artifacts, and
+best practices for scientific analysis.</p>
+<div class="section" id="contents">
+<h2>Contents<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Pipeline Conceptual Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recipesqueue.html">Recipes and the Queue</a></li>
+<li class="toctree-l1"><a class="reference internal" href="starting.html">Starting the GPI Data Pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Quick Start Tutorial: Diving into data reduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_pol.html">Tutorial 2: Polarimetry data reduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_your_own_data.html">Tutorial 3: Reducing your own GPI data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_spectrophotometry.html">Tutorial 4: Spectrophotometric Calibration For Coronagraphic Imaging Spectroscopy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="launcher.html">The Launcher</a></li>
+<li class="toctree-l1"><a class="reference internal" href="status_console.html">Status Console</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_parser.html">Data Parser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recipe_editor.html">Recipe Editor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="autoreducer.html">Autoreducer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="queue_view.html">The Queue Viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="templates.html">Recipe Templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="calibdb.html">The Calibration Database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="primitives.html">Primitives, Listed by Category</a></li>
+<li class="toctree-l1"><a class="reference internal" href="primitives.html#primitive-detailed-documentation">Primitive Detailed Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html">Logging and History records</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recipe_xml.html">Appendix: Recipe File XML Format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix_other.html">Appendix: Rarely-Used and/or Nonsupported Advanced Features</a></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="overview.html" title="Pipeline Conceptual Overview"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="../installation/xdefaults.html" title="Appendix: Improving window appearance via xdefaults"
+             >previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

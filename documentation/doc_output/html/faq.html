@@ -1,0 +1,318 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Frequently Asked Questions &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="index.html" />
+    <link rel="next" title="Software Licenses" href="license.html" />
+    <link rel="prev" title="Design of GPI Coronagraph Masks" href="gpireference/coronagraph.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="license.html" title="Software Licenses"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="gpireference/coronagraph.html" title="Design of GPI Coronagraph Masks"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Frequently Asked Questions</a><ul>
+<li><a class="reference internal" href="#installation">Installation</a><ul>
+<li><a class="reference internal" href="#when-running-gpi-pipeline-it-says-gpi-pipeline-command-not-found">When running <cite>gpi-pipeline</cite> it says, &#8220;gpi-pipeline: Command not found&#8221;</a></li>
+<li><a class="reference internal" href="#when-trying-to-start-the-pipeline-i-get-the-error-xterm-can-t-execvp-idl-no-such-file-or-directory">When trying to start the pipeline, I get the error &#8220;xterm: Can&#8217;t execvp idl: No such file or directory&#8221;</a></li>
+<li><a class="reference internal" href="#i-get-an-x-windows-protocol-error-repeatedly-what-s-up">I get an &#8220;X windows protocol error&#8221; repeatedly. What&#8217;s up?</a></li>
+<li><a class="reference internal" href="#on-a-mac-i-tried-to-start-the-compiled-pipeline-by-double-clicking-the-sav-files-but-i-got-a-cryptic-error-about-not-being-able-to-find-a-pipeline-config-file">On a Mac, I tried to start the compiled pipeline by double clicking the .sav files, but I got a cryptic error about not being able to find a pipeline config file</a></li>
+<li><a class="reference internal" href="#on-my-mac-the-gui-windows-pop-up-with-their-title-bars-hidden-under-the-mac-os-menu-bar-so-i-can-t-move-them-around-or-see-the-very-top-of-them-why-and-how-do-i-stop-this">On my Mac, the GUI windows pop up with their title bars hidden under the Mac OS menu bar, so I can&#8217;t move them around or see the very top of them. Why, and how do I stop this?</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data-reduction-questions">Data Reduction Questions</a><ul>
+<li><a class="reference internal" href="#what-pre-reduced-calibration-files-are-available-for-download">What pre-reduced calibration files are available for download?</a></li>
+<li><a class="reference internal" href="#the-gpi-pipeline-crashes-when-trying-to-do-the-wavelength-calibration-with-error-error-in-starting-gpi-load-wavelength-calibration-calibration-file-1-not-found">The GPI pipeline crashes when trying to do the wavelength calibration with error:  error in starting GPI_LOAD_WAVELENGTH_CALIBRATION: calibration file  -1 not found.</a></li>
+<li><a class="reference internal" href="#the-satellite-spots-cannot-be-found-in-my-coronagraphic-data-what-should-i-do">The satellite spots cannot be found in my coronagraphic data. What should I do?</a></li>
+<li><a class="reference internal" href="#how-do-i-de-rotate-my-data-to-have-north-up-and-east-left">How do I de-rotate my data to have north up and east left?</a></li>
+<li><a class="reference internal" href="#hey-what-s-this-weird-thing-in-my-data-can-i-see-some-examples-of-known-artifacts-and-systematics-i-might-encounter">Hey, what&#8217;s this weird thing in my data?  Can I see some examples of known artifacts and systematics I might encounter?</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#common-pipeline-software-issues">Common pipeline software issues</a><ul>
+<li><a class="reference internal" href="#why-did-the-pipeline-stop-and-return-to-a-prompt-in-the-middle-of-my-reduction">Why did the pipeline stop and return to a prompt in the middle of my reduction?</a></li>
+<li><a class="reference internal" href="#how-do-i-diagnose-an-idl-path-error">How do I diagnose an IDL_PATH error?</a></li>
+<li><a class="reference internal" href="#variable-is-undefined-str-sep">Variable is undefined: STR_SEP.</a></li>
+<li><a class="reference internal" href="#mac-osx-time-machine-warnings-about-permissions">Mac OSX Time machine warnings about permissions</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#less-common-software-issues">Less common software issues</a><ul>
+<li><a class="reference internal" href="#i-m-trying-to-reduce-data-from-multiple-different-days-in-one-recipe-and-the-output-directory-is-behaving-unexpectedly-what-s-going-on">I&#8217;m trying to reduce data from multiple different days in one recipe, and the output directory is behaving unexpectedly. What&#8217;s going on?</a></li>
+<li><a class="reference internal" href="#i-ve-gotten-an-error-that-the-pipeline-could-not-open-its-log-file-what-s-going-on">I&#8217;ve gotten an error that the pipeline could not open its log file. What&#8217;s going on?</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#gpitv">GPItv</a><ul>
+<li><a class="reference internal" href="#blinking-images-doesn-t-work-properly">Blinking images doesn&#8217;t work properly</a></li>
+<li><a class="reference internal" href="#gpitv-is-crashing-on-startup-and-or-colors-are-behaving-weirdly">GPITV is crashing on startup, and/or colors are behaving weirdly.</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="gpireference/coronagraph.html"
+                        title="previous chapter">Design of GPI Coronagraph Masks</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="license.html"
+                        title="next chapter">Software Licenses</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/faq.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="faq">
+<span id="frequently-asked-questions"></span><span id="id1"></span><h1>Frequently Asked Questions<a class="headerlink" href="#faq" title="Permalink to this headline">¶</a></h1>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="#faq-installation"><em>Installation</em></a></li>
+<li><a class="reference internal" href="#faq-data-reduction"><em>Data Reduction Questions</em></a></li>
+<li><a class="reference internal" href="#faq-errors"><em>Common pipeline software issues</em></a></li>
+<li><a class="reference internal" href="#faq-less-common"><em>Less common software issues</em></a></li>
+<li><a class="reference internal" href="#faq-gpitv"><em>GPItv</em></a></li>
+</ul>
+</div></blockquote>
+<div class="section" id="installation">
+<span id="faq-installation"></span><h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="when-running-gpi-pipeline-it-says-gpi-pipeline-command-not-found">
+<h3>When running <cite>gpi-pipeline</cite> it says, &#8220;gpi-pipeline: Command not found&#8221;<a class="headerlink" href="#when-running-gpi-pipeline-it-says-gpi-pipeline-command-not-found" title="Permalink to this headline">¶</a></h3>
+<p>This indicates that the <tt class="docutils literal"><span class="pre">pipeline/scripts</span></tt> directory has not been added to the <tt class="docutils literal"><span class="pre">$PATH</span></tt>. There are a couple possible reasons for this:</p>
+<ol class="arabic simple">
+<li>The script that sets your environment variables (e.g. <tt class="docutils literal"><span class="pre">~/.gpienv</span></tt> file ) has not been sourced. This should generally be sourced
+from your <tt class="docutils literal"><span class="pre">.tcshrc</span></tt> or <tt class="docutils literal"><span class="pre">.bash_profile</span></tt> script located in the home directory.
+Details can be found <a class="reference internal" href="installation/configuration.html#configuring"><em>here</em></a>. Remember to open a new
+terminal after modifying any shell scripts to ensure they are properly
+loaded.</li>
+<li>The shell script (e.g. <tt class="docutils literal"><span class="pre">~/.gpienv</span></tt> file) has
+an error in the line that modifies the <tt class="docutils literal"><span class="pre">$PATH</span></tt>. Check to make sure the
+pipeline/scripts directory is properly inserted. The users can check if the
+directory is in the path by typing <tt class="docutils literal"><span class="pre">echo</span> <span class="pre">$PATH</span></tt> from a shell prompt. We
+recommend you copy and paste in the pipeline/scripts output to make sure the
+directory exists. Remember that paths are case sensitive.</li>
+</ol>
+</div>
+<div class="section" id="when-trying-to-start-the-pipeline-i-get-the-error-xterm-can-t-execvp-idl-no-such-file-or-directory">
+<h3>When trying to start the pipeline, I get the error &#8220;xterm: Can&#8217;t execvp idl: No such file or directory&#8221;<a class="headerlink" href="#when-trying-to-start-the-pipeline-i-get-the-error-xterm-can-t-execvp-idl-no-such-file-or-directory" title="Permalink to this headline">¶</a></h3>
+<p>This cryptic message means that you are trying to start the gpi-pipeline script without having the idl executable
+in your path. Perhaps you have it aliased instead, but that&#8217;s not detected by the gpi-pipeline starter script.
+You can either (1) just start IDL manually via however you usually start it, and then run the <tt class="docutils literal"><span class="pre">gpi_launch_pipeline</span></tt>
+and <tt class="docutils literal"><span class="pre">gpi_launch_guis</span></tt> commands; (2) change your <tt class="docutils literal"><span class="pre">$PATH</span></tt> to include the directory with idl, (3) put a symlink pointing to idl in some
+directory already in your path, or (4) edit your local copy of the <tt class="docutils literal"><span class="pre">gpi-pipeline</span></tt> script to explicitly set the full
+path to the idl executable.</p>
+<p>If you are using the compiled IDL runtime version of the pipeline, note that a copy of the IDL runtime is included in
+the &#8216;idl81/bin/&#8217; directory included with the pipeline.</p>
+</div>
+<div class="section" id="i-get-an-x-windows-protocol-error-repeatedly-what-s-up">
+<h3>I get an &#8220;X windows protocol error&#8221; repeatedly. What&#8217;s up?<a class="headerlink" href="#i-get-an-x-windows-protocol-error-repeatedly-what-s-up" title="Permalink to this headline">¶</a></h3>
+<p>On some Mac OS and Linux computers, you may have display issues with the default IDL display configurations.  This will generate a repeated message in your IDL session saying something like:</p>
+<div class="highlight-python"><div class="highlight"><pre>% X windows protocol error: BadMatch (invalid parameter attributes).
+</pre></div>
+</div>
+<p>In order to correct this, you can execute the following commands in the IDL session:</p>
+<div class="highlight-idl"><div class="highlight"><pre>IDL<span class="o">&gt;</span> <span class="nb">device</span>, decompose<span class="o">=</span><span class="m">0</span>
+IDL<span class="o">&gt;</span> <span class="nb">device</span>, retain<span class="o">=</span><span class="m">2</span>
+</pre></div>
+</div>
+<p>If you want these commands to be executed in all IDL sessions automatically, you can add them to your IDL startup file (this is an IDL script that is run on startup of any new IDL session).  The startup file is identified by the environment variable <tt class="docutils literal"><span class="pre">$IDL_STARTUP</span></tt> (see <a class="reference internal" href="installation/configuration.html#config-envvars"><em>Setting directory paths via environment variables</em></a>).</p>
+</div>
+<div class="section" id="on-a-mac-i-tried-to-start-the-compiled-pipeline-by-double-clicking-the-sav-files-but-i-got-a-cryptic-error-about-not-being-able-to-find-a-pipeline-config-file">
+<h3>On a Mac, I tried to start the compiled pipeline by double clicking the .sav files, but I got a cryptic error about not being able to find a pipeline config file<a class="headerlink" href="#on-a-mac-i-tried-to-start-the-compiled-pipeline-by-double-clicking-the-sav-files-but-i-got-a-cryptic-error-about-not-being-able-to-find-a-pipeline-config-file" title="Permalink to this headline">¶</a></h3>
+<p>On Mac OS, unfortunately if you define environment variables in your shell config files, those only apply to Terminal and X11 sessions. If you try to start something from the Finder
+your environment variables won&#8217;t be defined in the child process. The fix is to start the pipeline from the command line in a shell (Terminal or xterm), for instance by using the <tt class="docutils literal"><span class="pre">gpi-pipeline</span></tt> script that is provided. Don&#8217;t try to start it just by double clicking from Finder.</p>
+</div>
+<div class="section" id="on-my-mac-the-gui-windows-pop-up-with-their-title-bars-hidden-under-the-mac-os-menu-bar-so-i-can-t-move-them-around-or-see-the-very-top-of-them-why-and-how-do-i-stop-this">
+<h3>On my Mac, the GUI windows pop up with their title bars hidden under the Mac OS menu bar, so I can&#8217;t move them around or see the very top of them. Why, and how do I stop this?<a class="headerlink" href="#on-my-mac-the-gui-windows-pop-up-with-their-title-bars-hidden-under-the-mac-os-menu-bar-so-i-can-t-move-them-around-or-see-the-very-top-of-them-why-and-how-do-i-stop-this" title="Permalink to this headline">¶</a></h3>
+<p>This appears to be due to a bug in X11 on Macs running Mavericks with multi-monitor support. See <a class="reference external" href="http://apple.stackexchange.com/questions/111465/is-there-a-way-to-move-a-window-without-the-mouse">this discussion at Stackexchange</a>. The workaround is to turn off the feature that displays the Mac OS menu bar on all monitors. Sorry, this is an Apple problem we can&#8217;t do anything about!</p>
+</div>
+</div>
+<div class="section" id="data-reduction-questions">
+<span id="faq-data-reduction"></span><h2>Data Reduction Questions<a class="headerlink" href="#data-reduction-questions" title="Permalink to this headline">¶</a></h2>
+<p>For guidance on data reduction, please consult the <a class="reference internal" href="ifs/index.html#ifs-data-handbook"><em>GPI IFS Data Handbook</em></a>.</p>
+<div class="section" id="what-pre-reduced-calibration-files-are-available-for-download">
+<h3>What pre-reduced calibration files are available for download?<a class="headerlink" href="#what-pre-reduced-calibration-files-are-available-for-download" title="Permalink to this headline">¶</a></h3>
+<p>See <a class="reference external" href="http://drforum.gemini.edu/topic/gpi-wavelength-calibration/">this discussion at the Gemini Data Reduction Forum</a>.</p>
+<p>Some reduced calibration files are available from the Gemini <a class="reference external" href="http://www.gemini.edu/sciops/instruments/gpi/public-data">GPI Public Data</a> page.</p>
+<p>There are also files available in the <a class="reference internal" href="usage/tutorial.html#usage-quickstart"><em>tutorial</em></a> data sets.</p>
+</div>
+<div class="section" id="the-gpi-pipeline-crashes-when-trying-to-do-the-wavelength-calibration-with-error-error-in-starting-gpi-load-wavelength-calibration-calibration-file-1-not-found">
+<h3>The GPI pipeline crashes when trying to do the wavelength calibration with error:  error in starting GPI_LOAD_WAVELENGTH_CALIBRATION: calibration file  -1 not found.<a class="headerlink" href="#the-gpi-pipeline-crashes-when-trying-to-do-the-wavelength-calibration-with-error-error-in-starting-gpi-load-wavelength-calibration-calibration-file-1-not-found" title="Permalink to this headline">¶</a></h3>
+<p>This most likely is due to missing calibration files. To check if the files are being correctly seen within the code, press the &#8220;Rescan Calib. DB&#8221; on the GPI GUI. This will re-index all the available calibration files.</p>
+</div>
+<div class="section" id="the-satellite-spots-cannot-be-found-in-my-coronagraphic-data-what-should-i-do">
+<h3>The satellite spots cannot be found in my coronagraphic data. What should I do?<a class="headerlink" href="#the-satellite-spots-cannot-be-found-in-my-coronagraphic-data-what-should-i-do" title="Permalink to this headline">¶</a></h3>
+<p>See the <a class="reference external" href="http://drforum.gemini.edu/topic/gpi-satellite-spot-not-found/">discussion at the Gemini Data Reduction Forum</a>.</p>
+</div>
+<div class="section" id="how-do-i-de-rotate-my-data-to-have-north-up-and-east-left">
+<h3>How do I de-rotate my data to have north up and east left?<a class="headerlink" href="#how-do-i-de-rotate-my-data-to-have-north-up-and-east-left" title="Permalink to this headline">¶</a></h3>
+<p>See <a class="reference internal" href="ifs/fieldofview.html#ifs-fov-rotate"><em>this part of the Data Handbook</em></a>.</p>
+</div>
+<div class="section" id="hey-what-s-this-weird-thing-in-my-data-can-i-see-some-examples-of-known-artifacts-and-systematics-i-might-encounter">
+<h3>Hey, what&#8217;s this weird thing in my data?  Can I see some examples of known artifacts and systematics I might encounter?<a class="headerlink" href="#hey-what-s-this-weird-thing-in-my-data-can-i-see-some-examples-of-known-artifacts-and-systematics-i-might-encounter" title="Permalink to this headline">¶</a></h3>
+<p>Yes, yes you can. See <a class="reference internal" href="ifs/gallery.html#ifs-data-gallery"><em>this gallery of example data and occasional artifacts</em></a>.</p>
+</div>
+</div>
+<div class="section" id="common-pipeline-software-issues">
+<span id="faq-errors"></span><h2>Common pipeline software issues<a class="headerlink" href="#common-pipeline-software-issues" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="why-did-the-pipeline-stop-and-return-to-a-prompt-in-the-middle-of-my-reduction">
+<h3>Why did the pipeline stop and return to a prompt in the middle of my reduction?<a class="headerlink" href="#why-did-the-pipeline-stop-and-return-to-a-prompt-in-the-middle-of-my-reduction" title="Permalink to this headline">¶</a></h3>
+<p>This is most likely an IDL_PATH issue. See &#8216;How do I diagnose an IDL_PATH error?&#8217;</p>
+</div>
+<div class="section" id="how-do-i-diagnose-an-idl-path-error">
+<h3>How do I diagnose an IDL_PATH error?<a class="headerlink" href="#how-do-i-diagnose-an-idl-path-error" title="Permalink to this headline">¶</a></h3>
+<p>The user should check to make sure that the proper dependency is being called. For example, if the pipeline crashes in a function called APER (which is part of the IDL astrolib library). The user should issue the command:</p>
+<div class="highlight-idl"><div class="highlight"><pre>IDL<span class="o">&gt;</span> which, aper
+</pre></div>
+</div>
+<p>Doing this will show each aper.pro file that is in the <tt class="docutils literal"><span class="pre">$IDL_PATH</span></tt>, the one that is in the pipeline directory should be the first on the list. If it is not, then the pipeline directory does not have the priority when calling this function. To correct this, ensure that the pipeline directory comes before the other directories in your IDL path by setting the <tt class="docutils literal"><span class="pre">$IDL_PATH</span></tt> in your setup script (or wherever you set the <tt class="docutils literal"><span class="pre">$IDL_PATH</span> <span class="pre">variable</span></tt>) as follows:</p>
+<p>For sh/csh/tcsh shells - <tt class="docutils literal"><span class="pre">setenv</span> <span class="pre">IDL_PATH</span> <span class="pre">&quot;+/home/labuser1/GPI/pipeline:${IDL_PATH}&quot;</span></tt></p>
+<p>For bash shells - <tt class="docutils literal"><span class="pre">export</span> <span class="pre">IDL_PATH=&quot;+/home/labuser1/GPI/pipeline/${IDL_PATH}&quot;</span></tt></p>
+<p>If the which command is not defined, this means that the pipeline and external directories have not been added to the $IDL_PATH. Verify that the modifications to the $IDL_PATH in the environment variable configuration scripts (e.g. setenv_GPI_sample.csh or setenv_GPI_sample.bash) is correct.</p>
+</div>
+<div class="section" id="variable-is-undefined-str-sep">
+<h3>Variable is undefined: STR_SEP.<a class="headerlink" href="#variable-is-undefined-str-sep" title="Permalink to this headline">¶</a></h3>
+<p>For users having IDL 8.2+, the str_sep.pro program is now an obsolete command. Although no pipeline source code calls this function, it is still used in some other external dependencies. For the time being, users should add the <cite>idl/lib/obsolete</cite> folder to their <cite>$IDL_PATH</cite> to remedy this issue. This can be done in the last line of the configuration scripts (e.g <cite>setenv_GPI_custom.csh</cite> or <cite>setenv_GPI_custom.bash</cite> - as discussed <a class="reference internal" href="installation/configuration.html#configuring"><em>here</em></a>)</p>
+</div>
+<div class="section" id="mac-osx-time-machine-warnings-about-permissions">
+<h3>Mac OSX Time machine warnings about permissions<a class="headerlink" href="#mac-osx-time-machine-warnings-about-permissions" title="Permalink to this headline">¶</a></h3>
+<p>Mac OSX Lion and Mountain Lion users running IDL 8.2 have been known to see the following error:</p>
+<p><tt class="docutils literal"><span class="pre">2011-07-21</span> <span class="pre">12:12:39.649</span> <span class="pre">idl[11368:1603]</span> <span class="pre">This</span> <span class="pre">process</span> <span class="pre">is</span> <span class="pre">attempting</span> <span class="pre">to</span> <span class="pre">exclude</span> <span class="pre">an</span> <span class="pre">item</span> <span class="pre">from</span> <span class="pre">Time</span> <span class="pre">Machine</span> <span class="pre">by</span> <span class="pre">path</span> <span class="pre">without</span> <span class="pre">administrator</span> <span class="pre">privileges.</span> <span class="pre">This</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">supported.</span></tt></p>
+<p>Although a nuisance, this error should have no affect on pipeline operation. Possible workarounds exist; details can be found <a class="reference external" href="http://www.exelisvis.com/Support/HelpArticlesDetail/TabId/219/ArtMID/900/ArticleID/5251/5251.aspx">here</a></p>
+</div>
+</div>
+<div class="section" id="less-common-software-issues">
+<span id="faq-less-common"></span><h2>Less common software issues<a class="headerlink" href="#less-common-software-issues" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="i-m-trying-to-reduce-data-from-multiple-different-days-in-one-recipe-and-the-output-directory-is-behaving-unexpectedly-what-s-going-on">
+<h3>I&#8217;m trying to reduce data from multiple different days in one recipe, and the output directory is behaving unexpectedly. What&#8217;s going on?<a class="headerlink" href="#i-m-trying-to-reduce-data-from-multiple-different-days-in-one-recipe-and-the-output-directory-is-behaving-unexpectedly-what-s-going-on" title="Permalink to this headline">¶</a></h3>
+<p>The output directory for a recipe is set once when the recipe is loaded in, not individually for each file. Thus all output files from a
+recipe should be output to the same directory. (The one exception to this is of course reduced calibration files which are always written to the
+calibration database directory.)</p>
+<p>If the output directory is set to &#8216;AUTOMATIC&#8217; and <tt class="docutils literal"><span class="pre">organize_reduced_data_by_dates</span></tt> is set to 1 (true), then the output directory is determined based on
+the YYMMDD date string for the first FITS file in that recipe.</p>
+</div>
+<div class="section" id="i-ve-gotten-an-error-that-the-pipeline-could-not-open-its-log-file-what-s-going-on">
+<h3>I&#8217;ve gotten an error that the pipeline could not open its log file. What&#8217;s going on?<a class="headerlink" href="#i-ve-gotten-an-error-that-the-pipeline-could-not-open-its-log-file-what-s-going-on" title="Permalink to this headline">¶</a></h3>
+<p>This error might look something like the following:</p>
+<div class="highlight-python"><div class="highlight"><pre>ERROR in OPENLOG:
+could not open file /Users/username/Documents/Projects/gpi_reduced/logs/gpi_drp_150121.log
+Please check your path settings and try restarting the pipeline.
+</pre></div>
+</div>
+<p>One possibility is that your disk is actually full or otherwise unwriteable (or your network file server is down, etc).</p>
+<p>The other possibility is that your computer is having trouble connecting to a
+network IDL license manager, if it&#8217;s configured to use one. In such cases, if
+IDL can&#8217;t get a license, it will still start, but in <em>demo mode</em> &#8211; in which case
+it does not have permissions to write any files.  You&#8217;ll need to fix your IDL
+licensing issues before continuing (or install the compiled version of the
+pipeline!).</p>
+</div>
+</div>
+<div class="section" id="gpitv">
+<span id="faq-gpitv"></span><h2>GPItv<a class="headerlink" href="#gpitv" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="blinking-images-doesn-t-work-properly">
+<h3>Blinking images doesn&#8217;t work properly<a class="headerlink" href="#blinking-images-doesn-t-work-properly" title="Permalink to this headline">¶</a></h3>
+<p>On some X windows systems (Mac OS and Linux), the tvrd() function used to implement
+image blinking doesn&#8217;t work properly. See this
+<a class="reference external" href="http://www.exelisvis.com/docs/TVRD.html#dg_routines_3604229493_888970">article from Exelis</a>
+describing the problem.</p>
+<p>The fix is simple: make sure that you set</p>
+<div class="highlight-idl"><div class="highlight"><pre><span class="nb">device</span>, retain<span class="o">=</span><span class="m">2</span>
+</pre></div>
+</div>
+<p>in your <cite>.idlstartup</cite> file.</p>
+</div>
+<div class="section" id="gpitv-is-crashing-on-startup-and-or-colors-are-behaving-weirdly">
+<h3>GPITV is crashing on startup, and/or colors are behaving weirdly.<a class="headerlink" href="#gpitv-is-crashing-on-startup-and-or-colors-are-behaving-weirdly" title="Permalink to this headline">¶</a></h3>
+<p>GPItv requires a 24-bit (millions of colors) display. Check if your X11 or other graphics system settings are for some reason set to 8-bit (256 color) mode. If so, you should change them to 24 bit color before running the GPI pipeline.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="license.html" title="Software Licenses"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="gpireference/coronagraph.html" title="Design of GPI Coronagraph Masks"
+             >previous</a> |</li>
+        <li><a href="index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

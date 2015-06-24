@@ -1,0 +1,196 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Tutorial 3: Reducing your own GPI data &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../index.html" />
+    <link rel="up" title="GPI Data Pipeline User’s Guide" href="index.html" />
+    <link rel="next" title="Tutorial 4: Spectrophotometric Calibration For Coronagraphic Imaging Spectroscopy" href="tutorial_spectrophotometry.html" />
+    <link rel="prev" title="Tutorial 2: Polarimetry data reduction" href="tutorial_pol.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="tutorial_spectrophotometry.html" title="Tutorial 4: Spectrophotometric Calibration For Coronagraphic Imaging Spectroscopy"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tutorial_pol.html" title="Tutorial 2: Polarimetry data reduction"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">GPI Data Pipeline User&#8217;s Guide</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Tutorial 3: Reducing your own GPI data</a><ul>
+<li><a class="reference internal" href="#getting-your-data-from-cadc">Getting your data from CADC</a></li>
+<li><a class="reference internal" href="#getting-related-calibration-files">Getting related calibration files</a></li>
+<li><a class="reference internal" href="#first-reduction-of-your-files">First Reduction of Your Files</a></li>
+<li><a class="reference internal" href="#next-steps">Next Steps</a></li>
+<li><a class="reference internal" href="#what-if-something-goes-wrong">What if something goes wrong?</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="tutorial_pol.html"
+                        title="previous chapter">Tutorial 2: Polarimetry data reduction</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="tutorial_spectrophotometry.html"
+                        title="next chapter">Tutorial 4: Spectrophotometric Calibration For Coronagraphic Imaging Spectroscopy</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/usage/tutorial_your_own_data.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="tutorial-3-reducing-your-own-gpi-data">
+<span id="usage-quickstart-yourdata"></span><h1>Tutorial 3: Reducing your own GPI data<a class="headerlink" href="#tutorial-3-reducing-your-own-gpi-data" title="Permalink to this headline">¶</a></h1>
+<p>So you have your own GPI data, probably from queue observations. What&#8217;s next?</p>
+<div class="section" id="getting-your-data-from-cadc">
+<h2>Getting your data from CADC<a class="headerlink" href="#getting-your-data-from-cadc" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li>Go to <a class="reference external" href="http://www2.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/en/gsa/archive/pi_form.pl">http://www2.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/cadcbin/en/gsa/archive/pi_form.pl</a></li>
+<li>Enter the name of your program and your Phase II password.</li>
+<li>Under &#8220;Proprietary Data Access&#8221;, click &#8220;Search for Complete Catalogue&#8221;</li>
+<li>Under &#8220;Select a standard query&#8221;, select &#8220;Any&#8221; and click &#8220;Continue to query form&#8221;</li>
+<li>In this new webpage, under &#8220;Science Program&#8221;, enter the name of your program.</li>
+</ol>
+<p>You should then be able to select and download your data files.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Right now only the raw files are being archived. We hope that by 2014B also the
+quicklook datacubes produced at the summit will also be archived.</p>
+</div>
+</div>
+<div class="section" id="getting-related-calibration-files">
+<h2>Getting related calibration files<a class="headerlink" href="#getting-related-calibration-files" title="Permalink to this headline">¶</a></h2>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">The following describes how things are working as of 2014A. It is possible that by 2014B the archive will be producing calibration
+packages for GPI that contain the required calibrations for just your program.</p>
+</div>
+<p>Detailed instructions about retrieving your calibration data from CADC can be found at
+<a class="reference external" href="http://www.gemini.edu/sciops/instruments/gpi/data-reduction-and-calibrations?q=node/12206">this page</a> on the Gemini website.</p>
+<p>For the convenience of the user, Gemini provides several pre-reduced calibrations on the <a class="reference external" href="http://www.gemini.edu/sciops/instruments/gpi/public-data">Public Data Wepage</a>. A complete set of Darks and wavelength calibration files in all bands are included.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last"><strong>We strongly recommend all new users download those Darks and Wavecals ZIP files from the GPI public data page. It&#8217;s easier to use these as a starting point rather than trying to bootstrap up a pipeline install completely from scratch.  Furthermore, the Tutorial zip file contains some additional calibration files, so if you for some reason haven&#8217;t done Tutorial 1, you should at least download and install the calibration files provided there.</strong></p>
+</div>
+</div>
+<div class="section" id="first-reduction-of-your-files">
+<h2>First Reduction of Your Files<a class="headerlink" href="#first-reduction-of-your-files" title="Permalink to this headline">¶</a></h2>
+<p>The first goal is to produce your own datacubes that are reasonably well calibrated but perhaps not the best possible. So we won&#8217;t worry about every little possible detailed adjustment yet. At this point we are more or less reproducing the quicklook reduction that happens at the summit. To begin, open the data reduction pipeline. You should see two windows, the GPI <a class="reference internal" href="launcher.html#launcher"><em>Launcher</em></a>, and the GPI DRP <a class="reference internal" href="status_console.html#status-console"><em>Status Console</em></a>.</p>
+<p>First step: Use the Launcher to start the <a class="reference internal" href="data_parser.html#data-parser"><em>Data Parser</em></a>. Load the downloaded calibration files into the Data Parser. This should create recipes to reduce darks and wavecals or polcals depending on the mode (Spectral or Polarimetry) of your data. To begin a reduction, select a recipe and Queue using the buttons on the bottom left of the Data Parser window.</p>
+<p>Check that the results look OK on GPItv.</p>
+<p>For more information on reducing darks, see <a class="reference internal" href="../ifs/steps/darks.html#processing-step-by-step-darks"><em>Darks</em></a>.</p>
+<p>Making wavecals is a 2 step process: Generate a good high quality wavecal from deeper lamp data taken during the day at zenith, then update for the flexure of your science data based on the short exposure wavecal taken at the same time. The deep wavecal does not need to be from particularly close in time to your science observations; the update for flexure does.</p>
+<p>For more information on wavelength calibrations, see <a class="reference internal" href="../ifs/steps/wavelength_calibration.html#wavelength-calibration"><em>Wavelength Calibrations</em></a>.</p>
+<p>Once the calibration files are reduced and saved to your calibrations database, you are now ready to reduce the science data. Open the <a class="reference internal" href="recipe_editor.html#recipe-editor"><em>Recipe Editor</em></a>. Load the FITS files of interest. Then in the recipe template selection, choose the reduction category (spectral or polarimetric science) and then choose the appropriate quicklook reduction template. E.g., &#8220;Quicklook Automatic Datacube Extraction&#8221;.</p>
+<p>Queue the recipe (using the Save Recipe and Queue button). It should produce some datacubes which are displayed in GPItv as they are created.</p>
+<p>There are many primitives available in the GPI Data Reduction Pipeline for additional calibrations. The complete list of all primitives is <a class="reference internal" href="primitives.html#primitives"><em>available here</em></a>. There is also a list of available <a class="reference internal" href="templates.html#templates"><em>Recipe Templates</em></a>.</p>
+</div>
+<div class="section" id="next-steps">
+<h2>Next Steps<a class="headerlink" href="#next-steps" title="Permalink to this headline">¶</a></h2>
+<p>Most GPI users will want to do some form of PSF subtraction. The pipeline provides several choices for different PSF subtraction routines you can run on datacubes, including LOCI ADI, KLIP ADI and SDI, differential polarimetry, etc. There are recipe templates for these starting from either raw files or precomputed cubes. If you&#8217;ve made decent cubes using the above steps, you can use e.g. the &#8220;KLIP ADI Reduction (from Reduced Cubes)&#8221; recipe.</p>
+<p>How to optimize PSF subtractions is beyond the scope of this documentation; consult the research literature...</p>
+<p>After you have created cubes and done some PSF subtraction, now depending on your results, you may wish to return to earlier steps of the process and iterate to adjust things. For instance you could choose to apply additional calibration to your datacubes based on a photometric standard star, add in a step for sky subtraction, and so on.</p>
+</div>
+<div class="section" id="what-if-something-goes-wrong">
+<h2>What if something goes wrong?<a class="headerlink" href="#what-if-something-goes-wrong" title="Permalink to this headline">¶</a></h2>
+<p>For examples of oddities you might encounter in your data, see <a class="reference internal" href="../ifs/gallery.html#ifs-data-gallery"><em>A Gallery of Example Data, Artifacts, and Noise Sources to be Aware Of</em></a>.</p>
+<p>Below we&#8217;ve briefly listed some common issues and solutions.
+For more Frequently Asked Questions about data reduction, see <a class="reference internal" href="../faq.html#frequently-asked-questions"><em>FAQ</em></a>.</p>
+<blockquote>
+<div><ul class="simple">
+<li><strong>Checkerboard or moire pattern</strong>. Indicates wavecal is offset due to flexure and needs to be updated. Be sure to use a wavelength calibration file created using an arc lamp taken at the same elevation as your science target. Alternatively, you can manually input the shifts due to flexure using the &#8220;Update Spot Shifts for Flexure&#8221; primitive by selecting Manual for the method and updating the manual_dx and manual_dy keywords.</li>
+<li><strong>Satellite spots cannot be found automatically</strong>. Satellite spots are used for precise astrometry of the star behind the coronagraph, for PSF registration during subtraction.
+If the pipeline is not able to locate the sat spots automatically, the user can input the locations manually. In the primitive called &#8220;Measure satellite spot locations&#8221;, select loc_input = 1 and then define x1,y1,x2,y2,x3,y3,x4 and y4 by looking at one of the *_spdc FITS files with GPItv.</li>
+<li>If you use a recipe that includes the &#8216;Measure contrast&#8217; primitive, be careful about the automatic contrast curves. These may not be optimal depending on context, e.g. they&#8217;re biased if you look at a binary star.</li>
+</ul>
+</div></blockquote>
+<p>Further questions will be addressed on the <a class="reference external" href="http://drforum.gemini.edu/forums/gemini-data-reduction/">Gemini Data Reduction User Forum</a>. We encourage all GPI users to contribute to this forum with questions, comments, and include any ideas or improvements for the GPI Data Reduction Pipeline.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="tutorial_spectrophotometry.html" title="Tutorial 4: Spectrophotometric Calibration For Coronagraphic Imaging Spectroscopy"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tutorial_pol.html" title="Tutorial 2: Polarimetry data reduction"
+             >previous</a> |</li>
+        <li><a href="../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="index.html" >GPI Data Pipeline User&#8217;s Guide</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

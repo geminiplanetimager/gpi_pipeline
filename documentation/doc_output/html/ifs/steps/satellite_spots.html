@@ -1,0 +1,171 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Satellite Spot Calibrations &mdash; GPI Data Pipeline 1.3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/sphinxdoc_gpi.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+    <link rel="top" title="GPI Data Pipeline 1.3.0 documentation" href="../../index.html" />
+    <link rel="up" title="Processing GPI Data, Step by Step" href="index.html" />
+    <link rel="next" title="Astrometric Calibration and Distortion Correction" href="distortion.html" />
+    <link rel="prev" title="Datacube Extraction" href="datacube_extraction.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="distortion.html" title="Astrometric Calibration and Distortion Correction"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="datacube_extraction.html" title="Datacube Extraction"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >GPI IFS Data Handbook</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Processing GPI Data, Step by Step</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/GPI_Logo_v2012.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3><a href="../../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Satellite Spot Calibrations</a><ul>
+<li><a class="reference internal" href="#observed-effect-and-relevant-physics">Observed Effect and Relevant Physics:</a></li>
+<li><a class="reference internal" href="#pipeline-processing">Pipeline Processing:</a></li>
+<li><a class="reference internal" href="#what-to-watch-out-for">What to watch out for:</a></li>
+<li><a class="reference internal" href="#relevant-gpi-team-members">Relevant GPI team members</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="datacube_extraction.html"
+                        title="previous chapter">Datacube Extraction</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="distortion.html"
+                        title="next chapter">Astrometric Calibration and Distortion Correction</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../../_sources/ifs/steps/satellite_spots.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="satellite-spot-calibrations">
+<span id="processing-step-by-step-flat-fielding-satellite-spot-calibrations"></span><h1>Satellite Spot Calibrations<a class="headerlink" href="#satellite-spot-calibrations" title="Permalink to this headline">¶</a></h1>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last">Further information may be found in <a class="reference external" href="http://arxiv.org/abs/1407.2308">Wang et al. 2014 &#8220;Gemini Planet Imager Observational Calibrations VIII:
+Characterization and Role of Satellite Spots&#8221;</a></p>
+</div>
+<div class="section" id="observed-effect-and-relevant-physics">
+<h2>Observed Effect and Relevant Physics:<a class="headerlink" href="#observed-effect-and-relevant-physics" title="Permalink to this headline">¶</a></h2>
+<p>The four satellite spots, which are replicas of the occulted central star, in each coronagraphic image are created from a grid that has been imprinted on the pupil plane masks (for more details see <a class="reference external" href="http://adsabs.harvard.edu/abs/2008SPIE.7015E..31M">Macintosh et al. &#8216;The Gemini Planet Imager: from science to design to construction&#8217;, 2008, Proc. SPIE vol. 7015</a>). These spots sit at the edge of the dark hole and are designed to be used for both determining the position of the occulted star, measuring the spectrum of the central star (in spectral mode). The satellites are also present in polarimetric data, but are seen as long oval shapes due to their chromaticity.</p>
+<a class="reference internal image-reference" href="../../_images/spec_pol_sat_spots.png"><img alt="../../_images/spec_pol_sat_spots.png" class="align-center" src="../../_images/spec_pol_sat_spots.png" style="width: 256.0px; height: 129.0px;" /></a>
+<p>The use of the satellites as a measurement of the central star position in both spectral and polarimetric modes gives stellar positions with an uncertainty of ~0.2 pixels (~3 mas). Within an individual exposure, users may experience smaller errors, however the error bar quoted here includes a systematic error component that was encountered when comparing several observations. Investigation into this error is ongoing.</p>
+<p>The use of these spots for photometric calibration has been challenging for several reasons. Nominally, the mask was designed to produce identical spots whose intensities were approximately 10000 times fainter than the primary star (star:satellite flux ratio of 1e-4). Lab measurements have shown the star:satellite flux ratio is to be closer to 2e-4 is not constant between observations. Reasons for this are unclear and work into determining their stability is ongoing. The most recent star:satellite flux ratios are found in the <cite>pipeline/config/apodizer_spec.txt</cite> file.</p>
+<a class="reference internal image-reference" href="../../_images/spec_sat_spot_variations.png"><img alt="../../_images/spec_sat_spot_variations.png" class="align-center" src="../../_images/spec_sat_spot_variations.png" style="width: 256.0px; height: 128.5px;" /></a>
+<p>To date, we see no evidence of variability in the satellite spectra, therefore using the satellites as a relative spectrophotometric calibrators is an acceptable practice. Difficulty in working with the satellite spots also arises from the diagonal spot pairs having slightly different PSFs. Because it is not possible to obtain an unocculted image of the star simultaneously with the satellites, comparison between the 5 PSFs is challenging. During comissioning, non-simultaneous observations have been performed and analysis is ongoing.</p>
+</div>
+<div class="section" id="pipeline-processing">
+<h2>Pipeline Processing:<a class="headerlink" href="#pipeline-processing" title="Permalink to this headline">¶</a></h2>
+<p>The satellite spots are used by the pipeline to measure the central position of the star and subsequently perform a measure of contrast. Their locations are found using the pipeline primitive <a class="reference internal" href="../../usage/primitives.html#measuresatellitespotlocations"><em>Measure satellite spot locations</em></a>. The primitive uses an algorithm to find the spots that is described in detail in section 4 of the <a class="reference external" href="http://adsabs.harvard.edu/abs/2013ApOpt..52.3394S">Savransky et al (2013) Applied optics paper</a>.</p>
+<p>For some images, particularily images with very strong halos and/or very low signal-to-noise in the satellite spots, the algorithm will fail. When this occurs the user has four levels of intervention to help remedy the situation. The first is to modify the <tt class="docutils literal"><span class="pre">search_window</span></tt> parameter from the recipe editor. Expanding this to larger numbers will sometimes allow convergence with zero impact on the processing time. The user can also apply a constraint on the distance between the satellite spots according to their wavelength, this is accomplished using the <tt class="docutils literal"><span class="pre">constrain</span></tt> parameter. A more robust method is to high-pass filter the image prior to running the algorithm. This is accomplished by modifying the <tt class="docutils literal"><span class="pre">highpass</span></tt> parameter, which declares the size of the side of median box filter. A box size of 15-25 is generally recommended. Note that this will provide a noticable reduction in the processing speed (~10 seconds per image). Lastly, the user can input the coordinates manually using the <tt class="docutils literal"><span class="pre">loc_input</span></tt> and <tt class="docutils literal"><span class="pre">x1,y1,x2,y2,x3,y3,x4,y4</span></tt> parameters and the <tt class="docutils literal"><span class="pre">reference_index</span></tt> for these values.</p>
+<p>The positions of the satellites are stored in the science header for later use by other primitives.</p>
+<p>In polarimetry mode, the location of the satellite spots are not currently found explictly, although this hopefully will be done in the future. Instead, the pipeline primitive <cite>Measure Star Position for Polarimetry</cite> uses a radon transform technique and the fact that all four elongated satellite spots point toward the center to locate the occulted star (see upcoming SPIE paper about satellite spots for deatils).</p>
+<p>In our current anaylsis of the data, this technique seems to be sufficient for locating the central star: both spectral mode and polarimetry mode uncertainty is dominated by systematic errors. However, the radon technique takes into account the whole image and is sensitive to noise/bright objects. There are a few techniques to make this procedure stable. First, the primitive requires a guess for the occulted star position and a search radius around the inital guess position. This limits the search algorithm and for the most part gives very good precision. Occasionally, a pixel value floor needs to be set using the <tt class="docutils literal"><span class="pre">lower_threshold</span></tt> parameter to remove any extremely negative pixels which sometimes appear around the border of the image. Lastly, it is important to mask out any bright sources that are brighter than the satellite spots. The primitive already masks out the halo of the central star, but if there are any bright companions in the image, they should be manually masked out also.</p>
+<p>There is currently no pipeline primitive to measure the satellite spot fluxes or contrats in polarimetry mode. This has not been calibrated yet and will be done in future work.</p>
+</div>
+<div class="section" id="what-to-watch-out-for">
+<h2>What to watch out for:<a class="headerlink" href="#what-to-watch-out-for" title="Permalink to this headline">¶</a></h2>
+<p>Occasionally, the algorithm will falsely claim to have found the satellite spots. Users should check the headers of at least one image in their stack to ensure the proper spot locations have been determined. Generally, if the spot locations are incorrect it is relatively apparent when looking at any extracted spectra, or sometimes even when scrolling through the cube slices.</p>
+<p>As mentioned previously, the star:satellite flux ratio has been observed to vary between observations. Any absolute calibration will be subject to unquantified uncertainty. It is suggested that users proceed with their science using non-flux calibrated spectra.</p>
+<p>Data taken with the atmospheric dispersion corrector (ADC) out suffers from atmospheric differential refraction (ADR) effects. The ADR effect smears out the star/companions over ~1 pixel (dependening on zenith angle). In spectral mode, the optimal way to account for it currently is to measure the star position in each individual frame using the satellite spots. In polarimetry mode, there is currently no way of correcting for ADR. All early science data should have been taken with the ADC, therefore leftover ADR effects should be small. However, GPI team members working with early commissioning data should account for ADR effects.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Note that the DRP measures satellite spots using IDL&#8217;s array indexing convention, such that the first pixel is (0,0) and NOT (1,1,).
+This is different from the convention adopted by FITS files, but we stick with the IDL convention anyway when writing the DRP coordinates
+to the FITS headers. If you want to use these coordinates in some other software, be sure that you are aware of the appropriate indexing convention.</p>
+</div>
+</div>
+<div class="section" id="relevant-gpi-team-members">
+<h2>Relevant GPI team members<a class="headerlink" href="#relevant-gpi-team-members" title="Permalink to this headline">¶</a></h2>
+<p>Patrick Ingraham, Jason Wang, Dmitry Savransky</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="distortion.html" title="Astrometric Calibration and Distortion Correction"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="datacube_extraction.html" title="Datacube Extraction"
+             >previous</a> |</li>
+        <li><a href="../../index.html">GPI Data Pipeline 1.3.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >GPI IFS Data Handbook</a> &raquo;</li>
+          <li><a href="index.html" >Processing GPI Data, Step by Step</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2014, Marshall Perrin, Jerome Maire &amp; the GPI Data Analysis Team.
+      Last updated on Jun 18, 2015.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>
