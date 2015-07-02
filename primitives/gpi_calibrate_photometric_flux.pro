@@ -20,7 +20,7 @@
 ;	OR
 ;	2b (OPTIONAL): a 2D spectrum (in ADU per COADD, where the COADD corresponds to input #1) - this should be entered using the calib_spectrum keyword. The file format must be three columns, the first being wavelength in microns, the second being flux in ADU per COADD, and third being the uncertainty. THis is useful to calibrate a cube if the calibration uses a different star as a calibrator.
 
-; The spectral type of the star and it's magnitude must be defined in the SPECTYPE and HMAG header keywords. These should be set by default but sometimes are not (or are not set correctly). One can modify them using the <Add Gemini and GPI keywords> primitive. Note that this primitive is only visible when <Show all primitives> is selected from the <Options> dropdown menu in the recipe editor. Based on these values, the primitive searches for an appropropriate pickles model for the spectral type and uses this to perform the calibration. If the pickles model is not appropriate, or you wish to provide a different model, this model can be input using the 'calib_model_spectrum' keyword.  The file format must be three columns, the first being wavelength in microns, the second being the flux in erg/s/cm2/A, the third being the uncertainty. 
+; The spectral type of the star and it's magnitude must be defined in the SPECTYPE and HMAG header keywords. These should be set by default but sometimes are not (or are not set correctly). One can modify them using the <Add Gemini and GPI keywords> primitive. Note that this primitive is only visible when <Show all primitives> is selected from the <Options> dropdown menu in the recipe editor. Based on these values, the primitive searches for an appropropriate pickles model for the spectral type and uses this to perform the calibration. If the pickles model is not appropriate, or you wish to provide a different model, this model can be input using the 'calib_model_spectrum' keyword.  The file format must be three columns, the first being wavelength in Angstrom, the second being the flux in erg/s/cm2/A, the third being the uncertainty. 
 ;
 ;
 ; Note that the calib_cube_name,calib_spectrum, and calib_model_spectrum require the entire directory+filename unless they are in the output directory
@@ -52,6 +52,7 @@
 ;   2013-08-07 ds: idl2 compiler compatible 
 ;	2014-01-07 PI: Created new gpi_calibrate_photometric_flux - big overhaul from the original apply_photometric_calibration 	
 ;  2015-06 JM: added surface brightness units
+;  2015-07 JM: Absolute photometry using the user model spectrum has been fixed (it had a 4 orders of magnitude offset, thanks to Lie-Wei for reporting this bug!). Now the user has to provide wavelength in Angstrom rather than in microns since the code uses Angstrom.
 ;-
 
 function gpi_calibrate_photometric_flux, DataSet, Modules, Backbone
@@ -479,7 +480,7 @@ endif
 	;endif
 
 ; should actually put in the data from the calibration cube!
-; aso have to pass a variable with the calib_model_spectrum
+; also have to pass a variable with the calib_model_spectrum
 
 converted_model_spectrum = gpi_photometric_calibration_calculation(lambda,*(dataset.headersPHU[numfile]),*(dataset.headersExt[numfile]),units=FinalUnits,ref_model_spectrum=calib_model_spectrum,ref_star_magnitude=star_mag, ref_filter_type=ref_filter_type, ref_SpType=SpType,logarr=logarr,surface_brightness_units=surface_brightness_units)
 ; now print out the log - this is due to some bug that causes bus errors/segementation faults using the message,/info program
