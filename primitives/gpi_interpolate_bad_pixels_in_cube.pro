@@ -41,13 +41,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
  	if tag_exist( Modules[thisModuleIndex], "before_and_after") then before_and_after=fix(Modules[thisModuleIndex].before_and_after) else before_and_after=0
     	if keyword_set(before_and_after) then cube0= *dataset.currframe ; save copy for later display if desired
 
-	if tag_exist( Modules[thisModuleIndex], "Method") then method= strupcase(Modules[thisModuleIndex].method) else method="NEW"
+	if tag_exist( Modules[thisModuleIndex], "method") then method= strupcase(Modules[thisModuleIndex].method) else method="NEW"
 
-	if tag_exist( Modules[thisModuleIndex], "Threshold") then threshold= strupcase(Modules[thisModuleIndex].threshold) else threshold=1.2
+	if tag_exist( Modules[thisModuleIndex], "threshold") then threshold= strupcase(Modules[thisModuleIndex].threshold) else threshold=1.2
+	;if tag_exist( Modules[thisModuleIndex], "thres_diff") then thres_diff= strupcase(Modules[thisModuleIndex].thres_diff) else thres_diff=1e3
 
-  	backbone->set_keyword, 'DRPFLEX', Method, ' Selected method for handling flexure-induced shifts'
-
-    	backbone->set_keyword,'HISTORY',functionname+": Heuristically locating and interpolating"
+    	backbone->set_keyword,'HISTORY',functionname+": Locating and interpolating"
     	backbone->set_keyword,'HISTORY',functionname+": bad pixels in the data cube."
 	disperser = gpi_simplify_keyword_value(backbone->get_keyword('DISPERSR', indexFrame=nfiles))
 
@@ -70,12 +69,26 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 				slice = img[*,*,n]
 				lowfrq = median(slice,3)
 				tst = abs(slice-lowfrq)
-				ids = where(tst gt threshold*lowfrq,count)
+				;bpx from local variance
+				ids = where(tst gt (threshold*lowfrq)-lowfrq,count)
+				;bpx from absolute difference
+				;ids2 = where(tst gt thres_diff)
+				;ids = [ids1,ids2]
+				;ids = ids[uniq(ids,sort(ids))]
 				if count eq 0 then break
 				bad = MAKE_ARRAY(sz[1], sz[2], /INTEGER, VALUE = 0)
 				bad[ids] = 1
-				badcube[*,*,n] = bad 
+				badcube[*,*,n] = bad
+				
+				;plots
+				;window,4
+				;cgHistoplot, tst, max_value=100,/fill,bin=1e2
+				;cgHistoplot, tst[ids], max_value=100,color="blue",bin=1e2,/oplot
+				;cgplot, [thres_diff,thres_diff], [0,100], color="green", /overplot 
+				;stop
 			endfor
+			;*dataset.currframe = badcube
+			;b_Stat = save_currdata( DataSet,  Modules[thisModuleIndex].OutputDir, 'badpix_3dcube', display=display)
 			print,"Number of bad pixels: ",n_elements(ids)
 			;median neighbors
 			ids = where_xyz(badcube,count,xind=xind,yind=yind,zind=zind)
@@ -101,7 +114,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 						zh = z+1
 						if zl lt 0 then zl=0
 						if zh ge sz[3] then zh=sz[3]-1
-						img[xind[i],yind[i],zind[i]] = median(img[xl:xh,yl:yh,z])
+						img[xind[i],yind[i],zind[i]] = median(img[xl:xh,yl:yh,zl:zh])
 						ii=strcompress(string(i,f='(F4)'),/rem) 
 		  				print,f='(%"\33[1M %s \33[1A")',ii				
 					endfor
