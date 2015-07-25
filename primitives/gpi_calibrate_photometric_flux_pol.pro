@@ -42,7 +42,7 @@
 ;-
 
 function gpi_calibrate_photometric_flux_pol, DataSet, Modules, Backbone
-primitive_version= '$Id: __template.pro 2878 2014-04-29 04:11:51Z mperrin $' ; get version from subversion to store in header history
+primitive_version= '$Id$' ; get version from subversion to store in header history
 
 @__start_primitive
 
@@ -176,7 +176,6 @@ endcase
 
 
 *dataset.currframe = cube_calibrated
-
 
 ;; Log the calibration factor, the error, and the history in the header
 backbone->set_keyword, 'BUNIT',  unitslist[final_unit] ,'Physical units of the array values', ext_num=1
