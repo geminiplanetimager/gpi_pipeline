@@ -131,12 +131,17 @@ f_sat0 = mean([s00, s01, s02, s03])
 f_sat0_err = sqrt(total([e00^2, e01^2, e02^2, e03^2]))/4.
 f_sat1 = mean([s10, s11, s12, s13])
 f_sat1_err = sqrt(total([e10^2, e11^2, e12^2, e13^2]))/4.
-if strmatch(filetype,'*Stokes Cube*',/fold_case) then begin     ; In the case for a Stokes cube, only the first slice (stokes I) matters 
+if size[3] eq 4 then begin                                      ; For a Stokes cube, only the first slice (stokes I) matters 
     f_sat = f_sat0                                              ; [ADU/coadd]
     f_sat_err = f_sat0_err                                      ; [ADU/coadd]
-endif else begin                                                ; In the case for a podc file, we use the sum of two slices (total intensity)
-    f_sat = total([f_sat0, f_sat1])                             ; [ADU/coadd]
-    f_sat_err = sqrt(f_sat0_err^2 + f_sat1_err^2)               ; [ADU/coadd]
+endif else begin 
+    if size[3] eq 2 then begin                                  ; For a podc file, we use the sum of two slices (total intensity)
+        f_sat = total([f_sat0, f_sat1])                         ; [ADU/coadd]
+        f_sat_err = sqrt(f_sat0_err^2 + f_sat1_err^2)           ; [ADU/coadd]
+    endif else begin 
+        print, "The 3rd dimension of the input cube is ", size[3], "; not ure if it's a Stokes cube or a podc cube."
+        return, not_ok
+    endelse
 endelse
 
 
