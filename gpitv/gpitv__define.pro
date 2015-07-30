@@ -2591,7 +2591,8 @@ pro GPItv::draw_vector_event, event, measure=measure, wavecal=wavecal
         (*self.state).vectorstart = [event.x, event.y] 	; stores X and Y locations in DISPLAY PIXELS
         self->drawvector, event, measure=measure, wavecal=wavecal
         (*self.state).vectorpress = 1
-      endif else if (event.press EQ 2) and keyword_set(measure) then begin
+      endif else if ((event.press EQ 2) or (event.press EQ 4)) and keyword_set(measure) then begin
+		; For middle or right click:
         ; Measure from star center location, if present
         ;; if not data cube, bail
         if (n_elements((*self.state).image_size) ne 3) || (((*self.state).image_size)[2] lt 2) then return
@@ -2620,7 +2621,7 @@ pro GPItv::draw_vector_event, event, measure=measure, wavecal=wavecal
       endif
     end
     1: begin           ; button release
-      if (event.release EQ 1) or (event.release EQ 2) then begin  ; left button release
+      if (event.release EQ 1) or (event.release EQ 2) or (event.release EQ 4) then begin  ; left button release
         (*self.state).vectorpress = 0
         (*self.state).vector_coord2[0] = (*self.state).coord[0] ; DATA COORDINATE PIXELS again.
         (*self.state).vector_coord2[1] = (*self.state).coord[1]
@@ -17227,12 +17228,45 @@ pro GPItv::apphot_refresh, ps=ps, enc_ener=enc_ener, sav=sav
   ;;update display
   (*self.state).centerpos = [x, y]
   xy2ad, (*self.state).centerpos[0], (*self.state).centerpos[1],*((*self.state).astr_ptr) ,  startra, startdec
+  tmp_stringb = 'RA: '+sigfig(startra,5)+" DEC: "+sigfig(startdec,5)
+
+  ; Let's display relative coords instead of absolute, if we have a datacube
+  ; with sat spots:
+    if (n_elements((*self.state).image_size) eq 3) then begin
+        if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then self->update_sat_spots
+		; if we still don't have sat spots, skip this
+		if (n_elements(*self.satspots.cens) eq 8L * (*self.state).image_size[2]) then begin
+			;;calculate center locations
+			;  cents = mean(*self.satspots.cens,dim=2) ; not idl 7.0 compatible
+			tmp=*self.satspots[*].cens
+			cents=fltarr(2)
+			for q=0, 1 do cents[q]=mean(tmp[q,*,*])
+			vector_coord1 = cents
+			coord = [x,y]
+
+			pixel_distance =sqrt( ((vector_coord1[0]-coord[0]))^2 $
+			  +((vector_coord1[1]-coord[1]))^2 )
+
+			; Compute rigorous great circle distance using gcirc etc
+			;  provides correct results for complicated projections.
+			xy2ad, vector_coord1[0], vector_coord1[1],*((*self.state).astr_ptr) ,  startra, startdec
+			xy2ad, coord[0],         coord[1],        *((*self.state).astr_ptr) ,  stopra, stopdec
+			gcirc, 1, startra/15, startdec, stopra/15, stopdec, distance
+			posang, 1, startra/15, startdec, stopra/15, stopdec, pa
+
+
+		tmp_stringb = "Relative offset:  "+sigfig(distance,3)+'"  PA='+sigfig(pa,3)+" deg"
+
+
+		endif
+ 
+
+    endif
 
   tmp_string = string((*self.state).cursorpos[0], (*self.state).cursorpos[1], $
     format = '("Cursor position:  x=",i4,"  y=",i4)' )
   tmp_string1 = string((*self.state).centerpos[0], (*self.state).centerpos[1], $
     format = '("Object centroid:  x=",f7.2,"  y=",f7.2)' )
-  tmp_stringb = 'RA: '+sigfig(startra,5)+" DEC: "+sigfig(startdec,5)
   tmp_string2 = strcompress(fluxstr+string(flux, format = '(g12.6)' ))
 
   tmp_string3 = "Sky level:"+string(sky,format = '(f6.1)')+" +/- "+strtrim(string(skyerr, format='(f6.1)'),2)
@@ -17678,6 +17712,10 @@ pro GPItv::apphot
     tmp_string1 = $
       string(99999.0, 99999.0, $
       format = '("Object centroid:  x=",f7.2,"  y=",f7.2)' )
+    tmp_stringb = $
+      string(0.0, 0.0, $
+      format = '("Relative offset:  sep=",f5.2,"  PA=",f5.2)' )
+
 
     (*self.state).centerpos_id = $
       widget_label(apphot_data_base1a, $
@@ -18729,6 +18767,7 @@ pro GPItv::low_pass_filter, status=status, forcestack=forcestack
 
       ; note that setting the no_ft to zero is bad! it should either be 1 or not declared at all
       ; leaving it as 0 causes the image to fill with nans sometimes (not sure when)
+	  ; MP - FIXME this will not work on IDL 7!
       if LMGR(/runtime) eq 1 then no_ft=1 else no_ft=[]
 
       for s=0,N_ELEMENTS(im[0,0,*])-1 do $
