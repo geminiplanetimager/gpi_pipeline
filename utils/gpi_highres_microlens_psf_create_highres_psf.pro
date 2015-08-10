@@ -332,12 +332,12 @@ r=distarr(n,n)
 signs= [ [-1.0, 1.0, -1.0], $
          [ 1.0, 1.0,  1.0], $
          [-1.0, 1.0, -1.0]]
-n=5
-signs= [ [  1.0, -1.0, -1.0, -1.0,  1.0], $
-         [ -1.0, -1.0,  1.0, -1.0, -1.0], $
-	 [  -1.0,  1.0,  1.0,  1.0,  -1.0], $
-        [ -1.0, -1.0,  1.0, -1.0, -1.0], $
-	 [  1.0, -1.0, -1.0, -1.0,  1.0]]
+;n=5
+;signs= [ [  1.0, -1.0, -1.0, -1.0,  1.0], $
+;         [ -1.0, -1.0,  1.0, -1.0, -1.0], $
+;	 [  -1.0,  1.0,  1.0,  1.0,  -1.0], $
+;        [ -1.0, -1.0,  1.0, -1.0, -1.0], $
+;	 [  1.0, -1.0, -1.0, -1.0,  1.0]]
 
 ; how about using a square box kernel - rotated by ~24.5 degrees
 if 1 eq 1 then begin
@@ -367,8 +367,8 @@ endif
 	 ;'H':kernel=1.0/((abs(r/15.0)+1.0)^15)*signs ; MUST UPDATE - better - creates a doughnut
 	 ;'H':kernel=signs
  	 ; 'H':kernel=1.0/((abs(r/12.0)+1.0)^15)*abs(signs) ; MUST UPDATE - about a 1% error - still creates doughnut
-	 'H': kernel=I[cent_indx-2:cent_indx+2,cent_indy-2:cent_indy+2]*abs(signs)
-	 ;'H': kernel=I[cent_indx-1:cent_indx+1,cent_indy-1:cent_indy+1]*abs(signs)
+	 ;'H': kernel=I[cent_indx-2:cent_indx+2,cent_indy-2:cent_indy+2]*abs(signs)
+	 'H': kernel=I[cent_indx-1:cent_indx+1,cent_indy-1:cent_indy+1]*abs(signs)
  	 ;'H':kernel=1.0/((abs(r/10.0)+1.0)^6.5)*signs ; fit from psf - not good - not sharp enough
 	 ; 	 'K1':kernel=1.0/((abs(r/10.0)+1.0)^6)*signs  ; updated 140501 - not amazing - asymmetric?
 	 'K1':kernel=1.0/((abs(r/10.0)+1.0)^15)*signs  ; no idea why this works better... 
@@ -537,8 +537,8 @@ for l=0, loop_iterations-1 do begin
 	psf0=psf
 	; so psf holds the pre-smoothed psf
 	; psf2 is the smoothed psfi
-	psf2 = CONVOL( psf, kernel,/nan )
-;psf2=psf
+;	psf2 = CONVOL( psf, kernel,/nan )
+psf2=psf
         ; must replace the nans that were in the array with nans
         ; otherwise a weird smoothing happens which is bad
 	ind = where(finite(psf) eq 0) ; just original nans
@@ -551,7 +551,7 @@ for l=0, loop_iterations-1 do begin
 	; for the moment we'll just replace them with the originals
 	mask1=finite(psf0)
 	mask2= CONVOL( float(mask1), kernel,/nan )
-	corrupt_ind=where(mask2 ne total(kernel) and mask2 ne 0,complement=gind)
+	corrupt_ind=where(mask2 ne total(kernel) and mask2 ne 0,complement=gind); just corrupted borders
 	bad_ind=where(mask2 ne total(kernel))
 	; normalize so that the psf is the same total as the convolved psf
 	psf2*=total(psf[gind],/nan)/total(psf2[gind],/nan)
