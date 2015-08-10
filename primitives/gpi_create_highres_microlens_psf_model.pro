@@ -94,19 +94,32 @@ bad_pixel_mask=abs(bad_pixel_mask-1)
 				; if we are working with narrowband filter data, we want the centroid to be at the maximum
         if filter_wavelength ne -1 then cent_mode="MAX"
                                 ; Create raw data stamps
+ 		if filter eq 'K1' then begin
+				top_adjustment=-8
+				bottom_adjustment=-7
+		endif
+		if filter eq 'J' then begin
+				top_adjustment=0
+				bottom_adjustment=-11
+		endif
         spaxels = gpi_highres_microlens_psf_extract_microspectra_stamps(disperser, dataset.frames[0:(nfiles-1)],$
-				dataset.wavcals[0:(nfiles-1)], width_PSF, bad_pixel_mask=bad_pixel_mask, /STAMPS_MODE);,/gaussians) 
+				dataset.wavcals[0:(nfiles-1)], width_PSF, top_adjustment=top_adjustment,bottom_adjustment=bottom_adjustment, bad_pixel_mask=bad_pixel_mask, /STAMPS_MODE,/gaussians) 
 
      end
      'WOLLASTON': begin
         width_PSF = 7                            ; size of stamp?
         n_per_lenslet =2                         ; there are 2 PSFs per lenslet in polarimetry mode.
-        sub_pix_res_x = 4                        ; sub_pixel resolution of the highres ePSF
-        sub_pix_res_y = 4                        ; sub_pixel resolution of the highres ePSF
+        sub_pix_res_x = 2                        ; sub_pixel resolution of the highres ePSF
+        sub_pix_res_y = 2                        ; sub_pixel resolution of the highres ePSF
         cent_mode = "MAX"
                                 ; Create raw data stamps
-        spaxels = gpi_highres_microlens_psf_extract_microspectra_stamps(disperser, image, polcal, width_PSF,$
-					bad_pixel_mask=bad_pixel_mask, /STAMPS_MODE,/gaussians)
+		;image=*dataset.frames[0]
+		;tmp_pol_cal=polcal
+		;spaxels = gpi_highres_microlens_psf_extract_microspectra_stamps(disperser, image, polcal, width_PSF,$
+		;			bad_pixel_mask=bad_pixel_mask, /STAMPS_MODE,/gaussians)
+		spaxels = gpi_highres_microlens_psf_extract_microspectra_stamps(disperser, dataset.frames[0:(nfiles-1)],$
+				dataset.polcals[0:(nfiles-1)], width_PSF, bad_pixel_mask=bad_pixel_mask, /STAMPS_MODE);,/gaussians) 
+
 
      end
   endcase
@@ -151,7 +164,7 @@ ptr_free, spaxels.values[50,167]
 ; over the flexure loop - so the RHS of figure 8 in the Anderson paper
 ; this should probably be moved into a recipe keyword.
 ;stop
-  it_flex_max = 4				; what is this? -MP  # of iterations for flexure? Not clear what is being iterated over.
+  it_flex_max = 5				; what is this? -MP  # of iterations for flexure? Not clear what is being iterated over.
 ;   degree_of_the_polynomial_fit = 2 ; degree of the polynomial surface used for the flexure correction
 ; can't have multiple iterations if just one file - this should be a recipe failure
 
@@ -191,8 +204,8 @@ chisq_arr=fltarr(281,281,n_per_lenslet,nfiles,it_flex_max)
 ; imin_test = 190 & imax_test = 280
 ; jmin_test = 0 & jmax_test = 210
 
- imin_test = pp_xind-21 & imax_test = pp_xind+25
- jmin_test = pp_yind-21 & jmax_test = pp_yind+20
+; imin_test = pp_xind-21 & imax_test = pp_xind+25
+; jmin_test = pp_yind-21 & jmax_test = pp_yind+20
 
 ; imin_test = 123 & imax_test =179
 ; jmin_test = 0 & jmax_test = 83
@@ -298,7 +311,9 @@ kernel_testing:
                     current_tilt=median((spaxels.tilts[[iarr],[jarr],k,*])[not_null_ptrs])
 
 		psf_kernel_testing:
-if i eq 183 and j eq 186 then flag=1 else flag=0
+;if i eq 183 and j eq 186 then flag=1 else flag=0
+
+;if i eq 110 and j eq 176 then flag=1 else flag=0 ; K1 band check
 ;flag=1
 ;if i eq 184 and j eq 194 and it_flex ge 0 then stop,'arrived at problematic section - create save file'
 
@@ -343,7 +358,7 @@ print,'' ; just puts a space in the status line
 	; now fit the PSF to each elevation psf and each neighbour
 ;		print, "Fitting PSFs: for file "+strc(f)
 
-	valid=ptr_valid(psfs) ; which psfs are valid?
+	valid=ptr_valid(psfs[*,*,k]) ; which psfs are valid?
 
 	  ; now loop over each lenslet
            for i=(imin_test-n_neighbors)>0,(imax_test+n_neighbors)<280 do begin				
@@ -354,13 +369,17 @@ print,'' ; just puts a space in the status line
 		if ptr_valid(spaxels.values[i,j,k]) eq 0 then continue
 
 		; interpolate to grab the psf for this lenslet
-		ptr_highres_psf = gpi_highres_microlens_psf_get_local_highres_psf(PSFs,[i,j,k],/preserve_structure,valid=valid)
+		ptr_highres_psf = gpi_highres_microlens_psf_get_local_highres_psf(PSFs[*,*,k],[i,j,k],/preserve_structure,valid=valid)
 
 		; loop over the files/elevations
 		for f = 0,nfiles-1 do begin
 
 			first_guess_parameters = [spaxels.xcentroids[i,j,k,f], spaxels.ycentroids[i,j,k,f], spaxels.intensities[i,j,k,f]]
+			
 			weights='radial'
+			; check that all information is valid
+			if finite(first_guess_parameters) ne [0] then begin
+					; lenslet info is bad for this frame
 
 			ncoadds = gpi_simplify_keyword_value(backbone->get_keyword('COADDS0', indexFrame=f))
 ;if i eq 183 and j eq 186 then flag=1 else flag=0
@@ -385,6 +404,14 @@ print,'' ; just puts a space in the status line
 			fitted_spaxels.xcentroids[i,j,k,f] = best_parameters[0]
 			fitted_spaxels.ycentroids[i,j,k,f] = best_parameters[1]
 			fitted_spaxels.intensities[i,j,k,f] = best_parameters[2]
+
+			endif else begin
+			    ptr_free, fitted_spaxels.values[i,j,k,f]
+				fitted_spaxels.xcentroids[i,j,k,f] = !values.f_nan
+				fitted_spaxels.ycentroids[i,j,k,f] = !values.f_nan
+				fitted_spaxels.intensities[i,j,k,f] = !values.f_nan
+			endelse
+
 ;if it_flex eq 1 and i eq 174 and j eq 184 then stop,'here after fitting'
 ; gpi_highres_debugging
 
@@ -408,13 +435,17 @@ print,'' ; just puts a space in the status line
 
 
 transform_section:
+; want to do 1 transform per spot for the moment (this is not ideal but merging both lenslet spots into a single array is difficult book-keeping wise) 
+
+; this is only greater than 0 for polarimetry`
+	for k=0,n_per_lenslet-1 do begin 
  
 ;set the first file as the reference image/elevation.
 ;All the transformations to go from one elevation to another are computed from that image or to that image.
 ; ORIGINAL
 ;  not_null_ptrs = where(finite(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,0]), n_not_null_ptrs) ; select only the lenslets for which we have a calibration.
 
-  valid_ctrd_ptrs = where(finite(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,0]+spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,0]) eq 1) ; select only the lenslets for which we have a calibration.
+  valid_ctrd_ptrs = where(finite(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,k,0]+spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,k,0]) eq 1) ; select only the lenslets for which we have a calibration.
 
 ; this part of the code does not use pointers! so there should be no reason to
 ; mess around with the valid pointer indicies
@@ -423,12 +454,8 @@ transform_section:
 ; the reference isn't overly important, but it is best to use 
 ; the instrument position corresponding to the wavecal 
 ; just for simplicity
-     xcen_ref = (spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,0]);[valid_ctrd_ptrs]
-     ycen_ref = (spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,0]);[valid_ctrd_ptrs]
-
-; xcen_ref2d = (spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,0])   
-;  ycen_ref2d = (spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,0])
-
+     xcen_ref = (spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,k,0])
+	 ycen_ref = (spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,k,0])
 
 ; arrays to determine mean position in referece array - for entire detector and all elevations
 ; only really good for showing errors in flexure etc
@@ -438,18 +465,18 @@ transform_section:
      ycen_ref_arr2d=fltarr(281,281,nfiles)
 
    ; create array to hold the transforms between elevations
+;	xtransf_im_to_ref=fltarr(281,281,n_per_lenslet,nfiles)   ; orig
+;	ytransf_im_to_ref=fltarr(281,281,n_per_lenslet,nfiles)   ; orig
+
 	xtransf_im_to_ref=fltarr(281,281,nfiles)
 	ytransf_im_to_ref=fltarr(281,281,nfiles)
 
-
-; !!!!!! WARNING !!!!!!!
-;THIS IS tested TO WORK IN SPECTRAL MODE FOR NOW!
-; although the code SHOULD work and combine both polarization states
+; create median box size for flexure offseting
 med_box=[40,30,30,20,10]
     for f = 0,nfiles-1 do begin
  	; xtransform array
-	xtrans_tmp=xcen_ref-(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,f])
-	ytrans_tmp=ycen_ref-(spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,f])
+	xtrans_tmp=xcen_ref-(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,k,f])
+	ytrans_tmp=ycen_ref-(spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,k,f])
 	nan_ind=where(finite(xtrans_tmp+ytrans_tmp) eq 0,ct)	
 	; now filter the array
 	xtrans_tmp2=filter_image(xtrans_tmp,median=med_box[it_flex<N_ELEMENTS(med_box)],/all) ; this is about 4 cycles per aperture
@@ -464,11 +491,11 @@ med_box=[40,30,30,20,10]
 	xtransf_im_to_ref[imin_test:imax_test,jmin_test:jmax_test,f]=xtrans_tmp2
 	ytransf_im_to_ref[imin_test:imax_test,jmin_test:jmax_test,f]=ytrans_tmp2
 
-	xcen_ref_arr[*,f]=( (spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,f])+xtransf_im_to_ref[imin_test:imax_test,jmin_test:jmax_test,f] )[valid_ctrd_ptrs]
-	ycen_ref_arr[*,f]=( (spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,f])+ytransf_im_to_ref[imin_test:imax_test,jmin_test:jmax_test,f] )[valid_ctrd_ptrs]
+	xcen_ref_arr[*,f]=( (spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,k,f])+xtransf_im_to_ref[imin_test:imax_test,jmin_test:jmax_test,f] )[valid_ctrd_ptrs]
+	ycen_ref_arr[*,f]=( (spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,k,f])+ytransf_im_to_ref[imin_test:imax_test,jmin_test:jmax_test,f] )[valid_ctrd_ptrs]
 
-	xcen_ref_arr2d[imin_test:imax_test,jmin_test:jmax_test,f]=( (spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,f])+xtransf_im_to_ref[imin_test:imax_test,jmin_test:jmax_test,f] )
-	ycen_ref_arr2d[imin_test:imax_test,jmin_test:jmax_test,f]=( (spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,*,f])+ytransf_im_to_ref[imin_test:imax_test,jmin_test:jmax_test,f] )
+	xcen_ref_arr2d[imin_test:imax_test,jmin_test:jmax_test,f]=( (spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,k,f])+xtransf_im_to_ref[imin_test:imax_test,jmin_test:jmax_test,f] )
+	ycen_ref_arr2d[imin_test:imax_test,jmin_test:jmax_test,f]=( (spaxels.ycentroids[imin_test:imax_test,jmin_test:jmax_test,k,f])+ytransf_im_to_ref[imin_test:imax_test,jmin_test:jmax_test,f] )
 
     endfor   ; ends loop over different elevations
 
@@ -497,7 +524,7 @@ endfor
 ; #############################
 
 ; a stupid idl problem that naturally collapses arrays makes this only usable when f gt 1 at the moment
-if 1 eq 1 and nfiles gt 1 then begin
+if 0 eq 1 and nfiles gt 1 then begin
 		stop,'at pixel phase'
 		pixel_phase:
 	; pp_logs is just a dump variable at the moment, but can be used to track pp over iterations
@@ -519,7 +546,7 @@ endif
      z_id = valid_ctrd_ptrs / (281L*281L)
 
 ; determine indices of arrays to replace
-ind_arr = array_indices(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,*,0],valid_ctrd_ptrs)
+ind_arr = array_indices(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_test,k,0],valid_ctrd_ptrs)
 
 ;stop,"about to apply flexure correction to centroids"
 
@@ -541,8 +568,8 @@ ind_arr = array_indices(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_te
            endfor
         endif else begin
            for zx=0L,N_ELEMENTS(ind_arr[0,*])-1 do begin
-              spaxels.xcentroids[ind_arr[0,zx]+imin_test,ind_arr[1,zx]+jmin_test,*,f] = mean_xcen_ref_in_im[zx]
-              spaxels.ycentroids[ind_arr[0,zx]+imin_test,ind_arr[1,zx]+jmin_test,*,f] = mean_ycen_ref_in_im[zx]
+              spaxels.xcentroids[ind_arr[0,zx]+imin_test,ind_arr[1,zx]+jmin_test,k,f] = mean_xcen_ref_in_im[zx]
+              spaxels.ycentroids[ind_arr[0,zx]+imin_test,ind_arr[1,zx]+jmin_test,k,f] = mean_ycen_ref_in_im[zx]
            endfor
         endelse
 
@@ -562,8 +589,10 @@ ind_arr = array_indices(spaxels.xcentroids[imin_test:imax_test,jmin_test:jmax_te
 	
 	plot, median(median(xtmp,dim=2),dim=1) mod 0.5,median(median(ytmp,dim=2),dim=1) mod 0.5,psym=2
 
-	 
-  endfor ; end of flexure correction loop (over it_flex)
+	endfor ; this ends the loop over the transformations for each pol spot (k)	
+	
+	 print, 'at the end of iteration '+string(it_flex) 
+endfor ; end of flexure correction loop (over it_flex)
 
   
      print, 'Run complete in '+strc((systime(1)-start_time)/60.)+' minutes' 
