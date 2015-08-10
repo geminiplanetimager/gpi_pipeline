@@ -4,16 +4,22 @@ function gpi_highres_microlens_psf_get_local_highres_psf, high_res_PSFs, lcoords
 ; an average local psf
 
 ; check to see if there is already a psf at this position!
-ptr_current_PSF = high_res_psfs[lcoords[0],lcoords[1],lcoords[2]]
+;ptr_current_PSF = high_res_psfs[lcoords[0],lcoords[1],lcoords[2]]
+ptr_current_PSF = high_res_psfs[lcoords[0],lcoords[1]]
+
 ; if yes, then just return it
    if ptr_valid(ptr_current_PSF) then begin
-	obj_PSF  = *high_res_psfs[lcoords[0],lcoords[1],lcoords[2]]
+;	obj_PSF  = *high_res_psfs[lcoords[0],lcoords[1],lcoords[2]]
+	obj_PSF  = *high_res_psfs[lcoords[0],lcoords[1]]
+
 	obj_psf.values/=total(obj_psf.values,/nan) ; this is dangerous due to goofy edge effects
 
 	new_psf_ptr=ptr_new(obj_PSF,/no_copy)
 
 	; now replace the null pointer in high_res_psfs with a new (and valid) one - if desired
-	if keyword_set(preserve_structure) eq 0 then high_res_psfs[lcoords[0],lcoords[1],lcoords[2]]=new_psf_ptr
+;	if keyword_set(preserve_structure) eq 0 then high_res_psfs[lcoords[0],lcoords[1],lcoords[2]]=new_psf_ptr
+	if keyword_set(preserve_structure) eq 0 then high_res_psfs[lcoords[0],lcoords[1]]=new_psf_ptr
+
 	; now return the pointer 
 	return,new_psf_ptr
   endif	
