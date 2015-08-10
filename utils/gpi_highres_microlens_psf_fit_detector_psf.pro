@@ -232,6 +232,9 @@ for i_slice = 0L,long(nz-1) do begin
 
 	; 1/data_variance will give nans - so just use certain indicies
 	ind=where(data_variance ne 0,ct)
+	
+	; issue when building polarimetry PSFs here... not sure I understand why - have to remove the variance division  
+	; #####
 	if ct gt 0 then final_weights[ind]=weights0[ind]/data_variance[ind] else stop,'in fit_detector_psf, no good pixels?'
 	; the paper says the weights should be weights=radial_weighting/variance
 	;stop	
