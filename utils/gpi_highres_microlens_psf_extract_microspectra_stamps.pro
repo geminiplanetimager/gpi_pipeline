@@ -344,9 +344,10 @@ case my_type of
 					ycentroids[i,j,0,it_elev]=A[5]
 					intensities[i,j,0,it_elev]=total(test)
 					stamp_fit_chisq[i,j,0,it_elev]=chisq
-					
-					stop
-			
+				
+				; use this to check trimming
+				;if i eq 180 and j eq 180 then stop
+							
 				endif ;else stop
 			endif else begin
 			xcentroids[i,j,0,it_elev]= total(values_stamps[0:xmax-xmin,0:ymax-ymin,i,j]*$
@@ -407,38 +408,50 @@ case my_type of
       delvarx, values,xcoords,ycoords,masks
   end ; PRISM case
   'WOLLASTON': begin
-      ;load the pol solution
-      polspot_coords = polcal.coords
-      polspot_position = polcal.spotpos
-      if ((size(polspot_coords))[0] eq 0) then begin
-        return, error('FAILURE Failed to load polarimetry calibration data prior to calling this primitive.') 
-      endif
-      nlens=(size(polspot_coords))[3]
-	  dim = (size(image))[1]
 
-	  n_diff_elev = 1 ; multiple elevations not yet implemented...
-; Actually, I think you can just uncomment the following and it should work - but this is untested
-;		  n_diff_elev = n_elements(ptr_images)           ;number of different elevation = number of slices in the cube.
+  n_diff_elev = n_elements(ptr_images)           ;number of different elevation = number of slices in the cube.
+
+  ;load a pol solution to define the arrays
+  polcal=*(ptr_calibrations[0])
+	image=*(ptr_images[0])
+
+   polspot_coords = polcal.coords
+   polspot_position = polcal.spotpos
+
+ if ((size(polspot_coords))[0] eq 0) then begin
+        return, error('FAILURE Failed to load polarimetry calibration data prior to calling this primitive.') 
+ endif
+  nlens=(size(polspot_coords))[3]
+	 dim = (size(image))[1]
 
       ptr_values = ptrarr(nlens,nlens,2,n_diff_elev)
       ptr_xcoords = ptrarr(nlens,nlens,2,n_diff_elev)
       ptr_ycoords = ptrarr(nlens,nlens,2,n_diff_elev)
       ptr_masks = ptrarr(nlens,nlens,2,n_diff_elev)
       
-      values = fltarr(width,width,nlens,nlens,2,1) + !values.f_nan; the one before last dimension should be npol, and the last dimension is used for different flexures. But not implemented yet.
-      xcoords = fltarr(width,width,nlens,nlens,2,1) + !values.f_nan
-      ycoords = fltarr(width,width,nlens,nlens,2,1) + !values.f_nan
-      xcentroids = fltarr(nlens,nlens,2,1) + !values.f_nan
-      ycentroids = fltarr(nlens,nlens,2,1) + !values.f_nan
-      intensities = fltarr(nlens,nlens,2,1) + !values.f_nan
-      sky_values = fltarr(nlens,nlens,2,1) + !values.f_nan
-      masks =  bytarr(width,width,nlens,nlens,2,1)
-      tilts = fltarr(nlens,nlens,2,1)
+      values = fltarr(width,width,nlens,nlens,2,n_diff_elev) + !values.f_nan; the one before last dimension should be npol, and the last dimension is used for different flexures. But not implemented yet.
+      xcoords = fltarr(width,width,nlens,nlens,2,n_diff_elev) + !values.f_nan
+      ycoords = fltarr(width,width,nlens,nlens,2,n_diff_elev) + !values.f_nan
+      xcentroids = fltarr(nlens,nlens,2,n_diff_elev) + !values.f_nan
+      ycentroids = fltarr(nlens,nlens,2,n_diff_elev) + !values.f_nan
+      intensities = fltarr(nlens,nlens,2,n_diff_elev) + !values.f_nan
+      sky_values = fltarr(nlens,nlens,2,n_diff_elev) + !values.f_nan
+      masks =  bytarr(width,width,nlens,nlens,2,n_diff_elev)
+      tilts = fltarr(nlens,nlens,2,n_diff_elev)
       
       xcoords_image = rebin(findgen(dim),dim,dim)
       ycoords_image = rebin(reform(findgen(dim),1,dim),dim,dim)
       
-        ;///////////////////////////////////
+
+; begin loop over the number of files (elevations)
+for it_elev = 0,n_diff_elev-1 do begin
+	polcal=*(ptr_calibrations[it_elev])
+	image=*(ptr_images[it_elev])
+
+      polspot_coords = polcal.coords
+      polspot_position = polcal.spotpos
+
+             ;///////////////////////////////////
         ;loop over all the spots
         half_width = float(width-1)/2.
         for npol=0,1 do begin
@@ -461,9 +474,9 @@ case my_type of
                 
 				; Cut out the individual stamps and their coordinates and store
 				; them.
-                values[*,*,i,j,npol] = image[round(xcen_cal_pix-half_width):round(xcen_cal_pix+half_width),round(ycen_cal_pix-half_width):round(ycen_cal_pix+half_width)]
-                xcoords[*,*,i,j,npol] = xcoords_image[round(xcen_cal_pix-half_width):round(xcen_cal_pix+half_width),round(ycen_cal_pix-half_width):round(ycen_cal_pix+half_width)]
-                ycoords[*,*,i,j,npol] = ycoords_image[round(xcen_cal_pix-half_width):round(xcen_cal_pix+half_width),round(ycen_cal_pix-half_width):round(ycen_cal_pix+half_width)]
+                values[*,*,i,j,npol,it_elev] = image[round(xcen_cal_pix-half_width):round(xcen_cal_pix+half_width),round(ycen_cal_pix-half_width):round(ycen_cal_pix+half_width)]
+                xcoords[*,*,i,j,npol,it_elev] = xcoords_image[round(xcen_cal_pix-half_width):round(xcen_cal_pix+half_width),round(ycen_cal_pix-half_width):round(ycen_cal_pix+half_width)]
+                ycoords[*,*,i,j,npol,it_elev] = ycoords_image[round(xcen_cal_pix-half_width):round(xcen_cal_pix+half_width),round(ycen_cal_pix-half_width):round(ycen_cal_pix+half_width)]
 
 				; The following is wrong - it's assuming we can use circular
 				; masks of fixed radius to capture the regions where there is
@@ -471,9 +484,10 @@ case my_type of
 				; Let's use the entire lenslet PSF for each. - MP
                 ;tmp_mask = bytarr(width,width)
                 ;tmp_mask[where( sqrt((xcoords[*,*,i,j,npol]-xcen_cal)^2+(ycoords[*,*,i,j,npol]-ycen_cal)^2) le float(width)/2. )] = 1
-                masks[*,*,i,j,npol] =  1; temporary(tmp_mask)
+                masks[*,*,i,j,npol,it_elev] =  1; temporary(tmp_mask)
                 
                 if ~keyword_set(stamps_mode) then begin
+						stop, 'not sure anyone should ever see this -PI'
                   values[where(masks ne 1)] = !values.f_nan
                   xcoords[where(masks ne 1)] = !values.f_nan
                   ycoords[where(masks ne 1)] = !values.f_nan
@@ -536,8 +550,8 @@ case my_type of
                 ;Note: Sky computation in the interval of radii [2.35482*width_spot,5*width_spot], We masked the spot in the aera so it should be fine.
                 APER, image, xcen_cal, ycen_cal, flux, errap, sky, skyerr, 1.0, 2.35482*width_spot, [2.35482*width_spot,5*width_spot], /FLUX, /NAN, /SILENT
       ;          APER, image, xcen_cal, ycen_cal, flux, errap, sky, skyerr, 1.0, 1.5*width_spot, [3.0*width_spot,5*width_spot], /FLUX, /NAN, /SILENT
-                intensities[i,j,npol] = flux
-                sky_values[i,j,npol] = sky
+                intensities[i,j,npol,it_elev] = flux
+                sky_values[i,j,npol,it_elev] = sky
 				if sky eq 0 then stop
                 ;/////////////////////////
                 
@@ -546,8 +560,8 @@ case my_type of
 ;                gcntrd,image,xcen_cal,ycen_cal,xcen,ycen,2.35482*width_spot
 ;                xcentroids[i,j,npol] = xcen
 ;                ycentroids[i,j,npol] = ycen
-                xcentroids[i,j,npol] = xcen_cal
-                ycentroids[i,j,npol] = ycen_cal
+                xcentroids[i,j,npol,it_elev] = xcen_cal
+                ycentroids[i,j,npol,it_elev] = ycen_cal
                 ;/////////////////////////
                 
                 ;restore the masked pixels
@@ -556,18 +570,19 @@ case my_type of
 				; Convert everything into pointer arrays for compatibility with what the
 				; spectral mode code is now doing... I don't know why JB wrote it this way
 				; but I will stick with it. -MP
-
-				it_elev=0 ; multiple elevations not yet implemented
-				ptr_values[i,j,npol,it_elev] = ptr_new(values[*,*,i,j, npol])
-				ptr_xcoords[i,j,npol,it_elev] = ptr_new(xcoords[*,*,i,j, npol])
-				ptr_ycoords[i,j,npol,it_elev] = ptr_new(ycoords[*,*,i,j, npol])
-				ptr_masks[i,j,npol,it_elev] = ptr_new(masks[*,*,i,j, npol])
+				ptr_values[i,j,npol,it_elev] = ptr_new(values[*,*,i,j, npol,it_elev])
+				ptr_xcoords[i,j,npol,it_elev] = ptr_new(xcoords[*,*,i,j, npol,it_elev])
+				ptr_ycoords[i,j,npol,it_elev] = ptr_new(ycoords[*,*,i,j, npol,it_elev])
+				ptr_masks[i,j,npol,it_elev] = ptr_new(masks[*,*,i,j, npol,it_elev])
                 
               endif
               
-            endfor
-          endfor
-        endfor
+            endfor ; loop over polspots
+          endfor ; loop over nx lenslets
+        endfor ; loop over ny lenslets
+
+
+endfor ; loop over elevations 
       ;///////////////////////////////////
       
 	if keyword_set(stop) then begin
