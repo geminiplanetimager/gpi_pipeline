@@ -14,36 +14,38 @@
 ;    Began 2014-01-13 by Zachary Draper
 ;-  
 
-function combine_dith_spec,spec,spec2,spec3
-	
-	f1=[spec[1,*],spec[1,*],spec[1,*]]
-	f2=[spec2[1,*],spec2[1,*],spec2[1,*]]
-	f3=[spec3[1,*],spec3[1,*],spec3[1,*]]
+function combine_dith_spec,spec,spec2,spec3,w_stan
 
-	f1=reform(f1,[n_elements(f1),1])
-	f2=reform(f2,[n_elements(f2),1])
-	f3=reform(f3,[n_elements(f3),1])
+;combine spectra with staright forward splitting given non-uniform sampling 
 
-	f2=[0,0,f2]
-	f1=[0,f1,0]
-	f3=[f3,0,0]
+	f=[[spec[1,*]],[spec2[1,*]],[spec3[1,*]]]
 
-	l=[[spec3[0,*]],[spec[0,*]],[spec2[0,*]]]
-	num=n_elements(l)
-	l=reform(l,[num,1])
+	l=[[spec[0,*]],[spec2[0,*]],[spec3[0,*]]]
+
 	ids=sort(l)
-	l=l[ids]
-	diff=l[0]-l[1]
-	l=[l[0]+diff,l,l[num-1]-diff]
 
-	f=(f1+f2+f3)/3
-	num=n_elements(f)
-	f[0]=f[0]*3
-	f[1]=f[1]*2
-	f[num-2]=f[num-2]*2
-	f[num-1]=f[num-1]*3
+	f = f[ids]
+	l = l[ids]
+
+	f_n = [0]
+	l_n = [0]
+	x=0
+	;int = (w_stan[1]-w_stan[0])/2
+	;for i=0,n_elements(w_stan) do begin
+	;	ids = where((l gt w_stan[i]-int) and (l lt w_stan[i]+int),count)
+	;	if (ids ne -1) then begin
+	;		f_n = [f_n,(total(f[ids])/count)]
+	;		l_n = [l_n,w_stan]
+	;		x=x+1
+	;	endif		
+	;endfor
+	;f_n = [1:*]
+	;l_n = [1:*]
+
+	;if (i ne x) then lens_spectrum = interpol(f,l,gpi_lambda)
+	
 stop
-return,[[l],[f]]
+return,[[l_n],[f_n]]
 end
 
 function combine_spec,spec,spec2,spec3
@@ -239,7 +241,7 @@ function get_psf_pos,x_lens,y_lens,wavecal,lam_min,lam_max,r_step,del_lam,del_x,
 	
 	theta=theta+del_theta
 
-	if finite (w3) eq 0 then return,[0,0,0]
+	if finite(w3) eq 0 or w3 eq 0 then return,[0,0,0]
 
 	lam_min=lam_min-0.02
 
@@ -338,12 +340,14 @@ pro mk_psf_cube,psfcube,spectra,wavecal,para,steps,lens_x,lens_y,blank,x_sub1,x_
 	psfcube=psfcube[*,*,1:*]
 	spectra=spectra[*,1:*]
 
+	;stop
+
 end
 
 ;--------------------------------------------------
 ; Generate a full model image from wavecal
 
-function make_mdl_img,x_lens_cen,y_lens_cen,wavcal,para,steps,x_off,y_off,blank2,xsize,ysize,img,mlens,spec_flx,spec_lam,del_x_best
+function make_mdl_img,x_lens_cen,y_lens_cen,wavcal,para,steps,x_off,y_off,blank2,xsize,ysize,img,PSFs_array,spec_flx,spec_lam,del_x_best
 
 		psfpos_cen = get_psf_pos(x_lens_cen,y_lens_cen,wavcal,para[0],para[1],steps,0,del_x_best,0,x_off,y_off)
 		x_med = floor(mean(psfpos_cen[0,*]))
@@ -416,21 +420,24 @@ function make_mdl_img,x_lens_cen,y_lens_cen,wavcal,para,steps,x_off,y_off,blank2
 
 		;read in high-res of central microlens PSF for and use on whole sub_img
 		ptr = gpi_highres_microlens_psf_get_local_highres_psf(PSFs_array,[lens_x,lens_y,0])
-		if ptr_valid(PSFs_array[lens_x,lens_y) then psf = *PSFs_array[lens_x,lens_y]
+		if ptr_valid(PSFs_array[lens_x,lens_y]) then psf = *PSFs_array[lens_x,lens_y]
 	
 		common hr_psf_common, c_psf, c_x_vector_psf_min, c_y_vector_psf_min, c_sampling
 		c_psf = (psf).values
 		c_x_vector_psf_min = min((psf).xcoords)
 		c_y_vector_psf_min = min((psf).ycoords)
-		c_sampling=round(1/(((psf).xcoords)[1]-((psf).xcoords)[0]))
+		c_sampling=round(1/( ((psf).xcoords)[1]-((psf).xcoords)[0] ))
 
+		;stop
 		for k=0L,s[2]-1 do begin
 
 			r1 = gpi_highres_microlens_psf_evaluate_detector_psf(x_grid,y_grid, [spec_spix3[0,k], spec_spix3[1,k], 1])
 
 			lam = spec_spix3[4,k]
 			flx = interpol(spec_flx,spec_lam,lam)
-			mdl_img = mdl_img+(r1*flx[0])
+			if (flx[0] lt 0) then flx = 0 else flx = flx[0]
+			;print,flx
+			mdl_img = mdl_img+(r1*flx*(steps/2))
 
 		endfor
 return,[[[mdl_img]],[[sub_img]]]
@@ -521,14 +528,13 @@ function spec_ext_amoeba,P,best=best
 	spec = temp.spec
 	resid=temp.resid
 	spec = spec/w
-
+;stop
 	spec=spec[id]
+	r_cube = r_cube[*,*,id]
+	spectra = spectra[*,id]
 
 	t4=systime(/seconds)
 	print,t4-t3,'spec_ext_amoeba_primary'
-
-	r_cube = r_cube[*,*,id]
-	spectra = spectra[*,id]
 
 	;check centering of wavecal and reference PSFs
 	;window,0		
@@ -555,7 +561,7 @@ pro img_spec_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,wavecal,spec,spec_i
 	xsize=16			;spectra sub image size
 	ysize=34			; extracted for lsqr
 
-	steps=2			;PSF seperation in pixel units (lambda / D)
+	steps=2			;PSF seperation in pixel units approx lambda / D in all bands
 
 	n_modes=8			;(number of fourier modes - 1) used for microphonics 
 
@@ -740,6 +746,7 @@ pro img_spec_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,wavecal,spec,spec_i
 		for m=0,(rs[3]-1) do begin
 			spec_img_s = spec_img_s + psfcube2[*,*,m]*spectrum[m]
 		endfor
+		
 		bfimg=fltarr(imsz[0],imsz[1])
 		bfimg[x_sub1:x_sub2,y_sub1:y_sub2]=spec_img_s
 		spec_img=bfimg
@@ -775,16 +782,43 @@ pro img_spec_ext_amoeba,x_lens_cen,y_lens_cen,img,PSFs_array,wavecal,spec,spec_i
 	wcal_off=[resid_arr[0],del_x_best,del_theta_best,del_lam_best,chi_sqr,x_off,y_off]
 
 	; display model and data spectra sub images 
+	;spec_img_s_2 = make_mdl_img(x_lens_cen,y_lens_cen,wavecal,para,0.1,x_off,y_off,blank2,xsize,ysize,img,PSFs_array,transpose(spec[1,*]),transpose(spec[0,*]),del_x_best)
+	;residual = spec_img_s_2[*,*,1]-spec_img_s_2[*,*,0]*25
 	;print,wcal_off
-	;full_resid = fltarr(3*xsize,ysize)
+	;full_resid = fltarr(4*xsize,ysize)
 	;z=0
 	;full_resid[z*xsize:(z+1)*xsize-1,0:ysize-1]=sub_img
 	;z=1
 	;full_resid[z*xsize:(z+1)*xsize-1,0:ysize-1]=spec_img_s
 	;z=2
 	;full_resid[z*xsize:(z+1)*xsize-1,0:ysize-1]=sub_img-spec_img_s
+	;z=3
+	;full_resid[z*xsize:(z+1)*xsize-1,0:ysize-1]=residual
 	;window,4
 	;imdisp,full_resid
+	;stop
+
+	;pretty plot hacks
+
+	;loadCT,13
+	;ext_resid=sub_img-spec_img_s
+	;cgImage,bytscl(sub_img,min=min(ext_resid),max=max(sub_img)),/keep_aspect_ratio,/axes,output='eps',outfilename='~/Desktop/ext_data.eps'
+	;cgImage,bytscl(spec_img_s,min=min(ext_resid),max=max(sub_img)),/keep_aspect_ratio,/axes,output='eps',outfilename='~/Desktop/ext_model.eps'
+	;cgImage,bytscl(ext_resid,min=min(ext_resid),max=max(sub_img)),/keep_aspect_ratio,/axes,output='eps',outfilename='~/Desktop/ext_resid.eps'
+	;cgImage,bytscl(residual,min=min(ext_resid),max=max(sub_img)),/keep_aspect_ratio,/axes,output='eps',outfilename='~/Desktop/ext_full_resid.eps'
+	;loadct,0
+	;sub_badpix = badpix[x_sub1:x_sub2,y_sub1:y_sub2]
+	;cgImage,bytscl((bytarr(x_sub1-x_sub2,y_sub1-ysub2)+1)-sub_badpix,min=0,max=1),/keep_aspect_ratio,/axes,output='eps',outfilename='~/Desktop/ext_bpx.eps'
+	;stop
+	;test_resid = fltarr(2*xsize,ysize)
+	;z=0
+	;test_resid[z*xsize:(z+1)*xsize-1,0:ysize-1]=spec_img_s_2[*,*,1]
+	;z=1
+	;test_resid[z*xsize:(z+1)*xsize-1,0:ysize-1]=spec_img_s_2[*,*,0]*25
+
+	;window,2
+	;imdisp,test_resid
+
 	;print,spec
 	;stop
 
@@ -826,8 +860,8 @@ img_spec_ext_amoeba,x,y,img,mlens,wavcal,spectrum2,spec_img2,mic_img2,del_lam_be
 img_spec_ext_amoeba,x,y,img,mlens,wavcal,spectrum3,spec_img2,mic_img2,del_lam_best-0.66,del_x_best,del_theta_best,x_off,y_off,wcal_off2,para,badpix,resid=resid,micphn=micphn,iter=0
 
 		if (spectrum[0] ne -1 and spectrum2[0] ne -1) then begin
-			hr_spec=combine_dith_spec(spectrum,spectrum2,spectrum3)
-			;hr_spec=combine_spec(spectrum,spectrum2,spectrum3)
+			;hr_spec=combine_dith_spec(spectrum,spectrum2,spectrum3,gpi_lambda)
+			hr_spec=combine_spec(spectrum,spectrum2,spectrum3)
 			lens_spectrum = interpol(hr_spec[*,1],hr_spec[*,0],gpi_lambda)
 			;print,lens_spectrum
 				;window,2
@@ -842,7 +876,7 @@ img_spec_ext_amoeba,x,y,img,mlens,wavcal,spectrum3,spec_img2,mic_img2,del_lam_be
 				spec_cube=spec_cube+(spec_img+spec_img2)/2
 				if (micphn eq 1) then mic_cube=stitch_images(mic_cube,(mic_img+mic_img2)/2)
 			endif
-			wcal_off_cube[x,y,0:6] = wcal_off[0:6]
+			if (iter eq 1) then wcal_off_cube[x,y,0:6] = wcal_off[0:6]
 		endif
 		t2=systime(/seconds)
 		print,t2-t1,' finish lenslet'
@@ -867,7 +901,7 @@ img_spec_ext_amoeba,x,y,img,mlens,wavcal,spectrum3,spec_img2,mic_img2,del_lam_be
 
 	t_fin=systime(/seconds)
 	print,(t_fin-t_start)/60,': execution time (mins)'
-
+	
 end
 
 ;--------------------------------------------------
