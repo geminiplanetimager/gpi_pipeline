@@ -20,7 +20,8 @@ sproc=size(oBridge)
 nbproc=sproc[1]
 
 for i=0,nbproc-1 do begin
- oBridge[i]->abort
+	(*oBridge[i])->Execute, ".RESET_SESSION"
+	(*oBridge[i])->abort
 endfor
 
 
