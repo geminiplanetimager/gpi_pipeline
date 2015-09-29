@@ -48,12 +48,6 @@ calfiletype=''   ; set this to some non-null value e.g. 'dark' if you want to lo
 @__start_primitive
 suffix='spdc' 		 ; set this to the desired output filename suffix
 
-	common gpi_parallel
-
-	if (n_elements(np) eq 0) then begin
-		return, error('FAILURE ('+functionName+'): Failed to laod IDL bridges before hand.') 
-	endif
-
 	;keywords for solver
 	keywords=''
 	if tag_exist(Modules[thisModuleIndex],"resid") then resid=Modules[thisModuleIndex].resid else resid=0
@@ -113,13 +107,14 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 	lens = [transpose(xarr),transpose(yarr)]
 
 	;lenslets found to cause unknown crashes (CPU driven to max percent) with offsets
-	lens_exclude=[[98,15],[94,13],[96,14]]
-	for i=0,2 do begin
-		id1 = where(lens[0,*] eq lens_exclude[0,i] and lens[1,*] eq lens_exclude[1,i])
-		id = where(~histogram([id1], min=0, max=nlens_tot-1))
-		lens=lens[*,id]
-	endfor
-	nlens_tot=nlens_tot-4
+	;lens_exclude=[[98,15],[94,13],[96,14]]
+	;for i=0,2 do begin
+	;	id1 = where(lens[0,*] eq lens_exclude[0,i] and lens[1,*] eq lens_exclude[1,i])
+	;	id = where(~histogram([id1], min=0, max=nlens_tot-1))
+	;	lens=lens[*,id]
+	;endfor
+	;nlens_tot=nlens_tot-4
+	nlens_tot=nlens_tot-1
 
 	;randomly sort lenslet list to equalize job time.
 	lens=lens[*,sort(randomu(seed,n_elements(lens)/2))]
@@ -168,6 +163,9 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 	para=cwv.CommonWavVect
 	;stop
 
+	common gpi_parallel
+	np = n_elements(oBridge)
+
 	;runtime only single processor
 
 	if lmgr(/runtime) and np gt 1 then begin
@@ -177,6 +175,11 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 	endif else begin
 		; start bridges from utils function
 		;oBridge=gpi_obridgestartup(nbproc=np)
+	
+
+		if (n_elements(np) eq 0) then begin
+			return, error('FAILURE ('+functionName+'): Failed to load IDL bridges beforehand.') 
+		endif
 	
 		for j=0,np-1 do begin
 			(*oBridge[j])->Setvar,'img',img
@@ -260,6 +263,11 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 		endif
 	endfor
 
+	;stop
+	;fill NaN values in cube
+	id = where_xyz(finite(wavcal) eq 0)
+	gpi_cube[id]=!Values.F_NAN
+
 	;Save residual
 	if (resid eq 1) then begin
 		residual=img-spec_cube
@@ -286,6 +294,8 @@ suffix='spdc' 		 ; set this to the desired output filename suffix
 	backbone->set_keyword,'CRVAL3',para[0]+wavestep/2,'Center wavelength for first spectral channel [micron]',ext_num=1
 	backbone->set_keyword,'CTYPE3','WAVE','3rd axis is vaccuum wavelength',ext_num=1
 	backbone->set_keyword,'CUNIT3','microns','Wavelengths are in microns.',ext_num=1
+
+	gpi_update_wcs_basic,backbone,imsize=[nlens,nlens]
 
 	;must clean memory
 	*(dataset.currframe)=gpi_cube
