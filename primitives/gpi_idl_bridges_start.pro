@@ -27,7 +27,7 @@ calfiletype=''
 
 @__start_primitive
 
-	common gpi_parallel, oBridge, np
+	common gpi_parallel, oBridge
 
 	if tag_exist( Modules[thisModuleIndex], "np") then np=float(Modules[thisModuleIndex].np) else np=10
 
