@@ -452,18 +452,21 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
         if strc(s_OutputDir) eq "" then return, error('FAILURE: supplied output directory is a blank string.')
         s_OutputDir = s_OutputDir+path_sep()+'contrast'+path_sep()
 
-        if ~file_test(s_OutputDir,/directory, /write) then begin
-          if gpi_get_setting('prompt_user_for_outputdir_creation',/bool, default=0,/silent) then $
-            res =  dialog_message('The requested output directory '+s_OutputDir+' does not exist. Should it be created now?', $
-            title="Nonexistent Output Directory", /question) else res='Yes'
-
-          if res eq 'Yes' then  file_mkdir, s_OutputDir
-
-          if ~file_test(s_OutputDir,/directory, /write) then $
-            return, error("FAILURE: Directory "+s_OutputDir+" does not exist or is not writeable.",/alert)
-        endif
         radialsave = s_OutputDir
       endif
+
+      ;; check to see if directory to save contrast curves exist. If not, make it (or at least try to)     
+      if ~file_test(radialsave,/directory, /write) then begin
+         if gpi_get_setting('prompt_user_for_outputdir_creation',/bool, default=0,/silent) then $
+            res =  dialog_message('The requested output directory '+radialsave+' does not exist. Should it be created now?', $
+            title="Nonexistent Output Directory", /question) else res='Yes'
+            
+         if res eq 'Yes' then  file_mkdir, radialsave
+            
+         if ~file_test(radialsave,/directory, /write) then $
+            return, error("FAILURE: Directory "+radialsave+" does not exist or is not writeable.",/alert)
+      endif         
+
 
       ;;if this is a directory, then you want to save to it with the
       ;;default naming convention
