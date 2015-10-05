@@ -88,6 +88,13 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
   totcount = 0
   ra = 	    double(backbone->get_keyword( 'RA',count=ct)) & totcount += ct
   dec =     double(backbone->get_keyword( 'DEC',count=ct)) & totcount += ct
+  if totcount ne 2 then begin
+     ;backbone->log,'GPI_UPDATE_WCS_BASIC: RA/DEC/PAR_ANG keyword not found in header.'
+     backbone->log,'GPI_UPDATE_WCS_BASIC: RA/DEC keyword not found in header.'
+     return
+  endif 
+
+
   if n_elements(parang) eq 0 then begin
      par_ang = double(backbone->get_keyword( 'PAR_ANG',count=ct))
  	 ; this angle in the header is an inaccurate approximation since the
@@ -100,11 +107,7 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
      par_ang = parang
      totcount += 1
   endelse
-  if totcount ne 3 then begin
-     backbone->log,'GPI_UPDATE_WCS_BASIC: RA/DEC/PAR_ANG keyword not found in header.'
-     return
-  endif 
-
+ 
   ;;write first block of CD matrix
   backbone->set_keyword, 'HISTORY', "GPI_UPDATE_WCS_BASIC: Creating WCS header",ext_num=0
   backbone->set_keyword, 'CTYPE1', 'RA---TAN', 'First axis is Right Ascension'
