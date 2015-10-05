@@ -570,7 +570,8 @@ pro parsercore::create_recipe_from_template, templatename, fitsfiles, current_me
     filename_counter=filename_counter, index=index
 
     if ~(keyword_set(filename_counter)) then filename_counter=self->num_recipes()+1
-	self.outputdir=gpi_get_directory('REDUCED_DATA')
+    ;Only default to reduced data dir if no outputdir has been defined
+    if self.outputdir eq '' then self.outputdir=gpi_get_directory('REDUCED_DATA')
     ; create the recipe
     if self.outputdir NE '' then begin 
         drf = gpi_create_recipe_from_template( templatename, fitsfiles,  $
