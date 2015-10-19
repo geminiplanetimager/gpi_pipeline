@@ -1,4 +1,4 @@
-function racetrack_aper, img, imgspare,xpos, ypos, rotang, aper_radii, halflength,spot, spec, uttimeobs, targetname,ncoadd
+function racetrack_aper, img, imgspare,xpos, ypos, rotang, aper_radii, halflength,spot, uttimeobs, targetname,ncoadd
 ;function racetrack_aper, img, imgspare,xpos, ypos, rotang, aper_radii, halflength,spot, spec, uttimeobs, targetname,ncoadd, itime
 
 ;if not keyword_set(spot_halflen) then spot_halflen = 5.7 
