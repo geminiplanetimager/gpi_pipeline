@@ -1,4 +1,4 @@
-function racetrack_aper, img, imgspare,xpos, ypos, rotang, aper_radii, halflength,spot, uttimeobs, targetname,ncoadd, itime, sysgain
+function racetrack_aper, img, imgspare,xpos, ypos, rotang, aper_radii, halflength,spot, uttimeobs, targetname,ncoadd, sysgain
 
 ;if not keyword_set(spot_halflen) then spot_halflen = 5.7 
 
@@ -9,13 +9,11 @@ function racetrack_aper, img, imgspare,xpos, ypos, rotang, aper_radii, halflengt
 ;///////////////////
 rotang *= -1
 
-;img[where(~FINITE(img))] = 0
 where_nan=where(~FINITE(img))
 img[where_nan]=0
 spot_halflen=halflength
 dims = size(img,/dim)
 
-;print, dims
 
 xcoord = indgen(dims[0], dims[1], /long) mod dims[0]
 ycoord = indgen(dims[0], dims[1], /long) / dims[0] ;integer division
@@ -25,12 +23,12 @@ yppos = sin(rotang)*xpos + cos(rotang)*ypos
 xpcoord = cos(rotang)*xcoord - sin(rotang)*ycoord
 ypcoord = sin(rotang)*xcoord + cos(rotang)*ycoord
 
-;if not keyword_set(aper_radii) then aper_radii = [5, 10, 15]
+
 aperrad = aper_radii[0]
 inskyrad = aper_radii[1]
 outskyrad = aper_radii[2]
 
-FDF=dindgen(8) ; output with flux, deltaflux, median sky, mode sky
+FDF=dindgen(7) ; output with flux, deltaflux, median sky, mode sky
 
 
 source_mid = (ypcoord gt yppos-aperrad) and (ypcoord lt yppos+aperrad) and (xpcoord gt xppos - spot_halflen) and (xpcoord lt xppos + spot_halflen)
@@ -55,50 +53,25 @@ mmm, img[sky], skymode, READNOISE=5
 ;READNOISE 2 at 88 CDS Reads, 
 
 flux = (total(img[source]) - median(img[sky])*countsource ) ;FLUX per coadd.
-;flux = ( (total(img[source]) - median(img[sky])*countsource ) )/itime;FLUX per coadd and s^-1.
-flag=max(img[source]);
-IF (flag GE 17000) THEN BEGIN
-  flag='-1'; 'Non-linearity Warning'
-ENDIF ElSE BEGIN
-  flag='1'; 'All good!'
-ENDELSE
-
 
 ;print, '';
 ;print,'Sky Values at Satellite Spots'
 ;print, 'Mean and Median Sky Values: ', mean(img[sky]), median(img[sky])
 ;print, 'Pixels used: ', countsky
 
+deltaF = sqrt( (1./sysgain)*( (total(img[source])-countsource*median(img[sky])) )/(ncoadd) +(countsource + (countsource^2/countsky))*stddev(img[sky])^2 )
 
-;deltaF = sqrt( (1./gain)*( (total(img[source])-countsource*median(img[sky])) )/(ncoadd) +(countsource + (countsource^2/countsky))*stddev(img[sky])^2 )
-;deltaF = stddev(img[sky] )
-
-deltaF = sqrt( (1./sysgain)*( (total(img[source])-countsource*median(img[sky])) )/(ncoadd) +(countsource + (countsource^2/countsky))*stddev(img[sky])^2 );/itime
-
-
-
-FDF[0]=flux                             ;satspot flux
-FDF[1]=deltaF                         ;satspot delta flux
+FDF[0]=flux                ;satspot flux
+FDF[1]=deltaF              ;satspot delta flux
 FDF[2]=median(img[sky])    ;sky median
-FDF[3]=stddev(img[sky])      ;sky stddev 
-FDF[4]=skymode                    ; sky mode 
-FDF[5]=n_elements(source)             ; #pixels in source
-FDF[6]=n_elements(sky)                ; # pixels in sky  
-FDF[7]=flag ; flag, -1 ADUs above linearity regime, 1 All good
+FDF[3]=stddev(img[sky])    ;sky stddev 
+FDF[4]=skymode             ; sky mode 
+FDF[5]=n_elements(source)  ; #pixels in source
+FDF[6]=n_elements(sky)     ; # pixels in sky  
 ;/// Printing
 
 print, 'SAT SPOT FLUX (ADU coadd-1):  ', FDF[0] , ' DELTA FLUX (ADU coadd-1):  ', FDF[1]
 print, 'SKY MEDIAN, STDDEV and MODE:  ', FDF[2], ' ', FDF[3], ' ', FDF[4]
-IF(flag EQ -1) THEN BEGIN
-print, '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-print, 'WARNING: FLAG =-1: Above Linearity Regime of 17000 ADU /coadd'
-print, '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-ENDIF ELSE BEGIN
-print, ' '
-print, 'ALL GOOD '
-print, 'Within Linearity Regime (<17000 ADU /coadd)'
-print, ' '
-ENDELSE
 
 imgspare[source]=100000
 ;IM=image(img[*,*,0])
