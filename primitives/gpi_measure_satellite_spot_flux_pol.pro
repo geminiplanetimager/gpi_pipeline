@@ -32,8 +32,9 @@
 ;
 ; HISTORY:
 ;
-;   MM-DD-YY Created - Sebastian
+;   06-01-15 Created - Sebastian
 ;   08-24-15 MMB: Fixed up with comments and added pipeline level functionality and 'verbose' keyword
+;   10-22-15 Sebastian: Removed itime call in racetrack_aper. Not needed since fluxes are in ADU coadd^-1. Removed flag variable here and in racetrack_aper.
 ;
 function gpi_measure_satellite_spot_flux_pol, DataSet, Modules, Backbone
   ; enforce modern IDL compiler options:
@@ -313,10 +314,10 @@ function gpi_measure_satellite_spot_flux_pol, DataSet, Modules, Backbone
     print, ''
     print, 'Now on Sat Spot #: ', spot
     print, 'Fluxes in slice 0:'
-    ;img, imgspare,xpos, ypos, rotang, aper_radii, halflength,spot, spec, skyfilt, uttimeobs, targetname, itime
-    flux0 = racetrack_aper( img0, imgspare0, spotx, spoty, spot_rotang[spot],  aperradii, halflength, spot, uttimeobs, targetname, ncoadd, itime, sysgain)
+    ;img, imgspare,xpos, ypos, rotang, aper_radii, halflength,spot, spec, skyfilt, uttimeobs, targetname, sysgain
+    flux0 = racetrack_aper( img0, imgspare0, spotx, spoty, spot_rotang[spot],  aperradii, halflength, spot, uttimeobs, targetname, ncoadd, sysgain)
     print, 'Fluxes in slice 1:'
-    flux1 = racetrack_aper( img1, imgspare1, spotx, spoty, spot_rotang[spot],  aperradii, halflength, spot, uttimeobs, targetname, ncoadd, itime, sysgain)
+    flux1 = racetrack_aper( img1, imgspare1, spotx, spoty, spot_rotang[spot],  aperradii, halflength, spot, uttimeobs, targetname, ncoadd, sysgain)
     ;SLICE 0
     fluxes0[0,spot]=flux0[0]        ; SAT SPOT FLUX
     fluxes0[1,spot]=flux0[1]        ; SAT SPOT FLUX UNCERTAINTIES
@@ -330,9 +331,7 @@ function gpi_measure_satellite_spot_flux_pol, DataSet, Modules, Backbone
     fluxes1[3,spot]=flux1[3]        ; SKY MODE
     fluxes1[4,spot]=flux1[4]        ; SKY MODE
 
-
-    flag0=flux0[7]                  ; FLAG -1 Warning, 1 All good. Bad if at least one sat spot is saturated
-    flag1=flux1[7]
+  
   ENDFOR
 
   totflux0=total(fluxes0[0,*])
