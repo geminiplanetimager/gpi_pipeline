@@ -314,9 +314,9 @@ function gpi_measure_satellite_spot_flux_pol, DataSet, Modules, Backbone
     print, 'Now on Sat Spot #: ', spot
     print, 'Fluxes in slice 0:'
     ;img, imgspare,xpos, ypos, rotang, aper_radii, halflength,spot, spec, skyfilt, uttimeobs, targetname, itime
-    flux0 = racetrack_aper( img0, imgspare0, spotx, spoty, spot_rotang[spot],  aperradii, halflength, spot, uttimeobs, targetname, ncoadd)
+    flux0 = racetrack_aper( img0, imgspare0, spotx, spoty, spot_rotang[spot],  aperradii, halflength, spot, uttimeobs, targetname, ncoadd, itime, sysgain)
     print, 'Fluxes in slice 1:'
-    flux1 = racetrack_aper( img1, imgspare1, spotx, spoty, spot_rotang[spot],  aperradii, halflength, spot, uttimeobs, targetname, ncoadd)
+    flux1 = racetrack_aper( img1, imgspare1, spotx, spoty, spot_rotang[spot],  aperradii, halflength, spot, uttimeobs, targetname, ncoadd, itime, sysgain)
     ;SLICE 0
     fluxes0[0,spot]=flux0[0]        ; SAT SPOT FLUX
     fluxes0[1,spot]=flux0[1]        ; SAT SPOT FLUX UNCERTAINTIES
