@@ -341,7 +341,7 @@ pro GPItv::initcommon
     contr_plotmult: 0, $                ; plot contrasts for single slice/all slices
     contr_autocent: 1, $                ; 0=manual, 1=auto, find sat centers
     contr_highpassspots: 1, $           ; pass /highpass
-    contr_constspots: 0, $              ; pass /constrain
+    contr_constspots: 1, $              ; pass /constrain
     contr_plotouter: 0, $               ; plot contrasts for region outside of dark hole
     contr_yunit:0, $                    ; 0 = sigma, 1 = median, 2 = mean
     contr_xunit:0, $                    ; 0 = as, 1 = l/D
@@ -818,6 +818,11 @@ pro GPItv::startup, nbrsatspot=nbrsatspot
   ONE_LINE_TOOLBAR = 1 ; set this to 1 to switch the toolbar to one line across the whole window
 
   ;;process options & defaults
+  tmp = gpi_get_setting('gpitv_mark_sat_spots',/silent,/int)
+  if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (tmp eq 1) ) then (*self.state).mark_sat_spots = tmp
+  widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Mark Sat Spots")],$
+    set_button = (*self.state).mark_sat_spots
+
   tmp = gpi_get_setting('gpitv_retain_current_slice',/silent,/int)
   if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (tmp eq 1) ) then (*self.state).retain_current_slice = tmp
   widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Retain Current Slice")],$
