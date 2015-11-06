@@ -14732,8 +14732,8 @@ pro GPITv::plot1satspots, iplot
 				   (*self.satspots.cens)[1,*,j],psym=1, color=cgcolor('red')
 	endfor
 
-	
-    oplot, [xc], [yc], psym=1, symsize=3, color=0, thick=2
+	; mark center
+    oplot, [xc], [yc], psym=1, symsize=3, color=cgcolor('orange'), thick=2
  
 end
 
