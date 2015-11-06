@@ -136,7 +136,7 @@ common ngausscommon, numgauss, wl, flux, lambdao,my_psf
 
 		lamp = backbone->get_keyword('GCALLAMP', count=ct1)
 		filternm = backbone->get_keyword('IFSFILT', count=ct2)
-        filter = gpi_simplify_keyword_value(filternm)
+                filter = gpi_simplify_keyword_value(filternm)
 		obstype= backbone->get_keyword('OBSTYPE', count=ct3)
         
 		if ct1 eq 0 then return, error("No GCALLAMP keyword was present, therefore cannot determine what spectrum to fit.")

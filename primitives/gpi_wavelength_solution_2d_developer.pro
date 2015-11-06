@@ -302,9 +302,18 @@ if keyword_set(parallel) then begin
 	'        newwavecal[i,j,*]=!values.f_nan' ,$
 	'        continue' ,$
 	'    endif' ,$
-	'    if (stopx lt 4) || (stopy lt 4) || (startx gt 2040) || (starty gt 2040) then continue',$
-	'    if (startx lt 4) || (starty lt 4) || (stopx gt 2040) || (stopy gt 2040) then continue',$
-        '    if (startx eq stopx) || (starty eq stopy) then continue',$
+	'    if (stopx lt 4) || (stopy lt 4) || (startx gt 2040) || (starty gt 2040) then begin',$
+        '        newwavecal[i,j,*]=!values.f_nan',$
+        '        continue',$
+	'    endif' ,$
+	'    if (startx lt 4) || (starty lt 4) || (stopx gt 2040) || (stopy gt 2040) then begin',$
+        '        newwavecal[i,j,*]=!values.f_nan',$
+        '        continue',$
+	'    endif' ,$
+        '    if (startx eq stopx) || (starty eq stopy) then begin',$
+        '        newwavecal[i,j,*]=!values.f_nan',$
+        '        continue',$
+	'    endif' ,$
 	'    lensletarray=image[startx:stopx, starty:stopy]',$
 	'    lensletarray_uncert=image[startx:stopx, starty:stopy]',$
 	'    badpixmap=badpix[startx:stopx, starty:stopy]',$
