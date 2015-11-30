@@ -240,7 +240,7 @@ pro automaticreducer::reduce_one, filenames, wait=wait
     case prism of
       'PRISM': begin
         if obstype eq 'ARC' then begin
-		  if ((ifsfilt ne 'K1') and (ifsfilt ne 'K2') and (exptime gt 295) and (exptime lt 305)) then begin
+		  if ((ifsfilt ne 'K1') and (ifsfilt ne 'K2') and (itime gt 295) and (itime lt 305)) then begin
 			self->Log, 'Skipping long K band arc - use Data Parser instead for K arcs'
 			return ; the quicklook approach on single frames is inadequate for K band.
 		  endif
