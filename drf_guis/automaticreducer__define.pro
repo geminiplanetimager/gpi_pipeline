@@ -198,7 +198,9 @@ pro automaticreducer::reduce_one, filenames, wait=wait
     info = gpi_load_fits(filenames[0], /nodata)
     prism = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'DISPERSR', count=dispct) ))
     obsclass = strupcase( gpi_get_keyword( *info.pri_header, *info.ext_header, 'OBSCLASS', count=obsclassct) )
-    obstype =  strupcase( gpi_get_keyword( *info.pri_header, *info.ext_header, 'OBSTYPE',  count=obsclassct) ) ; for dark
+    ifsfilt = strupcase( gpi_get_keyword( *info.pri_header, *info.ext_header, 'IFSFILT' ) )
+    itime = strupcase( gpi_get_keyword( *info.pri_header, *info.ext_header, 'ITIME' ) )
+    obstype =  strupcase( gpi_get_keyword( *info.pri_header, *info.ext_header, 'OBSTYPE') ) ; for dark
     gcallamp = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'GCALLAMP', count=gcallampct ,/silent)))
     gcalfilt = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'GCALFILT', count=gcalfiltct ,/silent)))
 
@@ -238,6 +240,11 @@ pro automaticreducer::reduce_one, filenames, wait=wait
     case prism of
       'PRISM': begin
         if obstype eq 'ARC' then begin
+		  if ((ifsfilt ne 'K1') and (ifsfilt ne 'K2') and (exptime gt 295) and (exptime lt 305)) then begin
+			self->Log, 'Skipping long K band arc - use Data Parser instead for K arcs'
+			return ; the quicklook approach on single frames is inadequate for K band.
+		  endif
+
           templatename='Quick Wavelength Solution'
           should_apply_flexure_update=0
 		  should_apply_skysub_update=0
