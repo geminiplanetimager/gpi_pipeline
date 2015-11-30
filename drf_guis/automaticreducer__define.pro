@@ -712,7 +712,7 @@ function automaticreducer::init, groupleader, _extra=_extra
     self.flexure_mode = 'None'
   endelse
 
-  self.skysub_mode = 'Cubes'
+  self.skysub_mode = 'None'
 
   self->set_default_filespec
 
