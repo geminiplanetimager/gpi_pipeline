@@ -164,8 +164,8 @@ pro automaticreducer::handle_new_files, new_filenames ;, nowait=nowait
 
     finfo = file_info(new_filenames[i])
     ; check the file size against the expected:
-    ;     size of regular science files   size of engineering mode files      size of files w/out DQ extension
-    if (finfo.size ne 21003840) and (finfo.size ne 21000960) and (finfo.size ne 16790400) then begin
+    ;     size of recent science files  size of older science files   size of engineering mode files      size of files w/out DQ extension
+    if (finfo.size ne 21006720) and (finfo.size ne 21003840) and (finfo.size ne 21000960) and (finfo.size ne 16790400) then begin
       message,/info, "File size is not an expected value: "+strc(finfo.size)+" bytes. Waiting 0.5 s for file write to complete?"
       wait, 0.5
     endif
@@ -358,10 +358,12 @@ PRO automaticreducer::run_daily_housekeeping, datestr=datestr
 
   ; Figure out all files from the last 24 hours. Send them to the data
   ; parser. The fileset container class will automatically discard
-  ; any non-GPI files:
+  ; any non-GPI files.
+  ; Only include S-filenamed (science mode) observations here, as the E mode
+  ; files lack much of the FITS header metadata for the data parser to work with.
   todaysfiles = obj_new('fileset')
-  todaysfiles.add_files_from_wildcard,  self.watch_directory + path_sep() + 'S20'+datestr+'*.fits',/silent, count_added=count_added
-  todaysfiles.add_files_from_wildcard,  self.watch_directory + path_sep() + 'S20'+datestr+'*.fits.gz',/silent, count_added=count_added2
+  todaysfiles.add_files_from_wildcard,  self.watch_directory + path_sep() + 'S20'+datestr+'S*.fits',/silent, count_added=count_added
+  todaysfiles.add_files_from_wildcard,  self.watch_directory + path_sep() + 'S20'+datestr+'S*.fits.gz',/silent, count_added=count_added2
   parser = obj_new('parsercore')
  
   self->Log, "Running Data Parser on data from the last 24 hours ("+strc(count_added+count_added2)+" files found)."
