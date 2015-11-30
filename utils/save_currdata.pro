@@ -48,6 +48,41 @@
 ;-
 
 
+; Helper function to write various keywords including the FILE_1, FILE_2, ..., FILE_n keywords
+pro save_currdata_add_file_keywords, header, dataset, backbone, i, s_Ext
+
+    caldat,systime(/julian,/utc),month,day,year, hour,minute,second
+    datestr = string(year,month,day,format='(i4.4,"-",i2.2,"-",i2.2)')
+    hourstr = string(hour,minute,second,format='(i2.2,":",i2.2,":",i2.2)')  
+
+
+	version = gpi_pipeline_version()
+	fxaddpar, header, 'CREATOR', "GPI DRP, v"+strc(version), ' This file created by GPI Data Reduction Pipeline', after='TLCVER'
+	fxaddpar, header, 'DRPVER', version, ' Version number of GPI DRP software', after='TLCVER'
+	fxaddpar, header, 'DRPDATE', datestr+' '+hourstr, ' UT creation time of this reduced data file', after='UTEND'
+
+	;; update Gemini DATALABel keyword if present
+	datalab = sxpar(header, 'DATALAB', count=ctdatalab)
+	if ctdatalab gt 0 then fxaddpar, header, 'DATALAB', datalab+s_Ext
+
+
+	if backbone->get_current_reduction_level() eq 1 then begin
+		; level 1 reduction stage (individual file) so just add current input file 
+		; name
+		fxaddpar, header, 'FILE_0', file_basename(dataset.filenames[i]), ' Input filename'
+	endif else if backbone->get_current_reduction_level() eq 2 then begin
+		; Level 2 reduction stage (combination of files) so add all filenames
+		for j=0,n_elements(dataset.filenames)-1 do begin
+			if strc(dataset.filenames[j]) eq '' then continue
+			fxaddpar, header, 'FILE_'+strc(j+1), file_basename(dataset.filenames[j]), 'Input filename'
+		endfor
+	endif
+
+end
+
+
+
+; Main save data function
 function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=savedata, saveheader=saveheader, savePHU=savePHU,  $
 		output_filename=c_File, level2=level2, indexFrame=indexFrame
 
@@ -74,7 +109,7 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 	; in its own headers to be written out instead of the ones in the backbone
 	is_calib_pri=0 & is_calib_ext=0
     if keyword_set(savePHU) then is_calib_pri = strc(strupcase(fxpar(savePHU, "ISCALIB"))) eq 'YES' else $
-      is_calib_pri = strc(strupcase(fxpar(*(dataset.headersPHU[numfile]), "ISCALIB"))) eq 'YES' 
+      is_calib_pri = strc(strupcase(fxpar(*(dataset.headersPHU[numfile]), "ISCALIB"))) eq 'YES'
     if keyword_set(saveheader) then is_calib_ext = strc(strupcase(fxpar(saveheader, "ISCALIB"))) eq 'YES' else $
       is_calib_ext = strc(strupcase(fxpar(*(dataset.headersExt[numfile]), "ISCALIB"))) eq 'YES' 
 
@@ -188,12 +223,13 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 
 	  	if ~( keyword_set( saveheader ) ) then saveheader = *(dataset.headersExt[numfile])
 		if ~( keyword_set( savePHU ) ) then savePHU = *(dataset.headersPHU[numfile])
-		fxaddpar, savePHU, 'CREATOR', "GPI DRP, v"+strc(version), ' This file created by GPI Data Reduction Pipeline', after='TLCVER'
-		fxaddpar, savePHU, 'DRPVER', version, ' Version number of GPI DRP software', after='CREATOR'
-		fxaddpar, savePHU, 'DRPDATE', datestr+' '+hourstr, ' UT creation time of this reduced data file', after='UTEND'
-		; update Gemini DATALABel keyword if present
-		datalab = sxpar(savePHU, 'DATALAB', count=ctdatalab)
-		if ctdatalab gt 0 then fxaddpar, savePHU, 'DATALAB', datalab+s_Ext
+
+		save_currdata_add_file_keywords, savePHU, dataset, backbone_comm, i, s_ext
+		;fxaddpar, savePHU, 'DRPVER', version, ' Version number of GPI DRP software', after='TLCVER'
+		;fxaddpar, savePHU, 'DRPDATE', datestr+' '+hourstr, ' UT creation time of this reduced data file', after='UTEND'
+		;; update Gemini DATALABel keyword if present
+		;datalab = sxpar(savePHU, 'DATALAB', count=ctdatalab)
+		;if ctdatalab gt 0 then fxaddpar, savePHU, 'DATALAB', datalab+s_Ext
 
 		mwrfits, 0, c_File, savePHU, /create,/silent
 		writefits, c_File, float(savedata), saveheader, /append
@@ -201,9 +237,9 @@ function save_currdata, DataSet,  s_OutputDir, s_Ext, display=display, savedata=
 		;curr_hdr = savePHU
 		;curr_ext_hdr = saveheader
 	endif else begin
-		fxaddpar, *DataSet.HeadersPHU[i], 'CREATOR', "GPI DRP, v"+strc(version), ' This file created by GPI Data Reduction Pipeline', after='TLCVER'
-      	fxaddpar, *DataSet.HeadersPHU[i], 'DRPVER', version, ' Version number of GPI DRP software', after='CREATOR'
-      	fxaddpar, *DataSet.HeadersPHU[i], 'DRPDATE', datestr+'T'+hourstr, ' UT creation time of this reduced data file', after='UTEND'
+		save_currdata_add_file_keywords, *(dataset.headersPHU[i]), dataset, backbone_comm, i, s_ext
+      	;fxaddpar, *DataSet.HeadersPHU[i], 'DRPVER', version, ' Version number of GPI DRP software', after='TLCVER'
+      	;fxaddpar, *DataSet.HeadersPHU[i], 'DRPDATE', datestr+'T'+hourstr, ' UT creation time of this reduced data file', after='UTEND'
 		; update the header if we're writing out VAR or DQ extensions.
 		FXADDPAR,  *(dataset.headersPHU[i]),'NEXTEND',1+ptr_valid(dataSet.CurrDQ)+ptr_valid(dataset.CurrUncert)
 
