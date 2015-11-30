@@ -91,7 +91,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 
 	; store the output into the backbone datastruct
-	backbone->set_keyword, "FILETYPE", "Thermal/Sky Background", /savecomment
+	backbone->set_keyword, "FILETYPE", "Thermal/Sky Background Image", /savecomment
   	backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
 	suffix = '-bkgnd'
 

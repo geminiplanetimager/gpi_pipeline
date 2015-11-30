@@ -507,6 +507,11 @@ pro drf::set_primitive_args, modnum, verbose=verbose, status=status, _extra=argi
 		if keyword_set(verbose) then print, newargnames[i], arginfo.(i)
 
 		wm = where(strupcase(module_argument_names) eq newargnames[i], mct)
+
+		if mct eq 0 and newargnames[i] eq 'SKIP' then mct=1 ; special case: any primitive can have a SKIP
+															; argument, even if not explicitly set
+															; in the config file.
+
 		if mct eq 0 then begin
 			message,/info, "Not a valid argument for that primitive: "+newargnames[i]
 			status=NOT_OK
@@ -627,6 +632,25 @@ FUNCTION drf::get_primitive_args, modnum, count=count,verbose=verbose, status=st
 		if exists eq 1 then module_argument_values[i] = (*self.primitives)[modnum].(j)
 		if module_argument_values[i] eq '' then module_argument_values[i] = module_argument_defaults[i]
 	endfor
+
+	; special case the SKIP parameter, which any primitive can have, even if not
+	; explicitly stated in the config file
+	; Jump through some convoluted code here to check for presence, then nonzero
+	; string, then integer value corresponding to truth
+	if tag_exist( (*self.primitives)[modnum], 'SKIP', index=jskip) then begin
+	if strc((*self.primitives)[modnum].(jskip)) ne '' then begin
+	if fix((*self.primitives)[modnum].(jskip)) then begin
+		module_argument_names = [module_argument_names, 'SKIP']
+		module_argument_values= [module_argument_values, strc((*self.primitives)[modnum].(jskip))]
+		module_argument_defaults=[module_argument_defaults,'0']
+		module_argument_ranges = [module_argument_ranges, '[0,1]']
+		module_argument_descs = [module_argument_descs, 'Skip this primitive?']
+		module_argument_types = [module_argument_types, 'int']
+		module_argument_calfiletypes= [module_argument_calfiletypes, '']
+		;self->Log, 'Primitive will be skipped: '+(*self.primitives)[modnum].name
+	endif
+	endif
+	endif
 
 	return, {names: module_argument_names, values:module_argument_values, defaults:module_argument_defaults, ranges: module_argument_ranges, $
 			descriptions: module_argument_descs, types:module_argument_types, calfiletypes:module_argument_calfiletypes}

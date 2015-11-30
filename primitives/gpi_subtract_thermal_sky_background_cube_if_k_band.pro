@@ -65,14 +65,14 @@ calfiletype = 'background_cube'
 	
 	itime = backbone->get_keyword('ITIME')
 
-        scaled_background = background_data * itime * override_scaling ; (2.0/3.0)
+    scaled_background = background_data * itime * override_scaling ; (2.0/3.0)
 
-; now subtract it from the cube
-cube = *(dataset.currframe)
+	; now subtract it from the cube
+	cube = *(dataset.currframe)
 
-band = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
-cwv = get_cwv(band,spectralchannels=(size(cube,/dim))[2])
-lambda = cwv.lambda
+	band = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
+	cwv = get_cwv(band,spectralchannels=(size(cube,/dim))[2])
+	lambda = cwv.lambda
 
 	for s=0, N_ELEMENTS(lambda)-1 do cube[*,*,s]-=scaled_background[*,*,s]
 
@@ -87,7 +87,7 @@ lambda = cwv.lambda
 	backbone->Log,logstr
 
   
-  	suffix = 'bkgnd_cube_sub'
+  	suffix = 'bkgndcubesub'
 @__end_primitive 
 
 

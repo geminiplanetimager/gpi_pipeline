@@ -454,6 +454,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
                     ['wavecal', 'Wavelength Solution Cal File', 'FiltPrism'], $
                     ['wavecal_deep', 'Wavelength Solution Cal File (Deep)', 'FiltPrism'], $
                     ['wavecal_quick', 'Wavelength Solution Cal File (Quick)', 'FiltPrism'], $
+                    ['fpm_position', 'FPM Position', 'FiltPrism'], $
                     ['flat', 'Flat Field', 'FiltPrism'], $
                     ['lensletflat', 'Lenslet Flat Field', 'PrismOnly'], $ ; was filtprism
                                 ;['flat', 'Flat field', 'FiltPrism'], $
@@ -473,9 +474,9 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
                     ['lsf_polflat', 'Low Spatial Frequency Polarimetry flat field', 'FiltPrism'], $ 
                     ['instpol', 'Instrumental Polarization', 'FiltPrism'], $
                     ['distor', 'Distortion Measurement', 'typeonly'], $
-                    ['background', 'Thermal/Sky Background', 'FiltPrism'], $
+                    ['background', 'Thermal/Sky Background Image', 'FiltPrism'], $
                     ['shifts', 'Flexure shift Cal File', 'typeonly'], $
-                    ['micro', 'Micro Model', 'typeonly'], $
+                    ['micro', 'Micro Model', 'typeonly'], $		; microphonics model
                     ['persis', 'Persistence Parameters', 'typeonly'], $
                     ['background_cube', 'Thermal/Sky Background Cube', 'FiltPrism'], $
                    ['', '', '']]
@@ -642,7 +643,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
            endelse
 	end
 	
-        'FiltOnly': begin
+    'FiltOnly': begin
      	imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
         ((calfiles_table.filter) eq filter )  ,cc)
      	errdesc = 'with same FILTER'
@@ -671,7 +672,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	; If we are matching a wavecal, always return the closest in time without
 	; any other considerations. This is because we may be trying to match
 	; multiple wavecals taken during the night to measure the IFS internal flexure.
-	if strlowcase(type) eq 'wavecal' then begin
+	if strlowcase(type) eq 'wavecal' or strlowcase(type) eq 'fpm_position' then begin
                                 ; Choose all wavecals taken within two
                                 ; hours and choose the one with the
                                 ; closes elevation

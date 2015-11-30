@@ -202,6 +202,15 @@ pro automaticreducer::reduce_one, filenames, wait=wait
     gcallamp = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'GCALLAMP', count=gcallampct ,/silent)))
     gcalfilt = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'GCALFILT', count=gcalfiltct ,/silent)))
 
+	; check for offsets taht would indicate a sky
+	qoffset = gpi_get_keyword( *info.pri_header, *info.ext_header, 'QOFFSET')
+	poffset = gpi_get_keyword( *info.pri_header, *info.ext_header, 'POFFSET')
+	xoffset = gpi_get_keyword( *info.pri_header, *info.ext_header, 'XOFFSET')
+	yoffset = gpi_get_keyword( *info.pri_header, *info.ext_header, 'YOFFSET')
+	is_sky = (abs(qoffset) gt 1) or (abs(poffset) gt 1) or (abs(xoffset) gt 1) or (abs(yoffset) gt 1)
+
+
+
     if (dispct eq 0) or (strc(prism) eq '') then begin
       message,/info, 'Missing or blank DISPERSR keyword! '
       prism = 'PRISM' ; this used to be user selectable but the keywords are now robust,
@@ -231,9 +240,15 @@ pro automaticreducer::reduce_one, filenames, wait=wait
         if obstype eq 'ARC' then begin
           templatename='Quick Wavelength Solution'
           should_apply_flexure_update=0
-        endif else begin
+		  should_apply_skysub_update=0
+        endif else if is_sky then begin
+		  templatename = 'Quick Thermal/Sky Background'
+          should_apply_flexure_update=0
+		  should_apply_skysub_update=0
+		endif else begin
           templatename='Quicklook Automatic Datacube Extraction'
           should_apply_flexure_update=1
+		  should_apply_skysub_update=1
         endelse
       end
       'WOLLASTON': begin
@@ -242,11 +257,13 @@ pro automaticreducer::reduce_one, filenames, wait=wait
         endif else begin
           templatename='Quicklook Automatic Polarimetry Extraction'
           should_apply_flexure_update=1
+		  should_apply_skysub_update=0
         endelse
       end
       'OPEN': begin
         templatename='Quicklook Automatic Undispersed Extraction'
         should_apply_flexure_update=1
+		should_apply_skysub_update=0
       end
     endcase
   endif else begin
@@ -265,6 +282,8 @@ pro automaticreducer::reduce_one, filenames, wait=wait
   drf->set_datafiles, filenames
   drf->set_outputdir,'AUTOMATIC' ;/autodir
 
+
+  ; Update recipe options for flexure, based on currently-selected options
   if keyword_set(should_apply_flexure_update) then begin
 
     if prism eq 'WOLLASTON' then begin
@@ -289,6 +308,27 @@ pro automaticreducer::reduce_one, filenames, wait=wait
     endelse
   endif
 
+  ; Update recipe options for sky subtraction, based on currently-selected options
+  if keyword_set(should_apply_skysub_update) then begin
+	; 2d sky sub? 
+    wupdate_images =  drf->find_module_by_name('Subtract Thermal/Sky Background if K band', count_images)
+    if count_images ne 1 then begin
+      message,/info, "Can't find sky subtraction primitive; therefore can't apply settings. Continuing anyway."
+    endif else begin
+	  skip_images = self.skysub_mode ne 'Images'
+      drf->set_module_args, wupdate_images, skip=strc(fix(skip_images))
+    endelse
+
+	; 3d sky sub? 
+    wupdate_cubes =  drf->find_module_by_name('Subtract Thermal/Sky Background Cube if K band', count_cubes)
+    if count_cubes ne 1 then begin
+      message,/info, "Can't find sky subtraction primitive; therefore can't apply settings. Continuing anyway."
+    endif else begin
+	  skip_cubes = self.skysub_mode ne 'Cubes'
+      drf->set_module_args, wupdate_cubes, skip=strc(fix(skip_cubes))
+    endelse
+
+  endif
 
 
   ; generate a nice descriptive filename
@@ -396,6 +436,10 @@ pro automaticreducer::event, ev
       'Lookup': self->set_flexure_mode, 'Lookup'
       'Manual': self->set_flexure_mode, 'Manual'
       'BandShift': self->set_flexure_mode, 'BandShift'
+	  ; K sky sub
+	  'No sky sub.': self->set_skysub_mode, 'None'
+	  'Use 2D sky images': self->set_skysub_mode, 'Images'
+	  'Use 3D sky cubes': self->set_skysub_mode, 'Cubes'
       'Autoreducer Help...': gpi_open_help, 'usage/autoreducer.html',/dev
       'GPI DRP Help...': gpi_open_help, '',/dev
     endcase
@@ -610,6 +654,20 @@ PRO automaticreducer::set_flexure_mode, modestr
 end
 
 ;--------------------------------------
+; Set sky subtraction mode, and toggle manual entry field visibility appropriately
+PRO automaticreducer::set_skysub_mode, modestr
+  self.skysub_mode = modestr
+
+  ;widget_control, self.flex_base_id, map=self.flexure_mode eq 'Manual'
+
+  modes_on_menu = ['No sky sub.', 'Use 2D sky images', 'Use 3D sky cubes']
+  modes = ['None', 'Images', 'Cubes']
+  for i=0,2 do self.menubar->set_check_state, modes_on_menu[i], self.skysub_mode eq modes[i]
+  print, "Sky Subtraction handling mode is now "+self.skysub_mode
+end
+
+
+;--------------------------------------
 ; kill the window and clear variables to conserve
 ; memory when quitting.
 PRO automaticreducer::cleanup
@@ -654,6 +712,8 @@ function automaticreducer::init, groupleader, _extra=_extra
     self.flexure_mode = 'None'
   endelse
 
+  self.skysub_mode = 'Cubes'
+
   self->set_default_filespec
 
   self.top_base = widget_base(title = self.name, $
@@ -674,11 +734,15 @@ function automaticreducer::init, groupleader, _extra=_extra
     {cw_pdmenu_s, 8, 'Sort Files by Creation Time'},$
     {cw_pdmenu_s, 8, 'Ignore individual UTR/CDS readout files'}, $
     {cw_pdmenu_s, 8, 'Show Recipe selection options'}, $
-    {cw_pdmenu_s, 3, 'Flexure Compensation'}, $
+    {cw_pdmenu_s, 1, 'Flexure Compensation'}, $
     {cw_pdmenu_s, 8, 'None'},$
     {cw_pdmenu_s, 8, 'Lookup'},$
     {cw_pdmenu_s, 8, 'BandShift'},$
     {cw_pdmenu_s, 10, 'Manual'},$
+    {cw_pdmenu_s, 3, 'K band background subtraction'}, $
+    {cw_pdmenu_s, 8, 'No sky sub.'},$
+    {cw_pdmenu_s, 8, 'Use 2D sky images'},$
+    {cw_pdmenu_s, 10, 'Use 3D sky cubes'},$
     {cw_pdmenu_s, 1, 'Help'}, $         ; help menu
     {cw_pdmenu_s, 0, 'Autoreducer Help...'}, $
     {cw_pdmenu_s, 2, 'GPI DRP Help...'} $
@@ -762,6 +826,7 @@ function automaticreducer::init, groupleader, _extra=_extra
   self.menubar->set_check_state, 'Sort Files by Creation Time', self.sort_by_time
   self.menubar->set_check_state, 'Show Recipe selection options', self.show_recipe_selection_options
   self->set_flexure_mode, self.flexure_mode ; null op but sets the checkboxes appropriately
+  self->set_skysub_mode, self.skysub_mode ; null op but sets the checkboxes appropriately
 
   ;----
 
@@ -822,6 +887,7 @@ pro automaticreducer__define
     watch_filespec: '*.fits', $		; file windcard spec
     user_template:'',$				; user-specified template to execute when fits file double clicked
     flexure_mode: '', $				; how to handle flexure in recipes?
+    skysub_mode: '', $				; how to handle sky subtraction (for K1/K2 only) in recipes?
     listfile_id:0L,$;wid id for list of fits file
 	reduce_recipe_base_id: 0L,$		; widget ID for recipe selector base
     b_default_rec_id :0L,$			; widget ID for default recipe button
