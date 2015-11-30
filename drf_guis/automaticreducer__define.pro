@@ -369,7 +369,7 @@ PRO automaticreducer::run_daily_housekeeping, datestr=datestr
   self->Log, "Running Data Parser on data from the last 24 hours ("+strc(count_added+count_added2)+" files found)."
   allrecipes = parser.parse_fileset_to_recipes(todaysfiles)
 
-  if n_elements(allrecipes) gt 1 and type(allrecipes[0]) ne type(-1) then begin
+  if n_elements(allrecipes) ge 1 and type(allrecipes[0]) ne type(-1) then begin
 
 	  for i=0, n_elements(allrecipes)-1 do begin
 		  summary = allrecipes[i].get_summary()
