@@ -131,9 +131,11 @@ pro automaticreducer::run
   ; if running at the observatory, be ready to automatically advance the file
   ; specification when the date changes.
   if keyword_set(gpi_get_setting('at_gemini', default=0,/silent)) then if gpi_datestr(/current) ne self.current_datestr then begin
+	self->run_daily_housekeeping ; do this before adjusting the filespec in the next line.
+
     self->set_default_filespec
     if widget_info(self.wildcard_id,/valid_id) then widget_control, self.wildcard_id, set_value=new_wildcard
-
+	self.current_datestr = gpi_datestr(/current)
   endif
 
 end
@@ -299,6 +301,44 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 
 end
 
+;-------------------------------------------------------------------
+PRO automaticreducer::run_daily_housekeeping, datestr=datestr
+  ; Various tasks for CPO summit autoreducer maintenance. 
+  
+  if ~(keyword_set(datestr)) then datestr= self.current_datestr
+
+  self->Log, "**** Running autoreducer daily housekeeping tasks for "+datestr+" ***"
+
+  ; Figure out all files from the last 24 hours. Send them to the data
+  ; parser. The fileset container class will automatically discard
+  ; any non-GPI files:
+  todaysfiles = obj_new('fileset')
+  todaysfiles.add_files_from_wildcard,  self.watch_directory + path_sep() + 'S20'+datestr+'*.fits',/silent, count_added=count_added
+  todaysfiles.add_files_from_wildcard,  self.watch_directory + path_sep() + 'S20'+datestr+'*.fits.gz',/silent, count_added=count_added2
+  parser = obj_new('parsercore')
+ 
+  self->Log, "Running Data Parser on data from the last 24 hours ("+strc(count_added+count_added2)+" files found)."
+  allrecipes = parser.parse_fileset_to_recipes(todaysfiles)
+
+  if n_elements(allrecipes) gt 1 and type(allrecipes[0]) ne type(-1) then begin
+
+	  for i=0, n_elements(allrecipes)-1 do begin
+		  summary = allrecipes[i].get_summary()
+		if ((summary.name eq 'Dark') and (summary.nfiles gt 3)) then begin 
+			self->Log, "Found a Dark sequence with "+strc(summary.nfiles)+" files. Queued: "+file_basename(summary.filename)
+			allrecipes[i]->queue
+		end
+	  endfor
+  endif else begin
+	  self->Log, 'No recipes to run; probably no GPI data found.'
+  endelse
+ 
+  self->Log, "**** Done with autoreducer daily housekeeping ***"
+
+
+
+end
+
 
 ;-------------------------------------------------------------------
 PRO automaticreducer_event, ev
@@ -322,6 +362,7 @@ pro automaticreducer::event, ev
     case ev.value of
       'Change Directory...': self->change_directory
       'Change Filename Wildcard...': self->change_wildcard
+      'Run Daily Housekeeping': self->run_daily_housekeeping
       'Quit Autoreducer': self->confirm_close
       'View new files in GPITV': begin
         self.view_in_gpitv = ~ self.view_in_gpitv
@@ -339,6 +380,17 @@ pro automaticreducer::event, ev
         self.menubar->set_check_state, 'Ignore individual UTR/CDS readout files', self.ignore_indiv_reads
 
       end
+      'Show Recipe selection options': begin
+        self.show_recipe_selection_options = ~ self.show_recipe_selection_options
+        self.menubar->set_check_state, 'Show Recipe selection options', self.show_recipe_selection_options
+		if self.show_recipe_selection_options then begin
+			ysize = 75
+		endif else begin
+			ysize=1
+		endelse 
+        widget_control,self.reduce_recipe_base_id,map=self.show_recipe_selection_options, ysize=ysize
+      end
+ 
       ; Flexure compensation:
       'None': self->set_flexure_mode, 'None'
       'Lookup': self->set_flexure_mode, 'Lookup'
@@ -587,6 +639,7 @@ function automaticreducer::init, groupleader, _extra=_extra
   self.sort_by_time= gpi_get_setting('at_gemini', default=0,/silent)
   self.ignore_indiv_reads = 1
   self.current_datestr = gpi_datestr(/current)
+  self.show_recipe_selection_options=0
 
   ; should we include any flexure compensation in the recipes?
   ; By default turn this on ONLY if there is at least one flexure cal
@@ -614,11 +667,13 @@ function automaticreducer::init, groupleader, _extra=_extra
     {cw_pdmenu_s, 1, 'File'}, $ ; file menu;
     {cw_pdmenu_s, 0, 'Change Directory...'}, $
     {cw_pdmenu_s, 0, 'Change Filename Wildcard...'}, $
+    {cw_pdmenu_s, 0, 'Run Daily Housekeeping'}, $
     {cw_pdmenu_s, 2, 'Quit Autoreducer'}, $
     {cw_pdmenu_s, 1, 'Options'}, $
     {cw_pdmenu_s, 8, 'View new raw files in GPITV'},$
     {cw_pdmenu_s, 8, 'Sort Files by Creation Time'},$
     {cw_pdmenu_s, 8, 'Ignore individual UTR/CDS readout files'}, $
+    {cw_pdmenu_s, 8, 'Show Recipe selection options'}, $
     {cw_pdmenu_s, 3, 'Flexure Compensation'}, $
     {cw_pdmenu_s, 8, 'None'},$
     {cw_pdmenu_s, 8, 'Lookup'},$
@@ -667,7 +722,10 @@ function automaticreducer::init, groupleader, _extra=_extra
   self->scan_templates
 
 
-  base_dir = widget_base(self.top_base, /row)
+  self.reduce_recipe_base_id = widget_base(self.top_base, /column)
+
+
+  base_dir = widget_base(self.reduce_recipe_base_id, /row)
   void = WIDGET_LABEL(base_dir,Value='Reduce using:')
   parsebase = Widget_Base(base_dir, UNAME='kindbase' ,ROW=1 ,/EXCLUSIVE, frame=0)
   self.b_default_rec_id =    Widget_Button(parsebase, UNAME='default_recipe'  $
@@ -676,24 +734,10 @@ function automaticreducer::init, groupleader, _extra=_extra
     ,/ALIGN_LEFT ,VALUE='Specific recipe',/tracking_events, sensitive=1)
   widget_control, self.b_default_rec_id, /set_button
 
-  base_dir = widget_base(self.top_base, /row)
+  base_dir = widget_base(self.reduce_recipe_base_id, /row)
   self.template_id = WIDGET_DROPLIST(base_dir , title='Select template:', frame=0, Value=(*self.templates).name, $
     uvalue='select_template', uname='select_template', resource_name='XmDroplistButton', sensitive=0)
 
-
-  ;	base_dir = widget_base(self.top_base, /row)
-  ;	void = WIDGET_LABEL(base_dir,Value='Default disperser if missing keyword:')
-  ;	parsebase = Widget_Base(base_dir, ROW=1 ,/EXCLUSIVE, frame=0)
-  ;	self.b_spectral_id =    Widget_Button(parsebase, UNAME='Spectral'  $
-  ;	        ,/ALIGN_LEFT ,VALUE='Spectral',/tracking_events)
-  ;	self.b_undispersed_id =    Widget_Button(parsebase, UNAME='Undispersed'  $
-  ;	        ,/ALIGN_LEFT ,VALUE='Undispersed',/tracking_events, sensitive=1)
-  ;	self.b_polarization_id =    Widget_Button(parsebase, UNAME='Polarization'  $
-  ;	        ,/ALIGN_LEFT ,VALUE='Polarization',/tracking_events, sensitive=1)
-  ;
-  ;	widget_control, self.b_undispersed_id, /set_button
-
-  ;directory = gpi_get_directory('calibrations_DIR')
 
   self.flex_base_id = widget_base(self.top_base, /row, map=0)
 
@@ -716,6 +760,7 @@ function automaticreducer::init, groupleader, _extra=_extra
   self.menubar->set_check_state, 'View new raw files in GPITV', self.view_in_gpitv
   self.menubar->set_check_state, 'Ignore individual UTR/CDS readout files', self.ignore_indiv_reads
   self.menubar->set_check_state, 'Sort Files by Creation Time', self.sort_by_time
+  self.menubar->set_check_state, 'Show Recipe selection options', self.show_recipe_selection_options
   self->set_flexure_mode, self.flexure_mode ; null op but sets the checkboxes appropriately
 
   ;----
@@ -778,6 +823,7 @@ pro automaticreducer__define
     user_template:'',$				; user-specified template to execute when fits file double clicked
     flexure_mode: '', $				; how to handle flexure in recipes?
     listfile_id:0L,$;wid id for list of fits file
+	reduce_recipe_base_id: 0L,$		; widget ID for recipe selector base
     b_default_rec_id :0L,$			; widget ID for default recipe button
     b_specific_rec_id :0L,$			; widget ID for specific chosen recipe button
     template_id:0L,$				; widget ID for template select dropdown
@@ -798,6 +844,7 @@ pro automaticreducer__define
     view_in_gpitv: 0L, $		; Setting: View in GPITv?
     ignore_indiv_reads: 0L, $	; Setting: Ignore individual reads?
     sort_by_time: 0L, $	; Setting: Sort by time?
+    show_recipe_selection_options: 0L, $	; Setting: Show recipe selection options?
     reason_for_rescan: '', $	; why are we rescanning the directory? (used in log messages)
     INHERITS parsergui} ;wid for detect-new-files button
 
