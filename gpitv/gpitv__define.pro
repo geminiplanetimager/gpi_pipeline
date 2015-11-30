@@ -11825,7 +11825,7 @@ pro GPItv::selectwavecal
 end
 
 ;---------------------------------------------------------------------
-pro GPItv::getautowavecal
+pro GPItv::getautowavecal,silent=silent
   ; load automatic best wavelength calibration (or polarizatoin calibration)
   ; file from the GPI Calibration DB
 
@@ -11860,7 +11860,8 @@ pro GPItv::getautowavecal
     self->message, ['ERROR: No available appropriate calibration files for this data!','', 'The calibration database does not contain a wavecal or polcal file','that matches this image in IFSFILT and DISPERSR keywords. Cannot load data to plot.'],/window,msgtype='error'
     (*self.state).wcfilename=''
   endif else begin
-    self->message, ["Retrieved "+calfiletype+" file from Calibration DB: "+bestfile, "Now select 'Plot Wavecal/Polcal Grid' to display it."],/window
+	if ~(keyword_set(silent)) then $
+	    self->message, ["Retrieved "+calfiletype+" file from Calibration DB: "+bestfile, "Now select 'Plot Wavecal/Polcal Grid' to display it."],/window
     (*self.state).wcfilename = bestfile
   endelse
 
@@ -11870,9 +11871,17 @@ end
 
 pro GPItv::wavecalgridlabel
   ; Front-end widget for wavecal labels
+
+  ; if we don't have a wavecal selected, try to load one automatically:
   if (*self.state).wcfilename eq '' then begin
-    self->message, msgtype = 'error', "You must select a wavelength/polarization calibration file first before you can overplot the solution!",/window
-    return
+	  self->getautowavecal,/silent
+
+	  ; if we still don't have one (because the auto load didn't work)
+	  ; then tell the user they have to intervene manually.
+	  if (*self.state).wcfilename eq '' then begin
+		self->message, msgtype = 'error', "You must select a wavelength/polarization calibration file first before you can overplot the solution!",/window
+		return
+	  endif
   endif
 
   ; Check for applied shifts to account for flexure
@@ -11904,7 +11913,7 @@ pro GPItv::wavecalgridlabel
   ; Query the user for desired wavecal display options
 
   formdesc = ['0, droplist, black|red|green|blue|cyan|magenta|yellow|white,label_left=Grid Color:   , set_value=1 ', $ ; tag0
-    '0, droplist, black|red|green|blue|cyan|magenta|yellow|white,label_left=Tilt Color:   , set_value=2 ', $ ; tag1
+    '0, droplist, black|red|green|blue|cyan|magenta|yellow|white,label_left=Trace Color:   , set_value=2 ', $ ; tag1
     '0, label, Recommended spot shifts from flexure model:,left ',$	; tag2
     '0, label,     (delta X\, delta Y) = ('+sigfig(recommended_shifts[0],3)+'\, '+sigfig(recommended_shifts[1],3)+' ) , center',$	; tag3
     '0, float, '+string(shiftx)+', label_left=Spot Shift X: ', $ ; tag4
