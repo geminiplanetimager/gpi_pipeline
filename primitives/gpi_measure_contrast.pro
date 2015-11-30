@@ -144,12 +144,15 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
    for j = 0, n_elements(inds)-1 do begin
       ;; get the radial profile desired
       case contr_yunit of
+	     ; Standard deviation:
          0: radial_profile,copsf[*,*,inds[j]],cens[*,*,inds[j]],$
                            lambda=cwv[inds[j]],asec=asec,isig=outval,$
                            /dointerp,doouter = doouter
+		 ; Median:
          1: radial_profile,copsf[*,*,inds[j]],cens[*,*,inds[j]],$
                            lambda=cwv[inds[j]],asec=asec,imed=outval,$
                            /dointerp,doouter = doouter
+		 ; Mean:
          2: radial_profile,copsf[*,*,inds[j]],(*self.satspots.cens)[*,*,inds[j]],$
                            lambda=cwv[inds[j]],asec=asec,imn=outval,$
                            /dointerp,doouter = doouter
@@ -223,7 +226,7 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
       if floor(alog10(max(yrange))) eq floor(alog10(min(yrange))) then begin
         ;;As of now no labels will be drawn on Y-axis, so set them by hand
         ytickv = 10.^floor(alog10(min(yrange))) * (findgen(10)+1)
-        ytickv = ytickv(where(ytickv ge min(yrange) and ytickv le max(yrange)))
+        ytickv = ytickv[where(ytickv ge min(yrange) and ytickv le max(yrange))]
         yticks = n_elements(ytickv)-1
       endif  
       ytitle = 'Contrast '
