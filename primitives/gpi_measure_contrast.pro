@@ -190,7 +190,7 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
                       " Contrast at "+sigfig(cwv[slice],4)+" um, "+sigfig(radius,2)+"'' from sat spots", ext_num=0
 		endif else begin
 			; if we measured contrast on multiple wavelength slices, use the
-			; median contrast over the central 75% of the bandpass
+			; median contrast over the central half of the bandpass
 			middle_range = [round(0.25*n_elements(inds)), round(0.75*n_elements(inds))]
 			; note that GPItv only looks at individual slices
 			pts = fltarr(middle_range[1]-middle_range[0]+1)
@@ -199,7 +199,7 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
 			contrast_at_radius = median(pts)
 			fiducial_contrasts[r] = contrast_at_radius
 			backbone->set_keyword,fiducial_keywords[r], fiducial_contrasts[r],$
-                      " Median (75% band) contrast at "+sigfig(radius,2)+"'' from sat spots", ext_num=0
+                      " Median contrast (over 50% bandwidth) at "+sigfig(radius,2)+"'' from sat spots", ext_num=0
 		endelse
 	   endfor
    if keyword_set(update_prev_fits_header) then begin
@@ -212,7 +212,7 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
 		prevheader = gpi_get_prev_saved_header(status=status)
 		if status eq OK then begin
 			for r =0,2 do sxaddpar, prevheader, fiducial_keywords[r], fiducial_contrasts[r],$
-									  " Median (75% band) contrast at "+sigfig(fiducial_radii[r],2)+"'' from sat spots"
+									  " Median contrast (over 50% bandwidth) at "+sigfig(fiducial_radii[r],2)+"'' from sat spots"
 			gpi_update_prev_saved_header, prevheader
 		endif
 	endif
@@ -278,7 +278,7 @@ if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
 
 	; put in the labels for contrasts
 	  if slice ne -1 then label = "Contrast at "+sigfig(cwv[slice],4)+" um:" $
-					  else label = "Median (75% band) contrasts: "
+					  else label = "Median contrasts (50% band) : "
 	   xyouts, 0.65, 0.85, label, /norm, charsize=1.5, color=cgcolor('red')
 
 
