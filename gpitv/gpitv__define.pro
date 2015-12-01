@@ -5945,6 +5945,7 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   ;; contrast profile pointers - has to be done before calling collapsecube
   ptr_free,self.satspots.cens
   self.satspots.cens = ptr_new(/allocate_heap)
+  (*self.state).fpmoffset_fpmpos = 0
 
   ;; kill everything associated with contrprofile
   heap_free,self.satspots.asec
@@ -20739,6 +20740,7 @@ pro GPItv::fpmoffset_refresh
     bestfile = caldb->get_best_cal_from_header( 'fpm_position', *((*self.state).head_ptr), (*self.state).exthead_ptr) 
 
     if strc(bestfile) eq '-1' then begin
+		self->message, "Couldn't load any FPM offset file from CalDB."
 		 (*self.state).fpmoffset_fpmpos = [-1,-1] ; record that we don't have one so it doesn't try again on every refresh
 	endif else begin 
 		header = headfits(bestfile)
@@ -20759,7 +20761,7 @@ pro GPItv::fpmoffset_refresh
   ;;--update display--
 
 
-  if (*self.state).fpmpos[0] le 0 then begin
+  if (*self.state).fpmoffset_fpmpos[0] le 0 then begin
 	  self->message, "No FPM position available."
 	  fpmcentx=0.0
 	  fpmcenty=0.0
@@ -20768,8 +20770,8 @@ pro GPItv::fpmoffset_refresh
 	  statuslabel ='    FPM position not available. '
   endif else begin
 	  pixscale = gpi_get_constant('ifs_lenslet_scale') ; arcsec per pixel
-      fpmcentx = (*self.state).fpmpos[0]
-      fpmcenty = (*self.state).fpmpos[1]
+      fpmcentx = (*self.state).fpmoffset_fpmpos[0]
+      fpmcenty = (*self.state).fpmoffset_fpmpos[1]
 
       offsetx = (psfcentx-fpmcentx) *pixscale*1000 ; convert to mas
       offsety = (psfcenty-fpmcenty) *pixscale*1000 ; convert to mas
