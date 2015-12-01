@@ -379,7 +379,7 @@ PRO automaticreducer::run_daily_housekeeping, datestr=datestr
 			; enough memory to run sigmaclip on a set of 60 darks.  So force it
 			; to just use MEAN instead.
 			ind =  allrecipes[i]->find_module_by_name('Combine 2D dark images', count)
-			if count eq 1 then allrecipes[i]>set_module_args, ind, method='MEAN'
+			if count eq 1 then allrecipes[i]->set_module_args, ind, method='MEAN'
 			allrecipes[i]->queue
 		end
 	  endfor
