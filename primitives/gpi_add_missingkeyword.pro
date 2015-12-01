@@ -9,7 +9,7 @@
 ; PIPELINE ARGUMENT: Name="keyword" Type="string"  Default="" Desc="Enter keyword name to add."
 ; PIPELINE ARGUMENT: Name="value" Type="string" Default="" Desc="Enter value of the keyword to add."
 ; PIPELINE ARGUMENT: Name="valuetype" Type="string" Default="string" Desc="Enter keyword type."
-; PIPELINE ARGUMENT: Name="ext_no" Type="int" Default="0" Desc="Extension Number."
+; PIPELINE ARGUMENT: Name="ext_no" Type="int" Default="0" Range="[0,10]" Desc="Extension Number."
 ; PIPELINE COMMENT: Add any missing keyword. (use this function several times in the DRF if you need to add more than one keyword)
 ; PIPELINE ORDER: 0.1
 ; PIPELINE CATEGORY: Calibration,Testing
