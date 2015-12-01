@@ -375,6 +375,11 @@ PRO automaticreducer::run_daily_housekeeping, datestr=datestr
 		  summary = allrecipes[i].get_summary()
 		if ((summary.name eq 'Dark') and (summary.nfiles gt 3)) then begin 
 			self->Log, "Found a Dark sequence with "+strc(summary.nfiles)+" files. Queued: "+file_basename(summary.filename)
+			; Semi-hacky workaround: the summit VM computer cpogpi02 lacks
+			; enough memory to run sigmaclip on a set of 60 darks.  So force it
+			; to just use MEAN instead.
+			ind =  allrecipes[i]->find_module_by_name('Combine 2D dark images', count)
+			if count eq 1 then allrecipes[i]>set_module_args, ind, method='MEAN'
 			allrecipes[i]->queue
 		end
 	  endfor
