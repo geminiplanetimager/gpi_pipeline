@@ -174,6 +174,7 @@ endif
 
 backbone->set_keyword, "FPMCENTX", fpm_x
 backbone->set_keyword, "FPMCENTY", fpm_y
+backbone->set_keyword, "FPMCMETH", method,"FPM Centroid Measurement Method"
 backbone->set_keyword, "FILETYPE", 'FPM Position', 'What kind of IFS file is this?'
 backbone->set_keyword, "ISCALIB" , "YES", 'This is a reduced calibration file of some type.'
 
