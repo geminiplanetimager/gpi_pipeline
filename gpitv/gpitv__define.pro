@@ -3321,7 +3321,7 @@ pro GPItv::collapsecube
 
   ;; collapse as necessary
   widget_control, (*self.state).collapse_button, get_value=modelist
-  print, modelist[(*self.state).collapse]
+  ;print, modelist[(*self.state).collapse]
   case modelist[(*self.state).collapse] of
     'Show Cube Slices': begin  ; show slices
 
@@ -3604,7 +3604,7 @@ end
 pro GPItv::set_minmax
 
   ; Updates the min and max text boxes with new values.
-
+  ; This is the display scale min and max, not the actual image counts min and max. 
 
   if (abs((*self.state).min_value) gt 1e6) || (abs((*self.state).min_value) lt 1e-4) then formi='(e10.2)'
   widget_control, (*self.state).min_text_id, set_value = string((*self.state).min_value,format=formi)
@@ -4068,10 +4068,14 @@ end
 
 ;------------------------------------------------------------------
 
-pro GPItv::change_image_units, new_requested_units, silent=silent
+pro GPItv::change_image_units, new_requested_units, silent=silent, loading_new_image=loading_new_image
   ; Update the currently displayed image to a new choice of display unit.
   ; This involves rescaling the actual pixel values of the main image stack,
   ; and applying the same transformation to the min/max display scaling.
+  ;
+  ; Parameters:
+  ;  /silent		      don't display text output
+  ;  /loading_new_image   needed to support retain_image_stretch and not adjust minmax - see issue #349 for motivation
 
   if n_elements(new_requested_units) eq 0 then return
 
@@ -4155,7 +4159,7 @@ pro GPItv::change_image_units, new_requested_units, silent=silent
       endif
 
       ;;get the contrast cube
-      if proceed then begin
+      if proceed then begin ; apply transformation
         copsf = (*self.images.main_image_stack)
         ;;scale by sat spot mean
         for j = 0, (size(copsf,/dim))[2]-1 do $
@@ -4164,18 +4168,19 @@ pro GPItv::change_image_units, new_requested_units, silent=silent
 
 
         conversion_factor = 1./((1./(*self.state).gridfac)*mean((*self.satspots.satflux)[*, (*self.state).cur_image_num ]))
-        (*self.state).max_value *= conversion_factor
-        (*self.state).min_value *= conversion_factor
+		if ~ (keyword_set(loading_new_image) and  (*self.state).retain_current_stretch) then begin
+          (*self.state).max_value *= conversion_factor
+          (*self.state).min_value *= conversion_factor
+		endif
 
-      endif
-
-      if ~proceed then begin
+      endif else begin ; reset to prior requested units
         ind = where(STRCMP(  *(*self.state).unitslist,(*self.state).current_units))
         widget_control, (*self.state).units_droplist_id, set_droplist_select = ind, set_value=*(*self.state).unitslist
         return
-      endif
+	endelse
 
     endif else begin
+	  ; All units other than contrast are handled here:
 
       ;; special cases: the easy conversions between ADU <-> ADU/s
       ;; that don't require any flux calibration knowledge
@@ -4193,93 +4198,95 @@ pro GPItv::change_image_units, new_requested_units, silent=silent
         ;;first, scale from current units to 'ph/s/nm/m^2'
         case (*self.state).current_units of
           'ADU per coadd':begin
-          for i=0,nim-1 do begin
-            (*self.images.main_image_stack)[*,*,i]*=double(((*self.state).flux_calib_convfac)[i])/((*self.state).itime)
-          endfor
-        end
-        'ADU/s':begin
-        for i=0,nim-1 do begin
-          (*self.images.main_image_stack)[*,*,i]*=double(((*self.state).flux_calib_convfac)[i])
-        endfor
-      end
-      'ph/s/nm/m^2':begin
-    end
-    'Jy':begin
-    for i=0,nim-1 do begin
-      (*self.images.main_image_stack)[*,*,i]/=(1e3*((*(*self.state).CWV_ptr)[i])/1.509e7)
-    endfor
-  end
-  'W/m^2/um':begin
-  for i=0,nim-1 do begin
-    (*self.images.main_image_stack)[*,*,i]/=(1.988e-13/(1e3*((*(*self.state).CWV_ptr)[i])))
-  endfor
-end
-'ergs/s/cm^2/A':begin
-for i=0,nim-1 do begin
-  (*self.images.main_image_stack)[*,*,i]/=(1.988e-14/(1e3*((*(*self.state).CWV_ptr)[i])))
-endfor
-end
-'ergs/s/cm^2/Hz':begin
-for i=0,nim-1 do begin
-  (*self.images.main_image_stack)[*,*,i]/=((1e3*((*(*self.state).CWV_ptr)[i]))/1.509e30)
-endfor
-end
-else:  begin
-  UnsupportedUnits=1
-end
-endcase
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]*=double(((*self.state).flux_calib_convfac)[i])/((*self.state).itime)
+            endfor
+          end
+          'ADU/s':begin
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]*=double(((*self.state).flux_calib_convfac)[i])
+            endfor
+          end
+          'ph/s/nm/m^2':begin
+          end
+          'Jy':begin
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]/=(1e3*((*(*self.state).CWV_ptr)[i])/1.509e7)
+            endfor
+          end
+          'W/m^2/um':begin
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]/=(1.988e-13/(1e3*((*(*self.state).CWV_ptr)[i])))
+            endfor
+          end
+          'ergs/s/cm^2/A':begin
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]/=(1.988e-14/(1e3*((*(*self.state).CWV_ptr)[i])))
+            endfor
+          end
+          'ergs/s/cm^2/Hz':begin
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]/=((1e3*((*(*self.state).CWV_ptr)[i]))/1.509e30)
+            endfor
+          end
+          else:  begin
+            UnsupportedUnits=1
+          end
+        endcase
 
 
-if keyword_set(unsupportedUnits) then begin
-  self->message, 'The requested unit is not supported for conversions. Cannot rescale the image',/window, msgtype='error'
-  return
-endif else begin
+        if keyword_set(unsupportedUnits) then begin
+          self->message, 'The requested unit is not supported for conversions. Cannot rescale the image',/window, msgtype='error'
+          return
+        endif else begin
 
-  ;;then scale to new units
-  ;;from ph/s/nm/m^2 syst. to syst chosen
-  case new_requested_units of
-    'ADU per coadd': begin
-      for i=0,nim-1 do begin
-        (*self.images.main_image_stack)[*,*,i]/=(double(((*self.state).flux_calib_convfac)[i])/((*self.state).itime))
-      endfor
-    end
-    'ADU/s':begin
-    for i=0,nim-1 do begin
-      (*self.images.main_image_stack)[*,*,i]/=double(((*self.state).flux_calib_convfac)[i])
-    endfor
-  end
-  'ph/s/nm/m^2': begin
-  end
-  'Jy':  begin
-    for i=0,nim-1 do begin
-      (*self.images.main_image_stack)[*,*,i]*=(1e3*((*(*self.state).CWV_ptr)[i])/1.509e7)
-    endfor
-  end
-  'W/m^2/um':  begin
-    for i=0,nim-1 do begin
-      (*self.images.main_image_stack)[*,*,i]*=(1.988e-13/(1e3*((*(*self.state).CWV_ptr)[i])))
-    endfor
-  end
-  'ergs/s/cm^2/A':  begin
-    for i=0,nim-1 do begin
-      (*self.images.main_image_stack)[*,*,i]*=(1.988e-14/(1e3*((*(*self.state).CWV_ptr)[i])))
-    endfor
-  end
-  'ergs/s/cm^2/Hz':  begin
-    for i=0,nim-1 do begin
-      (*self.images.main_image_stack)[*,*,i]*=((1e3*((*(*self.state).CWV_ptr)[i]))/1.509e30)
-    endfor
-  end
-endcase
-endelse
-endelse
+          ;;then scale to new units
+          ;;from ph/s/nm/m^2 syst. to syst chosen
+          case new_requested_units of
+            'ADU per coadd': begin
+              for i=0,nim-1 do begin
+                (*self.images.main_image_stack)[*,*,i]/=(double(((*self.state).flux_calib_convfac)[i])/((*self.state).itime))
+              endfor
+            end
+            'ADU/s':begin
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]/=double(((*self.state).flux_calib_convfac)[i])
+            endfor
+          end
+          'ph/s/nm/m^2': begin
+          end
+          'Jy':  begin
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]*=(1e3*((*(*self.state).CWV_ptr)[i])/1.509e7)
+            endfor
+          end
+          'W/m^2/um':  begin
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]*=(1.988e-13/(1e3*((*(*self.state).CWV_ptr)[i])))
+            endfor
+          end
+          'ergs/s/cm^2/A':  begin
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]*=(1.988e-14/(1e3*((*(*self.state).CWV_ptr)[i])))
+            endfor
+          end
+          'ergs/s/cm^2/Hz':  begin
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]*=((1e3*((*(*self.state).CWV_ptr)[i]))/1.509e30)
+            endfor
+          end
+        endcase
+      endelse ; else case from if keyword_set(unsupportedUnits)
+    endelse ; else case of nontrivial flux conversions
 
-;;do the actual conversion here
-*self.images.main_image *= conversion_factor
-*self.images.main_image_stack *= conversion_factor
-(*self.state).max_value *= conversion_factor
-(*self.state).min_value *= conversion_factor
-endelse ;;contrast if block
+    ;;do the actual conversion here
+    *self.images.main_image *= conversion_factor
+    *self.images.main_image_stack *= conversion_factor
+    if ~ (keyword_set(loading_new_image) and  (*self.state).retain_current_stretch) then begin
+    	(*self.state).max_value *= conversion_factor
+    	(*self.state).min_value *= conversion_factor
+    endif 
+endelse ;;else case from if new_requested_units eq 'Contrast'
 
 (*self.state).current_units= new_requested_units
 endif ;;if new = current units
@@ -8398,10 +8405,11 @@ endif else (*self.state).cube_mode='UNKNOWN'
 
 self->update_DQ_warnings
 
-if keyword_set(prior_retained_units) then $
+if keyword_set(prior_retained_units) then begin
   if ((prior_retained_units ne 'Unknown') and ((*self.state).current_units ne 'Unknown')) then begin
-  self->message, "Retaining prior units: "+prior_retained_units
-  self->change_image_units,prior_retained_units,  /silent
+    self->message, "Retaining prior units: "+prior_retained_units
+    self->change_image_units,prior_retained_units,  /silent, /loading_new_image
+  endif
 endif
 if ~keyword_set(noresize) then self->resize ; MDP addition 2008-10-20
 
