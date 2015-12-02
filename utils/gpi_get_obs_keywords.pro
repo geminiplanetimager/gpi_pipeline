@@ -79,6 +79,22 @@ function gpi_get_obs_keywords, filename, where_to_log=where_to_log
 	if obsstruct.dispersr eq 'PRISM' then obsstruct.dispersr='Spectral'	 ; preferred display nomenclature is as Spectral/Wollaston. Both are prisms!
 	if obsstruct.object eq 'GCALflat' then obsstruct.object+= " "+gpi_get_keyword(head, ext_head,  'GCALLAMP')
 
+    ; Append (SKY) if we appear to be offset off to sky
+    qoffset = sxpar(head,'QOFFSET')
+    poffset = sxpar(head,'POFFSET')
+    xoffset = sxpar(head,'XOFFSET')
+    yoffset = sxpar(head,'YOFFSET')
+    raoffset = sxpar(head,'RAOFFSET')
+    deoffset = sxpar(head,'DECOFFSE')
+    is_sky = ((abs(qoffset) gt 1) or (abs(poffset) gt 1) or (abs(xoffset) gt 1) or $
+			(abs(yoffset) gt 1) or (abs(raoffset) gt 1) or (abs(deoffset) gt 1))
+    if keyword_set(is_sky) then begin
+        if (strpos(strupcase(obsstruct.object), 'SKY') eq -1) then obsstruct.object += " (SKY)"
+    endif
+
+
+
+
 	if obsstruct.coadds eq 1 then coaddstr = "     " else coaddstr = "*"+string(obsstruct.coadds,format='(I-4)')
     obsstruct.summary = file_basename(filename)+"    "+string(obsstruct.obsmode,format='(A-10)')+" "+string(obsstruct.dispersr,format='(A-10)') +" "+string(obsstruct.obstype, format='(A-10)')+$
 				" "+string(obsstruct.itime,format='(F5.1)')+coaddstr+"  "+string(obsstruct.object,format='(A-15)')+"   "+obsstruct.datalab+"   el="+sigfig(obsstruct.elevatio,3)
