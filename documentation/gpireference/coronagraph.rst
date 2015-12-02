@@ -77,6 +77,9 @@ Apodizer Details
 The GPI apodizers are fabricated using microdot printing. See `Sivaramakrishnan et al. 2009 <http://adsabs.harvard.edu/abs/2009SPIE.7440E..1CS>`_ for details of this technology and its characterization, and `Sivaramakrishnan et al. 2010 <http://adsabs.harvard.edu/abs/2010SPIE.7735E..86S>`_ for for fabrication details and images of masks. 
 
 
+
+Name       Outer Diameter
+
 .. _coronagraph_FPM:
 
 Focal Plane Mask Details

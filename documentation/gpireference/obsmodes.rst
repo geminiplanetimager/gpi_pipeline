@@ -46,4 +46,13 @@ DARK            H       APOD_H       FPM_H    Blank
 ============ ======= ==============  =======  ==============
 
 
+Note that there are some "experimental" modes which are rarely, if ever, used. These are 
+
+ * The "H Large Inner Working Angle" mode, which pairs the H band filter with the K1 focal plane mask and a specially optimized apodizer; in essence trading off worse inner working angle for (possibly) better starlight suppression. 
+ * The "H Star" mode, which uses a shaped pupil binary apodization which is theoretically equivalent to the regular H_coron apodization. 
+
+These modes are essentially uncommissioned and are not recommended for general use. 
+
+
+
 See also the `Gemini page on GPI observing modes <http://www.gemini.edu/sciops/instruments/gpi/default-mode>`_.
