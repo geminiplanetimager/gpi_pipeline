@@ -15113,6 +15113,17 @@ end
 pro GPItv::polarim_options_dialog
   ; Display the polarimetry vector overplotting control dialog window.
 
+  if (*self.state).cube_mode ne 'STOKES' then begin
+	  self->message, 'Not a polarization cube. The currently loaded data is not polarimetry mode so polarimetry vector display is not possible.',msgtype='error', /window
+	  return
+  endif
+  if (*self.state).image_size[2] lt 4 then begin
+	  self->message, ['Not a Stokes polarization cube. The currently loaded data is only 2 orthogonal polarizations,','not a 4-element Stokes vector cube, so polarimetry vector display is not possible.'],msgtype='error', /window
+	  return
+  endif
+
+
+
   (*self.state).polarim_display = 1 ; Any time you open this dialog, you probably want the plot active
 
   if (*self.state).polarim_plotindex eq -1 then begin
