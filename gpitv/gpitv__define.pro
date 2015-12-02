@@ -347,7 +347,7 @@ pro GPItv::initcommon
     contr_xunit:0, $                    ; 0 = as, 1 = l/D
     contr_prof_filetype:0, $            ; 0 = fits, 1 = txt
 	fpmoffset_fpmpos: fltarr(2), $		; Measured center of focal plane mask
-	fpmoffset_califilename: '', $		; Filename for source of that FPM position
+	fpmoffset_calfilename: '', $		; Filename for source of that FPM position
 	fpmoffset_psfcentx_id: 0L, $		; widget id
 	fpmoffset_psfcenty_id: 0L, $		; widget id
 	fpmoffset_fpmcentx_id: 0L, $		; widget id
@@ -14742,9 +14742,30 @@ pro GPITv::plot1satspots, iplot
 				   (*self.satspots.cens)[1,*,j],psym=1, color=cgcolor('red')
 	endfor
 
-	; mark center
+	; mark center of star
     oplot, [xc], [yc], psym=1, symsize=3, color=cgcolor('orange'), thick=2
  
+
+
+	; if we have FPM location, mark that too.
+    if (*self.state).fpmoffset_fpmpos[0] gt 0 then begin
+		hd = *((*self.state).head_ptr)
+		IFSFILT = gpi_simplify_keyword_value(sxpar(hd, 'IFSFILT'))
+		fpmdiam = gpi_get_constant('fpm_diam_'+strlowcase(IFSFILT))
+		scale = gpi_get_constant('ifs_lenslet_scale')
+
+        tvcircle, /data, fpmdiam/2/scale, $
+			(*self.state).fpmoffset_fpmpos[0],$
+			(*self.state).fpmoffset_fpmpos[1],$
+			color=cgcolor('black'), thick=2, psym=0
+        tvcircle, /data, fpmdiam/2/scale, $
+			(*self.state).fpmoffset_fpmpos[0],$
+			(*self.state).fpmoffset_fpmpos[1],$
+			color=cgcolor('yellow'), thick=2, lines=2, psym=0
+
+
+	endif
+
 end
 
 
@@ -20751,9 +20772,11 @@ pro GPItv::fpmoffset_refresh
     bestfile = caldb->get_best_cal_from_header( 'fpm_position', *((*self.state).head_ptr), (*self.state).exthead_ptr) 
 
     if strc(bestfile) eq '-1' then begin
+		(*self.state).fpmoffset_calfilename = 'None'
 		self->message, "Couldn't load any FPM offset file from CalDB."
 		 (*self.state).fpmoffset_fpmpos = [-1,-1] ; record that we don't have one so it doesn't try again on every refresh
 	endif else begin 
+		(*self.state).fpmoffset_calfilename = bestfile
 		header = headfits(bestfile)
 		FPMCENTX = sxpar(header, 'FPMCENTX', count=ct1)
 		FPMCENTY = sxpar(header, 'FPMCENTY', count=ct2)
@@ -20788,7 +20811,7 @@ pro GPItv::fpmoffset_refresh
       offsety = (psfcenty-fpmcenty) *pixscale*1000 ; convert to mas
 	  offsetx_text = string(round(offsetx),format="(i+7)")
 	  offsety_text = string(round(offsety),format="(i+7)")
-      statuslabel = "  FPM pos from "+file_basename(bestfile)
+      statuslabel = "  FPM pos from "+file_basename((*self.state).fpmoffset_calfilename)
 
   endelse
 
