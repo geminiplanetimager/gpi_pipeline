@@ -337,12 +337,20 @@ function parsercore::parse_fileset_to_recipes, fileset, recipedir=recipedir, out
                                 if ~strmatch(current.obsclass, 'AstromSTD',/fold) && ~strmatch(current.obsclass, 'Science',/fold) then begin
                                   templatename='Satellite Flux Ratios'
                                 endif
+								if strpos(current.object, '(SKY)') gt 0 then begin
+									templatename="Create Thermal/Sky Background Cubes"
+								endif
+							
                               endif else begin
-                                if n_elements(file_filt_obst_disp_occ_obs_itime_object) GE 5 then begin
-                                  templatename='Basic ADI + Simple SDI reduction (From Raw Data)'
-                                endif else begin
-                                  templatename="Simple Datacube Extraction"
-                                endelse
+								if strpos(current.object, '(SKY)') gt 0 then begin
+									templatename="Create Thermal/Sky Background Cubes"
+								endif else begin
+									if n_elements(file_filt_obst_disp_occ_obs_itime_object) GE 5 then begin
+									  templatename='Basic ADI + Simple SDI reduction (From Raw Data)'
+									endif else begin
+									  templatename="Simple Datacube Extraction"
+									endelse
+								endelse 
                               endelse
                             end
                             'OPEN': begin

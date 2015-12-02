@@ -119,7 +119,7 @@ FUNCTION gpi_load_and_preprocess_FITS_file, filename, orient=orient,nodata=nodat
     endif
 
 
-	if ~(keyword_set(silent)) then message,/info, '** Updating header to match Gemini standard ** '
+	;if ~(keyword_set(silent)) then message,/info, '** Updating header to match Gemini standard ** '
 	sxaddpar, pri_header, 'HISTORY', 'FITS headers updated for GPI standard compliance.'	
 
 	;Gemini requirement: test and add extname 'SCI' if not present
