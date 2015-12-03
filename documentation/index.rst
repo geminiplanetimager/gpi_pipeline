@@ -34,6 +34,7 @@ Naru Sadakuni (UCSC and Gemini),
 Jason Wang (Berkeley),
 Schuyler Wolff (JHU),
 Sloane Wiktorowicz (UCSC),
+Joe Zalesky (Berkeley)
 and
 other members of the GPI Data Analysis Team.  Please see the
 :ref:`development credits <sw-credits>` for a complete list of contributors, and the :ref:`release notes <release-notes>` for further details.
@@ -58,7 +59,7 @@ You may wish to see :ref:`what's new <release-notes>` in the latest version or j
      file formats, FITS headers, etc, consult the :ref:`IFS data handbook <ifs-data-handbook>`.
 
 
-**Getting Help**: The main channel for support of this software is the `Gemini Data Reduction Forum <http://drforum.gemini.edu>`_. Please post questions there
+**Getting Help**: The best approach is to email your Gemini contact scientist. Another channel for support of this software is the `Gemini Data Reduction Forum <http://drforum.gemini.edu>`_. Please post questions there
 and mark them with the tag `gpi`. Gemini staff and members of the GPI data analysis team monitor that forum to help support the Gemini community in using GPI. You may also wish to consult the :ref:`FAQ <faq>`. Contributions of improvements
 to the software or this documentation are very much welcomed. 
 
