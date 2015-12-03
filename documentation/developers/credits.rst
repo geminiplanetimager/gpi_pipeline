@@ -45,7 +45,7 @@ Pipeline architecture design, initial algorithms development, core structure, GU
 Some utility functions used in the pipeline are by **Mathilde Bealieau**, **David Lafreniere**, **Jean-Francois Lavigne**, and **Lisa Poyneer**.
 
 
-Contributions to data analyses and public data releases have been made by many additional memebrs of the GPI Data Analysis team, including **Rob de Rosa**,  **Jennifer Patience**, **Sandrine Thomas** and **Kim Ward-Duong**.
+Contributions to data analyses and public data releases have been made by many additional members of the GPI Data Analysis team, including **Rob de Rosa**,  **Jennifer Patience**, **Sandrine Thomas** and **Kim Ward-Duong**.
 
 
 
