@@ -19924,7 +19924,9 @@ pro GPItv::obsnotes
   mrkval  = textform.tag2
   msgval = textform.tag3
 
-  gpitv_obsnotes,(*self.state).imagename,mrkval,msgval
+  gpitv_obsnotes,(*self.state).imagename,mrkval,msgval,errout=errout,$
+                 curlpath=gpi_get_setting('gpitv_curl_path',default='')
+  if errout then self->message, msgtype='error', 'Could not mark file.'
 
 end
 
