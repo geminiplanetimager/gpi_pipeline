@@ -20779,7 +20779,7 @@ pro GPItv::fpmoffset_refresh
   if (*self.state).fpmoffset_fpmpos[0] eq 0 and (*self.state).fpmoffset_fpmpos[1] eq 0 then begin
 	; Attempt to get FPM position data from a calibration file
     caldb = obj_new('gpicaldatabase')
-    bestfile = caldb->get_best_cal_from_header( 'fpm_position', *((*self.state).head_ptr), (*self.state).exthead_ptr) 
+    bestfile = caldb->get_best_cal_from_header( 'fpm_position', *((*self.state).head_ptr), *(*self.state).exthead_ptr) 
 
     if strc(bestfile) eq '-1' then begin
 		(*self.state).fpmoffset_calfilename = 'None'
