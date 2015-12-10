@@ -94,6 +94,7 @@ function gpi_assemble_polarization_cube, DataSet, Modules, Backbone
 
 
   polcube = fltarr(nx, ny, 2)+!values.f_nan
+  dqcube = bytarr(nx, ny, 2)
   wpangle =  strc(backbone->get_keyword( "WPANGLE"))
   backbone->Log, "WP angle is "+strc(wpangle), depth=2
   
@@ -145,7 +146,6 @@ function gpi_assemble_polarization_cube, DataSet, Modules, Backbone
             in_box = input[lowx:highx, lowy:highy]
             unc_box = im_uncert[lowx:highx, lowy:highy]
             bp_box = badpix[lowx:highx, lowy:highy]
-            
             ;; Get the x,y indices of each pixel
             indices, in_box, xx, yy
             
@@ -177,6 +177,7 @@ function gpi_assemble_polarization_cube, DataSet, Modules, Backbone
 
             ;; compute weighted sum
             polcube[ix, iy, pol] = total(in_box*w)/total(g*w)
+            dqcube[ix,iy,pol] = total(bp_box, /preserve_type)
 
             ;; debug
 ;            if (ix eq 130) and (iy eq 130) then stop
@@ -199,6 +200,7 @@ function gpi_assemble_polarization_cube, DataSet, Modules, Backbone
             if cenx-boxsize lt 0 or ceny-boxsize lt 0 or cenx+boxsize gt 2047 or ceny+boxsize gt 2047 then break
             
             polcube[ix, iy, pol] = total(input[ cenx-boxsize:cenx+boxsize, ceny-boxsize:ceny+boxsize]  )
+            dqcube[ix, iy, pol] = total(indq[cenx-boxsize:cenx+boxsize, ceny-boxsize:ceny+boxsize], /preserve_type)
             mask[cenx-boxsize:cenx+boxsize, ceny-boxsize:ceny+boxsize] += pol+1
             residual[cenx-boxsize:cenx+boxsize, ceny-boxsize:ceny+boxsize]=0
           end
@@ -235,12 +237,12 @@ function gpi_assemble_polarization_cube, DataSet, Modules, Backbone
   
   backbone->set_keyword, "CRPIX3", 1.,         "Reference pixel location" ;;ds - was 0, but should be 1, right?
   backbone->set_keyword, "CD3_3",  1, "Stokes axis: images 0 and 1 give orthogonal polarizations." ;
-  
+
   ;; Save output data.
   suffix='-podc'
   *dataset.currframe=polcube
-  
-  ptr_free, dataset.currDQ  ; right now we're not creating a DQ cube for pol mode
+  *dataset.currdq=dqcube
+ 
   ptr_free, dataset.currUncert  ; right now we're not creating an uncert cube
   
   
