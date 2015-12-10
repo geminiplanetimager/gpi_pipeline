@@ -352,8 +352,8 @@ pro GPItv::initcommon
 	fpmoffset_psfcenty_id: 0L, $		; widget id
 	fpmoffset_fpmcentx_id: 0L, $		; widget id
 	fpmoffset_fpmcenty_id: 0L, $		; widget id
-	fpmoffset_offsetx_id: 0L, $			; widget id
-	fpmoffset_offsety_id: 0L, $			; widget id
+	fpmoffset_offsettip_id: 0L, $			; widget id
+	fpmoffset_offsettilt_id: 0L, $			; widget id
 	fpmoffset_statuslabel_id: 0L, $          ; widget id
     lambplot_widget_id: 0L, $           ; id of radial profile widget
     lambplot_window_id: 0L, $           ; id of radial profile window
@@ -20715,17 +20715,17 @@ pro GPItv::show_fpmoffset
 
     (*self.state).fpmoffset_statuslabel_id=WIDGET_LABEL(fpmoffset_data_base2,value='    FPM position not available. ', /ALIGN_LEFT,/DYNAMIC_RESIZE )
 
-    (*self.state).fpmoffset_offsetx_id = $
+    (*self.state).fpmoffset_offsettip_id = $
       cw_field(fpmoffset_data_base3a, $
 	  title="Tip:",$
-      uvalue = 'offsetx', $
+      uvalue = 'offsettip', $
 	  /noedit,$
       value = '0',xsize=8)
 
-    (*self.state).fpmoffset_offsety_id = $
+    (*self.state).fpmoffset_offsettilt_id = $
       cw_field(fpmoffset_data_base3a, $
 	  title="Tilt:",$
-      uvalue = 'offsety', $
+      uvalue = 'offsettilt', $
 	  /noedit,$
       value = '0',xsize=8)
     void=WIDGET_LABEL(fpmoffset_data_base3a,value=' mas   ', /ALIGN_LEFT,/DYNAMIC_RESIZE )
@@ -20744,7 +20744,7 @@ end
 
 ;--------------------------------------------------------------------------------
 pro GPItv::fpmoffset_refresh
-  ;; Plot star position relative to FPM  using satellite spots.
+  ;; Plot star position relative to FPM using satellite spots.
 
   ;;if no image lodaed, nothing to do
   if n_elements(*self.images.names_stack) eq 0 then return
@@ -20809,18 +20809,21 @@ pro GPItv::fpmoffset_refresh
 	  self->message, "No FPM position available."
 	  fpmcentx=0.0
 	  fpmcenty=0.0
-	  offsetx_text = ""
-	  offsety_text = ""
+	  offsettip_text = ""
+	  offsettilt_text = ""
 	  statuslabel ='    FPM position not available. '
   endif else begin
 	  pixscale = gpi_get_constant('ifs_lenslet_scale') ; arcsec per pixel
       fpmcentx = (*self.state).fpmoffset_fpmpos[0]
       fpmcenty = (*self.state).fpmoffset_fpmpos[1]
 
+      angle = gpi_get_constant('ifs_rotation')*!pi/180 ; img rotation in radians
       offsetx = (psfcentx-fpmcentx) *pixscale*1000 ; convert to mas
       offsety = (psfcenty-fpmcenty) *pixscale*1000 ; convert to mas
-	  offsetx_text = string(round(offsetx),format="(i+7)")
-	  offsety_text = string(round(offsety),format="(i+7)")
+      offsettip  = -offsetx * cos(angle) - offsety * sin(angle)
+      offsettilt = -offsetx * sin(angle) + offsety * cos(angle)
+	  offsettip_text = string(round(offsettip),format="(i+7)")
+	  offsettilt_text = string(round(offsettilt),format="(i+7)")
       statuslabel = "  FPM pos from "+file_basename((*self.state).fpmoffset_calfilename)
 
   endelse
@@ -20831,8 +20834,8 @@ pro GPItv::fpmoffset_refresh
   widget_control,(*self.state).fpmoffset_fpmcentx_id,set_value=string(fpmcentx,format="(f7.2)")
   widget_control,(*self.state).fpmoffset_fpmcenty_id,set_value=string(fpmcenty,format="(f7.2)")
 
-  widget_control,(*self.state).fpmoffset_offsetx_id,set_value=offsetx_text
-  widget_control,(*self.state).fpmoffset_offsety_id,set_value=offsety_text
+  widget_control,(*self.state).fpmoffset_offsettip_id,set_value=offsettip_text
+  widget_control,(*self.state).fpmoffset_offsettilt_id,set_value=offsettilt_text
 
   widget_control,(*self.state).fpmoffset_statuslabel_id,set_value=statuslabel
 
