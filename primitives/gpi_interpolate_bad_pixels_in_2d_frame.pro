@@ -45,7 +45,6 @@
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="1" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ARGUMENT: Name="negative_bad_thresh" Type="float" Range="[-100000,0]" Default="-50" Desc="Pixels more negative than this should be considered bad. "
 ; PIPELINE ARGUMENT: Name="before_and_after" Type="int" Range="[0,1]" Default="0" Desc="Show the before-and-after images for the user to see? (for debugging/testing)"
-; PIPELINE ARGUMENT: Name="usedq" Type="int" Range="[0,1]" Default="0" Desc="Add DQ flagged pixels to bad pixel map and interpolate over them 0: don't use DQ, 1: use DQ"
 ;
 ; PIPELINE COMMENT:  Repair bad pixels by interpolating between their neighbors. Can optionally just flag as NaNs or else interpolate.
 ; PIPELINE ORDER: 1.4 
@@ -74,12 +73,11 @@ calfiletype='badpix'
 no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there is no cal file found.
 @__start_primitive
 
+
 	if tag_exist( Modules[thisModuleIndex], "negative_bad_thresh") then negative_bad_thresh=float(Modules[thisModuleIndex].negative_bad_thresh) else negative_bad_thresh=-50
 
  	if tag_exist( Modules[thisModuleIndex], "before_and_after") then before_and_after=fix(Modules[thisModuleIndex].before_and_after) else before_and_after=0
     if keyword_set(before_and_after) then im0= *dataset.currframe ; save copy for later display if desired
-
-  if tag_exist( Modules[thisModuleIndex], "usedq") then usedq=fix(Modules[thisModuleIndex].usedq) else usedq=0
 
 	sz = size( *(dataset.currframe) )
     if sz[1] ne 2048 or sz[2] ne 2048 then begin
@@ -115,7 +113,7 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 	if tag_exist( Modules[thisModuleIndex], "method") then method=(Modules[thisModuleIndex].method) else method='vertical'
 
 
-	if ptr_valid( dataset.currDQ) and usedq eq 1 then begin
+	if ptr_valid( dataset.currDQ) then begin
 		; we have a DQ image provided by the detector server, so let's use it. 
 		; DQ bit mask:
 		;   0 = bad pixel, do not use if set
@@ -154,7 +152,8 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 	bpmask[*,2043:2047] = 0
 
         ; convert all bad pixels > 1 to 1:
-        bpmask[WHERE(bpmask GT 1, /NULL)] = 1
+        ind = WHERE(bpmask GT 1,cnt)
+        if cnt gt 0 then bpmask[ind] = 1
 
 	wbad = where(bpmask ne 0, count)
     ; Check for a reasonable total number of bad pixels, <1% of the total array.
