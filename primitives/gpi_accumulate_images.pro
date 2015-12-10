@@ -42,7 +42,10 @@ Function gpi_accumulate_images, DataSet, Modules, Backbone
     	;if numext eq 1 then headerPHU= *(dataset.headersPHU)[numfile]
     
 		*(dataset.frames[numfile]) = *dataset.currframe
-
+		if ptr_valid(dataset.currdq) eq 1 then begin 
+      *(dataset.qualframes[numfile]) = *dataset.currdq  
+    endif  
+    
 		backbone->Log, "	Accumulated file "+strc(numfile)+" in memory."
 
 	end
@@ -57,7 +60,6 @@ Function gpi_accumulate_images, DataSet, Modules, Backbone
 		endif
 
 		*(dataset.frames[numfile]) = dataset.outputFileNames[numfile]	
-
 		backbone->Log, "Saved file "+strc(numfile)+" to disk."
 	end
 	endcase
