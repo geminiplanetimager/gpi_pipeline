@@ -28,11 +28,7 @@ function gpi_highpass_filter_cube, datacube, boxsize=boxsize, verbose=verbose, f
 	; Also the summit computer is really slow to start IDL sessions
 	; since it has to hit a license server somewhere far away, so 
 	; don't parallelize there either.
-
-	;;fix: if at_gemini not defined in settings file, then pipeline thinks you're at Gemini
-  Gemtest=gpi_get_setting('at_gemini')
-	if Gemtest eq 'ERROR' then Gemtest=0 
-	if lmgr(/runtime) or keyword_set(force_skip) or (Gemtest eq 1) then begin
+	if lmgr(/runtime) or keyword_set(force_skip) or gpi_get_setting('at_gemini') then begin
 		if keyword_set(verbose) then message,/info,"Can't start parallel IDL processes for IDL runtime"
 		if keyword_set(force_skip) then message,/info,"Forcing non-parallelized high-pass filtering"
 		if keyword_set(verbose) then message,/info," Just going to run regular high pass in this process."
