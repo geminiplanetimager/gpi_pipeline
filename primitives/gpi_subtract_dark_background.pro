@@ -81,7 +81,7 @@ if keyword_set(RequireExactMatch) then calfiletype = 'dark_exact' else  calfilet
 
 no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there is no cal file found.
 @__start_primitive
-
+ if (size(*dataset.currframe))[2] ne 2048 then return, error('FAILURE ('+functionName+'): Dimension mismatch - check input image to make sure it is a 2048x2048 array.')  
 
 	if ~keyword_set(interpolate) then begin
 		; Regular subtraction of a single file
@@ -93,7 +93,8 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 			backbone->set_keyword,'DRPDARK',c_File,ext_num=0
 
 			dark = readfits(c_File, darkexthdr, ext=1)
-
+			darkdq = readfits(c_File, darkexthdr, ext=2, /silent)
+			if darkdq[0] eq -1 then message, /info, 'No data quality extension in calibration frame. Assuming no flagged pixels exist.' 
 
 			darktime = sxpar(darkexthdr, 'ITIME')
 			mytime = backbone->get_keyword('ITIME', count=ct1)
@@ -110,6 +111,7 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 			endelse
 
 			*dataset.currframe -= dark
+			if darkdq[0] ne -1 then *dataset.currdq = *dataset.currdq OR darkdq
 		endif else begin
 			backbone->Log, "***WARNING***: No dark file of appropriate time found. Therefore not subtracting any dark."
 			backbone->set_keyword,'HISTORY',functionname+ "  ***WARNING***: No dark file of appropriate time found. Therefore not subtracting any dark."
@@ -131,6 +133,8 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 		backbone->set_keyword,'HISTORY',functionname+": AFTER - "+dark_fn_after
 		dark_before = gpi_readfits(dark_fn_before, header=dark_before_exthdr, priheader=dark_before_prihdr)
 		dark_after  = gpi_readfits(dark_fn_after,  header=dark_after_exthdr,  priheader=dark_after_prihdr)
+		;;should add data quality frame propagation for this option sometime
+		message, /info, 'Data quality propagation not currently supported for interpolate mode'
 		dark_before_mjd = sxpar(dark_before_prihdr, 'MJD-OBS')
 		dark_after_mjd = sxpar(dark_after_prihdr, 'MJD-OBS')
 		my_mjd = backbone->get_keyword('MJD-OBS')
