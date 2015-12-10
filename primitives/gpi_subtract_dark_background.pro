@@ -67,7 +67,7 @@
 ;	2013-10-03 MP: Add RequireExactMatch option, enable scaling for non-matching exptimes
 ;   2013-12-16 MP: CalibrationFile argument syntax update. 
 ;   2014-03-22 MP: Adding experimental interpolation option.
-;
+;   2015-12-09 KBF: Propagate DQ frame
 ;-
 function gpi_subtract_dark_background, DataSet, Modules, Backbone
 
