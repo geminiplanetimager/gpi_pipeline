@@ -35,6 +35,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	;get the datacube from the dataset.currframe
 	cubef3D=*(dataset.currframe[0])
+	cubedq3D=*(dataset.currdq[0])
        
 	;get the common wavelength vector
     filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
@@ -69,6 +70,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	;; Now we must interpolate the extracted cube onto a regular wavelength grid
 	;; common to all lenslets.
 	Result=dblarr(nlens,nlens,CommonWavVect[2])+!VALUES.F_NAN
+	Resultdq=bytarr(nlens,nlens,CommonWavVect[2])
+
 	for xsi=0,nlens-1 do begin
 	  for ysi=0,nlens-1 do begin
 		;pixint=UNIQ(floor(zemdispX(xsi,ysi,*))) ; uniq X pixel values for this lenslet
@@ -82,12 +85,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 			  valx=double(xmini[xsi,ysi]-findgen(sdpx))
 		   ; if (valx[sdpx-1] lt (dim)) then begin
 		  
-
+      ; assign wavelength to each pixel along spectrum
 		   if invct eq 0 then begin		    
 		      lambint=wavcal[xsi,ysi,2]-wavcal[xsi,ysi,3]*(valx-wavcal[xsi,ysi,0])*(1./cos(wavcal[xsi,ysi,4]))
 			  endif
 			  
-				;for bandpass normalization
+				;for bandpass normalization to preserve flux
 				bandpassmoy=mean(lambint[1:(size(lambint))[1]-1]-lambint[0:(size(lambint))[1]-2],/DOUBLE)
 				bandpassmoy_interp=mean(lambda[1:(size(lambda))[1]-1]-lambda[0:(size(lambda))[1]-2],/DOUBLE)
 				norma=bandpassmoy_interp/bandpassmoy
@@ -100,12 +103,20 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 				
 				; interpolate the cube onto a regular grid.
 				Result[xsi,ysi,*] = norma*INTERPOL( cubef3D[xsi,ysi,*], lambint, lambda )
+				
+				; combine the dq frames of the two elements in the array lambda that are used to 
+				; interpolate each element in array lambint
+				nf=n_elements(lambint)
+        for j=0, (size(lambda))[1]-1 do begin
+          mindq=value_locate(lambint,lambda[j])
+          Resultdq[xsi,ysi,j] = cubedq3D[xsi,ysi,mindq] OR cubedq3D[xsi,ysi,(mindq+1)<(nf-1)]
+				endfor
+				
 		 ;  endif
 	  endif
 	  endfor
 	endfor
-
-
+	
 	;create keywords related to the common wavelength vector:
 	backbone->set_keyword,'NAXIS',3, ext_num=1
 	backbone->set_keyword,'NAXIS1',nlens, ext_num=1
@@ -130,6 +141,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	
 	; put the datacube in the dataset.currframe output structure:
 	*(dataset.currframe)=Result
+	*(dataset.currdq)=Resultdq
 
 @__end_primitive
 
