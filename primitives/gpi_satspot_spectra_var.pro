@@ -2,18 +2,24 @@
 ; NAME: gpi_satspot_spectra_var
 ; PIPELINE PRIMITIVE DESCRIPTION: Satellite Spot Spectra variability across sequence
 ;
+; Primitive to plot the normalized standard deviation of the satellite spot spectrum for sequence of spdc files
+; Place this primitive after the Accumulate Images primitive. Aperture photometry is performed with apertures scaled
+; with wavelength. Primitive uses the procedure 'satflux_wave.pro' at pipeline/utils/ to read the satellite spot positions
+;  from the header at each slice and performs aperture photometry with aper and the mean satellite spot flux is stored.  
+; Then the procedure is repeated for all the images in a sequence. The standard deviation
+; is normlaized to the mean value of the sequence at each slice. 
 ;
 ;
 ; PIPELINE COMMENT:  Satellite Spot Spectra variability
 ; PIPELINE CATEGORY: SpectralScience
-
+;
 ; PIPELINE ARGUMENT: Name="SavePNG" Type="string" Default="" Desc="Save plot to filename as PNG (blank for no save, dir name for default naming, AUTO for auto full path) "
 ; PIPELINE ARGUMENT: Name="ApertureRadius" Type="int" Range="[0,50]" Default="4" Desc="Radius in aperture photometry"
 ; PIPELINE ARGUMENT: Name="InnerSkyRadius" Type="int" Range="[5,50]" Default="10" Desc="Inner Sky Radius"
 ; PIPELINE ARGUMENT: Name="OuterSkyRadius" Type="int" Range="[5,50]" Default="15" Desc="Outer Sky Radius"
 ; PIPELINE ARGUMENT: Name="Plot" Type="int" Range="[0,1]" Default="0" Desc="1: Do spectra plot. 0: Don't plot"
 ; PIPELINE ARGUMENT: Name="PrintonScreen" Type="int" Range="[0,1]" Default="0" Desc="1: Print output on screen 0: Don't" 
-;
+; PIPELINE ORDER: 4.1
 ; HISTORY: S. Bruzzone Dec 11 2015
 ;-
 function gpi_satspot_spectra_var, DataSet, Modules, Backbone
@@ -55,10 +61,8 @@ function gpi_satspot_spectra_var, DataSet, Modules, Backbone
   
   ;Plot spectra
   IF (doplot EQ 1) THEN BEGIN
-    ;cindex=round((indgen(nfiles)/nfiles)*200)
-    if nfiles EQ 1 then color = cgcolor('red') else begin
-      ;ctable = COLORTABLE(13, NCOLORS = nfiles, INDICES=cindex,/TRANSPOSE)
-      ctable = round(findgen(nfiles)/(nfiles-1)*200.+10.)
+     if nfiles EQ 1 then color = cgcolor('red') else begin
+         ctable = round(findgen(nfiles)/(nfiles-1)*200.+10.)
     endelse
     ;print, 'ctable', ctable
     window,/free,xsize=800,ysize=600,retain=2
@@ -76,18 +80,7 @@ function gpi_satspot_spectra_var, DataSet, Modules, Backbone
    loadct, 13
   
     FOR i=0,nfiles-1 DO BEGIN
-   ; ii=string(i)
-   ; ii=strtrim(ii,1)
-   ; fileok = FILE_TEST( '~/SPECFLUX/'+targetname+'/'+targetname+'-'+ii+'.dat')
-   ; IF (fileok NE 1) THEN BEGIN
-   ;   print, ' '
-   ;   return, error('FAILURE('+functionName+'): File not found. Run primitive with Plot=0')
-   ; ENDIF
-   ; infile = '~/SPECFLUX/'+targetname+'/'+targetname+'-'+ii+'.dat'
-   ; get_lun, unit3
-   ; openr,unit3,infile
-   ; readf,unit3,T
-   ;print, 'T: ', T
+
       FW=BIGDATA[0,*,i]
       OPLOT,wavelength, FW,color=ctable[i],linestyle=0
                      
