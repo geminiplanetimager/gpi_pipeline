@@ -25,7 +25,7 @@ function satflux_wave, backbone, cube0, aperrad, insky, outsky, verbose
   
   IF verbose THEN BEGIN
     print, ' '
-    print, 'Scaled aperture radius: ', apr
+    print, 'Scaled aperture radii: ', apr
     print, ' '
   ENDIF
  
@@ -39,15 +39,17 @@ function satflux_wave, backbone, cube0, aperrad, insky, outsky, verbose
     S=findgen(2,4)
    
     FOR i=0,36 DO BEGIN
+         
       m=string(i)
       m=strtrim(m,1)
       n=string(0)
       n=strtrim(n,1)
       s="SATS"+m+"_"+n; SATS0_3
       IF verbose THEN BEGIN
-      print, 'Checking sat: ', s  
+      print, 'Checking sat: ', s
+        
       ENDIF
-      B = backbone->get_keyword(s,silent=silent)
+      B = backbone->get_keyword(s,/silent)
       bb = strtrim(B,1)
       s0=MAKE_ARRAY(2,1,/STRING, VALUE=0)
       s0 = strsplit(bb, ' ',/EXTRAC)
@@ -62,7 +64,7 @@ function satflux_wave, backbone, cube0, aperrad, insky, outsky, verbose
       print, 'Checking sat: ', s  
       ENDIF
       
-      B = backbone->get_keyword(s,silent=silent)
+      B = backbone->get_keyword(s,/silent)
       bb = strtrim(B,1)
       s1=MAKE_ARRAY(2,1,/STRING, VALUE=0)
       s1 = strsplit(bb, ' ',/EXTRAC)
@@ -77,7 +79,7 @@ function satflux_wave, backbone, cube0, aperrad, insky, outsky, verbose
       print, 'Checking sat: ', s  
       ENDIF
       
-      B = backbone->get_keyword(s,silent=silent)
+      B = backbone->get_keyword(s,/silent)
       bb = strtrim(B,1)
       s2=MAKE_ARRAY(2,1,/STRING, VALUE=0)
       s2 = strsplit(bb, ' ',/EXTRAC)
@@ -91,7 +93,7 @@ function satflux_wave, backbone, cube0, aperrad, insky, outsky, verbose
       IF verbose THEN BEGIN
       print, 'Checking sat: ', s  
       ENDIF
-      B = backbone->get_keyword(s,silent=silent)
+      B = backbone->get_keyword(s,/silent)
       bb = strtrim(B,1)
       s3=MAKE_ARRAY(2,1,/STRING, VALUE=0)
       s3 = strsplit(bb, ' ',/EXTRAC)
@@ -119,6 +121,9 @@ function satflux_wave, backbone, cube0, aperrad, insky, outsky, verbose
         ;ENDIF
         IF verbose THEN BEGIN
           APER, imgcub[*,*,i], P[0,0,i],P[1,0,i], flux, deltaflux, skyval, deltasky, 1, apr[i], [skyin[i], skyout[i]], /NAN, /EXACT, /FLUX
+          print, ' '
+          print, 'Aperture Photometry Settings: ', apr[i], skyin[i], skyout[i]
+          print, ' '
         ENDIF ELSE BEGIN
           APER, imgcub[*,*,i], P[0,0,i],P[1,0,i], flux, deltaflux, skyval, deltasky, 1, apr[i], [skyin[i], skyout[i]], /NAN, /EXACT, /FLUX,/SILENT
         ENDELSE
@@ -135,6 +140,9 @@ function satflux_wave, backbone, cube0, aperrad, insky, outsky, verbose
        ;ENDIF
        IF verbose THEN BEGIN
          APER, imgcub[*,*,i], P[0,1,i],P[1,1,i], flux, deltaflux, skyval, deltasky, 1,apr[i], [skyin[i], skyout[i]], /NAN, /EXACT, /FLUX
+         print, ' '
+         print, 'Aperture Photometry Settings: ', apr[i], skyin[i], skyout[i]
+         print, ' '
        ENDIF ELSE BEGIN
          APER, imgcub[*,*,i], P[0,1,i],P[1,1,i], flux, deltaflux, skyval, deltasky, 1, apr[i], [skyin[i], skyout[i]], /NAN, /EXACT, /FLUX,/SILENT
        ENDELSE
@@ -152,6 +160,9 @@ function satflux_wave, backbone, cube0, aperrad, insky, outsky, verbose
       ;ENDIF
       IF verbose THEN BEGIN
         APER, imgcub[*,*,i], P[0,2,i],P[1,2,i], flux, deltaflux, skyval, deltasky, 1, apr[i], [skyin[i], skyout[i]], /NAN, /EXACT, /FLUX
+        print, ' '
+        print, 'Aperture Photometry Settings: ', apr[i], skyin[i], skyout[i]
+        print, ' '
       ENDIF ELSE BEGIN
         APER, imgcub[*,*,i], P[0,2,i],P[1,2,i], flux, deltaflux, skyval, deltasky, 1,apr[i], [skyin[i], skyout[i]], /NAN, /EXACT, /FLUX,/SILENT
       ENDELSE
@@ -169,6 +180,9 @@ function satflux_wave, backbone, cube0, aperrad, insky, outsky, verbose
       ;ENDIF
       IF verbose THEN BEGIN
         APER, imgcub[*,*,i], P[0,3,i],P[1,3,i], flux, deltaflux, skyval, deltasky, 1, apr[i], [skyin[i], skyout[i]], /NAN, /EXACT, /FLUX
+        print, ' '
+        print, 'Aperture Photometry Settings: ', apr[i], skyin[i], skyout[i]
+        print, ' '
       ENDIF ELSE BEGIN
         APER, imgcub[*,*,i], P[0,3,i],P[1,3,i], flux, deltaflux, skyval, deltasky, 1, apr[i], [skyin[i], skyout[i]], /NAN, /EXACT, /FLUX,/SILENT
       ENDELSE
