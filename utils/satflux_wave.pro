@@ -3,14 +3,6 @@ function satflux_wave, backbone, cube0, aperrad, insky, outsky, verbose
   ;compile_opt defint32, strictarr, logical_predicate
 
 
-
-  
-  
-  ;num=string(numfile)
-  ;num=strtrim(num,1)
-  ;nfiles=dataset.validframecount
-  ;print, "Number of the file: ", num
-  ;print, "Files: ", nfiles
   mode= strc(backbone->get_keyword( "DISPERSR", count=ct))
   mode = strlowcase(mode)
   IF strmatch(mode,"*wollaston*",/fold) THEN BEGIN
@@ -36,11 +28,10 @@ function satflux_wave, backbone, cube0, aperrad, insky, outsky, verbose
     print, 'Scaled aperture radius: ', apr
     print, ' '
   ENDIF
-  ;itime=backbone->get_keyword("ITIME")
-  ;doplot=fix(Modules[thisModuleIndex].Plot)
+ 
   imgcub=cube0
   
-  ;IF (doplot EQ 0) THEN BEGIN
+  
   
   ; loading sat spot locations for each slice.
   ; for loop in sat spots
