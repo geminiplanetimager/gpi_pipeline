@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<recipe Name="Simple Datacube Extraction" ReductionType="SpectralScience" ShortName="basiccube">
+<!-- recipe written by li-wei on  at 2015-12-14T22:44:51 UTC -->
+<!-- created with the Recipe Editor GUI -->
+<dataset InputDir="${GPI_RAW_DATA_DIR}test_arcs" OutputDir="${GPI_REDUCED_DATA_DIR}151214">
+</dataset>
+<primitive name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
+<primitive name="Subtract Dark Background" CalibrationFile="AUTOMATIC" RequireExactMatch="0" Interpolate="0" Save="0" gpitv="0" />
+<primitive name="Update Spot Shifts for Flexure" method="Lookup" manual_dx="0" manual_dy="0" Display="-1" Save="0" gpitv="0" />
+<primitive name="Interpolate bad pixels in 2D frame" CalibrationFile="AUTOMATIC" method="vertical" Save="0" gpitv="0" negative_bad_thresh="-50" before_and_after="0" usedq="0" />
+<primitive name="Assemble Spectral Datacube" Save="0" gpitv="0" />
+<primitive name="Interpolate Wavelength Axis" Spectralchannels="37" Save="1" gpitv="5" />
+<primitive name="Measure FPM Location" method="Auto" x0="145" y0="145" Save="1" />
+</recipe>
+
