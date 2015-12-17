@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<recipe Name="Simple Datacube Extraction" ReductionType="SpectralScience" ShortName="basiccube">
+<recipe Name="Make Cube then Measure FPM Position" ReductionType="SpectralScience" ShortName="fpmpos">
 <!-- recipe written by li-wei on  at 2015-12-14T22:44:51 UTC -->
 <!-- created with the Recipe Editor GUI -->
 <dataset InputDir="${GPI_RAW_DATA_DIR}test_arcs" OutputDir="${GPI_REDUCED_DATA_DIR}151214">
