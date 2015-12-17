@@ -96,6 +96,8 @@ pro GPItv::initcommon
   self.images.klip_image = ptr_new(/alloc)			; the result of processing via KLIP
 
   ;;this replaces the state.contrcens var
+  self.satspots.valid = 0
+  self.satspots.attempted = 0
   self.satspots.cens = ptr_new(/alloc)
   self.satspots.warns = ptr_new(/alloc)
   self.satspots.good = ptr_new(/alloc)
@@ -2605,7 +2607,8 @@ pro GPItv::draw_vector_event, event, measure=measure, wavecal=wavecal
         if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
           self->update_sat_spots
           ;;if failed, need to return
-          if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then return
+		  if ~self.satspots.valid then return
+          ;if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then return
         endif
         ;;calculate center locations
         ;  cents = mean(*self.satspots.cens,dim=2) ; not idl 7.0 compatible
@@ -3792,7 +3795,7 @@ pro gpitv::refresh_image_invert_rotate
   endif
 
   ;;if there are sat spots in memory, they need to be updated as well
-  if (n_elements(*self.satspots.cens) eq 8L * (*self.state).image_size[2]) then update_sats = 1 else update_sats = 0
+  if self.satspots.valid then update_sats = 1 else update_sats = 0
 
   ; do we have a 3D cube, in which case we will have to transform each slice?
   szmis=size(*self.images.main_image_stack)
@@ -4149,7 +4152,7 @@ pro GPItv::change_image_units, new_requested_units, silent=silent, loading_new_i
       endif
 
       ;;if no sat spots exist in memory (or are the wrong size), get the sat spot
-      ;;locations and fluxers
+      ;;locations and fluxes
       if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) && proceed then begin
         self->update_sat_spots,locs0=locs0
         ;;if failed, bail
@@ -5950,6 +5953,8 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   ;; clean up anything left from previous image
   ;; remove any existing satellite spots, and allocate proper size for
   ;; contrast profile pointers - has to be done before calling collapsecube
+  self.satspots.valid = 0
+  self.satspots.attempted = 0
   ptr_free,self.satspots.cens
   self.satspots.cens = ptr_new(/allocate_heap)
   (*self.state).fpmoffset_fpmpos = 0
@@ -6097,11 +6102,19 @@ pro GPItv::update_sat_spots,locs0=locs0
   ;
   ;locs0 - Starting locations to try
 
+
+  ; if we already attempted to measure them but failed, don't
+  ; mindlessly keep repeating that. We already know we can't make
+  ; it work for this file...
+  if ~self.satspots.valid and self.satspots.attempted then return 
+
   ;;if the info is in the header, just get it from there
   cens = -1
-  if ptr_valid( (*self.state).exthead_ptr) then cens = gpi_satspots_from_header(*((*self.state).exthead_ptr),good=good,fluxes=sats,warns=warns)
+  if ptr_valid( (*self.state).exthead_ptr) then $
+	  cens = gpi_satspots_from_header(*((*self.state).exthead_ptr),good=good,fluxes=sats,warns=warns)
 
   ;;otherwise, look for them
+  self.satspots.attempted = 1
   if n_elements(cens) eq 1 then begin
 
     ;;always use the backup main image so that you know you're
@@ -6249,6 +6262,8 @@ pro GPItv::update_sat_spots,locs0=locs0
   *self.satspots.good = good       ;;indices of slices where all spots were found
   *self.satspots.satflux = sats    ;;4 x Z array of satellite spot fluxes
   *self.satspots.mags = mags       ;;central star mag calculated via sat spots
+  self.satspots.valid = 1
+  self.satspots.attempted = 1
 
   ;;delete any existing contrast profiles. new spots means new
   ;;profile and reallocate (arrays of radial profile vals)
@@ -14701,6 +14716,27 @@ pro GPITv::plot1satspots, iplot
 	  ;self->message,"Can't plot sat spots in pol mode yet - still to be implemented"
 	  ;return
   ;endif
+ 
+  
+	; if we have FPM location, mark that too.
+	; (Do this first so it works even for images without sat spots)
+  if (*self.state).fpmoffset_fpmpos[0] gt 0 then begin
+	hd = *((*self.state).head_ptr)
+	IFSFILT = gpi_simplify_keyword_value(sxpar(hd, 'IFSFILT'))
+	fpmdiam = gpi_get_constant('fpm_diam_'+strlowcase(IFSFILT))
+	scale = gpi_get_constant('ifs_lenslet_scale')
+
+    tvcircle, /data, fpmdiam/2/scale, $
+			(*self.state).fpmoffset_fpmpos[0],$
+			(*self.state).fpmoffset_fpmpos[1],$
+			color=cgcolor('black'), thick=2, psym=0
+	tvcircle, /data, fpmdiam/2/scale, $
+			(*self.state).fpmoffset_fpmpos[0],$
+			(*self.state).fpmoffset_fpmpos[1],$
+			color=cgcolor('yellow'), thick=2, lines=2, psym=0
+
+
+  endif
 
 ; First make sure we have sat spot info
   if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
@@ -14755,24 +14791,6 @@ pro GPITv::plot1satspots, iplot
  
 
 
-	; if we have FPM location, mark that too.
-    if (*self.state).fpmoffset_fpmpos[0] gt 0 then begin
-		hd = *((*self.state).head_ptr)
-		IFSFILT = gpi_simplify_keyword_value(sxpar(hd, 'IFSFILT'))
-		fpmdiam = gpi_get_constant('fpm_diam_'+strlowcase(IFSFILT))
-		scale = gpi_get_constant('ifs_lenslet_scale')
-
-        tvcircle, /data, fpmdiam/2/scale, $
-			(*self.state).fpmoffset_fpmpos[0],$
-			(*self.state).fpmoffset_fpmpos[1],$
-			color=cgcolor('black'), thick=2, psym=0
-        tvcircle, /data, fpmdiam/2/scale, $
-			(*self.state).fpmoffset_fpmpos[0],$
-			(*self.state).fpmoffset_fpmpos[1],$
-			color=cgcolor('yellow'), thick=2, lines=2, psym=0
-
-
-	endif
 
 end
 
@@ -20681,7 +20699,6 @@ pro GPItv::show_fpmoffset
 
     (*self.state).fpmoffset_psfcentx_id = $
       cw_field(fpmoffset_data_base1a, $
-      /floating, $
 	  title="  X:",$
       uvalue = 'psfcentx', $
 	  /noedit, tab_mode=0,$
@@ -20689,7 +20706,6 @@ pro GPItv::show_fpmoffset
 
     (*self.state).fpmoffset_psfcenty_id = $
       cw_field(fpmoffset_data_base1a, $
-      /floating, $
 	  title="   Y:",$
       uvalue = 'psfcenty', $
 	  /noedit,$
@@ -20698,7 +20714,6 @@ pro GPItv::show_fpmoffset
 
     (*self.state).fpmoffset_fpmcentx_id = $
       cw_field(fpmoffset_data_base2a, $
-      /floating, $
 	  title="  X:",$
       uvalue = 'fpmcentx', $
 	  /noedit,$
@@ -20706,7 +20721,6 @@ pro GPItv::show_fpmoffset
 
     (*self.state).fpmoffset_fpmcenty_id = $
       cw_field(fpmoffset_data_base2a, $
-      /floating, $
 	  title="   Y:",$
       uvalue = 'fpmcenty', $
 	  /noedit,$
@@ -20752,27 +20766,6 @@ pro GPItv::fpmoffset_refresh
   ;;don't support non-cubes
   if (*self.state).image_size[2] lt 2 then return
 
-  ;;-- Get PSF location --
-  ;;if no satspots in memory, calculate them
-  if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
-    self->update_sat_spots
-
-    ;;if failed, need to return
-    if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
-      self->message, msgtype='error', "Cannot plot star location because we cannot determine the center without satellite spots."
-      return
-    endif
-  endif
-  ; compute mean 
-  ;;calculate center locations
-  tmp=*self.satspots[*].cens
-  cents=fltarr(2,N_ELEMENTS(tmp[0,0,*]))
-  for p=0, N_ELEMENTS(tmp[0,0,*]) -1 do begin
-    for q=0, 1 do cents[q,p]=mean(tmp[q,*,p])
-  endfor
-  psfcentx= mean(cents[0,*])
-  psfcenty = mean(cents[1,*])
-
 
   ;;-- Get FPM location--
 
@@ -20801,42 +20794,74 @@ pro GPItv::fpmoffset_refresh
   endif
 
 
+  ;;-- Get PSF location --
+  ;;if no satspots in memory, calculate them
+  if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
+    self->update_sat_spots
+  endif
+
+    ;; only do the calculation if we now have good sat spots
+    if (n_elements(*self.satspots.cens) eq 8L * (*self.state).image_size[2]) then begin
+	  ; compute mean 
+	  ;;calculate center locations
+	  tmp=*self.satspots[*].cens
+	  cents=fltarr(2,N_ELEMENTS(tmp[0,0,*]))
+	  for p=0, N_ELEMENTS(tmp[0,0,*]) -1 do begin
+		for q=0, 1 do cents[q,p]=mean(tmp[q,*,p])
+	  endfor
+	  psfcentx= mean(cents[0,*])
+	  psfcenty = mean(cents[1,*])
+
+  endif else begin
+	  self->message, "Could not find star pos from sat spots; cannot calculate FPM offset"
+	  psfcentx = !values.f_nan
+	  psfcenty = !values.f_nan
+  endelse
+
+
 
   ;;--update display--
 
+  fpmcentx_text = 'Unknown'
+  fpmcenty_text = 'Unknown'
+  offsettip_text = 'Unknown'
+  offsettilt_text = 'Unknown'
+  psfcentx_text = 'Unknown'
+  psfcenty_text = 'Unknown'
 
   if (*self.state).fpmoffset_fpmpos[0] le 0 then begin
 	  self->message, "No FPM position available."
-	  fpmcentx=0.0
-	  fpmcenty=0.0
-	  offsettip_text = ""
-	  offsettilt_text = ""
 	  statuslabel ='    FPM position not available. '
   endif else begin
 	  pixscale = gpi_get_constant('ifs_lenslet_scale') ; arcsec per pixel
       fpmcentx = (*self.state).fpmoffset_fpmpos[0]
       fpmcenty = (*self.state).fpmoffset_fpmpos[1]
-
-      angle = gpi_get_constant('ifs_rotation')*!pi/180 ; img rotation in radians
-      offsetx = (psfcentx-fpmcentx) *pixscale*1000 ; convert to mas
-      offsety = (psfcenty-fpmcenty) *pixscale*1000 ; convert to mas
-      offsettip  = -offsetx * cos(angle) - offsety * sin(angle)
-      offsettilt = -offsetx * sin(angle) + offsety * cos(angle)
-	  offsettip_text = string(round(offsettip),format="(i+7)")
-	  offsettilt_text = string(round(offsettilt),format="(i+7)")
+	  fpmcentx_text = string(fpmcentx,format="(f7.2)")
+	  fpmcenty_text = string(fpmcenty,format="(f7.2)")
       statuslabel = "  FPM pos from "+file_basename((*self.state).fpmoffset_calfilename)
 
+	  if finite(psfcentx) then begin
+		  psfcentx_text = string(psfcentx,format="(f7.2)")
+		  psfcenty_text = string(psfcenty,format="(f7.2)")
+
+		  angle = gpi_get_constant('ifs_rotation')*!pi/180 ; img rotation in radians
+		  offsetx = (psfcentx-fpmcentx) *pixscale*1000 ; convert to mas
+		  offsety = (psfcenty-fpmcenty) *pixscale*1000 ; convert to mas
+		  offsettip  = -offsetx * cos(angle) - offsety * sin(angle)
+		  offsettilt = -offsetx * sin(angle) + offsety * cos(angle)
+
+		  offsettip_text = string(round(offsettip),format="(i+7)")
+		  offsettilt_text = string(round(offsettilt),format="(i+7)")
+	  endif else begin
+	  endelse
   endelse
 
-
-  widget_control,(*self.state).fpmoffset_psfcentx_id,set_value=string(psfcentx,format="(f7.2)")
-  widget_control,(*self.state).fpmoffset_psfcenty_id,set_value=string(psfcenty,format="(f7.2)")
-  widget_control,(*self.state).fpmoffset_fpmcentx_id,set_value=string(fpmcentx,format="(f7.2)")
-  widget_control,(*self.state).fpmoffset_fpmcenty_id,set_value=string(fpmcenty,format="(f7.2)")
-
+  widget_control,(*self.state).fpmoffset_fpmcentx_id,set_value=fpmcentx_text
+  widget_control,(*self.state).fpmoffset_fpmcenty_id,set_value=fpmcenty_text
+  widget_control,(*self.state).fpmoffset_psfcentx_id,set_value=psfcentx_text
+  widget_control,(*self.state).fpmoffset_psfcenty_id,set_value=psfcenty_text
   widget_control,(*self.state).fpmoffset_offsettip_id,set_value=offsettip_text
   widget_control,(*self.state).fpmoffset_offsettilt_id,set_value=offsettilt_text
-
   widget_control,(*self.state).fpmoffset_statuslabel_id,set_value=statuslabel
 
 end
@@ -21008,6 +21033,9 @@ pro GPItv__define
     klip_image: ptr_new()}
 
   satspots = {gpitv_satspots,$
+	  valid: 0, $		; are satspots currently valid for the image?
+	  attempted: 0, $	; have we tried to load them for this image yet?
+						; (to prevent repeatedly trying if we can't)
     cens: ptr_new(), $
     warns: ptr_new(), $
     good: ptr_new(), $

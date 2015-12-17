@@ -237,6 +237,7 @@ pro automaticreducer::reduce_one, filenames, wait=wait
       return ; this is a "cleanup" frame for persistence decay. There is no need to make a datacube
     endif
 
+	do_second_recipe = 0
     case prism of
       'PRISM': begin
         if obstype eq 'ARC' then begin
@@ -248,6 +249,8 @@ pro automaticreducer::reduce_one, filenames, wait=wait
           templatename='Quick Wavelength Solution'
           should_apply_flexure_update=0
 		  should_apply_skysub_update=0
+		  do_second_recipe = 1
+		  second_templatename = 'Make Cube then Measure FPM Position'
         endif else if is_sky then begin
 		  templatename = 'Quick Thermal/Sky Background'
           should_apply_flexure_update=0
@@ -282,6 +285,39 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 
 
   self->Log, "Using template: "+templatename
+
+  self->apply_template, templatename, filenames, prism=prism, $
+	  should_apply_flexure_update=should_apply_flexure_update, $
+	  should_apply_skysub_update=should_apply_skysub_update
+
+  ; There are some special cases where we want to run a second recipe after the first.
+  ; Handle those here. 
+  ; This just runs a basic recipe, without applying any of the options for tem
+	if keyword_set(do_second_recipe) then begin
+	  self->Log, "Using 2nd template: "+second_templatename
+
+	  ;wait, 2  ; ensure the first recipe is picked up by the pipeline before we write the
+			   ; second one. (This step may not be necessary?)
+	  self->apply_template, second_templatename, filenames, prism=prism, $
+		  should_apply_flexure_update=should_apply_flexure_update, $
+		  should_apply_skysub_update=should_apply_skysub_update, $
+		  num_recipe=2
+	endif
+
+
+end
+
+;-------------------------------------------------------------------
+PRO automaticreducer::apply_template, templatename, filenames, $
+	prism=prism, $
+	should_apply_flexure_update=should_apply_flexure_update, $
+	should_apply_skysub_update=should_apply_skysub_update, num_recipe=num_recipe
+
+
+	if ~(keyword_set(should_apply_flexure_update)) then should_apply_flexure_update = 0
+	if ~(keyword_set(should_apply_skysub_update)) then should_apply_skysub_update = 0
+
+
   templatefile= self->lookup_template_filename(templatename) ; gpi_get_directory('GPI_DRP_TEMPLATES_DIR')+path_sep()+templatename
   if templatefile eq '' then return ; couldn't find requested template therefore do nothing.
 
@@ -341,10 +377,13 @@ pro automaticreducer::reduce_one, filenames, wait=wait
   ; generate a nice descriptive filename
   first_file_basename = (strsplit(file_basename(filenames[0]),'.',/extract))[0]
 
-  drf->save, 'auto_'+first_file_basename+'_'+drf->get_datestr()+'.waiting.xml',/autodir, comment='Created by the Autoreducer GUI'
+  savename = 'auto_'+first_file_basename+'_'+drf->get_datestr()
+  if keyword_set(num_recipe) then if num_recipe gt 1 then savename+= "_recipe"+strc(num_recipe)
+  drf->save, savename+'.waiting.xml',/autodir, comment='Created by the Autoreducer GUI'
   drf->queue, comment='Created by the Autoreducer GUI'
 
   obj_destroy, drf
+
 
 end
 
