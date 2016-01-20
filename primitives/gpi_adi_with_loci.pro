@@ -486,7 +486,7 @@ if numfile  eq ((dataset.validframecount)-1) then begin
       fn=dataset.outputFileNames[n];listfilenames(n)
       ;fn=Modules[0].OutputDir+path_sep()+strmid(fn,1+strpos(fn,path_sep(),/REVERSE_SEARCH ),STRPOS(fn,'.fits')-strpos(fn,path_sep(),/REVERSE_SEARCH )-1)+suffix+'.fits'
       fits_info,fn,N_ext=n_ext, /silent
-      h=headfits(fn,exten=n_ext, /silent)
+      h=headfits(fn,exten=1, /silent)
       hphu=headfits(fn,exten=0, /silent)
 
       ;rotation pour ramener sur la premiere image
@@ -525,12 +525,13 @@ if numfile  eq ((dataset.validframecount)-1) then begin
    ; update_progressbar,Modules,thisModuleIndex,n_elements(lambda), il ,'working...',/adi    
   endfor; wav
 
+
 ; dirty suffix hack that is currently necessary since the suffix seems to get changed here for some reason...
   suffix0=suffix+'-loci'
   imt=dblarr(dimcub,dimcub,n_elements(lambda))
   for n=0,nfiles-1 do begin
     for il=0,n_elements(lambda)-1 do begin
-      imt[*,*,il]=readfits(tmpdir+prefix+nbr2txt(nlist[n],4)+suffix0+strcompress(string(il),/REMOVE_ALL)+'.fits',/SILENT,exten=n_ext, header)
+      imt[*,*,il]=readfits(tmpdir+prefix+nbr2txt(nlist[n],4)+suffix0+strcompress(string(il),/REMOVE_ALL)+'.fits',/SILENT,exten=1, header)
       file_delete, tmpdir+prefix+nbr2txt(nlist[n],4)+suffix0+strcompress(string(il),/REMOVE_ALL)+'.fits'
     endfor
 suffix=suffix0 
