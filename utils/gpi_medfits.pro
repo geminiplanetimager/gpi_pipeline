@@ -16,6 +16,7 @@
 ;    Jerome Maire :- 2008-08
 ;    JM: 2009-04 adapted for GPI-pip
 ;    2009-06-22 JM: fix a bug with fxread ->fxread3d 
+;  2016-01-21 JM: extension num of the image debugged
 
 function gpi_medfits,fnames,dim1,dim2,rns=rns,nlist=nlist,dir=dir,gz=gz,$
                  exten_no=exten_no,silent=silent,nzero=nzero,hdr=h,even=even,lam=lam
@@ -52,9 +53,9 @@ if split eq 0 then begin
       strtrim(dim1,2)+'x'+strtrim(dim2,2)+'x'+strtrim(nfiles,2)+')'
     cube=fltarr(dim1,dim2,nfiles,/nozero)
     if (keyword_set(lam)) && (lam eq -1) then begin
-      for n=0,nfiles-1 do cube[*,*,n]=readfits(fnames[n],exten_no=exten_no,/silent)
+      for n=0,nfiles-1 do cube[*,*,n]=readfits(fnames[n],exten_no=1,/silent)
     endif else begin
-      for n=0,nfiles-1 do cube[*,*,n]=readfits(fnames[n],NSLICE=lam,exten_no=exten_no,/silent)
+      for n=0,nfiles-1 do cube[*,*,n]=readfits(fnames[n],NSLICE=lam,exten_no=1,/silent)
     endelse
     if nfiles eq 1 then return,cube[*,*,0]
     return,median(cube,dimension=3,even=even)
