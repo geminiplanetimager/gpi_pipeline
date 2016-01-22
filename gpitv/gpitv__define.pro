@@ -4645,8 +4645,9 @@ pro GPItv::changeimage,imagenum,next=next,previous=previous, nocheck=nocheck,$
 
   ; If we have a valid DQ extension stack, then we should update the
   ; DQ current image with the appropriate slice.
+
   if (*self.state).has_dq_mask then if (size(*self.images.dq_image_stack))[0] eq 3 then  $
-    *self.images.dq_image = (*self.images.dq_image_stack)[*, *, (*self.state).cur_image_num]
+    *self.images.dq_image = (*self.images.dq_image_stack)[*, *, (*self.state).cur_image_num<((size(*self.images.dq_image_stack))[3]-1)]
 
   self->getstats
   case (*self.state).curimnum_minmaxmode of
@@ -18841,7 +18842,7 @@ pro GPItv::low_pass_filter, status=status, forcestack=forcestack
       ; note that setting the no_ft to zero is bad! it should either be 1 or not declared at all
       ; leaving it as 0 causes the image to fill with nans sometimes (not sure when)
 	  ; MP - FIXME this will not work on IDL 7!
-      if LMGR(/runtime) eq 1 then no_ft=1 else no_ft=[]
+      if LMGR(/runtime) eq 1 then no_ft=1 else no_ft=0
 
       for s=0,N_ELEMENTS(im[0,0,*])-1 do $
         im[*,*,s]=filter_image(im[*,*,s],fwhm=fwhm,/all, no_ft = no_ft)
