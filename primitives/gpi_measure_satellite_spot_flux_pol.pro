@@ -28,7 +28,7 @@
 ; PIPELINE ARGUMENT: Name="StarOuterSkyRad" Type="int" Range="[10,20]" Default="16" Desc="Outer Skyrad  value used in APER"
 ; PIPELINE ARGUMENT: Name="Verbose" Type="int" Range="[0,1]" Default="0" Desc="0 = quiet, 1 = verbose"
 ;
-; PIPELINE ORDER: 2.446
+; PIPELINE ORDER: 2.52
 ;
 ; HISTORY:
 ;
