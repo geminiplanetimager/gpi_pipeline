@@ -1,16 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<DRF ReductionType="PolarimetricScience" name="Simple Polarization Datacube Extraction" ShortName="basicpolcube">
-<dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
-   <fits filename=""/>
+<recipe Name="Simple Polarization Datacube Extraction" ReductionType="PolarimetricScience" ShortName="basicpolcube">
+<!-- recipe written by max on  at 2015-05-03T05:22:33 UTC -->
+<!-- created with the Recipe Editor GUI -->
+<dataset InputDir="${GPI_REDUCED_DATA_DIR}150423" OutputDir="${GPI_REDUCED_DATA_DIR}150423">
 </dataset>
+<primitive name="Load Polarimetry Spot Calibration" CalibrationFile="AUTOMATIC" />
+<primitive name="Smooth polarization calibration" Boxsize="10" />
+<primitive name="Subtract Dark Background" CalibrationFile="AUTOMATIC" RequireExactMatch="0" Interpolate="0" Save="0" gpitv="0" />
+<primitive name="Flexure 2D x correlation with polcal" method="Auto" range="0.3" resolution="0.01" psf_sep="0.01" stopidl="0" configuration="tight" x_off="0" y_off="0" badpix="1" iterate="1" max_iter="15" manual_dx="0." manual_dy="0." />
+<primitive name="Destripe science image" method="calfile" abort_fraction="0.9" chan_offset_correction="1" readnoise_floor="0.0" Save_stripes="0" Display="-1" remove_microphonics="1" method_microphonics="1" CalibrationFile="AUTOMATIC" Plot_micro_peaks="no" save_microphonics="no" micro_threshold="0.01" write_mask="0" fraction="0.7" Save="0" gpitv="0" />
+<primitive name="Interpolate bad pixels in 2D frame" CalibrationFile="AUTOMATIC" method="all8" Save="0" gpitv="2" negative_bad_thresh="-50" before_and_after="0" />
+<primitive name="Assemble Polarization Cube" Save="0" gpitv="2" Method="PSF" />
+<primitive name="Divide by Low Spatial Freq. Polarized Flat Field" CalibrationFile="AUTOMATIC" Save="1" gpitv="2" />
+<primitive name="Interpolate bad pixels in cube" Save="0" gpitv="2" before_and_after="0" />
+<primitive name="Measure Star Position for Polarimetry" x0="147" y0="147" search_window="5" mask_radius="50" highpass="1" lower_threshold="-100" Save="0" gpitv="0" />
+<primitive name="Measure Satellite Spot Flux in Polarimetry" Save="1" gpitv="0" Aperture="4" Inskyrad="6" Outskyrad="9" ShowAperture="0" FindPSFCENT="0" STARXCEN="145" STARYCEN="148" Companion="0" StarXPos="98" StarYPos="121" StarAperture="8" StarInnerSkyRad="12" StarOuterSkyRad="16" Verbose="0" />
+</recipe>
 
-<module name="Load Polarimetry Spot Calibration" CalibrationFile="AUTOMATIC" />
-<module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0" gpitv="0" />
-
-<module name="Flexure 2D x correlation with polcal" range="0.3" resolution="0.1" psf_sep="0.1" stopidl="0" x_off="0" y_off="0" badpix="1" iterate="1" />
-<module name="Destripe science image" method="calfile" abort_fraction="0.9" fraction="0.7" high_limit="1000" chan_offset_correction="1" Save_stripes="0" Save="0" display="-1" gpitv="0" remove_microphonics="1" method_microphonics="1" plot_micro_peaks="no" save_microphonics="no" micro_threshold="0.01" />
-<module name="Interpolate bad pixels in 2D frame" method="all8"  Save="0" gpitv="2" CalibrationFile="AUTOMATIC" before_and_after="0"/> 
-<module name="Assemble Polarization Cube" Rotate="0" Save="0" gpitv="2" />
-<module name="Interpolate bad pixels in cube" Save="0" gpitv="2" before_and_after="0" />
-<module name="Measure Star Position for Polarimetry" x0="147" y0="147" search_window="5" mask_radius="50" highpass="1" lower_threshold="-100" Save="1" gpitv="0" />
-</DRF>
