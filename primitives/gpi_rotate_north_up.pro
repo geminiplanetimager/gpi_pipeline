@@ -71,7 +71,7 @@ function gpi_rotate_north_up, DataSet, Modules, Backbone
 		; And output the results:
 		*(dataset.currframe)=rotated_cube
 
-		@__end_primitive
+		;@__end_primitive
 
 	end
 	2: begin ;----- Rotate all files stored in the accumulator ------
@@ -89,6 +89,7 @@ function gpi_rotate_north_up, DataSet, Modules, Backbone
 			; For various mostly historical reasons the code is such that
 			; headers get updated directly in gpi_rotate_cube but we have to
 			; explicitly store the output rotated cube
+
 			rotated_cube = gpi_rotate_cube(backbone, dataset, original_cube, indexFrame=i, $
 							rot_method=rot_method, center_method=center_method, rot_center=rot_center, pivot=pivot )
 			if n_elements(rotated_cube) eq 1 then return, error('Rotate cube failed.')
@@ -101,4 +102,5 @@ function gpi_rotate_north_up, DataSet, Modules, Backbone
 	end
 	endcase
 
+@__end_primitive
 end
