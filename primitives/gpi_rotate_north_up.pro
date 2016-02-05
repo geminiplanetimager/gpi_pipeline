@@ -27,7 +27,7 @@
 ; PIPELINE ARGUMENT: Name="pivot" Type ="int" Range="[0,1]" Default="0" Desc="Pivot about the center of the image? 0 = No" 
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
-; PIPELINE ORDER: 3.9
+; PIPELINE ORDER: 4.4
 ; PIPELINE CATEGORY: SpectralScience,PolarimetricScience
 ;
 ; HISTORY:
