@@ -64,6 +64,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	; Load all files at once into a stack of all the polarization pairs
 
 	sz = [0, sxpar(hdrext,'NAXIS1'), sxpar(hdrext,'NAXIS2'), sxpar(hdrext,'NAXIS3')]
+	if sz[1] eq 2048 then return, error('Can only apply filter to cubes, not detector images')
+	
 	polstack =	   fltarr(sz[1], sz[2], sz[3]*nfiles) ; stack of all input polarization pairs
 	sumdiffstack = fltarr(sz[1], sz[2], sz[3]*nfiles) ; a transformed version of polstack, holding the sum and single-difference images
 
