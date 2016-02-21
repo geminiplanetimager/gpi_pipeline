@@ -20688,6 +20688,7 @@ pro GPItv::show_fpmoffset
 
     fpmoffset_data_base1  = widget_base(fpmoffset_top_base, /column, frame=0)
     void=WIDGET_LABEL(fpmoffset_data_base1,value='Star Position from Sat Spots: ', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+    void=WIDGET_LABEL(fpmoffset_data_base1,value='(For H, only 1.5-1.7 um)', /ALIGN_LEFT,/DYNAMIC_RESIZE )
     fpmoffset_data_base1a = widget_base(fpmoffset_data_base1, /row, frame=0)
 
     fpmoffset_data_base2 = widget_base( fpmoffset_top_base, /column, frame=0)
@@ -20810,8 +20811,16 @@ pro GPItv::fpmoffset_refresh
 	  for p=0, N_ELEMENTS(tmp[0,0,*]) -1 do begin
 		for q=0, 1 do cents[q,p]=mean(tmp[q,*,p])
 	  endfor
-	  psfcentx= mean(cents[0,*])
-	  psfcenty = mean(cents[1,*])
+      ; find the mean PSF center
+      ;;for H band, only using wavelength slices between 1.5 and 1.7 um (for better S/N)
+      ;;for other bands, using all the wavelength slices for now
+      if (*self.state).obsfilt eq 'H' then begin
+        psfcentx = mean(cents[0,1:24]) 
+        psfcenty = mean(cents[1,1:24])
+      endif else begin
+        psfcentx = mean(cents[0,*]) 
+        psfcenty = mean(cents[1,*])
+      endelse
 
   endif else begin
 	  self->message, "Could not find star pos from sat spots; cannot calculate FPM offset"
