@@ -115,8 +115,13 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
                         ; extraction imperfections
 ; skysub, diffstack, median_diff, subdiffstack    ; Subtract this from all the individual differences
 
-	
-  mean_diff = mean(diffstack, dim=3) ;Using the median causes biases for strongly polarized sources. The mean works better. 
+	if !version.release gt 7.5 then begin
+      mean_diff = mean(diffstack, dim=3) ;Using the median causes biases for strongly polarized sources. The mean works better. 
+  end else begin;make it idl7 friendly:
+    szdiffstack=size(diffstack)
+    mean_diff =  (1./float( szdiffstack[3]))*total(diffstack,3)
+  end
+ 
   skysub, diffstack, mean_diff, subdiffstack  	; Subtract this from all the individual differences													
 									
 	; FIXME should we do this on the difference images, or on the sum images?
