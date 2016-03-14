@@ -50,8 +50,8 @@ function gpi_get_pol_vector_stats, DataSet, Modules, Backbone
     return, error("Could not get PSFCENTX and PSFCENTY keywords from header. Cannot determine PSF center.")
   endif
 
-  if tag_exist( Modules[thisModuleIndex], "SaveHists") then savehists= strupcase(Modules[thisModuleIndex].SaveHists) else savehists="" ; can be CUBIC or FFT
-  if tag_exist( Modules[thisModuleIndex], "SavePNG") then pngsave= strupcase(Modules[thisModuleIndex].SavePNG) else pngsave="" ; can be CUBIC or FFT
+  if tag_exist( Modules[thisModuleIndex], "SaveHists") then savehists= Modules[thisModuleIndex].SaveHists else savehists="" ; can be CUBIC or FFT
+  if tag_exist( Modules[thisModuleIndex], "SavePNG") then pngsave= Modules[thisModuleIndex].SavePNG else pngsave="" ; can be CUBIC or FFT
 
   ;Measure the angles.
   im=*(dataset.currframe)
@@ -146,7 +146,7 @@ function gpi_get_pol_vector_stats, DataSet, Modules, Backbone
   ;;save radial contrast as fits
   if savehists ne '' then begin
     ;;if user set AUTO then synthesize entire path
-    if strcmp(strupcase(radialsave),'AUTO') then begin
+    if strcmp(strupcase(savehists),'AUTO') then begin
       s_OutputDir = Modules[thisModuleIndex].OutputDir
       s_OutputDir = gpi_expand_path(s_OutputDir)
       if strc(s_OutputDir) eq "" then return, error('FAILURE: supplied output directory is a blank string.')
@@ -162,18 +162,18 @@ function gpi_get_pol_vector_stats, DataSet, Modules, Backbone
         if ~file_test(s_OutputDir,/directory, /write) then $
           return, error("FAILURE: Directory "+s_OutputDir+" does not exist or is not writeable.",/alert)
       endif
-      radialsave = s_OutputDir
+      savehists = s_OutputDir
     endif
 
     ;;if this is a directory, then you want to save to it with the
     ;;default naming convention
-    if file_test(radialsave,/dir) then begin
+    if file_test(savehists,/dir) then begin
       nm = gpi_expand_path(DataSet.filenames[numfile])
       strps = strpos(nm,path_sep(),/reverse_search)
       strpe = strpos(nm,'.fits',/reverse_search)
       nm = strmid(nm,strps+1,strpe-strps-1)
-      nm = gpi_expand_path(radialsave+path_sep()+nm+'stokesdc_pol_vector_hist.fits')
-    endif else nm = radialsave
+      nm = gpi_expand_path(savehists+path_sep()+nm+'stokesdc_pol_vector_hist.fits')
+    endif else nm = savehists
 
     out1 = dblarr(n_elements(p_x),2)+!values.d_nan
     out1[*,0] = p_x
