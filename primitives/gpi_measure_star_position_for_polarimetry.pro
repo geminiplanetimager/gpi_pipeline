@@ -28,6 +28,7 @@
 ;
 ; HISTORY:
 ; 	2014-01-31 JW: Created. Accurary is subpixel - hopefully.
+; 	2016-03-17 KBF: Added catch for direct mode (unocculted) data
 ;- 
 
 function gpi_measure_star_position_for_polarimetry, DataSet, Modules, Backbone
@@ -82,8 +83,13 @@ lower_threshold = fix(Modules[thisModuleIndex].lower_threshold)
 statuswindow = backbone->getstatusconsole()
 
 ;find location of image center
-cent = find_pol_center(cube, x0, y0, search_window, search_window, maskrad=mask_radius, highpass=highpass, pixlowerbound=lower_threshold, statuswindow=statuswindow)
-
+obsmode= strc(backbone->get_keyword( "OBSMODE", count=ct))
+obsmode = strlowcase(obsmode)
+if strmatch(obsmode,"*coron*",/fold) then begin
+  cent = find_pol_center(cube, x0, y0, search_window, search_window, maskrad=mask_radius, highpass=highpass, pixlowerbound=lower_threshold, statuswindow=statuswindow)
+endif else begin
+  cent = find_pol_center_unocculted(cube, x0, y0)
+endelse
 ; write calculated center to header
 backbone->set_keyword,"PSFCENTX", cent[0], 'X-Location of PSF center', ext_num=1
 backbone->set_keyword,"PSFCENTY", cent[1], 'Y-Location of PSF center', ext_num=1
