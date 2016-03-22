@@ -31,13 +31,13 @@ function gpi_get_pol_vector_stats, DataSet, Modules, Backbone
   primitive_version= '$Id: gpi_smooth_cube.pro 2878 2014-04-29 04:11:51Z mperrin $' ; get version from subversion to store in header history
     @__start_primitive
 
-;  if ~strmatch(mode,"*wollaston*",/fold) then begin
-;    backbone->Log, "ERROR: That's not a polarimetry file!"
-;    return, not_ok
-;  endif
-  
+  ;  if ~strmatch(mode,"*wollaston*",/fold) then begin
+  ;    backbone->Log, "ERROR: That's not a polarimetry file!"
+  ;    return, not_ok
+  ;  endif
+
   ctype3 = backbone->get_keyword('CTYPE3', count=ct1, indexFrame=indexFrame)
-   
+
   if ~strmatch(ctype3, "STOKES*", /fold) then begin
     backbone->Log, "ERROR: That's not a stokesdc file!"
     return, not_ok
@@ -52,6 +52,7 @@ function gpi_get_pol_vector_stats, DataSet, Modules, Backbone
 
   if tag_exist( Modules[thisModuleIndex], "SaveHists") then savehists= Modules[thisModuleIndex].SaveHists else savehists="" ; can be CUBIC or FFT
   if tag_exist( Modules[thisModuleIndex], "SavePNG") then pngsave= Modules[thisModuleIndex].SavePNG else pngsave="" ; can be CUBIC or FFT
+  if tag_exist( Modules[thisModuleIndex], "Display") then display= strupcase(Modules[thisModuleIndex].Display) else display=-1 ; can be CUBIC or FFT
 
   ;Measure the angles.
   im=*(dataset.currframe)
@@ -95,52 +96,59 @@ function gpi_get_pol_vector_stats, DataSet, Modules, Backbone
   ;  std_qr=stddev(qr[where(rad lt 80 and rad gt 12)], /nan)
   w_good=where(rad lt 80 and rad gt 12 and qr gt 3*std_ur); and qr lt median(qr))
 
-  ;Plot the histogram of actual values
-  p_hist=histogram(phi[w_good], locations=p_x ,/nan, binsize=5)
-  p=plot(p_x, p_hist, /stairstep, title="Raw Pol Vectors", layout=[1,2,1])
 
-  pdiff=(phi[w_good]-phi_expected[w_good]) mod 90
-  ;The difference from circular
-  pdiff_hist=histogram(pdiff, locations=pdiff_x, /nan, binsize=5)
-  ;pdiff_hist=histogram_weight(phi[w_good]-phi_expected[w_good], weight=1/(qr[w_good]/max(qr[w_good])), locations=pdiff_x, /nan)
-  p2=plot(pdiff_x, pdiff_hist, /stairstep, title="Difference from expected", layout=[1,2,2], /current)
+  ;Plot only of display > 0
+  ;
+  if display ge 0 then begin
+    ;Plot the histogram of actual values
+    p_hist=histogram(phi[w_good], locations=p_x ,/nan, binsize=5)
+    p=plot(p_x, p_hist, /stairstep, title="Raw Pol Vectors", layout=[1,2,1])
+
+    pdiff=(phi[w_good]-phi_expected[w_good]) mod 90
+    ;The difference from circular
+    pdiff_hist=histogram(pdiff, locations=pdiff_x, /nan, binsize=5)
+    ;pdiff_hist=histogram_weight(phi[w_good]-phi_expected[w_good], weight=1/(qr[w_good]/max(qr[w_good])), locations=pdiff_x, /nan)
+    p2=plot(pdiff_x, pdiff_hist, /stairstep, title="Difference from expected", layout=[1,2,2], /current)
 
 
-  ;Save the image as a png!
-  if pngsave ne '' then begin
-    
-    ;;if user set AUTO then synthesize entire path
-    if strcmp(strupcase(pngsave),'AUTO') then begin
-      s_OutputDir = Modules[thisModuleIndex].OutputDir
-      s_OutputDir = gpi_expand_path(s_OutputDir)
-      if strc(s_OutputDir) eq "" then return, error('FAILURE: supplied output directory is a blank string.')
-      s_OutputDir = s_OutputDir+path_sep()+'contrast'+path_sep()
+    ;Save the image as a png!
+    if pngsave ne '' then begin
 
-      if ~file_test(s_OutputDir,/directory, /write) then begin
-        if gpi_get_setting('prompt_user_for_outputdir_creation',/bool, default=0,/silent) then $
-          res =  dialog_message('The requested output directory '+s_OutputDir+' does not exist. Should it be created now?', $
-          title="Nonexistent Output Directory", /question) else res='Yes'
+      ;;if user set AUTO then synthesize entire path
+      if strcmp(strupcase(pngsave),'AUTO') then begin
+        s_OutputDir = Modules[thisModuleIndex].OutputDir
+        s_OutputDir = gpi_expand_path(s_OutputDir)
+        if strc(s_OutputDir) eq "" then return, error('FAILURE: supplied output directory is a blank string.')
+        s_OutputDir = s_OutputDir+path_sep()+'contrast'+path_sep()
 
-        if res eq 'Yes' then  file_mkdir, s_OutputDir
+        if ~file_test(s_OutputDir,/directory, /write) then begin
+          if gpi_get_setting('prompt_user_for_outputdir_creation',/bool, default=0,/silent) then $
+            res =  dialog_message('The requested output directory '+s_OutputDir+' does not exist. Should it be created now?', $
+            title="Nonexistent Output Directory", /question) else res='Yes'
 
-        if ~file_test(s_OutputDir,/directory, /write) then $
-          return, error("FAILURE: Directory "+s_OutputDir+" does not exist or is not writeable.",/alert)
+          if res eq 'Yes' then  file_mkdir, s_OutputDir
+
+          if ~file_test(s_OutputDir,/directory, /write) then $
+            return, error("FAILURE: Directory "+s_OutputDir+" does not exist or is not writeable.",/alert)
+        endif
+        pngsave = s_OutputDir
       endif
-      pngsave = s_OutputDir
+
+
+      ;;if this is a directory, then you want to save to it with the
+      ;;default naming convention
+      if file_test(pngsave,/dir) then begin
+        nm = gpi_expand_path(DataSet.filenames[numfile])
+        strps = strpos(nm,path_sep(),/reverse_search)
+        strpe = strpos(nm,'.fits',/reverse_search)
+        nm = strmid(nm,strps+1,strpe-strps-1)
+        nm = gpi_expand_path(pngsave+path_sep()+nm+'_stokesdc_pol_vectors.png')
+      endif else nm = pngsave
+
+      p.Save, nm
+      print, "Histograms image saved to ",nm
     endif
 
-    ;;if this is a directory, then you want to save to it with the
-    ;;default naming convention
-    if file_test(pngsave,/dir) then begin
-      nm = gpi_expand_path(DataSet.filenames[numfile])
-      strps = strpos(nm,path_sep(),/reverse_search)
-      strpe = strpos(nm,'.fits',/reverse_search)
-      nm = strmid(nm,strps+1,strpe-strps-1)
-      nm = gpi_expand_path(pngsave+path_sep()+nm+'_stokesdc_pol_vectors.png')
-    endif else nm = pngsave
-
-    p.Save, nm
-    print, "Histograms image saved to ",nm
   endif
 
   ;;save radial contrast as fits
@@ -183,19 +191,19 @@ function gpi_get_pol_vector_stats, DataSet, Modules, Backbone
     out2[*,0] = pdiff_x
     out2[*,1] = pdiff_hist
 
-    tmp = intarr((dim)[2])
-    tmp[inds] = 1
-    slices = string(strtrim(tmp,2),format='('+strtrim(n_elements(tmp),2)+'(A))')
+;    tmp = intarr((dim)[2])
+;    tmp[inds] = 1
+;    slices = string(strtrim(tmp,2),format='('+strtrim(n_elements(tmp),2)+'(A))')
 
-    mkhdr,hdr,out
+    mkhdr,hdr,out1
     ;      sxaddpar,hdr,'SLICES',slices,'Cube slices used.'
     ;      sxaddpar,hdr,'YUNITS',(['Std Dev','Median','Mean'])[],'Contrast units'
 
-    writefits,nm,out,hdr
+    writefits,nm, out1, hdr
     writefits,nm, out2, /append
 
     print, "Histograms output to ", nm
-  endif
+  endif else print, "Not saving the histograms to fits"
 
   @__end_primitive
 end
