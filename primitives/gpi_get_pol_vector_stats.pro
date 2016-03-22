@@ -99,18 +99,24 @@ function gpi_get_pol_vector_stats, DataSet, Modules, Backbone
 
   ;Plot only of display > 0
   ;
-  if display ge 0 then begin
+  
     ;Plot the histogram of actual values
     p_hist=histogram(phi[w_good], locations=p_x ,/nan, binsize=5)
-    p=plot(p_x, p_hist, /stairstep, title="Raw Pol Vectors", layout=[1,2,1])
-
     pdiff=(phi[w_good]-phi_expected[w_good]) mod 90
+    
     ;The difference from circular
     pdiff_hist=histogram(pdiff, locations=pdiff_x, /nan, binsize=5)
     ;pdiff_hist=histogram_weight(phi[w_good]-phi_expected[w_good], weight=1/(qr[w_good]/max(qr[w_good])), locations=pdiff_x, /nan)
-    p2=plot(pdiff_x, pdiff_hist, /stairstep, title="Difference from expected", layout=[1,2,2], /current)
+   
 
-
+    if display ge 0 then begin
+      p=plot(p_x, p_hist, /stairstep, title="Raw Pol Vectors", layout=[1,2,1])
+      p2=plot(pdiff_x, pdiff_hist, /stairstep, title="Difference from expected", layout=[1,2,2], /current)
+    endif else begin
+      p=plot(p_x, p_hist, /stairstep, title="Raw Pol Vectors", layout=[1,2,1],/buffer)
+      p2=plot(pdiff_x, pdiff_hist, /stairstep, title="Difference from expected", layout=[1,2,2], /current, /buffer)
+    endelse
+    
     ;Save the image as a png!
     if pngsave ne '' then begin
 
@@ -149,8 +155,8 @@ function gpi_get_pol_vector_stats, DataSet, Modules, Backbone
       print, "Histograms image saved to ",nm
     endif
 
-  endif
-
+  cd, "./", current=old_Dir
+  print, "Working directory: "+old_dir
   ;;save radial contrast as fits
   if savehists ne '' then begin
     ;;if user set AUTO then synthesize entire path
