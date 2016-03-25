@@ -140,7 +140,7 @@ function gpi_make_pol_ql_image, DataSet, Modules, Backbone
     title=text(0.05,0.95, "Target Name: "+backbone->get_keyword('OBJECT'), /normal, alignment=0.0)
     title=text(0.05,0.05, "Last Processed File: "+strmid(dataset.filenames[0],0,14),/normal, alignment=0.0)
     title=text(0.9,0.95, "Number of Files: "+string(nfiles) ,/normal, alignment=1.0)
-    title=text(0.05, 0.5, "TESTING", color='Red', font_size=40, alignment=0.0, /normal) 
+;    title=text(0.05, 0.5, "TESTING", color='Red', font_size=40, alignment=0.0, /normal) 
   endif else begin
     p_q=image(q, layout=[3,2,1], title="Stokes Q", rgb_table=1, max_value=q_max, min_value=q_min, /buffer)
   endelse
@@ -153,7 +153,7 @@ function gpi_make_pol_ql_image, DataSet, Modules, Backbone
   title=text(0.05,0.95, "Target Name: "+backbone->get_keyword('OBJECT'), /normal, alignment=0.0)
   title=text(0.05,0.05, "Last Processed File: "+strmid(dataset.filenames[0],0,14) ,/normal, alignment=0.0)
   title=text(0.9,0.95, "Number of Files: "+string(nfiles) ,/normal, alignment=1.0)
-  title=text(0.05, 0.5, "TESTING", color='Red', font_size=40, alignment=0.0, /normal)
+;  title=text(0.05, 0.5, "TESTING", color='Red', font_size=40, alignment=0.0, /normal)
  
   ;Save the image as a png!
   print, pngsave
