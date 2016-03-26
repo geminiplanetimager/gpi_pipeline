@@ -193,7 +193,7 @@ function gpi_get_pol_vector_stats, DataSet, Modules, Backbone
     out1[*,0] = p_x
     out1[*,1] = p_hist
 
-    out2 = dblarr(n_elements(p_x),2)+!values.d_nan
+    out2 = dblarr(n_elements(pdiff_x),2)+!values.d_nan
     out2[*,0] = pdiff_x
     out2[*,1] = pdiff_hist
 
