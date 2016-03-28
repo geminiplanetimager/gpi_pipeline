@@ -85,11 +85,28 @@ statuswindow = backbone->getstatusconsole()
 ;find location of image center
 obsmode= strc(backbone->get_keyword( "OBSMODE", count=ct))
 obsmode = strlowcase(obsmode)
-if strmatch(obsmode,"*coron*",/fold) then begin
-  cent = find_pol_center(cube, x0, y0, search_window, search_window, maskrad=mask_radius, highpass=highpass, pixlowerbound=lower_threshold, statuswindow=statuswindow)
+
+occulter= strc(backbone->get_keyword( "OCCULTER", count=ct))
+occulter_band = strsplit(occulter, '_', /extract)
+occulter_band = occulter_band[1]
+`
+valid_bands = ['Y', 'J', 'H', 'K1', 'K2']
+valid_occulter_index = where(strmatch(valid_bands, occulter_band, /fold_case) eq 1)
+is_coron = valid_occulter ge 0
+
+;if strmatch(obsmode,"*coron*",/fold) then begin
+if is_coron then begin
+cent = find_pol_center(cube, x0, y0, search_window, search_window, maskrad=mask_radius, highpass=highpass, pixlowerbound=lower_threshold, statuswindow=statuswindow)
 endif else begin
   cent = find_pol_center_unocculted(cube, x0, y0)
 endelse
+
+; sanity check values are strickly greater than 0. Oherwise, this is probably a bad center.
+if (cent[0] lt 0) or (cent[1] lt 0) then begin
+	return, error('FAILURE ('+functionName+'): Unable to locate star position for polarimetry')
+endif
+    
+
 ; write calculated center to header
 backbone->set_keyword,"PSFCENTX", cent[0], 'X-Location of PSF center', ext_num=1
 backbone->set_keyword,"PSFCENTY", cent[1], 'Y-Location of PSF center', ext_num=1
