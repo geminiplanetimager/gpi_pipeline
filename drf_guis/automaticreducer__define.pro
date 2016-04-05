@@ -702,7 +702,7 @@ PRO automaticreducer::set_flexure_mode, modestr
   widget_control, self.flex_base_id, map=self.flexure_mode eq 'Manual'
 
   modes = ['None','Manual','Lookup','BandShift']
-  for i=0,2 do self.menubar->set_check_state, modes[i], self.flexure_mode eq modes[i]
+  for i=0,3 do self.menubar->set_check_state, modes[i], self.flexure_mode eq modes[i]
   print, "Flexure handling mode is now "+self.flexure_mode
 end
 
@@ -760,7 +760,11 @@ function automaticreducer::init, groupleader, _extra=_extra
   if ptr_valid(caltable) then begin
     availtypes =  uniqvals( (*caltable).type)
     wflexurefile = where(availtypes eq 'Flexure shift Cal File', flexurect)
-    if flexurect eq 0 then self.flexure_mode = 'None' else self.flexure_mode = 'Lookup'
+    if flexurect eq 0 then begin
+       self.flexure_mode = 'None' 
+    endif else begin 
+       if self.sort_by_time eq 0 then self.flexure_mode = 'Lookup' else self.flexure_mode = 'BandShift' ; Set the bandshift method as the default on the summit.
+    endelse
   endif else begin ; if there is no valid caldb at all
     self.flexure_mode = 'None'
   endelse
