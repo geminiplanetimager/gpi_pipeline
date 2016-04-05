@@ -158,7 +158,7 @@ function parsercore::parse_fileset_to_recipes, fileset, recipedir=recipedir, out
           ;;here we have to sequence the drf queue:
           ;; assign to each obstype an order:
           sequenceorder=intarr(nbobstype)
-          sortedsequencetab=['Dark', 'Arc', 'Flat','Object']
+          sortedsequencetab=['Dark', 'Flat', 'Arc', 'Object']
 
           for fc=0,nbobstype-1 do begin
             wm = where(strmatch(sortedsequencetab, uniqsortedobstype[fc]+'*',/fold),mct)
@@ -265,18 +265,6 @@ function parsercore::parse_fileset_to_recipes, fileset, recipedir=recipedir, out
 
 						  endif
                         end
-                        'ARC': begin
-                          if  current.dispersr eq 'WOLLASTON' then begin
-                            templatename='Create Polarized Flat-field'
-                          endif else begin
-                            objelevation = finfo[indfobject[0]].elevatio
-                            if (objelevation lt 91.0) AND (objelevation gt 89.0) then begin
-                              templatename='Wavelength Solution 2D Developer'
-                            endif else begin
-                              templatename='Quick Wavelength Solution'
-                            endelse
-                          endelse
-                        end
                         'FLAT': begin
 
                           fits_data = gpi_load_fits(finfo[indfobject[0]].filename,/nodata,/silent)
@@ -320,6 +308,19 @@ function parsercore::parse_fileset_to_recipes, fileset, recipedir=recipedir, out
                             endelse
                           endelse
                         end
+                        'ARC': begin
+                          if  current.dispersr eq 'WOLLASTON' then begin
+                            templatename='Create Polarized Flat-field'
+                          endif else begin
+                            objelevation = finfo[indfobject[0]].elevatio
+                            if (objelevation lt 91.0) AND (objelevation gt 89.0) then begin
+                              templatename='Wavelength Solution 2D Developer'
+                            endif else begin
+                              templatename='Quick Wavelength Solution'
+                            endelse
+                          endelse
+                        end
+
                         'OBJECT': begin
                           case strupcase(current.dispersr) of
                             'WOLLASTON': begin
