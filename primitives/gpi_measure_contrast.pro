@@ -264,8 +264,9 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
       endelse
 
       plot,[0],[0],ylog=contr_yaxis_type,xrange=xrange,yrange=yrange,/xstyle,/ystyle,$
-        xtitle=xtitle,ytitle=ytitle,/nodata, charsize=1.5,background=cgcolor('white'),color = cgcolor('black'),yticks=yticks,ytickv=ytickv, $
-		title="Contrast for "+dataset.filenames[numfile]
+        xtitle=xtitle,ytitle=ytitle,/nodata, charsize=1.5,background=cgcolor('white'),$
+        color = cgcolor('black'),yticks=yticks,ytickv=ytickv, $
+        title="Contrast for "+dataset.filenames[numfile]
 
       ; load in a color table, while saving the original
       tvlct, user_r, user_g, user_b, /get
