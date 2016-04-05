@@ -214,20 +214,25 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     'bandshift': begin
         referencex = 1025.0
         referencey = 1008.0
-        offsetstable = [[0.909729003906,-0.230499267578],[1.11206054688,21.3256225586],[0.625366210938,-30.5368652344],[0.666259765625,-30.3093261719],[-1.51550292969, 37.090250651]] ;[x,y] offset values for H, J, K1, K2, Y
+        offsetstable=[[-1.0921069159, 1.77147995216],[-0.609225365423, 22.5658628402],[-1.84011404855, -28.2399793352],[-1.26617050171, -28.7445812225],[-0.509966169085, 37.7846505301]]
+        ;offsetstable = [[0.909729003906,-0.230499267578],[1.11206054688,21.3256225586],[0.625366210938,-30.5368652344],[0.666259765625,-30.3093261719],[-1.51550292969, 37.090250651]] ;[x,y] offset values for H, J, K1, K2, Y
         my_filter =  gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=c))
       
         bandxpos = wavcal[140,140,1]
         bandypos = wavcal[140,140,0]
+        ;print, 'K2 wavecal location: '+sigfig(bandxpos,5)+'  '+sigfig(bandypos,5)
+
 
         ;read in the most recent wavecal regardless of band
         c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( 'wavecal', *(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /ignore_band)
+        backbone->Log, 'Shifts calculated using: '+c_file, depth=2
         refwavecal = gpi_readfits(c_File,header=Header,priheader=Priheader)
         ;break
         refoffsetx = refwavecal[140,140,1]
         refoffsety = refwavecal[140,140,0]
-        ref_filter = gpi_get_keyword(Priheader, Header, 'IFSFILT', count=ct)
-        ref_filter = gpi_simplify_keyword_value(ref_filter)
+        ;print, 'H wavecal location: '+sigfig(refoffsetx,5)+'  '+sigfig(refoffsety,5)
+        reference_filter = gpi_get_keyword(Priheader, Header, 'IFSFILT', count=ct)
+        ref_filter = gpi_simplify_keyword_value(reference_filter)
 
         case ref_filter of
            'H': bulkoffsets = offsetstable[*,0]
@@ -245,11 +250,50 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         endcase
         myxoffset = bandxpos - referencex
         myyoffset = bandypos - referencey
-        shiftx = (refoffsetx - bandxpos) + (mybulkoffsets[0] - bulkoffsets[0])
-        shifty = (refoffsety - bandypos) + (mybulkoffsets[1] - bulkoffsets[1])
-        backbone->set_keyword, 'SPOT_DX', shiftx, ' (lenslet PSF X shift)'
-        backbone->set_keyword, 'SPOT_DY', shifty, ' (lenslet PSF Y shift)'
-        
+        bandshiftx = (refoffsetx - bandxpos) + (mybulkoffsets[0] - bulkoffsets[0])
+        bandshifty = (refoffsety - bandypos) + (mybulkoffsets[1] - bulkoffsets[1])
+        ;backbone->set_keyword, 'SPOT_DX', shiftx, ' (lenslet PSF X shift)'
+        ;backbone->set_keyword, 'SPOT_DY', shifty, ' (lenslet PSF Y shift)'
+
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        ;;;;;;;;;;;; Now Including the Lookup Table Flexure ;;;;;;;;;;;;;;
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+        my_elevation =  double(backbone->get_keyword('ELEVATIO', count=ct))
+        ; the above line returns zero if no keyword is found. This is
+        ; acceptable since all data taken without this keyword has an
+        ; elevation of zero!
+
+        calfiletype = 'shifts'
+
+        c_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header( calfiletype, *(dataset.headersphu)[numfile],*(dataset.headersext)[numfile], /ignore_cooldown_cycles)
+	if ( ~ file_test ( string(c_file) ) ) then begin
+		return, error ('error in call ('+strtrim(functionname)+'): calibration file  ' +  strtrim(string(c_file),2) + ' not found.' )
+	endif
+
+	c_file = gpi_expand_path(c_file)
+
+	lookuptable = gpi_readfits(c_File,header=Header)
+
+
+	;;now calculate shifts of the quick wavelength solution
+        wc_elevation = double(gpi_get_keyword(Priheader, Header, 'ELEVATIO', count=ct))
+        backbone->Log,'quick wavecal elevation: '+sigfig(wc_elevation,3),depth=2
+	if ct eq 0  then begin
+		return, error ('error in call ('+strtrim(functionname)+'): Wavelength solution elevation not found.' )
+	endif
+		
+	shifts = gpi_flexure_model(lookuptable, my_elevation, wavecal_elevation=wc_elevation, display=display)
+	tableshiftx = shifts[0]
+	tableshifty = shifts[1]
+                
+        ; COMBINE SHIFTS FROM BANDSHIFT AND LOOKUP TABLE
+        shiftx = bandshiftx+tableshiftx
+        shifty = bandshifty+tableshifty
+	 
+        backbone->set_keyword, 'SPOT_DX', shiftx, ' Applied lenslet PSF X shift for flexure'
+	backbone->set_keyword, 'SPOT_DY', shifty, ' Applied lenslet PSF Y shift for flexure'
+
         
     end
     'lookup': begin
@@ -272,6 +316,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 		;;now calculate shifts of the current wavelength solution
 		wc_elevation= backbone->get_keyword('WVELEV', count=ct)
+                backbone->Log,'wavecal elevation: '+sigfig(wc_elevation,3),depth=2
 		if ct eq 0  then begin
 			return, error ('error in call ('+strtrim(functionname)+'): Wavelength solution elevation not found.' )
 		endif
