@@ -198,8 +198,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     
 
 	; Median data quality frames for image combo... note that there's probably a better way to do this 
-  median_dq=median(dqtab, dim=3)
-  *(dataset.currdq)=median_dq
+	if nfiles gt 1 then begin
+        median_dq=median(dqtab, dim=3)
+        *(dataset.currdq)=median_dq
+	endif else begin
+		message,/info, "Only one frame supplied - leaving DQ frame unchanged..."
+	endelse 
   
 	;----- store the output into the backbone datastruct
 	*(dataset.currframe)=combined_im
