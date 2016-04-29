@@ -89,10 +89,10 @@ obsmode = strlowcase(obsmode)
 occulter= strc(backbone->get_keyword( "OCCULTER", count=ct))
 occulter_band = strsplit(occulter, '_', /extract)
 occulter_band = occulter_band[1]
-`
+
 valid_bands = ['Y', 'J', 'H', 'K1', 'K2']
 valid_occulter_index = where(strmatch(valid_bands, occulter_band, /fold_case) eq 1)
-is_coron = valid_occulter ge 0
+is_coron = valid_occulter_index ge 0
 
 ;if strmatch(obsmode,"*coron*",/fold) then begin
 if is_coron then begin
