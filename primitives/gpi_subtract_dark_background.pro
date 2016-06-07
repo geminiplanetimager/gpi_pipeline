@@ -93,7 +93,7 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 			backbone->set_keyword,'DRPDARK',c_File,ext_num=0
 
 			dark = readfits(c_File, darkexthdr, ext=1)
-			darkdq = readfits(c_File, darkexthdr, ext=2, /silent)
+			darkdq = readfits(c_File, darkdqexthdr, ext=2, /silent)
 			if darkdq[0] eq -1 then message, /info, 'No data quality extension in calibration frame. Assuming no flagged pixels exist.' 
 
 			darktime = sxpar(darkexthdr, 'ITIME')
@@ -109,8 +109,8 @@ no_error_on_missing_calfile = 1 ; don't fail this primitive completely if there 
 			endif else begin
 				backbone->set_keyword,'HISTORY',functionname+": Dark exposure time matches exactly, "+strc(darktime),ext_num=0
 			endelse
-
-			*dataset.currframe -= dark
+                        
+                        *dataset.currframe -= dark
 			if darkdq[0] ne -1 then *dataset.currdq = *dataset.currdq OR darkdq
 		endif else begin
 			backbone->Log, "***WARNING***: No dark file of appropriate time found. Therefore not subtracting any dark."
