@@ -11,9 +11,9 @@
 ;
 ; Other filters may be added later.
 ;
-; INPUTS: raw 2D image file
+; INPUTS: spectral or polarimetric datacube
 ;
-; OUTPUTS: 2D image corrected for dark current
+; OUTPUTS: a spatially filtered version of that datacube
 ;
 ;
 ; PIPELINE COMMENT: Apply spatial filter to datacubes
@@ -28,6 +28,8 @@
 ; HISTORY:
 ; 	Originally by Patrick Ingraham Apr 2, 2014
 ; 	MMB updated to include lowpass and polarimetry.
+; 	2016-06 Perrin: Updated documentation comments to fix an error pointed out
+;		by Christine Chen.
 ;
 ;-
 function gpi_filter_datacube_spatially, DataSet, Modules, Backbone
