@@ -259,7 +259,7 @@ function extract_one_spectrum2, DataSet, Modules, Backbone
         if strmatch(lamp, '*Ar*') then lampe='Ar'
         if strmatch(lamp, '*Xe*') then lampe='Xe'
         
-        readcol, gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'GCAL_ArArcLamp.txt', wavelen, strength
+        readcol, gpi_get_directory('GPI_DRP_CONFIG_DIR')+path_sep()+'GCAL_'+lampe+'ArcLamp.txt', wavelen, strength
         print, wavelen, strength
         ;wavelen=1.e-4*wavelen
         spect = fltarr(n_elements(xlam))      
@@ -282,7 +282,7 @@ print, wg
         
                                 ; if numfile eq 0 then begin
                                 ;if ~file_test(psFilename) then begin
-        openps, band+"_Ar_spectrum.ps"
+        openps, band+"_"+lampe+"_spectrum.ps"
 
         plot, xlam,photcomp, xtitle='Wavelength (um)', ytitle='Intensity',psym=-1, yrange=[0,1.3*max(photcomp)],charsize=1.8,xrange=[1.5,1.8]
         if strmatch(obstype, '*wavecal*') then $
@@ -323,7 +323,7 @@ print, wg
 ;drpPushCallStack, functionName
 
 
-bins=0.001
+bins=0.0002
 ;H-Band
 minp=1.5
 maxp=1.8
@@ -340,26 +340,33 @@ hist1=HISTOGRAM(centergauss, MIN = minp, MAX = maxp, BINSIZE = bins, locations=l
  histcum=total(hist1,/cum)
 indtheoemission = where(strength eq 1.)
 wavtheo=wavelen[indtheoemission]
-;if band eq "H" then wavtheo=1.54226
-if band eq "H" then wavtheo=1.6945
+print, 'wavetheo'
+print, wavtheo
+if band eq "H" then wavtheo=1.54226
+;if band eq "H" then wavtheo=1.6945
 if band eq "Y" then wavtheo=0.965778
 if band eq "J" then wavtheo=1.26268
 if band eq "K1" then wavtheo=2.02677
 void = max(hist1,indmax)
 maxwav=loc[indmax]
-print, 'maxwav'+sigfig(maxwav,6)
-openps,"emissionlineshist"+band+"bandAr.ps"
+print, 'maxwav '+sigfig(maxwav,6)
+
+set_plot,'ps'
+
+
+openps,"emissionlineshist"+band+"band"+lampe+".ps"
 !P.MULTI = [0, 1, 1, 0, 0] 
- plot,loc,hist1,ytitle='# of lenslets', xtitle='Mesured wavelength of emission line [um]',$
-linestyle=0, charsize=1.5 ,xrange=[1.65,1.75],xstyle=1;,ystyle=1,yrange=platescale*[-1.,1.];,yrange=platescale*[min(poscompy_und)-1.,max(poscompy_und)+1.]
+plot,loc,hist1,ytitle='# of lenslets', xtitle='Measured wavelength of emission line [um]',$
+linestyle=0, charsize=1.5 ,xrange=[1.525,1.575],xstyle=1;,ystyle=1,yrange=platescale*[-1.,1.];,yrange=platescale*[min(poscompy_und)-1.,max(poscompy_und)+1.]
 plots, [wavtheo,wavtheo], [0, max(hist1)],linestyle=1, color=cgcolor('blue'), /clip
-;xyouts, 0.98*minp,1.15*max(hist1),"Difference [in detector pixel] between expected and measured emission line="+strc((maxwav-wavtheo)/(0.3/37.),format='(g7.3)'), charsize=1.1
-;plot,loc,histcum/max(histcum)*100.,ytitle='Cumulative # of lenslets [%]', xtitle='Mesured wavelength of the emission line  [um]',$
-;linestyle=0, charsize=1.5
+xyouts, 0.98*minp,1.15*max(hist1),"Difference [in detector pixel] between expected and measured emission line="+strc((maxwav-wavtheo)/(0.3/37.),format='(g7.3)'), charsize=1.1
+;plot,loc,histcum/max(histcum)*100.,ytitle='Cumulative # of lenslets [%]', xtitle='Mesured wavelength of the emission line  [um]',linestyle=0, charsize=1.5
 ;plots, [wavtheo,wavtheo], [0, 100.], color=cgcolor('blue'),linestyle=1;, /clip
 ;legend,['barycentric centroid','mpfit2dpeak'], linestyle=[0,1,2]
 closeps
-!P.MULTI 
+;!P.MULTI 
+
+set_plot,mydevice
 
   return, ok
 

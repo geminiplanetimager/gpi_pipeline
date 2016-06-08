@@ -38,6 +38,10 @@
 ; PIPELINE ARGUMENT: Name="CalibrationFile" Type="wavcal" Default="AUTOMATIC" Desc="Filename of the desired reference wavelength calibration file to be read"
 ; PIPELINE ARGUMENT: Name="Save_model_params" Type="int" Range="[0,1]" Default="0" Desc="1: save model nuisance parameters to disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="AutoOffset" Type="int" Range="[0,1]" Default="0" Desc="Automatically determine x/yoffset values 0;NO, 1;YES"
+; PIPELINE ARGUMENT: Name="Quadratic" Type="int" Range="[0,1]"
+; Default="0" Desc="Fit the lenslets with a quadratic
+; dispersion solution 0;NO, 1;YES"
+;
 ;
 ; PIPELINE ORDER: 1.7
 ;
@@ -74,6 +78,7 @@ calfiletype = 'wavecal'
   	if tag_exist( Modules[thisModuleIndex], "Save_model_image") then Save_model_image=uint(Modules[thisModuleIndex].Save_model_image) else Save_model_image=0
   	if tag_exist( Modules[thisModuleIndex], "Save_model_params") then Save_model_params=uint(Modules[thisModuleIndex].Save_model_params) else Save_model_params=0
  	if tag_exist( Modules[thisModuleIndex], "AutoOffset") then AutoOffset=uint(Modules[thisModuleIndex].AutoOffset) else AutoOffset=0
+ 	if tag_exist( Modules[thisModuleIndex], "Quadratic") then Quadratic=uint(Modules[thisModuleIndex].Quadratic) else Quadratic=0
 
 ;Load in the image. Primitive assumes a dark,flat,badpixel,flexure, and microphonics corrected lamp image. 
 
@@ -100,8 +105,13 @@ calfiletype = 'wavecal'
 	n_valid_lenslets = long(total(finite(refwlcal[*,*,0])))
 
 	newwavecal=dblarr(wlcalsize) 
+        if Quadratic eq 1 then newwcsz = 6
+        if Quadratic eq 0 then newwcsz = 5
+	;sizeres = 9+nmgauss[0]
+        newwavecal=dblarr( (size(refwlcal))[1],(size(refwlcal))[2],newwcsz)+!values.f_nan
+ 
 	
-        print,wlcalsize
+;        print,wlcalsize
 ;	valid = gpi_wavecal_sanity_check(c_File, errmsg=errmsg,/noplot)
 ;	if ~(keyword_set(valid)) then return, error("The chosen starting reference wavecal, "+c_File+", does not pass the qualty check. Cannot be used to generate a new wavecal. Remove it from your calibration DB and rescan before trying again. ")
 
@@ -198,9 +208,13 @@ if keyword_set(parallel) then begin
 	lensletcount = 0 ; count of individual lenslets fit
 
 	; must create these after reading # of emission lines
-	sizeres = 9+nmgauss[0]
-    if ~(keyword_set(modelparams)) then modelparams=fltarr( (size(refwlcal))[1],(size(refwlcal))[2],sizeres )+!values.f_nan
-    if ~(keyword_set(modelbackgrounds)) then modelbackgrounds = fltarr( (size(refwlcal))[1],(size(refwlcal))[2] ) + !values.f_nan
+        if Quadratic eq 1 then sizeres = 10+nmgauss[0]
+        if Quadratic eq 0 then sizeres = 9+nmgauss[0]
+        print, "Size of the modelparams array:"
+        print, sizeres
+	;sizeres = 9+nmgauss[0]
+        if ~(keyword_set(modelparams)) then modelparams=fltarr( (size(refwlcal))[1],(size(refwlcal))[2],sizeres )+!values.f_nan
+        if ~(keyword_set(modelbackgrounds)) then modelbackgrounds = fltarr( (size(refwlcal))[1],(size(refwlcal))[2] ) + !values.f_nan
 
 
 ;;     if AutoOffset EQ 1 then begin
@@ -281,8 +295,9 @@ if keyword_set(parallel) then begin
 	; the comments. 
 
 
+
 	 gpi_split_for, istart,iend, nsplit=numsplit,$ 
-		 varnames=['jstart','jend','refwlcal','image','im_uncert','badpix','newwavecal','psffn','lambda_min',$
+		 varnames=['jstart','jend','refwlcal','image','im_uncert','badpix','newwavecal','psffn','lambda_min','Quadratic',$
 		           'q','wlcalsize','xinterp','yinterp','wla','fluxa','nmgauss','count','lensletmodel','lensletcount',$
                            'modelparams','modelbackgrounds','locations_lambda_min','locations_lambda_max','n_valid_lenslets','boxpad','whichpsf'], $
 		 outvar=['newwavecal','count','lensletcount','lensletmodel','modelparams','modelbackgrounds'], commands=[$
@@ -329,11 +344,19 @@ if keyword_set(parallel) then begin
 	'       continue',$
 	'    endif',$
         '    case whichpsf of',$
+        '        1: begin',$
+        '             case Quadratic of',$
+        '                  0: begin',$
+        '                       res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"nmicrolens",modelimage=modelimage, modelbackground=modelbackground,psffn=psffn)',$
+        '                  end',$
+        '                  1: begin',$
+        '                       res=gpi_wavecal_wrapper_quadratic(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"nmicrolens",modelimage=modelimage, modelbackground=modelbackground,psffn=psffn)',$
+        '                       newwavecal[i,j,5]=res[9]',$
+        '                  end',$
+        '             end',$
+        '        end',$
         '        0: begin',$
         '             res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"ngauss",modelimage=modelimage, modelbackground=modelbackground,psffn=psffn)',$
-        '        end',$
-        '        1: begin',$
-        '             res=gpi_wavecal_wrapper(i,j,refwlcal,lensletarray,badpixmap,wlcalsize,startx,starty,"nmicrolens",modelimage=modelimage, modelbackground=modelbackground,psffn=psffn)',$
         '        end',$
         '    endcase',$
         '    if res[0] EQ !values.f_nan then begin',$
@@ -700,6 +723,7 @@ tdummy = filter_image(tdummy, median=5)
 tdummy[badt] =  !values.f_nan
 
 
+
 ;newwavecal[*,*,0]=ydummy
 ;newwavecal[*,*,1]=xdummy
 ;newwavecal[*,*,3]=wdummy
@@ -707,6 +731,17 @@ tdummy[badt] =  !values.f_nan
 
 
         if keyword_set(Smooth) then begin
+
+           if keyword_set(Quadratic) then begin
+              qdummy = newwavecal[*,*,5]
+              goodq = where(Finite(qdummy), ngoodq, comp=badq, ncomp=nbadq)
+              qdummy = filter_image(qdummy,median=5)
+              qdummy[badq] = !values.f_nan
+              wdummy[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
+              newwavecal[*,*,5]=qdummy
+           endif
+
+
 
            ;minsm=90
            ;maxsm=190

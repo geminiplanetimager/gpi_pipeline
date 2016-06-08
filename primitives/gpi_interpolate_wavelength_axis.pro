@@ -72,6 +72,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	Result=dblarr(nlens,nlens,CommonWavVect[2])+!VALUES.F_NAN
 	Resultdq=bytarr(nlens,nlens,CommonWavVect[2])
 
+        wcsz = size(wavcal)  ; Get the size of the wavecal to
+                                ; determine if we are using a
+                                ; quadratic fit.
+        ;print, cubef3D[140,140,*]
+
 	for xsi=0,nlens-1 do begin
 	  for ysi=0,nlens-1 do begin
 		;pixint=UNIQ(floor(zemdispX(xsi,ysi,*))) ; uniq X pixel values for this lenslet
@@ -86,24 +91,42 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		   ; if (valx[sdpx-1] lt (dim)) then begin
 		  
       ; assign wavelength to each pixel along spectrum
-		   if invct eq 0 then begin		    
-		      lambint=wavcal[xsi,ysi,2]-wavcal[xsi,ysi,3]*(valx-wavcal[xsi,ysi,0])*(1./cos(wavcal[xsi,ysi,4]))
+		   if invct eq 0 then begin
+                      if wcsz[3] gt 5 then begin
+                         acoef = - cos(wavcal[xsi,ysi,4])*wavcal[xsi,ysi,5]
+                         bcoef = - cos(wavcal[xsi,ysi,4])/wavcal[xsi,ysi,3]
+                         ccoef = valx-wavcal[xsi,ysi,0]
+                         lambintpos = wavcal[xsi,ysi,2]+(-bcoef+sqrt(abs(bcoef*bcoef-4*acoef*ccoef)))/(2*acoef)
+                         lambintneg = wavcal[xsi,ysi,2]+(-bcoef-sqrt(abs(bcoef*bcoef-4*acoef*ccoef)))/(2*acoef)
+                                ; instead of doing this manually, find
+                                ; the smaller of the two.
+                         if lambintpos[0] lt lambintneg[0] then lambint = lambintpos else lambint = lambintneg
+    
+
+                      endif else begin
+		         lambint=wavcal[xsi,ysi,2]-wavcal[xsi,ysi,3]*(valx-wavcal[xsi,ysi,0])*(1./cos(wavcal[xsi,ysi,4]))
+                      endelse
 			  endif
 			  
 				;for bandpass normalization to preserve flux
 				bandpassmoy=mean(lambint[1:(size(lambint))[1]-1]-lambint[0:(size(lambint))[1]-2],/DOUBLE)
 				bandpassmoy_interp=mean(lambda[1:(size(lambda))[1]-1]-lambda[0:(size(lambda))[1]-2],/DOUBLE)
 				norma=bandpassmoy_interp/bandpassmoy
-				
+
+                     
 	;        	;;remove extraflux on the edge before interpo
 	;        	indedgemax=where(lambint GT lambda[n_elements(lambda)-1],cc )
 	;        	if cc gt 0 then cubef3D[xsi,ysi,indedgemax]=0.; cubef3D[xsi,ysi,indedgemax[0]-1]  ;0.
 	;        	indedgemin=where(lambint LT lambda[0],cc )
 	;          if cc gt 0 then cubef3D[xsi,ysi,indedgemin]=0.; cubef3D[xsi,ysi,indedgemin[n_elements(indedgemin)-1]+1]  ;0.
 				
-				; interpolate the cube onto a regular grid.
-				Result[xsi,ysi,*] = norma*INTERPOL( cubef3D[xsi,ysi,*], lambint, lambda )
-				
+                                ; interpolate the cube onto a regular
+                                ; grid.
+                                ;if wcsz[3] gt 5 then begin
+                                ;   Result[xsi,ysi,*] = norma*INTERPOL( cubef3D[xsi,ysi,*], lambint, lambda,/LSQUADRATIC)
+                                ;endif else begin
+                                   Result[xsi,ysi,*] = norma*INTERPOL( cubef3D[xsi,ysi,*], lambint, lambda)
+                                ;endelse
 				; combine the dq frames of the two elements in the array lambda that are used to 
 				; interpolate each element in array lambint
 				nf=n_elements(lambint)
@@ -111,12 +134,26 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
           mindq=value_locate(lambint,lambda[j])
           Resultdq[xsi,ysi,j] = cubedq3D[xsi,ysi,mindq] OR cubedq3D[xsi,ysi,(mindq+1)<(nf-1)]
 				endfor
+if (xsi eq 140) and (ysi eq 140) then begin
+			print, 'norma: '
+                        print, norma
+
+                        for k=0,36 do begin
+                           print, Result[xsi,ysi,k]
+                        endfor
+
+                        print, 'lambdaint: '
+                        print, lambint
+                        print, 'lambda: '
+                        print, lambda
+endif 
+				
 				
 		 ;  endif
 	  endif
 	  endfor
 	endfor
-	
+print, 'size of lambint: ',size(lambint), 'size of lambda: ',size(lambda)	
 	;create keywords related to the common wavelength vector:
 	backbone->set_keyword,'NAXIS',3, ext_num=1
 	backbone->set_keyword,'NAXIS1',nlens, ext_num=1
