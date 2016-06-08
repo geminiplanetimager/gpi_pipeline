@@ -11354,7 +11354,7 @@ pro GPItv::plot1wavecalgrid,iplot
       ;		      end
       ;	endcase
 
-      if ((size(wavecal))[3] ne 5) then begin
+      if ((size(wavecal))[3] ne 5) and ((size(wavecal))[3] ne 6) then begin
         self->message, msgtype = 'warning', 'Selected wavecal file has invalid array axes lengths. Can not plot.'
         return
       endif
@@ -11390,10 +11390,17 @@ pro GPItv::plot1wavecalgrid,iplot
             ;				DISP[1,1]=(DISP[1,1]- (*self.state).offset[1] + 0.5) * (*self.state).zoom_factor
             ;
             for kk=0,1 do begin
-              ; find location of endpoints in detector coords
-              distance = (lambdarange[kk]-wavecal[ii,jj,2])/wavecal[ii,jj,3]
-              DISP[0,kk] = distance*sin(wavecal[ii,jj,4])+wavecal[ii,jj,1]
-              DISP[1,kk] = -distance*cos(wavecal[ii,jj,4])+wavecal[ii,jj,0]
+                if ((size(wavecal))[3] eq 5) then begin
+                   ; find location of endpoints in detector coords
+                   distance = (lambdarange[kk]-wavecal[ii,jj,2])/wavecal[ii,jj,3]
+                   DISP[0,kk] = distance*sin(wavecal[ii,jj,4])+wavecal[ii,jj,1]
+                   DISP[1,kk] = -distance*cos(wavecal[ii,jj,4])+wavecal[ii,jj,0]
+                endif else begin
+                   deltalam = (lambdarange[kk]-wavecal[ii,jj,2])
+                   DISP[1,kk] = wavecal[ii,jj,0]-cos(wavecal[ii,jj,4])*(deltalam/wavecal[ii,jj,3]+deltalam^2.*wavecal[ii,jj,5])
+                   DISP[0,kk] = wavecal[ii,jj,1]+sin(wavecal[ii,jj,4])*(deltalam/wavecal[ii,jj,3]+deltalam^2.*wavecal[ii,jj,5])
+                endelse
+
               ; transform to display coords
               DISP[0,kk] = (DISP[0,kk]- (*self.state).offset[0] + 0.5) * (*self.state).zoom_factor
               DISP[1,kk] = (DISP[1,kk]- (*self.state).offset[1] + 0.5) * (*self.state).zoom_factor
