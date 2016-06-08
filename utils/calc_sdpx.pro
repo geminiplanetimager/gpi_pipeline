@@ -52,6 +52,6 @@ function calc_sdpx, wavcal, filter, spectra_lambdamin_y, CommonWavVect, spectra_
 
   ;length of spectrum in pix
   sdpx = max(ceil(ydiff))+1
-
+  
   return, sdpx
 end

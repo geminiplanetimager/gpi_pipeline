@@ -38,7 +38,15 @@ wavcalout=dblarr(szw[1],szw[2],szw[3])
 		d2=(lambdaout-wavcal[*,*,2])/wavcal[*,*,3]  
 		wavcalout[*,*,0]= -d2*cos(wavcal[*,*,4])+wavcal[*,*,0]
 		wavcalout[*,*,1]=  d2*sin(wavcal[*,*,4])+wavcal[*,*,1]
-	end
+        end
+        6: begin ; quadratic relation of dispersion
+                                ; wavecal is Y0, X0, lambda0, w
+                                ; (linear dispersion), tilt, quadratic
+                                ; term
+                 deltalam = lambdaout - wavcal[*,*,2]
+                 wavcalout[*,*,0] = wavcal[*,*,0]-cos(wavcal[*,*,4])*(deltalam/wavcal[*,*,3]+deltalam^2.*wavcal[*,*,5])
+                 wavcalout[*,*,1] = wavcal[*,*,1]+sin(wavcal[*,*,4])*(deltalam/wavcal[*,*,3]+deltalam^2.*wavcal[*,*,5])
+        end
 	7: begin ; quadratic relation of dispersion
 		; wavecal is: Y0, X0, lambda0, C, B, A, tilt
 		;  where the distance is A*lambda^2 + B*lambda *C
@@ -54,7 +62,8 @@ wavcalout=dblarr(szw[1],szw[2],szw[3])
 	if szw[3] eq 7 then  begin
 		wavcalout[*,*,5]=wavcal[*,*,5]
 		wavcalout[*,*,6]=wavcal[*,*,6]
-	endif
+        endif
+        if szw[3] eq 6 then wavcalout[*,*,5] = wavcal[*,*,5]
 
 	return, wavcalout 
 end
