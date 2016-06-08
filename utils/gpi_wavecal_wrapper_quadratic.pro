@@ -1,7 +1,10 @@
 ;+
-; NAME: gpi_wavecal_wrapper
+; NAME: gpi_wavecal_wrapper_quadratic
 ; 
-; Helper function for 2D model-fitting wavecal algorithm
+; Modified version of gpi_wavecal_wrapper to work with a 
+;  quadratic dispersion solution.
+;
+; Helper function for 2D model-fitting wavecal algorithm.
 ;
 ; Function designed to loop over the lenslets and calculate
 ; the 2D wavelength solution. Uses function mpfit2dfun and calls 
@@ -27,14 +30,15 @@
 ;    res[6]:    lenslet PSF Gaussian rotation
 ;    res[7]:	Constant background offset across the image
 ;    res[8]:    Total flux in lenslet array in counts
-;    res[9:n]:	Relative flux ratios of the individual spectral lines
+;    res[9]:    Quadratic Dispersion term.
+;    res[10:n]:	Relative flux ratios of the individual spectral lines
 ;
 ;HISTORY: 
 ;  2013  by Schuyler Wolff
 ;
 ;+
 
-FUNCTION gpi_wavecal_wrapper, xdim,ydim,refwlcal,lensletarray,badpixels,wlcalsize,startx,starty,whichpsf,$
+FUNCTION gpi_wavecal_wrapper_quadratic, xdim,ydim,refwlcal,lensletarray,badpixels,wlcalsize,startx,starty,whichpsf,$
 	image_uncert=image_uncert, debug=debug, psffn=psffn,$
 	modelimage=modelimage, modelmask=modelmask, modelbackground=modelbackground
 
@@ -68,20 +72,22 @@ w=refwlcal[xdim,ydim,3]
 theta=refwlcal[xdim,ydim,4]
 ;lambdao=lambdamin
 
-
+;Artifically generate a value for the quadratic term
+quad = 0.01
 
 ;Initialize the starting parameters to be input to mpfit2dfunc
-startparmssize=9+nflux
+fluxind = 10
+startparmssize=fluxind+nflux
 start_params=dblarr(startparmssize)
 
-parinfo = replicate({relstep:0.D, step:0.D, value:0.D, fixed:0, limited:[0,0],limits:[0.D,0.D]}, 9+nflux[0])
+parinfo = replicate({relstep:0.D, step:0.D, value:0.D, fixed:0, limited:[0,0],limits:[0.D,0.D]}, fluxind+nflux[0])
 
 for z=0,nflux[0]-1 do begin
-    start_params[9+z]=flux[z]
-    parinfo[9+z].limited[0]=1
-    parinfo[9+z].limits[0]=0.2*flux[z] ; was 50%, now 20% 
-    parinfo[9+z].limited[1]=1
-    parinfo[9+z].limits[1]=1.2*flux[z]
+    start_params[fluxind+z]=flux[z]
+    parinfo[fluxind+z].limited[0]=1
+    parinfo[fluxind+z].limits[0]=0.2*flux[z] ; was 50%, now 20% 
+    parinfo[fluxind+z].limited[1]=1
+    parinfo[fluxind+z].limits[1]=1.2*flux[z]
 endfor
 
 start_params[3]=theta
@@ -147,12 +153,22 @@ parinfo[1].limits[1] = oldypos+pixelshifttolerance
 ; dispersion
 k=w
 start_params[2]=k
-deltaw=0.05*w
+deltaw=0.05*w ;changed this from 0.01 
 ;parinfo[2].relstep=0.1
 parinfo[2].limited[0]=1
 parinfo[2].limits[0]=k-deltaw
 parinfo[2].limited[1]=1
 parinfo[2].limits[1]=k+deltaw
+
+; Quadratic Dispersion Term:
+start_params[9] = quad/10.0
+deltaquad = 1000.0*quad
+parinfo[9].relstep=0.0005
+parinfo[9].limited[0]=1
+parinfo[9].limits[0]=quad-deltaquad
+parinfo[9].limited[1]=1
+parinfo[9].limits[1]=quad+deltaquad
+
 
 ; Theta
 deltatheta = 0.1 ; radians, so this is about 2 degrees
@@ -184,10 +200,12 @@ endelse
 parinfo[7].limited[0]=1
 parinfo[7].limits[0]=0.0
 
- 
+
+;for k=wstart,wend,winc do begin
+
     case whichpsf of
        'nmicrolens': begin
-           bestres=mpfit2dfun('nmicrolens',x,y,lensletarray, ERR,weight=weights, start_params,parinfo=parinfo,bestnorm=bestnorm,/quiet, status=status, errmsg =errmsg)
+           bestres=mpfit2dfun('nquadratic',x,y,lensletarray, ERR,weight=weights, start_params,parinfo=parinfo,bestnorm=bestnorm,/quiet, status=status, errmsg =errmsg)
         end
         'ngauss': begin
            bestres=mpfit2dfun('ngauss',x,y,lensletarray, ERR,weight=weights, start_params,parinfo=parinfo,bestnorm=bestnorm,/quiet, status=status, errmsg =errmsg)
@@ -202,7 +220,7 @@ parinfo[7].limits[0]=0.0
 	if arg_present(modelimage) then begin
 		; return the 2D model image resulting from the fit,
 		case whichpsf of
-		  'nmicrolens': modelimage=nmicrolens(x,y,bestres)
+		  'nmicrolens': modelimage=nquadratic(x,y,bestres)
 		  'ngauss': modelimage=ngauss(x,y,bestres)
 		endcase
                 ;print, 'Created modelimage'
@@ -229,6 +247,7 @@ if array_equal(start_params[0:1], bestres[0:1]) then begin
    ;bestres[*]=!values.f_nan
   ; bestres=0
 endif
+
 
 return, bestres
 
