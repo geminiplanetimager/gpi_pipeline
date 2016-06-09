@@ -6,14 +6,14 @@ Release Notes
 
 You may wish to skip ahead to  :ref:`configuring`.  
 
-The next release of the GPI pipeline will probably be in early summer 2016. 
+The next release of the GPI pipeline will probably be in early 2017. 
 
 
 .. _version1.4.0:
 
 Version 1.4.0
 =========================================
-Released 2015 December ??, for Gemini 2015B
+Released 2016 June ?? , for Gemini 2016A
 
 
 * Enhancements/Additions to primitives and recipes:
@@ -38,14 +38,12 @@ Released 2015 December ??, for Gemini 2015B
     wave plate model based on lab data. In some cases we have found this yields
     superior contrast when reducing polarization sequences. Assessments are ongoing;
     interested parties should consult with Max Millar-Blanchaer. (Millar-Blanchaer)
+  * "Basic Polarization Sequence" primitives now subtract mean stellar polarization by default (Millar-Blanchaer)
   * Wavelength Calibration primitive updated for use of microlens PSF model files, if available (Wolff)
   * Improvements to satellite spot measurement primitives for robustness in spec mode (Zalesky) and in pol mode
     (Bruzzone, Wang)
   * Improvements to code for creating satellite spot PSFs, including for polarization mode (Ingraham)
   * Continued work on least-squares cube reconstruction code, including parallelization (Draper)
-
-
-
 
 * GPItv enhancements and bug fixes:
 
@@ -80,6 +78,7 @@ Released 2015 December ??, for Gemini 2015B
     give the file names of the input files. This information was already recorded in the HISTORY keywords and the recipe/DRF 
     record comment block, but the filenames are now more easily extracted from the FILE_n keywords. (Perrin)
   * Data Parser gains ability to distinguish offset sky frames from regular science frames on target (Perrin)
+  * Data Quality extension propagates through pipeline to reduced podc and spdc cubes (Follette)
 
 * Improved documentation and tutorials
 
@@ -96,12 +95,14 @@ Released 2015 December ??, for Gemini 2015B
   * Fix to parallelized wavelength calibration (Wolff)
   * Misc improvements and cleanup to polarization related codes (Millar-Blanchaer)
   * Fix to WCS update and AVPARANG code for the case where GMST midnight passes during an exposure, and another minor
-    bug related to AVPARANG (Nielsen, Follette)
+    bug related to AVPARANG (Nielsen)
   * Bug fix to typo in gpi_basic_adi (Perrin, Hibon)
   * Bug fix to photometric calibration when using a user-provided spectrum; users can now specify wavelength units. (Maire, Hung)
   * Fix mis-labeled spectral bandwidth on the contrast plot; Measure Contrast as used in the quicklook recipe at the
     summit prints the median contrast over the central half of each bandpass, not central 75%.  (Rajan, Perrin)
   * Various minor fixes (Maire, Perrin, Millar-Blanchaer, Hung)
+  * Fix unblocked mode bug to do simple gaussian centroid rather than centering from satellite spots, which are not present in 
+    unblocked mode (Follette)
 
 
 
