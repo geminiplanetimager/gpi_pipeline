@@ -135,17 +135,17 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
           Resultdq[xsi,ysi,j] = cubedq3D[xsi,ysi,mindq] OR cubedq3D[xsi,ysi,(mindq+1)<(nf-1)]
 				endfor
 if (xsi eq 140) and (ysi eq 140) then begin
-			print, 'norma: '
-                        print, norma
+;			print, 'norma: '
+;                        print, norma
 
-                        for k=0,36 do begin
-                           print, Result[xsi,ysi,k]
-                        endfor
+;                        for k=0,36 do begin
+;                           print, Result[xsi,ysi,k]
+;                        endfor
 
-                        print, 'lambdaint: '
-                        print, lambint
-                        print, 'lambda: '
-                        print, lambda
+;                        print, 'lambdaint: '
+;                        print, lambint
+;                        print, 'lambda: '
+;                        print, lambda
 endif 
 				
 				
@@ -153,7 +153,7 @@ endif
 	  endif
 	  endfor
 	endfor
-print, 'size of lambint: ',size(lambint), 'size of lambda: ',size(lambda)	
+;print, 'size of lambint: ',size(lambint), 'size of lambda: ',size(lambda)	
 	;create keywords related to the common wavelength vector:
 	backbone->set_keyword,'NAXIS',3, ext_num=1
 	backbone->set_keyword,'NAXIS1',nlens, ext_num=1
