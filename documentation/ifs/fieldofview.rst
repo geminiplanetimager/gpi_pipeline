@@ -84,7 +84,7 @@ Rotating Files to North Up Yourself
 **Q: I want to derotate cubes to north up myself, rather than relying on the pipeline primitive or gpitv. How do I do this?**
 
 
-It's a little more complicated than just rotating by the parallatic angle (``PAR_ANG`` or ``AVPARANG`` keywords) because there is also the ~ 24.5 degree rotation of the lenslet array in order to prevent overlap of the spectra in spectral mode.  Also don't forget that you have to flip the raw cubes left-to-right if you want to get east counterclockwise of north. 
+It's a little more complicated than just rotating by the parallatic angle (``PAR_ANG`` or ``AVPARANG`` keywords) because there is also the ~ 23.5 degree rotation of the lenslet array in order to prevent overlap of the spectra in spectral mode.  Also don't forget that you have to flip the raw cubes left-to-right if you want to get east counterclockwise of north. 
 
 The relevant code is in two places::
 
@@ -92,6 +92,12 @@ The relevant code is in two places::
  pipeline/utils/gpi_rotate_cube.pro                 This is what does the actual rotation, based on those WCS keywords.
 
 It uses ``AVPARANG`` for the time variable part, then adds in the offsets for the IFS orientation with respect to Gemini.
+
+
+One way to do this is:
+
+1. clock wise rotation by - AVPARANG + 90 - IFSRotAngle 
+2. mirror image with respect to the vertical axis.
 
 Note that the ``PAR_ANG`` keyword gives the instantaneous parallactic angle at
 the time that the Gemini Data System saves state for the FITS header, which

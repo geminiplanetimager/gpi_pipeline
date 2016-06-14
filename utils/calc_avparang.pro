@@ -58,6 +58,15 @@ if (n_elements(HAstart) ne 1) || (n_elements(HAend) ne 1) || (n_elements(dec) ne
 if ~keyword_set(lat) then lat = gpi_get_constant('observatory_lat',default=-30.24075d0) else $
    if n_elements(lat) ne 1 then message,'Latitude must be scalar.'
 
+;;Sometimes because of how this was done we get an HA larger than
+;;24. or smaller than -24.  Correct for this first, then the
+;;test4transit code should take care of the rest.
+
+if HAstart le -12. then HAstart = HAstart + 24.
+if HAstart gt 24. then HAstart = HAstart - 24.
+if HAend le -12. then HAend = HAend + 24.
+if HAend gt 24. then HAend = HAend - 24.
+
 ;;convert everything radians (converting to degrees first as needed)
 h0 =  HAstart * !dpi/180d0
 h1 =  HAend * !dpi/180d0
@@ -74,6 +83,7 @@ endif
 
 test4transit = h1 * h0 ;negative if the two have different signs
 if test4transit lt 0 then begin
+
 ;We crossed transit, so split the integral in two around 0, this
 ;bypasses the underflow problem that causes the step to fail
 

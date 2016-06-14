@@ -23,11 +23,12 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="0" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ;
-; PIPELINE ORDER: 2.445
+; PIPELINE ORDER: 2.51
 ; PIPELINE CATEGORY: Calibration, PolarimetricScience
 ;
 ; HISTORY:
 ; 	2014-01-31 JW: Created. Accurary is subpixel - hopefully.
+; 	2016-03-17 KBF: Added catch for direct mode (unocculted) data
 ;- 
 
 function gpi_measure_star_position_for_polarimetry, DataSet, Modules, Backbone
@@ -82,7 +83,29 @@ lower_threshold = fix(Modules[thisModuleIndex].lower_threshold)
 statuswindow = backbone->getstatusconsole()
 
 ;find location of image center
+obsmode= strc(backbone->get_keyword( "OBSMODE", count=ct))
+obsmode = strlowcase(obsmode)
+
+occulter= strc(backbone->get_keyword( "OCCULTER", count=ct))
+occulter_band = strsplit(occulter, '_', /extract)
+occulter_band = occulter_band[1]
+
+valid_bands = ['Y', 'J', 'H', 'K1', 'K2']
+valid_occulter_index = where(strmatch(valid_bands, occulter_band, /fold_case) eq 1)
+is_coron = valid_occulter_index ge 0
+
+;if strmatch(obsmode,"*coron*",/fold) then begin
+if is_coron then begin
 cent = find_pol_center(cube, x0, y0, search_window, search_window, maskrad=mask_radius, highpass=highpass, pixlowerbound=lower_threshold, statuswindow=statuswindow)
+endif else begin
+  cent = find_pol_center_unocculted(cube, x0, y0)
+endelse
+
+; sanity check values are strickly greater than 0. Oherwise, this is probably a bad center.
+if (cent[0] lt 0) or (cent[1] lt 0) then begin
+	return, error('FAILURE ('+functionName+'): Unable to locate star position for polarimetry')
+endif
+    
 
 ; write calculated center to header
 backbone->set_keyword,"PSFCENTX", cent[0], 'X-Location of PSF center', ext_num=1

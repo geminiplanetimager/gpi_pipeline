@@ -29,6 +29,7 @@ Contents
    tutorial_pol.rst 
    tutorial_your_own_data.rst
    tutorial_spectrophotometry.rst
+   tutorial_polphotometry.rst
    launcher.rst
    status_console.rst
    data_parser.rst

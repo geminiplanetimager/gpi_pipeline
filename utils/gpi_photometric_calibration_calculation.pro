@@ -1,4 +1,4 @@
-function gpi_photometric_calibration_calculation, lambda, pri_header, ext_header, units=units,ref_star_magnitude=star_mag, ref_filter_type=ref_filter_type, ref_SpType=SpType, ref_model_spectrum=ref_model_spectrum, spectrum=spectrum,ref_spectrum=ref_spectrum,  output_spectrum=output_spectrum, no_satellite_correction=no_satellite_correction,logarr=logarr
+function gpi_photometric_calibration_calculation, lambda, pri_header, ext_header, units=units,ref_star_magnitude=star_mag, ref_filter_type=ref_filter_type, ref_SpType=SpType, ref_model_spectrum=ref_model_spectrum, spectrum=spectrum,ref_spectrum=ref_spectrum,  output_spectrum=output_spectrum, no_satellite_correction=no_satellite_correction,logarr=logarr,surface_brightness_units=surface_brightness_units
 ;+
 ; NAME: gpi_photometric_calibration_calculation
 ;
@@ -34,6 +34,7 @@ function gpi_photometric_calibration_calculation, lambda, pri_header, ext_header
 ;
 ; HISTORY:
 ;	2014-01		by Patrick Ingraham
+; 2015-06    JM:added surface brightness units
 ;-
 
 
@@ -56,7 +57,9 @@ if user_supplied_spectrum_flag eq 0 then begin
 		if keyword_set(ref_SpType) eq 0 or user_supplied_magnitude_flag eq 0 then begin
 		
 	; check that the spectral type is defined
+	
 		ref_spType= gpi_get_keyword( pri_header, ext_header,'SPECTYPE',count=dd)
+
 		if dd eq 0 then return, error('FAILURE (gpi_photometric_calibration_calculation): Reference Spectral type (SPECTYPE) is not defined in the header nor keywords')  
 
 		; is it in the header?
@@ -223,7 +226,15 @@ endif ; if ref_model_spectrum eq 0
 	; need to convert it to whatever the user desires
 	  
 unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A','ergs/s/cm^2/Hz']
-
+if Surface_brightness_units eq 1 then begin
+    platescale=gpi_get_constant('ifs_lenslet_scale',default=0.01414)    ;0.01414; GPI plate scale
+    for l=0, N_ELEMENTS(lambda)-1 do conv_surf=1./(platescale^2)
+    surface_brightness='/arcsec^2'
+endif else begin
+  surface_brightness=''
+  conv_surf=1.
+ endelse
+unitslist =unitslist +surface_brightness
  ; let's the user define what will be the final units:
 
 ; this is just a hack for transmission numbers 
@@ -256,6 +267,7 @@ unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm
 				conv_fact*=abs(lambda[1]-lambda[0])*1e4 ;  from ergs/A to ergs
 				conv_fact*=(lambda/(h*c)) ; ergs to photons (or electrons)
 				conv_fact*=gaindetector ; electons to ADU
+
 				
 				; must account for instrument transmission
 				; lets just pretend it is the filter profile and 4%
@@ -327,7 +339,8 @@ unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm
 				
 		    end
       endcase
-
+        
+        conv_fact*=conv_surf ;for surface brightness if asked
 gpi_model_flux*=conv_fact
 
 if keyword_set(spectrum) and keyword_set(ref_spectrum) then begin

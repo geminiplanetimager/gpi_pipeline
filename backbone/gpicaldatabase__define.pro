@@ -195,9 +195,9 @@ PRO gpicaldatabase::write
 	mlen_f = max(strlen(d.filename))+3
 
 	firstline = string("#PATH", "FILENAME", "TYPE", "DISPERSR", "IFSFILT", "APODIZER", "LYOTMASK", "INPORT", "ITIME", "READMODE", "JD", "NFILES",  "DRPVERSION", "ELEVATION", "OTHER", $
-			format="(A-"+strc(mlen_p)+", A-"+strc(mlen_f)+", A-30,  A-10,     A-5     , A-8,         A-8,       A-6,     A-15,    A-15,   A-15, A-7, A-10, A-15, A-10)")
+			format="(A-"+strc(mlen_p)+", A-"+strc(mlen_f)+", A-35,  A-10,     A-5     , A-8,         A-8,       A-6,     A-15,    A-15,   A-15, A-7, A-10, A-15, A-10)")
 	forprint2, textout=calfile_txt, d.path, d.filename,  d.type, d.prism, d.filter, d.apodizer, d.lyot, d.inport, d.itime, d.readoutmode, d.jd, d.nfiles, d.drpversion, d.elevation, d.other, $
-			format="(A-"+strc(mlen_p)+", A-"+strc(mlen_f)+", A-30,  A-10,     A-5     , A-8,         A-8,       A-6,     D-15.5,  D-15.5, A-15, A-7, A-10, D-15.5,  A-10 )", /silent, $
+			format="(A-"+strc(mlen_p)+", A-"+strc(mlen_f)+", A-35,  A-10,     A-5     , A-8,         A-8,       A-6,     D-15.5,  D-15.5, A-15, A-7, A-10, D-15.5,  A-10 )", /silent, $
 			comment=firstline
 	message,/info, " Writing to "+calfile_txt
 
@@ -454,6 +454,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
                     ['wavecal', 'Wavelength Solution Cal File', 'FiltPrism'], $
                     ['wavecal_deep', 'Wavelength Solution Cal File (Deep)', 'FiltPrism'], $
                     ['wavecal_quick', 'Wavelength Solution Cal File (Quick)', 'FiltPrism'], $
+                    ['fpm_position', 'FPM Position', 'FiltPrism'], $
                     ['flat', 'Flat Field', 'FiltPrism'], $
                     ['lensletflat', 'Lenslet Flat Field', 'PrismOnly'], $ ; was filtprism
                                 ;['flat', 'Flat field', 'FiltPrism'], $
@@ -470,11 +471,12 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
                     ['Fluxconv', 'Fluxconv', 'FiltPrism'], $
                     ['telluric', 'Telluric Transmission', 'FiltPrism'], $
                     ['polcal', 'Polarimetry Spots Cal File', 'FiltPrism'], $
+                    ['lsf_polflat', 'Low Spatial Frequency Polarimetry flat field', 'FiltPrism'], $ 
                     ['instpol', 'Instrumental Polarization', 'FiltPrism'], $
                     ['distor', 'Distortion Measurement', 'typeonly'], $
-                    ['background', 'Thermal/Sky Background', 'FiltPrism'], $
+                    ['background', 'Thermal/Sky Background Image', 'FiltPrism'], $
                     ['shifts', 'Flexure shift Cal File', 'typeonly'], $
-                    ['micro', 'Micro Model', 'typeonly'], $
+                    ['micro', 'Micro Model', 'typeonly'], $		; microphonics model
                     ['persis', 'Persistence Parameters', 'typeonly'], $
                     ['background_cube', 'Thermal/Sky Background Cube', 'FiltPrism'], $
                    ['', '', '']]
@@ -641,7 +643,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
            endelse
 	end
 	
-        'FiltOnly': begin
+    'FiltOnly': begin
      	imatches= where( strmatch(calfiles_table.type, types[itype].description+"*",/fold) and $
         ((calfiles_table.filter) eq filter )  ,cc)
      	errdesc = 'with same FILTER'
@@ -670,7 +672,7 @@ function gpicaldatabase::get_best_cal, type, fits_data, date, filter, prism, iti
 	; If we are matching a wavecal, always return the closest in time without
 	; any other considerations. This is because we may be trying to match
 	; multiple wavecals taken during the night to measure the IFS internal flexure.
-	if strlowcase(type) eq 'wavecal' then begin
+	if strlowcase(type) eq 'wavecal' or strlowcase(type) eq 'fpm_position' then begin
                                 ; Choose all wavecals taken within two
                                 ; hours and choose the one with the
                                 ; closes elevation

@@ -20,7 +20,7 @@
 ;    Return parameters:
 ;		count_added : float, number of files actually added.
 ;-
-pro fileset::add_files, filenames, count_added=count_added
+pro fileset::add_files, filenames, count_added=count_added, silent=silent
 
 
 	; Check for duplicate
@@ -47,8 +47,9 @@ pro fileset::add_files, filenames, count_added=count_added
 	; avoid blanks (including any duplicates or nonexistent files we just found)
     w = where(filenames ne '', wcount) 
     if wcount eq 0 then begin 
-		void=dialog_message('No new files found. Please add new files that were not already in the list.' , $
-			title='No new files found', dialog_parent=self.gui_parent_wid )
+		if ~(keyword_set(silent)) then $
+			void=dialog_message('No new files found. Please add new files that were not already in the list.' , $
+				title='No new files found', dialog_parent=self.gui_parent_wid )
 		count_added = 0
 		return
 	endif
@@ -80,7 +81,7 @@ end
 ; Add one or more files to the fileset, based on a wildcard spec (regular
 ; expression)
 ;-
-pro fileset::add_files_from_wildcard, wildcard_spec, count_added=count_added
+pro fileset::add_files_from_wildcard, wildcard_spec, count_added=count_added, silent=silent
 
 	
 	if strc(wildcard_spec) eq '' then begin
@@ -95,7 +96,7 @@ pro fileset::add_files_from_wildcard, wildcard_spec, count_added=count_added
 
 	if self.debug then for ff=0,wcount-1 do self->Log, 'Found file: '+result[ff]
 
-	self->add_files, result, count_added=count_added
+	self->add_files, result, count_added=count_added, silent=silent
 
 end
 

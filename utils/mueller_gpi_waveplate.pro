@@ -18,7 +18,7 @@
 ;-
 
 
-function mueller_gpi_waveplate, ifsfilt=ifsfilt, angle=angle, degrees=degrees
+function mueller_gpi_waveplate, ifsfilt=ifsfilt, angle=angle, degrees=degrees, perfect=perfect
 
 	if n_elements(angle) eq 0 then angle=0.0
 	if keyword_set(degrees) then angle = angle*!dtor ; convert to radians
@@ -34,6 +34,11 @@ function mueller_gpi_waveplate, ifsfilt=ifsfilt, angle=angle, degrees=degrees
 			message,"Invalid/unknown value for IFSFILT: "+ifsfilt
 		end
       endcase
+     
+   if keyword_set(perfect) then begin
+    M=[[1,0,0,0],[0,1,0,0],[0,0,-1,0],[0,0,0,-1]]
+    print,"Using a perfect HWP"
+   endif
  
   ; Rotate the mueller matrix to the requested position angle.
   mueller = mueller_rot(-angle)##M##mueller_rot(angle) 

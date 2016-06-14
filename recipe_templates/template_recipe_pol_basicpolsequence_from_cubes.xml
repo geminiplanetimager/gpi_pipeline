@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<DRF ReductionType="PolarimetricScience" name="Basic Polarization Sequence (From podc cubes)" ShortName="polsequencefromcubes">
-<dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
-   <fits filename=""/>
+<recipe Name="Basic Polarization Sequence (From podc cubes)" ReductionType="PolarimetricScience" ShortName="polsequencefromcubes">
+<!-- recipe written by max on  at 2015-12-21T05:50:44 UTC -->
+<!-- created with the Recipe Editor GUI -->
+<dataset InputDir="${GPI_REDUCED_DATA_DIR}131212" OutputDir="${GPI_REDUCED_DATA_DIR}131212">
 </dataset>
-<module name="Accumulate Images" Method="OnDisk" />
-<module name="Clean Polarization Pairs via Double Difference" fix_badpix="1" Save_diffbias="0" gpitv_diffbias="10" Save="1" debug="0" />
-<module name="Rotate North Up" Rot_Method="CUBIC" Center_Method="HEADERS" centerx="140" centery="140" Save="0" gpitv="0" />
-<module name="Combine Polarization Sequence" HWPoffset="-29.14" IncludeSystemMueller="0" IncludeSkyRotation="1" Save="1" gpitv="10" />
-</DRF>
+<primitive name="Accumulate Images" Method="OnDisk" />
+<primitive name="Clean Polarization Pairs via Double Difference" fix_badpix="1" Save_diffbias="0" gpitv_diffbias="10" Save="1" debug="0" />
+<primitive name="Subtract Mean Stellar Polarization" Method="Auto" InnerRadius="-1" OuterRadius="20" Fraction="1" WriteToFile="0" Filename="Stellar_Pol_Stokes.txt" Save="1" gpitv="2" />
+<primitive name="Rotate North Up" Rot_Method="CUBIC" Center_Method="HEADERS" centerx="140" centery="140" pivot="0" Save="0" gpitv="0" />
+<primitive name="Combine Polarization Sequence" HWPoffset="-29.14" IncludeSystemMueller="0" IncludeSkyRotation="1" PerfectHWP="0" Save="1" gpitv="10" />
+</recipe>
+

@@ -20,7 +20,7 @@
 ;	OR
 ;	2b (OPTIONAL): a 2D spectrum (in ADU per COADD, where the COADD corresponds to input #1) - this should be entered using the calib_spectrum keyword. The file format must be three columns, the first being wavelength in microns, the second being flux in ADU per COADD, and third being the uncertainty. THis is useful to calibrate a cube if the calibration uses a different star as a calibrator.
 
-; The spectral type of the star and it's magnitude must be defined in the SPECTYPE and HMAG header keywords. These should be set by default but sometimes are not (or are not set correctly). One can modify them using the <Add Gemini and GPI keywords> primitive. Note that this primitive is only visible when <Show all primitives> is selected from the <Options> dropdown menu in the recipe editor. Based on these values, the primitive searches for an appropropriate pickles model for the spectral type and uses this to perform the calibration. If the pickles model is not appropriate, or you wish to provide a different model, this model can be input using the 'calib_model_spectrum' keyword.  The file format must be three columns, the first being wavelength in microns, the second being the flux in erg/s/cm2/A, the third being the uncertainty. 
+; The spectral type of the star and it's magnitude must be defined in the SPECTYPE and HMAG header keywords. These should be set by default but sometimes are not (or are not set correctly). One can modify them using the <Add Gemini and GPI keywords> primitive. Note that this primitive is only visible when <Show all primitives> is selected from the <Options> dropdown menu in the recipe editor. Based on these values, the primitive searches for an appropropriate pickles model for the spectral type and uses this to perform the calibration. If the pickles model is not appropriate, or you wish to provide a different model, this model can be input using the 'calib_model_spectrum' keyword.  The file format must be three columns, the first being wavelength in Angstrom, the second being the flux in erg/s/cm2/A, the third being the uncertainty. 
 ;
 ;
 ; Note that the calib_cube_name,calib_spectrum, and calib_model_spectrum require the entire directory+filename unless they are in the output directory
@@ -40,7 +40,8 @@
 ; PIPELINE ARGUMENT: Name="calib_model_spectrum" Type="string" Default="" Desc="Leave blank to use satellites of this cube, or enter a file to use with the spectrum for the satellites"
 ; PIPELINE ARGUMENT: Name="calib_spectrum" Type="string" Default="" Desc="Leave blank to use satellites of this cube, or enter calibrated spectrum file"
 ; PIPELINE ARGUMENT: Name="FinalUnits" Type="int" Range="[0,10]" Default="5" Desc="0: ADU per coadd, 1: ADU/s, 2: ph/s/nm/m^2, 3: Jy, 4: 'W/m^2/um, 5: ergs/s/cm^2/A, 6: ergs/s/cm^2/Hz'"
-
+; PIPELINE ARGUMENT: Name="Surface_brightness_units" Type="int" Range="[0,1]" Default="0" Desc="0:absolute flux units, 1:Surface brighness units (your final units will be per arcsec^2)"
+; 
 ; PIPELINE ORDER: 2.51
 ; PIPELINE CATEGORY: SpectralScience
 ;
@@ -50,6 +51,8 @@
 ;   2012-10-17 MP: Removed deprecated suffix keyword. needs major cleanup!
 ;   2013-08-07 ds: idl2 compiler compatible 
 ;	2014-01-07 PI: Created new gpi_calibrate_photometric_flux - big overhaul from the original apply_photometric_calibration 	
+;  2015-06 JM: added surface brightness units
+;  2015-07 JM: Absolute photometry using the user model spectrum has been fixed (it had a 4 orders of magnitude offset, thanks to Lie-Wei for reporting this bug!). Now the user has to provide wavelength in Angstrom rather than in microns since the code uses Angstrom.
 ;-
 
 function gpi_calibrate_photometric_flux, DataSet, Modules, Backbone
@@ -69,6 +72,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	if tag_exist( Modules[thisModuleIndex], "outer_sky_radius") then outer_sky_radius=float(Modules[thisModuleIndex].outer_sky_radius) else outer_sky_radius=15
 	if tag_exist( Modules[thisModuleIndex], "c_ap_scaling") then c_ap_scaling=float(Modules[thisModuleIndex].c_ap_scaling) else c_ap_scaling=1
 	if tag_exist( Modules[thisModuleIndex], "FinalUnits") then FinalUnits=long(Modules[thisModuleIndex].FinalUnits) else FinalUnits=5
+	if tag_exist( Modules[thisModuleIndex], "Surface_brightness_units") then Surface_brightness_units=long(Modules[thisModuleIndex].Surface_brightness_units) else Surface_brightness_units=0
 	if tag_exist( Modules[thisModuleIndex], "gpitv") then gpitv=long(Modules[thisModuleIndex].gpitv) else gpitv=5
 	if tag_exist( Modules[thisModuleIndex], "save") then save=long(Modules[thisModuleIndex].save) else save=0
 
@@ -476,9 +480,9 @@ endif
 	;endif
 
 ; should actually put in the data from the calibration cube!
-; aso have to pass a variable with the calib_model_spectrum
+; also have to pass a variable with the calib_model_spectrum
 
-converted_model_spectrum = gpi_photometric_calibration_calculation(lambda,*(dataset.headersPHU[numfile]),*(dataset.headersExt[numfile]),units=FinalUnits,ref_model_spectrum=calib_model_spectrum,ref_star_magnitude=star_mag, ref_filter_type=ref_filter_type, ref_SpType=SpType,logarr=logarr)
+converted_model_spectrum = gpi_photometric_calibration_calculation(lambda,*(dataset.headersPHU[numfile]),*(dataset.headersExt[numfile]),units=FinalUnits,ref_model_spectrum=calib_model_spectrum,ref_star_magnitude=star_mag, ref_filter_type=ref_filter_type, ref_SpType=SpType,logarr=logarr,surface_brightness_units=surface_brightness_units)
 ; now print out the log - this is due to some bug that causes bus errors/segementation faults using the message,/info program
 for zz=0,N_ELEMENTS(logarr)-1 do backbone->Log,logarr[zz] 
 
@@ -502,8 +506,20 @@ endif ; if keyword_set(calib_cube_name)
 
 
 
+
+ 
 ; now we should write the cube
 unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A','ergs/s/cm^2/Hz']
+ if Surface_brightness_units eq 1 then begin
+    platescale=0.01414; GPI plate scale
+    for l=0, N_ELEMENTS(lambda)-1 do conv_surf=1./(platescale^2)
+    surface_brightness='/arcsec^2'
+endif else begin
+  surface_brightness=''
+  conv_surf=1.
+ endelse
+unitslist =unitslist +surface_brightness
+
   	if keyword_set(calib_spectrum) then begin
 			backbone->set_keyword,'HISTORY',functionname+ 'WARNING- this has not been thoroughly tested and is extremely dangerous to use. Systematics can be easily introduced!'
 			backbone->set_keyword, 'CUNIT', "User_specified", "Data units", ext_num=1
@@ -545,6 +561,7 @@ unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm
 
 		endelse
 
+ 
  	; must write calibration percent error (sat flux and sat error) in the header for proper error handling in spectral extraction
 		for l=0, N_ELEMENTS(lambda)-1 do backbone->set_keyword, 'FSCALE'+strc(l), conv_fact[l],"scale to convert counts to "+strc(unitslist[FinalUnits]), ext_num=1
 		for l=0, N_ELEMENTS(lambda)-1 do backbone->set_keyword, 'CERR_'+strc(l), cal_percent_err[l],"Cal percent error for slice "+strc(l), ext_num=1

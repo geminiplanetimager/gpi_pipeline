@@ -18,22 +18,24 @@ Pipeline architecture design, initial algorithms development, core structure, GU
 **Patrick Ingraham** developed many primitives, led major aspects of IFS calibration and testing, and extensively contributed to analyses and documentation.
 **Dmitry Savransky** made major contributions to pipeline primitives, infrastructure, and GPItv.
 
-
-**Zack Draper** developed improved datacube extraction routines and tools for fitting flexure using microlens PSFs.
+**Sebastian Bruzzone** developed methods for satellite spot measurements in polarization mode.
+**Zack Draper** developed improved datacube extraction routines and tools for fitting flexure using microlens PSFs, and an alternate bad pixel fitting code.
 **Mike Fitzgerald** contributed improvements to gpitv and polarimetric extraction, and to distortion correction. 
-**Kate Follette** contributed fixes and improvements to several primitives. 
-**Li-Wei Hung** contributed improvements to polarization related primitives.
+**Kate Follette** contributed fixes and improvements to several primitives, and overall assisted with pipeline maintenance and releases. 
+**Alexandra Greenbaum** improved recipes for nonredundant aperture masking with GPI, and also contributed to this documentation.
+**Li-Wei Hung** contributed improvements to polarization related primitives, particularly photometric calibration in pol mode, and measurement of FPM position.
+**Doug Long** made some improvements to interpixel capacitance (IPC) correction code. 
 **Christian Marois** contributed to improving PSF subtraction algorithms and contrast measurement code. 
 **Max Millar-Blanchaer** contributed extensively to polarization mode primitives and GPItv polarization support, along with calibration of polarimetric performance. 
 **Eric Nielsen** improved parallactic angle calculations, updated documentation, and contributed improvements to gpitv. 
-**Abhijith Rajan** found and fixed a few bugs.
+**Abhijith Rajan** found and fixed several bugs.
 **Jean-Baptiste "JB" Ruffio** vanquished many bugs, enhanced the destriping and microphonics removal primitives, and wrote portions of the documentation.
 **Naru Sarakuni** extensively supported integration and test, and contributed improvements to GPItv.
 **Jason Wang** contributed to satellite spot fitting, improved the installation system, and contributed improvements to GPItv.
 **Schuyler Wolff** developed and tested the PSF-fitting wavelength calibration algorithm, improved the Data Parser, made other pipeline improvements, and contributed significantly to this documentation.
+**Joe Zalesky** contributed improvements to sat spot measurement algorithms.
 
 **Jeff Chilcote** provided guidance on detector operations and calibrations. 
-**Alexandra Greenbaum** is leading development of nonredundant aperture masking interferometry algorithms applied to GPI, and also contributed to this documentation.
 **Tyler Barker** implemented the KLIP algorithm, under guidance from Dmitry.
 **Steven Beckwith** analyzed detector testing data to assess optimal readout modes. 
 **Quinn Konopacky** developed the distortion correction primitive along with Jerome and Mike.
@@ -43,7 +45,7 @@ Pipeline architecture design, initial algorithms development, core structure, GU
 Some utility functions used in the pipeline are by **Mathilde Bealieau**, **David Lafreniere**, **Jean-Francois Lavigne**, and **Lisa Poyneer**.
 
 
-Contributions to data analyses and public data releases have been made by many additional memebrs of the GPI Data Analysis team, including **Rob de Rosa**,  **Jennifer Patience**, **Sandrine Thomas** and **Kim Ward-Duong**.
+Contributions to data analyses and public data releases have been made by many additional members of the GPI Data Analysis team, including **Rob de Rosa**,  **Jennifer Patience**, **Sandrine Thomas** and **Kim Ward-Duong**.
 
 
 

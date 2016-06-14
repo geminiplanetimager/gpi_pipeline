@@ -240,7 +240,7 @@ if keyword_set(wait_interval) then wait, wait_interval
 
 ; you have to burn your idl bridges
         for i=0, nsplit-1 do begin
-            obj_destroy, obridge[i]
+            obj_destroy, obridge[nsplit-1-i]
         endfor
     endif else begin            ;debug mode
         splog, 'Entering Debug Mode testing thread ', debug

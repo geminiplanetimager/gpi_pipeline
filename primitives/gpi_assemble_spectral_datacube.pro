@@ -29,6 +29,7 @@
 ;   2013-07-17 MDP: Rename for consistency
 ;   2013-08-06 MDP: Documentation update, code cleanup to relabel X and Y properly
 ;   2013-11-30 MDP: Clear DQ and Uncert pointers
+;   2015-02-17 KBF: Added DQ propagation
 ;-
 function gpi_assemble_spectral_datacube, DataSet, Modules, Backbone
   primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -65,13 +66,15 @@ function gpi_assemble_spectral_datacube, DataSet, Modules, Backbone
   tilt=wavcal[*,*,4]
 
   cubef3D=dblarr(nlens,nlens,sdpx) ;create the datacube
+  cubedq3D=bytarr(nlens,nlens,sdpx) 
 
   if keyword_set(debug) then mask = det*0 ; create a mask of which pixels were used in the extraction.
 
   for i=0,sdpx-1 do begin       ; iterate over length of longest spectrum in pixels     
      ;;through spaxels
      cubef=dblarr(nlens,nlens) 
-
+     cubedq=bytarr(nlens,nlens) 
+     
      ;;get the locations on the image where intensities will be extracted:
      ;; y3 is a float and the reference is to the center of the pixel. 
      ;; It means for instance that -0.5<y<0.5 refers to pixel number 0 and 1.5<y<2.5 refers to pixel number 2.
@@ -82,22 +85,29 @@ function gpi_assemble_spectral_datacube, DataSet, Modules, Backbone
      
      ;;extract intensities on a 3x1 box:
      cubef=det[X3,Y3]+det[X3+1,Y3]+det[X3-1,Y3]
-
+     cubedq=(*dataset.currdq)[X3,Y3] OR (*dataset.currdq)[X3+1,Y3] OR (*dataset.currdq)[X3-1,Y3]
+     
 	 if keyword_set(debug) then begin
 		 mask[X3-1, Y3] = 1 
 		 mask[X3, Y3] = 1 
 		 mask[X3+1, Y3] = 1 
-	endif
+   endif
      
      ;;declare as NaN mlens not on the detector (or on the reference pixel area, i.e. 4 pixels on each side):
      bordy=where(~finite(y3) OR (Round(y3) LT 4.0) OR (Round(y3) GT 2043.0),cc)
-     if (cc ne 0) then cubef[bordy]=!VALUES.F_NAN
+     if (cc ne 0) then begin
+      cubef[bordy]=!VALUES.F_NAN
+      cubedq[bordy]=!VALUES.F_NAN 
+     endif
      ;; we expand the border region by 2 pixels in X, so that we flag as NaN
      ;; any 3x1 pixel box that has at least one pixel off the edge...
      bordx=where(~finite(x3) OR (x3 LT 6.0) OR (x3 GT 2041.0),cc)
-     if (cc ne 0) then cubef[bordx]=!VALUES.F_NAN
-     
+     if (cc ne 0) then begin
+      cubef[bordx]=!VALUES.F_NAN
+      cubedq[bordx]=!VALUES.F_NAN
+     endif    
      cubef3D[*,*,i]=cubef
+     cubedq3d[*,*,i]=cubedq
   endfor
 
 
@@ -110,7 +120,7 @@ function gpi_assemble_spectral_datacube, DataSet, Modules, Backbone
 	suffix='-rawspdc'
 	;; put the datacube in the dataset.currframe output structure:
 	*dataset.currframe=cubef3D
-	ptr_free, dataset.currDQ  ; right now we're not creating a DQ cube
+  *dataset.currdq=cubedq3D	
 	ptr_free, dataset.currUncert  ; right now we're not creating an uncert cube
 
 

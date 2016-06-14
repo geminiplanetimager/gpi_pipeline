@@ -56,6 +56,13 @@ As mentioned previously, the star:satellite flux ratio has been observed to vary
 
 Data taken with the atmospheric dispersion corrector (ADC) out suffers from atmospheric differential refraction (ADR) effects. The ADR effect smears out the star/companions over ~1 pixel (dependening on zenith angle). In spectral mode, the optimal way to account for it currently is to measure the star position in each individual frame using the satellite spots. In polarimetry mode, there is currently no way of correcting for ADR. All early science data should have been taken with the ADC, therefore leftover ADR effects should be small. However, GPI team members working with early commissioning data should account for ADR effects.
 
+
+.. warning::
+        Note that the DRP measures satellite spots using IDL's array indexing convention, such that the first pixel is (0,0) and NOT (1,1,). 
+        This is different from the convention adopted by FITS files, but we stick with the IDL convention anyway when writing the DRP coordinates
+        to the FITS headers. If you want to use these coordinates in some other software, be sure that you are aware of the appropriate indexing convention. 
+        
+
 Relevant GPI team members
 ------------------------------------
 Patrick Ingraham, Jason Wang, Dmitry Savransky

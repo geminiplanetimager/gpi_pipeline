@@ -131,9 +131,11 @@ pro automaticreducer::run
   ; if running at the observatory, be ready to automatically advance the file
   ; specification when the date changes.
   if keyword_set(gpi_get_setting('at_gemini', default=0,/silent)) then if gpi_datestr(/current) ne self.current_datestr then begin
+	self->run_daily_housekeeping ; do this before adjusting the filespec in the next line.
+
     self->set_default_filespec
     if widget_info(self.wildcard_id,/valid_id) then widget_control, self.wildcard_id, set_value=new_wildcard
-
+	self.current_datestr = gpi_datestr(/current)
   endif
 
 end
@@ -162,8 +164,8 @@ pro automaticreducer::handle_new_files, new_filenames ;, nowait=nowait
 
     finfo = file_info(new_filenames[i])
     ; check the file size against the expected:
-    ;     size of regular science files   size of engineering mode files      size of files w/out DQ extension
-    if (finfo.size ne 21003840) and (finfo.size ne 21000960) and (finfo.size ne 16790400) then begin
+    ;     size of recent science files  size of older science files   size of engineering mode files      size of files w/out DQ extension
+    if (finfo.size ne 21006720) and (finfo.size ne 21003840) and (finfo.size ne 21000960) and (finfo.size ne 16790400) then begin
       message,/info, "File size is not an expected value: "+strc(finfo.size)+" bytes. Waiting 0.5 s for file write to complete?"
       wait, 0.5
     endif
@@ -196,9 +198,20 @@ pro automaticreducer::reduce_one, filenames, wait=wait
     info = gpi_load_fits(filenames[0], /nodata)
     prism = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'DISPERSR', count=dispct) ))
     obsclass = strupcase( gpi_get_keyword( *info.pri_header, *info.ext_header, 'OBSCLASS', count=obsclassct) )
-    obstype =  strupcase( gpi_get_keyword( *info.pri_header, *info.ext_header, 'OBSTYPE',  count=obsclassct) ) ; for dark
+    ifsfilt = strupcase( gpi_get_keyword( *info.pri_header, *info.ext_header, 'IFSFILT' ) )
+    itime = strupcase( gpi_get_keyword( *info.pri_header, *info.ext_header, 'ITIME' ) )
+    obstype =  strupcase( gpi_get_keyword( *info.pri_header, *info.ext_header, 'OBSTYPE') ) ; for dark
     gcallamp = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'GCALLAMP', count=gcallampct ,/silent)))
     gcalfilt = strupcase(gpi_simplify_keyword_value(gpi_get_keyword( *info.pri_header, *info.ext_header, 'GCALFILT', count=gcalfiltct ,/silent)))
+
+	; check for offsets taht would indicate a sky
+	qoffset = gpi_get_keyword( *info.pri_header, *info.ext_header, 'QOFFSET')
+	poffset = gpi_get_keyword( *info.pri_header, *info.ext_header, 'POFFSET')
+	xoffset = gpi_get_keyword( *info.pri_header, *info.ext_header, 'XOFFSET')
+	yoffset = gpi_get_keyword( *info.pri_header, *info.ext_header, 'YOFFSET')
+	is_sky = (abs(qoffset) gt 1) or (abs(poffset) gt 1) or (abs(xoffset) gt 1) or (abs(yoffset) gt 1)
+
+
 
     if (dispct eq 0) or (strc(prism) eq '') then begin
       message,/info, 'Missing or blank DISPERSR keyword! '
@@ -224,14 +237,28 @@ pro automaticreducer::reduce_one, filenames, wait=wait
       return ; this is a "cleanup" frame for persistence decay. There is no need to make a datacube
     endif
 
+	do_second_recipe = 0
     case prism of
       'PRISM': begin
         if obstype eq 'ARC' then begin
+		  if ((ifsfilt ne 'K1') and (ifsfilt ne 'K2') and (itime gt 295) and (itime lt 305)) then begin
+			self->Log, 'Skipping long K band arc - use Data Parser instead for K arcs'
+			return ; the quicklook approach on single frames is inadequate for K band.
+		  endif
+
           templatename='Quick Wavelength Solution'
           should_apply_flexure_update=0
-        endif else begin
+		  should_apply_skysub_update=0
+		  do_second_recipe = 1
+		  second_templatename = 'Make Cube then Measure FPM Position'
+        endif else if is_sky then begin
+		  templatename = 'Quick Thermal/Sky Background'
+          should_apply_flexure_update=0
+		  should_apply_skysub_update=0
+		endif else begin
           templatename='Quicklook Automatic Datacube Extraction'
           should_apply_flexure_update=1
+		  should_apply_skysub_update=1
         endelse
       end
       'WOLLASTON': begin
@@ -240,11 +267,13 @@ pro automaticreducer::reduce_one, filenames, wait=wait
         endif else begin
           templatename='Quicklook Automatic Polarimetry Extraction'
           should_apply_flexure_update=1
+		  should_apply_skysub_update=0
         endelse
       end
       'OPEN': begin
         templatename='Quicklook Automatic Undispersed Extraction'
         should_apply_flexure_update=1
+		should_apply_skysub_update=0
       end
     endcase
   endif else begin
@@ -256,6 +285,39 @@ pro automaticreducer::reduce_one, filenames, wait=wait
 
 
   self->Log, "Using template: "+templatename
+
+  self->apply_template, templatename, filenames, prism=prism, $
+	  should_apply_flexure_update=should_apply_flexure_update, $
+	  should_apply_skysub_update=should_apply_skysub_update
+
+  ; There are some special cases where we want to run a second recipe after the first.
+  ; Handle those here. 
+  ; This just runs a basic recipe, without applying any of the options for tem
+	if keyword_set(do_second_recipe) then begin
+	  self->Log, "Using 2nd template: "+second_templatename
+
+	  ;wait, 2  ; ensure the first recipe is picked up by the pipeline before we write the
+			   ; second one. (This step may not be necessary?)
+	  self->apply_template, second_templatename, filenames, prism=prism, $
+		  should_apply_flexure_update=should_apply_flexure_update, $
+		  should_apply_skysub_update=should_apply_skysub_update, $
+		  num_recipe=2
+	endif
+
+
+end
+
+;-------------------------------------------------------------------
+PRO automaticreducer::apply_template, templatename, filenames, $
+	prism=prism, $
+	should_apply_flexure_update=should_apply_flexure_update, $
+	should_apply_skysub_update=should_apply_skysub_update, num_recipe=num_recipe
+
+
+	if ~(keyword_set(should_apply_flexure_update)) then should_apply_flexure_update = 0
+	if ~(keyword_set(should_apply_skysub_update)) then should_apply_skysub_update = 0
+
+
   templatefile= self->lookup_template_filename(templatename) ; gpi_get_directory('GPI_DRP_TEMPLATES_DIR')+path_sep()+templatename
   if templatefile eq '' then return ; couldn't find requested template therefore do nothing.
 
@@ -263,6 +325,8 @@ pro automaticreducer::reduce_one, filenames, wait=wait
   drf->set_datafiles, filenames
   drf->set_outputdir,'AUTOMATIC' ;/autodir
 
+
+  ; Update recipe options for flexure, based on currently-selected options
   if keyword_set(should_apply_flexure_update) then begin
 
     if prism eq 'WOLLASTON' then begin
@@ -287,15 +351,84 @@ pro automaticreducer::reduce_one, filenames, wait=wait
     endelse
   endif
 
+  ; Update recipe options for sky subtraction, based on currently-selected options
+  if keyword_set(should_apply_skysub_update) then begin
+	; 2d sky sub? 
+    wupdate_images =  drf->find_module_by_name('Subtract Thermal/Sky Background if K band', count_images)
+    if count_images ne 1 then begin
+      message,/info, "Can't find sky subtraction primitive; therefore can't apply settings. Continuing anyway."
+    endif else begin
+	  skip_images = self.skysub_mode ne 'Images'
+      drf->set_module_args, wupdate_images, skip=strc(fix(skip_images))
+    endelse
+
+	; 3d sky sub? 
+    wupdate_cubes =  drf->find_module_by_name('Subtract Thermal/Sky Background Cube if K band', count_cubes)
+    if count_cubes ne 1 then begin
+      message,/info, "Can't find sky subtraction primitive; therefore can't apply settings. Continuing anyway."
+    endif else begin
+	  skip_cubes = self.skysub_mode ne 'Cubes'
+      drf->set_module_args, wupdate_cubes, skip=strc(fix(skip_cubes))
+    endelse
+
+  endif
 
 
   ; generate a nice descriptive filename
   first_file_basename = (strsplit(file_basename(filenames[0]),'.',/extract))[0]
 
-  drf->save, 'auto_'+first_file_basename+'_'+drf->get_datestr()+'.waiting.xml',/autodir, comment='Created by the Autoreducer GUI'
+  savename = 'auto_'+first_file_basename+'_'+drf->get_datestr()
+  if keyword_set(num_recipe) then if num_recipe gt 1 then savename+= "_recipe"+strc(num_recipe)
+  drf->save, savename+'.waiting.xml',/autodir, comment='Created by the Autoreducer GUI'
   drf->queue, comment='Created by the Autoreducer GUI'
 
   obj_destroy, drf
+
+
+end
+
+;-------------------------------------------------------------------
+PRO automaticreducer::run_daily_housekeeping, datestr=datestr
+  ; Various tasks for CPO summit autoreducer maintenance. 
+  
+  if ~(keyword_set(datestr)) then datestr= self.current_datestr
+
+  self->Log, "**** Running autoreducer daily housekeeping tasks for "+datestr+" ***"
+
+  ; Figure out all files from the last 24 hours. Send them to the data
+  ; parser. The fileset container class will automatically discard
+  ; any non-GPI files.
+  ; Only include S-filenamed (science mode) observations here, as the E mode
+  ; files lack much of the FITS header metadata for the data parser to work with.
+  todaysfiles = obj_new('fileset')
+  todaysfiles.add_files_from_wildcard,  self.watch_directory + path_sep() + 'S20'+datestr+'S*.fits',/silent, count_added=count_added
+  todaysfiles.add_files_from_wildcard,  self.watch_directory + path_sep() + 'S20'+datestr+'S*.fits.gz',/silent, count_added=count_added2
+  parser = obj_new('parsercore')
+ 
+  self->Log, "Running Data Parser on data from the last 24 hours ("+strc(count_added+count_added2)+" files found)."
+  allrecipes = parser.parse_fileset_to_recipes(todaysfiles)
+
+  if n_elements(allrecipes) ge 1 and type(allrecipes[0]) ne type(-1) then begin
+
+	  for i=0, n_elements(allrecipes)-1 do begin
+		  summary = allrecipes[i].get_summary()
+		if ((summary.name eq 'Dark') and (summary.nfiles gt 3)) then begin 
+			self->Log, "Found a Dark sequence with "+strc(summary.nfiles)+" files. Queued: "+file_basename(summary.filename)
+			; Semi-hacky workaround: the summit VM computer cpogpi02 lacks
+			; enough memory to run sigmaclip on a set of 60 darks.  So force it
+			; to just use MEAN instead.
+			ind =  allrecipes[i]->find_module_by_name('Combine 2D dark images', count)
+			if count eq 1 then allrecipes[i]->set_module_args, ind, method='MEAN'
+			allrecipes[i]->queue
+		end
+	  endfor
+  endif else begin
+	  self->Log, 'No recipes to run; probably no GPI data found.'
+  endelse
+ 
+  self->Log, "**** Done with autoreducer daily housekeeping ***"
+
+
 
 end
 
@@ -322,6 +455,7 @@ pro automaticreducer::event, ev
     case ev.value of
       'Change Directory...': self->change_directory
       'Change Filename Wildcard...': self->change_wildcard
+      'Run Daily Housekeeping': self->run_daily_housekeeping
       'Quit Autoreducer': self->confirm_close
       'View new files in GPITV': begin
         self.view_in_gpitv = ~ self.view_in_gpitv
@@ -339,11 +473,26 @@ pro automaticreducer::event, ev
         self.menubar->set_check_state, 'Ignore individual UTR/CDS readout files', self.ignore_indiv_reads
 
       end
+      'Show Recipe selection options': begin
+        self.show_recipe_selection_options = ~ self.show_recipe_selection_options
+        self.menubar->set_check_state, 'Show Recipe selection options', self.show_recipe_selection_options
+		if self.show_recipe_selection_options then begin
+			ysize = 75
+		endif else begin
+			ysize=1
+		endelse 
+        widget_control,self.reduce_recipe_base_id,map=self.show_recipe_selection_options, ysize=ysize
+      end
+ 
       ; Flexure compensation:
       'None': self->set_flexure_mode, 'None'
       'Lookup': self->set_flexure_mode, 'Lookup'
       'Manual': self->set_flexure_mode, 'Manual'
       'BandShift': self->set_flexure_mode, 'BandShift'
+	  ; K sky sub
+	  'No sky sub.': self->set_skysub_mode, 'None'
+	  'Use 2D sky images': self->set_skysub_mode, 'Images'
+	  'Use 3D sky cubes': self->set_skysub_mode, 'Cubes'
       'Autoreducer Help...': gpi_open_help, 'usage/autoreducer.html',/dev
       'GPI DRP Help...': gpi_open_help, '',/dev
     endcase
@@ -553,9 +702,23 @@ PRO automaticreducer::set_flexure_mode, modestr
   widget_control, self.flex_base_id, map=self.flexure_mode eq 'Manual'
 
   modes = ['None','Manual','Lookup','BandShift']
-  for i=0,2 do self.menubar->set_check_state, modes[i], self.flexure_mode eq modes[i]
+  for i=0,3 do self.menubar->set_check_state, modes[i], self.flexure_mode eq modes[i]
   print, "Flexure handling mode is now "+self.flexure_mode
 end
+
+;--------------------------------------
+; Set sky subtraction mode, and toggle manual entry field visibility appropriately
+PRO automaticreducer::set_skysub_mode, modestr
+  self.skysub_mode = modestr
+
+  ;widget_control, self.flex_base_id, map=self.flexure_mode eq 'Manual'
+
+  modes_on_menu = ['No sky sub.', 'Use 2D sky images', 'Use 3D sky cubes']
+  modes = ['None', 'Images', 'Cubes']
+  for i=0,2 do self.menubar->set_check_state, modes_on_menu[i], self.skysub_mode eq modes[i]
+  print, "Sky Subtraction handling mode is now "+self.skysub_mode
+end
+
 
 ;--------------------------------------
 ; kill the window and clear variables to conserve
@@ -587,6 +750,7 @@ function automaticreducer::init, groupleader, _extra=_extra
   self.sort_by_time= gpi_get_setting('at_gemini', default=0,/silent)
   self.ignore_indiv_reads = 1
   self.current_datestr = gpi_datestr(/current)
+  self.show_recipe_selection_options=0
 
   ; should we include any flexure compensation in the recipes?
   ; By default turn this on ONLY if there is at least one flexure cal
@@ -596,10 +760,16 @@ function automaticreducer::init, groupleader, _extra=_extra
   if ptr_valid(caltable) then begin
     availtypes =  uniqvals( (*caltable).type)
     wflexurefile = where(availtypes eq 'Flexure shift Cal File', flexurect)
-    if flexurect eq 0 then self.flexure_mode = 'None' else self.flexure_mode = 'Lookup'
+    if flexurect eq 0 then begin
+       self.flexure_mode = 'None' 
+    endif else begin 
+       if self.sort_by_time eq 0 then self.flexure_mode = 'Lookup' else self.flexure_mode = 'BandShift' ; Set the bandshift method as the default on the summit.
+    endelse
   endif else begin ; if there is no valid caldb at all
     self.flexure_mode = 'None'
   endelse
+
+  self.skysub_mode = 'None'
 
   self->set_default_filespec
 
@@ -614,16 +784,22 @@ function automaticreducer::init, groupleader, _extra=_extra
     {cw_pdmenu_s, 1, 'File'}, $ ; file menu;
     {cw_pdmenu_s, 0, 'Change Directory...'}, $
     {cw_pdmenu_s, 0, 'Change Filename Wildcard...'}, $
+    {cw_pdmenu_s, 0, 'Run Daily Housekeeping'}, $
     {cw_pdmenu_s, 2, 'Quit Autoreducer'}, $
     {cw_pdmenu_s, 1, 'Options'}, $
     {cw_pdmenu_s, 8, 'View new raw files in GPITV'},$
     {cw_pdmenu_s, 8, 'Sort Files by Creation Time'},$
     {cw_pdmenu_s, 8, 'Ignore individual UTR/CDS readout files'}, $
-    {cw_pdmenu_s, 3, 'Flexure Compensation'}, $
+    {cw_pdmenu_s, 8, 'Show Recipe selection options'}, $
+    {cw_pdmenu_s, 1, 'Flexure Compensation'}, $
     {cw_pdmenu_s, 8, 'None'},$
     {cw_pdmenu_s, 8, 'Lookup'},$
     {cw_pdmenu_s, 8, 'BandShift'},$
     {cw_pdmenu_s, 10, 'Manual'},$
+    {cw_pdmenu_s, 3, 'K band background subtraction'}, $
+    {cw_pdmenu_s, 8, 'No sky sub.'},$
+    {cw_pdmenu_s, 8, 'Use 2D sky images'},$
+    {cw_pdmenu_s, 10, 'Use 3D sky cubes'},$
     {cw_pdmenu_s, 1, 'Help'}, $         ; help menu
     {cw_pdmenu_s, 0, 'Autoreducer Help...'}, $
     {cw_pdmenu_s, 2, 'GPI DRP Help...'} $
@@ -667,7 +843,10 @@ function automaticreducer::init, groupleader, _extra=_extra
   self->scan_templates
 
 
-  base_dir = widget_base(self.top_base, /row)
+  self.reduce_recipe_base_id = widget_base(self.top_base, /column)
+
+
+  base_dir = widget_base(self.reduce_recipe_base_id, /row)
   void = WIDGET_LABEL(base_dir,Value='Reduce using:')
   parsebase = Widget_Base(base_dir, UNAME='kindbase' ,ROW=1 ,/EXCLUSIVE, frame=0)
   self.b_default_rec_id =    Widget_Button(parsebase, UNAME='default_recipe'  $
@@ -676,24 +855,10 @@ function automaticreducer::init, groupleader, _extra=_extra
     ,/ALIGN_LEFT ,VALUE='Specific recipe',/tracking_events, sensitive=1)
   widget_control, self.b_default_rec_id, /set_button
 
-  base_dir = widget_base(self.top_base, /row)
+  base_dir = widget_base(self.reduce_recipe_base_id, /row)
   self.template_id = WIDGET_DROPLIST(base_dir , title='Select template:', frame=0, Value=(*self.templates).name, $
     uvalue='select_template', uname='select_template', resource_name='XmDroplistButton', sensitive=0)
 
-
-  ;	base_dir = widget_base(self.top_base, /row)
-  ;	void = WIDGET_LABEL(base_dir,Value='Default disperser if missing keyword:')
-  ;	parsebase = Widget_Base(base_dir, ROW=1 ,/EXCLUSIVE, frame=0)
-  ;	self.b_spectral_id =    Widget_Button(parsebase, UNAME='Spectral'  $
-  ;	        ,/ALIGN_LEFT ,VALUE='Spectral',/tracking_events)
-  ;	self.b_undispersed_id =    Widget_Button(parsebase, UNAME='Undispersed'  $
-  ;	        ,/ALIGN_LEFT ,VALUE='Undispersed',/tracking_events, sensitive=1)
-  ;	self.b_polarization_id =    Widget_Button(parsebase, UNAME='Polarization'  $
-  ;	        ,/ALIGN_LEFT ,VALUE='Polarization',/tracking_events, sensitive=1)
-  ;
-  ;	widget_control, self.b_undispersed_id, /set_button
-
-  ;directory = gpi_get_directory('calibrations_DIR')
 
   self.flex_base_id = widget_base(self.top_base, /row, map=0)
 
@@ -716,7 +881,9 @@ function automaticreducer::init, groupleader, _extra=_extra
   self.menubar->set_check_state, 'View new raw files in GPITV', self.view_in_gpitv
   self.menubar->set_check_state, 'Ignore individual UTR/CDS readout files', self.ignore_indiv_reads
   self.menubar->set_check_state, 'Sort Files by Creation Time', self.sort_by_time
+  self.menubar->set_check_state, 'Show Recipe selection options', self.show_recipe_selection_options
   self->set_flexure_mode, self.flexure_mode ; null op but sets the checkboxes appropriately
+  self->set_skysub_mode, self.skysub_mode ; null op but sets the checkboxes appropriately
 
   ;----
 
@@ -777,7 +944,9 @@ pro automaticreducer__define
     watch_filespec: '*.fits', $		; file windcard spec
     user_template:'',$				; user-specified template to execute when fits file double clicked
     flexure_mode: '', $				; how to handle flexure in recipes?
+    skysub_mode: '', $				; how to handle sky subtraction (for K1/K2 only) in recipes?
     listfile_id:0L,$;wid id for list of fits file
+	reduce_recipe_base_id: 0L,$		; widget ID for recipe selector base
     b_default_rec_id :0L,$			; widget ID for default recipe button
     b_specific_rec_id :0L,$			; widget ID for specific chosen recipe button
     template_id:0L,$				; widget ID for template select dropdown
@@ -798,6 +967,7 @@ pro automaticreducer__define
     view_in_gpitv: 0L, $		; Setting: View in GPITv?
     ignore_indiv_reads: 0L, $	; Setting: Ignore individual reads?
     sort_by_time: 0L, $	; Setting: Sort by time?
+    show_recipe_selection_options: 0L, $	; Setting: Show recipe selection options?
     reason_for_rescan: '', $	; why are we rescanning the directory? (used in log messages)
     INHERITS parsergui} ;wid for detect-new-files button
 

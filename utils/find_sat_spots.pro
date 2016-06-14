@@ -51,6 +51,8 @@ function find_sat_spots,s0,leg=leg,locs=locs0, winap = winap,$
 ;                  speeds up processing in the case where sat spots
 ;                  are dim compared to other pixels - ds
 ;       09.09.14 - Added maxcounter keyword - ds
+;       06.22.15 - Relaxed diagonal constraint to allow
+;                  constrain flag to work
 ;-
 
 ;;get dimensions and set defaults
@@ -65,7 +67,7 @@ ref = exp(-0.5*fr^2)
 if ~keyword_set(maxcounter) then maxcounter = 50
 
 ;; run the highpass filter if desired
-s0i = s0  
+s0i = s0
 if keyword_set(highpass) then begin
    if highpass eq 1 then s0i -= filter_image(s0i,median=9) $
    else s0i -= filter_image(s0i,median=highpass)	
@@ -93,6 +95,7 @@ if not keyword_set(locs0) then begin
       ;;once you have four locations and some 3-spot candidates can
       ;;start to evaluate possible sets.
       if (n_elements(locs)/2. ge 4) && (n_elements(tricombs) gt 1) then begin
+         
          ;;only need to check the combinations of the previous good locations
          combs = [[tricombs],[lonarr(n_elements(tricombs)/3)+n_elements(locs)/2-1]]
          ;;now scan the combinations.
@@ -102,7 +105,7 @@ if not keyword_set(locs0) then begin
             d1 = max(abs(dists[0:2]-dists[1:3]))
             d2 = abs(dists[4] - dists[5])
             ;;we're looking for 4 equal distances, and 2 equal distances sqrt(2) larger
-            if (d1 le 2d) && (d2 le 2d) && (abs(mean(dists[4:5])/mean(dists[0:3]) - sqrt(2d)) lt 1e-4) then begin
+            if (d1 le 2d) && (d2 le 3d) && (abs(mean(dists[4:5])/mean(dists[0:3]) - sqrt(2d)) lt 1e-4) then begin
                finallocs = locs[*,combs[j,*]]
                counter = maxcounter
                break
@@ -115,18 +118,20 @@ if not keyword_set(locs0) then begin
          combs = nchoosek(lindgen(n_elements(locs)/2-1),2)
          combs = [[combs],[lonarr(n_elements(combs)/2)+n_elements(locs)/2-1]]
          for j=0,n_elements(combs)/3 - 1 do begin
-            dists = sqrt(total(((locs[*,combs[j,*]])[*,combs3[*,0]] - (locs[*,combs[j,*]])[*,combs3[*,1]])^2d,1))
-            dists = dists[sort(dists)]
+            dists = sqrt(total(((locs[*,combs[j,*]])[*,combs3[*,0]] - (locs[*,combs[j,*]])[*,combs3[*,1]])^2d,1)) ;distance formula for a set of 3 locations chosen by combinatorics, returns 3 distances
+            dists = dists[sort(dists)] ;order by small->large distance
+            
             ;;in this case,we're looking for 2 equal distances, and 1 distance sqrt(2) larger
             ;;we'll be more forgiving here as we have fewer points to average. 
             if (abs(dists[1]-dists[0]) le 2d) && (abs(dists[2]/mean(dists[0:1]) - sqrt(2d)) lt 5e-2) then begin
                doadd = 1
-               ;;if user supplied a constraint on leg length, we'll check that
+               ;;when user supplied a constraint on leg length, we'll check that
                if keyword_set(constrain) then begin
                   if abs(dists[0] - constrain) gt 10 then doadd = 0
                endif 
-               if doadd then $
+               if doadd then begin
                   if n_elements(tricombs) eq 0 then tricombs = combs[j,*] else tricombs = [tricombs, combs[j,*]] 
+               endif
             endif 
          endfor
       endif
@@ -136,7 +141,7 @@ if not keyword_set(locs0) then begin
       val = max(out,ind) 
       counter += 1 
    endwhile
-
+   
    if n_elements(finallocs) eq 0 then begin
       message,'Could not locate satellites.',/continue
       return, -1

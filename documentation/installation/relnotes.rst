@@ -6,13 +6,112 @@ Release Notes
 
 You may wish to skip ahead to  :ref:`configuring`.  
 
-The next release of the GPI pipeline will probably be in Fall 2015. 
+The next release of the GPI pipeline will probably be in early 2017. 
+
+
+.. _version1.4.0:
+
+Version 1.4.0
+=========================================
+Released 2016 June ?? , for Gemini 2016A
+
+
+* Enhancements/Additions to primitives and recipes:
+
+  * New primitive "Measure FPM Location" to measure the Focal Plane Mask occulter location based on GCAL arc or flat
+    lamp data. The result is saved as a new type of calibration file into the Cal DB. (Hung, Perrin)
+  * New primitive "Normalize by Total Intensity" that normalizes polarization cubes by the 
+    total intensity (Millar-Blanchaer)
+  * New primitive "Check GCAL Data Quality" to sanity check input files from GCAL lamp images, 
+    primarily as a check against failed exposures where the shutter doesn't open. (Perrin, Wang)
+  * New primitive "Smooth Polarization Calibration" that filters a polarization spot calibration file to
+    reject high frequency outliers (Millar-Blanchaer)
+  * New primitive "Divide by Low Spatial Freq. Polarized Flat Field" for doing that; and new recipe and options
+    to "Normalize Polarimetry Flat Field" for creating such a flat field. (Millar-Blanchaer)
+  * New primitive "Interpolate bad pixels in cube" offers a new and possibly better option for bad pixel interpolation
+    (Draper, Marois)
+  * New primitive "Convert Stokes Cube to Radial" for doing that conversion; see Millar-Blanchaer et al. 2015.
+    (Millar-Blanchaer)
+  * New primitive "Calibrate Photometric Flux in Pol Mode". See Hung et al. 2015. (Hung)
+  * "Combine Polarization Sequence" gains an option to use an ideal perfect 
+    half wave plate during sequence combination, instead of the imperfect half 
+    wave plate model based on lab data. In some cases we have found this yields
+    superior contrast when reducing polarization sequences. Assessments are ongoing;
+    interested parties should consult with Max Millar-Blanchaer. (Millar-Blanchaer)
+  * "Basic Polarization Sequence" primitives now subtract mean stellar polarization by default (Millar-Blanchaer)
+  * Wavelength Calibration primitive updated for use of microlens PSF model files, if available (Wolff)
+  * Improvements to satellite spot measurement primitives for robustness in spec mode (Zalesky) and in pol mode
+    (Bruzzone, Wang)
+  * Improvements to code for creating satellite spot PSFs, including for polarization mode (Ingraham)
+  * Continued work on least-squares cube reconstruction code, including parallelization (Draper)
+
+* GPItv enhancements and bug fixes:
+
+  * Improved display of satellite spots and star center locations, including in polarization mode. (Perrin)
+  * Mark Sat Spots option also displays FPM center position, if available (Perrin, Hung)
+  * GPITV gains ability to view and properly label cubes where the third axis is "number of KL modes" instead of
+    wavelength or spectral; used in output of pyKLIP. (Wang, Perrin)
+  * GPITV 'Browse Files' window default file spec now matches .fits.gz as well as .fits (Perrin)
+  * "Constrain Satellite Spots" option in contrast settings is now enabled by default, for more robust spot fitting.
+    (Perrin)
+  * New config file setting to enable Mark Sat Spots by default (Perrin)
+  * Trying to overplot a wavecal or polcal will auto-load one from the CalDB if a calibration is not already loaded (Perrin)
+
+* Recipe Editor, Data Parser, Autoreducer GUIs: 
+
+  * Data Parser gains understanding of the 80 x 60 s dark sequences often taken by GPIES, and discards the first 20
+    exposures for persistence decay after the end of the night when constructing reduction recipes (Perrin)
+  * New Recipe template for NRM data in polarization mode (Greenbaum)
+  * Autoreducer improvements to support automatic processing of daily darks at Gemini summit, to not run the quicklook
+    arc recipe on deep K1/K2 arcs, 
+  * Autoreducer improvements to recognize offset sky frames and reduce them with an appropriate recipe, and new Options
+    menu selection for optionally subtracting K1/K2 background frames from the quicklook reductions (Perrin)
+
+* Infrastructure improvements
+
+  * New ability to manually specify save locations of output calibration files, and in recipes created by the Data
+    Parser; probably not of use to most users
+    but used for integration with GPIES campaign infrastructure. (Wang)
+  * CalDB supports new calibration files types for LSF Pol Flat, FPM Position, and distinguishes between quick and deep
+    wavecals (Millar-Blanchaer, Perrin, Wolff)
+  * Output files made by combining several input files now include additional header keywords FILE_1, FILE_2, ... FILE_n that 
+    give the file names of the input files. This information was already recorded in the HISTORY keywords and the recipe/DRF 
+    record comment block, but the filenames are now more easily extracted from the FILE_n keywords. (Perrin)
+  * Data Parser gains ability to distinguish offset sky frames from regular science frames on target (Perrin)
+  * Data Quality extension propagates through pipeline to reduced podc and spdc cubes (Follette)
+
+* Improved documentation and tutorials
+
+  * New "GPI Instrument Reference" section added to the docs. (Perrin et al.)
+  * New :ref:`Tutorial 5 on pol mode photometric calibration <usage-tutorial_polphoto>` (Hung)
+  * Add some documentation for IPC correction (Long)
+  * Some additions to the :ref:`gallery of problematic data <ifs_data_gallery>`. (Savransky, Perrin)
+
+* Miscellaneous bug fixes and minor tasks:
+
+  * Some syntax fixes for IDL 7/8 cross-compatibility (Maire)
+  * Bug fix for more robust parallelized loops under Linux (Draper, Wang)
+  * Improvements to polarization contrast measurements (Millar-Blanchaer)
+  * Fix to parallelized wavelength calibration (Wolff)
+  * Misc improvements and cleanup to polarization related codes (Millar-Blanchaer)
+  * Fix to WCS update and AVPARANG code for the case where GMST midnight passes during an exposure, and another minor
+    bug related to AVPARANG (Nielsen)
+  * Bug fix to typo in gpi_basic_adi (Perrin, Hibon)
+  * Bug fix to photometric calibration when using a user-provided spectrum; users can now specify wavelength units. (Maire, Hung)
+  * Fix mis-labeled spectral bandwidth on the contrast plot; Measure Contrast as used in the quicklook recipe at the
+    summit prints the median contrast over the central half of each bandpass, not central 75%.  (Rajan, Perrin)
+  * Various minor fixes (Maire, Perrin, Millar-Blanchaer, Hung)
+  * Fix unblocked mode bug to do simple gaussian centroid rather than centering from satellite spots, which are not present in 
+    unblocked mode (Follette)
+
+
+
 
 .. _version1.3.0:
 
 Version 1.3.0
 =========================================
-Released 2015 March, for Gemini 2015A
+Released 2015 April 1, for Gemini 2015A
 
 
 

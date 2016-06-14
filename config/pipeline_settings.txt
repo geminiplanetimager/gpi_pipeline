@@ -26,8 +26,10 @@ organize_recipes_by_dates	1
 # username_in_log_filename	0
 # caldb_restricts_by_cooldown	0
 # launcher_force_semaphore_name some_noconflict_sema_name
+# override_writing_to_calibration_dir 0
 
 ## GPItv settings
+# gpitv_mark_sat_spots 	0
 # gpitv_default_scale	log
 # gpitv_retain_current_slice		1
 # gpitv_retain_current_view     0

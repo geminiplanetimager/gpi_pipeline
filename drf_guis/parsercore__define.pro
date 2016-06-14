@@ -158,7 +158,7 @@ function parsercore::parse_fileset_to_recipes, fileset, recipedir=recipedir, out
           ;;here we have to sequence the drf queue:
           ;; assign to each obstype an order:
           sequenceorder=intarr(nbobstype)
-          sortedsequencetab=['Dark', 'Arc', 'Flat','Object']
+          sortedsequencetab=['Dark', 'Flat', 'Arc', 'Object']
 
           for fc=0,nbobstype-1 do begin
             wm = where(strmatch(sortedsequencetab, uniqsortedobstype[fc]+'*',/fold),mct)
@@ -252,18 +252,18 @@ function parsercore::parse_fileset_to_recipes, fileset, recipedir=recipedir, out
                         case strupcase(current.obstype) of
                         'DARK':begin
                           templatename='Dark'
-                        end
-                        'ARC': begin
-                          if  current.dispersr eq 'WOLLASTON' then begin
-                            templatename='Create Polarized Flat-field'
-                          endif else begin
-                            objelevation = finfo[indfobject[0]].elevatio
-                            if (objelevation lt 91.0) AND (objelevation gt 89.0) then begin
-                              templatename='Wavelength Solution 2D'
-                            endif else begin
-                              templatename='Quick Wavelength Solution'
-                            endelse
-                          endelse
+						  if cobj eq 80 and abs(current.itime -60) lt 1 then begin
+							  ; special case handling for the nightly dark monitor
+							  ; at Gemini South. For these we take 80 x 60 s
+							  ; exposures. The first 20 should be discarded to set
+							  ; aside any persistence from the end of the night's
+							  ; science observations. 
+							  self->Log, "Found sequence of 80 x 60 s dark exposures. Skipping the first 20 (for persistence decay) and only reducing the last 60"
+							  indfobject = indfobject[20:*]
+							  cobj = n_elements(indfobject)
+							  file_filt_obst_disp_occ_obs_itime_object = finfo[indfobject].filename
+
+						  endif
                         end
                         'FLAT': begin
 
@@ -296,13 +296,31 @@ function parsercore::parse_fileset_to_recipes, fileset, recipedir=recipedir, out
                             continue_after_case=1
                           endif else begin    ; Spectral mode
                             if gcalfilter EQ 'ND4-5' then begin
-                              continue_after_case=1
-                              self->Log, "    Those data have GCALFILT=ND4-5, which indicates they are throwaway exposures for persistence decay. Ignoring them."
+                               objexptime = finfo[indfobject[0]].itime
+                               if objexptime GT 60.0 then begin
+                                  templatename='Combine Thermal/Sky Background Images'
+                               endif else begin
+                                  continue_after_case=1
+                                  self->Log, "    Those data have GCALFILT=ND4-5, which indicates they are throwaway exposures for persistence decay. Ignoring them."
+                              endelse
                             endif else begin
                               templatename='Flat-field Extraction'
                             endelse
                           endelse
                         end
+                        'ARC': begin
+                          if  current.dispersr eq 'WOLLASTON' then begin
+                            templatename='Create Polarized Flat-field'
+                          endif else begin
+                            objelevation = finfo[indfobject[0]].elevatio
+                            if (objelevation lt 91.0) AND (objelevation gt 89.0) then begin
+                              templatename='Wavelength Solution 2D Developer'
+                            endif else begin
+                              templatename='Quick Wavelength Solution'
+                            endelse
+                          endelse
+                        end
+
                         'OBJECT': begin
                           case strupcase(current.dispersr) of
                             'WOLLASTON': begin
@@ -320,12 +338,20 @@ function parsercore::parse_fileset_to_recipes, fileset, recipedir=recipedir, out
                                 if ~strmatch(current.obsclass, 'AstromSTD',/fold) && ~strmatch(current.obsclass, 'Science',/fold) then begin
                                   templatename='Satellite Flux Ratios'
                                 endif
+								if strpos(current.object, '(SKY)') gt 0 then begin
+									templatename="Create Thermal/Sky Background Cubes"
+								endif
+							
                               endif else begin
-                                if n_elements(file_filt_obst_disp_occ_obs_itime_object) GE 5 then begin
-                                  templatename='Basic ADI + Simple SDI reduction (From Raw Data)'
-                                endif else begin
-                                  templatename="Simple Datacube Extraction"
-                                endelse
+								if strpos(current.object, '(SKY)') gt 0 then begin
+									templatename="Create Thermal/Sky Background Cubes"
+								endif else begin
+									if n_elements(file_filt_obst_disp_occ_obs_itime_object) GE 5 then begin
+									  templatename='Basic ADI + Simple SDI reduction (From Raw Data)'
+									endif else begin
+									  templatename="Simple Datacube Extraction"
+									endelse
+								endelse 
                               endelse
                             end
                             'OPEN': begin
@@ -553,7 +579,8 @@ pro parsercore::create_recipe_from_template, templatename, fitsfiles, current_me
     filename_counter=filename_counter, index=index
 
     if ~(keyword_set(filename_counter)) then filename_counter=self->num_recipes()+1
-	outputdir=gpi_get_directory('REDUCED_DATA')
+    ;Only default to reduced data dir if no outputdir has been defined
+    if self.outputdir eq '' then self.outputdir=gpi_get_directory('REDUCED_DATA')
     ; create the recipe
     if self.outputdir NE '' then begin 
         drf = gpi_create_recipe_from_template( templatename, fitsfiles,  $

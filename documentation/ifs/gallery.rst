@@ -51,11 +51,19 @@ Artifacts from AO, Coronagraph, and Telescope Systematics
 If you see any of the following in your data, there is little the pipeline can do about them. These are all problems that the observer at the telescope should notice and try to fix in real time.
 
 
-**Misaligned coronagraph:**
+**Misaligned Focal Plane Mask:**
 
 If you're operating the instrument, you should use the pointing offsets tool to recenter the star back onto the occulting mask. 
 
 .. image:: badimg_03_MisalignedMask.png
+        :width: 500px
+        :align: center
+
+**Misaligned Lyot Stop:**
+
+This can only be corrected with the IDL engineering interface.  See: http://docs.planetimager.org/gpilib/calibrations.html#lyot-alignment
+
+.. image:: badimg_15_misaligned_lyot.png
         :width: 500px
         :align: center
 
@@ -111,8 +119,56 @@ From here on out, the following are things the pipeline can potentially help you
 
 **Persistence**
 
-Examples to be added of spec into pol, pol into spec, flat field into data, etc. 
+.. comment:
+ (Examples to be added of spec into pol, pol into spec, flat field into data, etc.)
 
+Persistence can come in many forms, depending on what the prior illumination pattern shows. 
+
+Here is an example of a *psf-subtracted* cube showing persistence. This is one
+slice of a spectral cube, taken immediately after a polarization mode sequence
+on the same target. Persistence from the polarimetry mode data causes a pattern
+of horizontal stripes across the image; the specific stripe pattern is due to a
+moire-type effect from the relative alignment of spectra versus pol spots on
+the detector. The stripes march up and down across the detector as the
+wavelength slice changes. 
+
+.. image:: badimg_11_persistence.png
+        :width: 500px
+        :align: center
+
+
+Here's another image, now showing what persistence can look like in a
+relatively unprocessed datacube before PSF subtraction. The horizontal striping
+is still distinctly visible on top of the usual PSF halo:
+
+.. image:: badimg_14_persistence.png
+        :width: 500px
+        :align: center
+
+
+
+
+
+The amount of persistence varies strongly across the detector. Here is a 2D image taken as a dark immediately after a very bright flat exposure, intentionally to highlight the persistence pattern:
+
+
+.. image:: badimg_12_persistence_detector.png
+        :width: 500px
+        :align: center
+
+This pattern, in particular the vertical stripe at center right with lower counts, is often a reliable indicator of cases where there is substantial persistence. 
+
+
+Persistence of spectral data into pol data can give similar stripes as shown above, but at a different spatial frequency.  Here is a pol mode datacube generated from the same test data, showing horizontal striping (and also the region at center right with reduced persistence).
+
+.. image:: badimg_13_persistence_pol.png
+        :width: 500px
+        :align: center
+
+
+Persistence within the same mode is more subtle and harder to see than pol-to-spec or spec-to-pol, but is still there. 
+
+The GPI instrument team is continuing to work on better calibrations of the detector persistence and methods to remove them in the pipeline.
 
 **Lenslet 30x50 grid**
 

@@ -108,7 +108,7 @@ if numfile  lt ((dataset.validframecount)-1) then return,0
         ;loop on wavelength
       for il=0, n_elements(lambda)-1 do begin
         nfwhm=float(Modules[thisModuleIndex].nfwhm) ;get the user-defined minimal distance for the subtraction
-        Dtel=double(backbone->get_keyword( 'TELDIAM'))
+         Dtel=gpi_get_constant('primary_diam',default=7.7701d0)
 		if dtel eq -1 then return, error('FAILURE ('+functionName+'): missing TELDIAM keyword')
 
         fwhm=1.03*(1.e-6*lambda[il]/Dtel)*(180.*3600./!dpi)/0.014 
@@ -134,6 +134,7 @@ if numfile  lt ((dataset.validframecount)-1) then return,0
             ;selection of images for the calculation of the median PSF ref.
             padiff=abs(paall[*]-paall[n])
             ind=where(padiff gt theta0,ci)
+            
             ;check if images are sufficiently shifted ;determine images suffisament decalees pour la soustraction
             if ci eq 0  then begin
               im1s[ia]=!values.f_nan
@@ -162,26 +163,29 @@ if numfile  lt ((dataset.validframecount)-1) then return,0
             endelse; ci ne 0
           endfor ;loop annulus
 
+ h=headfits(fn,exten=1, /silent)
+      hphu=headfits(fn,exten=0, /silent)
           ;rotation to have same orientation than the first image
           if silent eq 0 then print,' Rotation to have same orientation than the first image...'
-          theta=-(paall[n]-paall[0])
+          theta=(paall[n]-paall[0])
+         
            x0=double(backbone->get_keyword('PSFCENTX',count=ccx,/silent)) ;float(SXPAR( *(dataset.headers[n]), 'PSFCENTX',count=ccx))
             y0=double(backbone->get_keyword('PSFCENTY',count=ccy,/silent)) ;float(SXPAR( *(dataset.headers[n]), 'PSFCENTY',count=ccy))
 
           hdr=*(dataset.headersExt[n]) ;JM 2010-03-19
 		  if ((ccx eq 0) || (ccy eq 0) || ~finite(x0) || ~finite(y0))  then begin           
-              if n ne 0 then im1s=gpi_adi_rotat(im1s,theta,missing=!values.f_nan,hdr=hdr) ;(do not rotate first image)
+              if n ne 0 then im1s=gpi_adi_rotat(im1s,theta,missing=!values.f_nan,hdr=h) ;(do not rotate first image)
           endif else begin
-              if n ne 0 then im1s=gpi_adi_rotat(im1s,theta,x0,y0,missing=!values.f_nan,hdr=hdr) ;(do not rotate first image)
+              if n ne 0 then im1s=gpi_adi_rotat(im1s,theta,x0,y0,missing=!values.f_nan,hdr=h) ;(do not rotate first image)
           endelse  
-            *(dataset.headersExt[n])=hdr
+            *(dataset.headersExt[n])=h
           im[*,*,il]=im1s
         endfor ;loop on lambda
 
     ;save the difference
     
 	 backbone->set_keyword, 'PSFSUB', 'GPI DRP Basic ADI', 'PSF subtraction via Basic ADI'
-	 backbone->set_keyword, 'PSFPARAM', 'numimmed='+strc(numimmed)+', nfwhm='+strc(nfwhm)
+	 backbone->set_keyword, 'PSFPARAM', 'numimmed='+strc(nimmed)+', nfwhm='+strc(nfwhm)
 
     subsuffix='-adim'  ;this the suffix that will be added to the name of the ADI residual  
 	  fname=strmid(fn,0,strpos(fn,suffix)-1)+suffix+subsuffix+'.fits'

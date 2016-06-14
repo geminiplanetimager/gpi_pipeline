@@ -36,31 +36,43 @@ lambda = cwv.lambda
 	if smooth_box_size gt 0 then begin
 		backbone->set_keyword, 'HISTORY', functionname+":   Smoothing using a box size of "+strc(smooth_box_size),ext_num=0
 		backbone->Log, "	Smoothing sky/thermal cube using a box size of "+strc(smooth_box_size)
-		endif else begin
+		for s=0,N_ELEMENTS(lambda)-1 do cube[*,*,s]=filter_image(cube[*,*,s],median=smooth_box_size)
+	endif else begin
 		backbone->set_keyword, 'HISTORY', functionname+":   No smoothing performed" ,ext_num=0
 		backbone->Log, "	No smoothing performed"
- 		endelse
+ 	endelse
 
-for s=0,N_ELEMENTS(lambda)-1 do cube[*,*,s]=filter_image(cube[*,*,s],median=smooth_box_size)
 
-		itime = backbone->get_keyword('ITIME')
-		gain = backbone->get_keyword('SYSGAIN') ; gives e-/DN
+	itime = backbone->get_keyword('ITIME')
+	gain = backbone->get_keyword('SYSGAIN') ; gives e-/DN
 
-        ; Normalize output to units of counts/second
-				bunit0 = backbone->get_keyword('BUNIT')
-        if bunit0 ne 'ADU per coadd' then return, error('Images do not have the expected units of ADU/coadd. Cannot determine how to normalize properly...')
-        cube/=itime
-      
-				backbone->set_keyword,'BUNIT', 'ADU/s', 'Physical units of the array values is ADU per second'
-        backbone->set_keyword,'HISTORY', functionname+":   Normalized by ITIME to get units of ADU/s.",ext_num=0
-				 
-			 ; store the output into the backbone datastruct
-        backbone->set_keyword, "FILETYPE", "Thermal/Sky Background Cube", /savecomment
-        backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
-        suffix = '-bkgnd_cube'
+	; Normalize output to units of counts/second
+	bunit0 = backbone->get_keyword('BUNIT')
 
-        *(dataset.currframe)=cube
-        dataset.validframecount=1
+	case bunit0 of
+
+	'ADU per coadd': begin
+		cube/=itime
+		backbone->set_keyword,'BUNIT', 'ADU/s', 'Physical units of the array values is ADU per second'
+		backbone->set_keyword,'HISTORY', functionname+":   Normalized by ITIME to get units of ADU/s.",ext_num=0
+	end
+	'ADU/s': begin
+		backbone->set_keyword,'HISTORY', functionname+":   Input file is already in units of ADU/s.",ext_num=0
+	end
+	else: begin
+		return, error('Images do not have the expected units of ADU/coadd or ADU/s. Cannot determine how to normalize properly...')
+	end
+	endcase
+	
+
+			 
+	; store the output into the backbone datastruct
+	backbone->set_keyword, "FILETYPE", "Thermal/Sky Background Cube", /savecomment
+	backbone->set_keyword, "ISCALIB", 'YES', 'This is a reduced calibration file of some type.'
+	suffix = '-bkgnd_cube'
+
+	*(dataset.currframe)=cube
+	dataset.validframecount=1
 
 @__end_primitive
 end

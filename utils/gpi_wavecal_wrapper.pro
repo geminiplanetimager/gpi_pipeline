@@ -79,9 +79,9 @@ parinfo = replicate({relstep:0.D, step:0.D, value:0.D, fixed:0, limited:[0,0],li
 for z=0,nflux[0]-1 do begin
     start_params[9+z]=flux[z]
     parinfo[9+z].limited[0]=1
-    parinfo[9+z].limits[0]=0.5*flux[z] ; was 20%, now 50% 
+    parinfo[9+z].limits[0]=0.2*flux[z] ; was 50%, now 20% 
     parinfo[9+z].limited[1]=1
-    parinfo[9+z].limits[1]=1.5*flux[z]
+    parinfo[9+z].limits[1]=1.2*flux[z]
 endfor
 
 start_params[3]=theta
@@ -147,8 +147,8 @@ parinfo[1].limits[1] = oldypos+pixelshifttolerance
 ; dispersion
 k=w
 start_params[2]=k
-deltaw=0.01*w
-parinfo[2].relstep=0.1
+deltaw=0.05*w
+;parinfo[2].relstep=0.1
 parinfo[2].limited[0]=1
 parinfo[2].limits[0]=k-deltaw
 parinfo[2].limited[1]=1
@@ -185,17 +185,6 @@ parinfo[7].limited[0]=1
 parinfo[7].limits[0]=0.0
 
  
-
-;wprior=refwlcal[xdim,ydim,3]
-;wstart=0.999*w
-;wend=1.001*w
-;winc=(wend-wstart)/3.0
-
-;print, 'Starting guess for lenslet wavecal', start_params
-
-
-;for k=wstart,wend,winc do begin
-
     case whichpsf of
        'nmicrolens': begin
            bestres=mpfit2dfun('nmicrolens',x,y,lensletarray, ERR,weight=weights, start_params,parinfo=parinfo,bestnorm=bestnorm,/quiet, status=status, errmsg =errmsg)

@@ -27,7 +27,7 @@
 ; PIPELINE ARGUMENT: Name="pivot" Type ="int" Range="[0,1]" Default="0" Desc="Pivot about the center of the image? 0 = No" 
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
-; PIPELINE ORDER: 3.9
+; PIPELINE ORDER: 4.4
 ; PIPELINE CATEGORY: SpectralScience,PolarimetricScience
 ;
 ; HISTORY:
@@ -71,7 +71,7 @@ function gpi_rotate_north_up, DataSet, Modules, Backbone
 		; And output the results:
 		*(dataset.currframe)=rotated_cube
 
-		@__end_primitive
+		;@__end_primitive
 
 	end
 	2: begin ;----- Rotate all files stored in the accumulator ------
@@ -89,6 +89,7 @@ function gpi_rotate_north_up, DataSet, Modules, Backbone
 			; For various mostly historical reasons the code is such that
 			; headers get updated directly in gpi_rotate_cube but we have to
 			; explicitly store the output rotated cube
+
 			rotated_cube = gpi_rotate_cube(backbone, dataset, original_cube, indexFrame=i, $
 							rot_method=rot_method, center_method=center_method, rot_center=rot_center, pivot=pivot )
 			if n_elements(rotated_cube) eq 1 then return, error('Rotate cube failed.')
@@ -101,4 +102,5 @@ function gpi_rotate_north_up, DataSet, Modules, Backbone
 	end
 	endcase
 
+@__end_primitive
 end

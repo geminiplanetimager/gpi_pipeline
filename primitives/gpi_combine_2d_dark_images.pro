@@ -53,12 +53,14 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
 	sz = [0, backbone->get_keyword('NAXIS1',ext_num=1), backbone->get_keyword('NAXIS2',ext_num=1)]
 	imtab = dblarr(sz[1], sz[2], nfiles)
+  dqtab = dblarr(sz[1], sz[2], nfiles)
 
 	itimes = fltarr(nfiles)
 
 	; read in all the images
 	for i=0,nfiles-1 do begin
-		imtab[*,*,i] =  accumulate_getimage(dataset,i,hdr, hdrext=hdrext)
+		imtab[*,*,i] =  accumulate_getimage(dataset,i,hdr, hdrext=hdrext, dqframe=dqframe, dqhdr=dqhdr)
+		dqtab[*,*,i] = dqframe
 		itimes[i] = sxpar(hdrext, 'ITIME')
 		; verify all input files have the same exp time?
 		if itimes[i] ne itimes[0] then return, error('FAILURE ('+functionName+"): Exposure times are inconsistent. First file was "+strc(itimes[0])+" s, but file "+strc(i)+" is not.")
@@ -195,8 +197,14 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	endif
     
 
-	; TODO: Do something here with the DQ extensions?
-
+	; Median data quality frames for image combo... note that there's probably a better way to do this 
+	if nfiles gt 1 then begin
+        median_dq=median(dqtab, dim=3)
+        *(dataset.currdq)=median_dq
+	endif else begin
+		message,/info, "Only one frame supplied - leaving DQ frame unchanged..."
+	endelse 
+  
 	;----- store the output into the backbone datastruct
 	*(dataset.currframe)=combined_im
 	dataset.validframecount=1

@@ -3,8 +3,16 @@
 <dataset InputDir="" OutputDir="$GPI_REDUCED_DATA_DIR">
    <fits filename=""/>
 </dataset>
-<module name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
-<module name="Load High-Res PSFs" CalibrationFile="AUTOMATIC" />
-<module name="Subtract Dark Background" CalibrationFile="AUTOMATIC" Save="0"  gpitv="0" />
-<module name="Assemble Spectral Datacube (Lsqr, microlens psf)" Save="0" gpitv="0" />
+<primitive name="Start IDL Bridges" CalibrationFile="AUTOMATIC" />
+<primitive name="Subtract Dark Background" CalibrationFile="AUTOMATIC" RequireExactMatch="0" Interpolate="0" Save="0" gpitv="0" />
+<primitive name="Subtract Thermal/Sky Background if K band" CalibrationFile="AUTOMATIC" Save="0" Override_scaling="1.0" gpitv="0" />
+<primitive name="Update Spot Shifts for Flexure" method="Lookup" manual_dx="0" manual_dy="0" Save="0" gpitv="0" display="-1" />
+<primitive name="Load Wavelength Calibration" CalibrationFile="AUTOMATIC" />
+<primitive name="Load High-Res PSFs" CalibrationFile="AUTOMATIC" />
+<primitive name="Assemble Spectral Datacube (Lsqr, microlens psf)" Save="1" gpitv="0" />
+<primitive name="Interpolate bad pixels in cube" method="NEW" />
+<primitive name="Correct Distortion" CalibrationFile="AUTOMATIC" Save="1" gpitv="1" />
+<primitive name="Measure satellite spot locations" />
+<primitive name="Measure satellite spot peak fluxes" gauss_fit="1" reference_index="0" ap_rad="7" Save="0" />
+<primitive name="End IDL Bridges" CalibrationFile="AUTOMATIC" />
 </DRF>

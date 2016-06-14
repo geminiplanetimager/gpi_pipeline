@@ -11,6 +11,7 @@
 ; PIPELINE COMMENT: Normalize a polarimetry-mode flat field to unity.
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
+; PIPELINE ARGUMENT: Name="type" Type="string" Range="[basic|lsf]" Default="basic" Desc="Basic flats or Low Spatial Frequency?"
 ; PIPELINE ORDER: 3.1992
 ; PIPELINE CATEGORY: Calibration
 ;
@@ -49,8 +50,18 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
     backbone->set_keyword, "NAXIS3", sz[3]
 
 
+  if tag_exist( Modules[thisModuleIndex], "type") then type=strupcase(Modules[thisModuleIndex].type) else type='BASIC'
 
+  case type of
+    'BASIC': begin
+      suffix='polflat'
+      backbone->set_keyword, "FILETYPE", "Flat Field", "What kind of IFS file is this?"
+      end
+    'LSF': begin
+      suffix='lsf_polflat'
+      backbone->set_keyword, "FILETYPE", "Low Spatial Frequency Polarimetry flat field", "What kind of IFS file is this?"
+      end
+   endcase
 
-suffix='polflat'
 @__end_primitive
 end

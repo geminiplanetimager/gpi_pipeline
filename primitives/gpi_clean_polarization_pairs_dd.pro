@@ -26,12 +26,13 @@
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="debug" Type="int" Range="[0,1]" Default="0" Desc="Stop at breakpoints for debug/test"
 ;
-; PIPELINE ORDER: 4.05
+; PIPELINE ORDER: 4.1
 ; PIPELINE CATEGORY: PolarimetricScience,Calibration
 ;
 ;
 ; HISTORY:
 ;	2013-03-20	Started by Marshall, forked from gpi_combine_polarizations_dd.pro
+;	2016-02-03  MMB: Changed from a median to a mean to avoid biases
 ;-
 
 ;------------------------------------------
@@ -63,6 +64,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	; Load all files at once into a stack of all the polarization pairs
 
 	sz = [0, sxpar(hdrext,'NAXIS1'), sxpar(hdrext,'NAXIS2'), sxpar(hdrext,'NAXIS3')]
+	if sz[1] eq 2048 then return, error('Can only apply filter to cubes, not detector images')
+	
 	polstack =	   fltarr(sz[1], sz[2], sz[3]*nfiles) ; stack of all input polarization pairs
 	sumdiffstack = fltarr(sz[1], sz[2], sz[3]*nfiles) ; a transformed version of polstack, holding the sum and single-difference images
 
@@ -106,11 +109,20 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	; systematic biases between the e- and o- channels which are consistent
 	; between exposures. We measure that here and subtract it off. 
 	
-	median_diff = median(diffstack,dim=3)				; Median of the differences. Should be mostly systematics
-														; i.e. the difference between the e- and o-
-														; rays which is due to polarization cube
-														; extraction imperfections
-	skysub, diffstack, median_diff, subdiffstack		; Subtract this from all the individual differences
+;	median_diff = median(diffstack,dim=3)				; Median of the differences. Should be mostly systematics
+                      ;	; i.e. the difference between the e- and o-
+                        ; rays which is due to polarization cube
+                        ; extraction imperfections
+; skysub, diffstack, median_diff, subdiffstack    ; Subtract this from all the individual differences
+
+	if !version.release gt 7.5 then begin
+      mean_diff = mean(diffstack, dim=3) ;Using the median causes biases for strongly polarized sources. The mean works better. 
+  end else begin;make it idl7 friendly:
+    szdiffstack=size(diffstack)
+    mean_diff =  (1./float( szdiffstack[3]))*total(diffstack,3)
+  end
+ 
+  skysub, diffstack, mean_diff, subdiffstack  	; Subtract this from all the individual differences													
 									
 	; FIXME should we do this on the difference images, or on the sum images?
 	; Or the pairs? 

@@ -96,6 +96,8 @@ pro GPItv::initcommon
   self.images.klip_image = ptr_new(/alloc)			; the result of processing via KLIP
 
   ;;this replaces the state.contrcens var
+  self.satspots.valid = 0
+  self.satspots.attempted = 0
   self.satspots.cens = ptr_new(/alloc)
   self.satspots.warns = ptr_new(/alloc)
   self.satspots.good = ptr_new(/alloc)
@@ -332,7 +334,7 @@ pro GPItv::initcommon
     contrwinap_id:0L,$
     contrwinap:20L,$
     contrap_id:0L,$
-    contrap:7L,$
+    contrap:7L,$						; Contrast aperture size
     contr_yaxis_type: 1, $              ; 0=linear or 1=log axis
     contr_yaxis_mode: 1, $              ; 0=manual, 1= auto axis
     contr_yaxis_min: 1.e-6, $           ;  axis scale
@@ -341,11 +343,20 @@ pro GPItv::initcommon
     contr_plotmult: 0, $                ; plot contrasts for single slice/all slices
     contr_autocent: 1, $                ; 0=manual, 1=auto, find sat centers
     contr_highpassspots: 1, $           ; pass /highpass
-    contr_constspots: 0, $              ; pass /constrain
+    contr_constspots: 1, $              ; pass /constrain
     contr_plotouter: 0, $               ; plot contrasts for region outside of dark hole
     contr_yunit:0, $                    ; 0 = sigma, 1 = median, 2 = mean
     contr_xunit:0, $                    ; 0 = as, 1 = l/D
     contr_prof_filetype:0, $            ; 0 = fits, 1 = txt
+	fpmoffset_fpmpos: fltarr(2), $		; Measured center of focal plane mask
+	fpmoffset_calfilename: '', $		; Filename for source of that FPM position
+	fpmoffset_psfcentx_id: 0L, $		; widget id
+	fpmoffset_psfcenty_id: 0L, $		; widget id
+	fpmoffset_fpmcentx_id: 0L, $		; widget id
+	fpmoffset_fpmcenty_id: 0L, $		; widget id
+	fpmoffset_offsettip_id: 0L, $			; widget id
+	fpmoffset_offsettilt_id: 0L, $			; widget id
+	fpmoffset_statuslabel_id: 0L, $          ; widget id
     lambplot_widget_id: 0L, $           ; id of radial profile widget
     lambplot_window_id: 0L, $           ; id of radial profile window
     showlambplot_id: 0L, $              ;
@@ -489,6 +500,7 @@ pro GPItv::initcommon
     subwindow_dirviewer: obj_new(), $           ; handle to file directory viewer/scanner window, if open
     rgb_mode: 0, $					  ; are we displaying an RGB image made from collapsing a datacube?
     activator: 0, $                   ; is "activator" mode on?
+	mark_sat_spots: 0, $			 ; should we overplot the location of GPI's satellite spots? 
     retain_current_slice: 1, $       ; toggles stickiness of current image when loading new file
     retain_current_view: 1, $  ; align next image by default?
     retain_collapse_mode: 0, $       ; keep collapse mode if possible
@@ -727,7 +739,8 @@ pro GPItv::startup, nbrsatspot=nbrsatspot
     {cw_pdmenu_s, 0, 'Statistics'}, $
     {cw_pdmenu_s, 0, 'Histogram / Exposure'}, $
     {cw_pdmenu_s, 0, 'Pixel Table'}, $
-    {cw_pdmenu_s, 0, 'Star Position'}]
+    {cw_pdmenu_s, 0, 'Star Position'},$
+    {cw_pdmenu_s, 0, 'FPM Offset'}]
 
   ;;if gpitv_obsnotes.pro exists, create menu item for it
   obsnotes = 0
@@ -744,7 +757,6 @@ pro GPItv::startup, nbrsatspot=nbrsatspot
     top_menu_desc = [top_menu_desc,$
     {cw_pdmenu_s, 7, 'Display Coordinate System'}]
   top_menu_desc = [top_menu_desc,$
-    {cw_pdmenu_s, 7, 'Display Coordinate System'}, $
     {cw_pdmenu_s, 0, 'RA,dec (J2000)'}, $
     {cw_pdmenu_s, 0, 'RA,dec (B1950)'}, $
     {cw_pdmenu_s, 0, 'RA,dec (J2000) deg'}, $
@@ -763,6 +775,7 @@ pro GPItv::startup, nbrsatspot=nbrsatspot
     {cw_pdmenu_s, 0, 'SDI Settings...'}, $
     {cw_pdmenu_s, 0, 'KLIP Settings...'}, $
     {cw_pdmenu_s, 0, 'Clear KLIP Data'}, $
+    {cw_pdmenu_s, 8, 'Mark Sat Spots'}, $
     {cw_pdmenu_s, 12, 'Retain Current Slice'}, $
     {cw_pdmenu_s, 8, 'Retain Current Stretch'}, $
     {cw_pdmenu_s, 8, 'Retain Current View'}, $
@@ -807,6 +820,11 @@ pro GPItv::startup, nbrsatspot=nbrsatspot
   ONE_LINE_TOOLBAR = 1 ; set this to 1 to switch the toolbar to one line across the whole window
 
   ;;process options & defaults
+  tmp = gpi_get_setting('gpitv_mark_sat_spots',/silent,/int)
+  if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (tmp eq 1) ) then (*self.state).mark_sat_spots = tmp
+  widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Mark Sat Spots")],$
+    set_button = (*self.state).mark_sat_spots
+
   tmp = gpi_get_setting('gpitv_retain_current_slice',/silent,/int)
   if (size(tmp,/type) eq 2) && ( (tmp eq 0) || (tmp eq 1) ) then (*self.state).retain_current_slice = tmp
   widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Retain Current Slice")],$
@@ -1613,6 +1631,7 @@ pro GPItv::topmenu_event, event
     'Histogram / Exposure': self->showhist
     'Pixel Table': self->pixtable
     'Star Position': self->centerplot
+    'FPM Offset': self->show_fpmoffset
 
     'Archive Image': self->getimage
 
@@ -1662,6 +1681,13 @@ pro GPItv::topmenu_event, event
     'Clear KLIP Data': BEGIN
       ptr_free,self.images.klip_image
       self.images.klip_image = ptr_new(/allocate_heap)
+    END
+
+    'Mark Sat Spots': BEGIN
+      (*self.state).mark_sat_spots = 1 - (*self.state).mark_sat_spots
+      widget_control,  (*self.state).menu_ids[ where((*self.state).menu_labels eq "Mark Sat Spots")],$
+        set_button = (*self.state).mark_sat_spots
+	  self->refresh
     END
 
     'Retain Current Slice': BEGIN
@@ -2572,7 +2598,8 @@ pro GPItv::draw_vector_event, event, measure=measure, wavecal=wavecal
         (*self.state).vectorstart = [event.x, event.y] 	; stores X and Y locations in DISPLAY PIXELS
         self->drawvector, event, measure=measure, wavecal=wavecal
         (*self.state).vectorpress = 1
-      endif else if (event.press EQ 2) and keyword_set(measure) then begin
+      endif else if ((event.press EQ 2) or (event.press EQ 4)) and keyword_set(measure) then begin
+		; For middle or right click:
         ; Measure from star center location, if present
         ;; if not data cube, bail
         if (n_elements((*self.state).image_size) ne 3) || (((*self.state).image_size)[2] lt 2) then return
@@ -2580,7 +2607,8 @@ pro GPItv::draw_vector_event, event, measure=measure, wavecal=wavecal
         if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
           self->update_sat_spots
           ;;if failed, need to return
-          if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then return
+		  if ~self.satspots.valid then return
+          ;if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then return
         endif
         ;;calculate center locations
         ;  cents = mean(*self.satspots.cens,dim=2) ; not idl 7.0 compatible
@@ -2601,7 +2629,7 @@ pro GPItv::draw_vector_event, event, measure=measure, wavecal=wavecal
       endif
     end
     1: begin           ; button release
-      if (event.release EQ 1) or (event.release EQ 2) then begin  ; left button release
+      if (event.release EQ 1) or (event.release EQ 2) or (event.release EQ 4) then begin  ; left button release
         (*self.state).vectorpress = 0
         (*self.state).vector_coord2[0] = (*self.state).coord[0] ; DATA COORDINATE PIXELS again.
         (*self.state).vector_coord2[1] = (*self.state).coord[1]
@@ -3296,7 +3324,7 @@ pro GPItv::collapsecube
 
   ;; collapse as necessary
   widget_control, (*self.state).collapse_button, get_value=modelist
-  print, modelist[(*self.state).collapse]
+  ;print, modelist[(*self.state).collapse]
   case modelist[(*self.state).collapse] of
     'Show Cube Slices': begin  ; show slices
 
@@ -3579,7 +3607,7 @@ end
 pro GPItv::set_minmax
 
   ; Updates the min and max text boxes with new values.
-
+  ; This is the display scale min and max, not the actual image counts min and max. 
 
   if (abs((*self.state).min_value) gt 1e6) || (abs((*self.state).min_value) lt 1e-4) then formi='(e10.2)'
   widget_control, (*self.state).min_text_id, set_value = string((*self.state).min_value,format=formi)
@@ -3767,7 +3795,7 @@ pro gpitv::refresh_image_invert_rotate
   endif
 
   ;;if there are sat spots in memory, they need to be updated as well
-  if (n_elements(*self.satspots.cens) eq 8L * (*self.state).image_size[2]) then update_sats = 1 else update_sats = 0
+  if self.satspots.valid then update_sats = 1 else update_sats = 0
 
   ; do we have a 3D cube, in which case we will have to transform each slice?
   szmis=size(*self.images.main_image_stack)
@@ -4043,10 +4071,14 @@ end
 
 ;------------------------------------------------------------------
 
-pro GPItv::change_image_units, new_requested_units, silent=silent
+pro GPItv::change_image_units, new_requested_units, silent=silent, loading_new_image=loading_new_image
   ; Update the currently displayed image to a new choice of display unit.
   ; This involves rescaling the actual pixel values of the main image stack,
   ; and applying the same transformation to the min/max display scaling.
+  ;
+  ; Parameters:
+  ;  /silent		      don't display text output
+  ;  /loading_new_image   needed to support retain_image_stretch and not adjust minmax - see issue #349 for motivation
 
   if n_elements(new_requested_units) eq 0 then return
 
@@ -4120,7 +4152,7 @@ pro GPItv::change_image_units, new_requested_units, silent=silent
       endif
 
       ;;if no sat spots exist in memory (or are the wrong size), get the sat spot
-      ;;locations and fluxers
+      ;;locations and fluxes
       if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) && proceed then begin
         self->update_sat_spots,locs0=locs0
         ;;if failed, bail
@@ -4130,7 +4162,7 @@ pro GPItv::change_image_units, new_requested_units, silent=silent
       endif
 
       ;;get the contrast cube
-      if proceed then begin
+      if proceed then begin ; apply transformation
         copsf = (*self.images.main_image_stack)
         ;;scale by sat spot mean
         for j = 0, (size(copsf,/dim))[2]-1 do $
@@ -4139,18 +4171,19 @@ pro GPItv::change_image_units, new_requested_units, silent=silent
 
 
         conversion_factor = 1./((1./(*self.state).gridfac)*mean((*self.satspots.satflux)[*, (*self.state).cur_image_num ]))
-        (*self.state).max_value *= conversion_factor
-        (*self.state).min_value *= conversion_factor
+		if ~ (keyword_set(loading_new_image) and  (*self.state).retain_current_stretch) then begin
+          (*self.state).max_value *= conversion_factor
+          (*self.state).min_value *= conversion_factor
+		endif
 
-      endif
-
-      if ~proceed then begin
+      endif else begin ; reset to prior requested units
         ind = where(STRCMP(  *(*self.state).unitslist,(*self.state).current_units))
         widget_control, (*self.state).units_droplist_id, set_droplist_select = ind, set_value=*(*self.state).unitslist
         return
-      endif
+	endelse
 
     endif else begin
+	  ; All units other than contrast are handled here:
 
       ;; special cases: the easy conversions between ADU <-> ADU/s
       ;; that don't require any flux calibration knowledge
@@ -4168,93 +4201,95 @@ pro GPItv::change_image_units, new_requested_units, silent=silent
         ;;first, scale from current units to 'ph/s/nm/m^2'
         case (*self.state).current_units of
           'ADU per coadd':begin
-          for i=0,nim-1 do begin
-            (*self.images.main_image_stack)[*,*,i]*=double(((*self.state).flux_calib_convfac)[i])/((*self.state).itime)
-          endfor
-        end
-        'ADU/s':begin
-        for i=0,nim-1 do begin
-          (*self.images.main_image_stack)[*,*,i]*=double(((*self.state).flux_calib_convfac)[i])
-        endfor
-      end
-      'ph/s/nm/m^2':begin
-    end
-    'Jy':begin
-    for i=0,nim-1 do begin
-      (*self.images.main_image_stack)[*,*,i]/=(1e3*((*(*self.state).CWV_ptr)[i])/1.509e7)
-    endfor
-  end
-  'W/m^2/um':begin
-  for i=0,nim-1 do begin
-    (*self.images.main_image_stack)[*,*,i]/=(1.988e-13/(1e3*((*(*self.state).CWV_ptr)[i])))
-  endfor
-end
-'ergs/s/cm^2/A':begin
-for i=0,nim-1 do begin
-  (*self.images.main_image_stack)[*,*,i]/=(1.988e-14/(1e3*((*(*self.state).CWV_ptr)[i])))
-endfor
-end
-'ergs/s/cm^2/Hz':begin
-for i=0,nim-1 do begin
-  (*self.images.main_image_stack)[*,*,i]/=((1e3*((*(*self.state).CWV_ptr)[i]))/1.509e30)
-endfor
-end
-else:  begin
-  UnsupportedUnits=1
-end
-endcase
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]*=double(((*self.state).flux_calib_convfac)[i])/((*self.state).itime)
+            endfor
+          end
+          'ADU/s':begin
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]*=double(((*self.state).flux_calib_convfac)[i])
+            endfor
+          end
+          'ph/s/nm/m^2':begin
+          end
+          'Jy':begin
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]/=(1e3*((*(*self.state).CWV_ptr)[i])/1.509e7)
+            endfor
+          end
+          'W/m^2/um':begin
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]/=(1.988e-13/(1e3*((*(*self.state).CWV_ptr)[i])))
+            endfor
+          end
+          'ergs/s/cm^2/A':begin
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]/=(1.988e-14/(1e3*((*(*self.state).CWV_ptr)[i])))
+            endfor
+          end
+          'ergs/s/cm^2/Hz':begin
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]/=((1e3*((*(*self.state).CWV_ptr)[i]))/1.509e30)
+            endfor
+          end
+          else:  begin
+            UnsupportedUnits=1
+          end
+        endcase
 
 
-if keyword_set(unsupportedUnits) then begin
-  self->message, 'The requested unit is not supported for conversions. Cannot rescale the image',/window, msgtype='error'
-  return
-endif else begin
+        if keyword_set(unsupportedUnits) then begin
+          self->message, 'The requested unit is not supported for conversions. Cannot rescale the image',/window, msgtype='error'
+          return
+        endif else begin
 
-  ;;then scale to new units
-  ;;from ph/s/nm/m^2 syst. to syst chosen
-  case new_requested_units of
-    'ADU per coadd': begin
-      for i=0,nim-1 do begin
-        (*self.images.main_image_stack)[*,*,i]/=(double(((*self.state).flux_calib_convfac)[i])/((*self.state).itime))
-      endfor
-    end
-    'ADU/s':begin
-    for i=0,nim-1 do begin
-      (*self.images.main_image_stack)[*,*,i]/=double(((*self.state).flux_calib_convfac)[i])
-    endfor
-  end
-  'ph/s/nm/m^2': begin
-  end
-  'Jy':  begin
-    for i=0,nim-1 do begin
-      (*self.images.main_image_stack)[*,*,i]*=(1e3*((*(*self.state).CWV_ptr)[i])/1.509e7)
-    endfor
-  end
-  'W/m^2/um':  begin
-    for i=0,nim-1 do begin
-      (*self.images.main_image_stack)[*,*,i]*=(1.988e-13/(1e3*((*(*self.state).CWV_ptr)[i])))
-    endfor
-  end
-  'ergs/s/cm^2/A':  begin
-    for i=0,nim-1 do begin
-      (*self.images.main_image_stack)[*,*,i]*=(1.988e-14/(1e3*((*(*self.state).CWV_ptr)[i])))
-    endfor
-  end
-  'ergs/s/cm^2/Hz':  begin
-    for i=0,nim-1 do begin
-      (*self.images.main_image_stack)[*,*,i]*=((1e3*((*(*self.state).CWV_ptr)[i]))/1.509e30)
-    endfor
-  end
-endcase
-endelse
-endelse
+          ;;then scale to new units
+          ;;from ph/s/nm/m^2 syst. to syst chosen
+          case new_requested_units of
+            'ADU per coadd': begin
+              for i=0,nim-1 do begin
+                (*self.images.main_image_stack)[*,*,i]/=(double(((*self.state).flux_calib_convfac)[i])/((*self.state).itime))
+              endfor
+            end
+            'ADU/s':begin
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]/=double(((*self.state).flux_calib_convfac)[i])
+            endfor
+          end
+          'ph/s/nm/m^2': begin
+          end
+          'Jy':  begin
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]*=(1e3*((*(*self.state).CWV_ptr)[i])/1.509e7)
+            endfor
+          end
+          'W/m^2/um':  begin
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]*=(1.988e-13/(1e3*((*(*self.state).CWV_ptr)[i])))
+            endfor
+          end
+          'ergs/s/cm^2/A':  begin
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]*=(1.988e-14/(1e3*((*(*self.state).CWV_ptr)[i])))
+            endfor
+          end
+          'ergs/s/cm^2/Hz':  begin
+            for i=0,nim-1 do begin
+              (*self.images.main_image_stack)[*,*,i]*=((1e3*((*(*self.state).CWV_ptr)[i]))/1.509e30)
+            endfor
+          end
+        endcase
+      endelse ; else case from if keyword_set(unsupportedUnits)
+    endelse ; else case of nontrivial flux conversions
 
-;;do the actual conversion here
-*self.images.main_image *= conversion_factor
-*self.images.main_image_stack *= conversion_factor
-(*self.state).max_value *= conversion_factor
-(*self.state).min_value *= conversion_factor
-endelse ;;contrast if block
+    ;;do the actual conversion here
+    *self.images.main_image *= conversion_factor
+    *self.images.main_image_stack *= conversion_factor
+    if ~ (keyword_set(loading_new_image) and  (*self.state).retain_current_stretch) then begin
+    	(*self.state).max_value *= conversion_factor
+    	(*self.state).min_value *= conversion_factor
+    endif 
+endelse ;;else case from if new_requested_units eq 'Contrast'
 
 (*self.state).current_units= new_requested_units
 endif ;;if new = current units
@@ -4610,8 +4645,9 @@ pro GPItv::changeimage,imagenum,next=next,previous=previous, nocheck=nocheck,$
 
   ; If we have a valid DQ extension stack, then we should update the
   ; DQ current image with the appropriate slice.
+
   if (*self.state).has_dq_mask then if (size(*self.images.dq_image_stack))[0] eq 3 then  $
-    *self.images.dq_image = (*self.images.dq_image_stack)[*, *, (*self.state).cur_image_num]
+    *self.images.dq_image = (*self.images.dq_image_stack)[*, *, (*self.state).cur_image_num<((size(*self.images.dq_image_stack))[3]-1)]
 
   self->getstats
   case (*self.state).curimnum_minmaxmode of
@@ -4665,6 +4701,10 @@ pro GPItv::setcubeslicelabel
       stokesindex = (*self.state).cur_image_num-crpix3+crval3
       currlabel = modelabels[stokesindex+8]
     end
+	'KLMODES': begin
+		label = sxpar(*(*self.state).exthead_ptr,"KLMODE"+strc((*self.state).cur_image_num), ct)
+		currlabel = "n="+strc(label)
+	end
     else:begin
     currlabel="Unknown"
   end
@@ -5914,8 +5954,11 @@ pro GPItv::setup_new_image, header=header, imname=imname, $
   ;; clean up anything left from previous image
   ;; remove any existing satellite spots, and allocate proper size for
   ;; contrast profile pointers - has to be done before calling collapsecube
+  self.satspots.valid = 0
+  self.satspots.attempted = 0
   ptr_free,self.satspots.cens
   self.satspots.cens = ptr_new(/allocate_heap)
+  (*self.state).fpmoffset_fpmpos = 0
 
   ;; kill everything associated with contrprofile
   heap_free,self.satspots.asec
@@ -6060,11 +6103,19 @@ pro GPItv::update_sat_spots,locs0=locs0
   ;
   ;locs0 - Starting locations to try
 
+
+  ; if we already attempted to measure them but failed, don't
+  ; mindlessly keep repeating that. We already know we can't make
+  ; it work for this file...
+  if ~self.satspots.valid and self.satspots.attempted then return 
+
   ;;if the info is in the header, just get it from there
   cens = -1
-  if ptr_valid( (*self.state).exthead_ptr) then cens = gpi_satspots_from_header(*((*self.state).exthead_ptr),good=good,fluxes=sats,warns=warns)
+  if ptr_valid( (*self.state).exthead_ptr) then $
+	  cens = gpi_satspots_from_header(*((*self.state).exthead_ptr),good=good,fluxes=sats,warns=warns)
 
   ;;otherwise, look for them
+  self.satspots.attempted = 1
   if n_elements(cens) eq 1 then begin
 
     ;;always use the backup main image so that you know you're
@@ -6129,63 +6180,72 @@ pro GPItv::update_sat_spots,locs0=locs0
 
   filter = (*self.state).obsfilt
 
-  ;;get wavelengths of cube
-  cube_waves = *((*self.state).CWV_ptr)
 
-  ;;get vega flux
-  ;; vega zero points and filter central wavelenghts stored in gpi_constants config file
-  filt_cen_wave=gpi_get_constant('cen_wave_'+filter)       ; in um
-  zero_vega=gpi_get_constant('zero_pt_flux_'+filter)       ; in erg/cm2/s/um
+  if (*self.state).cube_mode eq 'WAVE' then begin
 
-  ;;#####
-  ;;must convert to photons
-  ;;#####
-  h=6.626068d-27                      ; erg / s
-  c=2.99792458d14                     ; um / s
-  zero_vega*=(filt_cen_wave/(h*c))    ; ph/cm2/s/um
+	  ;;get wavelengths of cube
+	  cube_waves = *((*self.state).CWV_ptr)
 
-  ;; get the pupil area (cm^2)
-  primary_diam = gpi_get_constant('primary_diam',default=7.7701d0)*100d ; cm
-  secondary_diam = gpi_get_constant('secondary_diam',default=1.02375d0)*100d ; cm
-  area=(!pi*(primary_diam/2.0)^2.0 - !pi*(secondary_diam/2.0)^2.0 )
-  zero_vega*=area               ; ph/s/um
-  ;; multiply by instrument throughput (18.6%) in H-band
-  ;; assumes H-band PPM and 080m12_04  Lyot, and H-filter
+	  ;;get vega flux
+	  ;; vega zero points and filter central wavelenghts stored in gpi_constants config file
+	  filt_cen_wave=gpi_get_constant('cen_wave_'+filter)       ; in um
+	  zero_vega=gpi_get_constant('zero_pt_flux_'+filter)       ; in erg/cm2/s/um
+
+	  ;;#####
+	  ;;must convert to photons
+	  ;;#####
+	  h=6.626068d-27                      ; erg / s
+	  c=2.99792458d14                     ; um / s
+	  zero_vega*=(filt_cen_wave/(h*c))    ; ph/cm2/s/um
+
+	  ;; get the pupil area (cm^2)
+	  primary_diam = gpi_get_constant('primary_diam',default=7.7701d0)*100d ; cm
+	  secondary_diam = gpi_get_constant('secondary_diam',default=1.02375d0)*100d ; cm
+	  area=(!pi*(primary_diam/2.0)^2.0 - !pi*(secondary_diam/2.0)^2.0 )
+	  zero_vega*=area               ; ph/s/um
+	  ;; multiply by instrument throughput (18.6%) in H-band
+	  ;; assumes H-band PPM and 080m12_04  Lyot, and H-filter
 
 
-  ;; get instrument transmission (and resolution)
-  ;; corrections for lyot, PPM, and filter transmission
-  pupil_mask_string=gpi_simplify_keyword_value(sxpar(header,'APODIZER'))
-  lyot_mask_string=sxpar(header,'LYOTMASK')
-  transmission=calc_transmission(filter, pupil_mask_string, lyot_mask_string, resolution=resolution, without_filter=1)
+	  ;; get instrument transmission (and resolution)
+	  ;; corrections for lyot, PPM, and filter transmission
+	  pupil_mask_string=gpi_simplify_keyword_value(sxpar(header,'APODIZER'))
+	  lyot_mask_string=sxpar(header,'LYOTMASK')
+	  transmission=calc_transmission(filter, pupil_mask_string, lyot_mask_string, resolution=resolution, without_filter=1)
 
-  if transmission[0] eq -1 then begin
-    self->message,msgtype='error',['Failed to calculate transmission']
-    return
-  endif
+	  if transmission[0] eq -1 then begin
+		self->message,msgtype='error',['Failed to calculate transmission']
+		return
+	  endif
 
-  ;; no filter transmission included - instead we will integrate the vega spectrum over the filter profile
-  zero_vega*=transmission       ; ph/s/um
+	  ;; no filter transmission included - instead we will integrate the vega spectrum over the filter profile
+	  zero_vega*=transmission       ; ph/s/um
 
-  ;; multiply by the integration time
-  zero_vega*=sxpar(extheader,'ITIME')   ; ph/um
-  ;; now the unit wavelength
-  ; calculate the width of a wavelength slice
-  dlambda=cube_waves[1]-cube_waves[0]
-  zero_vega*=dlambda ; now in ph/slice
-  ;; load filters for integration
-  filt_prof0=mrdfits( gpi_get_directory('GPI_DRP_CONFIG')+'/filters/GPI-filter-'+filter+'.fits',1,/silent)
-  filt_prof=interpol(filt_prof0.transmission,filt_prof0.wavelength,cube_waves)
+	  ;; multiply by the integration time
+	  zero_vega*=sxpar(extheader,'ITIME')   ; ph/um
+	  ;; now the unit wavelength
+	  ; calculate the width of a wavelength slice
+	  dlambda=cube_waves[1]-cube_waves[0]
+	  zero_vega*=dlambda ; now in ph/slice
+	  ;; load filters for integration
+	  filt_prof0=mrdfits( gpi_get_directory('GPI_DRP_CONFIG')+'/filters/GPI-filter-'+filter+'.fits',1,/silent)
+	  filt_prof=interpol(filt_prof0.transmission,filt_prof0.wavelength,cube_waves)
 
-  ;; note that Naru measured the photometry using a 3 pixel radius - he calculated later that the sum of the entire spot is equal to 0.57*3pixel photometry
-  ;; i did this in one slice and got 0.63 - not far off
-  sat_mag=-2.5*alog10(total( (gain*mean_sat_flux/0.57) )$
-    /total(zero_vega*filt_prof))
+	  ;; note that Naru measured the photometry using a 3 pixel radius - he calculated later that the sum of the entire spot is equal to 0.57*3pixel photometry
+	  ;; i did this in one slice and got 0.63 - not far off
+	  sat_mag=-2.5*alog10(total( (gain*mean_sat_flux/0.57) )$
+		/total(zero_vega*filt_prof))
 
-  ;; need to use satellite intensity flux calibration to get magnitude of star
-  ;;msat-mstar=-2.5log(Fsat/Fstar)
-  mags=sat_mag+2.5*alog10(((*self.state).gridfac))
-  ;;update sat spots to account for any inversion/rotation
+	  ;; need to use satellite intensity flux calibration to get magnitude of star
+	  ;;msat-mstar=-2.5log(Fsat/Fstar)
+	  mags=sat_mag+2.5*alog10(((*self.state).gridfac))
+	  ;;update sat spots to account for any inversion/rotation
+  endif else begin
+	  ; TODO - add photometric calibration support for pol mode
+	  self->message,'sat spot photometry not supported in pol mode yet'
+	  mags = dblarr(2)
+  endelse
+
   ichange = (*self.state).invert_image
   if strmatch(ichange,'x*') then cens[0,*,*] = (*self.state).image_size[0] - cens[0,*,*]
   if strmatch(ichange,'*y') then cens[1,*,*] = (*self.state).image_size[1] - cens[1,*,*]
@@ -6203,6 +6263,8 @@ pro GPItv::update_sat_spots,locs0=locs0
   *self.satspots.good = good       ;;indices of slices where all spots were found
   *self.satspots.satflux = sats    ;;4 x Z array of satellite spot fluxes
   *self.satspots.mags = mags       ;;central star mag calculated via sat spots
+  self.satspots.valid = 1
+  self.satspots.attempted = 1
 
   ;;delete any existing contrast profiles. new spots means new
   ;;profile and reallocate (arrays of radial profile vals)
@@ -8310,7 +8372,7 @@ pro GPItv::setheadinfo, noresize=noresize
         ;(((*self.state).CWV_lmax-(*self.state).CWV_lmin)/((*self.state).CWV_NLam-1))[0]
         (*self.state).CWV_ptr=ptr_new(CWV)
 
-        widget_control, (*self.state).curimnum_lambLabel_id, set_value="Wavelen[um]="
+        widget_control, (*self.state).curimnum_lambLabel_id, set_value="Wavelen[um]:"
 
         modelist = ['Show Cube Slices', 'Collapse by Mean', 'Collapse by Median', 'Collapse by SDI', 'Collapse to RGB Color','Align speckles','High Pass Filter','Low Pass Filter','Run KLIP', 'Create SNR Map']
         widget_control, (*self.state).collapse_button, set_value = modelist
@@ -8327,7 +8389,7 @@ pro GPItv::setheadinfo, noresize=noresize
         (*self.state).cube_mode='STOKES'
         ;; set display stuff
         self->message, msgtype = 'information', "Configuring GPItv for STOKES MODE"
-        widget_control, (*self.state).curimnum_lambLabel_id, set_value="Polariz.="
+        widget_control, (*self.state).curimnum_lambLabel_id, set_value="Polariz.:"
 
         modelist = ['Show Cube Slices', 'Collapse by Mean', 'Collapse by Median', 'High Pass Filter','Low Pass Filter']
         ;; do we have a 2-Slice pol stack, or a 4-slice cube?
@@ -8338,22 +8400,32 @@ pro GPItv::setheadinfo, noresize=noresize
 
         widget_control, (*self.state).collapse_button, set_value = modelist
       end
+	  'KLMODES': begin
+        (*self.state).cube_mode='KLMODES'
+        ;; set display stuff
+        self->message, msgtype = 'information', "Configuring GPItv for K-L PSF Subtraction Residuals Mode"
+        modelist = ['Show Cube Slices', 'High Pass Filter','Low Pass Filter']
+        widget_control, (*self.state).collapse_button, set_value = modelist
+		widget_control, (*self.state).curimnum_lamblabel_id, set_value="K-L Modes:  "
+
+	  end
       else:begin
-      self->message, msgtype = 'warning', "Unknown file mode: "+mode
-      (*self.state).cube_mode='UNKNOWN'
-      modelist = ['Show Cube Slices', 'Collapse by Mean', 'Collapse by Median', 'Collapse to RGB Color']
-      widget_control, (*self.state).collapse_button, set_value = modelist
-    end
+        self->message, msgtype = 'warning', "Unknown file mode: "+mode
+        (*self.state).cube_mode='UNKNOWN'
+        modelist = ['Show Cube Slices', 'Collapse by Mean', 'Collapse by Median', 'Collapse to RGB Color']
+        widget_control, (*self.state).collapse_button, set_value = modelist
+      end
   endcase
 endif else (*self.state).cube_mode='UNKNOWN'
 
 
 self->update_DQ_warnings
 
-if keyword_set(prior_retained_units) then $
+if keyword_set(prior_retained_units) then begin
   if ((prior_retained_units ne 'Unknown') and ((*self.state).current_units ne 'Unknown')) then begin
-  self->message, "Retaining prior units: "+prior_retained_units
-  self->change_image_units,prior_retained_units,  /silent
+    self->message, "Retaining prior units: "+prior_retained_units
+    self->change_image_units,prior_retained_units,  /silent, /loading_new_image
+  endif
 endif
 if ~keyword_set(noresize) then self->resize ; MDP addition 2008-10-20
 
@@ -8435,6 +8507,7 @@ pro GPItv::update_child_windows, noheader=noheader,update=update
   if xregistered(self.xname+'_apphot', /noshow) then self->apphot_refresh
   if xregistered(self.xname+'_anguprof', /noshow) then self->anguprof_refresh
   if xregistered(self.xname+'_contrprof',/noshow) then self->contrprof_refresh
+  if xregistered(self.xname+'_fpmoffset',/noshow) then self->fpmoffset_refresh
   if xregistered(self.xname+'_pixtable', /noshow) then self->pixtable_update
   if xregistered(self.xname+'_lineplot', /noshow) then self->lineplot_update,update=update
   if xregistered(self.xname+'_stats', /noshow) then self->stats_refresh
@@ -9578,7 +9651,9 @@ pro GPItv::plotall
 
   ; Routine to overplot all line, text, and contour plots
 
-  if (self.pdata.nplot EQ 0) then return
+  if ((self.pdata.nplot + (*self.state).mark_sat_spots)  EQ 0) then return
+
+  self->setwindow, (*self.state).draw_window_id
 
   self->plotwindow
 
@@ -9598,6 +9673,14 @@ pro GPItv::plotall
       else      : self->message, msgtype='error','Problem in self->plotall!'
     endcase
   endfor
+
+  ; special case: sat spots
+  ; This is handled via a menu state toggle rather than an 
+  ; annotation, because that's a nicer user interface, and
+  ; lets the setting persist when switching cubes.
+  if (*self.state).mark_sat_spots then self->plot1satspots
+
+  self->resetwindow
 
 end
 
@@ -11271,7 +11354,7 @@ pro GPItv::plot1wavecalgrid,iplot
       ;		      end
       ;	endcase
 
-      if ((size(wavecal))[3] ne 5) then begin
+      if ((size(wavecal))[3] ne 5) and ((size(wavecal))[3] ne 6) then begin
         self->message, msgtype = 'warning', 'Selected wavecal file has invalid array axes lengths. Can not plot.'
         return
       endif
@@ -11307,10 +11390,17 @@ pro GPItv::plot1wavecalgrid,iplot
             ;				DISP[1,1]=(DISP[1,1]- (*self.state).offset[1] + 0.5) * (*self.state).zoom_factor
             ;
             for kk=0,1 do begin
-              ; find location of endpoints in detector coords
-              distance = (lambdarange[kk]-wavecal[ii,jj,2])/wavecal[ii,jj,3]
-              DISP[0,kk] = distance*sin(wavecal[ii,jj,4])+wavecal[ii,jj,1]
-              DISP[1,kk] = -distance*cos(wavecal[ii,jj,4])+wavecal[ii,jj,0]
+                if ((size(wavecal))[3] eq 5) then begin
+                   ; find location of endpoints in detector coords
+                   distance = (lambdarange[kk]-wavecal[ii,jj,2])/wavecal[ii,jj,3]
+                   DISP[0,kk] = distance*sin(wavecal[ii,jj,4])+wavecal[ii,jj,1]
+                   DISP[1,kk] = -distance*cos(wavecal[ii,jj,4])+wavecal[ii,jj,0]
+                endif else begin
+                   deltalam = (lambdarange[kk]-wavecal[ii,jj,2])
+                   DISP[1,kk] = wavecal[ii,jj,0]-cos(wavecal[ii,jj,4])*(deltalam/wavecal[ii,jj,3]+deltalam^2.*wavecal[ii,jj,5])
+                   DISP[0,kk] = wavecal[ii,jj,1]+sin(wavecal[ii,jj,4])*(deltalam/wavecal[ii,jj,3]+deltalam^2.*wavecal[ii,jj,5])
+                endelse
+
               ; transform to display coords
               DISP[0,kk] = (DISP[0,kk]- (*self.state).offset[0] + 0.5) * (*self.state).zoom_factor
               DISP[1,kk] = (DISP[1,kk]- (*self.state).offset[1] + 0.5) * (*self.state).zoom_factor
@@ -11767,7 +11857,7 @@ pro GPItv::selectwavecal
 end
 
 ;---------------------------------------------------------------------
-pro GPItv::getautowavecal
+pro GPItv::getautowavecal,silent=silent
   ; load automatic best wavelength calibration (or polarizatoin calibration)
   ; file from the GPI Calibration DB
 
@@ -11802,7 +11892,8 @@ pro GPItv::getautowavecal
     self->message, ['ERROR: No available appropriate calibration files for this data!','', 'The calibration database does not contain a wavecal or polcal file','that matches this image in IFSFILT and DISPERSR keywords. Cannot load data to plot.'],/window,msgtype='error'
     (*self.state).wcfilename=''
   endif else begin
-    self->message, ["Retrieved "+calfiletype+" file from Calibration DB: "+bestfile, "Now select 'Plot Wavecal/Polcal Grid' to display it."],/window
+	if ~(keyword_set(silent)) then $
+	    self->message, ["Retrieved "+calfiletype+" file from Calibration DB: "+bestfile, "Now select 'Plot Wavecal/Polcal Grid' to display it."],/window
     (*self.state).wcfilename = bestfile
   endelse
 
@@ -11812,9 +11903,17 @@ end
 
 pro GPItv::wavecalgridlabel
   ; Front-end widget for wavecal labels
+
+  ; if we don't have a wavecal selected, try to load one automatically:
   if (*self.state).wcfilename eq '' then begin
-    self->message, msgtype = 'error', "You must select a wavelength/polarization calibration file first before you can overplot the solution!",/window
-    return
+	  self->getautowavecal,/silent
+
+	  ; if we still don't have one (because the auto load didn't work)
+	  ; then tell the user they have to intervene manually.
+	  if (*self.state).wcfilename eq '' then begin
+		self->message, msgtype = 'error', "You must select a wavelength/polarization calibration file first before you can overplot the solution!",/window
+		return
+	  endif
   endif
 
   ; Check for applied shifts to account for flexure
@@ -11846,7 +11945,7 @@ pro GPItv::wavecalgridlabel
   ; Query the user for desired wavecal display options
 
   formdesc = ['0, droplist, black|red|green|blue|cyan|magenta|yellow|white,label_left=Grid Color:   , set_value=1 ', $ ; tag0
-    '0, droplist, black|red|green|blue|cyan|magenta|yellow|white,label_left=Tilt Color:   , set_value=2 ', $ ; tag1
+    '0, droplist, black|red|green|blue|cyan|magenta|yellow|white,label_left=Trace Color:   , set_value=2 ', $ ; tag1
     '0, label, Recommended spot shifts from flexure model:,left ',$	; tag2
     '0, label,     (delta X\, delta Y) = ('+sigfig(recommended_shifts[0],3)+'\, '+sigfig(recommended_shifts[1],3)+' ) , center',$	; tag3
     '0, float, '+string(shiftx)+', label_left=Spot Shift X: ', $ ; tag4
@@ -14617,6 +14716,94 @@ pro GPItv::lineplot_event, event
 end
 
 ;--------------------------------------------------------------------------------
+
+pro GPITv::plot1satspots, iplot
+; Draw satellite spot indicators on the main window
+
+  ;if (*self.state).cube_mode ne 'WAVE' then begin
+	  ;self->message,"Can't plot sat spots in pol mode yet - still to be implemented"
+	  ;return
+  ;endif
+ 
+  
+	; if we have FPM location, mark that too.
+	; (Do this first so it works even for images without sat spots)
+  if (*self.state).fpmoffset_fpmpos[0] gt 0 then begin
+	hd = *((*self.state).head_ptr)
+	IFSFILT = gpi_simplify_keyword_value(sxpar(hd, 'IFSFILT'))
+	fpmdiam = gpi_get_constant('fpm_diam_'+strlowcase(IFSFILT))
+	scale = gpi_get_constant('ifs_lenslet_scale')
+
+    tvcircle, /data, fpmdiam/2/scale, $
+			(*self.state).fpmoffset_fpmpos[0],$
+			(*self.state).fpmoffset_fpmpos[1],$
+			color=cgcolor('black'), thick=2, psym=0
+	tvcircle, /data, fpmdiam/2/scale, $
+			(*self.state).fpmoffset_fpmpos[0],$
+			(*self.state).fpmoffset_fpmpos[1],$
+			color=cgcolor('yellow'), thick=2, lines=2, psym=0
+
+
+  endif
+
+; First make sure we have sat spot info
+  if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
+    self->update_sat_spots,locs0=locs0
+    ;;if failed, bail
+    if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
+		self->message, "Can't mark sat spots because no sat spot info available."
+      return
+    endif
+  endif
+
+	ind = (*self.state).cur_image_num
+
+	;;check for warnings
+	case (*self.satspots.warns)[ind] of
+		0: color='cyan'
+		1: color="orange"
+		-1: color="red"
+	endcase
+
+
+    ;;find center
+    xc = mean( (*self.satspots.cens)[0,*,ind] )
+    yc = mean( (*self.satspots.cens)[1,*,ind] )
+
+	;self->plotwindow
+
+	oplot, (*self.satspots.cens)[0,*,ind],$
+		(*self.satspots.cens)[1,*,ind],psym=1, color=cgcolor(color)
+
+     for i=0,3 do begin
+
+		; Mark position at current wavelength
+        tvcircle, /data, (*self.state).contrap, $
+			(*self.satspots.cens)[0,i,ind],$
+			(*self.satspots.cens)[1,i,ind],$
+			color=cgcolor(color), thick=2, psym=0
+
+		; mark trace over all wavelengths
+		oplot, (*self.satspots.cens)[0,i,*], (*self.satspots.cens)[1,i,*], psym=-3, color=cgcolor(color), thick=1, lines=2
+	endfor
+
+	; mark any that are flagged with warnings
+	for j=0,(*self.state).image_size[2]-1 do begin
+		if (*self.satspots.warns)[j] ne 0 then $
+			oplot, (*self.satspots.cens)[0,*,j],$
+				   (*self.satspots.cens)[1,*,j],psym=1, color=cgcolor('red')
+	endfor
+
+	; mark center of star
+    oplot, [xc], [yc], psym=1, symsize=3, color=cgcolor('orange'), thick=2
+ 
+
+
+
+end
+
+
+;--------------------------------------------------------------------------------
 pro GPItv::polarim_from_cube, status=status, $
   magnification=magnification, $
   binning=binning, fractional=fractional, $
@@ -14980,6 +15167,17 @@ end
 
 pro GPItv::polarim_options_dialog
   ; Display the polarimetry vector overplotting control dialog window.
+
+  if (*self.state).cube_mode ne 'STOKES' then begin
+	  self->message, 'Not a polarization cube. The currently loaded data is not polarimetry mode so polarimetry vector display is not possible.',msgtype='error', /window
+	  return
+  endif
+  if (*self.state).image_size[2] lt 4 then begin
+	  self->message, ['Not a Stokes polarization cube. The currently loaded data is only 2 orthogonal polarizations,','not a 4-element Stokes vector cube, so polarimetry vector display is not possible.'],msgtype='error', /window
+	  return
+  endif
+
+
 
   (*self.state).polarim_display = 1 ; Any time you open this dialog, you probably want the plot active
 
@@ -17111,12 +17309,45 @@ pro GPItv::apphot_refresh, ps=ps, enc_ener=enc_ener, sav=sav
   ;;update display
   (*self.state).centerpos = [x, y]
   xy2ad, (*self.state).centerpos[0], (*self.state).centerpos[1],*((*self.state).astr_ptr) ,  startra, startdec
+  tmp_stringb = 'RA: '+sigfig(startra,5)+" DEC: "+sigfig(startdec,5)
+
+  ; Let's display relative coords instead of absolute, if we have a datacube
+  ; with sat spots:
+    if (n_elements((*self.state).image_size) eq 3) then begin
+        if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then self->update_sat_spots
+		; if we still don't have sat spots, skip this
+		if (n_elements(*self.satspots.cens) eq 8L * (*self.state).image_size[2]) then begin
+			;;calculate center locations
+			;  cents = mean(*self.satspots.cens,dim=2) ; not idl 7.0 compatible
+			tmp=*self.satspots[*].cens
+			cents=fltarr(2)
+			for q=0, 1 do cents[q]=mean(tmp[q,*,*])
+			vector_coord1 = cents
+			coord = [x,y]
+
+			pixel_distance =sqrt( ((vector_coord1[0]-coord[0]))^2 $
+			  +((vector_coord1[1]-coord[1]))^2 )
+
+			; Compute rigorous great circle distance using gcirc etc
+			;  provides correct results for complicated projections.
+			xy2ad, vector_coord1[0], vector_coord1[1],*((*self.state).astr_ptr) ,  startra, startdec
+			xy2ad, coord[0],         coord[1],        *((*self.state).astr_ptr) ,  stopra, stopdec
+			gcirc, 1, startra/15, startdec, stopra/15, stopdec, distance
+			posang, 1, startra/15, startdec, stopra/15, stopdec, pa
+
+
+		tmp_stringb = "Relative offset:  "+sigfig(distance,3)+'"  PA='+sigfig(pa,3)+" deg"
+
+
+		endif
+ 
+
+    endif
 
   tmp_string = string((*self.state).cursorpos[0], (*self.state).cursorpos[1], $
     format = '("Cursor position:  x=",i4,"  y=",i4)' )
   tmp_string1 = string((*self.state).centerpos[0], (*self.state).centerpos[1], $
     format = '("Object centroid:  x=",f7.2,"  y=",f7.2)' )
-  tmp_stringb = 'RA: '+sigfig(startra,5)+" DEC: "+sigfig(startdec,5)
   tmp_string2 = strcompress(fluxstr+string(flux, format = '(g12.6)' ))
 
   tmp_string3 = "Sky level:"+string(sky,format = '(f6.1)')+" +/- "+strtrim(string(skyerr, format='(f6.1)'),2)
@@ -17562,6 +17793,10 @@ pro GPItv::apphot
     tmp_string1 = $
       string(99999.0, 99999.0, $
       format = '("Object centroid:  x=",f7.2,"  y=",f7.2)' )
+    tmp_stringb = $
+      string(0.0, 0.0, $
+      format = '("Relative offset:  sep=",f5.2,"  PA=",f5.2)' )
+
 
     (*self.state).centerpos_id = $
       widget_label(apphot_data_base1a, $
@@ -18613,7 +18848,8 @@ pro GPItv::low_pass_filter, status=status, forcestack=forcestack
 
       ; note that setting the no_ft to zero is bad! it should either be 1 or not declared at all
       ; leaving it as 0 causes the image to fill with nans sometimes (not sure when)
-      if LMGR(/runtime) eq 1 then no_ft=1 else no_ft=[]
+	  ; MP - FIXME this will not work on IDL 7!
+      if LMGR(/runtime) eq 1 then no_ft=1 else no_ft=0
 
       for s=0,N_ELEMENTS(im[0,0,*])-1 do $
         im[*,*,s]=filter_image(im[*,*,s],fwhm=fwhm,/all, no_ft = no_ft)
@@ -19714,7 +19950,9 @@ pro GPItv::obsnotes
   mrkval  = textform.tag2
   msgval = textform.tag3
 
-  gpitv_obsnotes,(*self.state).imagename,mrkval,msgval
+  gpitv_obsnotes,(*self.state).imagename,mrkval,msgval,errout=errout,$
+                 curlpath=gpi_get_setting('gpitv_curl_path',default='')
+  if errout then self->message, msgtype='error', 'Could not mark file.'
 
 end
 
@@ -20436,6 +20674,216 @@ pro GPItv::contrast
   self->contrprof_refresh
 end
 
+;----------------------------------------------------------------------
+pro GPItv::show_fpmoffset
+
+  ;; FPM offset/centering tool front end
+
+  (*self.state).cursorpos = (*self.state).coord
+
+  if (not (xregistered(self.xname+'_fpmoffset'))) then begin
+
+    if (*self.state).multisess GT 0 then title_base = "GPItv #"+strc((*self.state).multisess) else title_base = 'GPItv '
+    fpmoffset_base = $
+      widget_base(/base_align_center, $
+      group_leader = (*self.state).base_id, $
+      /column, $
+      title = title_base+' FPM Offset', $
+      uvalue = 'fpmoffset_base')
+
+    fpmoffset_top_base = widget_base(fpmoffset_base, /column, /base_align_center)
+
+    fpmoffset_data_base1  = widget_base(fpmoffset_top_base, /column, frame=0)
+    void=WIDGET_LABEL(fpmoffset_data_base1,value='Star Position from Sat Spots: ', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+    void=WIDGET_LABEL(fpmoffset_data_base1,value='(For H, only 1.5-1.7 um)', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+    fpmoffset_data_base1a = widget_base(fpmoffset_data_base1, /row, frame=0)
+
+    fpmoffset_data_base2 = widget_base( fpmoffset_top_base, /column, frame=0)
+    void=WIDGET_LABEL(fpmoffset_data_base2,value='FPM Position from Wavecal: ', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+    fpmoffset_data_base2a = widget_base(fpmoffset_data_base2, /row, frame=0)
+
+    fpmoffset_data_base3 = widget_base( fpmoffset_top_base, /column, frame=1)
+    void=WIDGET_LABEL(fpmoffset_data_base3,value='Offset to Align: ', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+    fpmoffset_data_base3a = widget_base(fpmoffset_data_base3, /row, frame=0)
+
+    (*self.state).fpmoffset_psfcentx_id = $
+      cw_field(fpmoffset_data_base1a, $
+	  title="  X:",$
+      uvalue = 'psfcentx', $
+	  /noedit, tab_mode=0,$
+      value = '0.0',xsize=8)
+
+    (*self.state).fpmoffset_psfcenty_id = $
+      cw_field(fpmoffset_data_base1a, $
+	  title="   Y:",$
+      uvalue = 'psfcenty', $
+	  /noedit,$
+      value = '0.0',xsize=8)
+    void=WIDGET_LABEL(fpmoffset_data_base1a,value=' pixels', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+
+    (*self.state).fpmoffset_fpmcentx_id = $
+      cw_field(fpmoffset_data_base2a, $
+	  title="  X:",$
+      uvalue = 'fpmcentx', $
+	  /noedit,$
+      value = '0.0',xsize=8)
+
+    (*self.state).fpmoffset_fpmcenty_id = $
+      cw_field(fpmoffset_data_base2a, $
+	  title="   Y:",$
+      uvalue = 'fpmcenty', $
+	  /noedit,$
+      value = '0.0',xsize=8)
+    void=WIDGET_LABEL(fpmoffset_data_base2a,value=' pixels', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+
+    (*self.state).fpmoffset_statuslabel_id=WIDGET_LABEL(fpmoffset_data_base2,value='    FPM position not available. ', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+
+    (*self.state).fpmoffset_offsettip_id = $
+      cw_field(fpmoffset_data_base3a, $
+	  title="Tip:",$
+      uvalue = 'offsettip', $
+	  /noedit,$
+      value = '0',xsize=8)
+
+    (*self.state).fpmoffset_offsettilt_id = $
+      cw_field(fpmoffset_data_base3a, $
+	  title="Tilt:",$
+      uvalue = 'offsettilt', $
+	  /noedit,$
+      value = '0',xsize=8)
+    void=WIDGET_LABEL(fpmoffset_data_base3a,value=' mas   ', /ALIGN_LEFT,/DYNAMIC_RESIZE )
+
+
+    widget_control, fpmoffset_base, /realize
+
+    xmanager, self.xname+'_fpmoffset', fpmoffset_base, /no_block
+    widget_control, fpmoffset_base, set_uvalue={object:self, method: 'fpmoffset_event'}
+    widget_control, fpmoffset_base, event_pro = 'GPItvo_subwindow_event_handler'
+    self->resetwindow
+  endif
+
+  self->fpmoffset_refresh
+end
+
+;--------------------------------------------------------------------------------
+pro GPItv::fpmoffset_refresh
+  ;; Plot star position relative to FPM using satellite spots.
+
+  ;;if no image lodaed, nothing to do
+  if n_elements(*self.images.names_stack) eq 0 then return
+
+  ;;don't support non-cubes
+  if (*self.state).image_size[2] lt 2 then return
+
+
+  ;;-- Get FPM location--
+
+  if (*self.state).fpmoffset_fpmpos[0] eq 0 and (*self.state).fpmoffset_fpmpos[1] eq 0 then begin
+	; Attempt to get FPM position data from a calibration file
+    caldb = obj_new('gpicaldatabase')
+    bestfile = caldb->get_best_cal_from_header( 'fpm_position', *((*self.state).head_ptr), *(*self.state).exthead_ptr) 
+
+    if strc(bestfile) eq '-1' then begin
+		(*self.state).fpmoffset_calfilename = 'None'
+		self->message, "Couldn't load any FPM offset file from CalDB."
+		 (*self.state).fpmoffset_fpmpos = [-1,-1] ; record that we don't have one so it doesn't try again on every refresh
+	endif else begin 
+		(*self.state).fpmoffset_calfilename = bestfile
+		header = headfits(bestfile)
+		FPMCENTX = sxpar(header, 'FPMCENTX', count=ct1)
+		FPMCENTY = sxpar(header, 'FPMCENTY', count=ct2)
+		if ct1+ct2 eq 2 then begin
+			(*self.state).fpmoffset_fpmpos = [fpmcentx,fpmcenty] 
+		endif else begin
+			(*self.state).fpmoffset_fpmpos = [-1,-1] ; record that we don't have one so it doesn't try again on every refresh
+		endelse
+	endelse
+
+
+  endif
+
+
+  ;;-- Get PSF location --
+  ;;if no satspots in memory, calculate them
+  if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
+    self->update_sat_spots
+  endif
+
+    ;; only do the calculation if we now have good sat spots
+    if (n_elements(*self.satspots.cens) eq 8L * (*self.state).image_size[2]) then begin
+	  ; compute mean 
+	  ;;calculate center locations
+	  tmp=*self.satspots[*].cens
+	  cents=fltarr(2,N_ELEMENTS(tmp[0,0,*]))
+	  for p=0, N_ELEMENTS(tmp[0,0,*]) -1 do begin
+		for q=0, 1 do cents[q,p]=mean(tmp[q,*,p])
+	  endfor
+      ; find the mean PSF center
+      ;;for H band, only using wavelength slices between 1.5 and 1.7 um (for better S/N)
+      ;;for other bands, using all the wavelength slices for now
+      if (*self.state).obsfilt eq 'H' then begin
+        psfcentx = mean(cents[0,1:24]) 
+        psfcenty = mean(cents[1,1:24])
+      endif else begin
+        psfcentx = mean(cents[0,*]) 
+        psfcenty = mean(cents[1,*])
+      endelse
+
+  endif else begin
+	  self->message, "Could not find star pos from sat spots; cannot calculate FPM offset"
+	  psfcentx = !values.f_nan
+	  psfcenty = !values.f_nan
+  endelse
+
+
+
+  ;;--update display--
+
+  fpmcentx_text = 'Unknown'
+  fpmcenty_text = 'Unknown'
+  offsettip_text = 'Unknown'
+  offsettilt_text = 'Unknown'
+  psfcentx_text = 'Unknown'
+  psfcenty_text = 'Unknown'
+
+  if (*self.state).fpmoffset_fpmpos[0] le 0 then begin
+	  self->message, "No FPM position available."
+	  statuslabel ='    FPM position not available. '
+  endif else begin
+	  pixscale = gpi_get_constant('ifs_lenslet_scale') ; arcsec per pixel
+      fpmcentx = (*self.state).fpmoffset_fpmpos[0]
+      fpmcenty = (*self.state).fpmoffset_fpmpos[1]
+	  fpmcentx_text = string(fpmcentx,format="(f7.2)")
+	  fpmcenty_text = string(fpmcenty,format="(f7.2)")
+      statuslabel = "  FPM pos from "+file_basename((*self.state).fpmoffset_calfilename)
+
+	  if finite(psfcentx) then begin
+		  psfcentx_text = string(psfcentx,format="(f7.2)")
+		  psfcenty_text = string(psfcenty,format="(f7.2)")
+
+		  angle = gpi_get_constant('ifs_rotation')*!pi/180 ; img rotation in radians
+		  offsetx = (psfcentx-fpmcentx) *pixscale*1000 ; convert to mas
+		  offsety = (psfcenty-fpmcenty) *pixscale*1000 ; convert to mas
+		  offsettip  = -offsetx * cos(angle) - offsety * sin(angle)
+		  offsettilt = -offsetx * sin(angle) + offsety * cos(angle)
+
+		  offsettip_text = string(round(offsettip),format="(i+7)")
+		  offsettilt_text = string(round(offsettilt),format="(i+7)")
+	  endif else begin
+	  endelse
+  endelse
+
+  widget_control,(*self.state).fpmoffset_fpmcentx_id,set_value=fpmcentx_text
+  widget_control,(*self.state).fpmoffset_fpmcenty_id,set_value=fpmcenty_text
+  widget_control,(*self.state).fpmoffset_psfcentx_id,set_value=psfcentx_text
+  widget_control,(*self.state).fpmoffset_psfcenty_id,set_value=psfcenty_text
+  widget_control,(*self.state).fpmoffset_offsettip_id,set_value=offsettip_text
+  widget_control,(*self.state).fpmoffset_offsettilt_id,set_value=offsettilt_text
+  widget_control,(*self.state).fpmoffset_statuslabel_id,set_value=statuslabel
+
+end
+
+
 ;--------------------------------------------------------------------------------
 pro GPItv::dq_mask_settings
 
@@ -20602,6 +21050,9 @@ pro GPItv__define
     klip_image: ptr_new()}
 
   satspots = {gpitv_satspots,$
+	  valid: 0, $		; are satspots currently valid for the image?
+	  attempted: 0, $	; have we tried to load them for this image yet?
+						; (to prevent repeatedly trying if we can't)
     cens: ptr_new(), $
     warns: ptr_new(), $
     good: ptr_new(), $

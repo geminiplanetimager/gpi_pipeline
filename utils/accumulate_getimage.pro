@@ -12,6 +12,8 @@
 ; OUTPUTS:
 ; 	hdr		primary HDU header
 ; 	hdrext	image extension header
+; 	dqframe data quality extension
+; 	dqhdr data quality header
 ;
 ; PIPELINE COMMENT: Return one of the images saved by Accumulate_Images
 ; HISTORY:
@@ -20,7 +22,7 @@
 ;   2013-11-05 - ds - Added support for single slice return
 ;-
 
-FUNCTION accumulate_getimage, dataset, index, hdr, hdrext=hdrext, slice=slice
+FUNCTION accumulate_getimage, dataset, index, hdr, hdrext=hdrext, slice=slice, dqframe=dqframe, dqhdr=dqhdr
   common PIP
   common APP_CONSTANTS
 
@@ -64,6 +66,14 @@ FUNCTION accumulate_getimage, dataset, index, hdr, hdrext=hdrext, slice=slice
 
         hdr =   *(dataset.headersPHU[index])
         hdrext =  *(dataset.headersExt[index])  
+        
+        if ptr_valid(dataset.currdq) eq 1 then begin 
+          dqframe =   *(dataset.qualframes[index])
+          dqhdr =  *(dataset.headersDQ[index])
+        endif else begin
+          dqframe = -1
+          dqhdr = -1
+        endelse
         
         if n_elements(slice) ne 0 then return,(*(dataset.frames[index]))[*,*,slice] else  return, *(dataset.frames[index])
      end

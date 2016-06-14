@@ -27,6 +27,7 @@
 ; PIPELINE ARGUMENT: Name="SavePNG" Type="string" Default="" Desc="Save plot to filename as PNG (blank for no save, dir name for default naming, AUTO for auto full path) "
 ; PIPELINE ARGUMENT: Name="contrsigma" Type="float" Range="[0.,20.]" Default="5." Desc="Contrast sigma limit"
 ; PIPELINE ARGUMENT: Name="slice" Type="int" Range="[-1,50]" Default="-1" Desc="Slice to plot. -1 for all"
+; PIPELINE ARGUMENT: Name="SurfaceBrightness" Type="int" Range="[0,1]" Default="1" Desc="0: Point Source, 1: Surface Brightness"
 ; PIPELINE ARGUMENT: Name="DarkHoleOnly" Type="int" Range="[0,1]" Default="1" Desc="0: Plot profile in dark hole only; 1: Plot outer profile as well."
 ; PIPELINE ARGUMENT: Name="contr_yunit" Type="int" Range="[0,2]" Default="0" Desc="0: Standard deviation; 1: Median; 2: Mean."
 ; PIPELINE ARGUMENT: Name="contr_xunit" Type="int" Range="[0,1]" Default="0" Desc="0: Arcsec; 1: lambda/D."
@@ -58,7 +59,7 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
 
   sz=size(cube)
   dim=size(cube, /dim)
-  
+
   ncoadd=backbone->get_keyword("COADDS0")
 
   ;;error handle if extractcube not used before
@@ -80,7 +81,7 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
   ; polmode=0 for podc cubes
   ; polmode=1 for stokesdc
   ; polmode=2 for radial stokes
-  
+
   if sz[3] eq 2 then begin ; If podc cube
     polmode=0
     ctr_cube[*,*,0]=cube[*,*,0]+cube[*,*,1]
@@ -127,7 +128,7 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
 
   ;;grab satspots
   goodcode = hex2bin(tmp,(dim)[2])
-;  good = long(where(goodcode eq 1))
+  ;  good = long(where(goodcode eq 1))
   good=[0,1]
   cens = fltarr(2,4,(dim)[2])
   for s=0,n_elements(good) - 1 do begin
@@ -149,11 +150,15 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
   satflux = fltarr(4,n_elements(good))
   for s=0,n_elements(good) - 1 do begin
     for j = 0,3 do begin
-      satflux[j,s] = backbone->get_keyword('SATF0_'+strtrim(j,2)+hdr_suff,ext_num=1)
-;      print,'SATF0_'+strtrim(j,2)+hdr_suff,backbone->get_keyword('SATF0_'+strtrim(j,2)+hdr_suff,ext_num=1) 
+      if polmode eq 0 then $
+        satflux[j,s] = backbone->get_keyword('SATF0_'+strtrim(j,2)+hdr_suff,ext_num=1) + $
+        backbone->get_keyword('SATF1_'+strtrim(j,2)+hdr_suff,ext_num=1) $
+      else $
+        satflux[j,s] = backbone->get_keyword('SATF0_'+strtrim(j,2)+hdr_suff,ext_num=1)
+      ;      print,'SATF0_'+strtrim(j,2)+hdr_suff,backbone->get_keyword('SATF0_'+strtrim(j,2)+hdr_suff,ext_num=1)
     endfor
   endfor
- 
+
 
   ;;get grid fac
   apodizer = backbone->get_keyword('APODIZER', count=ct)
@@ -181,21 +186,39 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
   contr_yaxis_max=float(Modules[thisModuleIndex].contr_yaxis_max)
   yscale = fix(Modules[thisModuleIndex].yscale)
   update_prev_fits_header = fix(Modules[thisModuleIndex].update_prev_fits_header)
-
+  surface_brightness =fix(Modules[thisModuleIndex].SurfaceBrightness)
+  
+  ;In spec mode we use the peak flux. In pol mode we use total flux. How do we convert between the two 
+  ;Let's assume a 2D axisymmetric gaussian. The the relationship between the peak flux and the total is a factor of:
+  ; 1/(2*pi*sigma^2). 
+  ;
+  ; The FWHM of an airy disk is pretty much lambda/D, so sigma=FWHM/2.35=lambda/(2.35*D)
+  ; 
+  
+  psigma_rad=cwv[0]*0.000001/(2.35*gpi_get_constant('primary_diam')) ;sigma in radians
+  psigma=psigma_rad*206265/gpi_get_constant('ifs_lenslet_scale') ;Now in pixels
+  
+  peak_to_total=1/(2*!pi*psigma^2) ;The 
+  
   ;;we're going to do the copsf for all the slices
   copsf = ctr_cube
   for j = 0, 1 do begin ; Only ever two slices in pol mode
     tmp = where(good eq j,ct)
-    if ct eq 1 then copsf[*,*,j] = copsf[*,*,j]/((1./gridfac)*mean(satflux[*,j])) else $
+    if ct eq 1 then $
+      copsf[*,*,j] = copsf[*,*,j]/((1./gridfac)*mean(satflux[*,j])*peak_to_total) $
+    else $
       copsf[*,*,j] = !values.f_nan
   endfor
 
   ;;set proper scale unit
   if contr_yunit eq 0 then sclunit = contrsigma else sclunit = 1d
 
+  ;If we want surface brightness then divide by the area of the point source aperture. 
+  
+  if surface_brightness then sclunit = sclunit/(!pi*(psigma_rad*206265)^2)
+ 
   ;Hardcode this for now. Maybe I'll have to change it later
   good=[0,1]
-  
 
   if (wind ne -1) || (radialsave ne '') || (pngsave ne '') then begin
     ;;determine which we are plotting
@@ -216,8 +239,8 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
     centx = backbone->get_keyword("PSFCENTX")
     centy = backbone->get_keyword("PSFCENTY")
     cent=[centx,centy]
-;    backbone->set_keyword,"PSFCENTX", cent[0], 'X-Location of PSF center', ext_num=1
-    
+    ;    backbone->set_keyword,"PSFCENTX", cent[0], 'X-Location of PSF center', ext_num=1
+
     ;----- actually measure the contrast here -----
     for j = 0, n_elements(inds)-1 do begin
       ;; get the radial profile desired
@@ -228,7 +251,7 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
         1: radial_profile_pol,copsf[*,*,inds[j]],cens[*,*,inds[j]],$
           lambda=cwv[inds[j]],asec=asec,imed=outval,$
           /dointerp,doouter = doouter, cent=cent
-;        2: radial_profile,copsf[*,*,inds[j]],(*self.satspots.cens)[*,*,inds[j]],$
+        ;        2: radial_profile,copsf[*,*,inds[j]],(*self.satspots.cens)[*,*,inds[j]],$
         2: radial_profile_pol,copsf[*,*,inds[j]],cens[*,*,inds[j]],$
           lambda=cwv[inds[j]],asec=asec,imn=outval,$
           /dointerp,doouter = doouter, cent=cent
@@ -244,6 +267,8 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
       yrange[0] = yrange[0] < min(outval,/nan)
       yrange[1] = yrange[1] > max(outval,/nan)
     endfor
+
+    
 
     ;;------ assess contrast at fiducial radii ------
 
@@ -271,7 +296,7 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
         " Median polarized intensity contrast at "+sigfig(radius,2)+"'' from sat spots", ext_num=1
 
     endfor
-    
+
     if keyword_set(update_prev_fits_header) then begin
       ; update the same fits keyword information into a prior saved version of
       ; this datacube.
@@ -306,6 +331,9 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
         1: ytitle += '[Median]'
         2: ytitle += '[Mean]'
       endcase
+      
+      if surface_brightness then ytitle += '/arcseond^2' 
+      
       xtitle =  'Angular separation '
       if contr_xunit eq 0 then xtitle += '["]' else $
         xtitle += '['+'!4' + string("153B) + '!X/D]' ;;"just here to keep emacs from flipping out
@@ -327,10 +355,10 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
 
       plot,[0],[0],ylog=contr_yaxis_type,xrange=xrange,yrange=yrange,/xstyle,/ystyle,$
         xtitle=xtitle,ytitle=ytitle,/nodata, charsize=1.5,background=cgcolor('white'),color = cgcolor('black'),yticks=yticks,ytickv=ytickv, $
-        title="Contrast for "+(strsplit(dataset.outputfilenames[numfile],'/',/extract,count=length))[length-1] 
-       
-;       strsplit(dataset.outputfilenames[numfile], '/') 
-;        stop
+        title="Contrast for "+(strsplit(dataset.outputfilenames[numfile],'/',/extract,count=length))[length-1]
+
+      ;       strsplit(dataset.outputfilenames[numfile], '/')
+      ;        stop
       ;stop
       ; load in a color table, while saving the original
       tvlct, user_r, user_g, user_b, /get
@@ -368,7 +396,7 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
         label = sigfig(fiducial_contrasts[r,0],2,/sci)+" at "+sigfig(fiducial_radii[r],2)+'"'
         xyouts, 0.4, 0.9-0.04*(r+1), label, /norm, charsize=1.5, color=cgcolor('red')
       endfor
-      
+
       for r=0,2 do begin
         label = sigfig(fiducial_contrasts[r,1],2,/sci)+" at "+sigfig(fiducial_radii[r],2)+'"'
         xyouts, 0.7, 0.9-0.04*(r+1), label, /norm, charsize=1.5, color=cgcolor('blue')
@@ -424,18 +452,21 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
         if strc(s_OutputDir) eq "" then return, error('FAILURE: supplied output directory is a blank string.')
         s_OutputDir = s_OutputDir+path_sep()+'contrast'+path_sep()
 
-        if ~file_test(s_OutputDir,/directory, /write) then begin
-          if gpi_get_setting('prompt_user_for_outputdir_creation',/bool, default=0,/silent) then $
-            res =  dialog_message('The requested output directory '+s_OutputDir+' does not exist. Should it be created now?', $
-            title="Nonexistent Output Directory", /question) else res='Yes'
-
-          if res eq 'Yes' then  file_mkdir, s_OutputDir
-
-          if ~file_test(s_OutputDir,/directory, /write) then $
-            return, error("FAILURE: Directory "+s_OutputDir+" does not exist or is not writeable.",/alert)
-        endif
         radialsave = s_OutputDir
       endif
+
+      ;; check to see if directory to save contrast curves exist. If not, make it (or at least try to)     
+      if ~file_test(radialsave,/directory, /write) then begin
+         if gpi_get_setting('prompt_user_for_outputdir_creation',/bool, default=0,/silent) then $
+            res =  dialog_message('The requested output directory '+radialsave+' does not exist. Should it be created now?', $
+            title="Nonexistent Output Directory", /question) else res='Yes'
+            
+         if res eq 'Yes' then  file_mkdir, radialsave
+            
+         if ~file_test(radialsave,/directory, /write) then $
+            return, error("FAILURE: Directory "+radialsave+" does not exist or is not writeable.",/alert)
+      endif         
+
 
       ;;if this is a directory, then you want to save to it with the
       ;;default naming convention
@@ -462,7 +493,7 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
       sxaddpar,hdr,'YUNITS',(['Std Dev','Median','Mean'])[contr_yunit],'Contrast units'
 
       writefits,nm,out,hdr
-      
+
       print, "Radial Profile output to ", nm
     endif
 
