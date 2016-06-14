@@ -45,11 +45,12 @@
 ;                   number! Don't try to read svn version id if /runtime 
 ;                   or if there is no .svn subdirectory
 ;   2015-03-17          Release 1.3.0
+;   2016-06-14          Release 1.4.0
 ;-
 
 function gpi_pipeline_version, svn=svn
 
-version = '1.3.0'
+version = '1.4.0'
 
 
 
