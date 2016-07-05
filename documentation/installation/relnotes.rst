@@ -13,7 +13,7 @@ The next release of the GPI pipeline will probably be in early 2017.
 
 Version 1.4.0
 =========================================
-Released 2016 June ?? , for Gemini 2016A
+Released 2016 June 30 , for Gemini 2016B
 
 
 * Enhancements/Additions to primitives and recipes:
