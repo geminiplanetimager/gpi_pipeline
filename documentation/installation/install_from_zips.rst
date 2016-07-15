@@ -13,8 +13,8 @@ pipeline development.
     license, please refer to  :ref:`this page <installing-from-compiled>` for 
     installing compiled executables instead.
 
-**Version 1.3.0** (2014 Nov 10):
- * `gpi_pipeline_1.3.0_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.3.0_source.zip>`_ -  GPI pipeline source code 
+**Version 1.4.0** (2016 July):
+ * `gpi_pipeline_1.4.0_source.zip <http://www.stsci.edu/~mperrin/gpi/downloads/gpi_pipeline_1.4.0_source.zip>`_ -  GPI pipeline source code 
 
 
 See :ref:`here <priorversions>` to download earlier versions of the pipeline, if desired.
