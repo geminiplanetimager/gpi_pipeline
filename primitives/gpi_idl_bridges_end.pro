@@ -27,7 +27,7 @@ calfiletype=''
 
 @__start_primitive
 
-	common gpi_parallel
+	common gpi_parallel, oBridge
 
 	;print,tag_names(dataset)
 	nfiles = dataset.validframecount
