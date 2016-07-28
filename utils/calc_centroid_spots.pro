@@ -13,7 +13,9 @@ function calc_centroid_spots,  x,y,image, maxaper, centroidaper,gauss=gauss
 
  
   badind=where(~FINITE(  image),cc)
-  if cc ne 0 then  image(badind )=0 ;TODO:median value
+  if cc ne 0 then begin
+     image[badind] =0 ;TODO:median value
+  endif
 
   ;windowing 1 & max
   array= image[x1:x2,y1:y2]
