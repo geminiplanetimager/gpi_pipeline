@@ -53,6 +53,7 @@ function gpi_highpass_filter_cube, datacube, boxsize=boxsize, verbose=verbose, f
 	; fraction of a second. Empirically 
 	nbparallel = !CPU.TPOOL_NTHREADS < 4 < sz[3]
 	if keyword_set(verbose) then print, "Starting "+strc(nbparallel)+" parallel processes"
+    print, "nbparallel", nbparallel
 
 	startstop = intarr(2, nbparallel)
 	;print, "b", Systime(/Seconds)-t00
@@ -76,10 +77,18 @@ function gpi_highpass_filter_cube, datacube, boxsize=boxsize, verbose=verbose, f
 		(*bridges[ipar])->SetVar, 'istart', startstop[0, ipar]
 		(*bridges[ipar])->SetVar, 'istop', startstop[1, ipar]
 		(*bridges[ipar])->SetVar, 'medboxsize', boxsize
+
+		;SHMMap, 'datacube_to_filter', /float, sz[1], sz[2] ,sz[3]
+		datacube=shmvar('datacube_to_filter')
+		for s=startstop[0, ipar],startstop[1, ipar] do datacube[*,*,s]-=filter_image(datacube[*,*,s],median=boxsize)
+
 		cmd1 = "SHMMap, 'datacube_to_filter', /float, "+string(sz[1])+","+string(sz[2])+","+string(sz[3])
 		cmd2 = "datacube=shmvar('datacube_to_filter')"
 		cmd3 = "for s=istart,istop do datacube[*,*,s]-=filter_image(datacube[*,*,s],median=medboxsize)"
-		(*bridges[ipar])->Execute,/nowait , cmd1+" & " +cmd2 +" & " + cmd3
+		;(*bridges[ipar])->Execute,/nowait , cmd1+" & " +cmd2 +" & " + cmd3
+		;(*bridges[ipar])->Execute,/nowait , cmd2 +" & " + cmd3
+		; (*bridges[ipar])->Execute,/nowait , cmd2
+		; (*bridges[ipar])->Execute,/nowait , cmd3
 		if keyword_set(verbose) then message,/info, "Spawned parallelized highpass filter #"+strc(ipar+1)
 	end 
 	if keyword_set(verbose) then message,/info, 'Spawned processes in '+strc(Systime(/Seconds)-t00)+ " s"
