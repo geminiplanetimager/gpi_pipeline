@@ -28,6 +28,7 @@
 ; PIPELINE ARGUMENT: Name="ap_rad" Type="int" Range="[1,50]" Default="7" Desc="Radius of aperture used for finding peaks."
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="update_prev_fits_header" Type="int" Range="[0,1]" Default="0" Desc="Update FITS metadata in the most recently saved datacube?"
+; PIPELINE ARGUMENT: Name="highpass" Type="int" Range="[0,25]" Default="0" Desc="1: Use high pass filter (default size) 0: don't 2+: size of highpass filter box"
 ; PIPELINE ORDER: 2.45
 ; PIPELINE CATEGORY: Calibration,SpectralScience
 ;
@@ -37,7 +38,7 @@
 ;- 
 
 function gpi_measure_satellite_spot_peak_fluxes, DataSet, Modules, Backbone
-primitive_version= '$Id$' ; get version from subversion to store in header history
+primitive_version= '$Id: gpi_measure_satellite_spot_peak_fluxes.pro 3601 2014-12-14 05:12:03Z mperrin $' ; get version from subversion to store in header history
 @__start_primitive
 
 cube = *(dataset.currframe[0])
@@ -67,10 +68,14 @@ endfor
 ;;get user inputs
 gaussfit = fix(Modules[thisModuleIndex].gauss_fit)
 gaussap = fix(Modules[thisModuleIndex].ap_rad)
+highpass = fix(Modules[thisModuleIndex].highpass)
+
+; default high pass filter size
+if highpass eq 1 then highpass = 15 
 
 ;;get the fluxes
 fluxes = get_sat_fluxes(cube,band=band,good=good,cens=cens,warns=warns,$
-                        gaussfit=gaussfit,gaussap=gaussap,locs=locs,/usecens)
+                        gaussfit=gaussfit,gaussap=gaussap,locs=locs,highpass_beforeflux=highpass,/usecens)
 if n_elements(fluxes) eq 1 then $
    return, error('FAILURE ('+functionName+'): Failed to extract satellite fluxes.')
 

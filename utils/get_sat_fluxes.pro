@@ -1,7 +1,8 @@
 function get_sat_fluxes,im0,band=band,good=good,cens=cens,warns=warns,$
                         gaussfit=gaussfit,refinefits=refinefits,totflux=totflux,$
                         winap=winap,gaussap=gaussap,locs=locs,indx=indx,$
-                        usecens=usecens,satmag=satmag,highpass=highpass,constrain=constrain
+                        usecens=usecens,satmag=satmag,highpass=highpass,constrain=constrain, $
+                        highpass_beforeflux=highpass_beforeflux
 ;+
 ; NAME:
 ;       get_sat_fluxes
@@ -31,6 +32,8 @@ function get_sat_fluxes,im0,band=band,good=good,cens=cens,warns=warns,$
 ;       locs - If set, use these postions for the initial guess at the
 ;              satellite spots, rather than trying to auto-find.
 ;       indx - Index of reference slice (defaults to zero)
+;       highpass_beforeflux - if set and > 0, filter size for high pass filter
+;                           before measuing flux
 ;       /usecens - If set, use the values passed in cens for the
 ;                  satspot locations.  good must also be passed
 ;                  in. Skips finding sat spots alltogether.
@@ -111,6 +114,13 @@ if badct gt 0 then warns[bad] = -1
 generate_grids, fx, fy, gaussap, /whole
 fr2 = fx^2 + fy^2
 for j=0,n_elements(good)-1 do begin 
+    ;; high pass if necessary
+    im1 = im0[*,*,good[j]]
+    if keyword_set(highpass_beforeflux) then begin
+        if highpass_beforeflux gt 1 then begin
+            im1 -= filter_image(im1, median=highpass_beforeflux)
+        endif
+    endif
    for i=0,3 do begin
       if keyword_set(gaussfit) then begin
          ;;   subimage = subarr(im0[*,*,good[j]],gaussap,cens[*,i,good[j]],/zeroout)
@@ -131,7 +141,8 @@ for j=0,n_elements(good)-1 do begin
          ;;   endif else ic_psfs[i,good[j]] = total(paramgauss[0:1])
 
          ;;grab the subaperture and get the radial profile
-         subim = interpolate(im0[*,*,good[j]],fx+cens[0,i,good[j]],fy+cens[1,i,good[j]],cubic=-0.5)
+         ;subim = interpolate(im0[*,*,good[j]],fx+cens[0,i,good[j]],fy+cens[1,i,good[j]],cubic=-0.5)
+         subim = interpolate(im1,fx+cens[0,i,good[j]],fy+cens[1,i,good[j]],cubic=-0.5)
          rs = dindgen((gaussap-1d)/2d)+1
          nth = max(rs)*2*!dpi
          th = dindgen(nth)/nth*2d*!dpi 
@@ -146,8 +157,9 @@ for j=0,n_elements(good)-1 do begin
          fwhm = 2d*interpol(rs,mns,max(subim,/nan)/2d)
          sig = fwhm/2d/sqrt(2d*alog(2d))
          gmsk = exp(-fr2/sig^2d/2d)
-
+         
          ic_psfs[i,good[j]] = total(subim*gmsk,/nan)/total(gmsk*gmsk)   
+         print, ic_psfs[i,good[j]], fwhm, total(subim*gmsk, /nan), total(gmsk*gmsk)
       endif else begin
          subimage = subarr(im0[*,*,good[j]],gaussap,cens[*,i,good[j]],/zeroout)
          if keyword_set(totflux) then $
