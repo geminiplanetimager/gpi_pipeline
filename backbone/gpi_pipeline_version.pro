@@ -10,6 +10,9 @@
 ;   		it is a svn working directory, and should 
 ;   		gracefully and silently fail if not - in which
 ;   		case just the major pipeline version number is returned.
+;   /git	Similar to the above, but for git instead.
+;			Appends the short version of the SHA-1 hash for the
+;			HEAD of the current branch. 
 ;
 ;
 ; HISTORY:
@@ -44,11 +47,12 @@
 ;   2014-11-21		an update to this function itself, not just the release
 ;                   number! Don't try to read svn version id if /runtime 
 ;                   or if there is no .svn subdirectory
-;   2015-03-17          Release 1.3.0
-;   2016-06-14          Release 1.4.0
+;   2015-03-17      Release 1.3.0
+;   2016-06-14      Release 1.4.0
+;   2016-08-11		added /git option
 ;-
 
-function gpi_pipeline_version, svn=svn
+function gpi_pipeline_version, svn=svn, git=git
 
 version = '1.4.0'
 
@@ -66,6 +70,24 @@ if keyword_set(svn) then begin
 			spawn, 'svnversion', results,/noshell
 			svnid = results[n_elements(results)-1] ; take the last line of the result
 				; this is in case we get multi-line output because e.g. the user
+			version += ", rev "+strc(svnid)
+		endif
+		cd, curr
+	endif
+
+endif
+
+if keyword_set(git) then begin
+	; append git short SHA hash also, if possible
+	codepath = gpi_get_directory('GPI_DRP_DIR')
+
+	if  file_test(codepath+path_sep()+".git",/directory) and ~lmgr(/runtime) then begin
+		cd, curr=curr
+		catch, myerror
+		if myerror eq 0 then begin
+			cd, codepath
+			spawn, 'git rev-parse --short HEAD', results
+			svnid = results[n_elements(results)-1] ; take the last line of the result
 			version += ", rev "+strc(svnid)
 		endif
 		cd, curr
