@@ -744,10 +744,9 @@ pro GPItv::startup, nbrsatspot=nbrsatspot
 
   ;;if gpitv_obsnotes.pro exists, create menu item for it
   obsnotes = 0
-  tmp = file_which('gpitv__define.pro')
+  tmp = file_which('gpitv_obsnotes.pro')
   if tmp ne '' then begin
-    tmp2 = file_dirname(tmp)+path_sep()+'gpitv_obsnotes.pro'
-    if file_test(tmp2) then obsnotes = 1
+     obsnotes = 1
   endif
 
   if obsnotes then $
