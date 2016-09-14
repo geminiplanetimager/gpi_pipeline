@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<recipe Name="Basic Polarization Sequence (From Raw Data)" ReductionType="PolarimetricScience" ShortName="basicpolsequence">
+<!-- recipe written by max on  at 2015-05-03T05:24:30 UTC -->
+<!-- created with the Recipe Editor GUI -->
+<dataset InputDir="${GPI_REDUCED_DATA_DIR}150423" OutputDir="${GPI_REDUCED_DATA_DIR}150423">
+</dataset>
+<primitive name="Load Polarimetry Spot Calibration" CalibrationFile="AUTOMATIC" />
+<primitive name="Smooth polarization calibration" Boxsize="10" />
+<primitive name="Subtract Dark Background" CalibrationFile="AUTOMATIC" RequireExactMatch="0" Interpolate="0" Save="0" gpitv="0" />
+<primitive name="Flexure 2D x correlation with polcal" method="Auto" range="0.3" resolution="0.01" psf_sep="0.01" stopidl="0" configuration="tight" x_off="0" y_off="0" badpix="1" iterate="1" max_iter="15" manual_dx="0." manual_dy="0." />
+<primitive name="Destripe science image" method="calfile" abort_fraction="0.9" chan_offset_correction="1" readnoise_floor="0.0" Save_stripes="0" Display="-1" remove_microphonics="1" method_microphonics="1" CalibrationFile="AUTOMATIC" Plot_micro_peaks="no" save_microphonics="no" micro_threshold="0.01" write_mask="0" fraction="0.7" Save="0" gpitv="0" />
+<primitive name="Interpolate bad pixels in 2D frame" CalibrationFile="AUTOMATIC" method="all8" Save="0" gpitv="0" negative_bad_thresh="-50" before_and_after="0" />
+<primitive name="Assemble Polarization Cube" Save="0" gpitv="0" Method="PSF" />
+<primitive name="Divide by Low Spatial Freq. Polarized Flat Field" CalibrationFile="AUTOMATIC" Save="1" gpitv="2" />
+<primitive name="Interpolate bad pixels in cube" Save="0" gpitv="2" before_and_after="0" />
+<primitive name="Measure Star Position for Polarimetry" x0="140" y0="140" search_window="5" mask_radius="50" highpass="1" lower_threshold="-100" Save="0" gpitv="0" />
+<primitive name="Measure Satellite Spot Flux in Polarimetry" Save="1" gpitv="0" Aperture="4" Inskyrad="6" Outskyrad="9" ShowAperture="0" FindPSFCENT="0" STARXCEN="145" STARYCEN="148" Companion="0" StarXPos="98" StarYPos="121" StarAperture="8" StarInnerSkyRad="12" StarOuterSkyRad="16" Verbose="0" />
+<primitive name="Accumulate Images" Method="OnDisk" />
+<primitive name="Clean Polarization Pairs via Double Difference" fix_badpix="1" Save_diffbias="0" gpitv_diffbias="10" Save="0" debug="0" />
+<primitive name="Subtract Mean Stellar Polarization" Method="Auto" InnerRadius="-1" OuterRadius="20" Fraction="1" WriteToFile="0" Filename="Stellar_Pol_Stokes.txt" Save="1" gpitv="2" />
+<primitive name="Rotate North Up" Rot_Method="CUBIC" Center_Method="HEADERS" centerx="140" centery="140" pivot="0" Save="0" gpitv="0" />
+<primitive name="Combine Polarization Sequence" HWPoffset="-29.14" IncludeSystemMueller="0" IncludeSkyRotation="1" PerfectHWP="0" Save="1" gpitv="10" />
+</recipe>
+
