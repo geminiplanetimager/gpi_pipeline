@@ -2,7 +2,8 @@
 <recipe Name="Quicklook Automatic Datacube Extraction" ReductionType="SpectralScience" ShortName="quickcube">
 <!-- recipe written by kbf on subaru.mobile.asu.edu at 2016-09-14T20:42:07 UTC -->
 <!-- created with the Recipe Editor GUI -->
-<dataset InputDir="${GPI_RAW_DATA_DIR}131118" OutputDir="${GPI_REDUCED_DATA_DIR}131118">
+<!-- paths edited by mperrin for portability -->
+<dataset InputDir="${GPIES_DROPBOX_ROOT}/GPIDATA-Readonly/Commissioning/Raw/131118" OutputDir=".">
    <fits FileName="S20131118S0055.fits.gz" />
    <fits FileName="S20131118S0056.fits.gz" />
    <fits FileName="S20131118S0057.fits.gz" />
@@ -31,7 +32,6 @@
 <primitive name="Measure Contrast" Save="0" Display="1" update_prev_fits_header="1" SaveProfile="AUTO" SavePNG="" contrsigma="5." slice="-1" DarkHoleOnly="1" contr_yunit="0" contr_xunit="0" yscale="0" contr_yaxis_type="1" contr_yaxis_min="0.00000001" contr_yaxis_max="1." />
 <primitive name="Rotate North Up" Rot_Method="CUBIC" Center_Method="HEADERS" centerx="140" centery="140" pivot="0" Save="0" gpitv="2" />
 <primitive name="Accumulate Images" Method="InMemory" />
-<primitive name="Combine 3D Datacubes" Method="MEDIAN" sig_clip="3" Save="1" gpitv="2" />
 <primitive name="Combine 3D Datacubes" Method="MEDIAN" sig_clip="3" Save="1" gpitv="2" />
 </recipe>
 
