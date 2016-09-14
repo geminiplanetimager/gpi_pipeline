@@ -3,7 +3,7 @@
 <!-- recipe written by kbf on subaru.mobile.asu.edu at 2016-09-14T20:42:07 UTC -->
 <!-- created with the Recipe Editor GUI -->
 <!-- paths edited by mperrin for portability -->
-<dataset InputDir="${GPIES_DROPBOX_ROOT}/GPIDATA-Readonly/Commissioning/Raw/131118" OutputDir=".">
+<dataset InputDir="${GPIES_DROPBOX_ROOT}/Pipeline_Releases/pipeline_testing_dataset/test_spec" OutputDir=".">
    <fits FileName="S20131118S0055.fits.gz" />
    <fits FileName="S20131118S0056.fits.gz" />
    <fits FileName="S20131118S0057.fits.gz" />
