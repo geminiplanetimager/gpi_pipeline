@@ -17,9 +17,11 @@ helping with test development or running these tests themselves should contact K
 the Dropbox (GPI) folder. This will probably be something like "/Users/yourusername/Dropbox (GPI)" on mac OS, but may
 differ depending on your installation choices. 
 
-3. You run the test suite by changing to the tests directory and invoking py.test from the command line:```
-cd pipeline/tests
-py.test
+3. You run the test suite by changing to the tests directory and invoking py.test from the command line:
+
+```
+  cd pipeline/tests
+  py.test
 ```
 
 
