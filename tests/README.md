@@ -46,11 +46,10 @@ example. You can make these in the usual way with the GPI Recipe Editor.
 Note, you should try to name the recipe file to match the test
 case name.
 
-``
 
-4. **Do not** check any FITS files into the git repository. Instead, place them
+4. Please **do not** check any FITS files into the git repository. Instead, place them
 inside ``Dropbox (GPI)/Pipeline_Releases/pipeline_testing_dataset/test_mytest``.
-You should also create a subdirectory "cal_files" inside that directory which contains 
+You should also create a subdirectory ``cal_files`` inside that directory which contains 
 ALL calibration files required to reduce that dataset. Note that no other files in
 your usual pipeline calibrations directory will be visible or accessible to the test suite!
 
@@ -58,14 +57,16 @@ your usual pipeline calibrations directory will be visible or accessible to the 
 the name of the XML file you just created. If desired, modify the test function to
 add any additional test assertions which you want to apply to the output files. 
 
-6. Try running your test:  ```%> cd pipeline/tests
-%> py.test test_mytest ```
-Iterate adjusting the test setup until the test works as desired.
+6. Try running your test:  
+```%> cd pipeline/tests
+%> py.test test_mytest 
+```
+Iterate, adjusting the test setup as needed until the test passes as desired.
 
 7. Check in all of your files into git.
 ```%> git add test_mytest
 %> git commit -m "Adding a new test: mytest"
-`
+```
 
 
 ## Requirements
@@ -73,12 +74,14 @@ Iterate adjusting the test setup until the test works as desired.
 Python packages:
  * pytest
  * astropy
- * gpipy
+ * gpipy (not on PyPI, must install from https://github.com/geminiplanetimager/gpipy/)
 
 The test data assumes you have access to the GPI Exoplanet Survey shared Dropbox area. 
 
 
 ## Credits
+
+By Kate Follette and Marshall Perrin
 
 Inspired by and partially adapted from the Keck OSIRIS DRP
 unit tests: https://github.com/Keck-DataReductionPipelines/OsirisDRP/tree/develop
