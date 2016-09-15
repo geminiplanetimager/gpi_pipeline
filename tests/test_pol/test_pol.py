@@ -9,7 +9,6 @@ def test_betapic(pipeline, test_dir):
 
     status, outrecipe, outfiles = pipeline.run_recipe( os.path.join(test_dir, recipename), rescanDB=True)
 
-
     # did the pipeline run without error?
     assert status=='Success', "Recipe {} failed to execute".format(recipename)
 
