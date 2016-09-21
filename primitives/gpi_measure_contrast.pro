@@ -296,6 +296,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         xyouts, 0.7, 0.85-0.04*(r+1), label, /norm, charsize=1.5, color=cgcolor('red')
       endfor
 
+      sat_order = backbone->get_keyword("SATSORDR", ext_num=1, count=ct)
+	  if sat_order eq 2 then begin
+        xyouts, 0.58, 0.85-0.04*(4), "CAUTION: USING 2ND ORDER SAT SPOTS", /norm, charsize=1.5, color=cgcolor('red')
+	  endif
+
+
       if pngsave ne '' then begin
         ;;if user set AUTO then synthesize entire path
         if strcmp(strupcase(pngsave),'AUTO') then begin
