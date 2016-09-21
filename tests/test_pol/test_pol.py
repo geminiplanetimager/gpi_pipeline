@@ -5,7 +5,13 @@ recipename = 'HR4796_PolTest.xml'
 nfiles_expected = 14
 
 
-def test_betapic(pipeline, test_dir):
+def test_pol_hr4796(pipeline, test_dir):
+    """
+    End-to-end test for pol mode cube reduction.
+    Reduce GPI commissioning HR 4796A dataset,
+    combine individual pol cubes into a Stokes cube,
+    and detect the disk in polarized light.
+    """
 
     status, outrecipe, outfiles = pipeline.run_recipe( os.path.join(test_dir, recipename), rescanDB=True)
 

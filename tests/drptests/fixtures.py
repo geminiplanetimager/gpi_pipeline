@@ -5,11 +5,18 @@ import gpipy
 
 import pytest
 
+
+# Test fixtures for GPI pipeline testing. 
+# This file containts common test infrastructure functions which should
+# be made available to all of the individual tests, via the py.test
+# Fixtures functionality.
+
 __all__ = ['pipeline', 'test_dir', 'patch_pipeline_dir_env_vars']
 
 @pytest.fixture(scope="module")
 def pipeline(request):
-    """Fixture for preparing a handle to the pipeline."""
+    """Fixture for preparing a handle to the pipeline. This returns an
+    instance that can be used to run a given recipe."""
     pipeline = gpipy.PipelineDriver()
     return pipeline
 
@@ -17,7 +24,10 @@ def pipeline(request):
 @pytest.fixture
 def test_dir(request):
     """Fixture for returning directory name of a given test,
-    and making that the current working directory"""
+    and making that the current working directory.
+    
+    This is used to ensure that pipeline outputs
+    """
     dirname = os.path.dirname(str(request.fspath))
     os.chdir(dirname)
     return dirname
