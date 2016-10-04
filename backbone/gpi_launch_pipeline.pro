@@ -78,7 +78,7 @@ PRO gpi_launch_pipeline, noinit=noinit, $
 	backbone = OBJ_NEW('gpiPipelineBackbone', verbose=verbose, nogui=nogui)
 	
 	if keyword_set(flushqueue) then backbone->flushqueue, queue_dir
-	if keyword_set(rescanDB) then backbone->rescan
+	if keyword_set(rescanDB) then backbone->rescan_CalDB
 
 	if keyword_set(single) then begin
 		message,/info, "PIPELINE INVOKED IN SINGLE-RECIPE MODE"
