@@ -20,7 +20,9 @@ helping with test development or running these tests themselves should contact K
     parent directory containing the "Pipeline_Releases" directory mentioned just
     above.)
 
-3. You run the test suite by changing to the tests directory and invoking py.test from the command line:
+3. Turn on file overwriting in the pipeline settings so that the pipeline silently overwrites files instead of prompting you to ask to overwrite the file. This is because prompts that ask you to overwrite a file does not work in /nogui mode. In the ``config/pipeline_settings.txt`` configuration file, you can turn on overwriting duplicate files with the following line: ``file_overwrite_handling   overwrite``.
+
+4. You run the test suite by changing to the tests directory and invoking py.test from the command line:
 
 ```
   cd pipeline/tests
