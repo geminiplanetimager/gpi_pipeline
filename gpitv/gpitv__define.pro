@@ -344,6 +344,7 @@ pro GPItv::initcommon
     contr_autocent: 1, $                ; 0=manual, 1=auto, find sat centers
     contr_highpassspots: 1, $           ; pass /highpass
     contr_constspots: 1, $              ; pass /constrain
+    contr_secondorder: 1, $             ; pass /secondorder
     contr_plotouter: 0, $               ; plot contrasts for region outside of dark hole
     contr_yunit:0, $                    ; 0 = sigma, 1 = median, 2 = mean
     contr_xunit:0, $                    ; 0 = as, 1 = l/D
@@ -6106,7 +6107,10 @@ pro GPItv::update_sat_spots,locs0=locs0
   ; if we already attempted to measure them but failed, don't
   ; mindlessly keep repeating that. We already know we can't make
   ; it work for this file...
-  if ~self.satspots.valid and self.satspots.attempted then return 
+  if ~self.satspots.valid and self.satspots.attempted then begin
+	  self->message, "we already failed to find sat spots on this image; not trying again."
+	  return 
+  endif
 
   ;;if the info is in the header, just get it from there
   cens = -1
@@ -6123,7 +6127,8 @@ pro GPItv::update_sat_spots,locs0=locs0
       good=good,cens=cens,warns=warns,highpass=(*self.state).contr_highpassspots,$
       constrain = (*self.state).contr_constspots,$
       winap=(*self.state).contrwinap,gaussap=(*self.state).contrap,$
-      indx=(*self.state).cur_image_num,locs=locs0,gaussfit=1,refinefits=1)
+      indx=(*self.state).cur_image_num,locs=locs0,gaussfit=1,refinefits=1,$
+	    secondorder =  (*self.state).contr_secondorder)
     if n_elements(sats) eq 1 and sats[0] eq -1 then begin
       self->message,msgtype='error',['Failed to locate satellite spots in this image.',$
         'Check that it is a coronagraphic image with an occulted target.']
@@ -6139,7 +6144,8 @@ pro GPItv::update_sat_spots,locs0=locs0
         good=good,cens=cens,warns=warns,highpass=(*self.state).contr_highpassspots,$
         constrain = (*self.state).contr_constspots,$
         winap=(*self.state).contrwinap,gaussap=(*self.state).contrap,$
-        indx=(*self.state).cur_image_num,locs=locs0,gaussfit=1,refinefits=1,/usecens)
+        indx=(*self.state).cur_image_num,locs=locs0,gaussfit=1,refinefits=1,/usecens,$
+	    secondorder =  (*self.state).contr_secondorder)
       if n_elements(sats) eq 1 and sats[0] eq -1 then begin
         self->message,msgtype='error',['Failed to locate satellite spots in this image.',$
           'Check that it is a coronagraphic image with an occulted target.']
@@ -19870,7 +19876,10 @@ end
 
 'contrplot_save': self->contrprof_refresh, /sav
 'contr_plot_refresh': self->contrprof_refresh
-'satellite_refresh': self->contrprof_refresh,/forcesat
+'satellite_refresh': begin
+	self.satspots.attempted = 0 ; forget about any past attempts that might have failed and retry anyway.
+	self->contrprof_refresh,/forcesat
+end
 'contr_radial': self->contrprof_refresh, /radialsav
 
 'contr_ps': begin
@@ -20127,6 +20136,7 @@ pro GPItv::contrprof_refresh, ps=ps,  sav=sav, radialsav=radialsav,noplot=noplot
     self->update_sat_spots,locs0=locs0
     ;;if failed, bail
     if (n_elements(*self.satspots.cens) ne 8L * (*self.state).image_size[2]) then begin
+		self->message, "Failed to locate sat spots"
       self->clear_contrprof_windows
       return
     endif

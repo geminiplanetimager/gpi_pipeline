@@ -1,6 +1,7 @@
 function find_sat_spots_all,im0,band=band,indx=indx,good=good,$
                             refinefits=refinefits,winap=winap,locs=locs,$
-                            highpass=highpass,constrain=constrain
+                            highpass=highpass,constrain=constrain,$
+						    secondorder=secondorder
 ;+
 ; NAME:
 ;       find_sat_spots_all
@@ -32,6 +33,7 @@ function find_sat_spots_all,im0,band=band,indx=indx,good=good,$
 ;                   finding.  If not 1, use this box size.
 ;       constrain - Apply constraints on box sizes based on
 ;                    wavelength and apodizer
+;       secondorder	- use 2nd order sat spots if at Y or J
 ;
 ; OPTIONAL OUTPUT:
 ;       good - Indices of the slices where sat spots could be found
@@ -72,13 +74,16 @@ scl = lambda[indx]/lambda
 if keyword_set(constrain) then begin
    bands = ['Y','J','H','K1','K2'];
    cvals = [49,56,53,57,57];
+
+
    cval = cvals(where(bands eq band))*lambda[indx]
+   if keyword_set(secondorder) and ((band eq 'Y') or (band eq 'J')) then cval*=2
 endif else cval = 0
 
 ;;grab reference slice and find spots
 s0 = im[*,*,indx]
 if strcmp(band,'Y',/fold_case) then s0 *= hanning(sz[0],sz[1],alpha=0.01)
-cens0 = find_sat_spots(s0, winap=winap,locs=locs,highpass=highpass,constrain=cval)
+cens0 = find_sat_spots(s0, winap=winap,locs=locs,highpass=highpass,constrain=cval, maskcenter=secondorder)
 badcens = where(~finite(cens0),ct)
 if n_elements(cens0) eq 1 || ct ne 0 then return, -1
 
