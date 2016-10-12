@@ -106,6 +106,7 @@ function gpi_flexure_crosscorrelation_with_polcal, DataSet, Modules, Backbone
 
     if (badpix eq 1) then begin
       badpix_file = (backbone_comm->getgpicaldb())->get_best_cal_from_header('badpix',*(dataset.headersphu)[numfile],*(dataset.headersext)[numfile])
+	  if strc(badpix_file) eq '-1' then return, error('FAILURE ('+functionName+'): no bad pixel file avalable but badpix flag is set')
       badpix = gpi_READFITS(badpix_file)
       ones = bytarr(2048,2048)+1
       badpix = ones-badpix

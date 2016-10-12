@@ -197,6 +197,34 @@ licensing issues before continuing (or install the compiled version of the
 pipeline!).
 
 
+I'm seeing a cryptic error about "ERROR: could not get a lock on the inter-IDL queue semaphore after 10 tries." What does this mean and how can I fix it? 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+The full error message looks like::
+
+        ERROR: could not get a lock on the inter-IDL queue semaphore after 10 tries.
+               Failed to queue command gpitv, 'something_or_other.fits'
+        If the lock on the inter-IDL queue is not being released properly, 
+        use the pipeline setting launcher_force_semaphore_name to pick a different lock.
+
+
+The GPI pipeline uses 2 different IDL sessions: one for the actual execution of reduction recipes, and one for running the GUIs like GPITV. These send messages back and forth to each other using shared
+memory and a Unix semaphore for interprocess communication. Sometimes, for reasons that are unclear, when you restart the pipeline it cannot get a write lock to the default semaphore file name. Exactly why this
+happens is frustratingly unclear, but we think has to do with some past IDL session not properly releasing the handle even after the process has exited. The exact details remain murky, hidden deep under layers
+of Unix arcana. 
+
+In any case there is an easy work around: just tell the pipeline to use some other semaphore name for communicating between the two IDL sessions. Edit your :ref:`config-textfiles` user config file (probably named ``~/.gpi_pipeline_settings`` in your home directory) to specify some other semaphore name by invoking the setting mentioned in the error message::
+
+        launcher_force_semaphore_name   Type_pretty_much_any_arbitrary_string_here
+
+Type, well, pretty much anything you want there for the second part. Then restart the pipeline and the error should be cleared. 
+
+For some reason, this problem seems to crop up more often on the Gemini summit computers than anywhere else. (?!?)
+
+ 
+
+
 .. _faq_gpitv:
 
 GPItv
