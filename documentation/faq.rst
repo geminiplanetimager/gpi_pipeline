@@ -159,7 +159,6 @@ Mac OSX Lion and Mountain Lion users running IDL 8.2 have been known to see the 
 Although a nuisance, this error should have no affect on pipeline operation. Possible workarounds exist; details can be found `here <http://www.exelisvis.com/Support/HelpArticlesDetail/TabId/219/ArtMID/900/ArticleID/5251/5251.aspx>`_
 
 
-
 .. _faq_less_common:
 
 Less common software issues

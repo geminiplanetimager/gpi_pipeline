@@ -9,7 +9,7 @@
 ; KEYWORDS:
 ;
 ;  /noexit			Don't exit IDL after the pipeline is closed
-;  /rescanDB   		Rescan & recreat the calibrations DB by reading all files in
+;  /rescanDB   		Rescan & recreate the calibrations DB by reading all files in
 ;					the given directory on startup
 ;  /flushqueue		DELETE any DRFs present in the queue on startup (dangerous,
 ;  					mostly for debugging purposes)
