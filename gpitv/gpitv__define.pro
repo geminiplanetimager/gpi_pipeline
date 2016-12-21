@@ -8447,7 +8447,8 @@ pro GPITv::update_DQ_warnings
 
   ;; how many pixels are saturated, if we have a DQ extension?
   if (*self.state).has_dq_mask then begin
-    n_bad_from_dq = total(*self.images.dq_image and  (*self.state).dq_bit_mask)
+    tmp = where((*self.images.dq_image and (*self.state).dq_bit_mask) gt 0)
+    if tmp[0] ne -1 then n_bad_from_dq = n_elements(tmp) else n_bad_from_dq = 0
   endif else n_bad_from_dq = 0
 
   ;; Display 'ABORTED IMAGE' in bold red letters on top of GPItv when
