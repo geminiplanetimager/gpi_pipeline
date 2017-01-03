@@ -1,6 +1,6 @@
 function find_sat_spots,s0,leg=leg,locs=locs0, winap = winap,$
                         highpass=highpass,constrain=constrain,$
-                        maxcounter=maxcounter
+                        maxcounter=maxcounter,maskcenter=maskcenter
 ;+
 ; NAME:
 ;       find_sat_spots
@@ -27,6 +27,7 @@ function find_sat_spots,s0,leg=leg,locs=locs0, winap = winap,$
 ;       constrain - Size of leg must be within 10 pixels of this value
 ;       maxcounter - Maximum number of iterations to look for sat
 ;                    spots (defaults to 50)
+;       maskcenter - ignore a hard-coded area right around the FPM.
 ;
 ;       res - 2x4 array of satellite spot pixel locations
 ;
@@ -78,6 +79,8 @@ if not keyword_set(locs0) then begin
    
    ;;fourier coregister with gaussian to smooth image
    fourier_coreg,s0i,ref,out,/wind
+
+   if keyword_set(maskcenter) then out[110:170, 110:170]=0
 
    ;;define mask 3C2 and 4C2 comb sets
    msk = make_annulus(winap)

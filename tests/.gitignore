@@ -1,0 +1,21 @@
+# Copied from OSIRIS DRP tests - needs update for GPI still
+test_*/*.fits
+test_*/contrast
+
+# DRP Log files.
+test_*/*.log
+test_*/*.log.txt
+
+# DRFs which are used by an active queue.
+test_*/*.done
+test_*/*.waiting
+test_*/*.failed
+
+# Master DRP logs
+logs/*
+
+# Need to solve the big-data in repo problem.
+test_*/expected/* 
+
+*.pyc
+*/__pycache__/*

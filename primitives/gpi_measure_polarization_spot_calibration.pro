@@ -24,8 +24,8 @@
 ;
 ; PIPELINE ORDER: 1.8
 ; PIPELINE ARGUMENT: Name="nlens" Type="int" Range="[0,400]" Default="281" Desc="side length of  the  lenslet array "
-; PIPELINE ARGUMENT: Name="centrXpos" Type="int" Range="[0,2048]" Default="1078" Desc="Initial approximate x-position [pixel] of central peak at 1.5microns"
-; PIPELINE ARGUMENT: Name="centrYpos" Type="int" Range="[0,2048]" Default="1028" Desc="Initial approximate y-position [pixel] of central peak at 1.5microns"
+; PIPELINE ARGUMENT: Name="centrXpos" Type="int" Range="[0,2048]" Default="1076" Desc="Initial approximate x-position [pixel] of central peak at 1.5microns"
+; PIPELINE ARGUMENT: Name="centrYpos" Type="int" Range="[0,2048]" Default="1033" Desc="Initial approximate y-position [pixel] of central peak at 1.5microns"
 ; PIPELINE ARGUMENT: Name="w" Type="float" Range="[0.,10.]" Default="4.4" Desc="Spectral spacing perpendicular to the dispersion axis at the detcetor in pixel"
 ; PIPELINE ARGUMENT: Name="P" Type="float" Range="[-7.,7.]" Default="2.18" Desc="Micro-pupil pattern"
 ; PIPELINE ARGUMENT: Name="maxpos" Type="float" Range="[-7.,7.]" Default="2.5" Desc="Allowed maximum location fluctuation (in pixel) between adjacent mlens"

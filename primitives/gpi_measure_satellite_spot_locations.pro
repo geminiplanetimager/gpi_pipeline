@@ -22,6 +22,7 @@
 ; PIPELINE ARGUMENT: Name="search_window" Type="int" Range="[1,50]" Default="20" Desc="Radius of aperture used for locating satellite spots."
 ; PIPELINE ARGUMENT: Name="highpass" Type="int" Range="[0,25]" Default="1" Desc="1: Use high pass filter (default size) 0: don't 2+: size of highpass filter box"
 ; PIPELINE ARGUMENT: Name="constrain" Type="int" Range="[0,1]" Default="0" Desc="1: Constrain distance between sat spots by band; 0: Unconstrained search."
+; PIPELINE ARGUMENT: Name="secondorder" Type="int" Range="[0,1]" Default="0" Desc="1: Constrain uses 2nd order spots for Y or J bands; no effect for H, K1, K2"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="update_prev_fits_header" Type="int" Range="[0,1]" Default="0" Desc="Update FITS metadata in the most recently saved datacube?"
 ; PIPELINE ARGUMENT: Name="loc_input" Type="int" Range="[0,2]" Default="0" Desc="0: Find spots automatically; 1: Use values below as initial satellite spot location"
@@ -41,6 +42,7 @@
 ;   2012-09-18 Offloaded functionality to common backend - ds
 ;   2013-07-17 MP Documentation updated, rename for consistency.
 ;   2014-10-11 DS Added PSFCEN_XX for all slices to header
+;   2016-09-20 MP added secondorder option
 ;- 
 
 function gpi_measure_satellite_spot_locations, DataSet, Modules, Backbone
@@ -65,6 +67,7 @@ winap = fix(Modules[thisModuleIndex].search_window)
 loc_input = fix(Modules[thisModuleIndex].loc_input)
 highpass = fix(Modules[thisModuleIndex].highpass)
 constrain = fix(Modules[thisModuleIndex].constrain)
+secondorder = fix(Modules[thisModuleIndex].secondorder)
 update_prev_fits_header = fix(Modules[thisModuleIndex].update_prev_fits_header)
 if loc_input eq 1 then begin 
    approx_loc=fltarr(4,2)
@@ -79,10 +82,12 @@ if loc_input eq 1 then begin
    approx_locs = transpose(approx_loc)
 endif
 
+if keyword_set( secondorder) and (band eq 'H' or band eq 'K1' or band eq 'K2') then secondorder=0 ; it doesn't apply to those filters
+
 ;;find sat spots
 cens = find_sat_spots_all(cube,band=band,indx=indx,good=good,$
                           refinefits=refinefits,winap=winap,locs=approx_locs,$
-                          constrain=constrain,highpass=highpass)
+                          constrain=constrain,highpass=highpass,secondorder=secondorder)
 if n_elements(cens) eq 1 then return, error ('FAILURE ('+functionName+'): Could not find satellite spots.')
 good = long(good)
 
@@ -118,7 +123,7 @@ for j=n_elements(goodcode)-1,0,-1 do gooddec += goodcode[j]*ulong64(2)^ulong64(n
 goodhex = strtrim(string(gooddec,format='((Z))'),2)
 backbone->set_keyword,'SATSMASK',goodhex,'HEX->binary mask for slices with found sats',ext_num=1
 
-
+backbone->set_keyword,'SATSORDR',secondorder+1,'Sat spot grid order used (primary or secondary)',ext_num=1
 
 if keyword_set(update_prev_fits_header) then begin
 	; Update the same FITS keyword information into a prior saved version of
