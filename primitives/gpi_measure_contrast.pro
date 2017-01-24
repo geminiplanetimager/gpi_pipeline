@@ -202,9 +202,14 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 			middle_range = [round(0.25*n_elements(inds)), round(0.75*n_elements(inds))]
 			; note that GPItv only looks at individual slices
 			pts = fltarr(middle_range[1]-middle_range[0]+1)
-			for ri=middle_range[0], middle_range[1] do pts[ri-middle_range[0]] = (*contrprof[ri])[closest_radius_subscript]
+			for ri=middle_range[0], middle_range[1] do begin
+        ; need to be careful here, as closest_radius_subscript was defined using the asec array defined from the last slice
+        ; this needs to be recalculated using *asecs[ri]
+        mindiff = min(abs((*asecs[ri]) - radius) ,/NAN, closest_radius_subscript)
+        pts[ri-middle_range[0]] = (*contrprof[ri])[closest_radius_subscript]
+      endfor
 			; This was a mean and changed to median by PI Jan 14, 2015
-			contrast_at_radius = median(pts)
+      contrast_at_radius = median(pts)
 			fiducial_contrasts[r] = contrast_at_radius
 			backbone->set_keyword,fiducial_keywords[r], fiducial_contrasts[r],$
                       " Median contrast (over 50% bandwidth) at "+sigfig(radius,2)+"'' from sat spots", ext_num=0
@@ -296,6 +301,12 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         xyouts, 0.7, 0.85-0.04*(r+1), label, /norm, charsize=1.5, color=cgcolor('red')
       endfor
 
+      sat_order = backbone->get_keyword("SATSORDR", ext_num=1, count=ct)
+	  if sat_order eq 2 then begin
+        xyouts, 0.58, 0.85-0.04*(4), "CAUTION: USING 2ND ORDER SAT SPOTS", /norm, charsize=1.5, color=cgcolor('red')
+	  endif
+
+
       if pngsave ne '' then begin
         ;;if user set AUTO then synthesize entire path
         if strcmp(strupcase(pngsave),'AUTO') then begin
@@ -372,10 +383,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
         nm = gpi_expand_path(radialsave+path_sep()+nm+'_contrast_profile.fits')
       endif else nm = radialsave
 
-      out = dblarr(n_elements(*asecs[n_elements(inds[0])-1]), n_elements(inds)+1)+!values.d_nan
-      out[*,0] = *asecs[n_elements(inds[0])-1]
+      out = dblarr(n_elements(*asecs[0]), n_elements(inds)+1)+!values.d_nan
+      out[*,0] = *asecs[0]
       for j=0,n_elements(inds)-1 do $
-        out[where((*asecs[j]) eq (*asecs[j])[0]):n_elements(*asecs[j])-1,j+1] = $
+        out[where((*asecs[0]) eq (*asecs[j])[0]):n_elements(*asecs[0])-1,j+1] = $
         (*contrprof[j])[*,0]
 
       tmp = intarr((size(cube,/dim))[2])

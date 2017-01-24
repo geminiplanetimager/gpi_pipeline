@@ -9,10 +9,10 @@
 ; KEYWORDS:
 ;
 ;  /noexit			Don't exit IDL after the pipeline is closed
-;  /rescanDB   		Create a new calibrations DB by reading all files in a given directory
+;  /rescanDB   		Rescan & recreate the calibrations DB by reading all files in
+;					the given directory on startup
 ;  /flushqueue		DELETE any DRFs present in the queue on startup (dangerous,
 ;  					mostly for debugging purposes)
-;  /rescan			Rescan & recreate the calibration files DB on startup
 ;  /verbose     	Display more output than usual, mostly for debugging
 ;           		purposes
 ;  /ignoreconflict	Don't stop running if another instance is already running.
@@ -78,7 +78,7 @@ PRO gpi_launch_pipeline, noinit=noinit, $
 	backbone = OBJ_NEW('gpiPipelineBackbone', verbose=verbose, nogui=nogui)
 	
 	if keyword_set(flushqueue) then backbone->flushqueue, queue_dir
-	if keyword_set(rescanDB) then backbone->rescan
+	if keyword_set(rescanDB) then backbone->rescan_CalDB
 
 	if keyword_set(single) then begin
 		message,/info, "PIPELINE INVOKED IN SINGLE-RECIPE MODE"
