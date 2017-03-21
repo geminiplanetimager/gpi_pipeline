@@ -4702,7 +4702,13 @@ pro GPItv::setcubeslicelabel
       currlabel = modelabels[stokesindex+8]
     end
 	'KLMODES': begin
-		label = sxpar(*(*self.state).exthead_ptr,"KLMODE"+strc((*self.state).cur_image_num), ct)
+        ; for GPI we have the KL mode info in the ext header
+        if (*self.state).exthead_ptr NE !NULL then begin
+		    label = sxpar(*(*self.state).exthead_ptr,"KLMODE"+strc((*self.state).cur_image_num), ct)
+        ; but other data could have it in the pri header
+        endif else begin
+		    label = sxpar(*(*self.state).head_ptr,"KLMODE"+strc((*self.state).cur_image_num), ct)
+        endelse
 		currlabel = "n="+strc(label)
 	end
     else:begin
