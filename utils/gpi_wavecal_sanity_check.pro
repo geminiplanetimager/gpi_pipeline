@@ -108,7 +108,7 @@ function gpi_wavecal_sanity_check, filename_or_cal_data, silent=silent, $
 	endif
 
 
-	if ~(keyword_set(threshold)) then threshold=1.0
+	if ~(keyword_set(threshold)) then threshold=2.0
 	; Fail
 	if pct_wide_x*100 gt threshold or pct_wide_y*100 gt threshold or pct_wide_w*100 gt threshold or pct_wide_t*100 gt threshold then begin
 		errmsg = filename+" looks invalid. Too many X and Y offsets, theta and dispersion values between adjacent lenslets are outside expected values."
