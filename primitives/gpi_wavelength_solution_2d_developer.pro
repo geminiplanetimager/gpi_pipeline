@@ -94,7 +94,6 @@ calfiletype = 'wavecal'
 
 	;open the reference wavecal file. Save into common block variable.
 	refwlcal = gpi_readfits(c_File,header=Header)
-
         
 ;Use the next line to manually select a wavecal by hand until that
 ;software bug is fixed.
@@ -708,18 +707,21 @@ print, xplanefit, yplanefit
 xdummy = filter_image(xdummy, median=3)
 xdummy[badx] =  !values.f_nan
 
+median_filt=20
+
+
 
 goodw = where(Finite(wdummy), ngoodw, comp=badw, ncomp=nbadw) 
 ; interpolate at the locations of the bad data using the good data 
 ;if nbadw gt 0 then wdummy[badw] = interpol(wdummy[goodw], goodw, badw,/LSQUADRATIC) 
-wdummy = filter_image(wdummy, median=5)
+wdummy = filter_image(wdummy, median=median_filt)
 wdummy[badw] =  !values.f_nan
 
 
 goodt = where(Finite(tdummy), ngoodt, comp=badt, ncomp=nbadt) 
 ; interpolate at the locations of the bad data using the good data 
 ;if nbadt gt 0 then tdummy[badt] = interpol(tdummy[goodt], goodt, badt,/LSQUADRATIC) 
-tdummy = filter_image(tdummy, median=5)
+tdummy = filter_image(tdummy, median=median_filt)
 tdummy[badt] =  !values.f_nan
 
 
@@ -735,7 +737,7 @@ tdummy[badt] =  !values.f_nan
            if keyword_set(Quadratic) then begin
               qdummy = newwavecal[*,*,5]
               goodq = where(Finite(qdummy), ngoodq, comp=badq, ncomp=nbadq)
-              qdummy = filter_image(qdummy,median=5)
+              qdummy = filter_image(qdummy,median=median_filt)
               qdummy[badq] = !values.f_nan
               wdummy[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
               newwavecal[*,*,5]=qdummy
