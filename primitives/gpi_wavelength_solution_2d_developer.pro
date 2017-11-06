@@ -74,7 +74,7 @@ calfiletype = 'wavecal'
  	if tag_exist( Modules[thisModuleIndex], "numsplit") then numsplit=fix(Modules[thisModuleIndex].numsplit) else numsplit=!CPU.TPOOL_NTHREADS*2
 	if numsplit lt 1 then numsplit=!CPU.TPOOL_NTHREADS*2
   	if tag_exist( Modules[thisModuleIndex], "Save") then Save=uint(Modules[thisModuleIndex].Save) else Save=0
-  	if tag_exist( Modules[thisModuleIndex], "Smooth") then Smooth=uint(Modules[thisModuleIndex].Smooth) else Smooth=0
+  	if tag_exist( Modules[thisModuleIndex], "Smooth") then Smooth=uint(Modules[thisModuleIndex].Smooth) else Smooth=1
   	if tag_exist( Modules[thisModuleIndex], "Save_model_image") then Save_model_image=uint(Modules[thisModuleIndex].Save_model_image) else Save_model_image=0
   	if tag_exist( Modules[thisModuleIndex], "Save_model_params") then Save_model_params=uint(Modules[thisModuleIndex].Save_model_params) else Save_model_params=0
  	if tag_exist( Modules[thisModuleIndex], "AutoOffset") then AutoOffset=uint(Modules[thisModuleIndex].AutoOffset) else AutoOffset=0
@@ -684,7 +684,7 @@ ydatabadx = bady MOD ncolbad
 ydatabady = bady / ncolbad
 ydummyfit = SFIT( ydata, 1, kx=yplanefit, /IRREGULAR, /MAX_DEGREE)
 ydummy[bady] = yplanefit[0] + yplanefit[1]*ydatabady + yplanefit[2]*ydatabadx 
-ydummy = filter_image(ydummy, median=3)
+ydummy = filter_image(ydummy, median=27)
 ydummy[bady] =  !values.f_nan
  
 goodx = where(Finite(xdummy), ngoodx, comp=badx, ncomp=nbadx) 
@@ -704,7 +704,7 @@ xdummyfit = SFIT( xdata, 1, kx=xplanefit, /IRREGULAR, /MAX_DEGREE)
 xdummy[badx] = xplanefit[0] + xplanefit[1]*xdatabady + xplanefit[2]*xdatabadx; + xplanefit[3]*xdatabadx*xdatabady
 print, xplanefit, yplanefit
 ;stop
-xdummy = filter_image(xdummy, median=3)
+xdummy = filter_image(xdummy, median=27)
 xdummy[badx] =  !values.f_nan
 
 median_filt=20
@@ -732,7 +732,8 @@ tdummy[badt] =  !values.f_nan
 ;newwavecal[*,*,4]=tdummy
 
 
-        if keyword_set(Smooth) then begin
+if keyword_set(Smooth) then begin
+
 
            if keyword_set(Quadratic) then begin
               qdummy = newwavecal[*,*,5]
@@ -769,7 +770,7 @@ tdummy[badt] =  !values.f_nan
            newwavecal[*,*,0]=ydummy
            newwavecal[*,*,1]=xdummy
            newwavecal[wherenan] = !values.f_nan
-        endif
+endif
 
 
 ;SAVE THE NEW WAVELENGTH CALIBRATION:
