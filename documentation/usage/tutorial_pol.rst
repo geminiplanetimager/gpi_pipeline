@@ -11,7 +11,7 @@ We try to keep this tutorial as general as possible, so that it can be used as a
 Getting the Sample Dataset for this Tutorial
 =================================================
 
-A sample polarization dataset can be found `here <http://docs.planetimager.org/GettingStarted_tutorial_dataset/>`_ in the file ``gpi_pol_tutorial.zip``. Unzip that to get the tutorial dataset directory. 
+A sample polarization dataset can be found `here <http://docs.planetimager.org/GettingStarted_tutorial_dataset/GPI_pol_tutorial.zip>`_ in the file ``gpi_pol_tutorial.zip``. Unzip that to get the tutorial dataset directory. 
 
 The directory contains a number of different GPI file types: 
 	* Dark File - S20130912S0017-dark.fits   (note that this is a *reduced* dark file, not the raw dark images.)

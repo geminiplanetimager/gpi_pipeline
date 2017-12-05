@@ -17,7 +17,7 @@ documentation of the tools shown here can be found on subsequent pages.
 Getting the Sample Dataset for this Tutorial
 =================================================
 
-As an introduction to reducing data with the GPI Pipeline, a simple set of data is available for download `here <http://docs.planetimager.org/GettingStarted_tutorial_dataset>`_ in the file ``gpi_spectral_tutorial.zip``.  Unzip that to get the tutorial dataset directory.
+As an introduction to reducing data with the GPI Pipeline, a simple set of data is available for download `here <http://docs.planetimager.org/GettingStarted_tutorial_dataset/GPI_spectral_tutorial.zip>`_ in the file ``gpi_spectral_tutorial.zip``.  Unzip that to get the tutorial dataset directory.
 
 This directory contains a small set of data to give an overview of the different types of image and how to process them. All the files are raw data coming from the detector and we will reduce them one at a time.
 The target is HD 8049, a K2 star with a white dwarf companion; see `Zurlo et al. 2013 <http://adsabs.harvard.edu/abs/2013A%26A...554A..21Z>`_.
