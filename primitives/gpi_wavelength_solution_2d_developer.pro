@@ -667,6 +667,7 @@ tdummy = newwavecal[*,*,4]
 ;   xdummy[where(newwavecal[*,columnind,1] EQ !values.f_nan)]=mean(newwavecal[*,columnind,1],/nan)
 ;endfor
 
+median_filt=9
 
 goody = where(Finite(ydummy), ngoody, comp=bady, ncomp=nbady) 
 ; interpolate at the locations of the bad data using the good data 
@@ -684,7 +685,7 @@ ydatabadx = bady MOD ncolbad
 ydatabady = bady / ncolbad
 ydummyfit = SFIT( ydata, 1, kx=yplanefit, /IRREGULAR, /MAX_DEGREE)
 ydummy[bady] = yplanefit[0] + yplanefit[1]*ydatabady + yplanefit[2]*ydatabadx 
-ydummy = filter_image(ydummy, median=27)
+ydummy = filter_image(ydummy, median=median_filt, /ALL_PIXELS)
 ydummy[bady] =  !values.f_nan
  
 goodx = where(Finite(xdummy), ngoodx, comp=badx, ncomp=nbadx) 
@@ -702,9 +703,9 @@ xdatabadx = badx MOD ncolbad
 xdatabady = badx / ncolbad
 xdummyfit = SFIT( xdata, 1, kx=xplanefit, /IRREGULAR, /MAX_DEGREE)
 xdummy[badx] = xplanefit[0] + xplanefit[1]*xdatabady + xplanefit[2]*xdatabadx; + xplanefit[3]*xdatabadx*xdatabady
-print, xplanefit, yplanefit
+;print, xplanefit, yplanefit
 ;stop
-xdummy = filter_image(xdummy, median=27)
+xdummy = filter_image(xdummy, median=median_filt, /ALL_PIXELS)
 xdummy[badx] =  !values.f_nan
 
 median_filt=20
