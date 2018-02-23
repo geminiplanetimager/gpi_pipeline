@@ -667,8 +667,8 @@ tdummy = newwavecal[*,*,4]
 ;   xdummy[where(newwavecal[*,columnind,1] EQ !values.f_nan)]=mean(newwavecal[*,columnind,1],/nan)
 ;endfor
 
-median_filt=9
-
+median_filt=27
+smooth_in = 40
 goody = where(Finite(ydummy), ngoody, comp=bady, ncomp=nbady) 
 ; interpolate at the locations of the bad data using the good data 
 ;if nbady gt 0 then ydummy[bady] = interpol(ydummy[goody], goody, bady,/LSQUADRATIC)
@@ -766,10 +766,10 @@ if keyword_set(Smooth) then begin
            ydummy[where(~Finite(refwlcal[*,*,0]))] = !values.f_nan
 
 
-           newwavecal[*,*,4]=tdummy
-           newwavecal[*,*,3]=wdummy
-           newwavecal[*,*,0]=ydummy
-           newwavecal[*,*,1]=xdummy
+           newwavecal[smooth_in:ncol-smooth_in,smooth_in:ncol-smooth_in,4]=tdummy[smooth_in:ncol-smooth_in,smooth_in:ncol-smooth_in]
+           newwavecal[smooth_in:ncol-smooth_in,smooth_in:ncol-smooth_in,3]=wdummy[smooth_in:ncol-smooth_in,smooth_in:ncol-smooth_in]
+           newwavecal[smooth_in:ncol-smooth_in,smooth_in:ncol-smooth_in,0]=ydummy[smooth_in:ncol-smooth_in,smooth_in:ncol-smooth_in]
+           newwavecal[smooth_in:ncol-smooth_in,smooth_in:ncol-smooth_in,1]=xdummy[smooth_in:ncol-smooth_in,smooth_in:ncol-smooth_in]
            newwavecal[wherenan] = !values.f_nan
 endif
 
