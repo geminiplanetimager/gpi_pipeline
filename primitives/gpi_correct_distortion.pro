@@ -185,7 +185,7 @@ function gpi_correct_distortion_one, image, parms
   for ii = 0, sz[3]-1 do begin
     im_in = image[*, *, ii]
     ;im_out = bilinear(im_in, u, v) ; bilinear interpolation
-    im_out = interpolate(im_in, u, v, cubic = -0.5, missing = 0.0)
+    im_out = interpolate(im_in, u, v, cubic = -0.5, missing = !values.f_nan)
     image[*, *, ii] = im_out*absdetJ
   endfor
 
