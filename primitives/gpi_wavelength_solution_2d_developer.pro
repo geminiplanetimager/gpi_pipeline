@@ -209,8 +209,8 @@ if keyword_set(parallel) then begin
 	; must create these after reading # of emission lines
         if Quadratic eq 1 then sizeres = 10+nmgauss[0]
         if Quadratic eq 0 then sizeres = 9+nmgauss[0]
-        print, "Size of the modelparams array:"
-        print, sizeres
+        ;print, "Size of the modelparams array:"
+        ;print, sizeres
 	;sizeres = 9+nmgauss[0]
         if ~(keyword_set(modelparams)) then modelparams=fltarr( (size(refwlcal))[1],(size(refwlcal))[2],sizeres )+!values.f_nan
         if ~(keyword_set(modelbackgrounds)) then modelbackgrounds = fltarr( (size(refwlcal))[1],(size(refwlcal))[2] ) + !values.f_nan
@@ -667,30 +667,59 @@ tdummy = newwavecal[*,*,4]
 ;   xdummy[where(newwavecal[*,columnind,1] EQ !values.f_nan)]=mean(newwavecal[*,columnind,1],/nan)
 ;endfor
 
-median_filt=27
+
+; Correct for poorly fit lenslets
+
+median_filt = 21
 smooth_in = 40
-goody = where(Finite(ydummy), ngoody, comp=bady, ncomp=nbady) 
+
+nany = where(~Finite(ydummy))
+;finitey = where(Finite(ydummy));, ngoody, comp=nany, ncomp=nbady) 
 ; interpolate at the locations of the bad data using the good data 
-;if nbady gt 0 then ydummy[bady] = interpol(ydummy[goody], goody, bady,/LSQUADRATIC)
+;if nbady gt 0 then ydummy[bady] = interpol(ydummy[goody], goody,
+;bady,/LSQUADRATIC)
+
+; Perform same test for x,y slices that is performed in quality check
+; wavecal util. Add any poorly fit lenslets to array of bad values.
+
+ydiff = ydummy-shift(ydummy,1)
+wg = where(finite(ydiff))
+pct_wide_y = abs(ydiff[wg]-mean(ydiff[wg]))
+;wb = where(pct_wide_y gt 2)
+;bady = [nany,wb]
+
+goody = where((Finite(ydummy) or (pct_wide_y gt 2)),ngoody,comp=bady,ncomp=nbady)
+
+
 ydata = dblarr(3,ngoody)
 sz = SIZE(ydummy[goody])
-print,sz
+;print,sz
 ncol = 281
 ydata[0,*] = goody MOD ncol
 ydata[1,*] = goody / ncol
 ydata[2,*] = ydummy[goody]
-sbad = SIZE(ydummy[bady])
+;sbad = SIZE(ydummy[bady])
 ncolbad = 281
 ydatabadx = bady MOD ncolbad
 ydatabady = bady / ncolbad
-ydummyfit = SFIT( ydata, 1, kx=yplanefit, /IRREGULAR, /MAX_DEGREE)
-ydummy[bady] = yplanefit[0] + yplanefit[1]*ydatabady + yplanefit[2]*ydatabadx 
-ydummy = filter_image(ydummy, median=median_filt, /ALL_PIXELS)
-ydummy[bady] =  !values.f_nan
+ydf = SFIT( ydata, 3, kx=yplanefit, /IRREGULAR, /MAX_DEGREE)
+ydummy[bady] = ydf[0] + ydf[1]*ydatabady + ydf[2]*ydatabady*ydatabady + ydf[3]*ydatabady*ydatabady*ydatabady + ydf[4]*ydatabadx + ydf[5]*ydatabadx*ydatabady + ydf[6]*ydatabadx*ydatabady*ydatabady + ydf[7]*ydatabadx*ydatabadx + ydf[8]*ydatabadx*ydatabadx*ydatabady + ydf[9]*ydatabadx*ydatabadx*ydatabadx
+
+ydummy = filter_image(ydummy, median=median_filt, /ALL_PIXELS, /ITERATE)
+ydummy[nany] =  !values.f_nan
  
-goodx = where(Finite(xdummy), ngoodx, comp=badx, ncomp=nbadx) 
+nanx = where(~Finite(xdummy))
+;goodx = where(Finite(xdummy), ngoodx, comp=nanx, ncomp=nbadx) 
 ; interpolate at the locations of the bad data using the good data 
 ;if nbadx gt 0 then xdummy[badx] = interpol(xdummy[goodx], goodx, badx,/LSQUADRATIC) 
+xdiff = xdummy-shift(xdummy,1)
+wg = where(Finite(xdiff))
+pct_wide_x = abs(xdiff[wg]-mean(xdiff[wg]))
+;wb = where(pct_wide_x gt 2)
+;badx =[nanx,wb]
+
+goodx = where((Finite(xdummy) or (pct_wide_x gt 2)),ngoodx,comp=badx,ncomp=nbadx)
+
 xdata = dblarr(3,ngoodx)
 sz = SIZE(xdummy[goodx])
 ncol = 281
@@ -701,36 +730,38 @@ sbad = SIZE(xdummy[badx])
 ncolbad = 281
 xdatabadx = badx MOD ncolbad
 xdatabady = badx / ncolbad
-xdummyfit = SFIT( xdata, 1, kx=xplanefit, /IRREGULAR, /MAX_DEGREE)
-xdummy[badx] = xplanefit[0] + xplanefit[1]*xdatabady + xplanefit[2]*xdatabadx; + xplanefit[3]*xdatabadx*xdatabady
+xdf = SFIT( xdata, 3, kx=xplanefit, /IRREGULAR, /MAX_DEGREE)
+xdummy[badx] = xdf[0] + xdf[1]*xdatabady + xdf[2]*xdatabady*xdatabady + xdf[3]*xdatabady*xdatabady*xdatabady + xdf[4]*xdatabadx + xdf[5]*xdatabadx*xdatabady + xdf[6]*xdatabadx*xdatabady*xdatabady + xdf[7]*xdatabadx*xdatabadx + xdf[8]*xdatabadx*xdatabadx*xdatabady + xdf[9]*xdatabadx*xdatabadx*xdatabadx
+;xdummy[badx] = xplanefit[0] + xplanefit[1]*xdatabady + xplanefit[2]*xdatabadx ; + xplanefit[3]*xdatabadx*xdatabady
 ;print, xplanefit, yplanefit
 ;stop
-xdummy = filter_image(xdummy, median=median_filt, /ALL_PIXELS)
-xdummy[badx] =  !values.f_nan
+xdummy = filter_image(xdummy, median=median_filt, /ALL_PIXELS, /ITERATE)
+xdummy[nanx] =  !values.f_nan
 
-median_filt=20
+median_filt=21
 
 
 
 goodw = where(Finite(wdummy), ngoodw, comp=badw, ncomp=nbadw) 
 ; interpolate at the locations of the bad data using the good data 
 ;if nbadw gt 0 then wdummy[badw] = interpol(wdummy[goodw], goodw, badw,/LSQUADRATIC) 
-wdummy = filter_image(wdummy, median=median_filt)
+wdummy = filter_image(wdummy, median=median_filt, /ALL_PIXELS, /ITERATE)
 wdummy[badw] =  !values.f_nan
 
 
 goodt = where(Finite(tdummy), ngoodt, comp=badt, ncomp=nbadt) 
 ; interpolate at the locations of the bad data using the good data 
 ;if nbadt gt 0 then tdummy[badt] = interpol(tdummy[goodt], goodt, badt,/LSQUADRATIC) 
-tdummy = filter_image(tdummy, median=median_filt)
+tdummy = filter_image(tdummy, median=median_filt, /ALL_PIXELS, /ITERATE)
 tdummy[badt] =  !values.f_nan
 
 
-
-;newwavecal[*,*,0]=ydummy
-;newwavecal[*,*,1]=xdummy
-;newwavecal[*,*,3]=wdummy
-;newwavecal[*,*,4]=tdummy
+;if ~keyword_set(Smooth) then begin
+;   newwavecal[*,*,0]=ydummy
+;   newwavecal[*,*,1]=xdummy
+;   newwavecal[*,*,3]=wdummy
+;   newwavecal[*,*,4]=tdummy
+;endif
 
 
 if keyword_set(Smooth) then begin
