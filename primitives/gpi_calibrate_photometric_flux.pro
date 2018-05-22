@@ -511,7 +511,7 @@ endif ; if keyword_set(calib_cube_name)
 ; now we should write the cube
 unitslist = ['ADU per coadd', 'ADU/s','ph/s/nm/m^2', 'Jy', 'W/m^2/um','ergs/s/cm^2/A','ergs/s/cm^2/Hz']
  if Surface_brightness_units eq 1 then begin
-    platescale=0.01414; GPI plate scale
+    platescale=gpi_get_constant('ifs_lenslet_scale') ; GPI plate scale
     for l=0, N_ELEMENTS(lambda)-1 do conv_surf=1./(platescale^2)
     surface_brightness='/arcsec^2'
 endif else begin

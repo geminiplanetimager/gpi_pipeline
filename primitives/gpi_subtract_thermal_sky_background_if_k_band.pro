@@ -69,7 +69,7 @@ calfiletype = 'background'
 	
 	itime = backbone->get_keyword('ITIME')
 
-        scaled_background = background_data * itime
+        scaled_background = background_data * itime * override_scaling
 
 
 	;atv, [[[ *dataset.currframe]],[[scaled_background]],[[*dataset.currframe-scaled_background]]],/bl 

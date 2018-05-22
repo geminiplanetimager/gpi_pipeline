@@ -159,6 +159,13 @@ Mac OSX Lion and Mountain Lion users running IDL 8.2 have been known to see the 
 Although a nuisance, this error should have no affect on pipeline operation. Possible workarounds exist; details can be found `here <http://www.exelisvis.com/Support/HelpArticlesDetail/TabId/219/ArtMID/900/ArticleID/5251/5251.aspx>`_
 
 
+When I try to start the pipeline, IDL crashes and says 'Error: attempt to add non-widget child "dsm" to parent "idl" which supports only widgets'. Why? :
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+This is a `known bug in IDL <http://www.harrisgeospatial.com/Support/HelpArticlesDetail/TabId/219/ArtMID/900/ArticleID/14944/XQuartz-2710-is-Not-Compatible-with-ENVI-531-and-IDL-851.aspx>`_ where version 8.5.1 is not compatible with the most recent XQuartz 2.7.10 or newer. 
+You can work around this by upgrading IDL to 8.6, downgrading XQuartz to 2.7.9, or updating the DYLD_LIBRARY_PATH environment variable as described on that bug report page, or by `moving around some X11 internal files as described here <http://www.physics.uci.edu/~barth/atv/about.html#bugs>`.
+
+
 .. _faq_less_common:
 
 Less common software issues

@@ -110,7 +110,7 @@ cube_calibrated = cube * cf                                     ; [Jy]
 
 ;; Adjust to the desired output unit
 unitslist = ['Jy', 'Jy/arcsec^2', 'mJy', 'mJy/arcsec^2']
-platescale = 0.01414                                            ; [arcsec/pix]
+platescale = gpi_get_constant('ifs_lenslet_scale')              ; [arcsec/pix]
 case final_unit of 
 0: begin ;'Jy' 
     end 
