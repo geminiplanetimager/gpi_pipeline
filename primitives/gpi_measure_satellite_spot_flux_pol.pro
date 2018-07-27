@@ -11,16 +11,17 @@
 ;
 ; PIPELINE COMMENT:  Measure Flux in Polarimetry
 ; PIPELINE CATEGORY: Calibration, PolarimetricScience
-; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: Save Flux Value in Header, 0: don't save"
-; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="5" Desc="1-500: choose gpitv session for displaying output, 0: no display "
+; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="0" Desc="1: Save flux value in header, 0: don't save"
+; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="5" Desc="1-500: Choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ARGUMENT: Name="Aperture" Type="int" Range="[1,5]" Default="4" Desc="Aperture value used in Racetrack, Default: 4pix"
-; PIPELINE ARGUMENT: Name="Inskyrad" Type="int" Range="[4,8]" Default="6" Desc="Inner Sky Aperture Radius in Racetrack"
-; PIPELINE ARGUMENT: Name="Outskyrad" Type="int" Range="[6,14]" Default="9" Desc="Outer Sky Aperture Radius in Racetrack"
-; PIPELINE ARGUMENT: Name="ShowAperture" Type="int" Range="[0,1]" Default="0" Desc="Show the Satellite Spot Apertures"
+; PIPELINE ARGUMENT: Name="Inskyrad" Type="int" Range="[4,8]" Default="6" Desc="Inner sky aperture radius in Racetrack"
+; PIPELINE ARGUMENT: Name="Outskyrad" Type="int" Range="[6,14]" Default="9" Desc="Outer sky aperture radius in Racetrack"
+; PIPELINE ARGUMENT: Name="SecondOrder" Type="int" Range="[0,1]" Default="0" Desc="Use 2nd order sat spots? 1: Yes (for Y or J only)"
+; PIPELINE ARGUMENT: Name="ShowAperture" Type="int" Range="[0,1]" Default="0" Desc="Show the satellite spot apertures? 1: Yes"
 ; PIPELINE ARGUMENT: Name="FindPSFCENT" Type="int" Range="[0,1]" Default="0" Desc="1: Radon, 0: Do Nothing"
 ; PIPELINE ARGUMENT: Name="STARXCEN" Type="int" Range="[0,300]" Default="145" Desc="Initial X position in CNTRD or RADON"
 ; PIPELINE ARGUMENT: Name="STARYCEN" Type="int" Range="[0,300]" Default="148" Desc="Initial Y position in CNTRD or RADON"
-; PIPELINE ARGUMENT: Name="Companion" Type="int" Range="[0,1]" Default="0" Desc="Is there a companion? 0: No 1: Yes"
+; PIPELINE ARGUMENT: Name="Companion" Type="int" Range="[0,1]" Default="0" Desc="Is there a companion? 0: No, 1: Yes"
 ; PIPELINE ARGUMENT: Name="StarXPos" Type="int" Range="[0,500]" Default="98" Desc="Companion X pos for CNTRD"
 ; PIPELINE ARGUMENT: Name="StarYPos" Type="int" Range="[0,500]" Default="121" Desc="Companion Y pos for CNTRD"
 ; PIPELINE ARGUMENT: Name="StarAperture" Type="int" Range="[3,10]" Default="8" Desc="Optimum Aperture value used in APER"
@@ -35,6 +36,7 @@
 ;   06-01-15 Created - Sebastian
 ;   08-24-15 MMB: Fixed up with comments and added pipeline level functionality and 'verbose' keyword
 ;   10-22-15 Sebastian: Removed itime call in racetrack_aper. Not needed since fluxes are in ADU coadd^-1. Removed flag variable here and in racetrack_aper.
+;   07-27-18 TME: Added different sat spot angles and separations for Y,J,H,K1 apodizers. K2 assumes K1 angles. Added 2nd order spot option.
 ;
 function gpi_measure_satellite_spot_flux_pol, DataSet, Modules, Backbone
   ; enforce modern IDL compiler options:
@@ -52,6 +54,7 @@ function gpi_measure_satellite_spot_flux_pol, DataSet, Modules, Backbone
   readnum=backbone->get_keyword('READS')
   sysgain=backbone->get_keyword('SYSGAIN')
   uttime=backbone->get_keyword("UT", count=cc)
+  apod=backbone->get_keyword("APODIZER")
 
   ; are we reducing one file at a time, or are we dealing with a set of
   ; multiple files?
@@ -98,6 +101,9 @@ function gpi_measure_satellite_spot_flux_pol, DataSet, Modules, Backbone
 
   ;Use centroid instead of Radon transform
   findPSFCENT=fix(Modules[thisModuleIndex].findpsfcent)
+  
+  ;Are we using 2nd order sat spots?
+  secOrder=fix(Modules[thisModuleIndex].SecondOrder)
 
 
   IF strmatch(mode,"*wollaston*",/fold) THEN BEGIN
@@ -150,7 +156,7 @@ function gpi_measure_satellite_spot_flux_pol, DataSet, Modules, Backbone
       if verbose then begin
         print, ' '
         print, 'Mask Created'
-        print, 'Compaion masked-out'
+        print, 'Companion masked-out'
       endif
 
       statuswindow = backbone->getstatusconsole()
@@ -183,7 +189,48 @@ function gpi_measure_satellite_spot_flux_pol, DataSet, Modules, Backbone
     ENDELSE
 
     ;//////// Calculating Sat Spot Positions in POL MODE
-    ; sat spots at 20*lambda/D
+    ;1st order sat spots at ~20*lambda/D depending on apodizer.
+    ;2nd order at ~40*lambda/D.
+
+    ;;The azimuthal angles of the 4 sat spots, depending on apodizer used.
+    ;Rotation Angle values in spot order: [S0, S1, S2, S3].
+    ;K2 has no measurement (no test data available), uses K1 angles.
+
+    ;Set default values in case non-standard apodizer was used.
+    spot_angles=[ 155.9, -114.1, 66.0, -24.2] ; degrees
+    sep_spots=21.26 ; lambda/D units
+    print, ' '
+    IF (apod eq 'APOD_Y_G6203') THEN BEGIN
+      spot_angles=[ 158.3, -112.2, 68.2, -21.8]
+      IF (secOrder eq 1) THEN BEGIN
+        sep_spots=2*21.26 ; lambda/D units
+        print, 'Using 2nd order sat spots!'
+      ENDIF ELSE BEGIN
+        sep_spots=21.26 ; lambda/D units
+        print, 'Using 1st order sat spots.'
+      ENDELSE
+    ENDIF ELSE IF (apod eq 'APOD_J_G6204') THEN BEGIN
+      spot_angles=[ 160.4, -109.9, 70.2, -19.4]
+      IF (secOrder eq 1) THEN BEGIN
+        sep_spots=2*21.26 ; lambda/D units
+        print, 'Using 2nd order sat spots!'
+      ENDIF ELSE BEGIN
+        sep_spots=21.26 ; lambda/D units
+        print, 'Using 1st order sat spots.'
+      ENDELSE
+    ENDIF ELSE IF (apod eq 'APOD_H_G6205') THEN BEGIN
+      spot_angles=[ 155.9, -114.1, 66.0, -24.2]
+      sep_spots=20.17 ; lambda/D units
+    ENDIF ELSE IF (apod eq 'APOD_K1_G6206') THEN BEGIN
+      spot_angles=[ 158.7, -111.7, 68.0, -21.9]
+      sep_spots=20.17 ; lambda/D units
+    ENDIF ELSE IF (apod eq 'APOD_K2_G6207') THEN BEGIN
+      spot_angles=[ 158.7, -111.7, 68.0, -21.9]
+      sep_spots=20.17 ; lambda/D units
+    ENDIF
+
+    ROT_ANG=(!PI/180.0)*spot_angles
+    print, 'Locating spots at ', apod, ' angles: ', spot_angles
 
     ;Get the filter band
     filter = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
@@ -199,12 +246,14 @@ function gpi_measure_satellite_spot_flux_pol, DataSet, Modules, Backbone
     lambdamax=CommonWavVect[1]*1e-6 ;in meters
     landa=lambdamin + (lambdamax-lambdamin)/2.0; center wavelength band
     D=43.2*0.18;
+    ;get the platescale from config/pipeline_constants.txt
+    platescale=gpi_get_constant('ifs_lenslet_scale')
 
-    ;An array that holds the [inner,central, outer] location of the the satellite spots.
+    ;An array that holds the [inner, central, outer] location of the the satellite spots.
     R_spot=findgen(3)
-    R_spot[0]=(206265/0.01414)*20*lambdamin/D; in pixels, platescale 0.01414 arcsec/pxs
-    R_spot[1]=(206265/0.01414)*20*landa/D; in pixels, platescale 0.01414 arcsec/pxs
-    R_spot[2]=(206265/0.01414)*20*lambdamax/D; in pixels, platescale 0.01414 arcsec/pxs
+    R_spot[0]=(206265/platescale)*sep_spots*lambdamin/D; in pixels, platescale in arcsec/pxs
+    R_spot[1]=(206265/platescale)*sep_spots*landa/D; in pixels, platescale in arcsec/pxs
+    R_spot[2]=(206265/platescale)*sep_spots*lambdamax/D; in pixels, platescale in arcsec/pxs
     halflength= R_spot[2]-R_spot[1]
     ;print, 'Lambda min [mu m]: ' , lambdamin*1e6;
     ;print, 'Lambda max [mu m]: ' , lambdamax*1e6;
@@ -214,10 +263,6 @@ function gpi_measure_satellite_spot_flux_pol, DataSet, Modules, Backbone
     ;print, 'R_spot[2]: ', R_spot[2]
     ;print, ''
 
-    ;;The azimuthal angles of the 4 sat spots.
-    ;Angles
-    ;Rotation Angle values:  ; 155.6119, 65.7933, -24.08, -113.8689
-    ROT_ANG=(!PI/180.0)*[ 155.6119 , -113.8689, 65.7933,-24.08];
 
     ;Get the x,y position of each sat spot.
     ;////////
