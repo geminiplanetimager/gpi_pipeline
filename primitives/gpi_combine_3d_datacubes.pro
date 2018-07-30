@@ -2,7 +2,7 @@
 ; NAME: gpi_combine_3d_datacubes
 ; PIPELINE PRIMITIVE DESCRIPTION: Combine 3D Datacubes
 ;
-;  Multiple 3D cubes can be combined into one, using either a Mean or a Median. 
+;  Multiple 3D cubes can be combined into one, using either a Mean, Median, Sigma-clipped Mean, or the minimum pixel values.
 ;
 ;  TODO: more advanced combination methods. Improved sigma-clipped mean implementation
 ;
@@ -10,8 +10,9 @@
 ; OUTPUTS: a single combined datacube
 ;
 ; PIPELINE COMMENT: Combine 3D datacubes via mean or median. 
-; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="MEAN|MEDIAN|SIGMACLIP|MINIMUM"  Default="MEDIAN" Desc="How to combine images: median, mean, or mean with outlier rejection?"
+; PIPELINE ARGUMENT: Name="Method" Type="enum" Range="MEAN|MEDIAN|SIGMACLIP|MINIMUM"  Default="MEDIAN" Desc="How to combine images: median, mean, mean with outlier rejection, or minimum pixel values?"
 ; PIPELINE ARGUMENT: Name="sig_clip" Type="int" Range="0,10" Default="3" Desc="Clipping value to be used with SIGMACLIP in sigma (stddev)"
+; PIPELINE ARGUMENT: Name="align_star" Type="int" Range="0,1" Default="0" Desc="Translate datacubes to align star (from header) on same center pixel? 1: Yes"
 ; PIPELINE ARGUMENT: Name="Save" Type="int" Range="[0,1]" Default="1" Desc="1: save output on disk, 0: don't save"
 ; PIPELINE ARGUMENT: Name="gpitv" Type="int" Range="[0,500]" Default="2" Desc="1-500: choose gpitv session for displaying output, 0: no display "
 ; PIPELINE ORDER: 4.5
@@ -26,6 +27,7 @@
 ;   2011-07-30 MP: Updated for multi-extension FITS
 ;   2012-10-10 MP: Minor code cleanup
 ;   2013-07-29 MP: Rename for consistency
+;   2018-07-30 TME: Added option to align star in all frames before combining.
 ;-
 function gpi_combine_3d_datacubes, DataSet, Modules, Backbone
 primitive_version= '$Id$' ; get version from subversion to store in header history
@@ -34,7 +36,8 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	if tag_exist( Modules[thisModuleIndex], "method") then method=Modules[thisModuleIndex].method else method='median'
 	if method eq '' then method='median'
     if tag_exist( Modules[thisModuleIndex], "sig_clip") then sig_clip=Modules[thisModuleIndex].sig_clip else sig_clip=3.0
-        
+    if tag_exist( Modules[thisModuleIndex], "align_star") then align_star=Modules[thisModuleIndex].align_star else align_star=0
+	
 	nfiles=dataset.validframecount
 
 	; Load the first file so we can figure out their size, etc. 
@@ -46,10 +49,24 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 	; create an array of the same type as the input file:
 	imtab = make_array(sz[1], sz[2], sz[3], nfiles, type=size(im0,/type))
 
-
-
 	; read in all the images at once
 	for i=0,nfiles-1 do imtab[*,*,*,i] =  accumulate_getimage(dataset,i,hdr)
+
+	; optionally shift all images to align the star on same pixel at center of array.
+	if (align_star eq 1) then begin
+		newcenx=(sz[1]-1)/2
+		newceny=(sz[2]-1)/2
+		print, 'Aligning image centers to common', newcenx, newceny, ' before combining.'
+		for i=0, nfiles-1 do begin
+			astr_header=*DataSet.HeadersExt[i]
+			psfcenx=sxpar(astr_header,"PSFCENTX")
+			psfceny=sxpar(astr_header,"PSFCENTY")
+			if (psfcenx eq 0.0) then begin
+				return, error('FAILURE: Missing Keyword: PSFCENTX. Run "Measure satellite spot locations" (spec) or "Measure Star Position in Polarimetry" (pol) first.')
+			endif
+			imtab[*,*,*,i]=translate(imtab[*,*,*,i],newcenx-psfcenx,newceny-psfceny,missing=!values.f_nan)
+		endfor
+	endif
 
 	; now combine them.
 	if nfiles gt 1 then begin
@@ -103,6 +120,11 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 		combined_im = imtab
 	endelse
 
+	; if re-aligned the center, save new center coordinates in header of combined file.
+	if (align_star eq 1) then begin
+		backbone->set_keyword,"PSFCENTX",newcenx
+		backbone->set_keyword,"PSFCENTY",newceny
+	endif
 
 	; store the output into the backbone datastruct
 	*(dataset.currframe)=combined_im
