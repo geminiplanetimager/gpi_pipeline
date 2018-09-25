@@ -98,7 +98,7 @@ function gpi_subtract_mean_stellar_polarization_podc, DataSet, Modules, Backbone
 
       pa = backbone->get_keyword('AVPARANG', indexFrame=indexFrame, count=ct);Set up some data arrays
       if ct lt 1 then $
-        return, error('FAILURE ('+functionName+'): Parallactic Angle Not Found in file'+string(i))
+        return, error('FAILURE ('+functionName+'): Parallactic Angle (AVPARANG keyword) Not Found in file'+string(i))
 
       indices, (*dataset.currframe)[*,*,0], center=center,r=r
       wfpm = where(r lt outer and r gt inner, ct) ;Where to measure the polatization
@@ -156,7 +156,7 @@ function gpi_subtract_mean_stellar_polarization_podc, DataSet, Modules, Backbone
 
         pa=sxpar(hdrext, 'AVPARANG', count=ct)
         if ct lt 1 then $
-          return, error('FAILURE ('+functionName+'): Parallactic Angle Not Found in file'+string(i))
+          return, error('FAILURE ('+functionName+'): Parallactic Angle (AVPARANG keyword) Not Found in file'+string(i))
 
         ;Set up some data arrays
         sz = size(original_cube)
