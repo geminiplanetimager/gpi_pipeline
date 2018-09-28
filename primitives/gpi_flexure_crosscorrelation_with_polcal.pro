@@ -23,8 +23,8 @@
 ; PIPELINE ARGUMENT: Name="badpix" Type="float" Default="1" Range="[0,1]" Desc="Weight by bad pixel map?"
 ; PIPELINE ARGUMENT: Name="iterate" Type="int" Default="1" Range="[0,1]" Desc="Take the first result? Or iterate"
 ; PIPELINE ARGUMENT: Name="max_iter" Type='int' Default="15" Range="[1,100]" Desc="The maximum number of iterations"
-; PIPELINE ARGUMENT: Name="manual_dx" Type='float' Default="0." Range="[-1,100]" Desc="A pixel shift value. If this is set then no cross-correlation is performed."
-; PIPELINE ARGUMENT: Name="manual_dy" Type='float' Default="0." Range="[-1,100]" Desc="A pixel shift value. If this is set then no cross-correlation is performed."
+; PIPELINE ARGUMENT: Name="manual_dx" Type='float' Default="0." Range="[-100,100]" Desc="A pixel shift value. If this is set then no cross-correlation is performed."
+; PIPELINE ARGUMENT: Name="manual_dy" Type='float' Default="0." Range="[-100,100]" Desc="A pixel shift value. If this is set then no cross-correlation is performed."
 ;
 ; where in the order of the primitives should this go by default?
 ; PIPELINE ORDER: 1.34
