@@ -6,10 +6,11 @@ function gpi_get_gridfac,apodizer,spot_order
 ;       Return apodizer scaling value from lookup table
 ;
 ; CALLING SEQUENCE:
-;       res = gpi_get_gridfac(apodizer)
+;       res = gpi_get_gridfac(apodizer, spot_order)
 ;
 ; INPUT/OUTPUT:
 ;       apodizer - Name of apodizer (typically from image header)
+;       spot_order - First or second order (for Y/J datasets)
 ;       res - gridfac value (or NaN if lookup table couldn't be
 ;             found, or apodizer couldn't be matched, or
 ;             apodizer has no grid).
