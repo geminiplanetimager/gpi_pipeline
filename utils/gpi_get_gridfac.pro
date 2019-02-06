@@ -1,4 +1,4 @@
-function gpi_get_gridfac,apodizer
+function gpi_get_gridfac,apodizer,spot_order
 ;+
 ; NAME:
 ;       gpi_get_gridfac
@@ -33,15 +33,18 @@ function gpi_get_gridfac,apodizer
 
 compile_opt defint32, strictarr, logical_predicate
 
+;; if spot_order is invalid, set it to 1
+if spot_order gt 2 then spot_order = 1
+
 fname = gpi_expand_path(gpi_get_setting('apodizer_spec',default=gpi_get_directory('GPI_DRP_CONFIG_DIR')+'/apodizer_spec.txt',/silent))
 if ~file_test(fname) then begin
    message,'Could not find apodizer spec file.',/continue
    return,!values.f_nan
 endif
 
-readcol, fname, format='A,F', comment='#', names, values, count=count, /silent
+readcol, fname, format='A,F,I', comment='#', names, values, order, count=count, /silent
 
-res = where(strmatch(names,'*'+apodizer+'*',/fold_case),cc)
+res = where(strmatch(names,'*'+apodizer+'*',/fold_case) and (order eq spot_order),cc)
 if cc ne 1 then begin
    message,'Could not match apodizer name.',/continue
    return,!values.f_nan

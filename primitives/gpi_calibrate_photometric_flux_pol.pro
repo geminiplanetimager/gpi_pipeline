@@ -59,7 +59,9 @@ if f_star eq 0. then $
 
 ;; Read in the sat spot to star flux ratio
 apodizer = backbone->get_keyword('APODIZER')      ; apodizer used
-gridfac = gpi_get_gridfac(apodizer)               ; sat spot to star flux ratio
+sat_order = backbone->get_keyword('SATSORDR', ext_num=1, count=ct, /silent) ; which order
+if ct eq 0 then sat_order = 1
+gridfac = gpi_get_gridfac(apodizer, sat_order)               ; sat spot to star flux ratio
 
 
 CATCH, Error_status

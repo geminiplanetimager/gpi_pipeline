@@ -216,7 +216,11 @@ endif ; if ref_model_spectrum eq 0
 ; correct for the satellite to star flux ratio if desired
 	if keyword_set(no_satellite_correction) eq 0 then begin
 		apodizer=sxpar(pri_header,'APODIZER')
-		gridfac = gpi_get_gridfac(apodizer)
+		
+		sat_order = backbone->get_keyword('SATSORDR', ext_num=1, count=ct, /silent) ; which order
+		if ct eq 0 then sat_order = 1
+
+		gridfac = gpi_get_gridfac(apodizer, sat_order)
 		gpi_model_flux*=gridfac
 	endif
 

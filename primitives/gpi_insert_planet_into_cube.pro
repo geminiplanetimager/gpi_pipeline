@@ -77,8 +77,9 @@ suffix='wplnt' 		 ; set this to the desired output filename suffix
 	; satellite spot flux ratios
 	val = (backbone->get_keyword('APODIZER')) 
 	if strc(string(val)) eq '0' or val eq 'CLEAR' or val eq 'CLEAR_GP' then return, error('FAILURE ('+functionName+'): Apodizer not properly defined, or apodizer set to CLEAR or CLEAR_GP which will not have satellite spots, therefore no planet can be properly input into the cube')
-
-	gridfac=gpi_get_gridfac(val) ; satellite spot ratios
+	sat_order = backbone->get_keyword('SATSORDR', ext_num=1, count=ct, /silent) ; which order
+	if ct eq 0 then sat_order = 1
+	gridfac=gpi_get_gridfac(val, sat_order) ; satellite spot ratios
 
 ; ################################################################################
 ; Pull the psf from a satellite spot - will be used as planet later
