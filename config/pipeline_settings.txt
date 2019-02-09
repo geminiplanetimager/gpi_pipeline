@@ -20,7 +20,7 @@ organize_recipes_by_dates	1
 # strict_validation	1
 # parsergui_auto_queue    0
 # prompt_user_for_questionable_data	1
-# file_overwrite_handling		ask
+file_overwrite_handling		overwrite
 # force_rescan_config_on_startup	0
 # force_rescan_caldb_on_startup		0
 # username_in_log_filename	0
@@ -51,3 +51,4 @@ organize_recipes_by_dates	1
 # prevent_multiple_instances  0
 # preprocess_fits_files	0
 
+at_gemini 0

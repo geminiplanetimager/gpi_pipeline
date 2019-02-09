@@ -962,9 +962,9 @@ PRO gpiPipelineBackbone::OpenLog
 
 	gpi_get_user_info, user, computer
 	if gpi_get_setting('username_in_log_filename',default=0) then begin
-		logfile = logdir +'gpi_drp_'+self.log_date+"_"+user+".log"
+		logfile = logdir +'gpi_drp_'+self.log_date+"_"+user+"_"+computer+".log"
 	endif else begin
-		logfile = logdir +'gpi_drp_'+self.log_date+".log"
+		logfile = logdir +'gpi_drp_'+self.log_date+"_"+computer+".log"
 	endelse
 	catch, error_status
 
@@ -973,7 +973,7 @@ PRO gpiPipelineBackbone::OpenLog
     	print, "ERROR in OPENLOG: "
    		print, "could not open file "+LogFile
 		print, "Please check your path settings and try restarting the pipeline."
-		stop
+		; stop
   	endif else begin
 		  CLOSE, self.LOG_GENERAL
 		  FREE_LUN, self.LOG_GENERAL

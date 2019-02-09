@@ -28,6 +28,7 @@
 ; PIPELINE ARGUMENT: Name="contrsigma" Type="float" Range="[0.,20.]" Default="5." Desc="Contrast sigma limit"
 ; PIPELINE ARGUMENT: Name="slice" Type="int" Range="[-1,50]" Default="-1" Desc="Slice to plot. -1 for all"
 ; PIPELINE ARGUMENT: Name="DarkHoleOnly" Type="int" Range="[0,1]" Default="1" Desc="0: Plot profile in dark hole only; 1: Plot outer profile as well."
+; PIPELINE ARGUMENT: Name="highpass" Type="int" Range="[0,25]" Default="0" Desc="1: Use high pass filter (default size) 0: don't 2+: size of highpass filter box"
 ; PIPELINE ARGUMENT: Name="contr_yunit" Type="int" Range="[0,2]" Default="0" Desc="0: Standard deviation; 1: Median; 2: Mean."
 ; PIPELINE ARGUMENT: Name="contr_xunit" Type="int" Range="[0,1]" Default="0" Desc="0: Arcsec; 1: lambda/D."
 ; PIPELINE ARGUMENT: Name="yscale" Type="int" Range="[0,1]" Default="0" Desc="0: Auto y axis scaling; 1: Manual scaling."
@@ -44,10 +45,10 @@
 ;       contrast curve spans less than an order of magnitude -EN
 function gpi_measure_contrast, DataSet, Modules, Backbone
 
-primitive_version= '$Id$' ; get version from subversion to store in header history
+primitive_version= '$Id: gpi_measure_contrast.pro 4355 2016-04-05 19:38:47Z swolff $' ; get version from subversion to store in header history
 @__start_primitive
 
-  suffix='-contr'
+  ;suffix='-contr'
 
   cube = *(dataset.currframe[0])
   band = gpi_simplify_keyword_value(backbone->get_keyword('IFSFILT', count=ct))
@@ -125,13 +126,18 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   contr_yaxis_max=float(Modules[thisModuleIndex].contr_yaxis_max)
   yscale = fix(Modules[thisModuleIndex].yscale)
   update_prev_fits_header = fix(Modules[thisModuleIndex].update_prev_fits_header)
-  
+  highpass = fix(Modules[thisModuleIndex].highpass)  
+  if highpass eq 1 then highpass = 15 
+
   ;;we're going to do the copsf for all the slices
   copsf = cube
   for j = 0, (size(cube,/dim))[2]-1 do begin
     tmp = where(good eq j,ct)
     if ct eq 1 then copsf[*,*,j] = copsf[*,*,j]/((1./gridfac)*mean(satflux[*,j])) else $
       copsf[*,*,j] = !values.f_nan
+    if highpass gt 1 then begin
+      copsf[*,*,j] -= filter_image(copsf[*,*,j], median=highpass)
+    endif
   endfor
 
   ;;set proper scale unit
@@ -406,7 +412,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
    
   endif
 
-  *(dataset.currframe)=copsf
+  ;*(dataset.currframe)=copsf
 
   @__end_primitive
 
