@@ -1,6 +1,7 @@
 #Apodizer specific quantities.
 #Currently, the primary purpose is to supply the satellite spot flux ratios for different apodizers
 #Potentially, may be expanded to include other apodizer-specific values (?)
+#Reference - https://www.gemini.edu/sciops/instruments/gpi/instrument-performance/satellite-spots
 #
 #Name   gridfac   order
 APOD_CLEAR_G6201    NaN   1
