@@ -144,8 +144,10 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
      utend = backbone->get_keyword('UTEND',count=ct) & totcount += ct
      dateobs =  backbone->get_keyword('DATE-OBS',count=ct) & totcount += ct
      ngroup =  backbone->get_keyword('NGROUP',count=ct) & totcount += ct
+     ncoadd = backbone->get_keyword('COADDS', count=ct) & totcount += ct
+     nread = backbone->get_keyword('READS', count=ct) & totcount += ct
      
-     if (totcount ne 6)  then begin
+     if (totcount ne 8)  then begin
         backbone->log,'GPI_UPDATE_WCS_BASIC: Could not extract timing information from header.'
         return
      endif 
@@ -158,7 +160,7 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
      expend = utendd - 0.5d0*readtimed
                                 ;expstart = utendd - (ngroup-0.5)*readtimed
                                 ;expstart = utendd - itime/3600d
-     expstart = utendd - readtimed*(ncoadd*(nread+1)-3/2.)
+     expstart = utendd - readtimed*(double(ncoadd)*(double(nread)+1.0d)-3.0d/2.0d)
      
      if expend lt 0d then begin
         expend += 24d0
