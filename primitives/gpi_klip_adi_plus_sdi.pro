@@ -425,7 +425,7 @@ endfor
 
 	 backbone->set_keyword, 'PSFSUB', 'GPI DRP KLIP ADI+SDI', 'PSF subtraction via KLIP ADI+SDI'
 	 backbone->set_keyword, 'PSFPARAM', "annuli"+strc(annuli)+" subsections="+strc(subsections)+" prop="+strc(prop)+" minsep="+strc(minsep)+$
-										"minPA="+strc(minPA)+" waveclip="+strc(waveclip)+" numthreads="+strc(numthreads)., "PSF sub. parameters"
+										"minPA="+strc(minPA)+" waveclip="+strc(waveclip)+" numthreads="+strc(numthreads), "PSF sub. parameters"
 
 
 

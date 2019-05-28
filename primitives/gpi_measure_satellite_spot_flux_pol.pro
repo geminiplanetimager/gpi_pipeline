@@ -105,7 +105,6 @@ function gpi_measure_satellite_spot_flux_pol, DataSet, Modules, Backbone
   ;Are we using 2nd order sat spots?
   secOrder=fix(Modules[thisModuleIndex].SecondOrder)
 
-
   IF strmatch(mode,"*wollaston*",/fold) THEN BEGIN
 
     if verbose then begin
@@ -450,6 +449,9 @@ function gpi_measure_satellite_spot_flux_pol, DataSet, Modules, Backbone
   ;
   case reduction_level of
     1: begin
+      ;Record which order of spots are used.
+      backbone->set_keyword, 'SATSORDR', secOrder+1, 'Sat spot grid order used (1:primary or 2:secondary)', ext_num=1
+      
       ;Put in the theoretical location of the center of the satellite spots
       ;SLICE0
       backbone->set_keyword, 'SAT0_0', string(strtrim([xs0,ys0],2),format='(F7.3," ",F7.3)'),'Location of sat. spot 0 of slice 0', ext_num=1
@@ -515,6 +517,9 @@ function gpi_measure_satellite_spot_flux_pol, DataSet, Modules, Backbone
 
       for i=0,nfiles-1 do begin
         tmp=accumulate_getimage(dataset,i,hdr,hdrext=hdrext)
+        ;Record which order of spots are used.
+        sxaddpar, hdrext,  'SATSORDR', secOrder+1, 'Sat spot grid order used (1:primary or 2:secondary)'
+
         ;Put in the theoretical location of the center of the satellite spots
         ;SLICE0
         sxaddpar, hdrext,  'SAT0_0', string(strtrim([xs0,ys0],2),format='(F7.3," ",F7.3)'),'Location of sat. spot 0 of slice 0'

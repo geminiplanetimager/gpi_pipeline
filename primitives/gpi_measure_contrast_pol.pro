@@ -169,7 +169,11 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
       if res[1] ne '' then apodizer = res[1]
     endif
   endif
-  gridfac = gpi_get_gridfac(apodizer)
+
+  sat_order = backbone->get_keyword('SATSORDR', ext_num=1, count=ct, /silent) ; which order
+  if ct eq 0 then sat_order = 1
+
+  gridfac = gpi_get_gridfac(apodizer, sat_order)
   if ~finite(gridfac) then return, error('FAILURE ('+functionName+'): Could not match apodizer.')
 
   ;;get user inputs
