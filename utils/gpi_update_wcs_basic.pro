@@ -66,6 +66,9 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
 ;       2015-5-4 E. Nielsen: modified to wrap around LST when passing
 ;       through GMST midnight.  Otherwise going from LST 23.9 to 0.1
 ;       causes calc_avparang to crash.
+;
+;       2019-5-24 R. De Rosa: now correctly accounts for coadds
+;
 
   compile_opt defint32, strictarr, logical_predicate
 
@@ -141,8 +144,10 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
      utend = backbone->get_keyword('UTEND',count=ct) & totcount += ct
      dateobs =  backbone->get_keyword('DATE-OBS',count=ct) & totcount += ct
      ngroup =  backbone->get_keyword('NGROUP',count=ct) & totcount += ct
+     ncoadd = backbone->get_keyword('COADDS', count=ct) & totcount += ct
+     nread = backbone->get_keyword('READS', count=ct) & totcount += ct
      
-     if (totcount ne 6)  then begin
+     if (totcount ne 8)  then begin
         backbone->log,'GPI_UPDATE_WCS_BASIC: Could not extract timing information from header.'
         return
      endif 
@@ -154,7 +159,9 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
      if utendd lt utstartd then dateline = 1 else dateline = 0 ;account for crossing UTC dateline
      expend = utendd - 0.5d0*readtimed
                                 ;expstart = utendd - (ngroup-0.5)*readtimed
-     expstart = utendd - itime/3600d
+                                ;expstart = utendd - itime/3600d
+     expstart = utendd - readtimed*(double(ncoadd)*(double(nread)+1.0d)-3.0d/2.0d)
+     
      if expend lt 0d then begin
         expend += 24d0
         dateline = 0
