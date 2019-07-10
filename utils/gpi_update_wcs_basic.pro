@@ -156,7 +156,7 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
      ;; UT offset is difference between DATE+UT (TLC) minus DATE-OBS+UTSTART (IFS)
      ;; and the the median such difference between 2017.0 and 2018.5 (-3.384 seconds)
      ;; this should bring IFS time in sync with UTC.
-     utoff_lut = mrdfits(gpi_get_directory('GPI_DRP_CONFIG')+'/UToffset.fits',0,/silent,/double)
+     utoff_lut = mrdfits(gpi_get_directory('GPI_DRP_CONFIG')+'/UToffset.fits',0,/silent,/dscale)
      ;; calculate julian date from IFS
      ymd_ifs = double(strsplit(dateobs,'-',/extract))
      hms_ifs = double(strsplit(utstart,':',/extract))
