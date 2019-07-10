@@ -180,7 +180,7 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
 
       utstartd =  ten(double(strsplit(utstart,':',/extract))) ;dec hrs
       utendd =  ten(double(strsplit(utend,':',/extract)))     ; dec hrs
-      if utendd lt utstartd then jd_ifs += 1.0 ;; since julian date was calculated with UTSTART's DATEOBS
+      if utendd lt utstartd then jd_ifs += 1.0d ;; since julian date was calculated with UTSTART's DATEOBS
                                                ;; this correction shouldn't change the final time string
       caldat, jd_ifs, ymd_ifs1, ymd_ifs2, ymd_ifs0, hms_ifs0, hms_ifs1, hms_ifs2
       ymd_ifs = double([ymd_ifs0, ymd_ifs1, ymd_ifs2])
@@ -203,6 +203,7 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
       backbone->set_keyword, "DATE-OBS", dateobs, "UT start date of exposure"
       backbone->set_keyword, "UTSTART", utstart, "UT start time of exposure"
       backbone->set_keyword, "UTEND", utend, "UT end time of exposure (after last read)"
+      backbone->set_keyword, 'HISTORY', "GPI_UPDATE_WCS_BASIC: Applied UTOFFSET",ext_num=0
     endif
 
      ;;get exposure start and end times
