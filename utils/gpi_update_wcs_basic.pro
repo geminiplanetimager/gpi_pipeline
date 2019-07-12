@@ -163,7 +163,7 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
      mjd_ifs = julday(ymd_ifs[1], ymd_ifs[2], ymd_ifs[0], hms_ifs[0], hms_ifs[1], hms_ifs[2]) - 2400000.5D
      ;; find closest entry in LUT. Doesn't check if mjd is out of bounds, instead returns first or last entry
      foo = min(abs(mjd_ifs - utoff_lut[*,0]), indx)
-     utoff = utoff_lut[indx, 1] ;;setting to zero first
+     utoff = utoff_lut[indx, 1]
 
      backbone->set_keyword, "UTOFFSET", utoff, "Offset (sec) added to IFS UT"
 
@@ -196,7 +196,7 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
       ymd_ifs = double([ymd_ifs0, ymd_ifs1, ymd_ifs2])
       hms_ifs = double([hms_ifs0, hms_ifs1, hms_ifs2])
 
-      ;; convert back to strings. If we've moved the UTSTART before/after the dateline, fix
+      ;; convert back to strings
       dateobs = strn(ymd_ifs[0], format='(I04)')+'-'+strn(ymd_ifs[1], format='(I02)')+'-'+strn(ymd_ifs[2], format='(I02)')
       utstart = strn(hms_ifs[0], format='(I02)')+':'+strn(hms_ifs[1], format='(I02)')+':'+strn(hms_ifs[2], format='(F06.3)')
 
@@ -306,6 +306,21 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
 
      ;; calcualte average parang
      avparang = calc_avparang(ha0,ha1,dec0)
+
+     ;; Correct parang if DATALAB in LUT
+     datalab = backbone->get_keyword('DATALAB',count=ct1)
+     if ct1 eq 1 then begin
+      crpa_lut = mrdfits(gpi_get_directory('GPI_DRP_CONFIG')+'/CRPA_offset.fits', 1, /silent)
+      crpa_ind = where(crpa_lut.DATALAB eq datalab, ct2)
+      if ct2 eq 1 then begin
+        crpa_offset = crpa_lut[crpa_ind].CRPA_OFFSET
+        avparang -= crpa_offset
+        if avparang gt 180.0 then avparang -= 360.
+        if avparang lt -180. then avparang += 360.
+        backbone->set_keyword, 'CRPAOFF', crpa_offset, "CRPA offset (deg) applied to parallactic angle"
+        backbone->set_keyword, 'HISTORY', "GPI_UPDATE_WCS_BASIC: Applied CRPA_OFFSET",ext_num=0
+      endif
+    endif
 
      ;;calculate the MJD-AVG
      avmjd = (jd0+jd1)/2d0 - 2400000.5d0
