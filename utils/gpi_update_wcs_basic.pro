@@ -68,6 +68,8 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
 ;       causes calc_avparang to crash.
 ;
 ;       2019-5-24 R. De Rosa: now correctly accounts for coadds
+;       2019-7-12 R. De Rosa: corrected for offset between IFS and TLC
+;       UT time, and for data where instrument rotator drive disabled
 ;
 
   compile_opt defint32, strictarr, logical_predicate
