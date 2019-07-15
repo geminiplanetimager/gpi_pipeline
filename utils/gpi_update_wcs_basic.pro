@@ -167,8 +167,6 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
      foo = min(abs(mjd_ifs - utoff_lut[*,0]), indx)
      utoff = utoff_lut[indx, 1]
 
-     backbone->set_keyword, "UTOFFSET", utoff, "Offset (sec) added to IFS UT"
-
      if utoff ne 0.0D then begin
       ;; save old values for posterity
       backbone->set_keyword, "OLD-DATE", dateobs, "Old UT start date of exposure"
@@ -205,6 +203,7 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
       backbone->set_keyword, "DATE-OBS", dateobs, "UT start date of exposure"
       backbone->set_keyword, "UTSTART", utstart, "UT start time of exposure"
       backbone->set_keyword, "UTEND", utend, "UT end time of exposure (after last read)"
+      backbone->set_keyword, "UTOFFSET", utoff, "Offset (sec) added to IFS UT"
       backbone->set_keyword, 'HISTORY', "GPI_UPDATE_WCS_BASIC: Applied UTOFFSET",ext_num=0
     endif
 
