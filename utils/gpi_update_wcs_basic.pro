@@ -336,7 +336,7 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
   ;Now using AVPARANG to compute CD matrix.
 
   ifs_rotation = gpi_get_constant('ifs_rotation')
-  vert_angle = -(360.0d-avparang) + ifs_rotation  -90.0d ; 90 deg is rotation of the H2RG w.r.t. where the (0,0) corner is
+  vert_angle = -(360.0d -avparang) + ifs_rotation  -90.0d ; 90 deg is rotation of the H2RG w.r.t. where the (0,0) corner is
 
   ;;; CLockwise rotation of negative PA
   pc = [[cos(vert_angle*!dtor), -sin(vert_angle*!dtor)], $
