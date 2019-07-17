@@ -316,8 +316,8 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
       if ct2 eq 1 then begin
         crpa_offset = crpa_lut[crpa_ind].CRPA_OFFSET
         avparang -= crpa_offset
-        if avparang gt 180.0 then avparang -= 360.
-        if avparang lt -180. then avparang += 360.
+        if avparang gt 180.0d then avparang -= 360.0d
+        if avparang lt -180.0d then avparang += 360.0d
         backbone->set_keyword, 'CRPAOFF', crpa_offset, "CRPA offset (deg) applied to parallactic angle"
         backbone->set_keyword, 'HISTORY', "GPI_UPDATE_WCS_BASIC: Applied CRPA_OFFSET",ext_num=0
       endif
@@ -336,7 +336,7 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
   ;Now using AVPARANG to compute CD matrix.
 
   ifs_rotation = gpi_get_constant('ifs_rotation')
-  vert_angle = -(360-avparang) + ifs_rotation  -90 ; 90 deg is rotation of the H2RG w.r.t. where the (0,0) corner is
+  vert_angle = -(360.0d-avparang) + ifs_rotation  -90.0d ; 90 deg is rotation of the H2RG w.r.t. where the (0,0) corner is
 
   ;;; CLockwise rotation of negative PA
   pc = [[cos(vert_angle*!dtor), -sin(vert_angle*!dtor)], $
