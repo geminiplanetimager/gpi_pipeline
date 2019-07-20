@@ -1,4 +1,4 @@
-function gpi_get_gridfac,apodizer,spot_order
+function gpi_get_gridfac,apodizer,spot_order,filter
 ;+
 ; NAME:
 ;       gpi_get_gridfac
@@ -11,6 +11,7 @@ function gpi_get_gridfac,apodizer,spot_order
 ; INPUT/OUTPUT:
 ;       apodizer - Name of apodizer (typically from image header)
 ;       spot_order - First or second order (for Y/J datasets)
+;       filter - Name of filter
 ;       res - gridfac value (or NaN if lookup table couldn't be
 ;             found, or apodizer couldn't be matched, or
 ;             apodizer has no grid).
@@ -43,9 +44,14 @@ if ~file_test(fname) then begin
    return,!values.f_nan
 endif
 
-readcol, fname, format='A,F,I', comment='#', names, values, order, count=count, /silent
+readcol, fname, format='A,F,I,A', comment='#', names, values, order, filt, count=count, /silent
+;Check if filter matches apod, this is only relevant for H_apod
+if (apodizer eq 'APOD_H_G6205') then begin
+    res = where(strmatch(names,'*'+apodizer+'*',/fold_case) and (order eq spot_order) and (filt eq filter),cc)
+endif else begin
+    res = where(strmatch(names,'*'+apodizer+'*',/fold_case) and (order eq spot_order),cc)
+endelse
 
-res = where(strmatch(names,'*'+apodizer+'*',/fold_case) and (order eq spot_order),cc)
 if cc ne 1 then begin
    message,'Could not match apodizer name.',/continue
    return,!values.f_nan
