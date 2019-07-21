@@ -46,8 +46,10 @@ endif
 
 readcol, fname, format='A,F,I,A', comment='#', names, values, order, filt, count=count, /silent
 ;Check if filter matches apod, this is only relevant for H_apod
-if (apodizer eq 'APOD_H_G6205') then begin
-    res = where(strmatch(names,'*'+apodizer+'*',/fold_case) and (order eq spot_order) and (filt eq filter),cc)
+;no lab measurement exists for Hapod/K2, so default to Hapod/H ratio
+if (apodizer eq 'APOD_H_G6205') then begin   
+    if (filter ne 'K2') then res = where(strmatch(names,'*'+apodizer+'*',/fold_case) and (order eq spot_order) and (filt eq filter),cc)
+    if (filter eq 'K2') then res = where(strmatch(names,'*'+apodizer+'*',/fold_case) and (order eq 1) and (filt eq 'H'),cc)
 endif else begin
     res = where(strmatch(names,'*'+apodizer+'*',/fold_case) and (order eq spot_order),cc)
 endelse
