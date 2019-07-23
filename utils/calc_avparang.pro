@@ -6,7 +6,7 @@ paint_ineq = atan(sin(H)*cos(phi),sin(phi)*cos(d) - sin(d)*cos(phi)*cos(H))
 
 ;; to remove discontinuity from -179 to 179
 ;; may lead to average parang being > 180, so parang is wrapped at the end of the function
-if wrap_flag && (H < 0.0d) then paint_ineq += 2.0d*!dpi
+if wrap_flag && (H lt 0.0d) then paint_ineq += 2.0d*!dpi
 return, paint_ineq
 
 
