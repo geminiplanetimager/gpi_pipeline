@@ -1,11 +1,12 @@
 function parang_eq,H
 ;;helper function for calc_avparang
 
-common calc_avparangle_common,d,phi
+common calc_avparangle_common,d,phi,wrap_flag
 paint_ineq = atan(sin(H)*cos(phi),sin(phi)*cos(d) - sin(d)*cos(phi)*cos(H))
 
 ;; to remove discontinuity from -179 to 179
-if (d gt phi) and (H lt 0.0d) then paint_ineq += 2.0d*!dpi
+;; may lead to average parang being > 180, so parang is wrapped at the end of the function
+if wrap_flag && (H < 0.0d) then paint_ineq += 2.0d*!dpi
 return, paint_ineq
 
 
@@ -56,7 +57,7 @@ function calc_avparang,HAstart,HAend,dec,lat=lat,degree=degree
 ;                int_h0^0 p+2pi  dt + int_0^h1 p dt.
 ;-
 
-common calc_avparangle_common,d,phi
+common calc_avparangle_common,d,phi,wrap_flag
 
 ;;check inputs
 if (n_elements(HAstart) ne 1) || (n_elements(HAend) ne 1) || (n_elements(dec) ne 1) then message,'All inputs must be scalar.'
@@ -83,6 +84,11 @@ if ~keyword_set(degree) then begin
    h0 *= 15d0
    h1 *= 15d0
 endif
+
+;h1*h0 < 0 if HA goes from -ve to +ve
+;if we cross meridian and are in the north there is a discontinuity in parang
+wrap_flag = 0
+if ((h1 * h0) lt 0) && (d gt phi) then wrap_flag = 1
 
 ;; Wrap treated inside parang_eq
 paint = qromb('parang_eq',h0,h1,/double,eps=1e-8)
