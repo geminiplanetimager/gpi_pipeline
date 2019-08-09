@@ -68,6 +68,8 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
 ;       causes calc_avparang to crash.
 ;
 ;       2019-5-24 R. De Rosa: now correctly accounts for coadds
+;       2019-7-12 R. De Rosa: corrected for offset between IFS and TLC
+;       UT time, and for data where instrument rotator drive disabled
 ;
 
   compile_opt defint32, strictarr, logical_predicate
@@ -152,6 +154,59 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
         return
      endif 
 
+     ;; get UT offset to apply to UTSTART and UTEND
+     ;; UT offset is difference between DATE+UT (TLC) minus DATE-OBS+UTSTART (IFS)
+     ;; and the the median such difference between 2017.0 and 2018.5 (-3.384 seconds)
+     ;; this should bring IFS time in sync with UTC.
+     utoff_lut = mrdfits(gpi_get_directory('GPI_DRP_CONFIG')+'/UToffset.fits',0,/silent,/dscale)
+     ;; calculate julian date from IFS
+     ymd_ifs = double(strsplit(dateobs,'-',/extract))
+     hms_ifs = double(strsplit(utstart,':',/extract))
+     mjd_ifs = julday(ymd_ifs[1], ymd_ifs[2], ymd_ifs[0], hms_ifs[0], hms_ifs[1], hms_ifs[2]) - 2400000.5D
+     ;; find closest entry in LUT. Doesn't check if mjd is out of bounds, instead returns first or last entry
+     foo = min(abs(mjd_ifs - utoff_lut[*,0]), indx)
+     utoff = utoff_lut[indx, 1]
+
+     if utoff ne 0.0D then begin
+      ;; save old values for posterity
+      backbone->set_keyword, "OLD-DATE", dateobs, "Old UT start date of exposure"
+      backbone->set_keyword, "OLDSTART", utstart, "Old UT start time of exposure"
+      backbone->set_keyword, "OLDEND", utend, "Old UT end time of exposure (after last read)"
+      ;; A hacky way to correct UTSTART and UTEND for dateline crossing after applying UT offset correction
+      ;; Correct UTEND first, as we need to fix DATE-OBS when we fix UTSTART
+      ymd_ifs = double(strsplit(dateobs,'-',/extract))
+      hms_ifs = double(strsplit(utend,':',/extract))
+      jd_ifs = julday(ymd_ifs[1], ymd_ifs[2], ymd_ifs[0], hms_ifs[0], hms_ifs[1], hms_ifs[2]) + (utoff/86400.0d) ;;utoff is in seconds
+
+      utstartd =  ten(double(strsplit(utstart,':',/extract))) ;dec hrs
+      utendd =  ten(double(strsplit(utend,':',/extract)))     ; dec hrs
+      if utendd lt utstartd then jd_ifs += 1.0d ;; since julian date was calculated with UTSTART's DATEOBS
+                                               ;; this correction shouldn't change the final time string
+      caldat, jd_ifs, ymd_ifs1, ymd_ifs2, ymd_ifs0, hms_ifs0, hms_ifs1, hms_ifs2
+      ymd_ifs = double([ymd_ifs0, ymd_ifs1, ymd_ifs2])
+      hms_ifs = double([hms_ifs0, hms_ifs1, hms_ifs2])
+      ;; convert back to string
+      utend = strn(hms_ifs[0], format='(I02)')+':'+strn(hms_ifs[1], format='(I02)')+':'+strn(hms_ifs[2], format='(F06.3)')
+
+      ymd_ifs = double(strsplit(dateobs,'-',/extract))
+      hms_ifs = double(strsplit(utstart,':',/extract))
+      jd_ifs = julday(ymd_ifs[1], ymd_ifs[2], ymd_ifs[0], hms_ifs[0], hms_ifs[1], hms_ifs[2]) + (utoff/86400.0d) ;;utoff is in seconds
+
+      caldat, jd_ifs, ymd_ifs1, ymd_ifs2, ymd_ifs0, hms_ifs0, hms_ifs1, hms_ifs2
+      ymd_ifs = double([ymd_ifs0, ymd_ifs1, ymd_ifs2])
+      hms_ifs = double([hms_ifs0, hms_ifs1, hms_ifs2])
+
+      ;; convert back to strings
+      dateobs = strn(ymd_ifs[0], format='(I04)')+'-'+strn(ymd_ifs[1], format='(I02)')+'-'+strn(ymd_ifs[2], format='(I02)')
+      utstart = strn(hms_ifs[0], format='(I02)')+':'+strn(hms_ifs[1], format='(I02)')+':'+strn(hms_ifs[2], format='(F06.3)')
+
+      backbone->set_keyword, "DATE-OBS", dateobs, "UT start date of exposure"
+      backbone->set_keyword, "UTSTART", utstart, "UT start time of exposure"
+      backbone->set_keyword, "UTEND", utend, "UT end time of exposure (after last read)"
+      backbone->set_keyword, "UTOFFSET", utoff, "Offset (sec) added to IFS UT"
+      backbone->set_keyword, 'HISTORY', "GPI_UPDATE_WCS_BASIC: Applied UTOFFSET",ext_num=0
+    endif
+
      ;;get exposure start and end times
      utstartd =  ten(double(strsplit(utstart,':',/extract))) ;dec hrs
      utendd =  ten(double(strsplit(utend,':',/extract)))     ; dec hrs
@@ -177,7 +232,7 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
                                 ;condition.  If not,
                                 ;the exposure started after midnight,
                                 ;and we have to change both dates
-      endif else if dateline eq 1 then dateline = 2
+     endif else if dateline eq 1 then dateline = 2
       ;dateline = 0: normal conditions, we're not near midnight
       ;dateline = 1: less-normal, we cross midnight while we're
                                 ;collecting light
@@ -253,6 +308,21 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
      ;; calcualte average parang
      avparang = calc_avparang(ha0,ha1,dec0)
 
+     ;; Correct parang if DATALAB in LUT
+     datalab = backbone->get_keyword('DATALAB',count=ct1)
+     if ct1 eq 1 then begin
+      crpa_lut = mrdfits(gpi_get_directory('GPI_DRP_CONFIG')+'/CRPA_offset.fits', 1, /silent)
+      crpa_ind = where(crpa_lut.DATALAB eq datalab, ct2)
+      if ct2 eq 1 then begin
+        crpa_offset = crpa_lut[crpa_ind].CRPA_OFFSET
+        avparang -= crpa_offset
+        if avparang gt 180.0d then avparang -= 360.0d
+        if avparang lt -180.0d then avparang += 360.0d
+        backbone->set_keyword, 'CRPAOFF', crpa_offset, "CRPA offset (deg) applied to parallactic angle"
+        backbone->set_keyword, 'HISTORY', "GPI_UPDATE_WCS_BASIC: Applied CRPA_OFFSET",ext_num=0
+      endif
+    endif
+
      ;;calculate the MJD-AVG
      avmjd = (jd0+jd1)/2d0 - 2400000.5d0
 
@@ -266,7 +336,7 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
   ;Now using AVPARANG to compute CD matrix.
 
   ifs_rotation = gpi_get_constant('ifs_rotation')
-  vert_angle = -(360-avparang) + ifs_rotation  -90 ; 90 deg is rotation of the H2RG w.r.t. where the (0,0) corner is
+  vert_angle = -(360.0d -avparang) + ifs_rotation  -90.0d ; 90 deg is rotation of the H2RG w.r.t. where the (0,0) corner is
 
   ;;; CLockwise rotation of negative PA
   pc = [[cos(vert_angle*!dtor), -sin(vert_angle*!dtor)], $

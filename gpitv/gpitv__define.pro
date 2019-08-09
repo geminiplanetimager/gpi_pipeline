@@ -8281,7 +8281,12 @@ pro GPItv::setheadinfo, noresize=noresize
     if cc1 eq 0 then sat_order = 1 else begin
         sat_order = val2
     endelse
-    (*self.state).gridfac = gpi_get_gridfac(val, sat_order)
+    ifs_filter = gpi_get_keyword(h, e, 'IFSFILT', count=ct, silent=silent)
+    if strmatch(ifs_filter, '*IFSFILT*') && (ct eq 1) then begin
+      ifs_filter = strsplit(ifs_filter, '_',/extract)
+      ifs_filter = ifs_filter[1]
+    endif else ifs_filter = 'NONE'
+    (*self.state).gridfac = gpi_get_gridfac(val, sat_order, ifs_filter)
   endelse
 
   if xregistered(self.xname+'_contrprof',/noshow) then $

@@ -151,6 +151,7 @@ if keyword_set(update_prev_fits_header) then begin
 		sxaddpar,prevheader, "PSFCENTX", mean(PSFcens[0,*]), 'Mean PSF center X'
 		sxaddpar,prevheader, "PSFCENTY", mean(PSFcens[1,*]), 'Mean PSF center Y'
 		sxaddpar,prevheader, 'SATSMASK',goodhex,'HEX->binary mask for slices with found sats'
+        sxaddpar,prevheader, 'SATSORDR',secondorder+1,'Sat spot grid order used (primary or secondary)'
 
 		gpi_update_prev_saved_header, prevheader, ext_num=1
 

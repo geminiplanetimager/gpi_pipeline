@@ -220,7 +220,13 @@ endif ; if ref_model_spectrum eq 0
 		sat_order = backbone->get_keyword('SATSORDR', ext_num=1, count=ct, /silent) ; which order
 		if ct eq 0 then sat_order = 1
 
-		gridfac = gpi_get_gridfac(apodizer, sat_order)
+	    filter = backbone->get_keyword('IFSFILT', count=ct)
+        if strmatch(filter, '*IFSFILT*') && (ct eq 1) then begin
+          filter = strsplit(filter, '_', /extract)
+          filter = filter[1]
+        endif else filter = 'NONE'
+
+		gridfac = gpi_get_gridfac(apodizer, sat_order, filter)
 		gpi_model_flux*=gridfac
 	endif
 
