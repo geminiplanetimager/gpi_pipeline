@@ -353,7 +353,8 @@ PRO gpiPipelineBackbone::gpitv, filename_or_data, session=session, header=header
             tmppath = getenv('IDL_TMPDIR')
 			if file_test(tmppath, /write) then begin
 				if strmid(tmppath, strlen(tmppath)-1) ne path_sep() then tmppath +=path_sep()  ; be careful if path sep char is on the end already or not
-				tempfile = tmppath+'temp.fits'
+                spawn,'id -u',uid_str
+                tempfile = tmppath+'temp-'+uid_str[0]+'.fits'
 
 				; check for the error case where some other user already owns
 				; /tmp/temp.fits on a multiuser machine. If necessary, fall back to
@@ -361,14 +362,14 @@ PRO gpiPipelineBackbone::gpitv, filename_or_data, session=session, header=header
 				;
 				i=self.TempFileNumber
 				i=(i+1) mod 100
-				tempfile = tmppath+'temp'+strc(i)+'.fits'
+				tempfile = tmppath+'temp-'+uid_str[0]+'-'+strc(i)+'.fits'
 		
 				catch, gpitv_send_error
 				if gpitv_send_error then begin
 					; try the next filename, except if we are at 100 tries already then
 					; give up 
 					i=(i+1) mod 100
-					tempfile = tmppath+'temp'+strc(i)+'.fits'
+					tempfile = tmppath+'temp-'+uid_str[0]+'-'+strc(i)+'.fits'
 					if i eq self.TempFileNumber-1 or (self.TempFileNumber eq 0 and i eq 99) then begin
 						self->Log, "Could not open **any** filename for writing in "+getenv('IDL_TMPDIR')+" after 100 attempts. Cannot send file to GPItv."
 						stop
