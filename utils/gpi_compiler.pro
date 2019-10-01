@@ -329,7 +329,7 @@ message,/info, "Now cleaning up and organizing the output files..."
 
 ; compute version string including major+minor version number and svn revision
 ; ID if possible.
-version_parts = strsplit(gpi_pipeline_version(/svn),', :',/extract)
+version_parts = strsplit(gpi_pipeline_version(),', :',/extract)
 if n_elements(version_parts) eq 1 then version_string = version_parts[0] else version_string =  version_parts[0]+"_r"+version_parts[2]
 
 

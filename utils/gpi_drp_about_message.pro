@@ -9,7 +9,7 @@
 
 function gpi_drp_about_message
 
-    ver=(gpi_pipeline_version(/git))
+    ver=(gpi_pipeline_version())
     tmpstr=['GPI Data Reduction Pipeline Version: '+ver, $
               '', $
               'Copyright 2008-2016, by the GPI Team & AURA', $

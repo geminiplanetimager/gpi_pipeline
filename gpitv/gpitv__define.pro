@@ -1753,7 +1753,7 @@ pro GPItv::topmenu_event, event
     'Developer Guide': gpi_open_help,'developers/gpitv_devel.html'
 
     'About': begin
-      tmpstr=['GPItv Version: '+strc(gpi_pipeline_version(/svn)), $
+      tmpstr=['GPItv Version: '+strc(gpi_pipeline_version()), $
         '', $
         'GPItv is a modified version of the package ATV written by Aaron Barth.',$
         'http://www.physics.uci.edu/~barth/atv/',$

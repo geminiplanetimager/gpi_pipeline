@@ -22,7 +22,7 @@
 ;------------------------------------------------------------
 
 pro gpipipelinebackbone::aboutmessage
-    ver = gpi_pipeline_version(/svn)
+    ver = gpi_pipeline_version()
 	nspaces = 30 - strlen(ver)
 	spaces = strmid('                            ',0,nspaces) ; is there a better way to do this?
 
@@ -35,8 +35,8 @@ pro gpipipelinebackbone::aboutmessage
     print, "     *                                                   *"
     print, "     *         By the GPI Data Analysis Team             *"
     print, "     *                                                   *"
-    print, "     *   Perrin, Maire, Ingraham, Savransky, Doyon,      *"
-    print, "     *   Chilcote, Draper, Fitzgerald, Greenbaum         *"
+    print, "     *   Perrin, Maire, Ingraham, Savransky, De Rosa     *"
+    print, "     *   Doyon, Chilcote, Draper, Fitzgerald, Greenbaum  *"
     print, "     *   Hibon, Konopacky, Long, Marois, Marchis         *"
     print, "     *   Millar-Blanchaer, Nielsen, Pueyo,               *"
     print, "     *   Ruffio, Sadakuni, Wang, Wolff, & Wiktorowicz    *"
@@ -114,7 +114,7 @@ FUNCTION gpipipelinebackbone::Init,  session=session, verbose=verbose, nogui=nog
 		if ~(keyword_set(self.nogui)) then begin
 			self->SetupStatusConsole
 			self.statuswindow->display_log,"* GPI DATA REDUCTION PIPELINE  *"
-			self.statuswindow->display_log,"* VERSION "+gpi_pipeline_version(/svn)+"  *"
+			self.statuswindow->display_log,"* VERSION "+gpi_pipeline_version()+"  *"
 			self.statuswindow->set_calibdir, self.GPICalDB->get_calibdir()
 		endif
     
@@ -847,7 +847,7 @@ FUNCTION gpiPipelineBackbone::load_FITS_file, indexFrame
     ; is required. 
     ;SXADDPAR, *(*self.data).HeadersExt[IndexFrame], "END",''        
     
-	self->set_keyword, "HISTORY", "Reduction with GPI Data Pipeline version "+gpi_pipeline_version(/svn)
+	self->set_keyword, "HISTORY", "Reduction with GPI Data Pipeline version "+gpi_pipeline_version()
 	self->set_keyword, "HISTORY", "  Started On " + SYSTIME(0)
 	self->set_keyword, "HISTORY", "  User: "+getenv('USER')+ "      Hostname: "+getenv('HOST')
     return, OK
@@ -986,7 +986,7 @@ PRO gpiPipelineBackbone::OpenLog
 		  OPENW, new_LUN, LogFile, /GET_LUN,/APPEND
 		  self.LOG_GENERAL = new_LUN
 		  PRINTF, self.LOG_GENERAL, '--------------------------------------------------------------'
-		  PRINTF, self.LOG_GENERAL, '   GPI Data Reduction Pipeline, version '+gpi_pipeline_version(/svn)
+		  PRINTF, self.LOG_GENERAL, '   GPI Data Reduction Pipeline, version '+gpi_pipeline_version()
 		  PRINTF, self.LOG_GENERAL, '   Started On ' + SYSTIME(0)
 		  PRINTF, self.LOG_GENERAL, '   User: '+user+ "      Hostname: "+computer
 		  PRINTF, self.LOG_GENERAL, ''

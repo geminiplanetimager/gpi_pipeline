@@ -50,52 +50,41 @@
 ;   2015-03-17      Release 1.3.0
 ;   2016-06-14      Release 1.4.0
 ;   2016-08-11		added /git option
+;   2019-10-01      Release 1.5.0
 ;-
 
-function gpi_pipeline_version, svn=svn, git=git
+function gpi_pipeline_version
 
-version = '1.4.0'
+version = '1.5.0'
 
+codepath = gpi_get_directory('GPI_DRP_DIR')
 
-
-if keyword_set(svn) then begin
-	; append svn version ID also, if possible
-	codepath = gpi_get_directory('GPI_DRP_DIR')
-
-	if  file_test(codepath+path_sep()+".svn",/directory) and ~lmgr(/runtime) then begin
-		cd, curr=curr
-		catch, myerror
-		if myerror eq 0 then begin
-			cd, codepath
-			spawn, 'svnversion', results,/noshell
-			svnid = results[n_elements(results)-1] ; take the last line of the result
-				; this is in case we get multi-line output because e.g. the user
-			version += ", rev "+strc(svnid)
-		endif
-		cd, curr
+; append svn version ID also, if possible
+if  file_test(codepath+path_sep()+".svn",/directory) and ~lmgr(/runtime) then begin
+	cd, curr=curr
+	catch, myerror
+	if myerror eq 0 then begin
+		cd, codepath
+		spawn, 'svnversion', results,/noshell
+		svnid = results[n_elements(results)-1] ; take the last line of the result
+			; this is in case we get multi-line output because e.g. the user
+		version += ", rev "+strc(svnid)
 	endif
-
+	cd, curr
 endif
 
-if keyword_set(git) then begin
-	; append git short SHA hash also, if possible
-	codepath = gpi_get_directory('GPI_DRP_DIR')
-
-	if  file_test(codepath+path_sep()+".git",/directory) and ~lmgr(/runtime) then begin
-		cd, curr=curr
-		catch, myerror
-		if myerror eq 0 then begin
-			cd, codepath
-			spawn, 'git rev-parse --short HEAD', results
-			svnid = results[n_elements(results)-1] ; take the last line of the result
-			version += ", rev "+strc(svnid)
-		endif
-		cd, curr
+; append git short SHA hash also, if possible
+if  file_test(codepath+path_sep()+".git",/directory) and ~lmgr(/runtime) then begin
+	cd, curr=curr
+	catch, myerror
+	if myerror eq 0 then begin
+		cd, codepath
+		spawn, 'git rev-parse --short HEAD', results
+		svnid = results[n_elements(results)-1] ; take the last line of the result
+		version += ", rev "+strc(svnid)
 	endif
-
+	cd, curr
 endif
-
-
 
 return, version
 end
