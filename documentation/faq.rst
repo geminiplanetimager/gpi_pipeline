@@ -261,5 +261,9 @@ GPITV is crashing on startup, and/or colors are behaving weirdly.
 GPItv requires a 24-bit (millions of colors) display. Check if your X11 or other graphics system settings are for some reason set to 8-bit (256 color) mode. If so, you should change them to 24 bit color before running the GPI pipeline. 
 
 
+GPITV is Really slow when drawing an image
+------------------------------------------
+
+There can be a problem with newer versions of XQuartz (X11) on OSX (maybe other platforms too?). Try changing your XQuartz colors to "Millions" if its set to "From Display". 
 
 
