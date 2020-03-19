@@ -1,9 +1,12 @@
 function parang_eq,H
 ;;helper function for calc_avparang
 
-common calc_avparangle_common,d,phi
-
+common calc_avparangle_common,d,phi,wrap_flag
 paint_ineq = atan(sin(H)*cos(phi),sin(phi)*cos(d) - sin(d)*cos(phi)*cos(H))
+
+;; to remove discontinuity from -179 to 179
+;; may lead to average parang being > 180, so parang is wrapped at the end of the function
+if wrap_flag && (H lt 0.0d) then paint_ineq += 2.0d*!dpi
 return, paint_ineq
 
 
@@ -48,9 +51,13 @@ function calc_avparang,HAstart,HAend,dec,lat=lat,degree=degree
 ;
 ; MODIFICATION HISTORY:
 ;	Written 08.14.2013 - ds
+;   2019-07-16 - Fixed integration for exposures through transit.
+;                Was previoulsy integrating curve as 
+;                int_h0^0 abs(p) dt + int_0^h1 p dt, rather than
+;                int_h0^0 p+2pi  dt + int_0^h1 p dt.
 ;-
 
-common calc_avparangle_common,d,phi
+common calc_avparangle_common,d,phi,wrap_flag
 
 ;;check inputs
 if (n_elements(HAstart) ne 1) || (n_elements(HAend) ne 1) || (n_elements(dec) ne 1) then message,'All inputs must be scalar.'
@@ -62,10 +69,10 @@ if ~keyword_set(lat) then lat = gpi_get_constant('observatory_lat',default=-30.2
 ;;24. or smaller than -24.  Correct for this first, then the
 ;;test4transit code should take care of the rest.
 
-if HAstart le -12. then HAstart = HAstart + 24.
-if HAstart gt 24. then HAstart = HAstart - 24.
-if HAend le -12. then HAend = HAend + 24.
-if HAend gt 24. then HAend = HAend - 24.
+if HAstart le -12.d then HAstart = HAstart + 24.d
+if HAstart gt 24.d then HAstart = HAstart - 24.d
+if HAend le -12.d then HAend = HAend + 24.d
+if HAend gt 24.d then HAend = HAend - 24.d
 
 ;;convert everything radians (converting to degrees first as needed)
 h0 =  HAstart * !dpi/180d0
@@ -78,33 +85,14 @@ if ~keyword_set(degree) then begin
    h1 *= 15d0
 endif
 
-;the next step sometimes fails when crossing transit, so first check
-;if it crosses transit
+;h1*h0 < 0 if HA goes from -ve to +ve
+;if we cross meridian and are in the north there is a discontinuity in parang
+wrap_flag = 0
+if ((h1 * h0) lt 0) && (d gt phi) then wrap_flag = 1
 
-test4transit = h1 * h0 ;negative if the two have different signs
-if test4transit lt 0 then begin
-
-;We crossed transit, so split the integral in two around 0, this
-;bypasses the underflow problem that causes the step to fail
-
-paint1 = qromb('parang_eq',h0,0d0,/double,eps=1e-8)
-paint2 = qromb('parang_eq',0d0,h1,/double,eps=1e-8)
-
-;Now, beware of the wrap: if we average -179 and +179 we should get
-;180, not 0
-
-if abs(paint1) gt paint2 then paint = paint1 - paint2 else $
-paint = paint2 - paint1
-
-;(the equivalent of taking abs(paint1) + abs(paint2), then making it negative
-;if most of the average is from the negative side of wrap)
-
-endif else begin
-
-;Not crossing transit, so do what we like
+;; Wrap treated inside parang_eq
 paint = qromb('parang_eq',h0,h1,/double,eps=1e-8)
 
-endelse
 ;This is accurate to 0.0001 degrees.  Our target astrometric accuracy
 ;is 1 mas, which at the edge of the field (1.4") is 0.04
 ;degrees.

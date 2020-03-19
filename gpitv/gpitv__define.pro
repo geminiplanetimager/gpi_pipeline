@@ -1753,7 +1753,7 @@ pro GPItv::topmenu_event, event
     'Developer Guide': gpi_open_help,'developers/gpitv_devel.html'
 
     'About': begin
-      tmpstr=['GPItv Version: '+strc(gpi_pipeline_version(/svn)), $
+      tmpstr=['GPItv Version: '+strc(gpi_pipeline_version()), $
         '', $
         'GPItv is a modified version of the package ATV written by Aaron Barth.',$
         'http://www.physics.uci.edu/~barth/atv/',$
@@ -8277,7 +8277,16 @@ pro GPItv::setheadinfo, noresize=noresize
         if res[1] ne '' then val = res[1]
       endif
     endif
-    (*self.state).gridfac = gpi_get_gridfac(val)
+    val2 = gpi_get_keyword(h, e, 'SATSORDR', count=cc1, silent=silent)
+    if cc1 eq 0 then sat_order = 1 else begin
+        sat_order = val2
+    endelse
+    ifs_filter = gpi_get_keyword(h, e, 'IFSFILT', count=ct, silent=silent)
+    if strmatch(ifs_filter, '*IFSFILT*') && (ct eq 1) then begin
+      ifs_filter = strsplit(ifs_filter, '_',/extract)
+      ifs_filter = ifs_filter[1]
+    endif else ifs_filter = 'NONE'
+    (*self.state).gridfac = gpi_get_gridfac(val, sat_order, ifs_filter)
   endelse
 
   if xregistered(self.xname+'_contrprof',/noshow) then $
