@@ -204,11 +204,20 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
   ;
   ; The FWHM of an airy disk is pretty much lambda/D, so sigma=FWHM/2.35=lambda/(2.35*D)
   ; 
+  ;T. Esposito: Hardcoding the peak-to-total ratio for H-band only. When comparing
+  ;consecutively observed Spec and Pol datasets, the measured ratio of Spec satspot peak
+  ;to Pol satspot integrated flux is < the Gaussian assumption of ~1/11. The mean
+  ;is closer to 1/13.5 (e.g. HD 106906 data from 20150504), which is more
+  ;consistent with a 2d Moffat profile.
   
   psigma_rad=cwv[0]*0.000001/(2.35*gpi_get_constant('primary_diam')) ;sigma in radians
   psigma=psigma_rad*206265/gpi_get_constant('ifs_lenslet_scale') ;Now in pixels
   
-  peak_to_total=1/(2*!pi*psigma^2) ;The 
+  if band eq "H" then begin
+    peak_to_total=1/13.5 ; empirically derived ratio, see above
+  endif else begin
+    peak_to_total=1/(2*!pi*psigma^2) ; 2D Gaussian, wavelength-dependent ratio
+  endelse
   
   ;;we're going to do the copsf for all the slices
   copsf = ctr_cube
@@ -501,6 +510,7 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
       mkhdr,hdr,out
       sxaddpar,hdr,'SLICES',slices,'Cube slices used.'
       sxaddpar,hdr,'YUNITS',(['Std Dev','Median','Mean'])[contr_yunit],'Contrast units'
+      sxaddpar,hdr,'GRIDFAC',gridfac,'Sat-spot-to-star ratio used'
 
       writefits,nm,out,hdr
 
