@@ -11,8 +11,8 @@
 pix_to_ripple   122.53444
 mems_rotation   0.017453293
 #
-# lenslet scale based on measurement by Quinn Konopacky, 14.14 +- 0.01 mas/lenslet
-ifs_lenslet_scale       0.01414
+# lenslet scale from De Rosa et al. (2020, JATIS)
+ifs_lenslet_scale       0.014161
 #
 #observatory location (deg, East lon)
 #(gemini south - WGS84) 
