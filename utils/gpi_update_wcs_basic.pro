@@ -70,6 +70,10 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
 ;       2019-5-24 R. De Rosa: now correctly accounts for coadds
 ;       2019-7-12 R. De Rosa: corrected for offset between IFS and TLC
 ;       UT time, and for data where instrument rotator drive disabled
+;       2020-12-05 M. Perrin and R. De Rosa: Add correction for time-variable
+;         offset in IFS rotation angles, as calibrated in De Rosa et al. 2020
+;         JATIS (doi:10.1117/1.JATIS.6.1.015006  arXiv:1910.08659)
+;         Update header CD matrix & add keywords for PACALIB, IFSROTAT, VERTANGL
 ;
 
   compile_opt defint32, strictarr, logical_predicate
@@ -333,10 +337,21 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
      backbone->set_keyword, "MJD-AVG", avmjd, "MJD at midpoint of exposure"
   endelse 
 
+
+  ; Look up PAOFFSET or true north offset from astrometric calibraton table
+  ; add keyword to header for this
+  paoffset = gpi_get_pa_calibration_by_date(avmjd) ; TO BE WRITTEN
+  backbone->set_keyword, "PACALIB", paoffset, "North offset correction applied (see De Rosa et al. 2020 JATIS)"
+
   ;Now using AVPARANG to compute CD matrix.
 
   ifs_rotation = gpi_get_constant('ifs_rotation')
-  vert_angle = -(360.0d -avparang) + ifs_rotation  -90.0d ; 90 deg is rotation of the H2RG w.r.t. where the (0,0) corner is
+
+  corrected_ifs_rotation = ifs_rotation + pa_offset  ; combine the constant and time-variable parts
+  backbone->set_keyword, "IFSROTAT", corrected_ifs_rotation, "Calibrated IFS P.A. rotation angle on this date"
+
+  vert_angle = -(360.0d -avparang) + corrected_ifs_rotation  -90.0d ; 90 deg is rotation of the H2RG w.r.t. where the (0,0) corner is
+  backbone->set_keyword, "VERTANGL", vert_angle, "Vertical Angle (from AVPARANG, IFSROTAT, and constants)"
 
   ;;; CLockwise rotation of negative PA
   pc = [[cos(vert_angle*!dtor), -sin(vert_angle*!dtor)], $
