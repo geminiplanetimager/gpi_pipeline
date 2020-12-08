@@ -117,7 +117,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
 
   ;;get off-axis throughput. Select based on FPM band, fall back on IFSFILT 
   val = backbone->get_keyword('OCCULTER', count=ct)
-  res = stregex(val,'FPM_([A-Za-z])',/extract,/subexpr)
+  res = stregex(val,'FPM_([A-Za-z][0-9]*)',/extract,/subexpr)
   if res[1] ne '' then begin
     coron_filt = res[1]
   endif else begin
@@ -125,11 +125,13 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
       coron_filt = filter
     endif else begin
       coron_filt = 'NONE' ; this is the same behavior but just explicitly defining it here now
+      print, "off-axis throughput file not found"
     endelse
   endelse    
   if coron_filt ne 'NONE' then begin
     ;; read in the corongraph throughput data
     throughput_file = gpi_get_directory("GPI_DRP_CONFIG_DIR")+path_sep()+ "offaxis_throughput" + path_sep() + "gpi_offaxis_throughput_" + coron_filt + ".fits"
+    print, "Reading in off-axis throughput file:", throughput_file
     bin_tab = readfits(throughput_file, bin_hdr, /EXTEN)
     th_seps = tbget(bin_hdr, bin_tab, 'radius')
     th_offaxis = tbget(bin_hdr, bin_tab, 'throughput')
