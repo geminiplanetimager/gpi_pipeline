@@ -340,8 +340,9 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
 
   ; Look up PAOFFSET or true north offset from astrometric calibraton table
   ; add keyword to header for this
-  paoffset = gpi_get_pa_calibration_by_date(avmjd) ; TO BE WRITTEN
-  backbone->set_keyword, "PACALIB", paoffset, "North offset correction applied (see De Rosa et al. 2020 JATIS)"
+  paoffset = gpi_get_pa_calibration_by_date(avmjd)
+  backbone->set_keyword, "PACAL", paoffset[0], "North offset correction applied (see De Rosa et al. 2020 JATIS)"
+  backbone->set_keyword, "PACAL_ER", paoffset[1], "North offset error"
 
   ;Now using AVPARANG to compute CD matrix.
 
