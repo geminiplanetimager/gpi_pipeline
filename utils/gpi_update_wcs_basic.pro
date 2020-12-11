@@ -346,7 +346,7 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
 
   ;Now using AVPARANG to compute CD matrix.
 
-  ifs_rotation = gpi_get_constant('ifs_rotation')
+  ifs_rotation = double(gpi_get_constant('ifs_rotation'))
 
   corrected_ifs_rotation = ifs_rotation + pa_offset[0]  ; combine the constant and time-variable parts
   backbone->set_keyword, "IFSROTAT", corrected_ifs_rotation, "Calibrated IFS P.A. rotation angle on this date"

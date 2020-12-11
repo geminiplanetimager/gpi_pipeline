@@ -32,27 +32,27 @@ function gpi_get_pa_calibration_by_date,avmjd
 ;-
 
 if avmjd lt 56908.0d then begin
-    tn_offset = 0.23
-    tn_error = 0.11
+    tn_offset = 0.23d
+    tn_error = 0.11d
 endif else if avmjd lt 57326.0d then begin
-    tn_offset = 0.17
-    tn_error = 0.14
+    tn_offset = 0.17d
+    tn_error = 0.14d
 endif else if avmjd lt 57636.0d then begin
-    tn_offset = 0.21
-    tn_error = 0.23
+    tn_offset = 0.21d
+    tn_error = 0.23d
 endif else if avmjd lt 58039.0d then begin
-    tn_offset = 0.32
-    tn_error = 0.15
+    tn_offset = 0.32d
+    tn_error = 0.15d
 endif else if avmjd lt 58362.0d then begin
-    tn_offset = 0.28
-    tn_error = 0.19
+    tn_offset = 0.28d
+    tn_error = 0.19d
 endif else if avmjd lt 59215.0d then begin
-    tn_offset = 0.45
-    tn_error = 0.11
+    tn_offset = 0.45d
+    tn_error = 0.11d
 endif else begin
     backbone->log,'GPI_GET_PA_CALIBRATION_BY_DATE: No calibration value available, setting offset to zero!'
-    tn_offset = 0.0
-    tn_error = 0.0
+    tn_offset = 0.0d
+    tn_error = 0.0d
 endelse
 
 return, [tn_offset, tn_error]
