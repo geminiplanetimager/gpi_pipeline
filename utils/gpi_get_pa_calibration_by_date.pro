@@ -54,4 +54,4 @@ endif else begin
     tn_offset = 0.0
     tn_error = 0.0
 
-return, tn_offset, tn_error
+return, [tn_offset, tn_error]
