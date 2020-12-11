@@ -31,22 +31,22 @@ function gpi_get_pa_calibration_by_date,avmjd
 ;
 ;-
 
-if avmjd < 56908.0d then begin
+if avmjd lt 56908.0d then begin
     tn_offset = 0.23
     tn_error = 0.11
-endif else if avmjd < 57326.0d then begin
+endif else if avmjd lt 57326.0d then begin
     tn_offset = 0.17
     tn_error = 0.14
-endif else if avmjd < 57636.0d then begin
+endif else if avmjd lt 57636.0d then begin
     tn_offset = 0.21
     tn_error = 0.23
-endif else if avmjd < 58039.0d then begin
+endif else if avmjd lt 58039.0d then begin
     tn_offset = 0.32
     tn_error = 0.15
-endif else if avmjd < 58362.0d then begin
+endif else if avmjd lt 58362.0d then begin
     tn_offset = 0.28
     tn_error = 0.19
-endif else if avmjd < 59215.0d then begin
+endif else if avmjd lt 59215.0d then begin
     tn_offset = 0.45
     tn_error = 0.11
 endif else begin
