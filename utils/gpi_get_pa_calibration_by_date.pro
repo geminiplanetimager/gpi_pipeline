@@ -53,5 +53,8 @@ endif else begin
     backbone->log,'GPI_GET_PA_CALIBRATION_BY_DATE: No calibration value available, setting offset to zero!'
     tn_offset = 0.0
     tn_error = 0.0
+endelse
 
 return, [tn_offset, tn_error]
+
+end

@@ -340,15 +340,15 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
 
   ; Look up PAOFFSET or true north offset from astrometric calibraton table
   ; add keyword to header for this
-  paoffset = gpi_get_pa_calibration_by_date(avmjd)
-  backbone->set_keyword, "PACAL", paoffset[0], "North offset correction applied (see De Rosa et al. 2020 JATIS)"
-  backbone->set_keyword, "PACAL_ER", paoffset[1], "North offset error"
+  pa_offset = gpi_get_pa_calibration_by_date(avmjd)
+  backbone->set_keyword, "PACAL", pa_offset[0], "North offset correction applied (see De Rosa et al. 2020 JATIS)"
+  backbone->set_keyword, "PACAL_ER", pa_offset[1], "North offset error"
 
   ;Now using AVPARANG to compute CD matrix.
 
   ifs_rotation = gpi_get_constant('ifs_rotation')
 
-  corrected_ifs_rotation = ifs_rotation + pa_offset  ; combine the constant and time-variable parts
+  corrected_ifs_rotation = ifs_rotation + pa_offset[0]  ; combine the constant and time-variable parts
   backbone->set_keyword, "IFSROTAT", corrected_ifs_rotation, "Calibrated IFS P.A. rotation angle on this date"
 
   vert_angle = -(360.0d -avparang) + corrected_ifs_rotation  -90.0d ; 90 deg is rotation of the H2RG w.r.t. where the (0,0) corner is
