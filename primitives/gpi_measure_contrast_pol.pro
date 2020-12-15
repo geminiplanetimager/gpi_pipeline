@@ -179,6 +179,29 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
     filter = filter[1]
   endif else filter = 'NONE'
 
+  ;;get off-axis throughput. Select based on FPM band, fall back on IFSFILT 
+  val = backbone->get_keyword('OCCULTER', count=ct)
+  res = stregex(val,'FPM_([A-Za-z][0-9]*)',/extract,/subexpr)
+  if res[1] ne '' then begin
+    coron_filt = res[1]
+  endif else begin
+    if filter ne 'NONE' then begin
+      coron_filt = filter
+    endif else begin
+      coron_filt = 'NONE' ; this is the same behavior but just explicitly defining it here now
+      print, "off-axis throughput file not found"
+    endelse
+  endelse    
+  if coron_filt ne 'NONE' then begin
+    ;; read in the corongraph throughput data
+    throughput_file = gpi_get_directory("GPI_DRP_CONFIG_DIR")+path_sep()+ "offaxis_throughput" + path_sep() + "gpi_offaxis_throughput_" + coron_filt + ".fits"
+    print, "Reading in off-axis throughput file:", throughput_file
+    bin_tab = readfits(throughput_file, bin_hdr, /EXTEN)
+    th_seps = tbget(bin_hdr, bin_tab, 'radius')
+    th_offaxis = tbget(bin_hdr, bin_tab, 'throughput')
+  endif
+
+
   gridfac = gpi_get_gridfac(apodizer, sat_order, filter)
   if ~finite(gridfac) then return, error('FAILURE ('+functionName+'): Could not match apodizer.')
 
@@ -276,6 +299,13 @@ function gpi_measure_contrast_pol, DataSet, Modules, Backbone
           /dointerp,doouter = doouter, cent=cent
       endcase
       outval *= sclunit
+
+      ;; correct for off-axis transmission of coronagraph
+      if coron_filt ne 'NONE' then begin
+        linterp, th_seps, th_offaxis, asec, this_th_offaxis, missing=1
+        outval *= this_th_offaxis
+      endif
+
       *contrprof[j] = outval
       if contr_xunit eq 1 then $
         asec *= 1d/3600d*!dpi/180d*gpi_get_constant('primary_diam',default=7.7701d0)/(cwv[inds[j]]*1d-6) ; convert to lambda/D
