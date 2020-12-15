@@ -51,11 +51,12 @@
 ;   2016-06-14      Release 1.4.0
 ;   2016-08-11		added /git option
 ;   2019-10-01      Release 1.5.0
+;   2020-12-11      Release 1.6.0 
 ;-
 
 function gpi_pipeline_version
 
-version = '1.5.0'
+version = '1.6.0'
 
 codepath = gpi_get_directory('GPI_DRP_DIR')
 
