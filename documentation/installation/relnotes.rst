@@ -6,7 +6,31 @@ Release Notes
 
 You may wish to skip ahead to  :ref:`configuring`.  
 
-The next release of the GPI pipeline will probably be in early 2017. 
+The next release of the GPI pipeline will probably be during the GPI2 upgrade.
+
+.. _version1.6.0:
+
+Version 1.6.0
+=========================================
+Released 2020 December 15
+
+* Computing contrast curves now accounts for the off-axis throughput drop due to the occulting mask. (Wang)
+* Updated astrometric calibration. IFS rotation is now no longer fixed in time. We have found small (0.1 deg) shifts 
+  in the astrometric calibration of GPI. We have updated all new datacubes to include the "IFSROTAT" keyword that records
+  the time-variable IFS rotation angle. (De Rosa, Perrin)
+* New pol mode satellite spot calibration update for H-band (other bands to be updated in the future) (Esposito)
+* zsh shell support for the automated install script (Ren)
+* Documentation to fix slow GPItv on new versions of OSX (Millar-Blanchaer)
+
+
+.. _version1.5.0:
+
+Version 1.5.0
+=========================================
+Released 2019 October 1
+
+* Fixed timing issues on the IFS computer that updates the parallactic angle calculation
+* Updated satellite spot ratios
 
 
 .. _version1.4.0:
