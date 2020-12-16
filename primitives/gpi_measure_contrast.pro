@@ -203,7 +203,7 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
       ;; correct for off-axis transmission of coronagraph
       if coron_filt ne 'NONE' then begin
         linterp, th_seps, th_offaxis, asec, this_th_offaxis, missing=1
-        outval *= this_th_offaxis
+        outval /= this_th_offaxis
       endif
 
       *contrprof[j] = outval
