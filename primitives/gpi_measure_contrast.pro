@@ -209,7 +209,7 @@ primitive_version= '$Id: gpi_measure_contrast.pro 4355 2016-04-05 19:38:47Z swol
       ;; correct for off-axis transmission of coronagraph
       if coron_filt ne 'NONE' then begin
         linterp, th_seps, th_offaxis, asec, this_th_offaxis, missing=1
-        outval *= this_th_offaxis
+        outval /= this_th_offaxis
       endif
 
       *contrprof[j] = outval
