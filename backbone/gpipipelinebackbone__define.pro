@@ -22,7 +22,7 @@
 ;------------------------------------------------------------
 
 pro gpipipelinebackbone::aboutmessage
-    ver = gpi_pipeline_version(/svn)
+    ver = gpi_pipeline_version()
 	nspaces = 30 - strlen(ver)
 	spaces = strmid('                            ',0,nspaces) ; is there a better way to do this?
 
@@ -35,8 +35,8 @@ pro gpipipelinebackbone::aboutmessage
     print, "     *                                                   *"
     print, "     *         By the GPI Data Analysis Team             *"
     print, "     *                                                   *"
-    print, "     *   Perrin, Maire, Ingraham, Savransky, Doyon,      *"
-    print, "     *   Chilcote, Draper, Fitzgerald, Greenbaum         *"
+    print, "     *   Perrin, Maire, Ingraham, Savransky, De Rosa     *"
+    print, "     *   Doyon, Chilcote, Draper, Fitzgerald, Greenbaum  *"
     print, "     *   Hibon, Konopacky, Long, Marois, Marchis         *"
     print, "     *   Millar-Blanchaer, Nielsen, Pueyo,               *"
     print, "     *   Ruffio, Sadakuni, Wang, Wolff, & Wiktorowicz    *"
@@ -114,7 +114,7 @@ FUNCTION gpipipelinebackbone::Init,  session=session, verbose=verbose, nogui=nog
 		if ~(keyword_set(self.nogui)) then begin
 			self->SetupStatusConsole
 			self.statuswindow->display_log,"* GPI DATA REDUCTION PIPELINE  *"
-			self.statuswindow->display_log,"* VERSION "+gpi_pipeline_version(/svn)+"  *"
+			self.statuswindow->display_log,"* VERSION "+gpi_pipeline_version()+"  *"
 			self.statuswindow->set_calibdir, self.GPICalDB->get_calibdir()
 		endif
     
@@ -353,7 +353,13 @@ PRO gpiPipelineBackbone::gpitv, filename_or_data, session=session, header=header
             tmppath = getenv('IDL_TMPDIR')
 			if file_test(tmppath, /write) then begin
 				if strmid(tmppath, strlen(tmppath)-1) ne path_sep() then tmppath +=path_sep()  ; be careful if path sep char is on the end already or not
-				tempfile = tmppath+'temp.fits'
+                if strmatch(!VERSION.OS_FAMILY , 'Windows',/fold) then begin
+                    uid_str = strmid(getenv('USERNAME'),0,8) ; use username for windows
+                endif else begin
+                    spawn,'id -u',uid_str ; use uid for unix
+                    uid_str = uid_str[0]
+                endelse
+                tempfile = tmppath+'temp-'+uid_str+'.fits'
 
 				; check for the error case where some other user already owns
 				; /tmp/temp.fits on a multiuser machine. If necessary, fall back to
@@ -361,14 +367,14 @@ PRO gpiPipelineBackbone::gpitv, filename_or_data, session=session, header=header
 				;
 				i=self.TempFileNumber
 				i=(i+1) mod 100
-				tempfile = tmppath+'temp'+strc(i)+'.fits'
+				tempfile = tmppath+'temp-'+uid_str+'-'+strc(i)+'.fits'
 		
 				catch, gpitv_send_error
 				if gpitv_send_error then begin
 					; try the next filename, except if we are at 100 tries already then
 					; give up 
 					i=(i+1) mod 100
-					tempfile = tmppath+'temp'+strc(i)+'.fits'
+					tempfile = tmppath+'temp-'+uid_str+'-'+strc(i)+'.fits'
 					if i eq self.TempFileNumber-1 or (self.TempFileNumber eq 0 and i eq 99) then begin
 						self->Log, "Could not open **any** filename for writing in "+getenv('IDL_TMPDIR')+" after 100 attempts. Cannot send file to GPItv."
 						stop
@@ -841,7 +847,7 @@ FUNCTION gpiPipelineBackbone::load_FITS_file, indexFrame
     ; is required. 
     ;SXADDPAR, *(*self.data).HeadersExt[IndexFrame], "END",''        
     
-	self->set_keyword, "HISTORY", "Reduction with GPI Data Pipeline version "+gpi_pipeline_version(/svn)
+	self->set_keyword, "HISTORY", "Reduction with GPI Data Pipeline version "+gpi_pipeline_version()
 	self->set_keyword, "HISTORY", "  Started On " + SYSTIME(0)
 	self->set_keyword, "HISTORY", "  User: "+getenv('USER')+ "      Hostname: "+getenv('HOST')
     return, OK
@@ -980,7 +986,7 @@ PRO gpiPipelineBackbone::OpenLog
 		  OPENW, new_LUN, LogFile, /GET_LUN,/APPEND
 		  self.LOG_GENERAL = new_LUN
 		  PRINTF, self.LOG_GENERAL, '--------------------------------------------------------------'
-		  PRINTF, self.LOG_GENERAL, '   GPI Data Reduction Pipeline, version '+gpi_pipeline_version(/svn)
+		  PRINTF, self.LOG_GENERAL, '   GPI Data Reduction Pipeline, version '+gpi_pipeline_version()
 		  PRINTF, self.LOG_GENERAL, '   Started On ' + SYSTIME(0)
 		  PRINTF, self.LOG_GENERAL, '   User: '+user+ "      Hostname: "+computer
 		  PRINTF, self.LOG_GENERAL, ''

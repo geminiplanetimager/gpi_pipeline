@@ -204,6 +204,51 @@ then
 	fi
 	#reset shell with new environment, this sometimes doesn't work correctly..
 	#exec bash
+elif [ "$SHELL" == "/bin/zsh" ];
+then
+	#write GPI environment file
+	printf "\nWriting GPI Settings to $GPIENV\n\n"
+	printf "# Set up environment variables for the GPI IFS Software\n# Bash Version\n# Source this file from your .zshrc file\n\n" > "$GPIENV" #erase any previous incarnation
+	printf "#----- Required paths -----------------\n# GPI_DATA_ROOT is a helper path only.\n# If desired you can set all paths independently\n" >> "$GPIENV"
+	if [ $IS_COMPILED == 1 ] ; then 
+	    # figure out the version-number-dependent path for IDL
+	    IDL_DIR=$(echo "$GPI_PIPELINE_DIR"/executables/idl* )
+	    #printf "IDL_DIR: $IDL_DIR\n"
+	    printf "export IDL_DIR=\"$IDL_DIR\"\n" >> "$GPIENV"
+	    printf "export GPI_DRP_DIR=\"$GPI_PIPELINE_DIR/\"\n\n" >> "$GPIENV"
+	fi
+	printf "export GPI_DATA_ROOT=\"$DATADIR/\"\n" >> "$GPIENV" 
+	printf "export GPI_DRP_QUEUE_DIR=\"\${GPI_DATA_ROOT}queue/\"\n" >> "$GPIENV"
+	printf "export GPI_RAW_DATA_DIR=\"\${GPI_DATA_ROOT}Raw/\"\n" >> "$GPIENV"
+	printf "export GPI_REDUCED_DATA_DIR=\"\${GPI_DATA_ROOT}Reduced/\"\n" >> "$GPIENV"
+	printf "\n#----- \$PATH and \$IDL_PATH Configuration ---------------\n" >> "$GPIENV"
+	printf "export PATH=\"\${PATH}:$SCRIPTDIR/\"\n" >> "$GPIENV"
+	if [ $IS_COMPILED == 0 ]; then 
+	    printf "export IDL_PATH=\"$IDL_PATH_APPEND\"\n" >> "$GPIENV"
+	fi
+	#source into zshrc file if ncessary:
+	if !(grep -Fxq "source \$HOME/.gpienv" "$HOME/.zshrc")
+	then
+        printf " The .gpienv file needs to be executed to set environment variables each\n time you start a new terminal. This setup script would like to\n source your .gpienv file in your .zshrc so the\n GPI Pipeline is configured when you open a new zsh shell.\n Note that if you are using a login shell (this includes MacOS users),\n you will want to make sure your .zshrc file is sourced into your\n .zsh_profile file. For users with complicated zsh configurations,\n you may want to check that this will not mess up your IDL_PATH and\n PATH variables.\n\n"
+	    while true; do
+		read -p "Should this script edit your .zshrc to source \$HOME/.gpienv? (y|n) " yn
+		case $yn in
+			[Yy]* ) 
+			    printf "Modifying $HOME/.zshrc to automatically run $GPIENV\n"
+			    printf "\n# GPI Pipeline Environment Configuration\n" >> "$HOME/.zshrc"
+			    printf "source \$HOME/.gpienv\n" >> "$HOME/.zshrc"
+			    break;;
+			[Nn]* ) 
+			    printf "Your .zshrc file will be left as-is. Please edit it manually to source .gpienv. \n"
+			    break;;
+			* ) printf "\nPlease answer yes or no.\n\n";;
+		esac
+	   done
+	else 
+	    printf "Your \$HOME/.zshrc file appears to already source the .gpienv file; no further action needed.\n\n"
+	fi
+	#reset shell with new environment, this sometimes doesn't work correctly..
+	#exec zsh	
 elif [ "$SHELL" == "/bin/csh" ] || [ "$SHELL" == "/bin/tcsh" ]
 then	
 	#write GPI environment file
@@ -260,7 +305,7 @@ else
     printf "\nXXXXXXXXXXXXXXXXXXXXXXXX        ERROR         XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
     printf "X                                                                          X\n"
     printf "X    Your selected Unix shell ('$SHELL') is not supported by this script.  X\n"
-    printf "X    Must be one of:   /bin/bash   /bin/csh   /bin/tcsh                    X\n"
+    printf "X    Must be one of:   /bin/bash   /bin/csh   /bin/tcsh  /bin/zsh          X\n"
     printf "X                                                                          X\n"
     printf "X    You must be doing something nonstandard. Hopefully if you are         X\n"
     printf "X    technically skilled enough to change your shell to that, you are      X\n"
