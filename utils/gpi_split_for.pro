@@ -119,6 +119,9 @@ endif else begin
 
 
     nsplit=nsplit < (finish-start+1) ;don't want to duplicated jobs with too many threads
+    if nsplit > 32:
+        if keyword_set(verbose) then splog, 'Requested NSPLIT', nsplit, ' is greater than the recommended maximum around 32 threads.'
+        nsplit = 32
     
     step=ceil((finish-start+1.)/nsplit)
     fin_arr=start+step*(findgen(nsplit)+1)
