@@ -118,10 +118,10 @@ primitive_version= '$Id$' ; get version from subversion to store in header histo
   ;;get off-axis throughput. Select based on FPM band, fall back on IFSFILT 
   val = backbone->get_keyword('OCCULTER', count=ct)
   res = stregex(val,'FPM_([A-Za-z][0-9]*)',/extract,/subexpr)
-  if (res[1] ne '') && (res[1] ne 'S')  then begin ;; S check handles one specific edge case. 
+  if (res[1] ne '') && (res[1] ne 'S')  then begin ;; S check handles one specific edge case.
     coron_filt = res[1]
   endif else begin
-    if (filter ne 'NONE' then begin
+    if (filter ne 'NONE') then begin
       coron_filt = filter
     endif else begin
       coron_filt = 'NONE' ; this is the same behavior but just explicitly defining it here now
