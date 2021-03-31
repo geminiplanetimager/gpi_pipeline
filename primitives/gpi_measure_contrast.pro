@@ -119,7 +119,8 @@ primitive_version= '$Id: gpi_measure_contrast.pro 4355 2016-04-05 19:38:47Z swol
   ;;get off-axis throughput. Select based on FPM band, fall back on IFSFILT 
   val = backbone->get_keyword('OCCULTER', count=ct)
   res = stregex(val,'FPM_([A-Za-z][0-9]*)',/extract,/subexpr)
-  if res[1] ne '' then begin
+  ;if res[1] ne '' then begin
+  if (res[1] ne '') && (res[1] ne 'S')  then begin ;; S check handles one specific edge case.
     coron_filt = res[1]
   endif else begin
     if filter ne 'NONE' then begin
