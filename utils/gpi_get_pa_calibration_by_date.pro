@@ -1,4 +1,4 @@
-function gpi_get_pa_calibration_by_date,avmjd
+function gpi_get_pa_calibration_by_date,avmjd,backbone
 ;+
 ; NAME:
 ;      GPI_GET_PA_CALIBRATION_BY_DATE
@@ -11,6 +11,7 @@ function gpi_get_pa_calibration_by_date,avmjd
 ;
 ; INPUTS:
 ;      avmjd- The MJD at the exposure midpoint
+;      backbone- pipeline backbone for logging
 ;
 ; KEYWORD PARAMETERS:
 ;

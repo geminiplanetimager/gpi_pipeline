@@ -340,7 +340,7 @@ pro gpi_update_wcs_basic,backbone,parang=parang,imsize=imsize
 
   ; Look up PAOFFSET or true north offset from astrometric calibraton table
   ; add keyword to header for this
-  pa_offset = gpi_get_pa_calibration_by_date(avmjd)
+  pa_offset = gpi_get_pa_calibration_by_date(avmjd, backbone)
   backbone->set_keyword, "PACAL", pa_offset[0], "North offset correction applied (see De Rosa et al. 2020 JATIS)"
   backbone->set_keyword, "PACAL_ER", pa_offset[1], "North offset error"
 
